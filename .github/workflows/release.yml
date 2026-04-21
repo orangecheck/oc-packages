@@ -1,0 +1,150 @@
+name: Release
+
+# Publish a package when a tag matching `<pkg>-v<version>` is pushed.
+#
+#   git tag sdk-v0.2.0 ...                → @orangecheck/sdk             (npm)
+#   git tag gate-v0.1.5 ...               → @orangecheck/gate            (npm)
+#   git tag cli-v0.3.0 ...                → @orangecheck/cli             (npm)
+#   git tag react-v0.2.0 ...              → @orangecheck/react           (npm)
+#   git tag relay-filter-v0.1.1 ...       → @orangecheck/relay-filter    (npm)
+#   git tag airdrop-gate-v0.1.1 ...       → @orangecheck/airdrop-gate    (npm)
+#   git tag wallet-adapter-v0.1.0 ...     → @orangecheck/wallet-adapter  (npm)
+#   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
+#
+# Secrets required:
+#   - NPM_TOKEN for JS packages
+#   - PyPI uses OIDC trusted publishing — no token needed
+
+on:
+    push:
+        tags:
+            - 'sdk-v*'
+            - 'gate-v*'
+            - 'cli-v*'
+            - 'react-v*'
+            - 'relay-filter-v*'
+            - 'airdrop-gate-v*'
+            - 'wallet-adapter-v*'
+            - 'sdk-py-v*'
+
+jobs:
+    # ── JS / npm ──────────────────────────────────────────────────────────
+    publish-npm:
+        name: Publish to npm
+        runs-on: ubuntu-latest
+        if: ${{ !startsWith(github.ref_name, 'sdk-py-v') }}
+        permissions:
+            contents: write
+            id-token: write # for npm provenance
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Parse tag
+              id: parse
+              run: |
+                  TAG="${GITHUB_REF#refs/tags/}"
+                  PKG="${TAG%-v*}"
+                  VERSION="${TAG##*-v}"
+                  echo "package=$PKG" >> "$GITHUB_OUTPUT"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "dir=$PKG" >> "$GITHUB_OUTPUT"
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  registry-url: 'https://registry.npmjs.org'
+                  cache: yarn
+                  cache-dependency-path: ${{ steps.parse.outputs.dir }}/yarn.lock
+
+            - name: Build SDK (dependency)
+              if: steps.parse.outputs.package != 'sdk'
+              working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            - name: Install
+              working-directory: ${{ steps.parse.outputs.dir }}
+              run: yarn install --frozen-lockfile
+
+            - name: Verify package.json version matches tag
+              working-directory: ${{ steps.parse.outputs.dir }}
+              run: |
+                  PJ_VERSION=$(node -p "require('./package.json').version")
+                  if [ "$PJ_VERSION" != "${{ steps.parse.outputs.version }}" ]; then
+                    echo "::error::package.json version ($PJ_VERSION) does not match tag version (${{ steps.parse.outputs.version }})"
+                    exit 1
+                  fi
+
+            - name: Build
+              working-directory: ${{ steps.parse.outputs.dir }}
+              run: yarn build
+
+            - name: Publish
+              working-directory: ${{ steps.parse.outputs.dir }}
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              # `npm publish` is used because `yarn 1.x publish` prompts for
+              # 2FA interactively and --provenance requires npm CLI + OIDC.
+              run: npm publish --access public --provenance
+
+            - name: Create GitHub Release notes
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: '@orangecheck/${{ steps.parse.outputs.package }} v${{ steps.parse.outputs.version }}'
+                  generate_release_notes: true
+
+    # ── Python / PyPI ─────────────────────────────────────────────────────
+    publish-pypi:
+        name: Publish to PyPI
+        runs-on: ubuntu-latest
+        if: ${{ startsWith(github.ref_name, 'sdk-py-v') }}
+        environment: pypi
+        permissions:
+            contents: write
+            id-token: write # for PyPI trusted publishing
+        defaults:
+            run:
+                working-directory: sdk-py
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Parse version
+              id: parse
+              run: |
+                  TAG="${GITHUB_REF#refs/tags/}"
+                  VERSION="${TAG##*-v}"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+                  cache: pip
+
+            - name: Install build tooling
+              run: pip install --upgrade pip build hatchling
+
+            - name: Verify pyproject version matches tag
+              run: |
+                  PP_VERSION=$(python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+                  if [ "$PP_VERSION" != "${{ steps.parse.outputs.version }}" ]; then
+                    echo "::error::pyproject.toml version ($PP_VERSION) does not match tag version (${{ steps.parse.outputs.version }})"
+                    exit 1
+                  fi
+
+            - name: Build wheel + sdist
+              run: python -m build
+
+            - name: Publish to PyPI (trusted publishing)
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  packages-dir: sdk-py/dist
+                  print-hash: true
+
+            - name: Create GitHub Release notes
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: 'orangecheck (Python) v${{ steps.parse.outputs.version }}'
+                  generate_release_notes: true

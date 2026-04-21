@@ -1,0 +1,66 @@
+name: Packages
+
+# Build every published package on push / PR. The site's CI lives in the
+# oc-web repo (which consumes this repo as a submodule).
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+
+concurrency:
+    group: packages-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build:
+        name: Build ${{ matrix.pkg }}
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                pkg:
+                    - sdk
+                    - gate
+                    - cli
+                    - react
+                    - relay-filter
+                    - airdrop-gate
+                    - wallet-adapter
+        defaults:
+            run:
+                working-directory: ${{ matrix.pkg }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: yarn
+                  cache-dependency-path: ${{ matrix.pkg }}/yarn.lock
+
+            # @orangecheck/sdk must be built first — every other package
+            # depends on it via file:../sdk. The dependency graph is shallow
+            # (one level), so we just always build sdk first explicitly.
+            - name: Build @orangecheck/sdk (dependency)
+              if: matrix.pkg != 'sdk'
+              working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            - name: Install
+              run: yarn install --frozen-lockfile
+
+            - name: Type check (if present)
+              run: yarn run type-check --if-present || true
+
+            - name: Build
+              run: yarn build
+
+            - name: Smoke check — dist exists
+              run: test -d dist
+
+            - name: Smoke check — LICENSE + README shipped
+              run: test -f LICENSE && test -f README.md

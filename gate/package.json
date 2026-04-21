@@ -1,0 +1,61 @@
+{
+    "name": "@orangecheck/gate",
+    "version": "0.1.0",
+    "description": "Drop-in sybil-resistance middleware for Express, Next.js, Fastify, and any Node HTTP framework. Built on OrangeCheck.",
+    "keywords": [
+        "orangecheck",
+        "bitcoin",
+        "sybil-resistance",
+        "middleware",
+        "express",
+        "nextjs",
+        "fastify",
+        "rate-limiting",
+        "bip322",
+        "nostr"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-web.git",
+        "directory": "packages/gate"
+    },
+    "homepage": "https://ochk.io",
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-web/issues"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "type-check": "tsc --noEmit",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "@orangecheck/sdk": "file:../sdk"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

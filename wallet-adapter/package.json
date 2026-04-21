@@ -1,0 +1,70 @@
+{
+    "name": "@orangecheck/wallet-adapter",
+    "version": "0.1.0",
+    "description": "Normalize browser Bitcoin wallets (UniSat, Xverse, Leather, Alby) behind a single sign(message) API. Drop-in adapter for the OrangeCheck challenge flow.",
+    "keywords": [
+        "orangecheck",
+        "bitcoin",
+        "wallet",
+        "bip322",
+        "unisat",
+        "xverse",
+        "leather",
+        "alby",
+        "react"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-web.git",
+        "directory": "packages/wallet-adapter"
+    },
+    "homepage": "https://ochk.io",
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-web/issues"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react.d.ts",
+            "import": "./dist/react.mjs",
+            "require": "./dist/react.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@types/react": "^18.3.12",
+        "react": "^18.3.1",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

@@ -1,0 +1,71 @@
+{
+    "name": "@orangecheck/react",
+    "version": "0.1.0",
+    "description": "React components for OrangeCheck — render proof-of-Bitcoin-stake badges and run identity checks from the browser.",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        },
+        "./badge": {
+            "types": "./dist/badge.d.ts",
+            "import": "./dist/badge.mjs",
+            "require": "./dist/badge.js"
+        },
+        "./gate": {
+            "types": "./dist/gate.d.ts",
+            "import": "./dist/gate.mjs",
+            "require": "./dist/gate.js"
+        },
+        "./challenge": {
+            "types": "./dist/challenge.d.ts",
+            "import": "./dist/challenge.mjs",
+            "require": "./dist/challenge.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build",
+        "test:pack": "npm pack",
+        "version:patch": "npm version patch",
+        "version:minor": "npm version minor",
+        "version:major": "npm version major"
+    },
+    "keywords": [
+        "orangecheck",
+        "bitcoin",
+        "sybil-resistance",
+        "bip322",
+        "nostr",
+        "react",
+        "components"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
+        "react-dom": "^18.0.0 || ^19.0.0"
+    },
+    "dependencies": {
+        "@orangecheck/sdk": "file:../sdk"
+    },
+    "devDependencies": {
+        "@types/react": "^18.3.12",
+        "@types/react-dom": "^18.3.1",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "tsup": "^8.3.5",
+        "typescript": "^5.6.3"
+    }
+}
