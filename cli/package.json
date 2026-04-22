@@ -14,8 +14,8 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/orangecheck/oc-web.git",
-        "directory": "packages/cli"
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "cli"
     },
     "homepage": "https://ochk.io",
     "bugs": {

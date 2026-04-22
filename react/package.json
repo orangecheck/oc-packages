@@ -2,6 +2,17 @@
     "name": "@orangecheck/react",
     "version": "0.1.0",
     "description": "React components for OrangeCheck — render proof-of-Bitcoin-stake badges and run identity checks from the browser.",
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "homepage": "https://ochk.io",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "react"
+    },
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-web/issues"
+    },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",

@@ -18,8 +18,8 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/orangecheck/oc-web.git",
-        "directory": "packages/gate"
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "gate"
     },
     "homepage": "https://ochk.io",
     "bugs": {

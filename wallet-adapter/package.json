@@ -17,8 +17,8 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/orangecheck/oc-web.git",
-        "directory": "packages/wallet-adapter"
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "wallet-adapter"
     },
     "homepage": "https://ochk.io",
     "bugs": {
