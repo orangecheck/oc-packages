@@ -41,6 +41,15 @@ function cacheFor(opts: FilterOptions): TtlLru {
 }
 
 /**
+ * Test hook — drop every cached decision. Not exported from the package
+ * index, and never exercised in production code paths. Test suites call
+ * this in `beforeEach` so per-config signatures don't bleed between cases.
+ */
+export function __clearFilterCachesForTests(): void {
+    caches.clear();
+}
+
+/**
  * The Nostr public key an OrangeCheck attestation binds is the `nostr:npub…`
  * identity. Events on the wire carry the hex-encoded pubkey. We build the
  * identity lookup key using the hex form and let OrangeCheck's discovery
