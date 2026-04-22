@@ -3,8 +3,8 @@ name: Packages
 # Build + test every package on push / PR.
 #
 # Jobs:
-#   build      — build + test each JS package (matrix over every dir)
-#   python     — build + test the Python SDK
+#   build       — build + test each JS package (matrix over every dir)
+#   python      — build + test the Python SDK
 #   conformance — fetch the LIVE vectors from oc-protocol/main and re-run
 #                 both SDKs against them. This is the drift-catcher: if the
 #                 spec moves and a vendored SDK copy hasn't caught up, this
@@ -67,21 +67,11 @@ jobs:
             # forwards the unknown flag to the invoked script, which vitest
             # rejects. Guard with grep against package.json instead.
             - name: Type check (if present)
-<<<<<<< HEAD
               run: |
                   if grep -q '"type-check"' package.json; then
                       yarn type-check
                   else
-                      echo "no type-check script"
-=======
-              # yarn 1.x has no --if-present like npm; check package.json
-              # ourselves. Using node so we don't add a jq dep.
-              run: |
-                  if node -e "const s=require('./package.json').scripts||{};process.exit(s['type-check']?0:1)"; then
-                      yarn run type-check
-                  else
                       echo "no type-check script; skipping"
->>>>>>> 4edc7d8 (ci: fix Packages workflow — yarn doesn't have --if-present)
                   fi
 
             - name: Build
@@ -89,17 +79,10 @@ jobs:
 
             - name: Test (if present)
               run: |
-<<<<<<< HEAD
-                  if grep -q '"test"' package.json; then
+                  if grep -q '"test":' package.json; then
                       yarn test
                   else
-                      echo "no test script"
-=======
-                  if node -e "const s=require('./package.json').scripts||{};process.exit(s.test?0:1)"; then
-                      yarn run test
-                  else
                       echo "no test script; skipping"
->>>>>>> 4edc7d8 (ci: fix Packages workflow — yarn doesn't have --if-present)
                   fi
 
             - name: Smoke check — dist exists
