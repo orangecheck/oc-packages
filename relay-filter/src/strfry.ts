@@ -1,6 +1,8 @@
-#!/usr/bin/env node
 /**
  * Strfry policy plugin for OrangeCheck.
+ *
+ * tsup adds `#!/usr/bin/env node` automatically because this file is listed
+ * under `bin` in package.json.
  *
  * Configure Strfry with the path to this binary and it will filter EVENT
  * submissions against OrangeCheck thresholds.
