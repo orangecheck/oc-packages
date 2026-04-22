@@ -1,6 +1,6 @@
 import type { GateOptions, MinimalReq, MinimalRes } from './types';
 
-import { assertOc } from './core';
+import { assertOc, sendBlockedDefault } from './core';
 
 /**
  * Express / Connect / Next-pages-API middleware.
@@ -41,11 +41,6 @@ export function ocGate(opts: GateOptions) {
         }
 
         res.setHeader('Cache-Control', 'no-store');
-        res.status(403).json({
-            error: decision.reason,
-            subject: decision.subject,
-            subjectKind: decision.subjectKind,
-            ...(decision.check ? { orangecheck: decision.check } : {}),
-        });
+        sendBlockedDefault(res, decision, opts);
     };
 }

@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/airdrop-gate",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Sybil filter for token airdrops — turn a candidate list into a sybil-resistant allowlist backed by Bitcoin stake.",
     "keywords": [
         "orangecheck",
@@ -48,7 +48,7 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@orangecheck/sdk": "file:../sdk"
+        "@orangecheck/sdk": "^0.1.2"
     },
     "devDependencies": {
         "@types/node": "^22.10.2",

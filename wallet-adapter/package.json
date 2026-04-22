@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/wallet-adapter",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Normalize browser Bitcoin wallets (UniSat, Xverse, Leather, Alby) behind a single sign(message) API. Drop-in adapter for the OrangeCheck challenge flow.",
     "keywords": [
         "orangecheck",

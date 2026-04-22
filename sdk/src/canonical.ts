@@ -51,11 +51,36 @@ export function randomNonce16BHexLower(): string {
         // Fall through to non-cryptographic fallback
     }
 
-    // Fallback (non-cryptographic) for environments without Web Crypto
-    for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
+    // No silent Math.random fallback: a nonce is a load-bearing security
+    // primitive. A deployment without `crypto.getRandomValues` MUST fix its
+    // environment rather than sign with weak randomness.
+    throw new Error('crypto.getRandomValues unavailable — refusing to mint a weak nonce');
+}
+
+/**
+ * Reject characters that would break the line-oriented canonical grammar
+ * or the comma-separated identities list. If any of these slipped through,
+ * an attacker could smuggle a forged `address:` or extension line into the
+ * signed payload: `identities: alice\naddress: bc1qEVIL…` would parse as a
+ * second address line. Catch it at the boundary, not at verification time.
+ *
+ * Also rejects a colon in the identifier so a bad actor can't turn
+ * `github:alice:extra` into a different protocol binding on parse.
+ */
+const IDENTITY_PROTOCOL_RE = /^[a-z][a-z0-9_-]*$/;
+const IDENTITY_FORBIDDEN_CHARS = /[\r\n,]/;
+
+function assertSafeIdentity({ protocol, identifier }: IdentityBinding): void {
+    if (!IDENTITY_PROTOCOL_RE.test(protocol)) {
+        throw new Error(
+            `invalid identity protocol: ${JSON.stringify(protocol)} — must match /^[a-z][a-z0-9_-]*$/`
+        );
     }
-    return toLowerHex(arr);
+    if (!identifier || IDENTITY_FORBIDDEN_CHARS.test(identifier)) {
+        throw new Error(
+            `invalid identity identifier: ${JSON.stringify(identifier)} — must be non-empty and contain no newlines or commas`
+        );
+    }
 }
 
 /**
@@ -67,6 +92,7 @@ export function formatIdentities(identities: IdentityBinding[] = []): string {
     if (identities.length === 0) {
         return '';
     }
+    for (const id of identities) assertSafeIdentity(id);
 
     // Format as protocol:identifier and sort lexicographically
     const formatted = identities
@@ -86,20 +112,31 @@ export function parseIdentities(identitiesStr: string): IdentityBinding[] {
     if (!identitiesStr || identitiesStr.trim() === '') {
         return [];
     }
+    // The identities field lives on one line of the canonical message. If it
+    // contains a raw LF/CR, it's either corrupt or an attempt to smuggle a
+    // fake core line into the parser. Refuse instead of trying to recover.
+    if (IDENTITY_FORBIDDEN_CHARS.test(identitiesStr.replace(/,/g, ''))) {
+        throw new Error('identities field contains forbidden characters (newline)');
+    }
 
-    return identitiesStr
-        .split(',')
-        .map((binding) => {
-            const colonIndex = binding.indexOf(':');
-            if (colonIndex === -1) {
-                throw new Error(`Invalid identity binding format: ${binding}`);
-            }
-            return {
-                protocol: binding.substring(0, colonIndex).trim(),
-                identifier: binding.substring(colonIndex + 1).trim(),
-            };
-        })
-        .filter((binding) => binding.protocol && binding.identifier);
+    const bindings = identitiesStr.split(',').map((binding) => {
+        const colonIndex = binding.indexOf(':');
+        if (colonIndex === -1) {
+            throw new Error(`Invalid identity binding format: ${binding}`);
+        }
+        return {
+            protocol: binding.substring(0, colonIndex).trim(),
+            identifier: binding.substring(colonIndex + 1).trim(),
+        };
+    });
+
+    for (const b of bindings) {
+        if (!b.protocol || !b.identifier) {
+            throw new Error(`Invalid identity binding: ${b.protocol}:${b.identifier}`);
+        }
+        assertSafeIdentity(b);
+    }
+    return bindings;
 }
 
 /**

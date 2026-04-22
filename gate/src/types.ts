@@ -75,6 +75,31 @@ export interface GateOptions {
     relays?: string[];
 
     /**
+     * Hard deadline for the upstream lookup. Default 5_000 ms. Beyond this the
+     * gate returns `lookup_error` (fail-closed unless `failOpen` is set).
+     */
+    lookupTimeoutMs?: number;
+
+    /**
+     * `header` / `query` / `cookie` / `body` subject sources are **untrusted**
+     * by default — anyone can set them. Passing `trustUnsafeSources: true`
+     * acknowledges that your application verified the address some other way
+     * (e.g., from a signed session cookie), or that you're OK with letting
+     * callers self-declare. The gate will still log a startup warning unless
+     * this flag is set on an explicitly-untrusted source. Custom `from` functions
+     * are always considered trusted (you wrote them).
+     */
+    trustUnsafeSources?: boolean;
+
+    /**
+     * Include the resolved `subject` / `subjectKind` in the default 403 body.
+     * Default `false` — echoing a cookie-bound address discloses it to anyone
+     * who can hit the endpoint. Flip to `true` only when the subject was
+     * already caller-supplied (e.g., `from: 'header'`).
+     */
+    exposeSubject?: boolean;
+
+    /**
      * Called with the decision before the response is sent. Use for logging.
      */
     onDecision?: (req: MinimalReq, decision: GateDecision) => void;

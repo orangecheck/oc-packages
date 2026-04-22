@@ -2,6 +2,7 @@ import {
     discoverAttestations,
     getAttestationsForAddress,
     getAttestationsForIdentity,
+    type AttestationEnvelope,
 } from '@orangecheck/sdk';
 
 import { die, exitWithJson, parseIdentity } from '../util';
@@ -19,7 +20,7 @@ export async function runDiscover(args: DiscoverArgs): Promise<void> {
         die('must provide --addr, --id, or --identity');
     }
 
-    let envelopes = [];
+    let envelopes: AttestationEnvelope[] = [];
     if (args.id) {
         envelopes = await discoverAttestations({ attestationId: args.id });
     } else if (args.addr) {

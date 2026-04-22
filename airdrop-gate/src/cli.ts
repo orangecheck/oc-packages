@@ -26,6 +26,19 @@ interface Args {
     rejectOnError: boolean;
 }
 
+function requireNumber(flag: string, raw: string | undefined): number {
+    if (raw === undefined) {
+        process.stderr.write(`flag ${flag} requires a numeric argument\n`);
+        process.exit(1);
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) {
+        process.stderr.write(`flag ${flag} expected a non-negative number, got: ${raw}\n`);
+        process.exit(1);
+    }
+    return n;
+}
+
 function parseArgs(argv: string[]): Args {
     const args: Args = {
         minSats: 0,
@@ -37,10 +50,19 @@ function parseArgs(argv: string[]): Args {
 
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
-        if (a === '--min-sats') args.minSats = Number(argv[++i]);
-        else if (a === '--min-days') args.minDays = Number(argv[++i]);
-        else if (a === '--concurrency') args.concurrency = Number(argv[++i]);
-        else if (a === '--json') args.json = true;
+        // Validate each flag's value up-front — otherwise `--min-sats` with
+        // no argument silently becomes `NaN`, which then flows into the API
+        // and rejects every candidate.
+        if (a === '--min-sats') args.minSats = requireNumber('--min-sats', argv[++i]);
+        else if (a === '--min-days') args.minDays = requireNumber('--min-days', argv[++i]);
+        else if (a === '--concurrency') {
+            const n = requireNumber('--concurrency', argv[++i]);
+            if (n < 1 || n > 64) {
+                process.stderr.write(`--concurrency must be 1..64, got: ${n}\n`);
+                process.exit(1);
+            }
+            args.concurrency = n;
+        } else if (a === '--json') args.json = true;
         else if (a === '--allow-lookup-errors') args.rejectOnError = false;
         else if (a === '--help' || a === '-h') {
             process.stdout.write(USAGE);
@@ -71,12 +93,32 @@ Stdout: allowlist (plain) or JSON report (with --json)
 Stderr: per-decision progress + final summary
 `;
 
+/** Basic shape check for a Bitcoin address. Not exhaustive (the API does
+ * real validation), but rejects obviously-junk input (HTML, embedded null
+ * bytes, 10 KB lines) before spending a rate-limit budget on it. */
+const ADDR_SHAPE_RE =
+    /^(?:bc1[a-z0-9]{11,87}|tb1[a-z0-9]{11,87}|bcrt1[a-z0-9]{11,87}|[13mn2][a-km-zA-HJ-NP-Z1-9]{25,34})$/;
+const MAX_ADDR_LINE_LEN = 128;
+
 async function readAddresses(): Promise<string[]> {
     const addresses: string[] = [];
     const rl = createInterface({ input: process.stdin, terminal: false });
     for await (const raw of rl) {
         const line = raw.trim();
         if (!line || line.startsWith('#')) continue;
+        if (line.length > MAX_ADDR_LINE_LEN) {
+            process.stderr.write(`skip: line too long (${line.length} chars)\n`);
+            continue;
+        }
+        // eslint-disable-next-line no-control-regex
+        if (/[\x00-\x08\x0b-\x1f\x7f]/.test(line)) {
+            process.stderr.write('skip: line contains control characters\n');
+            continue;
+        }
+        if (!ADDR_SHAPE_RE.test(line)) {
+            process.stderr.write(`skip: ${line.slice(0, 32)}… does not look like a BTC address\n`);
+            continue;
+        }
         addresses.push(line);
     }
     return addresses;

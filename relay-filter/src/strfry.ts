@@ -86,6 +86,8 @@ interface StrfryInput {
     sourceInfo?: string;
 }
 
+const HEX_64_RE = /^[0-9a-f]{64}$/;
+
 async function handleLine(line: string, options: FilterOptions): Promise<string | null> {
     let input: StrfryInput;
     try {
@@ -94,17 +96,36 @@ async function handleLine(line: string, options: FilterOptions): Promise<string 
         return null;
     }
 
-    // Only inspect new events — lookback events are already stored.
-    if (input.type !== 'new' || !input.event) {
+    // Lookback events are already stored; skip entirely so we don't emit a
+    // malformed echo (Strfry expects the id to match the input event).
+    if (input.type !== 'new') {
+        return null;
+    }
+    if (!input.event || typeof input.event !== 'object') {
+        return null;
+    }
+
+    // Validate event shape before it reaches the filter — otherwise a
+    // malformed `pubkey` becomes a cache-poisoning vector (a bogus key like
+    // `undefined` shares a cache entry with every future malformed event).
+    const ev = input.event;
+    if (
+        typeof ev.id !== 'string' ||
+        typeof ev.pubkey !== 'string' ||
+        typeof ev.kind !== 'number' ||
+        !HEX_64_RE.test(ev.id) ||
+        !HEX_64_RE.test(ev.pubkey)
+    ) {
         return JSON.stringify({
-            id: input.event?.id ?? '',
-            action: 'accept',
+            id: typeof ev.id === 'string' ? ev.id : '',
+            action: 'reject',
+            msg: 'orangecheck: malformed event shape',
         });
     }
 
-    const decision = await filterEvent(input.event, options);
+    const decision = await filterEvent(ev, options);
     return JSON.stringify({
-        id: input.event.id,
+        id: ev.id,
         action: decision.action,
         ...(decision.message ? { msg: decision.message } : {}),
     });
@@ -116,8 +137,34 @@ async function main(): Promise<void> {
 
     for await (const line of rl) {
         if (!line.trim()) continue;
-        const out = await handleLine(line, options);
-        if (out) process.stdout.write(out + '\n');
+        // Per-line isolation: a single throw here used to kill the whole
+        // plugin (and then Strfry's default fallback determined whether the
+        // relay accepted or rejected every subsequent event). Catch and emit
+        // an explicit reject instead.
+        try {
+            const out = await handleLine(line, options);
+            if (out) process.stdout.write(out + '\n');
+        } catch (err) {
+            let id = '';
+            try {
+                const parsed = JSON.parse(line);
+                if (parsed?.event?.id && typeof parsed.event.id === 'string') {
+                    id = parsed.event.id.slice(0, 64);
+                }
+            } catch {
+                // leave id empty
+            }
+            process.stderr.write(
+                `[oc-strfry] handleLine threw: ${err instanceof Error ? err.message : String(err)}\n`
+            );
+            process.stdout.write(
+                JSON.stringify({
+                    id,
+                    action: 'reject',
+                    msg: 'orangecheck: filter error',
+                }) + '\n'
+            );
+        }
     }
 }
 

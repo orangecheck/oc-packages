@@ -175,7 +175,7 @@ c = Client(base_url="https://verifier.mycompany.com", timeout=5.0)
 
 # Reuse an existing httpx Client (connection pooling, auth, etc.)
 import httpx
-my_session = httpx.Client(proxies="http://proxy.example.com")
+my_session = httpx.Client(proxy="http://proxy.example.com")
 c = Client(session=my_session)
 ```
 

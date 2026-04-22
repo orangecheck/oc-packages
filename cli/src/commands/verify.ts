@@ -13,10 +13,17 @@ export interface VerifyArgs {
     json?: boolean;
 }
 
+/** The CLI's JSON input accepts both the compact names (`addr`, `msg`, `sig`)
+ * and the longer ones (`address`, `message`, `signature`) that some callers
+ * hand out — README advertises both. All fields optional at parse time;
+ * we check for the resolved set below. */
 interface VerifyInputShape {
-    addr: string;
-    msg: string;
-    sig: string;
+    addr?: string;
+    address?: string;
+    msg?: string;
+    message?: string;
+    sig?: string;
+    signature?: string;
     scheme?: 'bip322' | 'legacy';
 }
 
@@ -41,7 +48,7 @@ export async function runVerify(args: VerifyArgs): Promise<void> {
     // Accept either inline flags or a JSON envelope on stdin / file.
     const fromJson = await loadJsonFromFlags(args);
 
-    const addr = args.addr ?? fromJson?.addr;
+    const addr = args.addr ?? fromJson?.addr ?? fromJson?.address;
     const msg = args.msg ?? fromJson?.msg ?? fromJson?.message;
     const sig = args.sig ?? fromJson?.sig ?? fromJson?.signature;
     const scheme = args.scheme ?? fromJson?.scheme ?? 'bip322';

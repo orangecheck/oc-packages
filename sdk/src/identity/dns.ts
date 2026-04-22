@@ -7,6 +7,31 @@ import { createLogger } from '../utils/logger';
 
 const log = createLogger('identity-verification/dns');
 
+/** Public-internet check. Blocks literal private/loopback/link-local hosts
+ * from being reached via the well-known file verifier — otherwise a caller
+ * running this server-side is an SSRF primitive (cloud metadata, internal
+ * services, etc.). We don't do full DNS resolution here — TLD/label shape
+ * checks + literal-IP rejection are the cheap layers. Production verifiers
+ * running this untrusted should add DNS-pinning on top.
+ */
+const PRIVATE_HOST_RE =
+    /^(?:localhost|.*\.local|.*\.internal|.*\.localhost|.*\.lan|.*\.home|.*\.arpa|\[?::1\]?|\[?::\]?)$/i;
+const PRIVATE_IPV4_RE =
+    /^(?:10\.|127\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|0\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|22[4-9]\.|23\d\.|24\d\.|25[0-5]\.)/;
+
+/** Tight fetch deadline so a slow target can't stall the verifier. */
+const WELL_KNOWN_TIMEOUT_MS = 5_000;
+
+function isSafePublicHost(host: string): boolean {
+    const h = host.toLowerCase();
+    if (PRIVATE_HOST_RE.test(h)) return false;
+    if (PRIVATE_IPV4_RE.test(h)) return false;
+    // IPv6 literal — we don't enumerate every private range; reject bracketed
+    // literals entirely (no legitimate verification target is an IPv6 literal).
+    if (h.startsWith('[') || /^[0-9a-f:]+$/.test(h)) return false;
+    return true;
+}
+
 /**
  * Verification result for DNS identity
  */
@@ -37,6 +62,14 @@ export async function verifyDnsIdentity(
     // Clean domain (remove protocol if present)
     const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+    // Shape + SSRF guards before we ever hand this to fetch().
+    if (!isValidDomain(cleanDomain)) {
+        return { verified: false, error: `invalid domain format: ${cleanDomain}` };
+    }
+    if (!isSafePublicHost(cleanDomain)) {
+        return { verified: false, error: 'domain resolves to a disallowed private host' };
+    }
+
     // Try .well-known file first
     const wellKnownResult = await checkWellKnownFile(attestationId, cleanDomain);
     if (wellKnownResult.verified) {
@@ -60,41 +93,38 @@ async function checkWellKnownFile(
     attestationId: string,
     domain: string
 ): Promise<DnsVerificationResult> {
-    const urls = [
-        `https://${domain}/.well-known/orangecheck.txt`,
-        `http://${domain}/.well-known/orangecheck.txt`, // Fallback to HTTP
-    ];
+    // HTTPS only. The old HTTP fallback meant a MITM / hostile network could
+    // forge a passing verification; dropping it costs us nothing — any real
+    // domain worth attesting to has TLS in 2026.
+    const url = `https://${domain}/.well-known/orangecheck.txt`;
 
-    for (const url of urls) {
-        try {
-            log.info({ url }, 'Checking well-known file');
+    try {
+        log.info({ url }, 'Checking well-known file');
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    Accept: 'text/plain',
-                },
-                // Don't follow redirects to other domains
-                redirect: 'manual',
-            });
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { Accept: 'text/plain' },
+            // Don't follow redirects to other domains
+            redirect: 'manual',
+            signal: AbortSignal.timeout(WELL_KNOWN_TIMEOUT_MS),
+        });
 
-            if (response.ok) {
-                const content = await response.text();
+        if (response.ok) {
+            const content = await response.text();
 
-                if (content.includes(attestationId)) {
-                    log.info({ domain, url }, 'Found attestation ID in well-known file');
-                    return {
-                        verified: true,
-                        method: 'well-known',
-                        url,
-                    };
-                } else {
-                    log.info({ domain, url }, 'Well-known file exists but no attestation ID found');
-                }
+            if (content.includes(attestationId)) {
+                log.info({ domain, url }, 'Found attestation ID in well-known file');
+                return {
+                    verified: true,
+                    method: 'well-known',
+                    url,
+                };
+            } else {
+                log.info({ domain, url }, 'Well-known file exists but no attestation ID found');
             }
-        } catch (err) {
-            log.warn({ error: err, url }, 'Failed to fetch well-known file');
         }
+    } catch (err) {
+        log.warn({ error: err, url }, 'Failed to fetch well-known file');
     }
 
     return {

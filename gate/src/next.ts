@@ -1,6 +1,11 @@
 import type { GateDecision, GateOptions, MinimalReq, MinimalRes } from './types';
 
-import { assertOc } from './core';
+import { assertOc, sendBlockedDefault } from './core';
+
+/** Cap the amount of body we'll parse for a `body: ...` subject source.
+ * Without this a 100 MB POST ties up the gate before any downstream limiter
+ * runs. 64 KB is plenty for a subject field. */
+const MAX_BODY_BYTES = 64 * 1024;
 
 /**
  * Next.js Pages Router API wrapper.
@@ -41,12 +46,7 @@ export function withOcGate<H extends (req: any, res: any) => any>(
         }
 
         res.setHeader('Cache-Control', 'no-store');
-        res.status(403).json({
-            error: decision.reason,
-            subject: decision.subject,
-            subjectKind: decision.subjectKind,
-            ...(decision.check ? { orangecheck: decision.check } : {}),
-        });
+        sendBlockedDefault(res, decision, opts);
     };
     return wrapped as unknown as H;
 }
@@ -81,6 +81,7 @@ export async function ocGateFetch(req: Request, opts: GateOptions): Promise<Gate
     });
 
     // Body is opaque at guard time — only parsed if the caller asks for body: *.
+    // Caps at MAX_BODY_BYTES so a large POST can't stall the gate.
     let body: unknown = undefined;
     if (
         opts.address?.from === 'body' ||
@@ -89,8 +90,15 @@ export async function ocGateFetch(req: Request, opts: GateOptions): Promise<Gate
     ) {
         try {
             const cloned = req.clone();
-            const text = await cloned.text();
-            body = text ? JSON.parse(text) : undefined;
+            const contentLen = Number(cloned.headers.get('content-length') ?? '0');
+            if (contentLen > MAX_BODY_BYTES) {
+                body = undefined;
+            } else {
+                const text = await cloned.text();
+                if (text.length <= MAX_BODY_BYTES) {
+                    body = text ? JSON.parse(text) : undefined;
+                }
+            }
         } catch {
             body = undefined;
         }

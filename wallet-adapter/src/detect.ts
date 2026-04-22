@@ -29,15 +29,25 @@ function detect(): Record<WalletId, boolean> {
     }
     const w = window as unknown as {
         unisat?: UnisatGlobal;
-        XverseProviders?: unknown;
+        XverseProviders?: { BitcoinProvider?: XverseGlobal } | unknown;
         BitcoinProvider?: XverseGlobal; // Xverse also exposes this in some injections.
         LeatherProvider?: LeatherGlobal;
         btc?: LeatherGlobal; // Leather / Stacks Connect alias.
         webln?: WeblnGlobal;
     };
+    // Shape checks only. `Boolean(w.XverseProviders)` used to be enough, but
+    // any bookmarklet or unrelated extension setting `window.XverseProviders = {}`
+    // would register as Xverse and produce signing failures downstream. Require
+    // a callable `request` function — same rule we use for every other wallet.
+    const xverseFromProviders = (() => {
+        const xp = w.XverseProviders;
+        if (!xp || typeof xp !== 'object') return false;
+        const bp = (xp as { BitcoinProvider?: XverseGlobal }).BitcoinProvider;
+        return typeof bp?.request === 'function';
+    })();
     return {
         unisat: typeof w.unisat?.signMessage === 'function',
-        xverse: Boolean(w.XverseProviders) || typeof w.BitcoinProvider?.request === 'function',
+        xverse: xverseFromProviders || typeof w.BitcoinProvider?.request === 'function',
         leather:
             typeof w.LeatherProvider?.request === 'function' ||
             typeof w.btc?.request === 'function',

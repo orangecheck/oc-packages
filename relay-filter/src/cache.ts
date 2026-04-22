@@ -20,15 +20,23 @@ export class TtlLru {
             this.store.delete(key);
             return undefined;
         }
+        // Touch on access so hot entries survive insertion pressure. Without
+        // this, the old implementation was FIFO-with-TTL, not actually LRU —
+        // a frequently-hit key could be evicted by N cold writes before it
+        // ever moved in the map's insertion order.
+        this.store.delete(key);
+        this.store.set(key, entry);
         return entry.value;
     }
 
-    set(key: string, value: FilterDecision): void {
+    /** Optional per-call TTL override. Used by the filter to cache
+     * lookup-error decisions with a short TTL (circuit-breaker pattern). */
+    set(key: string, value: FilterDecision, ttlMs?: number): void {
         if (this.store.size >= this.max) {
             const first = this.store.keys().next().value;
             if (first !== undefined) this.store.delete(first);
         }
-        this.store.set(key, { value, expires: Date.now() + this.ttlMs });
+        this.store.set(key, { value, expires: Date.now() + (ttlMs ?? this.ttlMs) });
     }
 
     clear(): void {

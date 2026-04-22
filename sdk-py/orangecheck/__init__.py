@@ -12,12 +12,17 @@ Three load-bearing functions, mirroring the JS SDK:
     if result.ok:
         ...                                      # let them through
 
-All functions are also available on the Client class for configuring a
-custom API base URL, timeouts, or a shared httpx session:
+All functions are also available on a Client / AsyncClient for configuring
+a custom API base URL, timeouts, or a shared httpx session:
 
     from orangecheck import Client
     oc = Client(base_url="https://my-orangecheck.example.com")
-    await oc.check_async(addr="bc1q...", min_sats=100_000)
+    result = oc.check(addr="bc1q...", min_sats=100_000)
+
+    # async variant
+    from orangecheck import AsyncClient
+    async with AsyncClient() as oc:
+        result = await oc.check(addr="bc1q...", min_sats=100_000)
 """
 
 from .client import AsyncClient, Client
@@ -57,4 +62,4 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

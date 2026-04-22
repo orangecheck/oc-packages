@@ -1,5 +1,25 @@
 import type { SignFn, SignOptions, WalletId } from './types';
 
+/** Signatures from every supported wallet are either base64 or hex. Anything
+ * else is malformed (or HTML pasted into the manual prompt) and the verifier
+ * will reject it — catch the shape error here where we can say *why*. */
+const BASE64_RE = /^[A-Za-z0-9+/_=-]+$/;
+const HEX_RE = /^[0-9a-fA-F]+$/;
+
+function assertPlausibleSignature(sig: string): string {
+    const trimmed = sig.trim();
+    if (!trimmed) throw new Error('empty signature');
+    if (trimmed.length < 10 || trimmed.length > 2048) {
+        throw new Error(`signature length out of range: ${trimmed.length}`);
+    }
+    if (!BASE64_RE.test(trimmed) && !HEX_RE.test(trimmed)) {
+        throw new Error(
+            'signature is not base64 or hex — wallet may have returned an error message or HTML'
+        );
+    }
+    return trimmed;
+}
+
 /**
  * Return a SignFn bound to a particular wallet. The returned function takes a
  * canonical message string and resolves to a BIP-322 signature.
@@ -10,18 +30,23 @@ import type { SignFn, SignOptions, WalletId } from './types';
  * Throws on unknown wallet IDs or when the wallet isn't available on window.
  */
 export function getSigner(wallet: WalletId, opts: SignOptions): SignFn {
-    switch (wallet) {
-        case 'unisat':
-            return signWithUnisat();
-        case 'xverse':
-            return signWithXverse(opts);
-        case 'leather':
-            return signWithLeather();
-        case 'alby':
-            return signWithAlby();
-        case 'manual':
-            return signManual(opts);
-    }
+    const inner: SignFn = (() => {
+        switch (wallet) {
+            case 'unisat':
+                return signWithUnisat();
+            case 'xverse':
+                return signWithXverse(opts);
+            case 'leather':
+                return signWithLeather();
+            case 'alby':
+                return signWithAlby();
+            case 'manual':
+                return signManual(opts);
+        }
+    })();
+    // Wrap every wallet with the shape check so nothing escapes this package
+    // without passing a basic smell test.
+    return async (message) => assertPlausibleSignature(await inner(message));
 }
 
 function signWithUnisat(): SignFn {
@@ -32,13 +57,14 @@ function signWithUnisat(): SignFn {
             }
         ).window;
         if (!w?.unisat?.signMessage) throw new Error('UniSat wallet not found on window.unisat');
-        // `bip322-simple` is the modern BIP-322 flow UniSat exposes. Fall back
-        // to the default if the wallet rejects the type string.
-        try {
-            return await w.unisat.signMessage(message, 'bip322-simple');
-        } catch {
-            return await w.unisat.signMessage(message);
-        }
+        // UniSat exposes two modes: `bip322-simple` (what the verifier wants)
+        // and the default ECDSA `signmessage` (what the verifier won't
+        // accept for segwit/taproot addresses). The old code silently fell
+        // back to the default on any error, which meant users got legacy-ECDSA
+        // signatures their P2WPKH/P2TR addresses couldn't validate. Stick to
+        // BIP-322 and let the error propagate — the UI can suggest switching
+        // wallets or using paste mode.
+        return await w.unisat.signMessage(message, 'bip322-simple');
     };
 }
 

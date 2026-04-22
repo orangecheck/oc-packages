@@ -172,15 +172,30 @@
   dependencies:
     "@noble/hashes" "1.8.0"
 
+"@noble/curves@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-2.2.0.tgz#981be3aadc3bbfbcdb245e78cc97aa6f759246c2"
+  integrity sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==
+  dependencies:
+    "@noble/hashes" "2.2.0"
+
 "@noble/hashes@1.8.0", "@noble/hashes@^1.2.0", "@noble/hashes@^1.5.0":
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/sdk@file:../sdk":
-  version "0.1.0"
+"@noble/hashes@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.2.0.tgz#22da1d16a469954fce877055d559900a6c73b63b"
+  integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
+
+"@orangecheck/sdk@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-0.1.2.tgz#099aaa73848def78d7da5db020b22806a4401a0d"
+  integrity sha512-BT5HfxidfO3qlEeEmjeZhZEbpCYrbtw5KCMzg7+Ju+9Hmyr1+x+0VnvCzLjXNAOmdXy7G/AQD7K1J1vkjYG7LA==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
+    "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
     "@scure/base" "^1.1.9"
     bip322-js "^3.0.0"

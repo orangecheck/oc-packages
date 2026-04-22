@@ -8,6 +8,35 @@ import { createLogger } from '../utils/logger';
 const log = createLogger('identity-verification/github');
 
 /**
+ * Gist file bodies are fetched from `raw_url`. GitHub serves these from
+ * `gist.githubusercontent.com`, but `raw_url` is *server-controlled* — a
+ * malicious response could point it anywhere (internal IPs, 169.254.169.254,
+ * file://, etc.) and our verifier would happily fetch it. Allow-list the
+ * expected host to close the SSRF door.
+ */
+const GITHUB_GIST_RAW_HOST = 'gist.githubusercontent.com';
+
+/** Cap fan-out so a user with 1k gists × many files can't pin the verifier. */
+const MAX_GISTS_SCANNED = 30;
+const MAX_FILES_PER_GIST = 10;
+
+/** Tight per-request deadline. Github is usually under 300ms. */
+const FETCH_TIMEOUT_MS = 5_000;
+
+/** Reject usernames that don't match GitHub's published allowed character set
+ * before we interpolate them into a URL. */
+const GITHUB_USERNAME_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
+
+function isSafeGistRawUrl(raw: string): boolean {
+    try {
+        const u = new URL(raw);
+        return u.protocol === 'https:' && u.hostname === GITHUB_GIST_RAW_HOST;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Verification result for GitHub identity
  */
 export interface GitHubVerificationResult {
@@ -60,13 +89,19 @@ export async function verifyGitHubIdentity(
 ): Promise<GitHubVerificationResult> {
     log.info({ attestationId, username }, 'Verifying GitHub identity');
 
+    if (!GITHUB_USERNAME_RE.test(username)) {
+        return { verified: false, error: 'invalid GitHub username format' };
+    }
+
     try {
         // Query GitHub API for user's gists
-        const response = await fetch(`https://api.github.com/users/${username}/gists`, {
-            headers: {
-                Accept: 'application/vnd.github.v3+json',
-            },
-        });
+        const response = await fetch(
+            `https://api.github.com/users/${encodeURIComponent(username)}/gists?per_page=${MAX_GISTS_SCANNED}`,
+            {
+                headers: { Accept: 'application/vnd.github.v3+json' },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            }
+        );
 
         if (!response.ok) {
             if (response.status === 404) {
@@ -82,12 +117,12 @@ export async function verifyGitHubIdentity(
             };
         }
 
-        const gists: GitHubGist[] = await response.json();
+        const gists = (await response.json()) as GitHubGist[];
 
         log.info({ username, gistCount: gists.length }, 'Fetched GitHub gists');
 
-        // Check each gist for attestation ID
-        for (const gist of gists) {
+        // Check each gist for attestation ID (capped fan-out)
+        for (const gist of gists.slice(0, MAX_GISTS_SCANNED)) {
             // Check gist description
             if (gist.description?.includes(attestationId)) {
                 log.info({ username, gistId: gist.id }, 'Found attestation ID in gist description');
@@ -98,8 +133,9 @@ export async function verifyGitHubIdentity(
                 };
             }
 
-            // Check each file in the gist
-            for (const [filename, file] of Object.entries(gist.files)) {
+            // Check each file in the gist (capped)
+            const files = Object.entries(gist.files).slice(0, MAX_FILES_PER_GIST);
+            for (const [filename, file] of files) {
                 // If content is available, check it
                 if (file.content && file.content.includes(attestationId)) {
                     log.info(
@@ -113,9 +149,22 @@ export async function verifyGitHubIdentity(
                     };
                 }
 
-                // If content not available, fetch it from raw_url
+                // If content not available, fetch it from raw_url — but only
+                // if raw_url is a real GitHub-hosted URL. Without the allow-list
+                // we're an SSRF primitive for anyone controlling the API
+                // response (including via a compromised GitHub mirror / MITM).
+                if (!isSafeGistRawUrl(file.raw_url)) {
+                    log.warn(
+                        { filename, rawUrl: file.raw_url },
+                        'skipping gist file: raw_url failed allow-list'
+                    );
+                    continue;
+                }
+
                 try {
-                    const fileResponse = await fetch(file.raw_url);
+                    const fileResponse = await fetch(file.raw_url, {
+                        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+                    });
                     if (fileResponse.ok) {
                         const content = await fileResponse.text();
                         if (content.includes(attestationId)) {

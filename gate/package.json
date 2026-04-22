@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/gate",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Drop-in sybil-resistance middleware for Express, Next.js, Fastify, and any Node HTTP framework. Built on OrangeCheck.",
     "keywords": [
         "orangecheck",
@@ -48,7 +48,7 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@orangecheck/sdk": "file:../sdk"
+        "@orangecheck/sdk": "^0.1.2"
     },
     "devDependencies": {
         "@types/node": "^22.10.2",

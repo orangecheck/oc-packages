@@ -6,13 +6,36 @@ import { TtlLru } from './cache';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
 
-const caches = new WeakMap<FilterOptions, TtlLru>();
+// Short TTL for lookup-error decisions — acts as a circuit breaker so we
+// don't thundering-herd /api/check when upstream is flapping.
+const LOOKUP_ERROR_TTL_MS = 5_000;
+
+/**
+ * Process-wide cache. The old WeakMap<FilterOptions, …> design meant callers
+ * who constructed a fresh options object per event (very common) never
+ * produced a cache hit — every event was a cold lookup. Keying by a stable
+ * config signature instead lets identical-config callers share.
+ */
+const caches = new Map<string, TtlLru>();
+
+function configSignature(opts: FilterOptions): string {
+    return JSON.stringify([
+        opts.minSats ?? 0,
+        opts.minDays ?? 0,
+        (opts.allowKinds ?? DEFAULT_ALLOW_KINDS).slice().sort(),
+        (opts.allowPubkeys ?? []).slice().sort(),
+        (opts.relays ?? []).slice().sort(),
+        opts.cacheMax ?? 1_000,
+        opts.cacheTtlMs ?? 60_000,
+    ]);
+}
 
 function cacheFor(opts: FilterOptions): TtlLru {
-    let c = caches.get(opts);
+    const sig = configSignature(opts);
+    let c = caches.get(sig);
     if (!c) {
         c = new TtlLru(opts.cacheMax ?? 1_000, opts.cacheTtlMs ?? 60_000);
-        caches.set(opts, c);
+        caches.set(sig, c);
     }
     return c;
 }
@@ -114,7 +137,13 @@ export async function filterEvent(
                 pubkey: event.pubkey,
             });
         }
-        console.warn('[orangecheck/relay-filter] lookup failed:', err);
+        // Cache the error decision with a short TTL so a burst of traffic
+        // while /api/check is down doesn't all dogpile the upstream.
+        cache.set(key, decision, LOOKUP_ERROR_TTL_MS);
+        console.warn(
+            '[orangecheck/relay-filter] lookup failed:',
+            err instanceof Error ? err.message : String(err)
+        );
     }
 
     return finish(event, decision, options);

@@ -222,11 +222,17 @@ async function verifySignature({
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)
 function parseCanonicalMessage(msg: string) {
     const lines = msg.split('\n').map((l) => l.trim());
-    const getVal = (prefix: string) =>
-        lines
-            .find((l) => l.toLowerCase().startsWith(prefix + ':'))
-            ?.split(':', 2)[1]
-            ?.trim();
+    // `.split(':', 2)[1]` truncates values containing a colon (e.g. URLs in
+    // extensions, or npubs in identities). Use the first colon as the
+    // separator and keep everything after it — same approach as the
+    // extensions loop below.
+    const getVal = (prefix: string): string | undefined => {
+        const needle = prefix + ':';
+        const hit = lines.find((l) => l.toLowerCase().startsWith(needle));
+        if (!hit) return undefined;
+        const idx = hit.indexOf(':');
+        return hit.slice(idx + 1).trim();
+    };
 
     const address = getVal('address') || '';
     const identitiesStr = getVal('identities') || '';
@@ -332,7 +338,9 @@ async function getAddressUtxos(
 
     let lastError: Error | null = null;
 
-    // Try each endpoint in order
+    // Try each endpoint in order. Per-endpoint timeout kept tight (5s) so
+    // a slow upstream doesn't stack against the next one; callers who want
+    // a hard overall deadline should wrap this call with their own timeout.
     for (const base of endpoints) {
         try {
             const url = `${base}/address/${address}/utxo`;
@@ -341,7 +349,7 @@ async function getAddressUtxos(
             const resp = await fetch(url, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
-                signal: AbortSignal.timeout(10000), // 10s timeout
+                signal: AbortSignal.timeout(5000),
             });
 
             if (!resp.ok) {
@@ -536,14 +544,16 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             return { ok: false, codes, network, attestation_id };
         }
 
-        // Optional policy checks for extensions
-        // @TODO - Expand to full policy engine
-        if (
-            opts.expectedAud &&
-            parsed.extensions['aud'] &&
-            parsed.extensions['aud'] !== opts.expectedAud
-        ) {
-            codes.push('aud_mismatch');
+        // Optional policy checks for extensions.
+        // `aud` binds the attestation to an origin. If the caller passed
+        // `expectedAud`, the check must be load-bearing — a mismatch is a
+        // phishing signal, not an advisory. Fail hard (spec-aligned).
+        if (opts.expectedAud) {
+            const aud = parsed.extensions['aud'];
+            if (!aud || aud !== opts.expectedAud) {
+                codes.push('aud_mismatch');
+                return { ok: false, codes, network, attestation_id };
+            }
         }
 
         // Check message expiration
@@ -551,6 +561,7 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             const exp = Date.parse(parsed.extensions['expires']);
             if (!Number.isNaN(exp) && exp < Date.now()) {
                 codes.push('expired');
+                return { ok: false, codes, network, attestation_id };
             }
         }
 
@@ -643,7 +654,7 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
                 metrics,
             };
         } catch (utxoError) {
-            console.error('UTXO fetch failed:', utxoError);
+            log.error({ err: utxoError }, 'UTXO fetch failed');
             codes.push('bad_request');
             return { ok: false, codes, network, attestation_id };
         }
