@@ -19,7 +19,7 @@
     },
     "homepage": "https://ochk.io",
     "bugs": {
-        "url": "https://github.com/orangecheck/oc-web/issues"
+        "url": "https://github.com/orangecheck/oc-packages/issues"
     },
     "type": "module",
     "bin": {

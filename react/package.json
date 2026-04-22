@@ -11,7 +11,7 @@
         "directory": "react"
     },
     "bugs": {
-        "url": "https://github.com/orangecheck/oc-web/issues"
+        "url": "https://github.com/orangecheck/oc-packages/issues"
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

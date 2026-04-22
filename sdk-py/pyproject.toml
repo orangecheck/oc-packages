@@ -39,8 +39,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://ochk.io"
 Documentation = "https://ochk.io/docs"
-Repository = "https://github.com/orangecheck/oc-web"
-Issues = "https://github.com/orangecheck/oc-web/issues"
+Repository = "https://github.com/orangecheck/oc-packages"
+Issues = "https://github.com/orangecheck/oc-packages/issues"
 
 [project.optional-dependencies]
 dev = [
