@@ -28,6 +28,9 @@ jobs:
                     - relay-filter
                     - airdrop-gate
                     - wallet-adapter
+                    - lock-crypto
+                    - lock-core
+                    - lock-device
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}
@@ -40,12 +43,20 @@ jobs:
                   cache: yarn
                   cache-dependency-path: ${{ matrix.pkg }}/yarn.lock
 
-            # @orangecheck/sdk must be built first — every other package
+            # @orangecheck/sdk must be built first — every non-lock package
             # depends on it via file:../sdk. The dependency graph is shallow
             # (one level), so we just always build sdk first explicitly.
             - name: Build @orangecheck/sdk (dependency)
-              if: matrix.pkg != 'sdk'
+              if: matrix.pkg != 'sdk' && !startsWith(matrix.pkg, 'lock-')
               working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # lock-core and lock-device depend on lock-crypto via file:../lock-crypto.
+            - name: Build @orangecheck/lock-crypto (dependency)
+              if: matrix.pkg == 'lock-core' || matrix.pkg == 'lock-device'
+              working-directory: lock-crypto
               run: |
                   yarn install --frozen-lockfile
                   yarn build

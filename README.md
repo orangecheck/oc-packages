@@ -5,12 +5,17 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-This repository hosts the published OrangeCheck packages. The protocol spec
-and the reference site (`ochk.io`) live in a separate repository:
-[`oc-web`](https://github.com/orangecheck/oc-web).
+This repository hosts the published OrangeCheck packages. Two protocol specs
+(`OrangeCheck` and `OC Lock`) and two reference sites (`ochk.io` and
+`oc-lock-web`) live in separate repositories:
 
-> `oc-web` consumes this repo as a git submodule at `packages/`. The split
-> exists so packages can tag, release, and version independently of the site.
+- [`oc-web`](https://github.com/orangecheck/oc-web) — OrangeCheck site
+- [`oc-lock-protocol`](https://github.com/orangecheck/oc-lock-protocol) — OC Lock spec
+- [`oc-lock-web`](https://github.com/orangecheck/oc-lock-web) — OC Lock web client
+
+> `oc-web` and `oc-lock-web` consume this repo as a git submodule at
+> `packages/`. The split exists so packages can tag, release, and version
+> independently of the sites.
 
 ---
 
@@ -26,6 +31,9 @@ and the reference site (`ochk.io`) live in a separate repository:
 | [`relay-filter/`](relay-filter/) | `@orangecheck/relay-filter` | Sybil filter for Nostr relays (Strfry plugin + framework-agnostic core). |
 | [`airdrop-gate/`](airdrop-gate/) | `@orangecheck/airdrop-gate` | Turn a candidate list into a sybil-resistant airdrop allowlist. |
 | [`sdk-py/`](sdk-py/) | `orangecheck` | Python SDK. |
+| [`lock-crypto/`](lock-crypto/) | `@orangecheck/lock-crypto` | X25519 / HKDF / AES-GCM primitives for OC Lock. |
+| [`lock-core/`](lock-core/) | `@orangecheck/lock-core` | OC Lock envelope format, `seal()`, `unseal()`. |
+| [`lock-device/`](lock-device/) | `@orangecheck/lock-device` | OC Lock device keys + Nostr kind-30078 directory. |
 | [`EXAMPLES.md`](EXAMPLES.md) | — | Working integration examples for every framework. |
 
 All Node packages are `MIT`. The Python SDK is `MIT`. The protocol spec
@@ -42,9 +50,11 @@ cd gate && yarn install && yarn build
 # …
 ```
 
-The SDK is the dependency root — build it first before any package that
-depends on it (`gate`, `cli`, `react`, `wallet-adapter`, `relay-filter`,
-`airdrop-gate`). The `packages.yml` CI workflow enforces this ordering.
+Two dependency roots:
+- `sdk` — build before `gate`, `cli`, `react`, `wallet-adapter`, `relay-filter`, `airdrop-gate`
+- `lock-crypto` — build before `lock-core` and `lock-device`
+
+The `packages.yml` CI workflow enforces this ordering.
 
 ---
 
@@ -61,6 +71,9 @@ git tag wallet-adapter-v0.1.0 && git push --tags # → @orangecheck/wallet-adapt
 git tag relay-filter-v0.1.1 && git push --tags   # → @orangecheck/relay-filter
 git tag airdrop-gate-v0.1.1 && git push --tags   # → @orangecheck/airdrop-gate
 git tag sdk-py-v0.1.0       && git push --tags   # → orangecheck (PyPI)
+git tag lock-crypto-v0.1.0  && git push --tags   # → @orangecheck/lock-crypto
+git tag lock-core-v0.1.0    && git push --tags   # → @orangecheck/lock-core
+git tag lock-device-v0.1.0  && git push --tags   # → @orangecheck/lock-device
 ```
 
 The `release.yml` workflow picks up the tag, parses the package name and
