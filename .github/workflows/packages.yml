@@ -63,14 +63,27 @@ jobs:
             - name: Install
               run: yarn install --frozen-lockfile
 
+            # yarn v1 doesn't support --if-present the way npm does — it
+            # forwards the unknown flag to the invoked script, which vitest
+            # rejects. Guard with grep against package.json instead.
             - name: Type check (if present)
-              run: yarn run type-check --if-present || true
+              run: |
+                  if grep -q '"type-check"' package.json; then
+                      yarn type-check
+                  else
+                      echo "no type-check script"
+                  fi
 
             - name: Build
               run: yarn build
 
             - name: Test (if present)
-              run: yarn run test --if-present
+              run: |
+                  if grep -q '"test"' package.json; then
+                      yarn test
+                  else
+                      echo "no test script"
+                  fi
 
             - name: Smoke check — dist exists
               run: test -d dist
