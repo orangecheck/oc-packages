@@ -109,6 +109,27 @@ def test_reject(vector: dict) -> None:
     )
 
 
+# ─── bip322_signature — skipped for now in Python ─────────────────────────
+#
+# These vectors need a real BIP-322 verifier. The TypeScript SDK has one
+# via `bip322-js`; Python doesn't ship with a comparable library. Rather
+# than call the hosted API (which would make the conformance suite require
+# network), we skip these and document the gap. When a pure-Python
+# BIP-322 lib lands, wire it in here.
+
+
+@pytest.mark.parametrize(
+    "vector", vectors_of("bip322_signature"), ids=ids_for("bip322_signature")
+)
+def test_bip322_signature_deferred(vector: dict) -> None:  # noqa: ARG001
+    pytest.skip(
+        "BIP-322 signature verification is deferred in the Python SDK until a "
+        "pure-Python verifier is available. The TS SDK exercises these vectors "
+        "end-to-end; until Python has a local verifier, integrators needing "
+        "signature verification from Python should call the hosted API."
+    )
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -122,5 +143,6 @@ def test_vector_set_complete() -> None:
         "attestation_id",
         "score_v0",
         "reject",
+        "bip322_signature",
     }
-    assert len(VECTORS) >= 20
+    assert len(VECTORS) >= 23

@@ -1,0 +1,14 @@
+{
+  "id": "tv21",
+  "category": "bip322_signature",
+  "description": "P2WPKH (segwit v0) BIP-322 signature — disclosed burn key #1",
+  "input": {
+    "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+    "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+    "signature": "AkcwRAIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIEaey/lWb9/qAvYYEqtk2uguncaCkhKD/VYiOJj9h2faASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+    "scheme": "bip322"
+  },
+  "expected": {
+    "valid": true
+  }
+}

@@ -33,7 +33,7 @@ const { ok, rejected } = await filterAllowlist(candidates, {
 | --------------- | ------------ | ---------------------------------------------------------------------------------------- |
 | `minSats`       | `0`          | Minimum sats bonded.                                                                     |
 | `minDays`       | `0`          | Minimum days unspent.                                                                    |
-| `concurrency`   | `4`          | Parallel `check()` calls. Tune up to your hosted-API rate budget (free tier: 60/min/IP). |
+| `concurrency`   | `4`          | Parallel `check()` calls. Tune up to your hosted-API rate budget (60/min/IP on ochk.io — self-host for higher). |
 | `onProgress`    | —            | `(done, total, last?) => void` — fires after every candidate.                            |
 | `relays`        | SDK defaults | Override Nostr discovery relays.                                                         |
 | `rejectOnError` | `true`       | Treat SDK failures as rejection. Set `false` to surface errors to the caller.            |

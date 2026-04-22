@@ -131,9 +131,42 @@ describe('conformance: reject', () => {
     }
 });
 
+describe('conformance: bip322_signature', () => {
+    // Real BIP-322 verification via the same Verifier the production SDK
+    // uses. A passing tv21/tv22 proves our verifier accepts valid sigs
+    // produced by bip322-js's Signer; a passing tv23 proves we reject a
+    // tampered sig on an otherwise-valid payload (no false positives).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Verifier } = require('bip322-js') as {
+        Verifier: {
+            verifySignature: (addr: string, msg: string, sig: string) => boolean;
+        };
+    };
+
+    for (const v of vectors.filter((x) => x.category === 'bip322_signature')) {
+        it(`${v.id}: ${v.description}`, () => {
+            const input = v.input as {
+                address: string;
+                message: string;
+                signature: string;
+                scheme: string;
+            };
+            const expected = v.expected as { valid: boolean };
+            let actual = false;
+            try {
+                actual = Verifier.verifySignature(input.address, input.message, input.signature);
+            } catch {
+                // Verifier throws on structurally-invalid sigs — counts as "not valid".
+                actual = false;
+            }
+            expect(actual).toBe(expected.valid);
+        });
+    }
+});
+
 describe('conformance: vector index loaded', () => {
-    it('found at least 20 vectors across every category', () => {
-        expect(vectors.length).toBeGreaterThanOrEqual(20);
+    it('found at least 23 vectors across every category', () => {
+        expect(vectors.length).toBeGreaterThanOrEqual(23);
         const categories = new Set(vectors.map((v) => v.category));
         expect(categories).toEqual(
             new Set([
@@ -142,6 +175,7 @@ describe('conformance: vector index loaded', () => {
                 'attestation_id',
                 'score_v0',
                 'reject',
+                'bip322_signature',
             ])
         );
     });

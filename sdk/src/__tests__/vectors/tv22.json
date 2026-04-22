@@ -1,0 +1,14 @@
+{
+  "id": "tv22",
+  "category": "bip322_signature",
+  "description": "P2TR (taproot) BIP-322 signature — disclosed burn key #2",
+  "input": {
+    "address": "bc1p5e6v9v2j5wp3y6c79gaqdqltq7jdv45fswnnm7exmmp2020mqepsmcx06p",
+    "message": "orangecheck\nidentities: github:conformance\naddress: bc1p5e6v9v2j5wp3y6c79gaqdqltq7jdv45fswnnm7exmmp2020mqepsmcx06p\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+    "signature": "AUF1MRMGwleB6ri9CB1S7cZ4yS2xQMaXwdQdNFXMvmWXFPo4N1cnX+m4zh7EyGbKy6SvHGQYVrX7J5i9pVqmv7spAQ==",
+    "scheme": "bip322"
+  },
+  "expected": {
+    "valid": true
+  }
+}

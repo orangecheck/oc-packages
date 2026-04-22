@@ -98,5 +98,20 @@
     "id": "tv20",
     "category": "reject",
     "description": "invalid protocol shape (uppercase, punctuation)"
+  },
+  {
+    "id": "tv21",
+    "category": "bip322_signature",
+    "description": "P2WPKH (segwit v0) BIP-322 signature — disclosed burn key #1"
+  },
+  {
+    "id": "tv22",
+    "category": "bip322_signature",
+    "description": "P2TR (taproot) BIP-322 signature — disclosed burn key #2"
+  },
+  {
+    "id": "tv23",
+    "category": "bip322_signature",
+    "description": "tampered signature (1 byte flipped) on an otherwise-valid tv21 payload — MUST NOT verify"
   }
 ]
