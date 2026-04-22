@@ -1,7 +1,16 @@
 name: Packages
 
-# Build every published package on push / PR. The site's CI lives in the
-# oc-web repo (which consumes this repo as a submodule).
+# Build + test every package on push / PR.
+#
+# Jobs:
+#   build      — build + test each JS package (matrix over every dir)
+#   python     — build + test the Python SDK
+#   conformance — fetch the LIVE vectors from oc-protocol/main and re-run
+#                 both SDKs against them. This is the drift-catcher: if the
+#                 spec moves and a vendored SDK copy hasn't caught up, this
+#                 job fails.
+#
+# The site's CI lives in the oc-web repo (which consumes this repo as a submodule).
 
 on:
     push:
@@ -43,16 +52,6 @@ jobs:
                   cache: yarn
                   cache-dependency-path: ${{ matrix.pkg }}/yarn.lock
 
-            # @orangecheck/sdk must be built first — every non-lock package
-            # depends on it via file:../sdk. The dependency graph is shallow
-            # (one level), so we just always build sdk first explicitly.
-            - name: Build @orangecheck/sdk (dependency)
-              if: matrix.pkg != 'sdk' && !startsWith(matrix.pkg, 'lock-')
-              working-directory: sdk
-              run: |
-                  yarn install --frozen-lockfile
-                  yarn build
-
             # lock-core and lock-device depend on lock-crypto via file:../lock-crypto.
             - name: Build @orangecheck/lock-crypto (dependency)
               if: matrix.pkg == 'lock-core' || matrix.pkg == 'lock-device'
@@ -70,8 +69,76 @@ jobs:
             - name: Build
               run: yarn build
 
+            - name: Test (if present)
+              run: yarn run test --if-present
+
             - name: Smoke check — dist exists
               run: test -d dist
 
             - name: Smoke check — LICENSE + README shipped
               run: test -f LICENSE && test -f README.md
+
+    python:
+        name: Python SDK
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: sdk-py
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+                  cache: pip
+
+            - name: Install + test
+              run: |
+                  pip install --upgrade pip
+                  pip install -e '.[dev]' pytest
+                  python -m pytest -q
+
+    conformance:
+        name: Cross-impl conformance (live vectors)
+        runs-on: ubuntu-latest
+        # Checks that the vectors vendored in each SDK still match what
+        # oc-protocol publishes on main. A drift here means either the spec
+        # moved and the SDKs need re-vendoring, or a SDK vendored a stale
+        # copy. Runs independently from the build matrix so the signal is
+        # unambiguous ("spec/impl drift" vs "a package doesn't build").
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Fetch live oc-protocol vectors
+              run: |
+                  git clone --depth=1 https://github.com/orangecheck/oc-protocol.git /tmp/oc-protocol
+
+            - name: Verify SDK vectors are byte-identical to oc-protocol/main
+              run: |
+                  diff -r /tmp/oc-protocol/conformance/vectors sdk/src/__tests__/vectors
+                  diff -r /tmp/oc-protocol/conformance/vectors sdk-py/tests/vectors
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: yarn
+                  cache-dependency-path: sdk/yarn.lock
+
+            - name: TS conformance suite
+              working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+                  yarn test --run
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+                  cache: pip
+
+            - name: Python conformance suite
+              working-directory: sdk-py
+              run: |
+                  pip install --upgrade pip
+                  pip install -e '.[dev]' pytest
+                  python -m pytest tests/test_conformance.py -q
