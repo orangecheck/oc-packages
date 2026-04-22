@@ -25,6 +25,9 @@ on:
             - 'relay-filter-v*'
             - 'airdrop-gate-v*'
             - 'wallet-adapter-v*'
+            - 'lock-crypto-v*'
+            - 'lock-core-v*'
+            - 'lock-device-v*'
             - 'sdk-py-v*'
 
 jobs:
@@ -56,9 +59,18 @@ jobs:
                   cache: yarn
                   cache-dependency-path: ${{ steps.parse.outputs.dir }}/yarn.lock
 
+            # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk'
+              if: steps.parse.outputs.package != 'sdk' && !startsWith(steps.parse.outputs.package, 'lock-')
               working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # lock-crypto is the dep root for lock-core and lock-device.
+            - name: Build lock-crypto (dependency)
+              if: steps.parse.outputs.package == 'lock-core' || steps.parse.outputs.package == 'lock-device'
+              working-directory: lock-crypto
               run: |
                   yarn install --frozen-lockfile
                   yarn build
