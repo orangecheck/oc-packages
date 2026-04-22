@@ -6,7 +6,7 @@
 
 import type { AttestationEnvelope, IdentityBinding, NostrEvent, Scheme } from './types';
 
-import { createAttestationEnvelope, parseIdentities } from './canonical';
+import { createAttestationEnvelope } from './canonical';
 import {
     createAttestationEvent,
     DEFAULT_RELAYS,
@@ -296,34 +296,37 @@ export async function getAttestationsForIdentity(
 }
 
 /**
- * Parse identities from a comma-separated string
- * Helper for UI integration
- */
-export function parseIdentitiesFromString(identitiesStr: string): IdentityBinding[] {
-    return parseIdentities(identitiesStr);
-}
-
-/**
- * Format identities for display
+ * Format identities for display as a comma-separated `protocol:identifier` list.
+ * Same wire format the canonical message uses.
  */
 export function formatIdentitiesForDisplay(identities: IdentityBinding[]): string {
     return identities.map((id) => `${id.protocol}:${id.identifier}`).join(', ');
 }
 
 /**
- * Get verification URL for an attestation
+ * Build the canonical shareable URL for an attestation. Matches the live
+ * `/attest/[id]` route on ochk.io. Pass a different `baseUrl` for forks /
+ * self-hosted verifiers.
  */
 export function getVerificationUrl(attestationId: string, baseUrl = 'https://ochk.io'): string {
-    return `${baseUrl}/verify?id=${attestationId}`;
+    return `${baseUrl}/attest/${attestationId}`;
 }
 
 /**
- * Extract attestation ID from verification URL
+ * Reverse of `getVerificationUrl` — pull an attestation id back out of a
+ * `/attest/<id>` or legacy `/verify?id=<id>` URL. Returns `null` if the URL
+ * shape doesn't match.
  */
 export function extractAttestationIdFromUrl(url: string): string | null {
     try {
-        const urlObj = new URL(url);
-        return urlObj.searchParams.get('id');
+        const u = new URL(url);
+        // New canonical form: /attest/<id>
+        const m = u.pathname.match(/^\/attest\/([0-9a-f]{64})\/?$/i);
+        if (m) return m[1]!.toLowerCase();
+        // Legacy form: /verify?id=<id>
+        const q = u.searchParams.get('id');
+        if (q && /^[0-9a-f]{64}$/i.test(q)) return q.toLowerCase();
+        return null;
     } catch {
         return null;
     }

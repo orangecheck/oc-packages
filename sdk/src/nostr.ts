@@ -145,19 +145,22 @@ export async function publishToRelays(
             const wsRef = ws; // Capture for closures
 
             await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => {
+                // One outer deadline covers connect + OK round-trip. The old
+                // code cleared this on `onopen`, which meant a relay that
+                // opened but never sent OK would hang the promise forever.
+                const deadline = setTimeout(() => {
                     wsRef.close();
-                    reject(new Error('Connection timeout'));
-                }, 5000);
+                    reject(new Error('Relay publish timeout'));
+                }, 10_000);
 
                 const cleanup = () => {
-                    clearTimeout(timeout);
+                    clearTimeout(deadline);
                     wsRef.close();
                 };
 
                 wsRef.onopen = () => {
-                    clearTimeout(timeout);
-                    // Send EVENT message
+                    // Do NOT clear the deadline — we still need it in case
+                    // the relay never responds with OK.
                     wsRef.send(JSON.stringify(['EVENT', event]));
                 };
 
@@ -199,7 +202,9 @@ export async function publishToRelays(
                 };
 
                 wsRef.onclose = () => {
-                    clearTimeout(timeout);
+                    // Socket closed before we resolved/rejected — counts as
+                    // failure. clearTimeout here is safe (cleanup handles both).
+                    clearTimeout(deadline);
                 };
             });
         } catch (err) {

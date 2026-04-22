@@ -39,10 +39,6 @@ const log = createLogger('ocp/verify');
  * - 1M sats, 365 days ≈ 182
  * - 100M sats, 365 days ≈ 243
  */
-function scoreV0(sats: number, days: number): number {
-    return computeScore(sats, days, { algorithm: 'v0' }) as number;
-}
-
 /**
  * Export scoring functions for use in other modules
  */
@@ -524,7 +520,7 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             const metrics: Metrics = {
                 sats_bonded,
                 days_unspent,
-                score: scoreV0(sats_bonded, days_unspent), // ≈ 55.26
+                score: (computeScore(sats_bonded, days_unspent, { algorithm: 'v0' }) as number), // ≈ 55.26
             };
             codes.push('sig_ok_bip322');
             codes.push('bond_confirmed');
@@ -642,7 +638,7 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             const metrics: Metrics = {
                 sats_bonded,
                 days_unspent,
-                score: scoreV0(sats_bonded, days_unspent),
+                score: (computeScore(sats_bonded, days_unspent, { algorithm: 'v0' }) as number),
             };
 
             return {

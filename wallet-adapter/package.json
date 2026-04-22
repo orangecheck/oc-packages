@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/wallet-adapter",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Normalize browser Bitcoin wallets (UniSat, Xverse, Leather, Alby) behind a single sign(message) API. Drop-in adapter for the OrangeCheck challenge flow.",
     "keywords": [
         "orangecheck",
@@ -47,6 +47,9 @@
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "type-check": "tsc --noEmit",
         "clean": "rm -rf dist",
         "prepublishOnly": "npm run clean && npm run build"
     },
@@ -60,9 +63,11 @@
     },
     "devDependencies": {
         "@types/react": "^18.3.12",
+        "jsdom": "^29.0.2",
         "react": "^18.3.1",
         "tsup": "^8.3.5",
-        "typescript": "^5.7.2"
+        "typescript": "^5.7.2",
+        "vitest": "^4.1.5"
     },
     "engines": {
         "node": ">=18.0.0"

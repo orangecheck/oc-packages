@@ -18,5 +18,19 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: [],
+    // Keep the heavy deps out of the bundle — consumers will resolve them
+    // via their own npm install, and bundlers can de-dupe across packages.
+    // The old `external: []` was inlining ~400 KB of bip322-js + bitcoinjs +
+    // noble/scure into every consumer that imports `@orangecheck/sdk`, and
+    // bitcoinjs-message in particular pulls in secp256k1 native bindings
+    // that don't belong baked into a browser bundle.
+    external: [
+        '@bitcoinerlab/secp256k1',
+        '@noble/curves',
+        '@noble/hashes',
+        '@scure/base',
+        'bip322-js',
+        'bitcoinjs-message',
+        'buffer',
+    ],
 });

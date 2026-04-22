@@ -138,8 +138,13 @@ function parseChallenge(message: string): ParsedChallenge {
     }
 
     const out: ParsedChallenge = { extensions: [] };
-    const coreKeys = new Set(['address', 'nonce', 'issued_at', 'expires_at', 'ack']);
-    let seenCore = 0;
+    const coreKeys = ['address', 'nonce', 'issued_at', 'expires_at', 'ack'] as const;
+    const coreKeySet = new Set<string>(coreKeys);
+    // Duplicate detection: a challenge with two `address:` lines would
+    // previously let the second overwrite the first. A signer who saw both
+    // lines would still sign the whole text — which means the verifier and
+    // the signer disagree about what the message "said". Refuse instead.
+    const seenCore = new Set<string>();
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i] ?? '';
@@ -148,8 +153,11 @@ function parseChallenge(message: string): ParsedChallenge {
         const key = line.slice(0, sep);
         const val = line.slice(sep + 2);
 
-        if (coreKeys.has(key)) {
-            seenCore++;
+        if (coreKeySet.has(key)) {
+            if (seenCore.has(key)) {
+                throw new Error(`duplicate core key in challenge: ${key}`);
+            }
+            seenCore.add(key);
             if (key === 'address') out.address = val;
             else if (key === 'nonce') out.nonce = val;
             else if (key === 'issued_at') out.issuedAt = new Date(val);
@@ -162,8 +170,8 @@ function parseChallenge(message: string): ParsedChallenge {
         }
     }
 
-    if (seenCore !== 5) {
-        throw new Error(`challenge missing core lines (${seenCore}/5)`);
+    if (seenCore.size !== coreKeys.length) {
+        throw new Error(`challenge missing core lines (${seenCore.size}/${coreKeys.length})`);
     }
     return out;
 }

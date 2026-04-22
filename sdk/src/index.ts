@@ -56,8 +56,11 @@ export {
 // ─── Attestation discovery + publishing ────────────────────────────────────
 export {
     discoverAttestations,
+    extractAttestationIdFromUrl,
+    formatIdentitiesForDisplay,
     getAttestationsForAddress,
     getAttestationsForIdentity,
+    getVerificationUrl,
     publishAttestation,
     verifyAttestationById,
 } from './attestation';

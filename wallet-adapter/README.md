@@ -105,7 +105,7 @@ export function SignIn({ address }: { address: string }) {
   const [proven, setProven] = useState('');
 
   async function issueChallenge() {
-    const r = await fetch(\`/api/challenge?addr=\${address}\`);
+    const r = await fetch(`/api/challenge?addr=${address}`);
     const { message } = await r.json();
     setMessage(message);
     setStep('ready');
@@ -145,6 +145,12 @@ export function SignIn({ address }: { address: string }) {
 | Manual       | Browser `prompt()`                                                                        | Caller's wallet produces the signature out-of-band               |
 
 The shims are duck-typed — we check shape, not just presence of globals, so spoofing wrappers don't produce false positives.
+
+> **Heads up on Alby:** `webln.signMessage` signs raw bytes, not BIP-322. It tends to produce an OrangeCheck-compatible signature on legacy P2PKH addresses (starting with `1`), but not on segwit (`bc1q…`) or taproot (`bc1p…`). For the general case, prefer UniSat / Xverse / Leather, and offer the **paste** option as a fallback so users on hardware wallets (Sparrow, Bitcoin Core, Ledger) can still sign.
+
+> **Security note on detection:** `XverseProviders` used to pass if it was any truthy value. As of `0.1.1` we require a callable `BitcoinProvider.request` function so a bookmarklet or unrelated extension setting `window.XverseProviders = {}` won't register as Xverse.
+
+> **UniSat fallback:** earlier versions silently fell back from `bip322-simple` to the legacy ECDSA `signMessage` on any error. That produced signatures segwit/taproot verifiers couldn't accept. As of `0.1.1` we only sign BIP-322 — if the wallet throws, the error propagates so the caller can suggest switching wallets or using paste mode.
 
 ---
 

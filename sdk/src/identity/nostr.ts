@@ -19,8 +19,8 @@
 
 import type { NostrEvent } from '../types';
 
-import { schnorr } from '@noble/curves/secp256k1';
-import { sha256 } from '@noble/hashes/sha2';
+import { schnorr } from '@noble/curves/secp256k1.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { bech32 } from '@scure/base';
 
 import { DEFAULT_RELAYS } from '../nostr';

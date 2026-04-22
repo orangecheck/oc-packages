@@ -16,7 +16,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { WalletId, WalletInfo } from './types';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { detectWallets } from './detect';
 import { getSigner } from './sign';
@@ -76,6 +76,18 @@ export function OcWalletButton({
 }: OcWalletButtonProps) {
     const [wallets, setWallets] = useState<WalletInfo[]>([]);
     const [busyId, setBusyId] = useState<WalletId | null>(null);
+    // The signing SDKs return a promise we can't actually cancel (a wallet
+    // prompt is driven by the extension), so we race the promise against a
+    // cancellation generation counter: if the user bails out and picks a
+    // different wallet (or unmounts), we ignore any late result.
+    const requestIdRef = useRef(0);
+    const mountedRef = useRef(true);
+    useEffect(
+        () => () => {
+            mountedRef.current = false;
+        },
+        []
+    );
 
     // Wallets are browser-globals — detect only after mount to avoid SSR mismatch.
     useEffect(() => {
@@ -93,16 +105,29 @@ export function OcWalletButton({
             window.open(wallet.installUrl, '_blank', 'noopener,noreferrer');
             return;
         }
+        const rid = ++requestIdRef.current;
         setBusyId(wallet.id);
         try {
             const sig = await getSigner(wallet.id, { address })(message);
+            // Drop the result if the user cancelled (different wallet picked,
+            // or component unmounted). Prevents "I clicked UniSat, closed it,
+            // clicked Xverse — now both popped up" confusion.
+            if (requestIdRef.current !== rid || !mountedRef.current) return;
             onSigned(sig, wallet.id);
         } catch (err) {
+            if (requestIdRef.current !== rid || !mountedRef.current) return;
             const e = err instanceof Error ? err : new Error(String(err));
             onError?.(e, wallet.id);
         } finally {
-            setBusyId(null);
+            if (requestIdRef.current === rid && mountedRef.current) {
+                setBusyId(null);
+            }
         }
+    };
+
+    const cancel = () => {
+        requestIdRef.current += 1;
+        setBusyId(null);
     };
 
     return (
@@ -157,6 +182,24 @@ export function OcWalletButton({
                         </button>
                     );
                 })
+            )}
+            {busyId && (
+                <button
+                    type="button"
+                    onClick={cancel}
+                    style={{
+                        marginTop: 6,
+                        padding: '6px 10px',
+                        fontSize: 11,
+                        opacity: 0.7,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                    }}
+                >
+                    cancel pending sign
+                </button>
             )}
         </div>
     );

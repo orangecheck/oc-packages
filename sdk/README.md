@@ -205,12 +205,11 @@ await publishAttestation({ envelope, npub: userNpub });
 ```ts
 import { verifyIdentity } from '@orangecheck/sdk';
 
-const result = await verifyIdentity({
-    protocol: 'github',
-    identifier: 'alice',
-    attestationId: envelope.attestation_id,
-    proof: 'https://gist.github.com/alice/abc123',
-});
+const result = await verifyIdentity(
+    envelope.attestation_id,
+    { protocol: 'github', identifier: 'alice' }
+    // Optional: pass { relays } for 'nostr', { tweetUrl } for 'twitter'.
+);
 
 if (result.verified) {
     // the GitHub gist contains the attestation ID → handle ownership proven
@@ -226,7 +225,7 @@ Identity bindings are self-asserted inside the signed message. They are **claims
 The reference algorithm is intentionally simple:
 
 ```
-score_v0 = round( ln(1 + sats_bonded) × (1 + days_unspent / 30), 2 )
+score_v0 = round( ln(1 + sats_bonded) * (1 + days_unspent / 30), 2 )
 ```
 
 This is **advisory**. Relying parties should compare `sats_bonded` and `days_unspent` against their own thresholds rather than trusting a displayed score. `check()` does exactly that.
@@ -250,7 +249,7 @@ buildCanonicalMessage(...)
 generateAttestationId(msg: string): Promise<string>
 publishAttestation({ envelope, npub, relays? })
 discoverAttestations({ attestationId | address | identity, relays? })
-verifyIdentity({ protocol, identifier, attestationId, proof? })
+verifyIdentity(attestationId, { protocol, identifier }, options?)
 ```
 
 Full type definitions ship with the package.
