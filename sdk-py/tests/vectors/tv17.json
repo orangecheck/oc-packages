@@ -1,0 +1,17 @@
+{
+  "id": "tv17",
+  "category": "reject",
+  "description": "identity identifier containing newline (line-smuggling defense)",
+  "input": {
+    "identities": [
+      {
+        "protocol": "github",
+        "identifier": "alice\nevil"
+      }
+    ]
+  },
+  "expected": {
+    "rejects": true,
+    "reason_contains": "newline"
+  }
+}

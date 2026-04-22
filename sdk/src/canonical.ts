@@ -140,17 +140,34 @@ export function parseIdentities(identitiesStr: string): IdentityBinding[] {
 }
 
 /**
+ * Optional deterministic overrides for message building. Only intended for
+ * tests / conformance vectors; production callers should let the builder
+ * mint a fresh nonce + timestamp per message.
+ */
+export interface BuildOptions {
+    /** 32-char lowercase hex. Default: freshly-generated cryptographic nonce. */
+    nonce?: string;
+    /** RFC-3339 UTC. Default: `new Date().toISOString()`. */
+    issuedAt?: string;
+}
+
+/**
  * Build a canonical message following OrangeCheck Protocol v0 specification
  * @param input - Canonical input with address and identities
  * @param extensions - Optional extension key-value pairs
+ * @param options - Optional deterministic overrides (testing only)
  * @returns Canonical message string with LF line endings
  */
 export function buildCanonicalMessage(
     { address, identities }: CanonicalInput,
-    extensions: Extensions = {}
+    extensions: Extensions = {},
+    options: BuildOptions = {}
 ): string {
-    const nonce = randomNonce16BHexLower();
-    const issuedAt = new Date().toISOString();
+    const nonce = options.nonce ?? randomNonce16BHexLower();
+    if (!/^[0-9a-f]{32}$/.test(nonce)) {
+        throw new Error(`invalid nonce: must be 32 lowercase hex chars`);
+    }
+    const issuedAt = options.issuedAt ?? new Date().toISOString();
 
     // Format identities
     const identitiesStr = formatIdentities(identities);

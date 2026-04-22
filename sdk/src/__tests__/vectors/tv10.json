@@ -1,0 +1,12 @@
+{
+  "id": "tv10",
+  "category": "score_v0",
+  "description": "zero bond, zero days",
+  "input": {
+    "sats_bonded": 0,
+    "days_unspent": 0
+  },
+  "expected": {
+    "score_v0": 0
+  }
+}

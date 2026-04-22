@@ -25,6 +25,15 @@ a custom API base URL, timeouts, or a shared httpx session:
         result = await oc.check(addr="bc1q...", min_sats=100_000)
 """
 
+from .canonical import (
+    IdentityBinding as CanonicalIdentityBinding,
+    attestation_id,
+    build_canonical_message,
+    format_identities,
+    parse_identities,
+    random_nonce,
+    score_v0,
+)
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
@@ -48,6 +57,14 @@ __all__ = [
     # Clients
     "Client",
     "AsyncClient",
+    # Canonical / offline protocol primitives
+    "build_canonical_message",
+    "attestation_id",
+    "format_identities",
+    "parse_identities",
+    "random_nonce",
+    "score_v0",
+    "CanonicalIdentityBinding",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -62,4 +79,4 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"

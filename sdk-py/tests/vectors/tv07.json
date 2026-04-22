@@ -1,0 +1,11 @@
+{
+  "id": "tv07",
+  "category": "identities_format",
+  "description": "empty identity list produces empty string",
+  "input": {
+    "identities": []
+  },
+  "expected": {
+    "formatted": ""
+  }
+}

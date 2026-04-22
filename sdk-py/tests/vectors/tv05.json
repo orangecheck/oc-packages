@@ -1,0 +1,16 @@
+{
+  "id": "tv05",
+  "category": "identities_format",
+  "description": "single identity",
+  "input": {
+    "identities": [
+      {
+        "protocol": "github",
+        "identifier": "alice"
+      }
+    ]
+  },
+  "expected": {
+    "formatted": "github:alice"
+  }
+}

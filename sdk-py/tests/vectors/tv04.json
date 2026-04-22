@@ -1,0 +1,23 @@
+{
+  "id": "tv04",
+  "category": "canonical_message",
+  "description": "legacy P2PKH address, dns identity, expiry + network extensions",
+  "input": {
+    "address": "1BitcoinEaterAddressDontSendf59kuE",
+    "identities": [
+      {
+        "protocol": "dns",
+        "identifier": "alice.com"
+      }
+    ],
+    "extensions": {
+      "expires": "2030-01-01T00:00:00Z",
+      "network": "mainnet"
+    },
+    "nonce": "0011223344556677889900aabbccddee",
+    "issued_at": "2026-04-22T12:00:00Z"
+  },
+  "expected": {
+    "message": "orangecheck\nidentities: dns:alice.com\naddress: 1BitcoinEaterAddressDontSendf59kuE\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nexpires: 2030-01-01T00:00:00Z\nnetwork: mainnet\n"
+  }
+}

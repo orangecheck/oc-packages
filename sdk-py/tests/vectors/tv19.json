@@ -1,0 +1,17 @@
+{
+  "id": "tv19",
+  "category": "reject",
+  "description": "identity identifier containing comma (would forge a second binding)",
+  "input": {
+    "identities": [
+      {
+        "protocol": "github",
+        "identifier": "alice,github:mallory"
+      }
+    ]
+  },
+  "expected": {
+    "rejects": true,
+    "reason_contains": "comma"
+  }
+}

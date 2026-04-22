@@ -86,7 +86,7 @@ export {
 export * from './identity';
 
 // ─── Reference scoring ─────────────────────────────────────────────────────
-export { computeScore, type ScoringAlgorithm } from './scoring';
+export { computeAllScores, computeScore, type ScoringAlgorithm } from './scoring';
 
 // ─── Human-readable status code metadata ───────────────────────────────────
 export * from './messages';

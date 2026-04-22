@@ -1,0 +1,17 @@
+{
+  "id": "tv18",
+  "category": "reject",
+  "description": "identity identifier containing carriage return",
+  "input": {
+    "identities": [
+      {
+        "protocol": "github",
+        "identifier": "alice\rmallory"
+      }
+    ]
+  },
+  "expected": {
+    "rejects": true,
+    "reason_contains": "newline"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "tv11",
+  "category": "score_v0",
+  "description": "100k sats, 30 days",
+  "input": {
+    "sats_bonded": 100000,
+    "days_unspent": 30
+  },
+  "expected": {
+    "score_v0": 23.03
+  }
+}

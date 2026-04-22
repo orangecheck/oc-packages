@@ -1,0 +1,11 @@
+{
+  "id": "tv08",
+  "category": "attestation_id",
+  "description": "attestation_id = sha256(message) for tv01",
+  "input": {
+    "message": "orangecheck\nidentities: \naddress: bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n"
+  },
+  "expected": {
+    "attestation_id": "75241b8f222ef029d35c40d7d96d45c3e3bf5480b5c51319844aaae121b3539d"
+  }
+}

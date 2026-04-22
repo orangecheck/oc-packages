@@ -1,0 +1,19 @@
+{
+  "id": "tv15",
+  "category": "canonical_message",
+  "description": "empty-string extension values are omitted",
+  "input": {
+    "address": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+    "identities": [],
+    "extensions": {
+      "aud": "https://example.com",
+      "ignored": "",
+      "bond": "500"
+    },
+    "nonce": "0011223344556677889900aabbccddee",
+    "issued_at": "2026-04-22T12:00:00Z"
+  },
+  "expected": {
+    "message": "orangecheck\nidentities: \naddress: bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nbond: 500\n"
+  }
+}

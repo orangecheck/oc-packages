@@ -1,0 +1,12 @@
+{
+  "id": "tv13",
+  "category": "score_v0",
+  "description": "100M sats, 90 days (surplus stake, short hold)",
+  "input": {
+    "sats_bonded": 100000000,
+    "days_unspent": 90
+  },
+  "expected": {
+    "score_v0": 73.68
+  }
+}

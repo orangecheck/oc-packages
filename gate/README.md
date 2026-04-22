@@ -61,7 +61,48 @@ export default withOcGate(handler, {
 
 ---
 
-## Fetch-style — App Router, Hono, Cloudflare Workers, Bun
+## Fastify
+
+```ts
+import Fastify from 'fastify';
+import { ocGateFastify } from '@orangecheck/gate/fastify';
+
+const app = Fastify();
+
+app.post('/post', {
+    preHandler: ocGateFastify({
+        minSats: 100_000,
+        minDays: 30,
+        address: { from: 'header' },
+    }),
+}, postHandler);
+```
+
+---
+
+## Hono / Cloudflare Workers / Bun / Deno
+
+```ts
+import { Hono } from 'hono';
+import { ocGateHono } from '@orangecheck/gate/hono';
+
+const app = new Hono();
+
+app.post(
+    '/post',
+    ocGateHono({
+        minSats: 100_000,
+        address: { from: 'header' },
+    }),
+    postHandler
+);
+```
+
+Same middleware works on every edge-runtime Hono supports.
+
+---
+
+## Fetch-style — App Router route handlers, raw Workers
 
 ```ts
 import { ocGateFetch } from '@orangecheck/gate';
@@ -88,7 +129,7 @@ export async function POST(req: Request) {
 ```ts
 import { assertOc } from '@orangecheck/gate';
 
-// Fastify, Hono, tRPC, raw http.createServer, whatever.
+// tRPC, raw http.createServer, Elysia, whatever.
 const decision = await assertOc(req, {
     minSats: 100_000,
     address: { from: 'header' },
@@ -141,11 +182,28 @@ interface GateOptions {
     identity?: SubjectSource;
 
     // In-process cache. Matches the /api/check 60s cache by default.
-    cacheTtlMs?: number; // default 60_000
+    // Hard-clamped to 10 minutes — a very large value does NOT produce
+    // a permanent grant.
+    cacheTtlMs?: number; // default 60_000, max 600_000
+
     cacheMax?: number; // default 1_000 entries
+
+    // Hard deadline on the upstream lookup. Past this, the gate returns
+    // lookup_error (fail-closed unless failOpen is set).
+    lookupTimeoutMs?: number; // default 5_000
 
     // Degrade gracefully when relays are unreachable.
     failOpen?: boolean; // default false — closed by default
+
+    // `header` / `query` / `cookie` / `body` sources are caller-supplied
+    // and spoofable. The gate emits a one-time startup warning unless
+    // trustUnsafeSources is set — silence it only when you've verified
+    // the address via a signed session.
+    trustUnsafeSources?: boolean;
+
+    // Include subject/subjectKind in the default 403 body. Default false
+    // so cookie-bound addresses don't leak back to the caller.
+    exposeSubject?: boolean;
 
     // Override Nostr discovery relays.
     relays?: string[];

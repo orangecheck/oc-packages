@@ -25,5 +25,7 @@
 
 export { assertOc } from './core';
 export { ocGate } from './express';
+export { ocGateFastify } from './fastify';
+export { ocGateHono } from './hono';
 export { ocGateFetch, withOcGate } from './next';
 export type { GateDecision, GateOptions, MinimalReq, MinimalRes, SubjectSource } from './types';

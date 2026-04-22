@@ -1,0 +1,102 @@
+[
+  {
+    "id": "tv01",
+    "category": "canonical_message",
+    "description": "bare segwit address, no identities, no extensions"
+  },
+  {
+    "id": "tv02",
+    "category": "canonical_message",
+    "description": "one github identity"
+  },
+  {
+    "id": "tv03",
+    "category": "canonical_message",
+    "description": "three identities (out of order on input, sorted on output) + two extensions"
+  },
+  {
+    "id": "tv04",
+    "category": "canonical_message",
+    "description": "legacy P2PKH address, dns identity, expiry + network extensions"
+  },
+  {
+    "id": "tv05",
+    "category": "identities_format",
+    "description": "single identity"
+  },
+  {
+    "id": "tv06",
+    "category": "identities_format",
+    "description": "multiple identities sort lexicographically by full protocol:id"
+  },
+  {
+    "id": "tv07",
+    "category": "identities_format",
+    "description": "empty identity list produces empty string"
+  },
+  {
+    "id": "tv08",
+    "category": "attestation_id",
+    "description": "attestation_id = sha256(message) for tv01"
+  },
+  {
+    "id": "tv09",
+    "category": "attestation_id",
+    "description": "attestation_id = sha256(message) for tv03 (with extensions)"
+  },
+  {
+    "id": "tv10",
+    "category": "score_v0",
+    "description": "zero bond, zero days"
+  },
+  {
+    "id": "tv11",
+    "category": "score_v0",
+    "description": "100k sats, 30 days"
+  },
+  {
+    "id": "tv12",
+    "category": "score_v0",
+    "description": "1M sats, 365 days"
+  },
+  {
+    "id": "tv13",
+    "category": "score_v0",
+    "description": "100M sats, 90 days (surplus stake, short hold)"
+  },
+  {
+    "id": "tv14",
+    "category": "canonical_message",
+    "description": "extension keys sort lexicographically"
+  },
+  {
+    "id": "tv15",
+    "category": "canonical_message",
+    "description": "empty-string extension values are omitted"
+  },
+  {
+    "id": "tv16",
+    "category": "canonical_message",
+    "description": "bond is emitted as an integer string, not scientific notation"
+  },
+  {
+    "id": "tv17",
+    "category": "reject",
+    "description": "identity identifier containing newline (line-smuggling defense)"
+  },
+  {
+    "id": "tv18",
+    "category": "reject",
+    "description": "identity identifier containing carriage return"
+  },
+  {
+    "id": "tv19",
+    "category": "reject",
+    "description": "identity identifier containing comma (would forge a second binding)"
+  },
+  {
+    "id": "tv20",
+    "category": "reject",
+    "description": "invalid protocol shape (uppercase, punctuation)"
+  }
+]

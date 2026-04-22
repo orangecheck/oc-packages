@@ -1,0 +1,28 @@
+{
+  "id": "tv06",
+  "category": "identities_format",
+  "description": "multiple identities sort lexicographically by full protocol:id",
+  "input": {
+    "identities": [
+      {
+        "protocol": "nostr",
+        "identifier": "npub1zzz"
+      },
+      {
+        "protocol": "github",
+        "identifier": "zoe"
+      },
+      {
+        "protocol": "github",
+        "identifier": "alice"
+      },
+      {
+        "protocol": "dns",
+        "identifier": "example.com"
+      }
+    ]
+  },
+  "expected": {
+    "formatted": "dns:example.com,github:alice,github:zoe,nostr:npub1zzz"
+  }
+}

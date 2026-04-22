@@ -1,0 +1,17 @@
+{
+  "id": "tv20",
+  "category": "reject",
+  "description": "invalid protocol shape (uppercase, punctuation)",
+  "input": {
+    "identities": [
+      {
+        "protocol": "GitHub!",
+        "identifier": "alice"
+      }
+    ]
+  },
+  "expected": {
+    "rejects": true,
+    "reason_contains": "protocol"
+  }
+}
