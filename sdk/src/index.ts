@@ -72,7 +72,12 @@ export {
     queryByAttestationId,
     queryByIdentity,
 } from './nostr';
-export { isNip07Available, signNostrEvent } from './nostr-crypto';
+export {
+    getNip07Info,
+    getNostrPublicKey,
+    isNip07Available,
+    signNostrEvent,
+} from './nostr-crypto';
 
 // ─── Identity verification (out-of-band handle checks) ─────────────────────
 export * from './identity';
