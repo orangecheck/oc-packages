@@ -71,6 +71,16 @@ function computeEnvelopeId(env: LockEnvelope): Uint8Array {
 }
 
 export async function seal(input: SealInput): Promise<LockEnvelope> {
+    // An envelope with zero recipients is unreadable by anyone — the
+    // content key is only wrapped per-recipient, so the caller would
+    // produce a silently-unusable ciphertext. Reject upfront with a
+    // clear error rather than emitting junk.
+    if (!input.recipients || input.recipients.length === 0) {
+        throw new LockError(
+            'E_NO_RECIPIENTS',
+            'seal() requires at least one recipient'
+        );
+    }
     const kind: EnvelopeKind = input.kind ?? (input.payment ? 'payment' : 'identity');
     const now = new Date().toISOString();
     const nonce_ct = randomBytesN(12);

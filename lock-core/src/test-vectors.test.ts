@@ -11,8 +11,9 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { hexDecode, utf8Decode } from '@orangecheck/lock-crypto';
+import { hexDecode, hexEncode, sha256Bytes, utf8Decode } from '@orangecheck/lock-crypto';
 
+import { canonicalBytes } from './canonical.js';
 import { unseal } from './seal.js';
 import type { LockEnvelope } from './types.js';
 
@@ -78,6 +79,26 @@ describe('oc-lock-protocol test vectors', () => {
                 expect(out.sender.address).toBe(data.expected.envelope.from.address);
             }
             expect(data.expected.envelope.sig.value).toBe(data.inputs.expected_sig_value);
+        });
+
+        // Cross-implementation canonical-bytes promise: sha256(canonical(envelope
+        // with id='' and sig.value='')) MUST equal the envelope's id field.
+        // The unseal tests above already rely on this via AEAD AAD binding,
+        // but an explicit assertion catches canonicalizer drift (key sort,
+        // recipient sort, number formatting, LF termination) that might
+        // otherwise slip through silently when payload happens to decrypt
+        // correctly for unrelated reasons.
+        it(`${name} — canonical bytes produce the declared envelope id`, () => {
+            const env = data.expected.envelope;
+            const clone: LockEnvelope = {
+                ...env,
+                id: '',
+                sig: { alg: env.sig.alg, pubkey: env.sig.pubkey, value: '' },
+            };
+            const computedId = hexEncode(
+                sha256Bytes(canonicalBytes(clone as never))
+            );
+            expect(computedId).toBe(env.id);
         });
     }
 });

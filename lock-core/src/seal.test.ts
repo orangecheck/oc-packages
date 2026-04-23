@@ -177,4 +177,14 @@ describe('seal / unseal', () => {
         });
         expect(new TextDecoder().decode(out.payload)).toBe('x');
     });
+
+    it('rejects seal with zero recipients (would produce unreadable envelope)', async () => {
+        await expect(
+            seal({
+                payload: utf8Encode('hi'),
+                sender: { address: 'bc1qalice', signMessage: fakeSign },
+                recipients: [],
+            })
+        ).rejects.toBeInstanceOf(LockError);
+    });
 });
