@@ -43,7 +43,7 @@ if (result.ok) {
 
 ```bash
 curl "https://ochk.io/api/check?addr=bc1q...&min_sats=100000&min_days=30"
-# { "ok": true, "sats": 125000, "days": 47, "score": 18.2, ... }
+# { "ok": true, "sats": 125000, "days": 47, "score": 30.12, ... }
 ```
 
 Same logic, zero dependencies. Useful from any language, any runtime, any shell script.

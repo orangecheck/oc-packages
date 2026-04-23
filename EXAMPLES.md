@@ -220,7 +220,7 @@ Response:
     "ok": true,
     "sats": 125000,
     "days": 47,
-    "score": 18.2,
+    "score": 30.12,
     "attestation_id": "a3f5b8c2…",
     "address": "bc1q...",
     "identities": [
