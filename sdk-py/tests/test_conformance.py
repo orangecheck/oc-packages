@@ -109,24 +109,30 @@ def test_reject(vector: dict) -> None:
     )
 
 
-# ─── bip322_signature — skipped for now in Python ─────────────────────────
-#
-# These vectors need a real BIP-322 verifier. The TypeScript SDK has one
-# via `bip322-js`; Python doesn't ship with a comparable library. Rather
-# than call the hosted API (which would make the conformance suite require
-# network), we skip these and document the gap. When a pure-Python
-# BIP-322 lib lands, wire it in here.
+# ─── bip322_signature — real verification via the `bip322` Rust-backed lib ──
 
 
 @pytest.mark.parametrize(
     "vector", vectors_of("bip322_signature"), ids=ids_for("bip322_signature")
 )
-def test_bip322_signature_deferred(vector: dict) -> None:  # noqa: ARG001
-    pytest.skip(
-        "BIP-322 signature verification is deferred in the Python SDK until a "
-        "pure-Python verifier is available. The TS SDK exercises these vectors "
-        "end-to-end; until Python has a local verifier, integrators needing "
-        "signature verification from Python should call the hosted API."
+def test_bip322_signature(vector: dict) -> None:
+    """
+    Real BIP-322 verification via the `bip322` package (Python ↔ Rust
+    bridge around the bitcoin + secp256k1 crates). With the `[verify]`
+    extra installed, the Python SDK now exercises tv21-tv23 end-to-end
+    — matching the TypeScript SDK's coverage exactly.
+    """
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    inp = vector["input"]
+    expected = vector["expected"]["valid"]
+    got = verify_bip322_signature(inp["address"], inp["message"], inp["signature"])
+    assert got is expected, (
+        f"{vector['id']}: expected valid={expected}, got {got} "
+        f"(description: {vector['description']})"
     )
 
 

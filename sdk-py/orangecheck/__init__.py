@@ -34,6 +34,13 @@ from .canonical import (
     random_nonce,
     score_v0,
 )
+
+# Local BIP-322 verification is optional (requires the `bip322` extra).
+# Expose the function when available; absent otherwise.
+try:
+    from .verify_sig import verify_bip322_signature
+except ImportError:  # pragma: no cover - optional-dep path
+    verify_bip322_signature = None  # type: ignore[assignment]
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
@@ -65,6 +72,10 @@ __all__ = [
     "random_nonce",
     "score_v0",
     "CanonicalIdentityBinding",
+    # Local BIP-322 verification (requires the `[verify]` extra at install time;
+    # the name is re-exported as None when the extra isn't installed so callers
+    # can check `if verify_bip322_signature is not None`).
+    "verify_bip322_signature",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -79,4 +90,4 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
