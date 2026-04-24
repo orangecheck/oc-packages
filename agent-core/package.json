@@ -1,0 +1,75 @@
+{
+    "name": "@orangecheck/agent-core",
+    "version": "0.1.0",
+    "description": "OC Agent canonical messages, envelope formats (delegation/action/revocation), scope grammar, and verification. See https://github.com/orangecheck/oc-agent-protocol.",
+    "keywords": [
+        "bitcoin",
+        "agent",
+        "authority",
+        "delegation",
+        "bip322",
+        "oc-agent",
+        "orangecheck"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "agent-core"
+    },
+    "homepage": "https://github.com/orangecheck/oc-agent-protocol",
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        },
+        "./canonical": {
+            "types": "./dist/canonical.d.ts",
+            "import": "./dist/canonical.mjs",
+            "require": "./dist/canonical.js"
+        },
+        "./scope": {
+            "types": "./dist/scope.d.ts",
+            "import": "./dist/scope.mjs",
+            "require": "./dist/scope.js"
+        },
+        "./types": {
+            "types": "./dist/types.d.ts",
+            "import": "./dist/types.mjs",
+            "require": "./dist/types.js"
+        }
+    },
+    "files": [
+        "dist",
+        "src",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "type-check": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "@noble/hashes": "^1.5.0",
+        "@orangecheck/stamp-core": "file:../stamp-core"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2",
+        "vitest": "^3.2.4"
+    }
+}

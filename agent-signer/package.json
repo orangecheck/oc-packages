@@ -1,0 +1,60 @@
+{
+    "name": "@orangecheck/agent-signer",
+    "version": "0.1.0",
+    "description": "OC Agent signer: createDelegation(), signAsAgent(), revoke(). Composes @orangecheck/agent-core with a wallet-adapter signing function and optional OTS anchoring.",
+    "keywords": [
+        "bitcoin",
+        "agent",
+        "authority",
+        "delegation",
+        "bip322",
+        "oc-agent",
+        "orangecheck"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "agent-signer"
+    },
+    "homepage": "https://github.com/orangecheck/oc-agent-protocol",
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "src",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "type-check": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "@noble/hashes": "^1.5.0",
+        "@orangecheck/agent-core": "file:../agent-core"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.2",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2",
+        "vitest": "^3.2.4"
+    }
+}
