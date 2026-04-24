@@ -32,6 +32,11 @@ on:
             - 'lock-device-v*'
             - 'stamp-core-v*'
             - 'stamp-ots-v*'
+            - 'vote-core-v*'
+            - 'vote-cli-v*'
+            - 'agent-core-v*'
+            - 'agent-signer-v*'
+            - 'agent-mcp-v*'
             - 'sdk-py-v*'
 
 jobs:
@@ -79,10 +84,26 @@ jobs:
                   yarn install --frozen-lockfile
                   yarn build
 
-            # stamp-core is the dep root for stamp-ots.
+            # stamp-core is the dep root for stamp-ots and agent-core.
             - name: Build stamp-core (dependency)
-              if: steps.parse.outputs.package == 'stamp-ots'
+              if: steps.parse.outputs.package == 'stamp-ots' || steps.parse.outputs.package == 'agent-core'
               working-directory: stamp-core
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # agent-core is the dep root for agent-signer and agent-mcp.
+            - name: Build agent-core (dependency)
+              if: steps.parse.outputs.package == 'agent-signer' || steps.parse.outputs.package == 'agent-mcp'
+              working-directory: agent-core
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # agent-signer is a dep root for agent-mcp.
+            - name: Build agent-signer (dependency)
+              if: steps.parse.outputs.package == 'agent-mcp'
+              working-directory: agent-signer
               run: |
                   yarn install --frozen-lockfile
                   yarn build

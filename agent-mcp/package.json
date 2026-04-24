@@ -50,8 +50,8 @@
     },
     "dependencies": {
         "@noble/hashes": "^1.5.0",
-        "@orangecheck/agent-core": "file:../agent-core",
-        "@orangecheck/agent-signer": "file:../agent-signer"
+        "@orangecheck/agent-core": "^0.1.0",
+        "@orangecheck/agent-signer": "^0.1.0"
     },
     "devDependencies": {
         "@types/node": "^22.10.2",
