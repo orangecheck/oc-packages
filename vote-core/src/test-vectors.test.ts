@@ -18,13 +18,19 @@ import type { Ballot, Poll, Reveal, TallyResult, Utxo } from './types.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function locateVectorsDir(): string {
+    // Env override for CI (caller checks out oc-vote-protocol wherever it likes).
+    if (process.env.OC_VOTE_VECTORS_DIR && existsSync(process.env.OC_VOTE_VECTORS_DIR)) {
+        return process.env.OC_VOTE_VECTORS_DIR;
+    }
     // Sibling checkout preferred for monorepo dev.
     const sibling = resolve(__dirname, '..', '..', '..', 'oc-vote-protocol', 'test-vectors');
     if (existsSync(sibling)) return sibling;
     // User-home fallback for dev environments.
     const user = '/Users/wilneeley/Projects/oc-vote-protocol/test-vectors';
     if (existsSync(user)) return user;
-    throw new Error('oc-vote-protocol/test-vectors not found');
+    throw new Error(
+        'oc-vote-protocol/test-vectors not found — set OC_VOTE_VECTORS_DIR or clone the repo as a sibling'
+    );
 }
 
 interface Vector {
