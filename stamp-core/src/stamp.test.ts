@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { canonicalMessage, computeEnvelopeId } from './canonical.js';
-import { StampError, stamp, verify } from './stamp.js';
+import { StampError, hashContent, stamp, verify } from './stamp.js';
 import type { StampEnvelope } from './types.js';
 
 const FIXED_ADDRESS = 'bc1qtest00000000000000000000000000000000000';
@@ -250,6 +250,53 @@ describe('verify()', () => {
         expect(r.ok).toBe(true);
         expect(gotMsg).toBe(env.id);
         expect(gotAddr).toBe(FIXED_ADDRESS);
+    });
+});
+
+describe('input validation', () => {
+    it('rejects malformed signer.address at stamp() time', async () => {
+        await expect(
+            stamp({
+                content: { hash: 'sha256:' + '0'.repeat(64), length: 1 },
+                mime: 'text/plain',
+                signer: { address: 'bc1q alice', signMessage: async () => FIXED_SIG },
+                signedAt: FIXED_DATE,
+            })
+        ).rejects.toBeInstanceOf(StampError);
+    });
+
+    it('rejects an empty mime at stamp() time', async () => {
+        await expect(
+            stamp({
+                content: { hash: 'sha256:' + '0'.repeat(64), length: 1 },
+                mime: '',
+                signer: fakeSigner(),
+                signedAt: FIXED_DATE,
+            })
+        ).rejects.toBeInstanceOf(StampError);
+    });
+});
+
+describe('hashContent helper', () => {
+    it('returns sha256: prefix + length', () => {
+        const bytes = new TextEncoder().encode('hi');
+        const h = hashContent(bytes);
+        expect(h.hash.startsWith('sha256:')).toBe(true);
+        expect(h.hash).toHaveLength('sha256:'.length + 64);
+        expect(h.length).toBe(2);
+    });
+
+    it('hashContent(x).hash matches what stamp() produces from raw bytes', async () => {
+        const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+        const pre = hashContent(bytes);
+        const env = await stamp({
+            content: bytes,
+            mime: 'application/octet-stream',
+            signer: fakeSigner(),
+            signedAt: FIXED_DATE,
+        });
+        expect(env.content.hash).toBe(pre.hash);
+        expect(env.content.length).toBe(pre.length);
     });
 });
 

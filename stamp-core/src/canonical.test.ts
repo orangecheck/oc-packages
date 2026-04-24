@@ -7,6 +7,7 @@ import {
     computeEnvelopeId,
     hexEncode,
     sha256Hex,
+    validateCanonicalInput,
 } from './canonical.js';
 
 describe('canonicalMessage', () => {
@@ -89,6 +90,60 @@ describe('canonicalize (RFC 8785 JSON)', () => {
         expect(canonicalize(12843)).toBe('12843');
         expect(canonicalize(0)).toBe('0');
         expect(canonicalize(-0)).toBe('0');
+    });
+});
+
+describe('validateCanonicalInput', () => {
+    const good = {
+        address: 'bc1qalice000000000000000000000000000000000',
+        content_hash: 'sha256:' + '1'.repeat(64),
+        content_length: 42,
+        content_mime: 'text/plain',
+        signed_at: '2026-04-24T18:30:00Z',
+    };
+
+    it('accepts a well-formed input', () => {
+        expect(validateCanonicalInput(good).ok).toBe(true);
+    });
+
+    it('rejects an address with whitespace', () => {
+        const r = validateCanonicalInput({ ...good, address: 'bc1q alice' });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects an address with embedded newline', () => {
+        const r = validateCanonicalInput({ ...good, address: 'bc1q\nalice' });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects a hash missing sha256: prefix', () => {
+        const r = validateCanonicalInput({ ...good, content_hash: 'a'.repeat(64) });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects a non-hex hash body', () => {
+        const r = validateCanonicalInput({ ...good, content_hash: 'sha256:' + 'Z'.repeat(64) });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects fractional content_length', () => {
+        const r = validateCanonicalInput({ ...good, content_length: 3.14 });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects negative content_length', () => {
+        const r = validateCanonicalInput({ ...good, content_length: -1 });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects signed_at missing Z suffix', () => {
+        const r = validateCanonicalInput({ ...good, signed_at: '2026-04-24T18:30:00' });
+        expect(r.ok).toBe(false);
+    });
+
+    it('rejects empty mime', () => {
+        const r = validateCanonicalInput({ ...good, content_mime: '' });
+        expect(r.ok).toBe(false);
     });
 });
 

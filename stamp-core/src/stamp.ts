@@ -7,6 +7,7 @@ import {
     canonicalMessageBytes,
     computeEnvelopeId,
     hexEncode,
+    validateCanonicalInput,
 } from './canonical.js';
 import {
     ENVELOPE_VERSION,
@@ -17,6 +18,19 @@ import {
     type VerifyOk,
     type VerifyResult,
 } from './types.js';
+
+/**
+ * Compute `{hash, length}` for raw bytes. Convenience over the common
+ * `sha256(bytes)` pattern that prefixes with `sha256:` and returns lowercase
+ * hex. Pass the result to `stamp({ content: hashContent(bytes), mime })` when
+ * you don't want stamp() to hash the bytes itself.
+ */
+export function hashContent(bytes: Uint8Array): { hash: string; length: number } {
+    return {
+        hash: 'sha256:' + hexEncode(sha256(bytes)),
+        length: bytes.byteLength,
+    };
+}
 
 export class StampError extends Error {
     code: VerifyErrorCode;
@@ -66,6 +80,15 @@ export async function stamp(input: StampInput): Promise<StampEnvelope> {
         content_mime: input.mime,
         signed_at: signedAt,
     };
+
+    const v = validateCanonicalInput(canon);
+    if (!v.ok) {
+        // Validation rejects inputs that would silently break canonical-message
+        // reconstructability downstream (whitespace in address, wrong hash
+        // prefix, floats in length, etc.). Catching them here prevents a
+        // signed envelope that no verifier can accept.
+        throw new StampError('E_MALFORMED', v.reason);
+    }
 
     const id = computeEnvelopeId(canon);
 

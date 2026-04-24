@@ -33,6 +33,41 @@ export function canonicalMessage(input: CanonicalMessageInput): string {
     ].join('\n');
 }
 
+/**
+ * Check whether a CanonicalMessageInput is well-formed per the spec's field
+ * rules (§3, §4). Returns `{ok: true}` if every field is valid, or
+ * `{ok: false, reason}` pointing at the first violation.
+ *
+ * Called by `stamp()` before producing the canonical bytes. Exposed for
+ * UIs that want to preview validity without throwing.
+ */
+export function validateCanonicalInput(input: CanonicalMessageInput):
+    | { ok: true }
+    | { ok: false, reason: string } {
+    // No control chars or whitespace breaks in fields — any of those would
+    // invalidate the 6-line structure and produce an id nobody else can
+    // reconstruct. The whole canonical message is ASCII-safe by design.
+    if (!input.address || /[\s\x00-\x1f]/.test(input.address)) {
+        return { ok: false, reason: 'address must be non-empty with no whitespace or control chars' };
+    }
+    if (!/^sha256:[0-9a-f]{64}$/.test(input.content_hash)) {
+        return { ok: false, reason: 'content_hash must match /^sha256:[0-9a-f]{64}$/' };
+    }
+    if (!Number.isInteger(input.content_length) || input.content_length < 0) {
+        return { ok: false, reason: 'content_length must be a non-negative integer' };
+    }
+    // MIME per RFC 6838: "type/subtype[+suffix][;params]". We accept anything
+    // that's non-empty and control-char-free; fine-grained parsing is out of
+    // scope and would reject legitimate media types.
+    if (!input.content_mime || /[\x00-\x1f]/.test(input.content_mime)) {
+        return { ok: false, reason: 'content_mime must be non-empty with no control chars' };
+    }
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(input.signed_at)) {
+        return { ok: false, reason: 'signed_at must be ISO 8601 UTC ending in Z' };
+    }
+    return { ok: true };
+}
+
 export function canonicalMessageBytes(input: CanonicalMessageInput): Uint8Array {
     return new TextEncoder().encode(canonicalMessage(input));
 }
