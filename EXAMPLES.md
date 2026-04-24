@@ -439,6 +439,122 @@ app.post(
 
 ---
 
+## OC Agent — scoped delegation authority
+
+Bind a Bitcoin-address-identified principal to an agent address with a scoped,
+time-bound, optionally-bonded grant. Every action the agent takes is a signed
+`agent-action` envelope that cites the delegation.
+
+```bash
+npm i @orangecheck/agent-core @orangecheck/agent-signer
+```
+
+### Create a delegation
+
+```ts
+import { createDelegation } from '@orangecheck/agent-signer';
+
+const delegation = await createDelegation({
+    principal: {
+        address: 'bc1qprincipal…',
+        signMessage: (m) => wallet.signMessage(m), // any BIP-322 signer
+    },
+    agentAddress: 'bc1qagent…',
+    scopes: [
+        'ln:send(max_sats<=1000,node=03abc…)',
+        'nostr:publish(kind=1,max_bytes=4096)',
+    ],
+    bond: { sats: 500_000, attestation_id: '22…22' }, // optional OrangeCheck bond
+    ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+// delegation is a self-contained JSON envelope
+```
+
+### Exercise a delegation as the agent
+
+```ts
+import { signAsAgent } from '@orangecheck/agent-signer';
+
+const action = await signAsAgent({
+    agent: {
+        address: 'bc1qagent…',
+        signMessage: (m) => agentKey.signBip322(m),
+    },
+    delegation,
+    content: new TextEncoder().encode('hello world'),
+    mime: 'text/plain',
+    scopeExercised: 'nostr:publish(kind=1)',
+});
+```
+
+### Verify an action against its delegation
+
+```ts
+import { verifyAction } from '@orangecheck/agent-core';
+import { Verifier as Bip322 } from 'bip322-js';
+
+const r = await verifyAction({
+    action,
+    delegation,
+    verifyBip322: async (m, s, a) => Bip322.verifySignature(a, m, s),
+});
+if (!r.ok) throw new Error(`${r.code}: ${r.message}`);
+console.log(`scope exercised: ${r.scopeExercised}`);
+```
+
+### Revoke ahead of expiry
+
+```ts
+import { revoke } from '@orangecheck/agent-signer';
+
+const rev = await revoke({
+    signer: principal, // or agent, if delegation.revocation.holders includes 'agent'
+    delegation,
+    reason: 'key rotated',
+});
+// Publish rev as Nostr kind-30085; optionally anchor to OpenTimestamps.
+```
+
+### Stamp an MCP tool invocation
+
+```ts
+import { invokeWithStamp } from '@orangecheck/agent-mcp';
+
+const { result, action } = await invokeWithStamp({
+    agent,
+    delegation,
+    invocation: {
+        server: 'https://mcp.example.com',
+        tool: 'search',
+        arguments: { query: 'bitcoin', limit: 10 },
+    },
+    call: (inv) => mcp.invoke(inv.server, inv.tool, inv.arguments),
+});
+// `action` is the signed authority artifact. Ship it alongside `result`.
+```
+
+### Scope grammar
+
+Scope strings are `product:verb(key op value, …)`. The MVP registry covers:
+`lock:seal`, `lock:chat`, `stamp:sign`, `vote:cast`, `nostr:publish`,
+`http:request`, `ln:send`, `mcp:invoke`. Ordered ops (`<`, `<=`, `>`, `>=`)
+apply to registered numeric keys (e.g. `max_sats`, `max_bytes`).
+
+The sub-scope relation is deterministic:
+
+```ts
+import { isSubScope, parseScope } from '@orangecheck/agent-core';
+
+const granted = parseScope('ln:send(max_sats<=1000,node=03abc)');
+const exercised = parseScope('ln:send(max_sats=500,node=03abc,max_fee_sats=5)');
+isSubScope(exercised, granted); // true
+```
+
+Live playground: [agent.ochk.io/playground](https://agent.ochk.io/playground).
+Spec: [`oc-agent-protocol`](https://github.com/orangecheck/oc-agent-protocol).
+
+---
+
 ## Design notes
 
 - **Bitcoin is load-bearing.** If you find yourself using a code path that would work identically on Ed25519, you're in the wrong part of the SDK. The unique value prop is the on-chain economic signal.
