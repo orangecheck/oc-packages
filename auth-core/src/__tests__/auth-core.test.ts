@@ -1,0 +1,116 @@
+import { randomBytes } from 'node:crypto';
+
+import { exportJWK, generateKeyPair, SignJWT } from 'jose';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import {
+    clearSessionCookieHeader,
+    DEFAULT_ISSUER,
+    readSessionCookie,
+    serializeSessionCookie,
+    signSession,
+    verifySessionToken,
+    type SignConfig,
+    type VerifyConfig,
+} from '../index';
+
+async function freshKeys() {
+    const { privateKey, publicKey } = await generateKeyPair('EdDSA', {
+        crv: 'Ed25519',
+        extractable: true,
+    });
+    const kid = randomBytes(6).toString('base64url');
+    const privJwk = { ...(await exportJWK(privateKey)), alg: 'EdDSA', use: 'sig', kid };
+    const pubJwk = { ...(await exportJWK(publicKey)), alg: 'EdDSA', use: 'sig', kid };
+    const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    return {
+        kid,
+        privateJwk: b64(privJwk),
+        publicJwk: b64(pubJwk),
+        privateKey,
+    };
+}
+
+describe('sign / verify round-trip', () => {
+    let sign: SignConfig;
+    let verify: VerifyConfig;
+
+    beforeAll(async () => {
+        const k = await freshKeys();
+        sign = { kid: k.kid, privateJwk: k.privateJwk, publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+        verify = { publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+    });
+
+    it('verifies a token signed with the matching private key', async () => {
+        const tok = await signSession(
+            { sub: 'acct-123', addr: 'bc1qabc', jti: 'deadbeef' },
+            sign,
+            3600
+        );
+        const payload = await verifySessionToken(tok, verify);
+        expect(payload?.sub).toBe('acct-123');
+        expect(payload?.addr).toBe('bc1qabc');
+        expect(payload?.jti).toBe('deadbeef');
+    });
+
+    it('rejects a token signed by a different key', async () => {
+        const other = await freshKeys();
+        const tok = await signSession(
+            { sub: 'a', addr: 'bc1q', jti: 'j' },
+            { ...sign, privateJwk: other.privateJwk, kid: other.kid },
+            3600
+        );
+        expect(await verifySessionToken(tok, verify)).toBeNull();
+    });
+
+    it('rejects a token with wrong issuer', async () => {
+        const tok = await signSession(
+            { sub: 'a', addr: 'bc1q', jti: 'j' },
+            { ...sign, issuer: 'https://evil.example.com' },
+            3600
+        );
+        expect(await verifySessionToken(tok, verify)).toBeNull();
+    });
+
+    it('rejects an expired token', async () => {
+        const k = await freshKeys();
+        const now = Math.floor(Date.now() / 1000);
+        const tok = await new SignJWT({ sub: 'a', addr: 'bc1q', jti: 'j' })
+            .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: k.kid })
+            .setIssuer(DEFAULT_ISSUER)
+            .setIssuedAt(now - 7200)
+            .setExpirationTime(now - 3600)
+            .sign(k.privateKey);
+        expect(await verifySessionToken(tok, { publicJwk: k.publicJwk })).toBeNull();
+    });
+});
+
+describe('cookie helpers', () => {
+    it('serializes with HttpOnly, SameSite=Lax, Secure, Path=/ by default', () => {
+        const h = serializeSessionCookie('abc', { maxAge: 1000 });
+        expect(h).toContain('oc_session=abc');
+        expect(h).toContain('HttpOnly');
+        expect(h).toContain('SameSite=Lax');
+        expect(h).toContain('Secure');
+        expect(h).toContain('Path=/');
+        expect(h).toContain('Max-Age=1000');
+    });
+
+    it('applies a Domain attribute when given', () => {
+        expect(serializeSessionCookie('abc', { domain: '.ochk.io' })).toContain('Domain=.ochk.io');
+    });
+
+    it('clearSessionCookieHeader produces a Max-Age=0 cookie', () => {
+        const h = clearSessionCookieHeader({ domain: '.ochk.io' });
+        expect(h).toContain('oc_session=');
+        expect(h).toContain('Max-Age=0');
+        expect(h).toContain('Domain=.ochk.io');
+    });
+
+    it('readSessionCookie extracts the token from a Cookie: header', () => {
+        expect(readSessionCookie('foo=bar; oc_session=xyz; baz=qux')).toBe('xyz');
+        expect(readSessionCookie('foo=bar')).toBeNull();
+        expect(readSessionCookie(null)).toBeNull();
+        expect(readSessionCookie('oc_session=')).toBeNull();
+    });
+});
