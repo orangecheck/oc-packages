@@ -1,14 +1,15 @@
 {
-    "name": "@orangecheck/stamp-ots",
-    "version": "0.1.1",
-    "description": "OpenTimestamps calendar client, proof helpers, and anchor-verification hooks for OC Stamp envelopes. See https://github.com/orangecheck/oc-stamp-protocol.",
+    "name": "@orangecheck/stamp-cli",
+    "version": "0.1.0",
+    "description": "Shell interface to OC Stamp — sign files and git tags with your Bitcoin address, anchor to Bitcoin, verify offline. Exposes `stamp` and `git-stamp` binaries.",
     "keywords": [
         "bitcoin",
+        "bip322",
         "opentimestamps",
-        "ots",
-        "timestamp",
         "provenance",
         "oc-stamp",
+        "git-stamp",
+        "cli",
         "orangecheck"
     ],
     "author": "OrangeCheck",
@@ -16,25 +17,20 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "stamp-ots"
+        "directory": "stamp-cli"
     },
-    "homepage": "https://github.com/orangecheck/oc-stamp-protocol",
+    "homepage": "https://stamp.ochk.io",
     "bugs": {
         "url": "https://github.com/orangecheck/oc-stamp-protocol/issues"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        }
+    "type": "module",
+    "bin": {
+        "stamp": "./dist/cli.js",
+        "git-stamp": "./dist/cli.js"
     },
+    "main": "./dist/cli.js",
     "files": [
         "dist",
-        "src",
         "README.md",
         "LICENSE"
     ],
@@ -48,15 +44,10 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@orangecheck/stamp-core": "^0.1.2"
-    },
-    "peerDependencies": {
-        "opentimestamps": "^0.4.9"
-    },
-    "peerDependenciesMeta": {
-        "opentimestamps": {
-            "optional": true
-        }
+        "@orangecheck/stamp-core": "^0.1.2",
+        "@orangecheck/stamp-ots": "^0.1.1",
+        "bip322-js": "^3.0.0",
+        "commander": "^12.1.0"
     },
     "devDependencies": {
         "@types/node": "^22.10.2",
