@@ -240,9 +240,12 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@orangecheck/auth-core@link:../auth-core":
-  version "0.0.0"
-  uid ""
+"@orangecheck/auth-core@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-0.1.0.tgz#758da64f299ed770b599d45d8dadd8ac54c6fc1b"
+  integrity sha512-+0IKcI1xP3anpNrEYo+92zhf0fp1iiNVetzEvfgDDg+vu2SRFyU9aN4FF5XgCBSPK/LJC4JaAZyWW0dIZ+lQXA==
+  dependencies:
+    jose "^6.2.2"
 
 "@rollup/rollup-android-arm-eabi@4.60.2":
   version "4.60.2"
