@@ -305,10 +305,13 @@ export function formatIdentitiesForDisplay(identities: IdentityBinding[]): strin
 
 /**
  * Build the canonical shareable URL for an attestation. Matches the live
- * `/attest/[id]` route on ochk.io. Pass a different `baseUrl` for forks /
+ * `/attest/[id]` route on attest.ochk.io. Pass a different `baseUrl` for forks /
  * self-hosted verifiers.
  */
-export function getVerificationUrl(attestationId: string, baseUrl = 'https://ochk.io'): string {
+export function getVerificationUrl(
+    attestationId: string,
+    baseUrl = 'https://attest.ochk.io'
+): string {
     return `${baseUrl}/attest/${attestationId}`;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Conformance tests — SDK must agree with the normative vectors published
- * at github.com/orangecheck/oc-protocol/tree/main/conformance/vectors.
+ * at github.com/orangecheck/oc-attest-protocol/tree/main/conformance/vectors.
  *
  * A failure here means the SDK's output has drifted from the spec. Either
  * the spec moved (re-run `node conformance/generate.mjs` in oc-protocol and
@@ -10,7 +10,7 @@
  * the latest set from the protocol repo:
  *
  *   cd packages/sdk
- *   curl -sL https://api.github.com/repos/orangecheck/oc-protocol/contents/conformance/vectors \
+ *   curl -sL https://api.github.com/repos/orangecheck/oc-attest-protocol/contents/conformance/vectors \
  *     | jq -r '.[] | .download_url' \
  *     | xargs -I{} curl -sL {} -o src/__tests__/vectors/$(basename {})
  */

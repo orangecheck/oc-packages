@@ -178,7 +178,7 @@ jobs:
 
             - name: Fetch live oc-protocol vectors
               run: |
-                  git clone --depth=1 https://github.com/orangecheck/oc-protocol.git /tmp/oc-protocol
+                  git clone --depth=1 https://github.com/orangecheck/oc-attest-protocol.git /tmp/oc-protocol
 
             - name: Verify SDK vectors are byte-identical to oc-protocol/main
               run: |

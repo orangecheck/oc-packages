@@ -266,7 +266,7 @@ export async function createAttestationEnvelope(
     const message_b64url = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
     // Construct verification URL
-    const verification_url = `https://ochk.io/attest/${attestation_id}`;
+    const verification_url = `https://attest.ochk.io/attest/${attestation_id}`;
 
     return {
         attestation_id,

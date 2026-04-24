@@ -14,7 +14,7 @@ The three load-bearing functions:
 Plus format_identities() and the reject-at-the-boundary safety rules.
 
 This module is cross-impl pinned by the conformance vectors at:
-  github.com/orangecheck/oc-protocol/tree/main/conformance/vectors
+  github.com/orangecheck/oc-attest-protocol/tree/main/conformance/vectors
 """
 
 from __future__ import annotations

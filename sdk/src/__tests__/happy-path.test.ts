@@ -164,7 +164,7 @@ describe('createAttestationEnvelope', () => {
         expect(envelope.message).toBe(message);
         expect(envelope.attestation_id).toMatch(/^[0-9a-f]{64}$/);
         expect(envelope.verification_url).toBe(
-            `https://ochk.io/attest/${envelope.attestation_id}`
+            `https://attest.ochk.io/attest/${envelope.attestation_id}`
         );
         expect(envelope.identities).toEqual([{ protocol: 'github', identifier: 'alice' }]);
     });

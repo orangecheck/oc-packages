@@ -132,7 +132,7 @@ describe('signed-challenge duplicate-core-key defence', () => {
 
 describe('verification URL helpers (matches live /attest/<id> route)', () => {
     it('builds the canonical URL', () => {
-        expect(getVerificationUrl('a'.repeat(64))).toBe(`https://ochk.io/attest/${'a'.repeat(64)}`);
+        expect(getVerificationUrl('a'.repeat(64))).toBe(`https://attest.ochk.io/attest/${'a'.repeat(64)}`);
     });
 
     it('accepts a custom baseUrl for forks / self-hosted verifiers', () => {
@@ -148,11 +148,11 @@ describe('verification URL helpers (matches live /attest/<id> route)', () => {
 
     it('still parses legacy /verify?id=<id> URLs', () => {
         const id = 'd'.repeat(64);
-        expect(extractAttestationIdFromUrl(`https://ochk.io/verify?id=${id}`)).toBe(id);
+        expect(extractAttestationIdFromUrl(`https://attest.ochk.io/verify?id=${id}`)).toBe(id);
     });
 
     it('returns null for garbage', () => {
         expect(extractAttestationIdFromUrl('not-a-url')).toBeNull();
-        expect(extractAttestationIdFromUrl('https://ochk.io/attest/short')).toBeNull();
+        expect(extractAttestationIdFromUrl('https://attest.ochk.io/attest/short')).toBeNull();
     });
 });

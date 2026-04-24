@@ -11,7 +11,7 @@ verb, all consuming this monorepo as a git submodule at `packages/`:
 
 | Verb | Spec | Site |
 |---|---|---|
-| identity | [`oc-web/docs/oc-protocol/`](https://github.com/orangecheck/oc-web) | [`oc-web`](https://github.com/orangecheck/oc-web) → ochk.io |
+| identity | [`oc-attest-protocol`](https://github.com/orangecheck/oc-attest-protocol) | [`oc-attest-web`](https://github.com/orangecheck/oc-attest-web) → attest.ochk.io |
 | confidentiality | [`oc-lock-protocol`](https://github.com/orangecheck/oc-lock-protocol) | [`oc-lock-web`](https://github.com/orangecheck/oc-lock-web) → lock.ochk.io |
 | legitimacy | [`oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol) | [`oc-vote-web`](https://github.com/orangecheck/oc-vote-web) → vote.ochk.io |
 | provenance | [`oc-stamp-protocol`](https://github.com/orangecheck/oc-stamp-protocol) | [`oc-stamp-web`](https://github.com/orangecheck/oc-stamp-web) → stamp.ochk.io |

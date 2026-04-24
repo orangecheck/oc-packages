@@ -210,7 +210,7 @@ Same code runs unchanged on Cloudflare Workers, Bun, Deno, or Node.
 ## Raw HTTP — `curl`, shell, any language
 
 ```bash
-curl -s "https://ochk.io/api/check?addr=bc1q...&min_sats=100000&min_days=30"
+curl -s "https://attest.ochk.io/api/check?addr=bc1q...&min_sats=100000&min_days=30"
 ```
 
 Response:
@@ -275,7 +275,7 @@ const envelope = await createAttestation({
 await publishAttestation({ envelope, npub: userNpub });
 
 console.log('Attestation ID:', envelope.attestation_id); // content-addressed
-console.log('Share at:', `https://ochk.io/a/${envelope.attestation_id}`);
+console.log('Share at:', `https://attest.ochk.io/a/${envelope.attestation_id}`);
 ```
 
 ---
@@ -374,14 +374,14 @@ The simplest path: just call the hosted endpoints.
 
 ```bash
 # 1. Get a challenge to sign
-curl -s "https://ochk.io/api/challenge?addr=bc1q...&audience=https://example.com&purpose=login"
+curl -s "https://attest.ochk.io/api/challenge?addr=bc1q...&audience=https://example.com&purpose=login"
 # → { "message": "orangecheck-auth\naddress: ...\nnonce: ...\n...",
 #     "nonce": "a1b2...", "expiresAt": 1747584000000 }
 
 # 2. User signs the message in their wallet (BIP-322).
 
 # 3. Send the signature back.
-curl -s -X POST "https://ochk.io/api/challenge" \
+curl -s -X POST "https://attest.ochk.io/api/challenge" \
   -H 'Content-Type: application/json' \
   -d '{"message": "...", "signature": "..."}'
 # → { "ok": true, "address": "bc1q...", "nonce": "a1b2...", "expiresAt": ... }
@@ -567,6 +567,6 @@ Spec: [`oc-agent-protocol`](https://github.com/orangecheck/oc-agent-protocol).
 ## More
 
 - [Protocol spec](https://ochk.io/protocol)
-- [`/api/check` reference](https://ochk.io/docs)
+- [`/api/check` reference](https://attest.ochk.io/docs)
 - [`@orangecheck/sdk` README](sdk/README.md)
 - [`@orangecheck/gate` README](gate/README.md)

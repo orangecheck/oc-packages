@@ -1,6 +1,6 @@
 """
 Conformance tests — Python SDK must agree with the normative vectors
-at github.com/orangecheck/oc-protocol/tree/main/conformance/vectors.
+at github.com/orangecheck/oc-attest-protocol/tree/main/conformance/vectors.
 
 A failure here means either:
   (a) the spec moved: re-run `node conformance/generate.mjs` in the

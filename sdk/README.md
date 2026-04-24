@@ -42,7 +42,7 @@ if (result.ok) {
 ### 2. Or call the hosted API — no SDK needed at all
 
 ```bash
-curl "https://ochk.io/api/check?addr=bc1q...&min_sats=100000&min_days=30"
+curl "https://attest.ochk.io/api/check?addr=bc1q...&min_sats=100000&min_days=30"
 # { "ok": true, "sats": 125000, "days": 47, "score": 30.12, ... }
 ```
 
@@ -272,5 +272,5 @@ MIT. The protocol is CC-BY-4.0.
 
 - **Website**: https://ochk.io
 - **Protocol spec**: https://ochk.io/protocol
-- **API docs**: https://ochk.io/docs
-- **Hosted verifier**: `https://ochk.io/api/check`
+- **API docs**: https://attest.ochk.io/docs
+- **Hosted verifier**: `https://attest.ochk.io/api/check`

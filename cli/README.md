@@ -107,7 +107,7 @@ done < candidates.txt > allowlist.txt
 
 ```bash
 # Fetch an attestation envelope from /api/discover, then verify
-curl -s "https://ochk.io/api/discover?identity=nostr:npub1alice..." \
+curl -s "https://attest.ochk.io/api/discover?identity=nostr:npub1alice..." \
   | jq '.attestations[0]' \
   | oc verify --json
 ```
