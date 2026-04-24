@@ -9,6 +9,8 @@ name: Release
 #   git tag relay-filter-v0.1.1 ...       → @orangecheck/relay-filter    (npm)
 #   git tag airdrop-gate-v0.1.1 ...       → @orangecheck/airdrop-gate    (npm)
 #   git tag wallet-adapter-v0.1.0 ...     → @orangecheck/wallet-adapter  (npm)
+#   git tag stamp-core-v0.1.0 ...         → @orangecheck/stamp-core      (npm)
+#   git tag stamp-ots-v0.1.0 ...          → @orangecheck/stamp-ots       (npm)
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
 #
 # Secrets required:
@@ -28,6 +30,8 @@ on:
             - 'lock-crypto-v*'
             - 'lock-core-v*'
             - 'lock-device-v*'
+            - 'stamp-core-v*'
+            - 'stamp-ots-v*'
             - 'sdk-py-v*'
 
 jobs:
@@ -61,7 +65,7 @@ jobs:
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk' && !startsWith(steps.parse.outputs.package, 'lock-')
+              if: steps.parse.outputs.package != 'sdk' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
               working-directory: sdk
               run: |
                   yarn install --frozen-lockfile
@@ -71,6 +75,14 @@ jobs:
             - name: Build lock-crypto (dependency)
               if: steps.parse.outputs.package == 'lock-core' || steps.parse.outputs.package == 'lock-device'
               working-directory: lock-crypto
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # stamp-core is the dep root for stamp-ots.
+            - name: Build stamp-core (dependency)
+              if: steps.parse.outputs.package == 'stamp-ots'
+              working-directory: stamp-core
               run: |
                   yarn install --frozen-lockfile
                   yarn build

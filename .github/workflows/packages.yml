@@ -40,6 +40,8 @@ jobs:
                     - lock-crypto
                     - lock-core
                     - lock-device
+                    - stamp-core
+                    - stamp-ots
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}
@@ -56,6 +58,14 @@ jobs:
             - name: Build @orangecheck/lock-crypto (dependency)
               if: matrix.pkg == 'lock-core' || matrix.pkg == 'lock-device'
               working-directory: lock-crypto
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # stamp-ots depends on stamp-core via file:../stamp-core.
+            - name: Build @orangecheck/stamp-core (dependency)
+              if: matrix.pkg == 'stamp-ots'
+              working-directory: stamp-core
               run: |
                   yarn install --frozen-lockfile
                   yarn build
