@@ -6,5 +6,5 @@ export { submitToCalendars } from './submit.js';
 export type { SubmitOptions } from './submit.js';
 export { upgradeProof } from './upgrade.js';
 export type { UpgradeOptions } from './upgrade.js';
-export { makeAnchorVerifier, adaptAnchorVerifier } from './anchor.js';
+export { makeAnchorVerifier, makeDefaultAnchorVerifier } from './anchor.js';
 export type { AnchorVerifierConfig } from './anchor.js';

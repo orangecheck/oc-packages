@@ -105,11 +105,21 @@ export interface VerifyInput {
      * the caller-supplied function walks the proof and returns true iff it chains to a
      * real Bitcoin block header at the declared height.
      *
+     * `envelopeId` is the 64-char hex envelope id (equals the 32-byte digest committed
+     * by the OTS proof, hex-encoded). Passing it explicitly lets the verifier avoid
+     * the broken "look up the digest from the block hash" dance the old adapter
+     * tried to do.
+     *
      * The default behavior (anchor hook omitted) is to ACCEPT a confirmed envelope on
      * shape alone — useful for preview UIs. Callers that attach legal or economic
      * weight MUST supply this hook.
      */
-    verifyOtsAnchor?: (proofB64: string, blockHeight: number, blockHash: string) => Promise<boolean>;
+    verifyOtsAnchor?: (
+        proofB64: string,
+        blockHeight: number,
+        blockHash: string,
+        envelopeId: string
+    ) => Promise<boolean>;
     /**
      * Skip the BIP-322 signature verification. Default false. Useful for test vectors
      * where signatures are placeholders, or for preview UIs that re-verify separately.

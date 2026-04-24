@@ -181,7 +181,7 @@ export async function verify(input: VerifyInput): Promise<VerifyResult> {
         let verified = false;
         if (input.verifyOtsAnchor) {
             try {
-                verified = await input.verifyOtsAnchor(env.ots.proof, h, hash);
+                verified = await input.verifyOtsAnchor(env.ots.proof, h, hash, env.id);
             } catch (e) {
                 return err('E_BAD_ANCHOR', `anchor verifier threw: ${(e as Error).message}`);
             }

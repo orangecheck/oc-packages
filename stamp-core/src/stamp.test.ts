@@ -192,15 +192,24 @@ describe('verify()', () => {
             },
         });
         let called = false;
+        let receivedEnvelopeId = '';
+        let receivedBlockHeight = 0;
         const r = await verify({
             envelope: env,
             skipSignatureVerification: true,
-            verifyOtsAnchor: async () => {
+            verifyOtsAnchor: async (_proof, blockHeight, _blockHash, envelopeId) => {
                 called = true;
+                receivedEnvelopeId = envelopeId;
+                receivedBlockHeight = blockHeight;
                 return true;
             },
         });
         expect(called).toBe(true);
+        // The hook MUST receive the envelope id — that's what the anchor
+        // commits to. The old adapter tried to derive it from block_hash
+        // (nonsense); the fix is passing it explicitly.
+        expect(receivedEnvelopeId).toBe(env.id);
+        expect(receivedBlockHeight).toBe(890123);
         expect(r.ok).toBe(true);
         if (r.ok && r.anchor.status === 'confirmed') {
             expect(r.anchor.verified).toBe(true);
