@@ -1,0 +1,21 @@
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+    entry: {
+        index: 'src/index.ts',
+        canonical: 'src/canonical.ts',
+        ids: 'src/ids.ts',
+        commit: 'src/commit.ts',
+        weight: 'src/weight.ts',
+        tally: 'src/tally.ts',
+        types: 'src/types.ts',
+    },
+    format: ['cjs', 'esm'],
+    dts: true,
+    splitting: false,
+    sourcemap: true,
+    clean: true,
+    treeshake: true,
+    minify: false,
+    external: ['@noble/hashes'],
+});
