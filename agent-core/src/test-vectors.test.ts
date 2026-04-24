@@ -23,7 +23,9 @@ import type {
 } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const VECTORS_DIR = resolve(__dirname, '..', '..', '..', 'oc-agent-protocol', 'test-vectors');
+const VECTORS_DIR =
+    process.env.OC_AGENT_VECTORS_DIR ??
+    resolve(__dirname, '..', '..', '..', 'oc-agent-protocol', 'test-vectors');
 
 interface BaseVector {
     description: string;

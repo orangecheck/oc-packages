@@ -44,6 +44,9 @@ jobs:
                     - stamp-ots
                     - vote-core
                     - vote-cli
+                    - agent-core
+                    - agent-signer
+                    - agent-mcp
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}
@@ -71,6 +74,20 @@ jobs:
               run: echo "OC_VOTE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-vote-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
+            # agent-core's conformance tests load canonical fixtures from the
+            # oc-agent-protocol repo. Same pattern as vote-core above.
+            - name: Checkout oc-agent-protocol (for agent-core conformance)
+              if: matrix.pkg == 'agent-core'
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-agent-protocol
+                  path: .oc-agent-protocol
+
+            - name: Set OC_AGENT_VECTORS_DIR for conformance test
+              if: matrix.pkg == 'agent-core'
+              run: echo "OC_AGENT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-agent-protocol/test-vectors" >> "$GITHUB_ENV"
+              working-directory: ${{ github.workspace }}
+
             # lock-core and lock-device depend on lock-crypto via file:../lock-crypto.
             - name: Build @orangecheck/lock-crypto (dependency)
               if: matrix.pkg == 'lock-core' || matrix.pkg == 'lock-device'
@@ -86,6 +103,14 @@ jobs:
               run: |
                   yarn install --frozen-lockfile
                   yarn build
+
+            # agent-signer and agent-mcp depend on agent-core (and, transitively,
+            # stamp-core). Pull the dep-root packages from the registry (the
+            # file:../ refs in package.json were swapped for ^versions on release).
+            # No local build step needed since CI uses the published versions.
+
+            # agent-mcp additionally depends on agent-signer. Nothing to build
+            # locally — it resolves via npm.
 
             - name: Install
               run: yarn install --frozen-lockfile
