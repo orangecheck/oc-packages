@@ -115,3 +115,85 @@ export async function fetchRevealEvent(pollId: string, relays?: string[]) {
     );
     return events[0] ?? null;
 }
+
+export async function fetchRecentPolls(limit = 30, relays?: string[]) {
+    return queryRelays({ kinds: [30080], limit }, relays);
+}
+
+// ── Publish ────────────────────────────────────────────────────────────────
+
+export interface PublishResult {
+    relay: string;
+    ok: boolean;
+    reason?: string;
+}
+
+export async function publishEvent(
+    event: NostrEvent,
+    relays: string[] = DEFAULT_RELAYS,
+    timeoutMs = 6000
+): Promise<PublishResult[]> {
+    return Promise.all(
+        relays.map(
+            (url) =>
+                new Promise<PublishResult>((resolve) => {
+                    let settled = false;
+                    let ws: WebSocket | null = null;
+                    const timer = setTimeout(() => {
+                        if (settled) return;
+                        settled = true;
+                        try {
+                            ws?.close();
+                        } catch {}
+                        resolve({ relay: url, ok: false, reason: 'timeout' });
+                    }, timeoutMs);
+                    try {
+                        ws = new WebSocket(url);
+                        ws.on('open', () => ws?.send(JSON.stringify(['EVENT', event])));
+                        ws.on('message', (raw: WebSocket.RawData) => {
+                            try {
+                                const arr = JSON.parse(raw.toString()) as unknown[];
+                                if (Array.isArray(arr) && arr[0] === 'OK' && arr[1] === event.id) {
+                                    if (settled) return;
+                                    settled = true;
+                                    clearTimeout(timer);
+                                    try {
+                                        ws?.close();
+                                    } catch {}
+                                    const ok = arr[2] === true;
+                                    const reason =
+                                        typeof arr[3] === 'string' ? arr[3] : undefined;
+                                    resolve({
+                                        relay: url,
+                                        ok,
+                                        ...(reason ? { reason } : {}),
+                                    });
+                                }
+                            } catch {}
+                        });
+                        ws.on('error', () => {
+                            if (settled) return;
+                            settled = true;
+                            clearTimeout(timer);
+                            resolve({ relay: url, ok: false, reason: 'ws_error' });
+                        });
+                        ws.on('close', () => {
+                            if (settled) return;
+                            settled = true;
+                            clearTimeout(timer);
+                            resolve({ relay: url, ok: false, reason: 'closed_early' });
+                        });
+                    } catch (err) {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        resolve({
+                            relay: url,
+                            ok: false,
+                            reason: err instanceof Error ? err.message : 'unknown',
+                        });
+                    }
+                })
+        )
+    );
+}

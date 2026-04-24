@@ -18,6 +18,10 @@ export default defineConfig({
         '@orangecheck/vote-core',
         '@orangecheck/lock-core',
         '@orangecheck/lock-crypto',
+        '@noble/curves',
+        '@noble/hashes',
         'bip322-js',
+        'commander',
+        'ws',
     ],
 });

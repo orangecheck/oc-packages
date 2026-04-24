@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/vote-cli",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Command-line tool for OC Vote — tally, verify, and inspect polls from your shell.",
     "keywords": [
         "oc-vote",
@@ -40,6 +40,8 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
+        "@noble/curves": "^1.6.0",
+        "@noble/hashes": "^1.5.0",
         "@orangecheck/vote-core": "^0.1.0",
         "@orangecheck/lock-core": "^0.1.0",
         "@orangecheck/lock-crypto": "^0.1.0",
