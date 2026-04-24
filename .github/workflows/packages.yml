@@ -42,6 +42,7 @@ jobs:
                     - lock-device
                     - stamp-core
                     - stamp-ots
+                    - stamp-cli
                     - vote-core
                     - vote-cli
                     - agent-core
