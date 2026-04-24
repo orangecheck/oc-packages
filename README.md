@@ -44,6 +44,8 @@ verb, all consuming this monorepo as a git submodule at `packages/`:
 | [`stamp-ots/`](stamp-ots/) | `@orangecheck/stamp-ots` | OpenTimestamps calendar submission, proof parsing, pending → confirmed upgrade. |
 | [`agent-core/`](agent-core/) | `@orangecheck/agent-core` | OC Agent envelopes (delegation / action / revocation), scope grammar, verification. |
 | [`agent-signer/`](agent-signer/) | `@orangecheck/agent-signer` | `createDelegation()`, `signAsAgent()`, `revoke()` — wallet plumbing on top of `agent-core`. |
+| [`agent-mcp/`](agent-mcp/) | `@orangecheck/agent-mcp` | Stamp every MCP tool invocation as a signed `agent-action`. |
+| [`agent-cli/`](agent-cli/) | `@orangecheck/agent-cli` | `oc-agent` shell — verify, inspect, canonicalize, and reason about envelopes. |
 | [`EXAMPLES.md`](EXAMPLES.md) | — | Working integration examples for every framework. |
 
 All Node packages are `MIT`. The Python SDK is `MIT`. The protocol spec
@@ -64,7 +66,8 @@ Dependency roots:
 - `sdk` — build before `gate`, `cli`, `react`, `wallet-adapter`, `relay-filter`, `airdrop-gate`
 - `lock-crypto` — build before `lock-core` and `lock-device`
 - `stamp-core` — build before `stamp-ots` and `agent-core`
-- `agent-core` — build before `agent-signer` (and any future `agent-mcp`)
+- `agent-core` — build before `agent-signer`, `agent-mcp`, and `agent-cli`
+- `agent-signer` — build before `agent-mcp`
 
 The `packages.yml` CI workflow enforces this ordering.
 
@@ -92,6 +95,8 @@ git tag stamp-core-v0.1.0   && git push --tags   # → @orangecheck/stamp-core
 git tag stamp-ots-v0.1.0    && git push --tags   # → @orangecheck/stamp-ots
 git tag agent-core-v0.1.0   && git push --tags   # → @orangecheck/agent-core
 git tag agent-signer-v0.1.0 && git push --tags   # → @orangecheck/agent-signer
+git tag agent-mcp-v0.1.0    && git push --tags   # → @orangecheck/agent-mcp
+git tag agent-cli-v0.1.0    && git push --tags   # → @orangecheck/agent-cli
 ```
 
 The `release.yml` workflow picks up the tag, parses the package name and

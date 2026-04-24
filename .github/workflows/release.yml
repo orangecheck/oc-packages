@@ -37,6 +37,7 @@ on:
             - 'agent-core-v*'
             - 'agent-signer-v*'
             - 'agent-mcp-v*'
+            - 'agent-cli-v*'
             - 'sdk-py-v*'
 
 jobs:

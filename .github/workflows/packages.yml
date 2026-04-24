@@ -48,6 +48,7 @@ jobs:
                     - agent-core
                     - agent-signer
                     - agent-mcp
+                    - agent-cli
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}
