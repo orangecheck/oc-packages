@@ -1,72 +1,75 @@
 {
-    "name": "@orangecheck/vote-react",
-    "version": "0.1.0",
-    "description": "React components for OC Vote — render live tallies as badges or full poll cards, drop into any browser app in one line.",
-    "keywords": [
-        "oc-vote",
-        "orangecheck",
-        "bitcoin",
-        "voting",
-        "react",
-        "components",
-        "bip322"
-    ],
-    "author": "OrangeCheck",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "vote-react"
+  "name": "@orangecheck/vote-react",
+  "version": "0.1.0",
+  "description": "React components for OC Vote \u2014 render live tallies as badges or full poll cards, drop into any browser app in one line.",
+  "keywords": [
+    "oc-vote",
+    "orangecheck",
+    "bitcoin",
+    "voting",
+    "react",
+    "components",
+    "bip322"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "vote-react"
+  },
+  "homepage": "https://vote.ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-vote-protocol/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
-    "homepage": "https://vote.ochk.io",
-    "bugs": {
-        "url": "https://github.com/orangecheck/oc-vote-protocol/issues"
+    "./badge": {
+      "types": "./dist/badge.d.ts",
+      "import": "./dist/badge.mjs",
+      "require": "./dist/badge.js"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        },
-        "./badge": {
-            "types": "./dist/badge.d.ts",
-            "import": "./dist/badge.mjs",
-            "require": "./dist/badge.js"
-        },
-        "./poll": {
-            "types": "./dist/poll.d.ts",
-            "import": "./dist/poll.mjs",
-            "require": "./dist/poll.js"
-        },
-        "./use-tally": {
-            "types": "./dist/use-tally.d.ts",
-            "import": "./dist/use-tally.mjs",
-            "require": "./dist/use-tally.js"
-        }
+    "./poll": {
+      "types": "./dist/poll.d.ts",
+      "import": "./dist/poll.mjs",
+      "require": "./dist/poll.js"
     },
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "type-check": "tsc --noEmit",
-        "clean": "rm -rf dist",
-        "prepublishOnly": "npm run clean && npm run build"
-    },
-    "peerDependencies": {
-        "react": ">=18"
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "@types/react": "^19.0.1",
-        "react": "^19.1.0",
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2"
+    "./use-tally": {
+      "types": "./dist/use-tally.d.ts",
+      "import": "./dist/use-tally.mjs",
+      "require": "./dist/use-tally.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.1",
+    "react": "^19.1.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

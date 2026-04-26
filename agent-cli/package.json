@@ -1,54 +1,57 @@
 {
-    "name": "@orangecheck/agent-cli",
-    "version": "0.1.0",
-    "description": "Command-line tool for OC Agent — verify, inspect, and canonicalize delegation / action / revocation envelopes from your shell.",
-    "keywords": [
-        "oc-agent",
-        "orangecheck",
-        "bitcoin",
-        "delegation",
-        "authority",
-        "bip322",
-        "cli",
-        "nostr"
-    ],
-    "author": "OrangeCheck",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "agent-cli"
-    },
-    "homepage": "https://agent.ochk.io",
-    "bugs": {
-        "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
-    },
-    "type": "module",
-    "bin": {
-        "oc-agent": "./dist/cli.js"
-    },
-    "main": "./dist/cli.js",
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "type-check": "tsc --noEmit",
-        "clean": "rm -rf dist",
-        "prepublishOnly": "npm run clean && npm run build"
-    },
-    "dependencies": {
-        "@noble/hashes": "^1.5.0",
-        "@orangecheck/agent-core": "^0.1.0",
-        "bip322-js": "^3.0.0",
-        "commander": "^12.1.0"
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2"
-    }
+  "name": "@orangecheck/agent-cli",
+  "version": "0.1.0",
+  "description": "Command-line tool for OC Agent \u2014 verify, inspect, and canonicalize delegation / action / revocation envelopes from your shell.",
+  "keywords": [
+    "oc-agent",
+    "orangecheck",
+    "bitcoin",
+    "delegation",
+    "authority",
+    "bip322",
+    "cli",
+    "nostr"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "agent-cli"
+  },
+  "homepage": "https://agent.ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
+  },
+  "type": "module",
+  "bin": {
+    "oc-agent": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.5.0",
+    "@orangecheck/agent-core": "^0.1.0",
+    "bip322-js": "^3.0.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -1,107 +1,110 @@
 {
-    "name": "@orangecheck/sdk",
-    "version": "0.1.5",
-    "description": "OrangeCheck SDK — proof of Bitcoin stake for the open web. A sybil-resistance primitive for any app.",
-    "keywords": [
-        "bitcoin",
-        "sybil-resistance",
-        "bip322",
-        "nostr",
-        "attestation",
-        "anti-spam",
-        "verification",
-        "orangecheck"
-    ],
-    "author": "OrangeCheck",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "sdk"
+  "name": "@orangecheck/sdk",
+  "version": "0.1.5",
+  "description": "OrangeCheck SDK \u2014 proof of Bitcoin stake for the open web. A sybil-resistance primitive for any app.",
+  "keywords": [
+    "bitcoin",
+    "sybil-resistance",
+    "bip322",
+    "nostr",
+    "attestation",
+    "anti-spam",
+    "verification",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
-    "homepage": "https://ochk.io",
-    "bugs": {
-        "url": "https://github.com/orangecheck/oc-packages/issues"
+    "./canonical": {
+      "types": "./dist/canonical.d.ts",
+      "import": "./dist/canonical.mjs",
+      "require": "./dist/canonical.js"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        },
-        "./canonical": {
-            "types": "./dist/canonical.d.ts",
-            "import": "./dist/canonical.mjs",
-            "require": "./dist/canonical.js"
-        },
-        "./verify": {
-            "types": "./dist/verify.d.ts",
-            "import": "./dist/verify.mjs",
-            "require": "./dist/verify.js"
-        },
-        "./attestation": {
-            "types": "./dist/attestation.d.ts",
-            "import": "./dist/attestation.mjs",
-            "require": "./dist/attestation.js"
-        },
-        "./nostr": {
-            "types": "./dist/nostr.d.ts",
-            "import": "./dist/nostr.mjs",
-            "require": "./dist/nostr.js"
-        },
-        "./identity": {
-            "types": "./dist/identity.d.ts",
-            "import": "./dist/identity.mjs",
-            "require": "./dist/identity.js"
-        },
-        "./scoring": {
-            "types": "./dist/scoring.d.ts",
-            "import": "./dist/scoring.mjs",
-            "require": "./dist/scoring.js"
-        },
-        "./challenge": {
-            "types": "./dist/challenge.d.ts",
-            "import": "./dist/challenge.mjs",
-            "require": "./dist/challenge.js"
-        }
+    "./verify": {
+      "types": "./dist/verify.d.ts",
+      "import": "./dist/verify.mjs",
+      "require": "./dist/verify.js"
     },
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "type-check": "tsc --noEmit",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "clean": "rm -rf dist",
-        "prepublishOnly": "npm run clean && npm run build",
-        "test:pack": "npm pack",
-        "version:patch": "npm version patch",
-        "version:minor": "npm version minor",
-        "version:major": "npm version major"
+    "./attestation": {
+      "types": "./dist/attestation.d.ts",
+      "import": "./dist/attestation.mjs",
+      "require": "./dist/attestation.js"
     },
-    "dependencies": {
-        "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@noble/curves": "^2.2.0",
-        "@noble/hashes": "^1.5.0",
-        "@scure/base": "^1.1.9",
-        "bip322-js": "^3.0.0",
-        "bitcoinjs-message": "^2.2.0",
-        "buffer": "^6.0.3"
+    "./nostr": {
+      "types": "./dist/nostr.d.ts",
+      "import": "./dist/nostr.mjs",
+      "require": "./dist/nostr.js"
     },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "vitest": "^3.2.4"
+    "./identity": {
+      "types": "./dist/identity.d.ts",
+      "import": "./dist/identity.mjs",
+      "require": "./dist/identity.js"
     },
-    "engines": {
-        "node": ">=18.0.0"
+    "./scoring": {
+      "types": "./dist/scoring.d.ts",
+      "import": "./dist/scoring.mjs",
+      "require": "./dist/scoring.js"
+    },
+    "./challenge": {
+      "types": "./dist/challenge.d.ts",
+      "import": "./dist/challenge.mjs",
+      "require": "./dist/challenge.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test:pack": "npm pack",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major"
+  },
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.1.1",
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^1.5.0",
+    "@scure/base": "^1.1.9",
+    "bip322-js": "^3.0.0",
+    "bitcoinjs-message": "^2.2.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

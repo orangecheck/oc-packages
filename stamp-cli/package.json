@@ -1,58 +1,61 @@
 {
-    "name": "@orangecheck/stamp-cli",
-    "version": "0.1.0",
-    "description": "Shell interface to OC Stamp — sign files and git tags with your Bitcoin address, anchor to Bitcoin, verify offline. Exposes `stamp` and `git-stamp` binaries.",
-    "keywords": [
-        "bitcoin",
-        "bip322",
-        "opentimestamps",
-        "provenance",
-        "oc-stamp",
-        "git-stamp",
-        "cli",
-        "orangecheck"
-    ],
-    "author": "OrangeCheck",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "stamp-cli"
-    },
-    "homepage": "https://stamp.ochk.io",
-    "bugs": {
-        "url": "https://github.com/orangecheck/oc-stamp-protocol/issues"
-    },
-    "type": "module",
-    "bin": {
-        "stamp": "./dist/cli.js",
-        "git-stamp": "./dist/cli.js"
-    },
-    "main": "./dist/cli.js",
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "type-check": "tsc --noEmit",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "clean": "rm -rf dist",
-        "prepublishOnly": "npm run clean && npm run build"
-    },
-    "dependencies": {
-        "@orangecheck/stamp-core": "^0.1.2",
-        "@orangecheck/stamp-ots": "^0.1.1",
-        "bip322-js": "^3.0.0",
-        "commander": "^12.1.0"
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "vitest": "^3.2.4"
-    }
+  "name": "@orangecheck/stamp-cli",
+  "version": "0.1.0",
+  "description": "Shell interface to OC Stamp \u2014 sign files and git tags with your Bitcoin address, anchor to Bitcoin, verify offline. Exposes `stamp` and `git-stamp` binaries.",
+  "keywords": [
+    "bitcoin",
+    "bip322",
+    "opentimestamps",
+    "provenance",
+    "oc-stamp",
+    "git-stamp",
+    "cli",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "stamp-cli"
+  },
+  "homepage": "https://stamp.ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-stamp-protocol/issues"
+  },
+  "type": "module",
+  "bin": {
+    "stamp": "./dist/cli.js",
+    "git-stamp": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@orangecheck/stamp-core": "^0.1.2",
+    "@orangecheck/stamp-ots": "^0.1.1",
+    "bip322-js": "^3.0.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

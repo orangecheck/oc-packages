@@ -1,85 +1,88 @@
 {
-    "name": "@orangecheck/gate",
-    "version": "0.1.3",
-    "description": "Drop-in sybil-resistance middleware for Express, Next.js, Fastify, and any Node HTTP framework. Built on OrangeCheck.",
-    "keywords": [
-        "orangecheck",
-        "bitcoin",
-        "sybil-resistance",
-        "middleware",
-        "express",
-        "nextjs",
-        "fastify",
-        "hono",
-        "workers",
-        "bip322",
-        "nostr"
-    ],
-    "author": "OrangeCheck",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/orangecheck/oc-packages.git",
-        "directory": "gate"
+  "name": "@orangecheck/gate",
+  "version": "0.1.3",
+  "description": "Drop-in sybil-resistance middleware for Express, Next.js, Fastify, and any Node HTTP framework. Built on OrangeCheck.",
+  "keywords": [
+    "orangecheck",
+    "bitcoin",
+    "sybil-resistance",
+    "middleware",
+    "express",
+    "nextjs",
+    "fastify",
+    "hono",
+    "workers",
+    "bip322",
+    "nostr"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "gate"
+  },
+  "homepage": "https://ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
-    "homepage": "https://ochk.io",
-    "bugs": {
-        "url": "https://github.com/orangecheck/oc-packages/issues"
+    "./express": {
+      "types": "./dist/express.d.ts",
+      "import": "./dist/express.mjs",
+      "require": "./dist/express.js"
     },
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        },
-        "./express": {
-            "types": "./dist/express.d.ts",
-            "import": "./dist/express.mjs",
-            "require": "./dist/express.js"
-        },
-        "./next": {
-            "types": "./dist/next.d.ts",
-            "import": "./dist/next.mjs",
-            "require": "./dist/next.js"
-        },
-        "./fastify": {
-            "types": "./dist/fastify.d.ts",
-            "import": "./dist/fastify.mjs",
-            "require": "./dist/fastify.js"
-        },
-        "./hono": {
-            "types": "./dist/hono.d.ts",
-            "import": "./dist/hono.mjs",
-            "require": "./dist/hono.js"
-        }
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.mjs",
+      "require": "./dist/next.js"
     },
-    "files": [
-        "dist",
-        "README.md",
-        "LICENSE"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "dev": "tsup --watch",
-        "type-check": "tsc --noEmit",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "clean": "rm -rf dist",
-        "prepublishOnly": "npm run clean && npm run build"
+    "./fastify": {
+      "types": "./dist/fastify.d.ts",
+      "import": "./dist/fastify.mjs",
+      "require": "./dist/fastify.js"
     },
-    "dependencies": {
-        "@orangecheck/sdk": "^0.1.4"
-    },
-    "devDependencies": {
-        "@types/node": "^22.10.2",
-        "tsup": "^8.3.5",
-        "typescript": "^5.7.2",
-        "vitest": "^4.1.5"
-    },
-    "engines": {
-        "node": ">=18.0.0"
+    "./hono": {
+      "types": "./dist/hono.d.ts",
+      "import": "./dist/hono.mjs",
+      "require": "./dist/hono.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@orangecheck/sdk": "^0.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
