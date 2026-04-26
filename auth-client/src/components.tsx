@@ -157,6 +157,213 @@ export interface OcAddressInputProps
  * the `[data-oc-address-input]`, `[data-oc-address-popover]`, and
  * `[data-oc-address-suggestion]` data attributes.
  */
+export interface UseOcAddressSuggestionOptions {
+    /** Current value of the input. */
+    value: string;
+    /** Called when the user selects the suggestion (or you may also call it from the input's onChange). */
+    onValueChange: (value: string) => void;
+    /** Label shown above the suggested address in the popover. Defaults to `use your address`. */
+    suggestionLabel?: string;
+    /** className applied to the suggestion popover. Style with `[data-oc-address-popover]` otherwise. */
+    popoverClassName?: string;
+    /** className applied to the suggestion button. Style with `[data-oc-address-suggestion]` otherwise. */
+    suggestionClassName?: string;
+}
+
+export interface UseOcAddressSuggestionReturn {
+    /**
+     * Props to spread onto your `<input>` element. Adds focus/blur/keydown
+     * handlers and the combobox ARIA attributes. Combine with your existing
+     * `value`/`onChange` props — this hook does NOT control them.
+     */
+    inputProps: {
+        onFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
+        onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+        role: 'combobox';
+        'aria-haspopup': 'listbox';
+        'aria-expanded': boolean;
+        'aria-controls': string | undefined;
+        'aria-activedescendant': string | undefined;
+        autoComplete: 'off';
+        spellCheck: false;
+    };
+    /**
+     * The suggestion popover. Render directly after your `<input>`, inside a
+     * `position: relative` container so the popover anchors below the input.
+     * Returns `null` when there's no suggestion to show.
+     */
+    popover: React.ReactNode;
+}
+
+/**
+ * Hook variant of `OcAddressInput`. Use when you want to keep your existing
+ * styled `<input>` (e.g. shadcn `<Input>`) and just bolt on the
+ * session-address suggestion behaviour.
+ *
+ * Wrap your input in a `position: relative` container, spread `inputProps`
+ * onto the input, and render `{popover}` immediately after. The hook's
+ * focus / blur / keydown handlers are composed via `inputProps` — they call
+ * any handlers you've already passed to your input only when you wire them
+ * yourself in addition to spreading `inputProps`.
+ *
+ * Example:
+ * ```tsx
+ * const { inputProps, popover } = useOcAddressSuggestion({
+ *     value: addr,
+ *     onValueChange: setAddr,
+ * });
+ * return (
+ *     <div className="relative">
+ *         <Input
+ *             value={addr}
+ *             onChange={(e) => setAddr(e.target.value)}
+ *             {...inputProps}
+ *             placeholder="bc1q…"
+ *         />
+ *         {popover}
+ *     </div>
+ * );
+ * ```
+ */
+export function useOcAddressSuggestion(
+    options: UseOcAddressSuggestionOptions
+): UseOcAddressSuggestionReturn {
+    const {
+        value,
+        onValueChange,
+        suggestionLabel = 'use your address',
+        popoverClassName,
+        suggestionClassName,
+    } = options;
+
+    const { status, account } = useOcSession();
+    const sessionAddress = status === 'authenticated' ? (account?.address ?? null) : null;
+
+    const [open, setOpen] = React.useState(false);
+    const [highlighted, setHighlighted] = React.useState(false);
+    const blurTimer = React.useRef<number | null>(null);
+
+    const listboxId = useUniqueId('oc-addr-listbox');
+    const optionId = `${listboxId}-opt`;
+
+    const valueMatchesSession =
+        sessionAddress != null && value.toLowerCase() === sessionAddress.toLowerCase();
+    const canSuggest =
+        sessionAddress != null &&
+        sessionAddress.length > 0 &&
+        !valueMatchesSession &&
+        isPrefixOf(value, sessionAddress);
+    const showPopover = open && canSuggest;
+
+    function selectSuggestion() {
+        if (!sessionAddress) return;
+        onValueChange(sessionAddress);
+        setOpen(false);
+        setHighlighted(false);
+    }
+
+    React.useEffect(() => {
+        return () => {
+            if (blurTimer.current != null) window.clearTimeout(blurTimer.current);
+        };
+    }, []);
+
+    const inputProps: UseOcAddressSuggestionReturn['inputProps'] = {
+        onFocus: () => {
+            if (blurTimer.current != null) {
+                window.clearTimeout(blurTimer.current);
+                blurTimer.current = null;
+            }
+            setOpen(true);
+        },
+        onBlur: () => {
+            blurTimer.current = window.setTimeout(() => {
+                setOpen(false);
+                setHighlighted(false);
+            }, 120);
+        },
+        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (!showPopover) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setHighlighted(true);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setHighlighted(false);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setOpen(false);
+                setHighlighted(false);
+            } else if (e.key === 'Enter' && highlighted) {
+                e.preventDefault();
+                selectSuggestion();
+            }
+        },
+        role: 'combobox',
+        'aria-haspopup': 'listbox',
+        'aria-expanded': showPopover,
+        'aria-controls': showPopover ? listboxId : undefined,
+        'aria-activedescendant': highlighted ? optionId : undefined,
+        autoComplete: 'off',
+        spellCheck: false,
+    };
+
+    const popover = showPopover && sessionAddress ? (
+        <div
+            id={listboxId}
+            role="listbox"
+            data-oc-address-popover=""
+            className={popoverClassName}
+            style={{
+                position: 'absolute',
+                zIndex: 50,
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+            }}
+            onMouseDown={(e) => e.preventDefault()}
+        >
+            <button
+                type="button"
+                id={optionId}
+                role="option"
+                aria-selected={highlighted}
+                data-oc-address-suggestion=""
+                data-highlighted={highlighted ? '' : undefined}
+                className={suggestionClassName}
+                onClick={selectSuggestion}
+                onMouseEnter={() => setHighlighted(true)}
+                onMouseLeave={() => setHighlighted(false)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    background: 'inherit',
+                    color: 'inherit',
+                    border: 0,
+                    padding: 'inherit',
+                }}
+            >
+                <span data-oc-address-suggestion-label="">{suggestionLabel}</span>
+                <span
+                    data-oc-address-suggestion-value=""
+                    style={{ fontFamily: 'ui-monospace, monospace' }}
+                >
+                    {shortenAddressMid(sessionAddress)}
+                </span>
+            </button>
+        </div>
+    ) : null;
+
+    return { inputProps, popover };
+}
+
 export const OcAddressInput = React.forwardRef<HTMLInputElement, OcAddressInputProps>(
     function OcAddressInput(
         {
