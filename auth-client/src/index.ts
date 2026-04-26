@@ -10,12 +10,14 @@ export { OcSessionProvider, useOcSession, useOptionalOcSession, DEFAULT_CONFIG }
 export {
     OcSignInButton,
     OcAccountPill,
+    OcAccountChip,
     OcAddressInput,
     useOcAddressSuggestion,
 } from './components';
 export type {
     OcSignInButtonProps,
     OcAccountPillProps,
+    OcAccountChipProps,
     OcAddressInputProps,
     UseOcAddressSuggestionOptions,
     UseOcAddressSuggestionReturn,

@@ -22,6 +22,276 @@ function useUniqueId(prefix: string): string {
     return id;
 }
 
+export interface OcAccountChipProps {
+    /**
+     * URL to the user's account dashboard. Defaults to `https://ochk.io/dashboard`,
+     * the canonical family target.
+     */
+    dashboardUrl?: string;
+    /**
+     * Label for the sign-in link shown to anonymous visitors.
+     * Defaults to `sign in`.
+     */
+    signInLabel?: string;
+    /** className for the wrapper `<div>`. */
+    className?: string;
+    /** className for the trigger pill button. */
+    triggerClassName?: string;
+    /** className for the dropdown popover. */
+    popoverClassName?: string;
+    /** className for menu items (dashboard link + sign-out button). */
+    menuItemClassName?: string;
+}
+
+/**
+ * Single header-account affordance for every ochk.io subdomain.
+ *
+ *   anonymous → "sign in" link
+ *   signed in → pill `bc1q…7ke3 ▾` that opens a popover with:
+ *               • § signed in  (label)
+ *               • full address (monospace, break-all)
+ *               • → dashboard
+ *               • → sign out
+ *
+ * The popover closes on outside click or Escape. Reasonable inline styles
+ * cover the dark-mode default; override per-part via the className props
+ * or via the `[data-oc-account-chip-*]` data attributes.
+ */
+export function OcAccountChip({
+    dashboardUrl = 'https://ochk.io/dashboard',
+    signInLabel = 'sign in',
+    className,
+    triggerClassName,
+    popoverClassName,
+    menuItemClassName,
+}: OcAccountChipProps): React.ReactElement | null {
+    const { status, account, signInUrl, signOut } = useOcSession();
+    const [open, setOpen] = React.useState(false);
+    const wrapRef = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+        if (!open) return;
+        function handleClickOutside(e: MouseEvent) {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        function handleEscape(e: KeyboardEvent) {
+            if (e.key === 'Escape') setOpen(false);
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [open]);
+
+    if (status === 'loading') return null;
+
+    if (status !== 'authenticated' || !account) {
+        return (
+            <a
+                href={signInUrl}
+                className={triggerClassName ?? className}
+                data-oc-account-chip-signin=""
+            >
+                {signInLabel}
+            </a>
+        );
+    }
+
+    return (
+        <div
+            ref={wrapRef}
+            className={className}
+            data-oc-account-chip=""
+            style={{ position: 'relative', display: 'inline-block' }}
+        >
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-label={`Signed in as ${account.address}. Open account menu.`}
+                className={triggerClassName}
+                data-oc-account-chip-trigger=""
+                style={
+                    triggerClassName
+                        ? undefined
+                        : {
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.25rem 0.625rem',
+                              borderRadius: '9999px',
+                              border: '1px solid #27272a',
+                              background: 'rgba(39, 39, 42, 0.4)',
+                              color: '#fafafa',
+                              fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                              fontSize: 12,
+                              cursor: 'pointer',
+                          }
+                }
+            >
+                <span aria-hidden="true" style={{ color: '#22c55e', fontSize: 8 }}>
+                    ●
+                </span>
+                <span>{shortenAddress(account.address)}</span>
+                <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 10 10"
+                    aria-hidden="true"
+                    style={{
+                        transition: 'transform 120ms',
+                        transform: open ? 'rotate(180deg)' : 'rotate(0)',
+                        opacity: 0.6,
+                    }}
+                >
+                    <path
+                        d="M2 4 L5 7 L8 4"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                    />
+                </svg>
+            </button>
+
+            {open && (
+                <div
+                    role="menu"
+                    aria-label="Account menu"
+                    className={popoverClassName}
+                    data-oc-account-chip-popover=""
+                    style={
+                        popoverClassName
+                            ? { position: 'absolute', zIndex: 50, top: 'calc(100% + 6px)', right: 0 }
+                            : {
+                                  position: 'absolute',
+                                  zIndex: 50,
+                                  top: 'calc(100% + 6px)',
+                                  right: 0,
+                                  minWidth: 240,
+                                  background: '#0a0a0a',
+                                  border: '1px solid #27272a',
+                                  boxShadow: '0 10px 32px -4px rgba(0,0,0,0.6)',
+                                  fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                              }
+                    }
+                >
+                    <div
+                        data-oc-account-chip-header=""
+                        style={{ padding: '0.75rem 0.75rem 0.625rem', borderBottom: '1px solid #27272a' }}
+                    >
+                        <div
+                            data-oc-account-chip-label=""
+                            style={{
+                                color: '#f97316',
+                                fontSize: 10,
+                                letterSpacing: '0.18em',
+                                textTransform: 'uppercase',
+                                marginBottom: 4,
+                            }}
+                        >
+                            § signed in
+                        </div>
+                        <div
+                            data-oc-account-chip-address=""
+                            style={{
+                                color: '#fafafa',
+                                fontSize: 11,
+                                wordBreak: 'break-all',
+                                lineHeight: 1.35,
+                            }}
+                        >
+                            {account.address}
+                        </div>
+                        {account.displayName ? (
+                            <div
+                                style={{
+                                    color: '#a1a1aa',
+                                    fontSize: 10,
+                                    marginTop: 4,
+                                    letterSpacing: '0.06em',
+                                }}
+                            >
+                                {account.displayName}
+                            </div>
+                        ) : null}
+                    </div>
+                    <div role="none" style={{ padding: '0.25rem' }}>
+                        {dashboardUrl ? (
+                            <a
+                                role="menuitem"
+                                href={dashboardUrl}
+                                onClick={() => setOpen(false)}
+                                className={menuItemClassName}
+                                data-oc-account-chip-item=""
+                                style={
+                                    menuItemClassName
+                                        ? undefined
+                                        : {
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '0.5rem',
+                                              padding: '0.5rem 0.625rem',
+                                              fontSize: 12,
+                                              color: '#fafafa',
+                                              textDecoration: 'none',
+                                              cursor: 'pointer',
+                                          }
+                                }
+                            >
+                                <span aria-hidden="true" style={{ color: '#a1a1aa' }}>
+                                    →
+                                </span>
+                                <span style={{ flex: 1 }}>dashboard</span>
+                                <span style={{ color: '#a1a1aa', fontSize: 10 }}>↗</span>
+                            </a>
+                        ) : null}
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                                setOpen(false);
+                                void signOut();
+                            }}
+                            className={menuItemClassName}
+                            data-oc-account-chip-item=""
+                            data-oc-account-chip-signout=""
+                            style={
+                                menuItemClassName
+                                    ? undefined
+                                    : {
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.5rem',
+                                          width: '100%',
+                                          padding: '0.5rem 0.625rem',
+                                          fontSize: 12,
+                                          color: '#fafafa',
+                                          background: 'transparent',
+                                          border: 0,
+                                          fontFamily: 'inherit',
+                                          textAlign: 'left',
+                                          cursor: 'pointer',
+                                      }
+                            }
+                        >
+                            <span aria-hidden="true" style={{ color: '#a1a1aa' }}>
+                                →
+                            </span>
+                            <span style={{ flex: 1 }}>sign out</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export interface OcSignInButtonProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
     /** Label shown when no user is signed in. Defaults to `sign in with bitcoin`. */
     label?: string;
