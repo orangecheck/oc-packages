@@ -80,7 +80,7 @@ See [oc-vote-protocol/WHY.md](https://github.com/orangecheck/oc-vote-protocol/bl
 ## Related
 
 - **Protocol spec**: [`orangecheck/oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol)
-- **Reference web client**: [`orangecheck/oc-vote-web`](https://github.com/orangecheck/oc-vote-web) ([vote.ochk.io](https://vote.ochk.io))
+- **Reference web client**: [vote.ochk.io](https://vote.ochk.io) (closed-source; consumes this package from npm)
 - **Family**: [`@orangecheck/lock-core`](https://npmjs.com/package/@orangecheck/lock-core) (encryption primitive; composed here for secret-ballot envelopes)
 
 ## License

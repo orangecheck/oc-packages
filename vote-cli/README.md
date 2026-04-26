@@ -62,7 +62,7 @@ The web UI at [vote.ochk.io](https://vote.ochk.io) is convenience. The canonical
 ## Related
 
 - Protocol: [`orangecheck/oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol)
-- Reference web client: [`orangecheck/oc-vote-web`](https://github.com/orangecheck/oc-vote-web)
+- Reference web client: [vote.ochk.io](https://vote.ochk.io) (closed-source)
 - Library: [`@orangecheck/vote-core`](https://npmjs.com/package/@orangecheck/vote-core)
 
 ## License

@@ -10,21 +10,21 @@ Python `orangecheck` SDK. The protocol family ships as one spec repo per
 verb plus one reference site per verb; everything publishable lives here so
 packages can tag, release, and version independently of the sites.
 
-| Verb           | Spec                                                                       | Site                                                                                                                |
-| -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| identity       | [`oc-attest-protocol`](https://github.com/orangecheck/oc-attest-protocol)  | [`oc-attest-web`](https://github.com/orangecheck/oc-attest-web) → [attest.ochk.io](https://attest.ochk.io)           |
-| confidentiality | [`oc-lock-protocol`](https://github.com/orangecheck/oc-lock-protocol)     | [`oc-lock-web`](https://github.com/orangecheck/oc-lock-web) → [lock.ochk.io](https://lock.ochk.io)                   |
-| legitimacy     | [`oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol)      | [`oc-vote-web`](https://github.com/orangecheck/oc-vote-web) → [vote.ochk.io](https://vote.ochk.io)                   |
-| provenance     | [`oc-stamp-protocol`](https://github.com/orangecheck/oc-stamp-protocol)    | [`oc-stamp-web`](https://github.com/orangecheck/oc-stamp-web) → [stamp.ochk.io](https://stamp.ochk.io)               |
-| authority      | [`oc-agent-protocol`](https://github.com/orangecheck/oc-agent-protocol)    | [`oc-agent-web`](https://github.com/orangecheck/oc-agent-web) → [agent.ochk.io](https://agent.ochk.io)               |
-| commitment     | [`oc-pledge-protocol`](https://github.com/orangecheck/oc-pledge-protocol)  | [`oc-pledge-web`](https://github.com/orangecheck/oc-pledge-web) → [pledge.ochk.io](https://pledge.ochk.io)           |
+Specs are public; the reference web clients are closed-source but live on
+public subdomains and consume these packages from npm.
 
-The umbrella ([`oc-www`](https://github.com/orangecheck/oc-www) → [ochk.io](https://ochk.io))
-hosts the unified docs at [docs.ochk.io](https://docs.ochk.io), the auth host,
-the dashboard, and the contact form. Sites consume the packages from npm at
-fixed `^x.y.z` ranges — no git submodules in the current canonical pattern,
-though a few legacy web repos still carry in-tree `packages/` mirrors during
-their migration to pure npm consumption.
+| Verb            | Spec                                                                      | Reference site                                            |
+| --------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| identity        | [`oc-attest-protocol`](https://github.com/orangecheck/oc-attest-protocol) | [attest.ochk.io](https://attest.ochk.io)                  |
+| confidentiality | [`oc-lock-protocol`](https://github.com/orangecheck/oc-lock-protocol)     | [lock.ochk.io](https://lock.ochk.io)                      |
+| legitimacy      | [`oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol)     | [vote.ochk.io](https://vote.ochk.io)                      |
+| provenance      | [`oc-stamp-protocol`](https://github.com/orangecheck/oc-stamp-protocol)   | [stamp.ochk.io](https://stamp.ochk.io)                    |
+| authority       | [`oc-agent-protocol`](https://github.com/orangecheck/oc-agent-protocol)   | [agent.ochk.io](https://agent.ochk.io)                    |
+| commitment      | [`oc-pledge-protocol`](https://github.com/orangecheck/oc-pledge-protocol) | [pledge.ochk.io](https://pledge.ochk.io)                  |
+
+The umbrella site at [ochk.io](https://ochk.io) hosts the unified docs at
+[docs.ochk.io](https://docs.ochk.io), the auth host, the dashboard, and the
+contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 
 ---
 
@@ -50,9 +50,10 @@ one Python SDK on PyPI.
 | [`agent-mcp/`](agent-mcp/)         | `@orangecheck/agent-mcp`      | Agent     | MCP tool-call signer — every LLM tool invocation becomes a signed agent-action. |
 
 > **Pledge:** `@orangecheck/pledge-core` and `@orangecheck/pledge-cli` are
-> being extracted from `oc-pledge-web/src/lib/pledge/` into this monorepo for
-> separate publish. Until then the canonical-message + envelope code lives
-> in source form on the reference site.
+> being extracted into this monorepo from the closed-source pledge.ochk.io
+> reference web client for separate publish. Until then the canonical-message
+> + envelope code lives in the closed-source web client and the spec at
+> [`oc-pledge-protocol`](https://github.com/orangecheck/oc-pledge-protocol).
 
 ### Integrations + middleware
 
