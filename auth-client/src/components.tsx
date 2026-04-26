@@ -7,6 +7,21 @@ function shortenAddress(addr: string): string {
     return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+function shortenAddressMid(addr: string): string {
+    if (addr.length <= 16) return addr;
+    return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
+}
+
+function isPrefixOf(value: string, target: string): boolean {
+    return target.toLowerCase().startsWith(value.toLowerCase());
+}
+
+let listboxIdCounter = 0;
+function useUniqueId(prefix: string): string {
+    const [id] = React.useState(() => `${prefix}-${++listboxIdCounter}`);
+    return id;
+}
+
 export interface OcSignInButtonProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
     /** Label shown when no user is signed in. Defaults to `sign in with bitcoin`. */
     label?: string;
@@ -105,3 +120,213 @@ export function OcAccountPill({
         </div>
     );
 }
+
+export interface OcAddressInputProps
+    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+    /** Controlled value. */
+    value: string;
+    /** Called when value changes — typed by the user OR selected from the popover. */
+    onValueChange: (value: string) => void;
+    /** Label shown above the suggested address in the popover. Defaults to `use your address`. */
+    suggestionLabel?: string;
+    /** className applied to the wrapper `<div>`. */
+    wrapperClassName?: string;
+    /** className applied to the suggestion popover. Style with `[data-oc-address-popover]` otherwise. */
+    popoverClassName?: string;
+    /** className applied to the suggestion button. Style with `[data-oc-address-suggestion]` otherwise. */
+    suggestionClassName?: string;
+}
+
+/**
+ * Bitcoin-address `<input>` that, when the user is signed in via `oc_session`,
+ * surfaces their address as a one-click suggestion on focus.
+ *
+ * Behaviour:
+ * - On focus, if logged-in AND the typed value is a prefix of the session
+ *   address (or empty), show a small popover with `bc1q…7ke3` as a clickable
+ *   suggestion.
+ * - Click / Enter on the suggestion fills the field with the full address.
+ * - Down-arrow from the input highlights the suggestion; Up-arrow clears the
+ *   highlight; Escape closes the popover; clicking outside closes the popover.
+ * - When the user types something that's no longer a prefix of the session
+ *   address, the popover hides itself out of the way.
+ * - When the field already contains the session address exactly, no popover.
+ *
+ * Style-agnostic: minimal inline styles for positioning only. Style the parts
+ * via `wrapperClassName` / `popoverClassName` / `suggestionClassName`, or via
+ * the `[data-oc-address-input]`, `[data-oc-address-popover]`, and
+ * `[data-oc-address-suggestion]` data attributes.
+ */
+export const OcAddressInput = React.forwardRef<HTMLInputElement, OcAddressInputProps>(
+    function OcAddressInput(
+        {
+            value,
+            onValueChange,
+            suggestionLabel = 'use your address',
+            wrapperClassName,
+            popoverClassName,
+            suggestionClassName,
+            onFocus,
+            onBlur,
+            onKeyDown,
+            ...rest
+        },
+        forwardedRef
+    ): React.ReactElement {
+        const { status, account } = useOcSession();
+        const sessionAddress = status === 'authenticated' ? (account?.address ?? null) : null;
+
+        const [open, setOpen] = React.useState(false);
+        const [highlighted, setHighlighted] = React.useState(false);
+
+        const innerRef = React.useRef<HTMLInputElement | null>(null);
+        const setRef = (node: HTMLInputElement | null) => {
+            innerRef.current = node;
+            if (typeof forwardedRef === 'function') forwardedRef(node);
+            else if (forwardedRef) forwardedRef.current = node;
+        };
+        const blurTimer = React.useRef<number | null>(null);
+
+        const listboxId = useUniqueId('oc-addr-listbox');
+        const optionId = `${listboxId}-opt`;
+
+        const valueMatchesSession =
+            sessionAddress != null && value.toLowerCase() === sessionAddress.toLowerCase();
+        const canSuggest =
+            sessionAddress != null &&
+            sessionAddress.length > 0 &&
+            !valueMatchesSession &&
+            isPrefixOf(value, sessionAddress);
+        const showPopover = open && canSuggest;
+
+        function selectSuggestion() {
+            if (!sessionAddress) return;
+            onValueChange(sessionAddress);
+            setOpen(false);
+            setHighlighted(false);
+            // Re-focus so the next Tab moves on naturally.
+            innerRef.current?.focus();
+        }
+
+        function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
+            if (blurTimer.current != null) {
+                window.clearTimeout(blurTimer.current);
+                blurTimer.current = null;
+            }
+            setOpen(true);
+            onFocus?.(e);
+        }
+
+        function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+            // Defer close so a click on the suggestion can register first.
+            blurTimer.current = window.setTimeout(() => {
+                setOpen(false);
+                setHighlighted(false);
+            }, 120);
+            onBlur?.(e);
+        }
+
+        function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+            if (showPopover) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlighted(true);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlighted(false);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setOpen(false);
+                    setHighlighted(false);
+                } else if (e.key === 'Enter' && highlighted) {
+                    e.preventDefault();
+                    selectSuggestion();
+                }
+            }
+            onKeyDown?.(e);
+        }
+
+        React.useEffect(() => {
+            return () => {
+                if (blurTimer.current != null) window.clearTimeout(blurTimer.current);
+            };
+        }, []);
+
+        return (
+            <div
+                data-oc-address-input=""
+                className={wrapperClassName}
+                style={{ position: 'relative' }}
+            >
+                <input
+                    {...rest}
+                    ref={setRef}
+                    value={value}
+                    onChange={(e) => onValueChange(e.target.value)}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    role="combobox"
+                    aria-haspopup="listbox"
+                    aria-expanded={showPopover}
+                    aria-controls={showPopover ? listboxId : undefined}
+                    aria-activedescendant={highlighted ? optionId : undefined}
+                    autoComplete="off"
+                    spellCheck={false}
+                />
+                {showPopover && sessionAddress && (
+                    <div
+                        id={listboxId}
+                        role="listbox"
+                        data-oc-address-popover=""
+                        className={popoverClassName}
+                        style={{
+                            position: 'absolute',
+                            zIndex: 50,
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            right: 0,
+                        }}
+                        // Prevent the input from blurring before the click on the suggestion lands.
+                        onMouseDown={(e) => e.preventDefault()}
+                    >
+                        <button
+                            type="button"
+                            id={optionId}
+                            role="option"
+                            aria-selected={highlighted}
+                            data-oc-address-suggestion=""
+                            data-highlighted={highlighted ? '' : undefined}
+                            className={suggestionClassName}
+                            onClick={selectSuggestion}
+                            onMouseEnter={() => setHighlighted(true)}
+                            onMouseLeave={() => setHighlighted(false)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.75rem',
+                                width: '100%',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                font: 'inherit',
+                                background: 'inherit',
+                                color: 'inherit',
+                                border: 'inherit',
+                                padding: 'inherit',
+                            }}
+                        >
+                            <span data-oc-address-suggestion-label="">{suggestionLabel}</span>
+                            <span
+                                data-oc-address-suggestion-value=""
+                                style={{ fontFamily: 'ui-monospace, monospace' }}
+                            >
+                                {shortenAddressMid(sessionAddress)}
+                            </span>
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+);
