@@ -2,7 +2,7 @@
 
 **Proof of Bitcoin stake for the open web.**
 
-A sybil-resistance primitive for forums, Nostr relays, airdrop gates, DAO votes, and any open platform that needs to filter bots without KYC. Bitcoin UTXOs are the cheapest credible signal of commitment: honest users pay nothing, attackers pay real opportunity cost.
+A sybil-resistance primitive for forums, Nostr relays, airdrop gates, DAO votes, and any open platform that needs to filter bots without KYC. Bitcoin UTXOs are the only credible signal of commitment: honest users pay nothing, attackers pay real opportunity cost.
 
 No custody. No account. No permission. The SDK is MIT; the protocol is open forever.
 
