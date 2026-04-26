@@ -11,6 +11,7 @@ name: Release
 #   git tag wallet-adapter-v0.1.0 ...     → @orangecheck/wallet-adapter  (npm)
 #   git tag stamp-core-v0.1.0 ...         → @orangecheck/stamp-core      (npm)
 #   git tag stamp-ots-v0.1.0 ...          → @orangecheck/stamp-ots       (npm)
+#   git tag ui-v0.1.0 ...                 → @orangecheck/ui              (npm)
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
 #
 # Secrets required:
@@ -38,6 +39,7 @@ on:
             - 'agent-signer-v*'
             - 'agent-mcp-v*'
             - 'agent-cli-v*'
+            - 'ui-v*'
             - 'sdk-py-v*'
 
 jobs:
