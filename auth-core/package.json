@@ -1,7 +1,7 @@
 {
   "name": "@orangecheck/auth-core",
-  "version": "0.1.0",
-  "description": "Cross-subdomain oc_session JWT verification and cookie helpers. The auth primitive every OrangeCheck app imports.",
+  "version": "0.2.0",
+  "description": "Cross-subdomain oc_session JWT verification and cookie helpers. The auth primitive every OrangeCheck app imports. Carries optional name+npub claims for cross-domain profile rendering.",
   "keywords": [
     "orangecheck",
     "bitcoin",

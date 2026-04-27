@@ -32,6 +32,15 @@ export interface SessionPayload extends JWTPayload {
     sub: string;
     addr: string;
     jti: string;
+    /**
+     * Optional display name set by the user via the auth host's profile
+     * surface. When present, consumer subdomains can render it in their
+     * header chip without a network round-trip. Re-minted on signin and
+     * whenever the user updates their profile.
+     */
+    name?: string | null;
+    /** Optional Nostr npub set by the user. Same lifecycle as `name`. */
+    npub?: string | null;
 }
 
 export interface VerifyConfig {
@@ -106,7 +115,13 @@ export function parsePublicJwk(publicJwk: string): Record<string, unknown> {
  * revocation semantics — auth-core is deliberately stateless.
  */
 export async function signSession(
-    claims: { sub: string; addr: string; jti: string },
+    claims: {
+        sub: string;
+        addr: string;
+        jti: string;
+        name?: string | null;
+        npub?: string | null;
+    },
     cfg: SignConfig,
     ttlSeconds: number
 ): Promise<string> {
