@@ -198,10 +198,10 @@
     "@noble/curves" "^1.6.0"
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/vote-core@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/vote-core/-/vote-core-0.1.0.tgz#839c6f822f47a5bf402fb1d2406038f6a1e0183d"
-  integrity sha512-qIKRw8F8eBe6Np66wSPe7oJ2c5a8tCkZbtJXLF+QjtgJXKhDipgSn9YCKsl86LaI9ZwpFpW5UQwjr8Lgwf66uA==
+"@orangecheck/vote-core@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.npmjs.org/@orangecheck/vote-core/-/vote-core-0.1.1.tgz#3097ef190afe8ad1a719861993e8df535f20abda"
+  integrity sha512-R9C9H5zq4GbIsZhHQStEnsylB/HOsBT8TzqM+NiK3mKktO0iZne1fFPk2zvSW0IDmnLzDMDB87lp0DCt0rhcRA==
   dependencies:
     "@noble/hashes" "^1.5.0"
 
