@@ -15,9 +15,11 @@ import {
     delegationCanonicalMessage,
     revocationCanonicalMessage,
 } from './canonical.js';
+import { parseScope, ScopeParseError } from './scope.js';
 import { verifyAction, verifyDelegation, verifyRevocation } from './verify.js';
 import type {
     ActionEnvelope,
+    AgentErrorCode,
     DelegationEnvelope,
     RevocationEnvelope,
 } from './types.js';
@@ -77,7 +79,77 @@ interface RevocationVector extends BaseVector {
     expected: BaseVector['expected'] & { envelope: RevocationEnvelope };
 }
 
-type Vector = DelegationVector | ActionVector | RevocationVector;
+// Negative vectors carry "negative": true at the top level and document an
+// expected verifier rejection (SPEC §11 error code) instead of a canonical-
+// message round-trip.
+interface NegativeVectorBase {
+    description: string;
+    kind: 'delegation' | 'action' | 'revocation';
+    negative: true;
+    expected: {
+        verification_outcome: 'REJECT';
+        error_code: AgentErrorCode;
+        spec_reference: string;
+        rejection_reason: string;
+    };
+}
+
+interface NegativeActionVector extends NegativeVectorBase {
+    kind: 'action';
+    inputs: {
+        address: string;
+        content_hash: string;
+        content_length: number;
+        content_mime: string;
+        signed_at: string;
+        delegation_id: string;
+        scope_exercised: string;
+        content_ref?: string | null;
+        ots?: unknown;
+    };
+}
+
+interface NegativeRevocationVector extends NegativeVectorBase {
+    kind: 'revocation';
+    inputs: {
+        address: string;
+        delegation_id: string;
+        reason: string;
+        signed_at: string;
+    };
+}
+
+interface NegativeDelegationVector extends NegativeVectorBase {
+    kind: 'delegation';
+    inputs: {
+        principal: string;
+        agent: string;
+        scopes: string[];
+        bond: { sats: number; attestation_id: string } | null;
+        issued_at: string;
+        expires_at: string;
+        nonce: string;
+    };
+    additional_malformed_examples_for_implementer_smoke_tests?: {
+        scope: string;
+        why: string;
+    }[];
+}
+
+type NegativeVector =
+    | NegativeActionVector
+    | NegativeRevocationVector
+    | NegativeDelegationVector;
+
+type Vector =
+    | DelegationVector
+    | ActionVector
+    | RevocationVector
+    | NegativeVector;
+
+function isNegative(v: Vector): v is NegativeVector {
+    return 'negative' in v && v.negative === true;
+}
 
 async function loadVectors(): Promise<{ name: string; data: Vector }[]> {
     try {
@@ -106,12 +178,14 @@ describe('oc-agent-protocol test vectors', () => {
     // We'll need the envelopes keyed for the verifyAction tests.
     const delegationEnvelopes = new Map<string, DelegationEnvelope>();
     for (const { data } of vectors) {
+        if (isNegative(data)) continue;
         if (data.kind === 'delegation') {
             delegationEnvelopes.set(data.expected.id, data.expected.envelope);
         }
     }
 
     for (const { name, data } of vectors) {
+        if (isNegative(data)) continue;
         it(`${name} — canonical message reconstructs byte-identical`, () => {
             const msg = reconstructCanonical(data);
             expect(msg).toBe(data.expected.canonical_message);
@@ -161,7 +235,9 @@ describe('oc-agent-protocol test vectors', () => {
     }
 });
 
-function reconstructCanonical(v: Vector): string {
+type PositiveVector = DelegationVector | ActionVector | RevocationVector;
+
+function reconstructCanonical(v: PositiveVector): string {
     if (v.kind === 'delegation') {
         // Canonicalize each scope (constraints sorted by key) then sort the list.
         const canonical = canonicalizeScopes(v.inputs.scopes);
@@ -182,7 +258,7 @@ function reconstructCanonical(v: Vector): string {
     return revocationCanonicalMessage(v.inputs);
 }
 
-function reconstructId(v: Vector): string {
+function reconstructId(v: PositiveVector): string {
     if (v.kind === 'delegation') {
         const canonical = canonicalizeScopes(v.inputs.scopes);
         return computeDelegationId({
@@ -199,3 +275,141 @@ function reconstructId(v: Vector): string {
     if (v.kind === 'action') return computeActionId(v.inputs);
     return computeRevocationId(v.inputs);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Negative vectors — verifier MUST reject with the declared error code.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('oc-agent-protocol negative test vectors', () => {
+    const negatives = vectors.filter(({ data }) => isNegative(data)) as {
+        name: string;
+        data: NegativeVector;
+    }[];
+
+    if (negatives.length === 0) {
+        it.skip('(no negative vectors found)', () => {});
+        return;
+    }
+
+    // Need positive delegation envelopes to feed verifyAction / verifyRevocation
+    // for the cross-referenced negative vectors.
+    const delegationEnvelopes = new Map<string, DelegationEnvelope>();
+    for (const { data } of vectors) {
+        if (!isNegative(data) && data.kind === 'delegation') {
+            delegationEnvelopes.set(data.expected.id, data.expected.envelope);
+        }
+    }
+
+    for (const { name, data } of negatives) {
+        it(`${name} — verifier rejects with ${data.expected.error_code}`, async () => {
+            if (data.kind === 'action') {
+                const v = data as NegativeActionVector;
+                const delegation = delegationEnvelopes.get(v.inputs.delegation_id);
+                if (!delegation) {
+                    throw new Error(
+                        `negative action vector ${name} cites missing delegation ${v.inputs.delegation_id}`
+                    );
+                }
+                // Build a syntactically well-formed action envelope from the
+                // inputs (the rejection here is semantic — scope / window —
+                // not structural). The id MUST be the real sha256(canonical)
+                // or the verifier will short-circuit with E_BAD_ID before
+                // reaching the rule we're actually testing.
+                const realId = computeActionId({
+                    address: v.inputs.address,
+                    content_hash: v.inputs.content_hash,
+                    content_length: v.inputs.content_length,
+                    content_mime: v.inputs.content_mime,
+                    signed_at: v.inputs.signed_at,
+                    delegation_id: v.inputs.delegation_id,
+                    scope_exercised: v.inputs.scope_exercised,
+                });
+                const action: ActionEnvelope = {
+                    v: 1,
+                    kind: 'agent-action',
+                    id: realId,
+                    content: {
+                        hash: v.inputs.content_hash,
+                        length: v.inputs.content_length,
+                        mime: v.inputs.content_mime,
+                        ref: v.inputs.content_ref ?? null,
+                    },
+                    signer: { address: v.inputs.address, alg: 'bip322' },
+                    signed_at: v.inputs.signed_at,
+                    delegation_id: v.inputs.delegation_id,
+                    scope_exercised: v.inputs.scope_exercised,
+                    ots: null,
+                    sig: { alg: 'bip322', pubkey: v.inputs.address, value: 'AAAA' },
+                };
+                const r = await verifyAction({
+                    action,
+                    delegation,
+                    skipSignatureVerification: true,
+                });
+                expect(r.ok).toBe(false);
+                if (!r.ok) {
+                    // v07 specifically allows either E_OUT_OF_WINDOW or E_EXPIRED
+                    // since both fire for an action signed past the delegation's
+                    // expires_at; harness_assertion documents this.
+                    if (
+                        v.expected.error_code === 'E_OUT_OF_WINDOW' &&
+                        r.code === 'E_EXPIRED'
+                    ) {
+                        // accept the alternate code
+                    } else {
+                        expect(r.code).toBe(v.expected.error_code);
+                    }
+                }
+            } else if (data.kind === 'revocation') {
+                const v = data as NegativeRevocationVector;
+                const delegation = delegationEnvelopes.get(v.inputs.delegation_id);
+                if (!delegation) {
+                    throw new Error(
+                        `negative revocation vector ${name} cites missing delegation ${v.inputs.delegation_id}`
+                    );
+                }
+                const realRevId = computeRevocationId({
+                    address: v.inputs.address,
+                    delegation_id: v.inputs.delegation_id,
+                    reason: v.inputs.reason,
+                    signed_at: v.inputs.signed_at,
+                });
+                const revocation: RevocationEnvelope = {
+                    v: 1,
+                    kind: 'agent-revocation',
+                    id: realRevId,
+                    delegation_id: v.inputs.delegation_id,
+                    signer: { address: v.inputs.address, alg: 'bip322' },
+                    reason: v.inputs.reason,
+                    signed_at: v.inputs.signed_at,
+                    ots: null,
+                    sig: { alg: 'bip322', pubkey: v.inputs.address, value: 'AAAA' },
+                };
+                const r = await verifyRevocation({
+                    envelope: revocation,
+                    delegation,
+                    skipSignatureVerification: true,
+                });
+                expect(r.ok).toBe(false);
+                if (!r.ok) expect(r.code).toBe(v.expected.error_code);
+            } else if (data.kind === 'delegation') {
+                // Delegation negative vectors target the §7.1 grammar parser
+                // directly — that's where E_BAD_SCOPE_GRAMMAR fires per
+                // SPEC §8.1 step 4. Asserting parseScope throws is the
+                // right level of rigor.
+                const v = data as NegativeDelegationVector;
+                expect(v.expected.error_code).toBe('E_BAD_SCOPE_GRAMMAR');
+                for (const s of v.inputs.scopes) {
+                    expect(() => parseScope(s)).toThrow(ScopeParseError);
+                }
+                for (const ex of v.additional_malformed_examples_for_implementer_smoke_tests ??
+                    []) {
+                    expect(
+                        () => parseScope(ex.scope),
+                        `additional malformed example: ${ex.why}`
+                    ).toThrow(ScopeParseError);
+                }
+            }
+        });
+    }
+});
