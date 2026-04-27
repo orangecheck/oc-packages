@@ -125,9 +125,10 @@ export function OcAccountChip({
                               gap: '0.4rem',
                               padding: '0.25rem 0.625rem',
                               borderRadius: '9999px',
-                              border: '1px solid #27272a',
-                              background: 'rgba(39, 39, 42, 0.4)',
-                              color: '#fafafa',
+                              border: '1px solid var(--border, #27272a)',
+                              background:
+                                  'color-mix(in oklch, var(--muted, #27272a) 40%, transparent)',
+                              color: 'var(--foreground, #fafafa)',
                               fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                               fontSize: 12,
                               cursor: 'pointer',
@@ -174,21 +175,25 @@ export function OcAccountChip({
                                   top: 'calc(100% + 6px)',
                                   right: 0,
                                   minWidth: 240,
-                                  background: '#0a0a0a',
-                                  border: '1px solid #27272a',
-                                  boxShadow: '0 10px 32px -4px rgba(0,0,0,0.6)',
+                                  background: 'var(--popover, #0a0a0a)',
+                                  color: 'var(--popover-foreground, #fafafa)',
+                                  border: '1px solid var(--border, #27272a)',
+                                  boxShadow: '0 10px 32px -4px rgba(0,0,0,0.35)',
                                   fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                               }
                     }
                 >
                     <div
                         data-oc-account-chip-header=""
-                        style={{ padding: '0.75rem 0.75rem 0.625rem', borderBottom: '1px solid #27272a' }}
+                        style={{
+                            padding: '0.75rem 0.75rem 0.625rem',
+                            borderBottom: '1px solid var(--border, #27272a)',
+                        }}
                     >
                         <div
                             data-oc-account-chip-label=""
                             style={{
-                                color: '#f97316',
+                                color: 'var(--primary, #f97316)',
                                 fontSize: 10,
                                 letterSpacing: '0.18em',
                                 textTransform: 'uppercase',
@@ -200,7 +205,7 @@ export function OcAccountChip({
                         <div
                             data-oc-account-chip-address=""
                             style={{
-                                color: '#fafafa',
+                                color: 'var(--popover-foreground, #fafafa)',
                                 fontSize: 11,
                                 wordBreak: 'break-all',
                                 lineHeight: 1.35,
@@ -211,7 +216,7 @@ export function OcAccountChip({
                         {account.displayName ? (
                             <div
                                 style={{
-                                    color: '#a1a1aa',
+                                    color: 'var(--muted-foreground, #a1a1aa)',
                                     fontSize: 10,
                                     marginTop: 4,
                                     letterSpacing: '0.06em',
@@ -238,17 +243,27 @@ export function OcAccountChip({
                                               gap: '0.5rem',
                                               padding: '0.5rem 0.625rem',
                                               fontSize: 12,
-                                              color: '#fafafa',
+                                              color: 'var(--popover-foreground, #fafafa)',
                                               textDecoration: 'none',
                                               cursor: 'pointer',
                                           }
                                 }
                             >
-                                <span aria-hidden="true" style={{ color: '#a1a1aa' }}>
+                                <span
+                                    aria-hidden="true"
+                                    style={{ color: 'var(--muted-foreground, #a1a1aa)' }}
+                                >
                                     →
                                 </span>
                                 <span style={{ flex: 1 }}>dashboard</span>
-                                <span style={{ color: '#a1a1aa', fontSize: 10 }}>↗</span>
+                                <span
+                                    style={{
+                                        color: 'var(--muted-foreground, #a1a1aa)',
+                                        fontSize: 10,
+                                    }}
+                                >
+                                    ↗
+                                </span>
                             </a>
                         ) : null}
                         <button
@@ -271,7 +286,7 @@ export function OcAccountChip({
                                           width: '100%',
                                           padding: '0.5rem 0.625rem',
                                           fontSize: 12,
-                                          color: '#fafafa',
+                                          color: 'var(--popover-foreground, #fafafa)',
                                           background: 'transparent',
                                           border: 0,
                                           fontFamily: 'inherit',
@@ -280,7 +295,10 @@ export function OcAccountChip({
                                       }
                             }
                         >
-                            <span aria-hidden="true" style={{ color: '#a1a1aa' }}>
+                            <span
+                                aria-hidden="true"
+                                style={{ color: 'var(--muted-foreground, #a1a1aa)' }}
+                            >
                                 →
                             </span>
                             <span style={{ flex: 1 }}>sign out</span>
