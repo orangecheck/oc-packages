@@ -239,6 +239,8 @@ export interface OcWalletButtonProps {
 
     /** Hide wallets that aren't installed. Default `false` (they render as install prompts). */
     hideUninstalled?: boolean;
+    /** Show the manual-paste fallback. Default `true`. */
+    showManual?: boolean;
     /** className for the root `<div>`. */
     className?: string;
     style?: CSSProperties;
@@ -246,23 +248,9 @@ export interface OcWalletButtonProps {
     heading?: ReactNode;
     /** Text when no browser wallets are installed. */
     emptyState?: ReactNode;
+    /** Visual: 'list' (default, full-width buttons) or 'row' (chip pills). */
+    layout?: 'list' | 'row';
 }
-
-const BUTTON_BASE: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    padding: '10px 14px',
-    marginBottom: 8,
-    background: 'transparent',
-    color: 'inherit',
-    border: '1px solid rgba(127,127,127,0.35)',
-    borderRadius: 8,
-    fontSize: 14,
-    cursor: 'pointer',
-    textAlign: 'left',
-};
 
 export function OcWalletButton({
     address,
@@ -274,6 +262,8 @@ export function OcWalletButton({
     style,
     heading = 'Sign with your wallet',
     emptyState,
+    layout = 'list',
+    showManual = true,
 }: OcWalletButtonProps) {
     const [wallets, setWallets] = useState<WalletInfo[]>([]);
     const [busyId, setBusyId] = useState<WalletId | null>(null);
@@ -296,8 +286,13 @@ export function OcWalletButton({
     }, []);
 
     const visible = useMemo(
-        () => (hideUninstalled ? wallets.filter((w) => w.detected) : wallets),
-        [wallets, hideUninstalled]
+        () =>
+            wallets.filter((w) => {
+                if (!showManual && w.isManual) return false;
+                if (hideUninstalled && !w.detected && !w.isManual) return false;
+                return true;
+            }),
+        [wallets, hideUninstalled, showManual]
     );
 
     const handleSign = async (wallet: WalletInfo) => {
@@ -331,72 +326,135 @@ export function OcWalletButton({
         setBusyId(null);
     };
 
+    const isRow = layout === 'row';
+
     return (
-        <div className={className} style={style}>
+        <div
+            className={className}
+            data-oc-wallet-button=""
+            style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', ...style }}
+        >
             {heading && (
                 <div
+                    data-oc-wallet-button-heading=""
                     style={{
                         marginBottom: 10,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        opacity: 0.7,
-                        letterSpacing: 0.4,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: '0.18em',
                         textTransform: 'uppercase',
+                        color: 'var(--primary, #f97316)',
                     }}
                 >
-                    {heading}
+                    § {heading}
                 </div>
             )}
 
             {visible.length === 0 ? (
-                <div style={{ fontSize: 13, opacity: 0.7 }}>
+                <div
+                    style={{
+                        fontSize: 11,
+                        color: 'var(--muted-foreground, #a1a1aa)',
+                        lineHeight: 1.4,
+                    }}
+                >
                     {emptyState ??
-                        'No Bitcoin wallets detected. Install UniSat, Xverse, Leather, or Alby — or paste a signature manually.'}
+                        '// no Bitcoin wallets detected — install UniSat, Xverse, Leather, Alby, OKX, or Phantom, or paste a signature.'}
                 </div>
             ) : (
-                visible.map((w) => {
-                    const busy = busyId === w.id;
-                    const disabled = Boolean(busyId) && !busy;
-                    return (
-                        <button
-                            key={w.id}
-                            type="button"
-                            onClick={() => handleSign(w)}
-                            disabled={disabled}
-                            aria-busy={busy}
-                            style={{
-                                ...BUTTON_BASE,
-                                opacity: disabled ? 0.5 : 1,
-                                cursor: disabled ? 'not-allowed' : 'pointer',
-                            }}
-                        >
-                            <span>{w.name}</span>
-                            <span style={{ fontSize: 11, opacity: 0.6 }}>
-                                {busy
-                                    ? 'Signing…'
-                                    : w.isManual
-                                      ? 'paste'
-                                      : w.detected
-                                        ? 'ready'
-                                        : 'install'}
-                            </span>
-                        </button>
-                    );
-                })
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: isRow ? 'row' : 'column',
+                        flexWrap: isRow ? 'wrap' : 'nowrap',
+                        gap: isRow ? 6 : 6,
+                    }}
+                >
+                    {visible.map((w) => {
+                        const busy = busyId === w.id;
+                        const disabled = Boolean(busyId) && !busy;
+                        const isInstall = !w.detected && !w.isManual;
+                        const statusLabel = busy
+                            ? 'signing…'
+                            : w.isManual
+                              ? 'paste'
+                              : w.detected
+                                ? 'ready'
+                                : 'install';
+                        return (
+                            <button
+                                key={w.id}
+                                type="button"
+                                onClick={() => handleSign(w)}
+                                disabled={disabled}
+                                aria-busy={busy}
+                                data-oc-wallet-button-option=""
+                                data-status={
+                                    w.detected ? 'ready' : w.isManual ? 'manual' : 'install'
+                                }
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: isRow ? '6px 10px' : '8px 12px',
+                                    background:
+                                        'color-mix(in oklch, var(--muted, #27272a) 30%, transparent)',
+                                    color: 'var(--foreground, #fafafa)',
+                                    border: '1px solid var(--border, #27272a)',
+                                    borderRadius: isRow ? 9999 : 6,
+                                    fontFamily: 'inherit',
+                                    fontSize: 12,
+                                    cursor: disabled ? 'not-allowed' : 'pointer',
+                                    opacity: disabled ? 0.4 : isInstall ? 0.7 : 1,
+                                    width: isRow ? 'auto' : '100%',
+                                    justifyContent: isRow ? 'flex-start' : 'space-between',
+                                    transition: 'background 120ms, border-color 120ms',
+                                }}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        fontSize: 8,
+                                        color: w.detected
+                                            ? '#22c55e'
+                                            : 'var(--muted-foreground, #a1a1aa)',
+                                    }}
+                                >
+                                    {w.detected ? '●' : w.isManual ? '◌' : '○'}
+                                </span>
+                                <span style={{ fontWeight: 600 }}>{w.name}</span>
+                                <span
+                                    style={{
+                                        color: 'var(--muted-foreground, #a1a1aa)',
+                                        fontSize: 10,
+                                        letterSpacing: '0.06em',
+                                        textTransform: 'uppercase',
+                                        marginLeft: isRow ? 4 : 'auto',
+                                    }}
+                                >
+                                    {statusLabel}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
             )}
             {busyId && (
                 <button
                     type="button"
                     onClick={cancel}
                     style={{
-                        marginTop: 6,
-                        padding: '6px 10px',
-                        fontSize: 11,
-                        opacity: 0.7,
+                        marginTop: 8,
+                        padding: '4px 0',
+                        fontSize: 10,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        color: 'var(--muted-foreground, #a1a1aa)',
                         background: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
                         textDecoration: 'underline',
+                        fontFamily: 'inherit',
                     }}
                 >
                     cancel pending sign
