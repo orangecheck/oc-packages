@@ -18,6 +18,16 @@ interface WeblnGlobal {
     enable?: () => Promise<unknown>;
 }
 
+interface OkxBitcoinGlobal {
+    connect?: () => Promise<{ address: string; publicKey: string }>;
+    signMessage?: (msg: string, type?: string) => Promise<string>;
+}
+
+interface PhantomBitcoinGlobal {
+    requestAccounts?: () => Promise<Array<{ address: string; addressType: string }>>;
+    signMessage?: (msg: Uint8Array, addressType?: string) => Promise<{ signature: Uint8Array }>;
+}
+
 /**
  * Duck-typed checks against `window.*`. Each wallet uses a different global
  * name — we check the shape, not trust the name, so spoofing wrappers don't
@@ -25,7 +35,15 @@ interface WeblnGlobal {
  */
 function detect(): Record<WalletId, boolean> {
     if (typeof window === 'undefined') {
-        return { unisat: false, xverse: false, leather: false, alby: false, manual: true };
+        return {
+            unisat: false,
+            xverse: false,
+            leather: false,
+            alby: false,
+            okx: false,
+            phantom: false,
+            manual: true,
+        };
     }
     const w = window as unknown as {
         unisat?: UnisatGlobal;
@@ -34,6 +52,8 @@ function detect(): Record<WalletId, boolean> {
         LeatherProvider?: LeatherGlobal;
         btc?: LeatherGlobal; // Leather / Stacks Connect alias.
         webln?: WeblnGlobal;
+        okxwallet?: { bitcoin?: OkxBitcoinGlobal };
+        phantom?: { bitcoin?: PhantomBitcoinGlobal };
     };
     // Shape checks only. `Boolean(w.XverseProviders)` used to be enough, but
     // any bookmarklet or unrelated extension setting `window.XverseProviders = {}`
@@ -52,6 +72,8 @@ function detect(): Record<WalletId, boolean> {
             typeof w.LeatherProvider?.request === 'function' ||
             typeof w.btc?.request === 'function',
         alby: typeof w.webln?.signMessage === 'function',
+        okx: typeof w.okxwallet?.bitcoin?.signMessage === 'function',
+        phantom: typeof w.phantom?.bitcoin?.signMessage === 'function',
         manual: true,
     };
 }
@@ -76,6 +98,16 @@ const WALLETS: Record<WalletId, Omit<WalletInfo, 'detected'>> = {
         id: 'alby',
         name: 'Alby',
         installUrl: 'https://getalby.com',
+    },
+    okx: {
+        id: 'okx',
+        name: 'OKX',
+        installUrl: 'https://www.okx.com/web3',
+    },
+    phantom: {
+        id: 'phantom',
+        name: 'Phantom',
+        installUrl: 'https://phantom.app',
     },
     manual: {
         id: 'manual',

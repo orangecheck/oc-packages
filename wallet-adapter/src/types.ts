@@ -7,7 +7,14 @@
  */
 export type SignFn = (message: string) => Promise<string>;
 
-export type WalletId = 'unisat' | 'xverse' | 'leather' | 'alby' | 'manual';
+export type WalletId =
+    | 'unisat'
+    | 'xverse'
+    | 'leather'
+    | 'alby'
+    | 'okx'
+    | 'phantom'
+    | 'manual';
 
 export interface WalletInfo {
     id: WalletId;

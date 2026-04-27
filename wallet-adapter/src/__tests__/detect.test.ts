@@ -77,6 +77,14 @@ describe('detectWallets enumeration', () => {
 
     it('returns a WalletInfo for every supported wallet', () => {
         const ids = detectWallets().map((w) => w.id);
-        expect(ids).toEqual(['unisat', 'xverse', 'leather', 'alby', 'manual']);
+        expect(ids).toEqual([
+            'unisat',
+            'xverse',
+            'leather',
+            'alby',
+            'okx',
+            'phantom',
+            'manual',
+        ]);
     });
 });
