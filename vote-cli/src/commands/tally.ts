@@ -114,10 +114,14 @@ export async function runTally(opts: TallyOptions): Promise<void> {
           }
         : undefined;
 
+    // Pass `snapshotBlock` rather than mutating poll.snapshot_block: the
+    // poll's canonical bytes (and therefore pollId) include snapshot_block
+    // verbatim, and mutating it would invalidate every ballot's poll_id.
     const result = await tally({
-        poll: { ...poll, snapshot_block: snapshot },
+        poll,
         ballots,
         utxosAt,
+        snapshotBlock: snapshot,
         skipSignatures: !verify,
         ...(verifyBip322 ? { verifyBip322 } : {}),
         ...(revealedOptions ? { revealedOptions } : {}),

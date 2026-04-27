@@ -22,6 +22,18 @@ export interface TallyOptions {
     poll: Poll;
     ballots: Ballot[];
     utxosAt: UtxoLookup;
+    /**
+     * When `poll.snapshot_block === 'deadline'`, the caller must pre-resolve
+     * the deadline to a concrete chain block height and pass it here.
+     *
+     * Important: do NOT mutate `poll.snapshot_block` to inject the resolved
+     * height. The poll's canonical bytes (and therefore `pollId(poll)`)
+     * include `snapshot_block` verbatim — overwriting `"deadline"` with a
+     * number changes the canonical form, changes the computed pollId, and
+     * causes the structural filter below (`b.poll_id !== pid`) to drop
+     * every ballot. Use this field instead.
+     */
+    snapshotBlock?: number;
     /** Optional: map of voter→plaintext option id, populated from unsealed secret ballots. */
     revealedOptions?: Record<string, string>;
     /** Async BIP-322 verifier. If omitted, signature verification is skipped. */
@@ -102,16 +114,20 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         }
     }
 
-    // 4. Resolve snapshot block.
-    //    For "deadline" polls the caller is expected to pre-resolve to an integer
-    //    before calling tally. If still a string here, we refuse.
-    if (typeof poll.snapshot_block !== 'number') {
+    // 4. Resolve snapshot block. The caller MUST pass `opts.snapshotBlock`
+    //    when poll.snapshot_block === 'deadline' — see the option doc for
+    //    why mutating poll.snapshot_block is unsafe (changes pollId).
+    let H: number;
+    if (typeof poll.snapshot_block === 'number') {
+        H = poll.snapshot_block;
+    } else if (typeof opts.snapshotBlock === 'number') {
+        H = opts.snapshotBlock;
+    } else {
         throw new Error(
-            'tally: snapshot_block is not resolved to an integer; ' +
-                'caller must resolve "deadline" to a concrete block height first'
+            'tally: poll.snapshot_block === "deadline" but opts.snapshotBlock was not provided. ' +
+                'Pass the resolved block height via opts.snapshotBlock — do NOT mutate poll.snapshot_block.'
         );
     }
-    const H = poll.snapshot_block;
 
     // 5. Sum weights per option. Deterministic iteration order by voter (sorted).
     const tallies: Record<string, number> = {};
