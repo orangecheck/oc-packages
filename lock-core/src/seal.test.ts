@@ -94,10 +94,15 @@ describe('seal / unseal', () => {
             sender: { address: 'bc1qalice', signMessage: fakeSign },
             recipients: [bob.record],
         });
-        // Tamper with the id (it will not recompute correctly)
+        // Tamper with the id by flipping the last hex digit so the recompute
+        // will mismatch. Naively appending a fixed suffix like '00' silently
+        // turned the test into a 1/256 flake when seal() randomly produced
+        // an id already ending in '00'.
+        const last = envelope.id[envelope.id.length - 1];
+        const flipped = last === '0' ? 'f' : '0';
         const tampered = {
             ...envelope,
-            id: envelope.id.slice(0, -2) + '00',
+            id: envelope.id.slice(0, -1) + flipped,
         };
         await expect(
             unseal({
