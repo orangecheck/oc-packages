@@ -138,10 +138,10 @@ export function EcosystemSwitcher({
                         : 'text-muted-foreground hover:text-foreground')
                 }
             >
-                <Boxes className="h-3.5 w-3.5" />
+                <Boxes className="h-4 w-4" />
                 <ChevronDown
                     className={
-                        'h-3 w-3 transition-transform ' + (open ? 'rotate-180' : '')
+                        'h-3.5 w-3.5 transition-transform ' + (open ? 'rotate-180' : '')
                     }
                 />
             </button>
