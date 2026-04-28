@@ -7,6 +7,7 @@ import {
     actionCanonicalBytes,
     actionCanonicalMessage,
     canonicalizeScopes,
+    computeSubdelegationId,
     delegationCanonicalBytes,
     delegationCanonicalMessage,
     hexEncode,
@@ -25,12 +26,18 @@ import {
     ENVELOPE_VERSION,
     type ActionEnvelope,
     type AgentErrorCode,
+    type ChainLink,
     type DelegationEnvelope,
     type RevocationEnvelope,
+    type SubdelegationEnvelope,
     type VerifyActionResult,
     type VerifyDelegationResult,
     type VerifyRevocationResult,
+    type VerifySubdelegationResult,
 } from './types.js';
+
+/** Default maximum chain depth, per SUB-DELEGATION.md §2.1. */
+export const DEFAULT_MAX_CHAIN_DEPTH = 5;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared options
@@ -146,11 +153,28 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
 
 export interface VerifyActionInput extends VerifyBase {
     action: ActionEnvelope;
-    /** The delegation cited by action.delegation_id. Required. */
+    /** The ROOT delegation rooting the authority chain. Always required. */
     delegation: DelegationEnvelope;
     /**
-     * Known revocations targeting the delegation. The verifier scans for one whose
-     * effective time precedes the action (SPEC §9.3).
+     * Optional v1.1 sub-delegation chain from S_1 (immediate child of `delegation`)
+     * to S_leaf (the envelope `action.delegation_id` cites). When provided, the
+     * verifier walks each link checking parent-id linkage, principal-equals-
+     * parent-agent, scope containment, and temporal containment. The action's
+     * delegation_id MUST equal the leaf's id; the action's signer MUST equal
+     * the leaf's agent. See SUB-DELEGATION.md §2.2.
+     */
+    subdelegationChain?: SubdelegationEnvelope[];
+    /**
+     * Maximum permitted chain depth (number of subdelegations).
+     * Default `DEFAULT_MAX_CHAIN_DEPTH` (5). Verifiers MAY lower; MUST NOT raise
+     * silently above their advertised cap. Chains exceeding this fail with
+     * E_SUBDELEGATION_DEPTH_EXCEEDED before any per-link work is performed.
+     */
+    maxChainDepth?: number;
+    /**
+     * Known revocations targeting any envelope in the chain (root + each
+     * subdelegation). The verifier checks every link per SUB-DELEGATION.md §2.2
+     * step 5 — a revocation against ANY link invalidates the action.
      */
     revocations?: RevocationEnvelope[];
     content?: Uint8Array;
@@ -163,7 +187,17 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
     const a = input.action;
     const d = input.delegation;
 
-    // 1. First verify the delegation.
+    // 0. Chain-depth check (SUB-DELEGATION.md §2.1) — before any per-link work.
+    const chain: SubdelegationEnvelope[] = input.subdelegationChain ?? [];
+    const maxDepth = input.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
+    if (chain.length > maxDepth) {
+        return err(
+            'E_SUBDELEGATION_DEPTH_EXCEEDED',
+            `chain depth ${chain.length} exceeds maximum ${maxDepth}`
+        );
+    }
+
+    // 1. First verify the root delegation.
     const dr = await verifyDelegation({
         envelope: d,
         verifyBip322: input.verifyBip322,
@@ -172,6 +206,16 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         skipTemporalCheck: true, // action window check dominates
     });
     if (!dr.ok) return dr;
+
+    // 1b. Walk the sub-delegation chain (SUB-DELEGATION.md §2.2 step 3).
+    let parent: ChainLink = d;
+    for (const sub of chain) {
+        const r = await verifyChainLink(sub, parent, input);
+        if (!r.ok) return r;
+        parent = sub;
+    }
+    /** The envelope `action.delegation_id` should cite (root if no chain, leaf otherwise). */
+    const leaf: ChainLink = chain.length > 0 ? chain[chain.length - 1]! : d;
 
     // 2. Core action checks.
     if (a.v !== ENVELOPE_VERSION) {
@@ -201,30 +245,31 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         if (!ok) return err('E_BAD_ACTION_STAMP', 'action BIP-322 signature did not verify');
     }
 
-    // 3. Authority chain.
-    if (a.delegation_id !== d.id) {
-        return err('E_DELEGATION_MISMATCH', `action.delegation_id (${a.delegation_id}) != delegation.id (${d.id})`);
+    // 3. Authority chain — leaf-binding (action cites the leaf of the chain,
+    //    which is the root delegation when no subdelegation chain is present).
+    if (a.delegation_id !== leaf.id) {
+        return err('E_DELEGATION_MISMATCH', `action.delegation_id (${a.delegation_id}) != leaf.id (${leaf.id})`);
     }
-    if (a.signer.address !== d.agent.address) {
-        return err('E_AGENT_MISMATCH', `action signer (${a.signer.address}) != delegation.agent (${d.agent.address})`);
+    if (a.signer.address !== leaf.agent.address) {
+        return err('E_AGENT_MISMATCH', `action signer (${a.signer.address}) != leaf.agent (${leaf.agent.address})`);
     }
 
-    // 4. Window.
-    const issued = new Date(d.issued_at).getTime();
-    const expires = new Date(d.expires_at).getTime();
+    // 4. Window — against the leaf.
+    const issued = new Date(leaf.issued_at).getTime();
+    const expires = new Date(leaf.expires_at).getTime();
     const signed = new Date(a.signed_at).getTime();
     if (Number.isNaN(issued) || Number.isNaN(expires) || Number.isNaN(signed)) {
         return err('E_MALFORMED', 'unparseable ISO 8601 timestamp');
     }
     if (signed < issued || signed >= expires) {
-        return err('E_OUT_OF_WINDOW', `action.signed_at ${a.signed_at} is outside delegation window [${d.issued_at}, ${d.expires_at})`);
+        return err('E_OUT_OF_WINDOW', `action.signed_at ${a.signed_at} is outside leaf window [${leaf.issued_at}, ${leaf.expires_at})`);
     }
 
-    // 5. Scope containment.
+    // 5. Scope containment — against the leaf's granted set.
     let exercised, accepted;
     try {
         exercised = canonicalizeScope(parseScope(a.scope_exercised));
-        const granted = d.scopes.map((s) => parseScope(s));
+        const granted = leaf.scopes.map((s) => parseScope(s));
         const exercisedParsed = parseScope(a.scope_exercised);
         validateScope(exercisedParsed, { mode: input.scopeMode ?? 'strict' });
         accepted = granted.some((g) => isSubScope(exercisedParsed, g));
@@ -234,22 +279,29 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
     }
     if (!accepted) return err('E_SCOPE_DENIED', `scope_exercised (${exercised}) not a sub-scope of any granted scope`);
 
-    // 6. Revocation check.
+    // 6. Revocation check — applies per-link to ALL envelopes in the chain
+    //    (root + every subdelegation). Per SUB-DELEGATION.md §2.2 step 5, a
+    //    revocation against ANY link invalidates the action.
     if (input.revocations && input.revocations.length > 0) {
-        for (const rev of input.revocations) {
-            if (rev.delegation_id !== d.id) continue;
-            // Verify the revocation itself (signature + canonical) with the same BIP-322 verifier.
-            const rr = await verifyRevocation({
-                envelope: rev,
-                delegation: d,
-                verifyBip322: input.verifyBip322,
-                skipSignatureVerification: input.skipSignatureVerification,
-            });
-            if (!rr.ok) continue; // malformed revocations don't affect the action
-            const effective = effectiveRevocationTime(rev, input.resolveAnchorBlockHeight);
-            const actionTime = actionEffectiveTime(a, input.resolveAnchorBlockHeight);
-            if (compareTimes(effective, actionTime) <= 0) {
-                return err('E_REVOKED', `delegation was revoked by ${rev.id} before action was signed`);
+        const allLinks: ChainLink[] = [d, ...chain];
+        for (const link of allLinks) {
+            for (const rev of input.revocations) {
+                if (rev.delegation_id !== link.id) continue;
+                // Verify the revocation itself (signature + canonical + signer
+                // authorization). verifyRevocation accepts ChainLink, so the
+                // call shape is identical for root vs sub.
+                const rr = await verifyRevocation({
+                    envelope: rev,
+                    delegation: link,
+                    verifyBip322: input.verifyBip322,
+                    skipSignatureVerification: input.skipSignatureVerification,
+                });
+                if (!rr.ok) continue; // malformed revocations don't affect the action
+                const effective = effectiveRevocationTime(rev, input.resolveAnchorBlockHeight);
+                const actionTime = actionEffectiveTime(a, input.resolveAnchorBlockHeight);
+                if (compareTimes(effective, actionTime) <= 0) {
+                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id} before action was signed`);
+                }
             }
         }
     }
@@ -291,6 +343,7 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         canonicalMessage: reconstructedMessage,
         id: a.id,
         delegation: d,
+        chain,
         scopeExercised: exercised,
         anchor,
     };
@@ -302,8 +355,13 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
 
 export interface VerifyRevocationInput extends VerifyBase {
     envelope: RevocationEnvelope;
-    /** The delegation targeted by the revocation. Required to check signer is authorized. */
-    delegation: DelegationEnvelope;
+    /**
+     * The envelope targeted by the revocation. Required to check signer is
+     * authorized. May be a v1.0 root delegation OR a v1.1 sub-delegation —
+     * both have identical `principal`, `agent`, `id`, and `revocation.holders`
+     * field shapes per SUB-DELEGATION.md §3.
+     */
+    delegation: ChainLink;
 }
 
 export async function verifyRevocation(input: VerifyRevocationInput): Promise<VerifyRevocationResult> {
@@ -398,6 +456,179 @@ function checkRevocationShape(env: RevocationEnvelope): VerifyRevocationResult |
     if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
     if (env.sig.pubkey !== env.signer.address) return err('E_MALFORMED', 'sig.pubkey must equal signer.address');
     return null;
+}
+
+function checkSubdelegationShape(env: SubdelegationEnvelope): VerifySubdelegationResult | null {
+    if (env.kind !== 'agent-subdelegation') return err('E_MALFORMED', 'kind must be "agent-subdelegation"');
+    if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
+    if (!isHex64(env.parent_id)) return err('E_MALFORMED', 'parent_id must be 64-hex');
+    if (!env.principal?.address || env.principal.alg !== 'bip322') return err('E_MALFORMED', 'principal invalid');
+    if (!env.agent?.address || env.agent.alg !== 'bip322') return err('E_MALFORMED', 'agent invalid');
+    if (!Array.isArray(env.scopes) || env.scopes.length === 0) return err('E_MALFORMED', 'scopes must be non-empty array');
+    // Sub-delegations MUST NOT carry a bond field (SUB-DELEGATION.md §1.3).
+    if ('bond' in env && (env as { bond?: unknown }).bond !== undefined) {
+        return err('E_MALFORMED', 'sub-delegation envelopes MUST NOT carry a bond field');
+    }
+    if (!isIsoUtc(env.issued_at)) return err('E_MALFORMED', 'issued_at must be ISO 8601 UTC');
+    if (!isIsoUtc(env.expires_at)) return err('E_MALFORMED', 'expires_at must be ISO 8601 UTC');
+    if (!/^[0-9a-f]{32}$/.test(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
+    if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
+    if (env.sig.pubkey !== env.principal.address) return err('E_MALFORMED', 'sig.pubkey must equal principal.address');
+    return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-delegation chain link (SUB-DELEGATION.md §2.2 step 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Verify a single sub-delegation envelope as a chain link from `parent`.
+ * Performs steps 3a–3g in order; returns the corresponding VerifyErr on
+ * failure or `{ ok: true, envelope: s }` on success.
+ *
+ * Skips the standalone temporal-validity check (SUB-DELEGATION.md §2.2 step
+ * 3d) — for action verification, the action-window check (step 4c) on the
+ * leaf is the binding temporal constraint. Callers that want a current-time
+ * "is this subdelegation active right now" check can use `verifySubdelegation`.
+ */
+async function verifyChainLink(
+    s: SubdelegationEnvelope,
+    parent: ChainLink,
+    input: VerifyBase
+): Promise<VerifySubdelegationResult> {
+    if (s.v !== ENVELOPE_VERSION) {
+        return err('E_UNSUPPORTED_VERSION', `subdelegation version ${s.v} not supported`);
+    }
+    const shape = checkSubdelegationShape(s);
+    if (shape) return shape;
+
+    // Step 3a: canonical id.
+    let canonicalScopesList: string[];
+    try {
+        canonicalScopesList = canonicalizeScopes(s.scopes);
+    } catch (e) {
+        const msg = e instanceof ScopeParseError ? e.message : (e as Error).message;
+        return err('E_BAD_SCOPE_GRAMMAR', msg);
+    }
+    const canonInput = {
+        parent_id: s.parent_id,
+        principal: s.principal.address,
+        agent: s.agent.address,
+        scopes: canonicalScopesList,
+        issued_at: s.issued_at,
+        expires_at: s.expires_at,
+        nonce: s.nonce,
+    };
+    const reconstructedId = computeSubdelegationId(canonInput);
+    if (reconstructedId !== s.id) {
+        return err('E_BAD_ID', `reconstructed subdelegation id (${reconstructedId}) does not match envelope id (${s.id})`);
+    }
+
+    // Step 3b: scope grammar validation (registry-aware).
+    let parsedScopes;
+    try {
+        parsedScopes = s.scopes.map((str) => parseScope(str));
+        for (const p of parsedScopes) validateScope(p, { mode: input.scopeMode ?? 'strict' });
+    } catch (e) {
+        const msg = e instanceof ScopeParseError ? e.message : (e as Error).message;
+        return err('E_BAD_SCOPE_GRAMMAR', msg);
+    }
+
+    // Step 3c: BIP-322 signature.
+    if (!input.skipSignatureVerification) {
+        if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied for subdelegation');
+        const ok = await input.verifyBip322(s.id, s.sig.value, s.principal.address);
+        if (!ok) return err('E_BAD_SIG', 'subdelegation BIP-322 signature did not verify');
+    }
+
+    // Step 3e: linkage.
+    if (s.parent_id !== parent.id) {
+        return err(
+            'E_SUBDELEGATION_PRINCIPAL_MISMATCH',
+            `subdelegation.parent_id (${s.parent_id}) does not match parent envelope id (${parent.id})`
+        );
+    }
+    if (s.principal.address !== parent.agent.address) {
+        return err(
+            'E_SUBDELEGATION_PRINCIPAL_MISMATCH',
+            `subdelegation.principal (${s.principal.address}) does not match parent.agent (${parent.agent.address})`
+        );
+    }
+
+    // Step 3f: temporal containment.
+    const sIssued = new Date(s.issued_at).getTime();
+    const sExpires = new Date(s.expires_at).getTime();
+    const pIssued = new Date(parent.issued_at).getTime();
+    const pExpires = new Date(parent.expires_at).getTime();
+    if (Number.isNaN(sIssued) || Number.isNaN(sExpires) || Number.isNaN(pIssued) || Number.isNaN(pExpires)) {
+        return err('E_MALFORMED', 'unparseable ISO 8601 timestamp in chain');
+    }
+    if (sExpires <= sIssued) {
+        return err('E_MALFORMED', 'subdelegation expires_at must be > issued_at');
+    }
+    if (sIssued < pIssued || sExpires > pExpires) {
+        return err(
+            'E_SUBDELEGATION_EXPIRES_EXTENDED',
+            `subdelegation window [${s.issued_at}, ${s.expires_at}) is not contained in parent's [${parent.issued_at}, ${parent.expires_at})`
+        );
+    }
+
+    // Step 3g: scope containment (transitive narrowing).
+    const parentScopesParsed = parent.scopes.map((str) => parseScope(str));
+    for (let i = 0; i < parsedScopes.length; i++) {
+        const childScope = parsedScopes[i]!;
+        const containedBySomeParentScope = parentScopesParsed.some((p) => isSubScope(childScope, p));
+        if (!containedBySomeParentScope) {
+            return err(
+                'E_SUBDELEGATION_SCOPE_ESCALATED',
+                `subdelegation scope ${canonicalizeScope(childScope)} is not a sub-scope of any granted scope on the parent`
+            );
+        }
+    }
+
+    return {
+        ok: true,
+        envelope: s,
+        canonicalMessage: '', // not populated for chain links; computeSubdelegationId is the binding form
+        id: s.id,
+    };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Standalone subdelegation verification (no action context)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface VerifySubdelegationInput extends VerifyBase {
+    envelope: SubdelegationEnvelope;
+    /** The immediate parent envelope. Required for linkage / containment checks. */
+    parent: ChainLink;
+    /** Skip the "now ∈ [issued, expires)" check. Useful for inspection. */
+    skipTemporalCheck?: boolean;
+    /** Defaults to new Date(). */
+    now?: Date;
+}
+
+/**
+ * Verify a single sub-delegation envelope against its immediate parent.
+ * Includes the standalone temporal-validity check (`now ∈ [issued, expires)`)
+ * unless `skipTemporalCheck` is set. Useful for pre-flighting a chain link
+ * outside of action verification.
+ */
+export async function verifySubdelegation(
+    input: VerifySubdelegationInput
+): Promise<VerifySubdelegationResult> {
+    const r = await verifyChainLink(input.envelope, input.parent, input);
+    if (!r.ok) return r;
+
+    if (!input.skipTemporalCheck) {
+        const now = (input.now ?? new Date()).getTime();
+        const issued = new Date(input.envelope.issued_at).getTime();
+        const expires = new Date(input.envelope.expires_at).getTime();
+        if (now < issued) return err('E_NOT_YET_VALID', `subdelegation issued_at ${input.envelope.issued_at} is in the future`);
+        if (now >= expires) return err('E_EXPIRED', `subdelegation expires_at ${input.envelope.expires_at} is past`);
+    }
+
+    return r;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

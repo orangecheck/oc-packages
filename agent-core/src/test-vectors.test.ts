@@ -12,16 +12,19 @@ import {
     computeActionId,
     computeDelegationId,
     computeRevocationId,
+    computeSubdelegationId,
     delegationCanonicalMessage,
     revocationCanonicalMessage,
+    subdelegationCanonicalMessage,
 } from './canonical.js';
 import { parseScope, ScopeParseError } from './scope.js';
-import { verifyAction, verifyDelegation, verifyRevocation } from './verify.js';
+import { verifyAction, verifyDelegation, verifyRevocation, verifySubdelegation } from './verify.js';
 import type {
     ActionEnvelope,
     AgentErrorCode,
     DelegationEnvelope,
     RevocationEnvelope,
+    SubdelegationEnvelope,
 } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,12 +34,16 @@ const VECTORS_DIR =
 
 interface BaseVector {
     description: string;
-    kind: 'delegation' | 'action' | 'revocation';
+    kind: 'delegation' | 'action' | 'revocation' | 'subdelegation';
     expected: {
         canonical_message: string;
         canonical_message_bytes_len: number;
         id: string;
-        envelope: DelegationEnvelope | ActionEnvelope | RevocationEnvelope;
+        envelope:
+            | DelegationEnvelope
+            | ActionEnvelope
+            | RevocationEnvelope
+            | SubdelegationEnvelope;
     };
 }
 
@@ -77,6 +84,20 @@ interface RevocationVector extends BaseVector {
         signed_at: string;
     };
     expected: BaseVector['expected'] & { envelope: RevocationEnvelope };
+}
+
+interface SubdelegationVector extends BaseVector {
+    kind: 'subdelegation';
+    inputs: {
+        parent_id: string;
+        principal: string;
+        agent: string;
+        scopes: string[];
+        issued_at: string;
+        expires_at: string;
+        nonce: string;
+    };
+    expected: BaseVector['expected'] & { envelope: SubdelegationEnvelope };
 }
 
 // Negative vectors carry "negative": true at the top level and document an
@@ -136,15 +157,30 @@ interface NegativeDelegationVector extends NegativeVectorBase {
     }[];
 }
 
+interface NegativeSubdelegationVector extends NegativeVectorBase {
+    kind: 'subdelegation';
+    inputs: {
+        parent_id: string;
+        principal: string;
+        agent: string;
+        scopes: string[];
+        issued_at: string;
+        expires_at: string;
+        nonce: string;
+    };
+}
+
 type NegativeVector =
     | NegativeActionVector
     | NegativeRevocationVector
-    | NegativeDelegationVector;
+    | NegativeDelegationVector
+    | NegativeSubdelegationVector;
 
 type Vector =
     | DelegationVector
     | ActionVector
     | RevocationVector
+    | SubdelegationVector
     | NegativeVector;
 
 function isNegative(v: Vector): v is NegativeVector {
@@ -174,13 +210,17 @@ describe('oc-agent-protocol test vectors', () => {
         return;
     }
 
-    // First pass: the vectors can cross-reference each other (action cites delegation id).
-    // We'll need the envelopes keyed for the verifyAction tests.
+    // First pass: the vectors can cross-reference each other (action cites delegation id;
+    // subdelegation cites parent id which may be a root or another sub).
+    // Key both kinds so chain walking works.
     const delegationEnvelopes = new Map<string, DelegationEnvelope>();
+    const subdelegationEnvelopes = new Map<string, SubdelegationEnvelope>();
     for (const { data } of vectors) {
         if (isNegative(data)) continue;
         if (data.kind === 'delegation') {
             delegationEnvelopes.set(data.expected.id, data.expected.envelope);
+        } else if (data.kind === 'subdelegation') {
+            subdelegationEnvelopes.set(data.expected.id, data.expected.envelope);
         }
     }
 
@@ -219,7 +259,7 @@ describe('oc-agent-protocol test vectors', () => {
                     skipSignatureVerification: true,
                 });
                 expect(r.ok).toBe(true);
-            } else {
+            } else if (data.kind === 'revocation') {
                 const delegation = delegationEnvelopes.get(data.inputs.delegation_id);
                 if (!delegation) {
                     throw new Error(`revocation vector ${name} references missing delegation ${data.inputs.delegation_id}`);
@@ -230,12 +270,34 @@ describe('oc-agent-protocol test vectors', () => {
                     skipSignatureVerification: true,
                 });
                 expect(r.ok).toBe(true);
+            } else {
+                // subdelegation — parent may be a root delegation or another subdelegation.
+                const parentId = data.inputs.parent_id;
+                const parent =
+                    delegationEnvelopes.get(parentId) ??
+                    subdelegationEnvelopes.get(parentId);
+                if (!parent) {
+                    throw new Error(
+                        `subdelegation vector ${name} references missing parent ${parentId}`
+                    );
+                }
+                const r = await verifySubdelegation({
+                    envelope: data.expected.envelope,
+                    parent,
+                    skipSignatureVerification: true,
+                    skipTemporalCheck: true,
+                });
+                expect(r.ok).toBe(true);
             }
         });
     }
 });
 
-type PositiveVector = DelegationVector | ActionVector | RevocationVector;
+type PositiveVector =
+    | DelegationVector
+    | ActionVector
+    | RevocationVector
+    | SubdelegationVector;
 
 function reconstructCanonical(v: PositiveVector): string {
     if (v.kind === 'delegation') {
@@ -255,7 +317,20 @@ function reconstructCanonical(v: PositiveVector): string {
     if (v.kind === 'action') {
         return actionCanonicalMessage(v.inputs);
     }
-    return revocationCanonicalMessage(v.inputs);
+    if (v.kind === 'revocation') {
+        return revocationCanonicalMessage(v.inputs);
+    }
+    // subdelegation
+    const canonical = canonicalizeScopes(v.inputs.scopes);
+    return subdelegationCanonicalMessage({
+        parent_id: v.inputs.parent_id,
+        principal: v.inputs.principal,
+        agent: v.inputs.agent,
+        scopes: canonical,
+        issued_at: v.inputs.issued_at,
+        expires_at: v.inputs.expires_at,
+        nonce: v.inputs.nonce,
+    });
 }
 
 function reconstructId(v: PositiveVector): string {
@@ -273,7 +348,18 @@ function reconstructId(v: PositiveVector): string {
         });
     }
     if (v.kind === 'action') return computeActionId(v.inputs);
-    return computeRevocationId(v.inputs);
+    if (v.kind === 'revocation') return computeRevocationId(v.inputs);
+    // subdelegation
+    const canonical = canonicalizeScopes(v.inputs.scopes);
+    return computeSubdelegationId({
+        parent_id: v.inputs.parent_id,
+        principal: v.inputs.principal,
+        agent: v.inputs.agent,
+        scopes: canonical,
+        issued_at: v.inputs.issued_at,
+        expires_at: v.inputs.expires_at,
+        nonce: v.inputs.nonce,
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -409,6 +495,50 @@ describe('oc-agent-protocol negative test vectors', () => {
                         `additional malformed example: ${ex.why}`
                     ).toThrow(ScopeParseError);
                 }
+            } else if (data.kind === 'subdelegation') {
+                // v12, v13, v14 — chain-link checks via verifySubdelegation.
+                // Build a structurally valid subdelegation envelope from inputs
+                // (the rejection here is semantic — scope / window / linkage —
+                // not structural) and feed it to verifySubdelegation against the
+                // root delegation vector.
+                const v = data as NegativeSubdelegationVector;
+                const parent = delegationEnvelopes.get(v.inputs.parent_id);
+                if (!parent) {
+                    throw new Error(
+                        `negative subdelegation vector ${name} references missing parent ${v.inputs.parent_id}`
+                    );
+                }
+                const realId = computeSubdelegationId({
+                    parent_id: v.inputs.parent_id,
+                    principal: v.inputs.principal,
+                    agent: v.inputs.agent,
+                    scopes: canonicalizeScopes(v.inputs.scopes),
+                    issued_at: v.inputs.issued_at,
+                    expires_at: v.inputs.expires_at,
+                    nonce: v.inputs.nonce,
+                });
+                const sub: SubdelegationEnvelope = {
+                    v: 1,
+                    kind: 'agent-subdelegation',
+                    id: realId,
+                    parent_id: v.inputs.parent_id,
+                    principal: { address: v.inputs.principal, alg: 'bip322' },
+                    agent: { address: v.inputs.agent, alg: 'bip322' },
+                    scopes: v.inputs.scopes,
+                    issued_at: v.inputs.issued_at,
+                    expires_at: v.inputs.expires_at,
+                    nonce: v.inputs.nonce,
+                    revocation: { holders: ['principal'], ref: null },
+                    sig: { alg: 'bip322', pubkey: v.inputs.principal, value: 'AAAA' },
+                };
+                const r = await verifySubdelegation({
+                    envelope: sub,
+                    parent,
+                    skipSignatureVerification: true,
+                    skipTemporalCheck: true,
+                });
+                expect(r.ok).toBe(false);
+                if (!r.ok) expect(r.code).toBe(v.expected.error_code);
             }
         });
     }

@@ -19,6 +19,7 @@ import type {
     DelegationEnvelope,
     RevocationCanonicalInput,
     RevocationEnvelope,
+    SubdelegationCanonicalInput,
 } from './types.js';
 
 export { canonicalize, hexEncode };
@@ -94,6 +95,20 @@ export function revocationCanonicalMessage(input: RevocationCanonicalInput): str
     ].join('\n');
 }
 
+export function subdelegationCanonicalMessage(input: SubdelegationCanonicalInput): string {
+    const scopeField = input.scopes.join(',');
+    return [
+        'oc-agent:subdelegation:v1',
+        `parent_id: ${input.parent_id}`,
+        `principal: ${input.principal}`,
+        `agent: ${input.agent}`,
+        `scopes: ${scopeField}`,
+        `issued_at: ${input.issued_at}`,
+        `expires_at: ${input.expires_at}`,
+        `nonce: ${input.nonce}`,
+    ].join('\n');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Bytes + ids
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,6 +125,10 @@ export function revocationCanonicalBytes(input: RevocationCanonicalInput): Uint8
     return new TextEncoder().encode(revocationCanonicalMessage(input));
 }
 
+export function subdelegationCanonicalBytes(input: SubdelegationCanonicalInput): Uint8Array {
+    return new TextEncoder().encode(subdelegationCanonicalMessage(input));
+}
+
 export function computeDelegationId(input: DelegationCanonicalInput): string {
     return hexEncode(sha256(delegationCanonicalBytes(input)));
 }
@@ -120,6 +139,10 @@ export function computeActionId(input: ActionCanonicalInput): string {
 
 export function computeRevocationId(input: RevocationCanonicalInput): string {
     return hexEncode(sha256(revocationCanonicalBytes(input)));
+}
+
+export function computeSubdelegationId(input: SubdelegationCanonicalInput): string {
+    return hexEncode(sha256(subdelegationCanonicalBytes(input)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

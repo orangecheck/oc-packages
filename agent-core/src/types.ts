@@ -2,7 +2,11 @@
 
 export const ENVELOPE_VERSION = 1 as const;
 
-export type EnvelopeKind = 'agent-delegation' | 'agent-action' | 'agent-revocation';
+export type EnvelopeKind =
+    | 'agent-delegation'
+    | 'agent-action'
+    | 'agent-revocation'
+    | 'agent-subdelegation';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared building blocks
@@ -112,6 +116,41 @@ export interface ActionCanonicalInput {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sub-delegation (SUB-DELEGATION.md, v1.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SubdelegationEnvelope {
+    v: typeof ENVELOPE_VERSION;
+    kind: 'agent-subdelegation';
+    id: string; // 64-hex sha256(canonical_message)
+    parent_id: string; // 64-hex; the immediate parent envelope's id
+    /** The sub-principal — equal to parent.agent.address. */
+    principal: ActorRef;
+    /** The recipient sub-agent. */
+    agent: ActorRef;
+    /** Each scope MUST be a sub-scope of some scope on the parent. */
+    scopes: string[];
+    issued_at: string; // ISO 8601 UTC; >= parent.issued_at
+    expires_at: string; // ISO 8601 UTC; <= parent.expires_at
+    nonce: string; // 32-hex random
+    revocation: DelegationRevocationRef;
+    sig: Signature;
+}
+
+export interface SubdelegationCanonicalInput {
+    parent_id: string;
+    principal: string;
+    agent: string;
+    scopes: string[]; // pre-canonicalized, pre-sorted
+    issued_at: string;
+    expires_at: string;
+    nonce: string;
+}
+
+/** Either a root or a sub envelope; chain links walk up to a root delegation. */
+export type ChainLink = DelegationEnvelope | SubdelegationEnvelope;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Revocation (SPEC §9)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -157,7 +196,11 @@ export type AgentErrorCode =
     | 'E_BOND_UNMET'
     | 'E_BOND_UNVERIFIED'
     | 'E_REVOKER_UNAUTHORIZED'
-    | 'E_CALENDAR_UNREACHABLE';
+    | 'E_CALENDAR_UNREACHABLE'
+    | 'E_SUBDELEGATION_DEPTH_EXCEEDED'
+    | 'E_SUBDELEGATION_PRINCIPAL_MISMATCH'
+    | 'E_SUBDELEGATION_EXPIRES_EXTENDED'
+    | 'E_SUBDELEGATION_SCOPE_ESCALATED';
 
 export interface VerifyOk<T> {
     ok: true;
@@ -174,9 +217,17 @@ export interface VerifyErr {
 
 export type VerifyDelegationResult = VerifyOk<DelegationEnvelope> | VerifyErr;
 export type VerifyRevocationResult = VerifyOk<RevocationEnvelope> | VerifyErr;
+export type VerifySubdelegationResult = VerifyOk<SubdelegationEnvelope> | VerifyErr;
 
 export interface VerifyActionOkExtra {
+    /** The ROOT delegation rooting the authority chain. */
     delegation: DelegationEnvelope;
+    /**
+     * The sub-delegation chain `[S_1, …, S_leaf]`. Empty when the action cites
+     * the root directly. The action's authority leaf is
+     * `chain[chain.length - 1] ?? delegation`.
+     */
+    chain: SubdelegationEnvelope[];
     scopeExercised: string;
     anchor:
         | { status: 'none' }
