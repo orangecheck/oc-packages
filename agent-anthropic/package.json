@@ -1,0 +1,66 @@
+{
+  "name": "@orangecheck/agent-anthropic",
+  "version": "0.0.1",
+  "description": "Wrap Anthropic Tool Use (Claude tool_use blocks) with OC Agent scope enforcement and emit a signed agent-action envelope per tool execution.",
+  "keywords": [
+    "bitcoin",
+    "agent",
+    "authority",
+    "anthropic",
+    "claude",
+    "tool-use",
+    "bip322",
+    "oc-agent",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "agent-anthropic"
+  },
+  "homepage": "https://github.com/orangecheck/oc-agent-protocol",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.5.0",
+    "@orangecheck/agent-core": "^0.3.0",
+    "@orangecheck/agent-signer": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
