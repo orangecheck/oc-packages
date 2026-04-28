@@ -44,14 +44,59 @@ export interface DelegationRevocationRef {
     ref: string | null;
 }
 
+/**
+ * v1.2 private-scope mode: a wholesale OC Lock v2 LockEnvelope wrapping the
+ * canonical scope list as its payload. We re-import the LockEnvelope type
+ * structurally rather than depending on the @orangecheck/lock-core type — agent-
+ * core's type surface stays loose so verifiers can be authored in either an
+ * agent-only or full-family setup.
+ */
+export interface ScopesEncryptedEnvelope {
+    v: 2;
+    kind: 'identity';
+    id: string;
+    alg: { kem: 'x25519'; aead: 'aes-256-gcm'; kdf: 'hkdf-sha256' };
+    from: { address: string; attestation_id?: string };
+    recipients: Array<{
+        address: string;
+        device_id: string;
+        device_pk: string;
+        eph_pk: string;
+        wrapped_key: string;
+        nonce_kek: string;
+    }>;
+    ciphertext: string;
+    nonce_ct: string;
+    hint?: string;
+    created_at: string;
+    expires_at: string | null;
+    payment: unknown | null;
+    sig: { alg: 'bip322'; pubkey: string; value: string };
+}
+
 export interface DelegationEnvelope {
     v: typeof ENVELOPE_VERSION;
     kind: 'agent-delegation';
     id: string; // 64-hex sha256(canonical_message)
     principal: ActorRef;
     agent: ActorRef;
-    /** Sorted lexicographically in the canonical message; stored in sorted order on the envelope too. */
-    scopes: string[];
+    /**
+     * v1.0 / v1.1 public mode: sorted lexicographically in the canonical
+     * message; stored in sorted order on the envelope too.
+     *
+     * v1.2 private mode: this field is OMITTED from the envelope JSON;
+     * `scopes_encrypted` is set instead. After decryption, the recovered
+     * scope list takes this field's place in the in-memory envelope object
+     * for the remainder of verification.
+     */
+    scopes?: string[];
+    /**
+     * v1.2 private mode (PRIVATE-SCOPE.md §1.1): an OC Lock v2 envelope
+     * wrapping the canonical scope-list bytes as its payload, sealed to one
+     * or more recipients (typically the agent ± named verifiers). MUTUALLY
+     * EXCLUSIVE with `scopes`.
+     */
+    scopes_encrypted?: ScopesEncryptedEnvelope;
     bond: DelegationBond | null;
     issued_at: string; // ISO 8601 UTC
     expires_at: string; // ISO 8601 UTC
@@ -128,8 +173,13 @@ export interface SubdelegationEnvelope {
     principal: ActorRef;
     /** The recipient sub-agent. */
     agent: ActorRef;
-    /** Each scope MUST be a sub-scope of some scope on the parent. */
-    scopes: string[];
+    /**
+     * v1.0 / v1.1 public mode: each scope MUST be a sub-scope of some scope
+     * on the parent. v1.2 private mode: omitted; `scopes_encrypted` set.
+     */
+    scopes?: string[];
+    /** v1.2 private mode — same shape as the root delegation field. */
+    scopes_encrypted?: ScopesEncryptedEnvelope;
     issued_at: string; // ISO 8601 UTC; >= parent.issued_at
     expires_at: string; // ISO 8601 UTC; <= parent.expires_at
     nonce: string; // 32-hex random
@@ -200,7 +250,11 @@ export type AgentErrorCode =
     | 'E_SUBDELEGATION_DEPTH_EXCEEDED'
     | 'E_SUBDELEGATION_PRINCIPAL_MISMATCH'
     | 'E_SUBDELEGATION_EXPIRES_EXTENDED'
-    | 'E_SUBDELEGATION_SCOPE_ESCALATED';
+    | 'E_SUBDELEGATION_SCOPE_ESCALATED'
+    | 'E_SCOPES_BOTH_PROVIDED'
+    | 'E_SCOPES_NEITHER_PROVIDED'
+    | 'E_SCOPES_UNREADABLE'
+    | 'E_BAD_LOCK_ENVELOPE';
 
 export interface VerifyOk<T> {
     ok: true;

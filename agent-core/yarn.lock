@@ -158,10 +158,38 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@noble/hashes@^1.5.0":
+"@noble/ciphers@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.npmjs.org/@noble/ciphers/-/ciphers-1.3.0.tgz#f64b8ff886c240e644e5573c097f86e5b43676dc"
+  integrity sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==
+
+"@noble/curves@^1.6.0":
+  version "1.9.7"
+  resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
+  integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
+  dependencies:
+    "@noble/hashes" "1.8.0"
+
+"@noble/hashes@1.8.0", "@noble/hashes@^1.5.0":
   version "1.8.0"
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
+
+"@orangecheck/lock-core@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/lock-core/-/lock-core-0.1.0.tgz#9daf87850970ca0f3634bd86667a316bdf452557"
+  integrity sha512-a0LPNELHwrfQzCdnWfFDm0hrrfHCJ9iFrdrOqqprfDVnLXBYtmVeDkxemf6tgfFHbfSkJuMgmkPlkTRtKz3jXw==
+  dependencies:
+    "@orangecheck/lock-crypto" "^0.1.0"
+
+"@orangecheck/lock-crypto@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/lock-crypto/-/lock-crypto-0.1.0.tgz#f44f029ab88ff7cf9656914abae89f0650b21c68"
+  integrity sha512-LdcPQbTAyyyQrk7cFl0r5dCMvxTqqmFhgC2DriWllmNKyOUWH16EvuWC7IQZU70dV8C1lGGsyX+eddwwsQXUMA==
+  dependencies:
+    "@noble/ciphers" "^1.3.0"
+    "@noble/curves" "^1.6.0"
+    "@noble/hashes" "^1.5.0"
 
 "@orangecheck/stamp-core@^0.1.1":
   version "0.1.1"

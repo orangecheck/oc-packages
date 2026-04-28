@@ -217,6 +217,7 @@ describe('oc-agent-protocol test vectors', () => {
     const subdelegationEnvelopes = new Map<string, SubdelegationEnvelope>();
     for (const { data } of vectors) {
         if (isNegative(data)) continue;
+        if ((data as { private_scope?: unknown }).private_scope) continue;
         if (data.kind === 'delegation') {
             delegationEnvelopes.set(data.expected.id, data.expected.envelope);
         } else if (data.kind === 'subdelegation') {
@@ -226,6 +227,7 @@ describe('oc-agent-protocol test vectors', () => {
 
     for (const { name, data } of vectors) {
         if (isNegative(data)) continue;
+        if ((data as { private_scope?: unknown }).private_scope) continue;
         it(`${name} — canonical message reconstructs byte-identical`, () => {
             const msg = reconstructCanonical(data);
             expect(msg).toBe(data.expected.canonical_message);
@@ -367,7 +369,14 @@ function reconstructId(v: PositiveVector): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('oc-agent-protocol negative test vectors', () => {
-    const negatives = vectors.filter(({ data }) => isNegative(data)) as {
+    // Filter out private-scope vectors — they have their own describe block
+    // because the round-trip path requires sealing first, not just verifying
+    // a pre-built envelope.
+    const negatives = vectors.filter(
+        ({ data }) =>
+            isNegative(data) &&
+            !(data as { private_scope?: unknown }).private_scope
+    ) as {
         name: string;
         data: NegativeVector;
     }[];
@@ -539,6 +548,181 @@ describe('oc-agent-protocol negative test vectors', () => {
                 });
                 expect(r.ok).toBe(false);
                 if (!r.ok) expect(r.code).toBe(v.expected.error_code);
+            }
+        });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Private-scope (v1.2) vectors — round-trip via sealScopes/verifyDelegation.
+// The OC Lock envelope uses random nonces, so byte-identical reproducibility
+// of the ciphertext is not asserted; what's pinned is the round-trip outcome.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PrivateScopeRecipientFixture {
+    address: string;
+    device_id: string;
+    device_pk: string;
+    device_secret: string;
+}
+
+interface PrivateScopeBaseInputs {
+    principal: string;
+    agent: string;
+    scopes_plaintext: string[];
+    recipients: PrivateScopeRecipientFixture[];
+    bond: { sats: number; attestation_id: string } | null;
+    issued_at: string;
+    expires_at: string;
+    nonce: string;
+}
+
+interface PrivateScopePositiveVector {
+    description: string;
+    kind: 'delegation';
+    private_scope: true;
+    inputs: PrivateScopeBaseInputs;
+    expected: {
+        verification_outcome: 'ACCEPT';
+        decrypted_scopes: string[];
+        verifier_uses_device_id: string;
+    };
+}
+
+interface PrivateScopeNegativeVector {
+    description: string;
+    kind: 'delegation';
+    private_scope: true;
+    negative: true;
+    inputs: PrivateScopeBaseInputs & {
+        verifier_holds_unrelated_key: {
+            device_id: string;
+            device_pk: string;
+            device_secret: string;
+        };
+    };
+    expected: {
+        verification_outcome: 'REJECT';
+        error_code: AgentErrorCode;
+    };
+}
+
+type PrivateScopeVector = PrivateScopePositiveVector | PrivateScopeNegativeVector;
+
+function isPrivateScopeVector(v: unknown): v is PrivateScopeVector {
+    return (
+        typeof v === 'object' &&
+        v !== null &&
+        (v as { private_scope?: unknown }).private_scope === true
+    );
+}
+
+describe('oc-agent-protocol private-scope vectors (v1.2)', () => {
+    const psVectors = vectors.filter(({ data }) =>
+        isPrivateScopeVector(data)
+    ) as { name: string; data: PrivateScopeVector }[];
+
+    if (psVectors.length === 0) {
+        it.skip('(no private-scope vectors found)', () => {});
+        return;
+    }
+
+    for (const { name, data } of psVectors) {
+        it(`${name} — ${data.expected.verification_outcome}`, async () => {
+            // Lazy-load to avoid pulling lock-core at module init time when no
+            // private-scope vectors are present.
+            const ps = await import('./private-scope.js');
+            const { hexDecode } = await import('@orangecheck/lock-crypto');
+
+            const sealed = await ps.sealScopes({
+                scopes: data.inputs.scopes_plaintext,
+                sender: {
+                    address: data.inputs.principal,
+                    signMessage: async () => 'AAAA',
+                },
+                recipients: data.inputs.recipients.map((r) => ({
+                    address: r.address,
+                    device_id: r.device_id,
+                    device_pk: r.device_pk,
+                })),
+            });
+
+            // Build the OC Agent envelope. Use the canonical (sorted) scopes
+            // so the id reconstructs cleanly.
+            const canonScopes = canonicalizeScopes(data.inputs.scopes_plaintext);
+            const canonInput = {
+                principal: data.inputs.principal,
+                agent: data.inputs.agent,
+                scopes: canonScopes,
+                bond_sats: data.inputs.bond?.sats ?? 0,
+                bond_attestation: data.inputs.bond?.attestation_id ?? 'none',
+                issued_at: data.inputs.issued_at,
+                expires_at: data.inputs.expires_at,
+                nonce: data.inputs.nonce,
+            };
+            const id = computeDelegationId(canonInput);
+            const env: DelegationEnvelope = {
+                v: 1,
+                kind: 'agent-delegation',
+                id,
+                principal: { address: data.inputs.principal, alg: 'bip322' },
+                agent: { address: data.inputs.agent, alg: 'bip322' },
+                scopes_encrypted: sealed,
+                bond: data.inputs.bond,
+                issued_at: data.inputs.issued_at,
+                expires_at: data.inputs.expires_at,
+                nonce: data.inputs.nonce,
+                revocation: { holders: ['principal'], ref: null },
+                sig: { alg: 'bip322', pubkey: data.inputs.principal, value: 'AAAA' },
+            };
+
+            if (data.expected.verification_outcome === 'ACCEPT') {
+                const positive = data as PrivateScopePositiveVector;
+                const recip = data.inputs.recipients.find(
+                    (r) => r.device_id === positive.expected.verifier_uses_device_id
+                );
+                if (!recip) {
+                    throw new Error(
+                        `vector ${name} names verifier_uses_device_id ${positive.expected.verifier_uses_device_id}, not in recipients`
+                    );
+                }
+                const r = await verifyDelegation({
+                    envelope: env,
+                    skipSignatureVerification: true,
+                    skipTemporalCheck: true,
+                    decryptScopesWith: {
+                        device_id: recip.device_id,
+                        secretKey: hexDecode(recip.device_secret),
+                    },
+                });
+                expect(r.ok).toBe(true);
+                if (r.ok) {
+                    expect(r.envelope.scopes).toEqual(
+                        canonicalizeScopes(positive.expected.decrypted_scopes)
+                    );
+                }
+            } else {
+                const negative = data as PrivateScopeNegativeVector;
+                const r = await verifyDelegation({
+                    envelope: env,
+                    skipSignatureVerification: true,
+                    skipTemporalCheck: true,
+                    decryptScopesWith: {
+                        device_id: negative.inputs.verifier_holds_unrelated_key.device_id,
+                        secretKey: hexDecode(
+                            negative.inputs.verifier_holds_unrelated_key.device_secret
+                        ),
+                    },
+                });
+                expect(r.ok).toBe(false);
+                if (!r.ok) {
+                    // Accept either E_SCOPES_UNREADABLE (preferred) or
+                    // E_BAD_LOCK_ENVELOPE (acceptable per harness_assertion).
+                    expect([
+                        'E_SCOPES_UNREADABLE',
+                        'E_BAD_LOCK_ENVELOPE',
+                    ]).toContain(r.code);
+                }
             }
         });
     }

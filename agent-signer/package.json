@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-signer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OC Agent signer: createDelegation(), signAsAgent(), revoke(). Composes @orangecheck/agent-core with a wallet-adapter signing function and optional OTS anchoring.",
   "keywords": [
     "bitcoin",
@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.5.0",
-    "@orangecheck/agent-core": "^0.1.0"
+    "@orangecheck/agent-core": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

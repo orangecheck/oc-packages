@@ -18,9 +18,13 @@ import {
     ENVELOPE_VERSION,
     hexEncode,
     parseScope,
+    sealScopes,
     validateScope,
 } from '@orangecheck/agent-core';
-import type { ValidationOptions } from '@orangecheck/agent-core';
+import type {
+    ScopesEncryptedEnvelope,
+    ValidationOptions,
+} from '@orangecheck/agent-core';
 import type {
     ActionEnvelope,
     ActionOts,
@@ -62,6 +66,39 @@ export interface CreateDelegationInput {
     revocationRef?: string | null;
     /** Default 'strict'. 'permissive' allows unregistered scopes / constraint keys. */
     scopeMode?: ValidationOptions['mode'];
+    /**
+     * v1.2 private-scope (PRIVATE-SCOPE.md). When supplied, the resulting
+     * delegation envelope omits the public `scopes` field and instead carries
+     * `scopes_encrypted` — an OC Lock envelope wrapping the canonical scope
+     * list, sealed to one or more recipient device keys. The principal signs
+     * BOTH the inner OC Lock envelope (via the `signMessage` callback already
+     * provided on `principal`) AND the outer OC Agent canonical message.
+     *
+     * Recipients MUST include at least the agent's device. Additional
+     * recipients (compliance auditors, third-party verifiers) are optional.
+     */
+    privateScopes?: {
+        /**
+         * Devices authorized to read the scope set. Each is `{ address,
+         * device_id, device_pk }` matching OC Lock's `DeviceRecord` shape.
+         * The same `signMessage` callback on `principal` is used to sign the
+         * inner OC Lock envelope.
+         */
+        recipients: PrivateScopeRecipient[];
+        /** Optional human hint stored in the OC Lock envelope. */
+        hint?: string;
+        /** Optional expiry on the OC Lock envelope. Independent of the
+         *  delegation's expires_at; usually left unset. */
+        envelopeExpiresAt?: Date | null;
+    };
+}
+
+/** Mirror of @orangecheck/lock-core's DeviceRecord. */
+export interface PrivateScopeRecipient {
+    address: string;
+    device_id: string;
+    /** 32-byte hex X25519 public key. */
+    device_pk: string;
 }
 
 export async function createDelegation(input: CreateDelegationInput): Promise<DelegationEnvelope> {
@@ -115,6 +152,32 @@ export async function createDelegation(input: CreateDelegationInput): Promise<De
     };
     const id = computeDelegationId(canonInput);
 
+    // v1.2 private-scope: seal BEFORE the principal's outer signature so the
+    // user's wallet sees both prompts in a deterministic order (inner Lock
+    // sig first, outer OC Agent sig second).
+    let scopesEncrypted: ScopesEncryptedEnvelope | undefined;
+    if (input.privateScopes) {
+        if (!input.privateScopes.recipients || input.privateScopes.recipients.length === 0) {
+            throw new Error(
+                'createDelegation: privateScopes.recipients must contain at least the agent device'
+            );
+        }
+        scopesEncrypted = await sealScopes({
+            scopes,
+            sender: {
+                address: input.principal.address,
+                signMessage: input.principal.signMessage,
+            },
+            recipients: input.privateScopes.recipients,
+            ...(input.privateScopes.hint !== undefined && {
+                hint: input.privateScopes.hint,
+            }),
+            ...(input.privateScopes.envelopeExpiresAt !== undefined && {
+                expiresAt: input.privateScopes.envelopeExpiresAt,
+            }),
+        });
+    }
+
     const sigValue = await input.principal.signMessage(id);
 
     const envelope: DelegationEnvelope = {
@@ -123,7 +186,8 @@ export async function createDelegation(input: CreateDelegationInput): Promise<De
         id,
         principal: { address: input.principal.address, alg: 'bip322' },
         agent: { address: input.agentAddress, alg: 'bip322' },
-        scopes,
+        // Public OR private mode — never both. PRIVATE-SCOPE.md §1.1.
+        ...(scopesEncrypted ? { scopes_encrypted: scopesEncrypted } : { scopes }),
         bond,
         issued_at: issuedAt,
         expires_at: expiresAt,

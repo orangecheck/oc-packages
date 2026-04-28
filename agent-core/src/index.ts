@@ -49,3 +49,15 @@ export type {
     VerifyRevocationInput,
     VerifySubdelegationInput,
 } from './verify.js';
+export {
+    sealScopes,
+    unsealScopes,
+    encodeScopesPayload,
+    decodeScopesPayload,
+    hasPrivateScopes,
+} from './private-scope.js';
+export type {
+    SealScopesInput,
+    UnsealScopesInput,
+    UnsealedScopes,
+} from './private-scope.js';
