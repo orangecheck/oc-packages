@@ -138,7 +138,7 @@ export function OcAccountChip({
                 <span aria-hidden="true" style={{ color: '#22c55e', fontSize: 8 }}>
                     ●
                 </span>
-                <span>{shortenAddress(account.address)}</span>
+                <span>{account.displayName ?? shortenAddress(account.address)}</span>
                 <svg
                     width="9"
                     height="9"

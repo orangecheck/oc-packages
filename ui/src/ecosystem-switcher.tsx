@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 export type EcosystemSlug =
     | 'home'
     | 'docs'
+    | 'console'
     | 'attest'
     | 'lock'
     | 'vote'
@@ -47,6 +48,13 @@ const ENTRIES: SwitcherEntry[] = [
         label: 'oc·docs',
         sub: 'unified docs',
         docsHref: 'https://docs.ochk.io',
+    },
+    {
+        slug: 'console',
+        href: 'https://console.ochk.io',
+        label: 'oc·console',
+        sub: 'managed — operator',
+        docsHref: 'https://docs.ochk.io/console',
     },
     {
         slug: 'attest',
