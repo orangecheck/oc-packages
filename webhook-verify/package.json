@@ -1,0 +1,56 @@
+{
+  "name": "@orangecheck/webhook-verify",
+  "version": "0.1.0",
+  "description": "Verify HMAC-signed webhook deliveries from console.ochk.io. Drop-in helper so customers don't reimplement timing-safe HMAC compare.",
+  "keywords": [
+    "orangecheck",
+    "webhook",
+    "hmac",
+    "verify",
+    "console"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "homepage": "https://console.ochk.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "webhook-verify"
+  },
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
