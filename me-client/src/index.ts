@@ -3,8 +3,9 @@
  *
  * Drop-in client for me.ochk.io. Exports the canonical billable-event
  * taxonomy as TypeScript types, session lifecycle hooks, payment
- * authorization, the developer telemetry stream, and the React sign-in
- * button.
+ * authorization, integrator-config CRUD, agent-delegation issue/revoke,
+ * webhook signature verification, the developer telemetry stream, and
+ * the React sign-in button + `useOcSession` hook.
  *
  * Sign-in-with-OC. You pay for sessions and actions, not for clicks.
  */
@@ -12,8 +13,23 @@
 export { OcSignInButton } from './SignInButton';
 export type { OcSignInButtonProps } from './SignInButton';
 
+// Re-export the React session primitives so integrators can pull every
+// auth surface from a single package.
+export { OcSessionProvider, useOcSession, useOptionalOcSession } from '@orangecheck/auth-client';
+export type {
+    OcAccount,
+    OcSessionState,
+    OcSessionStatus,
+    OcAuthConfig,
+} from '@orangecheck/auth-client';
+
 export { session, onTelemetry } from './session';
 export { payment } from './payment';
+export { config } from './config';
+export { webhook } from './webhook';
+export type { OcPublicJwk, VerifyResult } from './webhook';
+export { delegation } from './delegation';
+export type { DelegationScope, DelegationEnvelope, IssueDelegationOptions } from './delegation';
 export { setOrigin, getOrigin, MeClientError } from './transport';
 
 export {
@@ -46,7 +62,11 @@ export type {
 
 import { session } from './session';
 import { payment } from './payment';
+import { config } from './config';
+import { webhook } from './webhook';
+import { delegation } from './delegation';
 
 /** Convenience namespace mirroring the public API surface in /integrate
- *  code samples — `oc.session.create()`, `oc.payment.authorize()`. */
-export const oc = { session, payment };
+ *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
+ *  `oc.config.update()`, `oc.webhook.verify()`, `oc.delegation.issue()`. */
+export const oc = { session, payment, config, webhook, delegation };
