@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Drop-in client for me.ochk.io. Sign-in-with-OC button, session lifecycle hooks (oc.session.create / refresh / invalidate), payment authorization, and the canonical billable-event taxonomy as types.",
     "keywords": [
         "orangecheck",
