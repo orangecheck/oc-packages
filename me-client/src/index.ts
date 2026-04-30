@@ -30,6 +30,8 @@ export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyResult } from './webhook';
 export { delegation } from './delegation';
 export type { DelegationScope, DelegationEnvelope, IssueDelegationOptions } from './delegation';
+export { event } from './event';
+export type { FireEventOptions } from './event';
 export { setOrigin, getOrigin, MeClientError } from './transport';
 
 export {
@@ -65,8 +67,10 @@ import { payment } from './payment';
 import { config } from './config';
 import { webhook } from './webhook';
 import { delegation } from './delegation';
+import { event } from './event';
 
 /** Convenience namespace mirroring the public API surface in /integrate
  *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
- *  `oc.config.update()`, `oc.webhook.verify()`, `oc.delegation.issue()`. */
-export const oc = { session, payment, config, webhook, delegation };
+ *  `oc.config.update()`, `oc.webhook.verify()`, `oc.delegation.issue()`,
+ *  `oc.event.fire()`. */
+export const oc = { session, payment, config, webhook, delegation, event };

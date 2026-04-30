@@ -1,7 +1,7 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.4.0",
-    "description": "Drop-in client for me.ochk.io. Sign-in-with-OC button, useOcSession, oc.session/payment/config/delegation/webhook, the canonical billable-event taxonomy as types.",
+    "version": "0.5.0",
+    "description": "Drop-in client for me.ochk.io. Sign-in-with-OC button, useOcSession, oc.session/payment/config/delegation/webhook/event, the canonical billable-event taxonomy as types.",
     "keywords": [
         "orangecheck",
         "bitcoin",

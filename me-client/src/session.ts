@@ -47,7 +47,9 @@ async function create(opts: SignInOptions): Promise<Session> {
         body: {
             scope: opts.scope,
             policy,
-            return_to: opts.returnTo ?? (typeof window !== 'undefined' ? window.location.href : undefined),
+            return_to:
+                opts.returnTo ?? (typeof window !== 'undefined' ? window.location.href : undefined),
+            ...(opts.project_key ? { project_key: opts.project_key } : {}),
         },
     });
 }

@@ -220,6 +220,11 @@ export interface SignInOptions {
     scope: string[];
     sessionPolicy?: Partial<SessionPolicy>;
     returnTo?: string;
+    /** Project this session is opened under. When omitted, the session
+     *  is created as a free telemetry record (not billable). When set,
+     *  OC records a Class C billable envelope under the project's
+     *  IntegratorPriceConfig and credits cashback to the user. */
+    project_key?: string;
 }
 
 export interface PaymentAuthorizeOptions {
@@ -228,6 +233,9 @@ export interface PaymentAuthorizeOptions {
     usd_cents?: number;
     description: string;
     external_ref?: string;
+    /** Project this payment is authorized under. Required for the
+     *  envelope to be attributed to your project's billing. */
+    project_key?: string;
 }
 
 export interface PaymentResult {
