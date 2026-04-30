@@ -36,6 +36,11 @@ import {
     type ActionEnvelope,
     type SignerRef,
 } from '@orangecheck/agent-signer';
+import {
+    postActionToConsole as _post,
+    type ConsoleClient,
+    type PostActionResult,
+} from '@orangecheck/agent-console-client';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canonicalization of a tool call
@@ -218,7 +223,7 @@ export function ocTool<TArgs extends Record<string, unknown>, TResult>(
             let posted: PostActionResult | null = null;
             if (ctx.console) {
                 try {
-                    posted = await postActionToConsole(action, ctx.console);
+                    posted = await _post(action, ctx.console);
                 } catch (err) {
                     // eslint-disable-next-line no-console
                     console.error('[oc-agent-vercel] postActionToConsole failed:', err);
@@ -230,69 +235,13 @@ export function ocTool<TArgs extends Record<string, unknown>, TResult>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Console integration: POST stamped actions to console.ochk.io/api/actions
+// Console integration — re-export from the shared client. The local OcTool
+// surface above references ConsoleClient + PostActionResult, so we also
+// pull them into module scope (re-exporting alone doesn't expose the names).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ConsoleClient {
-    /** Defaults to https://console.ochk.io. */
-    baseUrl?: string;
-    /** Bearer token from /settings § 03 (`ock_<hex>`). */
-    apiToken: string;
-    /** Project the action belongs to (proj_*). */
-    projectId: string;
-    /** Optional fetch override for runtimes that need it. */
-    fetch?: typeof fetch;
-}
-
-export interface PostActionResult {
-    id: string;
-    project_id: string;
-    delegation_id: string;
-}
-
-/**
- * POST a stamped action envelope to console.ochk.io/api/actions. The
- * console re-derives the action id, validates agent-must-match-
- * delegation, persists, fans out to Nostr (kind 30084), submits to
- * OC Stamp, and triggers any subscribed webhooks. Throws on non-2xx
- * with the server's reason string.
- */
-export async function postActionToConsole(
-    action: ActionEnvelope,
-    client: ConsoleClient
-): Promise<PostActionResult> {
-    const baseUrl = client.baseUrl ?? 'https://console.ochk.io';
-    const f = client.fetch ?? fetch;
-    const body = {
-        project_id: client.projectId,
-        delegation_id: action.delegation_id,
-        agent_address: action.signer.address,
-        scope_exercised: action.scope_exercised,
-        content_hash: action.content.hash,
-        content_length: action.content.length,
-        content_mime: action.content.mime,
-        signed_at: action.signed_at,
-        signature: action.sig.value,
-        id: action.id,
-    };
-    const r = await f(`${baseUrl}/api/actions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${client.apiToken}`,
-        },
-        body: JSON.stringify(body),
-    });
-    if (!r.ok) {
-        let reason = `http_${r.status}`;
-        try {
-            const j = (await r.json()) as { reason?: string };
-            if (j.reason) reason = j.reason;
-        } catch {
-            // body wasn't json
-        }
-        throw new Error(`postActionToConsole failed: ${reason}`);
-    }
-    const j = (await r.json()) as { ok: true; action: PostActionResult };
-    return j.action;
-}
+export {
+    postActionToConsole,
+    type ConsoleClient,
+    type PostActionResult,
+} from '@orangecheck/agent-console-client';

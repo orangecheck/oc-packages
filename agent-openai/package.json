@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-openai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wrap OpenAI function-calling (Responses API + Chat Completions tool path) with OC Agent scope enforcement and emit a signed agent-action envelope per function invocation.",
   "keywords": [
     "bitcoin",
@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.5.0",
+    "@orangecheck/agent-console-client": "0.1.0",
     "@orangecheck/agent-core": "^0.3.0",
     "@orangecheck/agent-signer": "^0.1.0"
   },
