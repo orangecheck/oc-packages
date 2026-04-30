@@ -156,3 +156,51 @@ export async function invokeWithStamp<T>(input: InvokeWithStampInput<T>): Promis
     const result = await input.call(input.invocation);
     return { result, action };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Console integration — re-export from the shared client
+// ─────────────────────────────────────────────────────────────────────────────
+
+export {
+    postActionToConsole,
+    type ConsoleClient,
+    type PostActionResult,
+} from '@orangecheck/agent-console-client';
+
+import {
+    postActionToConsole as _post,
+    type ConsoleClient as _ConsoleClient,
+    type PostActionResult as _PostActionResult,
+} from '@orangecheck/agent-console-client';
+
+export interface InvokeWithStampAndPostInput<T> extends InvokeWithStampInput<T> {
+    /** Console credentials. If absent, behaves like invokeWithStamp + posted: null. */
+    console?: _ConsoleClient;
+}
+
+export interface InvokeWithStampAndPostResult<T> extends InvokeWithStampResult<T> {
+    /** Set when console is configured AND the POST succeeded. */
+    posted: _PostActionResult | null;
+}
+
+/**
+ * invokeWithStamp + post the stamped envelope to console.ochk.io. The
+ * post happens AFTER the call so a failing post never prevents the
+ * underlying MCP invocation from running. If `console` is omitted,
+ * this is identical to invokeWithStamp + posted: null.
+ */
+export async function invokeWithStampAndPost<T>(
+    input: InvokeWithStampAndPostInput<T>
+): Promise<InvokeWithStampAndPostResult<T>> {
+    const { result, action } = await invokeWithStamp(input);
+    let posted: _PostActionResult | null = null;
+    if (input.console) {
+        try {
+            posted = await _post(action, input.console);
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[oc-agent-mcp] postActionToConsole failed:', err);
+        }
+    }
+    return { result, action, posted };
+}

@@ -1,27 +1,23 @@
 {
-  "name": "@orangecheck/agent-mcp",
-  "version": "0.2.0",
-  "description": "Wrap Model Context Protocol tool invocations in OC Agent envelopes — every call produces a signed, scope-constrained, verifiable agent-action stamp.",
+  "name": "@orangecheck/agent-console-client",
+  "version": "0.1.0",
+  "description": "Tiny HTTP client for posting OC Agent envelopes (delegations, actions, revocations, sub-delegations) to console.ochk.io. Used by every framework adapter (@orangecheck/agent-anthropic, agent-openai, agent-vercel, agent-langgraph, agent-mcp).",
   "keywords": [
-    "bitcoin",
+    "orangecheck",
+    "console",
     "agent",
-    "authority",
-    "mcp",
-    "model-context-protocol",
-    "bip322",
-    "oc-agent",
-    "orangecheck"
+    "client"
   ],
   "author": "OrangeCheck",
   "license": "MIT",
+  "homepage": "https://console.ochk.io",
   "repository": {
     "type": "git",
     "url": "https://github.com/orangecheck/oc-packages.git",
-    "directory": "agent-mcp"
+    "directory": "agent-console-client"
   },
-  "homepage": "https://github.com/orangecheck/oc-agent-protocol",
   "bugs": {
-    "url": "https://github.com/orangecheck/oc-agent-protocol/issues"
+    "url": "https://github.com/orangecheck/oc-packages/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -35,7 +31,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "LICENSE"
   ],
@@ -48,17 +43,17 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
-  "dependencies": {
-    "@noble/hashes": "^1.5.0",
-    "@orangecheck/agent-console-client": "0.1.0",
-    "@orangecheck/agent-core": "^0.1.0",
-    "@orangecheck/agent-signer": "^0.1.0"
+  "peerDependencies": {
+    "@orangecheck/agent-core": "^0.3.0",
+    "@orangecheck/agent-signer": "^0.2.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@orangecheck/agent-core": "^0.3.0",
+    "@orangecheck/agent-signer": "^0.2.0",
+    "@types/node": "^25.6.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2",
-    "vitest": "^3.2.4"
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
   },
   "publishConfig": {
     "access": "public"
