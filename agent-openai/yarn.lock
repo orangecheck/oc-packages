@@ -175,6 +175,11 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
+"@orangecheck/agent-console-client@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/agent-console-client/-/agent-console-client-0.1.0.tgz#a5e215ba8ccb6d818efd7a2130435cd47bb4ca67"
+  integrity sha512-zF68Vx+fx05TVDhQoF8UqUJP5//GEjDXMzg8jGnfKsjJkjxjQuoD3E+/DZmYOndvo786rJpnwQnK4zygigS8ow==
+
 "@orangecheck/agent-core@^0.1.0":
   version "0.1.0"
   resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-0.1.0.tgz#932ffb896bf5c258800b863ea992eda8574d1e98"

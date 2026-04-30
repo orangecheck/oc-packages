@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-anthropic",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wrap Anthropic Tool Use (Claude tool_use blocks) with OC Agent scope enforcement and emit a signed agent-action envelope per tool execution.",
   "keywords": [
     "bitcoin",
@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.5.0",
+    "@orangecheck/agent-console-client": "0.1.0",
     "@orangecheck/agent-core": "^0.3.0",
     "@orangecheck/agent-signer": "^0.1.0"
   },
