@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-langgraph",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Wrap LangGraph tool nodes with OC Agent scope enforcement and emit a signed agent-action envelope per execution. Binds the action to the graph-state hash so verifiers replay the audit against the persisted graph snapshot.",
   "keywords": [
     "bitcoin",

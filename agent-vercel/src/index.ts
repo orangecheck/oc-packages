@@ -153,12 +153,18 @@ export interface OcToolWrapped<TArgs extends Record<string, unknown>, TResult> {
     /**
      * The execute fn the AI SDK calls. Receives args + a callId (the AI
      * SDK passes its own callId through — adapter glue passes it via
-     * context).
+     * context). Optional `console` field on the context tells the
+     * wrapper to fire-and-forget POST the stamped action to console.
+     * ochk.io/api/actions after the underlying execute() returns.
      */
     execute: (
         args: TArgs,
-        ctx: AgentContext & { callId: string }
-    ) => Promise<{ result: TResult; action: ActionEnvelope }>;
+        ctx: AgentContext & { callId: string; console?: ConsoleClient }
+    ) => Promise<{
+        result: TResult;
+        action: ActionEnvelope;
+        posted: PostActionResult | null;
+    }>;
 }
 
 /**
@@ -209,7 +215,84 @@ export function ocTool<TArgs extends Record<string, unknown>, TResult>(
                 call,
             });
             const result = await input.execute(args);
-            return { result, action };
+            let posted: PostActionResult | null = null;
+            if (ctx.console) {
+                try {
+                    posted = await postActionToConsole(action, ctx.console);
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('[oc-agent-vercel] postActionToConsole failed:', err);
+                }
+            }
+            return { result, action, posted };
         },
     };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Console integration: POST stamped actions to console.ochk.io/api/actions
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ConsoleClient {
+    /** Defaults to https://console.ochk.io. */
+    baseUrl?: string;
+    /** Bearer token from /settings § 03 (`ock_<hex>`). */
+    apiToken: string;
+    /** Project the action belongs to (proj_*). */
+    projectId: string;
+    /** Optional fetch override for runtimes that need it. */
+    fetch?: typeof fetch;
+}
+
+export interface PostActionResult {
+    id: string;
+    project_id: string;
+    delegation_id: string;
+}
+
+/**
+ * POST a stamped action envelope to console.ochk.io/api/actions. The
+ * console re-derives the action id, validates agent-must-match-
+ * delegation, persists, fans out to Nostr (kind 30084), submits to
+ * OC Stamp, and triggers any subscribed webhooks. Throws on non-2xx
+ * with the server's reason string.
+ */
+export async function postActionToConsole(
+    action: ActionEnvelope,
+    client: ConsoleClient
+): Promise<PostActionResult> {
+    const baseUrl = client.baseUrl ?? 'https://console.ochk.io';
+    const f = client.fetch ?? fetch;
+    const body = {
+        project_id: client.projectId,
+        delegation_id: action.delegation_id,
+        agent_address: action.signer.address,
+        scope_exercised: action.scope_exercised,
+        content_hash: action.content.hash,
+        content_length: action.content.length,
+        content_mime: action.content.mime,
+        signed_at: action.signed_at,
+        signature: action.sig.value,
+        id: action.id,
+    };
+    const r = await f(`${baseUrl}/api/actions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${client.apiToken}`,
+        },
+        body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+        let reason = `http_${r.status}`;
+        try {
+            const j = (await r.json()) as { reason?: string };
+            if (j.reason) reason = j.reason;
+        } catch {
+            // body wasn't json
+        }
+        throw new Error(`postActionToConsole failed: ${reason}`);
+    }
+    const j = (await r.json()) as { ok: true; action: PostActionResult };
+    return j.action;
 }
