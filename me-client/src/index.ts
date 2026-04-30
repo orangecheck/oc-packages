@@ -16,6 +16,13 @@ export { session, onTelemetry } from './session';
 export { payment } from './payment';
 export { setOrigin, getOrigin, MeClientError } from './transport';
 
+export {
+    PLATFORM_FEE_POLICY,
+    MIN_INTEGRATOR_PRICE_SATS,
+    computeFees,
+    validateIntegratorConfig,
+} from './types';
+
 export type {
     EventClass,
     EventSubtype,
@@ -23,6 +30,11 @@ export type {
     ClassBSubtype,
     ClassCSubtype,
     AttestTier,
+    SiteFeeShape,
+    IntegratorEventConfig,
+    IntegratorPriceConfig,
+    ComputedFees,
+    ValidationResult,
     BillableEvent,
     Session,
     SessionPolicy,
