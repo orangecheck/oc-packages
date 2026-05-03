@@ -147,11 +147,11 @@ export async function invokeWithStamp<T>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Console integration: POST stamped actions to console.ochk.io/api/actions
+// Fleet integration: POST stamped actions to fleet.ochk.io/api/actions
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ConsoleClient {
-    /** Defaults to https://console.ochk.io. */
+export interface FleetClient {
+    /** Defaults to https://fleet.ochk.io. */
     baseUrl?: string;
     /** Bearer token from /settings § 03 (`ock_<hex>`). */
     apiToken: string;
@@ -168,8 +168,8 @@ export interface PostActionResult {
 }
 
 /**
- * POST a stamped action envelope to console.ochk.io's /api/actions
- * registry. The console:
+ * POST a stamped action envelope to fleet.ochk.io's /api/actions
+ * registry. The fleet:
  *   - re-derives the action id from canonical inputs and rejects on
  *     mismatch (tamper defense)
  *   - validates that the agent address matches the parent delegation's
@@ -180,11 +180,11 @@ export interface PostActionResult {
  * Returns the registered action's id + project_id + delegation_id.
  * Throws on non-2xx with the server's reason string.
  */
-export async function postActionToConsole(
+export async function postActionToFleet(
     action: ActionEnvelope,
-    client: ConsoleClient
+    client: FleetClient
 ): Promise<PostActionResult> {
-    const baseUrl = client.baseUrl ?? 'https://console.ochk.io';
+    const baseUrl = client.baseUrl ?? 'https://fleet.ochk.io';
     const f = client.fetch ?? fetch;
     const body = {
         project_id: client.projectId,
@@ -214,30 +214,30 @@ export async function postActionToConsole(
         } catch {
             // body wasn't json; keep the http_<n> reason
         }
-        throw new Error(`postActionToConsole failed: ${reason}`);
+        throw new Error(`postActionToFleet failed: ${reason}`);
     }
     const j = (await r.json()) as { ok: true; action: PostActionResult };
     return j.action;
 }
 
 export interface InvokeWithStampAndPostInput<T> extends InvokeWithStampInput<T> {
-    /** Console credentials. If absent, behaves like invokeWithStamp (no posting). */
-    console?: ConsoleClient;
+    /** Fleet credentials. If absent, behaves like invokeWithStamp (no posting). */
+    fleet?: FleetClient;
 }
 
 export interface InvokeWithStampAndPostResult<T> extends InvokeWithStampResult<T> {
-    /** Set when console is configured AND the POST succeeded. null otherwise. */
+    /** Set when fleet is configured AND the POST succeeded. null otherwise. */
     posted: PostActionResult | null;
 }
 
 /**
  * Convenience: stamp the tool_use, execute the handler, AND post the
- * stamped envelope to console. Three roundtrips → one call. If `console`
+ * stamped envelope to fleet. Three roundtrips → one call. If `fleet`
  * is omitted, this is identical to invokeWithStamp + posted=null.
  *
  * The post happens AFTER the call so a failing post doesn't prevent the
  * tool from running. If you need pre-authorization (the post must
- * succeed before the call runs), use stampToolUse + postActionToConsole
+ * succeed before the call runs), use stampToolUse + postActionToFleet
  * + your call() in that order.
  */
 export async function invokeWithStampAndPost<T>(
@@ -245,15 +245,15 @@ export async function invokeWithStampAndPost<T>(
 ): Promise<InvokeWithStampAndPostResult<T>> {
     const { result, action } = await invokeWithStamp(input);
     let posted: PostActionResult | null = null;
-    if (input.console) {
+    if (input.fleet) {
         try {
-            posted = await postActionToConsole(action, input.console);
+            posted = await postActionToFleet(action, input.fleet);
         } catch (err) {
             // Best-effort post — surfacing the error here would force
             // every caller to handle "tool ran fine but post failed",
             // which is rarely what they want. Log and continue.
             // eslint-disable-next-line no-console
-            console.error('[oc-agent-anthropic] postActionToConsole failed:', err);
+            console.error('[oc-agent-anthropic] postActionToFleet failed:', err);
         }
     }
     return { result, action, posted };

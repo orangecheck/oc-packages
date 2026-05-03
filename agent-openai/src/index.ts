@@ -205,11 +205,11 @@ export async function invokeWithStamp<T>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Console integration: POST stamped actions to console.ochk.io/api/actions
+// Fleet integration: POST stamped actions to fleet.ochk.io/api/actions
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ConsoleClient {
-    /** Defaults to https://console.ochk.io. */
+export interface FleetClient {
+    /** Defaults to https://fleet.ochk.io. */
     baseUrl?: string;
     /** Bearer token from /settings § 03 (`ock_<hex>`). */
     apiToken: string;
@@ -226,17 +226,17 @@ export interface PostActionResult {
 }
 
 /**
- * POST a stamped action envelope to console.ochk.io/api/actions. The
- * console re-derives the action id, validates agent-must-match-
+ * POST a stamped action envelope to fleet.ochk.io/api/actions. The
+ * fleet re-derives the action id, validates agent-must-match-
  * delegation, persists, fans out to Nostr (kind 30084), submits to
  * OC Stamp, and triggers any subscribed webhooks. Throws on non-2xx
  * with the server's reason string.
  */
-export async function postActionToConsole(
+export async function postActionToFleet(
     action: ActionEnvelope,
-    client: ConsoleClient
+    client: FleetClient
 ): Promise<PostActionResult> {
-    const baseUrl = client.baseUrl ?? 'https://console.ochk.io';
+    const baseUrl = client.baseUrl ?? 'https://fleet.ochk.io';
     const f = client.fetch ?? fetch;
     const body = {
         project_id: client.projectId,
@@ -266,19 +266,19 @@ export async function postActionToConsole(
         } catch {
             // body wasn't json
         }
-        throw new Error(`postActionToConsole failed: ${reason}`);
+        throw new Error(`postActionToFleet failed: ${reason}`);
     }
     const j = (await r.json()) as { ok: true; action: PostActionResult };
     return j.action;
 }
 
 export interface InvokeWithStampAndPostInput<T> extends InvokeWithStampInput<T> {
-    /** Console credentials. If absent, behaves like invokeWithStamp. */
-    console?: ConsoleClient;
+    /** Fleet credentials. If absent, behaves like invokeWithStamp. */
+    fleet?: FleetClient;
 }
 
 export interface InvokeWithStampAndPostResult<T> extends InvokeWithStampResult<T> {
-    /** Set when console is configured AND the POST succeeded. */
+    /** Set when fleet is configured AND the POST succeeded. */
     posted: PostActionResult | null;
 }
 
@@ -287,12 +287,12 @@ export async function invokeWithStampAndPost<T>(
 ): Promise<InvokeWithStampAndPostResult<T>> {
     const { result, action, call } = await invokeWithStamp(input);
     let posted: PostActionResult | null = null;
-    if (input.console) {
+    if (input.fleet) {
         try {
-            posted = await postActionToConsole(action, input.console);
+            posted = await postActionToFleet(action, input.fleet);
         } catch (err) {
             // eslint-disable-next-line no-console
-            console.error('[oc-agent-openai] postActionToConsole failed:', err);
+            console.error('[oc-agent-openai] postActionToFleet failed:', err);
         }
     }
     return { result, action, call, posted };

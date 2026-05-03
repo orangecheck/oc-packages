@@ -2,7 +2,7 @@
  * @orangecheck/webhook-verify
  *
  * Drop-in HMAC-SHA256 verifier for outbound webhooks delivered by
- * console.ochk.io. The console signs every delivery with a per-endpoint
+ * fleet.ochk.io. The fleet signs every delivery with a per-endpoint
  * secret you saw once at create time; this package gives you the
  * timing-safe compare so you don't have to roll it yourself.
  *
@@ -28,7 +28,7 @@
  * confusion; trimming the wrong way). Centralizing keeps the failure mode
  * impossible.
  *
- * Headers the console sends on every delivery:
+ * Headers the fleet sends on every delivery:
  *
  *   X-OrangeCheck-Event              event_type, e.g. delegation.registered
  *   X-OrangeCheck-Delivery           opaque per-attempt id (idempotency)

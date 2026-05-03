@@ -1,17 +1,17 @@
 {
   "name": "@orangecheck/webhook-verify",
-  "version": "0.1.0",
-  "description": "Verify HMAC-signed webhook deliveries from console.ochk.io. Drop-in helper so customers don't reimplement timing-safe HMAC compare.",
+  "version": "0.2.0",
+  "description": "Verify HMAC-signed webhook deliveries from fleet.ochk.io. Drop-in helper so customers don't reimplement timing-safe HMAC compare.",
   "keywords": [
     "orangecheck",
     "webhook",
     "hmac",
     "verify",
-    "console"
+    "fleet"
   ],
   "author": "OrangeCheck",
   "license": "MIT",
-  "homepage": "https://console.ochk.io",
+  "homepage": "https://fleet.ochk.io",
   "repository": {
     "type": "git",
     "url": "https://github.com/orangecheck/oc-packages.git",

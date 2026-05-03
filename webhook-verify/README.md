@@ -1,6 +1,6 @@
 # @orangecheck/webhook-verify
 
-Drop-in HMAC-SHA256 verifier for outbound webhooks delivered by [console.ochk.io](https://console.ochk.io). The console signs every delivery with a per-endpoint secret you saw once at create time; this package gives you the timing-safe HMAC compare so you don't have to roll it yourself.
+Drop-in HMAC-SHA256 verifier for outbound webhooks delivered by [fleet.ochk.io](https://fleet.ochk.io). The fleet signs every delivery with a per-endpoint secret you saw once at create time; this package gives you the timing-safe HMAC compare so you don't have to roll it yourself.
 
 ```bash
 npm install @orangecheck/webhook-verify
@@ -30,7 +30,7 @@ app.post('/webhooks/orangecheck', (req, res) => {
 });
 ```
 
-## Headers the console sends
+## Headers the fleet sends
 
 | Header | Value |
 |---|---|

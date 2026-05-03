@@ -72,4 +72,4 @@ MIT.
 - [@orangecheck/agent-core](https://www.npmjs.com/package/@orangecheck/agent-core) — verifier library.
 - [@orangecheck/agent-mcp](https://www.npmjs.com/package/@orangecheck/agent-mcp) — same pattern, for MCP.
 - [@orangecheck/agent-anthropic](https://www.npmjs.com/package/@orangecheck/agent-anthropic) — same pattern, for Claude Tool Use.
-- [console.ochk.io/integrations/openai](https://console.ochk.io/integrations/openai) — managed-tier story.
+- [fleet.ochk.io/integrations/openai](https://fleet.ochk.io/integrations/openai) — managed-tier story.

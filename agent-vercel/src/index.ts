@@ -153,13 +153,13 @@ export interface OcToolWrapped<TArgs extends Record<string, unknown>, TResult> {
     /**
      * The execute fn the AI SDK calls. Receives args + a callId (the AI
      * SDK passes its own callId through — adapter glue passes it via
-     * context). Optional `console` field on the context tells the
-     * wrapper to fire-and-forget POST the stamped action to console.
+     * context). Optional `fleet` field on the context tells the
+     * wrapper to fire-and-forget POST the stamped action to fleet.
      * ochk.io/api/actions after the underlying execute() returns.
      */
     execute: (
         args: TArgs,
-        ctx: AgentContext & { callId: string; console?: ConsoleClient }
+        ctx: AgentContext & { callId: string; fleet?: FleetClient }
     ) => Promise<{
         result: TResult;
         action: ActionEnvelope;
@@ -216,12 +216,12 @@ export function ocTool<TArgs extends Record<string, unknown>, TResult>(
             });
             const result = await input.execute(args);
             let posted: PostActionResult | null = null;
-            if (ctx.console) {
+            if (ctx.fleet) {
                 try {
-                    posted = await postActionToConsole(action, ctx.console);
+                    posted = await postActionToFleet(action, ctx.fleet);
                 } catch (err) {
                     // eslint-disable-next-line no-console
-                    console.error('[oc-agent-vercel] postActionToConsole failed:', err);
+                    console.error('[oc-agent-vercel] postActionToFleet failed:', err);
                 }
             }
             return { result, action, posted };
@@ -230,11 +230,11 @@ export function ocTool<TArgs extends Record<string, unknown>, TResult>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Console integration: POST stamped actions to console.ochk.io/api/actions
+// Fleet integration: POST stamped actions to fleet.ochk.io/api/actions
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ConsoleClient {
-    /** Defaults to https://console.ochk.io. */
+export interface FleetClient {
+    /** Defaults to https://fleet.ochk.io. */
     baseUrl?: string;
     /** Bearer token from /settings § 03 (`ock_<hex>`). */
     apiToken: string;
@@ -251,17 +251,17 @@ export interface PostActionResult {
 }
 
 /**
- * POST a stamped action envelope to console.ochk.io/api/actions. The
- * console re-derives the action id, validates agent-must-match-
+ * POST a stamped action envelope to fleet.ochk.io/api/actions. The
+ * fleet re-derives the action id, validates agent-must-match-
  * delegation, persists, fans out to Nostr (kind 30084), submits to
  * OC Stamp, and triggers any subscribed webhooks. Throws on non-2xx
  * with the server's reason string.
  */
-export async function postActionToConsole(
+export async function postActionToFleet(
     action: ActionEnvelope,
-    client: ConsoleClient
+    client: FleetClient
 ): Promise<PostActionResult> {
-    const baseUrl = client.baseUrl ?? 'https://console.ochk.io';
+    const baseUrl = client.baseUrl ?? 'https://fleet.ochk.io';
     const f = client.fetch ?? fetch;
     const body = {
         project_id: client.projectId,
@@ -291,7 +291,7 @@ export async function postActionToConsole(
         } catch {
             // body wasn't json
         }
-        throw new Error(`postActionToConsole failed: ${reason}`);
+        throw new Error(`postActionToFleet failed: ${reason}`);
     }
     const j = (await r.json()) as { ok: true; action: PostActionResult };
     return j.action;

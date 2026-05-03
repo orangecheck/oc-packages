@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
     canonicalizeToolUse,
-    postActionToConsole,
+    postActionToFleet,
     toolUseHash,
 } from './index.js';
 import type { ActionEnvelope } from '@orangecheck/agent-signer';
@@ -49,7 +49,7 @@ describe('canonicalizeToolUse', () => {
     });
 });
 
-describe('postActionToConsole', () => {
+describe('postActionToFleet', () => {
     const fakeAction: ActionEnvelope = {
         v: 1,
         kind: 'agent-action',
@@ -69,7 +69,7 @@ describe('postActionToConsole', () => {
 
     it('POSTs to /api/actions with Bearer auth + the action body fields', async () => {
         const fakeFetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-            expect(String(url)).toBe('https://console.example/api/actions');
+            expect(String(url)).toBe('https://fleet.example/api/actions');
             const headers = init!.headers as Record<string, string>;
             expect(headers.Authorization).toBe('Bearer ock_xxxx');
             expect(headers['Content-Type']).toBe('application/json');
@@ -93,10 +93,10 @@ describe('postActionToConsole', () => {
                 { status: 201, headers: { 'Content-Type': 'application/json' } }
             );
         });
-        const result = await postActionToConsole(fakeAction, {
+        const result = await postActionToFleet(fakeAction, {
             apiToken: 'ock_xxxx',
             projectId: 'proj_test',
-            baseUrl: 'https://console.example',
+            baseUrl: 'https://fleet.example',
             fetch: fakeFetch as unknown as typeof fetch,
         });
         expect(result.id).toBe(fakeAction.id);
@@ -112,10 +112,10 @@ describe('postActionToConsole', () => {
             })
         );
         await expect(
-            postActionToConsole(fakeAction, {
+            postActionToFleet(fakeAction, {
                 apiToken: 'ock_xxxx',
                 projectId: 'proj_test',
-                baseUrl: 'https://console.example',
+                baseUrl: 'https://fleet.example',
                 fetch: fakeFetch as unknown as typeof fetch,
             })
         ).rejects.toThrow(/agent_must_match_delegation/);
@@ -126,18 +126,18 @@ describe('postActionToConsole', () => {
             new Response('upstream error', { status: 502, headers: { 'Content-Type': 'text/plain' } })
         );
         await expect(
-            postActionToConsole(fakeAction, {
+            postActionToFleet(fakeAction, {
                 apiToken: 'ock_xxxx',
                 projectId: 'proj_test',
-                baseUrl: 'https://console.example',
+                baseUrl: 'https://fleet.example',
                 fetch: fakeFetch as unknown as typeof fetch,
             })
         ).rejects.toThrow(/http_502/);
     });
 
-    it('defaults to https://console.ochk.io when baseUrl is omitted', async () => {
+    it('defaults to https://fleet.ochk.io when baseUrl is omitted', async () => {
         const fakeFetch = vi.fn(async (url: string | URL) => {
-            expect(String(url)).toBe('https://console.ochk.io/api/actions');
+            expect(String(url)).toBe('https://fleet.ochk.io/api/actions');
             return new Response(
                 JSON.stringify({
                     ok: true,
@@ -150,7 +150,7 @@ describe('postActionToConsole', () => {
                 { status: 201, headers: { 'Content-Type': 'application/json' } }
             );
         });
-        await postActionToConsole(fakeAction, {
+        await postActionToFleet(fakeAction, {
             apiToken: 'ock_xxxx',
             projectId: 'proj_test',
             fetch: fakeFetch as unknown as typeof fetch,
