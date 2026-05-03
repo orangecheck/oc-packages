@@ -1,7 +1,7 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.3.0",
-    "description": "Drop-in client for me.ochk.io. Sign-in-with-OC button, session lifecycle hooks (oc.session.create / refresh / invalidate), payment authorization, and the canonical billable-event taxonomy as types.",
+    "version": "0.6.0",
+    "description": "Drop-in client for me.ochk.io. Three entry points: React surface (OcSignInButton, useOcSession), server-side verification (withOcAuth for Next.js, ocAuthExpress, ocAuthHono — zero env vars, zero JWK handling), and a browser-only popup orchestrator (signInWithOc). Plus session lifecycle hooks, payment authorization, and the canonical billable-event taxonomy as types.",
     "keywords": [
         "orangecheck",
         "bitcoin",
@@ -30,6 +30,16 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.js"
+        },
+        "./server": {
+            "types": "./dist/server.d.ts",
+            "import": "./dist/server.mjs",
+            "require": "./dist/server.js"
+        },
+        "./popup": {
+            "types": "./dist/popup.d.ts",
+            "import": "./dist/popup.mjs",
+            "require": "./dist/popup.js"
         }
     },
     "files": [
@@ -44,6 +54,9 @@
         "type-check": "tsc --noEmit",
         "clean": "rm -rf dist",
         "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "@orangecheck/auth-core": "^0.3.0"
     },
     "peerDependencies": {
         "@orangecheck/auth-client": "^0.4.0",

@@ -1,7 +1,11 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: { index: 'src/index.ts' },
+    entry: {
+        index: 'src/index.ts',
+        server: 'src/server.ts',
+        popup: 'src/popup.ts',
+    },
     format: ['cjs', 'esm'],
     dts: true,
     splitting: false,
@@ -9,5 +13,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['react', 'react-dom', '@orangecheck/auth-client'],
+    external: ['react', 'react-dom', '@orangecheck/auth-client', '@orangecheck/auth-core'],
 });

@@ -245,6 +245,13 @@
   resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-0.4.2.tgz#ed3a3af20b755affd395c15a61d9a61ace92894b"
   integrity sha512-RBdBdPK+HtyqQyFsH2bWSQmUfHKFvsXZCnGOE5z+pUZP9JeOlcn6KcWlZrIDrTuAZRM8AY6FVKPs6k5AUfOrxQ==
 
+"@orangecheck/auth-core@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-0.3.0.tgz#10a5760a4196cd6f025d8ce324f346ec5e2e658c"
+  integrity sha512-u+tZq11z2BeQOejvSxz+hbA4NT7/zEuuSd09856dsrQ+unnQizfFfgNW/onyVRkSQLsAxPZ1WlLZpdSZUj4JZQ==
+  dependencies:
+    jose "^6.2.2"
+
 "@rollup/rollup-android-arm-eabi@4.60.2":
   version "4.60.2"
   resolved "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.60.2.tgz#a19c645c375158cd5c50a344106f0fa18eb821c4"
@@ -675,6 +682,11 @@ is-potential-custom-element-name@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/is-potential-custom-element-name/-/is-potential-custom-element-name-1.0.1.tgz#171ed6f19e3ac554394edf78caa05784a45bebb5"
   integrity sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==
+
+jose@^6.2.2:
+  version "6.2.3"
+  resolved "https://registry.npmjs.org/jose/-/jose-6.2.3.tgz#0975197ad973251221c658a3cddc4b951a250c2d"
+  integrity sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==
 
 joycon@^3.1.1:
   version "3.1.1"

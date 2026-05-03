@@ -214,3 +214,160 @@ export function readSessionCookie(cookieHeader: string | null | undefined): stri
     }
     return null;
 }
+
+// ─── JWKS-aware verification (zero env vars · zero JWK handling) ─────────
+//
+// verifyOcToken / getOcSession are the integrator-facing verification
+// primitives. They lazy-fetch the auth host's published JWKS at
+// `<issuer>/.well-known/jwks.json` and cache it in-process. Integrators
+// install @orangecheck/me-client (which re-exports these), call
+// `verifyOcToken(token)` or `getOcSession(headers)`, and never see a
+// JWK string, an env var, or a base64 dance.
+
+const DEFAULT_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface JwksCacheEntry {
+    keys: Record<string, AuthKey>;
+    fetchedAt: number;
+}
+
+const jwksCache = new Map<string, JwksCacheEntry>();
+const inflight = new Map<string, Promise<JwksCacheEntry>>();
+
+interface JwksJson {
+    keys: Array<Record<string, unknown> & { kid?: string }>;
+}
+
+async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry> {
+    const cached = jwksCache.get(issuer);
+    if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
+    const existing = inflight.get(issuer);
+    if (existing) return existing;
+    const p = (async (): Promise<JwksCacheEntry> => {
+        const url = `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) {
+            throw new Error(`[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`);
+        }
+        const json = (await res.json()) as JwksJson;
+        if (!json || !Array.isArray(json.keys)) {
+            throw new Error(`[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`);
+        }
+        const keys: Record<string, AuthKey> = {};
+        for (const k of json.keys) {
+            if (typeof k.kid !== 'string') continue;
+            try {
+                keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
+            } catch {
+                /* skip keys that won't import for our alg */
+            }
+        }
+        const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
+        jwksCache.set(issuer, entry);
+        return entry;
+    })().finally(() => {
+        inflight.delete(issuer);
+    });
+    inflight.set(issuer, p);
+    return p;
+}
+
+export interface VerifyOcOptions {
+    /** Auth host issuer. Defaults to https://ochk.io. */
+    issuer?: string;
+    /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
+     *  cache exists, verification still works during a transient outage. */
+    jwksCacheTtlMs?: number;
+}
+
+/**
+ * Verify a JWT issued by an OC auth host. Lazy-fetches the JWKS from
+ * `<issuer>/.well-known/jwks.json`, picks the key whose `kid` matches
+ * the token's protected header, and verifies the signature.
+ *
+ * Returns the payload on success, `null` on any failure (bad signature,
+ * expired, wrong issuer, kid not in JWKS, malformed). Never throws.
+ *
+ * Integrators don't need to handle JWKs, env vars, or rotation — the
+ * cache picks up new keys automatically when they appear in the JWKS
+ * response. Stale tokens signed under a retired key continue to verify
+ * as long as the retired key is still published in the JWKS (standard
+ * key-rotation overlap window).
+ */
+export async function verifyOcToken(
+    token: string,
+    options: VerifyOcOptions = {}
+): Promise<SessionPayload | null> {
+    const issuer = options.issuer ?? DEFAULT_ISSUER;
+    const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
+    try {
+        // Fast path: try the cache. If the kid isn't in the cache (e.g.
+        // brand-new key just rotated in), fall through to a fresh fetch.
+        let entry = await fetchJwks(issuer, ttl);
+        const headerB64 = token.split('.')[0];
+        if (!headerB64) return null;
+        const headerJson =
+            typeof Buffer !== 'undefined'
+                ? Buffer.from(headerB64, 'base64url').toString('utf8')
+                : new TextDecoder().decode(base64UrlDecode(headerB64));
+        const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
+        if (!header.kid) return null;
+        let key = entry.keys[header.kid];
+        if (!key) {
+            // Force a fresh JWKS fetch in case the integrator's cache is
+            // older than the active key set on the auth host.
+            jwksCache.delete(issuer);
+            entry = await fetchJwks(issuer, ttl);
+            key = entry.keys[header.kid];
+        }
+        if (!key) return null;
+        const res = await jwtVerify(token, key, {
+            algorithms: [JWT_ALG],
+            issuer,
+        });
+        const p = res.payload as SessionPayload;
+        if (!p.sub || !p.addr || !p.jti) return null;
+        return p;
+    } catch {
+        return null;
+    }
+}
+
+export interface SessionRequestHeaders {
+    cookie?: string | null;
+    authorization?: string | null;
+}
+
+/**
+ * Verify the OC session for a request. Accepts either a plain object
+ * with `cookie` / `authorization` properties (Express / Next.js / etc.)
+ * or a Web Headers object (Hono / edge / Fetch API). Reads the session
+ * from the Cookie header first; falls back to a `Authorization: Bearer
+ * <token>` header so cross-domain integrators (different eTLD+1, no
+ * .ochk.io cookie) can verify the same way.
+ *
+ * Returns `null` for unauthenticated, missing, or invalid requests.
+ * Never throws.
+ */
+export async function getOcSession(
+    headers: SessionRequestHeaders | Headers,
+    options: VerifyOcOptions = {}
+): Promise<SessionPayload | null> {
+    const cookie = isHeaders(headers) ? headers.get('cookie') : (headers.cookie ?? null);
+    const authorization = isHeaders(headers)
+        ? headers.get('authorization')
+        : (headers.authorization ?? null);
+    let token = readSessionCookie(cookie);
+    if (!token && typeof authorization === 'string') {
+        const m = /^Bearer\s+(.+)$/i.exec(authorization);
+        if (m) token = m[1]!;
+    }
+    if (!token) return null;
+    return verifyOcToken(token, options);
+}
+
+function isHeaders(value: unknown): value is Headers {
+    return (
+        typeof Headers !== 'undefined' && value !== null && typeof value === 'object' && value instanceof Headers
+    );
+}
