@@ -21,7 +21,8 @@ export const PLATFORM_FEE_POLICY = {
     pct: 0.2,
     /** Absolute minimum platform fee, in sats. */
     min_floor_sats: 1,
-    /** Date this policy was last ratified. Changes require an oc-me-protocol PR. */
+    /** Date this policy was last ratified. Changes require a versioned
+     *  @orangecheck/me-client release. */
     ratified: '2026-04-30',
 } as const;
 
