@@ -150,6 +150,7 @@ type ExpressNextLike = (err?: unknown) => void;
 export function ocAuthExpress(options: WithOcAuthOptions = {}) {
     return async (req: ExpressRequestLike, res: ExpressResponseLike, next: ExpressNextLike) => {
         try {
+            res.setHeader('Cache-Control', 'no-store, private');
             res.setHeader('Vary', 'Cookie, Authorization');
             const session = await getOcSession(
                 {
@@ -200,6 +201,7 @@ type HonoNextLike = () => Promise<void>;
  */
 export function ocAuthHono(options: WithOcAuthOptions = {}) {
     return async (c: HonoContextLike, next: HonoNextLike) => {
+        c.header('Cache-Control', 'no-store, private');
         c.header('Vary', 'Cookie, Authorization');
         const session = await getOcSession(c.req.raw.headers, options);
         c.set('ocSession', session);

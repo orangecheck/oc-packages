@@ -109,7 +109,12 @@ export function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopup
         }
 
         function onMessage(event: MessageEvent) {
+            // Origin pinning is necessary but not sufficient — same-origin
+            // pages other than our popup can post the same shape. Pin both
+            // origin AND source window so only the popup we opened can
+            // settle this promise.
             if (event.origin !== popupOrigin) return;
+            if (event.source !== popup) return;
             const data = event.data as
                 | { type?: string; account?: OcPopupAccount; token?: string }
                 | null;

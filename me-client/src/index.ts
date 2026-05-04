@@ -44,7 +44,19 @@ export type { OcSignInButtonProps } from './SignInButton';
 
 export { session, onTelemetry } from './session';
 export { payment } from './payment';
-export { setOrigin, getOrigin, MeClientError } from './transport';
+export { event } from './event';
+export type { FireEventOptions } from './event';
+export { config } from './config';
+export { webhook } from './webhook';
+export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
+export {
+    setOrigin,
+    getOrigin,
+    setBearerToken,
+    getBearerToken,
+    clearBearerToken,
+    MeClientError,
+} from './transport';
 
 export {
     PLATFORM_FEE_POLICY,
@@ -76,7 +88,11 @@ export type {
 
 import { session } from './session';
 import { payment } from './payment';
+import { event } from './event';
+import { config } from './config';
+import { webhook } from './webhook';
 
 /** Convenience namespace mirroring the public API surface in /integrate
- *  code samples — `oc.session.create()`, `oc.payment.authorize()`. */
-export const oc = { session, payment };
+ *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
+ *  `oc.event.fire()`, `oc.config.validate()`, `oc.webhook.verify()`. */
+export const oc = { session, payment, event, config, webhook };

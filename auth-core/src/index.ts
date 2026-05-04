@@ -244,32 +244,66 @@ async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry>
     const existing = inflight.get(issuer);
     if (existing) return existing;
     const p = (async (): Promise<JwksCacheEntry> => {
-        const url = `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) {
-            throw new Error(`[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`);
-        }
-        const json = (await res.json()) as JwksJson;
-        if (!json || !Array.isArray(json.keys)) {
-            throw new Error(`[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`);
-        }
-        const keys: Record<string, AuthKey> = {};
-        for (const k of json.keys) {
-            if (typeof k.kid !== 'string') continue;
-            try {
-                keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
-            } catch {
-                /* skip keys that won't import for our alg */
+        try {
+            const url = `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (!res.ok) {
+                throw new Error(`[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`);
             }
+            const json = (await res.json()) as JwksJson;
+            if (!json || !Array.isArray(json.keys)) {
+                throw new Error(`[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`);
+            }
+            const keys: Record<string, AuthKey> = {};
+            for (const k of json.keys) {
+                if (typeof k.kid !== 'string') continue;
+                try {
+                    keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
+                } catch {
+                    /* skip keys that won't import for our alg */
+                }
+            }
+            const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
+            jwksCache.set(issuer, entry);
+            return entry;
+        } catch (err) {
+            // Stale-on-error: a transient JWKS outage shouldn't lock out
+            // every consumer. If we have a cache entry — even an expired
+            // one — keep using it until the next successful fetch. Throw
+            // only when we've never seen a usable JWKS.
+            const stale = jwksCache.get(issuer);
+            if (stale) return stale;
+            throw err;
         }
-        const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
-        jwksCache.set(issuer, entry);
-        return entry;
     })().finally(() => {
         inflight.delete(issuer);
     });
     inflight.set(issuer, p);
     return p;
+}
+
+function assertSafeIssuer(issuer: string): void {
+    let url: URL;
+    try {
+        url = new URL(issuer);
+    } catch {
+        throw new Error(
+            `[@orangecheck/auth-core] issuer must be an absolute URL, got ${issuer}`
+        );
+    }
+    // Allow http only for loopback / local dev. Any production-shaped
+    // hostname (real DNS) is required to be https — JWKS fetched over
+    // plaintext HTTP is trivially MITM-able and would defeat the whole
+    // verification stack.
+    const isLoopback =
+        url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname === '::1';
+    if (url.protocol !== 'https:' && !isLoopback) {
+        throw new Error(
+            `[@orangecheck/auth-core] issuer must be https (got ${url.protocol}//${url.hostname}); plaintext JWKS is not safe`
+        );
+    }
 }
 
 export interface VerifyOcOptions {
@@ -301,6 +335,7 @@ export async function verifyOcToken(
     const issuer = options.issuer ?? DEFAULT_ISSUER;
     const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
     try {
+        assertSafeIssuer(issuer);
         // Fast path: try the cache. If the kid isn't in the cache (e.g.
         // brand-new key just rotated in), fall through to a fresh fetch.
         let entry = await fetchJwks(issuer, ttl);
