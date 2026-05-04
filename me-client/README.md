@@ -1,8 +1,22 @@
 # @orangecheck/me-client
 
-Drop-in client for [me.ochk.io](https://me.ochk.io). Sign-in-with-OC button, session lifecycle hooks, payment authorization, developer telemetry, and the canonical billable-event taxonomy as TypeScript types.
+Drop-in client for [me.ochk.io](https://me.ochk.io). Sign-in-with-OC button, popup signin orchestrator, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types.
 
 > You pay for sessions and actions, not for clicks.
+
+## Three entry points, three audiences
+
+```ts
+// React surface (provider, hook, button, oc.session/payment/event/config/webhook)
+import { useOcSession, oc } from '@orangecheck/me-client';
+
+// Server-side verification — Next.js, Express, Hono. Zero env vars,
+// zero JWK handling. SDK lazy-fetches and caches the JWKS.
+import { withOcAuth, ocAuthExpress, ocAuthHono } from '@orangecheck/me-client/server';
+
+// Browser-only popup orchestrator — same shape Google / GitHub use.
+import { signInWithOc } from '@orangecheck/me-client/popup';
+```
 
 ## Install
 
@@ -119,6 +133,80 @@ import type {
 ```
 
 The canonical source of truth lives at [oc-me-web/src/lib/events/types.ts](https://github.com/orangecheck/oc-me-web/blob/main/src/lib/events/types.ts). This package mirrors that shape — any change there ships here in the next minor.
+
+## Server-side verification
+
+Verify the OC session on your backend without writing a JWK fetcher, an env-var loader, or a cache. The SDK does that internally.
+
+### Next.js Pages Router
+
+```ts
+// pages/api/me.ts
+import { withOcAuth } from '@orangecheck/me-client/server';
+
+export default withOcAuth(async (req, res) => {
+    if (!req.ocSession) return res.status(401).json({ ok: false });
+    res.status(200).json({
+        account: {
+            id: req.ocSession.sub,
+            address: req.ocSession.addr,
+            display_name: req.ocSession.name ?? null,
+        },
+    });
+});
+```
+
+Pass `{ required: true }` to short-circuit unauthenticated requests with a 401 before your handler runs.
+
+### Express
+
+```ts
+import express from 'express';
+import { ocAuthExpress } from '@orangecheck/me-client/server';
+
+const app = express();
+app.use(ocAuthExpress());
+
+app.get('/api/profile', (req, res) => {
+    if (!req.ocSession) return res.status(401).json({ error: 'sign in' });
+    res.json({ address: req.ocSession.addr });
+});
+```
+
+### Hono / Cloudflare Workers / Bun / Deno
+
+```ts
+import { Hono } from 'hono';
+import { ocAuthHono } from '@orangecheck/me-client/server';
+
+const app = new Hono();
+app.use('*', ocAuthHono());
+
+app.get('/api/me', (c) => {
+    const session = c.get('ocSession');
+    if (!session) return c.json({ ok: false }, 401);
+    return c.json({ address: session.addr });
+});
+```
+
+`getOcSession(headers)` is the framework-agnostic primitive: pass a Web `Headers` object or a plain `{ cookie, authorization }` object. Cookie auth (family `*.ochk.io`) and Bearer auth (cross-domain) are handled identically.
+
+## Browser popup signin
+
+```tsx
+import { signInWithOc } from '@orangecheck/me-client/popup';
+
+button.addEventListener('click', async () => {
+    const result = await signInWithOc();
+    if (!result) return; // user cancelled or popup blocked
+    // Cross-domain integrators only — same-origin family integrators
+    // (.ochk.io) skip this; the cookie rides automatically.
+    localStorage.setItem('oc-token', result.token);
+    location.assign('/dashboard');
+});
+```
+
+`signInWithOc()` MUST be called inside a user-gesture handler (browsers block `window.open` outside of gestures). Returns `{ account, token }` on success, `null` on cancel / popup block / abort. Pins both `event.origin` AND `event.source === popup` on the postMessage handler so a same-origin attacker can't settle the promise.
 
 ## Custom origin
 
