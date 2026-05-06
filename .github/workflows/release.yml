@@ -11,6 +11,7 @@ name: Release
 #   git tag wallet-adapter-v0.1.0 ...     → @orangecheck/wallet-adapter  (npm)
 #   git tag stamp-core-v0.1.0 ...         → @orangecheck/stamp-core      (npm)
 #   git tag stamp-ots-v0.1.0 ...          → @orangecheck/stamp-ots       (npm)
+#   git tag pledge-core-v0.1.0 ...        → @orangecheck/pledge-core     (npm)
 #   git tag me-client-v0.1.0 ...          → @orangecheck/me-client       (npm)
 #   git tag ui-v0.1.0 ...                 → @orangecheck/ui              (npm)
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
@@ -37,6 +38,7 @@ on:
             - 'vote-core-v*'
             - 'vote-cli-v*'
             - 'vote-react-v*'
+            - 'pledge-core-v*'
             - 'agent-core-v*'
             - 'agent-signer-v*'
             - 'agent-mcp-v*'
