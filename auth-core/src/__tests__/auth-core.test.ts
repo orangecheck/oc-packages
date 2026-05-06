@@ -97,6 +97,31 @@ describe('sign / verify round-trip', () => {
         expect(payload?.home_federation).toBeUndefined();
     });
 
+    it('round-trips the signing_method claim', async () => {
+        const tok = await signSession(
+            {
+                sub: 'acct-123',
+                addr: 'did:email:abc',
+                jti: 'jti-3',
+                signing_method: 'fedimint_threshold',
+            },
+            sign,
+            3600
+        );
+        const payload = await verifySessionToken(tok, verify);
+        expect(payload?.signing_method).toBe('fedimint_threshold');
+    });
+
+    it('omits signing_method when not provided (back-compat)', async () => {
+        const tok = await signSession(
+            { sub: 'acct-123', addr: 'bc1q', jti: 'jti-4' },
+            sign,
+            3600
+        );
+        const payload = await verifySessionToken(tok, verify);
+        expect(payload?.signing_method).toBeUndefined();
+    });
+
     it('rejects an expired token', async () => {
         const k = await freshKeys();
         const now = Math.floor(Date.now() / 1000);

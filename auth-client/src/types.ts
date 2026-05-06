@@ -11,6 +11,19 @@ export interface OcAccount {
      * first signin and rarely changes.
      */
     homeFederation?: string | null;
+    /**
+     * Where this user is on the custody-state graph:
+     *
+     *   - 'fedimint_threshold' — federation custody (OC-introduced)
+     *   - 'fedimint_client'    — federation custody (user-picked)
+     *   - 'bip322'             — full self-custody
+     *
+     * Graduation is the product thesis. Treat undefined as
+     * 'fedimint_threshold' for `did:email:` addresses and 'bip322' for
+     * Bitcoin addresses (the default-by-construction mapping for
+     * tokens minted before this field shipped).
+     */
+    signingMethod?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
 }
 
 export type OcSessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'error';

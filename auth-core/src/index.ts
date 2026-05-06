@@ -50,6 +50,28 @@ export interface SessionPayload extends JWTPayload {
      * directory default at /api/federations when absent.
      */
     home_federation?: string | null;
+    /**
+     * Discriminator recording where this user is on the custody-state
+     * graph. Three legitimate states:
+     *
+     *   - 'fedimint_threshold' — federation custody via the OC-introduced
+     *     federation (default for email-OTP signups; OC's threshold
+     *     guardians hold key shares).
+     *   - 'fedimint_client'    — user moved their balance to a Fedimint
+     *     federation they picked themselves (still federation custody,
+     *     but on a federation OC didn't introduce).
+     *   - 'bip322'             — full self-custody. The user signs with
+     *     their own Bitcoin key. OC has zero authority over their funds.
+     *
+     * Graduation is the product thesis. This field is the structural
+     * primitive that records progress along the custody-state graph;
+     * transitions are recorded as anchored "rebind" envelopes. Absent
+     * on tokens minted before the field shipped — consumers should
+     * treat undefined as 'fedimint_threshold' for email-OTP identities
+     * and 'bip322' for BIP-322 identities (the default-by-construction
+     * mapping).
+     */
+    signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
 }
 
 export interface VerifyConfig {
@@ -131,6 +153,7 @@ export async function signSession(
         name?: string | null;
         npub?: string | null;
         home_federation?: string | null;
+        signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
     },
     cfg: SignConfig,
     ttlSeconds: number

@@ -11,6 +11,8 @@ import {
 
 const SessionContext = React.createContext<OcSessionState | null>(null);
 
+type RawSigningMethod = 'fedimint_threshold' | 'fedimint_client' | 'bip322';
+
 interface MeResponse {
     account?: {
         id?: string;
@@ -24,7 +26,13 @@ interface MeResponse {
         nostrNpub?: string | null;
         home_federation_slug?: string | null;
         homeFederation?: string | null;
+        signing_method?: RawSigningMethod | null;
+        signingMethod?: RawSigningMethod | null;
     };
+}
+
+function defaultSigningMethodFor(address: string): RawSigningMethod {
+    return address.startsWith('did:email:') ? 'fedimint_threshold' : 'bip322';
 }
 
 function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
@@ -38,6 +46,8 @@ function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
         displayName: raw.display_name ?? raw.displayName ?? null,
         nostrNpub: raw.nostr_npub ?? raw.nostrNpub ?? null,
         homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,
+        signingMethod:
+            raw.signing_method ?? raw.signingMethod ?? defaultSigningMethodFor(address),
     };
 }
 
