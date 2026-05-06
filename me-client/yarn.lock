@@ -245,10 +245,10 @@
   resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-0.4.2.tgz#ed3a3af20b755affd395c15a61d9a61ace92894b"
   integrity sha512-RBdBdPK+HtyqQyFsH2bWSQmUfHKFvsXZCnGOE5z+pUZP9JeOlcn6KcWlZrIDrTuAZRM8AY6FVKPs6k5AUfOrxQ==
 
-"@orangecheck/auth-core@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-0.3.0.tgz#10a5760a4196cd6f025d8ce324f346ec5e2e658c"
-  integrity sha512-u+tZq11z2BeQOejvSxz+hbA4NT7/zEuuSd09856dsrQ+unnQizfFfgNW/onyVRkSQLsAxPZ1WlLZpdSZUj4JZQ==
+"@orangecheck/auth-core@^0.3.1":
+  version "0.3.1"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-0.3.1.tgz#1791b2f98ba44606c766554bdd8a9b16e8b62c3c"
+  integrity sha512-Z9IteNu/0K/rrVolTNjw1SEdpyKZlr858WEPEvvn3uIotCUTO06j9ytzRFn4beBxz6dyM3k0I6O1soGS1Z4bhw==
   dependencies:
     jose "^6.2.2"
 
