@@ -45,6 +45,7 @@ jobs:
                     - stamp-cli
                     - vote-core
                     - vote-cli
+                    - vote-react
                     - agent-core
                     - agent-signer
                     - agent-mcp

@@ -36,6 +36,7 @@ on:
             - 'stamp-ots-v*'
             - 'vote-core-v*'
             - 'vote-cli-v*'
+            - 'vote-react-v*'
             - 'agent-core-v*'
             - 'agent-signer-v*'
             - 'agent-mcp-v*'
