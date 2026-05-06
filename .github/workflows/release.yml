@@ -46,6 +46,8 @@ on:
             - 'agent-langgraph-v*'
             - 'webhook-verify-v*'
             - 'me-client-v*'
+            - 'auth-core-v*'
+            - 'auth-client-v*'
             - 'ui-v*'
             - 'sdk-py-v*'
 
@@ -114,6 +116,16 @@ jobs:
             - name: Build agent-signer (dependency)
               if: steps.parse.outputs.package == 'agent-mcp'
               working-directory: agent-signer
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+
+            # auth-core is a peer dep of auth-client. Build it locally so the
+            # auth-client publish doesn't have to round-trip through npm to
+            # validate types when releases bundle.
+            - name: Build auth-core (dependency)
+              if: steps.parse.outputs.package == 'auth-client'
+              working-directory: auth-core
               run: |
                   yarn install --frozen-lockfile
                   yarn build

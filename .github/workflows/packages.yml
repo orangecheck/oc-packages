@@ -55,6 +55,8 @@ jobs:
                     - agent-langgraph
                     - webhook-verify
                     - me-client
+                    - auth-core
+                    - auth-client
                     - ui
         defaults:
             run:
