@@ -26,7 +26,13 @@
  * project_key and shows up in /developer/projects/[id]/events.
  */
 
-import type { BillableEvent, EventSubtype } from './types';
+import {
+    computeFees,
+    type BillableEvent,
+    type EventSubtype,
+    type IntegratorEventConfig,
+    type IntegratorPriceConfig,
+} from './types';
 import { api } from './transport';
 
 export interface FireEventOptions {
@@ -64,4 +70,153 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
     });
 }
 
-export const event = { fire };
+/** Result of replay-verifying a billable envelope against the
+ *  integrator's price config. Every field returned tells the caller
+ *  WHY a divergence happened — they can render it directly. */
+export interface VerifyEventResult {
+    /** True iff every expected fee equals the recorded fee. */
+    ok: boolean;
+    /** Issues found during verification, with field-level granularity
+     *  so callers can highlight exactly which line is off. */
+    issues: Array<{
+        field:
+            | 'gross_fee_sats'
+            | 'platform_fee_sats'
+            | 'user_earned_sats'
+            | 'site_rebate_sats'
+            | 'subtype_disabled'
+            | 'subtype_unconfigured'
+            | 'percent_amount_missing';
+        expected: number | null;
+        actual: number | null;
+        message: string;
+    }>;
+    /** What computeFees() returned for the envelope's subtype + amount,
+     *  given the integrator's current price config. Useful for the
+     *  /audit divergence tracker — render expected vs actual side by
+     *  side. Null when the subtype isn't enabled for this integrator. */
+    expected: {
+        gross_fee_sats: number;
+        platform_fee_sats: number;
+        user_earned_sats: number;
+        site_rebate_sats: number;
+    } | null;
+}
+
+/**
+ * Replay-verify a billable envelope against the integrator's current
+ * price config. Re-runs computeFees() with the same inputs and
+ * compares against the four-way split recorded on the envelope.
+ *
+ * Anyone — the integrator, a user, OC, an auditor — can run this
+ * function and reach the same answer. The integrator-side replay is
+ * what keeps OC honest: a divergence means OC's billing engine
+ * computed differently than the published price config says it should
+ * have, and the integrator can flag it on /audit.
+ *
+ * For percent_of_amount-priced subtypes, the underlying payment
+ * amount must be passed explicitly (it isn't stored on the envelope
+ * top-level — only inside the context payload — so callers should
+ * pass `envelope.context.payment_amount_sats`).
+ *
+ *   import { oc } from '@orangecheck/me-client';
+ *
+ *   const env = await fetch(`https://me.ochk.io/api/envelope/${id}`).then(r => r.json());
+ *   const cfg = await oc.config.fetch({ project_key: env.site.domain });
+ *   const result = oc.event.verify(env, cfg);
+ *   if (!result.ok) reportDivergence(result.issues);
+ */
+function verify(
+    envelope: BillableEvent,
+    config: IntegratorPriceConfig,
+    payment_amount_sats?: number
+): VerifyEventResult {
+    const issues: VerifyEventResult['issues'] = [];
+
+    const eventCfg: IntegratorEventConfig | undefined = config.events[envelope.subtype];
+    if (!eventCfg) {
+        return {
+            ok: false,
+            expected: null,
+            issues: [
+                {
+                    field: 'subtype_unconfigured',
+                    expected: null,
+                    actual: null,
+                    message: `subtype ${envelope.subtype} is not configured on integrator ${config.project_key}`,
+                },
+            ],
+        };
+    }
+    if (!eventCfg.enabled) {
+        return {
+            ok: false,
+            expected: null,
+            issues: [
+                {
+                    field: 'subtype_disabled',
+                    expected: null,
+                    actual: null,
+                    message: `subtype ${envelope.subtype} is disabled on integrator ${config.project_key} but the envelope was billed`,
+                },
+            ],
+        };
+    }
+    if (eventCfg.site_pays.kind === 'percent_of_amount' && payment_amount_sats == null) {
+        return {
+            ok: false,
+            expected: null,
+            issues: [
+                {
+                    field: 'percent_amount_missing',
+                    expected: null,
+                    actual: null,
+                    message: `subtype ${envelope.subtype} is percent_of_amount-priced; payment_amount_sats is required to verify`,
+                },
+            ],
+        };
+    }
+
+    const expected = computeFees(eventCfg, payment_amount_sats);
+
+    if (envelope.gross_fee_sats !== expected.gross_fee_sats) {
+        issues.push({
+            field: 'gross_fee_sats',
+            expected: expected.gross_fee_sats,
+            actual: envelope.gross_fee_sats,
+            message: `gross_fee_sats mismatch · expected ${expected.gross_fee_sats}, recorded ${envelope.gross_fee_sats}`,
+        });
+    }
+    if (envelope.platform_fee_sats !== expected.platform_fee_sats) {
+        issues.push({
+            field: 'platform_fee_sats',
+            expected: expected.platform_fee_sats,
+            actual: envelope.platform_fee_sats,
+            message: `platform_fee_sats mismatch · expected ${expected.platform_fee_sats}, recorded ${envelope.platform_fee_sats}`,
+        });
+    }
+    if (envelope.user_earned_sats !== expected.user_earned_sats) {
+        issues.push({
+            field: 'user_earned_sats',
+            expected: expected.user_earned_sats,
+            actual: envelope.user_earned_sats,
+            message: `user_earned_sats mismatch · expected ${expected.user_earned_sats}, recorded ${envelope.user_earned_sats}`,
+        });
+    }
+    if (envelope.site_rebate_sats !== expected.site_rebate_sats) {
+        issues.push({
+            field: 'site_rebate_sats',
+            expected: expected.site_rebate_sats,
+            actual: envelope.site_rebate_sats,
+            message: `site_rebate_sats mismatch · expected ${expected.site_rebate_sats}, recorded ${envelope.site_rebate_sats}`,
+        });
+    }
+
+    return {
+        ok: issues.length === 0,
+        expected,
+        issues,
+    };
+}
+
+export const event = { fire, verify };

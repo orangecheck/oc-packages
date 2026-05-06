@@ -45,7 +45,7 @@ export type { OcSignInButtonProps } from './SignInButton';
 export { session, onTelemetry } from './session';
 export { payment } from './payment';
 export { event } from './event';
-export type { FireEventOptions } from './event';
+export type { FireEventOptions, VerifyEventResult } from './event';
 export { config } from './config';
 export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
