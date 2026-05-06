@@ -251,3 +251,46 @@ export interface TelemetryEvent {
     timestamp: string;
     session_id?: string;
 }
+
+// ── federation directory ───────────────────────────────────────────────
+//
+// The SDK consumes the federation directory at runtime so multi-federation
+// routing is a directory write, not a code change. v1 has one live
+// federation; the directory is plural-shaped so federation #2 lights up
+// without an SDK release.
+
+export type FederationStatus = 'recruiting' | 'forming' | 'binding' | 'live';
+
+/** Federation directory entry. Mirrors `oc-me-web/src/lib/federations/registry.ts`
+ *  field-for-field; this package is the public consumption shape. */
+export interface Federation {
+    slug: string;
+    name: string;
+    status: FederationStatus;
+    threshold: string;
+    target_guardian_count: number;
+    /** Fedimint invite code; null until status === 'live'. */
+    invite: string | null;
+    /** SHA-256 of the canonical federation charter, hex-encoded. */
+    charter_hash: string | null;
+    /** ISO-8601 of the most recent ongoing-attestation envelope. */
+    last_attestation_at: string | null;
+    geography_hint: string;
+    // Operator-recruiting fields (present on slots in 'recruiting' /
+    // 'forming' / 'binding' state). Nullable so one shape spans the
+    // lifecycle.
+    geography_requirements?: string;
+    charter_status?: string;
+    ceremony_window?: string;
+    why_this_one?: string;
+    apply_cta?: string;
+    apply_href?: string;
+}
+
+/** SigningMethod discriminator on the user identity. Federation-agnostic
+ *  by construction — the OC identity (did:email or BIP-322 address)
+ *  remains stable across all three states. Transitions are recorded as
+ *  anchored "rebind" envelopes on the canonical event log. Graduation
+ *  is the product thesis; this discriminator is the structural primitive
+ *  that records where a user is on the custody-state graph. */
+export type SigningMethod = 'fedimint_threshold' | 'fedimint_client' | 'bip322';

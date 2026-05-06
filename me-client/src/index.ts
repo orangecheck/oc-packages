@@ -49,6 +49,7 @@ export type { FireEventOptions } from './event';
 export { config } from './config';
 export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
+export { federations } from './federations';
 export {
     setOrigin,
     getOrigin,
@@ -84,6 +85,9 @@ export type {
     PaymentAuthorizeOptions,
     PaymentResult,
     TelemetryEvent,
+    Federation,
+    FederationStatus,
+    SigningMethod,
 } from './types';
 
 import { session } from './session';
@@ -91,8 +95,10 @@ import { payment } from './payment';
 import { event } from './event';
 import { config } from './config';
 import { webhook } from './webhook';
+import { federations } from './federations';
 
 /** Convenience namespace mirroring the public API surface in /integrate
  *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
- *  `oc.event.fire()`, `oc.config.validate()`, `oc.webhook.verify()`. */
-export const oc = { session, payment, event, config, webhook };
+ *  `oc.event.fire()`, `oc.config.validate()`, `oc.webhook.verify()`,
+ *  `oc.federations.live()`. */
+export const oc = { session, payment, event, config, webhook, federations };
