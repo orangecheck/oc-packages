@@ -46,6 +46,7 @@ jobs:
                     - vote-core
                     - vote-cli
                     - vote-react
+                    - pledge-core
                     - agent-core
                     - agent-signer
                     - agent-mcp
@@ -98,6 +99,20 @@ jobs:
             - name: Set OC_AGENT_VECTORS_DIR for conformance test
               if: matrix.pkg == 'agent-core'
               run: echo "OC_AGENT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-agent-protocol/test-vectors" >> "$GITHUB_ENV"
+              working-directory: ${{ github.workspace }}
+
+            # pledge-core's conformance tests load canonical fixtures from the
+            # oc-pledge-protocol repo. Same pattern as vote-core / agent-core.
+            - name: Checkout oc-pledge-protocol (for pledge-core conformance)
+              if: matrix.pkg == 'pledge-core'
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-pledge-protocol
+                  path: .oc-pledge-protocol
+
+            - name: Set OC_PLEDGE_VECTORS_DIR for conformance test
+              if: matrix.pkg == 'pledge-core'
+              run: echo "OC_PLEDGE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-pledge-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
             # lock-core and lock-device depend on lock-crypto via file:../lock-crypto.
