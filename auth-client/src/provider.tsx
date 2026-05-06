@@ -22,6 +22,8 @@ interface MeResponse {
         displayName?: string | null;
         nostr_npub?: string | null;
         nostrNpub?: string | null;
+        home_federation_slug?: string | null;
+        homeFederation?: string | null;
     };
 }
 
@@ -35,6 +37,7 @@ function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
         address,
         displayName: raw.display_name ?? raw.displayName ?? null,
         nostrNpub: raw.nostr_npub ?? raw.nostrNpub ?? null,
+        homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,
     };
 }
 

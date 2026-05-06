@@ -3,6 +3,14 @@ export interface OcAccount {
     address: string;
     displayName?: string | null;
     nostrNpub?: string | null;
+    /**
+     * Slug of the federation this user is bound to (their "home"
+     * federation). Multi-federation routing reads this; null/undefined
+     * means "not yet bound — fall back to the directory default at
+     * /api/federations". v1 has one live federation, so this is set on
+     * first signin and rarely changes.
+     */
+    homeFederation?: string | null;
 }
 
 export type OcSessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'error';

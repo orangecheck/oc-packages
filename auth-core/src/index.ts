@@ -41,6 +41,15 @@ export interface SessionPayload extends JWTPayload {
     name?: string | null;
     /** Optional Nostr npub set by the user. Same lifecycle as `name`. */
     npub?: string | null;
+    /**
+     * Slug of the federation this user is bound to (their "home"
+     * federation). Multi-federation routing reads this; v1 has one live
+     * federation so it's set on first signin and rarely changes. Absent
+     * on tokens minted before this field shipped, and on accounts that
+     * have never bound to a federation. Consumers fall back to the
+     * directory default at /api/federations when absent.
+     */
+    home_federation?: string | null;
 }
 
 export interface VerifyConfig {
@@ -121,6 +130,7 @@ export async function signSession(
         jti: string;
         name?: string | null;
         npub?: string | null;
+        home_federation?: string | null;
     },
     cfg: SignConfig,
     ttlSeconds: number

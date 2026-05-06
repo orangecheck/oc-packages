@@ -72,6 +72,31 @@ describe('sign / verify round-trip', () => {
         expect(await verifySessionToken(tok, verify)).toBeNull();
     });
 
+    it('round-trips the home_federation claim', async () => {
+        const tok = await signSession(
+            {
+                sub: 'acct-123',
+                addr: 'did:email:abc',
+                jti: 'jti-1',
+                home_federation: 'oc-me-v1',
+            },
+            sign,
+            3600
+        );
+        const payload = await verifySessionToken(tok, verify);
+        expect(payload?.home_federation).toBe('oc-me-v1');
+    });
+
+    it('omits home_federation when not provided (back-compat)', async () => {
+        const tok = await signSession(
+            { sub: 'acct-123', addr: 'bc1q', jti: 'jti-2' },
+            sign,
+            3600
+        );
+        const payload = await verifySessionToken(tok, verify);
+        expect(payload?.home_federation).toBeUndefined();
+    });
+
     it('rejects an expired token', async () => {
         const k = await freshKeys();
         const now = Math.floor(Date.now() / 1000);
