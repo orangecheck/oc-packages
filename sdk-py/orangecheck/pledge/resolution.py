@@ -115,7 +115,10 @@ def validate_resolution_query(mechanism: str, query: str) -> ResolutionValidateR
     if len(query.encode("utf-8")) > 1024:
         return _non_det("query exceeds 1024 UTF-8 bytes")
 
-    m: ResolutionMechanism = mechanism  # narrowing after _ALLOWED check above
+    # mypy narrows `mechanism` from str → ResolutionMechanism after the
+    # `mechanism in _ALLOWED` check above (with python_version=3.10 in
+    # pyproject.toml's [tool.mypy]).
+    m: ResolutionMechanism = mechanism
 
     if m == "chain_state":
         for part in re.split(r"\s+AND\s+", query):

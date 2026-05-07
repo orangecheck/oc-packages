@@ -70,7 +70,11 @@ line-length = 100
 target-version = "py39"
 
 [tool.mypy]
-python_version = "3.9"
+# Modern mypy (≥1.13) dropped 3.9 from python_version. We still ship + test
+# against 3.9 (see CI matrix in .github/workflows/python.yml), but mypy
+# itself type-checks against 3.10+ semantics. The pytest matrix covers the
+# 3.9 runtime correctness directly.
+python_version = "3.10"
 strict = true
 warn_unused_ignores = true
 
