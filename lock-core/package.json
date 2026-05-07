@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/lock-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OC Lock envelope format, canonicalization, seal, and unseal. See https://github.com/orangecheck/oc-lock-protocol.",
   "keywords": [
     "bitcoin",
@@ -62,7 +62,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/lock-crypto": "file:../lock-crypto"
+    "@orangecheck/lock-crypto": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

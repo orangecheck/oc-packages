@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OC Agent canonical messages, envelope formats (delegation/action/revocation), scope grammar, and verification. See https://github.com/orangecheck/oc-agent-protocol.",
   "keywords": [
     "bitcoin",
@@ -64,8 +64,8 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.5.0",
-    "@orangecheck/stamp-core": "^0.1.1",
-    "@orangecheck/lock-core": "^0.1.0"
+    "@orangecheck/stamp-core": "^1.0.0",
+    "@orangecheck/lock-core": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
