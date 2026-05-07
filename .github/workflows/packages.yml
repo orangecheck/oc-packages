@@ -115,6 +115,37 @@ jobs:
               run: echo "OC_PLEDGE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-pledge-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
+            # lock-core's conformance tests load canonical fixtures from the
+            # oc-lock-protocol repo. Same pattern as vote-core / agent-core /
+            # pledge-core. Without this step the test gracefully no-ops on CI
+            # (silent conformance gap); with it, every PR exercises the
+            # cross-impl byte-equality property end-to-end.
+            - name: Checkout oc-lock-protocol (for lock-core conformance)
+              if: matrix.pkg == 'lock-core'
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-lock-protocol
+                  path: .oc-lock-protocol
+
+            - name: Set OC_LOCK_VECTORS_DIR for conformance test
+              if: matrix.pkg == 'lock-core'
+              run: echo "OC_LOCK_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-lock-protocol/test-vectors" >> "$GITHUB_ENV"
+              working-directory: ${{ github.workspace }}
+
+            # stamp-core's conformance tests load canonical fixtures from the
+            # oc-stamp-protocol repo. Same pattern.
+            - name: Checkout oc-stamp-protocol (for stamp-core conformance)
+              if: matrix.pkg == 'stamp-core'
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-stamp-protocol
+                  path: .oc-stamp-protocol
+
+            - name: Set OC_STAMP_VECTORS_DIR for conformance test
+              if: matrix.pkg == 'stamp-core'
+              run: echo "OC_STAMP_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-stamp-protocol/test-vectors" >> "$GITHUB_ENV"
+              working-directory: ${{ github.workspace }}
+
             # lock-core and lock-device depend on lock-crypto via file:../lock-crypto.
             - name: Build @orangecheck/lock-crypto (dependency)
               if: matrix.pkg == 'lock-core' || matrix.pkg == 'lock-device'

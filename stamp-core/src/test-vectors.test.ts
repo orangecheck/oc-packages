@@ -8,6 +8,7 @@
 //      (skipSignatureVerification=true, since test-vector sig.value is a
 //      placeholder — real BIP-322 signatures over ECDSA are non-deterministic).
 
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +20,26 @@ import { verify } from './stamp.js';
 import type { StampEnvelope } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const VECTORS_DIR = resolve(__dirname, '..', '..', '..', 'oc-stamp-protocol', 'test-vectors');
+
+/**
+ * Three resolution paths in priority order:
+ *   1. OC_STAMP_VECTORS_DIR env (CI conformance job).
+ *   2. Sibling-clone of oc-stamp-protocol (monorepo-shaped local dev).
+ *   3. User-home fallback for one-off local checkouts.
+ *   4. null — graceful skip; the describe-block below emits an it.skip().
+ */
+function locateVectorsDir(): string | null {
+    if (process.env.OC_STAMP_VECTORS_DIR && existsSync(process.env.OC_STAMP_VECTORS_DIR)) {
+        return process.env.OC_STAMP_VECTORS_DIR;
+    }
+    const sibling = resolve(__dirname, '..', '..', '..', 'oc-stamp-protocol', 'test-vectors');
+    if (existsSync(sibling)) return sibling;
+    const userHome = '/Users/wilneeley/Projects/ochk/oc-stamp-protocol/test-vectors';
+    if (existsSync(userHome)) return userHome;
+    return null;
+}
+
+const VECTORS_DIR = locateVectorsDir();
 
 interface Vector {
     description: string;
@@ -43,6 +63,7 @@ interface Vector {
 }
 
 async function loadVectors(): Promise<{ name: string; data: Vector }[]> {
+    if (VECTORS_DIR === null) return [];
     try {
         const files = await readdir(VECTORS_DIR);
         const out: { name: string; data: Vector }[] = [];
