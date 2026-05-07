@@ -254,6 +254,7 @@ def verify_pledge(
     envelope: dict[str, Any],
     verify_bip322: Optional[VerifyBip322] = None,
     skip_signature_verification: bool = False,
+    delegation_lookup: Optional[Callable[[str, str], Any]] = None,
 ) -> VerifyResult:
     """
     Envelope-only verify per SPEC §9.1 steps 1–4.
@@ -306,6 +307,55 @@ def verify_pledge(
         )
         if not verify_bip322(envelope["id"], sig["value"], verify_key):
             return _err("E_PLEDGE_BAD_SIG", "BIP-322 signature did not verify")
+
+    # SPEC §7.3 steps 1–5 — delegation lookup. When via_delegation is present
+    # AND a delegation_lookup adapter was supplied, run the principal/agent/
+    # scope/expiry chain. Without an adapter the agent path is shape-and-
+    # signature-only; consumers must layer agent-core's verifyDelegation
+    # themselves until they wire this hook. SECURITY scenarios 15+16
+    # document the gap.
+    if envelope.get("via_delegation") and envelope.get("agent_address") and delegation_lookup:
+        from .delegation import (
+            DelegationLookupResult,
+            check_pledge_create_scope,
+            iso_utc_greater_than,
+        )
+        import inspect
+
+        result = delegation_lookup(envelope["via_delegation"], envelope["sworn_at"])
+        if inspect.isawaitable(result):
+            # Async lookup not supported here (verify_pledge is sync). Wrap
+            # in your event loop or pre-resolve before calling. We surface a
+            # clear error rather than blocking on an event loop.
+            return _err(
+                "E_DELEGATION_NOT_FOUND",
+                "delegation_lookup returned an awaitable; verify_pledge is sync — pre-resolve and pass the result, or use an async wrapper",
+            )
+
+        delegation = result if isinstance(result, DelegationLookupResult) else None
+        if delegation is None:
+            return _err(
+                "E_DELEGATION_NOT_FOUND",
+                f"delegation {envelope['via_delegation']} could not be resolved",
+            )
+        if delegation.principal != envelope["swearer"]["address"]:
+            return _err(
+                "E_DELEGATION_SCOPE_VIOLATED",
+                f"delegation.principal ({delegation.principal}) != envelope.swearer.address ({envelope['swearer']['address']})",
+            )
+        if delegation.agent != envelope["agent_address"]:
+            return _err(
+                "E_DELEGATION_SCOPE_VIOLATED",
+                f"delegation.agent ({delegation.agent}) != envelope.agent_address ({envelope['agent_address']})",
+            )
+        if not iso_utc_greater_than(delegation.expires_at, envelope["sworn_at"]):
+            return _err(
+                "E_DELEGATION_EXPIRED",
+                f"delegation.expires_at ({delegation.expires_at}) <= pledge.sworn_at ({envelope['sworn_at']})",
+            )
+        scope_check = check_pledge_create_scope(envelope, delegation)
+        if not scope_check.ok:
+            return _err(scope_check.code, scope_check.reason)
 
     return VerifyOk(
         ok=True, envelope=envelope, canonical_message=canonical_message, id=declared_id

@@ -76,6 +76,11 @@ from .canonical import (
     validate_pledge_input,
 )
 from .bond import AttestationLookupResult, verify_bond
+from .delegation import (
+    DelegationLookupResult,
+    check_pledge_create_scope,
+    parse_pledge_create_scope,
+)
 from .envelopes import (
     PledgeError,
     create_abandonment,
@@ -150,6 +155,9 @@ __all__ = [
     "outcomes_contradict",
     "verify_bond",
     "AttestationLookupResult",
+    "DelegationLookupResult",
+    "check_pledge_create_scope",
+    "parse_pledge_create_scope",
     "validate_resolution_query",
     # Errors
     "PledgeError",
