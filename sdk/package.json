@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/sdk",
-  "version": "0.1.5",
+  "version": "1.0.0",
   "description": "OrangeCheck SDK \u2014 proof of Bitcoin stake for the open web. A sybil-resistance primitive for any app.",
   "keywords": [
     "bitcoin",

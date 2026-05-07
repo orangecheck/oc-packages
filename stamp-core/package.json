@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/stamp-core",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "OC Stamp canonical message, envelope format, stamp and verify. See https://github.com/orangecheck/oc-stamp-protocol.",
   "keywords": [
     "bitcoin",

@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/vote-core",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "OC Vote protocol core \u2014 canonicalization, content-addressed ids, weight modes, deterministic tally. Reference implementation of oc-vote-protocol v0.",
   "keywords": [
     "bitcoin",
