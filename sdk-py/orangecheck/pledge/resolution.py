@@ -115,51 +115,51 @@ def validate_resolution_query(mechanism: str, query: str) -> ResolutionValidateR
     if len(query.encode("utf-8")) > 1024:
         return _non_det("query exceeds 1024 UTF-8 bytes")
 
-    # mypy narrows `mechanism` from str → ResolutionMechanism after the
-    # `mechanism in _ALLOWED` check above (with python_version=3.10 in
-    # pyproject.toml's [tool.mypy]).
-    m: ResolutionMechanism = mechanism
-
-    if m == "chain_state":
+    # Per-mechanism dispatch with literal-string returns so mypy doesn't
+    # have to narrow `mechanism` from str → ResolutionMechanism. Each branch
+    # passes the matching Literal value directly. mypy on any supported
+    # version is happy; no cast / narrowing helper needed.
+    if mechanism == "chain_state":
         for part in re.split(r"\s+AND\s+", query):
             if not _CHAIN_STATE_ATOM_FULL.fullmatch(part.strip()):
                 return _non_det(f'chain_state predicate not in §3.4.1 grammar: "{part}"')
-        return ResolutionOk(ok=True, mechanism=m)
-    if m == "counterparty_signs":
+        return ResolutionOk(ok=True, mechanism="chain_state")
+    if mechanism == "counterparty_signs":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="counterparty_signs")
             if _COUNTERPARTY_SIGNS_RE.fullmatch(query)
             else _non_det("counterparty_signs query must match §3.4.2 canonical form")
         )
-    if m == "nostr_event_exists":
+    if mechanism == "nostr_event_exists":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="nostr_event_exists")
             if _NOSTR_EVENT_EXISTS_RE.fullmatch(query)
             else _non_det("nostr_event_exists query not in §3.4.3 grammar")
         )
-    if m == "stamp_published":
+    if mechanism == "stamp_published":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="stamp_published")
             if _STAMP_PUBLISHED_RE.fullmatch(query)
             else _non_det("stamp_published query not in §3.4.4 grammar")
         )
-    if m == "http_get_hash":
+    if mechanism == "http_get_hash":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="http_get_hash")
             if _HTTP_GET_HASH_RE.fullmatch(query)
             else _non_det("http_get_hash query not in §3.4.5 grammar")
         )
-    if m == "dns_record":
+    if mechanism == "dns_record":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="dns_record")
             if _DNS_RECORD_RE.fullmatch(query)
             else _non_det("dns_record query not in §3.4.6 grammar")
         )
-    if m == "vote_resolves":
+    if mechanism == "vote_resolves":
         return (
-            ResolutionOk(ok=True, mechanism=m)
+            ResolutionOk(ok=True, mechanism="vote_resolves")
             if _VOTE_RESOLVES_RE.fullmatch(query)
             else _non_det("vote_resolves query not in §3.4.7 grammar")
         )
-    # Unreachable — exhaustive over the Literal union.
-    return _non_det(f"unhandled mechanism {m!r}")
+    # Unreachable — exhaustive over the Literal union (the _ALLOWED check
+    # above gates entry to this dispatch).
+    return _non_det(f"unhandled mechanism {mechanism!r}")
