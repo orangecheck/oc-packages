@@ -85,6 +85,9 @@ from .envelopes import (
     verify_abandonment,
     verify_outcome,
     verify_pledge,
+    wrap_abandonment_envelope,
+    wrap_outcome_envelope,
+    wrap_pledge_envelope,
 )
 from .resolution import validate_resolution_query
 from .state import classify_state, outcomes_contradict
@@ -136,6 +139,12 @@ __all__ = [
     "create_abandonment",
     "verify_abandonment",
     "outcome_requires_signature",
+    # Wrap helpers — for callers signing externally (server-side HSM,
+    # off-host signers) who want SDK-built envelopes without supplying
+    # a Bip322Signer callback.
+    "wrap_pledge_envelope",
+    "wrap_outcome_envelope",
+    "wrap_abandonment_envelope",
     # State + bond + resolution
     "classify_state",
     "outcomes_contradict",

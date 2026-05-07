@@ -16,6 +16,8 @@ from typing import Any, Callable, Literal, Optional, Protocol, Union
 from .canonical import (
     AbandonmentCanonicalInput,
     ENVELOPE_VERSION,
+    OutcomeCanonicalInput,
+    PledgeCanonicalInput,
     canonical_abandonment_message,
     canonical_outcome_message,
     canonical_pledge_message,
@@ -651,3 +653,190 @@ async def create_pledge_async(*args: Any, **kwargs: Any) -> dict[str, Any]:
 
 async def verify_pledge_async(*args: Any, **kwargs: Any) -> VerifyResult:
     return verify_pledge(*args, **kwargs)
+
+
+# ─── wrap_*_envelope — external-sig flows ────────────────────────────────
+#
+# Mirrors @orangecheck/pledge-core@0.1.1's wrapPledgeEnvelope /
+# wrapOutcomeEnvelope / wrapAbandonmentEnvelope. For callers who sign
+# externally (server-side HSM flows, off-host signers) and want the SDK to
+# canonicalise + derive ids + assemble the envelope shape without supplying
+# a Bip322Signer callback.
+
+
+def wrap_pledge_envelope(
+    input: PledgeCanonicalInput,
+    sig_value: str,
+    *,
+    sig_pubkey: Optional[str] = None,
+    via_delegation: Optional[dict[str, str]] = None,
+) -> dict[str, Any]:
+    """Build a pledge envelope from a canonical input + an externally-obtained
+    BIP-322 signature.
+
+    The caller is responsible for:
+      - Producing ``sig_value`` over the lowercase-hex pledge id (SPEC §3.5).
+        Compute the id via ``compute_pledge_id(input)`` first.
+      - Identifying which address signed (``sig_pubkey``). For non-agent
+        pledges this defaults to ``input.swearer``. For agent pledges, pass
+        ``via_delegation={'delegation_id': '<64-hex>', 'agent_address': '...'}``;
+        ``sig_pubkey`` SHOULD equal ``agent_address`` since SPEC §7.3 step 6
+        uses ``agent_address`` from the envelope as the BIP-322 verification
+        key regardless of ``sig.pubkey``.
+
+    Raises PledgeError on invalid input.
+    """
+    v = validate_pledge_input(input)
+    if not v.ok:
+        raise PledgeError("E_PLEDGE_MALFORMED", v.reason)
+
+    if via_delegation is not None:
+        delegation_id = via_delegation.get("delegation_id", "")
+        agent_address = via_delegation.get("agent_address", "")
+        if not isinstance(delegation_id, str) or len(delegation_id) != 64:
+            raise PledgeError(
+                "E_PLEDGE_MALFORMED",
+                "via_delegation.delegation_id must be 64 hex chars",
+            )
+        if not isinstance(agent_address, str) or agent_address == input.swearer:
+            raise PledgeError(
+                "E_PLEDGE_MALFORMED",
+                "agent_address must differ from swearer.address (principal-vs-agent invariant)",
+            )
+
+    pid = compute_pledge_id(input)
+    pubkey = sig_pubkey if sig_pubkey is not None else input.swearer
+
+    envelope: dict[str, Any] = {
+        "v": ENVELOPE_VERSION,
+        "kind": "pledge",
+        "id": pid,
+        "swearer": {"address": input.swearer, "alg": "bip322"},
+        "proposition": input.proposition,
+        "resolution": {
+            "mechanism": input.resolution.mechanism,
+            "query": input.resolution.query,
+        },
+        "resolves_at": _resolves_at_dict(input.resolves_at),
+        "expires_at": input.expires_at,
+        "bond": {
+            "attestation_id": input.bond.attestation_id,
+            "min_sats": input.bond.min_sats,
+            "min_days": input.bond.min_days,
+        },
+        "counterparty": input.counterparty,
+        "dispute": {
+            "mechanism": input.dispute.mechanism,
+            "params": input.dispute.params,
+        },
+        "remediation": input.remediation,
+        "sworn_at": input.sworn_at,
+        "nonce": input.nonce,
+        "sig": {"alg": "bip322", "pubkey": pubkey, "value": sig_value},
+    }
+
+    if via_delegation is not None:
+        envelope["via_delegation"] = via_delegation["delegation_id"]
+        envelope["agent_address"] = via_delegation["agent_address"]
+
+    return envelope
+
+
+def _resolves_at_dict(r: Any) -> dict[str, Any]:
+    """Discriminate ResolvesAtTime / ResolvesAtBlock back into wire form."""
+    from .canonical import ResolvesAtBlock, ResolvesAtTime
+
+    if isinstance(r, ResolvesAtTime):
+        return {"time": r.time}
+    if isinstance(r, ResolvesAtBlock):
+        return {"block": r.block}
+    raise TypeError(f"unsupported resolves_at type: {type(r).__name__}")
+
+
+def wrap_outcome_envelope(
+    input: OutcomeCanonicalInput,
+    sig_value: Optional[str] = None,
+) -> dict[str, Any]:
+    """Build an outcome envelope from a canonical input + optional BIP-322 sig.
+
+    Discriminator (SPEC §4.3):
+      - resolved_by == "deterministic": pass ``sig_value=None``. sig field
+        will be null.
+      - resolved_by == <address>: pass ``sig_value`` (BIP-322 over the
+        lowercase-hex outcome id). sig.pubkey defaults to resolved_by.
+
+    Raises PledgeError on invalid input or sig/no-sig mismatch.
+    """
+    v = validate_outcome_input(input)
+    if not v.ok:
+        raise PledgeError("E_OUTCOME_MALFORMED", v.reason)
+
+    requires_sig = input.resolved_by != "deterministic"
+    if requires_sig and sig_value is None:
+        raise PledgeError(
+            "E_OUTCOME_BAD_SIG",
+            f'resolved_by="{input.resolved_by}" requires a signature; '
+            "pass sig_value or use create_outcome with a signer",
+        )
+    if not requires_sig and sig_value is not None:
+        raise PledgeError(
+            "E_OUTCOME_MALFORMED",
+            'resolved_by="deterministic" outcomes MUST have envelope.sig = null; '
+            "do not pass sig_value",
+        )
+
+    oid = compute_outcome_id(input)
+
+    return {
+        "v": ENVELOPE_VERSION,
+        "kind": "pledge-outcome",
+        "id": oid,
+        "pledge_id": input.pledge_id,
+        "outcome": input.outcome,
+        "resolved_at": input.resolved_at,
+        "resolved_by": input.resolved_by,
+        "evidence": {
+            "mechanism": input.evidence.mechanism,
+            "result": input.evidence.result,
+            "witness": input.evidence.witness,
+        },
+        "dispute_window_ends_at": input.dispute_window_ends_at,
+        "sig": (
+            {"alg": "bip322", "pubkey": input.resolved_by, "value": sig_value}
+            if requires_sig
+            else None
+        ),
+    }
+
+
+def wrap_abandonment_envelope(
+    input: AbandonmentCanonicalInput,
+    sig_value: str,
+    swearer_address: str,
+) -> dict[str, Any]:
+    """Build an abandonment envelope from a canonical input + an externally-
+    obtained BIP-322 signature.
+
+    The caller must:
+      - Compute the id via ``compute_abandonment_id(input)`` first.
+      - Sign the lowercase-hex id with the original pledge's swearer key
+        (SPEC §5.3 — abandonments are principal-only; agents MUST NOT sign).
+      - Pass ``swearer_address`` as the address that signed.
+
+    Raises PledgeError on invalid input.
+    """
+    v = validate_abandonment_input(input)
+    if not v.ok:
+        raise PledgeError("E_ABANDONMENT_MALFORMED", v.reason)
+
+    aid = compute_abandonment_id(input)
+
+    return {
+        "v": ENVELOPE_VERSION,
+        "kind": "pledge-abandonment",
+        "id": aid,
+        "pledge_id": input.pledge_id,
+        "abandoned_at": input.abandoned_at,
+        "reason": input.reason,
+        "sig": {"alg": "bip322", "pubkey": swearer_address, "value": sig_value},
+    }
