@@ -50,6 +50,8 @@ export { config } from './config';
 export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
 export { federations } from './federations';
+export { scope } from './scope';
+export type { Scope, GrantedOptions, GrantedResult, RequestOptions } from './scope';
 export {
     setOrigin,
     getOrigin,
@@ -96,9 +98,10 @@ import { event } from './event';
 import { config } from './config';
 import { webhook } from './webhook';
 import { federations } from './federations';
+import { scope } from './scope';
 
 /** Convenience namespace mirroring the public API surface in /integrate
  *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
  *  `oc.event.fire()`, `oc.config.validate()`, `oc.webhook.verify()`,
- *  `oc.federations.live()`. */
-export const oc = { session, payment, event, config, webhook, federations };
+ *  `oc.federations.live()`, `oc.scope.granted()` / `oc.scope.request()`. */
+export const oc = { session, payment, event, config, webhook, federations, scope };
