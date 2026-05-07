@@ -90,4 +90,13 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
+
+# OC Pledge submodule — sibling primitive for forward-looking commitments
+# bound to a Bitcoin address. Imported here so consumers can write:
+#
+#     from orangecheck import pledge
+#     env = pledge.create_pledge(...)
+#
+# or attribute access via `orangecheck.pledge.canonical_pledge_message(...)`.
+from . import pledge as pledge  # noqa: E402, F401

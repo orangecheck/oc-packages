@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "orangecheck"
-version = "0.1.3"
-description = "Python SDK for OrangeCheck — proof of Bitcoin stake for the open web."
+version = "0.2.0"
+description = "Python SDK for OrangeCheck — proof of Bitcoin stake + the OC Pledge primitive (commitments) for the open web."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "OrangeCheck" }]
