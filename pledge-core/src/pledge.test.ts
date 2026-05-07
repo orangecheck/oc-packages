@@ -108,6 +108,112 @@ describe('createPledge — agent path', () => {
     });
 });
 
+describe('wrapPledgeEnvelope', () => {
+    it('produces an envelope byte-identical to createPledge for the same inputs + sig', async () => {
+        const fromCreate = await createPledge({
+            ...baseInput,
+            swearerSigner: fakeSigner(baseInput.swearer, 'AAAA'),
+        });
+        const { wrapPledgeEnvelope, computePledgeId } = await import('./index.js');
+        const id = computePledgeId({
+            swearer: baseInput.swearer,
+            proposition: baseInput.proposition,
+            resolution: baseInput.resolution,
+            resolves_at: baseInput.resolves_at,
+            expires_at: baseInput.expires_at,
+            bond: baseInput.bond,
+            counterparty: baseInput.counterparty,
+            dispute: baseInput.dispute,
+            remediation: 'breach_recorded',
+            sworn_at: baseInput.swornAt as string,
+            nonce: baseInput.nonce as string,
+        });
+        expect(id).toBe(fromCreate.id);
+        const fromWrap = wrapPledgeEnvelope(
+            {
+                swearer: baseInput.swearer,
+                proposition: baseInput.proposition,
+                resolution: baseInput.resolution,
+                resolves_at: baseInput.resolves_at,
+                expires_at: baseInput.expires_at,
+                bond: baseInput.bond,
+                counterparty: baseInput.counterparty,
+                dispute: baseInput.dispute,
+                remediation: 'breach_recorded',
+                sworn_at: baseInput.swornAt as string,
+                nonce: baseInput.nonce as string,
+            },
+            'AAAA',
+        );
+        expect(fromWrap).toEqual(fromCreate);
+    });
+
+    it('agent path: sets via_delegation + agent_address + sig.pubkey override', async () => {
+        const { wrapPledgeEnvelope, computePledgeId } = await import('./index.js');
+        const agentAddress = 'bc1qagent0000000000000000000000000000000000';
+        const env = wrapPledgeEnvelope(
+            {
+                swearer: baseInput.swearer,
+                proposition: baseInput.proposition,
+                resolution: baseInput.resolution,
+                resolves_at: baseInput.resolves_at,
+                expires_at: baseInput.expires_at,
+                bond: baseInput.bond,
+                counterparty: baseInput.counterparty,
+                dispute: baseInput.dispute,
+                remediation: 'breach_recorded',
+                sworn_at: baseInput.swornAt as string,
+                nonce: baseInput.nonce as string,
+            },
+            'AAAA',
+            {
+                sigPubkey: agentAddress,
+                viaDelegation: { delegationId: 'd'.repeat(64), agentAddress },
+            },
+        );
+        expect(env.via_delegation).toBe('d'.repeat(64));
+        expect(env.agent_address).toBe(agentAddress);
+        expect(env.sig.pubkey).toBe(agentAddress);
+        expect(env.id).toBe(
+            computePledgeId({
+                swearer: baseInput.swearer,
+                proposition: baseInput.proposition,
+                resolution: baseInput.resolution,
+                resolves_at: baseInput.resolves_at,
+                expires_at: baseInput.expires_at,
+                bond: baseInput.bond,
+                counterparty: baseInput.counterparty,
+                dispute: baseInput.dispute,
+                remediation: 'breach_recorded',
+                sworn_at: baseInput.swornAt as string,
+                nonce: baseInput.nonce as string,
+            }),
+        );
+    });
+
+    it('throws E_PLEDGE_MALFORMED on empty nonce (same gates as createPledge)', async () => {
+        const { wrapPledgeEnvelope } = await import('./index.js');
+        expect(() =>
+            wrapPledgeEnvelope(
+                {
+                    swearer: baseInput.swearer,
+                    proposition: baseInput.proposition,
+                    resolution: baseInput.resolution,
+                    resolves_at: baseInput.resolves_at,
+                    expires_at: baseInput.expires_at,
+                    bond: baseInput.bond,
+                    counterparty: baseInput.counterparty,
+                    dispute: baseInput.dispute,
+                    remediation: 'breach_recorded',
+                    sworn_at: baseInput.swornAt as string,
+                    nonce: '',
+                },
+                'AAAA',
+            ),
+        ).toThrow(PledgeError);
+    });
+});
+
 describe('verifyPledge', () => {
     async function buildEnv(): Promise<PledgeEnvelope> {
         return createPledge({

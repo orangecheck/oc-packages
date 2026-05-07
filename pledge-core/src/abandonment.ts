@@ -63,6 +63,38 @@ export async function createAbandonment(
     };
 }
 
+/**
+ * Build an abandonment envelope from a canonical input + an externally-
+ * obtained BIP-322 signature. Companion to ``createAbandonment`` for
+ * external-sig flows.
+ *
+ * The caller must:
+ *   - Compute the id via ``computeAbandonmentId(input)`` first.
+ *   - Sign the lowercase-hex id with the original pledge's swearer key
+ *     (SPEC §5.3 — abandonments are principal-only; agents MUST NOT sign).
+ *   - Pass ``swearerAddress`` as the address that signed.
+ */
+export function wrapAbandonmentEnvelope(
+    input: AbandonmentCanonicalInput,
+    sigValue: string,
+    swearerAddress: string,
+): AbandonmentEnvelope {
+    const v = validateAbandonmentInput(input);
+    if (!v.ok) throw new PledgeError('E_ABANDONMENT_MALFORMED', v.reason);
+
+    const id = computeAbandonmentId(input);
+
+    return {
+        v: ENVELOPE_VERSION,
+        kind: 'pledge-abandonment',
+        id,
+        pledge_id: input.pledge_id,
+        abandoned_at: input.abandoned_at,
+        reason: input.reason,
+        sig: { alg: 'bip322', pubkey: swearerAddress, value: sigValue },
+    };
+}
+
 export async function verifyAbandonment(
     input: VerifyAbandonmentInput,
 ): Promise<VerifyAbandonmentResult> {

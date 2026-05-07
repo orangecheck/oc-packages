@@ -109,6 +109,60 @@ export async function createOutcome(input: CreateOutcomeInput): Promise<OutcomeE
     return envelope;
 }
 
+/**
+ * Build an outcome envelope from a canonical input + an optional externally-
+ * obtained BIP-322 signature. Companion to ``createOutcome`` for external-sig
+ * flows.
+ *
+ * Discriminator (SPEC §4.3):
+ *   - resolved_by === "deterministic": pass ``sigValue=undefined``.
+ *     Envelope.sig will be null.
+ *   - resolved_by === <address>: pass ``sigValue`` (the BIP-322 over the
+ *     lowercase-hex outcome id). Envelope.sig.pubkey defaults to
+ *     ``resolved_by``.
+ *
+ * Throws PledgeError on invalid input or sig/no-sig mismatch with the
+ * deterministic discriminator.
+ */
+export function wrapOutcomeEnvelope(
+    input: OutcomeCanonicalInput,
+    sigValue?: string,
+): OutcomeEnvelope {
+    const v = validateOutcomeInput(input);
+    if (!v.ok) throw new PledgeError('E_OUTCOME_MALFORMED', v.reason);
+
+    const requiresSig = input.resolved_by !== 'deterministic';
+    if (requiresSig && sigValue === undefined) {
+        throw new PledgeError(
+            'E_OUTCOME_BAD_SIG',
+            `resolved_by="${input.resolved_by}" requires a signature; pass sigValue or use createOutcome with a signer`,
+        );
+    }
+    if (!requiresSig && sigValue !== undefined) {
+        throw new PledgeError(
+            'E_OUTCOME_MALFORMED',
+            'resolved_by="deterministic" outcomes MUST have envelope.sig = null; do not pass sigValue',
+        );
+    }
+
+    const id = computeOutcomeId(input);
+
+    return {
+        v: ENVELOPE_VERSION,
+        kind: 'pledge-outcome',
+        id,
+        pledge_id: input.pledge_id,
+        outcome: input.outcome,
+        resolved_at: input.resolved_at,
+        resolved_by: input.resolved_by,
+        evidence: input.evidence,
+        dispute_window_ends_at: input.dispute_window_ends_at,
+        sig: requiresSig
+            ? { alg: 'bip322', pubkey: input.resolved_by, value: sigValue! }
+            : null,
+    };
+}
+
 export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOutcomeResult> {
     const env = input.envelope;
 

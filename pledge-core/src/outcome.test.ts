@@ -78,6 +78,35 @@ describe('createOutcome', () => {
     });
 });
 
+describe('wrapOutcomeEnvelope', () => {
+    it('deterministic: requires sigValue undefined; sig=null', async () => {
+        const { wrapOutcomeEnvelope } = await import('./index.js');
+        const env = wrapOutcomeEnvelope(deterministicInput);
+        expect(env.kind).toBe('pledge-outcome');
+        expect(env.sig).toBeNull();
+    });
+
+    it('deterministic: rejects extraneous sigValue', async () => {
+        const { wrapOutcomeEnvelope } = await import('./index.js');
+        expect(() => wrapOutcomeEnvelope(deterministicInput, 'AAAA')).toThrow(PledgeError);
+    });
+
+    it('counterparty: requires sigValue; sig.pubkey defaults to resolved_by', async () => {
+        const { wrapOutcomeEnvelope } = await import('./index.js');
+        const env = wrapOutcomeEnvelope(counterpartyInput, 'AAAA');
+        expect(env.sig).not.toBeNull();
+        if (env.sig) {
+            expect(env.sig.pubkey).toBe(counterpartyInput.resolved_by);
+            expect(env.sig.value).toBe('AAAA');
+        }
+    });
+
+    it('counterparty: rejects missing sigValue', async () => {
+        const { wrapOutcomeEnvelope } = await import('./index.js');
+        expect(() => wrapOutcomeEnvelope(counterpartyInput)).toThrow(PledgeError);
+    });
+});
+
 describe('verifyOutcome', () => {
     it('accepts a deterministic outcome (sig=null)', async () => {
         const env = await createOutcome(deterministicInput);

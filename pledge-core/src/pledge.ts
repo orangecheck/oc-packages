@@ -123,6 +123,81 @@ export async function createPledge(input: CreatePledgeInput): Promise<PledgeEnve
 }
 
 /**
+ * Build a pledge envelope from a canonical input + an externally-obtained
+ * BIP-322 signature. Companion to ``createPledge`` for callers who sign
+ * outside the SDK — typically web apps that use a wallet-extension's
+ * ``signMessage`` API directly rather than wrapping it as a Bip322Signer.
+ *
+ * The caller is responsible for:
+ *   - Producing ``sigValue`` over the lowercase-hex pledge id (SPEC §3.5).
+ *     Compute the id via ``computePledgeId(input)`` first; pass that exact
+ *     hex string to the wallet's signMessage.
+ *   - Identifying which address signed (``sigPubkey``). For non-agent
+ *     pledges this MUST equal ``input.swearer``. For agent pledges
+ *     (viaDelegation set), ``sigPubkey`` SHOULD equal ``viaDelegation.agentAddress``
+ *     since that's the cryptographic signer; verifiers under SPEC §7.3 use
+ *     ``agent_address`` from the envelope as the BIP-322 verification key
+ *     regardless of what's in ``sig.pubkey``.
+ *
+ * Throws ``PledgeError`` if the canonical input is invalid (same gates as
+ * ``createPledge``).
+ */
+export function wrapPledgeEnvelope(
+    input: PledgeCanonicalInput,
+    sigValue: string,
+    opts?: {
+        sigPubkey?: string;
+        viaDelegation?: { delegationId: string; agentAddress: string };
+    },
+): PledgeEnvelope {
+    const v = validatePledgeInput(input);
+    if (!v.ok) throw new PledgeError('E_PLEDGE_MALFORMED', v.reason);
+
+    if (opts?.viaDelegation) {
+        if (opts.viaDelegation.delegationId.length !== 64) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'viaDelegation.delegationId must be 64 hex chars',
+            );
+        }
+        if (opts.viaDelegation.agentAddress === input.swearer) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'agent_address must differ from swearer.address (principal-vs-agent invariant)',
+            );
+        }
+    }
+
+    const id = computePledgeId(input);
+    const sigPubkey = opts?.sigPubkey ?? input.swearer;
+
+    const envelope: PledgeEnvelope = {
+        v: ENVELOPE_VERSION,
+        kind: 'pledge',
+        id,
+        swearer: { address: input.swearer, alg: 'bip322' },
+        proposition: input.proposition,
+        resolution: input.resolution,
+        resolves_at: input.resolves_at,
+        expires_at: input.expires_at,
+        bond: input.bond,
+        counterparty: input.counterparty,
+        dispute: input.dispute,
+        remediation: input.remediation,
+        sworn_at: input.sworn_at,
+        nonce: input.nonce,
+        sig: { alg: 'bip322', pubkey: sigPubkey, value: sigValue },
+    };
+
+    if (opts?.viaDelegation) {
+        envelope.via_delegation = opts.viaDelegation.delegationId;
+        envelope.agent_address = opts.viaDelegation.agentAddress;
+    }
+
+    return envelope;
+}
+
+/**
  * Verify a pledge envelope per SPEC §9.1 steps 1–4 (envelope-only checks).
  *
  * What this does cover:
