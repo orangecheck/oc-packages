@@ -4,7 +4,7 @@ Reference TypeScript SDK for the [OC Pledge protocol](https://github.com/orangec
 
 OC Pledge is a Bitcoin-anchored, custody-free commitment primitive: a swearer signs a forward-looking proposition (BIP-322), bonds an OrangeCheck attestation to the pledge, and names a pure-function resolution rule that any verifier can evaluate against public state. Outcomes are recorded as separate envelopes; abandonment counts as `broken`. The protocol never holds the bonded sats — enforcement is by public exposure.
 
-This package implements the load-bearing parts of OC Pledge v0.1:
+This package implements the load-bearing parts of OC Pledge v1.0:
 
 - canonical messages for `pledge`, `pledge-outcome`, and `pledge-abandonment`
 - content-addressed ids (`sha256(canonical_message)`)
@@ -17,7 +17,7 @@ This package implements the load-bearing parts of OC Pledge v0.1:
 
 The package does **not** ship a Bitcoin RPC client, a Nostr relay client, an HTTPS fetch client, or a BIP-322 signing/verification implementation — those are caller-supplied adapters so the SDK works in browsers, Node, mobile, and CLIs without imposing a runtime opinion.
 
-> **Status:** v0.1.0-alpha. Tracks `oc-pledge-protocol` v0.1.0-alpha. The first stable release will be v1.0.0 alongside the protocol's stabilization.
+> **Status:** v1.0.0 — Stable. Tracks [`oc-pledge-protocol`](https://github.com/orangecheck/oc-pledge-protocol) v1.0. Cross-impl conformance with [`orangecheck.pledge`](https://pypi.org/project/orangecheck/) (Python) is gated in CI on every PR.
 
 ## Install
 
@@ -175,7 +175,7 @@ The validator catches malformed queries and refused mechanisms (`self_proof`) pe
 
 ## Conformance
 
-`pledge-core` is conformant with `oc-pledge-protocol` v0.1 if:
+`pledge-core` is conformant with `oc-pledge-protocol` v1.0 if:
 
 - canonical messages reconstruct byte-identical from inputs
 - ids equal `sha256(canonical_message_bytes)` as 64 lowercase hex
@@ -184,7 +184,7 @@ The validator catches malformed queries and refused mechanisms (`self_proof`) pe
 - bond-verification fixtures produce the named `expected.code`
 - malformed-input fixtures raise the named SPEC error code
 
-The conformance harness lives in `src/test-vectors.test.ts` and runs against the 28 vectors committed to `oc-pledge-protocol/test-vectors/`. Set `OC_PLEDGE_VECTORS_DIR` to point at the vectors directory in CI, or check out `oc-pledge-protocol` as a sibling for local dev. As of `0.1.0`, all 28 vectors pass.
+The conformance harness lives in `src/test-vectors.test.ts` and runs against the 28 vectors committed to `oc-pledge-protocol/test-vectors/`. Set `OC_PLEDGE_VECTORS_DIR` to point at the vectors directory in CI, or check out `oc-pledge-protocol` as a sibling for local dev. As of `1.0.0`, all 28 vectors pass on both this SDK and the Python `orangecheck.pledge` sub-module; cross-impl byte-equality is enforced in oc-packages CI.
 
 ## License
 
