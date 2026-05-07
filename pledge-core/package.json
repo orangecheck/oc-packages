@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/pledge-core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "OC Pledge canonical messages, envelope format, create/verify, state machine, bond verification. Reference SDK for the OC Pledge v0.1 spec.",
   "keywords": [
     "bitcoin",

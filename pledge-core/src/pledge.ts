@@ -8,6 +8,7 @@ import {
     hexEncode,
     validatePledgeInput,
 } from './canonical.js';
+import { checkPledgeCreateScope, isoUtcGreaterThan } from './delegation.js';
 import { sha256 } from '@noble/hashes/sha256';
 import {
     ENVELOPE_VERSION,
@@ -271,6 +272,44 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
             : env.sig.pubkey;
         const ok = await input.verifyBip322(env.id, env.sig.value, verifyKey);
         if (!ok) return err('E_PLEDGE_BAD_SIG', 'BIP-322 signature did not verify');
+    }
+
+    // 5. Delegation lookup (SPEC §7.3 steps 1–5) when via_delegation is
+    // present AND a delegationLookup adapter was supplied. Without an
+    // adapter the agent path is shape-and-signature-only — the verifier
+    // accepts the envelope but doesn't enforce the principal/agent/scope
+    // chain. Documented as an implementation note in oc-pledge-protocol/
+    // SECURITY.md scenarios 15 + 16.
+    if (env.via_delegation && env.agent_address && input.delegationLookup) {
+        const delegation = await input.delegationLookup(env.via_delegation, env.sworn_at);
+        if (delegation === null) {
+            return err(
+                'E_DELEGATION_NOT_FOUND',
+                `delegation ${env.via_delegation} could not be resolved`,
+            );
+        }
+        if (delegation.principal !== env.swearer.address) {
+            return err(
+                'E_DELEGATION_SCOPE_VIOLATED',
+                `delegation.principal (${delegation.principal}) != envelope.swearer.address (${env.swearer.address})`,
+            );
+        }
+        if (delegation.agent !== env.agent_address) {
+            return err(
+                'E_DELEGATION_SCOPE_VIOLATED',
+                `delegation.agent (${delegation.agent}) != envelope.agent_address (${env.agent_address})`,
+            );
+        }
+        if (!isoUtcGreaterThan(delegation.expires_at, env.sworn_at)) {
+            return err(
+                'E_DELEGATION_EXPIRED',
+                `delegation.expires_at (${delegation.expires_at}) <= pledge.sworn_at (${env.sworn_at})`,
+            );
+        }
+        const scopeCheck = checkPledgeCreateScope(env, delegation);
+        if (!scopeCheck.ok) {
+            return err(scopeCheck.code, scopeCheck.reason);
+        }
     }
 
     const result: VerifyPledgeOk = {

@@ -279,6 +279,51 @@ export interface VerifyPledgeInput {
     verifyBip322?: VerifyBip322;
     /** Default false. Set true to bypass BIP-322 entirely. */
     skipSignatureVerification?: boolean;
+    /**
+     * Optional — when present AND envelope.via_delegation is set, verifyPledge
+     * runs SPEC §7.3 steps 1–5: resolve the delegation, confirm
+     * principal == swearer, agent == agent_address, expires_at > sworn_at,
+     * and that scopes contain a `pledge:create(...)` whose constraints fit
+     * the pledge's bond / mechanism / counterparty.
+     *
+     * Without this hook, agent-delegated pledges still verify at the
+     * envelope-shape + BIP-322 layer (§7.3 step 6), but the §7.3 1–5 chain
+     * is skipped. Surface a delegationLookup adapter (e.g. one that uses
+     * `@orangecheck/agent-core`'s `verifyDelegation`) for full scope
+     * enforcement.
+     */
+    delegationLookup?: DelegationLookup;
+}
+
+/**
+ * Caller-supplied delegation resolver. Returns the resolved delegation
+ * fields (principal, agent, scope strings, expires_at) or null if the
+ * delegation cannot be resolved or its signature does not verify.
+ *
+ * The adapter is responsible for fetching the delegation envelope from
+ * wherever it lives (typically Nostr kind 30083 with d-tag
+ * `oc-agent-del:<delegation_id>`) and running OC Agent's full
+ * verifyDelegation check before returning the typed shape. pledge-core
+ * trusts the adapter's output for the §7.3 1–5 logic.
+ */
+export type DelegationLookup = (
+    delegationId: string,
+    nowIso: string,
+) => Promise<DelegationLookupResult | null>;
+
+export interface DelegationLookupResult {
+    /** delegation.principal_address */
+    principal: string;
+    /** delegation.agent_address */
+    agent: string;
+    /**
+     * Raw scope strings as registered in the delegation (e.g.
+     * `["pledge:create(max_bond_sats=2000000)", "stamp:sign(mime=*)"]`).
+     * pledge-core scans for an entry whose product:verb is `pledge:create`.
+     */
+    scopes: string[];
+    /** delegation.expires_at, ISO 8601 UTC. */
+    expires_at: string;
 }
 
 export interface VerifyOutcomeInput {

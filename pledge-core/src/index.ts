@@ -33,3 +33,9 @@ export { classifyState, outcomesContradict } from './state.js';
 export { verifyBond, bondConstraints } from './bond.js';
 export { validateResolutionQuery } from './resolution.js';
 export type { ResolutionValidateResult } from './resolution.js';
+export {
+    checkPledgeCreateScope,
+    parsePledgeCreateScope,
+    isoUtcGreaterThan,
+} from './delegation.js';
+export type { ScopeCheckResult } from './delegation.js';
