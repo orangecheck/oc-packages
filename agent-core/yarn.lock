@@ -175,10 +175,10 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/lock-core@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/lock-core/-/lock-core-0.1.0.tgz#9daf87850970ca0f3634bd86667a316bdf452557"
-  integrity sha512-a0LPNELHwrfQzCdnWfFDm0hrrfHCJ9iFrdrOqqprfDVnLXBYtmVeDkxemf6tgfFHbfSkJuMgmkPlkTRtKz3jXw==
+"@orangecheck/lock-core@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.npmjs.org/@orangecheck/lock-core/-/lock-core-1.0.1.tgz#8ec522d06f2187ed860126eaf949508f6ca82272"
+  integrity sha512-+ydUj5VteHY9XI6PoXnRUqpPMFy12AHRiJGG059FeAE4mHPYD9ZwAxFl09ljh4FNJpaWcxD60FlYRYe3p4ha3Q==
   dependencies:
     "@orangecheck/lock-crypto" "^0.1.0"
 
@@ -191,10 +191,10 @@
     "@noble/curves" "^1.6.0"
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/stamp-core@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.npmjs.org/@orangecheck/stamp-core/-/stamp-core-0.1.1.tgz#256e9e9973044973c4118e5de2cd9a1727bcf889"
-  integrity sha512-sFISzvazLyeJvDIan6o8Uar/GfSkA8O7EzcECWqNFTvNbawqAewytrnyHeeE/Fp77cqZqIQqhod7oYkxBjEdnw==
+"@orangecheck/stamp-core@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/@orangecheck/stamp-core/-/stamp-core-1.0.0.tgz#b1196da78408a0cf1d89ff4e09cad18fc3383c85"
+  integrity sha512-CSeIvBPB7pCCzOk756rcxhm+eAF8MEqlQ6E8BJ2VxRoCS/Q4IJhv1G3qnxT5AVESVhPKw/RO/dAQh9a0dm6o5A==
   dependencies:
     "@noble/hashes" "^1.5.0"
 
