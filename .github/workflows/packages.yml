@@ -173,11 +173,21 @@ jobs:
     python:
         name: Python SDK
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: sdk-py
         steps:
             - uses: actions/checkout@v4
+
+            # orangecheck.pledge's conformance harness loads the canonical
+            # vectors from oc-pledge-protocol/test-vectors/. Without this
+            # checkout the pledge tests gracefully skip; with it, all 28
+            # vectors run as part of the standard `python` CI gate.
+            - name: Checkout oc-pledge-protocol (for pledge conformance)
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-pledge-protocol
+                  path: .oc-pledge-protocol
+
+            - name: Set OC_PLEDGE_VECTORS_DIR for pledge conformance
+              run: echo "OC_PLEDGE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-pledge-protocol/test-vectors" >> "$GITHUB_ENV"
 
             - uses: actions/setup-python@v5
               with:
@@ -185,6 +195,7 @@ jobs:
                   cache: pip
 
             - name: Install + test
+              working-directory: sdk-py
               run: |
                   pip install --upgrade pip
                   pip install -e '.[dev]' pytest
@@ -194,18 +205,32 @@ jobs:
         name: Cross-impl conformance (live vectors)
         runs-on: ubuntu-latest
         # Checks that the vectors vendored in each SDK still match what
-        # oc-protocol publishes on main. A drift here means either the spec
-        # moved and the SDKs need re-vendoring, or a SDK vendored a stale
-        # copy. Runs independently from the build matrix so the signal is
-        # unambiguous ("spec/impl drift" vs "a package doesn't build").
+        # oc-protocol / oc-pledge-protocol publish on main. A drift here
+        # means either a spec moved and the SDKs need re-vendoring, or a
+        # SDK vendored a stale copy. Runs independently from the build
+        # matrix so the signal is unambiguous ("spec/impl drift" vs "a
+        # package doesn't build").
+        #
+        # Two protocol families currently share this gate:
+        #   * oc-attest-protocol — sdk (TS) + sdk-py both vendor vectors;
+        #     diff -r against the live spec catches re-vendoring drift.
+        #   * oc-pledge-protocol — pledge-core (TS) + orangecheck.pledge
+        #     (Python) both load vectors from the protocol repo at test
+        #     time via OC_PLEDGE_VECTORS_DIR; no in-tree vendoring, so
+        #     drift is impossible by construction. The two SDKs producing
+        #     identical output for every vector IS the conformance gate.
         steps:
             - uses: actions/checkout@v4
 
-            - name: Fetch live oc-protocol vectors
+            - name: Fetch live oc-attest-protocol vectors
               run: |
                   git clone --depth=1 https://github.com/orangecheck/oc-attest-protocol.git /tmp/oc-protocol
 
-            - name: Verify SDK vectors are byte-identical to oc-protocol/main
+            - name: Fetch live oc-pledge-protocol vectors
+              run: |
+                  git clone --depth=1 https://github.com/orangecheck/oc-pledge-protocol.git /tmp/oc-pledge-protocol
+
+            - name: Verify oc-attest SDK vectors are byte-identical to oc-attest-protocol/main
               run: |
                   diff -r /tmp/oc-protocol/conformance/vectors sdk/src/__tests__/vectors
                   diff -r /tmp/oc-protocol/conformance/vectors sdk-py/tests/vectors
@@ -216,8 +241,17 @@ jobs:
                   cache: yarn
                   cache-dependency-path: sdk/yarn.lock
 
-            - name: TS conformance suite
+            - name: TS — oc-attest conformance suite
               working-directory: sdk
+              run: |
+                  yarn install --frozen-lockfile
+                  yarn build
+                  yarn test
+
+            - name: TS — pledge-core conformance suite (28 vectors, live)
+              working-directory: pledge-core
+              env:
+                  OC_PLEDGE_VECTORS_DIR: /tmp/oc-pledge-protocol/test-vectors
               run: |
                   yarn install --frozen-lockfile
                   yarn build
@@ -228,9 +262,16 @@ jobs:
                   python-version: '3.12'
                   cache: pip
 
-            - name: Python conformance suite
+            - name: Python — oc-attest conformance suite
               working-directory: sdk-py
               run: |
                   pip install --upgrade pip
                   pip install -e '.[dev]' pytest
                   python -m pytest tests/test_conformance.py -q
+
+            - name: Python — orangecheck.pledge conformance suite (28 vectors, live)
+              working-directory: sdk-py
+              env:
+                  OC_PLEDGE_VECTORS_DIR: /tmp/oc-pledge-protocol/test-vectors
+              run: |
+                  python -m pytest tests/pledge/test_vectors.py -q
