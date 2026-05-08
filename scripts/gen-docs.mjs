@@ -2,16 +2,21 @@
 /**
  * gen-docs — orchestrate per-package TypeDoc runs into oc-docs.
  *
- * Phase 1: hardcoded list of one package (`sdk`). Phase 2 (next session)
- * walks every directory under oc-packages/ that has a typedoc.json.
+ *   yarn docs:gen <pkg> [<pkg2> ...]   # specific packages
+ *   yarn docs:gen:all                   # every package with a typedoc.json
  *
- * Each package's typedoc.json declares its own out= path, pointing at a
- * subtree under sibling repo `oc-docs/src/pages/sdk/<pkg>/`. We invoke
- * TypeDoc once per package via the local devDep binary at
- * `<pkg>/node_modules/.bin/typedoc`.
+ * Each package's typedoc.json declares its own out= path under
+ * `oc-docs/src/pages/sdk/<pkg>/`. We invoke the root TypeDoc binary
+ * (oc-packages/node_modules/.bin/typedoc) once per package.
  *
- * Drift discipline: this script is idempotent. Running it without source
- * changes produces zero diff. CI's drift-check.mjs (Phase 3) re-runs and
+ * The post-processing pass converts TypeDoc's YAML frontmatter into
+ * the `export const metadata = {...}` pattern oc-docs reads, and
+ * escapes stray `{`/`}` outside fenced code blocks (JSDoc shapes
+ * like `{ ok, sats }` would otherwise be parsed as JSX expressions
+ * and the build would fail).
+ *
+ * Drift discipline: idempotent. Running without source changes
+ * produces zero diff. CI's drift-check.mjs (Phase 3) re-runs and
  * fails if the generated tree would differ from what's committed in
  * oc-docs.
  */
@@ -23,15 +28,29 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
+const TYPEDOC_BIN = resolve(REPO_ROOT, 'node_modules/.bin/typedoc');
+const OC_DOCS_SDK_ROOT = resolve(REPO_ROOT, '..', 'oc-docs', 'src', 'pages', 'sdk');
 
-// Phase 1: one package. Phase 2 generalizes via fs walk.
-const PACKAGES_PHASE_1 = ['sdk'];
+if (!existsSync(TYPEDOC_BIN)) {
+    console.error(
+        '[gen-docs] ✗ typedoc binary missing at',
+        TYPEDOC_BIN,
+        '\n  run `yarn install` at oc-packages/ root first.',
+    );
+    process.exit(1);
+}
 
-const requested = process.argv.slice(2);
-const packages = requested.length > 0 ? requested : PACKAGES_PHASE_1;
+const args = process.argv.slice(2);
+const packages = args.includes('--all')
+    ? discoverAllPackages()
+    : args.filter((a) => !a.startsWith('--'));
+
+if (packages.length === 0) {
+    console.error('[gen-docs] no packages specified. Use `--all` or pass package names.');
+    process.exit(1);
+}
 
 let failures = 0;
-
 for (const pkg of packages) {
     const pkgDir = resolve(REPO_ROOT, pkg);
     const configPath = resolve(pkgDir, 'typedoc.json');
@@ -40,44 +59,33 @@ for (const pkg of packages) {
         failures += 1;
         continue;
     }
-    const bin = resolve(pkgDir, 'node_modules/.bin/typedoc');
-    if (!existsSync(bin)) {
-        console.error(`[gen-docs] ✗ ${pkg}: typedoc binary not installed (cd ${pkg} && yarn install)`);
-        failures += 1;
-        continue;
-    }
-    console.log(`[gen-docs] · ${pkg}`);
+    process.stdout.write(`[gen-docs] · ${pkg} ... `);
     try {
-        execSync(`${bin} --options typedoc.json`, {
+        execSync(`"${TYPEDOC_BIN}" --options typedoc.json`, {
             cwd: pkgDir,
-            stdio: ['ignore', 'inherit', 'inherit'],
+            stdio: ['ignore', 'pipe', 'pipe'],
         });
+        console.log('ok');
     } catch (err) {
-        console.error(`[gen-docs] ✗ ${pkg}: typedoc exit ${err.status ?? '?'}`);
+        console.error(`exit ${err.status ?? '?'}`);
+        if (err.stdout) console.error(String(err.stdout).split('\n').slice(-10).join('\n'));
+        if (err.stderr) console.error(String(err.stderr).split('\n').slice(-10).join('\n'));
         failures += 1;
     }
 }
 
-// Post-process every generated .mdx file: convert TypeDoc's YAML
-// frontmatter into the `export const metadata = {...}` pattern that
-// oc-docs's MDX renderer reads. oc-docs doesn't run remark-frontmatter,
-// so raw `---` blocks at the top of an MDX file would either be ignored
-// or, worse, parsed as JSX (angle brackets in values trigger that).
-//
-// We also derive `title` from the first `# Heading` to satisfy oc-docs's
-// breadcrumbs + sidebar lookup; the description stays generic.
-const OC_DOCS_SDK_ROOT = resolve(REPO_ROOT, '..', 'oc-docs', 'src', 'pages', 'sdk');
+// Post-process every generated .mdx file under oc-docs/src/pages/sdk.
 if (existsSync(OC_DOCS_SDK_ROOT)) {
     let processed = 0;
     walkMdx(OC_DOCS_SDK_ROOT, (file) => {
         const raw = readFileSync(file, 'utf8');
-        const transformed = mdxTransform(raw, file);
+        const transformed = mdxTransform(raw);
         if (transformed !== raw) {
             writeFileSync(file, transformed);
             processed += 1;
         }
     });
-    console.log(`[gen-docs] post-processed ${processed} .mdx file(s) for oc-docs`);
+    console.log(`[gen-docs] post-processed ${processed} .mdx file(s)`);
 }
 
 if (failures > 0) {
@@ -88,6 +96,17 @@ console.log(`[gen-docs] ${packages.length}/${packages.length} ok`);
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
+function discoverAllPackages() {
+    const out = [];
+    for (const entry of readdirSync(REPO_ROOT)) {
+        const dir = resolve(REPO_ROOT, entry);
+        if (!statSync(dir).isDirectory()) continue;
+        if (entry.startsWith('.') || entry === 'node_modules' || entry === 'scripts') continue;
+        if (existsSync(resolve(dir, 'typedoc.json'))) out.push(entry);
+    }
+    return out.sort();
+}
+
 function walkMdx(dir, onFile) {
     for (const entry of readdirSync(dir)) {
         const full = join(dir, entry);
@@ -97,11 +116,10 @@ function walkMdx(dir, onFile) {
     }
 }
 
-function mdxTransform(raw, filePath) {
+function mdxTransform(raw) {
     // Match the YAML frontmatter that typedoc-plugin-frontmatter emits.
     const frontmatterMatch = raw.match(/^---\n([\s\S]*?)\n---\n+/);
     if (!frontmatterMatch) return raw;
-
     const body = raw.slice(frontmatterMatch[0].length);
 
     // Pull title from first `# Heading` in the body.
@@ -116,21 +134,19 @@ function mdxTransform(raw, filePath) {
         `    description: ${JSON.stringify(description)},\n` +
         `};\n\n`;
 
-    // Escape stray `{` / `}` in prose so MDX doesn't parse them as JSX
-    // expressions. JSDoc text often contains `{ ok, sats, ... }` shapes
-    // describing object literals — outside code fences MDX would treat
-    // those as JSX expressions and the build would fail with
-    // "ReferenceError: ok is not defined."
     return exportBlock + escapeBracesOutsideCodeFences(body);
 }
 
 function escapeBracesOutsideCodeFences(s) {
+    // Escape MDX-significant chars in prose so TypeDoc-rendered JSDoc that
+    // contains shapes like `{ ok, sats }` or `<tool_use_id>` doesn't get
+    // parsed as JSX expressions / HTML tags. Code fences (``` and inline
+    // `code`) are passthrough — code is opaque in MDX.
     const out = [];
     let inFence = false;
     let inInline = false;
     for (let i = 0; i < s.length; i++) {
         const c = s[i];
-        // Toggle ```...``` fenced blocks at line starts.
         if (
             c === '`' &&
             s[i + 1] === '`' &&
@@ -142,23 +158,34 @@ function escapeBracesOutsideCodeFences(s) {
             i += 2;
             continue;
         }
-        // Toggle inline `code` runs (don't span newlines).
         if (!inFence && c === '`') {
             inInline = !inInline;
             out.push(c);
             continue;
         }
         if (!inFence && c === '\n' && inInline) {
-            // A newline closes an unclosed inline code run.
             inInline = false;
         }
-        if (!inFence && !inInline && c === '{') {
-            out.push('&#123;');
-            continue;
-        }
-        if (!inFence && !inInline && c === '}') {
-            out.push('&#125;');
-            continue;
+        if (!inFence && !inInline) {
+            if (c === '{') {
+                out.push('&#123;');
+                continue;
+            }
+            if (c === '}') {
+                out.push('&#125;');
+                continue;
+            }
+            if (c === '<') {
+                // Escape all `<` outside fenced/inline code. TypeDoc emits
+                // `<word>` placeholders in JSDoc prose ("Shape:" examples,
+                // type-parameter references like `<T>`) plus inline `<a>`
+                // anchors in tables. The placeholders break MDX parsing
+                // (no closing tag); the anchors are nice-to-have but
+                // expendable. Escaping universally is the safe call —
+                // generated pages don't need raw HTML/JSX.
+                out.push('&lt;');
+                continue;
+            }
         }
         out.push(c);
     }
@@ -166,7 +193,6 @@ function escapeBracesOutsideCodeFences(s) {
 }
 
 function stripMd(s) {
-    // Trim markdown link syntax + backticks for safe use in title.
     return s
         .replace(/\\(.)/g, '$1')
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')

@@ -1,0 +1,16 @@
+{
+    "name": "oc-packages-tooling",
+    "private": true,
+    "description": "Shared dev tooling for the oc-packages monorepo. Not published. Hosts the TypeDoc-based docs generator that publishes API reference for every @orangecheck/* package to docs.ochk.io/sdk/<pkg>/.",
+    "scripts": {
+        "docs:gen": "node scripts/gen-docs.mjs",
+        "docs:gen:all": "node scripts/gen-docs.mjs --all",
+        "docs:check": "node scripts/drift-check.mjs"
+    },
+    "devDependencies": {
+        "typedoc": "^0.28.19",
+        "typedoc-plugin-frontmatter": "^1.3.1",
+        "typedoc-plugin-markdown": "^4.11.0",
+        "typescript": "^5.7"
+    }
+}
