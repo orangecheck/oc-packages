@@ -1,5 +1,9 @@
 # @orangecheck/lock-device
 
+> **Full reference:** [docs.ochk.io/sdk/lock-device](https://docs.ochk.io/sdk/lock-device) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Device-key binding and Nostr kind-30078 directory publication helpers for [OC Lock](https://github.com/orangecheck/oc-lock-protocol).
 
 ## Install

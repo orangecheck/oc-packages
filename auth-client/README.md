@@ -1,5 +1,9 @@
 # `@orangecheck/auth-client`
 
+> **Full reference:** [docs.ochk.io/sdk/auth-client](https://docs.ochk.io/sdk/auth-client) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **React bindings for the cross-subdomain oc_session.**
 
 Drop a provider near your app root, then consume the signed-in identity

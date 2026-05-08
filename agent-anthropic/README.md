@@ -1,5 +1,9 @@
 # @orangecheck/agent-anthropic
 
+> **Full reference:** [docs.ochk.io/sdk/agent-anthropic](https://docs.ochk.io/sdk/agent-anthropic) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Wrap [Anthropic Tool Use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) (Claude `tool_use` blocks) with [OC Agent](https://github.com/orangecheck/oc-agent-protocol) scope enforcement and emit a signed `agent-action` envelope per tool execution.
 
 ## Why

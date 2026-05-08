@@ -1,5 +1,9 @@
 # `@orangecheck/gate`
 
+> **Full reference:** [docs.ochk.io/sdk/gate](https://docs.ochk.io/sdk/gate) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Drop-in sybil-resistance middleware for any Node HTTP framework.**
 
 Wraps the [OrangeCheck SDK](https://www.npmjs.com/package/@orangecheck/sdk)'s `check()` primitive and turns it into a single `next()`-or-`403` decision. No custody. No account. No centralized identity provider.

@@ -1,5 +1,9 @@
 # @orangecheck/vote-core
 
+> **Full reference:** [docs.ochk.io/sdk/vote-core](https://docs.ochk.io/sdk/vote-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Reference implementation of [oc-vote-protocol v0](https://github.com/orangecheck/oc-vote-protocol) — stake-weighted, sybil-resistant, offline-tallyable polls on Bitcoin.
 
 ```bash

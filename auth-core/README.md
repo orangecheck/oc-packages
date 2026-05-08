@@ -1,5 +1,9 @@
 # `@orangecheck/auth-core`
 
+> **Full reference:** [docs.ochk.io/sdk/auth-core](https://docs.ochk.io/sdk/auth-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Cross-subdomain session primitives for the OrangeCheck ecosystem.**
 
 A ~3 KB package that handles:

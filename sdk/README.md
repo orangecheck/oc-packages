@@ -1,5 +1,9 @@
 # `@orangecheck/sdk`
 
+> **Full reference:** [docs.ochk.io/sdk/sdk](https://docs.ochk.io/sdk/sdk) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Proof of Bitcoin stake for the open web.**
 
 A sybil-resistance primitive for forums, Nostr relays, airdrop gates, DAO votes, and any open platform that needs to filter bots without KYC. Bitcoin UTXOs are the only credible signal of commitment: honest users pay nothing, attackers pay real opportunity cost.

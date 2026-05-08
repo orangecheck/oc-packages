@@ -1,5 +1,9 @@
 # `@orangecheck/airdrop-gate`
 
+> **Full reference:** [docs.ochk.io/sdk/airdrop-gate](https://docs.ochk.io/sdk/airdrop-gate) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Sybil filter for token airdrops.**
 Turn a candidate address list into a sybil-resistant allowlist backed by real Bitcoin stake.
 

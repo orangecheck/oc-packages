@@ -1,5 +1,9 @@
 # @orangecheck/agent-vercel
 
+> **Full reference:** [docs.ochk.io/sdk/agent-vercel](https://docs.ochk.io/sdk/agent-vercel) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Wrap [Vercel AI SDK](https://sdk.vercel.ai/) `tool()` invocations with [OC Agent](https://github.com/orangecheck/oc-agent-protocol) scope enforcement and emit a signed `agent-action` envelope per tool execution. Provider-agnostic — works under Anthropic, OpenAI, Cohere, or any other model the AI SDK speaks.
 
 ## Why

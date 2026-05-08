@@ -1,5 +1,9 @@
 # @orangecheck/agent-signer
 
+> **Full reference:** [docs.ochk.io/sdk/agent-signer](https://docs.ochk.io/sdk/agent-signer) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 High-level API for producing [OC Agent](https://github.com/orangecheck/oc-agent-protocol) envelopes from a BIP-322-capable signer.
 
 Three functions:

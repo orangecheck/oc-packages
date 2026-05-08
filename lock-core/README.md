@@ -1,5 +1,9 @@
 # @orangecheck/lock-core
 
+> **Full reference:** [docs.ochk.io/sdk/lock-core](https://docs.ochk.io/sdk/lock-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Envelope format, canonicalization, `seal`, and `unseal` for [OC Lock](https://github.com/orangecheck/oc-lock-protocol).
 
 ## Install

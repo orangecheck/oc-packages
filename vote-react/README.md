@@ -1,5 +1,9 @@
 # @orangecheck/vote-react
 
+> **Full reference:** [docs.ochk.io/sdk/vote-react](https://docs.ochk.io/sdk/vote-react) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Drop-in React components for [OC Vote](https://github.com/orangecheck/oc-vote-protocol). Embed a live tally anywhere in three lines.
 
 ```bash

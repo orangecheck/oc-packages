@@ -1,5 +1,9 @@
 # @orangecheck/nostr-core
 
+> **Full reference:** [docs.ochk.io/sdk/nostr-core](https://docs.ochk.io/sdk/nostr-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Browser-compatible Nostr client used by every OrangeCheck family web app. Raw NIP-01 over WebSocket against a list of relays.
 
 ## Install

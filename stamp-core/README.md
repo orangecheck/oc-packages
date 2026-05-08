@@ -1,5 +1,9 @@
 # @orangecheck/stamp-core
 
+> **Full reference:** [docs.ochk.io/sdk/stamp-core](https://docs.ochk.io/sdk/stamp-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Canonical message, envelope format, `stamp()`, and `verify()` for [OC Stamp](https://github.com/orangecheck/oc-stamp-protocol).
 
 ## Install

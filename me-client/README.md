@@ -1,5 +1,9 @@
 # @orangecheck/me-client
 
+> **Full reference:** [docs.ochk.io/sdk/me-client](https://docs.ochk.io/sdk/me-client) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Drop-in client for [me.ochk.io](https://me.ochk.io). Sign-in-with-OC button, popup signin orchestrator, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types.
 
 > You pay for sessions and actions, not for clicks.

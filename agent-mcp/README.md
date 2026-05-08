@@ -1,5 +1,9 @@
 # @orangecheck/agent-mcp
 
+> **Full reference:** [docs.ochk.io/sdk/agent-mcp](https://docs.ochk.io/sdk/agent-mcp) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Wrap [Model Context Protocol](https://modelcontextprotocol.io/) tool invocations in [OC Agent](https://github.com/orangecheck/oc-agent-protocol) envelopes. Every call produces a signed, scope-constrained, verifiable `agent-action` stamp.
 
 ## Why

@@ -1,5 +1,9 @@
 # @orangecheck/agent-langgraph
 
+> **Full reference:** [docs.ochk.io/sdk/agent-langgraph](https://docs.ochk.io/sdk/agent-langgraph) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Wrap [LangGraph](https://langchain-ai.github.io/langgraph/) tool-node executions in [OC Agent](https://github.com/orangecheck/oc-agent-protocol) action envelopes. Binds each action to the **graph-state hash** at execution time — so verifiers replaying the audit against a persisted graph snapshot can confirm the action fired against the expected state, not a divergent fork.
 
 ## Why

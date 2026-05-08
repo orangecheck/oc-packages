@@ -1,5 +1,9 @@
 # `@orangecheck/relay-filter`
 
+> **Full reference:** [docs.ochk.io/sdk/relay-filter](https://docs.ochk.io/sdk/relay-filter) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Sybil filter for Nostr relays.**
 Reject events from pubkeys whose OrangeCheck attestation doesn't meet your thresholds. Honest users pay nothing; attackers pay real Bitcoin opportunity cost at scale.
 

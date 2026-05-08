@@ -1,5 +1,9 @@
 # @orangecheck/lock-crypto
 
+> **Full reference:** [docs.ochk.io/sdk/lock-crypto](https://docs.ochk.io/sdk/lock-crypto) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 X25519 ECDH, HKDF-SHA256, and AES-256-GCM primitives for [OC Lock](https://github.com/orangecheck/oc-lock-protocol).
 
 This package is the narrow crypto surface used by `@orangecheck/lock-core` and `@orangecheck/lock-device`. You normally don't import it directly.

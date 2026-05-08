@@ -1,5 +1,9 @@
 # @orangecheck/ui
 
+> **Full reference:** [docs.ochk.io/sdk/ui](https://docs.ochk.io/sdk/ui) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 OrangeCheck family-internal UI for the `.ochk.io` sub-sites.
 
 This package is **not** for third-party integrators. For embeddable

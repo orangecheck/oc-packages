@@ -1,5 +1,9 @@
 # `@orangecheck/react`
 
+> **Full reference:** [docs.ochk.io/sdk/react](https://docs.ochk.io/sdk/react) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 React components for OrangeCheck. Three focused primitives:
 
 - **`<OcBadge>`** — display a proof-of-Bitcoin-stake badge (inline pill or card).

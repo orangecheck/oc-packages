@@ -1,5 +1,9 @@
 # @orangecheck/agent-core
 
+> **Full reference:** [docs.ochk.io/sdk/agent-core](https://docs.ochk.io/sdk/agent-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Canonical messages, envelope formats (delegation / action / revocation), scope grammar, and verification for [OC Agent](https://github.com/orangecheck/oc-agent-protocol) — the OrangeCheck authority primitive.
 
 - **Pure TypeScript.** No Node built-ins outside `@noble/hashes`. Runs in Node, browsers, Deno, Cloudflare Workers.

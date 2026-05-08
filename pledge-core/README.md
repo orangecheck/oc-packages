@@ -1,5 +1,9 @@
 # @orangecheck/pledge-core
 
+> **Full reference:** [docs.ochk.io/sdk/pledge-core](https://docs.ochk.io/sdk/pledge-core) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 Reference TypeScript SDK for the [OC Pledge protocol](https://github.com/orangecheck/oc-pledge-protocol).
 
 OC Pledge is a Bitcoin-anchored, custody-free commitment primitive: a swearer signs a forward-looking proposition (BIP-322), bonds an OrangeCheck attestation to the pledge, and names a pure-function resolution rule that any verifier can evaluate against public state. Outcomes are recorded as separate envelopes; abandonment counts as `broken`. The protocol never holds the bonded sats — enforcement is by public exposure.

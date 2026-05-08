@@ -1,5 +1,9 @@
 # @orangecheck/stamp-ots
 
+> **Full reference:** [docs.ochk.io/sdk/stamp-ots](https://docs.ochk.io/sdk/stamp-ots) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 OpenTimestamps calendar client, proof helpers, and anchor-verification hooks for [OC Stamp](https://github.com/orangecheck/oc-stamp-protocol) envelopes.
 
 ## Install

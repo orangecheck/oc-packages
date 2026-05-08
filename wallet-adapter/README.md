@@ -1,5 +1,9 @@
 # `@orangecheck/wallet-adapter`
 
+> **Full reference:** [docs.ochk.io/sdk/wallet-adapter](https://docs.ochk.io/sdk/wallet-adapter) — auto-generated from the TypeScript source on every release.
+> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
+
+
 **Normalize browser Bitcoin wallets behind a single `sign(message)` API.**
 
 UniSat, Xverse, Leather, Alby — every wallet exposes a different signing API. This package hides that behind one shape:
