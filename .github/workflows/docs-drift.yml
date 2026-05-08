@@ -70,6 +70,38 @@ jobs:
               working-directory: oc-packages
               run: yarn install --frozen-lockfile
 
-            - name: Run drift-check
+            - name: Run gen-docs (capture CI's generation for diagnosis)
               working-directory: oc-packages
-              run: yarn docs:check
+              run: yarn docs:gen:all
+
+            - name: Diff against committed oc-docs tree
+              id: diff
+              working-directory: oc-docs
+              run: |
+                  git diff --stat src/pages/sdk | tee /tmp/diff-stat.txt
+                  git diff src/pages/sdk > /tmp/diff-full.txt 2>&1 || true
+                  if [ -s /tmp/diff-stat.txt ]; then
+                      echo "drift=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "drift=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Upload diff artifact
+              if: steps.diff.outputs.drift == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: docs-drift-${{ github.sha }}
+                  path: |
+                      /tmp/diff-stat.txt
+                      /tmp/diff-full.txt
+                      oc-docs/src/pages/sdk
+
+            - name: Fail if drift
+              if: steps.diff.outputs.drift == 'true'
+              run: |
+                  echo "::error::Docs drift between regenerated TypeDoc output and the committed oc-docs/src/pages/sdk/ tree."
+                  echo "Fix: run \`yarn docs:gen:all\` in oc-packages, commit the resulting oc-docs/src/pages/sdk/ changes alongside this PR, push both."
+                  echo ""
+                  echo "Diff stat:"
+                  cat /tmp/diff-stat.txt
+                  exit 1
