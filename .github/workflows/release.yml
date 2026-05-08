@@ -166,6 +166,143 @@ jobs:
                   name: '@orangecheck/${{ steps.parse.outputs.package }} v${{ steps.parse.outputs.version }}'
                   generate_release_notes: true
 
+    # ── Auto-sync generated SDK docs into oc-docs ────────────────────────
+    #
+    # On every <pkg>-v* tag (except sdk-py): regenerate this package's
+    # TypeDoc reference into a sibling oc-docs checkout, open a PR with
+    # the diff. CI's Linux output is canonical — eliminates the
+    # cross-platform determinism problem that made the drift-check on
+    # PRs cross-platform-fragile (see docs-drift.yml advisory).
+    #
+    # Requires the `OC_DOCS_BOT_TOKEN` secret (fine-grained PAT scoped to
+    # orangecheck/oc-docs, contents:write + pull-requests:write). When
+    # the secret is absent the job skips gracefully (`if:` guard below)
+    # so the workflow can ship ahead of secret provisioning.
+    sync-sdk-docs:
+        name: Sync /sdk/<pkg>/* to oc-docs
+        runs-on: ubuntu-latest
+        needs: publish-npm
+        if: |
+            !startsWith(github.ref_name, 'sdk-py-v')
+            && !startsWith(github.ref_name, 'agent-cli-v')
+            && !startsWith(github.ref_name, 'stamp-cli-v')
+            && !startsWith(github.ref_name, 'vote-cli-v')
+            && !startsWith(github.ref_name, 'cli-v')
+
+        steps:
+            - name: Parse tag
+              id: parse
+              run: |
+                  TAG="${GITHUB_REF#refs/tags/}"
+                  PKG="${TAG%-v*}"
+                  VERSION="${TAG##*-v}"
+                  echo "package=$PKG" >> "$GITHUB_OUTPUT"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+            - name: Skip if OC_DOCS_BOT_TOKEN absent
+              id: gate
+              env:
+                  HAS_TOKEN: ${{ secrets.OC_DOCS_BOT_TOKEN != '' }}
+              run: |
+                  if [ "$HAS_TOKEN" = "true" ]; then
+                      echo "ok=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "::warning::OC_DOCS_BOT_TOKEN not configured — skipping docs sync. Provision a fine-grained PAT scoped to orangecheck/oc-docs (contents:write + pull-requests:write) and add it as the OC_DOCS_BOT_TOKEN secret to enable auto-PR."
+                      echo "ok=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Skip if package has no typedoc.json
+              id: hasdocs
+              if: steps.gate.outputs.ok == 'true'
+              run: |
+                  # Light sanity probe: if the package directory doesn't
+                  # have a typedoc.json (e.g. agent-cli-style binaries),
+                  # we don't generate docs for it. Belt-and-braces with
+                  # the if: guard above; CLIs are listed there but other
+                  # future packages might land here without docs.
+                  if [ -f "${{ steps.parse.outputs.package }}/typedoc.json" ] || true ; then
+                      # Can't actually probe yet — repo isn't checked out
+                      # in this step. The check happens after checkout below.
+                      echo "ok=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Check out oc-packages
+              if: steps.gate.outputs.ok == 'true'
+              uses: actions/checkout@v4
+              with:
+                  path: oc-packages
+
+            - name: Check out oc-docs (with bot token)
+              if: steps.gate.outputs.ok == 'true'
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-docs
+                  ref: main
+                  path: oc-docs
+                  token: ${{ secrets.OC_DOCS_BOT_TOKEN }}
+
+            - name: Skip if package has no typedoc.json (post-checkout)
+              if: steps.gate.outputs.ok == 'true'
+              id: pkgcheck
+              working-directory: oc-packages
+              run: |
+                  if [ -f "${{ steps.parse.outputs.package }}/typedoc.json" ]; then
+                      echo "ok=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "::notice::${{ steps.parse.outputs.package }} has no typedoc.json — not a docs-publishing package. Skipping."
+                      echo "ok=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - uses: actions/setup-node@v4
+              if: steps.pkgcheck.outputs.ok == 'true'
+              with:
+                  node-version: '24'
+                  cache: yarn
+                  cache-dependency-path: oc-packages/yarn.lock
+
+            - name: Install root devDeps
+              if: steps.pkgcheck.outputs.ok == 'true'
+              working-directory: oc-packages
+              run: yarn install --frozen-lockfile
+
+            - name: Regenerate docs for this package
+              if: steps.pkgcheck.outputs.ok == 'true'
+              working-directory: oc-packages
+              run: node scripts/gen-docs.mjs ${{ steps.parse.outputs.package }}
+
+            - name: Open / update PR in oc-docs
+              if: steps.pkgcheck.outputs.ok == 'true'
+              working-directory: oc-docs
+              env:
+                  GH_TOKEN: ${{ secrets.OC_DOCS_BOT_TOKEN }}
+                  PKG: ${{ steps.parse.outputs.package }}
+                  VERSION: ${{ steps.parse.outputs.version }}
+              run: |
+                  set -e
+                  if git diff --quiet src/pages/sdk/$PKG; then
+                      echo "::notice::No diff in src/pages/sdk/$PKG — skipping PR."
+                      exit 0
+                  fi
+                  BRANCH="docs/sync-$PKG-v$VERSION"
+                  git config user.name "ochk-docs-bot"
+                  git config user.email "ops@ochk.io"
+                  git checkout -b "$BRANCH"
+                  git add src/pages/sdk/$PKG
+                  git commit -m "docs(sdk): sync $PKG@$VERSION
+
+                  Auto-generated by oc-packages release workflow on tag
+                  $PKG-v$VERSION. Source: https://github.com/orangecheck/oc-packages/tree/$PKG-v$VERSION/$PKG/src
+
+                  Co-Authored-By: ochk-docs-bot <ops@ochk.io>"
+                  git push origin "$BRANCH"
+                  gh pr create \
+                      --title "docs(sdk): sync $PKG@$VERSION" \
+                      --body "Auto-PR from oc-packages release workflow on tag \`$PKG-v$VERSION\`. Regenerated TypeDoc reference for [\`@orangecheck/$PKG\`](https://www.npmjs.com/package/@orangecheck/$PKG). Merge when CI is green; the docs.ochk.io build picks up the new pages on Vercel auto-deploy." \
+                      --base main \
+                      --head "$BRANCH" \
+                      --label "auto" || true
+                  gh pr merge "$BRANCH" --auto --squash --delete-branch || true
+
     # ── Python / PyPI ─────────────────────────────────────────────────────
     publish-pypi:
         name: Publish to PyPI
