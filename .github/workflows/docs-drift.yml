@@ -32,6 +32,10 @@ on:
             - 'typedoc.base.json'
             - 'scripts/gen-docs.mjs'
             - 'scripts/drift-check.mjs'
+    # Manual trigger: useful after a cross-repo race (oc-packages and
+    # oc-docs commits land out of order — drift-check flickers red until
+    # the second repo catches up; retrigger once it has).
+    workflow_dispatch:
 
 jobs:
     drift:
