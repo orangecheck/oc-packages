@@ -39,6 +39,7 @@ on:
             - 'vote-cli-v*'
             - 'vote-react-v*'
             - 'pledge-core-v*'
+            - 'nostr-core-v*'
             - 'agent-core-v*'
             - 'agent-signer-v*'
             - 'agent-mcp-v*'
