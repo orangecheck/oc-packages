@@ -55,9 +55,14 @@ jobs:
                   ref: main
                   path: oc-docs
 
+            # Node 24 — matches the version in oc-packages/.nvmrc, which
+            # is what local contributors run via `nvm use` (or homebrew
+            # node, which currently aliases to 24.x). Output of typedoc
+            # is deterministic within a major Node line; pin here so a
+            # CI Node bump doesn't silently drift docs.
             - uses: actions/setup-node@v4
               with:
-                  node-version: '20'
+                  node-version: '24'
                   cache: yarn
                   cache-dependency-path: oc-packages/yarn.lock
 
