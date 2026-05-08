@@ -96,12 +96,21 @@ jobs:
                       /tmp/diff-full.txt
                       oc-docs/src/pages/sdk
 
-            - name: Fail if drift
+            - name: Warn (advisory) if drift
               if: steps.diff.outputs.drift == 'true'
               run: |
-                  echo "::error::Docs drift between regenerated TypeDoc output and the committed oc-docs/src/pages/sdk/ tree."
-                  echo "Fix: run \`yarn docs:gen:all\` in oc-packages, commit the resulting oc-docs/src/pages/sdk/ changes alongside this PR, push both."
+                  echo "::warning::Docs drift detected between regenerated TypeDoc output and the committed oc-docs/src/pages/sdk/ tree. Download the docs-drift-${{ github.sha }} artifact for the diff."
                   echo ""
                   echo "Diff stat:"
                   cat /tmp/diff-stat.txt
-                  exit 1
+                  echo ""
+                  echo "ADVISORY ONLY — does not fail the build. Cross-platform TypeDoc"
+                  echo "output isn't yet fully deterministic (Mac vs Linux ships subtly"
+                  echo "different lib.dom.d.ts which affects how 'fetch' overloads render,"
+                  echo "and category classification — Variable vs Function — for some"
+                  echo "exports). Phase 3.5 (auto-PR from CI on every release tag with a"
+                  echo "cross-repo PAT) makes CI the canonical source-of-truth, eliminating"
+                  echo "the platform-asymmetry problem at the source."
+                  echo ""
+                  echo "If the diff looks intentional (a real public API change), run"
+                  echo "\`yarn docs:gen:all\` locally and commit the result to oc-docs."
