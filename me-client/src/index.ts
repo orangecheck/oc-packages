@@ -59,7 +59,9 @@ export {
     getBearerToken,
     clearBearerToken,
     MeClientError,
+    withRateLimitRetry,
 } from './transport';
+export type { WithRateLimitRetryOptions } from './transport';
 
 export {
     PLATFORM_FEE_POLICY,
