@@ -70,6 +70,113 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
     });
 }
 
+/** One event in a batch · same shape as the per-event request minus
+ *  project_key (which is hoisted to the batch level). */
+export interface BatchEventInput {
+    /** Canonical billable subtype. */
+    subtype: EventSubtype;
+    /** For percent_of_amount-priced subtypes, the underlying amount. */
+    payment_amount_sats?: number;
+    /** Human-readable label that appears in /me/earn. */
+    action_label?: string;
+    /** Free-form note stored on the envelope. Public. */
+    note?: string;
+    /** Per-event idempotency key. Distinct from the batch-level retry —
+     *  if the SDK retries the same batch, events that already landed
+     *  collapse to a `duplicate` status with the prior payload. */
+    idempotency_key?: string;
+}
+
+/** Per-event result inside the batch response. Status codes:
+ *  - `recorded` · the event landed; `event` is the canonical billable
+ *    payload exactly as a per-event POST would return.
+ *  - `duplicate` · idempotency-key matched a prior event; `event` is
+ *    the prior payload.
+ *  - `rejected` · validation or site-cap failure; `reason` is human-
+ *    readable. The other events in the batch are unaffected. */
+export type BatchEventResult =
+    | {
+          index: number;
+          status: 'recorded';
+          event: BillableEvent;
+      }
+    | {
+          index: number;
+          status: 'duplicate';
+          event: BillableEvent;
+      }
+    | {
+          index: number;
+          status: 'rejected';
+          reason: string;
+      };
+
+export interface FireBatchOptions {
+    /** Your project_key. Required. All events in the batch bill against
+     *  this project_key + the authenticated session. */
+    project_key: string;
+    /** 1 to 100 events. Larger batches must be split client-side. */
+    events: BatchEventInput[];
+}
+
+export interface FireBatchResponse {
+    ok: boolean;
+    results: BatchEventResult[];
+    escrow_mode: 'simulation' | 'live';
+    simulation_mode_note?: string;
+}
+
+/**
+ * `oc.event.fireBatch` — bulk-ingest up to 100 billable envelopes
+ * under one project_key in a single HTTP round-trip.
+ *
+ * Wins amortize across the batch: one auth roundtrip, one project
+ * lookup, one scope-grants resolve, parallel KV writes via Promise.all.
+ * For a 50-event batch the server-side processing time drops from
+ * ~3-4.5 seconds (50 sequential per-event POSTs) to ~100-200ms.
+ *
+ *   import { oc } from '@orangecheck/me-client';
+ *
+ *   const res = await oc.event.fireBatch({
+ *     project_key: 'pk_live_yourcompany',
+ *     events: [
+ *       { subtype: 'session_creation' },
+ *       { subtype: 'page_view', action_label: 'home' },
+ *       { subtype: 'page_view', action_label: 'pricing' },
+ *     ],
+ *   });
+ *   for (const r of res.results) {
+ *     if (r.status === 'recorded') console.log('+', r.event.id, r.event.gross_fee_sats);
+ *     else if (r.status === 'duplicate') console.log('~ idempotent replay', r.event.id);
+ *     else console.log('!', r.reason);
+ *   }
+ *
+ * Failure modes:
+ *   - 400 if events.length === 0 or > 100, or events[].subtype missing
+ *   - 403 if the project is frozen or the domain is unverified
+ *   - 429 if the project's rate limit (1000 events/sec sustained) is
+ *     exceeded; Retry-After header indicates backoff.
+ *
+ * Per OCHK-V3-PLAN §12.2.
+ */
+async function fireBatch(options: FireBatchOptions): Promise<FireBatchResponse> {
+    if (!options.project_key) {
+        throw new Error('event.fireBatch requires project_key');
+    }
+    if (!Array.isArray(options.events) || options.events.length === 0) {
+        throw new Error('event.fireBatch requires at least one event');
+    }
+    if (options.events.length > 100) {
+        throw new Error(
+            `event.fireBatch · max 100 events per call (got ${options.events.length}). Split client-side.`
+        );
+    }
+    return api<FireBatchResponse>('/api/integrator/event/batch', {
+        method: 'POST',
+        body: options,
+    });
+}
+
 /** Result of replay-verifying a billable envelope against the
  *  integrator's price config. Every field returned tells the caller
  *  WHY a divergence happened — they can render it directly. */
@@ -219,4 +326,4 @@ function verify(
     };
 }
 
-export const event = { fire, verify };
+export const event = { fire, fireBatch, verify };
