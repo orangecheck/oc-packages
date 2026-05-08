@@ -1,0 +1,66 @@
+name: Docs drift check
+
+# Fail PRs that change the public TypeScript surface (or the JSDoc/TSDoc
+# attached to it) without committing the corresponding regenerated MDX in
+# the sibling oc-docs repo.
+#
+# Mechanism:
+#   1. Check out oc-packages (the PR branch).
+#   2. Check out oc-docs main alongside it.
+#   3. Run scripts/drift-check.mjs — regenerates docs into a temp dir and
+#      diffs against oc-docs/src/pages/sdk/.
+#   4. Exit 1 if drift, with a message naming offending files + the fix.
+#
+# Local equivalent: `yarn docs:check` from the oc-packages root, with
+# oc-docs cloned as a sibling at ../oc-docs.
+
+on:
+    pull_request:
+        branches: [main]
+        paths:
+            - '**/*.ts'
+            - '**/typedoc.json'
+            - 'typedoc.base.json'
+            - 'scripts/gen-docs.mjs'
+            - 'scripts/drift-check.mjs'
+            - '.github/workflows/docs-drift.yml'
+    push:
+        branches: [main]
+        paths:
+            - '**/*.ts'
+            - '**/typedoc.json'
+            - 'typedoc.base.json'
+            - 'scripts/gen-docs.mjs'
+            - 'scripts/drift-check.mjs'
+
+jobs:
+    drift:
+        name: Regenerate docs and diff against oc-docs
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out oc-packages
+              uses: actions/checkout@v4
+              with:
+                  path: oc-packages
+
+            - name: Check out oc-docs (sibling)
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-docs
+                  ref: main
+                  path: oc-docs
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: yarn
+                  cache-dependency-path: oc-packages/yarn.lock
+
+            - name: Install root devDeps (typedoc + plugins)
+              working-directory: oc-packages
+              run: yarn install --frozen-lockfile
+
+            - name: Run drift-check
+              working-directory: oc-packages
+              run: yarn docs:check

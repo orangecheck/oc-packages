@@ -6,6 +6,8 @@
     ],
     "readme": "none",
     "skipErrorChecking": true,
+    "gitRevision": "main",
+    "gitRemote": "origin",
     "excludePrivate": true,
     "excludeProtected": false,
     "excludeInternal": true,
