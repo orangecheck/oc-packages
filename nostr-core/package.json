@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/nostr-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browser-compatible Nostr client used by every OrangeCheck family web app. Raw NIP-01 over WebSocket against a list of relays. publishEvent / queryEvents / DEFAULT_RELAYS.",
   "keywords": [
     "nostr",
