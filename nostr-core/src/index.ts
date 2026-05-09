@@ -62,6 +62,15 @@ const _RELAYS: ValidRelaySet<readonly [
  *
  * Frozen at runtime; consumers MAY pass an explicit `relays` arg to any
  * function in this package to override.
+ *
+ * @example
+ * ```ts
+ * import { DEFAULT_RELAYS, publishEvent } from '@orangecheck/nostr-core';
+ *
+ * const results = await publishEvent(myEvent);
+ * // → publishes to all 5 relays in DEFAULT_RELAYS in parallel
+ * console.log(`accepted on ${results.filter(r => r.ok).length}/${results.length}`);
+ * ```
  */
 export const DEFAULT_RELAYS: readonly string[] = Object.freeze([..._RELAYS]);
 
