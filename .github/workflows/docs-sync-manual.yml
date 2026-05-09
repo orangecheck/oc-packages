@@ -1,0 +1,98 @@
+name: Docs sync (manual)
+
+# Manual trigger that mirrors release.yml's sync-sdk-docs job. Lets us
+# regenerate docs for a specific package and open an oc-docs PR without
+# firing a real npm release tag.
+#
+# Useful when:
+#   - Verifying the OC_DOCS_BOT_TOKEN wiring without bumping a version.
+#   - Catching up after a TS-source change that didn't land via a release
+#     (e.g. a typo fix in a JSDoc comment that doesn't warrant a publish).
+#   - Re-syncing if the auto-PR was rejected for unrelated reasons.
+
+on:
+    workflow_dispatch:
+        inputs:
+            package:
+                description: 'Package name (e.g. sdk, agent-core, nostr-core)'
+                required: true
+                type: string
+
+jobs:
+    sync:
+        name: Regenerate /sdk/${{ inputs.package }}/* and open oc-docs PR
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Skip if OC_DOCS_BOT_TOKEN absent
+              id: gate
+              env:
+                  HAS_TOKEN: ${{ secrets.OC_DOCS_BOT_TOKEN != '' }}
+              run: |
+                  if [ "$HAS_TOKEN" = "true" ]; then
+                      echo "ok=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "::error::OC_DOCS_BOT_TOKEN not configured."
+                      exit 1
+                  fi
+
+            - name: Check out oc-packages
+              uses: actions/checkout@v4
+              with:
+                  path: oc-packages
+
+            - name: Check out oc-docs (with bot token)
+              uses: actions/checkout@v4
+              with:
+                  repository: orangecheck/oc-docs
+                  ref: main
+                  path: oc-docs
+                  token: ${{ secrets.OC_DOCS_BOT_TOKEN }}
+
+            - name: Verify package has typedoc.json
+              working-directory: oc-packages
+              run: |
+                  if [ ! -f "${{ inputs.package }}/typedoc.json" ]; then
+                      echo "::error::${{ inputs.package }} has no typedoc.json — not a docs-publishing package."
+                      exit 1
+                  fi
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+                  cache: yarn
+                  cache-dependency-path: oc-packages/yarn.lock
+
+            - name: Install root devDeps
+              working-directory: oc-packages
+              run: yarn install --frozen-lockfile
+
+            - name: Regenerate docs for this package
+              working-directory: oc-packages
+              run: node scripts/gen-docs.mjs ${{ inputs.package }}
+
+            - name: Open / update PR in oc-docs
+              working-directory: oc-docs
+              env:
+                  GH_TOKEN: ${{ secrets.OC_DOCS_BOT_TOKEN }}
+                  PKG: ${{ inputs.package }}
+              run: |
+                  set -e
+                  if git diff --quiet src/pages/sdk/$PKG; then
+                      echo "::notice::No diff in src/pages/sdk/$PKG — skipping PR."
+                      exit 0
+                  fi
+                  BRANCH="docs/sync-$PKG-manual-${{ github.run_id }}"
+                  git config user.name "ochk-docs-bot"
+                  git config user.email "ops@ochk.io"
+                  git checkout -b "$BRANCH"
+                  git add src/pages/sdk/$PKG
+                  git commit -m "docs(sdk): manual sync $PKG (run ${{ github.run_id }})"
+                  git push origin "$BRANCH"
+                  gh pr create \
+                      --title "docs(sdk): manual sync $PKG" \
+                      --body "Manual workflow_dispatch run from oc-packages. Regenerated TypeDoc reference for [\`@orangecheck/$PKG\`](https://www.npmjs.com/package/@orangecheck/$PKG)." \
+                      --base main \
+                      --head "$BRANCH" \
+                      --label "auto" || true
+                  gh pr merge "$BRANCH" --auto --squash --delete-branch || true
