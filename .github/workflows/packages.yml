@@ -64,9 +64,9 @@ jobs:
             run:
                 working-directory: ${{ matrix.pkg }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v5
               with:
                   node-version: '24'
                   cache: yarn
@@ -77,7 +77,7 @@ jobs:
             # point the tests at its test-vectors/ via OC_VOTE_VECTORS_DIR.
             - name: Checkout oc-vote-protocol (for vote-core conformance)
               if: matrix.pkg == 'vote-core'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-vote-protocol
                   path: .oc-vote-protocol
@@ -91,7 +91,7 @@ jobs:
             # oc-agent-protocol repo. Same pattern as vote-core above.
             - name: Checkout oc-agent-protocol (for agent-core conformance)
               if: matrix.pkg == 'agent-core'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-agent-protocol
                   path: .oc-agent-protocol
@@ -105,7 +105,7 @@ jobs:
             # oc-pledge-protocol repo. Same pattern as vote-core / agent-core.
             - name: Checkout oc-pledge-protocol (for pledge-core conformance)
               if: matrix.pkg == 'pledge-core'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-pledge-protocol
                   path: .oc-pledge-protocol
@@ -122,7 +122,7 @@ jobs:
             # cross-impl byte-equality property end-to-end.
             - name: Checkout oc-lock-protocol (for lock-core conformance)
               if: matrix.pkg == 'lock-core'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-lock-protocol
                   path: .oc-lock-protocol
@@ -136,7 +136,7 @@ jobs:
             # oc-stamp-protocol repo. Same pattern.
             - name: Checkout oc-stamp-protocol (for stamp-core conformance)
               if: matrix.pkg == 'stamp-core'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-stamp-protocol
                   path: .oc-stamp-protocol
@@ -205,14 +205,14 @@ jobs:
         name: Python SDK
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             # orangecheck.pledge's conformance harness loads the canonical
             # vectors from oc-pledge-protocol/test-vectors/. Without this
             # checkout the pledge tests gracefully skip; with it, all 28
             # vectors run as part of the standard `python` CI gate.
             - name: Checkout oc-pledge-protocol (for pledge conformance)
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-pledge-protocol
                   path: .oc-pledge-protocol
@@ -251,7 +251,7 @@ jobs:
         #     drift is impossible by construction. The two SDKs producing
         #     identical output for every vector IS the conformance gate.
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Fetch live oc-attest-protocol vectors
               run: |
@@ -266,7 +266,7 @@ jobs:
                   diff -r /tmp/oc-protocol/conformance/vectors sdk/src/__tests__/vectors
                   diff -r /tmp/oc-protocol/conformance/vectors sdk-py/tests/vectors
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v5
               with:
                   node-version: '24'
                   cache: yarn

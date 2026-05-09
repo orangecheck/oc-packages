@@ -65,7 +65,7 @@ jobs:
             contents: write
             id-token: write # for npm provenance
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Parse tag
               id: parse
@@ -77,7 +77,7 @@ jobs:
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "dir=$PKG" >> "$GITHUB_OUTPUT"
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v5
               with:
                   node-version: '24'
                   registry-url: 'https://registry.npmjs.org'
@@ -228,13 +228,13 @@ jobs:
 
             - name: Check out oc-packages
               if: steps.gate.outputs.ok == 'true'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   path: oc-packages
 
             - name: Check out oc-docs (with bot token)
               if: steps.gate.outputs.ok == 'true'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-docs
                   ref: main
@@ -253,7 +253,7 @@ jobs:
                       echo "ok=false" >> "$GITHUB_OUTPUT"
                   fi
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v5
               if: steps.pkgcheck.outputs.ok == 'true'
               with:
                   node-version: '24'
@@ -317,7 +317,7 @@ jobs:
             run:
                 working-directory: sdk-py
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Parse version
               id: parse
