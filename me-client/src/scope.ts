@@ -42,14 +42,18 @@ import { api, getOrigin } from './transport';
  *  cross_integrator_human_event_count · per OCHK-V3-PLAN §7 · same
  *    aggregate filtered to is_agent !== true (human-fired only).
  *    Use when you want to gate on real human activity rather than
- *    bot-padded counts. */
+ *    bot-padded counts.
+ *  trust_attestation_count · per OCHK-V3-PLAN §6 phase-2 · four-int
+ *    selective-disclosure quad summarizing reputation-graph attestations.
+ *    Use parseTrustAttestationCount() to decode the wire-format string. */
 export type Scope =
     | 'bitcoin_address'
     | 'email'
     | 'attest_tier'
     | 'display_name'
     | 'cross_integrator_event_count'
-    | 'cross_integrator_human_event_count';
+    | 'cross_integrator_human_event_count'
+    | 'trust_attestation_count';
 
 const VALID_SCOPES: ReadonlyArray<Scope> = [
     'bitcoin_address',
@@ -58,7 +62,37 @@ const VALID_SCOPES: ReadonlyArray<Scope> = [
     'display_name',
     'cross_integrator_event_count',
     'cross_integrator_human_event_count',
+    'trust_attestation_count',
 ];
+
+/** Decoded shape of the `trust_attestation_count` scope value. The wire
+ *  format is a comma-separated quad: total,good,distinct_good_issuers,caution.
+ *  Block-status counts are intentionally omitted from the disclosure
+ *  surface — block flags belong to the pseudonymous-issuer side, not
+ *  the subject's public score. */
+export interface TrustAttestationCount {
+    total: number;
+    good: number;
+    distinct_good_issuers: number;
+    caution: number;
+}
+
+/** Decode the `trust_attestation_count` scope's wire-format string into
+ *  a typed quad. Returns null if the input is malformed (defensive ·
+ *  the resolver always emits well-formed strings, but third-party
+ *  consumers may hand us anything). */
+export function parseTrustAttestationCount(value: string): TrustAttestationCount | null {
+    const parts = value.split(',');
+    if (parts.length !== 4) return null;
+    const ints = parts.map((p) => Number.parseInt(p, 10));
+    if (ints.some((n) => !Number.isInteger(n) || n < 0)) return null;
+    return {
+        total: ints[0]!,
+        good: ints[1]!,
+        distinct_good_issuers: ints[2]!,
+        caution: ints[3]!,
+    };
+}
 
 export interface GrantedOptions {
     /** Your project_key. Required. */
@@ -156,4 +190,4 @@ export function request(scopes: Scope[], options: RequestOptions): never {
     throw new Error('oc.scope.request: redirected to consent prompt');
 }
 
-export const scope = { granted, request };
+export const scope = { granted, request, parseTrustAttestationCount };

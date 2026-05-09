@@ -50,8 +50,14 @@ export { config } from './config';
 export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
 export { federations } from './federations';
-export { scope } from './scope';
-export type { Scope, GrantedOptions, GrantedResult, RequestOptions } from './scope';
+export { scope, parseTrustAttestationCount } from './scope';
+export type {
+    Scope,
+    GrantedOptions,
+    GrantedResult,
+    RequestOptions,
+    TrustAttestationCount,
+} from './scope';
 export { family } from './family';
 export type { FamilyVerb, FamilyScopesOptions, FamilyScopesResult } from './family';
 export {
