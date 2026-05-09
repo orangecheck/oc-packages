@@ -93,6 +93,5 @@ jobs:
                       --title "docs(sdk): manual sync $PKG" \
                       --body "Manual workflow_dispatch run from oc-packages. Regenerated TypeDoc reference for [\`@orangecheck/$PKG\`](https://www.npmjs.com/package/@orangecheck/$PKG)." \
                       --base main \
-                      --head "$BRANCH" \
-                      --label "auto" || true
-                  gh pr merge "$BRANCH" --auto --squash --delete-branch || true
+                      --head "$BRANCH"
+                  gh pr merge "$BRANCH" --auto --squash --delete-branch

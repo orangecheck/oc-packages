@@ -299,9 +299,8 @@ jobs:
                       --title "docs(sdk): sync $PKG@$VERSION" \
                       --body "Auto-PR from oc-packages release workflow on tag \`$PKG-v$VERSION\`. Regenerated TypeDoc reference for [\`@orangecheck/$PKG\`](https://www.npmjs.com/package/@orangecheck/$PKG). Merge when CI is green; the docs.ochk.io build picks up the new pages on Vercel auto-deploy." \
                       --base main \
-                      --head "$BRANCH" \
-                      --label "auto" || true
-                  gh pr merge "$BRANCH" --auto --squash --delete-branch || true
+                      --head "$BRANCH"
+                  gh pr merge "$BRANCH" --auto --squash --delete-branch
 
     # ── Python / PyPI ─────────────────────────────────────────────────────
     publish-pypi:
