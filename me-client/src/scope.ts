@@ -35,14 +35,29 @@
 import { api, getOrigin } from './transport';
 
 /** Catalog of valid scopes · keep in sync with SCOPE_IDS in
- *  oc-me-web/src/lib/privacy/scopes.ts. */
-export type Scope = 'bitcoin_address' | 'email' | 'attest_tier' | 'display_name';
+ *  oc-me-web/src/lib/privacy/scopes.ts.
+ *
+ *  cross_integrator_event_count · per OCHK-V2-PLAN §7 · low-info
+ *    sybil signal aggregating event count across every integrator.
+ *  cross_integrator_human_event_count · per OCHK-V3-PLAN §7 · same
+ *    aggregate filtered to is_agent !== true (human-fired only).
+ *    Use when you want to gate on real human activity rather than
+ *    bot-padded counts. */
+export type Scope =
+    | 'bitcoin_address'
+    | 'email'
+    | 'attest_tier'
+    | 'display_name'
+    | 'cross_integrator_event_count'
+    | 'cross_integrator_human_event_count';
 
 const VALID_SCOPES: ReadonlyArray<Scope> = [
     'bitcoin_address',
     'email',
     'attest_tier',
     'display_name',
+    'cross_integrator_event_count',
+    'cross_integrator_human_event_count',
 ];
 
 export interface GrantedOptions {
