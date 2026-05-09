@@ -55,6 +55,15 @@ export interface FireEventOptions {
     /** Free-form metadata stored on the envelope. Public — anyone who
      *  GETs /api/envelope/<id> sees it. Don't put secrets here. */
     metadata?: Record<string, unknown>;
+    /** Per OCHK-V3-PLAN §7 phase-1 · when true, the event was fired
+     *  by an oc-agent delegation rather than a human acting under their
+     *  own session. The integrator's IntegratorEventConfig.agent block
+     *  applies the override (or refuses · 422 agent_refused).
+     *
+     *  Set this when an autonomous agent (oc-agent kind 30084 action
+     *  envelope) is the source of the event. Don't set it for events
+     *  the human user clicked themselves. */
+    is_agent?: boolean;
 }
 
 async function fire(options: FireEventOptions): Promise<BillableEvent> {
@@ -85,6 +94,11 @@ export interface BatchEventInput {
      *  if the SDK retries the same batch, events that already landed
      *  collapse to a `duplicate` status with the prior payload. */
     idempotency_key?: string;
+    /** Per OCHK-V3-PLAN §7 phase-1 · per-event agent flag. A single
+     *  batch can mix agent + human events when a backend interleaves
+     *  them. The integrator's per-subtype agent override applies per
+     *  event independently. */
+    is_agent?: boolean;
 }
 
 /** Per-event result inside the batch response. Status codes:
