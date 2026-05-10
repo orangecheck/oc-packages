@@ -225,10 +225,10 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/me-client@^0.17.0":
-  version "0.17.0"
-  resolved "https://registry.npmjs.org/@orangecheck/me-client/-/me-client-0.17.0.tgz#88869bf6deef6cb066e3e7216ec1d968cd7f2cd4"
-  integrity sha512-M69kZpMiWH1iefuUstb7WreBEEV1UaxEP5hQBnmskag19CUHwBvd5nz8mEL9F8TtkDqFhUAjmby5jzPAHgjhfA==
+"@orangecheck/me-client@^0.18.0":
+  version "0.18.0"
+  resolved "https://registry.npmjs.org/@orangecheck/me-client/-/me-client-0.18.0.tgz#e06de8f69bba473a96058502961723d7cdc4bb41"
+  integrity sha512-GZF/nnJ69ExDHiBYsruwqK384a+5sO+FJjcUmaSoVwL5goqQR4H8uyNWRLBAAIyt5kHYko35WDQyqf21ZZKbbQ==
   dependencies:
     "@orangecheck/auth-core" "^0.4.0"
 

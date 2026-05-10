@@ -38,7 +38,7 @@ import {
     validateIntegratorConfig,
     type IntegratorArchetype,
     type IntegratorPriceConfig,
-} from '@orangecheck/me-client';
+} from '@orangecheck/me-client/integrator';
 
 import { die, exitWithJson, readStdin } from '../util';
 
