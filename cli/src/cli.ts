@@ -14,6 +14,13 @@ import { Command } from 'commander';
 import { runChallengeIssue, runChallengeVerify } from './commands/challenge';
 import { runCheck } from './commands/check';
 import { runDiscover } from './commands/discover';
+import {
+    runMeArchetypes,
+    runMeInit,
+    runMeSubtypes,
+    runMeTestFire,
+    runMeValidateConfig,
+} from './commands/me';
 import { runVerify } from './commands/verify';
 
 const program = new Command();
@@ -123,6 +130,80 @@ challenge
             expectedAudience: opts.expectedAudience,
             expectedPurpose: opts.expectedPurpose,
             scheme: opts.scheme,
+            json: Boolean(opts.json),
+        });
+    });
+
+// ── me.ochk.io integrator commands ────────────────────────────────────────
+
+const me = program
+    .command('me')
+    .description('me.ochk.io integrator commands · scaffold, validate, smoke-fire');
+
+me.command('init')
+    .description('Scaffold an IntegratorPriceConfig from one of the curated archetypes')
+    .requiredOption(
+        '--archetype <id>',
+        'saas-paywall | marketplace | content-platform | gaming | agent-only'
+    )
+    .requiredOption('--project-key <pk>', 'Your project_key (e.g. pk_live_yourcompany)')
+    .requiredOption('--domain <domain>', 'The domain you integrate on (e.g. yoursite.com)')
+    .requiredOption('--name <name>', 'Display name for this project')
+    .option('--out <path>', 'Where to write the config', 'oc-config.json')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action(async (opts) => {
+        await runMeInit({
+            archetype: opts.archetype,
+            projectKey: opts.projectKey,
+            domain: opts.domain,
+            name: opts.name,
+            out: opts.out,
+            json: Boolean(opts.json),
+        });
+    });
+
+me.command('archetypes')
+    .description('List the curated archetype templates')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action((opts) => {
+        runMeArchetypes({ json: Boolean(opts.json) });
+    });
+
+me.command('subtypes')
+    .description('List billable event subtypes with descriptions and price hints')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action((opts) => {
+        runMeSubtypes({ json: Boolean(opts.json) });
+    });
+
+me.command('validate-config')
+    .description('Lint a local IntegratorPriceConfig file (or stdin)')
+    .argument('[file]', 'Path to JSON file (defaults to stdin)')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action(async (file, opts) => {
+        await runMeValidateConfig({
+            file,
+            json: Boolean(opts.json),
+        });
+    });
+
+me.command('test-fire')
+    .description('Fire a billable envelope from the terminal · smoke-test webhook handlers')
+    .argument('<project_key>', 'Your project_key')
+    .argument('<subtype>', 'Subtype to fire (run `oc me subtypes` to list)')
+    .option('--action-label <label>', 'Custom action label (default: cli timestamp)')
+    .option('--payment-amount-sats <n>', 'Required for percent_of_amount-priced subtypes')
+    .option('--origin <url>', 'Override OC origin (default https://me.ochk.io)')
+    .option('--token <token>', 'Bearer token (or set OC_BEARER_TOKEN env var)')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action(async (projectKey, subtype, opts) => {
+        await runMeTestFire({
+            projectKey,
+            subtype,
+            actionLabel: opts.actionLabel,
+            paymentAmountSats: opts.paymentAmountSats,
+            origin: opts.origin,
+            token: opts.token,
             json: Boolean(opts.json),
         });
     });

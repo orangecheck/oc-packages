@@ -5,6 +5,7 @@ export default defineConfig({
         index: 'src/index.ts',
         server: 'src/server.ts',
         popup: 'src/popup.ts',
+        integrator: 'src/integrator.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,
