@@ -20,6 +20,8 @@ interface MeResponse {
         accountId?: string;
         btc_address?: string;
         address?: string;
+        did_oc?: string | null;
+        didOc?: string | null;
         display_name?: string | null;
         displayName?: string | null;
         nostr_npub?: string | null;
@@ -43,6 +45,7 @@ function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
     return {
         accountId,
         address,
+        didOc: raw.did_oc ?? raw.didOc ?? null,
         displayName: raw.display_name ?? raw.displayName ?? null,
         nostrNpub: raw.nostr_npub ?? raw.nostrNpub ?? null,
         homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,

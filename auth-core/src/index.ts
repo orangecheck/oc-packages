@@ -30,7 +30,24 @@ export type AuthKey = CryptoKey | KeyObject;
 
 export interface SessionPayload extends JWTPayload {
     sub: string;
+    /**
+     * Legacy: the user's btc_address (raw bc1q… for BIP-322 users,
+     * `did:email:<sha256>` for email-OTP users). Kept during the
+     * dual-write window per AUTH-REFACTOR-PLAN.md §3 so consumers
+     * minted-pre-refactor JWTs still work. Consumers should prefer
+     * `did_oc` when present and treat `addr` as deprecated.
+     */
     addr: string;
+    /**
+     * Opaque public-facing identifier · `did:oc:<32-hex>`. Stable
+     * across linking events (a user who signs up with email and
+     * later links a btc address keeps the same did_oc). Optional
+     * during the dual-write window — JWTs minted before the
+     * refactor landed don't carry it. Consumers should adopt this
+     * as the canonical user identifier and fall back to `addr` only
+     * when `did_oc` is absent. Per AUTH-REFACTOR-PLAN.md §2.1.
+     */
+    did_oc?: string;
     jti: string;
     /**
      * Optional display name set by the user via the auth host's profile
