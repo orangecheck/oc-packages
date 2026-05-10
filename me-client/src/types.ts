@@ -37,7 +37,7 @@ export type EventClass = 'A' | 'B' | 'C';
 export type ClassASubtype =
     | 'account_creation'
     | 'account_recovery'
-    | 'kyc_tier_upgrade'
+    | 'attest_bond_increased'
     | 'payment_method_connected'
     | 'agent_delegation_issued'
     | 'recovery_method_updated';
@@ -53,7 +53,17 @@ export type ClassCSubtype = 'session_creation';
 
 export type EventSubtype = ClassASubtype | ClassBSubtype | ClassCSubtype;
 
-export type AttestTier = 'anonymous' | 'bonded' | 'kyc_light' | 'kyc_strong';
+/** AttestTier · what an integrator's gate can read about an oc identity.
+ *
+ *  me.ochk does NOT do KYC. Sybil resistance is bounded by three
+ *  composable mechanisms, none of which involve OC handling PII:
+ *    1. paid-action history · billable events cost real sats
+ *    2. BIP-322 sat-bonding · bond size + age via signed attestation
+ *    3. integrator-defined gates · per-site threat-model overlays
+ *
+ *  Tier itself is intentionally simple — anonymous | bonded.
+ *  Granularity (bond_sats, bond_locked_at, etc) carried separately. */
+export type AttestTier = 'anonymous' | 'bonded';
 
 /** The shape of a per-event fee — either a fixed sats amount or a percent
  *  of the underlying transaction amount (used for payments + pledges). */
@@ -198,6 +208,91 @@ export interface BillableEvent {
     user_earned_sats: number;
     site_rebate_sats: number;
     verify_url: string;
+    /** Per OCHK-V3-PLAN §7 phase-1 · true when the event was fired by
+     *  an oc-agent delegation rather than a human session. The
+     *  integrator's IntegratorEventConfig.agent block may price
+     *  these differently or refuse them. Optional · canonical encoder
+     *  branches to v=3 only when present, so legacy human-fired
+     *  events keep their v=2 hash + signature. */
+    is_agent?: boolean;
+}
+
+// ── webhook payload ───────────────────────────────────────────────────────
+
+/**
+ * The exact JSON body delivered to a registered webhook endpoint when
+ * a billable event fires. Imported by integrator backends so the
+ * receive handler is type-checked end-to-end without re-declaring the
+ * shape.
+ *
+ *   import type { WebhookPayload } from '@orangecheck/me-client';
+ *
+ *   export async function POST(req: Request) {
+ *     const payload = (await req.json()) as WebhookPayload;
+ *     if (payload.subtype === 'payment_authorization') {
+ *       creditUser(payload.sub, payload.user_earned_sats);
+ *     }
+ *   }
+ *
+ * Headers carry the signature and metadata (see WebhookHeaders below).
+ * Verify the signature with `oc.webhook.verify({ body, headers, jwks })`.
+ *
+ * Privacy contract · the master oc identity is NEVER in the payload.
+ * Integrators see `sub` (per-integrator anonymous id) plus any
+ * `scopes` the user explicitly granted. See PRIVACY-ARCHITECTURE.md.
+ */
+export interface WebhookPayload extends BillableEvent {
+    /** Discriminator · identifies the payload kind for routing on
+     *  the integrator's side. Always 'oc-billable-event' today; future
+     *  webhook payload kinds (refunds, charters, etc) will use
+     *  distinct discriminator values. */
+    kind: 'oc-billable-event';
+    /** Per-integrator anonymous subject id · stable across events for
+     *  the same (oc_identity, project_key) pair. Key your user records
+     *  on this; OC will never give you the master address unless the
+     *  user explicitly grants `bitcoin_address` or `email` scope. */
+    sub: string;
+    /** Resolved scoped fields · only present for scopes the user has
+     *  granted to this project. Wire format is string-keyed (every
+     *  value is stringified · ints stringified, addresses as-is). */
+    scopes?: Partial<
+        Record<
+            | 'bitcoin_address'
+            | 'email'
+            | 'attest_tier'
+            | 'display_name'
+            | 'cross_integrator_event_count'
+            | 'cross_integrator_human_event_count'
+            | 'trust_attestation_count'
+            | 'trust_attestations_bundle',
+            string
+        >
+    >;
+}
+
+/**
+ * HTTP headers OC sends with every webhook delivery. Capture these in
+ * the receive handler · `OC-Signature` is what verifies the body.
+ */
+export interface WebhookHeaders {
+    /** Ed25519 signature over the raw response body, hex-encoded. */
+    'OC-Signature': string;
+    /** Stable kid of the signing key · resolves against
+     *  ochk.io/.well-known/jwks.json. */
+    'OC-Key-Id': string;
+    /** Envelope id · matches payload.id; useful for idempotent
+     *  receive handlers that dedupe on this header without parsing
+     *  the body. */
+    'OC-Envelope-Id': string;
+    /** Subtype · matches payload.subtype; lets routers branch on the
+     *  header before parsing. */
+    'OC-Subtype': EventSubtype;
+    /** Class · matches payload.class. */
+    'OC-Class': EventClass;
+    /** 1-indexed delivery attempt count. >1 means the prior attempt
+     *  did not return a 2xx within the timeout · idempotency key on
+     *  payload.id is critical. */
+    'OC-Delivery-Attempt': string;
 }
 
 // ── session lifecycle ────────────────────────────────────────────────────

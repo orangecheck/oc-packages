@@ -91,6 +91,8 @@ export type {
     ComputedFees,
     ValidationResult,
     BillableEvent,
+    WebhookPayload,
+    WebhookHeaders,
     Session,
     SessionPolicy,
     SignInOptions,
@@ -101,6 +103,21 @@ export type {
     FederationStatus,
     SigningMethod,
 } from './types';
+
+export {
+    EVENT_SUBTYPES,
+    ALL_EVENT_SUBTYPES,
+    subtypesForClass,
+    type EventSubtypeMetadata,
+} from './subtypes';
+
+export {
+    ARCHETYPE_TEMPLATES,
+    fromTemplate as configFromTemplate,
+    getArchetypeTemplate,
+    type ArchetypeTemplate,
+    type IntegratorArchetype,
+} from './templates';
 
 import { session } from './session';
 import { payment } from './payment';
