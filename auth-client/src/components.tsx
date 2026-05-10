@@ -113,7 +113,7 @@ export function OcAccountChip({
                 onClick={() => setOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={open}
-                aria-label={`Signed in as ${account.address}. Open account menu.`}
+                aria-label={`Signed in as ${account.didOc}. Open account menu.`}
                 className={triggerClassName}
                 data-oc-account-chip-trigger=""
                 style={
@@ -138,7 +138,7 @@ export function OcAccountChip({
                 <span aria-hidden="true" style={{ color: '#22c55e', fontSize: 8 }}>
                     ●
                 </span>
-                <span>{account.displayName ?? shortenAddress(account.address)}</span>
+                <span>{account.displayName ?? shortenAddress(account.didOc)}</span>
                 <svg
                     width="9"
                     height="9"
@@ -211,7 +211,7 @@ export function OcAccountChip({
                                 lineHeight: 1.35,
                             }}
                         >
-                            {account.address}
+                            {account.didOc}
                         </div>
                         {account.displayName ? (
                             <div
@@ -373,8 +373,8 @@ export function OcAccountPill({
     if (status !== 'authenticated' || !account) return null;
 
     const label = render
-        ? render({ address: account.address, displayName: account.displayName })
-        : (account.displayName ?? shortenAddress(account.address));
+        ? render({ address: account.didOc, displayName: account.displayName })
+        : (account.displayName ?? shortenAddress(account.didOc));
 
     return (
         <div
@@ -526,7 +526,7 @@ export function useOcAddressSuggestion(
     } = options;
 
     const { status, account } = useOcSession();
-    const sessionAddress = status === 'authenticated' ? (account?.address ?? null) : null;
+    const sessionAddress = status === 'authenticated' ? (account?.primaryBtc ?? null) : null;
 
     const [open, setOpen] = React.useState(false);
     const [highlighted, setHighlighted] = React.useState(false);
@@ -669,7 +669,7 @@ export const OcAddressInput = React.forwardRef<HTMLInputElement, OcAddressInputP
         forwardedRef
     ): React.ReactElement {
         const { status, account } = useOcSession();
-        const sessionAddress = status === 'authenticated' ? (account?.address ?? null) : null;
+        const sessionAddress = status === 'authenticated' ? (account?.primaryBtc ?? null) : null;
 
         const [open, setOpen] = React.useState(false);
         const [highlighted, setHighlighted] = React.useState(false);

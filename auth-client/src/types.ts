@@ -1,20 +1,25 @@
 export interface OcAccount {
     accountId: string;
     /**
-     * Legacy: the user's btc_address (raw bc1q… for BIP-322 users,
-     * `did:email:<sha256>` for email-OTP users). Kept during the
-     * dual-write window per AUTH-REFACTOR-PLAN.md §3 so consumer
-     * UIs minted-pre-refactor JWTs still work. Consumers should
-     * prefer `didOc` when present and treat `address` as deprecated.
+     * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
+     * user identifier post auth-refactor. Stable across linking
+     * events. Per AUTH-REFACTOR-PLAN.md §2.1.
      */
-    address: string;
+    didOc: string;
     /**
-     * Opaque public-facing identifier · `did:oc:<32-hex>`. Stable
-     * across linking events. The new canonical user identifier per
-     * AUTH-REFACTOR-PLAN.md §2.1. Optional during the dual-write
-     * window — JWTs minted before the refactor landed don't carry it.
+     * Primary linked Bitcoin address, plaintext, when the user has
+     * one — null for email-OTP users until they link a btc address.
+     * Surfaced inline by the auth host's /api/auth/me so consumer
+     * dashboards can render the user's own footprint without a
+     * second round-trip through /api/auth/identities.
      */
-    didOc?: string | null;
+    primaryBtc?: string | null;
+    /**
+     * True when the user has a primary email linked. Plaintext is
+     * fetchable on demand via /api/auth/identities; not surfaced
+     * here.
+     */
+    hasEmail?: boolean;
     displayName?: string | null;
     nostrNpub?: string | null;
     /**

@@ -31,23 +31,12 @@ export type AuthKey = CryptoKey | KeyObject;
 export interface SessionPayload extends JWTPayload {
     sub: string;
     /**
-     * Legacy: the user's btc_address (raw bc1q… for BIP-322 users,
-     * `did:email:<sha256>` for email-OTP users). Kept during the
-     * dual-write window per AUTH-REFACTOR-PLAN.md §3 so consumers
-     * minted-pre-refactor JWTs still work. Consumers should prefer
-     * `did_oc` when present and treat `addr` as deprecated.
+     * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
+     * user identifier in the JWT. Stable across linking events — a
+     * user who signs up with email and later links a btc address
+     * keeps the same did_oc. Per AUTH-REFACTOR-PLAN.md §2.1.
      */
-    addr: string;
-    /**
-     * Opaque public-facing identifier · `did:oc:<32-hex>`. Stable
-     * across linking events (a user who signs up with email and
-     * later links a btc address keeps the same did_oc). Optional
-     * during the dual-write window — JWTs minted before the
-     * refactor landed don't carry it. Consumers should adopt this
-     * as the canonical user identifier and fall back to `addr` only
-     * when `did_oc` is absent. Per AUTH-REFACTOR-PLAN.md §2.1.
-     */
-    did_oc?: string;
+    did_oc: string;
     jti: string;
     /**
      * Optional display name set by the user via the auth host's profile
@@ -165,7 +154,7 @@ export function parsePublicJwk(publicJwk: string): Record<string, unknown> {
 export async function signSession(
     claims: {
         sub: string;
-        addr: string;
+        did_oc: string;
         jti: string;
         name?: string | null;
         npub?: string | null;
@@ -201,7 +190,7 @@ export async function verifySessionToken(
             issuer: cfg.issuer ?? DEFAULT_ISSUER,
         });
         const p = res.payload as SessionPayload;
-        if (!p.sub || !p.addr || !p.jti) return null;
+        if (!p.sub || !p.did_oc || !p.jti) return null;
         return p;
     } catch {
         return null;
@@ -411,7 +400,7 @@ export async function verifyOcToken(
             issuer,
         });
         const p = res.payload as SessionPayload;
-        if (!p.sub || !p.addr || !p.jti) return null;
+        if (!p.sub || !p.did_oc || !p.jti) return null;
         return p;
     } catch {
         return null;

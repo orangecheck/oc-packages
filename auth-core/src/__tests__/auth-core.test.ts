@@ -43,20 +43,20 @@ describe('sign / verify round-trip', () => {
 
     it('verifies a token signed with the matching private key', async () => {
         const tok = await signSession(
-            { sub: 'acct-123', addr: 'bc1qabc', jti: 'deadbeef' },
+            { sub: 'acct-123', did_oc: 'did:oc:abc', jti: 'deadbeef' },
             sign,
             3600
         );
         const payload = await verifySessionToken(tok, verify);
         expect(payload?.sub).toBe('acct-123');
-        expect(payload?.addr).toBe('bc1qabc');
+        expect(payload?.did_oc).toBe('did:oc:abc');
         expect(payload?.jti).toBe('deadbeef');
     });
 
     it('rejects a token signed by a different key', async () => {
         const other = await freshKeys();
         const tok = await signSession(
-            { sub: 'a', addr: 'bc1q', jti: 'j' },
+            { sub: 'a', did_oc: 'did:oc:abc', jti: 'j' },
             { ...sign, privateJwk: other.privateJwk, kid: other.kid },
             3600
         );
@@ -65,7 +65,7 @@ describe('sign / verify round-trip', () => {
 
     it('rejects a token with wrong issuer', async () => {
         const tok = await signSession(
-            { sub: 'a', addr: 'bc1q', jti: 'j' },
+            { sub: 'a', did_oc: 'did:oc:abc', jti: 'j' },
             { ...sign, issuer: 'https://evil.example.com' },
             3600
         );
@@ -76,7 +76,7 @@ describe('sign / verify round-trip', () => {
         const tok = await signSession(
             {
                 sub: 'acct-123',
-                addr: 'did:email:abc',
+                did_oc: 'did:oc:abc',
                 jti: 'jti-1',
                 home_federation: 'oc-me-v1',
             },
@@ -89,7 +89,7 @@ describe('sign / verify round-trip', () => {
 
     it('omits home_federation when not provided (back-compat)', async () => {
         const tok = await signSession(
-            { sub: 'acct-123', addr: 'bc1q', jti: 'jti-2' },
+            { sub: 'acct-123', did_oc: 'did:oc:abc', jti: 'jti-2' },
             sign,
             3600
         );
@@ -101,7 +101,7 @@ describe('sign / verify round-trip', () => {
         const tok = await signSession(
             {
                 sub: 'acct-123',
-                addr: 'did:email:abc',
+                did_oc: 'did:oc:abc',
                 jti: 'jti-3',
                 signing_method: 'fedimint_threshold',
             },
@@ -114,7 +114,7 @@ describe('sign / verify round-trip', () => {
 
     it('omits signing_method when not provided (back-compat)', async () => {
         const tok = await signSession(
-            { sub: 'acct-123', addr: 'bc1q', jti: 'jti-4' },
+            { sub: 'acct-123', did_oc: 'did:oc:abc', jti: 'jti-4' },
             sign,
             3600
         );
@@ -125,7 +125,7 @@ describe('sign / verify round-trip', () => {
     it('rejects an expired token', async () => {
         const k = await freshKeys();
         const now = Math.floor(Date.now() / 1000);
-        const tok = await new SignJWT({ sub: 'a', addr: 'bc1q', jti: 'j' })
+        const tok = await new SignJWT({ sub: 'a', did_oc: 'did:oc:abc', jti: 'j' })
             .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: k.kid })
             .setIssuer(DEFAULT_ISSUER)
             .setIssuedAt(now - 7200)

@@ -18,10 +18,12 @@ interface MeResponse {
         id?: string;
         account_id?: string;
         accountId?: string;
-        btc_address?: string;
-        address?: string;
-        did_oc?: string | null;
-        didOc?: string | null;
+        did_oc?: string;
+        didOc?: string;
+        primary_btc?: string | null;
+        primaryBtc?: string | null;
+        has_email?: boolean;
+        hasEmail?: boolean;
         display_name?: string | null;
         displayName?: string | null;
         nostr_npub?: string | null;
@@ -33,24 +35,20 @@ interface MeResponse {
     };
 }
 
-function defaultSigningMethodFor(address: string): RawSigningMethod {
-    return address.startsWith('did:email:') ? 'fedimint_threshold' : 'bip322';
-}
-
 function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
     if (!raw) return null;
-    const address = raw.btc_address ?? raw.address;
+    const didOc = raw.did_oc ?? raw.didOc;
     const accountId = raw.id ?? raw.account_id ?? raw.accountId;
-    if (!address || !accountId) return null;
+    if (!didOc || !accountId) return null;
     return {
         accountId,
-        address,
-        didOc: raw.did_oc ?? raw.didOc ?? null,
+        didOc,
+        primaryBtc: raw.primary_btc ?? raw.primaryBtc ?? null,
+        hasEmail: raw.has_email ?? raw.hasEmail ?? false,
         displayName: raw.display_name ?? raw.displayName ?? null,
         nostrNpub: raw.nostr_npub ?? raw.nostrNpub ?? null,
         homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,
-        signingMethod:
-            raw.signing_method ?? raw.signingMethod ?? defaultSigningMethodFor(address),
+        signingMethod: raw.signing_method ?? raw.signingMethod ?? null,
     };
 }
 
