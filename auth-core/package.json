@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/auth-core",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "OrangeCheck session JWT primitives. Verifies oc_session tokens against the auth host's published JWKS — no env vars, no JWK handling. Re-exported by @orangecheck/me-client for integrators; also used by family consumer subdomains directly.",
   "keywords": [
     "orangecheck",

@@ -37,8 +37,15 @@ export interface SessionPayload extends JWTPayload {
      */
     did_oc: string;
     /**
-     * Mirror of `did_oc` for back-compat with v0.x verifiers still
-     * deployed on sibling subdomains. New code should read `did_oc`.
+     * Mirror of `did_oc` · optional shim retained for backwards
+     * compatibility with any sibling subdomains that haven't migrated
+     * off `session.addr`. The auth host (oc-www) still sets it on
+     * every JWT it mints; this just lifts the typing constraint so a
+     * future cut can drop it from the mint side without a TypeScript
+     * cascade across consumers. New code: always use `did_oc`.
+     *
+     * Becomes a no-op in a major bump once every consumer is verified
+     * off this field.
      */
     addr?: string;
     jti: string;
@@ -169,11 +176,12 @@ export async function signSession(
     ttlSeconds: number
 ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    // Back-compat shim · `addr` mirrors `did_oc` so v0.x verifiers
-    // still deployed on sibling subdomains accept the JWT. Drop
-    // when every sibling has pinned ^1.0.0.
-    const claimsWithShim = { ...claims, addr: claims.did_oc };
-    return new SignJWT(claimsWithShim)
+    // `addr` shim removed in 1.1.0 · every consumer subdomain now reads
+    // `session.did_oc` directly (the opaque DID). Old tokens that still
+    // carry an `addr` claim verify fine — `addr` is now optional in the
+    // SessionPayload type; readers that haven't migrated yet won't break
+    // until those tokens expire.
+    return new SignJWT(claims)
         .setProtectedHeader({ alg: JWT_ALG, typ: 'JWT', kid: cfg.kid })
         .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)
         .setIssuedAt(now)
