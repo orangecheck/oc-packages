@@ -32,11 +32,15 @@ export interface SessionPayload extends JWTPayload {
     sub: string;
     /**
      * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
-     * user identifier in the JWT. Stable across linking events — a
-     * user who signs up with email and later links a btc address
-     * keeps the same did_oc. Per AUTH-REFACTOR-PLAN.md §2.1.
+     * canonical user identifier post auth-refactor. Stable across
+     * linking events. Per AUTH-REFACTOR-PLAN.md §2.1.
      */
     did_oc: string;
+    /**
+     * Mirror of `did_oc` for back-compat with v0.x verifiers still
+     * deployed on sibling subdomains. New code should read `did_oc`.
+     */
+    addr?: string;
     jti: string;
     /**
      * Optional display name set by the user via the auth host's profile
@@ -165,7 +169,11 @@ export async function signSession(
     ttlSeconds: number
 ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT(claims)
+    // Back-compat shim · `addr` mirrors `did_oc` so v0.x verifiers
+    // still deployed on sibling subdomains accept the JWT. Drop
+    // when every sibling has pinned ^1.0.0.
+    const claimsWithShim = { ...claims, addr: claims.did_oc };
+    return new SignJWT(claimsWithShim)
         .setProtectedHeader({ alg: JWT_ALG, typ: 'JWT', kid: cfg.kid })
         .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)
         .setIssuedAt(now)
