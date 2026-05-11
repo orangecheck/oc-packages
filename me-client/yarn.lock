@@ -240,15 +240,15 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@orangecheck/auth-client@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-0.5.0.tgz#842c818735b35df6324e6196047134a70e174528"
-  integrity sha512-BRSsktiqBaJX5n5bvMxCBQ4wE9tMNHIueDSq+O1jmST9PyC/b9ip7ylijrinLnBjvvuqHRvC4zNg7UAHHoPEXw==
+"@orangecheck/auth-client@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-1.0.0.tgz#b23a9945d22486f078dbe02bdf5cbbab6d91c48f"
+  integrity sha512-uz7Ee0QFaf+z5SSp+fK+bIZJYfp8NIsAs6aAcYE1y9pC7JZrV8VcOzKLkgTveZysabY1s6hZzm4QzCia+lQYnQ==
 
-"@orangecheck/auth-core@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-0.4.0.tgz#85f326281e6fcd081b38daa0536da355b95997e4"
-  integrity sha512-IkZ10wuC1yiXuPQ91ivsOzgr2QN5AMVy3Dr5kYgvhXl5VPQhkh9+KyzyPQB7beY93MIfPr9sSVQ3WQsEJZB+Lw==
+"@orangecheck/auth-core@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-1.1.0.tgz#ef39f336fed9d473d85bddcedca19bc82a8817b0"
+  integrity sha512-gtIgtvVB/TlwHEu7didNN0MF3WydZGCIMiuzL3T4kFxhW5IugeighOVXvpbpPGiSk+JH0VlRr/lh051Yu0l5hA==
   dependencies:
     jose "^6.2.2"
 

@@ -26,6 +26,19 @@ const DEFAULT_FEATURES = 'width=480,height=720,resizable=yes,scrollbars=yes';
 
 export interface OcPopupAccount {
     id?: string;
+    /** Opaque public identity · `did:oc:<32-hex>`. Stable across linking
+     *  events. The canonical identifier post auth-refactor (Dec 2025
+     *  +). */
+    did_oc?: string;
+    /** Primary linked Bitcoin address, if the user has one and is
+     *  surfacing it (same-origin family integrators get it inline;
+     *  cross-domain integrators need the bitcoin_address scope). */
+    primary_btc?: string | null;
+    /** Whether the user has a primary email linked (plaintext stays
+     *  on auth host; only the boolean reaches integrators). */
+    has_email?: boolean;
+    /** Legacy fields kept for back-compat with pre-refactor consumers.
+     *  Prefer did_oc + primary_btc. Removed in a future major. */
     address?: string;
     btc_address?: string;
     display_name?: string | null;
@@ -35,9 +48,10 @@ export interface OcPopupAccount {
 }
 
 export interface OcPopupResult {
-    /** Account payload from the auth host. `address` is the canonical
-     *  identifier (Bitcoin address for BIP-322 users, did:email:<hash>
-     *  for email-OTP users). */
+    /** Account payload from the auth host. `did_oc` is the canonical
+     *  opaque identifier post auth-refactor (Dec 2025). Underlying
+     *  email + BTC stay private; integrators get a per-project
+     *  anonymous identifier unless they explicitly request a scope. */
     account: OcPopupAccount;
     /** The session JWT. Cross-domain integrators store this and send
      *  it as `Authorization: Bearer <token>` on subsequent calls.
