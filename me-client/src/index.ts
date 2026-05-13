@@ -61,6 +61,18 @@ export type {
 export { family } from './family';
 export type { FamilyVerb, FamilyScopesOptions, FamilyScopesResult } from './family';
 export {
+    identity,
+    verifyActivityAttestation,
+    refreshEnvelopeJwks,
+} from './identity';
+export type {
+    ActivityAttestation,
+    ActivityAttestationBundle,
+    ActivityVerifyCheck,
+    ActivityVerifyResult,
+    VerifyActivityOptions,
+} from './identity';
+export {
     setOrigin,
     getOrigin,
     setBearerToken,
@@ -127,10 +139,21 @@ import { webhook } from './webhook';
 import { federations } from './federations';
 import { scope } from './scope';
 import { family } from './family';
+import { identity } from './identity';
 
 /** Convenience namespace mirroring the public API surface in /integrate
  *  code samples — `oc.session.create()`, `oc.payment.authorize()`,
  *  `oc.event.fire()`, `oc.config.validate()`, `oc.webhook.verify()`,
  *  `oc.federations.live()`, `oc.scope.granted()` / `oc.scope.request()`,
- *  `oc.family.scopes()`. */
-export const oc = { session, payment, event, config, webhook, federations, scope, family };
+ *  `oc.family.scopes()`, `oc.identity.verifyActivityAttestation()`. */
+export const oc = {
+    session,
+    payment,
+    event,
+    config,
+    webhook,
+    federations,
+    scope,
+    family,
+    identity,
+};
