@@ -3,6 +3,13 @@ import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import type { EcosystemSlug } from './ecosystem-switcher';
+import {
+    FAMILY_PROPERTIES,
+    SITE_STATE_LABEL,
+    findFamilyProperty,
+    type FamilyCategory,
+    type SiteState,
+} from './family-properties';
 
 /**
  * `<OcLogoDropdown>` — the logo IS the dropdown.
@@ -24,117 +31,22 @@ import type { EcosystemSlug } from './ecosystem-switcher';
  * chip inside the trigger button, and the dropdown itself groups
  * entries by category with subtle mono dividers — so the product /
  * protocol distinction is visible both on the logo and in the menu,
- * with a single source of truth (the `ENTRIES` table below).
+ * with a single source of truth (`./family-properties.ts`).
+ *
+ * The optional `siteState` prop renders a second tiny chip after the
+ * category chip — `alpha` or `beta` — for sites that aren't `live`.
+ * The vocabulary is canonical across the family (see SiteState in
+ * family-properties.ts). Pass it from your per-site config so a
+ * single edit propagates to the logo, the account menu, and anywhere
+ * else the chip surfaces.
  *
  * Mobile-aware: the popover's width is clamped to the viewport,
- * content scrolls when there are more entries than fit. The category
- * chip on the trigger hides below `sm` to preserve mobile header
- * space — the dropdown itself still shows the grouping.
+ * content scrolls when there are more entries than fit. The trigger
+ * chips hide below `sm` to preserve mobile header space — the dropdown
+ * itself still shows the grouping.
  */
 
-type Category = 'hub' | 'product' | 'protocol';
-
-interface SwitcherEntry {
-    slug: EcosystemSlug;
-    href: string;
-    label: string;
-    sub: string;
-    docsHref: string;
-    category: Category;
-}
-
-const ENTRIES: SwitcherEntry[] = [
-    {
-        slug: 'home',
-        href: 'https://ochk.io',
-        label: 'orangecheck',
-        sub: 'umbrella · sign-in',
-        docsHref: 'https://docs.ochk.io',
-        category: 'hub',
-    },
-    {
-        slug: 'docs',
-        href: 'https://docs.ochk.io',
-        label: 'oc·docs',
-        sub: 'unified reference',
-        docsHref: 'https://docs.ochk.io',
-        category: 'hub',
-    },
-    {
-        slug: 'me',
-        href: 'https://me.ochk.io',
-        label: 'oc·me',
-        sub: 'earn — consumer identity',
-        docsHref: 'https://docs.ochk.io/me',
-        category: 'product',
-    },
-    {
-        slug: 'vault',
-        href: 'https://vault.ochk.io',
-        label: 'oc·vault',
-        sub: 'keep — encrypted secrets',
-        docsHref: 'https://docs.ochk.io/vault',
-        category: 'product',
-    },
-    {
-        slug: 'fleet',
-        href: 'https://fleet.ochk.io',
-        label: 'oc·fleet',
-        sub: 'managed — agent fleet',
-        docsHref: 'https://docs.ochk.io/fleet',
-        category: 'product',
-    },
-    {
-        slug: 'attest',
-        href: 'https://attest.ochk.io',
-        label: 'oc·attest',
-        sub: 'am — sybil resistance',
-        docsHref: 'https://docs.ochk.io/attest',
-        category: 'protocol',
-    },
-    {
-        slug: 'lock',
-        href: 'https://lock.ochk.io',
-        label: 'oc·lock',
-        sub: 'whisper — encryption',
-        docsHref: 'https://docs.ochk.io/lock',
-        category: 'protocol',
-    },
-    {
-        slug: 'vote',
-        href: 'https://vote.ochk.io',
-        label: 'oc·vote',
-        sub: 'decide — polls',
-        docsHref: 'https://docs.ochk.io/vote',
-        category: 'protocol',
-    },
-    {
-        slug: 'stamp',
-        href: 'https://stamp.ochk.io',
-        label: 'oc·stamp',
-        sub: 'declare — block-anchored',
-        docsHref: 'https://docs.ochk.io/stamp',
-        category: 'protocol',
-    },
-    {
-        slug: 'agent',
-        href: 'https://agent.ochk.io',
-        label: 'oc·agent',
-        sub: 'delegate — scoped auth',
-        docsHref: 'https://docs.ochk.io/agent',
-        category: 'protocol',
-    },
-    {
-        slug: 'pledge',
-        href: 'https://pledge.ochk.io',
-        label: 'oc·pledge',
-        sub: 'swear — bonded commitment',
-        docsHref: 'https://docs.ochk.io/pledge',
-        category: 'protocol',
-    },
-];
-
-const SECTIONS: Array<{ category: Category; label: string }> = [
+const SECTIONS: Array<{ category: FamilyCategory; label: string }> = [
     { category: 'hub', label: 'hub' },
     { category: 'product', label: 'products' },
     { category: 'protocol', label: 'protocols' },
@@ -155,6 +67,13 @@ export interface OcLogoDropdownProps {
      */
     homeHref?: string;
     /**
+     * Optional lifecycle state for this site. `'live'` (default) renders
+     * no chip; `'alpha'` and `'beta'` render a small mono uppercase chip
+     * after the category badge. Drive this from your per-site config so
+     * one constant change ripples to every surface.
+     */
+    siteState?: SiteState;
+    /**
      * Logo contents · typically `<LogoMark />` + `<span>oc·X</span>`.
      */
     children: ReactNode;
@@ -166,7 +85,7 @@ export interface OcLogoDropdownProps {
     popoverClassName?: string;
 }
 
-function CategoryChip({ category }: { category: Category }) {
+function CategoryChip({ category }: { category: FamilyCategory }) {
     if (category === 'hub') return null;
     const isProduct = category === 'product';
     return (
@@ -185,14 +104,27 @@ function CategoryChip({ category }: { category: Category }) {
     );
 }
 
-function MenuCategoryChip({ category }: { category: Category }) {
+function SiteStateBadge({ state }: { state: SiteState }) {
+    if (state === 'live') return null;
+    return (
+        <span
+            aria-label={`site lifecycle: ${state}`}
+            className="text-muted-foreground/70 ml-1 hidden font-mono text-[9px] font-medium tracking-widest uppercase sm:inline-block"
+            data-oc-site-state={state}
+        >
+            {SITE_STATE_LABEL[state]}
+        </span>
+    );
+}
+
+function MenuCategoryChip({ category }: { category: FamilyCategory }) {
     if (category === 'hub') return null;
     const isProduct = category === 'product';
     return (
         <span
             aria-hidden
             className={
-                'inline-block rounded-sm px-1 py-[1px] font-mono text-[9px] font-medium tracking-widest uppercase ' +
+                'inline-block shrink-0 rounded-sm px-1 py-[1px] font-mono text-[9px] font-medium tracking-widest uppercase ' +
                 (isProduct
                     ? 'bg-primary/10 text-primary'
                     : 'bg-muted/60 text-muted-foreground/80')
@@ -206,6 +138,7 @@ function MenuCategoryChip({ category }: { category: Category }) {
 export function OcLogoDropdown({
     current,
     homeHref = '/',
+    siteState = 'live',
     children,
     className,
     triggerClassName,
@@ -215,7 +148,7 @@ export function OcLogoDropdown({
     const containerRef = useRef<HTMLDivElement | null>(null);
     const menuId = useId();
 
-    const currentCategory: Category = ENTRIES.find((e) => e.slug === current)?.category ?? 'hub';
+    const currentCategory: FamilyCategory = findFamilyProperty(current)?.category ?? 'hub';
 
     // Outside-click + Escape close.
     useEffect(() => {
@@ -241,6 +174,7 @@ export function OcLogoDropdown({
             className={'relative ' + (className ?? '')}
             data-oc-logo-dropdown=""
             data-oc-current-category={currentCategory}
+            data-oc-site-state={siteState}
         >
             <button
                 type="button"
@@ -258,6 +192,7 @@ export function OcLogoDropdown({
             >
                 {children}
                 <CategoryChip category={currentCategory} />
+                <SiteStateBadge state={siteState} />
                 <ChevronDown
                     aria-hidden
                     className={
@@ -281,12 +216,11 @@ export function OcLogoDropdown({
                     <div className="label-mono text-primary border-b px-4 py-2">
                         § the orangecheck family
                     </div>
-                    <div
-                        className="max-h-[min(28rem,70vh)] overflow-y-auto py-1"
-                        role="none"
-                    >
+                    <div className="max-h-[min(28rem,70vh)] overflow-y-auto py-1" role="none">
                         {SECTIONS.map(({ category, label }) => {
-                            const sectionEntries = ENTRIES.filter((e) => e.category === category);
+                            const sectionEntries = FAMILY_PROPERTIES.filter(
+                                (e) => e.category === category
+                            );
                             if (sectionEntries.length === 0) return null;
                             return (
                                 <div key={category} role="none" data-oc-section={category}>
@@ -303,7 +237,7 @@ export function OcLogoDropdown({
                                     <ul role="none" className="pb-1">
                                         {sectionEntries.map((e) => {
                                             const isActive = e.slug === current;
-                                            const href = isActive ? homeHref : e.href;
+                                            const href = isActive ? homeHref : e.origin;
                                             return (
                                                 <li key={e.slug} role="none">
                                                     <Link

@@ -11,6 +11,20 @@ export type { EcosystemSwitcherProps, EcosystemSlug } from './ecosystem-switcher
 export { OcLogoDropdown } from './logo-dropdown';
 export type { OcLogoDropdownProps } from './logo-dropdown';
 
+export { OcAccountMenu } from './account-menu';
+export type {
+    OcAccountMenuProps,
+    OcAccountMenuItem,
+    OcAccountMenuBuildInfo,
+} from './account-menu';
+
+export {
+    FAMILY_PROPERTIES,
+    SITE_STATE_LABEL,
+    findFamilyProperty,
+} from './family-properties';
+export type { FamilyProperty, FamilyCategory, SiteState } from './family-properties';
+
 export { AppShell } from './app-shell';
 export type { AppShellProps } from './app-shell';
 
