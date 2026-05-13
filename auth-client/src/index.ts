@@ -22,5 +22,7 @@ export type {
     UseOcAddressSuggestionOptions,
     UseOcAddressSuggestionReturn,
 } from './components';
+export { OcSignIn } from './signin';
+export type { OcSignInProps } from './signin';
 export type { OcAccount, OcSessionStatus, OcSessionState, OcAuthConfig } from './types';
 export { buildSignInUrl } from './types';

@@ -19,6 +19,8 @@ export type EcosystemSlug =
     | 'home'
     | 'docs'
     | 'fleet'
+    | 'me'
+    | 'vault'
     | 'attest'
     | 'lock'
     | 'vote'
@@ -55,6 +57,20 @@ const ENTRIES: SwitcherEntry[] = [
         label: 'oc·fleet',
         sub: 'managed — agent fleet',
         docsHref: 'https://docs.ochk.io/fleet',
+    },
+    {
+        slug: 'me',
+        href: 'https://me.ochk.io',
+        label: 'oc·me',
+        sub: 'earn — consumer identity',
+        docsHref: 'https://docs.ochk.io/me',
+    },
+    {
+        slug: 'vault',
+        href: 'https://vault.ochk.io',
+        label: 'oc·vault',
+        sub: 'keep — encrypted secrets',
+        docsHref: 'https://docs.ochk.io/vault',
     },
     {
         slug: 'attest',

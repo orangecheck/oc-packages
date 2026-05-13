@@ -29,6 +29,14 @@ export interface OcAccountChipProps {
      */
     dashboardUrl?: string;
     /**
+     * Override the sign-in URL shown to anonymous visitors. Defaults to
+     * the session's `signInUrl` (which points at the auth host's
+     * /signin?return_to=… page). Set this to a local path like `'/signin'`
+     * when the consumer site mounts its own in-place `<OcSignIn />` —
+     * skips the redirect-bounce entirely.
+     */
+    signInUrl?: string;
+    /**
      * Label for the sign-in link shown to anonymous visitors.
      * Defaults to `sign in`.
      */
@@ -59,13 +67,15 @@ export interface OcAccountChipProps {
  */
 export function OcAccountChip({
     dashboardUrl = 'https://ochk.io/dashboard',
+    signInUrl: signInUrlOverride,
     signInLabel = 'sign in',
     className,
     triggerClassName,
     popoverClassName,
     menuItemClassName,
 }: OcAccountChipProps): React.ReactElement | null {
-    const { status, account, signInUrl, signOut } = useOcSession();
+    const { status, account, signInUrl: sessionSignInUrl, signOut } = useOcSession();
+    const signInUrl = signInUrlOverride ?? sessionSignInUrl;
     const [open, setOpen] = React.useState(false);
     const wrapRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -318,29 +328,40 @@ export interface OcSignInButtonProps extends React.AnchorHTMLAttributes<HTMLAnch
      * avoid layout shift. Defaults to `false` (renders nothing while loading).
      */
     eager?: boolean;
+    /**
+     * Override the destination URL. Defaults to the session's `signInUrl`
+     * (the auth host's redirect-style /signin). Set this to a local path
+     * like `'/signin'` when the consumer site has its own in-place
+     * `<OcSignIn />` page — keeps the user in-tab.
+     */
+    signInUrl?: string;
 }
 
 /**
- * Drop-in sign-in button. Renders an anchor that deep-links to the auth
- * host's sign-in page with the current URL as `?return_to=…`.
+ * Drop-in sign-in button. Renders an anchor that points at either:
  *
- * When the user is already authenticated it renders nothing — wrap it in
- * a conditional or use `<OcAccountPill>` as the signed-in affordance.
+ *   - the consumer's local `/signin` page (when `signInUrl` prop is set
+ *     — recommended; works with `<OcSignIn />`), or
+ *   - the auth host's `/signin?return_to=…` (default fallback)
+ *
+ * When the user is already authenticated it renders nothing.
  */
 export function OcSignInButton({
     label = 'sign in with bitcoin',
     eager = false,
     className,
+    signInUrl: signInUrlOverride,
     ...rest
 }: OcSignInButtonProps): React.ReactElement | null {
-    const { status, signInUrl } = useOcSession();
+    const { status, signInUrl: sessionSignInUrl } = useOcSession();
+    const href = signInUrlOverride ?? sessionSignInUrl;
     if (status === 'authenticated') return null;
     if (!eager && status === 'loading') return null;
 
     return (
         <a
             {...rest}
-            href={signInUrl}
+            href={href}
             className={className}
             data-oc-sign-in-button=""
         >
