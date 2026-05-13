@@ -3,13 +3,19 @@
  *
  * Server-side verification helpers for OC integrators.
  *
- *   import { withOcAuth, getOcSession, verifyOcToken } from '@orangecheck/me-client/server';
+ *   import {
+ *     withOcAuth,
+ *     getOcSession,
+ *     verifyOcToken,
+ *     verifyActivityAttestation,
+ *   } from '@orangecheck/me-client/server';
  *
  * Zero env vars, zero JWK handling. Internally lazy-fetches the auth
- * host's JWKS at https://ochk.io/.well-known/jwks.json and caches it
- * in-process. Integrators write code; we handle the crypto.
+ * host's JWKS at https://ochk.io/.well-known/jwks.json and the
+ * envelope JWKS at https://me.ochk.io/.well-known/oc-envelope-jwks.json,
+ * caches both in-process. Integrators write code; we handle the crypto.
  *
- * Three layers, smallest to thickest:
+ * Three layers of session verification, smallest to thickest:
  *
  *   verifyOcToken(token)       → SessionPayload | null
  *   getOcSession(headers)      → SessionPayload | null   (cookie OR Bearer)
@@ -18,7 +24,18 @@
  *   ocAuthExpress(opts?)       → Express / Connect middleware
  *   ocAuthHono(opts?)          → Hono middleware
  *
- * All thin wrappers around `getOcSession`. Bring your own framework.
+ * Plus the activity-attestation verifier · for sybil-resistance gating:
+ *
+ *   verifyActivityAttestation(bundle, opts?) → ActivityVerifyResult
+ *
+ * Same envelope-JWKS verification posture as the public /verify-activity
+ * page; same five checks (shape / id / kid / sig / freshness). Use to
+ * gate sensitive flows on cross-integrator lifetime_sats + duration +
+ * distinct_count + active_days · all values are content-addressed and
+ * signed.
+ *
+ * All thin wrappers around the same crypto primitives. Bring your own
+ * framework.
  */
 
 import {
@@ -31,6 +48,22 @@ import {
 
 export { verifyOcToken };
 export type { SessionPayload, VerifyOcOptions };
+
+// Activity-attestation verifier · re-export from the identity module so
+// server-side integrators get the gating helper alongside session
+// verification without a second import path.
+export {
+    identity,
+    verifyActivityAttestation,
+    refreshEnvelopeJwks,
+} from './identity';
+export type {
+    ActivityAttestation,
+    ActivityAttestationBundle,
+    ActivityVerifyCheck,
+    ActivityVerifyResult,
+    VerifyActivityOptions,
+} from './identity';
 
 /**
  * Verify the OC session for a request. Accepts either:
