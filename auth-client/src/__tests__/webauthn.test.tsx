@@ -114,7 +114,7 @@ describe('useWebAuthnRegister', () => {
         await act(async () => {
             result = await captured!.register({ label: 'Test Key' });
         });
-        expect(result).toEqual(SAMPLE_CRED);
+        expect(result).toEqual({ ok: true, credential: SAMPLE_CRED });
         expect(captured!.status).toBe('success');
         expect(captured!.error).toBeNull();
     });
@@ -204,8 +204,12 @@ describe('useWebAuthnList', () => {
                 <Probe />
             </Wrapper>
         );
-        await waitFor(() => expect(captured?.status).toBe('ready'));
+        // Wait until the second refetch (after the session resolves to
+        // 'authenticated') has populated credentials. The first refetch
+        // runs at sessionStatus='loading' and short-circuits to ready+[].
+        await waitFor(() => expect(captured?.credentials.length).toBe(1));
         expect(captured!.credentials).toEqual([SAMPLE_CRED]);
+        expect(captured!.status).toBe('ready');
     });
 
     it('returns an empty list when the user is anonymous', async () => {
@@ -283,7 +287,7 @@ describe('useStepUpAuth', () => {
         await act(async () => {
             result = await captured!.stepUp({ purpose: 'spend_over_1m' });
         });
-        expect(result).toEqual({ step_up_at: 17143200 });
+        expect(result).toEqual({ ok: true, step_up_at: 17143200 });
         expect(captured!.status).toBe('success');
         // stepUp internally refreshes the session.
         expect(refreshCalls).toBeGreaterThan(before);

@@ -11,6 +11,32 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.1.1] — 2026-05-14 · WebAuthn hook error-surface fix
+
+Bug fix · `useWebAuthnRegister` and `useStepUpAuth` previously returned
+`null` on failure with the reason buried in the hook's `error` state. The
+caller couldn't read the reason post-await because of React closure
+semantics (the destructured `status` / `error` were captured at render
+time, not after the awaited state update). Symptom: clicking "register
+key" did nothing visible when the underlying request failed (e.g. on
+`session_too_old`).
+
+Both hooks now return a discriminated union:
+
+```ts
+register(args) → Promise<{ ok: true; credential } | { ok: false; reason }>;
+stepUp(args)   → Promise<{ ok: true; step_up_at } | { ok: false; reason }>;
+```
+
+Consumers branch on `result.ok` and read `result.reason` directly. The
+hook's `error` / `status` fields stay for debug/UX, but the awaited
+return value is now the source of truth for "did this ceremony
+succeed."
+
+Breaking only against the v2.1.0 register/stepUp signatures; types
+adjusted in the same package, no semver-major needed because the API
+is hours old and no published consumer pinned 2.1.0.
+
 ## [2.1.0] — 2026-05-14 · WebAuthn step-up hooks
 
 Additive · all v2.0.0 consumers keep working unchanged. Three new

@@ -78,10 +78,14 @@ function isAbortError(err: unknown): boolean {
 
 // ─── useWebAuthnRegister ────────────────────────────────────────────────
 
+export type WebAuthnRegisterResult =
+    | { ok: true; credential: WebAuthnCredentialPublic }
+    | { ok: false; reason: string };
+
 export interface UseWebAuthnRegisterReturn {
     status: WebAuthnRegisterStatus;
     error: Error | null;
-    register: (args?: { label?: string }) => Promise<WebAuthnCredentialPublic | null>;
+    register: (args?: { label?: string }) => Promise<WebAuthnRegisterResult>;
     reset: () => void;
 }
 
@@ -96,7 +100,7 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
     }, []);
 
     const register = React.useCallback(
-        async (args?: { label?: string }) => {
+        async (args?: { label?: string }): Promise<WebAuthnRegisterResult> => {
             setError(null);
             setStatus('requesting-options');
             try {
@@ -108,12 +112,21 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
                 });
                 const optsBody = (await optsRes.json()) as OptionsResponse<PublicKeyCredentialCreationOptionsJSON>;
                 if (!optsRes.ok || !optsBody.ok || !optsBody.options || !optsBody.challenge_token) {
-                    throw new Error(optsBody.reason ?? `options_failed_${optsRes.status}`);
+                    const reason = optsBody.reason ?? `options_failed_${optsRes.status}`;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
                 }
                 setStatus('authenticating');
-                const attestation: RegistrationResponseJSON = await startRegistration({
-                    optionsJSON: optsBody.options,
-                });
+                let attestation: RegistrationResponseJSON;
+                try {
+                    attestation = await startRegistration({ optionsJSON: optsBody.options });
+                } catch (e) {
+                    const reason = isAbortError(e) ? 'cancelled' : (e as Error).message;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
+                }
                 setStatus('verifying');
                 const verifyRes = await fetch(`${authOrigin}/api/auth/webauthn/register/verify`, {
                     method: 'POST',
@@ -131,19 +144,18 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
                     reason?: string;
                 };
                 if (!verifyRes.ok || !verifyBody.ok || !verifyBody.credential) {
-                    throw new Error(verifyBody.reason ?? `verify_failed_${verifyRes.status}`);
+                    const reason = verifyBody.reason ?? `verify_failed_${verifyRes.status}`;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
                 }
                 setStatus('success');
-                return verifyBody.credential;
+                return { ok: true, credential: verifyBody.credential };
             } catch (e) {
-                const err = e instanceof Error ? e : new Error(String(e));
-                setError(err);
+                const reason = e instanceof Error ? e.message : String(e);
+                setError(new Error(reason));
                 setStatus('error');
-                if (isAbortError(err)) {
-                    // surface a recognizable reason
-                    setError(new Error('cancelled'));
-                }
-                return null;
+                return { ok: false, reason };
             }
         },
         [authOrigin]
@@ -262,10 +274,14 @@ export function useWebAuthnList(opts?: UseHostOptions): UseWebAuthnListReturn {
 
 // ─── useStepUpAuth ──────────────────────────────────────────────────────
 
+export type WebAuthnStepUpResult =
+    | { ok: true; step_up_at: number }
+    | { ok: false; reason: string };
+
 export interface UseStepUpAuthReturn {
     status: WebAuthnAssertionStatus;
     error: Error | null;
-    stepUp: (args: { purpose: string }) => Promise<{ step_up_at: number } | null>;
+    stepUp: (args: { purpose: string }) => Promise<WebAuthnStepUpResult>;
     reset: () => void;
 }
 
@@ -302,7 +318,7 @@ export function useStepUpAuth(opts?: UseHostOptions): UseStepUpAuthReturn {
     }, []);
 
     const stepUp = React.useCallback(
-        async (args: { purpose: string }) => {
+        async (args: { purpose: string }): Promise<WebAuthnStepUpResult> => {
             setError(null);
             setStatus('requesting-options');
             try {
@@ -314,12 +330,21 @@ export function useStepUpAuth(opts?: UseHostOptions): UseStepUpAuthReturn {
                 });
                 const optsBody = (await optsRes.json()) as OptionsResponse<PublicKeyCredentialRequestOptionsJSON>;
                 if (!optsRes.ok || !optsBody.ok || !optsBody.options || !optsBody.challenge_token) {
-                    throw new Error(optsBody.reason ?? `options_failed_${optsRes.status}`);
+                    const reason = optsBody.reason ?? `options_failed_${optsRes.status}`;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
                 }
                 setStatus('authenticating');
-                const assertion: AuthenticationResponseJSON = await startAuthentication({
-                    optionsJSON: optsBody.options,
-                });
+                let assertion: AuthenticationResponseJSON;
+                try {
+                    assertion = await startAuthentication({ optionsJSON: optsBody.options });
+                } catch (e) {
+                    const reason = isAbortError(e) ? 'cancelled' : (e as Error).message;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
+                }
                 setStatus('verifying');
                 const verifyRes = await fetch(
                     `${authOrigin}/api/auth/webauthn/assertion/verify`,
@@ -339,22 +364,21 @@ export function useStepUpAuth(opts?: UseHostOptions): UseStepUpAuthReturn {
                     reason?: string;
                 };
                 if (!verifyRes.ok || !verifyBody.ok || typeof verifyBody.step_up_at !== 'number') {
-                    throw new Error(verifyBody.reason ?? `verify_failed_${verifyRes.status}`);
+                    const reason = verifyBody.reason ?? `verify_failed_${verifyRes.status}`;
+                    setError(new Error(reason));
+                    setStatus('error');
+                    return { ok: false, reason };
                 }
                 // Re-fetch the session so consumers see the fresh
                 // step_up_at claim without a separate `refresh()` call.
                 await refresh();
                 setStatus('success');
-                return { step_up_at: verifyBody.step_up_at };
+                return { ok: true, step_up_at: verifyBody.step_up_at };
             } catch (e) {
-                const err = isAbortError(e)
-                    ? new Error('cancelled')
-                    : e instanceof Error
-                      ? e
-                      : new Error(String(e));
-                setError(err);
+                const reason = e instanceof Error ? e.message : String(e);
+                setError(new Error(reason));
                 setStatus('error');
-                return null;
+                return { ok: false, reason };
             }
         },
         [authOrigin, refresh]
