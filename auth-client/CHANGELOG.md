@@ -11,6 +11,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.3.0] — 2026-05-14 · `useWebAuthnList.{rename,remove}` discriminated unions
+
+Breaking shape change to two hook methods · same pattern that landed for
+`register` / `stepUp` in v2.1.1. The bare `boolean` / `null` return left
+the failure reason in the hook's `error` state, unreadable by the caller
+post-await because of React closure semantics.
+
+New shapes:
+
+```ts
+rename(id, label) → Promise<{ ok: true; credential } | { ok: false; reason }>;
+remove(id)        → Promise<{ ok: true } | { ok: false; reason }>;
+```
+
+Consumers branch on `result.ok` and read `result.reason` directly. The
+hook's `error` field stays for debug; the awaited return is now the
+source of truth.
+
+The package is days old and the only known consumer (me-web's
+`HardwareKeysPanel`) is updated in the same window. No external pins
+break.
+
 ## [2.2.0] — 2026-05-14 · Inline sudo-mode redirect helper
 
 Additive · two new exports for the consumer-side counterpart to the

@@ -166,13 +166,21 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
 
 // ─── useWebAuthnList ────────────────────────────────────────────────────
 
+export type WebAuthnRenameResult =
+    | { ok: true; credential: WebAuthnCredentialPublic }
+    | { ok: false; reason: string };
+
+export type WebAuthnRemoveResult =
+    | { ok: true }
+    | { ok: false; reason: string };
+
 export interface UseWebAuthnListReturn {
     status: WebAuthnListStatus;
     credentials: WebAuthnCredentialPublic[];
     error: Error | null;
     refetch: () => Promise<void>;
-    rename: (id: string, label: string) => Promise<WebAuthnCredentialPublic | null>;
-    remove: (id: string) => Promise<boolean>;
+    rename: (id: string, label: string) => Promise<WebAuthnRenameResult>;
+    remove: (id: string) => Promise<WebAuthnRemoveResult>;
 }
 
 export function useWebAuthnList(opts?: UseHostOptions): UseWebAuthnListReturn {
@@ -220,7 +228,7 @@ export function useWebAuthnList(opts?: UseHostOptions): UseWebAuthnListReturn {
     }, [refetch]);
 
     const rename = React.useCallback(
-        async (id: string, label: string) => {
+        async (id: string, label: string): Promise<WebAuthnRenameResult> => {
             try {
                 const r = await fetch(`${authOrigin}/api/auth/webauthn/credentials/${id}`, {
                     method: 'PATCH',
@@ -234,21 +242,23 @@ export function useWebAuthnList(opts?: UseHostOptions): UseWebAuthnListReturn {
                     reason?: string;
                 };
                 if (!j.ok || !j.credential) {
-                    setError(new Error(j.reason ?? 'rename_failed'));
-                    return null;
+                    const reason = j.reason ?? `rename_failed_${r.status}`;
+                    setError(new Error(reason));
+                    return { ok: false, reason };
                 }
                 await refetch();
-                return j.credential;
+                return { ok: true, credential: j.credential };
             } catch (e) {
-                setError(e instanceof Error ? e : new Error(String(e)));
-                return null;
+                const reason = e instanceof Error ? e.message : String(e);
+                setError(new Error(reason));
+                return { ok: false, reason };
             }
         },
         [authOrigin, refetch]
     );
 
     const remove = React.useCallback(
-        async (id: string) => {
+        async (id: string): Promise<WebAuthnRemoveResult> => {
             try {
                 const r = await fetch(`${authOrigin}/api/auth/webauthn/credentials/${id}`, {
                     method: 'DELETE',
@@ -256,14 +266,16 @@ export function useWebAuthnList(opts?: UseHostOptions): UseWebAuthnListReturn {
                 });
                 const j = (await r.json()) as { ok: boolean; reason?: string };
                 if (!j.ok) {
-                    setError(new Error(j.reason ?? 'delete_failed'));
-                    return false;
+                    const reason = j.reason ?? `delete_failed_${r.status}`;
+                    setError(new Error(reason));
+                    return { ok: false, reason };
                 }
                 await refetch();
-                return true;
+                return { ok: true };
             } catch (e) {
-                setError(e instanceof Error ? e : new Error(String(e)));
-                return false;
+                const reason = e instanceof Error ? e.message : String(e);
+                setError(new Error(reason));
+                return { ok: false, reason };
             }
         },
         [authOrigin, refetch]

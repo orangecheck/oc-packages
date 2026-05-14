@@ -38,6 +38,8 @@ export type {
     WebAuthnListStatus,
     WebAuthnRegisterResult,
     WebAuthnStepUpResult,
+    WebAuthnRenameResult,
+    WebAuthnRemoveResult,
     UseWebAuthnRegisterReturn,
     UseWebAuthnListReturn,
     UseStepUpAuthReturn,

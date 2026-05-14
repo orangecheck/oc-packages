@@ -235,6 +235,108 @@ describe('useWebAuthnList', () => {
         await waitFor(() => expect(captured?.status).toBe('ready'));
         expect(captured!.credentials).toEqual([]);
     });
+
+    it('remove() returns { ok: true } on success and refetches', async () => {
+        let listCalls = 0;
+        setupFetch(({ url, init }) => {
+            if (url.endsWith('/api/auth/me')) {
+                return jsonResponse({ account: { id: 'acc', did_oc: 'did:oc:abc' } }, 200);
+            }
+            if (url.endsWith('/api/auth/webauthn/credentials')) {
+                listCalls += 1;
+                // First list call returns the credential; after delete,
+                // the next list call returns empty.
+                if (listCalls === 1) {
+                    return jsonResponse({ ok: true, credentials: [SAMPLE_CRED] });
+                }
+                return jsonResponse({ ok: true, credentials: [] });
+            }
+            if (url.includes('/api/auth/webauthn/credentials/') && init?.method === 'DELETE') {
+                return jsonResponse({ ok: true });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+        let captured: ReturnType<typeof useWebAuthnList> | null = null;
+        function Probe() {
+            captured = useWebAuthnList();
+            return null;
+        }
+        render(
+            <Wrapper>
+                <Probe />
+            </Wrapper>
+        );
+        await waitFor(() => expect(captured?.credentials.length).toBe(1));
+        let result: Awaited<ReturnType<NonNullable<typeof captured>['remove']>> | null = null;
+        await act(async () => {
+            result = await captured!.remove(SAMPLE_CRED.id);
+        });
+        expect(result).toEqual({ ok: true });
+        await waitFor(() => expect(captured?.credentials.length).toBe(0));
+    });
+
+    it('remove() surfaces sudo_required without burying the reason in state', async () => {
+        setupFetch(({ url, init }) => {
+            if (url.endsWith('/api/auth/me')) {
+                return jsonResponse({ account: { id: 'acc', did_oc: 'did:oc:abc' } }, 200);
+            }
+            if (url.endsWith('/api/auth/webauthn/credentials')) {
+                return jsonResponse({ ok: true, credentials: [SAMPLE_CRED] });
+            }
+            if (url.includes('/api/auth/webauthn/credentials/') && init?.method === 'DELETE') {
+                return jsonResponse({ ok: false, reason: 'sudo_required' }, 401);
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+        let captured: ReturnType<typeof useWebAuthnList> | null = null;
+        function Probe() {
+            captured = useWebAuthnList();
+            return null;
+        }
+        render(
+            <Wrapper>
+                <Probe />
+            </Wrapper>
+        );
+        await waitFor(() => expect(captured?.credentials.length).toBe(1));
+        let result: Awaited<ReturnType<NonNullable<typeof captured>['remove']>> | null = null;
+        await act(async () => {
+            result = await captured!.remove(SAMPLE_CRED.id);
+        });
+        expect(result).toEqual({ ok: false, reason: 'sudo_required' });
+    });
+
+    it('rename() returns { ok: true, credential } on success', async () => {
+        const renamed = { ...SAMPLE_CRED, label: 'Renamed' };
+        setupFetch(({ url, init }) => {
+            if (url.endsWith('/api/auth/me')) {
+                return jsonResponse({ account: { id: 'acc', did_oc: 'did:oc:abc' } }, 200);
+            }
+            if (url.endsWith('/api/auth/webauthn/credentials')) {
+                return jsonResponse({ ok: true, credentials: [SAMPLE_CRED] });
+            }
+            if (url.includes('/api/auth/webauthn/credentials/') && init?.method === 'PATCH') {
+                return jsonResponse({ ok: true, credential: renamed });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+        let captured: ReturnType<typeof useWebAuthnList> | null = null;
+        function Probe() {
+            captured = useWebAuthnList();
+            return null;
+        }
+        render(
+            <Wrapper>
+                <Probe />
+            </Wrapper>
+        );
+        await waitFor(() => expect(captured?.credentials.length).toBe(1));
+        let result: Awaited<ReturnType<NonNullable<typeof captured>['rename']>> | null = null;
+        await act(async () => {
+            result = await captured!.rename(SAMPLE_CRED.id, 'Renamed');
+        });
+        expect(result).toEqual({ ok: true, credential: renamed });
+    });
 });
 
 describe('useStepUpAuth', () => {
