@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.2.0] — 2026-05-14 · Inline sudo-mode redirect helper
+
+Additive · two new exports for the consumer-side counterpart to the
+ochk.io `/sudo` page:
+
+- `redirectToSudo({ returnTo?, purpose?, config? })` · navigates the
+  browser to `https://ochk.io/sudo?return_to=…&purpose=…`. The auth
+  host runs an email-OTP or BIP-322 re-authentication ceremony,
+  re-issues the session JWT with a fresh `sudo_at` claim, redirects
+  back. Consumers retry the original sensitive action once they're
+  back; the gate sees the fresh claim and lets it through.
+- `handleSudoRequired(body, args)` · one-liner that checks
+  `body.reason === 'sudo_required'` and redirects if so. Returns
+  `true` when it redirected (caller should short-circuit), `false`
+  otherwise.
+
+No React state is involved — the flow is a single browser
+navigation. A future inline-modal version (no redirect) will keep
+the same function names so consumers don't have to change call-sites.
+
+Peer dep raised to `@orangecheck/auth-core` `^2.2.0` (for
+`verifySudoClaim` server-side and the `sudo_at` claim shape).
+
 ## [2.1.1] — 2026-05-14 · WebAuthn hook error-surface fix
 
 Bug fix · `useWebAuthnRegister` and `useStepUpAuth` previously returned

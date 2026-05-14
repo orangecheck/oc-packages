@@ -11,6 +11,7 @@ import {
     signSession,
     verifySessionToken,
     verifyStepUpClaim,
+    verifySudoClaim,
     type SessionPayload,
     type SignConfig,
     type VerifyConfig,
@@ -215,5 +216,48 @@ describe('verifyStepUpClaim', () => {
                 { max_age_secs: 300 }
             )
         ).toBe(false);
+    });
+});
+
+describe('verifySudoClaim', () => {
+    const base: SessionPayload = {
+        sub: 'acc',
+        did_oc: 'did:oc:0',
+        jti: 'j',
+    };
+
+    it('returns false when sudo_at is missing', () => {
+        expect(verifySudoClaim(base, { max_age_secs: 300 })).toBe(false);
+    });
+
+    it('returns true for a fresh sudo_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifySudoClaim({ ...base, sudo_at: now }, { max_age_secs: 300 })).toBe(true);
+        expect(verifySudoClaim({ ...base, sudo_at: now - 30 }, { max_age_secs: 300 })).toBe(true);
+    });
+
+    it('returns false for a stale sudo_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifySudoClaim({ ...base, sudo_at: now - 301 }, { max_age_secs: 300 })).toBe(false);
+    });
+
+    it('returns false for a future-dated sudo_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifySudoClaim({ ...base, sudo_at: now + 60 }, { max_age_secs: 300 })).toBe(false);
+    });
+
+    it('returns false for malformed sudo_at values', () => {
+        expect(verifySudoClaim({ ...base, sudo_at: NaN }, { max_age_secs: 300 })).toBe(false);
+        expect(
+            verifySudoClaim({ ...base, sudo_at: Number.POSITIVE_INFINITY }, { max_age_secs: 300 })
+        ).toBe(false);
+    });
+
+    it('is independent of step_up_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        // step_up_at fresh, sudo_at absent → sudo says false
+        expect(verifySudoClaim({ ...base, step_up_at: now }, { max_age_secs: 300 })).toBe(false);
+        // sudo_at fresh, step_up_at absent → sudo says true
+        expect(verifySudoClaim({ ...base, sudo_at: now }, { max_age_secs: 300 })).toBe(true);
     });
 });

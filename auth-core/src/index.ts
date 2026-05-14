@@ -95,6 +95,19 @@ export interface SessionPayload extends JWTPayload {
      * `verifyStepUpClaim()` to read it safely.
      */
     step_up_at?: number;
+    /**
+     * Unix seconds when the user last successfully completed an inline
+     * sudo-mode re-authentication on the auth host (email-OTP for
+     * email-primary identities, BIP-322 challenge for btc-primary
+     * identities). Gates auth-graph-mutating operations — register an
+     * additional WebAuthn credential, revoke one, link a new identity,
+     * change recovery method — without forcing a full sign-out/sign-in.
+     * Same shape and freshness window posture as `step_up_at`; the two
+     * are independent claims (sudo proves "you typed your password
+     * again," step-up proves "you tapped your hardware key"). Read it
+     * with `verifySudoClaim()`.
+     */
+    sudo_at?: number;
 }
 
 /**
@@ -123,6 +136,33 @@ export function verifyStepUpClaim(
     if (!Number.isFinite(payload.step_up_at)) return false;
     if (opts.max_age_secs <= 0) return false;
     const ageSec = Math.floor(Date.now() / 1000) - payload.step_up_at;
+    return ageSec >= 0 && ageSec < opts.max_age_secs;
+}
+
+/**
+ * Returns true when the JWT carries a fresh `sudo_at` claim — i.e. the
+ * user successfully re-authenticated inline (email-OTP or BIP-322
+ * challenge) within the supplied freshness window. Independent of
+ * `step_up_at` · sudo is "you proved your primary identity again,"
+ * step-up is "you tapped your hardware key."
+ *
+ * Returns false for tokens that lack the claim, that carry a stale
+ * value, that carry a future-dated value (clock skew or malicious
+ * mint), or where the freshness window is non-positive.
+ *
+ * Use this to gate auth-graph-mutating operations on the auth host —
+ * adding a second hardware key, linking a new identity, generating
+ * recovery codes, changing recovery method. Default window is 5
+ * minutes; tighten per-operation as needed.
+ */
+export function verifySudoClaim(
+    payload: SessionPayload,
+    opts: { max_age_secs: number }
+): boolean {
+    if (typeof payload.sudo_at !== 'number') return false;
+    if (!Number.isFinite(payload.sudo_at)) return false;
+    if (opts.max_age_secs <= 0) return false;
+    const ageSec = Math.floor(Date.now() / 1000) - payload.sudo_at;
     return ageSec >= 0 && ageSec < opts.max_age_secs;
 }
 
@@ -208,6 +248,7 @@ export async function signSession(
         signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
         merged_from?: string[];
         step_up_at?: number;
+        sudo_at?: number;
     },
     cfg: SignConfig,
     ttlSeconds: number

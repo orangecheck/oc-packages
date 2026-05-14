@@ -11,6 +11,24 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.2.0] — 2026-05-14 · Inline sudo-mode claim
+
+Additive · all v2.1.x consumers keep working unchanged. New
+`sudo_at?: number` claim on `SessionPayload` carries the unix seconds
+when the user last successfully re-authenticated inline (email-OTP for
+email-primary identities, BIP-322 challenge for btc-primary identities)
+on the auth host. New `verifySudoClaim(payload, { max_age_secs })`
+helper · same shape as `verifyStepUpClaim`, independent claim.
+
+Replaces the hostile 1-hour fresh-`iat` gate previously protecting
+WebAuthn key registration. Sensitive auth-graph-mutating operations
+(register an additional hardware key, revoke a key, link a new
+identity, generate recovery codes, change recovery method) gate on
+`verifySudoClaim` instead of a full re-signin.
+
+`signSession` claims now accept `sudo_at?: number` (omitted when
+undefined, so existing tokens mint byte-identically).
+
 ## [2.1.0] — 2026-05-14 · WebAuthn step-up surface
 
 Additive · all v2.0.0 consumers continue to verify unchanged. New
