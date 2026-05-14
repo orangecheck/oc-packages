@@ -63,6 +63,20 @@ export interface OcAccountMenuBuildInfo {
     repo?: string;
 }
 
+/**
+ * Minimal session shape `<OcAccountMenuView>` needs. Compatible with
+ * `useOcSession()`'s return value but explicit so consumers running
+ * their own auth context (e.g. oc-www's local `useAuth`) can pass an
+ * adapter without depending on `@orangecheck/auth-client`'s exact
+ * types.
+ */
+export interface OcAccountMenuSession {
+    status: 'loading' | 'authenticated' | 'anonymous' | 'error';
+    account: { didOc: string; displayName: string | null } | null;
+    signOut: () => void | Promise<void>;
+    refresh: () => void | Promise<void>;
+}
+
 export interface OcAccountMenuProps {
     /**
      * Which family property this site IS. Used to label the section
@@ -117,7 +131,49 @@ function shortenDid(s: string): string {
     return `${s.slice(0, 7)}…${s.slice(-5)}`;
 }
 
-export function OcAccountMenu({
+/**
+ * Connected variant — pulls the session from `useOcSession()`. This is
+ * what every consumer site with `<OcSessionProvider>` mounted should
+ * use. For sites running a parallel auth context (e.g. oc-www's local
+ * `useAuth`), use `<OcAccountMenuView>` below and pass a session prop
+ * directly.
+ */
+export function OcAccountMenu(props: OcAccountMenuProps) {
+    const session = useOcSession();
+    return (
+        <OcAccountMenuView
+            {...props}
+            session={{
+                status: session.status,
+                account: session.account
+                    ? {
+                          didOc: session.account.didOc,
+                          displayName: session.account.displayName ?? null,
+                      }
+                    : null,
+                signOut: session.signOut,
+                refresh: session.refresh,
+            }}
+        />
+    );
+}
+
+export interface OcAccountMenuViewProps extends OcAccountMenuProps {
+    /**
+     * The session to render. When using `<OcAccountMenuView>` directly
+     * (rather than the connected `<OcAccountMenu>`), pass an adapter
+     * over your local auth context.
+     */
+    session: OcAccountMenuSession;
+}
+
+/**
+ * Presentational variant — takes a session as an explicit prop. Use
+ * this when your site runs its own auth context (e.g. ochk.io's
+ * local `useAuth`) and you want the family-consistent visual without
+ * mounting `<OcSessionProvider>`.
+ */
+export function OcAccountMenuView({
     current,
     signInUrl = '/signin',
     signInLabel = 'sign in',
@@ -128,8 +184,8 @@ export function OcAccountMenu({
     className,
     triggerClassName,
     popoverClassName,
-}: OcAccountMenuProps) {
-    const session = useOcSession();
+    session,
+}: OcAccountMenuViewProps) {
     const { status, account, signOut, refresh } = session;
     const [hydrated, setHydrated] = useState(false);
     const [open, setOpen] = useState(false);

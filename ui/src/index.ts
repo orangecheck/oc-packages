@@ -11,11 +11,13 @@ export type { EcosystemSwitcherProps, EcosystemSlug } from './ecosystem-switcher
 export { OcLogoDropdown } from './logo-dropdown';
 export type { OcLogoDropdownProps } from './logo-dropdown';
 
-export { OcAccountMenu } from './account-menu';
+export { OcAccountMenu, OcAccountMenuView } from './account-menu';
 export type {
     OcAccountMenuProps,
+    OcAccountMenuViewProps,
     OcAccountMenuItem,
     OcAccountMenuBuildInfo,
+    OcAccountMenuSession,
 } from './account-menu';
 
 export {
