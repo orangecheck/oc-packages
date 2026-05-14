@@ -27,6 +27,16 @@ export {
 } from './family-properties';
 export type { FamilyProperty, FamilyCategory, SiteState } from './family-properties';
 
+export { OcPrimaryNav } from './primary-nav';
+export type { OcPrimaryNavProps, OcPrimaryNavLink } from './primary-nav';
+
+export { OcDashboardShell, OcDashboardHub } from './dashboard-shell';
+export type {
+    OcDashboardShellProps,
+    OcDashboardHubProps,
+    OcDashboardTool,
+} from './dashboard-shell';
+
 export { AppShell } from './app-shell';
 export type { AppShellProps } from './app-shell';
 
