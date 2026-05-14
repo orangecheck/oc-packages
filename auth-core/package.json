@@ -1,61 +1,61 @@
 {
-  "name": "@orangecheck/auth-core",
-  "version": "1.1.0",
-  "description": "OrangeCheck session JWT primitives. Verifies oc_session tokens against the auth host's published JWKS — no env vars, no JWK handling. Re-exported by @orangecheck/me-client for integrators; also used by family consumer subdomains directly.",
-  "keywords": [
-    "orangecheck",
-    "bitcoin",
-    "auth",
-    "jwt",
-    "ed25519",
-    "sso",
-    "sybil-resistance"
-  ],
-  "author": "OrangeCheck",
-  "license": "MIT",
-  "homepage": "https://ochk.io",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/orangecheck/oc-packages.git",
-    "directory": "auth-core"
-  },
-  "bugs": {
-    "url": "https://github.com/orangecheck/oc-packages/issues"
-  },
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+    "name": "@orangecheck/auth-core",
+    "version": "2.0.0",
+    "description": "OrangeCheck session JWT primitives. Verifies oc_session tokens against the auth host's published JWKS \u2014 no env vars, no JWK handling. Re-exported by @orangecheck/me-client for integrators; also used by family consumer subdomains directly.",
+    "keywords": [
+        "orangecheck",
+        "bitcoin",
+        "auth",
+        "jwt",
+        "ed25519",
+        "sso",
+        "sybil-resistance"
+    ],
+    "author": "OrangeCheck",
+    "license": "MIT",
+    "homepage": "https://ochk.io",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/orangecheck/oc-packages.git",
+        "directory": "auth-core"
+    },
+    "bugs": {
+        "url": "https://github.com/orangecheck/oc-packages/issues"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "type-check": "tsc --noEmit",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "jose": "^6.2.2"
+    },
+    "devDependencies": {
+        "@types/node": "^25.6.0",
+        "tsup": "^8.5.1",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.5"
+    },
+    "publishConfig": {
+        "access": "public"
     }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
-  },
-  "dependencies": {
-    "jose": "^6.2.2"
-  },
-  "devDependencies": {
-    "@types/node": "^25.6.0",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
 }

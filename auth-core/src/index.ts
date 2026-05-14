@@ -36,18 +36,6 @@ export interface SessionPayload extends JWTPayload {
      * linking events. Per AUTH-REFACTOR-PLAN.md §2.1.
      */
     did_oc: string;
-    /**
-     * Mirror of `did_oc` · optional shim retained for backwards
-     * compatibility with any sibling subdomains that haven't migrated
-     * off `session.addr`. The auth host (oc-www) still sets it on
-     * every JWT it mints; this just lifts the typing constraint so a
-     * future cut can drop it from the mint side without a TypeScript
-     * cascade across consumers. New code: always use `did_oc`.
-     *
-     * Becomes a no-op in a major bump once every consumer is verified
-     * off this field.
-     */
-    addr?: string;
     jti: string;
     /**
      * Optional display name set by the user via the auth host's profile
@@ -176,11 +164,8 @@ export async function signSession(
     ttlSeconds: number
 ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    // `addr` shim removed in 1.1.0 · every consumer subdomain now reads
-    // `session.did_oc` directly (the opaque DID). Old tokens that still
-    // carry an `addr` claim verify fine — `addr` is now optional in the
-    // SessionPayload type; readers that haven't migrated yet won't break
-    // until those tokens expire.
+    // did_oc is the sole user identifier. The legacy `addr` shim that
+    // mirrored did_oc was dropped in v2.0.0 along with the type field.
     return new SignJWT(claims)
         .setProtectedHeader({ alg: JWT_ALG, typ: 'JWT', kid: cfg.kid })
         .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)

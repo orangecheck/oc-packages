@@ -115,7 +115,7 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
  *
  *   export default withOcAuth(async (req, res) => {
  *     if (!req.ocSession) return res.status(401).json({ ok: false });
- *     res.status(200).json({ account: { address: req.ocSession.addr } });
+ *     res.status(200).json({ account: { address: req.ocSession.did_oc } });
  *   }, { required: true });
  *
  * `Cache-Control: no-store, private` and `Vary: Cookie, Authorization`
@@ -174,7 +174,7 @@ type ExpressNextLike = (err?: unknown) => void;
  *
  *   app.get('/api/profile', (req, res) => {
  *     if (!req.ocSession) return res.status(401).json({ error: 'sign in' });
- *     res.json({ address: req.ocSession.addr });
+ *     res.json({ address: req.ocSession.did_oc });
  *   });
  *
  * Pass `{ required: true }` to short-circuit unauthenticated requests
@@ -229,7 +229,7 @@ type HonoNextLike = () => Promise<void>;
  *   app.get('/api/profile', (c) => {
  *     const session = c.get('ocSession');
  *     if (!session) return c.json({ error: 'sign in' }, 401);
- *     return c.json({ address: session.addr });
+ *     return c.json({ address: session.did_oc });
  *   });
  */
 export function ocAuthHono(options: WithOcAuthOptions = {}) {

@@ -10,7 +10,7 @@ A ~3 KB package that handles:
 
 - Ed25519 JWT sign / verify with `jose`
 - Cross-subdomain cookie serialize / clear / parse
-- Typed `SessionPayload` (`sub`, `addr`, `jti`, …)
+- Typed `SessionPayload` (`sub`, `did_oc`, `jti`, …)
 
 No React, no DB, no framework. Usable from Node, Edge, or browser.
 
@@ -46,7 +46,7 @@ every subdomain.
 import { signSession, serializeSessionCookie } from '@orangecheck/auth-core';
 
 const token = await signSession(
-    { sub: accountId, addr: btcAddress, jti: crypto.randomUUID() },
+    { sub: accountId, did_oc: didOc, jti: crypto.randomUUID() },
     {
         kid: process.env.OC_AUTH_KID!,
         privateJwk: process.env.OC_AUTH_PRIVATE_JWK!,
@@ -77,7 +77,7 @@ const payload = await verifySessionToken(token, {
 
 if (!payload) return res.status(401).end();
 
-// payload.addr is the verified Bitcoin address.
+// payload.did_oc is the opaque user identifier (did:oc:<32-hex>).
 ```
 
 ## Guarantees

@@ -24,7 +24,7 @@
  *
  *   export default withOcAuth(async (req, res) => {
  *     if (!req.ocSession) return res.status(401).json({ ok: false });
- *     res.status(200).json({ address: req.ocSession.addr });
+ *     res.status(200).json({ address: req.ocSession.did_oc });
  *   });
  *
  * Popup signin example:
