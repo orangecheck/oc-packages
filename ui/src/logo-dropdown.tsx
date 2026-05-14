@@ -1,5 +1,7 @@
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, CornerDownLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import * as React from 'react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import type { EcosystemSlug } from './ecosystem-switcher';
@@ -147,8 +149,32 @@ export function OcLogoDropdown({
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const menuId = useId();
+    const router = useRouter();
 
     const currentCategory: FamilyCategory = findFamilyProperty(current)?.category ?? 'hub';
+
+    /**
+     * Trigger click semantics:
+     *
+     *   single-click  → toggle the family dropdown
+     *   double-click  → navigate to `homeHref` (the local landing)
+     *
+     * `MouseEvent.detail` is the running click count for clicks within
+     * the browser's double-click threshold (~500ms). The DOM still
+     * fires the `click` event on the first tap, so the dropdown
+     * momentarily opens during a double-click — and the second click
+     * navigates home. That's the visual story the popover-side hint
+     * sells: *open · tap again · home.*
+     */
+    function handleTriggerClick(e: React.MouseEvent<HTMLButtonElement>) {
+        if (e.detail >= 2) {
+            e.preventDefault();
+            setOpen(false);
+            void router.push(homeHref);
+            return;
+        }
+        setOpen((v) => !v);
+    }
 
     // Outside-click + Escape close.
     useEffect(() => {
@@ -181,14 +207,16 @@ export function OcLogoDropdown({
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-controls={menuId}
-                aria-label="OrangeCheck family · open property menu"
-                title="Switch OrangeCheck product"
-                onClick={() => setOpen((v) => !v)}
+                aria-label="OrangeCheck family · click to open property menu, double-click to go home"
+                title="single-click · family menu  ·  double-click · go home"
+                onClick={handleTriggerClick}
                 className={
                     triggerClassName ??
-                    'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-[40px] items-center gap-2 rounded-sm px-1.5 py-1 transition-colors'
+                    'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-[40px] items-center gap-2 rounded-sm px-1.5 py-1 transition-colors ' +
+                        (open ? 'bg-accent/20' : '')
                 }
                 data-oc-logo-dropdown-trigger=""
+                data-oc-logo-dropdown-open={open ? 'true' : 'false'}
             >
                 {children}
                 <CategoryChip category={currentCategory} />
@@ -196,10 +224,33 @@ export function OcLogoDropdown({
                 <ChevronDown
                     aria-hidden
                     className={
-                        'text-muted-foreground/70 group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform ' +
+                        'text-muted-foreground/70 group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform duration-200 ' +
                         (open ? 'rotate-180' : '')
                     }
                 />
+                {/* Double-click home affordance · fades + slides in when
+                    the dropdown is open. Subtle on purpose — primary
+                    purpose is to whisper "tap again, you'll go home" to
+                    anyone who notices the dropdown is open. Mono caret
+                    glyph borrows the lucide `CornerDownLeft` so the
+                    family stays on a single icon library. */}
+                <span
+                    aria-hidden
+                    className={
+                        'pointer-events-none ml-0.5 hidden items-center gap-1 font-mono text-[9px] tracking-widest uppercase transition-all duration-200 sm:inline-flex ' +
+                        (open
+                            ? 'text-muted-foreground/70 translate-x-0 opacity-100'
+                            : '-translate-x-1 opacity-0')
+                    }
+                    data-oc-logo-dropdown-home-hint=""
+                >
+                    <CornerDownLeft
+                        className={
+                            'h-3 w-3 ' + (open ? 'motion-safe:animate-pulse' : '')
+                        }
+                    />
+                    <span className="text-primary/70">home</span>
+                </span>
             </button>
 
             {open && (
