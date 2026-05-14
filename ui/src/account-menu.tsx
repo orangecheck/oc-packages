@@ -101,6 +101,23 @@ export interface OcAccountMenuProps {
      */
     menuItems?: ReadonlyArray<OcAccountMenuItem>;
     /**
+     * Centered primary nav links (typically dashboard · docs · spec).
+     * Rendered inside the popover at viewport widths below `sm`
+     * (640px) — these are the same links the `<OcPrimaryNav>` row
+     * shows inline at sm+, but at ultra-small widths the inline row
+     * hides and this popover section takes its place. The result: one
+     * dropdown surface owns navigation on phones, no separate
+     * hamburger drawer required.
+     */
+    primaryNavLinks?: ReadonlyArray<OcAccountMenuItem>;
+    /**
+     * Tertiary nav links (about / contact / status / privacy / etc.).
+     * Always visible inside the popover. Folds the legacy mobile-only
+     * hamburger drawer's contents into the same dropdown as everything
+     * else, so there's exactly one nav surface to learn.
+     */
+    secondaryNavLinks?: ReadonlyArray<OcAccountMenuItem>;
+    /**
      * When `true` (default), shows a `family dashboard ↗` link to
      * `https://ochk.io/dashboard`. Set `false` for `home` (already
      * there) or for sites that don't want it.
@@ -178,6 +195,8 @@ export function OcAccountMenuView({
     signInUrl = '/signin',
     signInLabel = 'sign in',
     menuItems,
+    primaryNavLinks,
+    secondaryNavLinks,
     showFamilyDashboard,
     build,
     siteState,
@@ -320,7 +339,20 @@ export function OcAccountMenuView({
                         ) : null}
                     </div>
 
-                    <div className="p-1">
+                    {primaryNavLinks && primaryNavLinks.length > 0 ? (
+                        <PopoverSection
+                            label="navigate"
+                            items={primaryNavLinks}
+                            onItemClick={() => setOpen(false)}
+                        />
+                    ) : null}
+
+                    <div className="p-1" data-oc-account-menu-section="account">
+                        {primaryNavLinks && primaryNavLinks.length > 0 ? (
+                            <div className="text-muted-foreground/60 px-3 pb-1 pt-2 font-mono text-[10px] tracking-widest uppercase">
+                                § account
+                            </div>
+                        ) : null}
                         {menuItems?.map((item) => {
                             const onClick = () => setOpen(false);
                             const cls =
@@ -410,9 +442,92 @@ export function OcAccountMenuView({
                         </button>
                     </div>
 
+                    {secondaryNavLinks && secondaryNavLinks.length > 0 ? (
+                        <PopoverSection
+                            label="more"
+                            items={secondaryNavLinks}
+                            onItemClick={() => setOpen(false)}
+                            bordered
+                        />
+                    ) : null}
+
                     {build ? <BuildFooter hostname={hostname} build={build} state={siteState} /> : null}
                 </div>
             )}
+        </div>
+    );
+}
+
+/**
+ * Single-section list inside the popover (e.g. `§ navigate`,
+ * `§ more`). Used for both the primary-nav and secondary-nav slots so
+ * the rendering stays consistent. Each item respects `external` and
+ * gets the same row treatment as `menuItems`.
+ */
+function PopoverSection({
+    label,
+    items,
+    onItemClick,
+    bordered,
+}: {
+    label: string;
+    items: ReadonlyArray<OcAccountMenuItem>;
+    onItemClick: () => void;
+    bordered?: boolean;
+}) {
+    const cls =
+        'hover:bg-accent flex items-center gap-2 px-3 py-2 font-mono text-[11px] tracking-wide transition-colors';
+    return (
+        <div
+            className={'p-1 ' + (bordered ? 'border-border border-t' : '')}
+            data-oc-account-menu-section={label}
+        >
+            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                § {label}
+            </div>
+            {items.map((item) => {
+                const inner = (
+                    <>
+                        <span className="text-muted-foreground" aria-hidden>
+                            →
+                        </span>
+                        <span className="flex-1">{item.label}</span>
+                        {item.external ? (
+                            <span
+                                className="text-muted-foreground/70 text-[10px]"
+                                aria-hidden
+                            >
+                                ↗
+                            </span>
+                        ) : null}
+                    </>
+                );
+                return item.external ? (
+                    <a
+                        key={item.href}
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={onItemClick}
+                        role="menuitem"
+                        className={cls}
+                        data-oc-account-menu-item=""
+                    >
+                        {inner}
+                    </a>
+                ) : (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onItemClick}
+                        role="menuitem"
+                        className={cls}
+                        data-oc-account-menu-item=""
+                    >
+                        {inner}
+                    </Link>
+                );
+            })}
         </div>
     );
 }
