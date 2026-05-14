@@ -197,7 +197,7 @@ export function OcLogoDropdown({
     return (
         <div
             ref={containerRef}
-            className={'relative ' + (className ?? '')}
+            className={'relative inline-flex items-center ' + (className ?? '')}
             data-oc-logo-dropdown=""
             data-oc-current-category={currentCategory}
             data-oc-site-state={siteState}
@@ -228,30 +228,39 @@ export function OcLogoDropdown({
                         (open ? 'rotate-180' : '')
                     }
                 />
-                {/* Double-click home affordance · fades + slides in when
-                    the dropdown is open. Subtle on purpose — primary
-                    purpose is to whisper "tap again, you'll go home" to
-                    anyone who notices the dropdown is open. Mono caret
-                    glyph borrows the lucide `CornerDownLeft` so the
-                    family stays on a single icon library. */}
-                <span
+            </button>
+            {/* Home affordance · a sibling Link to the trigger button
+                rather than a child of it (nested buttons would be
+                invalid HTML). Fades + slides in when the dropdown is
+                open, whispering "tap again, you'll go home". Clicking
+                the hint navigates directly — works for users who
+                discover it before they discover the double-click. The
+                subtle motion-safe pulse on the icon nudges the eye
+                without shouting. */}
+            <Link
+                href={homeHref}
+                aria-label={'go to ' + homeHref + ' (this site\'s home)'}
+                onClick={() => setOpen(false)}
+                tabIndex={open ? 0 : -1}
+                className={
+                    'hover:text-primary group/home -ml-1 hidden items-center gap-1 rounded-sm px-1.5 py-1 font-mono text-[9px] tracking-widest uppercase transition-all duration-200 sm:inline-flex ' +
+                    (open
+                        ? 'pointer-events-auto translate-x-0 text-muted-foreground/70 opacity-100 hover:bg-accent/30'
+                        : 'pointer-events-none -translate-x-1 opacity-0')
+                }
+                data-oc-logo-dropdown-home-hint=""
+            >
+                <CornerDownLeft
                     aria-hidden
                     className={
-                        'pointer-events-none ml-0.5 hidden items-center gap-1 font-mono text-[9px] tracking-widest uppercase transition-all duration-200 sm:inline-flex ' +
-                        (open
-                            ? 'text-muted-foreground/70 translate-x-0 opacity-100'
-                            : '-translate-x-1 opacity-0')
+                        'h-3 w-3 group-hover/home:text-primary ' +
+                        (open ? 'motion-safe:animate-pulse' : '')
                     }
-                    data-oc-logo-dropdown-home-hint=""
-                >
-                    <CornerDownLeft
-                        className={
-                            'h-3 w-3 ' + (open ? 'motion-safe:animate-pulse' : '')
-                        }
-                    />
-                    <span className="text-primary/70">home</span>
+                />
+                <span className="text-primary/70 group-hover/home:text-primary">
+                    home
                 </span>
-            </button>
+            </Link>
 
             {open && (
                 <div
