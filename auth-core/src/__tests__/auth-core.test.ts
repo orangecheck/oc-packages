@@ -10,6 +10,8 @@ import {
     serializeSessionCookie,
     signSession,
     verifySessionToken,
+    verifyStepUpClaim,
+    type SessionPayload,
     type SignConfig,
     type VerifyConfig,
 } from '../index';
@@ -162,5 +164,56 @@ describe('cookie helpers', () => {
         expect(readSessionCookie('foo=bar')).toBeNull();
         expect(readSessionCookie(null)).toBeNull();
         expect(readSessionCookie('oc_session=')).toBeNull();
+    });
+});
+
+describe('verifyStepUpClaim', () => {
+    const base: SessionPayload = {
+        sub: 'acc',
+        did_oc: 'did:oc:0',
+        jti: 'j',
+    };
+
+    it('returns false when the claim is missing', () => {
+        expect(verifyStepUpClaim(base, { max_age_secs: 300 })).toBe(false);
+    });
+
+    it('returns true for a fresh step_up_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now }, { max_age_secs: 300 })).toBe(true);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now - 30 }, { max_age_secs: 300 })).toBe(true);
+    });
+
+    it('returns false for a stale step_up_at', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now - 301 }, { max_age_secs: 300 })).toBe(
+            false
+        );
+        expect(verifyStepUpClaim({ ...base, step_up_at: now - 3600 }, { max_age_secs: 300 })).toBe(
+            false
+        );
+    });
+
+    it('returns false for a future-dated step_up_at (clock-skew or malicious mint)', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now + 60 }, { max_age_secs: 300 })).toBe(
+            false
+        );
+    });
+
+    it('returns false for non-positive or non-finite freshness windows', () => {
+        const now = Math.floor(Date.now() / 1000);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now }, { max_age_secs: 0 })).toBe(false);
+        expect(verifyStepUpClaim({ ...base, step_up_at: now }, { max_age_secs: -1 })).toBe(false);
+    });
+
+    it('returns false for malformed step_up_at values', () => {
+        expect(verifyStepUpClaim({ ...base, step_up_at: NaN }, { max_age_secs: 300 })).toBe(false);
+        expect(
+            verifyStepUpClaim(
+                { ...base, step_up_at: Number.POSITIVE_INFINITY },
+                { max_age_secs: 300 }
+            )
+        ).toBe(false);
     });
 });

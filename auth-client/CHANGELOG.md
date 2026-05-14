@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.1.0] — 2026-05-14 · WebAuthn step-up hooks
+
+Additive · all v2.0.0 consumers keep working unchanged. Three new
+React hooks wrap the ochk.io `/api/auth/webauthn/*` surface plus the
+`@simplewebauthn/browser` ceremony:
+
+- `useWebAuthnRegister()` — bind a hardware key to the account.
+- `useWebAuthnList()` — list / rename / revoke registered keys.
+- `useStepUpAuth()` — assert against a registered key before a
+  sensitive action; on success refreshes the session so
+  `verifyStepUpClaim(payload, …)` (from auth-core v2.1.0) flips to
+  true immediately.
+
+`@simplewebauthn/browser` is now a hard runtime dependency. Bumps
+the peer requirement for `@orangecheck/auth-core` to `^2.1.0` (the
+new `step_up_at` claim + `verifyStepUpClaim` helper).
+
 ## [0.1.0] — Initial published state
 
 Initial public release. `<OcSessionProvider>`, `useOcSession()`, `<OcSignInButton>`, `<OcAccountPill>` for cross-subdomain ochk.io auth.

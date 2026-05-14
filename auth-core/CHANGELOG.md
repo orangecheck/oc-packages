@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.1.0] — 2026-05-14 · WebAuthn step-up surface
+
+Additive · all v2.0.0 consumers continue to verify unchanged. New
+`step_up_at?: number` claim on `SessionPayload` carries the unix
+seconds when the user last completed a WebAuthn assertion on the
+auth host. New `verifyStepUpClaim(payload, { max_age_secs })` helper
+is the single source of truth for "is this session freshly stepped
+up." Consumer subdomains gating sensitive actions (spend > 1M sats,
+project_key creation, etc.) read it both before triggering
+`useStepUpAuth()` and again server-side after JWT verify.
+
+`signSession`'s `claims` type now accepts `merged_from?: string[]`
+and `step_up_at?: number`. Existing callers that don't pass them
+mint identical tokens (omitted claims, not null-valued).
+
+See `AUTH-OVERVIEW.md` §6 + `AUTH-TODO.md` §6 in the workspace for
+the broader design. The matching auth-client hooks ship in
+`@orangecheck/auth-client` v2.1.0 the same day.
+
 ## [0.1.0] — Initial published state
 
 Initial public release. Crypto-only Ed25519 JWT verify + cookie helpers — the consumer half of the ochk.io auth host stack.

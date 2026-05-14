@@ -26,3 +26,17 @@ export { OcSignIn } from './signin';
 export type { OcSignInProps } from './signin';
 export type { OcAccount, OcSessionStatus, OcSessionState, OcAuthConfig } from './types';
 export { buildSignInUrl } from './types';
+export {
+    useWebAuthnRegister,
+    useWebAuthnList,
+    useStepUpAuth,
+} from './webauthn';
+export type {
+    WebAuthnCredentialPublic,
+    WebAuthnRegisterStatus,
+    WebAuthnAssertionStatus,
+    WebAuthnListStatus,
+    UseWebAuthnRegisterReturn,
+    UseWebAuthnListReturn,
+    UseStepUpAuthReturn,
+} from './webauthn';

@@ -77,6 +77,53 @@ export interface SessionPayload extends JWTPayload {
      * mapping).
      */
     signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
+    /**
+     * Historical did_ocs consolidated INTO this account via the
+     * /api/auth/link/btc transfer-under-dual-proof flow. Consumers that
+     * aggregate per-user data should union queries across
+     * `[did_oc, ...merged_from]`. Absent / empty means "no absorbed
+     * accounts." Order is not significant.
+     */
+    merged_from?: string[];
+    /**
+     * Unix seconds when the user last successfully completed a WebAuthn
+     * step-up assertion on the auth host. Consumer subdomains gate
+     * sensitive actions on `(now - step_up_at) < their_window` —
+     * typically 5 minutes. Absent on JWTs minted before WebAuthn
+     * shipped, or on tokens minted by ordinary signin (only set by
+     * /api/auth/webauthn/assertion/verify on success). Use
+     * `verifyStepUpClaim()` to read it safely.
+     */
+    step_up_at?: number;
+}
+
+/**
+ * Returns true when the JWT carries a fresh `step_up_at` claim —
+ * i.e. the user successfully completed a WebAuthn assertion within
+ * the supplied freshness window (in seconds). Returns false for
+ * tokens that lack the claim entirely, that carry a stale value,
+ * that carry a value somehow in the future, or where the freshness
+ * window is non-positive.
+ *
+ * Consumers gating sensitive actions read this in two places:
+ *
+ *   - Client side · before calling the action, to decide whether to
+ *     trigger `useStepUpAuth()`. Skip the prompt if already fresh.
+ *   - Server side · in the route handler, AFTER verifying the JWT,
+ *     to enforce the policy regardless of what the client did.
+ *
+ * The freshness window is consumer-chosen — typical default is 300s
+ * (5 min); higher-value spends might use 60s.
+ */
+export function verifyStepUpClaim(
+    payload: SessionPayload,
+    opts: { max_age_secs: number }
+): boolean {
+    if (typeof payload.step_up_at !== 'number') return false;
+    if (!Number.isFinite(payload.step_up_at)) return false;
+    if (opts.max_age_secs <= 0) return false;
+    const ageSec = Math.floor(Date.now() / 1000) - payload.step_up_at;
+    return ageSec >= 0 && ageSec < opts.max_age_secs;
 }
 
 export interface VerifyConfig {
@@ -159,6 +206,8 @@ export async function signSession(
         npub?: string | null;
         home_federation?: string | null;
         signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
+        merged_from?: string[];
+        step_up_at?: number;
     },
     cfg: SignConfig,
     ttlSeconds: number
