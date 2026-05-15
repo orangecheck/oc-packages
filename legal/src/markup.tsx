@@ -7,11 +7,13 @@
  *   `code`              → monospace
  *   [label](https://…)  → external anchor (new tab)
  *   [label](mailto:…)   → mail anchor
- *   [label](/path)      → internal Next <Link>
+ *   [label](/path)      → internal anchor
+ *
+ * Links are plain `<a>` elements — legal pages are not perf-sensitive, and
+ * avoiding `next/link` keeps this package free of a Next peer dependency.
  */
 
 import React from 'react';
-import Link from 'next/link';
 
 const INLINE_RE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
 const LINK_RE = /^\[([^\]]+)\]\(([^)]+)\)$/;
@@ -41,30 +43,16 @@ export function renderInline(text: string): React.ReactNode {
         if (link) {
             const label = link[1] ?? '';
             const href = link[2] ?? '';
-            if (/^https?:\/\//.test(href)) {
-                return (
-                    <a
-                        key={i}
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline"
-                    >
-                        {label}
-                    </a>
-                );
-            }
-            if (href.startsWith('mailto:')) {
-                return (
-                    <a key={i} href={href} className="text-primary underline">
-                        {label}
-                    </a>
-                );
-            }
+            const external = /^https?:\/\//.test(href);
             return (
-                <Link key={i} href={href} className="text-primary underline">
+                <a
+                    key={i}
+                    href={href}
+                    className="text-primary underline"
+                    {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                >
                     {label}
-                </Link>
+                </a>
             );
         }
 
