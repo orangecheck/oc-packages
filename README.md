@@ -71,6 +71,7 @@ contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 | [`agent-langgraph/`](agent-langgraph/) | `@orangecheck/agent-langgraph` | Adapter for LangGraph tool-call canonicalization.                     |
 | [`agent-vercel/`](agent-vercel/)     | `@orangecheck/agent-vercel`   | Adapter for Vercel AI SDK tool-call canonicalization.                     |
 | [`ui/`](ui/)                         | `@orangecheck/ui`             | Family-internal React UI (the cross-product `EcosystemSwitcher`).         |
+| [`legal/`](legal/)                   | `@orangecheck/legal`          | Family-internal Terms / Privacy document engine for the `.ochk.io` sites. |
 
 ### Shells (CLIs — not on the docs site)
 
