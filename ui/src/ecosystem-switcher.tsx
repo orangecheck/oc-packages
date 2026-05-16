@@ -26,7 +26,8 @@ export type EcosystemSlug =
     | 'vote'
     | 'stamp'
     | 'agent'
-    | 'pledge';
+    | 'pledge'
+    | 'analytics';
 
 interface SwitcherEntry {
     slug: EcosystemSlug;
@@ -116,14 +117,40 @@ const ENTRIES: SwitcherEntry[] = [
     },
 ];
 
+/** Entries gated behind `showOwnerEntries={true}`. Owner-only family
+ *  properties (currently just `oc·analytics` at analytics.ochk.io)
+ *  live here so they're invisible to everyone except verified owners
+ *  — the JWT claim drives the gate. */
+const OWNER_ENTRIES: SwitcherEntry[] = [
+    {
+        slug: 'analytics',
+        href: 'https://analytics.ochk.io',
+        label: 'oc·analytics',
+        sub: 'owner cockpit',
+        docsHref: 'https://analytics.ochk.io',
+    },
+];
+
 export interface EcosystemSwitcherProps {
     current: EcosystemSlug;
     className?: string;
+    /**
+     * When true, append the owner-only entries (currently
+     * `oc·analytics`) to the family-switcher dropdown. Consumers
+     * pass this from their session: `useOcSession().account?.isOwner`.
+     * Defaults to false so non-owners never see owner-only links.
+     *
+     * Not a security boundary — analytics.ochk.io re-checks the
+     * live OWNER_OC_ADDRESSES env on every request. This prop only
+     * decides whether the UX hint is visible.
+     */
+    showOwnerEntries?: boolean;
 }
 
 export function EcosystemSwitcher({
     current,
     className,
+    showOwnerEntries = false,
 }: EcosystemSwitcherProps) {
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -180,7 +207,7 @@ export function EcosystemSwitcher({
                         § the family
                     </div>
                     <ul className="py-1">
-                        {ENTRIES.map((e) => {
+                        {[...ENTRIES, ...(showOwnerEntries ? OWNER_ENTRIES : [])].map((e) => {
                             const isActive = e.slug === current;
                             return (
                                 <li key={e.slug}>

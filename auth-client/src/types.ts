@@ -43,6 +43,24 @@ export interface OcAccount {
      * tokens minted before this field shipped).
      */
     signingMethod?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
+    /**
+     * Best-effort owner-flag · true when the user's `did_oc` was on
+     * the auth host's `OWNER_OC_ADDRESSES` env at the time the JWT
+     * was minted. Surfaced so the family-switcher and other low-
+     * stakes UX can render owner-only affordances (e.g. an
+     * analytics.ochk.io entry visible only to owners).
+     *
+     * **NOT A SECURITY BOUNDARY.** Sensitive surfaces — including
+     * analytics.ochk.io itself — re-check the live env against
+     * `session.did_oc` server-side on every request. If an owner is
+     * removed from the env, their JWT may keep `isOwner: true` for
+     * up to the JWT lifetime (~30d) but every gated action they
+     * attempt re-fails. The flag exists purely so we can show or
+     * hide UX hints without an extra round-trip on every page load.
+     *
+     * Treat absence as `false`.
+     */
+    isOwner?: boolean;
 }
 
 export type OcSessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'error';

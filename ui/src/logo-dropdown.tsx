@@ -52,6 +52,7 @@ const SECTIONS: Array<{ category: FamilyCategory; label: string }> = [
     { category: 'hub', label: 'hub' },
     { category: 'product', label: 'products' },
     { category: 'protocol', label: 'protocols' },
+    { category: 'owner', label: 'owner' },
 ];
 
 export interface OcLogoDropdownProps {
@@ -85,23 +86,45 @@ export interface OcLogoDropdownProps {
     triggerClassName?: string;
     /** className for the popover. */
     popoverClassName?: string;
+    /**
+     * When true, include the `owner` section (currently just
+     * `oc·analytics`) in the family list. Consumers pass this from
+     * their session: `useOcSession().account?.isOwner ?? false`.
+     * Defaults to false so non-owners never see the entry.
+     *
+     * Not a security boundary — analytics.ochk.io re-checks the live
+     * OWNER_OC_ADDRESSES env on every request. This prop only
+     * controls UX visibility.
+     */
+    showOwnerEntries?: boolean;
 }
 
 function CategoryChip({ category }: { category: FamilyCategory }) {
     if (category === 'hub') return null;
-    const isProduct = category === 'product';
+    const label =
+        category === 'product' ? 'product' : category === 'protocol' ? 'protocol' : 'owner';
+    const tone =
+        category === 'product'
+            ? 'border-primary/25 bg-primary/10 text-primary'
+            : category === 'protocol'
+              ? 'border-muted-foreground/20 bg-muted/40 text-muted-foreground/85'
+              : 'border-warning/30 bg-warning/10 text-warning';
     return (
         <span
-            aria-label={isProduct ? 'commercial product' : 'protocol reference'}
+            aria-label={
+                category === 'product'
+                    ? 'commercial product'
+                    : category === 'protocol'
+                      ? 'protocol reference'
+                      : 'owner-only surface'
+            }
             className={
                 'ml-1 hidden rounded-sm border px-1.5 py-[1px] font-mono text-[9px] font-medium tracking-widest uppercase sm:inline-block ' +
-                (isProduct
-                    ? 'border-primary/25 bg-primary/10 text-primary'
-                    : 'border-muted-foreground/20 bg-muted/40 text-muted-foreground/85')
+                tone
             }
             data-oc-category={category}
         >
-            {isProduct ? 'product' : 'protocol'}
+            {label}
         </span>
     );
 }
@@ -121,18 +144,23 @@ function SiteStateBadge({ state }: { state: SiteState }) {
 
 function MenuCategoryChip({ category }: { category: FamilyCategory }) {
     if (category === 'hub') return null;
-    const isProduct = category === 'product';
+    const label =
+        category === 'product' ? 'pro' : category === 'protocol' ? 'spec' : 'own';
+    const tone =
+        category === 'product'
+            ? 'bg-primary/10 text-primary'
+            : category === 'protocol'
+              ? 'bg-muted/60 text-muted-foreground/80'
+              : 'bg-warning/15 text-warning';
     return (
         <span
             aria-hidden
             className={
                 'inline-block shrink-0 rounded-sm px-1 py-[1px] font-mono text-[9px] font-medium tracking-widest uppercase ' +
-                (isProduct
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-muted/60 text-muted-foreground/80')
+                tone
             }
         >
-            {isProduct ? 'pro' : 'spec'}
+            {label}
         </span>
     );
 }
@@ -145,6 +173,7 @@ export function OcLogoDropdown({
     className,
     triggerClassName,
     popoverClassName,
+    showOwnerEntries = false,
 }: OcLogoDropdownProps) {
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -278,6 +307,11 @@ export function OcLogoDropdown({
                     </div>
                     <div className="max-h-[min(28rem,70vh)] overflow-y-auto py-1" role="none">
                         {SECTIONS.map(({ category, label }) => {
+                            // Owner-only sections only render when the
+                            // consumer has explicitly opted in (caller
+                            // reads `useOcSession().account?.isOwner`).
+                            // Non-owners simply don't see them.
+                            if (category === 'owner' && !showOwnerEntries) return null;
                             const sectionEntries = FAMILY_PROPERTIES.filter(
                                 (e) => e.category === category
                             );

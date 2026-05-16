@@ -32,6 +32,8 @@ interface MeResponse {
         homeFederation?: string | null;
         signing_method?: RawSigningMethod | null;
         signingMethod?: RawSigningMethod | null;
+        is_owner?: boolean;
+        isOwner?: boolean;
     };
 }
 
@@ -49,6 +51,7 @@ function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
         nostrNpub: raw.nostr_npub ?? raw.nostrNpub ?? null,
         homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,
         signingMethod: raw.signing_method ?? raw.signingMethod ?? null,
+        isOwner: Boolean(raw.is_owner ?? raw.isOwner ?? false),
     };
 }
 

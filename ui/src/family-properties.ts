@@ -11,7 +11,7 @@
 
 import type { EcosystemSlug } from './ecosystem-switcher';
 
-export type FamilyCategory = 'hub' | 'product' | 'protocol';
+export type FamilyCategory = 'hub' | 'product' | 'protocol' | 'owner';
 
 export interface FamilyProperty {
     /** Stable URL-safe identifier (e.g. `'vault'`). */
@@ -129,6 +129,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         sub: 'swear — bonded commitment',
         docsHref: 'https://docs.ochk.io/pledge',
         category: 'protocol',
+    },
+    {
+        slug: 'analytics',
+        origin: 'https://analytics.ochk.io',
+        hostname: 'analytics.ochk.io',
+        label: 'oc·analytics',
+        sub: 'owner cockpit',
+        docsHref: 'https://analytics.ochk.io',
+        category: 'owner',
     },
 ];
 

@@ -254,10 +254,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@orangecheck/auth-core@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.1.0.tgz#ed9b7bb736de5e66e35387648fed98096e807e2a"
-  integrity sha512-/z4xDnpsnFzLgCGYdITlwbABzC4r7nZpF6YG6fGEsPmFA5fh6S5Sro8CF6NjXgiQmHhHLBL1kdSfIbETwlE38g==
+"@orangecheck/auth-core@^2.3.0":
+  version "2.3.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.3.0.tgz#31f468384d161d7e5e96e3eddcea878bfe7897fc"
+  integrity sha512-LXd0zbGODuVkoX6oTXnAokP3FDPGjcqrdH18kOxD4toba75jo9POBnGVP2CQVaVX5GPnGGWMLEmx0Crnd0H/dg==
   dependencies:
     jose "^6.2.2"
 

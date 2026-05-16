@@ -108,6 +108,24 @@ export interface SessionPayload extends JWTPayload {
      * with `verifySudoClaim()`.
      */
     sudo_at?: number;
+    /**
+     * Optional best-effort owner flag · set by the auth host at signin
+     * time when the new did_oc matches OWNER_OC_ADDRESSES. Surfaced
+     * through to clients via `useOcSession().account.isOwner` so the
+     * family-switcher and other low-stakes UX can render owner-only
+     * affordances (e.g. an analytics.ochk.io entry).
+     *
+     * **NOT A SECURITY BOUNDARY.** Sensitive surfaces still re-check
+     * the live `OWNER_OC_ADDRESSES` env against `session.did_oc` on
+     * every request (analytics.ochk.io's requireOwner does this).
+     * If an owner is removed from the env, their JWT may still carry
+     * `is_owner: true` for up to 30 days — the UX hint goes stale,
+     * but every gated action they attempt re-fails server-side.
+     *
+     * Treat absence as `false`. Set only on first signin or re-issue;
+     * never mutated mid-session.
+     */
+    is_owner?: boolean;
 }
 
 /**
