@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { useOcSession } from '@orangecheck/auth-client';
 
 import type { EcosystemSlug } from './ecosystem-switcher';
@@ -22,9 +23,10 @@ import { findFamilyProperty, type SiteState } from './family-properties';
  *      pass).
  *   3. **Authenticated** — pill with a primary-tinted signal dot and
  *      shortened did_oc (or display name if set); click → popover
- *      with full address, optional site-specific menu items, family
- *      dashboard link, sign-out, and an optional BuildFooter showing
- *      site name + version + commit sha → GitHub.
+ *      with the full did_oc as a one-click copy-to-clipboard row,
+ *      optional site-specific menu items, family dashboard link,
+ *      sign-out, and an optional BuildFooter showing site name +
+ *      version + commit sha → GitHub.
  *
  * Cross-site recognition: the component re-fetches the session on
  * `visibilitychange` and `focus` events, so when a user signs in at a
@@ -146,6 +148,104 @@ export interface OcAccountMenuProps {
 function shortenDid(s: string): string {
     if (s.length <= 14) return s;
     return `${s.slice(0, 7)}…${s.slice(-5)}`;
+}
+
+/**
+ * Best-effort clipboard write. Prefers the async Clipboard API (the
+ * only thing that works off a user gesture in modern browsers), and
+ * falls back to a hidden-`<textarea>` + `execCommand('copy')` for
+ * non-secure contexts or older engines. Returns `true` on success so
+ * the caller can decide whether to show "copied" feedback.
+ */
+async function writeClipboard(text: string): Promise<boolean> {
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch {
+        // fall through to the legacy path
+    }
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * The `did_oc` row inside the popover header, rendered as a single
+ * one-click copy affordance. Clicking anywhere on the address copies
+ * the full `did_oc` to the clipboard and flips the trailing glyph
+ * from a copy icon to a check for ~1.6s. The popover deliberately
+ * stays open so the user sees the confirmation. A visually-hidden
+ * `aria-live` region announces the result to screen readers.
+ *
+ * This is the canonical pattern for surfacing a copyable OrangeCheck
+ * identity — every family site gets it for free via `<OcAccountMenu>`.
+ */
+function CopyableDid({ did }: { did: string }) {
+    const [copied, setCopied] = useState(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(
+        () => () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        },
+        [],
+    );
+
+    const onCopy = async () => {
+        const ok = await writeClipboard(did);
+        if (!ok) return;
+        setCopied(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopied(false), 1600);
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={onCopy}
+            aria-label={
+                copied
+                    ? 'OrangeCheck identity copied to clipboard'
+                    : `Copy OrangeCheck identity ${did} to clipboard`
+            }
+            title="Copy identity"
+            data-oc-account-menu-copy-did=""
+            data-copied={copied ? '' : undefined}
+            className="group/did hover:bg-accent focus-visible:ring-ring/60 -mx-1.5 mt-px flex w-[calc(100%+0.75rem)] items-start gap-1.5 rounded px-1.5 py-1 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        >
+            <span className="text-foreground/90 min-w-0 flex-1 font-mono text-[11px] leading-tight break-all">
+                {did}
+            </span>
+            <span
+                className={
+                    'mt-px shrink-0 transition-colors ' +
+                    (copied
+                        ? 'text-primary'
+                        : 'text-muted-foreground/50 group-hover/did:text-foreground/80')
+                }
+                aria-hidden
+            >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+            </span>
+            <span className="sr-only" aria-live="polite">
+                {copied ? 'Copied to clipboard' : ''}
+            </span>
+        </button>
+    );
 }
 
 /**
@@ -329,9 +429,7 @@ export function OcAccountMenuView({
                         <div className="text-primary mb-1 font-mono text-[10px] tracking-widest uppercase">
                             § signed in · {hostname}
                         </div>
-                        <div className="text-foreground/90 font-mono text-[11px] leading-tight break-all">
-                            {account.didOc}
-                        </div>
+                        <CopyableDid did={account.didOc} />
                         {displayName ? (
                             <div className="text-muted-foreground/80 mt-1 font-mono text-[10px] tracking-wide">
                                 {displayName}
