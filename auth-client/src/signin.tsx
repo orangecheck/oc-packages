@@ -53,11 +53,14 @@ export interface OcSignInProps {
     returnTo?: string;
     /**
      * Override the default hard-navigation behavior. When provided,
-     * called with the normalized account. The component will NOT
-     * navigate — caller is responsible. Use only if you need custom
-     * post-signin routing (e.g. /popup/signin postMessages to opener).
+     * called with the account and the session JWT. The component will
+     * NOT navigate — the caller is responsible. Use for custom
+     * post-signin routing — e.g. /popup/signin postMessages
+     * `{ account, token }` to its opener so a cross-domain integrator
+     * (different eTLD+1 from .ochk.io, which the HttpOnly cookie can't
+     * reach) can verify the session via JWKS.
      */
-    onSuccess?: (account: OcAccount) => void;
+    onSuccess?: (account: OcAccount, token?: string) => void;
     /**
      * Async post-success routing. When provided (and `onSuccess` is
      * not), the component awaits `resolveReturnTo(account)` and
@@ -95,6 +98,13 @@ export interface OcSignInProps {
 interface SigninJsonOk {
     ok: true;
     account: OcAccount;
+    /**
+     * The session JWT, echoed alongside the `Set-Cookie`. Cross-domain
+     * integrators capture this to verify the session via JWKS — the
+     * HttpOnly `.ochk.io` cookie never reaches their origin. Family
+     * `.ochk.io` sites ignore it and rely on the cookie.
+     */
+    token?: string;
 }
 
 interface SigninJsonErr {
@@ -139,9 +149,9 @@ export function OcSignIn({
     const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
 
     const handleSuccess = React.useCallback(
-        async (account: OcAccount) => {
+        async (account: OcAccount, token?: string) => {
             if (onSuccess) {
-                onSuccess(account);
+                onSuccess(account, token);
                 return;
             }
             if (resolveReturnTo) {
@@ -268,7 +278,7 @@ function SigninTab({
 
 interface FlowProps {
     authOrigin: string;
-    onSuccess: (account: OcAccount) => void;
+    onSuccess: (account: OcAccount, token?: string) => void;
 }
 
 interface WalletFlowProps extends FlowProps {
@@ -364,7 +374,7 @@ function WalletFlow({ authOrigin, audience, onSuccess }: WalletFlowProps): React
                         `verify_failed_${res.status}`
                 );
             }
-            onSuccess(json.account);
+            onSuccess(json.account, json.token);
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'sign-in failed';
             setError(msg);
@@ -482,7 +492,7 @@ function EmailFlow({ authOrigin, onSuccess }: FlowProps): React.ReactElement {
                         `verify failed (${res.status})`
                 );
             }
-            onSuccess(json.account);
+            onSuccess(json.account, json.token);
         } catch (err) {
             setCodeError(err instanceof Error ? err.message : 'verify failed');
         } finally {

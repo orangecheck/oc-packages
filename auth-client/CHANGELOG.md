@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.5.1] — 2026-05-16 · `OcSignIn` onSuccess forwards the session token
+
+Additive. `OcSignIn`'s `onSuccess` callback now receives the session
+JWT as a second argument: `(account, token?) => void`. The token was
+always in the auth-host response — it just wasn't forwarded.
+
+This is what lets the popup sign-in surface (`/popup/signin`, opened by
+a cross-domain integrator) `postMessage` `{ account, token }` back to
+its opener without a bespoke ceremony fork: a cross-domain integrator
+can't read the HttpOnly `.ochk.io` cookie, so it needs the token to
+verify the session via JWKS. With this, `OcSignIn` covers the popup
+case too and the last hand-rolled sign-in fork can be deleted.
+
+Existing `onSuccess` callbacks that ignore the second argument are
+unaffected — purely additive.
+
 ## [2.5.0] — 2026-05-16 · `OcSignIn` ceremony as the single source of truth
 
 Additive. `OcSignIn` gains two changes so that every site can render it
