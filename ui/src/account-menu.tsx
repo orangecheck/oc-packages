@@ -421,7 +421,7 @@ export function OcAccountMenuView({
                     aria-label="Account menu"
                     className={
                         popoverClassName ??
-                        'border-border bg-popover text-popover-foreground absolute top-[calc(100%+6px)] right-0 z-50 w-[min(18rem,calc(100vw-1rem))] border shadow-xl'
+                        'border-border bg-popover text-popover-foreground absolute top-[calc(100%+6px)] right-0 z-50 w-[min(20rem,calc(100vw-1rem))] border shadow-xl'
                     }
                     data-oc-account-menu-popover=""
                 >
