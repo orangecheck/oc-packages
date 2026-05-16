@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.5.0] — 2026-05-16 · `OcSignIn` ceremony as the single source of truth
+
+Additive. `OcSignIn` gains two changes so that every site can render it
+verbatim instead of hand-rolling the dual-path sign-in ceremony — the
+fork-collapse step of the auth holistic plan (`AUTH-PLAN.md` §4).
+
+- **New `resolveReturnTo?` prop** — `(account) => string | Promise<string>`.
+  When provided (and `onSuccess` is not), the component awaits it after a
+  successful sign-in and hard-navigates to the result. This is the seam
+  for persona-aware routing — e.g. me.ochk.io resolves `/api/me/intent`
+  and routes to `/me/developer` | `/me/operator` | `/me` — so a site no
+  longer needs to fork the ceremony to customize post-sign-in navigation.
+  The resolved value is open-redirect-checked exactly like `returnTo`;
+  a resolver throw falls back to the static `returnTo`.
+- **iOS-zoom fix** — sign-in text inputs were `font-size: 13px`, which
+  triggers iOS Safari's focus auto-zoom. Bumped to `16px` (the family
+  minimum for every form field). Desktop is unaffected visually.
+
+No breaking changes. Consumers on `^2.x` pick this up with no code edits.
+
 ## [2.3.0] — 2026-05-14 · `useWebAuthnList.{rename,remove}` discriminated unions
 
 Breaking shape change to two hook methods · same pattern that landed for

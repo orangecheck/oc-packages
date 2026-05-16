@@ -59,6 +59,19 @@ export interface OcSignInProps {
      */
     onSuccess?: (account: OcAccount) => void;
     /**
+     * Async post-success routing. When provided (and `onSuccess` is
+     * not), the component awaits `resolveReturnTo(account)` and
+     * hard-navigates to the result instead of the static `returnTo`.
+     *
+     * This is the seam that lets a site keep persona-aware routing
+     * without forking the ceremony — e.g. me.ochk.io resolves
+     * `/api/me/intent` and routes to `/me/developer` | `/me/operator`
+     * | `/me`. The returned value is open-redirect-checked exactly
+     * like `returnTo` (same-origin paths only); on a resolver throw
+     * the component falls back to the static `returnTo`.
+     */
+    resolveReturnTo?: (account: OcAccount) => string | Promise<string>;
+    /**
      * Override the auth host. Defaults to `'https://ochk.io'`. For
      * preview / dev / staging only.
      */
@@ -113,6 +126,7 @@ export function OcSignIn({
     audience,
     returnTo,
     onSuccess,
+    resolveReturnTo,
     authOrigin = 'https://ochk.io',
     initialPath = 'wallet',
     paths,
@@ -125,14 +139,23 @@ export function OcSignIn({
     const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
 
     const handleSuccess = React.useCallback(
-        (account: OcAccount) => {
+        async (account: OcAccount) => {
             if (onSuccess) {
                 onSuccess(account);
                 return;
             }
+            if (resolveReturnTo) {
+                try {
+                    const target = await resolveReturnTo(account);
+                    hardNavigate(safeReturnTo(target));
+                    return;
+                } catch {
+                    // resolver failed — fall through to the static returnTo
+                }
+            }
             hardNavigate(safeReturn);
         },
-        [onSuccess, safeReturn]
+        [onSuccess, resolveReturnTo, safeReturn]
     );
 
     if (!walletEnabled && !emailEnabled) {
@@ -624,7 +647,10 @@ const inputStyle: React.CSSProperties = {
     border: '1px solid var(--input, #27272a)',
     borderRadius: 6,
     fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-    fontSize: 13,
+    // 16px — never below it. A sub-16px font-size makes iOS Safari
+    // auto-zoom the viewport on focus; the family rule is >=16px on
+    // every form field. Desktop reads fine at 16 too.
+    fontSize: 16,
     outline: 'none',
 };
 
