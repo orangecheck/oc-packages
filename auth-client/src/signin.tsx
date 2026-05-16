@@ -293,14 +293,16 @@ function WalletFlow({ authOrigin, audience, onSuccess }: WalletFlowProps): React
             };
             let adapter: AdapterShape;
             try {
-                // Optional peer dep — consumer site installs it. We use a
-                // dynamic-import + variable trick so TypeScript doesn't try
-                // to resolve the module at build time of THIS package.
-                const moduleId = '@orangecheck/wallet-adapter';
-                // eslint-disable-next-line @typescript-eslint/no-implied-eval
-                adapter = (await (Function('m', 'return import(m)') as (m: string) => Promise<unknown>)(
-                    moduleId
-                )) as AdapterShape;
+                // Optional peer dep — the consumer site installs it. This is
+                // a *static* dynamic import: tsup keeps the specifier verbatim
+                // (it's in `external`), and the consumer's bundler resolves it
+                // against the consumer's node_modules at build time. The old
+                // `Function('m','return import(m)')` trick produced a runtime
+                // bare-specifier `import()` the browser cannot resolve without
+                // an import map — which is what broke sign-in everywhere.
+                adapter = (await import(
+                    '@orangecheck/wallet-adapter'
+                )) as unknown as AdapterShape;
             } catch {
                 throw new Error(
                     '@orangecheck/wallet-adapter not installed · add it to your consumer site'
