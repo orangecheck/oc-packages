@@ -11,6 +11,31 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.6.0] — 2026-05-16 · `OcLinkedIdentities` + `OcSignIn` linkPrompt
+
+Additive. Identity linking is no longer a single-product, one-tab
+feature — it ships as a shared component every family site can mount.
+See AUTH-PLAN.md §5.
+
+- **New `<OcLinkedIdentities/>`** — the shared linked-identities
+  management surface: lists the user's linked email + Bitcoin address,
+  reveal/hide per row, unlink a non-primary identity, link a new one.
+  Linking an identity already on another OC account offers the
+  dual-proof transfer (BTC and — new on the auth host — email). Renders
+  consolidated (`merged_from`) accounts. Style-agnostic inline styling,
+  CSS-variable-themed, same approach as `OcSignIn`. Calls the auth host
+  directly with family-CORS; no local proxy route needed.
+- **New `linkPrompt` prop on `OcSignIn`** — when set, after a
+  successful sign-in the component shows an optional "add a backup way
+  to sign in" step (`<OcLinkedIdentities/>`) before navigating away,
+  instead of navigating immediately. The sign-in ceremony is the
+  lowest-friction moment to bind a recovery identity. Ignored when
+  `onSuccess` is provided. Default off.
+
+`@orangecheck/wallet-adapter` (already an optional peer) is lazy-loaded
+by the Bitcoin-link path — sites without it degrade gracefully with a
+clear message. No breaking changes.
+
 ## [2.5.1] — 2026-05-16 · `OcSignIn` onSuccess forwards the session token
 
 Additive. `OcSignIn`'s `onSuccess` callback now receives the session

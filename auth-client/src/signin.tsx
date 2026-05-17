@@ -34,6 +34,7 @@
 
 import * as React from 'react';
 
+import { OcLinkedIdentities } from './linked-identities';
 import type { OcAccount } from './types';
 
 /* --- props --- */
@@ -89,6 +90,17 @@ export interface OcSignInProps {
      * Useful for B2B-only sites that don't want to expose email-OTP.
      */
     paths?: { wallet?: boolean; email?: boolean };
+    /**
+     * After a successful sign-in, show an optional "add a backup way to
+     * sign in" step — the shared `<OcLinkedIdentities/>` surface —
+     * before navigating away, instead of navigating immediately. The
+     * sign-in ceremony is the one moment the user has just proven a
+     * credential; it is the lowest-friction time to bind a recovery
+     * identity. The user can always skip with "continue". Ignored when
+     * `onSuccess` is set (the caller owns post-success flow then).
+     * Default false.
+     */
+    linkPrompt?: boolean;
     /** className for the outer container. */
     className?: string;
 }
@@ -137,6 +149,7 @@ export function OcSignIn({
     returnTo,
     onSuccess,
     resolveReturnTo,
+    linkPrompt,
     authOrigin = 'https://ochk.io',
     initialPath = 'wallet',
     paths,
@@ -147,17 +160,15 @@ export function OcSignIn({
     const safeReturn = safeReturnTo(returnTo);
 
     const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
+    // Set once sign-in succeeds when `linkPrompt` is on — the component
+    // then renders the post-success link step instead of navigating.
+    const [signedIn, setSignedIn] = React.useState<OcAccount | null>(null);
 
-    const handleSuccess = React.useCallback(
-        async (account: OcAccount, token?: string) => {
-            if (onSuccess) {
-                onSuccess(account, token);
-                return;
-            }
+    const navigate = React.useCallback(
+        async (account: OcAccount) => {
             if (resolveReturnTo) {
                 try {
-                    const target = await resolveReturnTo(account);
-                    hardNavigate(safeReturnTo(target));
+                    hardNavigate(safeReturnTo(await resolveReturnTo(account)));
                     return;
                 } catch {
                     // resolver failed — fall through to the static returnTo
@@ -165,7 +176,22 @@ export function OcSignIn({
             }
             hardNavigate(safeReturn);
         },
-        [onSuccess, resolveReturnTo, safeReturn]
+        [resolveReturnTo, safeReturn]
+    );
+
+    const handleSuccess = React.useCallback(
+        async (account: OcAccount, token?: string) => {
+            if (onSuccess) {
+                onSuccess(account, token);
+                return;
+            }
+            if (linkPrompt) {
+                setSignedIn(account);
+                return;
+            }
+            await navigate(account);
+        },
+        [onSuccess, linkPrompt, navigate]
     );
 
     if (!walletEnabled && !emailEnabled) {
@@ -183,6 +209,17 @@ export function OcSignIn({
             >
                 no signin paths enabled — set <code>paths.wallet</code> or{' '}
                 <code>paths.email</code> to <code>true</code>
+            </div>
+        );
+    }
+
+    if (signedIn) {
+        return (
+            <div className={className} data-oc-signin="">
+                <LinkPromptStep
+                    authOrigin={authOrigin}
+                    onContinue={() => void navigate(signedIn)}
+                />
             </div>
         );
     }
@@ -229,6 +266,35 @@ export function OcSignIn({
                     <EmailFlow authOrigin={authOrigin} onSuccess={handleSuccess} />
                 )}
             </div>
+        </div>
+    );
+}
+
+/* --- post-success link prompt --- */
+
+function LinkPromptStep({
+    authOrigin,
+    onContinue,
+}: {
+    authOrigin: string;
+    onContinue: () => void;
+}): React.ReactElement {
+    return (
+        <div data-oc-signin-linkprompt="">
+            <FlowHeader label="§ signed in · add a backup">
+                You&apos;re in. Linking a second way to sign in — your email or your Bitcoin
+                wallet — is also your recovery path: lose one, the other still gets you in.
+                Optional; skip with continue.
+            </FlowHeader>
+            <OcLinkedIdentities authOrigin={authOrigin} />
+            <button
+                type="button"
+                onClick={onContinue}
+                style={submitStyle(false)}
+                data-oc-signin-continue=""
+            >
+                continue →
+            </button>
         </div>
     );
 }
