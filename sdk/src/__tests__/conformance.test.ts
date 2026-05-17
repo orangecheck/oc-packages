@@ -21,10 +21,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+    bindingId,
+    buildBindingMessage,
     buildCanonicalMessage,
     computeScore,
     formatIdentities,
     generateAttestationId,
+    verifyBinding,
+    type BindingEnvelope,
+    type BindingInput,
 } from '../index';
 
 const VECTORS_DIR = join(__dirname, 'vectors');
@@ -177,6 +182,83 @@ describe('conformance: vector index loaded', () => {
                 'reject',
                 'bip322_signature',
             ])
+        );
+    });
+});
+
+/* ─── Binding Attestation · OC Attest v1 (SPEC-BINDING.md) ───────────────── */
+
+function loadBindingVectors(): Vector[] {
+    return readdirSync(VECTORS_DIR)
+        .filter((f) => f.startsWith('bv') && f.endsWith('.json'))
+        .sort()
+        .map((f) => JSON.parse(readFileSync(join(VECTORS_DIR, f), 'utf8')) as Vector);
+}
+
+const bindingVectors = loadBindingVectors();
+
+describe('conformance: binding canonical message', () => {
+    for (const v of bindingVectors.filter((x) => x.category === 'canonical_message')) {
+        it(`${v.id} — ${v.description}`, () => {
+            expect(buildBindingMessage(v.input as unknown as BindingInput)).toBe(
+                v.expected.message
+            );
+        });
+    }
+});
+
+describe('conformance: binding_id', () => {
+    for (const v of bindingVectors.filter((x) => x.category === 'binding_id')) {
+        it(`${v.id} — ${v.description}`, () => {
+            expect(bindingId(v.input.message as string)).toBe(v.expected.binding_id);
+        });
+    }
+});
+
+describe('conformance: binding verification', () => {
+    for (const v of bindingVectors.filter((x) => x.category === 'binding_verify')) {
+        it(`${v.id} — ${v.description}`, () => {
+            const result = verifyBinding(v.input.envelope as unknown as BindingEnvelope);
+            expect(result.valid).toBe(v.expected.valid);
+            expect(result.status).toBe(v.expected.status);
+            if (v.expected.binding_id) {
+                expect(result.valid && result.binding_id).toBe(v.expected.binding_id);
+            }
+        });
+    }
+});
+
+describe('conformance: binding rejections', () => {
+    for (const v of bindingVectors.filter((x) => x.category === 'reject')) {
+        it(`${v.id} — ${v.description}`, () => {
+            const needle = String(v.expected.reason_contains).toLowerCase();
+            if ('principal' in v.input) {
+                // build-time rejection — line-smuggling defense (§3.5)
+                let thrown: Error | null = null;
+                try {
+                    buildBindingMessage(v.input as unknown as BindingInput);
+                } catch (e) {
+                    thrown = e as Error;
+                }
+                expect(thrown).not.toBeNull();
+                expect(thrown!.message.toLowerCase()).toContain(needle);
+            } else {
+                // verify-time rejection — e.g. a v0 message's header
+                const result = verifyBinding({
+                    message: v.input.message as string,
+                } as BindingEnvelope);
+                expect(result.valid).toBe(false);
+                expect(result.status.toLowerCase()).toContain(needle);
+            }
+        });
+    }
+});
+
+describe('conformance: binding vector set', () => {
+    it('found all 8 bv* vectors across every binding category', () => {
+        expect(bindingVectors.length).toBe(8);
+        expect(new Set(bindingVectors.map((v) => v.category))).toEqual(
+            new Set(['canonical_message', 'binding_id', 'binding_verify', 'reject'])
         );
     });
 });
