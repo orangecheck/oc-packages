@@ -198,6 +198,10 @@ export function OcLinkedIdentities({
                     onCancel={() => setShowBtcLink(false)}
                 />
             )}
+
+            {hasBtc && resp.did_oc && (
+                <OcIdentityBond didOc={resp.did_oc} btc={btcRows.find((i) => !!i.value)!.value!} />
+            )}
         </div>
     );
 }
@@ -748,6 +752,294 @@ function TransferConfirm({
             </FormButtons>
         </>
     );
+}
+
+/* --- identity bond · publish a BTC ⇄ Nostr Binding Attestation to Nostr --- */
+
+/** Minimal NIP-07 surface (`window.nostr`) the bond ceremony needs. */
+interface Nip07 {
+    getPublicKey(): Promise<string>;
+    signEvent(template: {
+        kind: number;
+        created_at: number;
+        tags: string[][];
+        content: string;
+        pubkey?: string;
+    }): Promise<{
+        id: string;
+        pubkey: string;
+        kind: number;
+        created_at: number;
+        tags: string[][];
+        content: string;
+        sig: string;
+    }>;
+}
+
+type BondStage = 'idle' | 'sign-btc' | 'sign-nostr' | 'publishing' | 'done';
+
+export interface OcIdentityBondProps {
+    /** The account's `did:oc:` principal. */
+    didOc: string;
+    /** A linked, BIP-322-proven Bitcoin address to bind. */
+    btc: string;
+    className?: string;
+}
+
+/**
+ * `<OcIdentityBond>` — create and publish a v1 Binding Attestation: a
+ * mutually-signed BTC ⇄ Nostr identity bond (`oc-attest-protocol`
+ * SPEC-BINDING.md). This is the self-sovereign tier of identity linking —
+ * the artifact lives on Nostr, is verifiable by anyone with zero trust in
+ * OrangeCheck, and lets the account graph survive a database loss.
+ *
+ * The ceremony is two keys: the Bitcoin wallet signs the canonical message
+ * via BIP-322, and a NIP-07 Nostr extension counter-signs by publishing it
+ * as a kind-30079 event. `@orangecheck/sdk` (construct + verify) and
+ * `@orangecheck/nostr-core` (publish) are lazy-loaded optional peers — a
+ * site without them, or a user without a Nostr extension, degrades to a
+ * clear message.
+ */
+export function OcIdentityBond({
+    didOc,
+    btc,
+    className,
+}: OcIdentityBondProps): React.ReactElement {
+    const [stage, setStage] = React.useState<BondStage>('idle');
+    const [message, setMessage] = React.useState('');
+    const [err, setErr] = React.useState<string | null>(null);
+    const [result, setResult] = React.useState<{
+        bindingId: string;
+        relays: number;
+        relaysTotal: number;
+    } | null>(null);
+
+    function nip07(): Nip07 | null {
+        if (typeof window === 'undefined') return null;
+        const w = window as unknown as { nostr?: Nip07 };
+        return w.nostr ?? null;
+    }
+
+    /** Step 1 — get the Nostr key, build the canonical binding message. */
+    async function begin(): Promise<void> {
+        setErr(null);
+        const nostr = nip07();
+        if (!nostr) {
+            setErr(
+                'no Nostr signer found · install a NIP-07 extension (Alby, nos2x) to counter-sign the bond'
+            );
+            return;
+        }
+        try {
+            const sdk = await loadSdk();
+            const pubkeyHex = (await nostr.getPublicKey()).toLowerCase();
+            const npub = sdk.xOnlyHexToNpub(pubkeyHex);
+            const msg = sdk.buildBindingMessage({
+                principal: didOc,
+                btc,
+                nostr: npub,
+                nonce: randomNonceHex(),
+                issued_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            });
+            setMessage(msg);
+            setStage('sign-btc');
+        } catch (e) {
+            setErr(e instanceof Error ? e.message : 'could not start the bond ceremony');
+        }
+    }
+
+    /** Steps 2–4 — BTC signature in hand → Nostr counter-sign → publish. */
+    async function afterBtcSign(btcSignature: string): Promise<void> {
+        setErr(null);
+        setStage('sign-nostr');
+        try {
+            const nostr = nip07();
+            if (!nostr) throw new Error('Nostr extension went away · retry');
+            const sdk = await loadSdk();
+            const pubkeyHex = (await nostr.getPublicKey()).toLowerCase();
+
+            const template = sdk.buildBindingEventTemplate({
+                message,
+                btcSignature,
+                nostrPubkeyHex: pubkeyHex,
+                btc,
+            });
+            const signedEvent = await nostr.signEvent(template);
+
+            const envelope = sdk.assembleBindingEnvelope({
+                message,
+                btcSignature,
+                btcScheme: 'bip322',
+                nostrEvent: signedEvent,
+            });
+
+            // Self-check before publishing — never publish an artifact our
+            // own verifier rejects.
+            const check = sdk.verifyBinding(envelope);
+            if (!check.valid) {
+                throw new Error(`assembled bond failed local verification (${check.status})`);
+            }
+
+            setStage('publishing');
+            const { publishEvent } = await loadNostrCore();
+            const results = await publishEvent(signedEvent);
+            const ok = results.filter((r: { ok: boolean }) => r.ok).length;
+            if (ok === 0) {
+                throw new Error('no relay accepted the bond · check your connection and retry');
+            }
+            setResult({
+                bindingId: check.valid ? check.binding_id : sdk.bindingId(message),
+                relays: ok,
+                relaysTotal: results.length,
+            });
+            setStage('done');
+        } catch (e) {
+            setErr(e instanceof Error ? e.message : 'bond publish failed');
+            setStage('sign-btc');
+        }
+    }
+
+    return (
+        <div className={className} style={panelStyle('accent')} data-oc-identity-bond="">
+            <SectionLabel>§ identity bond · publish to nostr</SectionLabel>
+
+            {stage === 'idle' && (
+                <>
+                    <p style={bodyStyle}>
+                        Publish a <strong>Binding Attestation</strong> — a Bitcoin-signed,
+                        Nostr-signed proof that this address and your Nostr key are one
+                        identity. It lives on Nostr, verifies with zero trust in OrangeCheck,
+                        and means your identity survives even if OC&apos;s database does not.
+                        Two signatures: your Bitcoin wallet, then your Nostr extension.
+                    </p>
+                    <FormButtons>
+                        <button
+                            type="button"
+                            onClick={() => void begin()}
+                            style={primaryBtnStyle(false)}
+                        >
+                            create &amp; publish bond
+                        </button>
+                    </FormButtons>
+                </>
+            )}
+
+            {stage === 'sign-btc' && (
+                <>
+                    <p style={bodyStyle}>
+                        Step 1 of 2 — sign the binding message with the Bitcoin wallet that
+                        controls <span style={{ fontFamily: MONO, wordBreak: 'break-all' }}>
+                            {btc}
+                        </span>.
+                    </p>
+                    <LazyWalletButton
+                        address={btc}
+                        message={message}
+                        showManual
+                        layout="list"
+                        heading={null}
+                        onSigned={(sig: string) => void afterBtcSign(sig)}
+                        onError={(e: { message?: string }) =>
+                            setErr(e?.message ?? 'wallet rejected the signature')
+                        }
+                    />
+                </>
+            )}
+
+            {(stage === 'sign-nostr' || stage === 'publishing') && (
+                <p style={bodyStyle}>
+                    {stage === 'sign-nostr'
+                        ? 'Step 2 of 2 — approve the signature in your Nostr extension…'
+                        : 'Publishing the bond to Nostr…'}
+                </p>
+            )}
+
+            {stage === 'done' && result && (
+                <>
+                    <SectionLabel tone="success">§ bond published</SectionLabel>
+                    <p style={bodyStyle}>
+                        Your identity bond is live on {result.relays}/{result.relaysTotal}{' '}
+                        relay{result.relays === 1 ? '' : 's'}. Anyone can now verify the
+                        BTC ⇄ Nostr binding offline.
+                    </p>
+                    <div
+                        style={{
+                            fontFamily: MONO,
+                            fontSize: 11,
+                            color: V.muted,
+                            wordBreak: 'break-all',
+                        }}
+                    >
+                        binding_id: {result.bindingId}
+                    </div>
+                </>
+            )}
+
+            {err && <ErrorLine>{err}</ErrorLine>}
+        </div>
+    );
+}
+
+/** 16 random bytes as 32 lowercase hex — the binding nonce (SPEC-BINDING §3). */
+function randomNonceHex(): string {
+    const b = new Uint8Array(16);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(b);
+    } else {
+        for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+    }
+    let out = '';
+    for (const x of b) out += x.toString(16).padStart(2, '0');
+    return out;
+}
+
+interface SdkBindingApi {
+    xOnlyHexToNpub: (hex: string) => string;
+    buildBindingMessage: (input: {
+        principal: string;
+        btc: string;
+        nostr: string;
+        nonce: string;
+        issued_at: string;
+    }) => string;
+    bindingId: (message: string) => string;
+    buildBindingEventTemplate: (params: {
+        message: string;
+        btcSignature: string;
+        nostrPubkeyHex: string;
+        btc: string;
+    }) => { kind: number; pubkey: string; created_at: number; tags: string[][]; content: string };
+    assembleBindingEnvelope: (params: {
+        message: string;
+        btcSignature: string;
+        btcScheme?: 'bip322' | 'legacy';
+        nostrEvent: unknown;
+    }) => unknown;
+    verifyBinding: (
+        envelope: unknown
+    ) => { valid: true; status: string; binding_id: string } | { valid: false; status: string };
+}
+
+async function loadSdk(): Promise<SdkBindingApi> {
+    try {
+        return (await import('@orangecheck/sdk')) as unknown as SdkBindingApi;
+    } catch {
+        throw new Error('@orangecheck/sdk not installed · add it to your site to publish bonds');
+    }
+}
+
+async function loadNostrCore(): Promise<{
+    publishEvent: (event: unknown) => Promise<Array<{ ok: boolean }>>;
+}> {
+    try {
+        return (await import('@orangecheck/nostr-core')) as unknown as {
+            publishEvent: (event: unknown) => Promise<Array<{ ok: boolean }>>;
+        };
+    } catch {
+        throw new Error(
+            '@orangecheck/nostr-core not installed · add it to your site to publish bonds'
+        );
+    }
 }
 
 /* --- lazy wallet button · keeps @orangecheck/wallet-adapter optional --- */

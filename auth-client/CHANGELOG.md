@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.7.0] — 2026-05-16 · `OcIdentityBond` — publish a Binding Attestation
+
+Additive. `<OcLinkedIdentities>` now offers the self-sovereign tier of
+identity linking — publishing a v1 Binding Attestation, the mutually-signed
+BTC ⇄ Nostr identity bond (`oc-attest-protocol` SPEC-BINDING.md).
+
+- New `<OcIdentityBond>` component — also rendered automatically by
+  `<OcLinkedIdentities>` when the account has a linked Bitcoin address. The
+  ceremony is two keys: the Bitcoin wallet signs the canonical message via
+  BIP-322, then a NIP-07 Nostr extension counter-signs by publishing the
+  artifact as a kind-30079 event. The assembled bond is self-verified
+  before publishing.
+- `@orangecheck/sdk` (`>=1.2.0` — construct + verify) and
+  `@orangecheck/nostr-core` (publish) join `@orangecheck/wallet-adapter` as
+  lazy-loaded optional peers. A site without them, or a user without a
+  NIP-07 extension, degrades to a clear message.
+
+No breaking changes.
+
 ## [2.6.0] — 2026-05-16 · `OcLinkedIdentities` + `OcSignIn` linkPrompt
 
 Additive. Identity linking is no longer a single-product, one-tab

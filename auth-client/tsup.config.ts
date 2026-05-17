@@ -9,5 +9,12 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['react', 'react-dom', '@orangecheck/auth-core', '@orangecheck/wallet-adapter'],
+    external: [
+        'react',
+        'react-dom',
+        '@orangecheck/auth-core',
+        '@orangecheck/wallet-adapter',
+        '@orangecheck/sdk',
+        '@orangecheck/nostr-core',
+    ],
 });

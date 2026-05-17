@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/auth-client",
-    "version": "2.6.0",
+    "version": "2.7.0",
     "description": "React hooks and components for the cross-subdomain oc_session. Drop-in sign-in button, account chip with dashboard link, session-aware address input, and useOcSession() hook.",
     "keywords": [
         "orangecheck",
@@ -49,17 +49,27 @@
     },
     "peerDependencies": {
         "@orangecheck/auth-core": "^2.3.0",
+        "@orangecheck/nostr-core": "^0.1.0",
+        "@orangecheck/sdk": "^1.2.0",
         "@orangecheck/wallet-adapter": "^0.4.0",
         "react": "^18.0.0 || ^19.0.0",
         "react-dom": "^18.0.0 || ^19.0.0"
     },
     "peerDependenciesMeta": {
+        "@orangecheck/nostr-core": {
+            "optional": true
+        },
+        "@orangecheck/sdk": {
+            "optional": true
+        },
         "@orangecheck/wallet-adapter": {
             "optional": true
         }
     },
     "devDependencies": {
         "@orangecheck/auth-core": "^2.3.0",
+        "@orangecheck/nostr-core": "^0.1.0",
+        "@orangecheck/sdk": "^1.2.0",
         "@orangecheck/wallet-adapter": "^0.4.0",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/react": "^16.3.2",
