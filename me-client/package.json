@@ -85,7 +85,7 @@
         }
     },
     "devDependencies": {
-        "@orangecheck/auth-client": "^1.0.0",
+        "@orangecheck/auth-client": "^2.6.0",
         "@testing-library/react": "^16.3.2",
         "@types/node": "^22.0.0",
         "@types/react": "^18.3.12",
