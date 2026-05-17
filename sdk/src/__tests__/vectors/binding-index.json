@@ -1,0 +1,42 @@
+[
+  {
+    "id": "bv01",
+    "category": "canonical_message",
+    "description": "binding canonical message — fixed 8-line core, no extensions"
+  },
+  {
+    "id": "bv02",
+    "category": "binding_id",
+    "description": "binding_id = sha256(canonical_message_bytes) for bv01"
+  },
+  {
+    "id": "bv03",
+    "category": "binding_verify",
+    "description": "valid mutual-signature binding — BIP-322 + Nostr both verify, both cover same message"
+  },
+  {
+    "id": "bv04",
+    "category": "binding_verify",
+    "description": "tampered BIP-322 signature — Nostr side still valid; binding MUST be rejected"
+  },
+  {
+    "id": "bv05",
+    "category": "binding_verify",
+    "description": "tampered Nostr event signature — BIP-322 side still valid; binding MUST be rejected"
+  },
+  {
+    "id": "bv06",
+    "category": "reject",
+    "description": "principal field carries an embedded LF — MUST be rejected (line-smuggling defense)"
+  },
+  {
+    "id": "bv07",
+    "category": "reject",
+    "description": "v0 attestation message (header literal \"orangecheck\") submitted to the binding verifier — MUST be rejected, headers never cross-verify"
+  },
+  {
+    "id": "bv08",
+    "category": "binding_verify",
+    "description": "Nostr event signs a different canonical message than btc_signature covers — MUST be rejected (single-message rule)"
+  }
+]

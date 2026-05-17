@@ -1,0 +1,49 @@
+{
+  "id": "bv08",
+  "category": "binding_verify",
+  "description": "Nostr event signs a different canonical message than btc_signature covers — MUST be rejected (single-message rule)",
+  "input": {
+    "envelope": {
+      "binding_id": "f69dd1a131ffab60f0dbc567d53ae687d88a97b350b74ade815c1209e65ccef9",
+      "v": 1,
+      "principal": "did:oc:9f86d081884c7d659a2feaa0c55ad015",
+      "btc": "bc1qg975h6gdx5mryeac72h6lj2nzygugxhyuukqvs",
+      "nostr": "npub1gcnhnt2245u4z3s5w5d8zzzl9ugwr3a9j0jwqv80kku8y889tv9sg89jj8",
+      "message": "orangecheck-binding\nv: 1\nprincipal: did:oc:9f86d081884c7d659a2feaa0c55ad015\nbtc: bc1qg975h6gdx5mryeac72h6lj2nzygugxhyuukqvs\nnostr: npub1gcnhnt2245u4z3s5w5d8zzzl9ugwr3a9j0jwqv80kku8y889tv9sg89jj8\nnonce: a1b2c3d4e5f60718293a4b5c6d7e8f90\nissued_at: 2026-05-16T12:00:00Z\nack: I attest the keys named in this message are one principal.\n",
+      "message_b64url": "b3JhbmdlY2hlY2stYmluZGluZwp2OiAxCnByaW5jaXBhbDogZGlkOm9jOjlmODZkMDgxODg0YzdkNjU5YTJmZWFhMGM1NWFkMDE1CmJ0YzogYmMxcWc5NzVoNmdkeDVtcnllYWM3Mmg2bGoybnp5Z3VneGh5dXVrcXZzCm5vc3RyOiBucHViMWdjbmhudDIyNDV1NHozczV3NWQ4enp6bDl1Z3dyM2E5ajBqd3F2ODBra3U4eTg4OXR2OXNnODlqajgKbm9uY2U6IGExYjJjM2Q0ZTVmNjA3MTgyOTNhNGI1YzZkN2U4ZjkwCmlzc3VlZF9hdDogMjAyNi0wNS0xNlQxMjowMDowMFoKYWNrOiBJIGF0dGVzdCB0aGUga2V5cyBuYW1lZCBpbiB0aGlzIG1lc3NhZ2UgYXJlIG9uZSBwcmluY2lwYWwuCg",
+      "btc_signature": "AkcwRAIgFw5Tl23reHorGitocaSl0FKTFL4BFGWHD1CMYlPRMkECIDXKw6tW3rnCcH6b5Q1cCdTsDRtczUWWGFj0ruzWTDfOASECUx/mBoE0UD0nIxMyJ8hnrI+myDxTfppEw8W9vcsf4zc=",
+      "btc_scheme": "bip322",
+      "nostr_event": {
+        "id": "32d67174b590b1127b867765b0d66d6c3264da018a39d1dfd59c04287e39b8e1",
+        "pubkey": "462779ad4aad39514614751a71085f2f10e1c7a593e4e030efb5b8721ce55b0b",
+        "kind": 30079,
+        "created_at": 1779278400,
+        "tags": [
+          [
+            "d",
+            "oc-attest-binding:e7482a0dc342bb84214ddbe1a94c1468005f2eb7a0c7e87c1b8c207990918cc1"
+          ],
+          [
+            "btc",
+            "bc1qg975h6gdx5mryeac72h6lj2nzygugxhyuukqvs"
+          ],
+          [
+            "oc",
+            "binding-attestation"
+          ],
+          [
+            "v",
+            "1"
+          ]
+        ],
+        "content": "{\"message\":\"orangecheck-binding\\nv: 1\\nprincipal: did:oc:9f86d081884c7d659a2feaa0c55ad015\\nbtc: bc1qg975h6gdx5mryeac72h6lj2nzygugxhyuukqvs\\nnostr: npub1gcnhnt2245u4z3s5w5d8zzzl9ugwr3a9j0jwqv80kku8y889tv9sg89jj8\\nnonce: ffffffffffffffffffffffffffffffff\\nissued_at: 2026-05-16T12:00:00Z\\nack: I attest the keys named in this message are one principal.\\n\",\"btc_signature\":\"AkcwRAIgFw5Tl23reHorGitocaSl0FKTFL4BFGWHD1CMYlPRMkECIDXKw6tW3rnCcH6b5Q1cCdTsDRtczUWWGFj0ruzWTDfOASECUx/mBoE0UD0nIxMyJ8hnrI+myDxTfppEw8W9vcsf4zc=\"}",
+        "sig": "2b3599212f7fbec1bdfdb9cdd2942dd2b79934c905e8b6bac33afdc372bbc7c7d2aafbb9221e5f71d12f57e7111bee54a8e64d49ae26d2029cb80614dc804718"
+      },
+      "issued_at": "2026-05-16T12:00:00Z"
+    }
+  },
+  "expected": {
+    "valid": false,
+    "status": "message_mismatch"
+  }
+}
