@@ -32,10 +32,18 @@ export { verify } from './verify';
 export { createAttestation } from './attestation';
 
 // ─── Binding Attestation · OC Attest v1 (SPEC-BINDING.md) ──────────────────
-export { buildBindingMessage, bindingId, verifyBinding } from './binding';
+export {
+    buildBindingMessage,
+    bindingId,
+    verifyBinding,
+    xOnlyHexToNpub,
+    buildBindingEventTemplate,
+    assembleBindingEnvelope,
+} from './binding';
 export type {
     BindingInput,
     BindingEnvelope,
+    BindingEventTemplate,
     BindingNostrEvent,
     BindingStatus,
     BindingVerifyResult,

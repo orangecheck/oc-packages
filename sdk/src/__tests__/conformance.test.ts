@@ -21,6 +21,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+    assembleBindingEnvelope,
     bindingId,
     buildBindingMessage,
     buildCanonicalMessage,
@@ -28,6 +29,7 @@ import {
     formatIdentities,
     generateAttestationId,
     verifyBinding,
+    xOnlyHexToNpub,
     type BindingEnvelope,
     type BindingInput,
 } from '../index';
@@ -260,5 +262,35 @@ describe('conformance: binding vector set', () => {
         expect(new Set(bindingVectors.map((v) => v.category))).toEqual(
             new Set(['canonical_message', 'binding_id', 'binding_verify', 'reject'])
         );
+    });
+});
+
+describe('conformance: binding construction (issuer side)', () => {
+    const bv03 = bindingVectors.find((v) => v.id === 'bv03');
+    const envelope = (bv03?.input as { envelope: BindingEnvelope } | undefined)?.envelope;
+
+    it('xOnlyHexToNpub inverts the §6 npub decode', () => {
+        expect(envelope).toBeDefined();
+        // The event pubkey is the x-only hex of the message's `nostr:` npub.
+        expect(xOnlyHexToNpub(envelope!.nostr_event!.pubkey)).toBe(envelope!.nostr);
+    });
+
+    it('assembleBindingEnvelope rebuilds an envelope verifyBinding accepts', () => {
+        expect(envelope).toBeDefined();
+        const rebuilt = assembleBindingEnvelope({
+            message: envelope!.message,
+            btcSignature: envelope!.btc_signature!,
+            btcScheme: envelope!.btc_scheme,
+            nostrEvent: envelope!.nostr_event!,
+        });
+        // Structural fields are re-derived from the message, not copied.
+        expect(rebuilt.binding_id).toBe(envelope!.binding_id);
+        expect(rebuilt.principal).toBe(envelope!.principal);
+        expect(rebuilt.btc).toBe(envelope!.btc);
+        expect(rebuilt.nostr).toBe(envelope!.nostr);
+        // And the round-tripped envelope still verifies.
+        const result = verifyBinding(rebuilt);
+        expect(result.valid).toBe(true);
+        expect(result.status).toBe('binding_ok');
     });
 });

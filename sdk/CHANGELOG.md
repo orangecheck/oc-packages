@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [1.2.0] — 2026-05-16 · Binding Attestation issuer-side construction
+
+Additive. Completes the round-trip for the v1 Binding Attestation — v1.1.0
+shipped verification, this ships the construction helpers an issuer needs:
+
+- `xOnlyHexToNpub(hex)` — encode a 32-byte x-only Nostr key as `npub1…`
+  (inverse of the §6 decode).
+- `buildBindingEventTemplate({ message, btcSignature, nostrPubkeyHex, btc })`
+  — the unsigned kind-30079 NIP-01 event template; pass it to a NIP-07
+  `signEvent` to obtain the Nostr counter-signature.
+- `assembleBindingEnvelope({ message, btcSignature, nostrEvent })` — the
+  full §5 transport envelope, structural fields re-derived from the signed
+  message.
+
+A round-trip conformance test confirms `assembleBindingEnvelope` rebuilds
+an envelope that `verifyBinding` accepts. The v0 API is unchanged.
+
 ## [1.1.0] — 2026-05-16 · Binding Attestation verifier (OC Attest v1)
 
 Additive. Reference implementation of the v1 Binding Attestation

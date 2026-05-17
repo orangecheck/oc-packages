@@ -58,6 +58,8 @@ export interface BindingEnvelope {
     btc?: string;
     nostr?: string;
     message: string;
+    /** base64url of `message` — redundant URL-transport convenience (§5). */
+    message_b64url?: string;
     btc_signature?: string;
     btc_scheme?: 'bip322' | 'legacy';
     nostr_event?: BindingNostrEvent;
@@ -341,4 +343,111 @@ export function verifyBinding(envelope: BindingEnvelope): BindingVerifyResult {
     } catch {
         return fail('malformed');
     }
+}
+
+/* --- issuer-side construction --- */
+
+/** Encode a 32-byte x-only Nostr public key (hex) as bech32 `npub1…`. The
+ *  inverse of the decode used in §6 verification. */
+export function xOnlyHexToNpub(hex: string): string {
+    const bytes = fromHex(hex);
+    if (bytes.length !== 32) throw new Error('x-only Nostr key must be 32 bytes');
+    return bech32.encode('npub', bech32.toWords(bytes), 90);
+}
+
+/** The unsigned NIP-01 event template for a Binding Attestation. Pass this
+ *  to a NIP-07 `signEvent` (or any Nostr signer) to obtain the `id` + `sig`
+ *  — that act is the Nostr counter-signature (SPEC-BINDING §4.2). */
+export interface BindingEventTemplate {
+    kind: typeof BINDING_KIND;
+    pubkey: string;
+    created_at: number;
+    tags: string[][];
+    content: string;
+}
+
+/**
+ * Build the unsigned kind-30079 event template for a binding (SPEC-BINDING
+ * §6.1). The caller signs it with the Nostr key (NIP-07 `signEvent`), then
+ * passes the signed event to `assembleBindingEnvelope`.
+ */
+export function buildBindingEventTemplate(params: {
+    /** The canonical binding message from `buildBindingMessage`. */
+    message: string;
+    /** The BIP-322 signature over `message` from the BTC key. */
+    btcSignature: string;
+    /** The Nostr x-only public key, hex (NIP-07 `getPublicKey()`). */
+    nostrPubkeyHex: string;
+    /** The Bitcoin address (the `btc:` line of the message). */
+    btc: string;
+    /** Event `created_at`; defaults to now. */
+    createdAt?: number;
+}): BindingEventTemplate {
+    const id = bindingId(params.message);
+    return {
+        kind: BINDING_KIND,
+        pubkey: params.nostrPubkeyHex.toLowerCase(),
+        created_at: params.createdAt ?? Math.floor(Date.now() / 1000),
+        tags: [
+            ['d', `oc-attest-binding:${id}`],
+            ['btc', params.btc],
+            ['oc', 'binding-attestation'],
+            ['v', '1'],
+        ],
+        content: JSON.stringify({ message: params.message, btc_signature: params.btcSignature }),
+    };
+}
+
+function parseBindingFields(message: string): {
+    principal: string;
+    btc: string;
+    nostr: string;
+} {
+    const body = message.split('\n');
+    const at = (i: number, prefix: string): string => {
+        const line = body[i];
+        if (typeof line !== 'string' || !line.startsWith(prefix)) {
+            throw new Error(`binding message line ${i + 1} is malformed`);
+        }
+        return line.slice(prefix.length);
+    };
+    return {
+        principal: at(2, 'principal: '),
+        btc: at(3, 'btc: '),
+        nostr: at(4, 'nostr: '),
+    };
+}
+
+function toBase64Url(s: string): string {
+    const bytes = new TextEncoder().encode(s);
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    const b64 = typeof btoa !== 'undefined' ? btoa(bin) : Buffer.from(bytes).toString('base64');
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Assemble the full transport/storage envelope (SPEC-BINDING §5) from the
+ * canonical message, the BTC signature, and the signed Nostr event. The
+ * result should be re-checked with `verifyBinding` before it is trusted.
+ */
+export function assembleBindingEnvelope(params: {
+    message: string;
+    btcSignature: string;
+    btcScheme?: 'bip322' | 'legacy';
+    nostrEvent: BindingNostrEvent;
+}): BindingEnvelope {
+    const { principal, btc, nostr } = parseBindingFields(params.message);
+    return {
+        binding_id: bindingId(params.message),
+        v: 1,
+        principal,
+        btc,
+        nostr,
+        message: params.message,
+        message_b64url: toBase64Url(params.message),
+        btc_signature: params.btcSignature,
+        btc_scheme: params.btcScheme ?? 'bip322',
+        nostr_event: params.nostrEvent,
+    } as BindingEnvelope;
 }
