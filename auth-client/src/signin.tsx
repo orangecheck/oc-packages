@@ -34,7 +34,7 @@
 
 import * as React from 'react';
 
-import { LINK_PROMPT_DISMISS_KEY, LinkPromptStep } from './linked-identities';
+import { LinkPromptStep } from './linked-identities';
 import type { OcAccount } from './types';
 
 /* --- props --- */
@@ -91,17 +91,15 @@ export interface OcSignInProps {
      */
     paths?: { wallet?: boolean; email?: boolean };
     /**
-     * Fluid link-at-sign-in. **On by default.** Immediately after a
-     * successful sign-in, if the account is missing the *complementary*
-     * identity, OcSignIn offers it inline: a user who signed in with
-     * email is offered their Bitcoin wallet; a wallet user is offered
-     * their email. "Link now" drops straight into the BIP-322 / OTP
-     * ceremony — no navigation — because the sign-in just proved one
-     * credential and this is the moment to prove the second. The user
-     * may skip. It runs as an interstitial *before* `onSuccess` /
-     * `returnTo`, so it composes with custom post-sign-in routing. If
-     * the complementary identity is already linked the step is skipped
-     * silently. Pass `linkPrompt={false}` to opt out.
+     * Whether to show the "also link my other identity" checkbox on the
+     * sign-in form. **On by default.** The checkbox is optional and
+     * unchecked by default; it is shown on both the wallet and email
+     * paths. If the user ticks it, the complementary identity's link
+     * ceremony (BIP-322 for a wallet, OTP for an email) runs inline
+     * immediately after a successful sign-in — before `onSuccess` /
+     * `returnTo`, so it composes with custom routing — because the
+     * sign-in just proved one credential and the link ceremony proves
+     * the second. Pass `linkPrompt={false}` to omit the checkbox.
      */
     linkPrompt?: boolean;
     /** className for the outer container. */
@@ -171,6 +169,8 @@ export function OcSignIn({
         didOc: string;
         proceed: () => void;
     } | null>(null);
+    // The optional "also link my other identity" checkbox on the form.
+    const [linkAlso, setLinkAlso] = React.useState(false);
 
     const navigate = React.useCallback(
         async (account: OcAccount) => {
@@ -195,55 +195,39 @@ export function OcSignIn({
                 else void navigate(account);
             };
 
-            // linkPrompt off, or the user already declined the offer once
-            // — proceed straight through (no /api/auth/me round-trip). The
-            // offer is optional; a "not now" is remembered, not re-asked.
-            let declined = false;
-            try {
-                declined = Boolean(window.localStorage.getItem(LINK_PROMPT_DISMISS_KEY));
-            } catch {
-                /* storage disabled — treat as not declined */
-            }
-            if (!linkPrompt || declined) {
+            // Linking is opt-in via the form checkbox. Unchecked (or the
+            // checkbox suppressed) → ordinary sign-in.
+            if (!linkPrompt || !linkAlso) {
                 proceed();
                 return;
             }
 
-            // Fluid link-at-sign-in: offer the *complementary* identity if
-            // the account doesn't already have it. /api/auth/me is the one
-            // place reporting both signals (primary_btc, has_email); a
-            // failure here must never block sign-in.
+            // Checked: run the complementary identity's link ceremony now.
+            // /api/auth/me resolves the did:oc the BIP-322 link challenge is
+            // bound to; a failure here must not strand the signed-in user.
             try {
                 const meRes = await fetch(`${authOrigin}/api/auth/me`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
                 });
                 const me = meRes.ok
-                    ? ((await meRes.json()) as {
-                          account?: {
-                              did_oc?: string;
-                              primary_btc?: string | null;
-                              has_email?: boolean;
-                          };
-                      })
+                    ? ((await meRes.json()) as { account?: { did_oc?: string } })
                     : null;
-                const acct = me?.account;
-                const didOc = acct?.did_oc;
-                const complementary: 'btc' | 'email' = via === 'email' ? 'btc' : 'email';
-                const alreadyLinked =
-                    complementary === 'btc'
-                        ? Boolean(acct?.primary_btc)
-                        : Boolean(acct?.has_email);
-                if (didOc && !alreadyLinked) {
-                    setSignedIn({ method: complementary, didOc, proceed });
+                const didOc = me?.account?.did_oc;
+                if (didOc) {
+                    setSignedIn({
+                        method: via === 'email' ? 'btc' : 'email',
+                        didOc,
+                        proceed,
+                    });
                     return;
                 }
             } catch {
-                // /api/auth/me unreachable — fall through, never block.
+                // /api/auth/me unreachable — proceed without the link step.
             }
             proceed();
         },
-        [onSuccess, linkPrompt, navigate, authOrigin]
+        [onSuccess, linkPrompt, linkAlso, navigate, authOrigin]
     );
 
     if (!walletEnabled && !emailEnabled) {
@@ -281,6 +265,13 @@ export function OcSignIn({
     const showWallet = walletEnabled && (path === 'wallet' || !emailEnabled);
     const showEmail = emailEnabled && (path === 'email' || !walletEnabled);
     const bothEnabled = walletEnabled && emailEnabled;
+    // The method the user will actually sign in with — the active tab,
+    // clamped when only one path is enabled. Drives the checkbox wording.
+    const activeMethod: 'wallet' | 'email' = !emailEnabled
+        ? 'wallet'
+        : !walletEnabled
+          ? 'email'
+          : path;
 
     return (
         <div className={className} data-oc-signin="">
@@ -323,6 +314,22 @@ export function OcSignIn({
                     />
                 )}
             </div>
+
+            {linkPrompt && (
+                <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
+                    <input
+                        type="checkbox"
+                        checked={linkAlso}
+                        onChange={(e) => setLinkAlso(e.target.checked)}
+                        style={{ marginTop: 2, accentColor: 'var(--primary, #f97316)' }}
+                    />
+                    <span>
+                        After signing in, also link{' '}
+                        {activeMethod === 'email' ? 'a Bitcoin wallet' : 'an email'}{' '}
+                        <span style={{ opacity: 0.65 }}>— optional, one more signature.</span>
+                    </span>
+                </label>
+            )}
         </div>
     );
 }
@@ -756,6 +763,20 @@ const inputStyle: React.CSSProperties = {
     // every form field. Desktop reads fine at 16 too.
     fontSize: 16,
     outline: 'none',
+};
+
+const linkAlsoStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 16,
+    paddingTop: 14,
+    borderTop: '1px solid var(--border, #27272a)',
+    color: 'var(--muted-foreground, #a1a1aa)',
+    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+    fontSize: 12,
+    lineHeight: 1.5,
+    cursor: 'pointer',
 };
 
 function submitStyle(disabled: boolean): React.CSSProperties {

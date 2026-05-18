@@ -31,13 +31,6 @@ import * as React from 'react';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
 
-/**
- * localStorage key recording that the user declined the post-sign-in link
- * offer. `OcSignIn` reads it to keep the offer *optional* — declined once,
- * it does not reappear on every subsequent sign-in. Per-origin by nature.
- */
-export const LINK_PROMPT_DISMISS_KEY = 'oc:linkprompt-dismissed';
-
 /* --- types --- */
 
 export interface OcLinkedIdentity {
@@ -455,17 +448,13 @@ function AttestationLink(): React.ReactElement {
 /* --- post-sign-in link prompt (used by OcSignIn) --- */
 
 /**
- * Shown by `<OcSignIn linkPrompt>` immediately after a successful sign-in,
- * focused on the *complementary* identity: a user who signed in with email
- * is offered their Bitcoin wallet; a wallet user is offered their email.
- * "Link now" drops straight into the BIP-322 / OTP ceremony inline — the
- * sign-in just proved one credential, and the link ceremony is itself the
- * proof of the second.
- *
- * It is an **optional offer, not a gate.** "Not now" is a first-class
- * choice — it is remembered (`LINK_PROMPT_DISMISS_KEY`) so the offer does
- * not reappear on every sign-in. Linking, or declining, calls `onResolved`,
- * handing control back to OcSignIn's post-sign-in navigation.
+ * Shown by `<OcSignIn>` after a successful sign-in *when the user ticked
+ * the "also link my other identity" checkbox on the sign-in form*. It runs
+ * the complementary identity's link ceremony inline — BIP-322 for a
+ * Bitcoin address, OTP for an email. The sign-in just proved one
+ * credential; this ceremony proves the second. `onResolved` (whether the
+ * user finished the link or cancelled out of it) hands control back to
+ * OcSignIn's post-sign-in navigation.
  */
 export function LinkPromptStep({
     method,
@@ -473,67 +462,32 @@ export function LinkPromptStep({
     authOrigin,
     onResolved,
 }: {
-    /** The complementary identity to offer — what the account is missing. */
+    /** The complementary identity to link — the opposite of the sign-in method. */
     method: 'btc' | 'email';
     didOc: string;
     authOrigin: string;
-    /** Called once the user has linked the identity, or declined. */
+    /** Called once the user has linked the identity, or cancelled. */
     onResolved: () => void;
 }): React.ReactElement {
-    const [stage, setStage] = React.useState<'offer' | 'linking'>('offer');
-
-    function decline(): void {
-        // Remember the decline — the prompt is an optional offer, not a
-        // recurring gate, so it must not reappear every sign-in.
-        try {
-            window.localStorage.setItem(LINK_PROMPT_DISMISS_KEY, String(Date.now()));
-        } catch {
-            /* private mode / storage disabled — proceed regardless */
-        }
-        onResolved();
-    }
-
-    if (stage === 'linking') {
-        return method === 'btc' ? (
-            <BtcLinkForm
-                authOrigin={authOrigin}
-                didOc={didOc}
-                onDone={onResolved}
-                onCancel={() => setStage('offer')}
-            />
-        ) : (
-            <EmailLinkForm
-                authOrigin={authOrigin}
-                onDone={onResolved}
-                onCancel={() => setStage('offer')}
-            />
-        );
-    }
-
     return (
-        <div style={panelStyle('accent')} data-oc-linkprompt={method}>
-            <SectionLabel tone="success">§ you&apos;re signed in</SectionLabel>
-            <p style={bodyStyle}>
-                {method === 'btc'
-                    ? 'Optional — link a Bitcoin address and it becomes a second way to sign ' +
-                      'in, and unlocks your on-chain footprint. One wallet signature, right ' +
-                      'here. No pressure: you can always do this later from your account page.'
-                    : 'Optional — add your email as a backup way to sign in if you ever lose ' +
-                      'your wallet. One six-digit code, right here. No pressure: you can always ' +
-                      'do this later from your account page.'}
-            </p>
-            <FormButtons>
-                <button
-                    type="button"
-                    onClick={() => setStage('linking')}
-                    style={primaryBtnStyle(false)}
-                >
-                    {method === 'btc' ? 'link a Bitcoin address' : 'link an email'}
-                </button>
-                <button type="button" onClick={decline} style={ghostBtnStyle(false)}>
-                    not now
-                </button>
-            </FormButtons>
+        <div data-oc-linkprompt={method}>
+            <div style={{ ...panelStyle('success'), marginBottom: 16 }}>
+                <SectionLabel tone="success">§ signed in</SectionLabel>
+                <p style={{ ...bodyStyle, margin: 0 }}>
+                    You asked to also link {method === 'btc' ? 'a Bitcoin address' : 'an email'} —
+                    here it is. Finish below, or cancel to head straight on.
+                </p>
+            </div>
+            {method === 'btc' ? (
+                <BtcLinkForm
+                    authOrigin={authOrigin}
+                    didOc={didOc}
+                    onDone={onResolved}
+                    onCancel={onResolved}
+                />
+            ) : (
+                <EmailLinkForm authOrigin={authOrigin} onDone={onResolved} onCancel={onResolved} />
+            )}
         </div>
     );
 }

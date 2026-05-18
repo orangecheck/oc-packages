@@ -11,6 +11,24 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.10.0] — 2026-05-18 · link-at-sign-in is an opt-in checkbox
+
+Replaces 2.9.x's automatic post-sign-in prompt with an explicit, optional
+**checkbox on the sign-in form** — which is what was actually asked for.
+
+`<OcSignIn>` now shows, below the sign-in panel on both the wallet and email
+paths, an unchecked checkbox: "After signing in, also link a Bitcoin wallet /
+an email — optional." If the user ticks it, the complementary identity's link
+ceremony (BIP-322 for a wallet, OTP for an email) runs inline immediately
+after a successful sign-in, before the redirect. Left unchecked — the
+default — sign-in is ordinary. No auto-popup; nothing is shown to a user who
+did not opt in.
+
+`linkPrompt` (default `true`) now controls whether the checkbox is rendered;
+`linkPrompt={false}` omits it. The `LINK_PROMPT_DISMISS_KEY` export and the
+2.9.1 localStorage decline-memory are removed — unchecked is the default, so
+there is nothing to remember.
+
 ## [2.9.1] — 2026-05-18 · linkPrompt is an optional offer, not a gate
 
 Refines 2.9.0's link-at-sign-in so it is clearly *optional*:
