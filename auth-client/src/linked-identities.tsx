@@ -31,6 +31,13 @@ import * as React from 'react';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
 
+/**
+ * localStorage key recording that the user declined the post-sign-in link
+ * offer. `OcSignIn` reads it to keep the offer *optional* — declined once,
+ * it does not reappear on every subsequent sign-in. Per-origin by nature.
+ */
+export const LINK_PROMPT_DISMISS_KEY = 'oc:linkprompt-dismissed';
+
 /* --- types --- */
 
 export interface OcLinkedIdentity {
@@ -453,8 +460,12 @@ function AttestationLink(): React.ReactElement {
  * is offered their Bitcoin wallet; a wallet user is offered their email.
  * "Link now" drops straight into the BIP-322 / OTP ceremony inline — the
  * sign-in just proved one credential, and the link ceremony is itself the
- * proof of the second. Skipping (or finishing) calls `onResolved`, which
- * hands control back to OcSignIn's post-sign-in navigation.
+ * proof of the second.
+ *
+ * It is an **optional offer, not a gate.** "Not now" is a first-class
+ * choice — it is remembered (`LINK_PROMPT_DISMISS_KEY`) so the offer does
+ * not reappear on every sign-in. Linking, or declining, calls `onResolved`,
+ * handing control back to OcSignIn's post-sign-in navigation.
  */
 export function LinkPromptStep({
     method,
@@ -466,10 +477,21 @@ export function LinkPromptStep({
     method: 'btc' | 'email';
     didOc: string;
     authOrigin: string;
-    /** Called once the user has linked the identity, or skipped. */
+    /** Called once the user has linked the identity, or declined. */
     onResolved: () => void;
 }): React.ReactElement {
     const [stage, setStage] = React.useState<'offer' | 'linking'>('offer');
+
+    function decline(): void {
+        // Remember the decline — the prompt is an optional offer, not a
+        // recurring gate, so it must not reappear every sign-in.
+        try {
+            window.localStorage.setItem(LINK_PROMPT_DISMISS_KEY, String(Date.now()));
+        } catch {
+            /* private mode / storage disabled — proceed regardless */
+        }
+        onResolved();
+    }
 
     if (stage === 'linking') {
         return method === 'btc' ? (
@@ -490,15 +512,15 @@ export function LinkPromptStep({
 
     return (
         <div style={panelStyle('accent')} data-oc-linkprompt={method}>
-            <SectionLabel tone="success">§ signed in</SectionLabel>
+            <SectionLabel tone="success">§ you&apos;re signed in</SectionLabel>
             <p style={bodyStyle}>
                 {method === 'btc'
-                    ? "You're in. Link a Bitcoin address now — a second way to sign in, and it " +
-                      'unlocks your on-chain footprint. You prove it with one wallet signature, ' +
-                      'right here — no separate trip to your account page.'
-                    : "You're in. Add your email now — a backup way to sign in if you ever lose " +
-                      'your wallet. You prove it with a one-time code, right here — no separate ' +
-                      'trip to your account page.'}
+                    ? 'Optional — link a Bitcoin address and it becomes a second way to sign ' +
+                      'in, and unlocks your on-chain footprint. One wallet signature, right ' +
+                      'here. No pressure: you can always do this later from your account page.'
+                    : 'Optional — add your email as a backup way to sign in if you ever lose ' +
+                      'your wallet. One six-digit code, right here. No pressure: you can always ' +
+                      'do this later from your account page.'}
             </p>
             <FormButtons>
                 <button
@@ -508,8 +530,8 @@ export function LinkPromptStep({
                 >
                     {method === 'btc' ? 'link a Bitcoin address' : 'link an email'}
                 </button>
-                <button type="button" onClick={onResolved} style={ghostBtnStyle(false)}>
-                    skip
+                <button type="button" onClick={decline} style={ghostBtnStyle(false)}>
+                    not now
                 </button>
             </FormButtons>
         </div>

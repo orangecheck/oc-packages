@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.9.1] — 2026-05-18 · linkPrompt is an optional offer, not a gate
+
+Refines 2.9.0's link-at-sign-in so it is clearly *optional*:
+
+- **A decline is remembered.** "Not now" writes `LINK_PROMPT_DISMISS_KEY`
+  to `localStorage`; `OcSignIn` reads it and does not re-show the offer on
+  subsequent sign-ins (and skips the `/api/auth/me` round-trip entirely).
+  The offer no longer recurs every sign-in — it is shown, declined once,
+  and respected.
+- **Reframed as an offer.** The step leads with "you're signed in", the
+  copy says it is optional and can be done later, and the decline action
+  reads "not now" rather than "skip".
+
+Linking remains one click into the BIP-322 / OTP ceremony for users who
+want it. `linkPrompt={false}` still disables the step entirely.
+
 ## [2.9.0] — 2026-05-18 · Fluid link-at-sign-in
 
 `OcSignIn`'s `linkPrompt` is redesigned into the flow the sign-in ceremony

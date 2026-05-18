@@ -34,7 +34,7 @@
 
 import * as React from 'react';
 
-import { LinkPromptStep } from './linked-identities';
+import { LINK_PROMPT_DISMISS_KEY, LinkPromptStep } from './linked-identities';
 import type { OcAccount } from './types';
 
 /* --- props --- */
@@ -195,7 +195,16 @@ export function OcSignIn({
                 else void navigate(account);
             };
 
-            if (!linkPrompt) {
+            // linkPrompt off, or the user already declined the offer once
+            // — proceed straight through (no /api/auth/me round-trip). The
+            // offer is optional; a "not now" is remembered, not re-asked.
+            let declined = false;
+            try {
+                declined = Boolean(window.localStorage.getItem(LINK_PROMPT_DISMISS_KEY));
+            } catch {
+                /* storage disabled — treat as not declined */
+            }
+            if (!linkPrompt || declined) {
                 proceed();
                 return;
             }
