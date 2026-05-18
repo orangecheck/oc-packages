@@ -3,7 +3,10 @@ import * as React from 'react';
 import {
     buildSignInUrl,
     DEFAULT_CONFIG,
+    DISPLAY_IDENTITY_KINDS,
     resolveConfig,
+    type DisplayIdentity,
+    type DisplayIdentityKind,
     type OcAccount,
     type OcAuthConfig,
     type OcSessionState,
@@ -34,7 +37,33 @@ interface MeResponse {
         signingMethod?: RawSigningMethod | null;
         is_owner?: boolean;
         isOwner?: boolean;
+        display_identity?: { kind?: string; value?: string } | null;
+        displayIdentity?: { kind?: string; value?: string } | null;
     };
+}
+
+/**
+ * Resolve the badge identity from a `/api/auth/me` account payload.
+ * Total: returns the carried `{kind,value}` when well-formed, else
+ * `{kind:'did',value:didOc}` — so accounts that never promoted, and
+ * sessions minted before the field shipped, degrade cleanly.
+ */
+function normalizeDisplayIdentity(
+    raw: NonNullable<MeResponse['account']>,
+    didOc: string
+): DisplayIdentity {
+    const di = raw.display_identity ?? raw.displayIdentity;
+    if (
+        di &&
+        typeof di === 'object' &&
+        typeof di.value === 'string' &&
+        di.value.length > 0 &&
+        typeof di.kind === 'string' &&
+        (DISPLAY_IDENTITY_KINDS as readonly string[]).includes(di.kind)
+    ) {
+        return { kind: di.kind as DisplayIdentityKind, value: di.value };
+    }
+    return { kind: 'did', value: didOc };
 }
 
 function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
@@ -52,6 +81,7 @@ function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
         homeFederation: raw.home_federation_slug ?? raw.homeFederation ?? null,
         signingMethod: raw.signing_method ?? raw.signingMethod ?? null,
         isOwner: Boolean(raw.is_owner ?? raw.isOwner ?? false),
+        displayIdentity: normalizeDisplayIdentity(raw, didOc),
     };
 }
 
@@ -133,6 +163,35 @@ export function OcSessionProvider({
         setStatus('anonymous');
     }, [cfg.authOrigin, cfg.logoutPath]);
 
+    const setDisplayIdentity = React.useCallback(
+        async (kind: DisplayIdentityKind) => {
+            if (typeof window === 'undefined') return;
+            // PATCH the auth host directly (family-CORS). It writes the
+            // pref, re-mints the `.ochk.io` session cookie with the new
+            // `display_identity` claim, and Set-Cookies it back — so the
+            // choice propagates to every subdomain. Then refresh so this
+            // session reflects it immediately.
+            const res = await fetch(`${cfg.authOrigin}/api/auth/account`, {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ display_identity: kind }),
+            });
+            if (!res.ok) {
+                let reason = `http_${res.status}`;
+                try {
+                    const body = (await res.json()) as { reason?: string };
+                    if (body.reason) reason = body.reason;
+                } catch {
+                    // keep the http_ fallback
+                }
+                throw new Error(`[@orangecheck/auth-client] setDisplayIdentity failed: ${reason}`);
+            }
+            await refresh();
+        },
+        [cfg.authOrigin, refresh]
+    );
+
     const value = React.useMemo<OcSessionState>(() => {
         const returnTo =
             defaultReturnTo ?? (typeof window !== 'undefined' ? window.location.href : undefined);
@@ -142,9 +201,10 @@ export function OcSessionProvider({
             error,
             refresh,
             signOut,
+            setDisplayIdentity,
             signInUrl: buildSignInUrl(cfg, returnTo),
         };
-    }, [status, account, error, refresh, signOut, cfg, defaultReturnTo]);
+    }, [status, account, error, refresh, signOut, setDisplayIdentity, cfg, defaultReturnTo]);
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

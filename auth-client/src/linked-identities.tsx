@@ -59,6 +59,27 @@ interface IdentitiesResp {
     reason?: string;
 }
 
+/**
+ * Fetch the signed-in user's linked identities from the auth host —
+ * the same data `<OcLinkedIdentities>` renders, exposed as a plain
+ * function for surfaces that need the list without the full
+ * management UI (notably `<OcAccountMenu>`'s badge-identity promote
+ * list). Returns `[]` when anonymous; throws on network / server
+ * error so the caller can show a deferred state.
+ */
+export async function fetchOcLinkedIdentities(opts?: {
+    authOrigin?: string;
+}): Promise<OcLinkedIdentity[]> {
+    const authOrigin = opts?.authOrigin ?? DEFAULT_AUTH_ORIGIN;
+    const r = await fetch(`${authOrigin}/api/auth/identities`, {
+        credentials: 'include',
+    });
+    if (r.status === 401) return [];
+    if (!r.ok) throw new Error(`identities fetch failed: http_${r.status}`);
+    const body = (await r.json()) as IdentitiesResp;
+    return body.linked ?? [];
+}
+
 export interface OcLinkedIdentitiesProps {
     /** Auth host origin. Defaults to `https://ochk.io`. */
     authOrigin?: string;

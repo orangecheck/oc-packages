@@ -1,3 +1,28 @@
+/**
+ * The kinds of identity a user can surface as their account-badge
+ * label. `did` is the canonical `did:oc` identifier — always available
+ * and the ultimate fallback; the other three are linked identities a
+ * user may or may not have.
+ */
+export const DISPLAY_IDENTITY_KINDS = ['did', 'btc', 'email', 'nostr'] as const;
+export type DisplayIdentityKind = (typeof DISPLAY_IDENTITY_KINDS)[number];
+
+/**
+ * The identity a user has chosen to show in their account badge — the
+ * collapsed label every family site renders instead of the raw
+ * `did:oc`. Carried as a JWT claim by the auth host, so the choice is
+ * consistent across every `.ochk.io` subdomain with no round-trip.
+ *
+ * `kind` is which identity; `value` is the full, renderable value (the
+ * `did:oc`, the Bitcoin address, the email, or the npub). Integrators
+ * rendering their own chip read `useOcSession().account.displayIdentity`
+ * — it is always populated (it defaults to the `did`).
+ */
+export interface DisplayIdentity {
+    kind: DisplayIdentityKind;
+    value: string;
+}
+
 export interface OcAccount {
     accountId: string;
     /**
@@ -61,6 +86,17 @@ export interface OcAccount {
      * Treat absence as `false`.
      */
     isOwner?: boolean;
+    /**
+     * The identity the user has chosen to show as their account-badge
+     * label — `{ kind, value }`. **Always populated**: when the user
+     * has never promoted an identity (and on sessions minted before
+     * the feature shipped) this is `{ kind:'did', value:didOc }`.
+     *
+     * `<OcAccountMenu>` renders `value` (shortened) as the collapsed
+     * badge label. Integrators rendering their own chip read this
+     * directly; change it with `useOcSession().setDisplayIdentity()`.
+     */
+    displayIdentity: DisplayIdentity;
 }
 
 export type OcSessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'error';
@@ -74,6 +110,15 @@ export interface OcSessionState {
     refresh: () => Promise<void>;
     /** Trigger a sign-out. Resolves once the cookie has been cleared. */
     signOut: () => Promise<void>;
+    /**
+     * Promote a linked identity to be the account-badge label across
+     * every `.ochk.io` site. PATCHes the auth host, which re-mints the
+     * session cookie with the new `display_identity` claim, then
+     * `refresh()`es this session. Rejects if the chosen kind is not a
+     * verified identity on the account (`btc` / `email` / `nostr` must
+     * actually be linked; `did` is always valid).
+     */
+    setDisplayIdentity: (kind: DisplayIdentityKind) => Promise<void>;
     /** URL to navigate to for sign-in on the auth host. */
     signInUrl: string;
 }

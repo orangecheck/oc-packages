@@ -11,6 +11,30 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.13.0] — 2026-05-18 · displayIdentity + setDisplayIdentity()
+
+Surfaces the badge identity a user has promoted (see `@orangecheck/auth-core`
+2.4.0's `display_identity` claim) and the means to change it.
+
+- `OcAccount.displayIdentity: DisplayIdentity` — **always populated**;
+  `{ kind:'did', value:didOc }` when the user has never promoted or the
+  session predates the feature. `<OcAccountMenu>` renders it as the
+  collapsed badge label; integrators rendering their own chip read it
+  directly.
+- `useOcSession().setDisplayIdentity(kind)` — PATCHes the auth host,
+  which re-mints the `.ochk.io` cookie with the new claim, then
+  `refresh()`es. Rejects when the kind is not a verified identity.
+- `fetchOcLinkedIdentities()` — the linked-identity list as a plain
+  function (the data `<OcLinkedIdentities>` renders), for surfaces that
+  need it without the management UI — notably the account menu's
+  promote list.
+- New exports: `DisplayIdentity`, `DisplayIdentityKind`,
+  `DISPLAY_IDENTITY_KINDS`.
+
+Additive. `displayIdentity` is newly required on `OcAccount`, but it is
+populated by the package's own normalizer — no consumer code change is
+needed unless you construct `OcAccount` values by hand.
+
 ## [2.12.0] — 2026-05-18 · sign-out survives an immediate navigation
 
 `OcSessionProvider`'s `signOut()` now sends the logout request to the auth

@@ -24,10 +24,17 @@ export type {
 } from './components';
 export { OcSignIn } from './signin';
 export type { OcSignInProps } from './signin';
-export { OcLinkedIdentities } from './linked-identities';
+export { OcLinkedIdentities, fetchOcLinkedIdentities } from './linked-identities';
 export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';
-export type { OcAccount, OcSessionStatus, OcSessionState, OcAuthConfig } from './types';
-export { buildSignInUrl } from './types';
+export type {
+    OcAccount,
+    OcSessionStatus,
+    OcSessionState,
+    OcAuthConfig,
+    DisplayIdentity,
+    DisplayIdentityKind,
+} from './types';
+export { buildSignInUrl, DISPLAY_IDENTITY_KINDS } from './types';
 export {
     useWebAuthnRegister,
     useWebAuthnList,
