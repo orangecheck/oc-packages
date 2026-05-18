@@ -445,6 +445,77 @@ function AttestationLink(): React.ReactElement {
     );
 }
 
+/* --- post-sign-in link prompt (used by OcSignIn) --- */
+
+/**
+ * Shown by `<OcSignIn linkPrompt>` immediately after a successful sign-in,
+ * focused on the *complementary* identity: a user who signed in with email
+ * is offered their Bitcoin wallet; a wallet user is offered their email.
+ * "Link now" drops straight into the BIP-322 / OTP ceremony inline — the
+ * sign-in just proved one credential, and the link ceremony is itself the
+ * proof of the second. Skipping (or finishing) calls `onResolved`, which
+ * hands control back to OcSignIn's post-sign-in navigation.
+ */
+export function LinkPromptStep({
+    method,
+    didOc,
+    authOrigin,
+    onResolved,
+}: {
+    /** The complementary identity to offer — what the account is missing. */
+    method: 'btc' | 'email';
+    didOc: string;
+    authOrigin: string;
+    /** Called once the user has linked the identity, or skipped. */
+    onResolved: () => void;
+}): React.ReactElement {
+    const [stage, setStage] = React.useState<'offer' | 'linking'>('offer');
+
+    if (stage === 'linking') {
+        return method === 'btc' ? (
+            <BtcLinkForm
+                authOrigin={authOrigin}
+                didOc={didOc}
+                onDone={onResolved}
+                onCancel={() => setStage('offer')}
+            />
+        ) : (
+            <EmailLinkForm
+                authOrigin={authOrigin}
+                onDone={onResolved}
+                onCancel={() => setStage('offer')}
+            />
+        );
+    }
+
+    return (
+        <div style={panelStyle('accent')} data-oc-linkprompt={method}>
+            <SectionLabel tone="success">§ signed in</SectionLabel>
+            <p style={bodyStyle}>
+                {method === 'btc'
+                    ? "You're in. Link a Bitcoin address now — a second way to sign in, and it " +
+                      'unlocks your on-chain footprint. You prove it with one wallet signature, ' +
+                      'right here — no separate trip to your account page.'
+                    : "You're in. Add your email now — a backup way to sign in if you ever lose " +
+                      'your wallet. You prove it with a one-time code, right here — no separate ' +
+                      'trip to your account page.'}
+            </p>
+            <FormButtons>
+                <button
+                    type="button"
+                    onClick={() => setStage('linking')}
+                    style={primaryBtnStyle(false)}
+                >
+                    {method === 'btc' ? 'link a Bitcoin address' : 'link an email'}
+                </button>
+                <button type="button" onClick={onResolved} style={ghostBtnStyle(false)}>
+                    skip
+                </button>
+            </FormButtons>
+        </div>
+    );
+}
+
 /* --- email link form --- */
 
 function EmailLinkForm({

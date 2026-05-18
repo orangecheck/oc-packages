@@ -11,6 +11,31 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.9.0] — 2026-05-18 · Fluid link-at-sign-in
+
+`OcSignIn`'s `linkPrompt` is redesigned into the flow the sign-in ceremony
+always should have had — and it is now **on by default**.
+
+Immediately after a successful sign-in, `OcSignIn` checks (one `/api/auth/me`
+call) whether the account is missing its **complementary** identity. If so it
+shows a focused step: a user who signed in with email is offered their
+**Bitcoin wallet**; a wallet user is offered their **email**. "Link now" drops
+straight into the BIP-322 / OTP ceremony *inline* — no navigation — because the
+sign-in just proved one credential and this is the moment to prove the second.
+The user can skip.
+
+Key fixes over the 2.6.0 `linkPrompt`:
+
+- It is **focused** — it offers exactly the one missing identity and goes
+  straight into that ceremony, instead of rendering the whole
+  `<OcLinkedIdentities>` management panel.
+- It runs as an **interstitial before** `onSuccess` / `resolveReturnTo` /
+  `returnTo`, so it composes with custom post-sign-in routing. The 2.6.0
+  version was silently ignored whenever `onSuccess` was set — which is every
+  real consumer — so it never fired anywhere.
+- If the complementary identity is already linked, the step is skipped
+  silently. Pass `linkPrompt={false}` to opt out.
+
 ## [2.8.0] — 2026-05-18 · Remove `OcIdentityBond` (reverted)
 
 Removes `<OcIdentityBond>` and its exports — the two-key BTC+Nostr

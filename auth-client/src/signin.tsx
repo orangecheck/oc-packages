@@ -34,7 +34,7 @@
 
 import * as React from 'react';
 
-import { OcLinkedIdentities } from './linked-identities';
+import { LinkPromptStep } from './linked-identities';
 import type { OcAccount } from './types';
 
 /* --- props --- */
@@ -91,14 +91,17 @@ export interface OcSignInProps {
      */
     paths?: { wallet?: boolean; email?: boolean };
     /**
-     * After a successful sign-in, show an optional "add a backup way to
-     * sign in" step — the shared `<OcLinkedIdentities/>` surface —
-     * before navigating away, instead of navigating immediately. The
-     * sign-in ceremony is the one moment the user has just proven a
-     * credential; it is the lowest-friction time to bind a recovery
-     * identity. The user can always skip with "continue". Ignored when
-     * `onSuccess` is set (the caller owns post-success flow then).
-     * Default false.
+     * Fluid link-at-sign-in. **On by default.** Immediately after a
+     * successful sign-in, if the account is missing the *complementary*
+     * identity, OcSignIn offers it inline: a user who signed in with
+     * email is offered their Bitcoin wallet; a wallet user is offered
+     * their email. "Link now" drops straight into the BIP-322 / OTP
+     * ceremony — no navigation — because the sign-in just proved one
+     * credential and this is the moment to prove the second. The user
+     * may skip. It runs as an interstitial *before* `onSuccess` /
+     * `returnTo`, so it composes with custom post-sign-in routing. If
+     * the complementary identity is already linked the step is skipped
+     * silently. Pass `linkPrompt={false}` to opt out.
      */
     linkPrompt?: boolean;
     /** className for the outer container. */
@@ -149,7 +152,7 @@ export function OcSignIn({
     returnTo,
     onSuccess,
     resolveReturnTo,
-    linkPrompt,
+    linkPrompt = true,
     authOrigin = 'https://ochk.io',
     initialPath = 'wallet',
     paths,
@@ -160,9 +163,14 @@ export function OcSignIn({
     const safeReturn = safeReturnTo(returnTo);
 
     const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
-    // Set once sign-in succeeds when `linkPrompt` is on — the component
-    // then renders the post-success link step instead of navigating.
-    const [signedIn, setSignedIn] = React.useState<OcAccount | null>(null);
+    // Set once sign-in succeeds and the account is missing its
+    // complementary identity — the component then renders the focused
+    // link step (LinkPromptStep) before running `proceed`.
+    const [signedIn, setSignedIn] = React.useState<{
+        method: 'btc' | 'email';
+        didOc: string;
+        proceed: () => void;
+    } | null>(null);
 
     const navigate = React.useCallback(
         async (account: OcAccount) => {
@@ -180,18 +188,53 @@ export function OcSignIn({
     );
 
     const handleSuccess = React.useCallback(
-        async (account: OcAccount, token?: string) => {
-            if (onSuccess) {
-                onSuccess(account, token);
+        async (account: OcAccount, token: string | undefined, via: 'wallet' | 'email') => {
+            // The post-sign-in handoff — custom `onSuccess`, else navigation.
+            const proceed = () => {
+                if (onSuccess) onSuccess(account, token);
+                else void navigate(account);
+            };
+
+            if (!linkPrompt) {
+                proceed();
                 return;
             }
-            if (linkPrompt) {
-                setSignedIn(account);
-                return;
+
+            // Fluid link-at-sign-in: offer the *complementary* identity if
+            // the account doesn't already have it. /api/auth/me is the one
+            // place reporting both signals (primary_btc, has_email); a
+            // failure here must never block sign-in.
+            try {
+                const meRes = await fetch(`${authOrigin}/api/auth/me`, {
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                });
+                const me = meRes.ok
+                    ? ((await meRes.json()) as {
+                          account?: {
+                              did_oc?: string;
+                              primary_btc?: string | null;
+                              has_email?: boolean;
+                          };
+                      })
+                    : null;
+                const acct = me?.account;
+                const didOc = acct?.did_oc;
+                const complementary: 'btc' | 'email' = via === 'email' ? 'btc' : 'email';
+                const alreadyLinked =
+                    complementary === 'btc'
+                        ? Boolean(acct?.primary_btc)
+                        : Boolean(acct?.has_email);
+                if (didOc && !alreadyLinked) {
+                    setSignedIn({ method: complementary, didOc, proceed });
+                    return;
+                }
+            } catch {
+                // /api/auth/me unreachable — fall through, never block.
             }
-            await navigate(account);
+            proceed();
         },
-        [onSuccess, linkPrompt, navigate]
+        [onSuccess, linkPrompt, navigate, authOrigin]
     );
 
     if (!walletEnabled && !emailEnabled) {
@@ -217,8 +260,10 @@ export function OcSignIn({
         return (
             <div className={className} data-oc-signin="">
                 <LinkPromptStep
+                    method={signedIn.method}
+                    didOc={signedIn.didOc}
                     authOrigin={authOrigin}
-                    onContinue={() => void navigate(signedIn)}
+                    onResolved={signedIn.proceed}
                 />
             </div>
         );
@@ -259,42 +304,16 @@ export function OcSignIn({
                     <WalletFlow
                         authOrigin={authOrigin}
                         audience={audience}
-                        onSuccess={handleSuccess}
+                        onSuccess={(a, t) => void handleSuccess(a, t, 'wallet')}
                     />
                 )}
                 {showEmail && (
-                    <EmailFlow authOrigin={authOrigin} onSuccess={handleSuccess} />
+                    <EmailFlow
+                        authOrigin={authOrigin}
+                        onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
+                    />
                 )}
             </div>
-        </div>
-    );
-}
-
-/* --- post-success link prompt --- */
-
-function LinkPromptStep({
-    authOrigin,
-    onContinue,
-}: {
-    authOrigin: string;
-    onContinue: () => void;
-}): React.ReactElement {
-    return (
-        <div data-oc-signin-linkprompt="">
-            <FlowHeader label="§ signed in · add a backup">
-                You&apos;re in. Linking a second way to sign in — your email or your Bitcoin
-                wallet — is also your recovery path: lose one, the other still gets you in.
-                Optional; skip with continue.
-            </FlowHeader>
-            <OcLinkedIdentities authOrigin={authOrigin} />
-            <button
-                type="button"
-                onClick={onContinue}
-                style={submitStyle(false)}
-                data-oc-signin-continue=""
-            >
-                continue →
-            </button>
         </div>
     );
 }
