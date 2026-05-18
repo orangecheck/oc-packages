@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [1.3.0] — 2026-05-18 · Remove the Binding Attestation API (reverted)
+
+Removes `verifyBinding`, `buildBindingMessage`, `bindingId`,
+`buildBindingEventTemplate`, `assembleBindingEnvelope`, `xOnlyHexToNpub`
+and their types — the entire Binding Attestation surface added in 1.1.0
+and 1.2.0 (both two days old, no external consumers).
+
+That API was built on a mis-designed premise: a *mutually-signed* BTC ⇄
+Nostr artifact requiring the Nostr key to counter-sign. oc-attest is a
+**single-signature** protocol — one BIP-322 signature by the Bitcoin
+address links it to a list of *self-asserted* handles (Nostr, GitHub,
+DNS, Twitter); Nostr is transport, not a trust root. Identity linking is
+already served by the v0 `createAttestation` / `verify` API, unchanged.
+The `oc-attest-protocol` v1 spec and Nostr kind 30079 were reverted in
+lockstep.
+
 ## [1.2.0] — 2026-05-16 · Binding Attestation issuer-side construction
 
 Additive. Completes the round-trip for the v1 Binding Attestation — v1.1.0

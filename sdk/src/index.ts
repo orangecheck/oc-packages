@@ -31,24 +31,6 @@ export type { CheckParams, CheckResult } from './check';
 export { verify } from './verify';
 export { createAttestation } from './attestation';
 
-// ─── Binding Attestation · OC Attest v1 (SPEC-BINDING.md) ──────────────────
-export {
-    buildBindingMessage,
-    bindingId,
-    verifyBinding,
-    xOnlyHexToNpub,
-    buildBindingEventTemplate,
-    assembleBindingEnvelope,
-} from './binding';
-export type {
-    BindingInput,
-    BindingEnvelope,
-    BindingEventTemplate,
-    BindingNostrEvent,
-    BindingStatus,
-    BindingVerifyResult,
-} from './binding';
-
 // ─── Signed-challenge auth (for gates that can't trust the address source) ─
 export { issueChallenge, verifyChallenge } from './challenge';
 export type {
