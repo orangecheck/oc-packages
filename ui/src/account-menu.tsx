@@ -96,6 +96,19 @@ export interface OcAccountMenuProps {
     /** Label for the anonymous "sign in" affordance. Default `'sign in'`. */
     signInLabel?: string;
     /**
+     * Where the browser lands after the user signs out. Default `'/'`
+     * — the current site's own home. On sign-out the menu fires
+     * `signOut()` (whose logout round-trip is `keepalive`, so it
+     * survives the navigation) and *immediately* hard-navigates here.
+     *
+     * Navigating in the same tick is deliberate: it forecloses the
+     * race where an auth-gated page observes the session flip to
+     * `anonymous` and runs its own redirect-to-sign-in first. Sign-out
+     * means "leave", not "go sign in again" — so the family default is
+     * the site's home, never a sign-in page or the auth host.
+     */
+    signOutRedirect?: string;
+    /**
      * Site-specific menu items, rendered between the section header
      * and the family-dashboard / sign-out rows. Keep this short —
      * 2–6 entries is the sweet spot. Pass `[]` (or omit) for sites
@@ -294,6 +307,7 @@ export function OcAccountMenuView({
     current,
     signInUrl = '/signin',
     signInLabel = 'sign in',
+    signOutRedirect = '/',
     menuItems,
     primaryNavLinks,
     secondaryNavLinks,
@@ -527,7 +541,14 @@ export function OcAccountMenuView({
                             role="menuitem"
                             onClick={() => {
                                 setOpen(false);
+                                // Fire the (keepalive) logout, then hard-navigate
+                                // home in the SAME tick — before React commits the
+                                // session→anonymous flip — so no auth-gated page
+                                // can win a redirect-to-sign-in race.
                                 void signOut();
+                                if (typeof window !== 'undefined') {
+                                    window.location.assign(signOutRedirect);
+                                }
                             }}
                             className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors"
                             data-oc-account-menu-item=""

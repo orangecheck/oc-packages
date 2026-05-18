@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.12.0] — 2026-05-18 · sign-out survives an immediate navigation
+
+`OcSessionProvider`'s `signOut()` now sends the logout request to the auth
+host with `keepalive: true`. Previously the round-trip was a plain `fetch`:
+if the caller hard-navigated away in the same tick (which `<OcAccountMenu>`
+in `@orangecheck/ui` ≥0.11.0 now does on sign-out — it forwards the user
+home immediately to foreclose an auth-gate redirect race), the in-flight
+logout was cancelled on unload and the `.ochk.io` cookie could be left
+uncleared. `keepalive` lets the request finish past page unload, so the
+session is reliably torn down regardless of how fast the caller leaves.
+
+No API change — purely a reliability fix for the navigate-on-sign-out path.
+
 ## [2.11.0] — 2026-05-18 · linkPrompt: explicit skip with guidance
 
 The post-sign-in link step (`LinkPromptStep`, shown when the form checkbox

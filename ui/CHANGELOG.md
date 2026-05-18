@@ -11,6 +11,26 @@ small and the API may evolve quickly.
 
 - _(no pending changes)_
 
+## [0.11.0] — 2026-05-18 · sign-out lands you home, never on a sign-in page
+
+- `<OcAccountMenu>` / `<OcAccountMenuView>` — the **sign-out** menu item now
+  hard-navigates to the site's own home immediately after firing `signOut()`,
+  instead of just clearing session state and leaving the user where they are.
+
+  **Why.** On an auth-gated page (e.g. a dashboard), clearing the session
+  flips `status` to `anonymous`, and that page's own auth-gate `useEffect`
+  would observe the flip and redirect to a sign-in page — so signing out
+  bounced the user *to sign in again*, sometimes on the auth host
+  (`ochk.io/signin`) rather than the current site. Signing out should mean
+  "leave", not "go sign in again".
+
+  The menu now navigates in the **same tick** as `signOut()`, before React
+  commits the `anonymous` flip, so no auth-gate can win the race. The
+  destination is the new **`signOutRedirect`** prop, default `'/'` — the
+  current site's home. Pair with `@orangecheck/auth-client` ≥2.12.0, whose
+  `signOut()` uses a `keepalive` logout fetch so the round-trip still
+  completes through the page unload (peer requirement bumped accordingly).
+
 ## [0.10.1] — Account-menu width fit
 
 - `<OcAccountMenu>` / `<OcAccountMenuView>` — widened the popover from

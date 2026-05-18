@@ -118,6 +118,12 @@ export function OcSessionProvider({
             await fetch(`${cfg.authOrigin}${cfg.logoutPath}`, {
                 method: 'POST',
                 credentials: 'include',
+                // `keepalive` lets the logout round-trip complete even if
+                // the caller hard-navigates away in the same tick (e.g.
+                // `<OcAccountMenu>` redirects home immediately on sign-out).
+                // Without it the in-flight request is cancelled on unload
+                // and the `.ochk.io` cookie may never get cleared.
+                keepalive: true,
             });
         } catch {
             // fall through — we still clear local state so the UI reflects
