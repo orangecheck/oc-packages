@@ -11,6 +11,27 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.4.0] — 2026-05-18 · display_identity claim
+
+Adds the `display_identity` session claim — the identity a user has
+chosen to surface as their account-badge label across every `.ochk.io`
+subdomain. Same posture as `name` / `npub`: baked into the JWT so the
+choice renders consistently with no network round-trip.
+
+- `SessionPayload.display_identity?: DisplayIdentity | null` — `{ kind, value }`
+  where `kind ∈ {did,btc,email,nostr}` and `value` is the full renderable
+  value. Only the *promoted* identity's value is ever carried, so an
+  unrelated email never enters the token.
+- New exports: `DisplayIdentity`, `DisplayIdentityKind`,
+  `DISPLAY_IDENTITY_KINDS`, and `resolveDisplayIdentity(payload)` — a
+  total resolver that returns the claim when well-formed and falls back
+  to `{ kind:'did', value:did_oc }` otherwise (pre-field tokens, malformed
+  claims). Both `<OcAccountMenu>` and integrators building their own chip
+  should resolve through this.
+- `signSession()` accepts `display_identity` in its claims argument.
+
+Additive — older tokens (no claim) resolve cleanly to the did.
+
 ## [2.2.0] — 2026-05-14 · Inline sudo-mode claim
 
 Additive · all v2.1.x consumers keep working unchanged. New

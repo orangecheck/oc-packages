@@ -12,6 +12,7 @@ import {
     verifySessionToken,
     verifyStepUpClaim,
     verifySudoClaim,
+    resolveDisplayIdentity,
     type SessionPayload,
     type SignConfig,
     type VerifyConfig,
@@ -259,5 +260,51 @@ describe('verifySudoClaim', () => {
         expect(verifySudoClaim({ ...base, step_up_at: now }, { max_age_secs: 300 })).toBe(false);
         // sudo_at fresh, step_up_at absent → sudo says true
         expect(verifySudoClaim({ ...base, sudo_at: now }, { max_age_secs: 300 })).toBe(true);
+    });
+});
+
+describe('resolveDisplayIdentity', () => {
+    const base: SessionPayload = {
+        sub: 'acc',
+        did_oc: 'did:oc:abc123',
+        jti: 'j',
+    };
+
+    it('falls back to the did when the claim is absent', () => {
+        expect(resolveDisplayIdentity(base)).toEqual({ kind: 'did', value: 'did:oc:abc123' });
+    });
+
+    it('falls back to the did when the claim is explicitly null', () => {
+        expect(resolveDisplayIdentity({ ...base, display_identity: null })).toEqual({
+            kind: 'did',
+            value: 'did:oc:abc123',
+        });
+    });
+
+    it('returns a well-formed claim verbatim', () => {
+        for (const id of [
+            { kind: 'btc' as const, value: 'bc1qexampleaddr' },
+            { kind: 'email' as const, value: 'me@example.com' },
+            { kind: 'nostr' as const, value: 'npub1example' },
+            { kind: 'did' as const, value: 'did:oc:abc123' },
+        ]) {
+            expect(resolveDisplayIdentity({ ...base, display_identity: id })).toEqual(id);
+        }
+    });
+
+    it('falls back to the did for a malformed claim', () => {
+        const malformed = [
+            { kind: 'btc', value: '' },
+            { kind: 'twitter', value: '@x' },
+            { kind: 'btc' },
+            { value: 'bc1q' },
+            'btc',
+            42,
+        ];
+        for (const bad of malformed) {
+            expect(
+                resolveDisplayIdentity({ ...base, display_identity: bad as never })
+            ).toEqual({ kind: 'did', value: 'did:oc:abc123' });
+        }
     });
 });

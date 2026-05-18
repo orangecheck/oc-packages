@@ -28,6 +28,31 @@ export const DEFAULT_ISSUER = 'https://ochk.io' as const;
 
 export type AuthKey = CryptoKey | KeyObject;
 
+/**
+ * The kinds of identity a user can surface as their account-badge
+ * label. `did` is the canonical `did:oc` identifier (always available
+ * and the ultimate fallback); the other three are linked identities
+ * the user may or may not have.
+ */
+export const DISPLAY_IDENTITY_KINDS = ['did', 'btc', 'email', 'nostr'] as const;
+export type DisplayIdentityKind = (typeof DISPLAY_IDENTITY_KINDS)[number];
+
+/**
+ * The identity a user has chosen to display in their account badge —
+ * carried as a JWT claim so every `.ochk.io` subdomain (and any
+ * integrator reading the session) renders the same label with no
+ * network round-trip, exactly like `name` / `npub`.
+ *
+ * `kind` is which identity; `value` is the full, renderable value (the
+ * `did:oc`, the Bitcoin address, the email, or the npub). Only the
+ * *promoted* identity's value is carried — never the whole identity
+ * set — so an unrelated email never enters the token.
+ */
+export interface DisplayIdentity {
+    kind: DisplayIdentityKind;
+    value: string;
+}
+
 export interface SessionPayload extends JWTPayload {
     sub: string;
     /**
@@ -126,6 +151,21 @@ export interface SessionPayload extends JWTPayload {
      * never mutated mid-session.
      */
     is_owner?: boolean;
+    /**
+     * The identity the user has chosen to show in their account badge
+     * — the collapsed label every family site (and any integrator)
+     * renders instead of the raw `did:oc`. Baked into the JWT so the
+     * choice is consistent across every `.ochk.io` subdomain with no
+     * round-trip, the same posture as `name` / `npub`.
+     *
+     * Re-resolved by the auth host on every mint: an explicit user
+     * promotion wins; absent that, it defaults to the account's
+     * sign-in identity (BIP-322 accounts → their Bitcoin address,
+     * federation accounts → their email). Absent / null on tokens
+     * minted before this field shipped — consumers fall back to the
+     * `did_oc`. Read it safely with `resolveDisplayIdentity()`.
+     */
+    display_identity?: DisplayIdentity | null;
 }
 
 /**
@@ -182,6 +222,33 @@ export function verifySudoClaim(
     if (opts.max_age_secs <= 0) return false;
     const ageSec = Math.floor(Date.now() / 1000) - payload.sudo_at;
     return ageSec >= 0 && ageSec < opts.max_age_secs;
+}
+
+/**
+ * Resolve the account-badge identity for a session — total, never
+ * throws, always returns a renderable `{ kind, value }`.
+ *
+ * Returns the JWT's `display_identity` claim when it is present and
+ * well-formed; otherwise falls back to the canonical `did:oc`. Use
+ * this everywhere you render the badge label rather than reading the
+ * raw claim, so tokens minted before the field shipped (and tokens
+ * carrying a malformed claim) degrade gracefully to the did.
+ *
+ * This is the single resolver both `<OcAccountMenu>` and integrators
+ * building their own chip should call.
+ */
+export function resolveDisplayIdentity(payload: SessionPayload): DisplayIdentity {
+    const claim = payload.display_identity;
+    if (
+        claim &&
+        typeof claim === 'object' &&
+        typeof claim.value === 'string' &&
+        claim.value.length > 0 &&
+        (DISPLAY_IDENTITY_KINDS as readonly string[]).includes(claim.kind)
+    ) {
+        return { kind: claim.kind, value: claim.value };
+    }
+    return { kind: 'did', value: payload.did_oc };
 }
 
 export interface VerifyConfig {
@@ -267,6 +334,7 @@ export async function signSession(
         merged_from?: string[];
         step_up_at?: number;
         sudo_at?: number;
+        display_identity?: DisplayIdentity | null;
     },
     cfg: SignConfig,
     ttlSeconds: number
