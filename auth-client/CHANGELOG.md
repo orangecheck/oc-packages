@@ -11,6 +11,27 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.8.0] — 2026-05-18 · Remove `OcIdentityBond` (reverted)
+
+Removes `<OcIdentityBond>` and its exports — the two-key BTC+Nostr
+"Binding Attestation" publish ceremony added in 2.7.0 (two days old, no
+external importers). It was built on a mis-designed premise: a
+mutually-signed artifact requiring a NIP-07 Nostr counter-signature.
+oc-attest is a single-signature protocol — one BIP-322 signature links a
+Bitcoin address to self-asserted handles; Nostr is transport, not a
+trust root. The `@orangecheck/sdk` / `@orangecheck/nostr-core` optional
+peers added for it are dropped.
+
+`<OcLinkedIdentities>` now shows a thin **portable-attestation pointer**
+instead: once the account has a linked Bitcoin address, it routes the
+user to `attest.ochk.io/create` — the existing OC Attest builder, which
+already pre-fills the address from the signed-in session. Publishing a
+standard, single-BIP-322-signature attestation is the correct,
+protocol-native way to put identity links on Nostr.
+
+`<OcLinkedIdentities>`'s list / link / unlink / transfer surface and
+`OcSignIn` are unchanged.
+
 ## [2.7.0] — 2026-05-16 · `OcIdentityBond` — publish a Binding Attestation
 
 Additive. `<OcLinkedIdentities>` now offers the self-sovereign tier of

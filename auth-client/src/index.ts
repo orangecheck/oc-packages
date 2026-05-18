@@ -24,12 +24,8 @@ export type {
 } from './components';
 export { OcSignIn } from './signin';
 export type { OcSignInProps } from './signin';
-export { OcLinkedIdentities, OcIdentityBond } from './linked-identities';
-export type {
-    OcLinkedIdentitiesProps,
-    OcLinkedIdentity,
-    OcIdentityBondProps,
-} from './linked-identities';
+export { OcLinkedIdentities } from './linked-identities';
+export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';
 export type { OcAccount, OcSessionStatus, OcSessionState, OcAuthConfig } from './types';
 export { buildSignInUrl } from './types';
 export {
