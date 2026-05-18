@@ -451,10 +451,13 @@ function AttestationLink(): React.ReactElement {
  * Shown by `<OcSignIn>` after a successful sign-in *when the user ticked
  * the "also link my other identity" checkbox on the sign-in form*. It runs
  * the complementary identity's link ceremony inline — BIP-322 for a
- * Bitcoin address, OTP for an email. The sign-in just proved one
- * credential; this ceremony proves the second. `onResolved` (whether the
- * user finished the link or cancelled out of it) hands control back to
- * OcSignIn's post-sign-in navigation.
+ * Bitcoin address, OTP for an email.
+ *
+ * Skipping is first-class: even though the user opted in at the form, they
+ * may change their mind here — an explicit "skip, I'll do this later"
+ * control exits cleanly and tells them where to link later. `onResolved`
+ * (linked, or skipped) hands control back to OcSignIn's post-sign-in
+ * navigation.
  */
 export function LinkPromptStep({
     method,
@@ -466,16 +469,17 @@ export function LinkPromptStep({
     method: 'btc' | 'email';
     didOc: string;
     authOrigin: string;
-    /** Called once the user has linked the identity, or cancelled. */
+    /** Called once the user has linked the identity, or skipped. */
     onResolved: () => void;
 }): React.ReactElement {
+    const what = method === 'btc' ? 'a Bitcoin address' : 'an email';
     return (
         <div data-oc-linkprompt={method}>
             <div style={{ ...panelStyle('success'), marginBottom: 16 }}>
                 <SectionLabel tone="success">§ signed in</SectionLabel>
                 <p style={{ ...bodyStyle, margin: 0 }}>
-                    You asked to also link {method === 'btc' ? 'a Bitcoin address' : 'an email'} —
-                    here it is. Finish below, or cancel to head straight on.
+                    You chose to also link {what}. Complete it below — or skip for now; it is
+                    entirely optional and changes nothing about the sign-in you just completed.
                 </p>
             </div>
             {method === 'btc' ? (
@@ -488,6 +492,19 @@ export function LinkPromptStep({
             ) : (
                 <EmailLinkForm authOrigin={authOrigin} onDone={onResolved} onCancel={onResolved} />
             )}
+            <div
+                data-oc-linkprompt-skip=""
+                style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${V.border}` }}
+            >
+                <button type="button" onClick={onResolved} style={ghostBtnStyle(false)}>
+                    skip — I&apos;ll do this later
+                </button>
+                <p style={{ ...hintStyle, marginTop: 8 }}>
+                    {'> '}Changed your mind? Skipping continues you straight on — your sign-in is
+                    unaffected. You can link {what} anytime later from your identity page,{' '}
+                    me.ochk.io/me/identity.
+                </p>
+            </div>
         </div>
     );
 }

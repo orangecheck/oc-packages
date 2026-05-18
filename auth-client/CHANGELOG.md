@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.11.0] — 2026-05-18 · linkPrompt: explicit skip with guidance
+
+The post-sign-in link step (`LinkPromptStep`, shown when the form checkbox
+is ticked) now carries an explicit **"skip — I'll do this later"** control
+and a line telling the user they can link the identity anytime from
+`me.ochk.io/me/identity`. The ceremony was always cancellable, but the exit
+is now obvious and reassuring — a user who changes their mind on the link
+step has a clear, guided way out, not a bare "cancel".
+
 ## [2.10.0] — 2026-05-18 · link-at-sign-in is an opt-in checkbox
 
 Replaces 2.9.x's automatic post-sign-in prompt with an explicit, optional
