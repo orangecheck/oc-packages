@@ -186,16 +186,18 @@ export interface OcAccountMenuProps {
 }
 
 /**
- * Format a promoted `displayIdentity` for the collapsed badge trigger.
- * Emails render in full when short and gently middle-truncate when
- * long; did / btc / npub values (hash-like) middle-truncate sooner.
+ * Partially obscure an identity value for display — first 6 characters,
+ * an ellipsis, last 4. Applied uniformly to every kind (did, Bitcoin
+ * address, email, npub) and at every length, so a rendered label never
+ * exposes a full identity at rest; the full value stays one click away
+ * via the copy affordance. Short values fall back to a 4/3 split so the
+ * middle is always masked.
  */
-function formatBadgeLabel(di: DisplayIdentity): string {
-    const { kind, value } = di;
-    if (kind === 'email') {
-        return value.length <= 26 ? value : `${value.slice(0, 14)}…${value.slice(-9)}`;
+function obscureIdentity(value: string): string {
+    if (value.length <= 12) {
+        return `${value.slice(0, 4)}…${value.slice(-3)}`;
     }
-    return value.length <= 16 ? value : `${value.slice(0, 8)}…${value.slice(-6)}`;
+    return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
 /** Human label for an identity kind, shown as the trailing tag on each
@@ -306,6 +308,109 @@ function CopyableDid({ did }: { did: string }) {
 }
 
 /**
+ * One row in the "§ show as" list — a promote control and an
+ * independent copy-to-clipboard affordance.
+ *
+ * The value is always rendered partially obscured (`obscureIdentity`).
+ * The row body is a radio that promotes this identity to the badge
+ * label; the trailing copy button writes the *full* value to the
+ * clipboard via the same `writeClipboard` path as the did row (async
+ * Clipboard API, hidden-`<textarea>` fallback — works on touch devices
+ * and non-secure contexts). Copy and promote are deliberately separate
+ * controls: one selects the identity, the other extracts it.
+ */
+function PromoteRow({
+    kind,
+    value,
+    active,
+    busy,
+    disabled,
+    onPromote,
+}: {
+    kind: DisplayIdentityKind;
+    value: string;
+    active: boolean;
+    busy: boolean;
+    disabled: boolean;
+    onPromote: () => void;
+}) {
+    const [copied, setCopied] = useState(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(
+        () => () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+        },
+        [],
+    );
+
+    const onCopy = async () => {
+        const ok = await writeClipboard(value);
+        if (!ok) return;
+        setCopied(true);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopied(false), 1600);
+    };
+
+    const kindLabel = IDENTITY_KIND_LABEL[kind];
+
+    return (
+        <div
+            className="hover:bg-accent flex items-center gap-1 pr-2 transition-colors"
+            data-oc-account-menu-promote-row={kind}
+            data-active={active ? '' : undefined}
+        >
+            <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                aria-label={active ? `Showing as ${kindLabel}` : `Show as ${kindLabel}`}
+                disabled={disabled || active}
+                onClick={onPromote}
+                data-oc-account-menu-promote={kind}
+                className="flex min-w-0 flex-1 items-center gap-2 py-2 pl-3 text-left font-mono text-[11px] tracking-wide disabled:cursor-default"
+            >
+                <span
+                    className={
+                        'flex size-3.5 shrink-0 items-center justify-center rounded-full border ' +
+                        (active ? 'border-primary' : 'border-muted-foreground/40')
+                    }
+                    aria-hidden
+                >
+                    {active ? <span className="bg-primary size-1.5 rounded-full" /> : null}
+                </span>
+                <span className="text-foreground/90 min-w-0 flex-1 truncate">
+                    {obscureIdentity(value)}
+                </span>
+            </button>
+            <button
+                type="button"
+                onClick={() => void onCopy()}
+                aria-label={
+                    copied ? `${kindLabel} copied to clipboard` : `Copy ${kindLabel} to clipboard`
+                }
+                title="Copy"
+                data-oc-account-menu-promote-copy={kind}
+                data-copied={copied ? '' : undefined}
+                className="hover:bg-background/70 focus-visible:ring-ring/60 flex size-6 shrink-0 items-center justify-center rounded transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+                {copied ? (
+                    <Check className="text-primary size-3.5" />
+                ) : (
+                    <Copy className="text-muted-foreground/50 size-3.5" />
+                )}
+            </button>
+            <span className="text-muted-foreground/50 w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
+                {busy ? <Loader2 className="ml-auto size-3 animate-spin" /> : kindLabel}
+            </span>
+            <span className="sr-only" aria-live="polite">
+                {copied ? 'Copied to clipboard' : ''}
+            </span>
+        </div>
+    );
+}
+
+/**
  * The "§ show as" block inside the popover — lists the user's
  * identities and lets them promote one as the badge label across
  * every `.ochk.io` site.
@@ -398,45 +503,17 @@ function IdentityPromoteSection({
             <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                 § show as
             </div>
-            {options.map((opt) => {
-                const active = opt.kind === current.kind;
-                const busy = promoting === opt.kind;
-                return (
-                    <button
-                        key={opt.kind}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={active}
-                        disabled={promoting !== null || active}
-                        onClick={() => void promote(opt.kind)}
-                        data-oc-account-menu-promote={opt.kind}
-                        data-active={active ? '' : undefined}
-                        className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors disabled:cursor-default disabled:hover:bg-transparent aria-checked:cursor-default"
-                    >
-                        <span
-                            className={
-                                'flex size-3.5 shrink-0 items-center justify-center rounded-full border ' +
-                                (active ? 'border-primary' : 'border-muted-foreground/40')
-                            }
-                            aria-hidden
-                        >
-                            {active ? (
-                                <span className="bg-primary size-1.5 rounded-full" />
-                            ) : null}
-                        </span>
-                        <span className="text-foreground/90 min-w-0 flex-1 truncate">
-                            {opt.value}
-                        </span>
-                        <span className="text-muted-foreground/50 shrink-0 text-[9px] tracking-widest uppercase">
-                            {busy ? (
-                                <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                                IDENTITY_KIND_LABEL[opt.kind]
-                            )}
-                        </span>
-                    </button>
-                );
-            })}
+            {options.map((opt) => (
+                <PromoteRow
+                    key={opt.kind}
+                    kind={opt.kind}
+                    value={opt.value}
+                    active={opt.kind === current.kind}
+                    busy={promoting === opt.kind}
+                    disabled={promoting !== null}
+                    onPromote={() => void promote(opt.kind)}
+                />
+            ))}
             {promoteErr ? (
                 <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
                     {promoteErr}
@@ -579,7 +656,7 @@ export function OcAccountMenuView({
     // identity they promoted (`displayIdentity` — defaults to their
     // sign-in identity, ultimately the did).
     const displayName = account.displayName ?? null;
-    const label = displayName ?? formatBadgeLabel(account.displayIdentity);
+    const label = displayName ?? obscureIdentity(account.displayIdentity.value);
 
     return (
         <div

@@ -11,6 +11,20 @@ small and the API may evolve quickly.
 
 - _(no pending changes)_
 
+## [0.13.0] — 2026-05-18 · obscure identity labels + per-row copy
+
+- `<OcAccountMenu>` — every identity value is now **partially obscured**
+  wherever it is rendered as a label: first 6 characters · ellipsis ·
+  last 4 (uniformly, every kind and every length). The collapsed badge
+  and every "§ show as" row mask the value at rest; the full value is
+  never shown as a label.
+- Each **"§ show as"** row now carries a copy-to-clipboard button, the
+  same affordance as the did row — it writes the *full* value via the
+  async Clipboard API with a hidden-`<textarea>` fallback, so it works
+  on touch devices and non-secure contexts. Copy and promote are
+  separate controls on the row: tapping the row promotes, tapping the
+  copy icon extracts.
+
 ## [0.12.0] — 2026-05-18 · account badge: promote which identity shows
 
 - `<OcAccountMenu>` / `<OcAccountMenuView>` — the collapsed badge now
