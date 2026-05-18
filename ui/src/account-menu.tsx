@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
-import { useOcSession } from '@orangecheck/auth-client';
+import { Check, Copy, Loader2 } from 'lucide-react';
+import {
+    fetchOcLinkedIdentities,
+    useOcSession,
+    type DisplayIdentity,
+    type DisplayIdentityKind,
+    type OcLinkedIdentity,
+} from '@orangecheck/auth-client';
 
 import type { EcosystemSlug } from './ecosystem-switcher';
 import { findFamilyProperty, type SiteState } from './family-properties';
@@ -74,9 +80,30 @@ export interface OcAccountMenuBuildInfo {
  */
 export interface OcAccountMenuSession {
     status: 'loading' | 'authenticated' | 'anonymous' | 'error';
-    account: { didOc: string; displayName: string | null } | null;
+    account: {
+        didOc: string;
+        displayName: string | null;
+        /**
+         * The identity the user has promoted as their badge label —
+         * `{ kind, value }`, always populated (defaults to the did).
+         * Drives the collapsed-trigger label and the active row in the
+         * "show as" promote list.
+         */
+        displayIdentity: DisplayIdentity;
+        /** The user's Nostr npub, when set — a promotable badge
+         *  identity that (unlike btc/email) is a profile field, not a
+         *  linked-identity row, so it is read from the session. */
+        nostrNpub?: string | null;
+    } | null;
     signOut: () => void | Promise<void>;
     refresh: () => void | Promise<void>;
+    /**
+     * Promote a linked identity to be the badge label across every
+     * `.ochk.io` site. The connected `<OcAccountMenu>` wires this to
+     * `useOcSession().setDisplayIdentity`; a site running its own auth
+     * context passes its own equivalent.
+     */
+    setDisplayIdentity: (kind: DisplayIdentityKind) => Promise<void>;
 }
 
 export interface OcAccountMenuProps {
@@ -158,10 +185,27 @@ export interface OcAccountMenuProps {
     popoverClassName?: string;
 }
 
-function shortenDid(s: string): string {
-    if (s.length <= 14) return s;
-    return `${s.slice(0, 7)}…${s.slice(-5)}`;
+/**
+ * Format a promoted `displayIdentity` for the collapsed badge trigger.
+ * Emails render in full when short and gently middle-truncate when
+ * long; did / btc / npub values (hash-like) middle-truncate sooner.
+ */
+function formatBadgeLabel(di: DisplayIdentity): string {
+    const { kind, value } = di;
+    if (kind === 'email') {
+        return value.length <= 26 ? value : `${value.slice(0, 14)}…${value.slice(-9)}`;
+    }
+    return value.length <= 16 ? value : `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
+
+/** Human label for an identity kind, shown as the trailing tag on each
+ *  promote row. */
+const IDENTITY_KIND_LABEL: Record<DisplayIdentityKind, string> = {
+    did: 'did:oc',
+    btc: 'bitcoin',
+    email: 'email',
+    nostr: 'nostr',
+};
 
 /**
  * Best-effort clipboard write. Prefers the async Clipboard API (the
@@ -262,6 +306,147 @@ function CopyableDid({ did }: { did: string }) {
 }
 
 /**
+ * The "§ show as" block inside the popover — lists the user's
+ * identities and lets them promote one as the badge label across
+ * every `.ochk.io` site.
+ *
+ * The did is always an option (read from the session); the npub too
+ * when set. The Bitcoin address and email are *linked identities*, so
+ * they're lazy-fetched from the auth host the first time the popover
+ * opens — `fetchOcLinkedIdentities()` is one credentialed request,
+ * cached for the menu's lifetime. The section renders only once that
+ * resolves and only when there are ≥2 identities worth choosing
+ * between; with a single identity there is nothing to promote.
+ *
+ * Promotion calls `setDisplayIdentity(kind)` — which PATCHes the auth
+ * host, re-mints the cross-subdomain cookie, and refreshes the session
+ * — so the selected row and the collapsed label update in place and
+ * every other family tab picks the choice up on its next focus.
+ */
+function IdentityPromoteSection({
+    didOc,
+    nostrNpub,
+    current,
+    open,
+    setDisplayIdentity,
+}: {
+    didOc: string;
+    nostrNpub: string | null;
+    current: DisplayIdentity;
+    open: boolean;
+    setDisplayIdentity: (kind: DisplayIdentityKind) => Promise<void>;
+}) {
+    const [identities, setIdentities] = useState<OcLinkedIdentity[] | null>(null);
+    const [loadFailed, setLoadFailed] = useState(false);
+    const [promoting, setPromoting] = useState<DisplayIdentityKind | null>(null);
+    const [promoteErr, setPromoteErr] = useState<string | null>(null);
+    const fetchedRef = useRef(false);
+
+    // Lazy fetch — once, the first time the popover opens.
+    useEffect(() => {
+        if (!open || fetchedRef.current) return;
+        fetchedRef.current = true;
+        let cancelled = false;
+        void fetchOcLinkedIdentities()
+            .then((rows) => {
+                if (!cancelled) setIdentities(rows);
+            })
+            .catch(() => {
+                if (!cancelled) setLoadFailed(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [open]);
+
+    // Wait for the fetch to settle before rendering — avoids a section
+    // that flashes in then vanishes.
+    if (identities === null && !loadFailed) return null;
+
+    const btc =
+        identities?.find((i) => i.kind === 'btc' && i.is_primary && i.value) ??
+        identities?.find((i) => i.kind === 'btc' && i.value);
+    const email =
+        identities?.find((i) => i.kind === 'email' && i.is_primary && i.value) ??
+        identities?.find((i) => i.kind === 'email' && i.value);
+
+    const options: Array<{ kind: DisplayIdentityKind; value: string }> = [
+        { kind: 'did', value: didOc },
+    ];
+    if (btc?.value) options.push({ kind: 'btc', value: btc.value });
+    if (email?.value) options.push({ kind: 'email', value: email.value });
+    if (nostrNpub) options.push({ kind: 'nostr', value: nostrNpub });
+
+    // Nothing to choose between → no section.
+    if (options.length < 2) return null;
+
+    const promote = async (kind: DisplayIdentityKind) => {
+        if (promoting || kind === current.kind) return;
+        setPromoting(kind);
+        setPromoteErr(null);
+        try {
+            await setDisplayIdentity(kind);
+        } catch (e) {
+            setPromoteErr(e instanceof Error ? e.message : 'promotion failed');
+        } finally {
+            setPromoting(null);
+        }
+    };
+
+    return (
+        <div className="border-border border-b p-1" data-oc-account-menu-section="show-as">
+            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                § show as
+            </div>
+            {options.map((opt) => {
+                const active = opt.kind === current.kind;
+                const busy = promoting === opt.kind;
+                return (
+                    <button
+                        key={opt.kind}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={active}
+                        disabled={promoting !== null || active}
+                        onClick={() => void promote(opt.kind)}
+                        data-oc-account-menu-promote={opt.kind}
+                        data-active={active ? '' : undefined}
+                        className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors disabled:cursor-default disabled:hover:bg-transparent aria-checked:cursor-default"
+                    >
+                        <span
+                            className={
+                                'flex size-3.5 shrink-0 items-center justify-center rounded-full border ' +
+                                (active ? 'border-primary' : 'border-muted-foreground/40')
+                            }
+                            aria-hidden
+                        >
+                            {active ? (
+                                <span className="bg-primary size-1.5 rounded-full" />
+                            ) : null}
+                        </span>
+                        <span className="text-foreground/90 min-w-0 flex-1 truncate">
+                            {opt.value}
+                        </span>
+                        <span className="text-muted-foreground/50 shrink-0 text-[9px] tracking-widest uppercase">
+                            {busy ? (
+                                <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                                IDENTITY_KIND_LABEL[opt.kind]
+                            )}
+                        </span>
+                    </button>
+                );
+            })}
+            {promoteErr ? (
+                <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
+                    {promoteErr}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+/**
  * Connected variant — pulls the session from `useOcSession()`. This is
  * what every consumer site with `<OcSessionProvider>` mounted should
  * use. For sites running a parallel auth context (e.g. oc-www's local
@@ -279,10 +464,13 @@ export function OcAccountMenu(props: OcAccountMenuProps) {
                     ? {
                           didOc: session.account.didOc,
                           displayName: session.account.displayName ?? null,
+                          displayIdentity: session.account.displayIdentity,
+                          nostrNpub: session.account.nostrNpub ?? null,
                       }
                     : null,
                 signOut: session.signOut,
                 refresh: session.refresh,
+                setDisplayIdentity: session.setDisplayIdentity,
             }}
         />
     );
@@ -319,7 +507,7 @@ export function OcAccountMenuView({
     popoverClassName,
     session,
 }: OcAccountMenuViewProps) {
-    const { status, account, signOut, refresh } = session;
+    const { status, account, signOut, refresh, setDisplayIdentity } = session;
     const [hydrated, setHydrated] = useState(false);
     const [open, setOpen] = useState(false);
     const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -386,9 +574,12 @@ export function OcAccountMenuView({
         return signInTrigger;
     }
 
-    // Authenticated — pill + popover.
+    // Authenticated — pill + popover. The collapsed label is the
+    // user's vanity display name if they set one, otherwise the
+    // identity they promoted (`displayIdentity` — defaults to their
+    // sign-in identity, ultimately the did).
     const displayName = account.displayName ?? null;
-    const label = displayName ?? shortenDid(account.didOc);
+    const label = displayName ?? formatBadgeLabel(account.displayIdentity);
 
     return (
         <div
@@ -450,6 +641,14 @@ export function OcAccountMenuView({
                             </div>
                         ) : null}
                     </div>
+
+                    <IdentityPromoteSection
+                        didOc={account.didOc}
+                        nostrNpub={account.nostrNpub ?? null}
+                        current={account.displayIdentity}
+                        open={open}
+                        setDisplayIdentity={setDisplayIdentity}
+                    />
 
                     {primaryNavLinks && primaryNavLinks.length > 0 ? (
                         <PopoverSection

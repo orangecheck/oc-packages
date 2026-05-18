@@ -357,10 +357,12 @@
   resolved "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-15.5.15.tgz#d2ad3b9506c761ed07297acaeb00fb2c694c41f8"
   integrity sha512-nFucjVdwlFqxh/JG3hWSJ4p8+YJV7Ii8aPDuBQULB6DzUF4UNZETXLfEUk+oI2zEznWWULPt7MeuTE6xtK1HSA==
 
-"@orangecheck/auth-client@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-1.1.0.tgz#361c3b42379b2104413f10f495a358bdff2ee64e"
-  integrity sha512-PWh9LLisrO3I+e5+J4LYxX4gBcl2dY+YXnJoaV7Rmps58z8f31h6X5+IXitzOQ2nE2nOTHbqAHP0MbjPvzaR3g==
+"@orangecheck/auth-client@^2.13.0":
+  version "2.13.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.13.0.tgz#4ff3fcf6ed188d43bcc6c7df1871741c3aa8959a"
+  integrity sha512-b7Upi6u7OlSBZBYi/f7IpLQrDv44tQduE29PNdTlaLPxzTscjl+P0UlAB9vJyRtNub3mxnSiFQt1af1AhGy75A==
+  dependencies:
+    "@simplewebauthn/browser" "^13.3.0"
 
 "@rollup/rollup-android-arm-eabi@4.60.2":
   version "4.60.2"
@@ -486,6 +488,11 @@
   version "4.60.2"
   resolved "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.60.2.tgz#3418dcf1388f2abd6b0ccc08fe1ef205ae76d696"
   integrity sha512-Nd/SgG27WoA9e+/TdK74KnHz852TLa94ovOYySo/yMPuTmpckK/jIF2jSwS3g7ELSKXK13/cVdmg1Z/DaCWKxA==
+
+"@simplewebauthn/browser@^13.3.0":
+  version "13.3.0"
+  resolved "https://registry.npmjs.org/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
+  integrity sha512-BE/UWv6FOToAdVk0EokzkqQQDOWtNydYlY6+OrmiZ5SCNmb41VehttboTetUM3T/fr6EAFYVXjz4My2wg230rQ==
 
 "@swc/helpers@0.5.15":
   version "0.5.15"

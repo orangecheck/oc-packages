@@ -11,6 +11,26 @@ small and the API may evolve quickly.
 
 - _(no pending changes)_
 
+## [0.12.0] — 2026-05-18 · account badge: promote which identity shows
+
+- `<OcAccountMenu>` / `<OcAccountMenuView>` — the collapsed badge now
+  shows the user's **promoted identity** (`account.displayIdentity`)
+  instead of always the `did:oc`: their Bitcoin address, email, npub,
+  or did, whichever they signed in with or later promoted. A vanity
+  `displayName` still wins when set.
+- New **"§ show as"** section in the popover, beneath the did — lists
+  every identity the user holds and lets them promote one as the badge
+  label across every `.ochk.io` site. Bitcoin / email rows lazy-fetch
+  via `fetchOcLinkedIdentities()` on first open; promotion calls
+  `setDisplayIdentity()` (re-mints the cross-subdomain cookie). The
+  section is shown only when there are ≥2 identities to choose between.
+- **Breaking (`OcAccountMenuSession`):** the session shape now requires
+  `account.displayIdentity`, optional `account.nostrNpub`, and a
+  `setDisplayIdentity(kind)` method. The connected `<OcAccountMenu>`
+  wires these from `useOcSession()` automatically; sites passing a
+  hand-built session to `<OcAccountMenuView>` (e.g. oc-www's `useAuth`
+  adapter) must supply them. Requires `@orangecheck/auth-client` ≥2.13.0.
+
 ## [0.11.0] — 2026-05-18 · sign-out lands you home, never on a sign-in page
 
 - `<OcAccountMenu>` / `<OcAccountMenuView>` — the **sign-out** menu item now
