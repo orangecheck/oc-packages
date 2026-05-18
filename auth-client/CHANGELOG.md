@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.14.0] — 2026-05-18 · Continue with Google in OcSignIn
+
+- `<OcSignIn>` gains a third sign-in path: a **"Continue with Google"**
+  button in a new providers section below the BIP-322 and email-OTP
+  options, deliberately less prominent. It is a plain navigation to the
+  auth host's `/api/auth/google/start` — the auth host runs the OAuth
+  dance and mints the family `.ochk.io` session. The section is built
+  from an `OAUTH_PROVIDERS` list so GitHub / Apple / etc. slot in as
+  they are enabled host-side.
+- `<OcSignIn>` shows a small error banner when it is loaded with
+  `?oauth_error` in the URL (the auth host redirects there when a
+  provider sign-in fails).
+
+Additive — no API change. Requires the auth host to expose
+`/api/auth/google/start`; until then the button leads to a graceful
+"not configured" redirect.
+
 ## [2.13.0] — 2026-05-18 · displayIdentity + setDisplayIdentity()
 
 Surfaces the badge identity a user has promoted (see `@orangecheck/auth-core`

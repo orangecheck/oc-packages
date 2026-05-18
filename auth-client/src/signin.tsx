@@ -171,6 +171,16 @@ export function OcSignIn({
     } | null>(null);
     // The optional "also link my other identity" checkbox on the form.
     const [linkAlso, setLinkAlso] = React.useState(false);
+    // Set when the user is bounced back here after a failed provider
+    // (e.g. Google) sign-in — the auth host redirects to
+    // `/signin?oauth_error=…`.
+    const [oauthError, setOauthError] = React.useState(false);
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (new URLSearchParams(window.location.search).has('oauth_error')) {
+            setOauthError(true);
+        }
+    }, []);
 
     const navigate = React.useCallback(
         async (account: OcAccount) => {
@@ -275,6 +285,22 @@ export function OcSignIn({
 
     return (
         <div className={className} data-oc-signin="">
+            {oauthError && (
+                <div
+                    data-oc-signin-oauth-error=""
+                    style={{
+                        marginBottom: 14,
+                        padding: '0.6rem 0.75rem',
+                        border: '1px solid var(--destructive, #ef4444)',
+                        borderRadius: 6,
+                        color: 'var(--destructive, #ef4444)',
+                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                        fontSize: 11,
+                    }}
+                >
+                    That sign-in didn&apos;t complete. Please try again.
+                </div>
+            )}
             {bothEnabled && (
                 <div
                     role="tablist"
@@ -314,6 +340,8 @@ export function OcSignIn({
                     />
                 )}
             </div>
+
+            <ProviderSignIn authOrigin={authOrigin} returnTo={safeReturn} />
 
             {linkPrompt && (
                 <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
@@ -372,6 +400,80 @@ function SigninTab({
         >
             {children}
         </button>
+    );
+}
+
+/* --- third-party provider sign-in --- */
+
+/**
+ * OAuth providers the auth host can complete a sign-in for. Each `id`
+ * maps to `/api/auth/<id>/start` on the auth host. Google ships first;
+ * GitHub / Apple / etc. slot in here as they are enabled host-side —
+ * this section is the extensible placeholder for them.
+ */
+const OAUTH_PROVIDERS: ReadonlyArray<{ id: string; label: string }> = [
+    { id: 'google', label: 'Continue with Google' },
+];
+
+/**
+ * The secondary sign-in block — rendered below BIP-322 and email-OTP,
+ * visibly less prominent. Each button is a plain navigation to the
+ * auth host, which runs the OAuth dance and mints the family
+ * `.ochk.io` session.
+ */
+function ProviderSignIn({
+    authOrigin,
+    returnTo,
+}: {
+    authOrigin: string;
+    returnTo: string;
+}): React.ReactElement {
+    const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
+    return (
+        <div data-oc-signin-providers="" style={{ marginTop: 20 }}>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    margin: '4px 0 12px',
+                    color: 'var(--muted-foreground, #a1a1aa)',
+                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                    fontSize: 10,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                }}
+            >
+                <span style={line} />
+                or
+                <span style={line} />
+            </div>
+            {OAUTH_PROVIDERS.map((p) => (
+                <a
+                    key={p.id}
+                    href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
+                        returnTo
+                    )}`}
+                    data-oc-signin-provider={p.id}
+                    style={{
+                        display: 'block',
+                        boxSizing: 'border-box',
+                        width: '100%',
+                        padding: '0.6rem 0.875rem',
+                        textAlign: 'center',
+                        border: '1px solid var(--border, #27272a)',
+                        borderRadius: 6,
+                        background: 'transparent',
+                        color: 'var(--muted-foreground, #a1a1aa)',
+                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                        fontSize: 12,
+                        textDecoration: 'none',
+                    }}
+                >
+                    {p.label}
+                </a>
+            ))}
+        </div>
     );
 }
 
