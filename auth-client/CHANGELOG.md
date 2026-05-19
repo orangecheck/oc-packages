@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.16.0] — 2026-05-19 · OcSignIn provider buttons get brand glyphs
+
+- `<OcSignIn>` provider buttons now render the vendor brand glyph
+  (the Google **G**, the GitHub Octocat) alongside the label —
+  matching the conventional "Continue with X" pattern users expect
+  from any modern sign-in screen.
+- The glyphs are drawn in `currentColor`, so they pick up the OC
+  muted-foreground theme tone rather than each vendor's brand
+  palette — visually individuated, family-styled.
+- Forward-compatible: an unknown provider id renders the button
+  text-only — no icon registration is required to add a provider
+  host-side.
+
 ## [2.15.0] — 2026-05-19 · OcSignIn renders the live provider list
 
 - `<OcSignIn>`'s provider section now **fetches the auth host's
