@@ -817,14 +817,22 @@ export function OcAccountMenuView({
                             role="menuitem"
                             onClick={() => {
                                 setOpen(false);
-                                // Fire the (keepalive) logout, then hard-navigate
-                                // home in the SAME tick — before React commits the
-                                // session→anonymous flip — so no auth-gated page
-                                // can win a redirect-to-sign-in race.
-                                void signOut();
-                                if (typeof window !== 'undefined') {
-                                    window.location.assign(signOutRedirect);
-                                }
+                                // Await the logout round-trip — its response is
+                                // what clears the `.ochk.io` cookie — and only
+                                // THEN hard-navigate home. Navigating first
+                                // (the old behavior) raced the next page's
+                                // session check against the still-uncleared
+                                // cookie, so the account badge stayed "signed
+                                // in" until a second sign-out. The hard
+                                // navigation is a committed browser navigation,
+                                // so it still wins over any auth-gated page's
+                                // redirect-to-sign-in effect.
+                                void (async () => {
+                                    await signOut();
+                                    if (typeof window !== 'undefined') {
+                                        window.location.assign(signOutRedirect);
+                                    }
+                                })();
                             }}
                             className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors"
                             data-oc-account-menu-item=""

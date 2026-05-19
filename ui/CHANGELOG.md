@@ -11,6 +11,17 @@ small and the API may evolve quickly.
 
 - _(no pending changes)_
 
+## [0.14.0] — 2026-05-18 · sign-out clears the session before navigating
+
+- `<OcAccountMenu>` / `<OcAccountMenuView>` — the sign-out menu item now
+  **awaits `signOut()`** (the logout round-trip whose response clears
+  the `.ochk.io` cookie) before hard-navigating home. Previously it
+  fired the logout and navigated in the same tick, so the next page's
+  session check raced the still-uncleared cookie — the account badge
+  stayed "signed in" until a *second* sign-out. The hard navigation is
+  a committed browser navigation, so it still wins over any auth-gated
+  page's redirect-to-sign-in effect.
+
 ## [0.13.0] — 2026-05-18 · obscure identity labels + per-row copy
 
 - `<OcAccountMenu>` — every identity value is now **partially obscured**
