@@ -30,6 +30,7 @@ export {
     type ApiKeyFields,
     type CardFields,
     type CustomField,
+    type EnvFields,
     type FileFields,
     type IdentityFields,
     type KvFields,

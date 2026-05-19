@@ -34,7 +34,7 @@ const VAULT_KEY_LEN = 32;
 const NONCE_LEN = 12;
 const BLOB_VERSION = 1;
 
-/** The nine entry kinds an oc-vault holds. */
+/** The entry kinds an oc-vault holds. */
 export type VaultEntryType =
     | 'password'
     | 'note'
@@ -42,6 +42,7 @@ export type VaultEntryType =
     | 'totp'
     | 'api-key'
     | 'kv'
+    | 'env'
     | 'card'
     | 'identity'
     | 'file';

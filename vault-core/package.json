@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/vault-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The conformance-pinned crypto, entry model, ocv:// secret-reference resolver, and transport-agnostic API client for OC Vault (vault.ochk.io). Zero-knowledge by construction — the vault key is derived client-side and never leaves the process.",
   "keywords": [
     "bitcoin",

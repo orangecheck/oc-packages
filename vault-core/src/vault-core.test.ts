@@ -28,6 +28,19 @@ function passwordEntry(key: Uint8Array, name: string, fields: Record<string, unk
     };
 }
 
+function envEntry(key: Uint8Array, name: string, vars: Record<string, string>): VaultEntry {
+    const { nonce, ciphertext } = encryptFields({ vars }, key);
+    return {
+        id: randomBytesN(16).reduce((s, b) => s + b.toString(16).padStart(2, '0'), ''),
+        type: 'env',
+        name,
+        nonce,
+        ciphertext,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+    };
+}
+
 describe('crypto round-trip', () => {
     it('packs and unpacks a cloud blob', () => {
         const key = randomBytesN(32);
@@ -102,6 +115,35 @@ describe('OcVault.fromEntries + resolve', () => {
 
     it('refuses non-personal vaults in v1', () => {
         expect(() => vault.resolve('ocv://team-x/Example')).toThrow(/personal vault only/);
+    });
+});
+
+describe('env entry resolution', () => {
+    const key = randomBytesN(32);
+    const vault = OcVault.fromEntries(
+        [
+            envEntry(key, 'prod', {
+                DATABASE_URL: 'postgres://prod',
+                STRIPE_KEY: 'sk_live_xyz',
+            }),
+        ],
+        key
+    );
+
+    it('resolves one var of an env bundle by name', () => {
+        expect(vault.resolve('ocv://personal/prod/DATABASE_URL')).toBe('postgres://prod');
+        expect(vault.resolve('ocv://personal/prod/stripe_key')).toBe('sk_live_xyz'); // case-insensitive
+    });
+
+    it('emits the whole bundle as KEY=value lines when no field is given', () => {
+        const text = vault.resolve('ocv://personal/prod');
+        expect(text).toContain('DATABASE_URL=postgres://prod');
+        expect(text).toContain('STRIPE_KEY=sk_live_xyz');
+        expect(text.split('\n')).toHaveLength(2);
+    });
+
+    it('throws for an unknown env var', () => {
+        expect(() => vault.resolve('ocv://personal/prod/MISSING')).toThrow(/no var/);
     });
 });
 

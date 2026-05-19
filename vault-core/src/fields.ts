@@ -68,6 +68,19 @@ export interface KvFields {
     custom?: CustomField[];
 }
 
+/**
+ * A bundle of environment variables — the natural shape for `.env` files
+ * and CI config. Each var is addressable as `ocv://personal/MyEnv/KEY`;
+ * an `ocv://personal/MyEnv` with no field returns the whole bundle as
+ * `KEY=value` lines.
+ */
+export interface EnvFields {
+    /** KEY → value, the env-var bundle. */
+    vars: Record<string, string>;
+    notes?: string;
+    custom?: CustomField[];
+}
+
 export interface CardFields {
     cardholder: string;
     number: string;
@@ -108,6 +121,10 @@ export const PRIMARY_FIELD: Record<VaultEntryType, string> = {
     totp: 'secret',
     'api-key': 'key',
     kv: 'value',
+    // env has no single "primary" field — the resolver short-circuits on
+    // `entry.type === 'env'` and either returns the bundle as KEY=value
+    // lines (no field given) or looks up one var.
+    env: 'vars',
     card: 'number',
     identity: 'email',
     file: 'filename',

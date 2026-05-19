@@ -109,6 +109,28 @@ export function resolveSecretRef(
     const parsed = typeof ref === 'string' ? parseSecretRef(ref) : ref;
     const { entry, fields } = findEntry(entries, parsed.item);
 
+    // `env` entries hold a bundle in `fields.vars`. With no field, the
+    // whole bundle is emitted as `KEY=value` lines (the natural `.env`
+    // shape); with a field, a single var is resolved (case-insensitive).
+    if (entry.type === 'env') {
+        const vars =
+            fields.vars && typeof fields.vars === 'object'
+                ? (fields.vars as Record<string, unknown>)
+                : {};
+        if (!parsed.field) {
+            const lines: string[] = [];
+            for (const [k, v] of Object.entries(vars)) {
+                if (typeof v === 'string') lines.push(`${k}=${v}`);
+            }
+            return lines.join('\n');
+        }
+        const lower = parsed.field.toLowerCase();
+        for (const [k, v] of Object.entries(vars)) {
+            if (k.toLowerCase() === lower && typeof v === 'string') return v;
+        }
+        throw new SecretRefError(`${parsed.raw} — env entry has no var "${parsed.field}"`);
+    }
+
     if (parsed.attr === 'otp') {
         const seed =
             entry.type === 'totp'
