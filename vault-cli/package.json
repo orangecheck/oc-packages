@@ -1,0 +1,58 @@
+{
+  "name": "@orangecheck/vault-cli",
+  "version": "0.1.0",
+  "description": "The `oc-vault` command — resolve ocv:// secret references, inject secrets into a process or a config file, and browse your OC Vault from the shell. Zero-knowledge: the vault key is derived locally from your passphrase.",
+  "keywords": [
+    "bitcoin",
+    "password-manager",
+    "secrets",
+    "zero-knowledge",
+    "secret-references",
+    "oc-vault",
+    "cli",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "vault-cli"
+  },
+  "homepage": "https://vault.ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "type": "module",
+  "bin": {
+    "oc-vault": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@orangecheck/vault-core": "^0.1.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
