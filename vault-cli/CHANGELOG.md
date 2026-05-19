@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Picks up the **`env` entry type** from `@orangecheck/vault-core@^0.2.0`:
+  `oc-vault read ocv://personal/<bundle>/<KEY>` resolves one var of an env
+  bundle, and `ocv://personal/<bundle>` (no field) emits the whole bundle
+  as `KEY=value` lines — handy for `inject`/`run`/`export` against a
+  template or a CI job.
+
 ## 0.2.0
 
 - `oc-vault export` — resolve every `ocv://` reference (from a `--env-file`

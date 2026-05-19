@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/vault-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The `oc-vault` command — resolve ocv:// secret references, inject secrets into a process or a config file, and browse your OC Vault from the shell. Zero-knowledge: the vault key is derived locally from your passphrase.",
   "keywords": [
     "bitcoin",
@@ -43,7 +43,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/vault-core": "^0.1.0",
+    "@orangecheck/vault-core": "^0.2.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {
