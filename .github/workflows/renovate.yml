@@ -1,0 +1,52 @@
+name: Renovate
+
+# Self-hosted Renovate — the family-wide auto-bumper.
+#
+# Every 30 minutes, this job runs Renovate against the consumer repos
+# listed in renovate-global.json. Per-repo rules (auto-merge of
+# @orangecheck/* patch+minor, 1-day stability window, etc.) live in
+# each repo's `renovate.json`. See RENOVATE.md for the why + how.
+
+on:
+    schedule:
+        # Every 30 minutes. Fast enough that a publish lands across the
+        # family within ~1 hour past its 1-day stability window.
+        - cron: '*/30 * * * *'
+    workflow_dispatch:
+        inputs:
+            logLevel:
+                description: 'Log level (debug for troubleshooting)'
+                required: false
+                default: 'info'
+            dryRun:
+                description: 'Dry run (full|null) — full prints what it would do, null actually does it'
+                required: false
+                default: 'null'
+
+permissions:
+    contents: read
+
+concurrency:
+    group: renovate
+    cancel-in-progress: false
+
+jobs:
+    renovate:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+
+            - name: Renovate
+              uses: renovatebot/github-action@v40.3.0
+              env:
+                  LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+                  RENOVATE_DRY_RUN: ${{ inputs.dryRun || 'null' }}
+              with:
+                  # RENOVATE_TOKEN — a fine-grained PAT (or classic PAT
+                  # with `repo` scope) that has *contents:write* and
+                  # *pull-requests:write* on every repo listed in
+                  # renovate-global.json. See RENOVATE.md.
+                  token: ${{ secrets.RENOVATE_TOKEN }}
+                  configurationFile: renovate-global.json
