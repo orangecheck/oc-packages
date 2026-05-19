@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.15.0] — 2026-05-19 · OcSignIn renders the live provider list
+
+- `<OcSignIn>`'s provider section now **fetches the auth host's
+  `/api/auth/providers`** instead of a hardcoded list — a button
+  appears only for a provider whose credentials are configured
+  host-side. With none configured the section renders nothing.
+- Consequence: enabling GitHub / Apple sign-in (now supported by the
+  auth host) is a host-side env change — **no redeploy of consumer
+  sites**. The `OAUTH_PROVIDERS` constant is gone.
+
 ## [2.14.1] — 2026-05-18 · provider sign-in returns to the right site
 
 Fix: on a family subdomain, "Continue with Google" sent a **relative**

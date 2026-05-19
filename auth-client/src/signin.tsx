@@ -405,21 +405,22 @@ function SigninTab({
 
 /* --- third-party provider sign-in --- */
 
-/**
- * OAuth providers the auth host can complete a sign-in for. Each `id`
- * maps to `/api/auth/<id>/start` on the auth host. Google ships first;
- * GitHub / Apple / etc. slot in here as they are enabled host-side —
- * this section is the extensible placeholder for them.
- */
-const OAUTH_PROVIDERS: ReadonlyArray<{ id: string; label: string }> = [
-    { id: 'google', label: 'Continue with Google' },
-];
+interface OAuthProviderEntry {
+    id: string;
+    label: string;
+}
 
 /**
  * The secondary sign-in block — rendered below BIP-322 and email-OTP,
  * visibly less prominent. Each button is a plain navigation to the
  * auth host, which runs the OAuth dance and mints the family
  * `.ochk.io` session.
+ *
+ * The provider list is fetched from the auth host's
+ * `/api/auth/providers` — a button appears only once that provider's
+ * credentials are configured host-side. So enabling GitHub / Apple
+ * later is a host env change, not a redeploy of every consumer site.
+ * With no providers configured the whole block renders nothing.
  */
 function ProviderSignIn({
     authOrigin,
@@ -427,19 +428,33 @@ function ProviderSignIn({
 }: {
     authOrigin: string;
     returnTo: string;
-}): React.ReactElement {
+}): React.ReactElement | null {
+    const [providers, setProviders] = React.useState<OAuthProviderEntry[]>([]);
     // A provider sign-in redirects THROUGH the auth host, so its final
-    // redirect must carry an ABSOLUTE return target. `returnTo` here is
-    // a bare path (`/dashboard`); left relative, the auth host's
-    // callback — running on ochk.io — would resolve it against ochk.io
-    // and strand a subdomain user on `ochk.io/<path>`. The origin is
-    // only knowable client-side, so resolve it after mount. (SSR / a
-    // pre-mount click falls back to the relative form, which the auth
-    // host's /start absolutizes from the Referer.)
+    // redirect must carry an ABSOLUTE return target — a bare path would
+    // resolve against ochk.io and strand a subdomain user there. The
+    // origin is only knowable client-side.
     const [origin, setOrigin] = React.useState('');
+
     React.useEffect(() => {
         setOrigin(window.location.origin);
-    }, []);
+        let cancelled = false;
+        fetch(`${authOrigin}/api/auth/providers`, { credentials: 'include' })
+            .then((r) => (r.ok ? (r.json() as Promise<{ providers?: OAuthProviderEntry[] }>) : null))
+            .then((body) => {
+                if (!cancelled && body?.providers) setProviders(body.providers);
+            })
+            .catch(() => {
+                // auth host unreachable — no provider buttons; the
+                // BIP-322 / email-OTP paths are unaffected.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [authOrigin]);
+
+    if (providers.length === 0) return null;
+
     const providerReturnTo = origin ? `${origin}${returnTo}` : returnTo;
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
     return (
@@ -461,7 +476,7 @@ function ProviderSignIn({
                 or
                 <span style={line} />
             </div>
-            {OAUTH_PROVIDERS.map((p) => (
+            {providers.map((p, i) => (
                 <a
                     key={p.id}
                     href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
@@ -472,6 +487,7 @@ function ProviderSignIn({
                         display: 'block',
                         boxSizing: 'border-box',
                         width: '100%',
+                        marginTop: i === 0 ? 0 : 8,
                         padding: '0.6rem 0.875rem',
                         textAlign: 'center',
                         border: '1px solid var(--border, #27272a)',
