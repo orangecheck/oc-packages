@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.14.1] — 2026-05-18 · provider sign-in returns to the right site
+
+Fix: on a family subdomain, "Continue with Google" sent a **relative**
+`return_to` to the auth host. The provider flow's final redirect is
+issued by the auth host (`ochk.io`), so a relative target resolved
+against `ochk.io` — a `vault.ochk.io` user landed on `ochk.io/vault`.
+`<OcSignIn>` now resolves `window.location.origin` and sends an
+absolute return target, so the user comes back to the site they
+started on.
+
 ## [2.14.0] — 2026-05-18 · Continue with Google in OcSignIn
 
 - `<OcSignIn>` gains a third sign-in path: a **"Continue with Google"**

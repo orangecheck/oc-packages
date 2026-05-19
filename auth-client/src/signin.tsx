@@ -428,6 +428,19 @@ function ProviderSignIn({
     authOrigin: string;
     returnTo: string;
 }): React.ReactElement {
+    // A provider sign-in redirects THROUGH the auth host, so its final
+    // redirect must carry an ABSOLUTE return target. `returnTo` here is
+    // a bare path (`/dashboard`); left relative, the auth host's
+    // callback — running on ochk.io — would resolve it against ochk.io
+    // and strand a subdomain user on `ochk.io/<path>`. The origin is
+    // only knowable client-side, so resolve it after mount. (SSR / a
+    // pre-mount click falls back to the relative form, which the auth
+    // host's /start absolutizes from the Referer.)
+    const [origin, setOrigin] = React.useState('');
+    React.useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
+    const providerReturnTo = origin ? `${origin}${returnTo}` : returnTo;
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
     return (
         <div data-oc-signin-providers="" style={{ marginTop: 20 }}>
@@ -452,7 +465,7 @@ function ProviderSignIn({
                 <a
                     key={p.id}
                     href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
-                        returnTo
+                        providerReturnTo
                     )}`}
                     data-oc-signin-provider={p.id}
                     style={{
