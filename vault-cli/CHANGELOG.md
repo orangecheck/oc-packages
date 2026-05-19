@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- `oc-vault export` — resolve every `ocv://` reference (from a `--env-file`
+  or inherited env vars) in a single vault open and emit `KEY=value`, or,
+  with `--github` (auto-detected in GitHub Actions), load them into the job
+  environment via `$GITHUB_ENV` with masking. The primitive the
+  `load-vault-secrets` Action is built on.
+
 ## 0.1.0
 
 Initial release — Phase 2 of the OC Vault developer platform.

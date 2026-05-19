@@ -13,7 +13,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { VaultClient } from '@orangecheck/vault-core';
 import { Command } from 'commander';
@@ -62,11 +63,28 @@ async function pullCache(client: VaultClient, baseUrl: string, token?: string): 
     };
 }
 
+/** Collect the `ocv://` references to resolve — a `--env-file` plus any
+ *  inherited env var whose value is itself a reference. */
+function collectRefs(envFile: string | undefined): [string, string][] {
+    const wanted: Record<string, string> = {};
+    if (envFile) {
+        try {
+            Object.assign(wanted, parseEnvFile(readFileSync(envFile, 'utf8')));
+        } catch {
+            fail(`cannot read env file: ${envFile}`);
+        }
+    }
+    for (const [k, v] of Object.entries(process.env)) {
+        if (typeof v === 'string' && v.startsWith('ocv://')) wanted[k] = v;
+    }
+    return Object.entries(wanted).filter(([, v]) => v.startsWith('ocv://'));
+}
+
 const program = new Command();
 program
     .name('oc-vault')
     .description('OC Vault from the shell — resolve ocv:// secret references, zero-knowledge.')
-    .version('0.1.0');
+    .version('0.2.0');
 
 program
     .command('login')
@@ -125,20 +143,7 @@ program
     .action(async (command: string[], opts: { envFile?: string }) => {
         if (command.length === 0) fail('nothing to run — usage: oc-vault run -- <command>');
 
-        // Collect references: from --env-file, and from any inherited env
-        // variable whose value is itself an ocv:// reference.
-        const wanted: Record<string, string> = {};
-        if (opts.envFile) {
-            try {
-                Object.assign(wanted, parseEnvFile(readFileSync(opts.envFile, 'utf8')));
-            } catch {
-                fail(`cannot read env file: ${opts.envFile}`);
-            }
-        }
-        for (const [k, v] of Object.entries(process.env)) {
-            if (typeof v === 'string' && v.startsWith('ocv://')) wanted[k] = v;
-        }
-        const refs = Object.entries(wanted).filter(([, v]) => v.startsWith('ocv://'));
+        const refs = collectRefs(opts.envFile);
         if (refs.length === 0) fail('no ocv:// references to resolve');
 
         const vault = await openVault(requireCache());
@@ -157,6 +162,40 @@ program
         });
         child.on('error', (err) => fail(`could not run ${command[0]}: ${err.message}`));
         child.on('exit', (code) => process.exit(code ?? 1));
+    });
+
+program
+    .command('export')
+    .description('resolve ocv:// references and emit KEY=value (or load into a CI job)')
+    .option('--env-file <path>', 'a .env file of KEY=ocv://… references')
+    .option('--github', 'append to $GITHUB_ENV and mask the values (GitHub Actions)')
+    .action(async (opts: { envFile?: string; github?: boolean }) => {
+        const refs = collectRefs(opts.envFile);
+        if (refs.length === 0) fail('no ocv:// references to resolve');
+
+        const vault = await openVault(requireCache());
+        const resolved: [string, string][] = [];
+        for (const [name, ref] of refs) {
+            try {
+                resolved.push([name, vault.resolve(ref)]);
+            } catch (err) {
+                fail(`${name}: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+
+        const githubEnv = process.env.GITHUB_ENV;
+        if (opts.github || githubEnv) {
+            if (!githubEnv) fail('--github requires $GITHUB_ENV (GitHub Actions only)');
+            for (const [name, value] of resolved) {
+                // Heredoc form — safe for multi-line secrets.
+                const delim = `OCV_${randomUUID()}`;
+                appendFileSync(githubEnv, `${name}<<${delim}\n${value}\n${delim}\n`);
+                console.log(`::add-mask::${value}`);
+            }
+            console.error(`Loaded ${resolved.length} secrets into the job environment.`);
+        } else {
+            for (const [name, value] of resolved) console.log(`${name}=${value}`);
+        }
     });
 
 program

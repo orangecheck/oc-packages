@@ -29,6 +29,7 @@ The passphrase is read from `$OCV_PASSPHRASE` (for CI) or a hidden prompt.
 | `sync` | Refresh the cached ciphertext. |
 | `read <ref>` | Resolve one `ocv://` reference, print its value. |
 | `run [--env-file f] -- <cmd>` | Run a command with `ocv://` references resolved into its environment. |
+| `export [--env-file f]` | Resolve `ocv://` references and emit `KEY=value` — or load them into a CI job (`--github`). |
 | `inject -i <tpl> [-o <out>]` | Fill every `ocv://` reference in a template. |
 | `item list` / `item get <name>` | Browse entries (secrets masked unless `--reveal`). |
 | `whoami` | Show the cached identity. No passphrase needed. |
