@@ -12,6 +12,13 @@ sign-in button.
 
 Pairs with [`@orangecheck/auth-core`](../auth-core) on the server side.
 
+> **Which integration pathway is this?** This package is for letting
+> OrangeCheck *be* your sign-in. If you already run your own login
+> (Google, Auth0, Clerk, NextAuth, …) and just want to add a `did:oc`
+> to your users, you don't need this package — see
+> [OrangeCheck Connect](https://docs.ochk.io/connect). Both pathways are
+> compared at [docs.ochk.io/integration](https://docs.ochk.io/integration).
+
 ## Install
 
 ```bash
