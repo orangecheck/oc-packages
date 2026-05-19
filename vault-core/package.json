@@ -1,0 +1,63 @@
+{
+  "name": "@orangecheck/vault-core",
+  "version": "0.1.0",
+  "description": "The conformance-pinned crypto, entry model, ocv:// secret-reference resolver, and transport-agnostic API client for OC Vault (vault.ochk.io). Zero-knowledge by construction — the vault key is derived client-side and never leaves the process.",
+  "keywords": [
+    "bitcoin",
+    "password-manager",
+    "secrets",
+    "zero-knowledge",
+    "end-to-end-encryption",
+    "oc-vault",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "vault-core"
+  },
+  "homepage": "https://vault.ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.5.0",
+    "@orangecheck/lock-crypto": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
