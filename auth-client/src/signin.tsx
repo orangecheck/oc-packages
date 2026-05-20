@@ -330,6 +330,39 @@ export function OcSignIn({
                     That sign-in didn&apos;t complete. Please try again.
                 </div>
             )}
+            {addMode && (
+                <div
+                    data-oc-signin-add-mode=""
+                    style={{
+                        marginBottom: 14,
+                        padding: '0.6rem 0.75rem',
+                        border: '1px solid var(--primary, #f97316)',
+                        borderLeftWidth: 3,
+                        borderRadius: 4,
+                        background: 'color-mix(in srgb, var(--primary, #f97316) 8%, transparent)',
+                        color: 'var(--foreground, #fafafa)',
+                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                        fontSize: 11,
+                        lineHeight: 1.6,
+                    }}
+                >
+                    <strong
+                        style={{
+                            color: 'var(--primary, #f97316)',
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            fontSize: 10,
+                            display: 'block',
+                            marginBottom: 3,
+                        }}
+                    >
+                        § adding another account
+                    </strong>
+                    Your current OrangeCheck account stays signed in. The new account joins your
+                    browser&apos;s roster; you can switch between them anytime from the account
+                    menu.
+                </div>
+            )}
             {bothEnabled && (
                 <div
                     role="tablist"

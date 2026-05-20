@@ -778,7 +778,6 @@ export function OcAccountMenuView({
                         addAccountUrl={addAccountUrl}
                         signOut={signOut}
                         onActionStart={() => setOpen(false)}
-                        signOutRedirect={signOutRedirect}
                     />
 
                     {primaryNavLinks && primaryNavLinks.length > 0 ? (
@@ -935,14 +934,12 @@ function AccountsSection({
     addAccountUrl,
     signOut,
     onActionStart,
-    signOutRedirect,
 }: {
     roster: OcAccountSummary[];
     switchAccount: ((didOc: string) => Promise<void>) | undefined;
     addAccountUrl: ((returnTo?: string) => string) | undefined;
     signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<void>;
     onActionStart: () => void;
-    signOutRedirect: string;
 }) {
     const [switching, setSwitching] = useState<string | null>(null);
     const [err, setErr] = useState<string | null>(null);
@@ -991,46 +988,43 @@ function AccountsSection({
                     {roster.length === 0 ? 'add another account' : 'add another'}
                 </span>
             </a>
-            <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                    onActionStart();
-                    void (async () => {
-                        try {
-                            await signOut({ scope: 'current' });
-                        } catch {
-                            // local state still flips · cookie may not
-                        }
-                        // No hard-nav · `scope: 'current'` with peers in
-                        // the roster keeps the browser signed-in to the
-                        // next-best account; the refresh() inside signOut
-                        // updates the badge in place. When the roster is
-                        // empty the server clears the cookie and the
-                        // next refresh resolves to anonymous.
-                    })();
-                }}
-                data-oc-account-menu-leave-current=""
-                className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors"
-            >
-                <span className="text-muted-foreground" aria-hidden>
-                    →
-                </span>
-                <span className="flex-1">
-                    {roster.length === 0 ? 'sign out of this account' : 'leave this account'}
-                </span>
-            </button>
+            {/* "leave this account" only makes sense WITH peers in the
+             *  roster — without them, scope='current' degrades to scope='all'
+             *  and the parent menu's bottom "sign out" row already covers
+             *  that case. Rendering both produces two identical sign-out
+             *  affordances; gate on peer count to suppress the duplicate. */}
+            {roster.length > 0 ? (
+                <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                        onActionStart();
+                        void (async () => {
+                            try {
+                                await signOut({ scope: 'current' });
+                            } catch {
+                                // local state still flips · cookie may not
+                            }
+                            // No hard-nav · `scope: 'current'` with peers
+                            // in the roster keeps the browser signed-in to
+                            // the next-best account; the refresh() inside
+                            // signOut updates the badge in place.
+                        })();
+                    }}
+                    data-oc-account-menu-leave-current=""
+                    className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors"
+                >
+                    <span className="text-muted-foreground" aria-hidden>
+                        →
+                    </span>
+                    <span className="flex-1">leave this account</span>
+                </button>
+            ) : null}
             {err ? (
                 <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
                     {err}
                 </div>
             ) : null}
-            {/* Hide the canonical bottom "sign out" label nuance: the
-             *   parent already renders a `sign out` row (scope='all').
-             *   Suppressing signOutRedirect via a no-op reference so
-             *   lint doesn't flag the unused prop — the redirect is
-             *   read by the parent for the all-scope sign out path. */}
-            <span style={{ display: 'none' }} aria-hidden data-redirect-hint={signOutRedirect} />
         </div>
     );
 }
