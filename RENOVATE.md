@@ -46,10 +46,16 @@ Renovate needs cross-repo write access, which the default
      `renovate-global.json`, plus this repo)
    - **Repository permissions:**
      - `Contents` → **Read and write**
+     - `Issues` → **Read and write** (Renovate's initRepo GraphQL
+       query asks for `repository.issues`, which 403s on private
+       repos without this — the `:dependencyDashboard` extend also
+       needs it to maintain the per-repo dashboard issue)
      - `Pull requests` → **Read and write**
-     - `Metadata` → Read (granted automatically)
      - `Workflows` → **Read and write** (so Renovate can update
        workflow files when those have dep refs)
+     - `Dependabot alerts` → Read (optional — lets Renovate flag
+       vulnerable deps in PR descriptions)
+     - `Metadata` → Read (granted automatically)
    - **Expiration:** 1 year (renew via the calendar reminder you
      will set on the date you mint this token)
 2. Copy the token. On `oc-packages`, save it as the
