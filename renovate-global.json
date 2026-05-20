@@ -13,6 +13,7 @@
     "orangecheck/oc-lock-web",
     "orangecheck/oc-me-demo-web",
     "orangecheck/oc-me-web",
+    "orangecheck/oc-packages",
     "orangecheck/oc-pledge-web",
     "orangecheck/oc-stamp-web",
     "orangecheck/oc-vault-web",

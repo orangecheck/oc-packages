@@ -29,8 +29,11 @@ every site that pins `@orangecheck/*` via npm. Add a new site by
 appending it to that file _and_ dropping a `renovate.json` in its
 repo (copy any existing one — they are identical).
 
-`oc-packages` itself is **not** under management; that is where
-versions are minted, not consumed.
+`oc-packages` itself is also under management, but with the **stricter
+rule set** in its own [`renovate.json`](./renovate.json): PRs open for
+visibility, **nothing auto-merges**. A third-party bump that lands here
+propagates to every consumer via the next npm publish, so each one is a
+deliberate human decision.
 
 ## One-time setup (operator)
 

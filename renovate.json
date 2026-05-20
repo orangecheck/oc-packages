@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "labels": ["renovate"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 5,
+  "packageRules": [
+    {
+      "description": "oc-packages is the publish source — a third-party bump here propagates to every consumer via the next npm publish. Open PRs for visibility, but never auto-merge: each one is a deliberate human decision.",
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "automerge": false
+    },
+    {
+      "description": "Group dev-deps (vitest, tsup, prettier, typescript, etc.) into one PR to cut noise.",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev-deps"
+    }
+  ]
+}
