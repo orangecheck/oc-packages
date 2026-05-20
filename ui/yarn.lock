@@ -357,10 +357,10 @@
   resolved "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-15.5.15.tgz#d2ad3b9506c761ed07297acaeb00fb2c694c41f8"
   integrity sha512-nFucjVdwlFqxh/JG3hWSJ4p8+YJV7Ii8aPDuBQULB6DzUF4UNZETXLfEUk+oI2zEznWWULPt7MeuTE6xtK1HSA==
 
-"@orangecheck/auth-client@^2.13.0":
-  version "2.13.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.13.0.tgz#4ff3fcf6ed188d43bcc6c7df1871741c3aa8959a"
-  integrity sha512-b7Upi6u7OlSBZBYi/f7IpLQrDv44tQduE29PNdTlaLPxzTscjl+P0UlAB9vJyRtNub3mxnSiFQt1af1AhGy75A==
+"@orangecheck/auth-client@^2.17.0":
+  version "2.17.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.17.0.tgz#72cf1eb5c39c94e03167c2efcf3218879091f24a"
+  integrity sha512-KThGDJlvun4LPN0y0SF6lmpHHgAfmoyFWM9BjP769HaLIzCkrh4IVYdE6oJ7iw80iMpvbMqhejUIy5OwkcS5HA==
   dependencies:
     "@simplewebauthn/browser" "^13.3.0"
 
