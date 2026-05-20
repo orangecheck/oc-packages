@@ -2,28 +2,29 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
   "labels": ["renovate"],
-  "prConcurrentLimit": 10,
-  "prHourlyLimit": 20,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 10,
   "packageRules": [
     {
-      "description": "Auto-merge @orangecheck/* family bumps (patch+minor) — bundled into one PR, 1-day stability window.",
+      "description": "Disabled by default — this Renovate config is scoped to the @orangecheck/* family ONLY. Third-party deps (next, react, tailwind, etc.) are NOT auto-tracked here; bump them by hand when you choose to.",
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "enabled": false
+    },
+    {
+      "description": "Auto-merge @orangecheck/* patch + minor — bundled into one PR per consumer, 1-day stability window so a yanked publish never reaches a consumer.",
       "matchPackageNames": ["/^@orangecheck//"],
       "matchUpdateTypes": ["patch", "minor"],
+      "enabled": true,
       "groupName": "@orangecheck/* (family)",
       "automerge": true,
       "automergeType": "branch",
       "minimumReleaseAge": "1 day"
     },
     {
-      "description": "Auto-merge ALL OTHER patch + minor bumps once CI is green — 1-day stability window. If your test/typecheck/build catches a regression, the merge is automatically blocked.",
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true,
-      "automergeType": "branch",
-      "minimumReleaseAge": "1 day"
-    },
-    {
-      "description": "Human-review major bumps — wire-shape or breaking changes.",
+      "description": "Human-review @orangecheck/* major bumps — these change wire shape.",
+      "matchPackageNames": ["/^@orangecheck//"],
       "matchUpdateTypes": ["major"],
+      "enabled": true,
       "automerge": false,
       "labels": ["renovate", "major-bump"]
     }
