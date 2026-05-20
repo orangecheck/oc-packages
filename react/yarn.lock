@@ -315,9 +315,9 @@
   integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
 
 "@orangecheck/sdk@^0.1.3":
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-0.1.3.tgz#c35fdbd8f36a26688934ef7cad64d940e8ae9fe9"
-  integrity sha512-BhR/j3FVkW516wzaYayOYQRkZmwFSrEt5s9/WCDkGIbppzD3y1EyNMY8ut9j3Gp552PpLt/B1U5ts5qBnxKV4w==
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-0.1.5.tgz#fcbee7efcd8006d4feb50b4c330ef5dadf8cb9d9"
+  integrity sha512-jGRaCjKDGHokXuLqgMjNSOC7qF9kWMGENwSiWyUJx5o2cJAJh/1dC4R440SnopeW+CzVwFJSZ+lYPdDhcdGVVg==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"
@@ -1534,9 +1534,9 @@ mz@^2.7.0:
     thenify-all "^1.0.0"
 
 nan@^2.14.0:
-  version "2.26.2"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.26.2.tgz#2e5e25764224c737b9897790b57c3294d4dcee9c"
-  integrity sha512-0tTvBTYkt3tdGw22nrAy50x7gpbGCCFH3AFcyS5WiUu7Eu4vWlri1woE6qHBSfy11vksDqkiwjOnlR7WV8G1Hw==
+  version "2.27.0"
+  resolved "https://registry.yarnpkg.com/nan/-/nan-2.27.0.tgz#804e389f4c0e39b729a17eca85c80ebc4355c4c4"
+  integrity sha512-hC+0LidcL3XE4rp1C4H54KujgXKzbfyTngZTwBByQxsOxCEKZT0MPQ4hOKUH2jU1OYstqdDH4onyHPDzcV0XdQ==
 
 nanoid@^3.3.11:
   version "3.3.11"
