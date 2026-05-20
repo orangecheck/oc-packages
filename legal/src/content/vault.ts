@@ -80,11 +80,58 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'OC Vault offers a free tier and paid tiers purchased with Bitcoin over the Lightning Network. OrangeCheck **receives** payment and never sends funds to users; OC Vault holds no custodial balance for you.',
+                    text: 'OC Vault offers a free tier and paid tiers purchased with Bitcoin over the Lightning Network. OrangeCheck **receives** payment and never sends funds to users; OC Vault holds no custodial balance for you. Cloud sync is granted by the **vault Cloud Annual** (21,000 sats / year) and **vault Cloud Lifetime** (210,000 sats one-time) tiers. All paid tiers are subject to the **service limits** below.',
                 },
                 {
                     kind: 'stub',
-                    text: 'The full commercial terms for paid tiers — current pricing, what each tier includes, billing cycle and renewal behavior, the refund and cancellation policy, proration, and the consequences of non-renewal for stored data — are being finalized for publication. Current pricing is shown on /pricing. This section will be completed following review by counsel.',
+                    text: 'The full commercial terms for paid tiers — billing cycle and renewal behavior, the refund and cancellation policy, proration, and the consequences of non-renewal for stored data — are being finalized for publication. This section will be completed following review by counsel.',
+                },
+            ],
+        },
+        {
+            id: 'service-limits',
+            heading: 'service limits',
+            hint: 'storage · per-entry size · bandwidth',
+            blocks: [
+                {
+                    kind: 'para',
+                    text: 'Every tier — including the one-time **Lifetime** tier — is subject to the following service limits. They are deliberately set well above the needs of a personal password vault but bound the storage and bandwidth a single account may consume on the shared infrastructure. The limits are **enforced in code**; exceeding them returns an HTTP 507 (storage) or 429 (rate) response.',
+                },
+                { kind: 'subhead', text: 'storage' },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'entries per personal vault',
+                            v: 'up to **5,000** entries (envelope ids). A brand-new entry counts against this ceiling; replacing an existing entry does not.',
+                        },
+                        {
+                            k: 'entries per team vault',
+                            v: 'up to **5,000** entries, shared across team members.',
+                        },
+                        {
+                            k: 'per-entry size',
+                            v: 'each entry\'s ciphertext is capped at **1.25 MB** (≈ 1 MB of plaintext payload — sufficient for any password, TOTP seed, API key, note, or small file).',
+                        },
+                        {
+                            k: 'total ciphertext per personal vault',
+                            v: 'up to **≈ 1 GiB** (1,073,741,824 bytes) of ciphertext per identity. Typical real-world vaults are well under 50 MB.',
+                        },
+                        {
+                            k: 'total ciphertext per team vault',
+                            v: 'up to **≈ 2 GiB** of ciphertext per team.',
+                        },
+                    ],
+                },
+                { kind: 'subhead', text: 'bandwidth & request rate' },
+                {
+                    kind: 'para',
+                    text: 'The API is rate-limited per IP address as a fair-use measure. Current ceilings: up to **1,000 blob reads / writes per minute**, **120 manifest listings per minute**, and **30 escrow-key writes per minute**. Exceeding a limit returns HTTP 429; legitimate clients retry with backoff. There is no per-month bandwidth cap; the delta-sync protocol makes a steady-state sync fetch only the change manifest, so day-to-day bandwidth use is negligible.',
+                },
+                { kind: 'subhead', text: 'adjustments' },
+                {
+                    kind: 'para',
+                    text: 'OrangeCheck may adjust these limits with reasonable advance notice — for example, to defend the service against abuse, to keep pace with infrastructure costs, or to lift a ceiling that is constraining legitimate use. We will not lower a limit below a number that would reduce **existing** data already stored under a paid tier without offering an export and a reasonable migration window.',
                 },
             ],
         },
@@ -93,8 +140,12 @@ const terms: DocSpec = {
             heading: 'lifetime entitlements',
             blocks: [
                 {
+                    kind: 'para',
+                    text: 'The one-time **Lifetime** tier grants cloud sync for the operational life of OC Vault, subject to the service limits above. The portable export feature is always free and works offline with [`@orangecheck/vault-core`](https://www.npmjs.com/package/@orangecheck/vault-core) — even if OC Vault is discontinued, you retain a self-decryptable copy of your data.',
+                },
+                {
                     kind: 'stub',
-                    text: 'OC Vault offers a one-time "lifetime" tier. The precise meaning of "lifetime" — the entitlement’s duration and scope, what happens to it on a change of ownership or discontinuation of the Service, and OrangeCheck’s commitments for data export and continuity if the Service winds down — is being finalized for publication. This section will be completed following review by counsel.',
+                    text: 'The precise legal meaning of "lifetime" — including treatment on a change of ownership, the wind-down notice period, and the export / continuity commitments OrangeCheck offers if the Service is discontinued — is being finalized for publication. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -205,6 +256,10 @@ const privacy: DocSpec = {
                             v: 'opaque ciphertext keyed to your identity address — OrangeCheck cannot decrypt it',
                         },
                         {
+                            k: 'access tokens',
+                            v: 'for developer / CLI / CI access: an SHA-256 hash of each token, an optional label, the granted scope (read or read-write), creation / last-used / optional expiry timestamps. We never store the token itself — only its hash.',
+                        },
+                        {
                             k: 'technical data',
                             v: 'IP address and request metadata, for security and rate limiting',
                         },
@@ -223,7 +278,30 @@ const privacy: DocSpec = {
                         'The names, titles, or types of your items',
                         'How many items you store or how often you use them',
                         'Your vault key or any recovery material',
+                        'Your access tokens (only the SHA-256 hash is stored)',
+                        'Which sites the browser extension autofilled on — origin matching happens locally in your browser',
                     ],
+                },
+            ],
+        },
+        {
+            id: 'surfaces',
+            heading: 'vault surfaces (web, extension, CLI, SDK)',
+            hint: 'same vault, same zero-knowledge guarantee',
+            blocks: [
+                {
+                    kind: 'para',
+                    text: 'The same encrypted vault is reachable from three surfaces. The zero-knowledge guarantee — that OrangeCheck only ever holds ciphertext — applies to all of them.',
+                },
+                { kind: 'subhead', text: 'browser extension (OC Vault for Chromium / Firefox)' },
+                {
+                    kind: 'para',
+                    text: 'The extension fetches the same encrypted blobs the web app does, caches them **as ciphertext** in browser-extension storage, and decrypts in the service worker only after you enter your passphrase. The vault key lives in memory and a RAM-only `storage.session` slot — it is never written to disk. The content script that offers autofill receives **one entry\'s field values at fill time** and nothing else; it never receives the vault key or the entry index. The extension talks only to your own `vault.ochk.io` account: no analytics, no telemetry, no remote code.',
+                },
+                { kind: 'subhead', text: 'developer platform — access tokens, CLI, SDK, GitHub Action' },
+                {
+                    kind: 'para',
+                    text: 'For headless access (`oc-vault` CLI, the `@orangecheck/vault-core` SDK, CI / GitHub Actions), you may mint **access tokens** at [vault.ochk.io/vault/developer](https://vault.ochk.io/vault/developer). A token authorizes **transport only** — it lets the caller fetch your encrypted blobs and the passphrase-wrapped escrow, and (for tokens minted with a write scope) write new ciphertext. **A token carries no key material:** a leaked token yields only ciphertext, the same thing the server already holds. The passphrase still performs decryption in your local process and is never transmitted. We store only the SHA-256 hash of each token; tokens can be revoked at any time from the same page.',
                 },
             ],
         },
