@@ -474,13 +474,22 @@ function IdentityPromoteSection({
     const [loadFailed, setLoadFailed] = useState(false);
     const [promoting, setPromoting] = useState<DisplayIdentityKind | null>(null);
     const [promoteErr, setPromoteErr] = useState<string | null>(null);
-    const fetchedRef = useRef(false);
+    // Track the (open-state, account) we last fetched for. Refetch when
+    // didOc changes — multi-account switches swap which account's linked
+    // identities should appear here, and stale data manifested as the
+    // popover visibly reflowing mid-switch ("dropdown freaking out").
+    const lastFetchKeyRef = useRef<string | null>(null);
 
-    // Lazy fetch — once, the first time the popover opens.
     useEffect(() => {
-        if (!open || fetchedRef.current) return;
-        fetchedRef.current = true;
+        if (!open) return;
+        // Fetch on first open AND whenever the active didOc changes.
+        if (lastFetchKeyRef.current === didOc) return;
+        lastFetchKeyRef.current = didOc;
         let cancelled = false;
+        // Reset so the section briefly returns null (suppresses flash)
+        // until the new account's identities resolve.
+        setIdentities(null);
+        setLoadFailed(false);
         void fetchOcLinkedIdentities()
             .then((rows) => {
                 if (!cancelled) setIdentities(rows);
@@ -491,7 +500,7 @@ function IdentityPromoteSection({
         return () => {
             cancelled = true;
         };
-    }, [open]);
+    }, [open, didOc]);
 
     // Wait for the fetch to settle before rendering — avoids a section
     // that flashes in then vanishes.
