@@ -102,6 +102,21 @@ export interface OcSignInProps {
      * the second. Pass `linkPrompt={false}` to omit the checkbox.
      */
     linkPrompt?: boolean;
+    /**
+     * Multi-account · when `true`, the sign-in is performed in "add"
+     * mode: the resulting session is appended to the browser's existing
+     * roster instead of replacing it. The previously-active account
+     * stays signed in and remains a switch target on the auth host. Off
+     * by default (back-compat). The component also reads `?add=1` from
+     * the URL search params and treats it the same — so the auth host's
+     * `/signin?add=1` entry point Just Works without any extra prop.
+     *
+     * The `add` flag is forwarded as a body field to the host's
+     * `/api/auth/signin` and `/api/auth/email-otp/verify`; if the host
+     * hasn't deployed the multi-account migration yet it silently
+     * ignores the field and the call falls back to ordinary signin.
+     */
+    add?: boolean;
     /** className for the outer container. */
     className?: string;
 }
@@ -151,6 +166,7 @@ export function OcSignIn({
     onSuccess,
     resolveReturnTo,
     linkPrompt = true,
+    add: addProp,
     authOrigin = 'https://ochk.io',
     initialPath = 'wallet',
     paths,
@@ -159,6 +175,19 @@ export function OcSignIn({
     const walletEnabled = paths?.wallet ?? true;
     const emailEnabled = paths?.email ?? true;
     const safeReturn = safeReturnTo(returnTo);
+
+    // Multi-account · prop wins; otherwise honor `?add=1` from the URL
+    // so the auth host's /signin?add=1 entry point doesn't need any
+    // extra wiring on every consumer's sign-in page.
+    const [addMode, setAddMode] = React.useState<boolean>(Boolean(addProp));
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (addProp !== undefined) {
+            setAddMode(Boolean(addProp));
+            return;
+        }
+        setAddMode(new URLSearchParams(window.location.search).get('add') === '1');
+    }, [addProp]);
 
     const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
     // Set once sign-in succeeds and the account is missing its
@@ -330,12 +359,14 @@ export function OcSignIn({
                     <WalletFlow
                         authOrigin={authOrigin}
                         audience={audience}
+                        add={addMode}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'wallet')}
                     />
                 )}
                 {showEmail && (
                     <EmailFlow
                         authOrigin={authOrigin}
+                        add={addMode}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
                     />
                 )}
@@ -547,6 +578,8 @@ function ProviderSignIn({
 
 interface FlowProps {
     authOrigin: string;
+    /** Multi-account add-mode · see OcSignIn.add. */
+    add?: boolean;
     onSuccess: (account: OcAccount, token?: string) => void;
 }
 
@@ -554,7 +587,7 @@ interface WalletFlowProps extends FlowProps {
     audience: string;
 }
 
-function WalletFlow({ authOrigin, audience, onSuccess }: WalletFlowProps): React.ReactElement {
+function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): React.ReactElement {
     const [address, setAddress] = React.useState('');
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
@@ -633,6 +666,11 @@ function WalletFlow({ authOrigin, audience, onSuccess }: WalletFlowProps): React
                     expectedNonce: challenge.nonce,
                     expectedAudience: audience,
                     expectedPurpose: 'login',
+                    // Multi-account add-mode · the auth host preserves
+                    // the current roster_id when set, instead of minting
+                    // a fresh one. Hosts that haven't deployed the
+                    // multi-account migration silently ignore the field.
+                    ...(add ? { add: true } : {}),
                 }),
             });
             const json = (await res.json()) as SigninJson;
@@ -698,7 +736,7 @@ function WalletFlow({ authOrigin, audience, onSuccess }: WalletFlowProps): React
 
 type EmailStage = 'enter' | 'code';
 
-function EmailFlow({ authOrigin, onSuccess }: FlowProps): React.ReactElement {
+function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElement {
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
     const [emailError, setEmailError] = React.useState<string | null>(null);
@@ -751,7 +789,13 @@ function EmailFlow({ authOrigin, onSuccess }: FlowProps): React.ReactElement {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, code, token }),
+                body: JSON.stringify({
+                    email,
+                    code,
+                    token,
+                    // Multi-account add-mode · see WalletFlow.
+                    ...(add ? { add: true } : {}),
+                }),
             });
             const json = (await res.json()) as SigninJson;
             if (!res.ok || !('ok' in json) || !json.ok || !json.account) {

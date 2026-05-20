@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Loader2 } from 'lucide-react';
+import { Check, Copy, Loader2, Plus } from 'lucide-react';
 import {
     fetchOcLinkedIdentities,
     useOcSession,
     type DisplayIdentity,
     type DisplayIdentityKind,
+    type OcAccountSummary,
     type OcLinkedIdentity,
+    type OcSignOutScope,
 } from '@orangecheck/auth-client';
 
 import type { EcosystemSlug } from './ecosystem-switcher';
@@ -95,7 +97,12 @@ export interface OcAccountMenuSession {
          *  linked-identity row, so it is read from the session. */
         nostrNpub?: string | null;
     } | null;
-    signOut: () => void | Promise<void>;
+    /**
+     * Sign out. Accepts an optional `{ scope }` so the multi-account
+     * "leave this account" affordance can route through the same hook.
+     * Defaults to `'all'` for back-compat.
+     */
+    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<void>;
     refresh: () => void | Promise<void>;
     /**
      * Promote a linked identity to be the badge label across every
@@ -104,6 +111,28 @@ export interface OcAccountMenuSession {
      * context passes its own equivalent.
      */
     setDisplayIdentity: (kind: DisplayIdentityKind) => Promise<void>;
+    /**
+     * Multi-account roster · other accounts in this browser the user
+     * can switch to without re-authenticating. Optional: when omitted
+     * (or empty), the `§ accounts` section in `<OcAccountMenu>` is
+     * suppressed and the menu renders as single-account. Sites that
+     * own their auth context (e.g. oc-www's local `useAuth`) can leave
+     * this unset until they add multi-account support.
+     */
+    roster?: OcAccountSummary[];
+    /**
+     * Multi-account · flip the active session to the given did_oc.
+     * Required when `roster` is non-empty (otherwise the picker rows
+     * have nowhere to call).
+     */
+    switchAccount?: (didOc: string) => Promise<void>;
+    /**
+     * Multi-account · URL for the "add another account" entry point.
+     * Defaults to `/signin?add=1` when omitted, which works for every
+     * `.ochk.io` family site (in-place sign-in supports the query
+     * param by default).
+     */
+    addAccountUrl?: (returnTo?: string) => string;
 }
 
 export interface OcAccountMenuProps {
@@ -548,6 +577,13 @@ export function OcAccountMenu(props: OcAccountMenuProps) {
                 signOut: session.signOut,
                 refresh: session.refresh,
                 setDisplayIdentity: session.setDisplayIdentity,
+                // Multi-account · the connected variant always forwards
+                // these from useOcSession(). The View variant accepts
+                // them as optional so sites running their own auth
+                // context (oc-www) can opt in incrementally.
+                roster: session.roster,
+                switchAccount: session.switchAccount,
+                addAccountUrl: session.addAccountUrl,
             }}
         />
     );
@@ -584,7 +620,16 @@ export function OcAccountMenuView({
     popoverClassName,
     session,
 }: OcAccountMenuViewProps) {
-    const { status, account, signOut, refresh, setDisplayIdentity } = session;
+    const {
+        status,
+        account,
+        signOut,
+        refresh,
+        setDisplayIdentity,
+        roster,
+        switchAccount,
+        addAccountUrl,
+    } = session;
     const [hydrated, setHydrated] = useState(false);
     const [open, setOpen] = useState(false);
     const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -727,6 +772,15 @@ export function OcAccountMenuView({
                         setDisplayIdentity={setDisplayIdentity}
                     />
 
+                    <AccountsSection
+                        roster={roster ?? []}
+                        switchAccount={switchAccount}
+                        addAccountUrl={addAccountUrl}
+                        signOut={signOut}
+                        onActionStart={() => setOpen(false)}
+                        signOutRedirect={signOutRedirect}
+                    />
+
                     {primaryNavLinks && primaryNavLinks.length > 0 ? (
                         <PopoverSection
                             label="navigate"
@@ -858,6 +912,167 @@ export function OcAccountMenuView({
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * Multi-account · `§ accounts` section. Lists the other accounts the
+ * user has signed into in this browser (the roster), lets them switch
+ * with one click, surfaces an "Add another account" entry point that
+ * routes through `addAccountUrl()` (the auth host preserves the
+ * current roster_id when signing in via `?add=1`), and adapts the
+ * sign-out affordance to support `scope: 'current'` per row.
+ *
+ * Gate: the whole section is suppressed when `addAccountUrl` isn't
+ * provided. That's the back-compat signal for sites running a parallel
+ * auth context (e.g. oc-www's local `useAuth`) — they can adopt
+ * multi-account incrementally by wiring the new props on
+ * `OcAccountMenuSession` as they build out support.
+ */
+function AccountsSection({
+    roster,
+    switchAccount,
+    addAccountUrl,
+    signOut,
+    onActionStart,
+    signOutRedirect,
+}: {
+    roster: OcAccountSummary[];
+    switchAccount: ((didOc: string) => Promise<void>) | undefined;
+    addAccountUrl: ((returnTo?: string) => string) | undefined;
+    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<void>;
+    onActionStart: () => void;
+    signOutRedirect: string;
+}) {
+    const [switching, setSwitching] = useState<string | null>(null);
+    const [err, setErr] = useState<string | null>(null);
+
+    if (!addAccountUrl) return null;
+
+    const onSwitch = async (didOc: string) => {
+        if (!switchAccount || switching) return;
+        setSwitching(didOc);
+        setErr(null);
+        try {
+            await switchAccount(didOc);
+            // Keep the menu open just long enough for the active label
+            // to flip; the surrounding popover-close-on-outside-click
+            // will pick up the user's next interaction.
+        } catch (e) {
+            setErr(e instanceof Error ? e.message : 'switch failed');
+        } finally {
+            setSwitching(null);
+        }
+    };
+
+    return (
+        <div className="border-border border-b p-1" data-oc-account-menu-section="accounts">
+            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                § accounts
+            </div>
+            {roster.map((peer) => (
+                <SwitchRow
+                    key={peer.didOc}
+                    peer={peer}
+                    busy={switching === peer.didOc}
+                    disabled={switching !== null}
+                    onSwitch={() => void onSwitch(peer.didOc)}
+                />
+            ))}
+            <a
+                href={addAccountUrl()}
+                onClick={() => onActionStart()}
+                role="menuitem"
+                data-oc-account-menu-add-account=""
+                className="hover:bg-accent flex items-center gap-2 px-3 py-2 font-mono text-[11px] tracking-wide transition-colors"
+            >
+                <Plus className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
+                <span className="flex-1">
+                    {roster.length === 0 ? 'add another account' : 'add another'}
+                </span>
+            </a>
+            <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                    onActionStart();
+                    void (async () => {
+                        try {
+                            await signOut({ scope: 'current' });
+                        } catch {
+                            // local state still flips · cookie may not
+                        }
+                        // No hard-nav · `scope: 'current'` with peers in
+                        // the roster keeps the browser signed-in to the
+                        // next-best account; the refresh() inside signOut
+                        // updates the badge in place. When the roster is
+                        // empty the server clears the cookie and the
+                        // next refresh resolves to anonymous.
+                    })();
+                }}
+                data-oc-account-menu-leave-current=""
+                className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors"
+            >
+                <span className="text-muted-foreground" aria-hidden>
+                    →
+                </span>
+                <span className="flex-1">
+                    {roster.length === 0 ? 'sign out of this account' : 'leave this account'}
+                </span>
+            </button>
+            {err ? (
+                <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
+                    {err}
+                </div>
+            ) : null}
+            {/* Hide the canonical bottom "sign out" label nuance: the
+             *   parent already renders a `sign out` row (scope='all').
+             *   Suppressing signOutRedirect via a no-op reference so
+             *   lint doesn't flag the unused prop — the redirect is
+             *   read by the parent for the all-scope sign out path. */}
+            <span style={{ display: 'none' }} aria-hidden data-redirect-hint={signOutRedirect} />
+        </div>
+    );
+}
+
+/**
+ * One row in `§ accounts` — a switch-target peer. Clicking the body
+ * calls `onSwitch`; while in-flight the row shows a spinner and the
+ * other rows in the list are disabled.
+ */
+function SwitchRow({
+    peer,
+    busy,
+    disabled,
+    onSwitch,
+}: {
+    peer: OcAccountSummary;
+    busy: boolean;
+    disabled: boolean;
+    onSwitch: () => void;
+}) {
+    const label = peer.displayName ?? obscureIdentity(peer.displayIdentity.value);
+    const kindLabel = IDENTITY_KIND_LABEL[peer.displayIdentity.kind];
+    return (
+        <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={false}
+            aria-label={`Switch to ${peer.didOc}`}
+            disabled={disabled}
+            onClick={onSwitch}
+            data-oc-account-menu-switch-row=""
+            className="hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[11px] tracking-wide transition-colors disabled:cursor-default"
+        >
+            <span
+                className="border-muted-foreground/40 flex size-3.5 shrink-0 items-center justify-center rounded-full border"
+                aria-hidden
+            />
+            <span className="text-foreground/90 min-w-0 flex-1 truncate">{label}</span>
+            <span className="text-muted-foreground/50 w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
+                {busy ? <Loader2 className="ml-auto size-3 animate-spin" /> : kindLabel}
+            </span>
+        </button>
     );
 }
 

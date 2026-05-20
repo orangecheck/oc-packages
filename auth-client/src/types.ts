@@ -101,15 +101,75 @@ export interface OcAccount {
 
 export type OcSessionStatus = 'loading' | 'authenticated' | 'anonymous' | 'error';
 
+/**
+ * Multi-account roster · summary of another account this browser has
+ * signed into and can switch to without re-authenticating. Surfaced by
+ * `<OcAccountMenu>` in the `§ accounts` section. Returned by the auth
+ * host's `/api/auth/me` as `roster: [...]` (an empty array on single-
+ * account or pre-multi-account sessions).
+ *
+ * Sessions for peer accounts stay alive in the auth host's DB for the
+ * normal 30-day window; once expired, the peer falls out of the roster
+ * and the user must re-authenticate to bring it back in.
+ */
+export interface OcAccountSummary {
+    didOc: string;
+    displayName: string | null;
+    primaryBtc: string | null;
+    displayIdentity: DisplayIdentity;
+    /** ISO timestamp of the last verified request on this account's
+     *  session row, or null if never touched. */
+    lastSeenAt: string | null;
+}
+
+/**
+ * Scope hint for `signOut()` in a multi-account browser.
+ *
+ *   - 'all'     · sign out of every account in this browser's roster
+ *                  (the default; matches the historical single-account
+ *                  behavior of "clear the cookie").
+ *   - 'current' · sign out of just the active account; if the roster
+ *                  has other accounts, the auth host hands you off to
+ *                  the next-most-recent one without a re-auth.
+ */
+export type OcSignOutScope = 'all' | 'current';
+
 export interface OcSessionState {
     status: OcSessionStatus;
     account: OcAccount | null;
+    /**
+     * Multi-account · other accounts the user has signed into in this
+     * browser. `[]` for single-account sessions and for tokens minted
+     * before multi-account shipped. The active account (`account`
+     * above) is NOT included — these are the *switch targets*.
+     */
+    roster: OcAccountSummary[];
     /** `null` while loading; an `Error` instance when `status === 'error'`. */
     error: Error | null;
     /** Re-fetch the session. Useful after sign-in/sign-out happens elsewhere. */
     refresh: () => Promise<void>;
-    /** Trigger a sign-out. Resolves once the cookie has been cleared. */
-    signOut: () => Promise<void>;
+    /**
+     * Trigger a sign-out. By default signs out of EVERY account in the
+     * roster (back-compat); pass `{ scope: 'current' }` to sign out of
+     * just the active account and stay logged into the next peer.
+     */
+    signOut: (opts?: { scope?: OcSignOutScope }) => Promise<void>;
+    /**
+     * Multi-account · flip the active session to a different account
+     * in the roster. Resolves once the new cookie has been set and
+     * the session has been re-fetched. Throws if the target `did_oc`
+     * isn't in the current roster (the user must add it via
+     * {@link addAccount} first) or if the auth host is unreachable.
+     */
+    switchAccount: (didOc: string) => Promise<void>;
+    /**
+     * Multi-account · open the sign-in flow in "add" mode — the new
+     * account joins the current browser's roster instead of replacing
+     * it. Returns the URL to navigate to (so callers can mount it in
+     * a popup or hard-navigate as they prefer); pass `returnTo` to
+     * route back to a specific page after the add completes.
+     */
+    addAccountUrl: (returnTo?: string) => string;
     /**
      * Promote a linked identity to be the account-badge label across
      * every `.ochk.io` site. PATCHes the auth host, which re-mints the
@@ -173,5 +233,18 @@ export function buildSignInUrl(cfg: Required<OcAuthConfig>, returnTo?: string): 
     if (!returnTo) return base;
     const u = new URL(base);
     u.searchParams.set('return_to', returnTo);
+    return u.toString();
+}
+
+/**
+ * Multi-account · build the URL for the "add another account" entry
+ * point. Same as {@link buildSignInUrl} but appends `?add=1` so the
+ * sign-in page knows to preserve the current roster (the new account
+ * is appended; the previously-active account stays signed in too and
+ * remains switch-target reachable).
+ */
+export function buildAddAccountUrl(cfg: Required<OcAuthConfig>, returnTo?: string): string {
+    const u = new URL(buildSignInUrl(cfg, returnTo));
+    u.searchParams.set('add', '1');
     return u.toString();
 }

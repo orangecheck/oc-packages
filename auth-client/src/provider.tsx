@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import {
+    buildAddAccountUrl,
     buildSignInUrl,
     DEFAULT_CONFIG,
     DISPLAY_IDENTITY_KINDS,
@@ -8,13 +9,28 @@ import {
     type DisplayIdentity,
     type DisplayIdentityKind,
     type OcAccount,
+    type OcAccountSummary,
     type OcAuthConfig,
     type OcSessionState,
+    type OcSignOutScope,
 } from './types';
 
 const SessionContext = React.createContext<OcSessionState | null>(null);
 
 type RawSigningMethod = 'fedimint_threshold' | 'fedimint_client' | 'bip322';
+
+interface RawRosterEntry {
+    did_oc?: string;
+    didOc?: string;
+    display_name?: string | null;
+    displayName?: string | null;
+    primary_btc?: string | null;
+    primaryBtc?: string | null;
+    display_identity?: { kind?: string; value?: string } | null;
+    displayIdentity?: { kind?: string; value?: string } | null;
+    last_seen_at?: string | null;
+    lastSeenAt?: string | null;
+}
 
 interface MeResponse {
     account?: {
@@ -40,6 +56,10 @@ interface MeResponse {
         display_identity?: { kind?: string; value?: string } | null;
         displayIdentity?: { kind?: string; value?: string } | null;
     };
+    /** Multi-account roster · other accounts in this browser. Absent
+     *  on hosts that haven't deployed the multi-account migration yet
+     *  — treated as `[]` (single-account fallback). */
+    roster?: RawRosterEntry[];
 }
 
 /**
@@ -64,6 +84,32 @@ function normalizeDisplayIdentity(
         return { kind: di.kind as DisplayIdentityKind, value: di.value };
     }
     return { kind: 'did', value: didOc };
+}
+
+/**
+ * Multi-account · normalize one roster entry from /api/auth/me. Drops
+ * entries with no did_oc (defensive — the host shouldn't emit those).
+ */
+function normalizeRosterEntry(raw: RawRosterEntry): OcAccountSummary | null {
+    const didOc = raw.did_oc ?? raw.didOc;
+    if (!didOc) return null;
+    const di = raw.display_identity ?? raw.displayIdentity;
+    const displayIdentity: DisplayIdentity =
+        di &&
+        typeof di === 'object' &&
+        typeof di.value === 'string' &&
+        di.value.length > 0 &&
+        typeof di.kind === 'string' &&
+        (DISPLAY_IDENTITY_KINDS as readonly string[]).includes(di.kind)
+            ? { kind: di.kind as DisplayIdentityKind, value: di.value }
+            : { kind: 'did', value: didOc };
+    return {
+        didOc,
+        displayName: raw.display_name ?? raw.displayName ?? null,
+        primaryBtc: raw.primary_btc ?? raw.primaryBtc ?? null,
+        displayIdentity,
+        lastSeenAt: raw.last_seen_at ?? raw.lastSeenAt ?? null,
+    };
 }
 
 function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
@@ -106,6 +152,7 @@ export function OcSessionProvider({
 }: OcSessionProviderProps): React.ReactElement {
     const cfg = React.useMemo(() => resolveConfig(config), [config]);
     const [account, setAccount] = React.useState<OcAccount | null>(null);
+    const [roster, setRoster] = React.useState<OcAccountSummary[]>([]);
     const [status, setStatus] = React.useState<OcSessionState['status']>('loading');
     const [error, setError] = React.useState<Error | null>(null);
 
@@ -119,6 +166,7 @@ export function OcSessionProvider({
             });
             if (res.status === 401) {
                 setAccount(null);
+                setRoster([]);
                 setStatus('anonymous');
                 setError(null);
                 return;
@@ -130,7 +178,13 @@ export function OcSessionProvider({
             }
             const body = (await res.json()) as MeResponse;
             const acct = normalizeAccount(body.account);
+            const rosterEntries = Array.isArray(body.roster)
+                ? body.roster
+                      .map(normalizeRosterEntry)
+                      .filter((r): r is OcAccountSummary => r !== null)
+                : [];
             setAccount(acct);
+            setRoster(rosterEntries);
             setStatus(acct ? 'authenticated' : 'anonymous');
             setError(null);
         } catch (err) {
@@ -143,25 +197,79 @@ export function OcSessionProvider({
         void refresh();
     }, [refresh]);
 
-    const signOut = React.useCallback(async () => {
-        try {
-            await fetch(`${cfg.authOrigin}${cfg.logoutPath}`, {
+    const signOut = React.useCallback(
+        async (opts?: { scope?: OcSignOutScope }) => {
+            const scope: OcSignOutScope = opts?.scope ?? 'all';
+            try {
+                const url = new URL(`${cfg.authOrigin}${cfg.logoutPath}`);
+                if (scope === 'current') url.searchParams.set('scope', 'current');
+                const res = await fetch(url.toString(), {
+                    method: 'POST',
+                    credentials: 'include',
+                    // `keepalive` lets the logout round-trip complete even if
+                    // the caller hard-navigates away in the same tick (e.g.
+                    // `<OcAccountMenu>` redirects home immediately on sign-out).
+                    // Without it the in-flight request is cancelled on unload
+                    // and the `.ochk.io` cookie may never get cleared.
+                    keepalive: true,
+                });
+                // Multi-account: with scope='current', the server may have
+                // switched the active session to a roster peer instead of
+                // clearing the cookie. Re-fetch /api/auth/me so this
+                // provider reflects the new active account; if the body
+                // says `switched_to !== null`, refresh resolves to the
+                // peer, otherwise it resolves to anonymous and the
+                // setState below is redundant-but-harmless.
+                if (scope === 'current' && res.ok) {
+                    await refresh();
+                    return;
+                }
+            } catch {
+                // fall through — we still clear local state so the UI reflects
+                // the user's intent even if the server round-trip fails.
+            }
+            setAccount(null);
+            setRoster([]);
+            setStatus('anonymous');
+        },
+        [cfg.authOrigin, cfg.logoutPath, refresh]
+    );
+
+    const switchAccount = React.useCallback(
+        async (didOc: string) => {
+            if (typeof window === 'undefined') return;
+            const res = await fetch(`${cfg.authOrigin}/api/auth/switch`, {
                 method: 'POST',
                 credentials: 'include',
-                // `keepalive` lets the logout round-trip complete even if
-                // the caller hard-navigates away in the same tick (e.g.
-                // `<OcAccountMenu>` redirects home immediately on sign-out).
-                // Without it the in-flight request is cancelled on unload
-                // and the `.ochk.io` cookie may never get cleared.
-                keepalive: true,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ did_oc: didOc }),
             });
-        } catch {
-            // fall through — we still clear local state so the UI reflects
-            // the user's intent even if the server round-trip fails.
-        }
-        setAccount(null);
-        setStatus('anonymous');
-    }, [cfg.authOrigin, cfg.logoutPath]);
+            if (!res.ok) {
+                let reason = `http_${res.status}`;
+                try {
+                    const body = (await res.json()) as { reason?: string };
+                    if (body.reason) reason = body.reason;
+                } catch {
+                    // keep http_ fallback
+                }
+                throw new Error(`[@orangecheck/auth-client] switchAccount failed: ${reason}`);
+            }
+            // Cookie has flipped server-side. Re-fetch /me to surface the
+            // new active account + freshly computed roster (the previous
+            // active account is now a peer, swap is symmetric).
+            await refresh();
+        },
+        [cfg.authOrigin, refresh]
+    );
+
+    const addAccountUrl = React.useCallback(
+        (returnTo?: string) => {
+            const rt =
+                returnTo ?? (typeof window !== 'undefined' ? window.location.href : undefined);
+            return buildAddAccountUrl(cfg, rt);
+        },
+        [cfg]
+    );
 
     const setDisplayIdentity = React.useCallback(
         async (kind: DisplayIdentityKind) => {
@@ -198,13 +306,28 @@ export function OcSessionProvider({
         return {
             status,
             account,
+            roster,
             error,
             refresh,
             signOut,
+            switchAccount,
+            addAccountUrl,
             setDisplayIdentity,
             signInUrl: buildSignInUrl(cfg, returnTo),
         };
-    }, [status, account, error, refresh, signOut, setDisplayIdentity, cfg, defaultReturnTo]);
+    }, [
+        status,
+        account,
+        roster,
+        error,
+        refresh,
+        signOut,
+        switchAccount,
+        addAccountUrl,
+        setDisplayIdentity,
+        cfg,
+        defaultReturnTo,
+    ]);
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

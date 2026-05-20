@@ -28,13 +28,15 @@ export { OcLinkedIdentities, fetchOcLinkedIdentities } from './linked-identities
 export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';
 export type {
     OcAccount,
+    OcAccountSummary,
     OcSessionStatus,
     OcSessionState,
+    OcSignOutScope,
     OcAuthConfig,
     DisplayIdentity,
     DisplayIdentityKind,
 } from './types';
-export { buildSignInUrl, DISPLAY_IDENTITY_KINDS } from './types';
+export { buildAddAccountUrl, buildSignInUrl, DISPLAY_IDENTITY_KINDS } from './types';
 export {
     useWebAuthnRegister,
     useWebAuthnList,
