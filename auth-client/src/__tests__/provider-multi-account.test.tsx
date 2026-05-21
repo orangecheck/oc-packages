@@ -407,4 +407,63 @@ describe('OcSessionProvider · roster surface', () => {
         expect(parsed.searchParams.get('add')).toBe('1');
         expect(parsed.searchParams.get('return_to')).toBe('https://stamp.ochk.io/dashboard');
     });
+
+    it('sources the roster from the auth host when the LOCAL /me carries none (consumer subdomain)', async () => {
+        // Consumer case: the local (relative) /api/auth/me authenticates but
+        // has no roster; the host (https://ochk.io/api/auth/me) has it. The
+        // provider should fall back to the host and surface the peer.
+        const calls = setupFetch(({ url }) => {
+            if (url === 'https://ochk.io/api/auth/me') {
+                return jsonResponse({ account: ACCOUNT_A, roster: [ROSTER_PEER_B] });
+            }
+            if (url === '/api/auth/me') {
+                return jsonResponse({ account: ACCOUNT_A }); // no roster locally
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+
+        let captured: ReturnType<typeof useOcSession> | null = null;
+        function Probe() {
+            captured = useOcSession();
+            return null;
+        }
+        render(
+            <OcSessionProvider>
+                <Probe />
+            </OcSessionProvider>
+        );
+
+        await waitFor(() => {
+            expect(captured?.roster).toHaveLength(1);
+        });
+        expect(captured?.roster[0]?.didOc).toBe(ROSTER_PEER_B.did_oc);
+        // Both the local and the host /me were consulted.
+        expect(calls.some((c) => c.url === '/api/auth/me')).toBe(true);
+        expect(calls.some((c) => c.url === 'https://ochk.io/api/auth/me')).toBe(true);
+    });
+
+    it('does NOT re-fetch the host when the local /me already carried a roster', async () => {
+        const calls = setupFetch(({ url }) => {
+            if (url === '/api/auth/me') {
+                return jsonResponse({ account: ACCOUNT_A, roster: [ROSTER_PEER_B] });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+
+        let captured: ReturnType<typeof useOcSession> | null = null;
+        function Probe() {
+            captured = useOcSession();
+            return null;
+        }
+        render(
+            <OcSessionProvider>
+                <Probe />
+            </OcSessionProvider>
+        );
+        await waitFor(() => {
+            expect(captured?.roster).toHaveLength(1);
+        });
+        // No cross-origin host call — the local roster was sufficient.
+        expect(calls.some((c) => c.url === 'https://ochk.io/api/auth/me')).toBe(false);
+    });
 });

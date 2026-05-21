@@ -112,6 +112,38 @@ function normalizeRosterEntry(raw: RawRosterEntry): OcAccountSummary | null {
     };
 }
 
+/**
+ * Multi-account · fetch the roster from the AUTH HOST cross-origin.
+ *
+ * Consumer subdomains expose a LOCAL `/api/auth/me` that verifies the JWT
+ * but has no database, so it never carries the `roster` (which is host DB
+ * state). When the local /me comes back authenticated with an empty roster,
+ * we source it from the host directly — the same credentialed cross-origin
+ * pattern this provider already uses for logout + account PATCH, and the
+ * host already serves `.ochk.io` consumers via CORS.
+ *
+ * Best-effort by construction: any failure resolves to `[]`, so a roster
+ * fetch can never change the authenticated state derived from the local /me.
+ */
+async function fetchHostRoster(cfg: Required<OcAuthConfig>): Promise<OcAccountSummary[]> {
+    try {
+        const res = await fetch(`${cfg.authOrigin}${cfg.mePath}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) return [];
+        const body = (await res.json()) as MeResponse;
+        return Array.isArray(body.roster)
+            ? body.roster
+                  .map(normalizeRosterEntry)
+                  .filter((r): r is OcAccountSummary => r !== null)
+            : [];
+    } catch {
+        return [];
+    }
+}
+
 function normalizeAccount(raw: MeResponse['account']): OcAccount | null {
     if (!raw) return null;
     const didOc = raw.did_oc ?? raw.didOc;
@@ -187,11 +219,28 @@ export function OcSessionProvider({
             setRoster(rosterEntries);
             setStatus(acct ? 'authenticated' : 'anonymous');
             setError(null);
+
+            // Multi-account · the local /me carried no roster (the standard
+            // case on consumer subdomains, whose local /me has no DB). When
+            // we're authenticated and NOT already on the auth host, source
+            // the roster from the host so the §accounts switcher lights up.
+            // Best-effort: never touches account/status on failure.
+            const currentOrigin =
+                typeof window !== 'undefined' ? window.location.origin : null;
+            if (
+                acct &&
+                rosterEntries.length === 0 &&
+                currentOrigin !== null &&
+                !cfg.authOrigin.startsWith(currentOrigin)
+            ) {
+                const peers = await fetchHostRoster(cfg);
+                if (peers.length > 0) setRoster(peers);
+            }
         } catch (err) {
             setStatus('error');
             setError(err instanceof Error ? err : new Error(String(err)));
         }
-    }, [cfg.mePath]);
+    }, [cfg]);
 
     React.useEffect(() => {
         void refresh();
