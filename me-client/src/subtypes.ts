@@ -156,10 +156,11 @@ export const EVENT_SUBTYPES: Record<EventSubtype, EventSubtypeMetadata> = {
         class: 'B',
         label: 'pledge resolved',
         fires_when:
-            'an oc-pledge bonded commitment resolves (paid out, slashed, or refunded) on your surface',
-        example: 'user staked 50k sats on a prediction; market resolved and the pledge paid out',
+            'an oc-pledge bonded commitment resolves on your surface (kept / broken / disputed / expired_unresolved). pledge bonds never move — any sat payout is an integrator-composed flow on top of pledge (e.g., HTLC), not a pledge primitive (oc-pledge-protocol WHY.md H7)',
+        example:
+            'user staked sats × days-unspent on a prediction; the pledge resolved kept and the integrator paid out per its own composed terms',
         common_use_cases: ['pledge', 'staking', 'resolution', 'commit-reveal'],
-        typical_price_hint: '1% of pledge amount (percent_of_amount) · OFF by default',
+        typical_price_hint: '1% of pledge bond amount (percent_of_amount) · OFF by default',
     },
 
     // ── Class C · session ──
