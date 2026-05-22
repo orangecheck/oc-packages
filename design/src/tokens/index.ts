@@ -14,4 +14,5 @@ export {
     getOcThemeInitScript,
     type OcThemeProviderProps,
 } from './provider';
+export { OcThemeBridge } from './theme-bridge';
 export { OcThemePicker, type OcThemePickerProps } from './theme-picker';
