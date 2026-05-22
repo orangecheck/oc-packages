@@ -35,6 +35,11 @@ export const OC_THEMES: readonly OcTheme[] = [
         label: 'phosphor',
         description: 'CRT terminal green, hard 0.125rem corners, fully monospace — far from orange',
     },
+    {
+        id: 'aurora',
+        label: 'aurora',
+        description: 'cool teal, generous 0.75rem corners, soft elevation — flips the flat ethos',
+    },
 ] as const;
 
 export const DEFAULT_OC_THEME = 'orangecheck';

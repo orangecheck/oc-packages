@@ -26,6 +26,15 @@
         monospace
     );
 
+    /* Elevation — near-flat OrangeCheck default (inherited by midnight/phosphor,
+       which keep the flat ethos; aurora overrides to float). */
+    --oc-shadow-2xs: 0 1px 2px 0 oklch(0 0 0 / 0.04);
+    --oc-shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+    --oc-shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.08), 0 1px 2px -1px oklch(0 0 0 / 0.08);
+    --oc-shadow-md: 0 2px 6px -2px oklch(0 0 0 / 0.08), 0 1px 3px -2px oklch(0 0 0 / 0.06);
+    --oc-shadow-lg: 0 4px 10px -3px oklch(0 0 0 / 0.1), 0 2px 4px -4px oklch(0 0 0 / 0.08);
+    --oc-shadow-xl: 0 8px 16px -5px oklch(0 0 0 / 0.12), 0 4px 6px -6px oklch(0 0 0 / 0.08);
+
     /* Light mode — off-white paper, sharp ink */
     --background: oklch(0.985 0.002 60);
     --foreground: oklch(0.13 0 0);

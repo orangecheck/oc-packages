@@ -50,6 +50,17 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
+    /* Elevation is theme-controlled: each skin sets --oc-shadow-*. Routing
+       Tailwind's shadow scale through a runtime var (like color) is required —
+       Tailwind otherwise inlines shadow values at build, defeating runtime
+       theming. The default skin sets the subtle near-flat OrangeCheck values;
+       `aurora` overrides them to float surfaces. */
+    --shadow-2xs: var(--oc-shadow-2xs);
+    --shadow-xs: var(--oc-shadow-xs);
+    --shadow-sm: var(--oc-shadow-sm);
+    --shadow-md: var(--oc-shadow-md);
+    --shadow-lg: var(--oc-shadow-lg);
+    --shadow-xl: var(--oc-shadow-xl);
 }
 
 @layer base {
