@@ -14,6 +14,7 @@ name: Release
 #   git tag pledge-core-v0.1.0 ...        → @orangecheck/pledge-core     (npm)
 #   git tag me-client-v0.1.0 ...          → @orangecheck/me-client       (npm)
 #   git tag ui-v0.1.0 ...                 → @orangecheck/ui              (npm)
+#   git tag design-v0.1.0 ...             → @orangecheck/design          (npm)
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
 #
 # Secrets required:
@@ -53,6 +54,7 @@ on:
             - 'auth-core-v*'
             - 'auth-client-v*'
             - 'ui-v*'
+            - 'design-v*'
             - 'sdk-py-v*'
 
 jobs:
@@ -86,7 +88,7 @@ jobs:
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
+              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'design' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
               working-directory: sdk
               run: |
                   yarn install --frozen-lockfile

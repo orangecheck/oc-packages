@@ -1,0 +1,9 @@
+/*
+ * @orangecheck/design — themes.css
+ *
+ * Aggregates every skin's token values. Import order matters: the default skin
+ * (orangecheck) comes first because it also populates the bare `:root`/`.dark`
+ * fallback; later skins override via their `[data-oc-theme]` arms when active.
+ */
+@import './themes/orangecheck.css';
+@import './themes/midnight.css';
