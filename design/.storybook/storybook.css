@@ -1,12 +1,20 @@
 /* Storybook Tailwind entry — mirrors a consumer site's globals.css so stories
    render with the real tokens, utilities, and skins. */
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
-/* Emit utilities used inside the package source (Storybook renders from src). */
+/* Emit utilities used inside the package source AND inside the published
+   @orangecheck/ui composites (node_modules is excluded from Tailwind's default
+   scan, so the composite classes must be sourced explicitly — exactly what a
+   consumer site does for @orangecheck/design + @orangecheck/ui). */
 @source '../src';
+@source '../node_modules/@orangecheck/ui/dist';
 
 @custom-variant dark (&:is(.dark *));
+
+/* Overlay enter/exit utilities (animate-in / fade / zoom / slide) used by
+   Dialog, Sheet, Popover, Select, Accordion — consumer sites import this too. */
+@import 'tw-animate-css';
 
 /* Tokens + bridge + utility system + all skins. */
 @import '../src/styles.css';
@@ -18,7 +26,9 @@
     --font-mono-display: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* Drive body type from the theme-controlled var so switching skin also switches
+   typography (orangecheck=Inter, midnight=Manrope, phosphor=mono). */
 html,
 body {
-    font-family: var(--font-sans-display);
+    font-family: var(--oc-font-sans, var(--font-sans-display));
 }

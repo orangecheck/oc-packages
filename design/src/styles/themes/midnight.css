@@ -7,8 +7,14 @@
  * bare `:root`/`.dark` arms here; only the default skin owns the fallback.
  */
 
+:root[data-oc-theme='midnight'],
 [data-oc-theme='midnight'] {
-    --radius: 0.25rem;
+    /* Softer, more rounded than the sharp default — a calmer, SaaS-ier shape. */
+    --radius: 0.625rem;
+
+    /* Geometric humanist sans for the calmer feel; mono stays JetBrains. */
+    --oc-font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, monospace);
 
     /* Light — cool paper, indigo ink */
     --background: oklch(0.985 0.004 255);
@@ -54,6 +60,7 @@
     --brand-foreground: oklch(0.98 0.01 255);
 }
 
+:root[data-oc-theme='midnight'].dark,
 [data-oc-theme='midnight'].dark {
     /* Dark — deep slate, luminous indigo */
     --background: oklch(0.13 0.02 265);

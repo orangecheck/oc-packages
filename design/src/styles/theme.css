@@ -15,8 +15,12 @@
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-sans-display);
-    --font-mono: var(--font-mono-display);
+    /* Typography is theme-controlled: each skin sets --oc-font-sans / --oc-font-mono.
+       The default skin points these at the app's next/font vars
+       (--font-sans-display / --font-mono-display), so nothing changes for the
+       default; alternate skins can swap the typeface entirely. */
+    --font-sans: var(--oc-font-sans);
+    --font-mono: var(--oc-font-mono);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -146,14 +150,14 @@
     /* ── Mono display utilities ──────────────────────────────────────── */
     .font-display {
         font-family:
-            var(--font-mono-display), ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo,
+            var(--oc-font-mono), ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo,
             monospace;
         letter-spacing: -0.02em;
         font-feature-settings: 'ss01', 'cv01', 'zero';
     }
 
     .label-mono {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.7rem;
         letter-spacing: 0.18em;
         text-transform: uppercase;
@@ -165,7 +169,7 @@
     .terminal {
         background: var(--card);
         border: 1px solid var(--border);
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
     }
     .terminal-title {
         background: color-mix(in oklch, var(--foreground), transparent 92%);
@@ -219,7 +223,7 @@
         margin-top: 1rem;
     }
     .docs-prose h1 {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 2rem;
         line-height: 1.1;
         letter-spacing: -0.02em;
@@ -228,7 +232,7 @@
         margin-bottom: 0.5rem;
     }
     .docs-prose h2 {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 1.35rem;
         line-height: 1.2;
         letter-spacing: -0.01em;
@@ -239,7 +243,7 @@
         border-top: 1px solid var(--border);
     }
     .docs-prose h3 {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 1.05rem;
         line-height: 1.3;
         font-weight: 700;
@@ -247,7 +251,7 @@
         margin-bottom: 0.4rem;
     }
     .docs-prose h4 {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.9rem;
         font-weight: 700;
         margin-top: 1.5rem;
@@ -273,7 +277,7 @@
         font-weight: 700;
     }
     .docs-prose code {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.85em;
         background: color-mix(in oklch, var(--primary), transparent 88%);
         color: var(--primary);
@@ -286,7 +290,7 @@
         border: 1px solid var(--border);
         padding: 1rem 1.1rem;
         overflow-x: auto;
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.8rem;
         line-height: 1.6;
         margin: 1.5rem 0;
@@ -320,7 +324,7 @@
     }
     .docs-prose ol > li::marker {
         color: var(--primary);
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-weight: 700;
     }
     .docs-prose li + li {
@@ -354,7 +358,7 @@
         text-align: left;
         padding: 0.5rem 0.75rem;
         border-bottom: 1px solid var(--border);
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.7rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
@@ -371,7 +375,7 @@
         font-size: 0.78em;
     }
     .docs-prose kbd {
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.8em;
         background: var(--muted);
         border: 1px solid var(--border);
@@ -452,7 +456,7 @@
         padding: 0.5rem 0.85rem;
         background: var(--primary);
         color: var(--primary-foreground);
-        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.75rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;

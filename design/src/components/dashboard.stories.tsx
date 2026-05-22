@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { AppShell, OcDashboardHub, StatGrid } from '@orangecheck/ui';
+import { AppShell, OcDashboardHub, OcDashboardShell, StatGrid } from '@orangecheck/ui';
 import { CheckCircle, FileSignature, Plus } from 'lucide-react';
 
 const meta = {
@@ -39,6 +39,27 @@ export const Hub: Story = {
         <div className="container py-8">
             <OcDashboardHub tools={TOOLS} />
         </div>
+    ),
+};
+
+export const ShellWithSidebar: Story = {
+    name: 'OcDashboardShell (tool rail)',
+    render: () => (
+        <OcDashboardShell
+            tools={TOOLS}
+            active="create"
+            eyebrow="oc · stamp"
+            title="create"
+            description="mint a Bitcoin-anchored stamp over any hash."
+        >
+            <StatGrid
+                columns={2}
+                items={[
+                    { label: 'drafts', value: '1' },
+                    { label: 'minted today', value: '4', tone: 'success' },
+                ]}
+            />
+        </OcDashboardShell>
     ),
 };
 
