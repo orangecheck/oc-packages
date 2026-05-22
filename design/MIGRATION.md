@@ -17,6 +17,20 @@ package was extracted from, so its diff is import-path-only).
 `sonner` arrive transitively — you may drop them as *direct* deps once nothing
 local imports them, or leave them (versions match, no conflict).
 
+### 1a. next.config — transpilePackages (REQUIRED)
+
+Add `@orangecheck/design` to `transpilePackages`:
+
+```ts
+transpilePackages: [/* …existing… */, '@orangecheck/ui', '@orangecheck/design'],
+```
+
+This is **not optional**. `@orangecheck/design` re-exports `@orangecheck/ui`,
+whose ESM uses a bare `next/link` import. If `design` isn't transpiled, Next
+externalizes it and SSR page-data collection fails with
+`Cannot find module 'next/link'`. Transpiling lets webpack resolve it. (Keep
+`@orangecheck/ui` in the list too if it's already there.)
+
 ## 2. globals.css — replace the inlined tokens with one import
 
 Delete the site's `@theme inline { … }` block and its `:root { … }` / `.dark { … }`
