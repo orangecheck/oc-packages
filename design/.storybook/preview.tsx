@@ -10,17 +10,25 @@ import { OC_THEMES } from '../src/tokens/themes';
  * in any skin × mode combination.
  */
 const withTheme: Decorator = (Story, context) => {
+    // Stories that render their own skin/mode panels (the Themes matrix) opt out
+    // so the toolbar doesn't impose a global .dark on their light panels.
+    const disabled = Boolean(context.parameters?.disableGlobalTheme);
     const mode = context.globals.mode as string;
     const skin = context.globals.skin as string;
 
     useEffect(() => {
         const root = document.documentElement;
+        if (disabled) {
+            root.classList.remove('dark');
+            root.setAttribute('data-oc-theme', 'orangecheck');
+            return;
+        }
         root.setAttribute('data-oc-theme', skin);
         root.classList.toggle('dark', mode === 'dark');
-    }, [mode, skin]);
+    }, [mode, skin, disabled]);
 
     return (
-        <div className="bg-background text-foreground min-h-screen p-8">
+        <div className={disabled ? 'min-h-screen p-8' : 'bg-background text-foreground min-h-screen p-8'}>
             <Story />
         </div>
     );
