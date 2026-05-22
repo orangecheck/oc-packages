@@ -43,8 +43,9 @@
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.18 0.025 225);
 
-    /* Teal/cyan primary. */
-    --primary: oklch(0.6 0.13 205);
+    /* Teal/cyan primary — darkened to L .5 so white button labels clear AA
+       (4.5:1) and the accent clears AA-large on the light background. */
+    --primary: oklch(0.5 0.14 205);
     --primary-foreground: oklch(0.99 0.01 210);
 
     --secondary: oklch(0.96 0.01 210);
@@ -58,7 +59,7 @@
 
     --border: oklch(0.9 0.012 215);
     --input: oklch(0.92 0.012 215);
-    --ring: oklch(0.6 0.13 205);
+    --ring: oklch(0.5 0.14 205);
 
     --destructive: oklch(0.55 0.08 30);
     --destructive-foreground: oklch(0.98 0 0);
