@@ -1,0 +1,104 @@
+/*
+ * Skin: phosphor (demonstrator)
+ *
+ * Classic CRT terminal green — far from orange, to prove the multi-theme rail
+ * handles palettes nothing like the default. Same token contract, same radius,
+ * same semantic roles. Declares the COMPLETE token set in both modes; only the
+ * default skin owns the bare :root/.dark fallback.
+ */
+
+:root[data-oc-theme='phosphor'],
+[data-oc-theme='phosphor'] {
+    /* Hard-edged terminal — almost no radius. */
+    --radius: 0.125rem;
+
+    /* Full terminal: monospace everywhere, sans included. */
+    --oc-font-sans: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+
+    /* Light — pale green paper, deep green ink */
+    --background: oklch(0.985 0.006 150);
+    --foreground: oklch(0.18 0.02 150);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 150);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.18 0.02 150);
+
+    /* Phosphor green is the primary. */
+    --primary: oklch(0.52 0.15 150);
+    --primary-foreground: oklch(0.98 0.01 150);
+
+    --secondary: oklch(0.96 0.008 150);
+    --secondary-foreground: oklch(0.18 0.02 150);
+
+    --muted: oklch(0.96 0.008 150);
+    --muted-foreground: oklch(0.45 0.02 150);
+
+    --accent: oklch(0.95 0.015 150);
+    --accent-foreground: oklch(0.22 0.03 150);
+
+    --border: oklch(0.88 0.012 150);
+    --input: oklch(0.9 0.012 150);
+    --ring: oklch(0.52 0.15 150);
+
+    --destructive: oklch(0.55 0.08 30);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    --warning: oklch(0.65 0.08 75);
+    --warning-foreground: oklch(0.15 0 0);
+
+    --info: oklch(0.6 0.07 220);
+    --info-foreground: oklch(0.98 0 0);
+
+    --success: oklch(0.58 0.12 150);
+    --success-foreground: oklch(0.98 0 0);
+
+    --brand: oklch(0.58 0.16 150);
+    --brand-foreground: oklch(0.98 0.01 150);
+}
+
+:root[data-oc-theme='phosphor'].dark,
+[data-oc-theme='phosphor'].dark {
+    /* Dark — the hero: near-black CRT, luminous phosphor green */
+    --background: oklch(0.1 0.012 150);
+    --foreground: oklch(0.9 0.06 148);
+
+    --card: oklch(0.14 0.015 150);
+    --card-foreground: oklch(0.9 0.06 148);
+
+    --popover: oklch(0.14 0.015 150);
+    --popover-foreground: oklch(0.9 0.06 148);
+
+    --primary: oklch(0.78 0.18 148);
+    --primary-foreground: oklch(0.1 0.02 150);
+
+    --secondary: oklch(0.2 0.018 150);
+    --secondary-foreground: oklch(0.9 0.06 148);
+
+    --muted: oklch(0.18 0.015 150);
+    --muted-foreground: oklch(0.62 0.04 148);
+
+    --accent: oklch(0.24 0.025 150);
+    --accent-foreground: oklch(0.9 0.06 148);
+
+    --border: oklch(0.26 0.025 150);
+    --input: oklch(0.26 0.025 150);
+    --ring: oklch(0.78 0.18 148);
+
+    --destructive: oklch(0.6 0.1 30);
+    --destructive-foreground: oklch(0.95 0 0);
+
+    --warning: oklch(0.7 0.1 75);
+    --warning-foreground: oklch(0.12 0 0);
+
+    --info: oklch(0.65 0.08 220);
+    --info-foreground: oklch(0.95 0 0);
+
+    --success: oklch(0.7 0.14 150);
+    --success-foreground: oklch(0.1 0.02 150);
+
+    --brand: oklch(0.78 0.18 148);
+    --brand-foreground: oklch(0.1 0.02 150);
+}

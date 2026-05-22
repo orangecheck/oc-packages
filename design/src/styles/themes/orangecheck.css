@@ -15,6 +15,17 @@
     /* Sharp corners — cypherpunk, not SaaS */
     --radius: 0.25rem;
 
+    /* Typography — defer to the app's next/font vars, with web-safe fallbacks. */
+    --oc-font-sans: var(--font-sans-display, 'Inter', ui-sans-serif, system-ui, sans-serif);
+    --oc-font-mono: var(
+        --font-mono-display,
+        'JetBrains Mono',
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace
+    );
+
     /* Light mode — off-white paper, sharp ink */
     --background: oklch(0.985 0.002 60);
     --foreground: oklch(0.13 0 0);

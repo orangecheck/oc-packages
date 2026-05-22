@@ -23,12 +23,17 @@ export const OC_THEMES: readonly OcTheme[] = [
     {
         id: 'orangecheck',
         label: 'orangecheck',
-        description: 'the default — Bitcoin-orange on sharp ink, cypherpunk not SaaS',
+        description: 'the default — Bitcoin-orange, sharp 0.25rem corners, Inter + JetBrains Mono',
     },
     {
         id: 'midnight',
         label: 'midnight',
-        description: 'cool indigo accent on deep slate — calm, terminal-after-dark',
+        description: 'indigo on slate, softer rounded 0.625rem corners, Manrope sans — calmer, SaaS-ier',
+    },
+    {
+        id: 'phosphor',
+        label: 'phosphor',
+        description: 'CRT terminal green, hard 0.125rem corners, fully monospace — far from orange',
     },
 ] as const;
 
