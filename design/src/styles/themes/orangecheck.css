@@ -1,0 +1,105 @@
+/*
+ * Skin: orangecheck (default)
+ *
+ * The current OrangeCheck look, ported byte-for-byte. The bare `:root` / `.dark`
+ * arms are the no-JS / pre-hydration fallback; the `[data-oc-theme]` arms are
+ * what `OcThemeProvider` activates. Values are identical across both arms.
+ *
+ * MODE axis (light/dark) = `.dark` class (next-themes). SKIN axis = the
+ * `data-oc-theme` attribute. A skin file must declare the COMPLETE token set in
+ * both modes so it fully overrides whatever the default populated.
+ */
+
+:root,
+[data-oc-theme='orangecheck'] {
+    /* Sharp corners — cypherpunk, not SaaS */
+    --radius: 0.25rem;
+
+    /* Light mode — off-white paper, sharp ink */
+    --background: oklch(0.985 0.002 60);
+    --foreground: oklch(0.13 0 0);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.13 0 0);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.13 0 0);
+
+    /* Orange is the primary. Strong CTAs burn hot. */
+    --primary: oklch(0.68 0.2 55);
+    --primary-foreground: oklch(0.1 0 0);
+
+    --secondary: oklch(0.96 0 0);
+    --secondary-foreground: oklch(0.13 0 0);
+
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+
+    --accent: oklch(0.96 0 0);
+    --accent-foreground: oklch(0.2 0 0);
+
+    --border: oklch(0.88 0 0);
+    --input: oklch(0.9 0 0);
+    --ring: oklch(0.68 0.2 55);
+
+    /* Semantic colors - desaturated for monochromatic feel */
+    --destructive: oklch(0.55 0.08 30);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    --warning: oklch(0.65 0.08 60);
+    --warning-foreground: oklch(0.15 0 0);
+
+    --info: oklch(0.6 0.06 240);
+    --info-foreground: oklch(0.98 0 0);
+
+    --success: oklch(0.6 0.08 150);
+    --success-foreground: oklch(0.98 0 0);
+
+    /* Brand accent - bright Bitcoin orange (shared with ochk.io) */
+    --brand: oklch(0.72 0.22 55);
+    --brand-foreground: oklch(0.1 0 0);
+}
+
+.dark,
+[data-oc-theme='orangecheck'].dark {
+    /* Dark mode — near-true-black. Terminal energy. */
+    --background: oklch(0.08 0 0);
+    --foreground: oklch(0.96 0 0);
+
+    --card: oklch(0.12 0 0);
+    --card-foreground: oklch(0.96 0 0);
+
+    --popover: oklch(0.12 0 0);
+    --popover-foreground: oklch(0.96 0 0);
+
+    --primary: oklch(0.72 0.22 55);
+    --primary-foreground: oklch(0.08 0 0);
+
+    --secondary: oklch(0.18 0 0);
+    --secondary-foreground: oklch(0.96 0 0);
+
+    --muted: oklch(0.16 0 0);
+    --muted-foreground: oklch(0.6 0 0);
+
+    --accent: oklch(0.2 0 0);
+    --accent-foreground: oklch(0.96 0 0);
+
+    --border: oklch(0.22 0 0);
+    --input: oklch(0.22 0 0);
+    --ring: oklch(0.72 0.22 55);
+
+    --destructive: oklch(0.6 0.1 30);
+    --destructive-foreground: oklch(0.95 0 0);
+
+    --warning: oklch(0.7 0.1 60);
+    --warning-foreground: oklch(0.12 0 0);
+
+    --info: oklch(0.65 0.08 240);
+    --info-foreground: oklch(0.95 0 0);
+
+    --success: oklch(0.65 0.1 150);
+    --success-foreground: oklch(0.95 0 0);
+
+    --brand: oklch(0.72 0.22 55);
+    --brand-foreground: oklch(0.08 0 0);
+}

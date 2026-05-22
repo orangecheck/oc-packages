@@ -60,6 +60,7 @@ jobs:
                     - auth-core
                     - auth-client
                     - ui
+                    - design
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}

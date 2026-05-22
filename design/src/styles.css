@@ -1,0 +1,20 @@
+/*
+ * @orangecheck/design — styles.css (top-level CSS entry)
+ *
+ * One-line adoption for a family site's globals. Expects Tailwind to be loaded
+ * first. Typical consumer globals.css:
+ *
+ *     @import 'tailwindcss';
+ *     @source '../../node_modules/@orangecheck/ui';
+ *     @source '../../node_modules/@orangecheck/design';
+ *     @import 'tw-animate-css';
+ *     @custom-variant dark (&:is(.dark *));
+ *     @import '@orangecheck/design/styles.css';
+ *
+ * Provides: the `@theme inline` token bridge, base layer, the full utility
+ * system (theme.css), and all skin token values (themes.css). The consumer
+ * still loads fonts (`--font-sans-display` / `--font-mono-display`) via
+ * next/font, exactly as today.
+ */
+@import './styles/theme.css';
+@import './styles/themes.css';

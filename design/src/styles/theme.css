@@ -1,0 +1,467 @@
+/*
+ * @orangecheck/design — theme.css
+ *
+ * Skin-independent layer: the Tailwind 4 `@theme inline` token bridge, the base
+ * layer, and the full OrangeCheck utility system (container, mono display,
+ * terminal chrome, grid/dot backgrounds, docs prose, the <Working> cursor,
+ * skip-link, brand utilities). Token *values* live in `themes/*.css`.
+ *
+ * This file expects to be imported into a Tailwind 4 pipeline that has already
+ * done `@import 'tailwindcss'` and declared `@custom-variant dark`. It also
+ * expects the consumer to define the font vars `--font-sans-display` and
+ * `--font-mono-display` (every family site loads these via next/font).
+ */
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-sans-display);
+    --font-mono: var(--font-mono-display);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus,
+    textarea:-webkit-autofill:active {
+        -webkit-text-fill-color: var(--foreground) !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:focus,
+    textarea:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px oklch(0.9 0 0 / 0.3) inset !important;
+    }
+
+    .dark input:-webkit-autofill,
+    .dark input:-webkit-autofill:focus,
+    .dark input:-webkit-autofill:active,
+    .dark textarea:-webkit-autofill,
+    .dark textarea:-webkit-autofill:focus,
+    .dark textarea:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px oklch(0.35 0 0 / 0.3) inset !important;
+    }
+}
+
+/* Accordion animations */
+@keyframes accordion-down {
+    from {
+        height: 0;
+    }
+    to {
+        height: var(--radix-accordion-content-height);
+    }
+}
+
+@keyframes accordion-up {
+    from {
+        height: var(--radix-accordion-content-height);
+    }
+    to {
+        height: 0;
+    }
+}
+
+.animate-accordion-down {
+    animation: accordion-down 0.2s ease-out;
+}
+.animate-accordion-up {
+    animation: accordion-up 0.2s ease-out;
+}
+
+@layer utilities {
+    .container {
+        @apply mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8;
+    }
+    .vstack {
+        @apply flex flex-col gap-4 sm:gap-5 md:gap-6;
+    }
+    .stack-tight {
+        @apply flex flex-col gap-3 sm:gap-4 md:gap-5;
+    }
+    .stack-loose {
+        @apply flex flex-col gap-5 sm:gap-6 md:gap-8;
+    }
+
+    .text-brand {
+        color: var(--brand);
+    }
+    .bg-brand {
+        background-color: var(--brand);
+    }
+    .bg-brand-soft {
+        background-color: color-mix(in oklch, var(--brand), transparent 88%);
+    }
+    .border-brand {
+        border-color: var(--brand);
+    }
+    .border-brand-soft {
+        border-color: color-mix(in oklch, var(--brand), transparent 70%);
+    }
+
+    /* ── Mono display utilities ──────────────────────────────────────── */
+    .font-display {
+        font-family:
+            var(--font-mono-display), ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo,
+            monospace;
+        letter-spacing: -0.02em;
+        font-feature-settings: 'ss01', 'cv01', 'zero';
+    }
+
+    .label-mono {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: color-mix(in oklch, var(--foreground), transparent 50%);
+    }
+
+    /* Terminal-window chrome: hard borders, no soft shadows. */
+    .terminal {
+        background: var(--card);
+        border: 1px solid var(--border);
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+    }
+    .terminal-title {
+        background: color-mix(in oklch, var(--foreground), transparent 92%);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        padding: 0.4rem 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .terminal-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: color-mix(in oklch, var(--muted-foreground), transparent 50%);
+    }
+
+    /* ── Background motifs (hero panels) ─────────────────────────────── */
+    .bg-grid {
+        background-image:
+            linear-gradient(
+                to right,
+                color-mix(in oklch, var(--foreground), transparent 94%) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                to bottom,
+                color-mix(in oklch, var(--foreground), transparent 94%) 1px,
+                transparent 1px
+            );
+        background-size: 28px 28px;
+    }
+    .bg-dots {
+        background-image: radial-gradient(
+            color-mix(in oklch, var(--foreground), transparent 88%) 1px,
+            transparent 1px
+        );
+        background-size: 16px 16px;
+    }
+
+    /* ── Docs prose styles ────────────────────────────────────────── */
+    .docs-prose {
+        color: var(--foreground);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+    }
+    .docs-prose > * + * {
+        margin-top: 1rem;
+    }
+    .docs-prose h1 {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 2rem;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+    .docs-prose h2 {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 1.35rem;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        font-weight: 700;
+        margin-top: 2.5rem;
+        margin-bottom: 0.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+    .docs-prose h3 {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 1.05rem;
+        line-height: 1.3;
+        font-weight: 700;
+        margin-top: 1.75rem;
+        margin-bottom: 0.4rem;
+    }
+    .docs-prose h4 {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-top: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted-foreground);
+    }
+    .docs-prose p,
+    .docs-prose li {
+        color: var(--foreground);
+    }
+    .docs-prose a {
+        color: var(--primary);
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 3px;
+    }
+    .docs-prose a:hover {
+        text-decoration-style: solid;
+    }
+    .docs-prose strong {
+        color: var(--foreground);
+        font-weight: 700;
+    }
+    .docs-prose code {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.85em;
+        background: color-mix(in oklch, var(--primary), transparent 88%);
+        color: var(--primary);
+        padding: 0.12em 0.4em;
+        border-radius: 3px;
+        border: 1px solid color-mix(in oklch, var(--primary), transparent 70%);
+    }
+    .docs-prose pre {
+        background: var(--card);
+        border: 1px solid var(--border);
+        padding: 1rem 1.1rem;
+        overflow-x: auto;
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        margin: 1.5rem 0;
+    }
+    .docs-prose pre code {
+        background: transparent;
+        border: none;
+        color: var(--foreground);
+        padding: 0;
+        font-size: inherit;
+    }
+    .docs-prose ul,
+    .docs-prose ol {
+        padding-left: 1.5rem;
+    }
+    .docs-prose ul {
+        list-style: none;
+    }
+    .docs-prose ul > li {
+        position: relative;
+    }
+    .docs-prose ul > li::before {
+        content: '·';
+        position: absolute;
+        left: -1rem;
+        color: var(--primary);
+        font-weight: 700;
+    }
+    .docs-prose ol {
+        list-style: decimal;
+    }
+    .docs-prose ol > li::marker {
+        color: var(--primary);
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-weight: 700;
+    }
+    .docs-prose li + li {
+        margin-top: 0.35rem;
+    }
+    .docs-prose blockquote {
+        border-left: 2px solid var(--primary);
+        background: color-mix(in oklch, var(--primary), transparent 92%);
+        padding: 0.75rem 1rem;
+        margin: 1.5rem 0;
+        color: var(--muted-foreground);
+        font-style: normal;
+    }
+    .docs-prose blockquote p {
+        margin: 0;
+    }
+    .docs-prose hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 2rem 0;
+    }
+    .docs-prose table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin: 1.25rem 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+    .docs-prose thead th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+    }
+    .docs-prose tbody tr {
+        border-bottom: 1px solid color-mix(in oklch, var(--border), transparent 50%);
+    }
+    .docs-prose tbody td {
+        padding: 0.5rem 0.75rem;
+        vertical-align: top;
+    }
+    .docs-prose tbody code {
+        font-size: 0.78em;
+    }
+    .docs-prose kbd {
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.8em;
+        background: var(--muted);
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        padding: 0.1em 0.4em;
+        border-radius: 3px;
+    }
+
+    /* ── <Working> indicator ────────────────────────────────────────── */
+    .oc-working-cursor {
+        display: inline-flex;
+        gap: 0.1em;
+        color: var(--primary);
+        letter-spacing: 0.1em;
+        font-weight: 700;
+    }
+    .oc-working-dot {
+        display: inline-block;
+        animation: oc-working-pulse 1s var(--ease) infinite;
+        opacity: 0.25;
+    }
+    .oc-working-text::after {
+        content: '';
+        display: inline-block;
+        width: 1.5ch;
+        text-align: left;
+        animation: oc-working-ellipsis 1.2s steps(4, end) infinite;
+    }
+    @keyframes oc-working-pulse {
+        0%,
+        20%,
+        100% {
+            opacity: 0.25;
+            transform: translateY(0);
+        }
+        40% {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+        60% {
+            opacity: 0.6;
+            transform: translateY(0);
+        }
+    }
+    @keyframes oc-working-ellipsis {
+        0% {
+            content: '';
+        }
+        25% {
+            content: '·';
+        }
+        50% {
+            content: '··';
+        }
+        75% {
+            content: '···';
+        }
+        100% {
+            content: '';
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .oc-working-dot,
+        .oc-working-text::after {
+            animation: none !important;
+        }
+        .oc-working-dot {
+            opacity: 0.8;
+        }
+    }
+
+    /* Skip-to-content link for keyboard users — only visible on focus. */
+    .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0.5rem;
+        z-index: 100;
+        padding: 0.5rem 0.85rem;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-family: var(--font-mono-display), ui-monospace, monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border-radius: var(--radius);
+        text-decoration: none;
+    }
+    .skip-link:focus {
+        left: 1rem;
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+}
