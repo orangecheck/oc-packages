@@ -7,9 +7,8 @@ import {
 } from '@orangecheck/ui';
 import { ThemeProvider } from 'next-themes';
 
-import { ThemeToggle } from '../primitives/theme-toggle';
+import { OcAppearanceMenu } from '../tokens/appearance-menu';
 import { OcThemeProvider } from '../tokens/provider';
-import { OcThemePicker } from '../tokens/theme-picker';
 
 const meta = {
     title: 'Patterns/App Chrome',
@@ -66,8 +65,7 @@ function HeaderBar() {
                 </div>
                 <div className="flex items-center gap-1">
                     <OcAccountMenuView current="stamp" session={anon} />
-                    <ThemeToggle />
-                    <OcThemePicker />
+                    <OcAppearanceMenu />
                 </div>
             </div>
         </header>
