@@ -4,7 +4,7 @@
 import { chromium } from '@playwright/test';
 
 const LOCAL = process.env.LOCAL_URL || 'http://localhost:3100';
-const PROD = 'https://stamp.ochk.io';
+const PROD = process.env.PROD_URL || 'https://stamp.ochk.io';
 
 const browser = await chromium.launch();
 
