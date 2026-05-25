@@ -10,6 +10,7 @@ const VARIANTS = [
     'warning',
     'success',
     'info',
+    'brand',
 ] as const;
 
 const meta = {
