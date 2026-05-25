@@ -18,8 +18,10 @@ export { Separator } from './separator';
 
 export {
     Sheet,
+    SheetClose,
     SheetContent,
     SheetDescription,
+    SheetFooter,
     SheetHeader,
     SheetOverlay,
     SheetPortal,
