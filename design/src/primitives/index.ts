@@ -62,3 +62,16 @@ export {
     SelectValue,
 } from './select';
 export { Toaster } from './toaster';
+
+// Data / dashboard tier
+export { Card, type CardProps } from './card';
+export { Sparkline, type SparklineProps } from './sparkline';
+export { StatBlock, type StatBlockProps } from './stat-block';
+export { Bar, type BarProps } from './bar';
+export { StatusPill, type StatusPillProps, type StatusTone } from './status-pill';
+
+// Bitcoin-domain tier
+export { SatsAmount, type SatsAmountProps } from './sats-amount';
+export { BitcoinAddress, type BitcoinAddressProps } from './bitcoin-address';
+export { CopyButton, type CopyButtonProps } from './copy-button';
+export { QrCode, type QrCodeProps } from './qr-code';

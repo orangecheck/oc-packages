@@ -6,6 +6,7 @@ export default defineConfig({
         tokens: 'src/tokens/index.ts',
         primitives: 'src/primitives/index.ts',
         components: 'src/components/index.ts',
+        format: 'src/format/index.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,
