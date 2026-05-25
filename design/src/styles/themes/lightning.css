@@ -1,0 +1,107 @@
+/*
+ * Skin: lightning — Bitcoin's Layer 2.
+ *
+ * Electric violet (the Lightning Network's colour), hard 0rem edges (fast,
+ * sharp — payments that settle in a flash), flat (no soft shadows — honours the
+ * cypherpunk "hard borders, not SaaS" ethos). Distinct from the default by
+ * colour + the hardest radius. Sans type (Inter) — Lightning is consumer-fast.
+ *
+ * Selectors: :root[data-oc-theme] beats the :root fallback; bare [data-oc-theme]
+ * scopes panels (Themes/Matrix). COMPLETE token set, both modes. Shadows are
+ * NOT overridden → inherits the default skin's near-flat OrangeCheck values.
+ */
+
+:root[data-oc-theme='lightning'],
+[data-oc-theme='lightning'] {
+    /* Hardest edges — lightning is sharp and instant. */
+    --radius: 0rem;
+
+    --oc-font-sans: var(--font-sans-display, 'Inter', ui-sans-serif, system-ui, sans-serif);
+    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, monospace);
+
+    /* Light — cool paper, electric violet ink. */
+    --background: oklch(0.985 0.006 305);
+    --foreground: oklch(0.16 0.03 305);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.16 0.03 305);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.16 0.03 305);
+
+    /* Electric violet primary (Lightning). L .5 so white labels clear AA. */
+    --primary: oklch(0.5 0.21 305);
+    --primary-foreground: oklch(0.99 0.01 305);
+
+    --secondary: oklch(0.96 0.01 305);
+    --secondary-foreground: oklch(0.16 0.03 305);
+
+    --muted: oklch(0.96 0.01 305);
+    --muted-foreground: oklch(0.45 0.03 305);
+
+    --accent: oklch(0.95 0.02 305);
+    --accent-foreground: oklch(0.22 0.04 305);
+
+    --border: oklch(0.89 0.012 305);
+    --input: oklch(0.91 0.012 305);
+    --ring: oklch(0.5 0.21 305);
+
+    --destructive: oklch(0.55 0.08 30);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    --warning: oklch(0.65 0.09 75);
+    --warning-foreground: oklch(0.15 0 0);
+
+    --info: oklch(0.55 0.12 280);
+    --info-foreground: oklch(0.98 0 0);
+
+    --success: oklch(0.6 0.12 150);
+    --success-foreground: oklch(0.98 0 0);
+
+    --brand: oklch(0.55 0.22 305);
+    --brand-foreground: oklch(0.99 0.01 305);
+}
+
+:root[data-oc-theme='lightning'].dark,
+[data-oc-theme='lightning'].dark {
+    /* Dark — deep violet-black, luminous electric violet. */
+    --background: oklch(0.12 0.02 305);
+    --foreground: oklch(0.96 0.01 305);
+
+    --card: oklch(0.16 0.025 305);
+    --card-foreground: oklch(0.96 0.01 305);
+
+    --popover: oklch(0.16 0.025 305);
+    --popover-foreground: oklch(0.96 0.01 305);
+
+    --primary: oklch(0.72 0.2 305);
+    --primary-foreground: oklch(0.12 0.02 305);
+
+    --secondary: oklch(0.22 0.03 305);
+    --secondary-foreground: oklch(0.96 0.01 305);
+
+    --muted: oklch(0.2 0.025 305);
+    --muted-foreground: oklch(0.64 0.03 305);
+
+    --accent: oklch(0.26 0.035 305);
+    --accent-foreground: oklch(0.96 0.01 305);
+
+    --border: oklch(0.28 0.03 305);
+    --input: oklch(0.28 0.03 305);
+    --ring: oklch(0.72 0.2 305);
+
+    --destructive: oklch(0.6 0.1 30);
+    --destructive-foreground: oklch(0.95 0 0);
+
+    --warning: oklch(0.7 0.1 75);
+    --warning-foreground: oklch(0.12 0 0);
+
+    --info: oklch(0.68 0.12 280);
+    --info-foreground: oklch(0.12 0.02 305);
+
+    --success: oklch(0.7 0.13 150);
+    --success-foreground: oklch(0.12 0 0);
+
+    --brand: oklch(0.72 0.2 305);
+    --brand-foreground: oklch(0.12 0.02 305);
+}

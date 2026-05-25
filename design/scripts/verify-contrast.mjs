@@ -4,7 +4,7 @@
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.SB_BASE || 'http://localhost:6007';
-const SKINS = ['orangecheck', 'midnight', 'phosphor', 'aurora'];
+const SKINS = ['orangecheck', 'phosphor', 'lightning', 'gold'];
 // pair: [fgVar, bgVar, label, minRatio]  (4.5 = AA text, 3.0 = AA large/UI)
 const PAIRS = [
     ['--foreground', '--background', 'body text', 4.5],
