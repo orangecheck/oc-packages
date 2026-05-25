@@ -19,26 +19,29 @@ export interface OcTheme {
     readonly description: string;
 }
 
+// Every skin is rooted in the Bitcoin ethos — sharp, flat, cypherpunk — and
+// carries a meaning, not just a colour: the chain, the node, the network, sound
+// money. No SaaS softness.
 export const OC_THEMES: readonly OcTheme[] = [
     {
         id: 'orangecheck',
         label: 'orangecheck',
-        description: 'the default — Bitcoin-orange, sharp 0.25rem corners, Inter + JetBrains Mono',
-    },
-    {
-        id: 'midnight',
-        label: 'midnight',
-        description: 'indigo on slate, softer rounded 0.625rem corners, Manrope sans — calmer, SaaS-ier',
+        description: 'the chain — Bitcoin orange, sharp 0.25rem corners, Inter + JetBrains Mono',
     },
     {
         id: 'phosphor',
         label: 'phosphor',
-        description: 'CRT terminal green, hard 0.125rem corners, fully monospace — far from orange',
+        description: 'the node — CRT terminal green, hard 0.125rem, all-mono · sovereignty & verify',
     },
     {
-        id: 'aurora',
-        label: 'aurora',
-        description: 'cool teal, generous 0.75rem corners, soft elevation — flips the flat ethos',
+        id: 'lightning',
+        label: 'lightning',
+        description: 'the network — electric violet (L2), hardest 0rem edges, sans · instant',
+    },
+    {
+        id: 'gold',
+        label: 'gold',
+        description: 'sound money — digital gold, hard 0.125rem milled edge, mono ledger · 21M',
     },
 ] as const;
 

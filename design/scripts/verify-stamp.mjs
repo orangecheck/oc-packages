@@ -52,7 +52,7 @@ const page = await browser.newPage();
 await page.goto(LOCAL, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(400);
 const skins = {};
-for (const skin of ['orangecheck', 'midnight', 'phosphor', 'aurora']) {
+for (const skin of ['orangecheck', 'phosphor', 'lightning', 'gold']) {
     const v = await page.evaluate((s) => {
         document.documentElement.setAttribute('data-oc-theme', s);
         const cs = getComputedStyle(document.documentElement);

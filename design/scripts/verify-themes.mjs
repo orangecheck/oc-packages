@@ -3,7 +3,7 @@
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.SB_BASE || 'http://localhost:6007';
-const SKINS = ['orangecheck', 'midnight', 'phosphor', 'aurora'];
+const SKINS = ['orangecheck', 'phosphor', 'lightning', 'gold'];
 
 const b = await chromium.launch();
 const page = await b.newPage();
@@ -56,8 +56,8 @@ for (const r of rows) {
 
 const light = Object.fromEntries(rows.filter((r) => r.mode === 'light').map((r) => [r.skin, r]));
 const distinct = new Set(SKINS.map((s) => `${light[s].radius}|${light[s].font}|${light[s].bg}`)).size;
-const elevationWorks = light.aurora.shadow !== light.orangecheck.shadow;
-console.log(
-    `\nDISTINCT light identities: ${distinct}/4 · elevation(aurora!=orangecheck): ${elevationWorks}`
-);
-process.exitCode = distinct === 4 && elevationWorks ? 0 : 1;
+// All four skins are intentionally flat (Bitcoin/cypherpunk ethos: hard borders,
+// no soft shadows); the elevation token plumbing remains a capability for custom
+// themes. Distinctness comes from colour + radius + type.
+console.log(`\nDISTINCT light identities: ${distinct}/${SKINS.length}`);
+process.exitCode = distinct === SKINS.length ? 0 : 1;

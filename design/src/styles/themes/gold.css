@@ -1,0 +1,108 @@
+/*
+ * Skin: gold — sound money. Digital gold, 21M, hard money.
+ *
+ * Minted-gold / amber palette, hard 0.125rem edges (like the milled edge of a
+ * coin), monospace "ledger" type (reading a balance sheet / hardware wallet),
+ * flat (no soft shadows — cypherpunk ethos). Distinct from orange by being
+ * yellower (hue ~90 vs 55) and from phosphor by colour.
+ *
+ * Selectors per the family rule; COMPLETE token set both modes; shadows not
+ * overridden → inherits the default skin's near-flat values.
+ */
+
+:root[data-oc-theme='gold'],
+[data-oc-theme='gold'] {
+    /* Hard milled edge. */
+    --radius: 0.125rem;
+
+    /* Monospace everywhere — a ledger, a balance, sound accounting. */
+    --oc-font-sans: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+
+    /* Light — warm paper, deep gold ink. */
+    --background: oklch(0.99 0.008 90);
+    --foreground: oklch(0.18 0.02 80);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 80);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.18 0.02 80);
+
+    /* Deep gold primary. L .52 so white labels clear AA. */
+    --primary: oklch(0.52 0.13 90);
+    --primary-foreground: oklch(0.99 0.01 90);
+
+    --secondary: oklch(0.96 0.012 90);
+    --secondary-foreground: oklch(0.18 0.02 80);
+
+    --muted: oklch(0.96 0.012 90);
+    --muted-foreground: oklch(0.44 0.025 85);
+
+    --accent: oklch(0.95 0.025 90);
+    --accent-foreground: oklch(0.22 0.03 80);
+
+    --border: oklch(0.88 0.015 88);
+    --input: oklch(0.9 0.015 88);
+    --ring: oklch(0.52 0.13 90);
+
+    --destructive: oklch(0.55 0.08 30);
+    --destructive-foreground: oklch(0.98 0 0);
+
+    --warning: oklch(0.62 0.1 70);
+    --warning-foreground: oklch(0.15 0 0);
+
+    --info: oklch(0.6 0.07 230);
+    --info-foreground: oklch(0.98 0 0);
+
+    --success: oklch(0.58 0.1 150);
+    --success-foreground: oklch(0.98 0 0);
+
+    /* Bright minted gold. */
+    --brand: oklch(0.72 0.15 90);
+    --brand-foreground: oklch(0.18 0.02 80);
+}
+
+:root[data-oc-theme='gold'].dark,
+[data-oc-theme='gold'].dark {
+    /* Dark — warm vault-black, luminous gold. */
+    --background: oklch(0.13 0.012 80);
+    --foreground: oklch(0.95 0.012 90);
+
+    --card: oklch(0.17 0.015 80);
+    --card-foreground: oklch(0.95 0.012 90);
+
+    --popover: oklch(0.17 0.015 80);
+    --popover-foreground: oklch(0.95 0.012 90);
+
+    --primary: oklch(0.8 0.15 90);
+    --primary-foreground: oklch(0.16 0.02 80);
+
+    --secondary: oklch(0.22 0.018 80);
+    --secondary-foreground: oklch(0.95 0.012 90);
+
+    --muted: oklch(0.2 0.015 80);
+    --muted-foreground: oklch(0.66 0.03 88);
+
+    --accent: oklch(0.26 0.025 82);
+    --accent-foreground: oklch(0.95 0.012 90);
+
+    --border: oklch(0.28 0.02 82);
+    --input: oklch(0.28 0.02 82);
+    --ring: oklch(0.8 0.15 90);
+
+    --destructive: oklch(0.6 0.1 30);
+    --destructive-foreground: oklch(0.95 0 0);
+
+    --warning: oklch(0.72 0.11 70);
+    --warning-foreground: oklch(0.12 0 0);
+
+    --info: oklch(0.66 0.08 230);
+    --info-foreground: oklch(0.95 0 0);
+
+    --success: oklch(0.7 0.12 150);
+    --success-foreground: oklch(0.13 0.012 80);
+
+    --brand: oklch(0.8 0.15 90);
+    --brand-foreground: oklch(0.16 0.02 80);
+}
