@@ -2,6 +2,9 @@ export { Button, buttonVariants } from './button';
 export { Badge, badgeVariants } from './badge';
 export { Input } from './input';
 export { Label } from './label';
+export { Checkbox } from './checkbox';
+export { RadioGroup, RadioGroupItem } from './radio-group';
+export { Switch } from './switch';
 export { Alert, AlertTitle, AlertDescription } from './alert';
 export {
     AlertWithAction,
