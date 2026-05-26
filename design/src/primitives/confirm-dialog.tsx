@@ -98,7 +98,7 @@ export function ConfirmHost() {
                     <div className="space-y-4 p-4 sm:p-5">
                         <Dialog.Title className="sr-only">{state.title}</Dialog.Title>
                         <Dialog.Description asChild>
-                            <div className="text-muted-foreground font-mono text-xs leading-relaxed whitespace-pre-wrap">
+                            <div className="text-muted-foreground font-mono text-xs leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                                 {state.message}
                             </div>
                         </Dialog.Description>
