@@ -449,6 +449,19 @@
         }
     }
     @media (prefers-reduced-motion: reduce) {
+        /* Global reduced-motion reset (WCAG 2.3.3). When the user's OS asks for
+           reduced motion, near-zero every animation + transition family-wide —
+           Accordion/Sheet/Dialog/Select/tw-animate overlays, skin transitions,
+           etc. — not just the working indicator. Keeps a 0.01ms duration (not
+           `none`) so animation/transition `*end` events still fire. */
+        *,
+        ::before,
+        ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
         .oc-working-dot,
         .oc-working-text::after {
             animation: none !important;
