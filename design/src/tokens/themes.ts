@@ -17,6 +17,13 @@ export interface OcTheme {
     readonly label: string;
     /** One-line description shown in the picker / Storybook. */
     readonly description: string;
+    /**
+     * Accent hex (sRGB of the skin's dark-mode `--brand`). Used to swap the
+     * browser chrome — `<meta name="theme-color">` and the favicon (recolored
+     * from the family `#f97316`) — when the skin changes. Mirrors the
+     * `SKINS` palette in `oc-media-kit/build/brands.py` (same source of truth).
+     */
+    readonly accent: string;
 }
 
 // Every skin is rooted in the Bitcoin ethos — sharp, flat, cypherpunk — and
@@ -27,23 +34,36 @@ export const OC_THEMES: readonly OcTheme[] = [
         id: 'orangecheck',
         label: 'orangecheck',
         description: 'the chain — Bitcoin orange, sharp 0.25rem corners, Inter + JetBrains Mono',
+        accent: '#f97316',
     },
     {
         id: 'phosphor',
         label: 'phosphor',
         description: 'the node — CRT terminal green, hard 0.125rem, all-mono · sovereignty & verify',
+        accent: '#55d671',
     },
     {
         id: 'lightning',
         label: 'lightning',
         description: 'the network — electric violet (L2), hardest 0rem edges, sans · instant',
+        accent: '#c27dff',
     },
     {
         id: 'gold',
         label: 'gold',
         description: 'sound money — digital gold, hard 0.125rem milled edge, mono ledger · 21M',
+        accent: '#e3b831',
     },
 ] as const;
+
+/** The family default accent (orangecheck), and the hex every favicon ships
+ *  with — the swap recolors from this to the active skin's accent. */
+export const OC_DEFAULT_ACCENT = '#f97316';
+
+/** Accent hex for a skin id, falling back to the default. */
+export function accentFor(id: string | null | undefined): string {
+    return OC_THEMES.find((t) => t.id === id)?.accent ?? OC_DEFAULT_ACCENT;
+}
 
 export const DEFAULT_OC_THEME = 'orangecheck';
 

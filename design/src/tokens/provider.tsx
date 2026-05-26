@@ -12,12 +12,21 @@ import {
 } from 'react';
 
 import {
+    accentFor,
     DEFAULT_OC_THEME,
+    OC_DEFAULT_ACCENT,
     OC_SKIN_COOKIE,
     OC_THEMES,
     resolveTheme,
     type OcTheme,
 } from './themes';
+
+declare global {
+    interface Window {
+        /** Defined by `getOcThemeInitScript()`; recolors favicon + theme-color. */
+        __ocApplySkinChrome?: (skin: string) => void;
+    }
+}
 
 /**
  * OcThemeProvider — the skin (named-theme) axis.
@@ -79,6 +88,24 @@ function applyAttr(skin: string): void {
     document.documentElement.setAttribute(ATTR, skin);
 }
 
+/**
+ * Swap the browser chrome (favicon + `<meta name="theme-color">`) to the skin's
+ * accent. The real work lives in the global installed by
+ * `getOcThemeInitScript()` (so the favicon's original SVG is captured exactly
+ * once, before the init script's own first recolor — avoids re-reading an
+ * already-swapped data: URI). If the init script wasn't included, fall back to
+ * the theme-color swap alone (favicon recolor needs the captured original).
+ */
+function applySkinChrome(skin: string): void {
+    if (typeof window === 'undefined') return;
+    if (typeof window.__ocApplySkinChrome === 'function') {
+        window.__ocApplySkinChrome(skin);
+        return;
+    }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', accentFor(skin));
+}
+
 interface OcSkinContextValue {
     /** Current skin id (always resolved to a known theme). */
     skin: string;
@@ -106,6 +133,7 @@ export function OcThemeProvider({ children, defaultSkin = DEFAULT_OC_THEME }: Oc
         hydratedRef.current = true;
         const fromCookie = resolveTheme(readSkinCookie() ?? defaultSkin);
         applyAttr(fromCookie);
+        applySkinChrome(fromCookie);
         setSkinState(fromCookie);
     }, [defaultSkin]);
 
@@ -115,6 +143,7 @@ export function OcThemeProvider({ children, defaultSkin = DEFAULT_OC_THEME }: Oc
             const fromCookie = resolveTheme(readSkinCookie() ?? skin);
             if (fromCookie !== skin) {
                 applyAttr(fromCookie);
+                applySkinChrome(fromCookie);
                 setSkinState(fromCookie);
             }
         }
@@ -129,6 +158,7 @@ export function OcThemeProvider({ children, defaultSkin = DEFAULT_OC_THEME }: Oc
     const setSkin = useCallback((id: string) => {
         const next = resolveTheme(id);
         applyAttr(next);
+        applySkinChrome(next);
         writeSkinCookie(next);
         setSkinState(next);
     }, []);
@@ -158,6 +188,31 @@ export function useOcSkin(): OcSkinContextValue {
  *     <script dangerouslySetInnerHTML={{ __html: getOcThemeInitScript() }} />
  */
 export function getOcThemeInitScript(defaultSkin: string = DEFAULT_OC_THEME): string {
-    // Self-contained IIFE — no imports available at parse time.
-    return `(function(){try{var m=document.cookie.match(/(?:^|; )${OC_SKIN_COOKIE}=([^;]*)/);var s=m?decodeURIComponent(m[1]):'${defaultSkin}';if(!s){s='${defaultSkin}';}document.documentElement.setAttribute('${ATTR}',s);}catch(e){document.documentElement.setAttribute('${ATTR}','${defaultSkin}');}})();`;
+    // Self-contained IIFE — no imports available at parse time. Beyond applying
+    // the skin attribute before first paint, it installs `window.__ocApplySkinChrome`
+    // (the single owner of the favicon + theme-color swap) and runs it for the
+    // saved skin. OcThemeProvider re-invokes the same global on later changes, so
+    // the favicon's *original* SVG is captured exactly once (before any recolor)
+    // and re-recolored from `#f97316` to the active skin's accent. The favicon
+    // recolor is async (a fetch of the same-origin favicon.svg) — chrome updates
+    // a beat after paint, which is fine; the skin attribute itself is synchronous.
+    const accents = Object.fromEntries(OC_THEMES.map((t) => [t.id, t.accent]));
+    return (
+        `(function(){` +
+        `var ACC=${JSON.stringify(accents)},DEF=${JSON.stringify(defaultSkin)},ORIG=${JSON.stringify(OC_DEFAULT_ACCENT)},fav=null;` +
+        `function acc(s){return ACC[s]||ACC[DEF]||ORIG;}` +
+        `window.__ocApplySkinChrome=function(s){try{` +
+        `var a=acc(s);` +
+        `var meta=document.querySelector('meta[name="theme-color"]');if(meta){meta.setAttribute('content',a);}` +
+        `var link=document.querySelector('link[rel~="icon"][type="image/svg+xml"]');if(!link){return;}` +
+        `var paint=function(svg){link.setAttribute('href','data:image/svg+xml,'+encodeURIComponent(svg.split(ORIG).join(a)));};` +
+        `if(fav!=null){paint(fav);return;}` +
+        `var h=link.getAttribute('href');if(!h||h.indexOf('data:')===0){return;}` +
+        `fetch(h).then(function(r){return r.text();}).then(function(svg){fav=svg;paint(svg);}).catch(function(){});` +
+        `}catch(e){}};` +
+        `try{var m=document.cookie.match(/(?:^|; )${OC_SKIN_COOKIE}=([^;]*)/);var s=m?decodeURIComponent(m[1]):DEF;if(!s){s=DEF;}` +
+        `document.documentElement.setAttribute('${ATTR}',s);window.__ocApplySkinChrome(s);}` +
+        `catch(e){document.documentElement.setAttribute('${ATTR}',DEF);}` +
+        `})();`
+    );
 }

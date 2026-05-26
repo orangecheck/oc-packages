@@ -2,7 +2,9 @@ export { cn } from './cn';
 export {
     OC_THEMES,
     DEFAULT_OC_THEME,
+    OC_DEFAULT_ACCENT,
     OC_SKIN_COOKIE,
+    accentFor,
     isKnownTheme,
     resolveTheme,
     type OcTheme,
