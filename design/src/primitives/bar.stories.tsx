@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Bar } from './bar';
 
 const meta = {
-    title: 'Data/Bar',
+    title: 'Primitives/Data/Bar',
     component: Bar,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof Bar>;

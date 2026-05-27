@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, Clock, ShieldOff } from 'lucide-react';
 import { StatusPill, makeStatusPill } from './status-pill';
 
 const meta = {
-    title: 'Data/StatusPill',
+    title: 'Primitives/Data/StatusPill',
     component: StatusPill,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof StatusPill>;

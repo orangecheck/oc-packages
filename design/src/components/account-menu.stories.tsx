@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { OcAccountMenuView, type OcAccountMenuSession } from '../chrome';
 
 const meta = {
-    title: 'Composites/AccountMenu',
+    title: 'Chrome/AccountMenu',
     component: OcAccountMenuView,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof OcAccountMenuView>;

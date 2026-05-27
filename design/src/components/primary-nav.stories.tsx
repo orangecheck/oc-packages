@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { OcPrimaryNav } from '../chrome';
 
 const meta = {
-    title: 'Composites/PrimaryNav',
+    title: 'Chrome/PrimaryNav',
     component: OcPrimaryNav,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof OcPrimaryNav>;

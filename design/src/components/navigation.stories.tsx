@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { EcosystemSwitcher, OcLogoDropdown } from '../chrome';
 
 const meta = {
-    title: 'Composites/Logo & Switcher',
+    title: 'Chrome/Logo & Switcher',
     parameters: { layout: 'padded' },
 } satisfies Meta;
 

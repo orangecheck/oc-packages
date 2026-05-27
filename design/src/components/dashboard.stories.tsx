@@ -4,7 +4,7 @@ import { AppShell, OcDashboardHub, OcDashboardShell } from '../chrome';
 import { CheckCircle, FileSignature, Plus } from 'lucide-react';
 
 const meta = {
-    title: 'Composites/Dashboard',
+    title: 'Chrome/Dashboard',
     parameters: { layout: 'fullscreen' },
 } satisfies Meta;
 

@@ -16,7 +16,7 @@ import {
 
 const ADDR = 'bc1qmr7qn2t0ahj56ztpdswt54kn2r863ukd8wadj8';
 
-const meta = { title: 'Bitcoin/Primitives', parameters: { layout: 'padded' } } satisfies Meta;
+const meta = { title: 'Primitives/Bitcoin', parameters: { layout: 'padded' } } satisfies Meta;
 export default meta;
 type Story = StoryObj;
 

@@ -4,7 +4,7 @@ import { Card } from './card';
 import { StatBlock } from './stat-block';
 
 const meta = {
-    title: 'Data/Card',
+    title: 'Primitives/Data/Card',
     component: Card,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof Card>;

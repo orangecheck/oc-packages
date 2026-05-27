@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { LayoutSubHeader } from '../chrome';
 
 const meta = {
-    title: 'Composites/LayoutSubHeader',
+    title: 'Chrome/LayoutSubHeader',
     component: LayoutSubHeader,
     parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof LayoutSubHeader>;

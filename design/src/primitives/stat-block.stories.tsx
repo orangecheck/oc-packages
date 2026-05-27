@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { StatBlock } from './stat-block';
 
 const meta = {
-    title: 'Data/StatBlock',
+    title: 'Primitives/Data/StatBlock',
     component: StatBlock,
     parameters: { layout: 'padded' },
 } satisfies Meta<typeof StatBlock>;
