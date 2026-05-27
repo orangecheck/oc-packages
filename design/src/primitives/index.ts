@@ -78,6 +78,7 @@ export {
     makeStatusPill,
     type StatusPillProps,
     type StatusPillSpec,
+    type StatusPillVariant,
     type StatusTone,
 } from './status-pill';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
