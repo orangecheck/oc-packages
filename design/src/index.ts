@@ -9,9 +9,11 @@
  *   @import '@orangecheck/design/styles.css';
  *
  * Subpath entries are also available: `@orangecheck/design/tokens`,
- * `/primitives`, `/components`.
+ * `/primitives`, `/composites`, `/chrome`, `/components` (back-compat),
+ * `/format`.
  */
 export * from './tokens';
 export * from './primitives';
-export * from './components';
+export * from './composites';
+export * from './chrome';
 export * from './format';

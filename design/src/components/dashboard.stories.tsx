@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { AppShell, OcDashboardHub, OcDashboardShell, StatGrid } from '@orangecheck/ui';
+import { StatGrid } from '../composites';
+import { AppShell, OcDashboardHub, OcDashboardShell } from '../chrome';
 import { CheckCircle, FileSignature, Plus } from 'lucide-react';
 
 const meta = {

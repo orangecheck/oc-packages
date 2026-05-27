@@ -4,7 +4,7 @@ import {
     OcLogoDropdown,
     OcPrimaryNav,
     type OcAccountMenuSession,
-} from '@orangecheck/ui';
+} from '../chrome';
 import { ThemeProvider } from 'next-themes';
 
 import { OcAppearanceMenu } from '../tokens/appearance-menu';

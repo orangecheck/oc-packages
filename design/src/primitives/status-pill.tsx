@@ -42,3 +42,40 @@ export function StatusPill({ label, tone = 'muted', icon, className }: StatusPil
         </span>
     );
 }
+
+/** One status → presentation entry. `label` defaults to the status key. */
+export interface StatusPillSpec {
+    tone: StatusTone;
+    label?: string;
+    icon?: ReactNode;
+}
+
+/**
+ * makeStatusPill — build a domain-specific status pill from a status→spec map.
+ * This is the ergonomic that fleet (AgentStatus, PledgeStatus), www
+ * (StateBadge severity), and me (compliance/severity) each hand-roll. Instead
+ * of re-deriving tone-class logic per site, declare the map once:
+ *
+ *   const AgentStatusPill = makeStatusPill({
+ *       online:  { tone: 'success' },
+ *       offline: { tone: 'destructive', label: 'down' },
+ *       pending: { tone: 'warning' },
+ *   });
+ *   <AgentStatusPill status={agent.status} />
+ */
+export function makeStatusPill<S extends string>(
+    map: Record<S, StatusPillSpec>
+): (props: { status: S; className?: string }) => ReactNode {
+    function DomainStatusPill({ status, className }: { status: S; className?: string }) {
+        const spec = map[status];
+        return (
+            <StatusPill
+                tone={spec?.tone ?? 'muted'}
+                label={spec?.label ?? status}
+                icon={spec?.icon}
+                className={className}
+            />
+        );
+    }
+    return DomainStatusPill;
+}

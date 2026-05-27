@@ -2,7 +2,14 @@ import * as React from 'react';
 
 interface Props {
     children: React.ReactNode;
+    /** Full custom fallback. Takes precedence over `title`/`message`. */
     fallback?: (error: Error, reset: () => void) => React.ReactNode;
+    /** Title shown in the default fallback's terminal strip (default "! fatal"). */
+    title?: string;
+    /** Reassurance line below the error (default "this page crashed. reload to recover."). */
+    message?: string;
+    /** Called on catch — wire to Sentry/analytics. Runs alongside the console log. */
+    onError?: (error: Error, info: React.ErrorInfo) => void;
 }
 
 interface State {
@@ -17,9 +24,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo) {
-        // Intentional: we swallow here. In production this would wire to
-        // Sentry or similar.
+        // Default behaviour logs; pass `onError` to forward to Sentry or similar.
         console.error('[ErrorBoundary]', error, info);
+        this.props.onError?.(error, info);
     }
 
     reset = () => this.setState({ error: null });
@@ -34,7 +41,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                     <div className="terminal">
                         <div className="terminal-title">
                             <span className="text-destructive flex items-center gap-1.5">
-                                ! fatal
+                                {this.props.title ?? '! fatal'}
                             </span>
                         </div>
                         <div className="space-y-3 p-5 font-mono text-xs leading-relaxed">
@@ -43,7 +50,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
                                 {this.state.error.message || 'unknown error'}
                             </p>
                             <p className="text-muted-foreground">
-                                {'> '}this page crashed. reload to recover.
+                                {'> '}
+                                {this.props.message ?? 'this page crashed. reload to recover.'}
                             </p>
                             <button
                                 type="button"

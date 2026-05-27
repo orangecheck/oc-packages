@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { SectionHeader } from '@orangecheck/ui';
+import { SectionHeader } from '../composites';
 
 const meta = {
     title: 'Composites/SectionHeader',

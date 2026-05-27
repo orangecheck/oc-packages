@@ -73,7 +73,14 @@ export { Card, type CardProps } from './card';
 export { Sparkline, type SparklineProps } from './sparkline';
 export { StatBlock, type StatBlockProps } from './stat-block';
 export { Bar, type BarProps } from './bar';
-export { StatusPill, type StatusPillProps, type StatusTone } from './status-pill';
+export {
+    StatusPill,
+    makeStatusPill,
+    type StatusPillProps,
+    type StatusPillSpec,
+    type StatusTone,
+} from './status-pill';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
 
 // Bitcoin-domain tier
 export { SatsAmount, type SatsAmountProps } from './sats-amount';

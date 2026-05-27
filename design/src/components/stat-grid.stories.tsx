@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { StatGrid } from '@orangecheck/ui';
+import { StatGrid } from '../composites';
 
 const meta = {
     title: 'Composites/StatGrid',

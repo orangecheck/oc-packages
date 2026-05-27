@@ -838,11 +838,6 @@
   dependencies:
     "@simplewebauthn/browser" "^13.3.0"
 
-"@orangecheck/ui@^0.15.2":
-  version "0.15.2"
-  resolved "https://registry.npmjs.org/@orangecheck/ui/-/ui-0.15.2.tgz#33d65dee0907a0d683fc65cea8e796c5044bbba3"
-  integrity sha512-HmhfqZnlCi9/w/IljB3+GuTyPCqfg5fQunCNqwVkSZUie47OXkUJyCYU5+xtVO2R+fK50fEKMgZ9qxB9YCcqEg==
-
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
   resolved "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
@@ -1157,6 +1152,20 @@
     "@radix-ui/react-use-controllable-state" "1.2.2"
     "@radix-ui/react-use-previous" "1.1.1"
     "@radix-ui/react-use-size" "1.1.1"
+
+"@radix-ui/react-tabs@^1.1.3":
+  version "1.1.13"
+  resolved "https://registry.npmjs.org/@radix-ui/react-tabs/-/react-tabs-1.1.13.tgz#3537ce379d7e7ff4eeb6b67a0973e139c2ac1f15"
+  integrity sha512-7xdcatg7/U+7+Udyoj2zodtI9H/IIopqo+YOIcZOq1nJwXWBZ9p8xiu5llXlekDbZkca79a/fozEYQXIA4sW6A==
+  dependencies:
+    "@radix-ui/primitive" "1.1.3"
+    "@radix-ui/react-context" "1.1.2"
+    "@radix-ui/react-direction" "1.1.1"
+    "@radix-ui/react-id" "1.1.1"
+    "@radix-ui/react-presence" "1.1.5"
+    "@radix-ui/react-primitive" "2.1.3"
+    "@radix-ui/react-roving-focus" "1.1.11"
+    "@radix-ui/react-use-controllable-state" "1.2.2"
 
 "@radix-ui/react-use-callback-ref@1.1.1":
   version "1.1.1"

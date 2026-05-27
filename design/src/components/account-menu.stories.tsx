@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { OcAccountMenuView, type OcAccountMenuSession } from '@orangecheck/ui';
+import { OcAccountMenuView, type OcAccountMenuSession } from '../chrome';
 
 const meta = {
     title: 'Composites/AccountMenu',

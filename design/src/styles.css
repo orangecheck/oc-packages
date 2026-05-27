@@ -5,7 +5,6 @@
  * first. Typical consumer globals.css:
  *
  *     @import 'tailwindcss';
- *     @source '../../node_modules/@orangecheck/ui';
  *     @source '../../node_modules/@orangecheck/design';
  *     @import 'tw-animate-css';
  *     @custom-variant dark (&:is(.dark *));

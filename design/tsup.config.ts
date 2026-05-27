@@ -5,6 +5,8 @@ export default defineConfig({
         index: 'src/index.ts',
         tokens: 'src/tokens/index.ts',
         primitives: 'src/primitives/index.ts',
+        composites: 'src/composites/index.ts',
+        chrome: 'src/chrome/index.ts',
         components: 'src/components/index.ts',
         format: 'src/format/index.ts',
     },
@@ -24,7 +26,6 @@ export default defineConfig({
         'next/link',
         'next-themes',
         'lucide-react',
-        '@orangecheck/ui',
         '@orangecheck/auth-client',
     ],
 });

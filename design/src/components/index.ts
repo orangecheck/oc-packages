@@ -1,10 +1,16 @@
 /**
- * Family composites.
+ * Family composites + chrome (back-compat surface).
  *
- * These are re-exported from `@orangecheck/ui`, which remains the source of
- * truth for the OrangeCheck composite layer (OcLogoDropdown, OcAccountMenu,
- * OcPrimaryNav, dashboard shells, FAMILY_PROPERTIES, …). `@orangecheck/design`
- * surfaces them here so consumers have a single import surface for the whole
- * design system, while the composites continue to version independently.
+ * Historically these lived in `@orangecheck/ui` and were re-exported here.
+ * They have now been folded into `@orangecheck/design` itself, split into two
+ * dependency-honest tiers:
+ *   - `@orangecheck/design/composites` — generic, auth-free (SectionHeader,
+ *     EmptyState, StatGrid, HelpHint, Callout, DefinitionList, DataRow)
+ *   - `@orangecheck/design/chrome` — auth/family-coupled (OcAccountMenu,
+ *     OcLogoDropdown, OcPrimaryNav, dashboard shells, LayoutSubHeader, …)
+ *
+ * This `/components` entry re-exports both so the prior single import surface
+ * keeps working. New code should prefer the specific tier subpath.
  */
-export * from '@orangecheck/ui';
+export * from '../composites';
+export * from '../chrome';

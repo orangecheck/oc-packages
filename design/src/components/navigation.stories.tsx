@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { EcosystemSwitcher, OcLogoDropdown } from '@orangecheck/ui';
+import { EcosystemSwitcher, OcLogoDropdown } from '../chrome';
 
 const meta = {
     title: 'Composites/Logo & Switcher',
