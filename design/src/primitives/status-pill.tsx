@@ -17,6 +17,9 @@ export interface StatusPillProps {
     label: string;
     tone?: StatusTone;
     variant?: StatusPillVariant;
+    /** `bordered` only: add a `bg-{tone}/10` fill for at-a-glance emphasis on
+     *  dense dashboards (me's compliance/severity pills). Ignored when `plain`. */
+    filled?: boolean;
     /** Optional leading icon (e.g. a lucide icon sized size-3). */
     icon?: ReactNode;
     className?: string;
@@ -40,6 +43,15 @@ const BORDER_TONE: Record<StatusTone, string> = {
     info: 'border-info/40 text-info',
 };
 
+const FILL_TONE: Record<StatusTone, string> = {
+    success: 'bg-success/10',
+    warning: 'bg-warning/10',
+    destructive: 'bg-destructive/10',
+    muted: 'bg-muted/30',
+    primary: 'bg-primary/10',
+    info: 'bg-info/10',
+};
+
 /**
  * Generic state pill — the canonical form of the per-domain status pills that
  * fleet (agent/pledge/event), me (compliance/severity), and others reimplement.
@@ -51,6 +63,7 @@ export function StatusPill({
     label,
     tone = 'muted',
     variant = 'plain',
+    filled = false,
     icon,
     className,
 }: StatusPillProps) {
@@ -60,6 +73,7 @@ export function StatusPill({
                 className={cn(
                     'inline-flex items-center gap-1.5 border px-1.5 py-0.5 font-mono text-[9px] tracking-widest uppercase',
                     BORDER_TONE[tone],
+                    filled && FILL_TONE[tone],
                     className
                 )}
             >
@@ -107,9 +121,10 @@ export interface StatusPillSpec {
  */
 export function makeStatusPill<S extends string>(
     map: Record<S, StatusPillSpec>,
-    options?: { variant?: StatusPillVariant; fallbackTone?: StatusTone }
+    options?: { variant?: StatusPillVariant; filled?: boolean; fallbackTone?: StatusTone }
 ): (props: { status: S; className?: string }) => ReactNode {
     const variant = options?.variant ?? 'plain';
+    const filled = options?.filled ?? false;
     const fallbackTone = options?.fallbackTone ?? 'muted';
     function DomainStatusPill({ status, className }: { status: S; className?: string }) {
         const spec = map[status];
@@ -118,6 +133,7 @@ export function makeStatusPill<S extends string>(
                 tone={spec?.tone ?? fallbackTone}
                 label={spec?.label ?? status}
                 icon={spec?.icon}
+                filled={filled}
                 variant={variant}
                 className={className}
             />
