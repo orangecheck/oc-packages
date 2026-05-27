@@ -16,6 +16,9 @@ export type { EmptyStateProps, EmptyStateCta } from './empty-state';
 export { StatGrid, StatTile } from './stat-grid';
 export type { StatGridProps, StatItem } from './stat-grid';
 
+export { StatCard } from './stat-card';
+export type { StatCardProps } from './stat-card';
+
 export { HelpHint } from './help-hint';
 export type { HelpHintProps } from './help-hint';
 
