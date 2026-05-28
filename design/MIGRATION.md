@@ -116,3 +116,66 @@ import { OcThemePicker } from '@orangecheck/design';
 Colors, radius (0.25rem), fonts, and **shadows** are byte-for-byte identical to
 today. If anything looks different on the default skin, stop — that's a bug in
 the migration, not an intended change.
+
+## 8. Live BTC/USD spot rate · `useSpotPrice` (0.7.6+)
+
+`@orangecheck/design/format` ships a React hook for live BTC/USD display
+alongside the existing `satsToUsd` / `formatSats` formatters. Used today by
+`vault.ochk.io/pricing` (USD line under each sats price) and `me.ochk.io`
+treasury surfaces.
+
+```tsx
+import { asOf, satsToUsd, useSpotPrice } from '@orangecheck/design';
+
+function PriceCard({ sats }: { sats: number }) {
+  const { btcUsd, fetchedAt } = useSpotPrice();
+  return (
+    <>
+      <div>{sats.toLocaleString()} sats</div>
+      <div className="text-muted-foreground/70">≈ {satsToUsd(sats, btcUsd)}</div>
+      {fetchedAt && (
+        <div className="text-muted-foreground/60 text-[10px]">
+          {asOf(fetchedAt)} · live via mempool.space
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+**Consumer contract.** The hook makes a relative `fetch('/api/price/btc-usd')`.
+Every consumer that mounts it MUST host that route locally — a small Next.js
+API route that proxies mempool.space's `/api/v1/prices` and caches the rate
+in-process for 60s. Reference implementation:
+
+- `oc-vault-web/src/pages/api/price/btc-usd.ts` (the endpoint)
+- `oc-vault-web/src/lib/price/feed.ts` (the server-side fetch + 60s cache)
+
+Both files are Node-only and stay **per-consumer** — they don't belong in the
+UI package. To consume cross-origin (e.g. point a fresh consumer at a sibling
+site's endpoint while it's being scaffolded), pass `endpoint` explicitly:
+
+```tsx
+const { btcUsd } = useSpotPrice({
+  endpoint: 'https://vault.ochk.io/api/price/btc-usd',
+});
+```
+
+The endpoint route already sets `Access-Control-Allow-Origin: *` for that
+reason.
+
+### Migrating from a local copy
+
+If your site has a local `lib/price/usePrice.ts` (me.ochk's pre-0.7.6 shape) or
+`lib/price/format.ts` (vault.ochk's pre-0.7.6 shape), delete those files and
+import from the package instead:
+
+```diff
+- import { usePrice } from '@/lib/price/usePrice';
+- import { satsToUsd } from '@/lib/price/format';
++ import { satsToUsd, useSpotPrice } from '@orangecheck/design';
+```
+
+`useSpotPrice` returns the richer `{ btcUsd, fetchedAt }` shape rather than a
+bare number; callers that don't need the timestamp destructure: `const { btcUsd } =
+useSpotPrice()`.

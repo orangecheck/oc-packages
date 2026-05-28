@@ -6,7 +6,13 @@
  * site formats sats, prices, addresses, and times identically. NOTE: crypto
  * (BIP-322 signing, bech32 validation) deliberately does NOT live here — that
  * belongs in a bitcoin/crypto library, not the design system.
+ *
+ * Includes the `useSpotPrice` React hook for live BTC/USD display. The hook
+ * fetches a consumer-hosted endpoint — see `use-spot-price.ts` for the
+ * one-route-per-consumer contract.
  */
+
+export { useSpotPrice, type SpotPrice, type UseSpotPriceOptions } from './use-spot-price';
 
 /** Reference BTC/USD rate for sats↔USD display. Override per call when a live
  *  rate is available; this is a display affordance, not a price oracle. */
@@ -47,6 +53,24 @@ export function usdToSats(usd: number, btcUsd: number = REFERENCE_BTC_USD): numb
 /** Both denominations as one label: "7,000 sats · $6.65". */
 export function priceBoth(sats: number, btcUsd: number = REFERENCE_BTC_USD): string {
     return `${formatSats(sats)} sats · ${satsToUsd(sats, btcUsd)}`;
+}
+
+/**
+ * "as of HH:MM" provenance footnote. Returns `null` for nullish or
+ * unparseable input so callers can render nothing
+ * (`{x && <span>{x}</span>}`) rather than gate on a magic empty
+ * string. 24-hour, locale-aware. Pairs with `useSpotPrice().fetchedAt`
+ * to caption a live-rate display.
+ */
+export function asOf(iso: string | null | undefined): string | null {
+    if (!iso) return null;
+    const t = new Date(iso);
+    if (Number.isNaN(t.getTime())) return null;
+    return `as of ${t.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })}`;
 }
 
 /** Compact relative time — "now", "3m ago", "2h ago", "4d ago", or a date. */
