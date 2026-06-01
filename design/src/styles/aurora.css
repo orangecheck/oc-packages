@@ -1,0 +1,224 @@
+/*
+ * oc-aurora — the ambient "bitcoin aurora" background.
+ *
+ * Several large, heavily-blurred colour clouds wander on long looping paths so
+ * the whole field continuously flows and morphs — a soft mesh gradient, smooth
+ * and low-contrast (console.x.com loading-screen vibe). Pure CSS, zero JS;
+ * colour comes from the theme tokens (--brand/--success/--info/--primary) so it
+ * recolours across light/dark + all four skins. Rendered by <OcAurora/> (which
+ * OcThemeProvider mounts by default). Tune per-site with the provider's
+ * `aurora={{ intensity }}` prop or the `--oc-aurora-intensity` var.
+ */
+
+:root {
+    /* Master dial (0–~2). Per-mount override via <OcAurora intensity> / the
+       provider's `aurora={{ intensity }}` prop. */
+    --oc-aurora-intensity: 1;
+    /* Light mode rides quieter and composites normally over the light bg. */
+    --oc-aurora-mode-op: 0.46;
+    --oc-aurora-blend: normal;
+}
+
+:root.dark {
+    --oc-aurora-mode-op: 0.66;
+    --oc-aurora-blend: screen;
+}
+
+.oc-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1; /* behind all app content, above the page background */
+    pointer-events: none;
+    overflow: hidden;
+    isolation: isolate;
+    opacity: calc(var(--oc-aurora-mode-op) * var(--oc-aurora-intensity));
+    /* gentle edge fade so the clouds dissolve into the page, never a hard box */
+    -webkit-mask-image: radial-gradient(135% 130% at 50% 38%, #000 55%, transparent 100%);
+    mask-image: radial-gradient(135% 130% at 50% 38%, #000 55%, transparent 100%);
+
+    /* Aurora hues = design tokens (recolour per mode + per skin). Fallbacks are
+       the default bitcoin-aurora palette. */
+    --au-orange: var(--brand, oklch(0.72 0.22 55));
+    --au-green: var(--success, oklch(0.72 0.16 150));
+    --au-blue: var(--info, oklch(0.66 0.1 235));
+    --au-violet: var(--primary, oklch(0.7 0.2 55));
+}
+
+.oc-aurora__blob {
+    position: absolute;
+    width: 58vw;
+    height: 58vh;
+    border-radius: 50%;
+    mix-blend-mode: var(--oc-aurora-blend, screen);
+    will-change: transform;
+}
+
+/* clouds start spread across the field; each wanders a long looping path so
+   colours sweep over and blend with one another (the flowing mesh) */
+.oc-aurora__blob-1 {
+    top: -18vh;
+    left: -12vw;
+    background: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in oklch, var(--au-orange), transparent 50%) 0%,
+        transparent 66%
+    );
+    filter: blur(88px);
+    animation: oc-aurora-w1 26s ease-in-out infinite;
+}
+.oc-aurora__blob-2 {
+    top: -8vh;
+    left: 38vw;
+    width: 54vw;
+    height: 54vh;
+    background: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in oklch, var(--au-green), transparent 54%) 0%,
+        transparent 68%
+    );
+    filter: blur(96px);
+    animation: oc-aurora-w2 31s ease-in-out infinite;
+    animation-delay: -7s;
+}
+.oc-aurora__blob-3 {
+    top: -16vh;
+    right: -14vw;
+    background: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in oklch, var(--au-blue), transparent 56%) 0%,
+        transparent 68%
+    );
+    filter: blur(96px);
+    animation: oc-aurora-w3 28s ease-in-out infinite;
+    animation-delay: -13s;
+}
+.oc-aurora__blob-4 {
+    top: 22vh;
+    left: 30vw;
+    width: 50vw;
+    height: 50vh;
+    background: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in oklch, var(--au-violet), transparent 58%) 0%,
+        transparent 68%
+    );
+    filter: blur(92px);
+    animation: oc-aurora-w4 23s ease-in-out infinite;
+    animation-delay: -4s;
+}
+.oc-aurora__blob-5 {
+    top: 18vh;
+    left: -16vw;
+    width: 52vw;
+    height: 52vh;
+    background: radial-gradient(
+        circle at 50% 50%,
+        color-mix(in oklch, var(--au-orange), transparent 56%) 0%,
+        transparent 68%
+    );
+    filter: blur(92px);
+    animation: oc-aurora-w5 35s ease-in-out infinite;
+    animation-delay: -18s;
+}
+
+/* Long looping wander paths (100% returns near 0% for a seamless loop). Big
+   travel + scale pulse = pronounced, organic undulation across the whole field. */
+@keyframes oc-aurora-w1 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    25% {
+        transform: translate3d(34vw, 14vh, 0) scale(1.18);
+    }
+    50% {
+        transform: translate3d(50vw, 40vh, 0) scale(1.04);
+    }
+    75% {
+        transform: translate3d(18vw, 26vh, 0) scale(1.16);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+@keyframes oc-aurora-w2 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1.06);
+    }
+    25% {
+        transform: translate3d(-28vw, 22vh, 0) scale(0.92);
+    }
+    50% {
+        transform: translate3d(-44vw, -8vh, 0) scale(1.12);
+    }
+    75% {
+        transform: translate3d(-16vw, 30vh, 0) scale(1);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1.06);
+    }
+}
+@keyframes oc-aurora-w3 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    25% {
+        transform: translate3d(-22vw, 30vh, 0) scale(1.14);
+    }
+    50% {
+        transform: translate3d(-40vw, 10vh, 0) scale(0.96);
+    }
+    75% {
+        transform: translate3d(-12vw, 40vh, 0) scale(1.1);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+@keyframes oc-aurora-w4 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(0.98);
+    }
+    25% {
+        transform: translate3d(26vw, -24vh, 0) scale(1.16);
+    }
+    50% {
+        transform: translate3d(-18vw, -36vh, 0) scale(1.02);
+    }
+    75% {
+        transform: translate3d(-30vw, -10vh, 0) scale(1.12);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(0.98);
+    }
+}
+@keyframes oc-aurora-w5 {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1.04);
+    }
+    25% {
+        transform: translate3d(40vw, -18vh, 0) scale(0.94);
+    }
+    50% {
+        transform: translate3d(62vw, 16vh, 0) scale(1.14);
+    }
+    75% {
+        transform: translate3d(24vw, -8vh, 0) scale(1.02);
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(1.04);
+    }
+}
+
+/* Phones: smaller blur kernel — decorative. */
+@media (max-width: 640px) {
+    .oc-aurora__blob {
+        filter: blur(60px);
+    }
+}
+
+/* Motion-sensitive: hold the clouds still (they still recolour via tokens). */
+@media (prefers-reduced-motion: reduce) {
+    .oc-aurora__blob {
+        animation: none !important;
+    }
+}

@@ -20,6 +20,7 @@ import {
     resolveTheme,
     type OcTheme,
 } from './themes';
+import { OcAurora } from './aurora';
 
 declare global {
     interface Window {
@@ -121,9 +122,19 @@ export interface OcThemeProviderProps {
     children: ReactNode;
     /** Skin to assume before the cookie is read (defaults to `orangecheck`). */
     defaultSkin?: string;
+    /**
+     * The ambient bitcoin-aurora background. `true` (default) renders it behind
+     * the app; `false` disables it; `{ intensity }` tunes its strength for this
+     * site (e.g. `aurora={{ intensity: 0.5 }}` on a reading-heavy surface).
+     */
+    aurora?: boolean | { intensity?: number };
 }
 
-export function OcThemeProvider({ children, defaultSkin = DEFAULT_OC_THEME }: OcThemeProviderProps) {
+export function OcThemeProvider({
+    children,
+    defaultSkin = DEFAULT_OC_THEME,
+    aurora = true,
+}: OcThemeProviderProps) {
     const [skin, setSkinState] = useState<string>(() => resolveTheme(defaultSkin));
     const hydratedRef = useRef(false);
 
@@ -168,7 +179,14 @@ export function OcThemeProvider({ children, defaultSkin = DEFAULT_OC_THEME }: Oc
         [skin, setSkin]
     );
 
-    return <OcSkinContext.Provider value={value}>{children}</OcSkinContext.Provider>;
+    return (
+        <OcSkinContext.Provider value={value}>
+            {aurora !== false && (
+                <OcAurora intensity={typeof aurora === 'object' ? aurora.intensity : undefined} />
+            )}
+            {children}
+        </OcSkinContext.Provider>
+    );
 }
 
 /** Read the current skin + setter. Throws if used outside `OcThemeProvider`. */

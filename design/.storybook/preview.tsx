@@ -13,6 +13,9 @@ const withTheme: Decorator = (Story, context) => {
     // Stories that render their own skin/mode panels (the Themes matrix) opt out
     // so the toolbar doesn't impose a global .dark on their light panels.
     const disabled = Boolean(context.parameters?.disableGlobalTheme);
+    // Full-bleed surface (e.g. the Aurora story): paint the theme bg on <body>
+    // and keep the wrapper transparent so a fixed z-(-1) layer shows through.
+    const bare = Boolean(context.parameters?.bareSurface);
     const mode = context.globals.mode as string;
     const skin = context.globals.skin as string;
 
@@ -21,14 +24,26 @@ const withTheme: Decorator = (Story, context) => {
         if (disabled) {
             root.classList.remove('dark');
             root.setAttribute('data-oc-theme', 'orangecheck');
-            return;
+        } else {
+            root.setAttribute('data-oc-theme', skin);
+            root.classList.toggle('dark', mode === 'dark');
         }
-        root.setAttribute('data-oc-theme', skin);
-        root.classList.toggle('dark', mode === 'dark');
-    }, [mode, skin, disabled]);
+        if (bare) {
+            document.body.style.background = 'var(--background)';
+            return () => {
+                document.body.style.background = '';
+            };
+        }
+    }, [mode, skin, disabled, bare]);
+
+    const className = disabled
+        ? 'min-h-screen p-8'
+        : bare
+          ? 'text-foreground relative min-h-screen'
+          : 'bg-background text-foreground min-h-screen p-8';
 
     return (
-        <div className={disabled ? 'min-h-screen p-8' : 'bg-background text-foreground min-h-screen p-8'}>
+        <div className={className}>
             <Story />
         </div>
     );
