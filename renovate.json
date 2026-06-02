@@ -2,8 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
   "labels": ["renovate"],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 10,
+  "prConcurrentLimit": 25,
+  "prHourlyLimit": 0,
+  "branchConcurrentLimit": 25,
   "packageRules": [
     {
       "description": "Disabled by default — this Renovate config is scoped to the @orangecheck/* family ONLY. Third-party deps (next, react, tailwind, etc.) are NOT auto-tracked here; bump them by hand when you choose to.",
