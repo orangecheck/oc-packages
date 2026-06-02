@@ -27,6 +27,15 @@
       "enabled": true,
       "automerge": false,
       "labels": ["renovate", "major-bump"]
+    },
+    {
+      "description": "TEMP — fast-track @orangecheck/design 0.9.1 (switcher tooltip) at DEFAULT concurrency. Bypass the 1-day window for THIS PACKAGE ONLY; remove once the fan-out lands. Concurrency intentionally left at the default 5/10.",
+      "matchPackageNames": ["@orangecheck/design"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "minimumReleaseAge": "0",
+      "automerge": true,
+      "automergeType": "branch",
+      "groupName": "@orangecheck/* (family)"
     }
   ]
 }
