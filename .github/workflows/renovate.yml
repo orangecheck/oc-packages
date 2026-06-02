@@ -38,6 +38,25 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v5
 
+            # Pre-pull the Renovate image with retries. renovatebot/github-action
+            # runs `docker run …/renovate:latest` with no retry, so a transient
+            # ghcr.io 5xx (e.g. the 502 Bad Gateway that failed run 26809354691)
+            # kills the whole scheduled job and posts a red check. `docker run`
+            # uses a locally-present image without re-pulling, so pulling it here
+            # first — tolerating transient registry errors — makes the job
+            # resilient while preserving the always-:latest behavior.
+            - name: Pre-pull Renovate image (tolerate transient ghcr.io 5xx)
+              run: |
+                  for attempt in 1 2 3 4 5; do
+                      if docker pull ghcr.io/renovatebot/renovate:latest; then
+                          exit 0
+                      fi
+                      echo "::warning::ghcr.io pull failed (attempt ${attempt}/5); retrying in 20s"
+                      sleep 20
+                  done
+                  echo "::error::Renovate image pull failed after 5 attempts"
+                  exit 1
+
             - name: Renovate
               uses: renovatebot/github-action@v40.3.0
               env:
