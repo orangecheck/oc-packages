@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import * as React from 'react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
+import { Tooltip } from '../primitives/tooltip';
+import { cn } from '../tokens/cn';
 import type { EcosystemSlug } from './ecosystem-switcher';
 import {
     FAMILY_PROPERTIES,
@@ -46,6 +48,12 @@ import {
  * content scrolls when there are more entries than fit. The trigger
  * chips hide below `sm` to preserve mobile header space — the dropdown
  * itself still shows the grouping.
+ *
+ * On a fine pointer (mouse) the trigger reveals a themed `<Tooltip>` on
+ * hover, and on keyboard focus — naming where you are and the two
+ * affordances (`click · switch site`, `double-click · home`). It replaces
+ * the old native `title=` (unthemed, undelayed, invisible on touch) and is
+ * never shown on touch, where the menu's `home ✓` row is the path home.
  */
 
 const SECTIONS: Array<{ category: FamilyCategory; label: string }> = [
@@ -165,6 +173,56 @@ function MenuCategoryChip({ category }: { category: FamilyCategory }) {
     );
 }
 
+/**
+ * The hover/focus tooltip body — three rows that the native `title=` used to
+ * hide: where you are, then `click · switch site` and `double-click · home`.
+ * Decorative reinforcement of the trigger's `aria-label` (the tooltip itself
+ * is `aria-hidden`); the same `CornerDownLeft` glyph as the in-menu home hint.
+ */
+function SwitcherTooltipCard({ current }: { current: EcosystemSlug }) {
+    const prop = findFamilyProperty(current);
+    return (
+        <div className="w-[13rem] max-w-[calc(100vw-1.5rem)]">
+            <div className="flex flex-col leading-tight">
+                <span className="flex flex-wrap items-baseline gap-x-1.5">
+                    <span className="text-muted-foreground font-mono text-[9px] tracking-widest uppercase">
+                        you’re on
+                    </span>
+                    <span className="text-primary font-display text-[12px] font-semibold tracking-tight">
+                        {prop?.label ?? 'orangecheck family'}
+                    </span>
+                </span>
+                {prop?.sub && (
+                    <span className="text-muted-foreground mt-0.5 font-mono text-[10px] tracking-wide">
+                        {prop.sub}
+                    </span>
+                )}
+            </div>
+            <div className="border-border -mx-2.5 my-2 border-t" />
+            <div className="flex items-center gap-1.5">
+                <ChevronDown aria-hidden className="text-muted-foreground h-3 w-3 shrink-0" />
+                <span className="text-primary font-mono text-[10px] font-medium tracking-widest uppercase">
+                    click
+                </span>
+                <span className="text-muted-foreground font-mono text-[10px]">·</span>
+                <span className="text-muted-foreground font-mono text-[10px] tracking-wide">
+                    switch site
+                </span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+                <CornerDownLeft aria-hidden className="text-muted-foreground h-3 w-3 shrink-0" />
+                <span className="text-primary font-mono text-[10px] font-medium tracking-widest uppercase">
+                    double-click
+                </span>
+                <span className="text-muted-foreground font-mono text-[10px]">·</span>
+                <span className="text-muted-foreground font-mono text-[10px] tracking-wide">
+                    home
+                </span>
+            </div>
+        </div>
+    );
+}
+
 export function OcLogoDropdown({
     current,
     homeHref = '/',
@@ -231,33 +289,43 @@ export function OcLogoDropdown({
             data-oc-current-category={currentCategory}
             data-oc-site-state={siteState}
         >
-            <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={open}
-                aria-controls={menuId}
-                aria-label="OrangeCheck family · click to open property menu, double-click to go home"
-                title="single-click · family menu  ·  double-click · go home"
-                onClick={handleTriggerClick}
-                className={
-                    triggerClassName ??
-                    'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-[40px] items-center gap-2 rounded-sm px-1.5 py-1 transition-colors ' +
-                        (open ? 'bg-accent/20' : '')
-                }
-                data-oc-logo-dropdown-trigger=""
-                data-oc-logo-dropdown-open={open ? 'true' : 'false'}
+            <Tooltip
+                content={<SwitcherTooltipCard current={current} />}
+                disabled={open}
+                side="bottom"
+                align="start"
+                sideOffset={8}
+                zIndexClassName="z-[70]"
             >
-                {children}
-                <CategoryChip category={currentCategory} />
-                <SiteStateBadge state={siteState} />
-                <ChevronDown
-                    aria-hidden
-                    className={
-                        'text-muted-foreground/70 group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform duration-200 ' +
-                        (open ? 'rotate-180' : '')
-                    }
-                />
-            </button>
+                <button
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={open}
+                    aria-controls={menuId}
+                    aria-label="orangecheck family menu"
+                    onClick={handleTriggerClick}
+                    className={cn(
+                        // focus indicator is guaranteed even if a consumer overrides triggerClassName
+                        'focus-visible:ring-primary/60 rounded-sm focus-visible:ring-2 focus-visible:outline-none',
+                        triggerClassName ??
+                            'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-[40px] items-center gap-2 rounded-sm px-1.5 py-1 transition-colors ' +
+                                (open ? 'bg-accent/20' : '')
+                    )}
+                    data-oc-logo-dropdown-trigger=""
+                    data-oc-logo-dropdown-open={open ? 'true' : 'false'}
+                >
+                    {children}
+                    <CategoryChip category={currentCategory} />
+                    <SiteStateBadge state={siteState} />
+                    <ChevronDown
+                        aria-hidden
+                        className={
+                            'text-muted-foreground/70 group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform duration-200 ' +
+                            (open ? 'rotate-180' : '')
+                        }
+                    />
+                </button>
+            </Tooltip>
             {/* Home affordance · a sibling Link to the trigger button
                 rather than a child of it (nested buttons would be
                 invalid HTML). Fades + slides in when the dropdown is
@@ -295,7 +363,7 @@ export function OcLogoDropdown({
                 <div
                     id={menuId}
                     role="menu"
-                    aria-label="OrangeCheck family"
+                    aria-label="orangecheck family"
                     className={
                         popoverClassName ??
                         'bg-background absolute top-full left-0 z-[60] mt-2 w-[min(20rem,calc(100vw-1rem))] border shadow-lg'

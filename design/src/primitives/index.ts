@@ -48,6 +48,7 @@ export { prompt, PromptHost, type PromptOptions } from './prompt-dialog';
 export { Modal, type ModalProps } from './modal';
 export { Pagination, type PaginationProps } from './pagination';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover';
+export { Tooltip, type TooltipProps } from './tooltip';
 export {
     Accordion,
     AccordionItem,
