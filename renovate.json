@@ -2,9 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
   "labels": ["renovate"],
-  "prConcurrentLimit": 25,
-  "prHourlyLimit": 0,
-  "branchConcurrentLimit": 25,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 10,
   "packageRules": [
     {
       "description": "Disabled by default — this Renovate config is scoped to the @orangecheck/* family ONLY. Third-party deps (next, react, tailwind, etc.) are NOT auto-tracked here; bump them by hand when you choose to.",
@@ -28,15 +27,6 @@
       "enabled": true,
       "automerge": false,
       "labels": ["renovate", "major-bump"]
-    },
-    {
-      "description": "TEMP — fast-track the @orangecheck/design 0.9.0 switcher-tooltip rollout: bypass the 1-day stability window for THIS PACKAGE ONLY. Remove immediately after the fan-out lands; the global window stays in force for every other package.",
-      "matchPackageNames": ["@orangecheck/design"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "minimumReleaseAge": "0",
-      "automerge": true,
-      "automergeType": "branch",
-      "groupName": "@orangecheck/* (family)"
     }
   ]
 }
