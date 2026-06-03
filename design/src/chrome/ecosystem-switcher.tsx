@@ -27,7 +27,8 @@ export type EcosystemSlug =
     | 'stamp'
     | 'agent'
     | 'pledge'
-    | 'analytics';
+    | 'analytics'
+    | 'bot';
 
 interface SwitcherEntry {
     slug: EcosystemSlug;
@@ -118,9 +119,9 @@ const ENTRIES: SwitcherEntry[] = [
 ];
 
 /** Entries gated behind `showOwnerEntries={true}`. Owner-only family
- *  properties (currently just `oc·analytics` at analytics.ochk.io)
- *  live here so they're invisible to everyone except verified owners
- *  — the JWT claim drives the gate. */
+ *  properties (`oc·analytics` at analytics.ochk.io, `oc·bot` at
+ *  bot.ochk.io) live here so they're invisible to everyone except
+ *  verified owners — the JWT claim drives the gate. */
 const OWNER_ENTRIES: SwitcherEntry[] = [
     {
         slug: 'analytics',
@@ -128,6 +129,13 @@ const OWNER_ENTRIES: SwitcherEntry[] = [
         label: 'oc·analytics',
         sub: 'owner cockpit',
         docsHref: 'https://analytics.ochk.io',
+    },
+    {
+        slug: 'bot',
+        href: 'https://bot.ochk.io',
+        label: 'oc·bot',
+        sub: 'social bot',
+        docsHref: 'https://bot.ochk.io',
     },
 ];
 

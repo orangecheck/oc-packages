@@ -139,6 +139,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         docsHref: 'https://analytics.ochk.io',
         category: 'owner',
     },
+    {
+        slug: 'bot',
+        origin: 'https://bot.ochk.io',
+        hostname: 'bot.ochk.io',
+        label: 'oc·bot',
+        sub: 'social bot',
+        docsHref: 'https://bot.ochk.io',
+        category: 'owner',
+    },
 ];
 
 /**
