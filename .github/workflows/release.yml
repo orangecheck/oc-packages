@@ -13,6 +13,7 @@ name: Release
 #   git tag stamp-ots-v0.1.0 ...          → @orangecheck/stamp-ots       (npm)
 #   git tag pledge-core-v0.1.0 ...        → @orangecheck/pledge-core     (npm)
 #   git tag me-client-v0.1.0 ...          → @orangecheck/me-client       (npm)
+#   git tag insights-client-v0.1.0 ...    → @orangecheck/insights-client (npm)
 #   git tag ui-v0.1.0 ...                 → @orangecheck/ui              (npm)
 #   git tag design-v0.1.0 ...             → @orangecheck/design          (npm)
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
@@ -51,6 +52,7 @@ on:
             - 'agent-langgraph-v*'
             - 'webhook-verify-v*'
             - 'me-client-v*'
+            - 'insights-client-v*'
             - 'auth-core-v*'
             - 'auth-client-v*'
             - 'ui-v*'
