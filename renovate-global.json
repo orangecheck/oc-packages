@@ -8,7 +8,7 @@
     "orangecheck/oc-agent-web",
     "orangecheck/oc-analytics-web",
     "orangecheck/oc-attest-web",
-    "orangecheck/oc-bot",
+    "orangecheck/oc-bot-web",
     "orangecheck/oc-docs",
     "orangecheck/oc-fleet-web",
     "orangecheck/oc-lock-web",
