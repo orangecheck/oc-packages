@@ -57,6 +57,7 @@ jobs:
                     - agent-langgraph
                     - webhook-verify
                     - me-client
+                    - insights-client
                     - auth-core
                     - auth-client
                     - ui

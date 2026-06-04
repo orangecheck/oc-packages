@@ -1,0 +1,56 @@
+{
+  "name": "@orangecheck/insights-client",
+  "version": "0.1.0",
+  "description": "Server-side emit API for oc insights — first-party, protocol-aware event tracking for the OrangeCheck family. Fire-and-forget, never throws into the caller.",
+  "keywords": [
+    "orangecheck",
+    "analytics",
+    "insights",
+    "events",
+    "telemetry"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "homepage": "https://ochk.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "insights-client"
+  },
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
