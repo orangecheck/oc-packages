@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/legal",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "OrangeCheck family-internal legal document engine — composable Terms, Privacy, and Security pages for the .ochk.io sub-sites. Not for third-party use.",
   "keywords": [
     "orangecheck",

@@ -53,6 +53,7 @@ on:
             - 'webhook-verify-v*'
             - 'me-client-v*'
             - 'insights-client-v*'
+            - 'legal-v*'
             - 'auth-core-v*'
             - 'auth-client-v*'
             - 'ui-v*'

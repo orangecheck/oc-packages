@@ -255,7 +255,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Essential cookies for authentication and a theme preference. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
+                    text: 'Essential cookies for authentication and a theme preference. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only — alongside our own first-party, cookieless analytics (oc insights): no cookies, no cross-site identity, IP hashed and immediately discarded, and Do-Not-Track / Global Privacy Control honored. No advertising or tracking cookies.',
                 },
             ],
         },

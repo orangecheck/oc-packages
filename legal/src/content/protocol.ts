@@ -301,7 +301,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'cookies & analytics' },
                 {
                     kind: 'para',
-                    text: 'Essential cookies are required for the Service to function; a preference cookie stores your theme. We use [Plausible Analytics](https://plausible.io/privacy) — cookie-free, no personal data, aggregate statistics only. No advertising or tracking cookies.',
+                    text: 'Essential cookies are required for the Service to function; a preference cookie stores your theme. We use [Plausible Analytics](https://plausible.io/privacy) — cookie-free, no personal data, aggregate statistics only — alongside our own first-party, cookieless analytics (oc insights): no cookies, no cross-site identity, your IP address is hashed and immediately discarded (never stored), and Do-Not-Track / Global Privacy Control signals are honored. No advertising or tracking cookies.',
                 },
             ],
         },
