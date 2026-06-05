@@ -187,6 +187,21 @@ function isNegative(v: Vector): v is NegativeVector {
     return 'negative' in v && v.negative === true;
 }
 
+// v1.2 federation-principal vectors (v18–v26) are exercised by federation.test.ts
+// against verifyFederationDelegation / verifyFederationRevocation. They use a
+// `federation:<descriptor_id>` principal that the v1 single-address path here
+// intentionally rejects, so skip them in the generic v1 loops. (v26 — the
+// single-address baseline — stays: its principal.alg is "bip322".)
+function isFederation(v: Vector): boolean {
+    const d = v as unknown as {
+        kind?: string;
+        expected?: { envelope?: { principal?: { alg?: string }; signer?: { alg?: string } } };
+    };
+    if (d.kind === 'federation-descriptor') return true;
+    const env = d.expected?.envelope;
+    return env?.principal?.alg === 'federation' || env?.signer?.alg === 'federation';
+}
+
 async function loadVectors(): Promise<{ name: string; data: Vector }[]> {
     try {
         const files = await readdir(VECTORS_DIR);
@@ -217,6 +232,7 @@ describe('oc-agent-protocol test vectors', () => {
     const subdelegationEnvelopes = new Map<string, SubdelegationEnvelope>();
     for (const { data } of vectors) {
         if (isNegative(data)) continue;
+        if (isFederation(data)) continue;
         if ((data as { private_scope?: unknown }).private_scope) continue;
         if (data.kind === 'delegation') {
             delegationEnvelopes.set(data.expected.id, data.expected.envelope);
@@ -227,6 +243,7 @@ describe('oc-agent-protocol test vectors', () => {
 
     for (const { name, data } of vectors) {
         if (isNegative(data)) continue;
+        if (isFederation(data)) continue;
         if ((data as { private_scope?: unknown }).private_scope) continue;
         it(`${name} — canonical message reconstructs byte-identical`, () => {
             const msg = reconstructCanonical(data);

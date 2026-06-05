@@ -50,6 +50,24 @@ export type {
     VerifySubdelegationInput,
 } from './verify.js';
 export {
+    federationDescriptorCanonicalMessage,
+    computeFederationDescriptorId,
+    verifyFederationDelegation,
+    verifyFederationRevocation,
+} from './federation.js';
+export type {
+    FederationGuardian,
+    FederationDescriptor,
+    FederationPrincipal,
+    FederationSignature,
+    FederationDelegationEnvelope,
+    FederationRevocationEnvelope,
+    FederationVerifyResult,
+    VerifyFederationBase,
+    VerifyFederationDelegationInput,
+    VerifyFederationRevocationInput,
+} from './federation.js';
+export {
     sealScopes,
     unsealScopes,
     encodeScopesPayload,

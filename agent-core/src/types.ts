@@ -254,7 +254,13 @@ export type AgentErrorCode =
     | 'E_SCOPES_BOTH_PROVIDED'
     | 'E_SCOPES_NEITHER_PROVIDED'
     | 'E_SCOPES_UNREADABLE'
-    | 'E_BAD_LOCK_ENVELOPE';
+    | 'E_BAD_LOCK_ENVELOPE'
+    // v1.2 federation principal (FEDERATION.md §3.3)
+    | 'E_BAD_FEDERATION_DESCRIPTOR'
+    | 'E_THRESHOLD_MISMATCH'
+    | 'E_THRESHOLD_NOT_MET'
+    | 'E_UNKNOWN_GUARDIAN'
+    | 'E_DUPLICATE_GUARDIAN';
 
 export interface VerifyOk<T> {
     ok: true;
