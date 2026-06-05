@@ -29,7 +29,8 @@ export type EcosystemSlug =
     | 'agent'
     | 'pledge'
     | 'analytics'
-    | 'bot';
+    | 'bot'
+    | 'forge';
 
 interface SwitcherEntry {
     slug: EcosystemSlug;
@@ -144,6 +145,13 @@ const OWNER_ENTRIES: SwitcherEntry[] = [
         label: 'oc·bot',
         sub: 'social bot',
         docsHref: 'https://bot.ochk.io',
+    },
+    {
+        slug: 'forge',
+        href: 'https://forge.ochk.io',
+        label: 'oc·forge',
+        sub: 'agent ops',
+        docsHref: 'https://forge.ochk.io',
     },
 ];
 

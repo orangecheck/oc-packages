@@ -157,6 +157,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         docsHref: 'https://bot.ochk.io',
         category: 'owner',
     },
+    {
+        slug: 'forge',
+        origin: 'https://forge.ochk.io',
+        hostname: 'forge.ochk.io',
+        label: 'oc·forge',
+        sub: 'agent ops',
+        docsHref: 'https://forge.ochk.io',
+        category: 'owner',
+    },
 ];
 
 /**
