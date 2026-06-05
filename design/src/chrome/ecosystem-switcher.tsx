@@ -21,6 +21,7 @@ export type EcosystemSlug =
     | 'fleet'
     | 'me'
     | 'vault'
+    | 'chat'
     | 'attest'
     | 'lock'
     | 'vote'
@@ -73,6 +74,13 @@ const ENTRIES: SwitcherEntry[] = [
         label: 'oc·vault',
         sub: 'keep — encrypted secrets',
         docsHref: 'https://docs.ochk.io/vault',
+    },
+    {
+        slug: 'chat',
+        href: 'https://chat.ochk.io',
+        label: 'oc·chat',
+        sub: 'message — encrypted chat',
+        docsHref: 'https://docs.ochk.io/chat',
     },
     {
         slug: 'attest',
