@@ -44,3 +44,6 @@ export type { AppShellProps } from './app-shell';
 
 export { LayoutSubHeader } from './layout-sub-header';
 export type { LayoutSubHeaderProps, LayoutSubHeaderTag } from './layout-sub-header';
+
+export { OcAppBar } from './app-bar';
+export type { OcAppBarProps } from './app-bar';
