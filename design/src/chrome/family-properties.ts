@@ -68,6 +68,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'product',
     },
     {
+        slug: 'chat',
+        origin: 'https://chat.ochk.io',
+        hostname: 'chat.ochk.io',
+        label: 'oc·chat',
+        sub: 'message — encrypted chat',
+        docsHref: 'https://docs.ochk.io/chat',
+        category: 'product',
+    },
+    {
         slug: 'fleet',
         origin: 'https://fleet.ochk.io',
         hostname: 'fleet.ochk.io',
