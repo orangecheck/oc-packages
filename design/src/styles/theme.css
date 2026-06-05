@@ -176,6 +176,36 @@
         color: color-mix(in oklch, var(--foreground), transparent 50%);
     }
 
+    /* ── Frosted translucent surface (aurora-aware) ──────────────────────
+       The canonical card/panel background for any surface that sits over the
+       ambient <OcAurora/>. Derives from --card via color-mix, so it recolours
+       across every skin + mode automatically, and frosts the moving aurora
+       behind it (backdrop-blur) so the colour bleeds through subtly while text
+       stays legible. Two rules:
+         1. Put .oc-surface on the OUTERMOST panel only — never nest it inside
+            another .oc-surface (stacked backdrop-blurs muddy the result).
+            Inner cells / rows stay transparent and inherit the panel behind.
+         2. Pair it with a `border` for the edge; .oc-surface only owns the
+            fill + blur.
+       Tune per mode via --oc-surface-translucency / --oc-surface-blur (set in
+       aurora.css). */
+    .oc-surface {
+        background-color: color-mix(
+            in oklch,
+            var(--card),
+            transparent var(--oc-surface-translucency, 16%)
+        );
+        backdrop-filter: blur(var(--oc-surface-blur, 12px)) saturate(1.06);
+        -webkit-backdrop-filter: blur(var(--oc-surface-blur, 12px)) saturate(1.06);
+    }
+    /* No backdrop-filter (rare) → fall back near-opaque so text never sits on a
+       moving aurora with poor contrast. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .oc-surface {
+            background-color: color-mix(in oklch, var(--card), transparent 4%);
+        }
+    }
+
     /* Terminal-window chrome: hard borders, no soft shadows. */
     .terminal {
         background: var(--card);

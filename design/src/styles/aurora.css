@@ -17,11 +17,20 @@
     /* Light mode rides quieter and composites normally over the light bg. */
     --oc-aurora-mode-op: 0.46;
     --oc-aurora-blend: normal;
+
+    /* Frosted-surface tuning (consumed by .oc-surface in theme.css). Light mode
+       keeps panels mostly solid since the aurora rides quiet here. */
+    --oc-surface-translucency: 16%;
+    --oc-surface-blur: 12px;
 }
 
 :root.dark {
     --oc-aurora-mode-op: 0.66;
     --oc-aurora-blend: screen;
+
+    /* Dark mode's aurora is brighter (screen blend) — let a touch more of it
+       bleed through frosted panels for the same ambient feel. */
+    --oc-surface-translucency: 26%;
 }
 
 .oc-aurora {
