@@ -132,12 +132,16 @@
     .container {
         @apply mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8;
     }
-    /* The app-surface counterpart to `.container`: identical responsive gutters,
-       but NO max-width and NO centering — full-bleed by contract. Use on
-       full-screen application surfaces (the OcAppBar header + a full-bleed app
-       shell). Marketing/content pages keep `.container`. */
+    /* The app-surface counterpart to `.container`: full-bleed (NO max-width, NO
+       centering). Crucially it does NOT escalate gutters the way `.container`
+       does — a full-bleed app shell pins a fixed-width icon rail (w-14 = 56px)
+       flush to the left edge, so an escalating gutter would drift the header
+       logo off that rail (worst at desktop). The fixed 18px gutter seats a 20px
+       logo mark (visible center at +10px) exactly over the rail's glyph column
+       (rail glyph center = 28px = 18 + 10) at every width. Use on full-screen
+       application surfaces (OcAppBar header + a full-bleed shell). */
     .app-bar {
-        @apply w-full px-4 sm:px-6 lg:px-8;
+        @apply w-full px-[18px];
     }
     .vstack {
         @apply flex flex-col gap-4 sm:gap-5 md:gap-6;
