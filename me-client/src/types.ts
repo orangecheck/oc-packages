@@ -26,9 +26,19 @@ export const PLATFORM_FEE_POLICY = {
     ratified: '2026-04-30',
 } as const;
 
-/** Anti-spam price floor. No integrator can configure a per-event price
- *  below this. */
-export const MIN_INTEGRATOR_PRICE_SATS = 5;
+/** Per-event price floor. 1 sat — the natural atomic Bitcoin unit.
+ *  Integrators choose their own per-event prices above this; OC does
+ *  not impose sybil-resistance opinions on integrators (that's their
+ *  call, from their own threat model). The 1-sat floor is purely
+ *  mechanical — fees can't be fractional sats. Mirrors the canonical
+ *  value at oc-me-web/src/lib/events/types.ts (a previous SDK release
+ *  drifted to 5 while the platform ratified 1). */
+export const MIN_INTEGRATOR_PRICE_SATS = 1;
+
+/** Platform ceiling on drop-period windows: no integrator schedule may
+ *  hold a user's earned share open longer than this, regardless of
+ *  cadence. Published in ABUSE_LIMITS on me.ochk.io /trust + /security. */
+export const MAX_DROP_WINDOW_DAYS = 92;
 
 // ── event taxonomy ────────────────────────────────────────────────────────
 
@@ -71,16 +81,34 @@ export type SiteFeeShape =
     | { kind: 'fixed_sats'; sats: number }
     | { kind: 'percent_of_amount'; pct: number };
 
+/** Optional per-class pricing overrides · per OCHK-V3-PLAN §7 phase-1.
+ *  Agents acting under a scoped oc-agent delegation may bill
+ *  differently than humans firing the same subtype. When `agent` is
+ *  unset on a subtype, agent traffic bills at the human rate. `refuse:
+ *  true` makes the subtype human-only — the endpoint returns 422
+ *  agent_refused for is_agent=true requests. */
+export interface AgentClassOverride {
+    /** Override site_pays for agent-fired events. */
+    site_pays?: SiteFeeShape;
+    /** Override user_share_pct. Same default-fallback as site_pays. */
+    user_share_pct?: number;
+    /** When true, agent traffic is refused for this subtype. */
+    refuse?: boolean;
+}
+
 /** What an integrator declares for a single event subtype. */
 export interface IntegratorEventConfig {
     /** Whether this site bills this event subtype at all. */
     enabled: boolean;
     /** The per-event fee the site pays. */
     site_pays: SiteFeeShape;
-    /** Fraction of post-platform-fee that flows to the user (0–0.8 since
-     *  platform_fee is 20%). The remainder is a rebate to the site's OC
-     *  project balance. */
+    /** Fraction of GROSS that flows to the user (0–0.8 since the
+     *  platform fee is 20%). The remainder is a rebate to the site's
+     *  OC project balance. */
     user_share_pct: number;
+    /** Optional per-agent-class pricing override applied when an event
+     *  fires with is_agent=true. */
+    agent?: AgentClassOverride;
 }
 
 /** A complete integrator pricing config. Posted to me.ochk.io once at
@@ -108,38 +136,58 @@ export interface ComputedFees {
 
 /** Compute the four-way fee split for an event given an integrator's
  *  config and (for percent_of_amount events) the underlying payment
- *  amount.
+ *  amount. MIRRORS oc-me-web/src/lib/events/types.ts computeFees()
+ *  EXACTLY — the SDK-side replay (oc.event.verify) re-runs this against
+ *  envelopes the server billed, so any drift is a false "divergence".
  *
- *  Invariants (verified by tests in oc-me-web/src/lib/events/types.test.ts):
- *    1. gross_fee_sats >= MIN_INTEGRATOR_PRICE_SATS
- *    2. platform_fee_sats >= PLATFORM_FEE_POLICY.min_floor_sats
- *    3. user_share_pct is clamped to [0, 0.8]
- *    4. site_rebate_sats >= 0
- *    5. gross == platform + user + rebate (exact, modulo rounding into rebate)
- */
+ *  Invariants:
+ *    1. gross_fee_sats >= MIN_INTEGRATOR_PRICE_SATS (1-sat atomic floor)
+ *    2. platform_fee_sats = min(gross, max(min_floor, round(gross × pct)))
+ *       — bounded above by gross so a 1-sat event can't owe more
+ *       platform fee than it grossed
+ *    3. user_earned_sats = min(gross − platform, round(gross × share)),
+ *       share clamped to [0, 0.8]
+ *    4. site_rebate_sats = gross − platform − user (exact remainder)
+ *    5. gross == platform + user + rebate exactly
+ *
+ *  When `opts.is_agent` is true AND the config has an `agent` override,
+ *  the agent's site_pays / user_share_pct apply. `agent.refuse: true`
+ *  throws 'agent_refused' (the server maps it to 422). */
 export function computeFees(
     cfg: IntegratorEventConfig,
-    payment_amount_sats?: number
+    payment_amount_sats?: number,
+    opts?: { is_agent?: boolean }
 ): ComputedFees {
+    const is_agent = opts?.is_agent === true;
+    if (is_agent && cfg.agent?.refuse) {
+        throw new Error('agent_refused');
+    }
+    const effective_site_pays =
+        is_agent && cfg.agent?.site_pays ? cfg.agent.site_pays : cfg.site_pays;
+    const effective_user_share_pct =
+        is_agent && typeof cfg.agent?.user_share_pct === 'number'
+            ? cfg.agent.user_share_pct
+            : cfg.user_share_pct;
+
     let gross = 0;
-    if (cfg.site_pays.kind === 'fixed_sats') {
-        gross = Math.max(MIN_INTEGRATOR_PRICE_SATS, Math.round(cfg.site_pays.sats));
+    if (effective_site_pays.kind === 'fixed_sats') {
+        gross = Math.max(MIN_INTEGRATOR_PRICE_SATS, Math.round(effective_site_pays.sats));
     } else {
         if (payment_amount_sats == null) {
             throw new Error('percent_of_amount config requires payment_amount_sats');
         }
         gross = Math.max(
             MIN_INTEGRATOR_PRICE_SATS,
-            Math.round(payment_amount_sats * cfg.site_pays.pct)
+            Math.round(payment_amount_sats * effective_site_pays.pct)
         );
     }
-    const platform_fee_sats = Math.max(
-        PLATFORM_FEE_POLICY.min_floor_sats,
-        Math.round(gross * PLATFORM_FEE_POLICY.pct)
+    const platform_fee_sats = Math.min(
+        gross,
+        Math.max(PLATFORM_FEE_POLICY.min_floor_sats, Math.round(gross * PLATFORM_FEE_POLICY.pct))
     );
-    const user_share = Math.min(0.8, Math.max(0, cfg.user_share_pct));
-    const user_earned_sats = Math.round(gross * user_share);
-    const site_rebate_sats = Math.max(0, gross - platform_fee_sats - user_earned_sats);
+    const user_share = Math.min(0.8, Math.max(0, effective_user_share_pct));
+    const user_earned_sats = Math.min(gross - platform_fee_sats, Math.round(gross * user_share));
+    const site_rebate_sats = gross - platform_fee_sats - user_earned_sats;
     return { gross_fee_sats: gross, platform_fee_sats, user_earned_sats, site_rebate_sats };
 }
 
@@ -215,6 +263,56 @@ export interface BillableEvent {
      *  branches to v=3 only when present, so legacy human-fired
      *  events keep their v=2 hash + signature. */
     is_agent?: boolean;
+    /** Drop-period stamp · present when the project covers this
+     *  subtype with a drop schedule. The user-share of a stamped event
+     *  MATURES until the window's boundary, then vests as one batch
+     *  (the drop). Billing is untouched. Part of the SIGNED canonical
+     *  bytes (encoder branches to v=4 when present). No clawback
+     *  exists — vesting is unconditional, and an open window's
+     *  boundary can only ever move earlier. */
+    drop?: {
+        /** Deterministic window id · the window's signed manifest is
+         *  verifiable at me.ochk.io/verify/<manifest_id> after close. */
+        window_id: string;
+        /** Block-denominated vesting boundary; null when no chain tip
+         *  was observable at window open (wallclock + the published
+         *  24h safety valve then govern). */
+        close_height_target: number | null;
+    } | null;
+}
+
+// ── drop periods · integrator-scheduled payout windows ───────────────────
+
+/** A drop schedule's cadence. Weekly/monthly close at a fixed UTC
+ *  boundary; manual closes when the integrator says (Drop now), with a
+ *  hard auto-close at max_open_days (≤ MAX_DROP_WINDOW_DAYS). */
+export type DropCadence =
+    | { kind: 'weekly'; day: number; hour: number }
+    | { kind: 'monthly'; day: number; hour: number }
+    | { kind: 'manual'; max_open_days: number };
+
+/** Public shape of an enabled drop schedule, as returned in the
+ *  `drops` array of GET /api/integrator/config — part of the project's
+ *  public payout contract (earners can see when covered subtypes pay
+ *  out before earning under them). */
+export interface DropScheduleSummary {
+    schedule_id: string;
+    label: string;
+    subtypes: EventSubtype[];
+    cadence: DropCadence;
+}
+
+/** Drop-period context on event-ingest responses (single route:
+ *  top-level `drop`; batch route: per-result `drop`). `state` flips
+ *  from 'open' to 'closing' once the scheduled boundary passes and the
+ *  window awaits its sweep (~15 min) — render "processing", never a
+ *  negative countdown. */
+export interface DropResponseBlock {
+    window_id: string;
+    label: string;
+    state: 'open' | 'closing';
+    closes_at_target: string;
+    close_height_target: number | null;
 }
 
 // ── webhook payload ───────────────────────────────────────────────────────
@@ -268,6 +366,43 @@ export interface WebhookPayload extends BillableEvent {
             string
         >
     >;
+}
+
+/**
+ * Non-billable SYSTEM webhook deliveries — project-level operational
+ * signals (escrow.low, escrow.depleted, escrow.recovered, drop.closed).
+ * Same signing + headers as billable deliveries; receivers subscribe
+ * via the same `subscribed` list ('*' or the explicit subtype string).
+ * Carries no user identity. Discriminate on `kind` first, then
+ * `subtype`:
+ *
+ *   const payload = JSON.parse(body) as WebhookPayload | SystemWebhookPayload;
+ *   if (payload.kind === 'oc-system-event' && payload.subtype === 'drop.closed') { … }
+ */
+export interface SystemWebhookPayload {
+    kind: 'oc-system-event';
+    subtype: string;
+    project_key: string;
+    [extra: string]: unknown;
+}
+
+/** The `drop.closed` system event — one per closed drop window. The
+ *  manifest is the signed, content-addressed record (Merkle commitments
+ *  over member events + recipients); verify_url renders + live-verifies
+ *  it, and /api/envelope/<manifest_id> serves the raw canonical bytes. */
+export interface DropClosedWebhookPayload extends SystemWebhookPayload {
+    subtype: 'drop.closed';
+    window_id: string;
+    schedule_id: string;
+    label: string;
+    manifest_id: string;
+    verify_url: string;
+    sealed_at: string;
+    sealed_height: number | null;
+    event_count: number;
+    recipient_count: number;
+    gross_fee_sats: number;
+    user_share_sats: number;
 }
 
 /**

@@ -132,6 +132,8 @@ describe('@orangecheck/me-client · computeFees invariants', () => {
 
 describe('@orangecheck/me-client · validateIntegratorConfig', () => {
     it('rejects sats below MIN_INTEGRATOR_PRICE_SATS for an enabled event', () => {
+        // Floor is the 1-sat atomic unit (a prior SDK release drifted
+        // to 5 while the platform ratified 1) — 0 is below, 1 passes.
         const r = validateIntegratorConfig({
             project_key: 'pk',
             display_name: 'X',
@@ -140,13 +142,30 @@ describe('@orangecheck/me-client · validateIntegratorConfig', () => {
             events: {
                 account_creation: {
                     enabled: true,
-                    site_pays: { kind: 'fixed_sats', sats: 2 },
+                    site_pays: { kind: 'fixed_sats', sats: 0 },
                     user_share_pct: 0.5,
                 },
             },
         });
         expect(r.ok).toBe(false);
         expect(r.errors.some((e) => e.subtype === 'account_creation')).toBe(true);
+    });
+
+    it('accepts a 1-sat price — the canonical floor', () => {
+        const r = validateIntegratorConfig({
+            project_key: 'pk',
+            display_name: 'X',
+            domain: 'x.example',
+            updated_at: '',
+            events: {
+                account_creation: {
+                    enabled: true,
+                    site_pays: { kind: 'fixed_sats', sats: 1 },
+                    user_share_pct: 0.5,
+                },
+            },
+        });
+        expect(r.ok).toBe(true);
     });
 
     it('rejects user_share_pct > 0.8', () => {
