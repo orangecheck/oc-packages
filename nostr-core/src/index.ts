@@ -125,11 +125,23 @@ export interface QueryResult {
 // Internal — frame parsing + retry config.
 // ─────────────────────────────────────────────────────────────────────────
 
-type FrameType = 'OK' | 'EVENT' | 'EOSE' | 'NOTICE' | 'CLOSED';
+type FrameType = 'OK' | 'EVENT' | 'EOSE' | 'NOTICE' | 'CLOSED' | 'AUTH';
 interface RelayFrame {
     type: FrameType;
     payload: unknown[];
 }
+
+/**
+ * Sign a [NIP-42](https://nips.nostr.com/42) AUTH challenge. Given the relay's
+ * `challenge` string and `relayUrl`, return a signed kind-22242 event (tags
+ * `["relay", relayUrl]` + `["challenge", challenge]`). Passed in by the caller so
+ * this package stays dependency-free (no crypto here). Provide it only for
+ * `auth-required` relays; absent it, an AUTH challenge is ignored (today's behavior).
+ */
+export type AuthSigner = (
+    challenge: string,
+    relayUrl: string
+) => NostrEvent | Promise<NostrEvent>;
 
 function parseFrame(raw: string): RelayFrame | null {
     try {
@@ -141,7 +153,8 @@ function parseFrame(raw: string): RelayFrame | null {
             type === 'EVENT' ||
             type === 'EOSE' ||
             type === 'NOTICE' ||
-            type === 'CLOSED'
+            type === 'CLOSED' ||
+            type === 'AUTH'
         ) {
             return { type: type as FrameType, payload: arr.slice(1) };
         }
@@ -176,7 +189,8 @@ function delay(ms: number): Promise<void> {
 async function publishOne(
     url: string,
     event: NostrEvent,
-    retry: RetryOptions
+    retry: RetryOptions,
+    auth?: AuthSigner
 ): Promise<PublishResult> {
     let attempts = 0;
     let backoff = retry.initialBackoffMs;
@@ -184,7 +198,7 @@ async function publishOne(
 
     while (attempts < retry.attempts) {
         attempts++;
-        const attempt = await attemptPublish(url, event, retry.timeoutMs);
+        const attempt = await attemptPublish(url, event, retry.timeoutMs, auth);
         if (attempt.ok) {
             return {
                 relay: url,
@@ -212,10 +226,12 @@ async function publishOne(
 function attemptPublish(
     url: string,
     event: NostrEvent,
-    timeoutMs: number
+    timeoutMs: number,
+    auth?: AuthSigner
 ): Promise<{ ok: boolean; reason?: string; retryable: boolean }> {
     return new Promise((resolve) => {
         let settled = false;
+        let authed = false; // a NIP-42 AUTH handshake is attempted at most once
         let ws: WebSocket | null = null;
         const timer = setTimeout(() => {
             if (settled) return;
@@ -231,6 +247,22 @@ function attemptPublish(
             ws.onmessage = (msg) => {
                 const frame = parseFrame(msg.data as string);
                 if (!frame) return;
+                // NIP-42: an auth-required relay challenges before it accepts the
+                // EVENT. Sign the challenge with the caller's signer, send AUTH,
+                // then re-send the EVENT. Without an `auth` signer this is ignored.
+                if (frame.type === 'AUTH' && auth && !authed) {
+                    authed = true;
+                    const challenge = String(frame.payload[0] ?? '');
+                    void Promise.resolve(auth(challenge, url))
+                        .then((authEvent) => {
+                            ws?.send(JSON.stringify(['AUTH', authEvent]));
+                            ws?.send(JSON.stringify(['EVENT', event]));
+                        })
+                        .catch(() => {
+                            /* signer failed → let the attempt time out / fail */
+                        });
+                    return;
+                }
                 if (frame.type === 'OK' && frame.payload[0] === event.id) {
                     if (settled) return;
                     settled = true;
@@ -279,10 +311,11 @@ function attemptPublish(
 export async function publishEvent(
     event: NostrEvent,
     relays: readonly string[] = DEFAULT_RELAYS,
-    timeoutMs = 5000
+    timeoutMs = 5000,
+    auth?: AuthSigner
 ): Promise<PublishResult[]> {
     const retry: RetryOptions = { ...DEFAULT_RETRY, timeoutMs };
-    return Promise.all(relays.map((r) => publishOne(r, event, retry)));
+    return Promise.all(relays.map((r) => publishOne(r, event, retry, auth)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -301,7 +334,8 @@ export async function publishEvent(
 export async function queryEvents(
     filter: Filter,
     relays: readonly string[] = DEFAULT_RELAYS,
-    timeoutMs = 1500
+    timeoutMs = 1500,
+    auth?: AuthSigner
 ): Promise<QueryResult> {
     const subId = 'ocnc-' + Math.random().toString(36).slice(2, 10);
     const byId = new Map<string, NostrEvent>();
@@ -312,6 +346,7 @@ export async function queryEvents(
             (url) =>
                 new Promise<void>((resolve) => {
                     let settled = false;
+                    let authed = false; // NIP-42 handshake attempted at most once
                     let count = 0;
                     let reason: string | undefined;
                     let ws: WebSocket | null = null;
@@ -335,6 +370,22 @@ export async function queryEvents(
                         ws.onmessage = (msg) => {
                             const frame = parseFrame(msg.data as string);
                             if (!frame) return;
+                            // NIP-42: auth-required relay challenges before serving the
+                            // REQ — sign, send AUTH, then re-send the REQ. Ignored absent
+                            // an `auth` signer (today's behavior).
+                            if (frame.type === 'AUTH' && auth && !authed) {
+                                authed = true;
+                                const challenge = String(frame.payload[0] ?? '');
+                                void Promise.resolve(auth(challenge, url))
+                                    .then((authEvent) => {
+                                        ws?.send(JSON.stringify(['AUTH', authEvent]));
+                                        ws?.send(JSON.stringify(['REQ', subId, filter]));
+                                    })
+                                    .catch(() => {
+                                        /* signer failed → let the query time out */
+                                    });
+                                return;
+                            }
                             if (frame.type === 'EVENT' && frame.payload[0] === subId) {
                                 const event = frame.payload[1] as NostrEvent | undefined;
                                 if (event && event.id) {

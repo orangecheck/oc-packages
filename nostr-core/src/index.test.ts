@@ -152,6 +152,33 @@ describe('queryEvents', () => {
     });
 });
 
+describe('NIP-42 AUTH (additive)', () => {
+    it('publishEvent completes the AUTH handshake then publishes', async () => {
+        mockNextAuthPublish('chal-xyz');
+        let signedChallenge: string | undefined;
+        const results = await publishEvent(SAMPLE_EVENT, ['wss://auth'], 5000, (challenge, url) => {
+            signedChallenge = challenge;
+            return fakeAuthSigner(challenge, url);
+        });
+        expect(results[0]!.ok).toBe(true);
+        expect(signedChallenge).toBe('chal-xyz'); // the signer saw the relay's challenge
+    });
+
+    it('publishEvent WITHOUT an auth signer ignores the challenge and fails (no behavior change)', async () => {
+        mockNextAuthPublish('chal-xyz');
+        const results = await publishEvent(SAMPLE_EVENT, ['wss://auth'], 200);
+        expect(results[0]!.ok).toBe(false); // never authed → no OK → times out
+    }, 10_000);
+
+    it('queryEvents completes the AUTH handshake then serves the REQ', async () => {
+        const ev = { ...SAMPLE_EVENT, id: 'c'.repeat(64) };
+        mockNextAuthQuery('chal-q', [ev]);
+        const result = await queryEvents({ kinds: [30078] }, ['wss://auth'], 5000, fakeAuthSigner);
+        expect(result.events).toHaveLength(1);
+        expect(result.events[0]!.id).toBe('c'.repeat(64));
+    });
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // Mock WebSocket harness
 // ─────────────────────────────────────────────────────────────────────────
@@ -161,7 +188,10 @@ type Outcome =
     | { kind: 'error' }
     | { kind: 'query'; events: NostrEvent[] }
     | { kind: 'query_error' }
-    | { kind: 'query_hang' };
+    | { kind: 'query_hang' }
+    // NIP-42: challenge first, then accept the re-sent EVENT/REQ after AUTH.
+    | { kind: 'auth_then_ok'; challenge: string }
+    | { kind: 'auth_then_query'; challenge: string; events: NostrEvent[] };
 
 const outcomes: Outcome[] = [];
 
@@ -178,6 +208,30 @@ function mockNextQuery(detail: NostrEvent[] | 'error' | 'hang') {
     else if (detail === 'hang') outcomes.push({ kind: 'query_hang' });
     else outcomes.push({ kind: 'query' as const, events: detail });
 }
+
+/** A relay that challenges with NIP-42 AUTH before accepting the publish. */
+function mockNextAuthPublish(challenge: string) {
+    outcomes.push({ kind: 'auth_then_ok', challenge });
+}
+
+/** A relay that challenges with NIP-42 AUTH before serving the query. */
+function mockNextAuthQuery(challenge: string, events: NostrEvent[]) {
+    outcomes.push({ kind: 'auth_then_query', challenge, events });
+}
+
+/** A throwaway kind-22242 AUTH signer for tests (no real crypto needed). */
+const fakeAuthSigner = (challenge: string, relayUrl: string): NostrEvent => ({
+    id: 'a'.repeat(64),
+    kind: 22242,
+    pubkey: 'f'.repeat(64),
+    created_at: 1735689600,
+    content: '',
+    tags: [
+        ['relay', relayUrl],
+        ['challenge', challenge],
+    ],
+    sig: 'cafebabe'.repeat(16),
+});
 
 let originalWebSocket: typeof globalThis.WebSocket | undefined;
 
@@ -198,6 +252,7 @@ function installMockWebSocket() {
         onclose: (() => void) | null = null;
 
         private outcome: Outcome | undefined;
+        private authChallenged = false; // NIP-42: challenge fired once per connection
 
         constructor(public url: string) {
             this.outcome = outcomes.shift();
@@ -208,11 +263,23 @@ function installMockWebSocket() {
         send(raw: string) {
             const frame = JSON.parse(raw) as unknown[];
             const type = frame[0];
+            if (type === 'AUTH') {
+                // The client answered our NIP-42 challenge; nothing to do — the
+                // re-sent EVENT/REQ that follows is what we accept.
+                return;
+            }
             if (type === 'EVENT') {
                 const event = frame[1] as NostrEvent;
                 queueMicrotask(() => {
                     if (!this.outcome) return;
-                    if (this.outcome.kind === 'publish_ok') {
+                    if (this.outcome.kind === 'auth_then_ok') {
+                        if (!this.authChallenged) {
+                            this.authChallenged = true;
+                            this.onmessage?.({ data: JSON.stringify(['AUTH', this.outcome.challenge]) });
+                        } else {
+                            this.onmessage?.({ data: JSON.stringify(['OK', event.id, true, '']) });
+                        }
+                    } else if (this.outcome.kind === 'publish_ok') {
                         this.onmessage?.({
                             data: JSON.stringify(['OK', event.id, this.outcome.ok, this.outcome.reason ?? '']),
                         });
@@ -224,7 +291,17 @@ function installMockWebSocket() {
                 const subId = frame[1] as string;
                 queueMicrotask(() => {
                     if (!this.outcome) return;
-                    if (this.outcome.kind === 'query') {
+                    if (this.outcome.kind === 'auth_then_query') {
+                        if (!this.authChallenged) {
+                            this.authChallenged = true;
+                            this.onmessage?.({ data: JSON.stringify(['AUTH', this.outcome.challenge]) });
+                            return;
+                        }
+                        for (const ev of this.outcome.events) {
+                            this.onmessage?.({ data: JSON.stringify(['EVENT', subId, ev]) });
+                        }
+                        this.onmessage?.({ data: JSON.stringify(['EOSE', subId]) });
+                    } else if (this.outcome.kind === 'query') {
                         for (const ev of this.outcome.events) {
                             this.onmessage?.({ data: JSON.stringify(['EVENT', subId, ev]) });
                         }
