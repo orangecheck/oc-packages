@@ -6,9 +6,12 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
     clearSessionCookieHeader,
     DEFAULT_ISSUER,
+    readAllSessionCookies,
     readSessionCookie,
+    resolveSessionFromRequest,
     serializeSessionCookie,
     signSession,
+    TAB_SESSION_HEADER,
     verifySessionToken,
     verifyStepUpClaim,
     verifySudoClaim,
@@ -166,6 +169,90 @@ describe('cookie helpers', () => {
         expect(readSessionCookie('foo=bar')).toBeNull();
         expect(readSessionCookie(null)).toBeNull();
         expect(readSessionCookie('oc_session=')).toBeNull();
+    });
+
+    it('readAllSessionCookies returns every oc_session value in order', () => {
+        expect(readAllSessionCookies('oc_session=a; foo=bar; oc_session=b')).toEqual(['a', 'b']);
+        expect(readAllSessionCookies('foo=bar')).toEqual([]);
+        expect(readAllSessionCookies(null)).toEqual([]);
+        expect(readAllSessionCookies('oc_session=')).toEqual([]);
+    });
+});
+
+describe('resolveSessionFromRequest (per-tab pinning)', () => {
+    let sign: SignConfig;
+    let verify: VerifyConfig;
+
+    beforeAll(async () => {
+        const k = await freshKeys();
+        sign = { kid: k.kid, privateJwk: k.privateJwk, publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+        verify = { publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+    });
+
+    const mint = (sub: string, didOc: string) =>
+        signSession({ sub, did_oc: didOc, jti: `jti-${sub}` }, sign, 3600);
+
+    it('prefers a valid tab header over the cookie', async () => {
+        const cookieTok = await mint('acct-cookie', 'did:oc:c0ffee');
+        const tabTok = await mint('acct-tab', 'did:oc:7ab7ab');
+        const res = await resolveSessionFromRequest(
+            { cookie: `oc_session=${cookieTok}`, [TAB_SESSION_HEADER]: tabTok },
+            verify
+        );
+        expect(res.ok).toBe(true);
+        if (res.ok) {
+            expect(res.via).toBe('tab');
+            expect(res.payload.did_oc).toBe('did:oc:7ab7ab');
+        }
+    });
+
+    it('fails CLOSED on an invalid tab header — never falls back to the cookie', async () => {
+        const cookieTok = await mint('acct-cookie', 'did:oc:c0ffee');
+        const res = await resolveSessionFromRequest(
+            { cookie: `oc_session=${cookieTok}`, [TAB_SESSION_HEADER]: 'garbage.token.value' },
+            verify
+        );
+        expect(res).toEqual({ ok: false, reason: 'tab_invalid' });
+    });
+
+    it('falls back to the cookie jar when no tab header is present', async () => {
+        const cookieTok = await mint('acct-cookie', 'did:oc:c0ffee');
+        const res = await resolveSessionFromRequest(
+            { cookie: `oc_session=stale-garbage; oc_session=${cookieTok}` },
+            verify
+        );
+        expect(res.ok).toBe(true);
+        if (res.ok) {
+            expect(res.via).toBe('cookie');
+            expect(res.payload.did_oc).toBe('did:oc:c0ffee');
+        }
+    });
+
+    it('resolves no_session with neither header', async () => {
+        expect(await resolveSessionFromRequest({}, verify)).toEqual({
+            ok: false,
+            reason: 'no_session',
+        });
+    });
+
+    it('accepts a Web Headers object', async () => {
+        const tabTok = await mint('acct-tab', 'did:oc:7ab7ab');
+        const res = await resolveSessionFromRequest(
+            new Headers({ [TAB_SESSION_HEADER]: tabTok }),
+            verify
+        );
+        expect(res.ok).toBe(true);
+        if (res.ok) expect(res.via).toBe('tab');
+    });
+
+    it('accepts Node-style string[] header values', async () => {
+        const tabTok = await mint('acct-tab', 'did:oc:7ab7ab');
+        const res = await resolveSessionFromRequest(
+            { [TAB_SESSION_HEADER]: [tabTok] },
+            verify
+        );
+        expect(res.ok).toBe(true);
+        if (res.ok) expect(res.payload.did_oc).toBe('did:oc:7ab7ab');
     });
 });
 

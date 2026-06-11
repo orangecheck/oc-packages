@@ -35,6 +35,7 @@
 import * as React from 'react';
 
 import { LinkPromptStep } from './linked-identities';
+import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
 
 /* --- props --- */
@@ -48,8 +49,14 @@ export interface OcSignInProps {
     audience: string;
     /**
      * Where to navigate after success. Defaults to `'/'`.
-     * Open-redirect-safe: same-origin paths only (must start with `/`,
-     * NOT `//`). Absolute URLs are ignored.
+     * Open-redirect-safe: a same-origin path (must start with `/`, NOT
+     * `//`) or an absolute `https://` URL on `ochk.io` / `*.ochk.io` —
+     * the add-another-account flow starts on a consumer subdomain and
+     * must round-trip back to it, including through the OAuth provider
+     * hop. Anything else is ignored. When omitted, the component reads
+     * `?return_to=` (or `?next=`) from the page URL — so the auth
+     * host's `/signin?add=1&return_to=…` entry point Just Works, the
+     * same way the `add` prop auto-detects `?add=1`.
      */
     returnTo?: string;
     /**
@@ -153,6 +160,27 @@ function safeReturnTo(input: string | undefined): string {
     return candidate;
 }
 
+/**
+ * Family-aware return target. Accepts a same-origin relative path
+ * (exactly like {@link safeReturnTo}) OR an absolute `https://` URL on
+ * `ochk.io` / `*.ochk.io` — mirroring the auth host's own post-signin
+ * redirect allowlist. Returns `undefined` when the input is neither, so
+ * callers can layer fallbacks.
+ */
+function familyReturnTarget(input: string | undefined | null): string | undefined {
+    if (typeof input !== 'string' || input.length === 0) return undefined;
+    if (input.startsWith('/') && !input.startsWith('//')) return input;
+    try {
+        const u = new URL(input);
+        if (u.protocol !== 'https:') return undefined;
+        const host = u.hostname.toLowerCase();
+        if (host === 'ochk.io' || host.endsWith('.ochk.io')) return u.toString();
+    } catch {
+        // not an absolute URL either
+    }
+    return undefined;
+}
+
 function hardNavigate(target: string): void {
     if (typeof window === 'undefined') return;
     window.location.assign(target);
@@ -174,7 +202,29 @@ export function OcSignIn({
 }: OcSignInProps): React.ReactElement {
     const walletEnabled = paths?.wallet ?? true;
     const emailEnabled = paths?.email ?? true;
-    const safeReturn = safeReturnTo(returnTo);
+
+    // Return target · prop wins; otherwise honor `?return_to=` / `?next=`
+    // from the URL — the auth host's `/signin?add=1&return_to=…` entry
+    // point needs the OAuth provider hop to carry the same target the
+    // embedding page honors (the add-another-account fix: a vault user
+    // adding an account via Google must land back on vault, not on the
+    // host's homepage). Absolute https://*.ochk.io URLs are allowed;
+    // everything else clamps to `/`.
+    const [resolvedReturn, setResolvedReturn] = React.useState<string>(
+        () => familyReturnTarget(returnTo) ?? safeReturnTo(returnTo)
+    );
+    React.useEffect(() => {
+        const fromProp = familyReturnTarget(returnTo);
+        if (fromProp) {
+            setResolvedReturn(fromProp);
+            return;
+        }
+        if (typeof window === 'undefined') return;
+        const q = new URLSearchParams(window.location.search);
+        const fromQuery =
+            familyReturnTarget(q.get('return_to')) ?? familyReturnTarget(q.get('next'));
+        setResolvedReturn(fromQuery ?? '/');
+    }, [returnTo]);
 
     // Multi-account · prop wins; otherwise honor `?add=1` from the URL
     // so the auth host's /signin?add=1 entry point doesn't need any
@@ -215,21 +265,25 @@ export function OcSignIn({
         async (account: OcAccount) => {
             if (resolveReturnTo) {
                 try {
-                    hardNavigate(safeReturnTo(await resolveReturnTo(account)));
+                    const resolved = familyReturnTarget(await resolveReturnTo(account));
+                    hardNavigate(resolved ?? resolvedReturn);
                     return;
                 } catch {
                     // resolver failed — fall through to the static returnTo
                 }
             }
-            hardNavigate(safeReturn);
+            hardNavigate(resolvedReturn);
         },
-        [resolveReturnTo, safeReturn]
+        [resolveReturnTo, resolvedReturn]
     );
 
     const handleSuccess = React.useCallback(
         async (account: OcAccount, token: string | undefined, via: 'wallet' | 'email') => {
             // The post-sign-in handoff — custom `onSuccess`, else navigation.
             const proceed = () => {
+                // Per-tab · the user just completed a ceremony IN this tab —
+                // it must adopt the new identity, not keep a stale pin.
+                clearTabSession();
                 if (onSuccess) onSuccess(account, token);
                 else void navigate(account);
             };
@@ -405,7 +459,7 @@ export function OcSignIn({
                 )}
             </div>
 
-            <ProviderSignIn authOrigin={authOrigin} returnTo={safeReturn} />
+            <ProviderSignIn authOrigin={authOrigin} returnTo={resolvedReturn} add={addMode} />
 
             {linkPrompt && (
                 <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
@@ -523,9 +577,11 @@ function ProviderIcon({ id }: { id: string }): React.ReactElement | null {
 function ProviderSignIn({
     authOrigin,
     returnTo,
+    add,
 }: {
     authOrigin: string;
     returnTo: string;
+    add: boolean;
 }): React.ReactElement | null {
     const [providers, setProviders] = React.useState<OAuthProviderEntry[]>([]);
     // A provider sign-in redirects THROUGH the auth host, so its final
@@ -553,7 +609,14 @@ function ProviderSignIn({
 
     if (providers.length === 0) return null;
 
-    const providerReturnTo = origin ? `${origin}${returnTo}` : returnTo;
+    // An absolute family URL (the add-another-account round trip back to
+    // a consumer subdomain) is carried verbatim through the OAuth hop;
+    // a relative path is anchored to THIS page's origin.
+    const providerReturnTo = returnTo.startsWith('/')
+        ? origin
+            ? `${origin}${returnTo}`
+            : returnTo
+        : returnTo;
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
     return (
         <div data-oc-signin-providers="" style={{ marginTop: 20 }}>
@@ -579,7 +642,7 @@ function ProviderSignIn({
                     key={p.id}
                     href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
                         providerReturnTo
-                    )}`}
+                    )}${add ? '&add=1' : ''}`}
                     data-oc-signin-provider={p.id}
                     style={{
                         display: 'flex',

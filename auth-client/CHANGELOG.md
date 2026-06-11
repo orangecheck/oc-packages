@@ -11,6 +11,49 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.18.0] — 2026-06-11 · per-tab account pinning + family-wide add-account return
+
+Per-tab account isolation — one browser signed into N roster accounts,
+each tab actively operating as its own one:
+
+- New `tab-session` module: a tab pins itself to an account by holding
+  that account's session JWT in sessionStorage and sending it as the
+  `x-oc-tab-session` header (a *credential*, never a bare selector —
+  servers verify it exactly like the cookie token). Exports
+  `readTabSession` / `writeTabSession` / `clearTabSession` /
+  `tabSessionHeader` / `installTabFetchInterceptor` /
+  `consumeTabAdoptMarker` + `TAB_SESSION_HEADER` /
+  `TAB_SESSION_STORAGE_KEY` / `TAB_ADOPT_HASH`.
+- `OcSessionProvider` pins each tab on first authenticated resolve (via
+  the host's `POST /api/auth/tab`), attaches the pin to its own fetches
+  AND — via a conservative same-site `window.fetch` interceptor — to
+  app-level data calls, so the server acts as the account the tab
+  displays. `switchAccount()` re-pins THIS tab from the fresh JWT the
+  host echoes; other open tabs keep their pins and are no longer
+  yanked on focus. `signOut({scope:'current'})` signs out the TAB's
+  account. New `tabPinned` boolean on `OcSessionState`.
+- Fail-closed reconciliation: a dead pin (401) retries once as the
+  cookie account; a server that answers as a different account than
+  the pin (pre-migration deploy) drops the pin rather than display an
+  account the server isn't acting as.
+- Degrades cleanly: hosts without `/api/auth/tab`, servers that ignore
+  the header, and privacy modes without sessionStorage all fall back
+  to the legacy shared-cookie behavior.
+
+`<OcSignIn>` return-target fixes (the add-another-account redirect):
+
+- `returnTo` now accepts an absolute `https://` URL on
+  `ochk.io` / `*.ochk.io` (mirroring the auth host's own allowlist),
+  and when omitted is auto-detected from `?return_to=` / `?next=` in
+  the page URL — symmetric with the existing `?add=1` auto-detect.
+- The OAuth provider buttons carry the resolved target **verbatim**
+  through the provider hop (previously they clamped to the embedding
+  page's own origin, stranding a vault.ochk.io user on the ochk.io
+  homepage after adding an account via Google/GitHub), and forward
+  `add=1` so the host can run roster-adopt semantics on the callback.
+- A ceremony completed in-tab clears any stale tab pin, so the tab
+  adopts the just-authenticated account.
+
 ## [2.16.0] — 2026-05-19 · OcSignIn provider buttons get brand glyphs
 
 - `<OcSignIn>` provider buttons now render the vendor brand glyph

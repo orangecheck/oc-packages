@@ -14,6 +14,14 @@ import {
     type OcSessionState,
     type OcSignOutScope,
 } from './types';
+import {
+    clearTabSession,
+    consumeTabAdoptMarker,
+    installTabFetchInterceptor,
+    readTabSession,
+    tabSessionHeader,
+    writeTabSession,
+} from './tab-session';
 
 const SessionContext = React.createContext<OcSessionState | null>(null);
 
@@ -127,10 +135,12 @@ function normalizeRosterEntry(raw: RawRosterEntry): OcAccountSummary | null {
  */
 async function fetchHostRoster(cfg: Required<OcAuthConfig>): Promise<OcAccountSummary[]> {
     try {
+        // Per-tab · carry the pin so the host computes "peers" relative
+        // to THIS tab's effective account, not the cookie default.
         const res = await fetch(`${cfg.authOrigin}${cfg.mePath}`, {
             method: 'GET',
             credentials: 'include',
-            headers: { Accept: 'application/json' },
+            headers: { Accept: 'application/json', ...tabSessionHeader() },
         });
         if (!res.ok) return [];
         const body = (await res.json()) as MeResponse;
@@ -187,15 +197,73 @@ export function OcSessionProvider({
     const [roster, setRoster] = React.useState<OcAccountSummary[]>([]);
     const [status, setStatus] = React.useState<OcSessionState['status']>('loading');
     const [error, setError] = React.useState<Error | null>(null);
+    const [tabPinned, setTabPinned] = React.useState(false);
+
+    // Per-tab · mint a pin for this tab via the host. Called once per
+    // tab on first authenticated resolve, so a later switch in ANOTHER
+    // tab can't yank this one — it keeps presenting its own token.
+    // Best-effort: a host that predates `/api/auth/tab` (or a network
+    // failure) leaves the tab unpinned, which is exactly the legacy
+    // cookie-following behavior.
+    const pinInFlightRef = React.useRef(false);
+    const pinThisTab = React.useCallback(
+        async (didOc: string) => {
+            if (pinInFlightRef.current || readTabSession()) return;
+            pinInFlightRef.current = true;
+            try {
+                const res = await fetch(`${cfg.authOrigin}/api/auth/tab`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                });
+                if (!res.ok) return;
+                const body = (await res.json()) as {
+                    ok?: boolean;
+                    token?: string;
+                    account?: { did_oc?: string };
+                };
+                // Only pin when the host minted for the account this tab
+                // just resolved — a cookie flip racing between our /me and
+                // /tab calls must not pin the WRONG account.
+                if (
+                    body.ok &&
+                    typeof body.token === 'string' &&
+                    body.account?.did_oc === didOc
+                ) {
+                    writeTabSession({ token: body.token, didOc });
+                    setTabPinned(true);
+                }
+            } catch {
+                // best-effort by construction
+            } finally {
+                pinInFlightRef.current = false;
+            }
+        },
+        [cfg.authOrigin]
+    );
 
     const refresh = React.useCallback(async () => {
         if (typeof window === 'undefined') return;
         try {
-            const res = await fetch(cfg.mePath, {
+            let pin = readTabSession();
+            let res = await fetch(cfg.mePath, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { Accept: 'application/json' },
+                headers: { Accept: 'application/json', ...tabSessionHeader() },
             });
+            // Per-tab · 401 with a pin present means the pinned token is
+            // dead (expired, or revoked and rejected by the host). Drop
+            // the pin and retry once as the browser-default account.
+            if (res.status === 401 && pin) {
+                clearTabSession();
+                pin = null;
+                setTabPinned(false);
+                res = await fetch(cfg.mePath, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' },
+                });
+            }
             if (res.status === 401) {
                 setAccount(null);
                 setRoster([]);
@@ -210,6 +278,15 @@ export function OcSessionProvider({
             }
             const body = (await res.json()) as MeResponse;
             const acct = normalizeAccount(body.account);
+            // Per-tab reconciliation · the server answered as a different
+            // account than the pin → it doesn't honor `x-oc-tab-session`
+            // yet (pre-migration deploy). Drop the pin: the UI must never
+            // display an account the server isn't acting as.
+            if (acct && pin && acct.didOc !== pin.didOc) {
+                clearTabSession();
+                pin = null;
+            }
+            setTabPinned(pin !== null);
             const rosterEntries = Array.isArray(body.roster)
                 ? body.roster
                       .map(normalizeRosterEntry)
@@ -219,6 +296,10 @@ export function OcSessionProvider({
             setRoster(rosterEntries);
             setStatus(acct ? 'authenticated' : 'anonymous');
             setError(null);
+
+            // Per-tab · authenticated but unpinned → pin this tab to the
+            // account it just resolved (fire-and-forget).
+            if (acct && !pin) void pinThisTab(acct.didOc);
 
             // Multi-account · the local /me carried no roster (the standard
             // case on consumer subdomains, whose local /me has no DB). When
@@ -240,11 +321,21 @@ export function OcSessionProvider({
             setStatus('error');
             setError(err instanceof Error ? err : new Error(String(err)));
         }
-    }, [cfg]);
+    }, [cfg, pinThisTab]);
 
     React.useEffect(() => {
+        // Post-ceremony adoption · the auth host appends `#oc-adopt` when
+        // returning from a sign-in/add ceremony: the user expects THIS tab
+        // to become the account they just authenticated, so a stale pin
+        // must not survive the round trip.
+        consumeTabAdoptMarker();
         void refresh();
     }, [refresh]);
+
+    // Per-tab · attach the pin to every same-site fetch so app-level data
+    // calls execute as the account this tab displays. Scoped + reversible;
+    // see installTabFetchInterceptor for the conservative rules.
+    React.useEffect(() => installTabFetchInterceptor(cfg.authOrigin), [cfg.authOrigin]);
 
     const signOut = React.useCallback(
         async (opts?: { scope?: OcSignOutScope }) => {
@@ -255,6 +346,10 @@ export function OcSessionProvider({
                 const res = await fetch(url.toString(), {
                     method: 'POST',
                     credentials: 'include',
+                    // Per-tab · carry the pin so scope='current' signs out
+                    // the account THIS tab is operating as, not whichever
+                    // account the shared cookie happens to point at.
+                    headers: { ...tabSessionHeader() },
                     // `keepalive` lets the logout round-trip complete even if
                     // the caller hard-navigates away in the same tick (e.g.
                     // `<OcAccountMenu>` redirects home immediately on sign-out).
@@ -262,6 +357,10 @@ export function OcSessionProvider({
                     // and the `.ochk.io` cookie may never get cleared.
                     keepalive: true,
                 });
+                // The signed-out account's token is dead either way — the
+                // pin must not outlive it.
+                clearTabSession();
+                setTabPinned(false);
                 // Multi-account: with scope='current', the server may have
                 // switched the active session to a roster peer instead of
                 // clearing the cookie. Re-fetch /api/auth/me so this
@@ -276,6 +375,8 @@ export function OcSessionProvider({
             } catch {
                 // fall through — we still clear local state so the UI reflects
                 // the user's intent even if the server round-trip fails.
+                clearTabSession();
+                setTabPinned(false);
             }
             setAccount(null);
             setRoster([]);
@@ -290,7 +391,7 @@ export function OcSessionProvider({
             const res = await fetch(`${cfg.authOrigin}/api/auth/switch`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...tabSessionHeader() },
                 body: JSON.stringify({ did_oc: didOc }),
             });
             if (!res.ok) {
@@ -303,9 +404,27 @@ export function OcSessionProvider({
                 }
                 throw new Error(`[@orangecheck/auth-client] switchAccount failed: ${reason}`);
             }
-            // Cookie has flipped server-side. Re-fetch /me to surface the
-            // new active account + freshly computed roster (the previous
-            // active account is now a peer, swap is symmetric).
+            // Per-tab · pin THIS tab to the switch target using the fresh
+            // JWT the host echoes in the body. The host has also flipped
+            // the shared cookie — the default for FUTURE tabs — but other
+            // open tabs keep their own pins and are not yanked. Pin to the
+            // did the SERVER minted for (merge-graph collapse may differ
+            // from the requested did).
+            try {
+                const body = (await res.json()) as {
+                    token?: string;
+                    account?: { did_oc?: string };
+                };
+                if (typeof body.token === 'string' && body.account?.did_oc) {
+                    writeTabSession({ token: body.token, didOc: body.account.did_oc });
+                    setTabPinned(true);
+                }
+            } catch {
+                // body unreadable — cookie still flipped; refresh resolves it
+            }
+            // Re-fetch /me to surface the new active account + freshly
+            // computed roster (the previous active account is now a peer,
+            // swap is symmetric).
             await refresh();
         },
         [cfg.authOrigin, refresh]
@@ -331,7 +450,7 @@ export function OcSessionProvider({
             const res = await fetch(`${cfg.authOrigin}/api/auth/account`, {
                 method: 'PATCH',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...tabSessionHeader() },
                 body: JSON.stringify({ display_identity: kind }),
             });
             if (!res.ok) {
@@ -343,6 +462,26 @@ export function OcSessionProvider({
                     // keep the http_ fallback
                 }
                 throw new Error(`[@orangecheck/auth-client] setDisplayIdentity failed: ${reason}`);
+            }
+            // Per-tab · the PATCH re-mints; when this tab is pinned the
+            // host echoes the fresh token in the body (it only rewrites
+            // the shared cookie when the cookie account was the actor).
+            // Re-pin so the tab carries the updated claims.
+            try {
+                const body = (await res.json()) as {
+                    token?: string;
+                    account?: { did_oc?: string };
+                };
+                const pin = readTabSession();
+                if (
+                    pin &&
+                    typeof body.token === 'string' &&
+                    body.account?.did_oc === pin.didOc
+                ) {
+                    writeTabSession({ token: body.token, didOc: pin.didOc });
+                }
+            } catch {
+                // body unreadable — refresh below still reconciles state
             }
             await refresh();
         },
@@ -356,6 +495,7 @@ export function OcSessionProvider({
             status,
             account,
             roster,
+            tabPinned,
             error,
             refresh,
             signOut,
@@ -368,6 +508,7 @@ export function OcSessionProvider({
         status,
         account,
         roster,
+        tabPinned,
         error,
         refresh,
         signOut,

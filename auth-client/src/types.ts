@@ -144,6 +144,15 @@ export interface OcSessionState {
      * above) is NOT included — these are the *switch targets*.
      */
     roster: OcAccountSummary[];
+    /**
+     * Per-tab pinning · `true` when this tab holds its own session
+     * token (sessionStorage) and operates as `account` independently of
+     * the shared `.ochk.io` cookie — i.e. switching accounts in another
+     * tab will NOT change this tab's identity. `false` on hosts that
+     * predate `/api/auth/tab`, in privacy modes without sessionStorage,
+     * and while anonymous.
+     */
+    tabPinned: boolean;
     /** `null` while loading; an `Error` instance when `status === 'error'`. */
     error: Error | null;
     /** Re-fetch the session. Useful after sign-in/sign-out happens elsewhere. */

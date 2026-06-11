@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.5.0] — 2026-06-11 · per-tab session resolution
+
+Adds the server half of per-tab account pinning (multi-account: one
+browser signed into N roster accounts, each tab operating as its own
+one):
+
+- `TAB_SESSION_HEADER` (`x-oc-tab-session`) — the header carrying a
+  tab-pinned session JWT. The value is a full session token, a
+  *credential* verified exactly like the cookie token — never a bare
+  account selector the server would have to trust.
+- `resolveSessionFromRequest(headers, cfg)` — the per-tab choke point
+  every consumer's `readJwtSession` should delegate to. Tab header
+  first (**fail-closed**: present-but-invalid resolves to
+  `{ok:false, reason:'tab_invalid'}` rather than silently executing as
+  the cookie's account), then every `oc_session` cookie in the jar.
+  Accepts Node-style header bags and Web `Headers`. Crypto-only; never
+  throws.
+- `readAllSessionCookies(cookieHeader)` — every `oc_session` value in
+  a `Cookie:` header (multiple same-name cookies are legitimate);
+  extracted from the consumer-template generator so sites stop
+  hand-rolling it.
+- `ResolveSessionResult` / `IncomingRequestHeaders` types.
+
 ## [2.4.0] — 2026-05-18 · display_identity claim
 
 Adds the `display_identity` session claim — the identity a user has

@@ -431,6 +431,91 @@ export function readSessionCookie(cookieHeader: string | null | undefined): stri
     return null;
 }
 
+/**
+ * Read EVERY oc_session value out of a raw `Cookie:` header string.
+ * Multiple same-name cookies are legitimate (e.g. a stale host-scoped
+ * cookie shadowing the `Domain=.ochk.io` one) — verification should
+ * try each rather than trust ordering.
+ */
+export function readAllSessionCookies(cookieHeader: string | null | undefined): string[] {
+    if (!cookieHeader) return [];
+    const prefix = `${SESSION_COOKIE}=`;
+    const out: string[] = [];
+    for (const part of cookieHeader.split(';')) {
+        const trimmed = part.trim();
+        if (trimmed.startsWith(prefix)) {
+            const val = trimmed.slice(prefix.length);
+            if (val.length > 0) out.push(val);
+        }
+    }
+    return out;
+}
+
+// ─── Per-tab session resolution (multi-account · tab pinning) ───────────
+//
+// One browser holds ONE shared `oc_session` cookie (the browser-wide
+// default account) but may be signed into N roster accounts, each with
+// its own concurrently-valid session JWT. A tab "pins" itself to one
+// account by holding that account's JWT in sessionStorage and sending
+// it on every API call as the `x-oc-tab-session` header. The header
+// value is a full session JWT — a *credential*, never a bare selector —
+// so servers verify it exactly like the cookie token and stay
+// stateless.
+
+/** Header carrying a tab-pinned session JWT. Lowercase (Node folds headers). */
+export const TAB_SESSION_HEADER = 'x-oc-tab-session' as const;
+
+export type ResolveSessionResult =
+    | { ok: true; payload: SessionPayload; via: 'tab' | 'cookie' }
+    | { ok: false; reason: 'tab_invalid' | 'no_session' };
+
+/** Header bag shapes accepted by {@link resolveSessionFromRequest}. */
+export type IncomingRequestHeaders =
+    | Headers
+    | Record<string, string | string[] | undefined>;
+
+function headerValue(headers: IncomingRequestHeaders, name: string): string | null {
+    if (isHeaders(headers)) return headers.get(name);
+    const raw = headers[name] ?? headers[name.toLowerCase()];
+    if (Array.isArray(raw)) return raw[0] ?? null;
+    return typeof raw === 'string' ? raw : null;
+}
+
+/**
+ * Resolve the EFFECTIVE session for a request — the per-tab choke
+ * point every consumer's `readJwtSession` should delegate to.
+ *
+ * Precedence:
+ *   1. `x-oc-tab-session` header, when present. **Fail-closed**: a
+ *      present-but-invalid tab token resolves to
+ *      `{ ok: false, reason: 'tab_invalid' }` rather than silently
+ *      falling back to the cookie — falling back would execute the
+ *      request as a DIFFERENT account than the tab is displaying,
+ *      which is precisely the bug per-tab pinning exists to prevent.
+ *      Clients clear their pin on 401 and re-resolve.
+ *   2. Every `oc_session` cookie in the jar, first one that verifies.
+ *
+ * Crypto-only (signature + exp + iss via {@link verifySessionToken});
+ * revocation-aware checks remain the auth host's job. Never throws.
+ */
+export async function resolveSessionFromRequest(
+    headers: IncomingRequestHeaders,
+    cfg: VerifyConfig
+): Promise<ResolveSessionResult> {
+    const tabToken = headerValue(headers, TAB_SESSION_HEADER);
+    if (tabToken) {
+        const payload = await verifySessionToken(tabToken, cfg);
+        if (payload) return { ok: true, payload, via: 'tab' };
+        return { ok: false, reason: 'tab_invalid' };
+    }
+    const cookieHeader = headerValue(headers, 'cookie');
+    for (const token of readAllSessionCookies(cookieHeader)) {
+        const payload = await verifySessionToken(token, cfg);
+        if (payload) return { ok: true, payload, via: 'cookie' };
+    }
+    return { ok: false, reason: 'no_session' };
+}
+
 // ─── JWKS-aware verification (zero env vars · zero JWK handling) ─────────
 //
 // verifyOcToken / getOcSession are the integrator-facing verification

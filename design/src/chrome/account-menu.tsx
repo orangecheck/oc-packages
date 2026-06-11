@@ -133,6 +133,15 @@ export interface OcAccountMenuSession {
      * param by default).
      */
     addAccountUrl?: (returnTo?: string) => string;
+    /**
+     * Per-tab pinning · `true` when this tab holds its own session
+     * token and operates as `account` independently of the shared
+     * `.ochk.io` cookie (switching accounts in another tab won't
+     * change this one). Renders a quiet `· this tab` hint in the
+     * signed-in header. Optional — omitted by pre-pinning auth
+     * contexts.
+     */
+    tabPinned?: boolean;
 }
 
 export interface OcAccountMenuProps {
@@ -593,6 +602,10 @@ export function OcAccountMenu(props: OcAccountMenuProps) {
                 roster: session.roster,
                 switchAccount: session.switchAccount,
                 addAccountUrl: session.addAccountUrl,
+                // Structural read keeps the auth-client peer floor at
+                // ^2.17.0 — `tabPinned` ships in 2.18.0 and is simply
+                // undefined (no hint) on older providers.
+                tabPinned: (session as { tabPinned?: boolean }).tabPinned,
             }}
         />
     );
@@ -638,6 +651,7 @@ export function OcAccountMenuView({
         roster,
         switchAccount,
         addAccountUrl,
+        tabPinned,
     } = session;
     const [hydrated, setHydrated] = useState(false);
     const [open, setOpen] = useState(false);
@@ -764,6 +778,16 @@ export function OcAccountMenuView({
                     <div className="border-border border-b p-3">
                         <div className="text-primary mb-1 font-mono text-[10px] tracking-widest uppercase">
                             § signed in · {hostname}
+                            {tabPinned ? (
+                                <span
+                                    className="text-muted-foreground/70 normal-case"
+                                    data-oc-account-menu-tab-pin=""
+                                    title="This tab keeps this account even if you switch accounts in another tab"
+                                >
+                                    {' '}
+                                    · this tab
+                                </span>
+                            ) : null}
                         </div>
                         <CopyableDid did={account.didOc} />
                         {displayName ? (
