@@ -740,12 +740,18 @@ export function OcAccountMenuView({
                 aria-label={`Signed in as ${account.didOc}. Open account menu.`}
                 className={
                     triggerClassName ??
-                    'border-primary/40 bg-card hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-[11px] tracking-wide transition-colors'
+                    'border-primary/40 bg-card hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] tracking-wide transition-colors sm:px-3'
                 }
                 data-oc-account-menu-trigger=""
             >
-                <span className="bg-primary inline-block size-1.5 rounded-full" aria-hidden />
-                <span className="text-foreground">{label}</span>
+                <span className="bg-primary inline-block size-1.5 shrink-0 rounded-full" aria-hidden />
+                {/* Below sm the chip condenses to dot + chevron only — a long
+                    display name / obscured did otherwise eats a phone header.
+                    The full label returns from sm up, capped so it can't blow
+                    out the row. */}
+                <span className="text-foreground hidden max-w-[16ch] truncate sm:inline">
+                    {label}
+                </span>
                 <svg
                     width="9"
                     height="9"

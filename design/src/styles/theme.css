@@ -217,6 +217,37 @@
         }
     }
 
+    /* ── Sub-header status strip (LayoutSubHeader) ───────────────────────
+       The thin ecosystem strip below the header. A faint, skin-tinted,
+       translucent shade — enough presence that it reads as its own band and
+       stops the hero/aurora behind it from bleeding through, but never loud.
+       The 6% --primary mix carries the ACTIVE skin's hue (orange / phosphor
+       green / lightning violet / gold) so the shade "corresponds with the
+       theme"; the --muted base keeps it neutral + legible in both light and
+       dark. backdrop-blur frosts whatever sits behind it (page bg normally,
+       the moving <OcAurora/> when present). Pair with a `border-b` for the
+       edge — this utility only owns the fill + blur. */
+    .oc-substrip {
+        background-color: color-mix(
+            in oklch,
+            color-mix(in oklch, var(--primary) 6%, var(--muted)),
+            transparent 48%
+        );
+        backdrop-filter: blur(8px) saturate(1.05);
+        -webkit-backdrop-filter: blur(8px) saturate(1.05);
+    }
+    /* No backdrop-filter (rare) → fall back more opaque so the band stays
+       visible without the blur doing any of the lifting. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .oc-substrip {
+            background-color: color-mix(
+                in oklch,
+                color-mix(in oklch, var(--primary) 6%, var(--muted)),
+                transparent 22%
+            );
+        }
+    }
+
     /* Terminal-window chrome: hard borders, no soft shadows. */
     .terminal {
         background: var(--card);
