@@ -18,5 +18,5 @@ export {
 } from './provider';
 export { OcThemeBridge } from './theme-bridge';
 export { OcThemePicker, type OcThemePickerProps } from './theme-picker';
-export { OcAppearanceMenu, type OcAppearanceMenuProps } from './appearance-menu';
+export { OcAppearanceMenu, AppearanceControls, type OcAppearanceMenuProps } from './appearance-menu';
 export { OcAurora, type OcAuroraProps } from './aurora';

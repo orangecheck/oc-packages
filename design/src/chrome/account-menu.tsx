@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Loader2, Plus } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Check, Copy, Loader2, Menu, Plus, X } from 'lucide-react';
 import {
     fetchOcLinkedIdentities,
     useOcSession,
@@ -13,6 +13,8 @@ import {
     type OcSignOutScope,
 } from '@orangecheck/auth-client';
 
+import { AppearanceControls } from '../tokens/appearance-menu';
+import { cn } from '../tokens/cn';
 import type { EcosystemSlug } from './ecosystem-switcher';
 import { findFamilyProperty, type SiteState } from './family-properties';
 
@@ -626,6 +628,111 @@ export interface OcAccountMenuViewProps extends OcAccountMenuProps {
  * local `useAuth`) and you want the family-consistent visual without
  * mounting `<OcSessionProvider>`.
  */
+/**
+ * MobileMenu — the `☰` rendered to the LEFT of the identity chip on phones
+ * (`md:hidden`). Holds the site's nav links (primary + secondary) and the
+ * appearance controls (mode + skin), so the mobile header is just
+ * `[☰][identity]` with the theme folded in — no centered hamburger, no
+ * standalone palette. Auth-independent: present whether signed in or out.
+ */
+function MobileMenu({
+    primary,
+    secondary,
+}: {
+    primary?: ReadonlyArray<OcAccountMenuItem>;
+    secondary?: ReadonlyArray<OcAccountMenuItem>;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const onClick = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', onClick);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onClick);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [open]);
+
+    const links = [...(primary ?? []), ...(secondary ?? [])];
+    const rowCls =
+        'font-display flex items-center gap-2 px-3 py-2 text-[12px] font-semibold tracking-wider uppercase text-muted-foreground hover:text-foreground hover:bg-accent transition-colors';
+
+    return (
+        <div ref={ref} className="relative md:hidden" data-oc-account-mobile-menu="">
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-label="menu"
+                className="border-input bg-background hover:bg-accent text-muted-foreground inline-flex size-8 items-center justify-center rounded-md border transition-colors"
+                data-oc-account-mobile-toggle=""
+            >
+                {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
+            </button>
+            {open && (
+                <div
+                    role="menu"
+                    aria-label="menu"
+                    className="border-border bg-popover text-popover-foreground absolute top-[calc(100%+6px)] right-0 z-50 w-[min(16rem,calc(100vw-1rem))] overflow-hidden border shadow-xl"
+                    data-oc-account-mobile-popover=""
+                >
+                    {links.length > 0 && (
+                        <div className="border-b p-1">
+                            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                                § navigate
+                            </div>
+                            {links.map((l) =>
+                                l.external ? (
+                                    <a
+                                        key={l.href}
+                                        href={l.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        role="menuitem"
+                                        onClick={() => setOpen(false)}
+                                        className={rowCls}
+                                    >
+                                        <span className="text-muted-foreground" aria-hidden>
+                                            →
+                                        </span>
+                                        <span className="flex-1">{l.label}</span>
+                                        <span className="text-muted-foreground/70 text-[10px]" aria-hidden>
+                                            ↗
+                                        </span>
+                                    </a>
+                                ) : (
+                                    <Link
+                                        key={l.href}
+                                        href={l.href}
+                                        role="menuitem"
+                                        onClick={() => setOpen(false)}
+                                        className={rowCls}
+                                    >
+                                        <span className="text-muted-foreground" aria-hidden>
+                                            →
+                                        </span>
+                                        <span className="flex-1">{l.label}</span>
+                                    </Link>
+                                )
+                            )}
+                        </div>
+                    )}
+                    <AppearanceControls />
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function OcAccountMenuView({
     current,
     signInUrl = '/signin',
@@ -709,14 +816,25 @@ export function OcAccountMenuView({
         </a>
     );
 
+    // The mobile `☰` (nav + appearance) sits to the LEFT of the identity slot
+    // on phones; on md+ it's hidden (nav is inline via OcPrimaryNav, appearance
+    // is the desktop palette). Only rendered when this site has nav links.
+    const hasNav = ((primaryNavLinks?.length ?? 0) + (secondaryNavLinks?.length ?? 0)) > 0;
+    const wrap = (identity: ReactNode) => (
+        <div className={cn('flex items-center gap-1', className)} data-oc-account-menu="">
+            {hasNav ? <MobileMenu primary={primaryNavLinks} secondary={secondaryNavLinks} /> : null}
+            {identity}
+        </div>
+    );
+
     // States 1 + 2: pre-hydration or anonymous — render the same
     // placeholder/CTA so the slot is never empty.
     if (!hydrated || status === 'loading') {
-        return signInTrigger;
+        return wrap(signInTrigger);
     }
 
     if (status !== 'authenticated' || !account) {
-        return signInTrigger;
+        return wrap(signInTrigger);
     }
 
     // Authenticated — pill + popover. The collapsed label is the
@@ -726,12 +844,8 @@ export function OcAccountMenuView({
     const displayName = account.displayName ?? null;
     const label = displayName ?? obscureIdentity(account.displayIdentity.value);
 
-    return (
-        <div
-            ref={wrapRef}
-            className={'relative inline-block ' + (className ?? '')}
-            data-oc-account-menu=""
-        >
+    return wrap(
+        <div ref={wrapRef} className="relative inline-block">
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
@@ -824,15 +938,11 @@ export function OcAccountMenuView({
                             label="navigate"
                             items={primaryNavLinks}
                             onItemClick={() => setOpen(false)}
+                            className="hidden md:block"
                         />
                     ) : null}
 
                     <div className="p-1" data-oc-account-menu-section="account">
-                        {primaryNavLinks && primaryNavLinks.length > 0 ? (
-                            <div className="text-muted-foreground/60 px-3 pb-1 pt-2 font-mono text-[10px] tracking-widest uppercase">
-                                § account
-                            </div>
-                        ) : null}
                         {menuItems?.map((item) => {
                             const onClick = () => setOpen(false);
                             const cls =
@@ -943,6 +1053,7 @@ export function OcAccountMenuView({
                             items={secondaryNavLinks}
                             onItemClick={() => setOpen(false)}
                             bordered
+                            className="hidden md:block"
                         />
                     ) : null}
 
@@ -1110,50 +1221,37 @@ function SwitchRow({
 }
 
 /**
- * Single-section list inside the popover (e.g. `§ navigate`,
- * `§ more`). Used for both the primary-nav and secondary-nav slots so
- * the rendering stays consistent. Each item respects `external` and
- * gets the same row treatment as `menuItems`.
+ * Single nav section inside the identity popover (e.g. `§ navigate`, `§ more`).
+ * Rendered DESKTOP-ONLY (`hidden md:block`) by callers: on mobile the same
+ * links live in the account menu's `☰`, so showing them here too would double
+ * up. On desktop it's the nav home for console sites that have no inline
+ * OcPrimaryNav.
  */
 function PopoverSection({
     label,
     items,
     onItemClick,
     bordered,
+    className,
 }: {
     label: string;
     items: ReadonlyArray<OcAccountMenuItem>;
     onItemClick: () => void;
     bordered?: boolean;
+    className?: string;
 }) {
     const cls =
         'hover:bg-accent flex items-center gap-2 px-3 py-2 font-mono text-[11px] tracking-wide transition-colors';
     return (
         <div
-            className={'p-1 ' + (bordered ? 'border-border border-t' : '')}
+            className={cn('p-1', bordered && 'border-border border-t', className)}
             data-oc-account-menu-section={label}
         >
             <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                 § {label}
             </div>
-            {items.map((item) => {
-                const inner = (
-                    <>
-                        <span className="text-muted-foreground" aria-hidden>
-                            →
-                        </span>
-                        <span className="flex-1">{item.label}</span>
-                        {item.external ? (
-                            <span
-                                className="text-muted-foreground/70 text-[10px]"
-                                aria-hidden
-                            >
-                                ↗
-                            </span>
-                        ) : null}
-                    </>
-                );
-                return item.external ? (
+            {items.map((item) =>
+                item.external ? (
                     <a
                         key={item.href}
                         href={item.href}
@@ -1164,7 +1262,13 @@ function PopoverSection({
                         className={cls}
                         data-oc-account-menu-item=""
                     >
-                        {inner}
+                        <span className="text-muted-foreground" aria-hidden>
+                            →
+                        </span>
+                        <span className="flex-1">{item.label}</span>
+                        <span className="text-muted-foreground/70 text-[10px]" aria-hidden>
+                            ↗
+                        </span>
                     </a>
                 ) : (
                     <Link
@@ -1175,10 +1279,13 @@ function PopoverSection({
                         className={cls}
                         data-oc-account-menu-item=""
                     >
-                        {inner}
+                        <span className="text-muted-foreground" aria-hidden>
+                            →
+                        </span>
+                        <span className="flex-1">{item.label}</span>
                     </Link>
-                );
-            })}
+                )
+            )}
         </div>
     );
 }
