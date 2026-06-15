@@ -56,13 +56,6 @@ const ENTRIES: SwitcherEntry[] = [
         docsHref: 'https://docs.ochk.io',
     },
     {
-        slug: 'fleet',
-        href: 'https://fleet.ochk.io',
-        label: 'oc·fleet',
-        sub: 'managed — agent fleet',
-        docsHref: 'https://docs.ochk.io/fleet',
-    },
-    {
         slug: 'me',
         href: 'https://me.ochk.io',
         label: 'oc·me',
@@ -132,6 +125,13 @@ const ENTRIES: SwitcherEntry[] = [
  *  bot.ochk.io) live here so they're invisible to everyone except
  *  verified owners — the JWT claim drives the gate. */
 const OWNER_ENTRIES: SwitcherEntry[] = [
+    {
+        slug: 'fleet',
+        href: 'https://fleet.ochk.io',
+        label: 'oc·fleet',
+        sub: 'managed — agent fleet',
+        docsHref: 'https://fleet.ochk.io',
+    },
     {
         slug: 'analytics',
         href: 'https://analytics.ochk.io',

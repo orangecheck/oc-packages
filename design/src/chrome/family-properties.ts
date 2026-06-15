@@ -77,15 +77,6 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'product',
     },
     {
-        slug: 'fleet',
-        origin: 'https://fleet.ochk.io',
-        hostname: 'fleet.ochk.io',
-        label: 'oc·fleet',
-        sub: 'managed — agent fleet',
-        docsHref: 'https://docs.ochk.io/fleet',
-        category: 'product',
-    },
-    {
         slug: 'attest',
         origin: 'https://attest.ochk.io',
         hostname: 'attest.ochk.io',
@@ -138,6 +129,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         sub: 'swear — bonded commitment',
         docsHref: 'https://docs.ochk.io/pledge',
         category: 'protocol',
+    },
+    {
+        slug: 'fleet',
+        origin: 'https://fleet.ochk.io',
+        hostname: 'fleet.ochk.io',
+        label: 'oc·fleet',
+        sub: 'managed — agent fleet',
+        docsHref: 'https://fleet.ochk.io',
+        category: 'owner',
     },
     {
         slug: 'analytics',
