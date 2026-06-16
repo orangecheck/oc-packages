@@ -11,6 +11,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.1]
+
+### Fixed
+
+- **`OcWalletButton` manual / paste path no longer opens a native `window.prompt()`.** Clicking the "paste" wallet now renders an INLINE panel inside the component — the canonical message in a read-only box with a copy button, a real `<textarea>` for the signature, and Use-signature / back buttons — instead of invoking the `prompt()`-based `signManual` signer. The native dialog was an unstyled, un-themed, mobile-hostile UX that every consumer (chat, vault, me, …) inherited. The prompt-based `signManual` stays as the programmatic (non-React) fallback in `sign.ts`; only the React component changed. No API change — a behavior fix.
+
 ## [0.1.2] — Initial published state
 
 Initial public release. Normalize UniSat / Xverse / Leather / Alby behind one `sign(message)` API.
