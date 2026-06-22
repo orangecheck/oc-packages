@@ -22,6 +22,7 @@ export type EcosystemSlug =
     | 'me'
     | 'vault'
     | 'chat'
+    | 'cosign'
     | 'attest'
     | 'lock'
     | 'vote'
@@ -75,6 +76,13 @@ const ENTRIES: SwitcherEntry[] = [
         label: 'oc·chat',
         sub: 'message — encrypted chat',
         docsHref: 'https://docs.ochk.io/chat',
+    },
+    {
+        slug: 'cosign',
+        href: 'https://cosign.ochk.io',
+        label: 'oc·cosign',
+        sub: 'cofound — get behind builders',
+        docsHref: 'https://docs.ochk.io/cosign',
     },
     {
         slug: 'attest',

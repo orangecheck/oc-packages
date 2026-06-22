@@ -77,6 +77,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'product',
     },
     {
+        slug: 'cosign',
+        origin: 'https://cosign.ochk.io',
+        hostname: 'cosign.ochk.io',
+        label: 'oc·cosign',
+        sub: 'cofound — get behind builders',
+        docsHref: 'https://docs.ochk.io/cosign',
+        category: 'product',
+    },
+    {
         slug: 'attest',
         origin: 'https://attest.ochk.io',
         hostname: 'attest.ochk.io',
