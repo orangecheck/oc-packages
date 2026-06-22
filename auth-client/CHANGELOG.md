@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.19.0] — 2026-06-22 · `providersFirst` on OcSignIn
+
+### Added
+
+- **`OcSignIn` gains `providersFirst?: boolean`** (default `false`). When set,
+  the third-party providers (Google / GitHub) render **above** the wallet +
+  email panel and the email path becomes the default active tab — the
+  familiar on-ramp leads, the BIP-322 wallet path stays one tab away,
+  relabelled "bitcoin · self-custody". Built for ochk.io's public homepage,
+  to meet first-time non-Bitcoiner visitors where they are. Honors family
+  rule #3: email / OAuth is the easy bridge; the Bitcoin address remains the
+  canonical identity it resolves to. Every other consumer is unaffected — the
+  canonical bitcoin-first ceremony stays the default.
+- `initialPath` is now optional; it defaults to `'email'` under
+  `providersFirst`, otherwise `'wallet'` as before.
+
 ## [2.18.0] — 2026-06-11 · per-tab account pinning + family-wide add-account return
 
 Per-tab account isolation — one browser signed into N roster accounts,

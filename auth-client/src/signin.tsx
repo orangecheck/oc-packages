@@ -88,10 +88,23 @@ export interface OcSignInProps {
      */
     authOrigin?: string;
     /**
-     * Initial visible tab on mobile. Defaults to `'wallet'`. On desktop
-     * both paths render side-by-side and this is ignored.
+     * Initial visible tab. Defaults to `'wallet'` — or to `'email'` when
+     * {@link providersFirst} is set and this is left unspecified.
      */
     initialPath?: 'wallet' | 'email';
+    /**
+     * Re-order the ceremony so the third-party providers (Google / GitHub)
+     * render **above** the wallet + email panel, and the email path is the
+     * default active tab. **Off by default** — the canonical bitcoin-first
+     * ceremony is unchanged for every other consumer.
+     *
+     * ochk.io's public homepage sets this so a first-time, non-Bitcoiner
+     * visitor sees the most familiar on-ramp (Google) first; the BIP-322
+     * wallet path stays one tab away, reframed as the most-sovereign
+     * option. Honors family rule #3 — email / OAuth is the easy bridge,
+     * the Bitcoin address remains the canonical identity it resolves to.
+     */
+    providersFirst?: boolean;
     /**
      * Disable one of the two paths. Default is both enabled.
      * Useful for B2B-only sites that don't want to expose email-OTP.
@@ -196,7 +209,8 @@ export function OcSignIn({
     linkPrompt = true,
     add: addProp,
     authOrigin = 'https://ochk.io',
-    initialPath = 'wallet',
+    initialPath,
+    providersFirst = false,
     paths,
     className,
 }: OcSignInProps): React.ReactElement {
@@ -239,7 +253,12 @@ export function OcSignIn({
         setAddMode(new URLSearchParams(window.location.search).get('add') === '1');
     }, [addProp]);
 
-    const [path, setPath] = React.useState<'wallet' | 'email'>(initialPath);
+    // When providers lead the ceremony (ochk.io homepage), the email path
+    // is the friendlier default tab; otherwise the canonical bitcoin-first
+    // default holds. An explicit `initialPath` always wins.
+    const [path, setPath] = React.useState<'wallet' | 'email'>(
+        initialPath ?? (providersFirst ? 'email' : 'wallet')
+    );
     // Set once sign-in succeeds and the account is missing its
     // complementary identity — the component then renders the focused
     // link step (LinkPromptStep) before running `proceed`.
@@ -417,6 +436,17 @@ export function OcSignIn({
                     menu.
                 </div>
             )}
+            {/* Providers-first (ochk.io homepage): the familiar Google /
+                GitHub on-ramp leads, with the wallet/email panel below the
+                divider. Everywhere else this block stays at the bottom. */}
+            {providersFirst && (
+                <ProviderSignIn
+                    authOrigin={authOrigin}
+                    returnTo={resolvedReturn}
+                    add={addMode}
+                    first
+                />
+            )}
             {bothEnabled && (
                 <div
                     role="tablist"
@@ -429,15 +459,39 @@ export function OcSignIn({
                         borderBottom: '1px solid var(--border, #27272a)',
                     }}
                 >
-                    <SigninTab
-                        active={path === 'wallet'}
-                        onClick={() => setPath('wallet')}
-                    >
-                        bitcoin wallet
-                    </SigninTab>
-                    <SigninTab active={path === 'email'} onClick={() => setPath('email')}>
-                        email + otp
-                    </SigninTab>
+                    {/* When providers lead, the easy email path reads first
+                        and the wallet path sits beside it as the upgrade. */}
+                    {providersFirst ? (
+                        <>
+                            <SigninTab
+                                active={path === 'email'}
+                                onClick={() => setPath('email')}
+                            >
+                                email + otp
+                            </SigninTab>
+                            <SigninTab
+                                active={path === 'wallet'}
+                                onClick={() => setPath('wallet')}
+                            >
+                                bitcoin · self-custody
+                            </SigninTab>
+                        </>
+                    ) : (
+                        <>
+                            <SigninTab
+                                active={path === 'wallet'}
+                                onClick={() => setPath('wallet')}
+                            >
+                                bitcoin wallet
+                            </SigninTab>
+                            <SigninTab
+                                active={path === 'email'}
+                                onClick={() => setPath('email')}
+                            >
+                                email + otp
+                            </SigninTab>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -459,7 +513,9 @@ export function OcSignIn({
                 )}
             </div>
 
-            <ProviderSignIn authOrigin={authOrigin} returnTo={resolvedReturn} add={addMode} />
+            {!providersFirst && (
+                <ProviderSignIn authOrigin={authOrigin} returnTo={resolvedReturn} add={addMode} />
+            )}
 
             {linkPrompt && (
                 <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
@@ -578,10 +634,19 @@ function ProviderSignIn({
     authOrigin,
     returnTo,
     add,
+    first = false,
 }: {
     authOrigin: string;
     returnTo: string;
     add: boolean;
+    /**
+     * Render this block at the TOP of the ceremony (above the wallet/email
+     * panel) rather than the default bottom. The "or" divider then sits
+     * below the provider buttons, and the block reserves space beneath
+     * itself instead of above. Set by {@link OcSignIn} when
+     * `providersFirst` is on.
+     */
+    first?: boolean;
 }): React.ReactElement | null {
     const [providers, setProviders] = React.useState<OAuthProviderEntry[]>([]);
     // A provider sign-in redirects THROUGH the auth host, so its final
@@ -618,54 +683,70 @@ function ProviderSignIn({
             : returnTo
         : returnTo;
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
+    const divider = (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                margin: first ? '14px 0 4px' : '4px 0 12px',
+                color: 'var(--muted-foreground, #a1a1aa)',
+                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontSize: 10,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+            }}
+        >
+            <span style={line} />
+            or
+            <span style={line} />
+        </div>
+    );
+    const buttons = providers.map((p, i) => (
+        <a
+            key={p.id}
+            href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
+                providerReturnTo
+            )}${add ? '&add=1' : ''}`}
+            data-oc-signin-provider={p.id}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxSizing: 'border-box',
+                width: '100%',
+                marginTop: i === 0 ? 0 : 8,
+                padding: '0.6rem 0.875rem',
+                border: '1px solid var(--border, #27272a)',
+                borderRadius: 6,
+                background: 'transparent',
+                color: 'var(--muted-foreground, #a1a1aa)',
+                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontSize: 12,
+                textDecoration: 'none',
+            }}
+        >
+            <ProviderIcon id={p.id} />
+            <span>{p.label}</span>
+        </a>
+    ));
+    // first → providers lead: buttons, then the "or" divider before the
+    // wallet/email panel below. Otherwise the canonical bottom placement:
+    // divider, then buttons.
     return (
-        <div data-oc-signin-providers="" style={{ marginTop: 20 }}>
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    margin: '4px 0 12px',
-                    color: 'var(--muted-foreground, #a1a1aa)',
-                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                    fontSize: 10,
-                    letterSpacing: '0.16em',
-                    textTransform: 'uppercase',
-                }}
-            >
-                <span style={line} />
-                or
-                <span style={line} />
-            </div>
-            {providers.map((p, i) => (
-                <a
-                    key={p.id}
-                    href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
-                        providerReturnTo
-                    )}${add ? '&add=1' : ''}`}
-                    data-oc-signin-provider={p.id}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 10,
-                        boxSizing: 'border-box',
-                        width: '100%',
-                        marginTop: i === 0 ? 0 : 8,
-                        padding: '0.6rem 0.875rem',
-                        border: '1px solid var(--border, #27272a)',
-                        borderRadius: 6,
-                        background: 'transparent',
-                        color: 'var(--muted-foreground, #a1a1aa)',
-                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                        fontSize: 12,
-                        textDecoration: 'none',
-                    }}
-                >
-                    <ProviderIcon id={p.id} />
-                    <span>{p.label}</span>
-                </a>
-            ))}
+        <div data-oc-signin-providers="" style={first ? { marginBottom: 4 } : { marginTop: 20 }}>
+            {first ? (
+                <>
+                    {buttons}
+                    {divider}
+                </>
+            ) : (
+                <>
+                    {divider}
+                    {buttons}
+                </>
+            )}
         </div>
     );
 }
