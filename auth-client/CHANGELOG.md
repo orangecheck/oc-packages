@@ -11,6 +11,36 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.21.0] — 2026-06-23 · per-tab account inheritance for new/cross-subdomain tabs
+
+### Added
+
+- **`installTabLinkDecorator(authOrigin)`** — a capture-phase link decorator
+  (auto-installed by `OcSessionProvider`) that stamps the tab's effective
+  account `did:oc` onto outgoing family-origin links (`#oc-as=<did>`) when the
+  tab is pinned. Fixes the bug where a CTRL/⌘/middle-click — or a same-tab
+  cross-subdomain navigation — opened as the shared cookie's DEFAULT account
+  instead of the account the originating tab was operating as. Conservative:
+  no pin → no-op, family origins only (never leaks the did to third parties),
+  reads the pin fresh per event, never clobbers an existing `#fragment` /
+  `download` / non-http(s) link, mutates `href` in place (no popup-blocker
+  surface).
+- **`consumeTabAccountHint(authOrigin)`** — run on mount BEFORE the first
+  `/api/auth/me` fetch; adopts `#oc-as=<did>` by minting a pin for that account
+  via the host's `/api/auth/tab` (roster-revalidated) and strips the fragment.
+  Fail-safe: a stale host / roster miss / network error leaves the tab unpinned
+  (legacy cookie-following behavior). The `did:oc` is a public selector, never a
+  credential — the JWT never enters the URL.
+- **`TAB_ACCOUNT_HINT_KEY`** export (`'oc-as'`).
+
+### Notes
+
+- Requires the auth host's `POST /api/auth/tab` to accept an optional
+  `{ did_oc }` body (roster-membership-gated mint, no `Set-Cookie`). Backward
+  compatible against an older host (the hint is simply not adopted).
+- `auth-core` is unchanged — `resolveSessionFromRequest` already resolves the
+  tab header first and fails closed.
+
 ## [2.20.0] — 2026-06-23 · `providersFirst` on by default
 
 ### Changed

@@ -41,12 +41,15 @@ export {
     TAB_SESSION_HEADER,
     TAB_SESSION_STORAGE_KEY,
     TAB_ADOPT_HASH,
+    TAB_ACCOUNT_HINT_KEY,
     readTabSession,
     writeTabSession,
     clearTabSession,
     tabSessionHeader,
     installTabFetchInterceptor,
+    installTabLinkDecorator,
     consumeTabAdoptMarker,
+    consumeTabAccountHint,
 } from './tab-session';
 export type { OcTabSession } from './tab-session';
 export {

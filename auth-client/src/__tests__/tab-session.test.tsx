@@ -17,8 +17,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OcSessionProvider, useOcSession } from '../provider';
 import {
     clearTabSession,
+    consumeTabAccountHint,
     consumeTabAdoptMarker,
     installTabFetchInterceptor,
+    installTabLinkDecorator,
     readTabSession,
     TAB_SESSION_HEADER,
     TAB_SESSION_STORAGE_KEY,
@@ -53,9 +55,40 @@ function headerOf(init: RequestInit | undefined, name: string): string | null {
     return new Headers(init.headers).get(name);
 }
 
+/**
+ * Create a transient `<a>`, dispatch a click/auxclick at it through the
+ * window-level capture listener the decorator installs, then return the
+ * anchor's (possibly mutated) `href` attribute. Mirrors a real browser
+ * click without navigating.
+ */
+function fireLink(opts: {
+    href: string;
+    type?: 'click' | 'auxclick';
+    init?: MouseEventInit;
+    target?: string;
+    download?: boolean;
+}): string | null {
+    const a = document.createElement('a');
+    a.setAttribute('href', opts.href);
+    if (opts.target) a.setAttribute('target', opts.target);
+    if (opts.download) a.setAttribute('download', '');
+    document.body.appendChild(a);
+    // Swallow the anchor's default navigation (jsdom can't navigate) — runs
+    // in the target phase, AFTER the window capture-phase decorator stamps.
+    a.addEventListener(opts.type ?? 'click', (e) => e.preventDefault());
+    a.dispatchEvent(
+        new MouseEvent(opts.type ?? 'click', { bubbles: true, cancelable: true, ...opts.init })
+    );
+    const out = a.getAttribute('href');
+    a.remove();
+    return out;
+}
+
 afterEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
+    document.body.innerHTML = '';
+    window.history.replaceState(null, '', '/');
 });
 
 const DID_A = 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -150,6 +183,148 @@ describe('consumeTabAdoptMarker', () => {
         window.history.replaceState(null, '', '/page');
         expect(consumeTabAdoptMarker()).toBe(false);
         expect(readTabSession()).toEqual({ token: 'tok-a', didOc: DID_A });
+    });
+});
+
+describe('installTabLinkDecorator', () => {
+    const FAMILY = 'https://stamp.ochk.io/create';
+
+    it('stamps a family link with the pinned did, leaves third parties alone', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+
+        expect(fireLink({ href: FAMILY })).toBe(`${FAMILY}#oc-as=${DID_A}`);
+        expect(fireLink({ href: 'https://example.com/x' })).toBe('https://example.com/x');
+
+        uninstall();
+    });
+
+    it('never stamps when the tab is unpinned', () => {
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        expect(fireLink({ href: FAMILY })).toBe(FAMILY);
+        uninstall();
+    });
+
+    it('reads the pin fresh on every event (no install-time capture)', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        expect(fireLink({ href: FAMILY })).toBe(`${FAMILY}#oc-as=${DID_A}`);
+
+        writeTabSession({ token: 'tok-b', didOc: DID_B });
+        expect(fireLink({ href: FAMILY })).toBe(`${FAMILY}#oc-as=${DID_B}`);
+        uninstall();
+    });
+
+    it('stamps on middle-click (auxclick) too', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        expect(fireLink({ href: FAMILY, type: 'auxclick', init: { button: 1 } })).toBe(
+            `${FAMILY}#oc-as=${DID_A}`
+        );
+        uninstall();
+    });
+
+    it('skips non-http schemes, downloads, and links that already carry a fragment', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+
+        expect(fireLink({ href: 'mailto:hi@ochk.io' })).toBe('mailto:hi@ochk.io');
+        expect(fireLink({ href: FAMILY, download: true })).toBe(FAMILY);
+        expect(fireLink({ href: 'https://docs.ochk.io/x#section' })).toBe(
+            'https://docs.ochk.io/x#section'
+        );
+        // idempotent: an already-stamped link is not double-stamped
+        expect(fireLink({ href: `${FAMILY}#oc-as=${DID_B}` })).toBe(`${FAMILY}#oc-as=${DID_B}`);
+        uninstall();
+    });
+
+    it('skips same-origin same-tab nav but stamps a same-origin new-tab intent', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        const sameOrigin = `${window.location.origin}/dashboard`;
+
+        // plain left-click, same tab → pin survives via sessionStorage, no stamp
+        expect(fireLink({ href: sameOrigin })).toBe(sameOrigin);
+        // ctrl/⌘-click → new tab may not inherit sessionStorage (Safari) → stamp
+        expect(fireLink({ href: sameOrigin, init: { ctrlKey: true } })).toBe(
+            `${sameOrigin}#oc-as=${DID_A}`
+        );
+        // target=_blank → stamp
+        expect(fireLink({ href: sameOrigin, target: '_blank' })).toBe(
+            `${sameOrigin}#oc-as=${DID_A}`
+        );
+        uninstall();
+    });
+
+    it('stops stamping after uninstall', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        uninstall();
+        expect(fireLink({ href: FAMILY })).toBe(FAMILY);
+    });
+});
+
+describe('consumeTabAccountHint', () => {
+    it('mints a pin for the hinted account and strips the fragment', async () => {
+        const calls = setupFetch(({ url }) => {
+            if (url.endsWith('/api/auth/tab')) {
+                return jsonResponse({ ok: true, token: 'tok-b', account: { did_oc: DID_B } });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+        window.history.replaceState(null, '', `/page#oc-as=${DID_B}`);
+
+        const adopted = await consumeTabAccountHint('https://ochk.io');
+
+        expect(adopted).toBe(DID_B);
+        expect(readTabSession()).toEqual({ token: 'tok-b', didOc: DID_B });
+        expect(window.location.hash).toBe('');
+        const tabCall = calls.find((c) => c.url.endsWith('/api/auth/tab'));
+        expect(tabCall?.init?.method).toBe('POST');
+        expect(JSON.parse(String(tabCall?.init?.body))).toEqual({ did_oc: DID_B });
+    });
+
+    it('no-ops (no fetch) without the marker', async () => {
+        const calls = setupFetch(() => jsonResponse({ ok: true }));
+        window.history.replaceState(null, '', '/page');
+        expect(await consumeTabAccountHint('https://ochk.io')).toBeNull();
+        expect(calls.length).toBe(0);
+    });
+
+    it('does not re-mint when already pinned to the hinted account', async () => {
+        writeTabSession({ token: 'tok-b', didOc: DID_B });
+        const calls = setupFetch(() => jsonResponse({ ok: true }));
+        window.history.replaceState(null, '', `/page#oc-as=${DID_B}`);
+
+        expect(await consumeTabAccountHint('https://ochk.io')).toBe(DID_B);
+        expect(calls.length).toBe(0);
+        expect(window.location.hash).toBe('');
+    });
+
+    it('leaves the tab unpinned (and strips the fragment) when the host refuses', async () => {
+        setupFetch(({ url }) => {
+            if (url.endsWith('/api/auth/tab')) return jsonResponse({ ok: false }, 403);
+            return jsonResponse({ ok: false }, 404);
+        });
+        window.history.replaceState(null, '', `/page#oc-as=${DID_B}`);
+
+        expect(await consumeTabAccountHint('https://ochk.io')).toBeNull();
+        expect(readTabSession()).toBeNull();
+        expect(window.location.hash).toBe('');
+    });
+
+    it('does not adopt a token minted for a different account (stale host)', async () => {
+        setupFetch(({ url }) => {
+            // host ignores the body and mints for the cookie default (A)
+            if (url.endsWith('/api/auth/tab')) {
+                return jsonResponse({ ok: true, token: 'tok-a', account: { did_oc: DID_A } });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+        window.history.replaceState(null, '', `/page#oc-as=${DID_B}`);
+
+        expect(await consumeTabAccountHint('https://ochk.io')).toBeNull();
+        expect(readTabSession()).toBeNull();
     });
 });
 
@@ -261,6 +436,40 @@ describe('OcSessionProvider · per-tab pin lifecycle', () => {
             // dead pin dropped, then re-pinned to the cookie account
             expect(readTabSession()).toEqual({ token: 'tok-a', didOc: DID_A });
         });
+    });
+
+    it('adopts the #oc-as hint before /me so a new tab resolves as the opener account', async () => {
+        // The actual bug: a cross-subdomain new tab is unpinned and would
+        // resolve to the cookie default (A). With the opener's `#oc-as=B`
+        // hint, consumeTabAccountHint mints a B pin BEFORE the first /me,
+        // so the tab resolves as B — not the cookie default.
+        window.history.replaceState(null, '', `/page#oc-as=${DID_B}`);
+        const calls = setupFetch(({ url, init }) => {
+            if (url.endsWith('/api/auth/tab')) {
+                return jsonResponse({ ok: true, token: 'tok-b', account: { did_oc: DID_B } });
+            }
+            if (url.endsWith('/api/auth/me')) {
+                const tab = headerOf(init, TAB_SESSION_HEADER);
+                return jsonResponse({
+                    account: tab === 'tok-b' ? ACCOUNT_B : ACCOUNT_A,
+                    roster: [],
+                });
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+
+        const session = mountProbe();
+        await waitFor(() => {
+            expect(session()?.account?.didOc).toBe(DID_B);
+        });
+        expect(readTabSession()).toEqual({ token: 'tok-b', didOc: DID_B });
+        expect(window.location.hash).toBe('');
+        // every /me call carried the B pin — never resolved as the cookie default
+        const meCalls = calls.filter((c) => c.url.endsWith('/api/auth/me'));
+        expect(meCalls.length).toBeGreaterThan(0);
+        for (const c of meCalls) {
+            expect(headerOf(c.init, TAB_SESSION_HEADER)).toBe('tok-b');
+        }
     });
 
     it('drops the pin when the server answers as a different account (pre-migration server)', async () => {

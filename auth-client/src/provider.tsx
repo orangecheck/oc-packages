@@ -16,8 +16,10 @@ import {
 } from './types';
 import {
     clearTabSession,
+    consumeTabAccountHint,
     consumeTabAdoptMarker,
     installTabFetchInterceptor,
+    installTabLinkDecorator,
     readTabSession,
     tabSessionHeader,
     writeTabSession,
@@ -324,18 +326,33 @@ export function OcSessionProvider({
     }, [cfg, pinThisTab]);
 
     React.useEffect(() => {
+        let cancelled = false;
         // Post-ceremony adoption · the auth host appends `#oc-adopt` when
         // returning from a sign-in/add ceremony: the user expects THIS tab
         // to become the account they just authenticated, so a stale pin
         // must not survive the round trip.
         consumeTabAdoptMarker();
-        void refresh();
-    }, [refresh]);
+        void (async () => {
+            // New-tab inheritance · if the opener stamped `#oc-as=<did>`,
+            // adopt that account BEFORE the first /me fetch so this tab
+            // resolves as the opener's account, not the cookie default.
+            await consumeTabAccountHint(cfg.authOrigin);
+            if (!cancelled) void refresh();
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [refresh, cfg.authOrigin]);
 
     // Per-tab · attach the pin to every same-site fetch so app-level data
     // calls execute as the account this tab displays. Scoped + reversible;
     // see installTabFetchInterceptor for the conservative rules.
     React.useEffect(() => installTabFetchInterceptor(cfg.authOrigin), [cfg.authOrigin]);
+
+    // Per-tab · stamp this tab's effective account onto outgoing
+    // family-origin links so a new/cross-subdomain tab inherits it
+    // instead of the shared cookie default. See installTabLinkDecorator.
+    React.useEffect(() => installTabLinkDecorator(cfg.authOrigin), [cfg.authOrigin]);
 
     const signOut = React.useCallback(
         async (opts?: { scope?: OcSignOutScope }) => {
