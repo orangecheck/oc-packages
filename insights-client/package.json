@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/insights-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Server-side emit API for oc insights — first-party, protocol-aware event tracking for the OrangeCheck family. Fire-and-forget, never throws into the caller.",
   "keywords": [
     "orangecheck",
@@ -43,6 +43,9 @@
     "test:watch": "vitest",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.7.3"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

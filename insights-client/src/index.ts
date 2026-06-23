@@ -39,7 +39,14 @@
  * computes a product-scoped, daily-salted hash and discards the raw
  * value — the raw actor is NEVER stored. The client itself never hashes
  * (the rotating salt lives at the collector) and never persists anything.
+ *
+ * Serverless delivery: emit hands its in-flight POST to Vercel's `waitUntil`
+ * so the invocation stays alive until the body flushes — without it a caller's
+ * `void emit()` is frozen out on Vercel before the keepalive request lands.
+ * No-op outside a Vercel request context (the keepalive fetch is best-effort).
  */
+
+import { waitUntil } from '@vercel/functions';
 
 /** oc-me's billable-event class taxonomy (A/B/C), passed through verbatim. */
 export type EventClass = 'A' | 'B' | 'C';
@@ -114,7 +121,7 @@ export function createInsightsClient(config: InsightsClientConfig = {}): Insight
     const source = config.source ?? readEnv('OC_INSIGHTS_SOURCE');
     const enabled = Boolean(token && url && doFetch);
 
-    async function emitEvent(event: InsightsEvent): Promise<void> {
+    async function doEmit(event: InsightsEvent): Promise<void> {
         try {
             if (!enabled || !doFetch) return; // inert no-op when unconfigured
             const product = clip(event.product, MAX_PRODUCT_LEN);
@@ -163,6 +170,20 @@ export function createInsightsClient(config: InsightsClientConfig = {}): Insight
                 }
             }
         }
+    }
+
+    // Public entry: start the POST, then keep the serverless invocation alive
+    // until it flushes. Vercel freezes the function after the response, so a
+    // bare `void emit()` is otherwise dropped before the keepalive body sends.
+    // Returns the same promise so a caller can still `await` it if it wants.
+    function emitEvent(event: InsightsEvent): Promise<void> {
+        const pending = doEmit(event);
+        try {
+            waitUntil(pending);
+        } catch {
+            /* not in a Vercel request context — keepalive fetch is best-effort */
+        }
+        return pending;
     }
 
     function emit(
