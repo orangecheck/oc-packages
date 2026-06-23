@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.20.0] — 2026-06-23 · `providersFirst` on by default
+
+### Changed
+
+- **`OcSignIn` now defaults `providersFirst` to `true`.** The OAuth providers
+  (Google / GitHub) render above the panel and the email one-time-code tab is
+  the default active tab, with the BIP-322 wallet path one tab away — making the
+  email/OAuth-first ceremony the **family standard** every consumer inherits
+  without per-site props. `initialPath` consequently defaults to `'email'`.
+- Pass `providersFirst={false}` to restore the legacy bitcoin-first ordering
+  (`initialPath` then defaults to `'wallet'`). No other behavior changes.
+
 ## [2.19.0] — 2026-06-22 · `providersFirst` on OcSignIn
 
 ### Added

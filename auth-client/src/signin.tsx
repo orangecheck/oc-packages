@@ -88,21 +88,22 @@ export interface OcSignInProps {
      */
     authOrigin?: string;
     /**
-     * Initial visible tab. Defaults to `'wallet'` — or to `'email'` when
-     * {@link providersFirst} is set and this is left unspecified.
+     * Initial visible tab. Defaults to `'email'` (since {@link providersFirst}
+     * is on by default); resolves to `'wallet'` only when
+     * `providersFirst={false}` and this is left unspecified.
      */
     initialPath?: 'wallet' | 'email';
     /**
      * Re-order the ceremony so the third-party providers (Google / GitHub)
      * render **above** the wallet + email panel, and the email path is the
-     * default active tab. **Off by default** — the canonical bitcoin-first
-     * ceremony is unchanged for every other consumer.
+     * default active tab. **On by default — the family standard.** A
+     * first-time, non-Bitcoiner visitor sees the most familiar on-ramp
+     * (Google / GitHub / email one-time code) first; the BIP-322 wallet path
+     * stays one tab away, reframed as the most-sovereign option.
      *
-     * ochk.io's public homepage sets this so a first-time, non-Bitcoiner
-     * visitor sees the most familiar on-ramp (Google) first; the BIP-322
-     * wallet path stays one tab away, reframed as the most-sovereign
-     * option. Honors family rule #3 — email / OAuth is the easy bridge,
-     * the Bitcoin address remains the canonical identity it resolves to.
+     * Pass `providersFirst={false}` for the legacy bitcoin-first ordering.
+     * Honors family rule #3 — email / OAuth is the easy bridge, the Bitcoin
+     * address remains the canonical identity it resolves to.
      */
     providersFirst?: boolean;
     /**
@@ -210,7 +211,7 @@ export function OcSignIn({
     add: addProp,
     authOrigin = 'https://ochk.io',
     initialPath,
-    providersFirst = false,
+    providersFirst = true,
     paths,
     className,
 }: OcSignInProps): React.ReactElement {
