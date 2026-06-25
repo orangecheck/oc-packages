@@ -253,6 +253,14 @@
         background: var(--card);
         border: 1px solid var(--border);
         font-family: var(--oc-font-mono), ui-monospace, monospace;
+        /* A terminal almost always wraps a `<pre overflow-x-auto>` of long code
+           lines. As a grid/flex child its auto-minimum is that min-content width,
+           so without this it forces its track wider than the viewport instead of
+           letting the inner pre scroll — horizontal page overflow on narrow
+           screens. min-width:0 lets the track shrink; max-width caps it to its
+           container as a belt-and-braces guard. */
+        min-width: 0;
+        max-width: 100%;
     }
     .terminal-title {
         background: color-mix(in oklch, var(--foreground), transparent 92%);
