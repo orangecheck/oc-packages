@@ -69,6 +69,10 @@ export {
 } from './select';
 export { Toaster } from './toaster';
 
+// Soft surfaces (marketing / consumer tier)
+export { Surface, surfaceVariants, type SurfaceProps } from './surface';
+export { IconBadge, iconBadgeVariants, type IconBadgeProps } from './icon-badge';
+
 // Data / dashboard tier
 export { Card, type CardProps } from './card';
 export { Sparkline, type SparklineProps } from './sparkline';

@@ -23,6 +23,8 @@ const badgeVariants = cva(
                     'bg-success text-success-foreground [a&]:hover:bg-success/90 border-transparent',
                 info: 'bg-info text-info-foreground [a&]:hover:bg-info/90 border-transparent',
                 brand: 'bg-brand-soft text-brand border-brand-soft',
+                neutral:
+                    'bg-foreground text-background [a&]:hover:bg-foreground/90 border-transparent',
                 outline: 'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
             },
         },

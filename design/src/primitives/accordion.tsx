@@ -1,7 +1,7 @@
 'use client';
 
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '../tokens/cn';
@@ -18,19 +18,30 @@ AccordionItem.displayName = 'AccordionItem';
 
 const AccordionTrigger = React.forwardRef<
     React.ElementRef<typeof AccordionPrimitive.Trigger>,
-    React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+    React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
+        /** Toggle glyph: a rotating chevron (default) or a marketing plus that
+         *  turns into an ✕ on open, tinted with the brand. */
+        icon?: 'chevron' | 'plusMinus';
+    }
+>(({ className, children, icon = 'chevron', ...props }, ref) => (
     <AccordionPrimitive.Header className="flex">
         <AccordionPrimitive.Trigger
             ref={ref}
             className={cn(
-                'flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180',
+                'flex flex-1 items-center justify-between gap-4 py-4 text-left font-medium transition-all hover:underline',
+                icon === 'chevron'
+                    ? '[&[data-state=open]>svg]:rotate-180'
+                    : '[&[data-state=open]>svg]:rotate-45',
                 className
             )}
             {...props}
         >
             {children}
-            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            {icon === 'chevron' ? (
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            ) : (
+                <Plus className="text-primary h-5 w-5 shrink-0 transition-transform duration-200" />
+            )}
         </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
 ));

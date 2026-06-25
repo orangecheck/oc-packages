@@ -30,3 +30,34 @@ export type { DefinitionListProps, DefinitionItem } from './definition-list';
 
 export { DataRow } from './data-row';
 export type { DataRowProps } from './data-row';
+
+// Marketing / consumer tier (ember-era landing-page building blocks)
+export { TwoToneHeading, MarketingHeading } from './marketing-heading';
+export type { TwoToneHeadingProps, MarketingHeadingProps } from './marketing-heading';
+
+export { FeatureCard } from './feature-card';
+export type { FeatureCardProps } from './feature-card';
+
+export { Section, BrandBand } from './section';
+export type { SectionProps } from './section';
+
+export { ComparisonTable } from './comparison-table';
+export type { ComparisonTableProps, ComparisonRow } from './comparison-table';
+
+export { NumberedStep, StepList } from './numbered-step';
+export type { NumberedStepProps, StepListProps, Step } from './numbered-step';
+
+export { Faq } from './faq';
+export type { FaqProps, FaqItem } from './faq';
+
+export { EmailCapture } from './email-capture';
+export type { EmailCaptureProps } from './email-capture';
+
+export { CheckList } from './check-list';
+export type { CheckListProps } from './check-list';
+
+export { AccentNote, AccentList } from './accent-note';
+export type { AccentNoteProps, AccentListProps, AccentListItem } from './accent-note';
+
+export { VerifiedChip } from './verified-chip';
+export type { VerifiedChipProps } from './verified-chip';

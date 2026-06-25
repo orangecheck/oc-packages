@@ -54,6 +54,13 @@ export const OC_THEMES: readonly OcTheme[] = [
         description: 'sound money — digital gold, hard 0.125rem milled edge, mono ledger · 21M',
         accent: '#e3b831',
     },
+    {
+        id: 'ember',
+        label: 'ember',
+        description:
+            'the warmth — burnt-sienna terracotta, soft 1rem corners, pill buttons, Hanken Grotesk · approachable, human',
+        accent: '#da6736',
+    },
 ] as const;
 
 /** The family default accent (orangecheck), and the hex every favicon ships

@@ -1,0 +1,165 @@
+/*
+ * Skin: ember
+ *
+ * The warmth — a deliberately consumer-grade, soft, rounded counterpoint to the
+ * family's sharp/cypherpunk defaults. Deep burnt-sienna terracotta (NOT Bitcoin
+ * amber #f7931a), warm paper neutrals, peach accent surfaces, 1rem radii, pill
+ * buttons, soft warm-tinted elevation, Hanken Grotesk display+body over the
+ * existing JetBrains Mono eyebrows. Derived from the orangecheck.io redesign
+ * mockups; tuned for WCAG AA.
+ *
+ * Only the two `[data-oc-theme='ember']` arms — never bare `:root`/`.dark`
+ * (orangecheck.css alone owns the no-JS / pre-hydration fallback). A skin must
+ * declare the COMPLETE token set in both modes so it fully overrides the default.
+ *
+ * --primary vs --brand split is intentional: --brand (oklch 0.635) is the exact
+ * sampled band terracotta (decorative full-bleed sections); --primary is one
+ * step darker (oklch 0.585) so white-on-primary button labels clear AA-normal
+ * (4.59:1) where white-on-band would only be AA-large (3.65:1). Use --brand for
+ * the big hero/CTA bands, --primary for interactive surfaces + text accents.
+ */
+
+[data-oc-theme='ember'] {
+    /* Soft, friendly corners — 1rem drives the derived scale: sm 12 / md 14 /
+       lg 16 / xl 20px, matching the sampled badge (12), card (16), panel (20). */
+    --radius: 1rem;
+
+    /* Display + body are ONE warm grotesk separated by weight (a skin exposes a
+       single --oc-font-sans). Hanken Grotesk is OFL + variable to 900, so the
+       800 hero weight is native. Eyebrows/metadata reuse the already-loaded
+       JetBrains Mono — no new mono face. */
+    --oc-font-sans: 'Hanken Grotesk', var(--font-sans-display, 'Inter'), ui-sans-serif,
+        system-ui, sans-serif;
+    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
+            monospace);
+
+    /* Soft, diffuse, warm-tinted elevation (rgb 31 18 10 ≈ #1f120a, not pure
+       black) — the floated-card look of the mockups, well past the flat default. */
+    --oc-shadow-2xs: 0 1px 2px 0 rgb(31 18 10 / 0.04);
+    --oc-shadow-xs: 0 1px 3px 0 rgb(31 18 10 / 0.05), 0 1px 2px -1px rgb(31 18 10 / 0.04);
+    --oc-shadow-sm: 0 2px 8px -2px rgb(31 18 10 / 0.06), 0 2px 4px -2px rgb(31 18 10 / 0.05);
+    --oc-shadow-md: 0 6px 16px -4px rgb(31 18 10 / 0.08), 0 4px 8px -4px rgb(31 18 10 / 0.05);
+    --oc-shadow-lg: 0 12px 28px -6px rgb(31 18 10 / 0.1), 0 8px 16px -8px rgb(31 18 10 / 0.06);
+    --oc-shadow-xl: 0 24px 48px -12px rgb(31 18 10 / 0.14), 0 12px 24px -12px rgb(31 18 10 / 0.08);
+
+    /* Light — warm off-white paper, crisp white cards floating on it. */
+    --background: oklch(0.991 0.004 75);
+    --foreground: oklch(0.21 0.01 60);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.01 60);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.21 0.01 60);
+
+    /* Interactive terracotta — darkened from the band so white button labels
+       AND text-primary eyebrows clear AA-normal (4.5:1) on white. The vivid
+       band lives in --brand; this is the accessible interactive shade. */
+    --primary: oklch(0.55 0.162 42);
+    --primary-foreground: oklch(0.99 0.005 75);
+
+    --secondary: oklch(0.962 0.006 65);
+    --secondary-foreground: oklch(0.21 0.01 60);
+
+    /* Warm light-gray alt sections. */
+    --muted: oklch(0.972 0.005 70);
+    --muted-foreground: oklch(0.52 0.012 70);
+
+    /* Peach — the signature accent surface (icon badges, comparison tint). */
+    --accent: oklch(0.91 0.034 62);
+    --accent-foreground: oklch(0.47 0.14 42);
+
+    --border: oklch(0.91 0.006 65);
+    --input: oklch(0.9 0.006 65);
+    --ring: oklch(0.55 0.162 42);
+
+    --destructive: oklch(0.585 0.205 27);
+    --destructive-foreground: oklch(0.99 0.005 75);
+
+    --warning: oklch(0.8 0.15 75);
+    --warning-foreground: oklch(0.25 0.03 70);
+
+    --info: oklch(0.58 0.13 245);
+    --info-foreground: oklch(0.99 0.005 75);
+
+    --success: oklch(0.58 0.13 150);
+    --success-foreground: oklch(0.99 0.005 75);
+
+    /* Decorative band terracotta — the exact sampled #d76433. */
+    --brand: oklch(0.635 0.158 42);
+    --brand-foreground: oklch(0.99 0.005 75);
+}
+
+.dark[data-oc-theme='ember'],
+[data-oc-theme='ember'].dark {
+    /* Dark — warm near-black, elevated warm-charcoal cards (grounded in the
+       for-business mockup). Cards read border-defined, near-flat. */
+    --background: oklch(0.17 0.006 50);
+    --foreground: oklch(0.97 0.004 70);
+
+    --card: oklch(0.235 0.006 55);
+    --card-foreground: oklch(0.97 0.004 70);
+
+    --popover: oklch(0.235 0.006 55);
+    --popover-foreground: oklch(0.97 0.004 70);
+
+    /* Lift terracotta for legibility on near-black; flip its fg to dark since a
+       0.68-L orange needs dark text (white on it is only ~3.3:1). */
+    --primary: oklch(0.68 0.16 44);
+    --primary-foreground: oklch(0.16 0.01 50);
+
+    --secondary: oklch(0.27 0.006 55);
+    --secondary-foreground: oklch(0.97 0.004 70);
+
+    --muted: oklch(0.25 0.006 55);
+    --muted-foreground: oklch(0.73 0.008 60);
+
+    /* Peach badge inverts to warm dark-terracotta + light-peach glyph — same
+       bg-accent/text-accent-foreground markup auto-swaps light↔dark. */
+    --accent: oklch(0.32 0.05 48);
+    --accent-foreground: oklch(0.8 0.1 55);
+
+    --border: oklch(0.3 0.008 55);
+    --input: oklch(0.32 0.008 55);
+    --ring: oklch(0.68 0.16 44);
+
+    --destructive: oklch(0.64 0.19 27);
+    --destructive-foreground: oklch(0.985 0.004 75);
+
+    --warning: oklch(0.82 0.15 75);
+    --warning-foreground: oklch(0.22 0.03 70);
+
+    --info: oklch(0.7 0.12 245);
+    --info-foreground: oklch(0.16 0.02 245);
+
+    --success: oklch(0.7 0.14 150);
+    --success-foreground: oklch(0.16 0.02 150);
+
+    --brand: oklch(0.645 0.158 42);
+    --brand-foreground: oklch(0.99 0.005 75);
+
+    /* Near-flat warm elevation in dark — separation comes from --border. */
+    --oc-shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --oc-shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.24), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+    --oc-shadow-sm: 0 2px 8px -2px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.24);
+    --oc-shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.34), 0 4px 8px -4px rgb(0 0 0 / 0.26);
+    --oc-shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.4), 0 8px 16px -8px rgb(0 0 0 / 0.3);
+    --oc-shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.5), 0 12px 24px -12px rgb(0 0 0 / 0.34);
+}
+
+/*
+ * Pill buttons are a SHAPE property of this skin, not of any single button, and
+ * one --radius can't make pills AND keep 16px cards. So scope a radius override
+ * to the stable [data-slot='button'] attribute under ember only: every Button
+ * family-wide becomes a full pill with zero call-site edits, zero change to the
+ * Button primitive, and zero effect on other skins. Specificity (0,2,0) beats
+ * the .rounded-md utility (0,1,0) without !important.
+ */
+[data-oc-theme='ember'] [data-slot='button'] {
+    border-radius: 9999px;
+}
+
+/* Same shape language for the text Badge — pill chips read as warm/friendly. */
+[data-oc-theme='ember'] [data-slot='badge'] {
+    border-radius: 9999px;
+}

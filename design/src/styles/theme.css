@@ -303,6 +303,19 @@
         );
         background-size: 16px 16px;
     }
+    /* Faint 45° hairline texture for brand/CTA bands. Lines derive from
+       currentColor so they invert automatically: on a light section the text is
+       dark → faint dark lines; on a terracotta band the text is white → faint
+       white lines. Tune via --oc-diagonal-line / --oc-diagonal-gap. */
+    .bg-diagonal {
+        background-image: repeating-linear-gradient(
+            45deg,
+            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 94%)) 0,
+            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 94%)) 1px,
+            transparent 1px,
+            transparent var(--oc-diagonal-gap, 14px)
+        );
+    }
 
     /* ── Docs prose styles ────────────────────────────────────────── */
     .docs-prose {

@@ -3,7 +3,7 @@
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.SB_BASE || 'http://localhost:6007';
-const SKINS = ['orangecheck', 'phosphor', 'lightning', 'gold'];
+const SKINS = ['orangecheck', 'phosphor', 'lightning', 'gold', 'ember'];
 
 const b = await chromium.launch();
 const page = await b.newPage();
