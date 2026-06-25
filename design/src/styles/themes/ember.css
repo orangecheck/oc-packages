@@ -179,3 +179,45 @@
 [data-oc-theme='ember'] [data-slot='badge'] {
     border-radius: 9999px;
 }
+
+/*
+ * De-terminalize the system surfaces (Card / Modal / Confirm / Prompt). The
+ * green-screen window chrome — mono body, cool-gray strip, traffic-light dots,
+ * tight corners — is the cypherpunk skins' identity. Under the warm consumer
+ * skin these are soft rounded panels with a warm sans header, no traffic dots.
+ * Scoped to [data-oc-theme='ember'] so the other skins keep their terminal look.
+ */
+[data-oc-theme='ember'] .terminal {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--oc-shadow-md);
+    overflow: hidden;
+    font-family: var(--oc-font-sans);
+}
+[data-oc-theme='ember'] .terminal-title {
+    background: color-mix(in oklch, var(--primary) 6%, var(--card));
+    font-family: var(--oc-font-sans);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--foreground);
+    padding: 0.7rem 1rem;
+}
+[data-oc-theme='ember'] .terminal-dot {
+    display: none;
+}
+/* Confirm/Prompt/Modal dialogs (the ones with a .terminal-title strip) hardcode
+   mono + mono-caps + sharp corners for the cypherpunk skins' terminal voice.
+   Under ember: round the panel and read the message + action labels in the warm
+   sans, normal case. Secret/value inputs keep mono. */
+[data-oc-theme='ember'] [role='dialog']:has(.terminal-title) {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+[data-oc-theme='ember'] [role='dialog']:has(.terminal-title) .font-mono:not(input):not(textarea),
+[data-oc-theme='ember'] [role='dialog']:has(.terminal-title) .font-display,
+[data-oc-theme='ember'] [role='dialog']:has(.terminal-title) [data-slot='button'] {
+    font-family: var(--oc-font-sans);
+    text-transform: none;
+    letter-spacing: normal;
+}
