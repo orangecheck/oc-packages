@@ -52,9 +52,7 @@ function FauxNav() {
                 <span>How it works</span>
                 <span>For business</span>
                 <span>Sign in</span>
-                <Button className="bg-background text-foreground hover:bg-background/90 rounded-full">
-                    Create account
-                </Button>
+                <Button variant="onBrand">Create account</Button>
             </div>
         </nav>
     );
@@ -208,13 +206,10 @@ function Page() {
                             that no company can ban, delete, or take away.
                         </p>
                         <div className="mt-7 flex flex-wrap gap-3">
-                            <Button className="bg-background text-foreground hover:bg-background/90 rounded-full px-6">
+                            <Button variant="onBrand" className="px-6">
                                 Create your free account
                             </Button>
-                            <Button
-                                variant="outline"
-                                className="border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 rounded-full px-6"
-                            >
+                            <Button variant="onBrandOutline" className="px-6">
                                 See how it works
                             </Button>
                         </div>
@@ -375,8 +370,10 @@ function Page() {
                     ))}
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
-                    <Button className="rounded-full px-6">Read the docs</Button>
-                    <Button variant="outline" className="rounded-full px-6">
+                    <Button variant="onBrand" className="px-6">
+                        Read the docs
+                    </Button>
+                    <Button variant="onBrandOutline" className="px-6">
                         Talk to us
                     </Button>
                 </div>

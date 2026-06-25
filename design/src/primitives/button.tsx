@@ -19,6 +19,14 @@ const buttonVariants = cva(
                 secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
                 ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
                 link: 'text-primary underline-offset-4 hover:underline',
+                // For CTAs placed ON a saturated brand band or a dark section
+                // (e.g. a terracotta hero / footer / a forced-dark block) where
+                // the surface is dark+light-text in either mode. A neutral white
+                // pill + a translucent-white ghost read on any such surface;
+                // hardcoded white is deliberate (cf. destructive's text-white).
+                onBrand: 'bg-white text-neutral-900 shadow-sm hover:bg-white/90',
+                onBrandOutline:
+                    'border border-white/40 bg-transparent text-white hover:bg-white/10',
             },
             size: {
                 default: 'h-9 px-4 py-2 has-[>svg]:px-3',

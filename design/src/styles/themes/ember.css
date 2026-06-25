@@ -80,10 +80,12 @@
     --destructive: oklch(0.585 0.205 27);
     --destructive-foreground: oklch(0.99 0.005 75);
 
-    /* Burnt amber, dark enough to read as text on the warm white card (the old
-       0.8 washed out everywhere it was used as a status/stat label). */
-    --warning: oklch(0.64 0.14 68);
-    --warning-foreground: oklch(0.99 0.005 75);
+    /* Burnt amber: dark enough to read as TEXT on the warm white card (the old
+       0.8 washed out as a status/stat label) yet light enough that a solid
+       bg-warning chip pairs with DARK text. Amber is intrinsically light, so a
+       mid burnt-amber + dark foreground is the legible compromise for both uses. */
+    --warning: oklch(0.58 0.13 72);
+    --warning-foreground: oklch(0.18 0.04 72);
 
     /* Semantics calmed (lower chroma) so green/blue harmonize with the warm
        palette instead of reading neon-cold, while staying recognizably green/blue. */

@@ -160,7 +160,10 @@
         background-color: var(--brand);
     }
     .bg-brand-soft {
-        background-color: color-mix(in oklch, var(--brand), transparent 88%);
+        /* Card-relative (not a transparent overlay) so the soft brand chip stays
+           visible on dark surfaces too: a pale brand tint in light, a darker
+           brand-tinted chip in dark. */
+        background-color: color-mix(in oklch, var(--brand) 16%, var(--card));
     }
     .border-brand {
         border-color: var(--brand);

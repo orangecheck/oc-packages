@@ -56,14 +56,7 @@ export function EmailCapture({
                             '[background:color-mix(in_oklch,white_18%,transparent)] placeholder:text-primary-foreground/60 border-transparent text-primary-foreground'
                     )}
                 />
-                <Button
-                    type="submit"
-                    variant={onBrand ? 'secondary' : 'default'}
-                    className={cn(
-                        'rounded-full',
-                        onBrand && 'bg-background text-foreground hover:bg-background/90'
-                    )}
-                >
+                <Button type="submit" variant={onBrand ? 'onBrand' : 'default'} className="rounded-full">
                     {cta}
                 </Button>
             </div>
