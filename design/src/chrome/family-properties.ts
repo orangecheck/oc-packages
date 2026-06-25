@@ -86,6 +86,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'product',
     },
     {
+        slug: 'btc',
+        origin: 'https://btc.ochk.io',
+        hostname: 'btc.ochk.io',
+        label: 'oc·btc',
+        sub: 'read — bitcoin desk',
+        docsHref: 'https://btc.ochk.io/data',
+        category: 'product',
+    },
+    {
         slug: 'attest',
         origin: 'https://attest.ochk.io',
         hostname: 'attest.ochk.io',
