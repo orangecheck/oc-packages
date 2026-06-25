@@ -29,7 +29,7 @@ export function StatBlock({ label, value, sub, delta, tone = 'default', classNam
 
     return (
         <div className={cn('flex flex-col gap-1', className)}>
-            <span className="label-mono text-[10px]">{label}</span>
+            <span className="label-mono text-muted-foreground text-[10px]">{label}</span>
             <span
                 className={cn(
                     'font-display text-2xl font-bold tracking-tight tabular-nums',

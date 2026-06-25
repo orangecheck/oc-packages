@@ -35,7 +35,7 @@ export function NumberedStep({
     const onBrand = tone === 'onBrand';
     const body = (
         <div className={cn(!card && className)}>
-            <IconBadge tone={onBrand ? 'onBrand' : 'peach'} size="md">
+            <IconBadge tone={onBrand ? 'onBrand' : 'peach'} size="sm">
                 {n}
             </IconBadge>
             <div className="mt-4 text-lg font-semibold">{title}</div>

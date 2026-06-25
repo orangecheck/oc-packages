@@ -184,13 +184,15 @@
         font-feature-settings: 'ss01', 'cv01', 'zero';
     }
 
+    /* Mono eyebrow/label TYPE only — no color, so the caller's text-* utility
+       always wins (text-primary terracotta eyebrows, tone colors on
+       SectionHeader/Callout, etc.). Bare usages must pass their own color. */
     .label-mono {
         font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.7rem;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         font-weight: 600;
-        color: color-mix(in oklch, var(--foreground), transparent 50%);
     }
 
     /* ── Frosted translucent surface (aurora-aware) ──────────────────────

@@ -21,6 +21,9 @@ const iconBadgeVariants = cva(
                 onBrand: 'bg-brand-foreground text-primary',
                 /* Quiet neutral tile. */
                 muted: 'bg-muted text-foreground',
+                /* Crisp white (card-colored) tile with a terracotta glyph and a
+                   soft lift — the elevated icon chip on muted/colored cards. */
+                surface: 'bg-card text-primary shadow-sm',
             },
             size: {
                 sm: 'size-9 text-xs [&_svg]:size-4',

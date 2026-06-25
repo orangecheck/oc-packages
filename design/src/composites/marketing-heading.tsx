@@ -27,11 +27,13 @@ export function TwoToneHeading({
 }: TwoToneHeadingProps) {
     const Tag = as ?? 'h2';
     const leadColor = tone === 'onBrand' ? 'text-primary-foreground' : 'text-foreground';
-    const mutedColor = tone === 'onBrand' ? 'text-primary-foreground/60' : 'text-muted-foreground';
+    // Lighter, cleaner muted clause so the two-tone contrast reads (matches the
+    // designer's light-gray second phrase, not a heavy taupe).
+    const mutedColor = tone === 'onBrand' ? 'text-primary-foreground/60' : 'text-foreground/40';
     return (
         <Tag
             className={cn(
-                'font-extrabold tracking-tight leading-[1.05] text-balance',
+                'font-extrabold tracking-[-0.02em] leading-[1.0] text-balance',
                 'text-3xl sm:text-4xl md:text-5xl',
                 leadColor,
                 className,
@@ -77,7 +79,13 @@ export function MarketingHeading({
                     {eyebrow}
                 </p>
             )}
-            <TwoToneHeading lead={lead} muted={muted} as={as} tone={tone} />
+            <TwoToneHeading
+                lead={lead}
+                muted={muted}
+                as={as}
+                tone={tone}
+                className={cn('max-w-4xl', centered && 'mx-auto')}
+            />
             {body && (
                 <p
                     className={cn(

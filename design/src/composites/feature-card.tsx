@@ -6,7 +6,7 @@ import { cn } from '../tokens/cn';
 export interface FeatureCardProps {
     /** Optional leading glyph — a lucide icon sized by IconBadge. */
     icon?: ReactNode;
-    iconTone?: 'peach' | 'dark' | 'brand' | 'onBrand' | 'muted';
+    iconTone?: 'peach' | 'dark' | 'brand' | 'onBrand' | 'muted' | 'surface';
     title: ReactNode;
     children?: ReactNode;
     orientation?: 'vertical' | 'horizontal';
@@ -39,7 +39,7 @@ export function FeatureCard({
         <Surface
             tone={tone}
             elevation={elevation}
-            pad="md"
+            pad={horizontal ? 'md' : 'lg'}
             className={cn(
                 'flex h-full',
                 horizontal ? 'flex-row gap-4' : 'flex-col',

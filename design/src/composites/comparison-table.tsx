@@ -27,19 +27,19 @@ export function ComparisonTable({ rows, columns, className }: ComparisonTablePro
         <div className={cn('overflow-hidden rounded-xl border', className)}>
             <div className="overflow-x-auto">
                 <div className="min-w-[32rem]">
-                    <div className="grid grid-cols-3">
+                    <div className="grid grid-cols-[1.4fr_1fr_1fr]">
                         <div className="label-mono text-muted-foreground px-4 py-3.5 sm:px-6">
                             {cols.feature}
                         </div>
                         <div className="px-4 py-3.5 font-semibold text-foreground sm:px-6">
                             {cols.theirs}
                         </div>
-                        <div className="bg-accent/60 px-4 py-3.5 font-semibold text-primary sm:px-6">
+                        <div className="bg-accent/60 border-border/60 border-l px-4 py-3.5 font-semibold text-primary sm:px-6">
                             {cols.ours}
                         </div>
                     </div>
                     {rows.map((row, i) => (
-                        <div key={i} className="grid grid-cols-3 border-t">
+                        <div key={i} className="grid grid-cols-[1.4fr_1fr_1fr] border-t">
                             <div className="px-4 py-3.5 font-medium text-foreground sm:px-6">
                                 {row.label}
                             </div>
@@ -47,7 +47,7 @@ export function ComparisonTable({ rows, columns, className }: ComparisonTablePro
                                 <X className="text-muted-foreground/70 size-4" />
                                 <span>{row.theirs}</span>
                             </div>
-                            <div className="bg-accent/40 flex items-center gap-2 px-4 py-3.5 text-foreground sm:px-6">
+                            <div className="bg-accent/40 border-border/60 flex items-center gap-2 border-l px-4 py-3.5 text-foreground sm:px-6">
                                 <Check className="size-4 text-primary" />
                                 <span>{row.ours}</span>
                             </div>

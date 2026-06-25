@@ -127,9 +127,10 @@
     --muted-foreground: oklch(0.73 0.008 60);
 
     /* Peach badge inverts to warm dark-terracotta + light-peach glyph — same
-       bg-accent/text-accent-foreground markup auto-swaps light↔dark. */
-    --accent: oklch(0.32 0.05 48);
-    --accent-foreground: oklch(0.8 0.1 55);
+       bg-accent/text-accent-foreground markup auto-swaps light↔dark. Enough
+       chroma that the tiles read clearly warm (not neutral gray) on near-black. */
+    --accent: oklch(0.34 0.085 50);
+    --accent-foreground: oklch(0.82 0.12 58);
 
     /* Warm-gray borders lifted so card edges + unchecked controls stay visible
        on the near-black bg. */

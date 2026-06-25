@@ -60,8 +60,15 @@ function FauxNav() {
 
 function HeroArt() {
     return (
-        <div className="oc-dots relative hidden min-h-[22rem] items-center justify-center rounded-3xl md:flex">
-            <div className="text-primary-foreground/70 font-mono text-sm leading-7">
+        <div className="relative hidden min-h-[26rem] items-center justify-center md:flex">
+            {/* dashed diamond scaffold */}
+            <div className="oc-dots absolute size-72 rotate-45 rounded-[2.5rem] border border-dashed border-[color-mix(in_oklch,var(--brand-foreground)_28%,transparent)]" />
+            {/* dotted check seal + soft glow */}
+            <div className="text-primary-foreground/85 absolute flex size-32 items-center justify-center rounded-full border border-dotted border-[color-mix(in_oklch,var(--brand-foreground)_45%,transparent)] [background:radial-gradient(circle,color-mix(in_oklch,var(--brand-foreground)_16%,transparent),transparent_72%)]">
+                <Check className="size-12" strokeWidth={2.25} />
+            </div>
+            {/* mono identity list, lower-left */}
+            <div className="text-primary-foreground/75 absolute bottom-8 left-2 font-mono text-sm leading-7">
                 <div>
                     did:oc <span className="text-primary-foreground/45">bc1q…k7x4</span>
                 </div>
@@ -78,8 +85,8 @@ function HeroArt() {
                     status <span className="text-primary-foreground/45">verified</span>
                 </div>
             </div>
-            <div className="absolute right-4 bottom-4">
-                <VerifiedChip label="Verified, only you" />
+            <div className="absolute right-0 -bottom-3">
+                <VerifiedChip iconTone="brand" label="Verified, only you" />
             </div>
         </div>
     );
@@ -89,16 +96,20 @@ function SignInCardMock() {
     return (
         <Surface elevation="lg" pad="lg" className="mx-auto w-full max-w-sm rounded-3xl">
             <div className="flex flex-col items-center text-center">
-                <IconBadge tone="brand" size="lg" className="rounded-2xl">
+                {/* A fictional third-party app — deliberately NOT OrangeCheck's
+                    terracotta, to show OC sitting next to another brand. */}
+                <span className="inline-flex size-12 items-center justify-center rounded-2xl text-lg font-bold text-white [background:linear-gradient(135deg,#7c5cff,#a855f7)]">
                     L
-                </IconBadge>
+                </span>
                 <h3 className="text-foreground mt-4 text-lg font-bold">Sign in to Lumen</h3>
                 <p className="text-muted-foreground text-sm">Welcome back</p>
             </div>
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-7 flex flex-col gap-3.5">
                 <div className="relative">
                     <Button className="w-full justify-start gap-3 rounded-full">
-                        <Check className="size-4" />
+                        <span className="bg-primary-foreground/20 inline-flex size-5 items-center justify-center rounded-md">
+                            <Check className="size-3.5" />
+                        </span>
                         Continue with OrangeCheck
                     </Button>
                     <Badge
@@ -199,11 +210,15 @@ function Page() {
                             as="h1"
                             tone="onBrand"
                             lead="Your accounts aren’t really yours."
-                            className="md:text-6xl"
+                            className="font-black md:text-6xl"
                         />
                         <p className="text-primary-foreground/85 mt-5 max-w-md text-lg leading-relaxed">
-                            We give you one that is. <strong>A single login for every app</strong>{' '}
-                            that no company can ban, delete, or take away.
+                            We give you one that is.{' '}
+                            <strong className="text-primary-foreground font-semibold">
+                                A single login for every app
+                            </strong>{' '}
+                            that no company can ban, delete, or take away. Free to create with
+                            Google, email, or your Bitcoin wallet.
                         </p>
                         <div className="mt-7 flex flex-wrap gap-3">
                             <Button variant="onBrand" className="px-6">
@@ -212,6 +227,20 @@ function Page() {
                             <Button variant="onBrandOutline" className="px-6">
                                 See how it works
                             </Button>
+                        </div>
+                        <p className="text-primary-foreground/70 mt-3 text-sm">
+                            Takes about 30 seconds. Nothing to install.
+                        </p>
+                        <div className="mt-8 flex max-w-md flex-col gap-3">
+                            <AccentNote tone="onBrand" lead="Yours for good,">
+                                it keeps working even if OrangeCheck disappears
+                            </AccentNote>
+                            <AccentNote tone="onBrand" lead="No middleman,">
+                                no company can ban it, delete it, or lock you out
+                            </AccentNote>
+                            <AccentNote tone="onBrand" lead="Private by default,">
+                                apps only see what you choose to share
+                            </AccentNote>
                         </div>
                         <div className="mt-8">
                             <CheckList
@@ -276,6 +305,7 @@ function Page() {
                         align="center"
                         elevation="none"
                         icon={<Lock />}
+                        iconTone="surface"
                         title="Yours, and only yours"
                         className="py-10"
                     >
@@ -377,25 +407,28 @@ function Page() {
                         Talk to us
                     </Button>
                 </div>
+                <p className="text-muted-foreground mt-6 text-sm">
+                    Built for communities, marketplaces, social platforms, and AI apps.
+                </p>
             </Section>
 
             {/* 10 — QUESTIONS + FOOTER CTA */}
             <Section>
                 <MarketingHeading eyebrow="QUESTIONS" lead="Everything you might be wondering." />
-                <div className="mt-8 max-w-3xl">
+                <div className="border-border mt-8 max-w-3xl border-t">
                     <Faq items={FAQ} defaultOpen={0} />
                 </div>
             </Section>
 
             <BrandBand>
-                <div className="mx-auto max-w-2xl text-center">
+                <div className="mx-auto max-w-4xl text-center">
                     <TwoToneHeading
                         tone="onBrand"
                         lead="One account. Every app."
                         muted="Yours for good."
-                        className="justify-center"
+                        className="mx-auto text-balance"
                     />
-                    <p className="text-primary-foreground/85 mt-4 text-lg">
+                    <p className="text-primary-foreground/85 mx-auto mt-4 max-w-xl text-lg">
                         Be first to claim yours. We’ll email you the moment it opens, and nothing else.
                     </p>
                     <div className="mt-8 flex justify-center">
