@@ -32,6 +32,10 @@
         system-ui, sans-serif;
     --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
             monospace);
+    /* The big display face (wordmark, page/section headings, .font-display) is
+       the warm grotesk under ember — NOT the mono the cypherpunk skins use.
+       Eyebrows / small chrome labels stay mono via --oc-font-mono. */
+    --oc-font-display: var(--oc-font-sans);
 
     /* Soft, diffuse, warm-tinted elevation (rgb 31 18 10 ≈ #1f120a, not pure
        black) — the floated-card look of the mockups, well past the flat default. */
@@ -76,13 +80,17 @@
     --destructive: oklch(0.585 0.205 27);
     --destructive-foreground: oklch(0.99 0.005 75);
 
-    --warning: oklch(0.8 0.15 75);
-    --warning-foreground: oklch(0.25 0.03 70);
+    /* Burnt amber, dark enough to read as text on the warm white card (the old
+       0.8 washed out everywhere it was used as a status/stat label). */
+    --warning: oklch(0.64 0.14 68);
+    --warning-foreground: oklch(0.99 0.005 75);
 
-    --info: oklch(0.58 0.13 245);
+    /* Semantics calmed (lower chroma) so green/blue harmonize with the warm
+       palette instead of reading neon-cold, while staying recognizably green/blue. */
+    --info: oklch(0.56 0.11 240);
     --info-foreground: oklch(0.99 0.005 75);
 
-    --success: oklch(0.58 0.13 150);
+    --success: oklch(0.56 0.11 150);
     --success-foreground: oklch(0.99 0.005 75);
 
     /* Decorative band terracotta — the exact sampled #d76433. */
@@ -103,15 +111,17 @@
     --popover: oklch(0.235 0.006 55);
     --popover-foreground: oklch(0.97 0.004 70);
 
-    /* Lift terracotta for legibility on near-black; flip its fg to dark since a
-       0.68-L orange needs dark text (white on it is only ~3.3:1). */
-    --primary: oklch(0.68 0.16 44);
-    --primary-foreground: oklch(0.16 0.01 50);
+    /* Same DEEP terracotta + WHITE label as light mode, so filled primary
+       buttons are consistent across modes (no bright-amber + dark-text drift).
+       White-on-0.55 clears AA (~5:1); text-primary on near-black clears UI (~3:1). */
+    --primary: oklch(0.55 0.162 42);
+    --primary-foreground: oklch(0.99 0.005 75);
 
     --secondary: oklch(0.27 0.006 55);
     --secondary-foreground: oklch(0.97 0.004 70);
 
-    --muted: oklch(0.25 0.006 55);
+    /* Distinctly above --card (0.235) so skeletons / muted surfaces read. */
+    --muted: oklch(0.32 0.006 55);
     --muted-foreground: oklch(0.73 0.008 60);
 
     /* Peach badge inverts to warm dark-terracotta + light-peach glyph — same
@@ -119,20 +129,23 @@
     --accent: oklch(0.32 0.05 48);
     --accent-foreground: oklch(0.8 0.1 55);
 
-    --border: oklch(0.3 0.008 55);
-    --input: oklch(0.32 0.008 55);
-    --ring: oklch(0.68 0.16 44);
+    /* Warm-gray borders lifted so card edges + unchecked controls stay visible
+       on the near-black bg. */
+    --border: oklch(0.36 0.008 55);
+    --input: oklch(0.44 0.01 55);
+    /* Brighter than --primary so the focus ring stays visible on near-black. */
+    --ring: oklch(0.64 0.16 44);
 
     --destructive: oklch(0.64 0.19 27);
     --destructive-foreground: oklch(0.985 0.004 75);
 
     --warning: oklch(0.82 0.15 75);
-    --warning-foreground: oklch(0.22 0.03 70);
+    --warning-foreground: oklch(0.2 0.03 70);
 
-    --info: oklch(0.7 0.12 245);
+    --info: oklch(0.7 0.1 240);
     --info-foreground: oklch(0.16 0.02 245);
 
-    --success: oklch(0.7 0.14 150);
+    --success: oklch(0.7 0.12 150);
     --success-foreground: oklch(0.16 0.02 150);
 
     --brand: oklch(0.645 0.158 42);

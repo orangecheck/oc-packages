@@ -20,7 +20,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
                 'data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
                 'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                'aria-invalid:ring-brand/25 dark:aria-invalid:ring-brand/35',
+                'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
                 className
             )}
             {...props}

@@ -62,7 +62,7 @@ function FauxNav() {
 
 function HeroArt() {
     return (
-        <div className="bg-dots relative hidden min-h-[22rem] items-center justify-center rounded-3xl md:flex">
+        <div className="oc-dots relative hidden min-h-[22rem] items-center justify-center rounded-3xl md:flex">
             <div className="text-primary-foreground/70 font-mono text-sm leading-7">
                 <div>
                     did:oc <span className="text-primary-foreground/45">bc1q…k7x4</span>

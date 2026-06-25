@@ -170,10 +170,13 @@
     }
 
     /* ── Mono display utilities ──────────────────────────────────────── */
+    /* Display face for wordmarks + headings. Defaults to the skin's mono (the
+       cypherpunk skins' terminal identity); a skin can set --oc-font-display to
+       its sans to go warm/grotesk (ember does). */
     .font-display {
         font-family:
-            var(--oc-font-mono), ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo,
-            monospace;
+            var(--oc-font-display, var(--oc-font-mono)), ui-monospace, 'JetBrains Mono',
+            SFMono-Regular, Menlo, monospace;
         letter-spacing: -0.02em;
         font-feature-settings: 'ss01', 'cv01', 'zero';
     }
@@ -303,18 +306,27 @@
         );
         background-size: 16px 16px;
     }
-    /* Faint 45° hairline texture for brand/CTA bands. Lines derive from
-       currentColor so they invert automatically: on a light section the text is
-       dark → faint dark lines; on a terracotta band the text is white → faint
-       white lines. Tune via --oc-diagonal-line / --oc-diagonal-gap. */
-    .bg-diagonal {
+    /* currentColor-based textures for brand/CTA bands. NOT prefixed `bg-`:
+       tailwind-merge misclassifies any `bg-*` class as a background-color and
+       would drop a real `bg-brand`/`bg-card` sitting next to it in the same
+       cn() — these are deliberately `oc-*` so they compose safely. Lines/dots
+       derive from currentColor so they invert automatically (dark text → faint
+       dark texture; white text on a terracotta band → faint white texture). */
+    .oc-diagonal {
         background-image: repeating-linear-gradient(
             45deg,
-            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 94%)) 0,
-            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 94%)) 1px,
+            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 92%)) 0,
+            var(--oc-diagonal-line, color-mix(in oklch, currentColor, transparent 92%)) 1px,
             transparent 1px,
             transparent var(--oc-diagonal-gap, 14px)
         );
+    }
+    .oc-dots {
+        background-image: radial-gradient(
+            var(--oc-dots-color, color-mix(in oklch, currentColor, transparent 86%)) 1px,
+            transparent 1px
+        );
+        background-size: var(--oc-dots-size, 16px) var(--oc-dots-size, 16px);
     }
 
     /* ── Docs prose styles ────────────────────────────────────────── */

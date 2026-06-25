@@ -37,7 +37,7 @@ function RadioGroupItem({
                 'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 'data-[state=checked]:border-primary',
-                'aria-invalid:ring-brand/25 dark:aria-invalid:ring-brand/35 aria-invalid:border-brand',
+                'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
                 className
             )}
             {...props}

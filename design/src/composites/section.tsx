@@ -49,7 +49,7 @@ export function Section({
     return (
         <div
             id={id}
-            className={cn('w-full', TONE[tone], showDiagonal && 'bg-diagonal', className)}
+            className={cn('w-full', TONE[tone], showDiagonal && 'oc-diagonal', className)}
         >
             <div className={cn('py-16 sm:py-20 md:py-24', WIDTH[width], innerClassName)}>
                 {children}
