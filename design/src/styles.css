@@ -15,6 +15,7 @@
  * still loads fonts (`--font-sans-display` / `--font-mono-display`) via
  * next/font, exactly as today.
  */
+@import './styles/fonts.css';
 @import './styles/theme.css';
 @import './styles/themes.css';
 @import './styles/aurora.css';
