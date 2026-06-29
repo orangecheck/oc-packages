@@ -1,16 +1,17 @@
 /*
- * Skin: orangecheck (default)
+ * Skin: orangecheck (the original look — now an opt-in alternate, not the default)
  *
- * The current OrangeCheck look, ported byte-for-byte. The bare `:root` / `.dark`
- * arms are the no-JS / pre-hydration fallback; the `[data-oc-theme]` arms are
- * what `OcThemeProvider` activates. Values are identical across both arms.
+ * The current OrangeCheck look, ported byte-for-byte. ember now owns the bare
+ * `:root` / `.dark` base, so this file is an attribute-only arm: it activates
+ * only when `OcThemeProvider` sets `data-oc-theme='orangecheck'`. It is imported
+ * AFTER ember.css, so at equal specificity to ember's `:root` base it wins via
+ * source order whenever its attribute is present.
  *
  * MODE axis (light/dark) = `.dark` class (next-themes). SKIN axis = the
  * `data-oc-theme` attribute. A skin file must declare the COMPLETE token set in
  * both modes so it fully overrides whatever the default populated.
  */
 
-:root,
 [data-oc-theme='orangecheck'] {
     /* Sharp corners — cypherpunk, not SaaS */
     --radius: 0.25rem;
@@ -83,7 +84,6 @@
     --brand-foreground: oklch(0.1 0 0);
 }
 
-.dark,
 [data-oc-theme='orangecheck'].dark {
     /* Dark mode — near-true-black. Terminal energy. */
     --background: oklch(0.08 0 0);

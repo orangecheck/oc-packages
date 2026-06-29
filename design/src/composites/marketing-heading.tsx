@@ -28,8 +28,10 @@ export function TwoToneHeading({
     const Tag = as ?? 'h2';
     const leadColor = tone === 'onBrand' ? 'text-primary-foreground' : 'text-foreground';
     // Lighter, cleaner muted clause so the two-tone contrast reads (matches the
-    // designer's light-gray second phrase, not a heavy taupe).
-    const mutedColor = tone === 'onBrand' ? 'text-primary-foreground/60' : 'text-foreground/40';
+    // designer's light-gray second phrase, not a heavy taupe). On a brand band
+    // /60 fell below AA-large (~2.5:1); /75 keeps the two-tone read while staying
+    // legible on terracotta.
+    const mutedColor = tone === 'onBrand' ? 'text-primary-foreground/75' : 'text-foreground/40';
     return (
         <Tag
             className={cn(

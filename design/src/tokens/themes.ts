@@ -26,10 +26,18 @@ export interface OcTheme {
     readonly accent: string;
 }
 
-// Every skin is rooted in the Bitcoin ethos — sharp, flat, cypherpunk — and
-// carries a meaning, not just a colour: the chain, the node, the network, sound
-// money. No SaaS softness.
+// ember leads — the warm, human default. The other four are the Bitcoin-ethos
+// alternates (sharp, flat, cypherpunk), each carrying a meaning, not just a
+// colour: the chain, the node, the network, sound money. Order here is the
+// order shown in the appearance menu / picker (ember first).
 export const OC_THEMES: readonly OcTheme[] = [
+    {
+        id: 'ember',
+        label: 'ember',
+        description:
+            'the warmth — burnt-sienna terracotta, soft 1rem corners, pill buttons, Hanken Grotesk · approachable, human',
+        accent: '#da6736',
+    },
     {
         id: 'orangecheck',
         label: 'orangecheck',
@@ -54,13 +62,6 @@ export const OC_THEMES: readonly OcTheme[] = [
         description: 'sound money — digital gold, hard 0.125rem milled edge, mono ledger · 21M',
         accent: '#e3b831',
     },
-    {
-        id: 'ember',
-        label: 'ember',
-        description:
-            'the warmth — burnt-sienna terracotta, soft 1rem corners, pill buttons, Hanken Grotesk · approachable, human',
-        accent: '#da6736',
-    },
 ] as const;
 
 /** The family default accent (orangecheck), and the hex every favicon ships
@@ -72,7 +73,10 @@ export function accentFor(id: string | null | undefined): string {
     return OC_THEMES.find((t) => t.id === id)?.accent ?? OC_DEFAULT_ACCENT;
 }
 
-export const DEFAULT_OC_THEME = 'orangecheck';
+// ember is the family default — the skin a user with no `oc_skin` cookie gets.
+// (The favicon SVGs still ship baked with OC_DEFAULT_ACCENT below; the init
+// script recolors them from that to the active skin's accent on load.)
+export const DEFAULT_OC_THEME = 'ember';
 
 export type OcThemeId = (typeof OC_THEMES)[number]['id'] | (string & {});
 

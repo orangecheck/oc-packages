@@ -24,10 +24,11 @@ Canonical design + rollout plan: `~/Projects/ochk/DESIGN-SYSTEM-PLAN.md`.
 - **Skin** — a named theme, owned by `<OcThemeProvider>` via the `data-oc-theme`
   attribute, persisted in the `oc_skin` cookie at `Domain=.ochk.io` so a choice
   carries across every family site. Pick with `<OcThemePicker />`. Five skins
-  ship: `orangecheck` (default), `phosphor`, `lightning`, `gold` (four sharp/flat
-  Bitcoin-ethos skins), and `ember` (a warm, rounded consumer skin — terracotta,
-  1rem radius, pill buttons, self-hosted Hanken Grotesk). A skin re-skins color,
-  radius, type, and elevation — not just hue.
+  ship: **`ember`** — the family **default** (a warm, rounded consumer skin:
+  terracotta, 1rem radius, pill buttons, self-hosted Hanken Grotesk; owns the
+  bare `:root`/`.dark` base) — plus `orangecheck`, `phosphor`, `lightning`,
+  `gold` (the four sharp/flat Bitcoin-ethos alternates, attribute-only arms). A
+  skin re-skins color, radius, type, and elevation — not just hue.
 
 The two compose: any skin renders in both modes.
 

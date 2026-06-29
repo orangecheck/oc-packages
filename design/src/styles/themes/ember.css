@@ -8,9 +8,12 @@
  * existing JetBrains Mono eyebrows. Derived from the orangecheck.io redesign
  * mockups; tuned for WCAG AA.
  *
- * Only the two `[data-oc-theme='ember']` arms — never bare `:root`/`.dark`
- * (orangecheck.css alone owns the no-JS / pre-hydration fallback). A skin must
- * declare the COMPLETE token set in both modes so it fully overrides the default.
+ * ember is the FAMILY DEFAULT, so it owns the bare `:root`/`.dark` base (the
+ * no-JS / pre-hydration / SSR fallback) AS WELL AS its `[data-oc-theme='ember']`
+ * arms. The other skins are attribute-only arms imported AFTER this file, so
+ * they override the base when their attribute is set (orangecheck at equal
+ * specificity via source order; phosphor/lightning/gold via `:root[data-oc-theme]`).
+ * A skin must declare the COMPLETE token set in both modes so it fully overrides.
  *
  * --primary vs --brand split is intentional: --brand (oklch 0.635) is the exact
  * sampled band terracotta (decorative full-bleed sections); --primary is one
@@ -19,6 +22,7 @@
  * the big hero/CTA bands, --primary for interactive surfaces + text accents.
  */
 
+:root,
 [data-oc-theme='ember'] {
     /* Soft, friendly corners — 1rem drives the derived scale: sm 12 / md 14 /
        lg 16 / xl 20px, matching the sampled badge (12), card (16), panel (20). */
@@ -100,6 +104,7 @@
     --brand-foreground: oklch(0.99 0.005 75);
 }
 
+.dark,
 .dark[data-oc-theme='ember'],
 [data-oc-theme='ember'].dark {
     /* Dark — warm near-black, elevated warm-charcoal cards (grounded in the
@@ -220,4 +225,14 @@
     font-family: var(--oc-font-sans);
     text-transform: none;
     letter-spacing: normal;
+}
+
+/* Keep the ambient aurora WARM under ember. The .oc-aurora element self-defines
+   --au-green/--au-blue from the semantic --success/--info tokens (green/blue),
+   which clash with the all-terracotta palette. Re-point them to warm sunset
+   hues so the field stays amber→terracotta→deep-orange, never cool teal/blue.
+   --au-orange/--au-violet already track --brand/--primary (terracotta). */
+[data-oc-theme='ember'] .oc-aurora {
+    --au-green: oklch(0.74 0.15 74); /* golden amber, not node-green */
+    --au-blue: oklch(0.6 0.16 38); /* deep red-orange, not L2 blue */
 }
