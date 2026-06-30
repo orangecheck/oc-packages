@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/design",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "OrangeCheck design system — multi-theme tokens, primitives, and family composites for the .ochk.io sub-sites. Tailwind 4 + Next.js Pages Router. Not for third-party integration.",
   "keywords": [
     "orangecheck",

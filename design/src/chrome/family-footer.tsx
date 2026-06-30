@@ -40,6 +40,16 @@ export interface OcFamilyFooterProps {
   family?: "products" | "protocols" | "both";
   /** Origin the legal-bar links resolve against. Defaults to ochk.io. */
   legalBase?: string;
+  /** Override the left copyright line. Defaults to the canonical OC line. */
+  legalCopyright?: ReactNode;
+  /**
+   * Override the centre legal links. Defaults to privacy / terms / security /
+   * trademarks / contact (resolved against `legalBase`). Pass your own when a
+   * site needs an extra link (e.g. a federation charter) or a shorter set.
+   */
+  legalLinks?: FooterLink[];
+  /** Override the right-hand bitcoin tag (e.g. `'read on bitcoin'`). */
+  builtWith?: ReactNode;
   className?: string;
 }
 
@@ -114,6 +124,9 @@ export function OcFamilyFooter({
   columns = [],
   family,
   legalBase = "https://ochk.io",
+  legalCopyright,
+  legalLinks,
+  builtWith,
   className,
 }: OcFamilyFooterProps) {
   const familyCols: FooterColumn[] = [];
@@ -128,6 +141,13 @@ export function OcFamilyFooter({
   const grid = GRID[allColumns.length] ?? GRID[3];
   const year = new Date().getFullYear();
   const legal = (path: string) => `${legalBase}${path}`;
+  const links: FooterLink[] = legalLinks ?? [
+    { href: legal("/privacy"), label: "privacy" },
+    { href: legal("/terms"), label: "terms" },
+    { href: legal("/security"), label: "security" },
+    { href: legal("/trademark"), label: "trademarks" },
+    { href: legal("/contact"), label: "contact" },
+  ];
 
   return (
     <footer className={cn("border-t", className)}>
@@ -152,43 +172,25 @@ export function OcFamilyFooter({
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t pt-6 font-mono text-[11px] tracking-widest uppercase sm:flex-row sm:items-center">
           <span className="text-muted-foreground">
-            © {year} orangecheck · mit + cc-by-4.0
+            {legalCopyright ?? <>© {year} orangecheck · mit + cc-by-4.0</>}
           </span>
           <div className="text-muted-foreground/80 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <a
-              href={legal("/privacy")}
-              className="hover:text-foreground transition-colors"
-            >
-              privacy
-            </a>
-            <a
-              href={legal("/terms")}
-              className="hover:text-foreground transition-colors"
-            >
-              terms
-            </a>
-            <a
-              href={legal("/security")}
-              className="hover:text-foreground transition-colors"
-            >
-              security
-            </a>
-            <a
-              href={legal("/trademark")}
-              className="hover:text-foreground transition-colors"
-            >
-              trademarks
-            </a>
-            <a
-              href={legal("/contact")}
-              className="hover:text-foreground transition-colors"
-            >
-              contact
-            </a>
+            {links.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                {...(link.external
+                  ? { target: "_blank", rel: "noreferrer" }
+                  : {})}
+                className="hover:text-foreground transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
           <span className="text-muted-foreground inline-flex items-center gap-1.5">
             <span className="text-primary text-[13px] leading-none">₿</span>
-            <span>built with bitcoin</span>
+            <span>{builtWith ?? "built with bitcoin"}</span>
           </span>
         </div>
       </div>
