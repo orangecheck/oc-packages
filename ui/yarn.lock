@@ -358,9 +358,9 @@
   integrity sha512-nFucjVdwlFqxh/JG3hWSJ4p8+YJV7Ii8aPDuBQULB6DzUF4UNZETXLfEUk+oI2zEznWWULPt7MeuTE6xtK1HSA==
 
 "@orangecheck/auth-client@^2.17.0":
-  version "2.17.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.17.0.tgz#72cf1eb5c39c94e03167c2efcf3218879091f24a"
-  integrity sha512-KThGDJlvun4LPN0y0SF6lmpHHgAfmoyFWM9BjP769HaLIzCkrh4IVYdE6oJ7iw80iMpvbMqhejUIy5OwkcS5HA==
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.21.0.tgz#8a90cc84e3fbb566c17b0455ef43a86b0bb724c9"
+  integrity sha512-ihWdTWZ6zRNYV3Lh8M259MUuWxi/LSiw2ZQj9yJAiYzfOBkkgbdEG48ajGO3g3ohdHLtnKWhFefEqhLEf1a6VA==
   dependencies:
     "@simplewebauthn/browser" "^13.3.0"
 
@@ -491,7 +491,7 @@
 
 "@simplewebauthn/browser@^13.3.0":
   version "13.3.0"
-  resolved "https://registry.npmjs.org/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
+  resolved "https://registry.yarnpkg.com/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
   integrity sha512-BE/UWv6FOToAdVk0EokzkqQQDOWtNydYlY6+OrmiZ5SCNmb41VehttboTetUM3T/fr6EAFYVXjz4My2wg230rQ==
 
 "@swc/helpers@0.5.15":

@@ -241,16 +241,16 @@
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
 "@orangecheck/auth-client@^2.6.0":
-  version "2.6.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.6.0.tgz#f5c0956ad8bd90f21fad412055d0bfa768d85757"
-  integrity sha512-xgdaHENYi2H6t3mn781tbXEI/NiGhxtBsifV4XVPPwg0pqx/zoTWImoH4J3Ygq3sD2LxMV3Ca9DXaGGIIbiAfg==
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.21.0.tgz#8a90cc84e3fbb566c17b0455ef43a86b0bb724c9"
+  integrity sha512-ihWdTWZ6zRNYV3Lh8M259MUuWxi/LSiw2ZQj9yJAiYzfOBkkgbdEG48ajGO3g3ohdHLtnKWhFefEqhLEf1a6VA==
   dependencies:
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.0.0.tgz#a277c186719898fa05ae74c0be53b4626b0c1814"
-  integrity sha512-8lJoHrtk8nZh4PjNO+GSD6K6VZuSPEv3gEOo1VqQC15P/8Oqewwuqz3BCx/FNzqWOgTWOJKh2UaCahvJCUNLaA==
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.5.0.tgz#e1f8a5e84f08e0b19a5c318757c5852df1b5177c"
+  integrity sha512-VSru4R7NCSRV/W99lIrGyQyc+/NUJyKK+qhYa9GPj+9/wv7NubxOdPWOVVoc6l48JByaAYybMIsdqb2vx07YyQ==
   dependencies:
     jose "^6.2.2"
 
@@ -381,7 +381,7 @@
 
 "@simplewebauthn/browser@^13.3.0":
   version "13.3.0"
-  resolved "https://registry.npmjs.org/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
+  resolved "https://registry.yarnpkg.com/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
   integrity sha512-BE/UWv6FOToAdVk0EokzkqQQDOWtNydYlY6+OrmiZ5SCNmb41VehttboTetUM3T/fr6EAFYVXjz4My2wg230rQ==
 
 "@testing-library/react@^16.3.2":
@@ -692,7 +692,7 @@ is-potential-custom-element-name@^1.0.1:
 
 jose@^6.2.2:
   version "6.2.3"
-  resolved "https://registry.npmjs.org/jose/-/jose-6.2.3.tgz#0975197ad973251221c658a3cddc4b951a250c2d"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.3.tgz#0975197ad973251221c658a3cddc4b951a250c2d"
   integrity sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==
 
 joycon@^3.1.1:

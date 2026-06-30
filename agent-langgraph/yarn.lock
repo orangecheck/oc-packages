@@ -175,14 +175,6 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/agent-core@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-0.1.0.tgz#932ffb896bf5c258800b863ea992eda8574d1e98"
-  integrity sha512-JA3ftLznYID2ybrhOaWjwGbLiYuxmFolVGQXvoCtcZM+gstrjdU6ZsNVskB5pDuCz2QpKdBy9Ou8V08xdvNt7g==
-  dependencies:
-    "@noble/hashes" "^1.5.0"
-    "@orangecheck/stamp-core" "^0.1.1"
-
 "@orangecheck/agent-core@^0.3.0":
   version "0.3.0"
   resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-0.3.0.tgz#a4253a0c9a937e13a6a7ab0ce9fac01921bf010a"
@@ -192,13 +184,13 @@
     "@orangecheck/lock-core" "^0.1.0"
     "@orangecheck/stamp-core" "^0.1.1"
 
-"@orangecheck/agent-signer@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/agent-signer/-/agent-signer-0.1.0.tgz#07a98249003817e6292d6927d0a75891777fd961"
-  integrity sha512-WF7WlRfVWP6JwoFwKYi2I5NYqT9szFZfrj+fUtbZ6Zk0JGRtoCd/nnCmlttEgz+S1WGMAjctRm3KaRxQHh8AZA==
+"@orangecheck/agent-signer@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/agent-signer/-/agent-signer-0.2.0.tgz#955b82e251b8c245d2bf3e08d05f5c125cb58cce"
+  integrity sha512-e/YD4CXYBPQ2MIsF4SYqI1G3KkWzQgsdOpNfgXmGEI77mmfpuxr9Vgzr+ax8Ut2+UGBGzUPHY5MMVxb4KrSXyg==
   dependencies:
     "@noble/hashes" "^1.5.0"
-    "@orangecheck/agent-core" "^0.1.0"
+    "@orangecheck/agent-core" "^0.3.0"
 
 "@orangecheck/lock-core@^0.1.0":
   version "0.1.0"

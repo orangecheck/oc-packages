@@ -41,7 +41,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/me-client": "^0.18.0",
+    "@orangecheck/me-client": "^0.22.0",
     "@orangecheck/sdk": "^0.1.3",
     "commander": "^12.1.0"
   },
