@@ -26,7 +26,7 @@ export function DataRow({ children, meta, action, as, className }: DataRowProps)
     return (
         <Tag
             className={cn(
-                'flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4',
+                'oc-data-row flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4',
                 className
             )}
         >

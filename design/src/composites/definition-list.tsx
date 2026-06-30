@@ -23,7 +23,7 @@ export function DefinitionList({ items, className }: DefinitionListProps) {
     return (
         <dl
             className={cn(
-                'grid gap-x-5 gap-y-2 text-sm sm:grid-cols-[auto_1fr] sm:items-baseline',
+                'oc-deflist grid gap-x-5 gap-y-2 text-sm sm:grid-cols-[auto_1fr] sm:items-baseline',
                 className
             )}
         >

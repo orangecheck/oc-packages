@@ -43,7 +43,7 @@ const COL_CLASS = {
  */
 export function StatGrid({ items, columns = 3, className = '' }: StatGridProps) {
     return (
-        <div className={`bg-border grid gap-px border ${COL_CLASS[columns]} ${className}`}>
+        <div className={`oc-stat-grid bg-border grid gap-px border ${COL_CLASS[columns]} ${className}`}>
             {items.map((it, i) => (
                 <Tile key={`${it.label}-${i}`} item={it} />
             ))}
@@ -54,7 +54,7 @@ export function StatGrid({ items, columns = 3, className = '' }: StatGridProps) 
 function Tile({ item }: { item: StatItem }) {
     const tone = item.tone ?? (item.accent ? 'primary' : 'default');
     return (
-        <div className="bg-background p-5">
+        <div className="oc-stat-tile bg-background p-5">
             <div className="text-muted-foreground/80 font-mono text-[10px] tracking-widest uppercase">
                 {item.label}
             </div>

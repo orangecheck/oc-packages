@@ -31,6 +31,9 @@ export type { DefinitionListProps, DefinitionItem } from './definition-list';
 export { DataRow } from './data-row';
 export type { DataRowProps } from './data-row';
 
+export { Panel } from './panel';
+export type { PanelProps } from './panel';
+
 // Marketing / consumer tier (ember-era landing-page building blocks)
 export { TwoToneHeading, MarketingHeading } from './marketing-heading';
 export type { TwoToneHeadingProps, MarketingHeadingProps } from './marketing-heading';

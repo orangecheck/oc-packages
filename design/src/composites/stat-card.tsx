@@ -24,7 +24,7 @@ export interface StatCardProps {
  */
 export function StatCard({ pad = 'default', className, ...stat }: StatCardProps) {
     return (
-        <div className={cn('border bg-card', pad === 'sm' ? 'p-3 md:p-4' : 'p-5', className)}>
+        <div className={cn('oc-stat-card border bg-card', pad === 'sm' ? 'p-3 md:p-4' : 'p-5', className)}>
             <StatBlock {...stat} />
         </div>
     );

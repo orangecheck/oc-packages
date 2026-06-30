@@ -236,3 +236,78 @@
     --au-green: oklch(0.74 0.15 74); /* golden amber, not node-green */
     --au-blue: oklch(0.6 0.16 38); /* deep red-orange, not L2 blue */
 }
+
+/* ── Data-dense ember treatments ───────────────────────────────────────
+   The dashboard / data composites (StatGrid, StatCard, DataRow lists,
+   DefinitionList, DataSection panels, DataTable) ship a SHARP, FLAT,
+   1px-bordered terminal look for the cypherpunk skins. Under ember those
+   same components become soft, warm, rounded, separated cards/panels —
+   the consumer markup is identical; only the active skin changes. This is
+   how data-dense technical subpages read as ember instead of terminal.
+   Every rule is scoped to [data-oc-theme='ember'] so the cypherpunk skins
+   keep their flat terminal treatment byte-for-byte. */
+
+/* StatGrid — sharp 1px-separated grid → gapped soft rounded cards. */
+[data-oc-theme='ember'] .oc-stat-grid {
+    background: transparent;
+    border: 0;
+    gap: 0.75rem;
+}
+[data-oc-theme='ember'] .oc-stat-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--oc-shadow-sm);
+}
+
+/* StatCard — flat sharp frame → rounded soft card. */
+[data-oc-theme='ember'] .oc-stat-card {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--oc-shadow-sm);
+}
+
+/* DataSection / Panel — a full-width `border-t` divider section under the
+   cypherpunk skins → a discrete soft padded card under ember. */
+[data-oc-theme='ember'] .oc-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--oc-shadow-sm);
+    padding: 1.25rem 1.5rem;
+}
+
+/* Data lists (a `divide-y` stack of DataRows) → one rounded soft card,
+   rows separated by warm hairlines. */
+[data-oc-theme='ember'] .oc-data-list {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--oc-shadow-sm);
+    overflow: hidden;
+}
+[data-oc-theme='ember'] .oc-data-list > * {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Data tables → rounded container, warm recessed header, soft separators.
+   Genuine code/JSON stays in `.terminal` (handled above) — this is for
+   tabular DATA, which under ember should read as a clean warm table. */
+[data-oc-theme='ember'] .oc-data-table {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--oc-shadow-sm);
+}
+[data-oc-theme='ember'] .oc-data-table thead {
+    background: var(--muted);
+}
+[data-oc-theme='ember'] .oc-data-table thead th {
+    font-family: var(--oc-font-sans);
+    letter-spacing: 0.04em;
+}
+
+/* DefinitionList — keep the mono micro-label voice (consistent with ember
+   eyebrows), but let long values read in the warm sans, not mono. */
+[data-oc-theme='ember'] .oc-deflist dd {
+    font-family: var(--oc-font-sans);
+}
