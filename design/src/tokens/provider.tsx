@@ -172,8 +172,9 @@ export interface OcThemeProviderProps {
      * The ambient bitcoin-aurora background. `true` (default) renders it behind
      * the app; `false` disables it; `{ intensity }` tunes its strength for this
      * site (e.g. `aurora={{ intensity: 0.5 }}` on a reading-heavy surface).
-     * `{ gl: true }` opts into the OcAuroraGL silk-field upgrade (default off;
-     * the CSS blobs remain the permanent floor under every failure path).
+     * OcAuroraGL (the silk-field upgrade) is ON by default (the CSS blobs
+     * remain the permanent floor under every failure path). Reading- and
+     * console-heavy surfaces opt OUT with `{ gl: false }`.
      */
     aurora?: boolean | { intensity?: number; gl?: boolean };
 }
@@ -248,7 +249,10 @@ export function OcThemeProvider({
             {aurora !== false && (
                 <OcAurora
                     intensity={typeof aurora === 'object' ? aurora.intensity : undefined}
-                    gl={typeof aurora === 'object' ? aurora.gl : undefined}
+                    // OcAuroraGL is the family default (aurora depth R2): a bare
+                    // provider, `aurora={true}`, or an object without `gl` opts
+                    // IN. Reading/console surfaces opt OUT with `gl: false`.
+                    gl={typeof aurora === 'object' ? (aurora.gl ?? true) : true}
                 />
             )}
             {children}

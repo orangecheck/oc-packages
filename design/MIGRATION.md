@@ -329,3 +329,15 @@ New CSS vars `--oc-sigil-ink` (default `--primary`) and `--oc-sigil-bg`
 riding a `bg-brand` band as a white-on-brand watermark:
 `--oc-sigil-ink: var(--brand-foreground); --oc-sigil-bg: var(--brand)`.
 See Chrome/Sigil › Band. Backward-compatible (defaults unchanged).
+
+## 0.28.8 — OcAuroraGL is now the family default
+
+`OcThemeProvider` now mounts the GL silk field by DEFAULT: a bare
+`<OcThemeProvider>`, `aurora={true}`, or `aurora={{ intensity }}` (no `gl`)
+all opt IN. The CSS blobs remain the permanent floor under every failure path,
+so no-JS/reduced-motion/no-WebGL/console-throttle behavior is unchanged.
+
+Reading- and console-heavy surfaces should opt OUT to keep dense data flat:
+`aurora={{ gl: false }}` (or `{ intensity: 0.5, gl: false }` for docs). Owner
+consoles (analytics/bot/forge/fleet) and docs do this. Marketing sites that
+already pass `{ gl: true }` are unaffected.
