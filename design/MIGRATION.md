@@ -269,3 +269,16 @@ reads on ember (the family default) where the mark sits over the same-hue warm
 aurora bloom — the front face is now a defined `--primary` silhouette
 (minimum-visibility floor), the back layers still dissolve into `--background`.
 No API change; wireframe (cypherpunk) register unaffected.
+
+## 0.28.2 — OcSigil: real 3D extrusion + fix the "orange block"
+
+Two fixes to the emboss:
+- The sub-brand glyphs are TILES (filled square + frame + detail); filling `fg`
+  rendered a solid block. The sigil now always uses the OUTLINE form
+  (`fg="none"`) — the tile drops away, leaving the recognizable framed mark
+  (stamp = notary square + anchor), which is thematically an engraved seal.
+- The 6 overlapping layers were flat. Now 22 computed layers with real
+  z-separation (~63px relief), a lit front face, shadowed extrusion walls, and
+  a back that dissolves into `--background` — a true 3D object that catches
+  light as it drifts. One treatment, recolored per skin via `--primary`
+  (the filled/wireframe register split is retired).

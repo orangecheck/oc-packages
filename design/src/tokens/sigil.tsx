@@ -46,7 +46,33 @@ export interface OcSigilProps {
     className?: string;
 }
 
-const LAYERS = [0, 1, 2, 3, 4, 5] as const;
+// Extrusion depth: many thin layers give a smooth 3D slab (6 overlapped flat).
+// The front face is a lit --primary; the extrusion recedes into shadow, and the
+// deepest layers dissolve toward --background so the object melts into the
+// aurora rather than ending in a hard edge.
+const DEPTH = 22;
+const Z_STEP = 3; // px between layers → ~63px of relief
+const LAYERS = Array.from({ length: DEPTH }, (_, i) => i);
+
+function layerStyle(i: number): React.CSSProperties {
+    const t = i / (DEPTH - 1); // 0 = front face, 1 = deepest
+    // Front third: the lit face, full-strength primary (slightly lifted L at i=0).
+    // Middle: extrusion wall darkening into shadow. Back: dissolve to background.
+    let color: string;
+    if (t < 0.12) {
+        color = `color-mix(in oklab, var(--primary), white ${Math.round((0.12 - t) * 60)}%)`;
+    } else if (t < 0.62) {
+        const k = (t - 0.12) / 0.5; // 0..1 across the wall
+        color = `color-mix(in oklab, var(--primary), black ${Math.round(k * 42)}%)`;
+    } else {
+        const k = (t - 0.62) / 0.38; // 0..1 dissolving out
+        color = `color-mix(in oklab, color-mix(in oklab, var(--primary), black 42%), var(--background) ${Math.round(k * 100)}%)`;
+    }
+    return {
+        transform: `translateZ(${-i * Z_STEP}px)`,
+        color,
+    };
+}
 
 function sub(markup: string, fg: string, ink: string): string {
     return markup
@@ -71,8 +97,12 @@ export function OcSigil({ glyph, corner = 'bottom-left', parallax = true, classN
         return ((h % 7) - 3) * 1.5; // −4.5°..+4.5°
     }, [glyph]);
 
-    const filled = useMemo(() => sub(OC_GLYPHS[glyph], 'currentColor', 'currentColor'), [glyph]);
-    const wire = useMemo(() => sub(OC_GLYPHS[glyph], 'none', 'currentColor'), [glyph]);
+    // The sub-brand glyphs are TILES (filled square + frame + detail): filling
+    // fg makes a solid block. We always render the OUTLINE form (fg='none') —
+    // the tile drops away, leaving the recognizable framed mark, which embosses
+    // as an engraved seal (thematically exact for stamp; recolors per skin via
+    // the layer color ramp). ink=currentColor so the depth ramp drives it.
+    const mark = useMemo(() => sub(OC_GLYPHS[glyph], 'none', 'currentColor'), [glyph]);
 
     // Tier B — damped pointer parallax. Gates: prop, fine pointer, PRM (live),
     // ambient-motion switch (live via attribute). Listener on window; the
@@ -130,16 +160,19 @@ export function OcSigil({ glyph, corner = 'bottom-left', parallax = true, classN
         >
             <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
                 <defs>
-                    <g id={`${id}-filled`} dangerouslySetInnerHTML={{ __html: filled }} />
-                    <g id={`${id}-wire`} dangerouslySetInnerHTML={{ __html: wire }} />
+                    <g id={`${id}-mark`} dangerouslySetInnerHTML={{ __html: mark }} />
                 </defs>
             </svg>
             <div className="oc-sigil__drift oc-ambient">
                 <div ref={parRef} className="oc-sigil__par">
                     {LAYERS.map((n) => (
-                        <svg key={n} viewBox="0 0 1024 1024" className={`oc-sigil__layer oc-sigil__layer-${n}`}>
-                            <use className="oc-sigil__use-filled" href={`#${id}-filled`} />
-                            <use className="oc-sigil__use-wire" href={`#${id}-wire`} />
+                        <svg
+                            key={n}
+                            viewBox="0 0 1024 1024"
+                            className="oc-sigil__layer"
+                            style={layerStyle(n)}
+                        >
+                            <use href={`#${id}-mark`} />
                         </svg>
                     ))}
                 </div>

@@ -65,79 +65,23 @@
 @keyframes oc-sigil-drift {
     0%,
     100% {
-        transform: rotateX(14deg) rotateY(calc(-8deg + var(--oc-sigil-seed, 0deg)));
+        transform: rotateX(20deg) rotateY(calc(-26deg + var(--oc-sigil-seed, 0deg)));
     }
     50% {
-        transform: rotateX(17deg) rotateY(calc(-4deg + var(--oc-sigil-seed, 0deg)));
+        transform: rotateX(26deg) rotateY(calc(-16deg + var(--oc-sigil-seed, 0deg)));
     }
 }
 
+/* Layers are absolutely stacked; their translateZ + color ramp (the 3D relief)
+   are computed per-layer in the component so depth is tunable in one place. The
+   mark is always the OUTLINE form (the tile drops away), extruded into a solid
+   slab that recolors per skin via currentColor. */
 .oc-sigil__layer {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-}
-/* opaque relief ramp — the back layers are the extrusion wall dissolving into
-   the page background; the FRONT FACE (layer-5) is a defined --primary
-   silhouette so the mark reads even where it sits over a same-hue aurora bloom
-   (the ember-first minimum-visibility floor). The ramp endpoints ARE the
-   compiled-in visibility floor + contrast ceiling; because the layers are
-   opaque, the front face occludes the aurora within the glyph rather than
-   tinting through it, and only the perspective-spread bevel behind it fades. */
-.oc-sigil__layer-0 {
-    transform: translateZ(0px);
-    color: color-mix(in oklab, var(--primary), var(--background) 92%);
-}
-.oc-sigil__layer-1 {
-    transform: translateZ(4px);
-    color: color-mix(in oklab, var(--primary), var(--background) 84%);
-}
-.oc-sigil__layer-2 {
-    transform: translateZ(8px);
-    color: color-mix(in oklab, var(--primary), var(--background) 72%);
-}
-.oc-sigil__layer-3 {
-    transform: translateZ(12px);
-    color: color-mix(in oklab, var(--primary), var(--background) 56%);
-}
-.oc-sigil__layer-4 {
-    transform: translateZ(16px);
-    color: color-mix(in oklab, var(--primary), var(--background) 40%);
-}
-.oc-sigil__layer-5 {
-    transform: translateZ(20px);
-    color: color-mix(in oklab, var(--primary), var(--background) 22%);
-}
-
-/* register switch — filled letterpress under ember (the bare-root default),
-   wireframe under the four cypherpunk skins; both stacks are in the markup so
-   the swap is pure CSS (no hydration flash, no JS) */
-.oc-sigil__use-wire {
-    display: none;
-}
-:root[data-oc-theme='orangecheck'] .oc-sigil__use-filled,
-:root[data-oc-theme='phosphor'] .oc-sigil__use-filled,
-:root[data-oc-theme='lightning'] .oc-sigil__use-filled,
-:root[data-oc-theme='gold'] .oc-sigil__use-filled {
-    display: none;
-}
-:root[data-oc-theme='orangecheck'] .oc-sigil__use-wire,
-:root[data-oc-theme='phosphor'] .oc-sigil__use-wire,
-:root[data-oc-theme='lightning'] .oc-sigil__use-wire,
-:root[data-oc-theme='gold'] .oc-sigil__use-wire {
-    display: inline;
-}
-/* wireframe stack thins to fewer visible planes — terminal register */
-:root[data-oc-theme='orangecheck'] .oc-sigil__layer-1,
-:root[data-oc-theme='orangecheck'] .oc-sigil__layer-3,
-:root[data-oc-theme='phosphor'] .oc-sigil__layer-1,
-:root[data-oc-theme='phosphor'] .oc-sigil__layer-3,
-:root[data-oc-theme='lightning'] .oc-sigil__layer-1,
-:root[data-oc-theme='lightning'] .oc-sigil__layer-3,
-:root[data-oc-theme='gold'] .oc-sigil__layer-1,
-:root[data-oc-theme='gold'] .oc-sigil__layer-3 {
-    display: none;
+    backface-visibility: hidden;
 }
 
 /* mobile = hidden, full stop — decoration never spends phone-fold real estate */
