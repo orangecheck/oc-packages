@@ -56,17 +56,20 @@ const LAYERS = Array.from({ length: DEPTH }, (_, i) => i);
 
 function layerStyle(i: number): React.CSSProperties {
     const t = i / (DEPTH - 1); // 0 = front face, 1 = deepest
-    // Front third: the lit face, full-strength primary (slightly lifted L at i=0).
-    // Middle: extrusion wall darkening into shadow. Back: dissolve to background.
+    // A soft relief, not a loud fill: the front face is a gently-lifted primary,
+    // the wall darkens into shadow, the back dissolves toward --background. The
+    // whole stack is then composited translucent by the wrapper's opacity, so
+    // these colors read muted — keep them restrained (small highlight, moderate
+    // shadow) or the translucent watermark turns garish.
     let color: string;
-    if (t < 0.12) {
-        color = `color-mix(in oklab, var(--primary), white ${Math.round((0.12 - t) * 60)}%)`;
-    } else if (t < 0.62) {
-        const k = (t - 0.12) / 0.5; // 0..1 across the wall
-        color = `color-mix(in oklab, var(--primary), black ${Math.round(k * 42)}%)`;
+    if (t < 0.14) {
+        color = `color-mix(in oklab, var(--primary), white ${Math.round((0.14 - t) * 26)}%)`;
+    } else if (t < 0.6) {
+        const k = (t - 0.14) / 0.46; // 0..1 across the wall
+        color = `color-mix(in oklab, var(--primary), black ${Math.round(k * 34)}%)`;
     } else {
-        const k = (t - 0.62) / 0.38; // 0..1 dissolving out
-        color = `color-mix(in oklab, color-mix(in oklab, var(--primary), black 42%), var(--background) ${Math.round(k * 100)}%)`;
+        const k = (t - 0.6) / 0.4; // 0..1 dissolving out
+        color = `color-mix(in oklab, color-mix(in oklab, var(--primary), black 34%), var(--background) ${Math.round(k * 100)}%)`;
     }
     return {
         transform: `translateZ(${-i * Z_STEP}px)`,

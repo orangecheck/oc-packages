@@ -1,22 +1,20 @@
 /*
- * oc-sigil — the brand mark as a deep-set 3D emboss (aurora depth R3).
+ * oc-sigil — the brand mark as a translucent 3D watermark (aurora depth R3).
  *
- * Tier A is pure CSS: 6 stacked <use> copies of the normalized glyph under
- * perspective + translateZ, each an OPAQUE color-mix toward --background
- * (occlusion, not translucency — enclosed counters never moiré, and the
- * contrast ceiling is compiled in: the loudest layer sits 52% toward the
- * background, so worst-frame text contrast holds by construction). The drift
- * is compositor-only transform at aurora energy, carries `.oc-ambient`
- * (inherits the family oc_motion pause), and freezes under
- * prefers-reduced-motion.
+ * A large, see-through extruded relief of the verb's mark, sitting behind the
+ * hero and bleeding off a corner. Many thin <use> layers under perspective +
+ * translateZ give real depth (a lit front face, shadowed walls, a back that
+ * dissolves into --background); the whole object is composited at a low
+ * `--oc-sigil-opacity` so the aurora reads through it — present, dimensional,
+ * but muted. The drift carries `.oc-ambient` (family oc_motion pause) and
+ * freezes under prefers-reduced-motion.
  *
- * PRESERVE-3D FOOTGUN: never put mask / filter / opacity<1 / overflow on
- * .oc-sigil__drift or .oc-sigil__par — any of them silently flattens the
- * stack. The edge fade lives on the OUTER .oc-sigil wrapper, which is safe.
+ * Responsive by default: size is a clamp() so it scales with the viewport, and
+ * it stays visible (smaller, quieter) on phones. Position + size are tunable
+ * per-site via --oc-sigil-size / --oc-sigil-opacity / the corner classes.
  *
- * Two registers, one geometry, switched here in CSS (zero hydration flash):
- * ember (default root) shows the filled letterpress stack; the cypherpunk
- * skins show the wireframe stack instead.
+ * PRESERVE-3D FOOTGUN: opacity/mask/filter/overflow live on the OUTER wrapper
+ * ONLY — never on .oc-sigil__drift / .oc-sigil__par, or the 3D stack flattens.
  */
 
 .oc-sigil {
@@ -24,28 +22,38 @@
     pointer-events: none;
     contain: layout paint;
     perspective: 1100px;
-    /* edge fade on the wrapper (NOT the 3D stack) so the emboss dissolves
-       into the aurora field instead of ending in a hard box */
-    -webkit-mask-image: radial-gradient(120% 120% at 55% 42%, #000 45%, transparent 92%);
-    mask-image: radial-gradient(120% 120% at 55% 42%, #000 45%, transparent 92%);
+    /* responsive footprint — scales with the smaller viewport axis, clamped */
+    width: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
+    height: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
+    /* translucent: the whole relief composites at this alpha so the aurora and
+       page read through it (a watermark, not an opaque object) */
+    opacity: var(--oc-sigil-opacity, 0.42);
+    /* soft edge fade so the mark dissolves into the field rather than ending in
+       a hard box (on the wrapper, which is safe for preserve-3d) */
+    -webkit-mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
+    mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
+}
+:root.dark .oc-sigil {
+    opacity: var(--oc-sigil-opacity, 0.5);
 }
 
-/* corner anchors — the bleed crops against the hero's overflow-hidden */
+/* corner anchors — the bleed crops against the hero's overflow-hidden. Offsets
+   are a share of the mark's own size so the crop is consistent at every width. */
 .oc-sigil--bottom-left {
-    left: -8%;
-    bottom: -16%;
+    left: -14%;
+    bottom: -18%;
 }
 .oc-sigil--bottom-right {
-    right: -8%;
-    bottom: -16%;
+    right: -14%;
+    bottom: -18%;
 }
 .oc-sigil--top-left {
-    left: -8%;
-    top: -14%;
+    left: -14%;
+    top: -16%;
 }
 .oc-sigil--top-right {
-    right: -8%;
-    top: -14%;
+    right: -14%;
+    top: -16%;
 }
 
 .oc-sigil__drift {
@@ -65,17 +73,17 @@
 @keyframes oc-sigil-drift {
     0%,
     100% {
-        transform: rotateX(20deg) rotateY(calc(-26deg + var(--oc-sigil-seed, 0deg)));
+        transform: rotateX(19deg) rotateY(calc(-24deg + var(--oc-sigil-seed, 0deg)));
     }
     50% {
-        transform: rotateX(26deg) rotateY(calc(-16deg + var(--oc-sigil-seed, 0deg)));
+        transform: rotateX(25deg) rotateY(calc(-14deg + var(--oc-sigil-seed, 0deg)));
     }
 }
 
 /* Layers are absolutely stacked; their translateZ + color ramp (the 3D relief)
    are computed per-layer in the component so depth is tunable in one place. The
-   mark is always the OUTLINE form (the tile drops away), extruded into a solid
-   slab that recolors per skin via currentColor. */
+   mark is always the OUTLINE form (the tile drops away), extruded into a slab
+   that recolors per skin via currentColor. */
 .oc-sigil__layer {
     position: absolute;
     inset: 0;
@@ -84,10 +92,18 @@
     backface-visibility: hidden;
 }
 
-/* mobile = hidden, full stop — decoration never spends phone-fold real estate */
+/* Phones: stay visible but quieter and pushed further into the corner, so it
+   reads as ambient texture behind single-column content, never a wall behind
+   the copy. (It does NOT vanish — decoration should account for the screen,
+   not abandon it.) */
 @media (max-width: 640px) {
     .oc-sigil {
-        display: none;
+        width: var(--oc-sigil-size-sm, clamp(180px, 62vw, 320px));
+        height: var(--oc-sigil-size-sm, clamp(180px, 62vw, 320px));
+        opacity: var(--oc-sigil-opacity-sm, 0.28);
+    }
+    :root.dark .oc-sigil {
+        opacity: var(--oc-sigil-opacity-sm, 0.34);
     }
 }
 

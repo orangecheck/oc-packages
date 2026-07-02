@@ -282,3 +282,18 @@ Two fixes to the emboss:
   a back that dissolves into `--background` — a true 3D object that catches
   light as it drifts. One treatment, recolored per skin via `--primary`
   (the filled/wireframe register split is retired).
+
+## 0.28.3 — OcSigil: translucent, muted, responsive watermark
+
+Reworks the mark from an opaque corner object into a translucent 3D watermark:
+- **Transparent** — the whole relief composites at `--oc-sigil-opacity`
+  (0.42 light / 0.5 dark) so the aurora + page read through it.
+- **Muted** — softer front-face highlight + shadow ramp; the translucency does
+  the rest.
+- **Responsive** — size is `clamp(240px, 52vmin, 600px)` by default (was a fixed
+  consumer class), and it **stays visible on phones** (smaller + quieter via a
+  ≤640px block, `--oc-sigil-size-sm` / `--oc-sigil-opacity-sm`) instead of
+  `display:none`.
+- Tunables: `--oc-sigil-size`, `--oc-sigil-opacity`, `--oc-sigil-size-sm`,
+  `--oc-sigil-opacity-sm`. Consumers no longer need to pass a size class; drop
+  the old `h-[…] w-[…]` and let the default scale, or set `--oc-sigil-size`.

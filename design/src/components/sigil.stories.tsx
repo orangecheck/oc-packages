@@ -28,7 +28,7 @@ export const CornerBleed: Story = {
         <>
             <OcAurora />
             <section className="relative min-h-screen overflow-hidden border-b">
-                <OcSigil {...args} className="h-[min(56vmin,540px)] w-[min(56vmin,540px)]" />
+                <OcSigil {...args} />
                 <div className="relative mx-auto grid max-w-5xl gap-10 p-10 pt-[12vh] lg:grid-cols-[1.1fr_1fr]">
                     <div>
                         <h1 className="font-display text-4xl font-extrabold tracking-tight">
