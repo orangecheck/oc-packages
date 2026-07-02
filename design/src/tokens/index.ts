@@ -30,3 +30,5 @@ export {
     type OcSceneRGB,
     type OcSceneTokens,
 } from './scene-tokens';
+export { OcSigil, type OcSigilProps } from './sigil';
+export { OC_GLYPHS, OC_GLYPH_CANVAS, type OcGlyphSlug } from './glyphs';

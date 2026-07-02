@@ -1,0 +1,161 @@
+/*
+ * oc-sigil — the brand mark as a deep-set 3D emboss (aurora depth R3).
+ *
+ * Tier A is pure CSS: 6 stacked <use> copies of the normalized glyph under
+ * perspective + translateZ, each an OPAQUE color-mix toward --background
+ * (occlusion, not translucency — enclosed counters never moiré, and the
+ * contrast ceiling is compiled in: the loudest layer sits 52% toward the
+ * background, so worst-frame text contrast holds by construction). The drift
+ * is compositor-only transform at aurora energy, carries `.oc-ambient`
+ * (inherits the family oc_motion pause), and freezes under
+ * prefers-reduced-motion.
+ *
+ * PRESERVE-3D FOOTGUN: never put mask / filter / opacity<1 / overflow on
+ * .oc-sigil__drift or .oc-sigil__par — any of them silently flattens the
+ * stack. The edge fade lives on the OUTER .oc-sigil wrapper, which is safe.
+ *
+ * Two registers, one geometry, switched here in CSS (zero hydration flash):
+ * ember (default root) shows the filled letterpress stack; the cypherpunk
+ * skins show the wireframe stack instead.
+ */
+
+.oc-sigil {
+    position: absolute;
+    pointer-events: none;
+    contain: layout paint;
+    perspective: 1100px;
+    /* edge fade on the wrapper (NOT the 3D stack) so the emboss dissolves
+       into the aurora field instead of ending in a hard box */
+    -webkit-mask-image: radial-gradient(120% 120% at 55% 42%, #000 45%, transparent 92%);
+    mask-image: radial-gradient(120% 120% at 55% 42%, #000 45%, transparent 92%);
+}
+
+/* corner anchors — the bleed crops against the hero's overflow-hidden */
+.oc-sigil--bottom-left {
+    left: -8%;
+    bottom: -16%;
+}
+.oc-sigil--bottom-right {
+    right: -8%;
+    bottom: -16%;
+}
+.oc-sigil--top-left {
+    left: -8%;
+    top: -14%;
+}
+.oc-sigil--top-right {
+    right: -8%;
+    top: -14%;
+}
+
+.oc-sigil__drift {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: oc-sigil-drift 30s ease-in-out infinite;
+}
+
+.oc-sigil__par {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--oc-sigil-rx, 0deg)) rotateY(var(--oc-sigil-ry, 0deg));
+}
+
+@keyframes oc-sigil-drift {
+    0%,
+    100% {
+        transform: rotateX(14deg) rotateY(calc(-8deg + var(--oc-sigil-seed, 0deg)));
+    }
+    50% {
+        transform: rotateX(17deg) rotateY(calc(-4deg + var(--oc-sigil-seed, 0deg)));
+    }
+}
+
+.oc-sigil__layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+/* opaque extrusion ramp — deep layers dissolve toward the page background;
+   the ramp endpoints ARE the compiled-in visibility floor + contrast ceiling */
+.oc-sigil__layer-0 {
+    transform: translateZ(0px);
+    color: color-mix(in oklab, var(--primary), var(--background) 88%);
+}
+.oc-sigil__layer-1 {
+    transform: translateZ(3px);
+    color: color-mix(in oklab, var(--primary), var(--background) 82%);
+}
+.oc-sigil__layer-2 {
+    transform: translateZ(6px);
+    color: color-mix(in oklab, var(--primary), var(--background) 76%);
+}
+.oc-sigil__layer-3 {
+    transform: translateZ(9px);
+    color: color-mix(in oklab, var(--primary), var(--background) 70%);
+}
+.oc-sigil__layer-4 {
+    transform: translateZ(12px);
+    color: color-mix(in oklab, var(--primary), var(--background) 62%);
+}
+.oc-sigil__layer-5 {
+    transform: translateZ(15px);
+    color: color-mix(in oklab, var(--primary), var(--background) 52%);
+}
+
+/* register switch — filled letterpress under ember (the bare-root default),
+   wireframe under the four cypherpunk skins; both stacks are in the markup so
+   the swap is pure CSS (no hydration flash, no JS) */
+.oc-sigil__use-wire {
+    display: none;
+}
+:root[data-oc-theme='orangecheck'] .oc-sigil__use-filled,
+:root[data-oc-theme='phosphor'] .oc-sigil__use-filled,
+:root[data-oc-theme='lightning'] .oc-sigil__use-filled,
+:root[data-oc-theme='gold'] .oc-sigil__use-filled {
+    display: none;
+}
+:root[data-oc-theme='orangecheck'] .oc-sigil__use-wire,
+:root[data-oc-theme='phosphor'] .oc-sigil__use-wire,
+:root[data-oc-theme='lightning'] .oc-sigil__use-wire,
+:root[data-oc-theme='gold'] .oc-sigil__use-wire {
+    display: inline;
+}
+/* wireframe stack thins to fewer visible planes — terminal register */
+:root[data-oc-theme='orangecheck'] .oc-sigil__layer-1,
+:root[data-oc-theme='orangecheck'] .oc-sigil__layer-3,
+:root[data-oc-theme='phosphor'] .oc-sigil__layer-1,
+:root[data-oc-theme='phosphor'] .oc-sigil__layer-3,
+:root[data-oc-theme='lightning'] .oc-sigil__layer-1,
+:root[data-oc-theme='lightning'] .oc-sigil__layer-3,
+:root[data-oc-theme='gold'] .oc-sigil__layer-1,
+:root[data-oc-theme='gold'] .oc-sigil__layer-3 {
+    display: none;
+}
+
+/* mobile = hidden, full stop — decoration never spends phone-fold real estate */
+@media (max-width: 640px) {
+    .oc-sigil {
+        display: none;
+    }
+}
+
+/* SVG fills are NOT auto-stripped by forced colors the way gradients are */
+@media (forced-colors: active) {
+    .oc-sigil {
+        display: none;
+    }
+}
+
+/* OS-level reduced motion: freeze at the designed resting pose (the 0% frame
+   IS the art-directed composition) — the oc_motion pause rides .oc-ambient */
+@media (prefers-reduced-motion: reduce) {
+    .oc-sigil__drift {
+        animation: none !important;
+    }
+    .oc-sigil__par {
+        transform: none !important;
+    }
+}

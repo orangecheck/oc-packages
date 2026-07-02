@@ -231,3 +231,33 @@ nothing changes visually by default** — `gl` is opt-in:
   every gate passes. A webpack-owned split is a candidate refinement.
 - New shared rail for future GPU components: `readOcSceneTokens` /
   `subscribeOcTheme` / `normalizeHue` from `@orangecheck/design/tokens`.
+
+## 0.28.0 — aurora depth, release 3 (OcSigil, ships DORMANT)
+
+`OcSigil` — the brand mark as a deep-set corner-bleed emboss — is published but
+mounted NOWHERE by default. Activation is a per-site art decision:
+
+```tsx
+// inside the hero <section class="relative overflow-hidden …">
+<OcSigil glyph="stamp" corner="bottom-left"
+         className="h-[min(56vmin,540px)] w-[min(56vmin,540px)]" />
+```
+
+Rules (the placement doctrine, research/AURORA-DEPTH-PLAN.md §3, binding):
+- **The right column is the proof — never occupied, replaced, or displaced.**
+- One field + one figure max: step the hero's `.bg-grid` down/off in the SAME
+  commit that mounts a sigil.
+- One ambient motion source per hero: pass `parallax={false}` when the proof
+  artifact is animated or interactive (typing demos, countdowns, live forms).
+- `glyph` is the closed 15-slug media-kit union — no mark, no mount
+  (bot/forge/insights cannot mount; me-demo is charter-barred).
+- Exclusion classes (owner consoles, reading surfaces, integrator sims,
+  headless infra, auth gates, deliberately-bare heroes) get NO sigil — see the
+  per-property verdict table before mounting anything.
+- Registers are automatic: filled letterpress under ember, wireframe under the
+  cypherpunk skins. Hidden <640px + forced-colors; frozen under
+  reduced-motion + oc_motion. Layer colors are compiled-in color-mixes toward
+  --background (contrast ceiling + visibility floor are not consumer-tunable).
+
+Glyph geometry is vendored from oc-media-kit (`build/emit_glyphs.py` →
+`src/tokens/glyphs.ts`); `scripts/check-glyph-drift.mjs` guards the sync.
