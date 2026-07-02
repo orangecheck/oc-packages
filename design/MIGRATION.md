@@ -297,3 +297,12 @@ Reworks the mark from an opaque corner object into a translucent 3D watermark:
 - Tunables: `--oc-sigil-size`, `--oc-sigil-opacity`, `--oc-sigil-size-sm`,
   `--oc-sigil-opacity-sm`. Consumers no longer need to pass a size class; drop
   the old `h-[…] w-[…]` and let the default scale, or set `--oc-sigil-size`.
+
+## 0.28.4 — OcSigil: light-mode presence + mobile placement
+
+- Light mode washed out at 0.42 (mid terracotta over near-white) — raise the
+  default light opacity to 0.58 (dark 0.52) so it reads as present-but-
+  translucent.
+- On phones the tall single-column hero buried a bottom-anchored mark below
+  the fold — re-anchor to the top-right corner (clear of a left-aligned
+  headline) so it lands in the first viewport.

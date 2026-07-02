@@ -26,15 +26,17 @@
     width: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
     height: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
     /* translucent: the whole relief composites at this alpha so the aurora and
-       page read through it (a watermark, not an opaque object) */
-    opacity: var(--oc-sigil-opacity, 0.42);
+       page read through it (a watermark, not an opaque object). Light mode
+       rides higher — a mid-tone terracotta over a near-white page needs more
+       presence to read than the same mark over a dark page. */
+    opacity: var(--oc-sigil-opacity, 0.58);
     /* soft edge fade so the mark dissolves into the field rather than ending in
        a hard box (on the wrapper, which is safe for preserve-3d) */
     -webkit-mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
     mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
 }
 :root.dark .oc-sigil {
-    opacity: var(--oc-sigil-opacity, 0.5);
+    opacity: var(--oc-sigil-opacity, 0.52);
 }
 
 /* corner anchors — the bleed crops against the hero's overflow-hidden. Offsets
@@ -92,18 +94,24 @@
     backface-visibility: hidden;
 }
 
-/* Phones: stay visible but quieter and pushed further into the corner, so it
-   reads as ambient texture behind single-column content, never a wall behind
-   the copy. (It does NOT vanish — decoration should account for the screen,
-   not abandon it.) */
+/* Phones: single-column heroes stack tall, so a bottom anchor buries the mark
+   below the fold. Re-anchor to the TOP-RIGHT corner (clear of a left-aligned
+   headline) so it lands in the first viewport, and keep it quiet. This wins on
+   specificity + source order over the desktop corner classes above. */
 @media (max-width: 640px) {
     .oc-sigil {
-        width: var(--oc-sigil-size-sm, clamp(180px, 62vw, 320px));
-        height: var(--oc-sigil-size-sm, clamp(180px, 62vw, 320px));
-        opacity: var(--oc-sigil-opacity-sm, 0.28);
+        width: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
+        height: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
+        opacity: var(--oc-sigil-opacity-sm, 0.4);
     }
     :root.dark .oc-sigil {
-        opacity: var(--oc-sigil-opacity-sm, 0.34);
+        opacity: var(--oc-sigil-opacity-sm, 0.42);
+    }
+    .oc-sigil--bottom-left,
+    .oc-sigil--bottom-right,
+    .oc-sigil--top-left,
+    .oc-sigil--top-right {
+        inset: -5% -24% auto auto; /* top-right, cropped off the right edge */
     }
 }
 
