@@ -61,15 +61,21 @@ function layerStyle(i: number): React.CSSProperties {
     // whole stack is then composited translucent by the wrapper's opacity, so
     // these colors read muted — keep them restrained (small highlight, moderate
     // shadow) or the translucent watermark turns garish.
+    // Base ink defaults to --primary; override with --oc-sigil-ink to sit the
+    // mark on a coloured band (e.g. --brand-foreground on a bg-brand section).
+    // The back layers dissolve toward --oc-sigil-bg (default --background) so
+    // the extrusion melts into whatever surface it sits on.
+    const ink = 'var(--oc-sigil-ink, var(--primary))';
+    const bg = 'var(--oc-sigil-bg, var(--background))';
     let color: string;
     if (t < 0.14) {
-        color = `color-mix(in oklab, var(--primary), white ${Math.round((0.14 - t) * 26)}%)`;
+        color = `color-mix(in oklab, ${ink}, white ${Math.round((0.14 - t) * 26)}%)`;
     } else if (t < 0.6) {
         const k = (t - 0.14) / 0.46; // 0..1 across the wall
-        color = `color-mix(in oklab, var(--primary), black ${Math.round(k * 34)}%)`;
+        color = `color-mix(in oklab, ${ink}, black ${Math.round(k * 34)}%)`;
     } else {
         const k = (t - 0.6) / 0.4; // 0..1 dissolving out
-        color = `color-mix(in oklab, color-mix(in oklab, var(--primary), black 34%), var(--background) ${Math.round(k * 100)}%)`;
+        color = `color-mix(in oklab, color-mix(in oklab, ${ink}, black 34%), ${bg} ${Math.round(k * 100)}%)`;
     }
     return {
         transform: `translateZ(${-i * Z_STEP}px)`,

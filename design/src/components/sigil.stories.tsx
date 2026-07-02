@@ -77,6 +77,40 @@ const CATALOG = [
     'orangecheck',
 ] as const;
 
+/** Band: the flagship's below-fold home for the mark. A full-bleed bg-brand
+ *  finale with the § riding it as a white-on-brand watermark (--oc-sigil-ink =
+ *  --brand-foreground, --oc-sigil-bg = --brand so the extrusion melts into the
+ *  band). The hero stays clean; the mark lives here. */
+export const Band: Story = {
+    args: { glyph: 'orangecheck', corner: 'bottom-right' },
+    render: (args) => (
+        <div className="grid min-h-screen place-items-center bg-background p-10">
+            <section
+                className="bg-brand text-brand-foreground relative w-full max-w-5xl overflow-hidden rounded-lg px-8 py-16"
+                style={
+                    {
+                        '--oc-sigil-ink': 'var(--brand-foreground)',
+                        '--oc-sigil-bg': 'var(--brand)',
+                        '--oc-sigil-opacity': '0.16',
+                        '--oc-sigil-size': '460px',
+                    } as React.CSSProperties
+                }
+            >
+                <OcSigil {...args} />
+                <div className="relative max-w-xl">
+                    <h2 className="font-display text-3xl font-bold tracking-tight">
+                        one identity. every product.
+                    </h2>
+                    <p className="mt-3 opacity-85">
+                        Your Bitcoin address is the account. Sign in once, carry it across the
+                        whole family.
+                    </p>
+                </div>
+            </section>
+        </div>
+    ),
+};
+
 export const PerVerb: Story = {
     args: { glyph: 'stamp' },
     render: () => (

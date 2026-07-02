@@ -321,3 +321,11 @@ A, safe) render as fragments. Emitter now branches on `is_glyph_only`: solid
 marks emit filled (→ solid slab), the rest emit in outline mode (tile drops,
 frame+detail stroke). All 15 marks verified in the Chrome/Sigil › PerVerb
 catalog. Requires the re-generated `glyphs.ts` (vendored from oc-media-kit).
+
+## 0.28.7 — OcSigil: --oc-sigil-ink (mark on a coloured band)
+
+New CSS vars `--oc-sigil-ink` (default `--primary`) and `--oc-sigil-bg`
+(default `--background`) let the mark sit on a coloured surface — e.g. the §
+riding a `bg-brand` band as a white-on-brand watermark:
+`--oc-sigil-ink: var(--brand-foreground); --oc-sigil-bg: var(--brand)`.
+See Chrome/Sigil › Band. Backward-compatible (defaults unchanged).
