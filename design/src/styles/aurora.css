@@ -258,3 +258,32 @@
 :root[data-oc-motion='off'] .oc-ambient {
     animation-play-state: paused !important;
 }
+
+/* ── OcAuroraGL (aurora depth R2) ─────────────────────────────────────
+   The lazy WebGL2 silk field renders inside the same container, so the radial
+   mask, the mode-op × intensity opacity, and ember's --au-* re-hue all govern
+   it for free. Once the first GL frame lands (`--gl-live`), the CSS blobs
+   pause AND hide — dimming alone does not stop blur rasterization; the page
+   pays for exactly one aurora at any moment. Any demotion removes the class
+   and the blobs resume, invisibly. */
+.oc-aurora__gl {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.oc-aurora--gl-live .oc-aurora__gl {
+    opacity: 1;
+}
+.oc-aurora--gl-live .oc-aurora__blob {
+    visibility: hidden;
+    animation-play-state: paused;
+}
+/* Canvas raster is NOT stripped by forced colors the way gradients are. */
+@media (forced-colors: active) {
+    .oc-aurora__gl {
+        display: none;
+    }
+}

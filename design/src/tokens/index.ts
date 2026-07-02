@@ -23,3 +23,10 @@ export { OcThemeBridge } from './theme-bridge';
 export { OcThemePicker, type OcThemePickerProps } from './theme-picker';
 export { OcAppearanceMenu, AppearanceControls, type OcAppearanceMenuProps } from './appearance-menu';
 export { OcAurora, type OcAuroraProps } from './aurora';
+export {
+    readOcSceneTokens,
+    subscribeOcTheme,
+    normalizeHue,
+    type OcSceneRGB,
+    type OcSceneTokens,
+} from './scene-tokens';

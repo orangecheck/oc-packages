@@ -202,3 +202,32 @@ bump and is either automatic or opt-in:
   the mark with `--oc-halo-mask`; dial with `--oc-halo-op` / `--oc-halo-blur` /
   `--oc-halo-color`. Soft bloom under ember, tight edge-glow under the
   cypherpunk skins. Decoration never replaces a hero's proof column.
+
+## 0.27.0 — aurora depth, release 2 (OcAuroraGL, default OFF)
+
+The WebGL2 silk-field upgrade of the aurora. **No consumer action required and
+nothing changes visually by default** — `gl` is opt-in:
+
+```tsx
+<OcThemeProvider aurora={{ gl: true }}>            // pilot opt-in
+<OcThemeProvider aurora={{ intensity: 0.6, gl: true }}>
+```
+
+- Silk finish under ember; device-pixel 8×8 Bayer "proof texture" under the
+  four cypherpunk skins. Palette crossfades in OKLab (~250 ms, synced with the
+  token snap). Renders inside `.oc-aurora`, so the radial mask, the
+  mode-op × intensity opacity, and ember's `--au-*` re-hue govern it for free.
+- Degradation ladder (every rung lands on today's CSS blobs, silently): SSR /
+  no-JS → prefers-reduced-motion (live listener) → `oc_motion` off →
+  forced-colors → saveData / deviceMemory≤4 → WebGL2 probe with
+  `failIfMajorPerformanceCaveat` → runtime jank governor (7-day localStorage
+  kill flag) → context loss. When GL is live the blobs pause AND hide — the
+  page pays for exactly one aurora.
+- Settle-to-static: the field freezes after ~90 s without input and eases back
+  on interaction (battery).
+- Per-site kill switch, no package release needed: `.oc-aurora { --oc-aurora-gl: off }`.
+- Cost honesty: the scene code (~2.5 KB gz) rides the tokens chunk (tsup
+  inlines the dynamic import); it never *executes* unless `gl` is set and
+  every gate passes. A webpack-owned split is a candidate refinement.
+- New shared rail for future GPU components: `readOcSceneTokens` /
+  `subscribeOcTheme` / `normalizeHue` from `@orangecheck/design/tokens`.

@@ -40,3 +40,31 @@ export const Soft: Story = {
     args: { intensity: 0.5 },
     render: Default.render,
 };
+
+/** OcAuroraGL (aurora depth R2): the lazy WebGL2 silk field — silk under
+ *  ember, device-pixel Bayer under the cypherpunk skins. On machines without
+ *  a real GPU (headless CI) every gate declines silently and this story shows
+ *  the identical CSS floor. */
+export const GL: Story = {
+    name: 'GL field (silk / Bayer)',
+    args: { gl: true },
+    render: (args) => (
+        <>
+            <OcAurora {...args} />
+            <div
+                className="bg-card text-card-foreground border-border relative max-w-xl rounded-xl border p-8 shadow-sm"
+                style={{ margin: '10vh auto' }}
+            >
+                <h1 className="font-display text-4xl font-extrabold tracking-tight">
+                    aurora, learned structure
+                </h1>
+                <p className="text-muted-foreground mt-3 text-lg">
+                    One ~8 KB fragment shader recolored live from the same tokens: silk under
+                    ember, proof-texture Bayer under the cypherpunk skins. Switch Skin/Mode in
+                    the toolbar — the palette crossfades in OKLab. The CSS blobs pause the
+                    moment the first GL frame lands, and return on any failure.
+                </p>
+            </div>
+        </>
+    ),
+};

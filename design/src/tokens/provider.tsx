@@ -172,8 +172,10 @@ export interface OcThemeProviderProps {
      * The ambient bitcoin-aurora background. `true` (default) renders it behind
      * the app; `false` disables it; `{ intensity }` tunes its strength for this
      * site (e.g. `aurora={{ intensity: 0.5 }}` on a reading-heavy surface).
+     * `{ gl: true }` opts into the OcAuroraGL silk-field upgrade (default off;
+     * the CSS blobs remain the permanent floor under every failure path).
      */
-    aurora?: boolean | { intensity?: number };
+    aurora?: boolean | { intensity?: number; gl?: boolean };
 }
 
 export function OcThemeProvider({
@@ -244,7 +246,10 @@ export function OcThemeProvider({
     return (
         <OcSkinContext.Provider value={value}>
             {aurora !== false && (
-                <OcAurora intensity={typeof aurora === 'object' ? aurora.intensity : undefined} />
+                <OcAurora
+                    intensity={typeof aurora === 'object' ? aurora.intensity : undefined}
+                    gl={typeof aurora === 'object' ? aurora.gl : undefined}
+                />
             )}
             {children}
         </OcSkinContext.Provider>
