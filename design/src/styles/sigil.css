@@ -27,9 +27,9 @@
     height: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
     /* translucent: the whole relief composites at this alpha so the aurora and
        page read through it (a watermark, not an opaque object). Light mode
-       rides higher — a mid-tone terracotta over a near-white page needs more
-       presence to read than the same mark over a dark page. */
-    opacity: var(--oc-sigil-opacity, 0.58);
+       rides quieter — a mid-tone terracotta reads with less alpha over a
+       near-white page than the same mark does over a dark one. */
+    opacity: var(--oc-sigil-opacity, 0.4);
     /* soft edge fade so the mark dissolves into the field rather than ending in
        a hard box (on the wrapper, which is safe for preserve-3d) */
     -webkit-mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
@@ -102,7 +102,7 @@
     .oc-sigil {
         width: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
         height: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
-        opacity: var(--oc-sigil-opacity-sm, 0.4);
+        opacity: var(--oc-sigil-opacity-sm, 0.28);
     }
     :root.dark .oc-sigil {
         opacity: var(--oc-sigil-opacity-sm, 0.42);

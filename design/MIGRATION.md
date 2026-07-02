@@ -306,3 +306,8 @@ Reworks the mark from an opaque corner object into a translucent 3D watermark:
 - On phones the tall single-column hero buried a bottom-anchored mark below
   the fold — re-anchor to the top-right corner (clear of a left-aligned
   headline) so it lands in the first viewport.
+
+## 0.28.5 — OcSigil: quieter in light mode
+
+Light-mode opacity was too prominent — drop the default light opacity to 0.4
+(desktop) / 0.28 (mobile). Dark mode is unchanged (0.52 / 0.42).
