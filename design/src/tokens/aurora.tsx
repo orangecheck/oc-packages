@@ -30,6 +30,7 @@ export function OcAurora({ intensity, className }: OcAuroraProps) {
             {BLOBS.map((n) => (
                 <div key={n} className={`oc-aurora__blob oc-aurora__blob-${n}`} />
             ))}
+            <div className="oc-aurora__grain" />
         </div>
     );
 }

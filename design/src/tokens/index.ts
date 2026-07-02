@@ -3,6 +3,7 @@ export {
     OC_THEMES,
     DEFAULT_OC_THEME,
     OC_DEFAULT_ACCENT,
+    OC_MOTION_COOKIE,
     OC_SKIN_COOKIE,
     accentFor,
     isKnownTheme,
@@ -13,7 +14,9 @@ export {
 export {
     OcThemeProvider,
     useOcSkin,
+    useOcMotion,
     getOcThemeInitScript,
+    type OcMotion,
     type OcThemeProviderProps,
 } from './provider';
 export { OcThemeBridge } from './theme-bridge';

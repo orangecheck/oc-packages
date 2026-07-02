@@ -311,6 +311,86 @@
         );
         background-size: 16px 16px;
     }
+    /* Guides — the quieter, 2026-register evolution of .bg-grid: a fainter
+       56px lattice with plus-mark crosses at the intersections (crosses via a
+       masked ::before so their color stays token-reactive). Opt-in; .bg-grid
+       is untouched. */
+    .oc-guides {
+        position: relative;
+        background-image:
+            linear-gradient(
+                to right,
+                color-mix(in oklch, var(--foreground), transparent 96%) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                to bottom,
+                color-mix(in oklch, var(--foreground), transparent 96%) 1px,
+                transparent 1px
+            );
+        background-size: 56px 56px;
+    }
+    .oc-guides::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: color-mix(in oklch, var(--foreground), transparent 76%);
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='56'%3E%3Cpath%20d='M27.5,23h1v10h-1zM23,27.5h10v1h-10z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='56'%3E%3Cpath%20d='M27.5,23h1v10h-1zM23,27.5h10v1h-10z'/%3E%3C/svg%3E");
+        -webkit-mask-size: 56px 56px;
+        mask-size: 56px 56px;
+        -webkit-mask-position: -28px -28px;
+        mask-position: -28px -28px;
+    }
+    /* .oc-halo — the glyph-shaped glow plate (the sanctioned "plinth"): the
+       normalized orangecheck mark as a soft token-tinted mask behind a hero
+       artifact card. Zero JS, one composited layer, no motion. Absorbs the
+       hand-rolled `bg-primary/10 -inset-6 blur-3xl` pattern. Override the mark
+       per-site via --oc-halo-mask (a url(...) to another normalized 0..1024
+       media-kit glyph); dial with --oc-halo-op / --oc-halo-blur /
+       --oc-halo-color. Mount inside a `relative` wrapper, before the card in
+       source order. The default mask is the normalized media-kit render of the
+       mark (centering/flip transform baked in) — never the raw font-space path. */
+    .oc-halo {
+        position: absolute;
+        inset: -18%;
+        pointer-events: none;
+        background: var(--oc-halo-color, var(--primary));
+        opacity: var(--oc-halo-op, 0.3);
+        filter: blur(var(--oc-halo-blur, 40px));
+        -webkit-mask-image: var(
+            --oc-halo-mask,
+            url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201024%201024'%3E%3Cpath%20d='M518,856Q463,820,438.5,785.5Q414,751,414,711Q414,657,462.5,613.0Q511,569,711,473Q766,509,790.5,543.5Q815,578,815,621Q815,702,550,840ZM930,1460V1235Q845,1265,779.0,1279.5Q713,1294,659,1294Q583,1294,540.5,1265.0Q498,1236,498,1184Q498,1109,701,1004Q720,994,729,989Q943,879,1002.0,808.5Q1061,738,1061,637Q1061,548,1013.5,484.0Q966,420,864,373Q934,323,966.5,261.5Q999,200,999,119Q999,-28,894.5,-111.5Q790,-195,604,-195Q515,-195,429.0,-180.5Q343,-166,258,-137V92Q343,62,424.0,46.5Q505,31,578,31Q655,31,696.0,59.5Q737,88,737,141Q737,211,523,326L512,332L486,346Q170,516,170,688Q170,782,222.0,851.5Q274,921,371,954Q300,1004,268.0,1064.0Q236,1124,236,1206Q236,1348,340.0,1434.0Q444,1520,616,1520Q690,1520,768.5,1505.0Q847,1490,930,1460Z'%20transform='translate(195.9452,852.1889),scale(0.513493,-0.513493)'/%3E%3C/svg%3E")
+        );
+        mask-image: var(
+            --oc-halo-mask,
+            url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201024%201024'%3E%3Cpath%20d='M518,856Q463,820,438.5,785.5Q414,751,414,711Q414,657,462.5,613.0Q511,569,711,473Q766,509,790.5,543.5Q815,578,815,621Q815,702,550,840ZM930,1460V1235Q845,1265,779.0,1279.5Q713,1294,659,1294Q583,1294,540.5,1265.0Q498,1236,498,1184Q498,1109,701,1004Q720,994,729,989Q943,879,1002.0,808.5Q1061,738,1061,637Q1061,548,1013.5,484.0Q966,420,864,373Q934,323,966.5,261.5Q999,200,999,119Q999,-28,894.5,-111.5Q790,-195,604,-195Q515,-195,429.0,-180.5Q343,-166,258,-137V92Q343,62,424.0,46.5Q505,31,578,31Q655,31,696.0,59.5Q737,88,737,141Q737,211,523,326L512,332L486,346Q170,516,170,688Q170,782,222.0,851.5Q274,921,371,954Q300,1004,268.0,1064.0Q236,1124,236,1206Q236,1348,340.0,1434.0Q444,1520,616,1520Q690,1520,768.5,1505.0Q847,1490,930,1460Z'%20transform='translate(195.9452,852.1889),scale(0.513493,-0.513493)'/%3E%3C/svg%3E")
+        );
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+    }
+    /* Cypherpunk skins: hard borders, no soft shadows — the halo tightens to a
+       crisp edge-glow instead of a warm bloom (skin-coherent, per charter). */
+    :root[data-oc-theme='orangecheck'] .oc-halo,
+    :root[data-oc-theme='phosphor'] .oc-halo,
+    :root[data-oc-theme='lightning'] .oc-halo,
+    :root[data-oc-theme='gold'] .oc-halo {
+        filter: blur(var(--oc-halo-blur, 10px));
+        opacity: calc(var(--oc-halo-op, 0.3) * 0.6);
+    }
+    /* Decorative rasters are NOT auto-stripped by forced colors the way
+       gradients are — hide them explicitly. */
+    @media (forced-colors: active) {
+        .oc-halo,
+        .oc-aurora__grain {
+            display: none;
+        }
+    }
     /* currentColor-based textures for brand/CTA bands. NOT prefixed `bg-`:
        tailwind-merge misclassifies any `bg-*` class as a background-color and
        would drop a real `bg-brand`/`bg-card` sitting next to it in the same

@@ -90,3 +90,11 @@ export function resolveTheme(id: string | null | undefined): string {
 
 /** Cookie name for the cross-subdomain skin choice. */
 export const OC_SKIN_COOKIE = 'oc_skin';
+
+/**
+ * Cookie name for the cross-subdomain ambient-motion choice ('off' pauses the
+ * aurora + every `.oc-ambient` decoration family-wide). This is the WCAG 2.2.2
+ * Pause/Stop/Hide mechanism — prefers-reduced-motion alone does not satisfy it
+ * for >5s auto-playing decorative motion.
+ */
+export const OC_MOTION_COOKIE = 'oc_motion';

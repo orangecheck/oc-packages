@@ -1,11 +1,11 @@
 'use client';
 
-import { Check, Monitor, Moon, Palette, Sun } from 'lucide-react';
+import { Check, Monitor, Moon, Palette, Pause, Sun, Waves } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useRef, useState } from 'react';
 
 import { cn } from './cn';
-import { useOcSkin } from './provider';
+import { useOcMotion, useOcSkin } from './provider';
 
 /**
  * OcAppearanceMenu — the single header control for ALL appearance settings.
@@ -41,10 +41,12 @@ const MODES = [
  */
 export function AppearanceControls({ className }: { className?: string }) {
     const { skin, setSkin, themes } = useOcSkin();
+    const { motion, setMotion } = useOcMotion();
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
     const activeMode = mounted ? (theme ?? 'system') : null;
+    const activeMotion = mounted ? motion : null;
 
     return (
         <div className={className}>
@@ -102,6 +104,38 @@ export function AppearanceControls({ className }: { className?: string }) {
                     );
                 })}
             </ul>
+            <div className="label-mono text-muted-foreground border-t px-3 pt-3 pb-2">
+                ambient motion
+            </div>
+            <div className="grid grid-cols-2 gap-1 px-2 pb-3">
+                {(
+                    [
+                        { id: 'on', label: 'on', Icon: Waves },
+                        { id: 'off', label: 'off', Icon: Pause },
+                    ] as const
+                ).map(({ id, label, Icon }) => {
+                    const active = activeMotion === id;
+                    return (
+                        <button
+                            key={id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={active}
+                            aria-label={id === 'off' ? 'pause ambient motion' : 'ambient motion on'}
+                            onClick={() => setMotion(id)}
+                            className={cn(
+                                'flex flex-col items-center gap-1 rounded-md border py-2 text-[11px] transition-colors',
+                                active
+                                    ? 'border-primary text-foreground bg-accent'
+                                    : 'border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                        >
+                            <Icon className="size-4" aria-hidden />
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }

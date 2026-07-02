@@ -225,9 +225,36 @@
     }
 }
 
+/* Grain — the 2026 texture pass. A tiny repeating feTurbulence tile (160px,
+   luminance-only so it is skin-agnostic) riding inside the aurora slot, so it
+   inherits the radial edge fade and the intensity/mode dampening for free.
+   Static — unaffected by reduced-motion. Dial with --oc-grain-op; zero it
+   per-site with one CSS line. */
+.oc-aurora__grain {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: overlay;
+    opacity: var(--oc-grain-op, 0.1);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+}
+:root.dark .oc-aurora__grain {
+    opacity: calc(var(--oc-grain-op, 0.1) * 1.3);
+}
+
 /* Motion-sensitive: hold the clouds still (they still recolour via tokens). */
 @media (prefers-reduced-motion: reduce) {
     .oc-aurora__blob {
         animation: none !important;
     }
+}
+
+/* Ambient-motion switch (oc_motion cookie → data-oc-motion="off" on <html>,
+   applied pre-paint by getOcThemeInitScript). This is the WCAG 2.2.2
+   Pause/Stop/Hide mechanism — a user choice, distinct from the OS-level
+   prefers-reduced-motion above. `.oc-ambient` is the shared opt-in hook: any
+   decorative animation in the family adds the class and inherits the pause. */
+:root[data-oc-motion='off'] .oc-aurora__blob,
+:root[data-oc-motion='off'] .oc-ambient {
+    animation-play-state: paused !important;
 }

@@ -179,3 +179,26 @@ import from the package instead:
 `useSpotPrice` returns the richer `{ btcUsd, fetchedAt }` shape rather than a
 bare number; callers that don't need the timestamp destructure: `const { btcUsd } =
 useSpotPrice()`.
+
+## 0.26.0 — aurora depth, release 1 (motion governance + texture)
+
+Nothing is required of consumers — every addition arrives through the normal
+bump and is either automatic or opt-in:
+
+- **Ambient-motion pause (WCAG 2.2.2).** `OcAppearanceMenu` gains an
+  "ambient motion" row persisted in the `oc_motion` cookie at `Domain=.ochk.io`
+  and applied pre-paint by `getOcThemeInitScript` as `data-oc-motion="off"` on
+  `<html>`. The aurora pauses automatically. Any site-local decorative
+  animation should add the `.oc-ambient` class to inherit the pause — sweep
+  your hand-rolled hero animations (e.g. cosign's) when convenient.
+  `useOcMotion()` exposes the switch programmatically.
+- **Grain.** The aurora now carries a 160px luminance-only noise tile
+  (`--oc-grain-op`, default 0.1, ~1.3× in dark). Zero it per-site with
+  `.oc-aurora { --oc-grain-op: 0 }`.
+- **`.oc-guides`** — opt-in quieter lattice with plus-mark crosses; the
+  2026-register evolution of `.bg-grid` (which is untouched).
+- **`.oc-halo`** — the glyph-shaped token-tinted glow plate for hero artifact
+  cards; replaces hand-rolled `bg-primary/10 -inset-6 blur-3xl` divs. Override
+  the mark with `--oc-halo-mask`; dial with `--oc-halo-op` / `--oc-halo-blur` /
+  `--oc-halo-color`. Soft bloom under ember, tight edge-glow under the
+  cypherpunk skins. Decoration never replaces a hero's proof column.

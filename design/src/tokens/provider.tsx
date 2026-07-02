@@ -15,6 +15,7 @@ import {
     accentFor,
     DEFAULT_OC_THEME,
     OC_DEFAULT_ACCENT,
+    OC_MOTION_COOKIE,
     OC_SKIN_COOKIE,
     OC_THEMES,
     resolveTheme,
@@ -53,6 +54,10 @@ declare global {
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 const ATTR = 'data-oc-theme';
+const MOTION_ATTR = 'data-oc-motion';
+
+/** Ambient-motion switch. `'off'` freezes the aurora and every `.oc-ambient`. */
+export type OcMotion = 'on' | 'off';
 
 function readSkinCookie(): string | null {
     if (typeof document === 'undefined') return null;
@@ -89,6 +94,43 @@ function applyAttr(skin: string): void {
     document.documentElement.setAttribute(ATTR, skin);
 }
 
+function readMotionCookie(): OcMotion | null {
+    if (typeof document === 'undefined') return null;
+    const prefix = `${OC_MOTION_COOKIE}=`;
+    for (const part of document.cookie.split(';')) {
+        const trimmed = part.trim();
+        if (trimmed.startsWith(prefix)) {
+            const v = decodeURIComponent(trimmed.slice(prefix.length));
+            return v === 'off' ? 'off' : v === 'on' ? 'on' : null;
+        }
+    }
+    return null;
+}
+
+function writeMotionCookie(value: OcMotion): void {
+    if (typeof document === 'undefined') return;
+    const isLocal =
+        location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const parts = [
+        `${OC_MOTION_COOKIE}=${encodeURIComponent(value)}`,
+        'Path=/',
+        `Max-Age=${ONE_YEAR}`,
+        'SameSite=Lax',
+    ];
+    if (!isLocal) {
+        parts.push('Domain=.ochk.io');
+        parts.push('Secure');
+    }
+    document.cookie = parts.join('; ');
+}
+
+/** Attribute is only present when motion is off — absence means the default. */
+function applyMotionAttr(motion: OcMotion): void {
+    if (typeof document === 'undefined') return;
+    if (motion === 'off') document.documentElement.setAttribute(MOTION_ATTR, 'off');
+    else document.documentElement.removeAttribute(MOTION_ATTR);
+}
+
 /**
  * Swap the browser chrome (favicon + `<meta name="theme-color">`) to the skin's
  * accent. The real work lives in the global installed by
@@ -114,6 +156,10 @@ interface OcSkinContextValue {
     setSkin: (id: string) => void;
     /** The full registry, for rendering a picker. */
     themes: readonly OcTheme[];
+    /** Ambient-motion switch ('off' pauses aurora + every `.oc-ambient`). */
+    motion: OcMotion;
+    /** Set ambient motion: applies the attribute, persists the cookie. */
+    setMotion: (value: OcMotion) => void;
 }
 
 const OcSkinContext = createContext<OcSkinContextValue | null>(null);
@@ -136,9 +182,10 @@ export function OcThemeProvider({
     aurora = true,
 }: OcThemeProviderProps) {
     const [skin, setSkinState] = useState<string>(() => resolveTheme(defaultSkin));
+    const [motion, setMotionState] = useState<OcMotion>('on');
     const hydratedRef = useRef(false);
 
-    // Hydrate from the cookie once on mount and align the attribute.
+    // Hydrate from the cookies once on mount and align the attributes.
     useEffect(() => {
         if (hydratedRef.current) return;
         hydratedRef.current = true;
@@ -146,9 +193,12 @@ export function OcThemeProvider({
         applyAttr(fromCookie);
         applySkinChrome(fromCookie);
         setSkinState(fromCookie);
+        const motionCookie = readMotionCookie() ?? 'on';
+        applyMotionAttr(motionCookie);
+        setMotionState(motionCookie);
     }, [defaultSkin]);
 
-    // Cross-site pickup: re-read the cookie when the tab regains focus.
+    // Cross-site pickup: re-read the cookies when the tab regains focus.
     useEffect(() => {
         function sync() {
             const fromCookie = resolveTheme(readSkinCookie() ?? skin);
@@ -157,6 +207,11 @@ export function OcThemeProvider({
                 applySkinChrome(fromCookie);
                 setSkinState(fromCookie);
             }
+            const motionCookie = readMotionCookie() ?? 'on';
+            if (motionCookie !== motion) {
+                applyMotionAttr(motionCookie);
+                setMotionState(motionCookie);
+            }
         }
         window.addEventListener('focus', sync);
         document.addEventListener('visibilitychange', sync);
@@ -164,7 +219,7 @@ export function OcThemeProvider({
             window.removeEventListener('focus', sync);
             document.removeEventListener('visibilitychange', sync);
         };
-    }, [skin]);
+    }, [skin, motion]);
 
     const setSkin = useCallback((id: string) => {
         const next = resolveTheme(id);
@@ -174,9 +229,16 @@ export function OcThemeProvider({
         setSkinState(next);
     }, []);
 
+    const setMotion = useCallback((value: OcMotion) => {
+        const next: OcMotion = value === 'off' ? 'off' : 'on';
+        applyMotionAttr(next);
+        writeMotionCookie(next);
+        setMotionState(next);
+    }, []);
+
     const value = useMemo<OcSkinContextValue>(
-        () => ({ skin, setSkin, themes: OC_THEMES }),
-        [skin, setSkin]
+        () => ({ skin, setSkin, themes: OC_THEMES, motion, setMotion }),
+        [skin, setSkin, motion, setMotion]
     );
 
     return (
@@ -196,6 +258,17 @@ export function useOcSkin(): OcSkinContextValue {
         throw new Error('useOcSkin must be used within <OcThemeProvider>');
     }
     return ctx;
+}
+
+/**
+ * Read the ambient-motion switch + setter. The WCAG 2.2.2 pause mechanism:
+ * `'off'` sets `data-oc-motion="off"` on `<html>` (persisted family-wide in the
+ * `oc_motion` cookie), which pauses the aurora and any `.oc-ambient` element.
+ * Throws if used outside `OcThemeProvider`.
+ */
+export function useOcMotion(): { motion: OcMotion; setMotion: (value: OcMotion) => void } {
+    const { motion, setMotion } = useOcSkin();
+    return { motion, setMotion };
 }
 
 /**
@@ -231,6 +304,11 @@ export function getOcThemeInitScript(defaultSkin: string = DEFAULT_OC_THEME): st
         `try{var m=document.cookie.match(/(?:^|; )${OC_SKIN_COOKIE}=([^;]*)/);var s=m?decodeURIComponent(m[1]):DEF;if(!s){s=DEF;}` +
         `document.documentElement.setAttribute('${ATTR}',s);window.__ocApplySkinChrome(s);}` +
         `catch(e){document.documentElement.setAttribute('${ATTR}',DEF);}` +
+        // Ambient-motion pause (oc_motion cookie) applied before first paint so
+        // a paused choice never flashes a moving frame. Absence = motion on.
+        `try{var mm=document.cookie.match(/(?:^|; )${OC_MOTION_COOKIE}=([^;]*)/);` +
+        `if(mm&&decodeURIComponent(mm[1])==='off'){document.documentElement.setAttribute('${MOTION_ATTR}','off');}}` +
+        `catch(e){}` +
         `})();`
     );
 }
