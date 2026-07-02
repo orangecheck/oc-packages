@@ -54,15 +54,47 @@ export const CornerBleed: Story = {
     ),
 };
 
-/** Per-verb identity: same component, each verb's own mark + seeded geometry. */
+/** Per-verb identity: the same component, each brand's own mark. Every glyph
+ *  is shown at a controlled size so its geometry reads (the mark still bleeds
+ *  off the cell's bottom-left corner as it does in a real hero). Solid-slab
+ *  marks (vote bars, § , ₿) and outline marks (padlock, badge, framed icons)
+ *  both render — this is the story that catches a broken glyph. */
+const CATALOG = [
+    'stamp',
+    'lock',
+    'vote',
+    'agent',
+    'pledge',
+    'attest',
+    'me',
+    'vault',
+    'chat',
+    'cosign',
+    'docs',
+    'fleet',
+    'analytics',
+    'btc',
+    'orangecheck',
+] as const;
+
 export const PerVerb: Story = {
-    args: { glyph: 'vote' },
+    args: { glyph: 'stamp' },
     render: () => (
-        <div className="bg-background grid gap-0 lg:grid-cols-2">
-            {(['vote', 'lock', 'agent', 'pledge'] as const).map((g) => (
-                <section key={g} className="relative h-[46vh] overflow-hidden border-b">
-                    <OcSigil glyph={g} corner="bottom-left" parallax={false} className="h-[52vmin] w-[52vmin]" />
-                    <div className="label-mono text-muted-foreground relative p-6">oc · {g}</div>
+        <div className="bg-background grid grid-cols-2 gap-px md:grid-cols-3">
+            {CATALOG.map((g) => (
+                <section
+                    key={g}
+                    className="bg-background relative h-[240px] overflow-hidden border"
+                    style={
+                        {
+                            '--oc-sigil-size': '210px',
+                            '--oc-sigil-opacity': '0.85',
+                            '--oc-sigil-opacity-sm': '0.85',
+                        } as React.CSSProperties
+                    }
+                >
+                    <OcSigil glyph={g} corner="bottom-left" parallax={false} />
+                    <div className="label-mono text-muted-foreground relative p-4">oc · {g}</div>
                 </section>
             ))}
         </div>

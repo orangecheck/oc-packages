@@ -77,13 +77,17 @@ function layerStyle(i: number): React.CSSProperties {
     };
 }
 
-function sub(markup: string, fg: string, ink: string): string {
+// Glyphs are emitted in their correct form (solid for is_glyph_only, outline
+// for the rest); the only sentinel left to resolve is the ink → currentColor,
+// so the layer colour ramp drives the whole mark. __FG__/__BG__ are already
+// baked to literals but we null them defensively.
+function sub(markup: string): string {
     return markup
-        .split('__FG__')
-        .join(fg)
         .split('__INK__')
-        .join(ink)
+        .join('currentColor')
         .split('__BG__')
+        .join('none')
+        .split('__FG__')
         .join('none');
 }
 
@@ -105,7 +109,7 @@ export function OcSigil({ glyph, corner = 'bottom-left', parallax = true, classN
     // the tile drops away, leaving the recognizable framed mark, which embosses
     // as an engraved seal (thematically exact for stamp; recolors per skin via
     // the layer color ramp). ink=currentColor so the depth ramp drives it.
-    const mark = useMemo(() => sub(OC_GLYPHS[glyph], 'none', 'currentColor'), [glyph]);
+    const mark = useMemo(() => sub(OC_GLYPHS[glyph]), [glyph]);
 
     // Tier B — damped pointer parallax. Gates: prop, fine pointer, PRM (live),
     // ambient-motion switch (live via attribute). Listener on window; the

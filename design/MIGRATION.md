@@ -311,3 +311,13 @@ Reworks the mark from an opaque corner object into a translucent 3D watermark:
 
 Light-mode opacity was too prominent — drop the default light opacity to 0.4
 (desktop) / 0.28 (mobile). Dark mode is unchanged (0.52 / 0.42).
+
+## 0.28.6 — OcSigil: fix broken per-verb glyphs
+
+The glyph emitter froze every mark in FILLED mode (it passed a sentinel that
+never matched the glyphs' `fg=="none"` outline branch), so runtime `fg→none`
+made solid-fill marks (vote bars, §, ₿) vanish and body-fill marks (padlock,
+A, safe) render as fragments. Emitter now branches on `is_glyph_only`: solid
+marks emit filled (→ solid slab), the rest emit in outline mode (tile drops,
+frame+detail stroke). All 15 marks verified in the Chrome/Sigil › PerVerb
+catalog. Requires the re-generated `glyphs.ts` (vendored from oc-media-kit).
