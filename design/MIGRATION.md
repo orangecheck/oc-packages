@@ -261,3 +261,11 @@ Rules (the placement doctrine, research/AURORA-DEPTH-PLAN.md §3, binding):
 
 Glyph geometry is vendored from oc-media-kit (`build/emit_glyphs.py` →
 `src/tokens/glyphs.ts`); `scripts/check-glyph-drift.mjs` guards the sync.
+
+## 0.28.1 — OcSigil emboss visibility (ember-first tuning)
+
+Patch: strengthen the emboss relief ramp so the filled letterpress register
+reads on ember (the family default) where the mark sits over the same-hue warm
+aurora bloom — the front face is now a defined `--primary` silhouette
+(minimum-visibility floor), the back layers still dissolve into `--background`.
+No API change; wireframe (cypherpunk) register unaffected.
