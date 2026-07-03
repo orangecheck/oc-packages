@@ -1,27 +1,34 @@
 /*
  * oc-sigil — the brand mark as a translucent 3D watermark (aurora depth R3).
  *
- * A large, see-through extruded relief of the verb's mark, sitting behind the
- * hero and bleeding off a corner. Many thin <use> layers under perspective +
- * translateZ give real depth (a lit front face, shadowed walls, a back that
- * dissolves into --background); the whole object is composited at a low
- * `--oc-sigil-opacity` so the aurora reads through it — present, dimensional,
+ * A large, see-through extruded relief of the verb's pictogram, sitting behind
+ * the hero and bleeding off a corner. Many thin <use> layers under perspective
+ * + eased translateZ give real depth (a lit front face via the specular leaf,
+ * chromatically-shaded walls, a back that dissolves to TRANSPARENT so the
+ * aurora composites through it); the whole object is composited at a low
+ * `--oc-sigil-opacity` so the field reads through it — present, dimensional,
  * but muted. The drift carries `.oc-ambient` (family oc_motion pause) and
  * freezes under prefers-reduced-motion.
  *
+ * Two registers, switched by `data-oc-theme` on the endpoint custom properties
+ * (--oc-sigil-lift / --oc-sigil-shade / --oc-sigil-ink-base): ember = lit
+ * letterpress relief; cypherpunk skins = unlit crisp echo stack. No hue is
+ * hardcoded — everything is a color-mix() off the skin's own tokens.
+ *
  * Responsive by default: size is a clamp() so it scales with the viewport, and
- * it stays visible (smaller, quieter) on phones. Position + size are tunable
- * per-site via --oc-sigil-size / --oc-sigil-opacity / the corner classes.
+ * it stays visible (smaller, quieter, re-anchored top-right) on phones.
+ * Position/size/opacity are tunable per-site via the --oc-sigil-* vars.
  *
  * PRESERVE-3D FOOTGUN: opacity/mask/filter/overflow live on the OUTER wrapper
  * ONLY — never on .oc-sigil__drift / .oc-sigil__par, or the 3D stack flattens.
+ * (The specular leaf's own mask is safe: it is a LEAF svg with no 3D children.)
  */
 
 .oc-sigil {
     position: absolute;
     pointer-events: none;
     contain: layout paint;
-    perspective: 1100px;
+    perspective: 1600px;
     /* responsive footprint — scales with the smaller viewport axis, clamped */
     width: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
     height: var(--oc-sigil-size, clamp(240px, 52vmin, 600px));
@@ -30,39 +37,101 @@
        rides quieter — a mid-tone terracotta reads with less alpha over a
        near-white page than the same mark does over a dark one. */
     opacity: var(--oc-sigil-opacity, 0.4);
-    /* soft edge fade so the mark dissolves into the field rather than ending in
-       a hard box (on the wrapper, which is safe for preserve-3d) */
-    -webkit-mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
-    mask-image: radial-gradient(125% 125% at 55% 45%, #000 42%, transparent 90%);
+    /* soft edge fade — the mark dissolves into the field rather than ending in a
+       hard box. The solid core is aimed (per corner) at the hero-interior
+       quadrant that is actually on screen, since corner-bleed pushes the mark's
+       own center off-canvas. On the wrapper, which is safe for preserve-3d. */
+    -webkit-mask-image: radial-gradient(
+        120% 120% at var(--oc-sigil-mask-at, 55% 45%),
+        #000 48%,
+        transparent 90%
+    );
+    mask-image: radial-gradient(
+        120% 120% at var(--oc-sigil-mask-at, 55% 45%),
+        #000 48%,
+        transparent 90%
+    );
 }
 :root.dark .oc-sigil {
     opacity: var(--oc-sigil-opacity, 0.52);
 }
 
+/* Light grounds: form-from-shadow. A warm ink-tinted highlight (never chalk
+   white) so the lit face stays in the mark's hue family. Dark keeps pure white
+   (form-from-light). */
+:root:not(.dark) .oc-sigil {
+    --oc-sigil-lift: color-mix(in oklab, white, var(--oc-sigil-ink, var(--primary)) 30%);
+}
+
+/* ember dark rides the brighter --brand (0.645) instead of --primary (0.55) —
+   ember-scoped only, and via --oc-sigil-ink-base so the www band's explicit
+   --oc-sigil-ink still wins. Bare .dark == ember default; the cypherpunk skins
+   set their own data-oc-theme and must NOT inherit this slot. */
+:root.dark:not([data-oc-theme]) .oc-sigil,
+:root.dark[data-oc-theme='ember'] .oc-sigil {
+    --oc-sigil-ink-base: var(--brand);
+}
+
+/* Cypherpunk register — unlit crisp echo stack. lift = ink (flat front face,
+   auto-neutralizes the specular leaf); shade = transparent (walls FADE rather
+   than darken, so they only ever carry the skin's own ink — no olive, no gray,
+   alpha-correct over the aurora and over gold's cream page). Placed AFTER the
+   light-lift rule at equal specificity so it wins on source order. */
+:root[data-oc-theme='orangecheck'] .oc-sigil,
+:root[data-oc-theme='phosphor'] .oc-sigil,
+:root[data-oc-theme='lightning'] .oc-sigil,
+:root[data-oc-theme='gold'] .oc-sigil {
+    --oc-sigil-lift: var(--oc-sigil-ink, var(--primary));
+    --oc-sigil-shade: transparent;
+}
+
 /* corner anchors — the bleed crops against the hero's overflow-hidden. Offsets
-   are a share of the mark's own size so the crop is consistent at every width. */
+   are a share of the mark's own size so the crop is consistent at every width;
+   the mask core is aimed at the on-screen interior quadrant per corner. */
 .oc-sigil--bottom-left {
     left: -14%;
     bottom: -18%;
+    --oc-sigil-mask-at: 70% 30%;
 }
 .oc-sigil--bottom-right {
     right: -14%;
     bottom: -18%;
+    --oc-sigil-mask-at: 30% 30%;
 }
 .oc-sigil--top-left {
     left: -14%;
     top: -16%;
+    --oc-sigil-mask-at: 70% 68%;
 }
 .oc-sigil--top-right {
     right: -14%;
     top: -16%;
+    --oc-sigil-mask-at: 30% 68%;
+}
+
+/* Band deboss preset — emboss the § into a full-bleed brand band. A taller,
+   right-weighted mask keeps the full glyph spine top-to-bottom; walls sink into
+   the band's own --brand (tone-on-tone deboss, no gray fringe). The consumer
+   supplies --oc-sigil-ink (e.g. --brand-foreground). Ships in the package so
+   band consumers don't rediscover it. Under a cypherpunk skin the register
+   block above wins --oc-sigil-shade (transparent) — the band then follows that
+   skin's echo look, which is intentional. */
+.oc-sigil--band {
+    --oc-sigil-mask-at: 62% 50%;
+    --oc-sigil-shade: var(--brand);
+    -webkit-mask-image: radial-gradient(
+        150% 185% at var(--oc-sigil-mask-at),
+        #000 55%,
+        transparent 95%
+    );
+    mask-image: radial-gradient(150% 185% at var(--oc-sigil-mask-at), #000 55%, transparent 95%);
 }
 
 .oc-sigil__drift {
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
-    animation: oc-sigil-drift 30s ease-in-out infinite;
+    animation: oc-sigil-drift 48s ease-in-out infinite;
 }
 
 .oc-sigil__par {
@@ -72,19 +141,28 @@
     transform: rotateX(var(--oc-sigil-rx, 0deg)) rotateY(var(--oc-sigil-ry, 0deg));
 }
 
+/* Shallow, art-directed rest (the 0% frame is what reduced-motion freezes at):
+   a ~5° breathing arc that never revisits the old steep -24° wall-dominant
+   extreme. Reads the per-slug seed on both axes. */
 @keyframes oc-sigil-drift {
     0%,
     100% {
-        transform: rotateX(19deg) rotateY(calc(-24deg + var(--oc-sigil-seed, 0deg)));
+        transform: rotateX(calc(14deg + var(--oc-sigil-seed-x, 0deg)))
+            rotateY(calc(-17deg + var(--oc-sigil-seed, 0deg)));
     }
-    50% {
-        transform: rotateX(25deg) rotateY(calc(-14deg + var(--oc-sigil-seed, 0deg)));
+    38% {
+        transform: rotateX(calc(17deg + var(--oc-sigil-seed-x, 0deg)))
+            rotateY(calc(-12deg + var(--oc-sigil-seed, 0deg)));
+    }
+    72% {
+        transform: rotateX(calc(15deg + var(--oc-sigil-seed-x, 0deg)))
+            rotateY(calc(-21deg + var(--oc-sigil-seed, 0deg)));
     }
 }
 
-/* Layers are absolutely stacked; their translateZ + color ramp (the 3D relief)
-   are computed per-layer in the component so depth is tunable in one place. The
-   mark is always the OUTLINE form (the tile drops away), extruded into a slab
+/* Layers are absolutely stacked; their eased translateZ + color ramp (the 3D
+   relief) are computed per-layer in the component so depth is tunable in one
+   place. The mark is the pictogram (tile frame stripped), extruded into a slab
    that recolors per skin via currentColor. */
 .oc-sigil__layer {
     position: absolute;
@@ -94,15 +172,26 @@
     backface-visibility: hidden;
 }
 
+/* Directional key light: a single upper-left catch on the front plane,
+   consistent with the negative resting yaw. One stated light across all corners
+   (do not flip per corner). Mask on this LEAF only — preserve-3d safe. */
+.oc-sigil__spec {
+    -webkit-mask-image: linear-gradient(135deg, #000 10%, transparent 55%);
+    mask-image: linear-gradient(135deg, #000 10%, transparent 55%);
+}
+
 /* Phones: single-column heroes stack tall, so a bottom anchor buries the mark
    below the fold. Re-anchor to the TOP-RIGHT corner (clear of a left-aligned
-   headline) so it lands in the first viewport, and keep it quiet. This wins on
-   specificity + source order over the desktop corner classes above. */
+   headline) so it lands in the first viewport, aim the mask core at the visible
+   quadrant, and hold a presence floor (light was sitting at the rejected
+   "barely visible" edge). Wins on specificity + source order over the desktop
+   corner classes above. */
 @media (max-width: 640px) {
     .oc-sigil {
         width: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
         height: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
-        opacity: var(--oc-sigil-opacity-sm, 0.28);
+        opacity: var(--oc-sigil-opacity-sm, 0.34);
+        --oc-sigil-mask-at: 32% 66%;
     }
     :root.dark .oc-sigil {
         opacity: var(--oc-sigil-opacity-sm, 0.42);
@@ -111,7 +200,7 @@
     .oc-sigil--bottom-right,
     .oc-sigil--top-left,
     .oc-sigil--top-right {
-        inset: -5% -24% auto auto; /* top-right, cropped off the right edge */
+        inset: -4% -18% auto auto; /* top-right, gentler crop keeps the mark's identity */
     }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/design",
-  "version": "0.28.8",
+  "version": "0.28.9",
   "description": "OrangeCheck design system — multi-theme tokens, primitives, and family composites for the .ochk.io sub-sites. Tailwind 4 + Next.js Pages Router. Not for third-party integration.",
   "keywords": [
     "orangecheck",
@@ -77,7 +77,8 @@
     "clean": "rm -rf dist storybook-static",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "verify": "node scripts/check-glyph-drift.mjs && node scripts/verify-stories.mjs && node scripts/verify-themes.mjs && node scripts/verify-contrast.mjs",
+    "verify": "node scripts/check-glyph-drift.mjs && node scripts/verify-sigil-transforms.mjs && node scripts/verify-stories.mjs && node scripts/verify-themes.mjs && node scripts/verify-contrast.mjs",
+    "verify:sigil": "node scripts/verify-sigil-transforms.mjs",
     "verify:stories": "node scripts/verify-stories.mjs",
     "verify:themes": "node scripts/verify-themes.mjs",
     "verify:contrast": "node scripts/verify-contrast.mjs",

@@ -341,3 +341,39 @@ Reading- and console-heavy surfaces should opt OUT to keep dense data flat:
 `aurora={{ gl: false }}` (or `{ intensity: 0.5, gl: false }` for docs). Owner
 consoles (analytics/bot/forge/fleet) and docs do this. Marketing sites that
 already pass `{ gl: true }` are unaffected.
+
+## 0.28.9 — OcSigil: beauty pass (mark surgery, lit relief, two registers)
+
+A ground-up refinement — no consumer API change beyond one new optional prop.
+Every `<OcSigil glyph corner />` call site is unchanged.
+
+- **Mark surgery.** The six tile glyphs (stamp/pledge/cosign/me/fleet/docs) shed
+  their rounded-square FRAME so the pictogram embosses, not the tile (three
+  verbs used to read as the same square debris). Hairline strokes are floored
+  and heavy ones capped (0.5–2.0 → 1.3–1.7) so no mark vanishes (vault's body)
+  or bloats (lock's shackle) at watermark alpha. Per-verb focus transforms
+  optically size each pictogram to fill the canvas. All SSR string transforms
+  over the vendored glyphs; `verify-sigil-transforms.mjs` (in `yarn verify`)
+  locks the frame-strip hit-count so a glyph re-vendor can't silently break it.
+- **Lit relief + two registers.** New endpoint custom properties drive the look:
+  `--oc-sigil-lift` (front-face highlight), `--oc-sigil-shade` (wall shadow),
+  `--oc-sigil-ink-base` (ember-dark rides the brighter `--brand`). Ember renders
+  a lit letterpress relief (a specular leaf catches upper-left, walls sink into a
+  chromatic sienna — never achromatic black, which mudded gold to olive); the
+  four cypherpunk skins render an unlit crisp echo stack (lift = ink, shade =
+  transparent). All color-mix() off the skin's own tokens; nothing hardcoded.
+- **Depth melts to transparent** (was: dissolve to a guessed `--background`), so
+  the mark composites correctly over the aurora in every skin/mode.
+  **`--oc-sigil-bg` is REMOVED** — with the alpha melt the surface shows through
+  natively. Band consumers use the new `band` prop instead (below).
+- **Calmer pose** — shallower resting yaw, eased `translateZ` (no countable
+  "cardboard" bands), filled forms extrude shallower, `perspective: 1600px`,
+  a de-metronomed 48s drift, `tanh` parallax. The frozen reduced-motion pose is
+  the best-composed frame.
+- **Mobile presence floor** — corner-aware mask origin + a light-mode opacity
+  floor (0.34) so phones show an identifiable mark, not a smudge.
+- **New `band` prop** — `<OcSigil glyph="orangecheck" band />` applies the
+  `.oc-sigil--band` deboss preset (band-shaped mask + walls sinking into
+  `--brand`). Supply `--oc-sigil-ink` (e.g. `--brand-foreground`). Replaces the
+  old `--oc-sigil-bg` band recipe. Under a cypherpunk skin the band follows that
+  skin's echo register.

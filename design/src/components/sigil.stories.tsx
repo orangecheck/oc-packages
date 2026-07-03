@@ -7,9 +7,9 @@ import { OcAurora, OcSigil } from '../tokens';
  * emboss. Ships DORMANT: mounting it on a hero is a per-site art decision
  * governed by the placement doctrine (research/AURORA-DEPTH-PLAN.md §3) —
  * the right column is the proof and is never displaced. Switch Skin in the
- * toolbar: filled letterpress under ember, wireframe under the cypherpunk
- * skins. Hidden below 640px, under forced-colors, and frozen under
- * reduced-motion / the ambient-motion switch.
+ * toolbar: lit letterpress relief under ember, unlit echo stack under the
+ * cypherpunk skins. Frozen under reduced-motion / the ambient-motion switch;
+ * hidden under forced-colors. On phones it re-anchors top-right.
  */
 const meta = {
     title: 'Chrome/Sigil',
@@ -56,9 +56,9 @@ export const CornerBleed: Story = {
 
 /** Per-verb identity: the same component, each brand's own mark. Every glyph
  *  is shown at a controlled size so its geometry reads (the mark still bleeds
- *  off the cell's bottom-left corner as it does in a real hero). Solid-slab
- *  marks (vote bars, § , ₿) and outline marks (padlock, badge, framed icons)
- *  both render — this is the story that catches a broken glyph. */
+ *  off the cell's bottom-left corner as it does in a real hero). Filled marks
+ *  (vote bars, §, ₿) and the frame-stripped pictograms (padlock, badge, anchor,
+ *  bust, flag) all render — this is the story that catches a broken glyph. */
 const CATALOG = [
     'stamp',
     'lock',
@@ -78,11 +78,11 @@ const CATALOG = [
 ] as const;
 
 /** Band: the flagship's below-fold home for the mark. A full-bleed bg-brand
- *  finale with the § riding it as a white-on-brand watermark (--oc-sigil-ink =
- *  --brand-foreground, --oc-sigil-bg = --brand so the extrusion melts into the
- *  band). The hero stays clean; the mark lives here. */
+ *  finale with the § debossed into it via the `band` preset (walls sink into
+ *  --brand, tone-on-tone, no gray fringe; the consumer supplies --oc-sigil-ink =
+ *  --brand-foreground). The hero stays clean; the mark lives here. */
 export const Band: Story = {
-    args: { glyph: 'orangecheck', corner: 'bottom-right' },
+    args: { glyph: 'orangecheck', corner: 'bottom-right', band: true },
     render: (args) => (
         <div className="grid min-h-screen place-items-center bg-background p-10">
             <section
@@ -90,8 +90,7 @@ export const Band: Story = {
                 style={
                     {
                         '--oc-sigil-ink': 'var(--brand-foreground)',
-                        '--oc-sigil-bg': 'var(--brand)',
-                        '--oc-sigil-opacity': '0.16',
+                        '--oc-sigil-opacity': '0.17',
                         '--oc-sigil-size': '460px',
                     } as React.CSSProperties
                 }
