@@ -63,6 +63,17 @@ export type ClassCSubtype = 'session_creation';
 
 export type EventSubtype = ClassASubtype | ClassBSubtype | ClassCSubtype;
 
+/**
+ * Any billable event key. A project's catalog is OPEN: alongside the built-in
+ * subtypes above, an integrator can define their own event keys (with their own
+ * label + class + price) on the project config. `EventKey` keeps autocomplete
+ * for the built-ins while accepting any custom string — the `(string & {})`
+ * arm preserves the literal union in editors instead of collapsing it to
+ * `string`. The server resolves class/label off the project's catalog for
+ * custom keys.
+ */
+export type EventKey = EventSubtype | (string & {});
+
 /** AttestTier · what an integrator's gate can read about an oc identity.
  *
  *  me.ochk does NOT do KYC. Sybil resistance is bounded by three
@@ -120,8 +131,9 @@ export interface IntegratorPriceConfig {
     domain: string;
     /** ISO-8601 timestamp the config was last updated. */
     updated_at: string;
-    /** Per-subtype configs. Subtypes not listed are disabled by default. */
-    events: Partial<Record<EventSubtype, IntegratorEventConfig>>;
+    /** Per-event configs, keyed by event key. Open catalog: built-in subtypes
+     *  AND your own custom keys. Keys not listed are disabled by default. */
+    events: Partial<Record<EventKey, IntegratorEventConfig>>;
 }
 
 /** A computed fee breakdown for a single event. site_rebate_sats is what
@@ -194,7 +206,7 @@ export function computeFees(
 /** Result of validating an IntegratorPriceConfig. */
 export interface ValidationResult {
     ok: boolean;
-    errors: { subtype?: EventSubtype; message: string }[];
+    errors: { subtype?: EventKey; message: string }[];
 }
 
 /**
@@ -211,7 +223,7 @@ export function validateIntegratorConfig(cfg: IntegratorPriceConfig): Validation
 
     for (const [key, eventCfg] of Object.entries(cfg.events)) {
         if (!eventCfg) continue;
-        const subtype = key as EventSubtype;
+        const subtype = key as EventKey;
         if (!eventCfg.enabled) continue;
 
         if (eventCfg.site_pays.kind === 'fixed_sats') {
@@ -249,7 +261,7 @@ export interface BillableEvent {
     id: string;
     occurred_at: string;
     class: EventClass;
-    subtype: EventSubtype;
+    subtype: EventKey;
     site: { domain: string; display_name: string };
     gross_fee_sats: number;
     platform_fee_sats: number;
@@ -419,9 +431,9 @@ export interface WebhookHeaders {
      *  receive handlers that dedupe on this header without parsing
      *  the body. */
     'OC-Envelope-Id': string;
-    /** Subtype · matches payload.subtype; lets routers branch on the
-     *  header before parsing. */
-    'OC-Subtype': EventSubtype;
+    /** Subtype · matches payload.subtype (built-in or a custom event key);
+     *  lets routers branch on the header before parsing. */
+    'OC-Subtype': EventKey;
     /** Class · matches payload.class. */
     'OC-Class': EventClass;
     /** 1-indexed delivery attempt count. >1 means the prior attempt

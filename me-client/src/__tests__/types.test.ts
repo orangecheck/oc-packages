@@ -168,6 +168,24 @@ describe('@orangecheck/me-client · validateIntegratorConfig', () => {
         expect(r.ok).toBe(true);
     });
 
+    it('accepts a custom (non-built-in) event key — the catalog is open', () => {
+        const r = validateIntegratorConfig({
+            project_key: 'pk',
+            display_name: 'X',
+            domain: 'x.example',
+            updated_at: '',
+            events: {
+                // not a built-in EventSubtype — an integrator-defined key
+                lumen_note_purchased: {
+                    enabled: true,
+                    site_pays: { kind: 'fixed_sats', sats: 50 },
+                    user_share_pct: 0.5,
+                },
+            },
+        });
+        expect(r.ok).toBe(true);
+    });
+
     it('rejects user_share_pct > 0.8', () => {
         const r = validateIntegratorConfig({
             project_key: 'pk',

@@ -94,6 +94,7 @@ export {
 export type {
     EventClass,
     EventSubtype,
+    EventKey,
     ClassASubtype,
     ClassBSubtype,
     ClassCSubtype,

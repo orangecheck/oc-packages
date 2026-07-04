@@ -29,7 +29,7 @@
 import {
     computeFees,
     type BillableEvent,
-    type EventSubtype,
+    type EventKey,
     type IntegratorEventConfig,
     type IntegratorPriceConfig,
 } from './types';
@@ -38,8 +38,9 @@ import { api } from './transport';
 export interface FireEventOptions {
     /** Your project_key (e.g. `pk_live_yourcompany`). Required. */
     project_key: string;
-    /** Canonical billable subtype. Class is inferred by the server. */
-    subtype: EventSubtype;
+    /** Billable event key · a built-in subtype OR a custom key defined on your
+     *  project catalog. Class + label are resolved server-side from the catalog. */
+    subtype: EventKey;
     /** Human-readable action label that appears on the envelope.
      *  Optional but encouraged — it's what the user sees in their
      *  /me/earn ledger. */
@@ -82,8 +83,8 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
 /** One event in a batch · same shape as the per-event request minus
  *  project_key (which is hoisted to the batch level). */
 export interface BatchEventInput {
-    /** Canonical billable subtype. */
-    subtype: EventSubtype;
+    /** Billable event key · built-in subtype or a custom project key. */
+    subtype: EventKey;
     /** For percent_of_amount-priced subtypes, the underlying amount. */
     payment_amount_sats?: number;
     /** Human-readable label that appears in /me/earn. */
