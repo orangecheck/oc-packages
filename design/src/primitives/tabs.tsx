@@ -20,12 +20,12 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
     return (
         <TabsPrimitive.List
             data-slot="tabs-list"
-            // A tab row is `flex` (nowrap), so a long set of triggers overflows the
-            // page horizontally on narrow screens. Let the row scroll inside itself
-            // instead — `overflow-x-auto` + `min-w-0`, scrollbar hidden so it still
-            // reads as a clean tab strip.
+            // A tab row is `flex`; a long set of triggers would overflow the page
+            // horizontally on narrow screens. `flex-wrap` lets it wrap to a second
+            // line instead. NOT `overflow-x-auto` — that forces overflow-y:auto,
+            // which clips the active trigger's -mb-px/border-b-2 underline.
             className={cn(
-                'border-border -mb-px flex min-w-0 items-center gap-6 overflow-x-auto border-b [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                'border-border -mb-px flex flex-wrap items-center gap-6 border-b',
                 className
             )}
             {...props}
