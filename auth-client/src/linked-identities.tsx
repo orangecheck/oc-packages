@@ -29,6 +29,8 @@
 
 import * as React from 'react';
 
+import { tabSessionHeader } from './tab-session';
+
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
 
 /* --- types --- */
@@ -71,8 +73,14 @@ export async function fetchOcLinkedIdentities(opts?: {
     authOrigin?: string;
 }): Promise<OcLinkedIdentity[]> {
     const authOrigin = opts?.authOrigin ?? DEFAULT_AUTH_ORIGIN;
+    // Per-tab pinning: forward the tab's session JWT so the host resolves
+    // the SAME account this tab displays (its chip reads /api/auth/me
+    // tab-aware). Without this, a pinned tab's show-as list is the shared
+    // cookie account's identities — a menu that disagrees with itself.
+    // Unpinned tabs send no header → unchanged cookie-default behavior.
     const r = await fetch(`${authOrigin}/api/auth/identities`, {
         credentials: 'include',
+        headers: { ...tabSessionHeader() },
     });
     if (r.status === 401) return [];
     if (!r.ok) throw new Error(`identities fetch failed: http_${r.status}`);
@@ -106,6 +114,7 @@ export function OcLinkedIdentities({
         try {
             const r = await fetch(`${authOrigin}/api/auth/identities`, {
                 credentials: 'include',
+                headers: { ...tabSessionHeader() },
             });
             if (!r.ok) {
                 if (r.status === 401) {

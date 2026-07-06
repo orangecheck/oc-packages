@@ -910,6 +910,23 @@ export function OcAccountMenuView({
                             ) : null}
                         </div>
                         <CopyableDid did={account.didOc} />
+                        {/* Which identity this account actually IS (email /
+                            bitcoin / nostr) — surfaced next to the did so a tab
+                            signed into a DIFFERENT account than your other tabs
+                            is obvious at a glance, not buried behind the did.
+                            The did itself already shows above; skip the
+                            redundant did kind. */}
+                        {account.displayIdentity.kind !== 'did' &&
+                        account.displayIdentity.value ? (
+                            <div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] tracking-wide">
+                                <span className="text-muted-foreground/50 uppercase">
+                                    {IDENTITY_KIND_LABEL[account.displayIdentity.kind]}
+                                </span>
+                                <span className="text-foreground/75">
+                                    {obscureIdentity(account.displayIdentity.value)}
+                                </span>
+                            </div>
+                        ) : null}
                         {displayName ? (
                             <div className="text-muted-foreground/80 mt-1 font-mono text-[10px] tracking-wide">
                                 {displayName}
