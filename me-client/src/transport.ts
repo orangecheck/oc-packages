@@ -42,14 +42,24 @@ export interface FetchOptions {
     method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
     body?: unknown;
     signal?: AbortSignal;
+    /** Extra request headers merged over the defaults · e.g. X-OC-Signature
+     *  (integrator HMAC) or Idempotency-Key. */
+    headers?: Record<string, string>;
+    /** Per-call bearer token · overrides the process-global setBearerToken for
+     *  THIS request only. Use it for stateless server-side firing so concurrent
+     *  requests for different users never race on one shared module-level token
+     *  (the setBearerToken global is fine for a single-user browser session). */
+    bearerToken?: string;
 }
 
 export async function api<T>(path: string, opts: FetchOptions = {}): Promise<T> {
     const headers: Record<string, string> = {
         'content-type': 'application/json',
         accept: 'application/json',
+        ...(opts.headers ?? {}),
     };
-    if (bearerToken) headers['authorization'] = `Bearer ${bearerToken}`;
+    const token = opts.bearerToken ?? bearerToken;
+    if (token) headers['authorization'] = `Bearer ${token}`;
     const res = await fetch(`${origin}${path}`, {
         method: opts.method ?? 'GET',
         credentials: 'include',

@@ -43,16 +43,11 @@ export interface FireEventOptions {
     subtype: EventKey;
     /** Human-readable action label that appears on the envelope.
      *  Optional but encouraged — it's what the user sees in their
-     *  /me/earn ledger. */
+     *  /me/activity ledger. */
     action_label?: string;
     /** For percent_of_amount-priced subtypes, the underlying amount
      *  the fee is computed against. Required for those subtypes. */
     payment_amount_sats?: number;
-    /** Override the user identity the envelope is credited to. Default
-     *  is the currently-authenticated user (cookie / Bearer). Pass
-     *  this only when firing on a user's behalf in a server-to-server
-     *  flow — the project must have an explicit allowlist. */
-    user_address?: string;
     /** Free-form metadata stored on the envelope. Public — anyone who
      *  GETs /api/envelope/<id> sees it. Don't put secrets here. */
     metadata?: Record<string, unknown>;
@@ -65,6 +60,51 @@ export interface FireEventOptions {
      *  envelope) is the source of the event. Don't set it for events
      *  the human user clicked themselves. */
     is_agent?: boolean;
+    /** The project's HMAC signing secret. When provided, the SDK signs the
+     *  request with X-OC-Signature, authenticating the call as the INTEGRATOR.
+     *  This is REQUIRED in live mode — without it the server 401s, because a
+     *  user session alone proves a user, never the paying project. SERVER-SIDE
+     *  ONLY: never ship this secret to a browser. Find/rotate it on the project
+     *  Keys tab (/me/projects/<id>/keys). */
+    signingSecret?: string;
+    /** The forwarded user oc_session JWT (the `token` from the sign-in popup
+     *  result). Identifies which user earns the cashback. Pass it per-call for
+     *  stateless, concurrency-safe server-side firing — preferred over the
+     *  process-global setBearerToken when your backend serves many users. A
+     *  same-origin family integrator (*.ochk.io) can omit it; the oc_session
+     *  cookie rides automatically. */
+    bearerToken?: string;
+    /** Idempotency key (e.g. a UUID v7 per logical event). A retry with the
+     *  same key returns the prior event rather than double-billing. */
+    idempotencyKey?: string;
+}
+
+/** HMAC-SHA256 hex via Web Crypto — works in Node 20+ and the browser with no
+ *  node:crypto import (keeps this package isomorphic). Signing only ever runs
+ *  server-side because it needs the project secret. */
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+    return Array.from(new Uint8Array(sig))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+/** Build the X-OC-Signature header for a request body, byte-matching the
+ *  server's event-signature.ts contract: `t=<unix>,v1=hmac_sha256(secret,
+ *  `${t}.${body}`)`. The `body` MUST be the exact JSON string the transport
+ *  transmits (the server re-derives it as JSON.stringify(req.body)). */
+async function signBody(secret: string, serializedBody: string): Promise<string> {
+    const t = Math.floor(Date.now() / 1000);
+    const mac = await hmacSha256Hex(secret, `${t}.${serializedBody}`);
+    return `t=${t},v1=${mac}`;
 }
 
 async function fire(options: FireEventOptions): Promise<BillableEvent> {
@@ -74,9 +114,35 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
     if (!options.subtype) {
         throw new Error('event.fire requires subtype');
     }
+
+    // Build the request body from server-recognized fields ONLY — never let the
+    // signing secret or bearer token leak into the transmitted payload.
+    const requestBody: Record<string, unknown> = {
+        project_key: options.project_key,
+        subtype: options.subtype,
+    };
+    if (options.payment_amount_sats !== undefined)
+        requestBody.payment_amount_sats = options.payment_amount_sats;
+    if (options.action_label !== undefined) requestBody.action_label = options.action_label;
+    if (options.metadata !== undefined) requestBody.metadata = options.metadata;
+    if (options.is_agent !== undefined) requestBody.is_agent = options.is_agent;
+
+    const headers: Record<string, string> = {};
+    if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey;
+    if (options.signingSecret) {
+        // Sign the exact bytes the transport sends: it JSON.stringify's the same
+        // object reference, so this string is byte-identical to what lands.
+        headers['x-oc-signature'] = await signBody(
+            options.signingSecret,
+            JSON.stringify(requestBody)
+        );
+    }
+
     return api<BillableEvent>('/api/integrator/event', {
         method: 'POST',
-        body: options,
+        body: requestBody,
+        headers,
+        bearerToken: options.bearerToken,
     });
 }
 
@@ -132,6 +198,12 @@ export interface FireBatchOptions {
     project_key: string;
     /** 1 to 100 events. Larger batches must be split client-side. */
     events: BatchEventInput[];
+    /** The project's HMAC signing secret · REQUIRED in live mode (same
+     *  contract as event.fire). Server-side only. */
+    signingSecret?: string;
+    /** The forwarded user oc_session JWT · pass per-call for stateless
+     *  server-side firing (see FireEventOptions.bearerToken). */
+    bearerToken?: string;
 }
 
 export interface FireBatchResponse {
@@ -186,9 +258,22 @@ async function fireBatch(options: FireBatchOptions): Promise<FireBatchResponse> 
             `event.fireBatch · max 100 events per call (got ${options.events.length}). Split client-side.`
         );
     }
+
+    // Body excludes the secret/token — only project_key + events go on the wire.
+    const requestBody = { project_key: options.project_key, events: options.events };
+    const headers: Record<string, string> = {};
+    if (options.signingSecret) {
+        headers['x-oc-signature'] = await signBody(
+            options.signingSecret,
+            JSON.stringify(requestBody)
+        );
+    }
+
     return api<FireBatchResponse>('/api/integrator/event/batch', {
         method: 'POST',
-        body: options,
+        body: requestBody,
+        headers,
+        bearerToken: options.bearerToken,
     });
 }
 
