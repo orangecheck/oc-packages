@@ -95,6 +95,15 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'product',
     },
     {
+        slug: 'globe',
+        origin: 'https://globe.ochk.io',
+        hostname: 'globe.ochk.io',
+        label: 'oc·globe',
+        sub: 'watch — the network, live',
+        docsHref: 'https://globe.ochk.io/sources',
+        category: 'product',
+    },
+    {
         slug: 'attest',
         origin: 'https://attest.ochk.io',
         hostname: 'attest.ochk.io',

@@ -24,6 +24,7 @@ export type EcosystemSlug =
     | 'chat'
     | 'cosign'
     | 'btc'
+    | 'globe'
     | 'attest'
     | 'lock'
     | 'vote'
@@ -91,6 +92,13 @@ const ENTRIES: SwitcherEntry[] = [
         label: 'oc·btc',
         sub: 'read — bitcoin desk',
         docsHref: 'https://btc.ochk.io/data',
+    },
+    {
+        slug: 'globe',
+        href: 'https://globe.ochk.io',
+        label: 'oc·globe',
+        sub: 'watch — the network, live',
+        docsHref: 'https://globe.ochk.io/sources',
     },
     {
         slug: 'attest',
