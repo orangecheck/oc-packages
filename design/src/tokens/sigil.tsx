@@ -167,6 +167,10 @@ const SEED: Record<OcGlyphSlug, [number, number]> = {
     docs: [0, 0],
     analytics: [-5, 1],
     btc: [4, 3],
+    // The catalog gained `globe` without a seed here, and SEED is an exhaustive
+    // Record over OcGlyphSlug — so the dts build has been failing since. [3, -1]
+    // sits inside the ±7°/±3° envelope and collides with nothing above.
+    globe: [3, -1],
     orangecheck: [0, 0],
 };
 

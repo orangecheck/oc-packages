@@ -66,9 +66,15 @@ export function Card({
             <span className="terminal-dot" aria-hidden />
             <span className="terminal-dot opacity-70" aria-hidden />
             <span className="terminal-dot opacity-50" aria-hidden />
-            <span className="ml-2 truncate">{title}</span>
+            {/* Shrink priority, not equal shrink. Both spans truncate, so with
+                the default flex-shrink:1 a narrow card (any two-column grid)
+                clipped the TITLE first — "§ settlement · t…" — losing the one
+                word that says what the panel is while keeping a subtitle nobody
+                can read either. The subtitle now absorbs ~100× the squeeze, so
+                it collapses fully before the title gives up a character. */}
+            <span className="ml-2 truncate [flex-shrink:1]">{title}</span>
             {subtitle && (
-              <span className="text-muted-foreground/70 ml-1 min-w-0 truncate text-[10px] tracking-normal normal-case">
+              <span className="text-muted-foreground/70 ml-1 min-w-0 truncate text-[10px] tracking-normal normal-case [flex-shrink:100]">
                 · {subtitle}
               </span>
             )}
