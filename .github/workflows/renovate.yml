@@ -57,7 +57,18 @@ jobs:
                   echo "::error::Renovate image pull failed after 5 attempts"
                   exit 1
 
-            - name: Renovate
+            # Renovate init calls GitHub's auth endpoint before it touches a
+            # single repo, and that call transiently 401s ("FATAL: Initialization
+            # error / Authentication failure") under load or secondary rate
+            # limiting — five times inside one 2-hour window on 2026-08-17, with
+            # a token valid until 2027 and clean runs either side. On a */30 cron
+            # that paints the Actions tab red several times a day for a fault
+            # that fixes itself, which trains everyone to ignore the one failure
+            # that matters. Same reasoning as the image pre-pull above: retry the
+            # transient, stay red for the persistent.
+            - name: Renovate (attempt 1)
+              id: renovate_1
+              continue-on-error: true
               uses: renovatebot/github-action@v40.3.0
               env:
                   LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
@@ -67,5 +78,23 @@ jobs:
                   # with `repo` scope) that has *contents:write* and
                   # *pull-requests:write* on every repo listed in
                   # renovate-global.json. See RENOVATE.md.
+                  token: ${{ secrets.RENOVATE_TOKEN }}
+                  configurationFile: renovate-global.json
+
+            - name: Back off before retry
+              if: steps.renovate_1.outcome == 'failure'
+              run: |
+                  echo "::warning::Renovate attempt 1 failed; retrying in 90s"
+                  sleep 90
+
+            # No continue-on-error here on purpose: if the second attempt also
+            # fails, the cause is not transient and the job SHOULD go red.
+            - name: Renovate (retry)
+              if: steps.renovate_1.outcome == 'failure'
+              uses: renovatebot/github-action@v40.3.0
+              env:
+                  LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+                  RENOVATE_DRY_RUN: ${{ inputs.dryRun || 'null' }}
+              with:
                   token: ${{ secrets.RENOVATE_TOKEN }}
                   configurationFile: renovate-global.json
