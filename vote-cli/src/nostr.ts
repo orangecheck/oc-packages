@@ -15,7 +15,8 @@ export interface NostrEvent {
 export interface Filter {
     kinds?: number[];
     '#d'?: string[];
-    '#poll_id'?: string[];
+    /** NIP-12 indexable single-letter tag filter. */
+    '#t'?: string[];
     limit?: number;
 }
 
@@ -104,8 +105,16 @@ export async function fetchPollEvent(pollId: string, relays?: string[]) {
     return events[0] ?? null;
 }
 
+/**
+ * Every ballot in a poll.
+ *
+ * `#t`, not `#poll_id`: relays index single-letter tag names only, so the old
+ * filter matched nothing and every tally saw zero ballots. Callers must still
+ * check each parsed ballot's `poll_id` — `t` is a shared namespace on these
+ * events (poll id, family marker, voter address).
+ */
 export async function fetchBallotEvents(pollId: string, relays?: string[]) {
-    return queryRelays({ kinds: [30081], '#poll_id': [pollId] }, relays);
+    return queryRelays({ kinds: [30081], '#t': [pollId] }, relays);
 }
 
 export async function fetchRevealEvent(pollId: string, relays?: string[]) {

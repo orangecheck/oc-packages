@@ -13,7 +13,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_RELAYS, publishEvent, queryEvents, type NostrEvent } from './index';
+import {
+    DEFAULT_RELAYS,
+    publishEvent,
+    queryEvents,
+    type Filter,
+    type NostrEvent,
+} from './index';
 
 // ── DEFAULT_RELAYS ───────────────────────────────────────────────────────
 
@@ -329,3 +335,42 @@ function restoreWebSocket() {
     if (originalWebSocket) globalThis.WebSocket = originalWebSocket;
     vi.unstubAllGlobals();
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Filter key space — NIP-12 indexed tags are single-letter only.
+//
+// These assertions are compile-time. They exist because the same silently-
+// empty query shipped in four codebases (OC Vote's tally, OC Agent's
+// revocation lookup, @orangecheck/sdk's check(), and this package's own type)
+// while `Filter` still advertised '#poll_id' / '#voter' / '#creator' as valid.
+// A multi-letter filter is not a style question — a conforming relay cannot
+// match it, so the query returns nothing and the caller believes the answer.
+// ─────────────────────────────────────────────────────────────────────────
+describe('Filter key space', () => {
+    it('accepts single-letter indexed tag filters', () => {
+        const ok: Filter = { kinds: [30081], '#t': ['abc'], '#d': ['x'], '#p': ['y'] };
+        expect(ok['#t']).toEqual(['abc']);
+    });
+
+    it('rejects multi-letter tag filters at compile time', () => {
+        const bad: Filter = {
+            kinds: [30081],
+            // @ts-expect-error '#poll_id' is not indexable — relays never match it.
+            '#poll_id': ['abc'],
+        };
+        // The value still exists at runtime; the point is that tsc refuses it.
+        expect((bad as Record<string, unknown>)['#poll_id']).toEqual(['abc']);
+    });
+
+    it('rejects the other names that actually shipped', () => {
+        const a: Filter = {
+            // @ts-expect-error not indexable
+            '#delegation': ['x'],
+        };
+        const b: Filter = {
+            // @ts-expect-error not indexable
+            '#address': ['x'],
+        };
+        expect([a, b]).toHaveLength(2);
+    });
+});

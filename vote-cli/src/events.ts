@@ -29,8 +29,19 @@ export function buildPollEvent(poll: Poll): NostrEvent {
     const content = canonicalBytes(poll).trimEnd();
     const snapshot =
         typeof poll.snapshot_block === 'number' ? String(poll.snapshot_block) : poll.snapshot_block;
+// NIP-12 relays index SINGLE-LETTER tag names only. The multi-letter
+// `poll_id` / `voter` / `creator` tags below are readable diagnostics and are
+// NOT queryable — a `#poll_id` filter matches nothing on a conforming relay.
+// The `t` tags are what make these events findable, and for ballots they are
+// the ONLY way to enumerate a poll: a ballot's d-tag embeds the voter, tag
+// filters are exact-match, and enumerating voters is the point of the query.
+// Kept in sync with oc-vote-web/src/lib/vote/events.ts and normative in
+// oc-vote-protocol SPEC §3.4/§3.6.
     return sign(30080, [
         ['d', `oc-vote:poll:${pid}`],
+        ['t', pid],
+        ['t', 'oc-vote-poll'],
+        ['t', poll.creator],
         ['poll_id', pid],
         ['creator', poll.creator],
         ['deadline', poll.deadline],
@@ -44,6 +55,10 @@ export function buildBallotEvent(ballot: Ballot): NostrEvent {
     const content = canonicalBytes(ballot).trimEnd();
     return sign(30081, [
         ['d', `oc-vote:ballot:${ballot.poll_id}:${ballot.voter}`],
+        // `t` = poll_id is the only path to "every ballot in this poll".
+        ['t', ballot.poll_id],
+        ['t', 'oc-vote-ballot'],
+        ['t', ballot.voter],
         ['poll_id', ballot.poll_id],
         ['voter', ballot.voter],
         ['ballot_id', bid],
@@ -55,6 +70,8 @@ export function buildRevealEvent(reveal: Reveal): NostrEvent {
     const content = canonicalBytes(reveal).trimEnd();
     return sign(30082, [
         ['d', `oc-vote:reveal:${reveal.poll_id}`],
+        ['t', reveal.poll_id],
+        ['t', 'oc-vote-reveal'],
         ['poll_id', reveal.poll_id],
         ['reveal_id', rid],
     ], content);

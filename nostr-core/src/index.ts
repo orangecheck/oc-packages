@@ -95,25 +95,43 @@ export interface PublishResult {
     attempts: number;
 }
 
-export interface Filter {
+/**
+ * The tag names a relay is required to index.
+ *
+ * NIP-12 defines indexed tag filters over **single-letter** names only. A
+ * filter on a multi-letter name (`#poll_id`, `#delegation`, `#address`) is
+ * accepted by the wire format, forwarded, and then matches nothing on a
+ * conforming relay — it fails silently and returns an empty set.
+ *
+ * This type used to name `'#poll_id'`, `'#voter'` and `'#creator'` as
+ * legitimate filters ("Used by OC Vote"), with a `#${string}` catch-all that
+ * permitted any other. That is how the same bug reached four codebases:
+ * OC Vote's tally found zero ballots for every poll, OC Agent's revocation
+ * lookup found zero revocations and therefore honoured revoked delegations,
+ * and `@orangecheck/sdk`'s `check()` found zero attestations. Every one of
+ * them was a filter the type system had blessed.
+ *
+ * Restricting the key space to single letters turns that class of bug into a
+ * compile error. If you need to query by some value, the event has to carry
+ * it in a single-letter tag — most often `t` — and that is a fact about
+ * Nostr, not a preference.
+ */
+type IndexableTagName =
+    | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm'
+    | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
+    | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+    | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
+
+/** `#a` … `#Z` — the only tag filters a relay must honour. */
+export type IndexableTagFilter = `#${IndexableTagName}`;
+
+export interface Filter extends Partial<Record<IndexableTagFilter, string[]>> {
     kinds?: number[];
     authors?: string[];
     ids?: string[];
     limit?: number;
     since?: number;
     until?: number;
-    /** NIP-12 indexable `d`-tag filter. */
-    '#d'?: string[];
-    /** NIP-12 indexable single-letter tag filter. */
-    '#t'?: string[];
-    /** Used by OC Vote (kind 30081 ballots). */
-    '#poll_id'?: string[];
-    /** Used by OC Vote (kind 30081 ballots). */
-    '#voter'?: string[];
-    /** Used by OC Vote (kind 30080 polls). */
-    '#creator'?: string[];
-    /** Other indexable single-letter tags clients may filter on. */
-    [key: `#${string}`]: string[] | undefined;
 }
 
 export interface QueryResult {
