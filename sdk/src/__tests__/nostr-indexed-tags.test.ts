@@ -22,7 +22,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createAttestationEvent, queryByAddress } from '../nostr';
+import { createAttestationEvent, DEFAULT_RELAYS, publishToRelays, queryByAddress } from '../nostr';
 import type { AttestationEnvelope } from '../types';
 
 const ADDRESS = 'bc1pezn5yjxmz9nuahtqprvhfeya2nv4zdfk49u5amquhqptykx695rs60hqa2';
@@ -50,6 +50,13 @@ class MockSocket {
     }
     simulateMessage(frame: unknown): void {
         this.onmessage?.({ data: JSON.stringify(frame) });
+    }
+    simulateError(err: unknown): void {
+        this.onerror?.(err);
+    }
+    simulateClose(): void {
+        this.readyState = CLOSED;
+        this.onclose?.();
     }
     send(data: string): void {
         this.sent.push(data);
@@ -136,5 +143,53 @@ describe('queryByAddress — relay filter', () => {
 
         ws.simulateMessage(['EOSE', req[1]]);
         await expect(pending).resolves.toBeInstanceOf(Array);
+    });
+});
+
+describe('DEFAULT_RELAYS', () => {
+    it('includes the first-party family relay', () => {
+        // attest.ochk.io's verifier has always read from relay.ochk.io. While
+        // this list omitted it, the SDK and the reference implementation were
+        // looking in different places for the same attestation.
+        expect(DEFAULT_RELAYS).toContain('wss://relay.ochk.io');
+    });
+
+    it('does not rely on the family relay alone', () => {
+        // Never the only copy — a single-relay default would make the family
+        // relay load-bearing, which is the opposite of the point.
+        expect(DEFAULT_RELAYS.filter((r) => !r.includes('ochk.io')).length).toBeGreaterThan(1);
+    });
+});
+
+describe('publishToRelays — one outcome per relay', () => {
+    it('does not count a relay as BOTH published and rejected', async () => {
+        // The real shape of the bug: a relay ACKs OK true, then emits an
+        // error while the socket is being torn down. Pre-fix the error
+        // handler pushed to `failed` unguarded, so the same relay appeared in
+        // both arrays and the caller reported "published to 1 · rejected 1".
+        const event = { id: 'evt1' } as never;
+        const pending = publishToRelays(event, ['wss://relay.example']);
+        const ws = MockSocket.instances[0]!;
+        ws.simulateOpen();
+        ws.simulateMessage(['OK', 'evt1', true]);
+        ws.simulateError(new Error('socket died during teardown'));
+        ws.simulateClose();
+
+        const { success, failed } = await pending;
+        expect(success).toEqual(['wss://relay.example']);
+        expect(failed).toEqual([]);
+    });
+
+    it('records a rejection once, not once per event', async () => {
+        const event = { id: 'evt2' } as never;
+        const pending = publishToRelays(event, ['wss://relay.example']);
+        const ws = MockSocket.instances[0]!;
+        ws.simulateOpen();
+        ws.simulateMessage(['OK', 'evt2', false, 'blocked: pubkey not allowed']);
+        ws.simulateError(new Error('and then an error too'));
+
+        const { success, failed } = await pending;
+        expect(success).toEqual([]);
+        expect(failed).toEqual(['wss://relay.example']);
     });
 });

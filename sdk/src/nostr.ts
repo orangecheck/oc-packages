@@ -16,15 +16,26 @@ const log = createLogger('ocp/nostr');
 export const ATTESTATION_EVENT_KIND = 30078;
 
 /**
- * Default Nostr relays for OrangeCheck attestation publishing
+ * Default Nostr relays for OrangeCheck attestation publishing and lookup.
  *
- * These are well-known, reliable relays with good uptime
+ * Well-known relays with good uptime, plus the first-party family relay.
+ * `relay.ochk.io` was missing here while attest.ochk.io's verifier has always
+ * read from it, so the SDK and the reference implementation were looking in
+ * different places — the SDK could miss a family attestation that the hosted
+ * API found. It runs a kind allowlist (30078–30086) and canonical OC d-tag
+ * prefixes, and is always co-published alongside the public relays, never the
+ * only copy. See https://github.com/orangecheck/oc-relay-infra.
+ *
+ * Order matters only for readability; queries fan out to all of them and
+ * merge. Pass your own `relays` to any query to override this entirely — the
+ * protocol does not require trusting any particular relay.
  */
 export const DEFAULT_RELAYS: string[] = [
     'wss://relay.damus.io',
     'wss://relay.nostr.band',
     'wss://nos.lol',
     'wss://relay.snort.social',
+    'wss://relay.ochk.io',
 ];
 
 /**
@@ -148,6 +159,26 @@ export async function publishToRelays(
     const publishPromises = relays.map(async (relayUrl) => {
         let ws: WebSocket | null = null;
 
+        // One outcome per relay, first one wins. Without this a relay that
+        // ACKs `OK true` and then emits an error or close event during
+        // teardown lands in BOTH arrays, and the caller reports "published
+        // to 3 · rejected 3" over the same three relays. The `failed.includes`
+        // check this replaces only ever de-duplicated `failed` against
+        // itself, so it could not catch a success/failure split.
+        // attest.ochk.io's copy of this file has carried the guard for a
+        // while; this is the back-port.
+        let settled = false;
+        const recordSuccess = (): void => {
+            if (settled) return;
+            settled = true;
+            success.push(relayUrl);
+        };
+        const recordFailure = (): void => {
+            if (settled) return;
+            settled = true;
+            failed.push(relayUrl);
+        };
+
         try {
             // Connect to relay
             ws = new WebSocket(relayUrl);
@@ -179,7 +210,7 @@ export async function publishToRelays(
                         // Check for OK response
                         if (data[0] === 'OK' && data[1] === event.id) {
                             if (data[2] === true) {
-                                success.push(relayUrl);
+                                recordSuccess();
                                 cleanup();
                                 resolve();
                             } else {
@@ -187,7 +218,7 @@ export async function publishToRelays(
                                     { relay: relayUrl, reason: data[3] },
                                     'Relay rejected event'
                                 );
-                                failed.push(relayUrl);
+                                recordFailure();
                                 cleanup();
                                 reject(new Error(data[3] || 'Relay rejected event'));
                             }
@@ -197,7 +228,7 @@ export async function publishToRelays(
                             { relay: relayUrl, error: err },
                             'Failed to parse relay response'
                         );
-                        failed.push(relayUrl);
+                        recordFailure();
                         cleanup();
                         reject(err);
                     }
@@ -205,7 +236,7 @@ export async function publishToRelays(
 
                 wsRef.onerror = (err) => {
                     log.error({ relay: relayUrl, error: err }, 'WebSocket error');
-                    failed.push(relayUrl);
+                    recordFailure();
                     cleanup();
                     reject(err);
                 };
@@ -218,9 +249,7 @@ export async function publishToRelays(
             });
         } catch (err) {
             log.error({ relay: relayUrl, error: err }, 'Failed to publish to relay');
-            if (!failed.includes(relayUrl)) {
-                failed.push(relayUrl);
-            }
+            recordFailure();
         } finally {
             // Ensure WebSocket is closed
             if (ws && ws.readyState !== WebSocket.CLOSED) {
