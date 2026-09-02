@@ -684,13 +684,26 @@ function ProviderSignIn({
             : returnTo
         : returnTo;
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
+    // Vertical rhythm. The "or" divider is a horizontal rule between two
+    // blocks, so it must sit EQUIDISTANT from both — otherwise it reads as
+    // belonging to whichever block it is closer to. It previously ran
+    // 14px above / 4px below (plus 4px of container margin), which glued the
+    // rule to the panel beneath it and left the provider buttons floating.
+    // BLOCK_GAP matches the tab row's own 16px marginBottom so the whole
+    // ceremony sits on one 4px-scale rhythm rather than an ad-hoc
+    // 0/4/8/14/16/20 mix.
+    const BLOCK_GAP = 16;
+    const BUTTON_GAP = 8; // siblings group tighter than blocks separate
     const divider = (
         <div
             style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                margin: first ? '14px 0 4px' : '4px 0 12px',
+                // Symmetric in both orderings: in `first` mode the divider
+                // owns the gap on both sides; at the bottom the container's
+                // marginTop owns the gap above, so the divider only pads below.
+                margin: first ? `${BLOCK_GAP}px 0` : `0 0 ${BLOCK_GAP}px`,
                 color: 'var(--muted-foreground, #a1a1aa)',
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 fontSize: 10,
@@ -717,7 +730,7 @@ function ProviderSignIn({
                 gap: 10,
                 boxSizing: 'border-box',
                 width: '100%',
-                marginTop: i === 0 ? 0 : 8,
+                marginTop: i === 0 ? 0 : BUTTON_GAP,
                 padding: '0.6rem 0.875rem',
                 border: '1px solid var(--border, #27272a)',
                 borderRadius: 6,
@@ -736,7 +749,10 @@ function ProviderSignIn({
     // wallet/email panel below. Otherwise the canonical bottom placement:
     // divider, then buttons.
     return (
-        <div data-oc-signin-providers="" style={first ? { marginBottom: 4 } : { marginTop: 20 }}>
+        <div
+            data-oc-signin-providers=""
+            style={first ? { marginBottom: 0 } : { marginTop: BLOCK_GAP }}
+        >
             {first ? (
                 <>
                     {buttons}
