@@ -41,9 +41,18 @@ export function createAttestationEvent(
     envelope: AttestationEnvelope,
     pubkey: string
 ): Omit<NostrEvent, 'id' | 'sig'> {
+    // NIP-12 relays index SINGLE-LETTER tags only. A multi-letter tag like
+    // `address` is stored verbatim and stays readable in the event, but it is
+    // never indexed, so no `#address` filter can ever retrieve it. Without the
+    // `t` tags below an attestation published by this SDK is invisible to
+    // every by-address query on every relay — including attest.ochk.io's own
+    // verifier, which queries `#t`. Keep both: `t` is what makes it findable,
+    // `address` is human-readable diagnostics and is not load-bearing.
     const tags: string[][] = [
-        ['d', envelope.attestation_id], // Parameterized replaceable event identifier
-        ['address', envelope.address], // Bitcoin address
+        ['d', envelope.attestation_id], // Parameterized replaceable event identifier (indexed)
+        ['t', envelope.address], // Indexed btc-address tag — query with `#t`
+        ['t', 'oc-attest'], // Family marker — `#t=["oc-attest"]` for cross-cut discovery
+        ['address', envelope.address], // Diagnostic / legacy — relay won't index this
         ['scheme', envelope.scheme], // Signature scheme (bip322 or legacy)
         ['issued_at', envelope.issued_at], // ISO timestamp
     ];
@@ -342,8 +351,15 @@ export async function queryByAddress(
                             subscriptionId,
                             {
                                 kinds: [30078],
-                                '#address': [address],
-                                limit: 10,
+                                // `#t`, NOT `#address`: NIP-12 relays index
+                                // single-letter tags only, so `#address`
+                                // matched nothing on any relay and this
+                                // function returned empty for every real
+                                // attestation. attest.ochk.io's verifier has
+                                // queried `#t` since the same fix landed
+                                // there; this is the back-port.
+                                '#t': [address],
+                                limit: 50,
                             },
                         ])
                     );
