@@ -19,8 +19,21 @@ name: Release
 #   git tag sdk-py-v0.1.0 ...             → orangecheck                  (PyPI)
 #
 # Secrets required:
-#   - NPM_TOKEN for JS packages
-#   - PyPI uses OIDC trusted publishing — no token needed
+#   - NPM_TOKEN for JS packages — a granular access token with publish rights
+#     on the @orangecheck scope. npm is actively restricting legacy tokens
+#     that bypass 2FA, and the one in use silently expired between
+#     2026-08-12 (design@0.28.14, the last good publish) and 2026-09-02.
+#     A revoked token does NOT report as unauthorized here: npm answers a
+#     publish PUT with `404 Not Found` to avoid leaking whether a private
+#     package exists, so the failure reads as "package missing". Hence the
+#     preflight below — fail in 5s with the real reason, not after a full
+#     build with a misleading one.
+#   - PyPI uses OIDC trusted publishing — no token needed. npm supports the
+#     same thing (Settings -> Trusted Publisher on each package, pointing at
+#     orangecheck/oc-packages + release.yml); `id-token: write` is already
+#     granted below for provenance, so migrating drops the shared secret
+#     entirely. Worth doing per-package for the frequent publishers
+#     (design, auth-client, auth-core, me-client) rather than all 36 at once.
 
 on:
     push:
@@ -88,6 +101,23 @@ jobs:
                   registry-url: 'https://registry.npmjs.org'
                   cache: yarn
                   cache-dependency-path: ${{ steps.parse.outputs.dir }}/yarn.lock
+
+            # Fail fast and legibly on a dead credential. Without this the job
+            # builds every dependency first and then dies on a `404 Not Found`
+            # that looks like a missing package rather than an auth problem.
+            - name: Preflight — is the npm credential alive?
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+                    echo "::error::NPM_TOKEN secret is empty. Mint a granular token with publish rights on @orangecheck, or configure npm Trusted Publishing for this package."
+                    exit 1
+                  fi
+                  if ! who=$(npm whoami 2>&1); then
+                    echo "::error::NPM_TOKEN is invalid, expired, or revoked (npm whoami: ${who}). A publish would fail with a misleading '404 Not Found'. Mint a new granular token, or configure npm Trusted Publishing for this package."
+                    exit 1
+                  fi
+                  echo "npm authenticated as: ${who}"
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
