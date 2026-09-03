@@ -7,6 +7,26 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.30.1] — 2026-09-03
+
+### Changed
+
+- **`OcErrorPage`: icons on the buttons, and `actions` accepts nodes.**
+
+  Both come from migrating `oc-attest-web` — the site the component was lifted
+  from — and finding the promotion would otherwise have been a downgrade for
+  it. Its buttons carried `Home` / `RefreshCw` / `ArrowLeft` glyphs, and its
+  500's action list ended with "persisting? report it on **github**", a real
+  link inside a list item.
+
+  `actions` is now `ReactNode[]` rather than `string[]`, so an item can carry a
+  link. `string` is a `ReactNode`, so this is not a breaking change.
+
+  Worth stating as a principle: when a component is promoted out of one site
+  for everyone to share, the site it came from should not end up with less than
+  it had. That is the test of whether the promotion was real or just
+  centralisation.
+
 ## [0.30.0] — 2026-09-03
 
 ### Added

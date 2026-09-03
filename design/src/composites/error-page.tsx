@@ -1,3 +1,4 @@
+import { ArrowLeft, Home, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -21,8 +22,13 @@ export interface OcErrorPageProps {
     /**
      * A short "what can you do" list, rendered as the bordered mono panel.
      * Defaults to the server-error list; pass `[]` to suppress it.
+     *
+     * Items are nodes, not just strings, so one can carry a link — attest's
+     * original 500 ended its list with "persisting? report it on github", and
+     * a shared component that could not express that would have been a
+     * downgrade for the site it was lifted from.
      */
-    actions?: string[];
+    actions?: ReactNode[];
     /** Where "go home" points. A site with a app-scoped root can change it. */
     homeHref?: string;
     /** Extra content below the buttons — a report link, a status page, a hint. */
@@ -37,7 +43,7 @@ const VARIANTS = {
         detail: "the page you're looking for doesn't exist, or has been moved.",
         tone: 'text-primary',
         label: 'not found',
-        actions: [] as string[],
+        actions: [] as ReactNode[],
     },
     'server-error': {
         code: 500,
@@ -49,7 +55,7 @@ const VARIANTS = {
             'try refreshing the page',
             'wait a few minutes, try again',
             'return home and start over',
-        ],
+        ] as ReactNode[],
     },
 } as const;
 
@@ -117,8 +123,11 @@ export function OcErrorPage({
                             what can you do
                         </div>
                         <ul className="divide-y font-mono text-xs">
-                            {shownActions.map((a) => (
-                                <li key={a} className="px-4 py-2">
+                            {shownActions.map((a, i) => (
+                                // Index keys: items are nodes and the list is
+                                // static per variant, so there is nothing
+                                // better to key on and nothing reorders.
+                                <li key={i} className="px-4 py-2">
                                     {'>> '}
                                     {a}
                                 </li>
@@ -130,6 +139,7 @@ export function OcErrorPage({
                 <div className="mt-8 flex flex-wrap gap-3">
                     <Button asChild className="font-mono">
                         <Link href={homeHref}>
+                            <Home className="mr-2 h-3 w-3" />
                             <span className="text-[11px] tracking-widest uppercase">go home</span>
                         </Link>
                     </Button>
@@ -142,6 +152,11 @@ export function OcErrorPage({
                         }}
                         className="font-mono"
                     >
+                        {isServerError ? (
+                            <RefreshCw className="mr-2 h-3 w-3" />
+                        ) : (
+                            <ArrowLeft className="mr-2 h-3 w-3" />
+                        )}
                         <span className="text-[11px] tracking-widest uppercase">
                             {isServerError ? 'retry' : 'go back'}
                         </span>
