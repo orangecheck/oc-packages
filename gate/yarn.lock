@@ -218,10 +218,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.2.0.tgz#22da1d16a469954fce877055d559900a6c73b63b"
   integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
 
-"@orangecheck/sdk@^0.1.4":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-0.1.5.tgz#fcbee7efcd8006d4feb50b4c330ef5dadf8cb9d9"
-  integrity sha512-jGRaCjKDGHokXuLqgMjNSOC7qF9kWMGENwSiWyUJx5o2cJAJh/1dC4R440SnopeW+CzVwFJSZ+lYPdDhcdGVVg==
+"@orangecheck/sdk@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.npmjs.org/@orangecheck/sdk/-/sdk-1.4.0.tgz#bd0f6a6b46c5519a64aff9a6db590a3381458f54"
+  integrity sha512-S04SMAYYba0aOihsS4L3PR+NkJxwcegInobdM9zBH3VUI3JRs9O+zh946iESQo7+sGDE3RbC/oQL1UIw3vPbyA==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"

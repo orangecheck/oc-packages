@@ -11,6 +11,39 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.0] — 2026-09-03
+
+### Fixed
+
+- **`@orangecheck/sdk` `^0.1.3` → `^1.4.0`.** Every candidate address was rejected as `not_found`, so a filtered allowlist came back empty no matter who was on it.
+
+  The pinned SDK filtered Nostr relays on a multi-letter `#address` tag. Relays
+  index single-letter tag names only (NIP-12), so the query matched nothing and
+  every lookup by address answered `not_found` — including for attestations
+  that plainly exist. Fixed in `@orangecheck/sdk` 1.4.0, which queries the
+  indexed `#t` tag. Lookups by attestation id (`#d`) and by identity (`#i`)
+  were never affected.
+
+  Measured against live relays before and after, for an address holding a real
+  10,000-sat / 308-day attestation:
+
+  ```
+  sdk 0.1.4  ->  not_found
+  sdk 1.4.0  ->  ok, sats 10000, days 308
+  ```
+
+  No API change: `CheckResult`, `CheckParams` and the `./scoring` subpath are
+  identical across the two SDK majors, so this is a drop-in for callers.
+
+### Added
+
+- Opt-in live integration test (`OC_LIVE_TESTS=1 yarn test`). Every other test
+  in the package mocks `check()`, which is why the defect above shipped with a
+  green suite — the mock was the thing that was wrong. The new test talks to
+  real relays, and asserts both an attested and a never-attested address,
+  because a fully broken lookup also "rejects" the latter.
+
+
 ## [0.1.3] — Initial published state
 
 Initial public release. Airdrop allowlist filter — exclude addresses below the bond threshold in one call.
