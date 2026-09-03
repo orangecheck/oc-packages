@@ -53,6 +53,13 @@ on:
             - 'vote-core-v*'
             - 'vote-cli-v*'
             - 'vote-react-v*'
+            # vault-core, vault-cli and stamp-cli published to npm with NO
+            # trigger here, so tagging them did nothing at all — silently.
+            # release-triggers.test.mjs now asserts every publishable package
+            # in this repo has a pattern, so a new one cannot be forgotten.
+            - 'vault-core-v*'
+            - 'vault-cli-v*'
+            - 'stamp-cli-v*'
             - 'pledge-core-v*'
             - 'nostr-core-v*'
             - 'agent-core-v*'

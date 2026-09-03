@@ -23,6 +23,21 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    release-triggers:
+        # A publishable package missing its release.yml tag pattern is a SILENT
+        # failure: git tag and git push both succeed, no run is created, and
+        # nothing reports it. vault-core, vault-cli and stamp-cli were all in
+        # that state — vault-core with a cross-tenant credential-disclosure fix
+        # sitting tagged-but-unpublished. Cheap to check, so check it.
+        name: Release triggers cover every package
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node scripts/check-release-triggers.mjs
+
     build:
         name: Build ${{ matrix.pkg }}
         runs-on: ubuntu-latest
