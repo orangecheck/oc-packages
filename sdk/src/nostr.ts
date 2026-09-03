@@ -29,6 +29,26 @@ export const ATTESTATION_EVENT_KIND = 30078;
  * Order matters only for readability; queries fan out to all of them and
  * merge. Pass your own `relays` to any query to override this entirely — the
  * protocol does not require trusting any particular relay.
+ *
+ * A NOTE ON `relay.damus.io`, deliberately kept. It is reachable from a browser
+ * (measured ~391ms, real events returned) and NOT reachable from at least one
+ * serverless runtime — Vercel's, where it fails to connect on every attempt,
+ * consistently, over hours. Its NIP-11 declares no `auth_required`,
+ * `payment_required` or `restricted_writes`, so this reads as datacenter-IP
+ * filtering in front of it rather than policy, and it can change in either
+ * direction without notice.
+ *
+ * It stays for three reasons: it is one of the most widely read relays, so an
+ * attestation published there is findable by the most people; the browser is
+ * the dominant path for this SDK (wallet signing happens there), and it works
+ * there; and since FANOUT_DEADLINE_MS below is a SHARED budget, a relay that
+ * fails to connect resolves immediately and costs no latency. Removing a relay
+ * that works for most callers, to tidy a status field on one runtime, is the
+ * wrong trade.
+ *
+ * If you run this SDK server-side and want certainty about coverage, pass
+ * `relays` explicitly. Silent partial coverage — believing you reached four
+ * relays when you reached three — is the real hazard here, not latency.
  */
 export const DEFAULT_RELAYS: string[] = [
     'wss://relay.damus.io',

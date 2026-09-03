@@ -7,6 +7,25 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.2] — 2026-09-03
+
+### Changed
+
+- Documented why `relay.damus.io` stays in `DEFAULT_RELAYS` even though it
+  fails to connect from at least one serverless runtime. It is reachable from a
+  browser (~391ms, real events), its NIP-11 declares no `auth_required` or
+  `restricted_writes` — so this is datacenter-IP filtering rather than policy —
+  and since `FANOUT_DEADLINE_MS` is a shared budget, a relay that cannot
+  connect resolves immediately and costs no latency. Removing a relay that
+  works for most callers to tidy one runtime's status field is the wrong trade.
+
+  The note also says what to do about it: if you run this SDK server-side and
+  need certainty about coverage, pass `relays` explicitly. Silent partial
+  coverage is the hazard, not latency.
+
+  No code change. Full reasoning in the workspace's
+  `research/RELAY-COVERAGE-DECISIONS.md`.
+
 ## [1.5.1] — 2026-09-03
 
 ### Fixed
