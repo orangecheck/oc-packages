@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.29.1] — 2026-09-03
+
+### Fixed
+
+- **`Textarea` zoomed the viewport on iOS Safari.** It hardcoded `text-xs`
+  (12px) with no responsive step, and iOS zooms when a focused form field's
+  text is under 16px — leaving the user zoomed in afterwards. Every textarea in
+  the family did this. Now `text-base md:text-xs`: 16px on mobile, the 12px
+  mono look preserved on a pointer device, where the behaviour does not exist.
+
+  `Input` already used this ladder (`text-base md:text-sm`); `Textarea` was the
+  one that missed it, which is why the family's own rule — "every form field
+  needs ≥16px text on mobile, use the `text-base md:text-{xs|sm}` ladder" —
+  was being broken by the primitive that is supposed to enforce it.
+
+  A consumer passing `text-xs` via `className` still re-breaks it, since
+  tailwind-merge lets the caller win; the docstring now says so. Four such
+  overrides were found and fixed in the consumer repos alongside this
+  (oc-www's sudo signature field, two attest verify textareas, three stamp
+  inputs).
+
 ## [Unreleased]
 
 - _(no pending changes)_
