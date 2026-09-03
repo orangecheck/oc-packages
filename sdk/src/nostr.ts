@@ -22,7 +22,7 @@ export const ATTESTATION_EVENT_KIND = 30078;
  * `relay.ochk.io` was missing here while attest.ochk.io's verifier has always
  * read from it, so the SDK and the reference implementation were looking in
  * different places — the SDK could miss a family attestation that the hosted
- * API found. It runs a kind allowlist (30078–30086) and canonical OC d-tag
+ * API found. It runs a kind allowlist (30078-30087, 30110-30114) and canonical OC d-tag
  * prefixes, and is always co-published alongside the public relays, never the
  * only copy. See https://github.com/orangecheck/oc-relay-infra.
  *
@@ -32,11 +32,41 @@ export const ATTESTATION_EVENT_KIND = 30078;
  */
 export const DEFAULT_RELAYS: string[] = [
     'wss://relay.damus.io',
-    'wss://relay.nostr.band',
     'wss://nos.lol',
     'wss://relay.snort.social',
     'wss://relay.ochk.io',
 ];
+
+/**
+ * Wall-clock budget for a whole relay fan-out, shared by every relay in it.
+ *
+ * Queries below use Promise.allSettled, so a fan-out used to take as long as
+ * its SLOWEST relay — and with a dead relay in DEFAULT_RELAYS that meant the
+ * per-relay 10s timeout, every single call. Measured on 1.4.0:
+ *
+ *     check({ addr })  with the old defaults   10.4s
+ *     check({ addr })  with the dead relay out   1.0s
+ *
+ * That is not merely slow, it broke a dependent outright: @orangecheck/gate
+ * races check() against a 5s lookupTimeoutMs, so a 10.4s lookup lost the race
+ * every time and no address-based gate decision could ever succeed.
+ *
+ * A shared deadline fixes the class: whichever relay is dead or slow next, a
+ * fan-out costs at most this. Healthy relays answer well inside it (~1s for a
+ * cold WebSocket plus a query). QUERY_TIMEOUT_MS remains the per-relay ceiling.
+ *
+ * The value is deliberately BELOW @orangecheck/gate's 5s default
+ * lookupTimeoutMs, so a gate decision can still resolve in the worst case
+ * rather than always losing its own race. Raising this above 5000 silently
+ * breaks that dependent — change both together, or don't.
+ */
+export const FANOUT_DEADLINE_MS = 4000;
+const QUERY_TIMEOUT_MS = 10000;
+
+/** Remaining budget for a relay, given the fan-out's shared deadline. */
+function budgetFor(deadlineAt: number): number {
+    return Math.max(0, Math.min(QUERY_TIMEOUT_MS, deadlineAt - Date.now()));
+}
 
 /**
  * Create a NIP-78 event for an OrangeCheck attestation
@@ -156,6 +186,10 @@ export async function publishToRelays(
 
     log.info({ eventId: event.id, relayCount: relays.length }, 'Publishing event to relays');
 
+    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
+
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
     const publishPromises = relays.map(async (relayUrl) => {
         let ws: WebSocket | null = null;
 
@@ -191,7 +225,7 @@ export async function publishToRelays(
                 const deadline = setTimeout(() => {
                     wsRef.close();
                     reject(new Error('Relay publish timeout'));
-                }, 10_000);
+                }, budgetFor(deadlineAt));
 
                 const cleanup = () => {
                     clearTimeout(deadline);
@@ -276,6 +310,10 @@ export async function queryByAttestationId(
 
     log.info({ attestationId, relayCount: relays.length }, 'Querying relays for attestation');
 
+    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
+
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
     const queryPromises = relays.map(async (relayUrl) => {
         let ws: WebSocket | null = null;
 
@@ -287,7 +325,7 @@ export async function queryByAttestationId(
                 const timeout = setTimeout(() => {
                     wsRef.close();
                     reject(new Error('Query timeout'));
-                }, 10000);
+                }, budgetFor(deadlineAt));
 
                 const cleanup = () => {
                     clearTimeout(timeout);
@@ -362,6 +400,10 @@ export async function queryByAddress(
 
     log.info({ address, relayCount: relays.length }, 'Querying relays for address');
 
+    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
+
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
     const queryPromises = relays.map(async (relayUrl) => {
         try {
             const ws = new WebSocket(relayUrl);
@@ -370,7 +412,7 @@ export async function queryByAddress(
                 const timeout = setTimeout(() => {
                     ws.close();
                     reject(new Error('Query timeout'));
-                }, 10000);
+                }, budgetFor(deadlineAt));
 
                 ws.onopen = () => {
                     const subscriptionId = `ochk_addr_${Date.now()}`;
@@ -440,6 +482,10 @@ export async function queryByIdentity(
 
     log.info({ protocol, identifier, relayCount: relays.length }, 'Querying relays for identity');
 
+    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
+
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
     const queryPromises = relays.map(async (relayUrl) => {
         try {
             const ws = new WebSocket(relayUrl);
@@ -448,7 +494,7 @@ export async function queryByIdentity(
                 const timeout = setTimeout(() => {
                     ws.close();
                     reject(new Error('Query timeout'));
-                }, 10000);
+                }, budgetFor(deadlineAt));
 
                 ws.onopen = () => {
                     const subscriptionId = `ochk_identity_${Date.now()}`;

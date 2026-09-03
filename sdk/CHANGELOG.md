@@ -7,6 +7,44 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.0] — 2026-09-03
+
+### Fixed
+
+- **`check()` took 10.4 seconds. It now takes about one.** The relay queries
+  fan out with `Promise.allSettled`, so a fan-out costs as long as its
+  *slowest* relay — and `relay.nostr.band`, in `DEFAULT_RELAYS`, had stopped
+  accepting TCP connections altogether (DNS still resolves; port 443 never
+  completes a handshake, from two independent networks, and the apex
+  `nostr.band` is down too). Every call paid the full 10s per-relay timeout.
+
+  ```
+  check({ addr })  1.4.0   10.4s
+  check({ addr })  1.5.0    1.0s
+  ```
+
+  Two changes: `relay.nostr.band` is out of `DEFAULT_RELAYS`, and all four
+  fan-outs (`publishToRelays`, `queryByAttestationId`, `queryByAddress`,
+  `queryByIdentity`) now share one wall-clock budget, `FANOUT_DEADLINE_MS`
+  (4000). The second matters more — whichever relay is dead or slow next, a
+  fan-out is bounded.
+
+- **This was breaking `@orangecheck/gate` outright, not just slowing it.** Gate
+  races `check()` against a 5s `lookupTimeoutMs`, so a 10.4s lookup lost the
+  race every time and no address-based gate decision could ever succeed.
+  `FANOUT_DEADLINE_MS` is deliberately below that 5s default, and a test now
+  asserts the relationship so raising one without the other fails loudly.
+
+  Dependents pinning `^1.4.0` pick this up with no change on their side.
+
+### Notes
+
+- `relay.damus.io` stays in the defaults. It is unreachable from some
+  serverless runtimes but answers in ~390ms from a developer machine and
+  returns real events, which reads as datacenter-IP blocking rather than an
+  outage. With a shared deadline an unreachable relay is cheap, so there is no
+  reason to drop one that works for most callers.
+
 ## [Unreleased]
 
 - _(no pending changes)_
