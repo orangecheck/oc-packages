@@ -23,6 +23,11 @@ export type {
     UseOcAddressSuggestionReturn,
 } from './components';
 export { OcSignIn } from './signin';
+// The return-target predicates, exported so consumers stop hand-rolling them.
+// Every site's signin.tsx carried its own `isFamilyUrl` copy — 15 near-identical
+// hand-copies, already drifted in two — and 14 of them shared the prefix-check
+// flaw that let `/\evil.example` through as a "same-origin path".
+export { familyReturnTarget, safeReturnTo } from './signin';
 export type { OcSignInProps } from './signin';
 export { OcLinkedIdentities, fetchOcLinkedIdentities } from './linked-identities';
 export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';

@@ -167,11 +167,45 @@ type SigninJson = SigninJsonOk | SigninJsonErr;
 
 /* --- helpers --- */
 
-function safeReturnTo(input: string | undefined): string {
+/**
+ * A relative path is same-origin only if it RESOLVES to this origin.
+ *
+ * Prefix checks are not enough. `startsWith('/') && !startsWith('//')` accepts
+ * `/\evil.example`, and the WHATWG URL parser treats a backslash as a slash in
+ * special schemes, so the browser resolves it to `https://evil.example/`:
+ *
+ *     new URL('/\evil.example', 'https://attest.ochk.io').href
+ *       -> 'https://evil.example/'
+ *
+ * Since hardNavigate() below hands its argument to window.location.assign,
+ * that was a post-authentication open redirect on every consumer of this
+ * package — the user completes a real sign-in on a real ochk.io domain and
+ * lands on an attacker's page. `\t`, `\n` and `\r` are stripped by the parser
+ * too, so `/\t/evil.example` is the same trick with different bytes.
+ *
+ * So instead of blacklisting characters, resolve and compare: whatever the URL
+ * parser makes of the input is what the browser will navigate to, and that is
+ * the thing that has to be same-origin.
+ */
+function isSameOriginPath(candidate: string, origin: string): boolean {
+    try {
+        return new URL(candidate, origin).origin === origin;
+    } catch {
+        return false;
+    }
+}
+
+/** Origin to resolve relative candidates against. Any absolute https origin
+ *  works for the comparison; on the server there is no window to read. */
+function resolutionOrigin(): string {
+    return typeof window === 'undefined' ? 'https://ochk.io' : window.location.origin;
+}
+
+export function safeReturnTo(input: string | undefined): string {
     const candidate = input ?? '/';
     if (typeof candidate !== 'string') return '/';
-    if (!candidate.startsWith('/') || candidate.startsWith('//')) return '/';
-    return candidate;
+    if (!candidate.startsWith('/')) return '/';
+    return isSameOriginPath(candidate, resolutionOrigin()) ? candidate : '/';
 }
 
 /**
@@ -181,9 +215,13 @@ function safeReturnTo(input: string | undefined): string {
  * redirect allowlist. Returns `undefined` when the input is neither, so
  * callers can layer fallbacks.
  */
-function familyReturnTarget(input: string | undefined | null): string | undefined {
+export function familyReturnTarget(input: string | undefined | null): string | undefined {
     if (typeof input !== 'string' || input.length === 0) return undefined;
-    if (input.startsWith('/') && !input.startsWith('//')) return input;
+    // Same-origin relative path — resolved, not prefix-matched. See
+    // isSameOriginPath for why `/\evil.example` defeated the old check.
+    if (input.startsWith('/') && isSameOriginPath(input, resolutionOrigin())) {
+        return input;
+    }
     try {
         const u = new URL(input);
         if (u.protocol !== 'https:') return undefined;

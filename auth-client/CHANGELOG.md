@@ -11,6 +11,41 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.23.0] — 2026-09-03
+
+### Security
+
+- **Post-authentication open redirect in the return-target validation.** Both
+  `safeReturnTo` and `familyReturnTarget` accepted a candidate on
+  `startsWith('/') && !startsWith('//')`. The WHATWG URL parser treats a
+  backslash as a slash in special schemes, and strips tabs and newlines, so
+  every one of these passed as a "same-origin path" and resolved off-origin:
+
+  ```
+  new URL('/\evil.example',   'https://attest.ochk.io').href  -> https://evil.example/
+  new URL('/\/evil.example',  'https://attest.ochk.io').href  -> https://evil.example/
+  new URL('/\t/evil.example', 'https://attest.ochk.io').href  -> https://evil.example/
+  ```
+
+  `OcSignIn` passes the result to `window.location.assign`, so a victim
+  completed a genuine sign-in on a genuine `ochk.io` domain and was then sent
+  to an attacker-controlled page — the standard phishing primitive. The
+  `oc_session` cookie is scoped to `.ochk.io` and is not sent to the attacker,
+  so this leaked no token; the value is in the credibility of the redirect.
+
+  Fixed by resolving instead of prefix-matching: a candidate is same-origin
+  only if `new URL(candidate, origin).origin === origin`. Whatever the URL
+  parser makes of the input is exactly what the browser will navigate to, so
+  that is the thing compared — rather than blacklisting characters and hoping
+  the list is complete.
+
+### Added
+
+- `safeReturnTo` and `familyReturnTarget` are now exported. Every consumer site
+  hand-copied its own `isFamilyUrl` into `pages/signin.tsx` — fifteen
+  near-identical copies, already drifted in two — and fourteen shared the
+  prefix-check flaw above. Import these instead of writing a sixteenth.
+
 ## [2.21.0] — 2026-06-23 · per-tab account inheritance for new/cross-subdomain tabs
 
 ### Added
