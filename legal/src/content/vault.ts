@@ -3,8 +3,8 @@
  *
  * vault.ochk.io: an end-to-end-encrypted secrets vault sold as paid SaaS.
  * Client-side AES-256-GCM; OrangeCheck stores opaque ciphertext only and
- * cannot read vault contents. Payment is inbound-only Lightning — no fund
- * custody — so the stubs cover pricing, refunds, and lifetime-entitlement
+ * cannot read vault contents. Payment is inbound-only Bitcoin ON-CHAIN — no
+ * fund custody — so the stubs cover pricing and refund
  * durability rather than money movement.
  */
 
@@ -36,7 +36,7 @@ const terms: DocSpec = {
         'The terms governing your use of OC Vault — an end-to-end-encrypted secrets vault. Client-side encryption; OrangeCheck stores ciphertext only and cannot read your data.',
     metaTitle: 'Terms of Service — OC Vault',
     metaDescription:
-        'Terms of service for OC Vault (vault.ochk.io): an end-to-end-encrypted secrets vault. Client-side encryption, Lightning payment, no fund custody.',
+        'Terms of service for OC Vault (vault.ochk.io): an end-to-end-encrypted secrets vault. Client-side encryption, on-chain Bitcoin payment, no fund custody.',
     effective: '2026-05-15',
     updated: '2026-05-15',
     preamble: [
@@ -76,11 +76,11 @@ const terms: DocSpec = {
         {
             id: 'plans-billing',
             heading: 'plans, payment & billing',
-            hint: 'lightning · inbound only',
+            hint: 'on-chain · inbound only',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'OC Vault offers a free tier and paid tiers purchased with Bitcoin over the Lightning Network. OrangeCheck **receives** payment and never sends funds to users; OC Vault holds no custodial balance for you. Cloud sync is granted by the **vault Cloud Annual** (21,000 sats / year) and **vault Cloud Lifetime** (210,000 sats one-time) tiers. All paid tiers are subject to the **service limits** below.',
+                    text: 'OC Vault offers a free tier and paid tiers purchased with Bitcoin **on-chain**. OrangeCheck **receives** payment and never sends funds to users; OC Vault holds no custodial balance for you. Every paid tier is a **prepaid period** that expires and does not auto-renew — there is no perpetual or "lifetime" tier, and none is sold. The current tiers, their prices and their period lengths are published at [vault.ochk.io/pricing](https://vault.ochk.io/pricing), which is the authoritative price list; prices are not restated here so that this document cannot contradict it. All paid tiers are subject to the **service limits** below.',
                 },
                 {
                     kind: 'stub',
@@ -95,7 +95,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Every tier — including the one-time **Lifetime** tier — is subject to the following service limits. They are deliberately set well above the needs of a personal password vault but bound the storage and bandwidth a single account may consume on the shared infrastructure. The limits are **enforced in code**; exceeding them returns an HTTP 507 (storage) or 429 (rate) response.',
+                    text: 'Every tier is subject to the following service limits. They are deliberately set well above the needs of a personal password vault but bound the storage and bandwidth a single account may consume on the shared infrastructure. The limits are **enforced in code**; exceeding them returns an HTTP 507 (storage) or 429 (rate) response.',
                 },
                 { kind: 'subhead', text: 'storage' },
                 {
@@ -136,16 +136,16 @@ const terms: DocSpec = {
             ],
         },
         {
-            id: 'lifetime',
-            heading: 'lifetime entitlements',
+            id: 'continuity',
+            heading: 'continuity & export',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The one-time **Lifetime** tier grants cloud sync for the operational life of OC Vault, subject to the service limits above. The portable export feature is always free and works offline with [`@orangecheck/vault-core`](https://www.npmjs.com/package/@orangecheck/vault-core) — even if OC Vault is discontinued, you retain a self-decryptable copy of your data.',
+                    text: 'The portable export feature is always free and works offline with [`@orangecheck/vault-core`](https://www.npmjs.com/package/@orangecheck/vault-core) — even if OC Vault is discontinued, you retain a self-decryptable copy of your data. That guarantee does not depend on any paid tier.',
                 },
                 {
                     kind: 'stub',
-                    text: 'The precise legal meaning of "lifetime" — including treatment on a change of ownership, the wind-down notice period, and the export / continuity commitments OrangeCheck offers if the Service is discontinued — is being finalized for publication. This section will be completed following review by counsel.',
+                    text: 'The wind-down notice period and the continuity commitments OrangeCheck offers if the Service is discontinued are being finalized for publication. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -176,7 +176,7 @@ const terms: DocSpec = {
                     items: [
                         {
                             k: 'payment processing',
-                            v: 'Lightning payments are processed via a self-hosted BTCPay Server; we do not guarantee the availability of the Lightning Network',
+                            v: 'Bitcoin payments are processed via a self-hosted BTCPay Server; we do not guarantee the availability of the Bitcoin network or of any payment processor',
                         },
                         {
                             k: 'storage / hosting',
@@ -210,7 +210,7 @@ const terms: DocSpec = {
         miscellaneous,
     ],
     summary:
-        'summary: end-to-end encrypted; orangecheck stores ciphertext only and cannot recover your vault. pricing, refund, and lifetime-entitlement terms are being finalized — see the marked sections.',
+        'summary: end-to-end encrypted; orangecheck stores ciphertext only and cannot recover your vault. pricing and refund terms are being finalized — see the marked sections.',
 };
 
 const privacy: DocSpec = {
@@ -249,7 +249,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'payment records',
-                            v: 'for paid tiers: the Lightning invoice id, sats paid, tier, and entitlement expiry. No card number, no billing address',
+                            v: 'for paid tiers: the BTCPay invoice id, sats paid, tier, and entitlement expiry. No card number, no billing address',
                         },
                         {
                             k: 'encrypted blobs',
