@@ -1,0 +1,52 @@
+# Changelog
+
+All notable changes to **`@orangecheck/design`** will be documented in this file.
+
+This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and [Semantic Versioning](https://semver.org/). Token, skin and component
+changes that are visible to a user are called out explicitly — a design system
+bump that silently moves a colour is worse than a breaking one.
+
+## [Unreleased]
+
+- _(no pending changes)_
+
+## [0.29.0] — 2026-09-03
+
+### Fixed
+
+- **`orangecheck` light-mode accent failed WCAG AA.** `--primary` on
+  `--background` measured **2.93:1** against the 3.0 floor `verify:contrast`
+  gates — the only failure across all ten skin × mode combinations. Every
+  sibling skin already cleared 4.5 (ember 5.10, lightning 6.44, gold 5.39,
+  phosphor 4.92), so `orangecheck` was the outlier rather than the standard.
+
+  `--primary` is now `oklch(0.56 0.2 55)` — **4.73:1**, inside the sibling band.
+
+  The label had to move with it, and this is the part worth understanding: a
+  darker primary drops a near-black `--primary-foreground` to 4.16:1, and there
+  is no single lightness where an accent on white AND a black label both clear
+  4.5 — they pull in opposite directions. So light mode adopts the pairing
+  ember and phosphor-light already use: darker primary, near-white foreground
+  (**4.80:1**). Dark mode is untouched; it inverts that pairing correctly and
+  measures 7.57 both ways.
+
+  **Visible change:** `orangecheck`'s light accent is a deeper burnt orange.
+  Hue (55) and chroma (0.20) are unchanged, so it reads as the same colour,
+  darker. `--brand` — the full-bleed band token — is untouched.
+
+### Changed
+
+- `verify:contrast` and `verify:themes` headers now document `SB_BASE`. Both
+  already supported it; the headers said only "serve storybook-static on :6007
+  first", which reads as though the gates cannot be run in a workspace that
+  does not start local dev servers. They can:
+  `SB_BASE=https://design.ochk.io yarn verify:contrast`. The localhost default
+  stays for CI, which should build and serve the static bundle so the gate
+  tests the code rather than whatever is currently deployed.
+
+## [0.28.14] and earlier
+
+See git history. This file starts at 0.29.0 — the package had no CHANGELOG
+before, which is how a visible token change nearly shipped with no record of
+it beyond a commit message.

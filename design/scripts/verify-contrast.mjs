@@ -1,6 +1,19 @@
 /* WCAG contrast gate: for every skin × mode, convert the token colors to sRGB
  * (via canvas) and compute contrast ratios for the load-bearing text/UI pairs.
- * Flags anything below AA. Serve storybook-static on :6007 first. */
+ * Flags anything below AA. Serve storybook-static on :6007 first.
+ *
+ * Runs against any Storybook. `SB_BASE` selects it:
+ *
+ *     SB_BASE=https://design.ochk.io yarn verify:contrast     # the live one
+ *     yarn verify:contrast                                    # localhost:6007
+ *
+ * The live Storybook is the one to use for a quick check — this workspace does
+ * not run local dev servers, so the localhost default is for CI, which should
+ * build storybook-static and serve it so the gate tests the CODE rather than
+ * whatever is currently deployed. The header used to say only "serve
+ * storybook-static on :6007 first", which read as though the script could not
+ * be run at all here.
+ */
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.SB_BASE || 'http://localhost:6007';

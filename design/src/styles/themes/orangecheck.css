@@ -50,8 +50,20 @@
     --popover-foreground: oklch(0.13 0 0);
 
     /* Orange is the primary. Strong CTAs burn hot. */
-    --primary: oklch(0.68 0.2 55);
-    --primary-foreground: oklch(0.1 0 0);
+    /* Light-mode accent was oklch(0.68 0.2 55) with a near-black label:
+       2.93:1 against --background, the ONLY contrast failure across all ten
+       skin x mode combinations (verify:contrast gates --primary/--background
+       at 3.0). Every sibling skin already cleared 4.5 — ember 5.10, lightning
+       6.44, gold 5.39, phosphor 4.92 — so orangecheck was the outlier, not the
+       standard. Now 4.73.
+    
+       The label had to move with it. A darker primary drops a near-black label
+       to 4.16:1, and no single lightness satisfies both an accent on white and
+       a black label at 4.5. So this adopts the pattern ember and phosphor-light
+       already use: darker primary, near-WHITE foreground (4.80:1). Dark mode is
+       untouched -- it inverts that pairing correctly and measures 7.57 both ways. */
+    --primary: oklch(0.56 0.2 55);
+    --primary-foreground: oklch(0.99 0.005 75);
 
     --secondary: oklch(0.96 0 0);
     --secondary-foreground: oklch(0.13 0 0);
