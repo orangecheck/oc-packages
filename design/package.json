@@ -82,6 +82,8 @@
     "verify:stories": "node scripts/verify-stories.mjs",
     "verify:themes": "node scripts/verify-themes.mjs",
     "verify:contrast": "node scripts/verify-contrast.mjs",
+    "verify:rhythm": "node scripts/audit-vertical-rhythm.mjs",
+    "verify:signin": "node scripts/measure-signin-rhythm.mjs",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {

@@ -26,15 +26,45 @@
  *   TIGHT  <16px between a rule and a following heading or control
  *   TALL   >200px, usually a section that lost its own padding contract
  *
- * Usage: node scripts/audit-vertical-rhythm.mjs <url> [url...]
+ * Usage:
+ *   yarn verify:rhythm                          # every public family surface
+ *   SITES="https://a,https://b" yarn verify:rhythm
+ *   node scripts/audit-vertical-rhythm.mjs <url> [url...]
+ *
+ * Deliberately NOT part of `yarn verify`: that aggregate is offline and must
+ * stay runnable with no network. This one asks live pages, so it is a separate
+ * command you run on purpose — same reason oc-docs keeps `check:links` out of
+ * CI rather than buying flaky red builds.
  */
 import { chromium } from 'playwright';
 
-const urls = process.argv.slice(2);
-if (urls.length === 0) {
-    console.error('usage: node scripts/audit-vertical-rhythm.mjs <url> [url...]');
-    process.exit(2);
-}
+/** The public family surfaces. Owner-gated consoles are excluded — they
+ *  answer 307 to an anonymous request, so there is no layout to measure. */
+const DEFAULT_SITES = [
+    'https://ochk.io/',
+    'https://ochk.io/signin',
+    'https://ochk.io/about',
+    'https://ochk.io/security',
+    'https://attest.ochk.io/',
+    'https://lock.ochk.io/',
+    'https://vote.ochk.io/',
+    'https://stamp.ochk.io/',
+    'https://agent.ochk.io/',
+    'https://pledge.ochk.io/',
+    'https://vault.ochk.io/',
+    'https://chat.ochk.io/',
+    'https://me.ochk.io/',
+    'https://btc.ochk.io/',
+    'https://cosign.ochk.io/',
+    'https://globe.ochk.io/',
+    'https://docs.ochk.io/',
+];
+
+const fromEnv = (process.env.SITES || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+const urls = process.argv.slice(2).length > 0 ? process.argv.slice(2) : fromEnv.length > 0 ? fromEnv : DEFAULT_SITES;
 
 const MIN_CLEAR = 16;
 const MAX_CLEAR = 200;
