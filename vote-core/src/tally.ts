@@ -37,17 +37,68 @@ export interface TallyOptions {
     /** Optional: map of voter→plaintext option id, populated from unsealed secret ballots. */
     revealedOptions?: Record<string, string>;
     /** Async BIP-322 verifier. If omitted, signature verification is skipped. */
+    /**
+     * POSITIONAL, and this package's order is `(address, message, signature)`.
+     *
+     * BE CAREFUL. Every other package in the family — agent-core, lock-core,
+     * stamp-core, pledge-core, stamp-cli — declares this callback as
+     * `(msg, signatureB64, address)`. vote-core is the lone outlier, and
+     * TypeScript cannot help you: both are
+     * `(string, string, string) => Promise<boolean>`, so passing a verifier
+     * written for a sibling package compiles cleanly and then verifies the
+     * wrong things. That is not hypothetical — it shipped in oc-vote-web,
+     * where every signature check silently passed garbage and the live tally
+     * counted forged ballots.
+     *
+     * Prefer `verify` below, which takes a named-argument object and therefore
+     * cannot be got wrong. This positional form is kept because changing its
+     * order would be a SILENTLY breaking change for existing callers: they
+     * would keep compiling and start verifying incorrectly, which is the worst
+     * possible way to break an API.
+     */
     verifyBip322?: (
         address: string,
         message: string,
         signatureB64: string
     ) => Promise<boolean> | boolean;
-    /** If true, skip BIP-322 checks entirely (for spec-conformance harness with fake sigs). */
+    /**
+     * Named-argument verifier. Preferred over `verifyBip322` — an object
+     * literal cannot silently swap its fields the way three positional strings
+     * can. Takes precedence when both are supplied.
+     */
+    verify?: (args: {
+        address: string;
+        message: string;
+        signature: string;
+    }) => Promise<boolean> | boolean;
+    /**
+     * Skip BIP-322 checks entirely. Required to be EXPLICIT: tally throws when
+     * neither this nor a verifier is supplied, rather than quietly tallying
+     * unverified ballots. Intended for the spec-conformance harness, whose
+     * fixtures carry deliberately fake signatures.
+     */
     skipSignatures?: boolean;
 }
 
 export async function tally(opts: TallyOptions): Promise<TallyResult> {
     const { poll, ballots, utxosAt } = opts;
+    // Fail CLOSED on a missing verifier.
+    //
+    // This used to read `if (!opts.skipSignatures && opts.verifyBip322)`, so a
+    // caller who supplied NEITHER got a tally over completely unverified
+    // ballots and no indication anything was wrong. agent-core's equivalent
+    // has always returned E_BAD_SIG ("no BIP-322 verifier supplied") in the
+    // same situation — vote-core was the outlier, and the consequence shipped:
+    // oc-vote-web's live poll page tallied forged ballots.
+    //
+    // Skipping signatures is now an explicit decision the caller has to state.
+    if (!opts.skipSignatures && !opts.verify && !opts.verifyBip322) {
+        throw new Error(
+            'tally requires a signature verifier: pass `verify` (preferred, named arguments) ' +
+                'or `verifyBip322`, or set `skipSignatures: true` to state deliberately that ' +
+                'signatures are not being checked'
+        );
+    }
     if (!isSupportedMode(poll.weight_mode)) {
         throw new Error(
             `weight_mode "${poll.weight_mode}" not supported by this client`
@@ -74,9 +125,11 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
             }
         }
 
-        if (!opts.skipSignatures && opts.verifyBip322) {
+        if (!opts.skipSignatures) {
             const id = ballotId(b);
-            const ok = await opts.verifyBip322(b.voter, id, b.sig.value);
+            const ok = opts.verify
+                ? await opts.verify({ address: b.voter, message: id, signature: b.sig.value })
+                : await opts.verifyBip322!(b.voter, id, b.sig.value);
             if (!ok) continue;
         }
 

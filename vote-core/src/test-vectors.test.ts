@@ -147,3 +147,59 @@ describe('oc-vote-protocol conformance', () => {
         });
     }
 });
+
+describe('tally requires a signature verifier', () => {
+    // The library-level root cause of a shipped bug. This used to read
+    // `if (!opts.skipSignatures && opts.verifyBip322)`, so a caller supplying
+    // NEITHER got a tally over completely unverified ballots and no signal
+    // that anything was wrong. agent-core's equivalent has always returned
+    // E_BAD_SIG ("no BIP-322 verifier supplied") in the same situation —
+    // vote-core was the family outlier, and the consequence shipped:
+    // oc-vote-web's live poll page tallied forged ballots.
+    const minimalPoll = {
+        v: 0,
+        kind: 'oc-vote/poll',
+        creator: 'bc1qcreator00000000000000000000000000000000',
+        question: 'ship?',
+        options: [{ id: 'yes', label: 'yes' }],
+        deadline: '2026-12-01T00:00:00.000Z',
+        snapshot_block: 900000,
+        weight_mode: 'sats',
+        weight_params: null,
+        min_sats: 0,
+        min_days: 0,
+        mode: 'open',
+        reveal_pk: null,
+        tiebreak: 'latest',
+        notes: null,
+        created_at: '2026-06-01T00:00:00.000Z',
+        nonce: 'a'.repeat(32),
+        sig: { alg: 'bip322', pubkey: 'bc1qcreator00000000000000000000000000000000', value: 'S' },
+    } as unknown as Parameters<typeof tally>[0]['poll'];
+
+    const args = { poll: minimalPoll, ballots: [], utxosAt: async () => [] };
+
+    it('throws when given neither a verifier nor an explicit skip', async () => {
+        await expect(tally({ ...args } as Parameters<typeof tally>[0])).rejects.toThrow(
+            /requires a signature verifier/
+        );
+    });
+
+    it('accepts an explicit skipSignatures', async () => {
+        await expect(
+            tally({ ...args, skipSignatures: true } as Parameters<typeof tally>[0])
+        ).resolves.toBeDefined();
+    });
+
+    it('accepts the named-argument verifier', async () => {
+        await expect(
+            tally({ ...args, verify: async () => true } as Parameters<typeof tally>[0])
+        ).resolves.toBeDefined();
+    });
+
+    it('accepts the legacy positional verifier', async () => {
+        await expect(
+            tally({ ...args, verifyBip322: async () => true } as Parameters<typeof tally>[0])
+        ).resolves.toBeDefined();
+    });
+});
