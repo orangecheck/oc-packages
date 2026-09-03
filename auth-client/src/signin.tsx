@@ -16,8 +16,13 @@
  *   2. Email · OTP
  *      - Enter email → ochk.io/api/auth/email-otp/start delivers a code
  *      - Enter code → ochk.io/api/auth/email-otp/verify lands the cookie
- *      - Identity is `did:oc:<rand>`; federation provisions a custodial
- *        wallet on first /me visit
+ *      - Identity is `did:oc:<rand>`. No wallet is created here: a Fedimint
+ *        wallet is provisioned client-side on first /me visit, and its sats
+ *        are held by the FEDERATION'S GUARDIANS — not by OrangeCheck, which
+ *        coordinates and never custodies (see oc-www's email-otp/verify
+ *        route). Naming the custodian is family invariant 8; the old wording
+ *        here and in the form copy said "a custodial wallet" with no subject,
+ *        which reads as OC holding it and contradicts the charter.
  *
  * **Both paths resolve to the same did:oc canonical identity** via the
  * auth host's account-linking logic — a user who started with email can
@@ -1049,10 +1054,8 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
         return (
             <form onSubmit={start} data-oc-signin-email="">
                 <FlowHeader label="§ email + otp">
-                    We email you a 6-digit code. No password. The federation provisions a custodial
-                    wallet for you in your browser. Best path if you don&apos;t have a Bitcoin
-                    wallet yet — graduate to self-custody anytime by adding your BTC address from
-                    your account dashboard.
+                    We email you a 6-digit code. No password, and no wallet needed to start. Link a
+                    Bitcoin address any time — that is the identity you hold yourself.
                 </FlowHeader>
                 <Label>email</Label>
                 <input
@@ -1073,8 +1076,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
                     {submitting ? 'sending…' : 'send one-time code →'}
                 </button>
                 <Hint>
-                    OTP delivered by the auth host. Codes expire in 10 minutes and are single-use.
-                    Rate-limited 5 starts/hour/IP.
+                    Codes come from the auth host, expire in 10 minutes, and work once.
                 </Hint>
             </form>
         );

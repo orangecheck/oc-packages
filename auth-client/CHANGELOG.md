@@ -7,6 +7,42 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.24.0] — 2026-09-03
+
+### Fixed
+
+- **The email sign-in copy said something untrue, on every `/signin` page in
+  the family.** It read: *"The federation provisions a custodial wallet for you
+  in your browser."* Two problems.
+
+  Nothing is provisioned at sign-in. `oc-www`'s `email-otp/verify` route
+  creates an account row, a `did:oc` and a session cookie — a Fedimint wallet
+  is provisioned client-side on first visit to `me.ochk.io`. This module's own
+  docstring had the qualifier ("on first /me visit"); the form copy dropped it.
+
+  And "a custodial wallet" names no custodian. The sats are held by the
+  **federation's guardians**, never by OrangeCheck, which coordinates Lightning
+  operations and does not custody — the verify route says exactly that. An
+  unsubject'd "custodial" reads as OC holding it, which contradicts
+  `oc-docs/charter.mdx` ("does not operate a custodial wallet") and
+  `@orangecheck/legal` ("no custodial wallet of any kind"). Naming the trust
+  anchor is family invariant 8.
+
+  Now: *"We email you a 6-digit code. No password, and no wallet needed to
+  start. Link a Bitcoin address any time — that is the identity you hold
+  yourself."* True at the moment it is shown, and the custody disclosure moves
+  to where the wallet is actually created, which is also where it matters.
+
+### Changed
+
+- The email-form hint drops `Rate-limited 5 starts/hour/IP` — operator detail
+  on a consumer sign-up, and a user who hits the limit gets an error that says
+  so. It keeps the trust anchor and the two facts a user needs: *"Codes come
+  from the auth host, expire in 10 minutes, and work once."*
+
+  Together these take the email path from ~48 words of prose around one input
+  to ~22.
+
 ## [Unreleased]
 
 - _(no pending changes)_
