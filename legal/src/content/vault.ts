@@ -256,6 +256,10 @@ const privacy: DocSpec = {
                             v: 'opaque ciphertext keyed to your identity address — OrangeCheck cannot decrypt it',
                         },
                         {
+                            k: 'per-item metadata',
+                            v: 'one row per stored item, carrying its opaque envelope id and a last-updated timestamp. That means we CAN see how many items you store and when each last changed — the count is what enforces the per-account item ceiling in the service limits, and the timestamp is what lets a second device know which items to re-sync. We cannot see what any item is: not its contents, not its name, not its type. This entry previously appeared on the "what we cannot see" list, which was wrong.',
+                        },
+                        {
                             k: 'access tokens',
                             v: 'for developer / CLI / CI access: an SHA-256 hash of each token, an optional label, the granted scope (read or read-write), creation / last-used / optional expiry timestamps. We never store the token itself — only its hash.',
                         },
@@ -276,7 +280,6 @@ const privacy: DocSpec = {
                     items: [
                         'The contents of any vault item',
                         'The names, titles, or types of your items',
-                        'How many items you store or how often you use them',
                         'Your vault key or any recovery material',
                         'Your access tokens (only the SHA-256 hash is stored)',
                         'Which sites the browser extension autofilled on — origin matching happens locally in your browser',

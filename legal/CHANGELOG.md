@@ -6,6 +6,32 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.4.0] — 2026-09-03
+
+### Fixed
+
+- **OC Vault's Privacy Policy claimed something untrue about what OrangeCheck
+  can see.** Under "what we cannot see" it listed *"How many items you store or
+  how often you use them"*. Both halves are visible:
+
+  - `countBlobs()` runs `select('envelope_id', { count: 'exact', head: true })`
+    and `/api/blobs/[id]` refuses a write once that count reaches
+    `MAX_BLOBS_PER_IDENTITY` (5,000). The exact item count is not merely
+    visible, it is *load-bearing* — it enforces the published service limit.
+  - `vault_blobs` holds one row per item with an `updated_at` column and an
+    index on `(identity_address, updated_at desc)`, and `GET /api/blobs`
+    returns `[{ envelope_id, updated_at }]`. That is per-item write cadence.
+
+  The claim is removed from "cannot see" and the truth added to "what we
+  collect" as a `per-item metadata` entry, which says what is visible, why
+  (the count enforces the ceiling; the timestamp tells a second device what to
+  re-sync), and what is still true — that no item's contents, name or type is
+  visible. The strong claim survives; the overstated one does not.
+
+  A privacy policy is the binding document, and this is the kind of clause a
+  reader would rely on. `oc-vault-web/src/pages/security.tsx` carried the same
+  sentence and is corrected in that repo.
+
 ## [0.3.0] — 2026-09-03
 
 ### Fixed — OC Vault terms and privacy stated commercial terms the product does not offer
