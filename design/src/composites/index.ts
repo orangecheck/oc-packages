@@ -10,6 +10,9 @@
 export { SectionHeader } from './section-header';
 export type { SectionHeaderProps } from './section-header';
 
+export { OcErrorPage } from './error-page';
+export type { OcErrorPageProps, OcErrorVariant } from './error-page';
+
 export { EmptyState } from './empty-state';
 export type { EmptyStateProps, EmptyStateCta } from './empty-state';
 
