@@ -38,6 +38,28 @@ jobs:
                   node-version: '24'
             - run: node scripts/check-release-triggers.mjs
 
+    id-coverage:
+        # Family invariant 4 as an executable check: every field in a canonical
+        # message must be inside the id, because the signature commits to the
+        # id rather than to the object. A field left out of the canonical
+        # message can be altered after signing and every verifier in the family
+        # still accepts the artifact.
+        name: Invariant 4 — ids cover every canonical field
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: yarn install --frozen-lockfile
+              working-directory: stamp-core
+            - name: Build the packages the check imports
+              run: |
+                  for p in stamp-core agent-core pledge-core vote-core; do
+                    (cd "$p" && yarn install --frozen-lockfile && yarn build)
+                  done
+            - run: node scripts/check-id-coverage.mjs
+
     build:
         name: Build ${{ matrix.pkg }}
         runs-on: ubuntu-latest
