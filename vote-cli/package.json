@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/vote-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Command-line tool for OC Vote \u2014 tally, verify, and inspect polls from your shell.",
   "keywords": [
     "oc-vote",

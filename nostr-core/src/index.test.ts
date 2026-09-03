@@ -25,7 +25,20 @@ import {
 
 describe('DEFAULT_RELAYS', () => {
     it('has at least 5 relays', () => {
+        // Breadth is the point, not the number: no artifact should depend on
+        // any single relay being up (invariant 5, and oc-relay-infra/BYPASS.md).
+        // This caught the 2026-09-03 removal of relay.nostr.band, which had
+        // gone permanently unreachable — the right response was to restore
+        // breadth with a relay that answers, not to lower the bar.
         expect(DEFAULT_RELAYS.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it('does not list a relay known to be unreachable', () => {
+        // relay.nostr.band: DNS resolves 95.216.33.150 but port 443 never
+        // completes a handshake, from two independent networks, and the apex
+        // nostr.band is down too. A dead relay in a default set is worse than a
+        // missing one — fan-outs wait on it. Re-add it only after checking.
+        expect(DEFAULT_RELAYS).not.toContain('wss://relay.nostr.band');
     });
 
     it('includes the family first-party relay', () => {

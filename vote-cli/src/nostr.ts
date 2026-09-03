@@ -22,9 +22,12 @@ export interface Filter {
 
 export const DEFAULT_RELAYS = [
     'wss://relay.damus.io',
-    'wss://relay.nostr.band',
     'wss://nos.lol',
     'wss://relay.snort.social',
+    // First-party family relay. Its write policy allows only family kinds with
+    // canonical OC d-tag prefixes, and it is always queried alongside public
+    // relays, never the only copy. See github.com/orangecheck/oc-relay-infra.
+    'wss://relay.ochk.io',
 ];
 
 export async function queryRelays(
