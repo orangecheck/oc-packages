@@ -14,7 +14,12 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_RELAYS, FANOUT_DEADLINE_MS } from '../nostr';
+// Imported from the package ROOT, not '../nostr'. 1.5.0's version of this
+// test imported the module directly and so passed while
+// `import { FANOUT_DEADLINE_MS } from '@orangecheck/sdk'` threw for everyone
+// else — the constant was never re-exported from index.ts. Testing through the
+// public entry point is what catches a missing export.
+import { DEFAULT_RELAYS, FANOUT_DEADLINE_MS } from '../index';
 
 /**
  * @orangecheck/gate's DEFAULT_LOOKUP_TIMEOUT_MS (src/core.ts). Duplicated as a

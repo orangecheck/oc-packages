@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.1] — 2026-09-03
+
+### Fixed
+
+- Re-export `FANOUT_DEADLINE_MS` from the package root. 1.5.0 exported it from
+  `src/nostr.ts` but not from `index.ts`, so the constant the 1.5.0 notes tell
+  you to compare against `@orangecheck/gate`'s `lookupTimeoutMs` was not
+  actually reachable — `import { FANOUT_DEADLINE_MS } from '@orangecheck/sdk'`
+  threw. `DEFAULT_RELAYS` sits right beside it and was exported, so this was
+  just an omission. No behaviour change.
+
 ## [1.5.0] — 2026-09-03
 
 ### Fixed

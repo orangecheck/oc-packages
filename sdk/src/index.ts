@@ -69,6 +69,7 @@ export {
 export {
     createAttestationEvent,
     DEFAULT_RELAYS,
+    FANOUT_DEADLINE_MS,
     parseAttestationFromEvent,
     publishToRelays,
     queryByAddress,
