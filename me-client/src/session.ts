@@ -65,9 +65,14 @@ async function refresh(sessionId: string): Promise<Session> {
     });
 }
 
-/** Invalidate a session. Free, telemetry-only. */
+/**
+ * Tear a session down. Free, and telemetry-only in a literal sense: OC sessions
+ * are stateless — derived from the `oc_session` JWT — so there is no server-side
+ * record to delete and the endpoint acknowledges without revoking anything.
+ * Dropping your own copy of the token IS the logout; this call is the signal.
+ */
 async function invalidate(sessionId: string): Promise<void> {
-    emitTelemetry('session.intra_signin', sessionId);
+    emitTelemetry('session.teardown', sessionId);
     await api<{ ok: true }>('/api/session/invalidate', {
         method: 'POST',
         body: { session_id: sessionId },

@@ -486,6 +486,11 @@ export interface TelemetryEvent {
         | 'session.intra_signin'
         | 'session.token_refresh'
         | 'session.navigation'
+        /** Emitted by `session.invalidate()`. Was `session.intra_signin`, which
+         *  means the opposite thing — "user pressed sign-in while a valid
+         *  session was already open" — so a subscriber saw a sign-in event
+         *  every time the integrator tore a session down. Non-billable. */
+        | 'session.teardown'
         | 'auth.signin_failed'
         | 'auth.signin_cancelled'
         | 'auth.signin_rejected'
