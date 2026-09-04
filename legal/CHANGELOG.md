@@ -6,6 +6,49 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.5.0] — 2026-09-04
+
+### Fixed — the me.ochk.io custody clause asserted three things that are not true
+
+The clause read:
+
+> me.ochk.io is **non-custodial with respect to OrangeCheck**: OrangeCheck holds
+> no private keys and no federation key shares, and cannot move your funds. […]
+> For email-OTP users, a Fedimint **federation** — run by independent guardian
+> operators, never OrangeCheck — holds funds under a threshold scheme.
+
+Three claims, all false as of today:
+
+1. **"OrangeCheck holds no private keys."** OrangeCheck operates the paying
+   rail's Lightning signing key.
+2. **"cannot move your funds."** It can, and for an email user it is the only
+   thing that can.
+3. **"a federation … never OrangeCheck — holds funds."** There are no
+   independent guardians. No federation holds anything.
+
+This was not a future-tense problem awaiting a rail decision — it was already
+wrong, describing the destination as though it were the present.
+
+The clause now separates the two cases honestly. BIP-322 self-custody is real
+today and says so without qualification. For email sign-in it states plainly
+that OrangeCheck currently holds the key that pays you and is therefore a
+custodian and the party that moves the money, that the federation is the design
+rather than the state, and that graduation remains available.
+
+It then points at **live, computed surfaces** — `/custody` and
+`/api/federations` — for which posture is in force, what bounds it, and what has
+settled. A legal document cannot fetch, so the durable pattern is for it to
+describe the *mechanism* and name where the current state is published. Those
+surfaces are derived from the system, so they cannot drift from this document
+the way a fixed sentence did.
+
+**This release is a prerequisite for the mainnet bounded test, enforced in
+code.** `oc-me-web`'s `validateRailConfig` refuses to activate the
+`bounded-test` posture unless `terms_corrected_at` is set — so the rail cannot
+carry a real satoshi while this clause is uncorrected. That is deliberate: a
+false custody claim while money moves is the most damaging failure available to
+this product, and "we meant to update the Terms" is not a defence.
+
 ## [0.4.0] — 2026-09-03
 
 ### Fixed
