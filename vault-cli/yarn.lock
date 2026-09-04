@@ -324,10 +324,10 @@
     "@noble/curves" "^1.6.0"
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/vault-core@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.npmjs.org/@orangecheck/vault-core/-/vault-core-0.2.0.tgz#d56253ffba6a559c7a34e3397c015744c967505a"
-  integrity sha512-Ppz69FvhYva3PwtAXEv1Vs2Zn66esGeekqhFLEbpyNaJ4x3YXZ3FbT4b5wmsrPLLW/ZfkWteWpgz7wDGU9Y0rw==
+"@orangecheck/vault-core@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.npmjs.org/@orangecheck/vault-core/-/vault-core-0.3.0.tgz#c2fb2dddbb2eea8ae1561d0692525e720078e7c5"
+  integrity sha512-MBHLa3Y50QAaKE8gS+Yo7fBrmYMRgVWaKbnb9veAGFhVBeQ/+B3izNC7oJKi1C4JP/kMWj4XsYkYWJsvLiWnNA==
   dependencies:
     "@noble/hashes" "^1.5.0"
     "@orangecheck/lock-crypto" "^0.1.0"

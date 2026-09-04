@@ -43,7 +43,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/vault-core": "^0.2.0",
+    "@orangecheck/vault-core": "^0.3.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {
