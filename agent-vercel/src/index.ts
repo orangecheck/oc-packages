@@ -24,11 +24,10 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import {
+    assertScopeGranted,
     canonicalize,
     computeActionId,
     hexEncode,
-    isSubScope,
-    parseScope,
     type DelegationEnvelope,
 } from '@orangecheck/agent-core';
 import {
@@ -112,13 +111,7 @@ export async function stampToolCall(input: StampToolCallInput): Promise<ActionEn
     const scopeExercised =
         input.scopeExercised ?? `vercel:tool(verb=${input.call.verb})`;
 
-    const granted = (input.delegation.scopes ?? []).map(parseScope);
-    const exercisedParsed = parseScope(scopeExercised);
-    if (!granted.some((g) => isSubScope(exercisedParsed, g))) {
-        throw new Error(
-            `stampToolCall: scope_exercised (${scopeExercised}) is not a sub-scope of any granted scope`
-        );
-    }
+    assertScopeGranted(input.delegation, scopeExercised, 'stampToolCall');
 
     const bytes = canonicalizeToolCall(input.call);
     return signAsAgent({

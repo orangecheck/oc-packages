@@ -79,3 +79,6 @@ export type {
     UnsealScopesInput,
     UnsealedScopes,
 } from './private-scope.js';
+
+export { assertScopeGranted, ScopeNotGrantedError } from './assert-scope.js';
+export type { ScopeBearingDelegation } from './assert-scope.js';

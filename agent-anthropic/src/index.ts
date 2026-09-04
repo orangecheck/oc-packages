@@ -9,11 +9,10 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import {
+    assertScopeGranted,
     canonicalize,
     computeActionId,
     hexEncode,
-    isSubScope,
-    parseScope,
     type DelegationEnvelope,
 } from '@orangecheck/agent-core';
 import {
@@ -99,13 +98,7 @@ export async function stampToolUse(input: StampToolUseInput): Promise<ActionEnve
     const scopeExercised =
         input.scopeExercised ?? `anthropic:tool(name=${input.toolUse.name})`;
 
-    const granted = (input.delegation.scopes ?? []).map(parseScope);
-    const exercisedParsed = parseScope(scopeExercised);
-    if (!granted.some((g) => isSubScope(exercisedParsed, g))) {
-        throw new Error(
-            `stampToolUse: scope_exercised (${scopeExercised}) is not a sub-scope of any granted scope`
-        );
-    }
+    assertScopeGranted(input.delegation, scopeExercised, 'stampToolUse');
 
     const bytes = canonicalizeToolUse(input.toolUse);
     return signAsAgent({

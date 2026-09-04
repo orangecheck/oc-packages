@@ -11,11 +11,10 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import {
+    assertScopeGranted,
     canonicalize,
     computeActionId,
     hexEncode,
-    isSubScope,
-    parseScope,
     type DelegationEnvelope,
 } from '@orangecheck/agent-core';
 import {
@@ -106,16 +105,7 @@ export async function stampInvocation(input: StampInvocationInput): Promise<Acti
         input.scopeExercised ??
         `mcp:invoke(server=${input.invocation.server.trim()},tool=${input.invocation.tool})`;
 
-    // Tiny pre-flight: confirm the exercised scope is a sub-scope of *some*
-    // granted scope. This keeps a common integration mistake from producing
-    // an envelope that later fails verifier-side.
-    const granted = input.delegation.scopes.map(parseScope);
-    const exercisedParsed = parseScope(scopeExercised);
-    if (!granted.some((g) => isSubScope(exercisedParsed, g))) {
-        throw new Error(
-            `stampInvocation: scope_exercised (${scopeExercised}) is not a sub-scope of any granted scope`
-        );
-    }
+    assertScopeGranted(input.delegation, scopeExercised, 'stampInvocation');
 
     const bytes = canonicalizeInvocation(input.invocation);
     return signAsAgent({
