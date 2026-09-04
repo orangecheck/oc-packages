@@ -11,6 +11,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [1.0.0] — reconstructed 2026-09-04
+
+**No code change.** Verified by unpacking both versions from npm: `dist/index.js`
+is byte-identical to 0.1.2, `dist/index.d.ts` is identical, and the file sets
+match. 1.0.0 declares the API stable; it breaks nothing.
+
+Recorded because the absence of an entry was itself a problem — `oc-stamp-web`
+pinned `^0.1.2`, and a caret on a `0.x` version locks the MINOR, so the site
+could never resolve 1.0.0. Anyone weighing that bump had a major version with
+no changelog and no way to tell it was a no-op without doing this diff.
+
 ## [0.1.2] — Initial published state
 
 Initial public release. Canonical message, envelope format, `stamp()` / `verify()` for OC Stamp.
