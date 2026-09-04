@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     OcVault,
+    assertAcceptableKdfParams,
     buildExport,
     encryptFields,
     fieldValue,
@@ -179,5 +180,55 @@ describe('portable export', () => {
 
     it('rejects a wrong format', () => {
         expect(() => parseExport('{"format":"nope","version":1,"entries":[]}')).toThrow();
+    });
+});
+
+/**
+ * `unwrapVaultKey` takes N, r and p from the blob it is handed, and that blob
+ * comes from a server or a file. scrypt's memory cost is 128 · N · r bytes, so
+ * a blob declaring N = 2^24 with r = 8 asks for 17 GiB and kills the tab —
+ * before the passphrase is tested, so there is nothing for the user to act on.
+ * Only the salt and the ciphertext were ever checked.
+ */
+describe('scrypt work factors are bounded before any memory is spent', () => {
+    const shipped = { kdf_n: 1 << 17, kdf_r: 8, kdf_p: 1 };
+
+    it('accepts what this library writes', () => {
+        expect(() => assertAcceptableKdfParams(shipped)).not.toThrow();
+    });
+
+    it('rejects a tab-killing memory ask', () => {
+        expect(() => assertAcceptableKdfParams({ ...shipped, kdf_n: 1 << 24 })).toThrow(
+            /key-derivation/
+        );
+    });
+
+    it('rejects a huge r, which multiplies memory just as N does', () => {
+        expect(() => assertAcceptableKdfParams({ ...shipped, kdf_r: 4096 })).toThrow();
+    });
+
+    it('rejects a huge p, which multiplies CPU time', () => {
+        expect(() => assertAcceptableKdfParams({ ...shipped, kdf_p: 9999 })).toThrow();
+    });
+
+    it('rejects a downgraded factor', () => {
+        expect(() => assertAcceptableKdfParams({ ...shipped, kdf_n: 2 })).toThrow();
+    });
+
+    it('rejects a non-power-of-two N, which fails inside scrypt otherwise', () => {
+        expect(() => assertAcceptableKdfParams({ ...shipped, kdf_n: (1 << 17) + 1 })).toThrow();
+    });
+
+    it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+        'rejects N = %s',
+        (kdf_n: number) => {
+            expect(() => assertAcceptableKdfParams({ ...shipped, kdf_n })).toThrow();
+        }
+    );
+
+    it('rejects a string arriving from parsed JSON', () => {
+        expect(() =>
+            assertAcceptableKdfParams({ ...shipped, kdf_n: '131072' } as unknown as typeof shipped)
+        ).toThrow();
     });
 });

@@ -105,11 +105,53 @@ export class WrongPassphrase extends Error {
 }
 
 /**
+ * Accepted scrypt work factors.
+ *
+ * `unwrapVaultKey` takes N, r and p from the blob it is handed, and the blob
+ * comes from a server or a file. scrypt's memory cost is 128 · N · r bytes, so
+ * a blob declaring N = 2^24 with r = 8 asks for 17 GiB and kills the tab —
+ * before the passphrase is tested, so there is no error for a user to act on.
+ *
+ * The range is wide enough that every blob this library has written passes
+ * (N = 2^17, r = 8, p = 1) and narrow enough that both extremes at once is
+ * 2 GiB rather than unbounded. The floor refuses a downgraded factor: it
+ * cannot leak a key on its own, since re-wrapping needs the passphrase, but
+ * accepting one means a later re-wrap could inherit the weakness.
+ */
+const MIN_KDF_N = 1 << 14;
+const MAX_KDF_N = 1 << 20;
+const MAX_KDF_R = 16;
+const MAX_KDF_P = 4;
+
+/** Throw unless these are work factors we are willing to spend memory on. */
+export function assertAcceptableKdfParams(w: Pick<WrappedKey, 'kdf_n' | 'kdf_r' | 'kdf_p'>): void {
+    const ok = (v: unknown): boolean => typeof v === 'number' && Number.isInteger(v) && v > 0;
+    if (!ok(w.kdf_n) || !ok(w.kdf_r) || !ok(w.kdf_p)) {
+        throw new Error('unsupported key-derivation parameters');
+    }
+    // scrypt requires a power of two; otherwise it fails deep in the library.
+    if ((w.kdf_n & (w.kdf_n - 1)) !== 0) {
+        throw new Error('unsupported key-derivation parameters');
+    }
+    if (w.kdf_n < MIN_KDF_N || w.kdf_n > MAX_KDF_N) {
+        throw new Error('unsupported key-derivation parameters');
+    }
+    if (w.kdf_r > MAX_KDF_R || w.kdf_p > MAX_KDF_P) {
+        throw new Error('unsupported key-derivation parameters');
+    }
+}
+
+/**
  * Unwrap the vault key from its escrowed `WrappedKey` using the passphrase.
  * scrypt-derives the wrap key, then AES-256-GCM-decrypts. Throws
  * `WrongPassphrase` on any failure — never returns a bogus key.
+ *
+ * Work factors are checked BEFORE any memory is spent on them, and that
+ * failure is deliberately distinct from `WrongPassphrase`: a blob asking for
+ * 17 GiB is not a typo the user can fix.
  */
 export function unwrapVaultKey(w: WrappedKey, passphrase: string): Uint8Array {
+    assertAcceptableKdfParams(w);
     const wrapKey = scrypt(utf8Encode(passphrase), b64urlDecode(w.kdf_salt), {
         N: w.kdf_n,
         r: w.kdf_r,

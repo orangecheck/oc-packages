@@ -9,6 +9,7 @@
 
 export {
     WrongPassphrase,
+    assertAcceptableKdfParams,
     decryptFields,
     encryptFields,
     generateEntryId,
