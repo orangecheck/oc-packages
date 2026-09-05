@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 /**
  * AppShell — shared page chrome for every authenticated dashboard surface
- * across the OC family (vault, me, fleet, future). Lifted from oc-me-web's
+ * across the OC family (vault, me, future). Lifted from oc-me-web's
  * `MeShell` and oc-vault-web's `VaultShell` — same eyebrow / title /
  * description / actions header band, no sidebar (sidebars are app-specific
  * and stay in the consuming app).

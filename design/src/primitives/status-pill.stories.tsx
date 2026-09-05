@@ -25,7 +25,7 @@ export const Tones: Story = {
     ),
 };
 
-// The ergonomic that fleet (AgentStatus/PledgeStatus), www (StateBadge), and
+// The ergonomic that www (StateBadge) and
 // me (compliance/severity) each hand-roll: declare the status→spec map once.
 const PledgeStatusPill = makeStatusPill({
     pending: { tone: 'warning' },
@@ -47,7 +47,7 @@ export const Mapped: Story = {
     ),
 };
 
-// Bordered uppercase variant — fleet pledge states, www state badges,
+// Bordered uppercase variant — pledge states, www state badges,
 // me compliance/severity. Declared once via makeStatusPill(..., {variant}).
 const PledgeBadge = makeStatusPill(
     {

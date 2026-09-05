@@ -7,7 +7,7 @@ export type StatusTone = 'success' | 'warning' | 'destructive' | 'muted' | 'prim
 /**
  * - `plain` (default): borderless, lowercase, tone-coloured text + optional icon.
  * - `bordered`: a bordered, uppercase badge (`border-{tone}/40 text-{tone}`) —
- *   the variant fleet's PledgeStatusPill, www's StateBadge, and me's
+ *   the variant www's StateBadge and me's
  *   compliance/severity pills all hand-roll.
  */
 export type StatusPillVariant = 'plain' | 'bordered';
@@ -54,7 +54,7 @@ const FILL_TONE: Record<StatusTone, string> = {
 
 /**
  * Generic state pill — the canonical form of the per-domain status pills that
- * fleet (agent/pledge/event), me (compliance/severity), and others reimplement.
+ * me (compliance/severity) and others reimplement.
  * Apps map their domain status → { tone, label, icon }; this renders it
  * consistently. Two variants: `plain` (borderless lowercase) and `bordered`
  * (uppercase badge with a tone-tinted border).
@@ -105,7 +105,7 @@ export interface StatusPillSpec {
 
 /**
  * makeStatusPill — build a domain-specific status pill from a status→spec map.
- * This is the ergonomic that fleet (AgentStatus, PledgeStatus), www
+ * This is the ergonomic that www
  * (StateBadge severity), and me (compliance/severity) each hand-roll. Instead
  * of re-deriving tone-class logic per site, declare the map once:
  *
@@ -116,7 +116,7 @@ export interface StatusPillSpec {
  *   });
  *   <AgentStatusPill status={agent.status} />
  *
- * Pass `{ variant: 'bordered' }` for the uppercase-badge form (fleet pledge
+ * Pass `{ variant: 'bordered' }` for the uppercase-badge form (pledge
  * states, www state badges, me compliance/severity).
  */
 export function makeStatusPill<S extends string>(

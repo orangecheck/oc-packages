@@ -18,7 +18,6 @@ import { useEffect, useRef, useState } from 'react';
 export type EcosystemSlug =
     | 'home'
     | 'docs'
-    | 'fleet'
     | 'me'
     | 'vault'
     | 'chat'
@@ -149,13 +148,6 @@ const ENTRIES: SwitcherEntry[] = [
  *  bot.ochk.io) live here so they're invisible to everyone except
  *  verified owners — the JWT claim drives the gate. */
 const OWNER_ENTRIES: SwitcherEntry[] = [
-    {
-        slug: 'fleet',
-        href: 'https://fleet.ochk.io',
-        label: 'oc·fleet',
-        sub: 'managed — agent fleet',
-        docsHref: 'https://fleet.ochk.io',
-    },
     {
         slug: 'analytics',
         href: 'https://analytics.ochk.io',

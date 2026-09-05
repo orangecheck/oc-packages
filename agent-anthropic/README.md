@@ -98,4 +98,3 @@ MIT.
 - [@orangecheck/agent-core](https://www.npmjs.com/package/@orangecheck/agent-core) — verifier library.
 - [@orangecheck/agent-mcp](https://www.npmjs.com/package/@orangecheck/agent-mcp) — same pattern, for MCP.
 - [@orangecheck/agent-openai](https://www.npmjs.com/package/@orangecheck/agent-openai) — same pattern, for OpenAI Responses + Chat Completions.
-- [fleet.ochk.io/integrations/anthropic](https://fleet.ochk.io/integrations/anthropic) — the managed-tier story this slots into.

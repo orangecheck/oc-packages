@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/insights-client",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Server-side emit API for oc insights — first-party, protocol-aware event tracking for the OrangeCheck family. Fire-and-forget, never throws into the caller.",
   "keywords": [
     "orangecheck",

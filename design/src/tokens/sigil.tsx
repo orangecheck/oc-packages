@@ -109,7 +109,7 @@ function layerStyle(i: number, relief: number): React.CSSProperties {
 // pictogram alone. Coordinates below match the vendored glyphs.ts markup
 // (verify-sigil-transforms.mjs locks the hit-count so a re-vendor can't silently
 // break these regexes).
-const TILE = new Set<OcGlyphSlug>(['stamp', 'pledge', 'cosign', 'me', 'fleet', 'docs']);
+const TILE = new Set<OcGlyphSlug>(['stamp', 'pledge', 'cosign', 'me', 'docs']);
 
 // Optical sizing — scale the surviving pictogram to fill the ~1024 canvas.
 // orangecheck is deliberately ABSENT so the approved www band § is untouched;
@@ -119,7 +119,6 @@ const FOCUS: Partial<Record<OcGlyphSlug, string>> = {
     pledge: 'translate(512 512) scale(1.7) translate(-491 -512)', // ₱ mark, recentered
     cosign: 'translate(512 512) scale(1.35) translate(-512 -512)', // two figures
     me: 'translate(512 512) scale(1.45) translate(-512 -544)', // bust, recentered down
-    fleet: 'translate(512 512) scale(1.5) translate(-512 -512)', // play + bar
     docs: 'translate(512 512) scale(1.4) translate(-512 -512)', // text lines
     vote: 'translate(512 512) scale(0.92) translate(-512 -542)', // tall bars, nudged down
     btc: 'translate(512 512) scale(1.25) translate(-512 -512)', // ₿
@@ -163,7 +162,6 @@ const SEED: Record<OcGlyphSlug, [number, number]> = {
     cosign: [1, -3],
     vault: [4, 1],
     me: [-3, 2],
-    fleet: [7, -2],
     docs: [0, 0],
     analytics: [-5, 1],
     btc: [4, 3],

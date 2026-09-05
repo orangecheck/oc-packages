@@ -22,7 +22,6 @@ the boilerplate shared and the divergence explicit.
 | `protocol` | ochk.io + the six verb sites + docs + analytics (one shared doc)  |
 | `me`       | me.ochk.io — consumer identity that pays users in sats            |
 | `vault`    | vault.ochk.io — paid end-to-end-encrypted secrets vault           |
-| `fleet`    | fleet.ochk.io — enterprise managed agent infrastructure           |
 
 The nine `protocol` sites do **not** host their own pages — their footers link
 to ochk.io. Only the three commercial products self-host.

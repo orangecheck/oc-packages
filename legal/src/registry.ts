@@ -43,16 +43,6 @@ export const LEGAL_SITES: Record<string, SiteContext> = {
         securityContact: CONTACT_SECURITY,
         selfHosted: true,
     },
-    fleet: {
-        slug: 'fleet',
-        profile: 'fleet',
-        host: 'fleet.ochk.io',
-        product: 'OrangeCheck Fleet',
-        productShort: 'Fleet',
-        contact: CONTACT_GENERAL,
-        securityContact: CONTACT_SECURITY,
-        selfHosted: true,
-    },
 };
 
 /** Sites that share the protocol document hosted on ochk.io (no own pages). */

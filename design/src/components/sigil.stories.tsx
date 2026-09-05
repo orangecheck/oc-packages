@@ -71,7 +71,6 @@ const CATALOG = [
     'chat',
     'cosign',
     'docs',
-    'fleet',
     'analytics',
     'btc',
     'orangecheck',

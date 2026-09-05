@@ -1,13 +1,12 @@
 {
   "name": "@orangecheck/webhook-verify",
-  "version": "0.2.0",
-  "description": "Verify HMAC-signed webhook deliveries from fleet.ochk.io. Drop-in helper so customers don't reimplement timing-safe HMAC compare.",
+  "version": "0.2.1",
+  "description": "DEPRECATED — verified HMAC-signed webhook deliveries from fleet.ochk.io, which has been retired. No replacement; nothing else in the family delivers webhooks in this format.",
   "keywords": [
     "orangecheck",
     "webhook",
     "hmac",
-    "verify",
-    "fleet"
+    "verify"
   ],
   "author": "OrangeCheck",
   "license": "MIT",

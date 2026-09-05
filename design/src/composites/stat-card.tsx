@@ -18,7 +18,7 @@ export interface StatCardProps {
 /**
  * StatCard — a single stat in a bordered `bg-card` frame. The standalone
  * counterpart to StatBlock (the bare cell) and StatGrid (a laid-out grid):
- * this is the "one stat in its own card" shape that fleet (`dashboard/Stat`)
+ * this is the "one stat in its own card" shape that the dashboards
  * and me (`StatCell`, `ParticipationFeeCard` tiles, etc.) each hand-roll.
  * Wraps StatBlock so the inner cell stays single-source.
  */

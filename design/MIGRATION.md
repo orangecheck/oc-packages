@@ -339,7 +339,7 @@ so no-JS/reduced-motion/no-WebGL/console-throttle behavior is unchanged.
 
 Reading- and console-heavy surfaces should opt OUT to keep dense data flat:
 `aurora={{ gl: false }}` (or `{ intensity: 0.5, gl: false }` for docs). Owner
-consoles (analytics/bot/forge/fleet) and docs do this. Marketing sites that
+consoles (analytics/bot/forge) and docs do this. Marketing sites that
 already pass `{ gl: true }` are unaffected.
 
 ## 0.28.9 — OcSigil: beauty pass (mark surgery, lit relief, two registers)
@@ -347,7 +347,7 @@ already pass `{ gl: true }` are unaffected.
 A ground-up refinement — no consumer API change beyond one new optional prop.
 Every `<OcSigil glyph corner />` call site is unchanged.
 
-- **Mark surgery.** The six tile glyphs (stamp/pledge/cosign/me/fleet/docs) shed
+- **Mark surgery.** The five tile glyphs (stamp/pledge/cosign/me/docs) shed
   their rounded-square FRAME so the pictogram embosses, not the tile (three
   verbs used to read as the same square debris). Hairline strokes are floored
   and heavy ones capped (0.5–2.0 → 1.3–1.7) so no mark vanishes (vault's body)

@@ -55,7 +55,7 @@ export type EventClass = 'A' | 'B' | 'C';
 export type PropValue = string | number | boolean | null;
 
 export interface InsightsEvent {
-    /** Registry slug of the emitting product: 'me' | 'vault' | 'fleet' | 'attest' | … */
+    /** Registry slug of the emitting product: 'me' | 'vault' | 'attest' | … */
     product: string;
     /** Event name, e.g. 'pageview' (reserved for the beacon lane), 'bip322_success', 'settlement'. */
     name: string;

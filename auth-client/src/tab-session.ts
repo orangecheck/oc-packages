@@ -108,7 +108,7 @@ function isPinnableUrl(url: string, authOrigin: string): boolean {
 /**
  * Install a scoped `window.fetch` wrapper that attaches the tab pin to
  * every same-site request, so app-level data fetches (vault shares, me
- * wallet, fleet projects, …) execute as the account this tab displays —
+ * wallet, projects, …) execute as the account this tab displays —
  * without touching any call site. Returns an uninstaller.
  *
  * Conservative by design:

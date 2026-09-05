@@ -23,7 +23,7 @@ const TONE_CLASS = {
 
 /**
  * SectionHeader — the canonical "§ x" section header used across every
- * /me, /vault, and /fleet dashboard surface. Lifted from oc-me-web's
+ * /me and /vault dashboard surfaces. Lifted from oc-me-web's
  * `me/ui/SectionHeader` so the visual contract stays single-source.
  *
  * Pattern is `label-mono text-primary mb-3` with a "§ " glyph followed by

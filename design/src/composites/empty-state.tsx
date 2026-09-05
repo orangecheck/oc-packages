@@ -33,7 +33,7 @@ const LABEL_TONE_CLASS = {
 
 /**
  * EmptyState — the canonical empty-state card used across every /me,
- * /vault, and /fleet dashboard. Empty states should *teach*: explain what
+ * and /vault dashboards. Empty states should *teach*: explain what
  * would appear, and how to make it appear. Lifted from oc-me-web's
  * `me/ui/EmptyState`.
  */

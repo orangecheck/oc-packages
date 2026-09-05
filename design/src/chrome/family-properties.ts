@@ -158,15 +158,6 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'protocol',
     },
     {
-        slug: 'fleet',
-        origin: 'https://fleet.ochk.io',
-        hostname: 'fleet.ochk.io',
-        label: 'oc·fleet',
-        sub: 'managed — agent fleet',
-        docsHref: 'https://fleet.ochk.io',
-        category: 'owner',
-    },
-    {
         slug: 'analytics',
         origin: 'https://analytics.ochk.io',
         hostname: 'analytics.ochk.io',

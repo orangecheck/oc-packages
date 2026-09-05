@@ -9,7 +9,7 @@
  */
 
 /** A legal posture. One profile may serve several sites (see `protocol`). */
-export type LegalProfile = 'protocol' | 'me' | 'vault' | 'fleet';
+export type LegalProfile = 'protocol' | 'me' | 'vault';
 
 /**
  * The composable document kinds. Security pages are intentionally NOT

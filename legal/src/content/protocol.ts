@@ -26,7 +26,7 @@ import {
 } from './clauses';
 
 const COMMERCIAL_SCOPE_NOTE =
-    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge — and [docs.ochk.io](https://docs.ochk.io). The commercial products **me.ochk.io**, **vault.ochk.io**, and **fleet.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
+    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge — and [docs.ochk.io](https://docs.ochk.io). The commercial products **me.ochk.io** and **vault.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
 
 const terms: DocSpec = {
     kind: 'terms',
@@ -166,7 +166,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The protocol sites and documentation are free to use. You are responsible for Bitcoin network fees on any transactions you initiate and for your own ISP and wallet-provider costs. Paid functionality, if introduced, will be announced with advance notice; the commercial products **me.ochk.io**, **vault.ochk.io**, and **fleet.ochk.io** carry their own pricing and Terms.',
+                    text: 'The protocol sites and documentation are free to use. You are responsible for Bitcoin network fees on any transactions you initiate and for your own ISP and wallet-provider costs. Paid functionality, if introduced, will be announced with advance notice; the commercial products **me.ochk.io** and **vault.ochk.io** carry their own pricing and Terms.',
                 },
             ],
         },
@@ -231,7 +231,7 @@ const privacy: DocSpec = {
     preamble: [
         {
             kind: 'callout',
-            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), the six verb sites, and [docs.ochk.io](https://docs.ochk.io). The commercial products me.ochk.io, vault.ochk.io, and fleet.ochk.io publish their own privacy policies covering the additional data their products handle.',
+            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), the six verb sites, and [docs.ochk.io](https://docs.ochk.io). The commercial products me.ochk.io and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
         },
     ],
     sections: [

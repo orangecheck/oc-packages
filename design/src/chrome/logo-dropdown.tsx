@@ -27,7 +27,7 @@ import {
  * Family properties carry one of three categories:
  *
  *   - `hub`      — orangecheck umbrella + docs (no badge)
- *   - `product`  — commercial products (me, vault, fleet) · primary chip
+ *   - `product`  — commercial products (me, vault) · primary chip
  *   - `protocol` — open verb specs (attest, lock, vote, stamp, agent,
  *                  pledge) · muted chip
  *

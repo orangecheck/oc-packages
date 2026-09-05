@@ -95,4 +95,3 @@ MIT.
 - [oc-agent-protocol](https://github.com/orangecheck/oc-agent-protocol) — normative wire format.
 - [@orangecheck/agent-core](https://www.npmjs.com/package/@orangecheck/agent-core) — verifier library.
 - [@orangecheck/agent-mcp](https://www.npmjs.com/package/@orangecheck/agent-mcp) / [-anthropic](https://www.npmjs.com/package/@orangecheck/agent-anthropic) / [-openai](https://www.npmjs.com/package/@orangecheck/agent-openai) — sibling adapters.
-- [fleet.ochk.io/integrations/vercel-ai](https://fleet.ochk.io/integrations/vercel-ai) — managed-tier story.
