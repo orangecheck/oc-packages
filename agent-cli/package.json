@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.5.0",
-    "@orangecheck/agent-core": "^0.1.0",
+    "@orangecheck/agent-core": "^0.3.0",
     "bip322-js": "^3.0.0",
     "commander": "^12.1.0"
   },
