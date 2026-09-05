@@ -48,7 +48,7 @@ Five relays, in order:
 
 ## Why it exists
 
-Five OC web repos (`oc-vote-web`, `oc-pledge-web`, `oc-stamp-web`, `oc-lock-web`, `oc-fleet-web`) used to carry near-identical 200-line `client.ts` files via fork-and-paste. Drift between them was already visible before extraction. Now each repo imports from this package; the family stays in sync via a single `yarn upgrade @orangecheck/nostr-core`.
+Several OC web repos (`oc-vote-web`, `oc-pledge-web`, `oc-stamp-web`, `oc-lock-web`) used to carry near-identical 200-line `client.ts` files via fork-and-paste. Drift between them was already visible before extraction. Now each repo imports from this package; the family stays in sync via a single `yarn upgrade @orangecheck/nostr-core`.
 
 Product-specific helpers (`fetchPollEvent` for OC Vote, `fetchPledgeOutcomes` for OC Pledge, etc.) stay local to each app — they're shape-specific to one verb and don't generalize.
 
