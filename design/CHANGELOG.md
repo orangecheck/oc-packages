@@ -7,6 +7,32 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.31.1] — 2026-09-07
+
+### Changed
+
+- **`next` peer widened to `^15.0.0 || ^16.0.0`.** Every consuming site moved
+  to next 16.3.4 on 2026-09-07 — next 15.5.x pins a postcss with an open
+  advisory in every patch release, and only next 16 depends on a fixed one —
+  so a `^15.0.0` peer made all seventeen installs warn. Nothing in this
+  package's runtime changed; the peer was simply narrower than the truth.
+
+## [0.31.0] — 2026-09-04
+
+> This entry was written on 2026-09-07. 0.31.0 was published without one,
+> which is the failure this file's own preamble exists to prevent — and it
+> hid a breaking type change behind a minor.
+
+### Removed
+
+- **`'fleet'` is gone from `FamilySlug`, the ecosystem switcher and
+  `family-properties`.** fleet.ochk.io is retired. This removes a member from
+  an exported union type, so any consumer narrowing on `'fleet'` stops
+  compiling — **breaking, and it shipped as a minor.** In practice nothing
+  did: the family switcher renders from the table rather than from literals.
+  Recorded rather than quietly renumbered, because the point of a changelog is
+  that the mistake is findable.
+
 ## [0.30.1] — 2026-09-03
 
 ### Changed
@@ -89,10 +115,6 @@ bump that silently moves a colour is worse than a breaking one.
   overrides were found and fixed in the consumer repos alongside this
   (oc-www's sudo signature field, two attest verify textareas, three stamp
   inputs).
-
-## [Unreleased]
-
-- _(no pending changes)_
 
 ## [0.29.0] — 2026-09-03
 

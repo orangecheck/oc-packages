@@ -10,8 +10,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const glyphs = readFileSync(path.join(here, '..', 'src', 'tokens', 'glyphs.ts'), 'utf8');
 
 // Keep in sync with sigil.tsx.
-const TILE = ['stamp', 'pledge', 'cosign', 'me', 'fleet', 'docs'];
-const FOCUS = ['stamp', 'pledge', 'cosign', 'me', 'fleet', 'docs', 'vote', 'btc'];
+const TILE = ['stamp', 'pledge', 'cosign', 'me', 'docs'];
+const FOCUS = ['stamp', 'pledge', 'cosign', 'me', 'docs', 'vote', 'btc'];
 const FRAME = /<rect x="6" y="6" width="12" height="12"[^>]*\/>/;
 
 function glyphBody(slug) {
