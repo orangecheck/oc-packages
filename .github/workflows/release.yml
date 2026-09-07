@@ -253,21 +253,6 @@ jobs:
                       echo "ok=false" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Skip if package has no typedoc.json
-              id: hasdocs
-              if: steps.gate.outputs.ok == 'true'
-              run: |
-                  # Light sanity probe: if the package directory doesn't
-                  # have a typedoc.json (e.g. agent-cli-style binaries),
-                  # we don't generate docs for it. Belt-and-braces with
-                  # the if: guard above; CLIs are listed there but other
-                  # future packages might land here without docs.
-                  if [ -f "${{ steps.parse.outputs.package }}/typedoc.json" ] || true ; then
-                      # Can't actually probe yet — repo isn't checked out
-                      # in this step. The check happens after checkout below.
-                      echo "ok=true" >> "$GITHUB_OUTPUT"
-                  fi
-
             - name: Check out oc-packages
               if: steps.gate.outputs.ok == 'true'
               uses: actions/checkout@v5
