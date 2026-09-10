@@ -3,8 +3,10 @@
 // tally(poll, ballots[], utxosAt, revealSk?) -> { state, snapshot_block, turnout, tallies }
 //
 // Pure function. Same inputs → byte-identical output across implementations.
-// Signature verification is delegated to the caller (pass `verifySig: false` to skip,
-// e.g. in test-vector conformance where signatures are fakes).
+// The caller SUPPLIES the BIP-322 verifier, but supplying one is not optional:
+// tally throws unless it is given `verify` / `verifyBip322`, or told explicitly
+// to skip with `skipSignatures: true` (the test-vector harness, whose fixtures
+// carry deliberately fake signatures).
 
 import { commit as computeCommit } from './commit.js';
 import { ballotId, pollId } from './ids.js';
@@ -36,7 +38,7 @@ export interface TallyOptions {
     snapshotBlock?: number;
     /** Optional: map of voter→plaintext option id, populated from unsealed secret ballots. */
     revealedOptions?: Record<string, string>;
-    /** Async BIP-322 verifier. If omitted, signature verification is skipped. */
+    /** Async BIP-322 verifier. Omitting every verifier throws — see `skipSignatures`. */
     /**
      * POSITIONAL, and this package's order is `(address, message, signature)`.
      *
