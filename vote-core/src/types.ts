@@ -1,6 +1,13 @@
 // Types for oc-vote-protocol v0 objects.
 // Mirrors the schemas in SPEC.md §3 (poll), §4 (ballot), §6.3 (reveal).
 
+/** SPEC §12. The `v: 0` on each interface below is a compile-time literal, and
+ *  types are erased — these constants are what the runtime gates compare
+ *  against, the same role `ENVELOPE_VERSION` plays in lock/stamp/pledge/agent. */
+export const POLL_VERSION = 0 as const;
+export const BALLOT_VERSION = 0 as const;
+export const REVEAL_VERSION = 0 as const;
+
 export type WeightMode = 'one_per_address' | 'sats' | 'sats_days' | string;
 export type PollMode = 'public' | 'secret';
 export type Tiebreak = 'latest' | 'first';

@@ -193,3 +193,56 @@ describe('seal / unseal', () => {
         ).rejects.toBeInstanceOf(LockError);
     });
 });
+
+// SPEC §9: "Clients MUST reject envelopes whose `v` they do not support."
+//
+// lock-core was the outlier here — pledge-core, stamp-core and agent-core all
+// gate the envelope version, and unseal() read every other field of an envelope
+// whose version it had never looked at.
+describe('unseal rejects an unsupported envelope version (SPEC §9)', () => {
+    async function sealed() {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello bob'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [bob.record],
+        });
+        return { envelope, bob };
+    }
+
+    it('refuses a future version even though the supported one unseals', async () => {
+        const { envelope, bob } = await sealed();
+        // Sanity: the untouched envelope works, so the rejection below is the
+        // version check and not a broken fixture.
+        const ok = await unseal({
+            envelope,
+            device: { device_id: bob.record.device_id, secretKey: bob.secret },
+            skipSenderVerification: true,
+        });
+        expect(new TextDecoder().decode(ok.payload)).toBe('hello bob');
+
+        const future = { ...envelope, v: 3 } as unknown as typeof envelope;
+        await expect(
+            unseal({
+                envelope: future,
+                device: { device_id: bob.record.device_id, secretKey: bob.secret },
+                skipSenderVerification: true,
+            })
+        ).rejects.toThrow(/not supported/i);
+    });
+
+    it('reports E_UNSUPPORTED_VERSION, not a generic bad-signature', async () => {
+        const { envelope, bob } = await sealed();
+        const future = { ...envelope, v: 3 } as unknown as typeof envelope;
+        const err = await unseal({
+            envelope: future,
+            device: { device_id: bob.record.device_id, secretKey: bob.secret },
+            skipSenderVerification: true,
+        }).catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(LockError);
+        // The version gate runs BEFORE the id recompute. If it were ordered
+        // after, re-labelling would surface as E_BAD_SIG and the caller could
+        // not tell "I do not speak this format" from "this is forged".
+        expect((err as LockError).code).toBe('E_UNSUPPORTED_VERSION');
+    });
+});

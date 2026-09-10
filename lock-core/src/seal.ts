@@ -156,6 +156,25 @@ export async function seal(input: SealInput): Promise<LockEnvelope> {
 export async function unseal(input: UnsealInput): Promise<UnsealResult> {
     const env = input.envelope;
 
+    // Version, FIRST — SPEC §9: "Clients MUST reject envelopes whose `v` they
+    // do not support."
+    //
+    // Before this, unseal read every other field of an envelope whose version
+    // it had never checked. `id` canonicalizes `v` and the signature covers
+    // `id`, so nobody could re-label an existing envelope — but a v3 envelope
+    // minted by a v3 sender was accepted and decrypted under v2 rules, which is
+    // exactly the semantic confusion the MUST exists to stop. pledge-core,
+    // stamp-core and agent-core all gate this; lock-core was the outlier.
+    //
+    // Checked before expiry and before the id recompute: you cannot meaningfully
+    // interpret ANY field of an envelope whose format you do not know.
+    if (env.v !== ENVELOPE_VERSION) {
+        throw makeError(
+            'E_UNSUPPORTED_VERSION',
+            `envelope v=${env.v} not supported by this implementation (expects ${ENVELOPE_VERSION})`
+        );
+    }
+
     // Expiry.
     if (env.expires_at) {
         const now = input.now ? input.now() : new Date();

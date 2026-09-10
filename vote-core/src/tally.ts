@@ -10,6 +10,7 @@
 
 import { commit as computeCommit } from './commit.js';
 import { ballotId, pollId } from './ids.js';
+import { BALLOT_VERSION, POLL_VERSION } from './types.js';
 import type {
     Ballot,
     Poll,
@@ -106,12 +107,28 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
             `weight_mode "${poll.weight_mode}" not supported by this client`
         );
     }
+    // SPEC §12: "Clients MUST reject polls and ballots whose `v` they do not
+    // support." The `v: 0` in types.ts is a TYPE, and types are erased — a poll
+    // parsed from a relay event carries whatever integer the publisher wrote,
+    // so nothing checked this at runtime. A future v1 that redefines weighting
+    // or the canonical form would otherwise be tallied silently under v0 rules.
+    // Throws like the weight_mode gate above: an unsupported poll is not a
+    // partial tally, it is not a tally.
+    if (poll.v !== POLL_VERSION) {
+        throw new Error(
+            `poll v=${poll.v} not supported by this client (expects ${POLL_VERSION})`
+        );
+    }
 
     // 1. Filter to ballots that structurally belong to this poll and are in time.
     const deadlineMs = Date.parse(poll.deadline);
     const pid = pollId(poll);
     const filtered: Ballot[] = [];
     for (const b of ballots) {
+        // Per-ballot version, dropped rather than thrown: one publisher on a
+        // format we do not speak must not void everyone else's tally, which is
+        // how every other structural mismatch in this loop behaves.
+        if (b.v !== BALLOT_VERSION) continue;
         if (b.poll_id !== pid) continue;
         if (Date.parse(b.created_at) > deadlineMs) continue;
 

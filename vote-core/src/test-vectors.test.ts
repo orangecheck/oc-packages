@@ -203,3 +203,85 @@ describe('tally requires a signature verifier', () => {
         ).resolves.toBeDefined();
     });
 });
+
+// SPEC §12: "Clients MUST reject polls and ballots whose `v` they do not
+// support." Nothing enforced this at runtime — `v: 0` on the interfaces is a
+// compile-time literal, and a poll parsed from a relay event carries whatever
+// integer the publisher wrote.
+describe('tally rejects versions it does not support (SPEC §12)', () => {
+    const basePoll = {
+        v: 0,
+        kind: 'oc-vote/poll',
+        creator: 'bc1qcreator00000000000000000000000000000000',
+        question: 'ship?',
+        options: [{ id: 'yes', label: 'yes' }],
+        deadline: '2026-12-01T00:00:00.000Z',
+        snapshot_block: 900000,
+        weight_mode: 'sats',
+        weight_params: null,
+        min_sats: 0,
+        min_days: 0,
+        mode: 'open',
+        reveal_pk: null,
+        tiebreak: 'latest',
+        notes: null,
+        created_at: '2026-06-01T00:00:00.000Z',
+        nonce: 'a'.repeat(32),
+        sig: { alg: 'bip322', pubkey: 'bc1qcreator00000000000000000000000000000000', value: 'S' },
+    };
+
+    it('throws on a poll version it does not speak', async () => {
+        await expect(
+            tally({
+                poll: { ...basePoll, v: 1 },
+                ballots: [],
+                utxosAt: async () => [],
+                skipSignatures: true,
+            } as unknown as Parameters<typeof tally>[0])
+        ).rejects.toThrow(/poll v=1 not supported/);
+    });
+
+    it('still tallies the supported poll version', async () => {
+        await expect(
+            tally({
+                poll: basePoll,
+                ballots: [],
+                utxosAt: async () => [],
+                skipSignatures: true,
+            } as unknown as Parameters<typeof tally>[0])
+        ).resolves.toBeDefined();
+    });
+
+    // A ballot on an unknown version is DROPPED, not thrown: one publisher on a
+    // format we do not speak must not void everyone else's tally.
+    it('drops a future-version ballot without voiding the tally', async () => {
+        const pid = pollId(basePoll as unknown as Parameters<typeof pollId>[0]);
+        const mkBallot = (v: number, voter: string) => ({
+            v,
+            kind: 'oc-vote/ballot',
+            poll_id: pid,
+            voter,
+            option: 'yes',
+            attestation_id: null,
+            secret: null,
+            created_at: '2026-06-02T00:00:00.000Z',
+            sig: { alg: 'bip322', pubkey: voter, value: 'S' },
+        });
+        const utxosAt = async (addr: string) =>
+            addr === 'bc1qgood' || addr === 'bc1qfuture'
+                ? [{ value: 100_000, confirmed_height: 899_000 }]
+                : [];
+
+        const r = await tally({
+            poll: basePoll,
+            ballots: [mkBallot(0, 'bc1qgood'), mkBallot(1, 'bc1qfuture')],
+            utxosAt,
+            skipSignatures: true,
+        } as unknown as Parameters<typeof tally>[0]);
+
+        // The v0 ballot counted; the v1 one did not.
+        expect(r.state).toBe('tallied');
+        expect((r as { turnout: { voters: number } }).turnout.voters).toBe(1);
+        expect((r as { tallies: Record<string, number> }).tallies.yes).toBeGreaterThan(0);
+    });
+});
