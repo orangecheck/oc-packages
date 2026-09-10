@@ -1,7 +1,7 @@
 {
   "name": "@orangecheck/relay-filter",
   "version": "0.2.0",
-  "description": "Sybil filter for Nostr relays \u2014 reject events from pubkeys without an OrangeCheck proof meeting configurable thresholds.",
+  "description": "Sybil filter for Nostr relays — reject events from pubkeys without an OrangeCheck proof meeting configurable thresholds.",
   "keywords": [
     "orangecheck",
     "bitcoin",
@@ -62,7 +62,7 @@
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=18.0.0"

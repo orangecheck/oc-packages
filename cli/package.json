@@ -1,7 +1,7 @@
 {
   "name": "@orangecheck/cli",
   "version": "0.3.0",
-  "description": "Command-line tool for OrangeCheck \u2014 check, verify, create, challenge, discover from your shell.",
+  "description": "Command-line tool for OrangeCheck — check, verify, create, challenge, discover from your shell.",
   "keywords": [
     "orangecheck",
     "bitcoin",
@@ -49,7 +49,7 @@
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=18.0.0"
