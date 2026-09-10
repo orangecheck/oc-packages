@@ -2,6 +2,10 @@
 
 export const ENVELOPE_VERSION = 2 as const;
 
+/** SPEC §3.5: a device record is revoked by republishing it with `device_pk`
+ *  set to this literal. Senders MUST refuse to encrypt to such a record. */
+export const REVOKED_DEVICE_PK = 'revoked' as const;
+
 export type EnvelopeKind = 'identity' | 'payment';
 
 export interface EnvelopeAlg {

@@ -19,6 +19,7 @@ import {
 import { canonicalBytes, canonicalize, type JsonValue } from './canonical.js';
 import {
     ENVELOPE_VERSION,
+    REVOKED_DEVICE_PK,
     type EnvelopeAlg,
     type EnvelopeKind,
     type EnvelopeRecipient,
@@ -90,6 +91,22 @@ export async function seal(input: SealInput): Promise<LockEnvelope> {
     // Build recipients with wrapped keys.
     const recipients: EnvelopeRecipient[] = [];
     for (const r of input.recipients) {
+        // SPEC §3.5: revocation is publishing a record with `device_pk` set to
+        // the literal "revoked", and "conforming senders MUST refuse to encrypt
+        // to a revoked device record."
+        //
+        // This already failed, but only by accident: "revoked" is not valid hex,
+        // so hexDecode below threw `hex string must have even length` — a plain
+        // Error with no code, indistinguishable from a malformed record, and a
+        // security property that existed solely because an unrelated helper
+        // happened to be strict. Making it explicit so the guarantee is stated
+        // and tested rather than emergent.
+        if (r.device_pk === REVOKED_DEVICE_PK) {
+            throw makeError(
+                'E_REVOKED',
+                `device ${r.device_id} (${r.address}) is revoked — refusing to encrypt to it`
+            );
+        }
         const device_pk_bytes = hexDecode(r.device_pk);
         const ephemeral = generateX25519KeyPair();
         const shared = x25519Shared(ephemeral.secret, device_pk_bytes);

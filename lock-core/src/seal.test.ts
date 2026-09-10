@@ -246,3 +246,47 @@ describe('unseal rejects an unsupported envelope version (SPEC §9)', () => {
         expect((err as LockError).code).toBe('E_UNSUPPORTED_VERSION');
     });
 });
+
+// SPEC §3.5: "Conforming senders MUST refuse to encrypt to a revoked device
+// record." It did refuse before this test existed — but only because "revoked"
+// is not valid hex, so hexDecode threw. A security guarantee that depends on an
+// unrelated helper staying strict is one lenient parser away from vanishing.
+describe('seal refuses a revoked device record (SPEC §3.5)', () => {
+    it('throws E_REVOKED rather than a raw hex error', async () => {
+        const err = await seal({
+            payload: utf8Encode('secret'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [
+                { address: 'bc1qbob', device_id: 'bob-laptop', device_pk: 'revoked' },
+            ],
+        }).catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(LockError);
+        expect((err as LockError).code).toBe('E_REVOKED');
+    });
+
+    it('refuses even when a live recipient is also addressed', async () => {
+        // The dangerous shape: a group seal where one member revoked. Encrypting
+        // "the rest" would quietly drop them; encrypting to all would include a
+        // dead key. Refuse the whole seal and let the caller re-resolve.
+        const carol = makeDevice('bc1qcarol', 'carol-phone');
+        const err = await seal({
+            payload: utf8Encode('secret'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [
+                carol.record,
+                { address: 'bc1qbob', device_id: 'bob-laptop', device_pk: 'revoked' },
+            ],
+        }).catch((e: unknown) => e);
+        expect((err as LockError).code).toBe('E_REVOKED');
+    });
+
+    it('still seals to live recipients', async () => {
+        const carol = makeDevice('bc1qcarol', 'carol-phone');
+        const env = await seal({
+            payload: utf8Encode('secret'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [carol.record],
+        });
+        expect(env.recipients).toHaveLength(1);
+    });
+});
