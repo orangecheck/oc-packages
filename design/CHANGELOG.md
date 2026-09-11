@@ -7,6 +7,25 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.32.0] — 2026-09-11
+
+### Added — `Acknowledgement`
+
+The credit line every landing page is supposed to carry in its bottom-CTA
+section, crediting Bram Kanstein for the "bitcoin as sovereignty layer" lineage.
+
+It is a component rather than seven copies of a `<p>` because it was seven
+different things. Four of the seven family sites (attest, stamp, agent, www)
+had **no credit at all**, and the three that did disagreed on wording,
+placement and weight: lock had it in the bottom CTA as the voice rule
+specifies, vote had it in the hero as a bare icon link whose only label was a
+`title` attribute, and pledge had it in the footer at 10px and 40% opacity. An
+attribution that is technically present but unreadable is not an attribution.
+
+`tone="onBrand"` for the normal case, since a bottom CTA usually sits on a
+`BrandBand`. `ACKNOWLEDGEMENT_URL` and `ACKNOWLEDGEMENT_NAME` are exported so a
+site that needs a different layout still points at one source of truth.
+
 ## [0.31.1] — 2026-09-07
 
 ### Changed

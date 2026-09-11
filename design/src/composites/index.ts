@@ -67,3 +67,6 @@ export type { AccentNoteProps, AccentListProps, AccentListItem } from './accent-
 
 export { VerifiedChip } from './verified-chip';
 export type { VerifiedChipProps } from './verified-chip';
+
+export { Acknowledgement, ACKNOWLEDGEMENT_NAME, ACKNOWLEDGEMENT_URL } from './acknowledgement';
+export type { AcknowledgementProps } from './acknowledgement';
