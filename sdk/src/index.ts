@@ -52,6 +52,12 @@ export {
     generateAttestationId,
     parseIdentities,
 } from './canonical';
+// `Extensions` is the second parameter of the public buildCanonicalMessage and
+// `BuildOptions` the third, so a consumer that wants to name either had no way
+// to import it — oc-www had to read them back off the function with
+// `Parameters<typeof buildCanonicalMessage>[1]`. A public function's parameter
+// types belong in the public surface.
+export type { BuildOptions, Extensions } from './canonical';
 
 // ─── Attestation discovery + publishing ────────────────────────────────────
 export {
