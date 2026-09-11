@@ -7,6 +7,32 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.2.0] — 2026-09-11
+
+### Added — `tally` rejects poll and ballot versions it does not support
+
+SPEC §12: "Clients MUST reject polls and ballots whose `v` they do not
+support." Nothing enforced it at runtime. The `v: 0` on the `Poll`/`Ballot`
+interfaces is a compile-time literal and **types are erased**, so a poll parsed
+from a relay event carried whatever integer the publisher wrote.
+
+An unsupported **poll** throws, matching the `weight_mode` gate beside it — an
+unsupported poll is not a partial tally. An unsupported **ballot** is dropped
+instead, because one publisher on a format we do not speak must not void
+everyone else's tally.
+
+`POLL_VERSION`, `BALLOT_VERSION` and `REVEAL_VERSION` are now exported: they are
+what the runtime compares against, the role `ENVELOPE_VERSION` plays in
+lock/stamp/pledge/agent.
+
+### Fixed — the `tally` docs still described the removed fail-open behaviour
+
+The header told callers to "pass `verifySig: false` to skip" — an option that
+does not exist — and the `verifyBip322` field doc claimed "If omitted, signature
+verification is skipped". `tally` has failed closed since 1.1.0. The field doc
+travels into the `.d.ts`, so it was what a consumer read in their editor while
+deciding whether a verifier was needed.
+
 ## [1.1.0] — 2026-09-03
 
 ### Changed — `tally` now fails closed on a missing verifier

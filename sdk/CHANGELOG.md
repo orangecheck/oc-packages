@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.6.0] — 2026-09-11
+
+### Added — the parameter types of `buildCanonicalMessage` are exported
+
+`Extensions` is its second parameter and `BuildOptions` its third, and neither
+was re-exported from the index, so a consumer calling the public function had no
+way to name the types it takes — oc-www had to recover one with
+`Parameters<typeof buildCanonicalMessage>[1]`. Types only, no runtime change.
+
 ## [1.5.2] — 2026-09-03
 
 ### Changed

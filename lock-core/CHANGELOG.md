@@ -7,9 +7,39 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [Unreleased]
+## [1.1.0] — 2026-09-11
 
-- _(no pending changes)_
+### Added — `unseal` rejects an unsupported envelope version
+
+SPEC §9 says "Clients MUST reject envelopes whose `v` they do not support".
+`unseal()` read expiry, envelope id, signature and recipients and then
+decrypted, without ever looking at `env.v`. pledge-core, stamp-core and
+agent-core all gate this; lock-core was the outlier.
+
+Not exploitable before this: `id` canonicalizes `v` and the signature covers
+`id`, so an existing envelope could not be re-labelled, and only v2 has ever
+shipped. But a v3 envelope minted by a v3 sender was accepted and decrypted
+under v2 rules, which is the semantic confusion the MUST exists to prevent.
+
+Checked FIRST, before expiry and before the id recompute — you cannot
+meaningfully interpret any field of a format you do not know. Throws
+`E_UNSUPPORTED_VERSION`.
+
+### Added — `seal` refuses a revoked device record explicitly
+
+SPEC §3.5: revocation republishes the record with `device_pk` set to the literal
+`"revoked"`, and "conforming senders MUST refuse to encrypt to a revoked device
+record".
+
+`seal()` did refuse, but only because `"revoked"` is not valid hex, so
+`hexDecode` threw `hex string must have even length` — a plain `Error` with no
+code, indistinguishable from a malformed record. A security guarantee that held
+only because an unrelated helper happened to be strict, with no test covering
+it. Now throws `E_REVOKED`, and refuses the whole seal when any recipient is
+revoked rather than silently dropping them from a group envelope.
+
+`REVOKED_DEVICE_PK` is exported for callers that filter before sealing.
+
 
 ## [0.1.0] — Initial published state
 
