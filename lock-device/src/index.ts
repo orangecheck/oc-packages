@@ -215,15 +215,92 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
     if (!address || !device_id || !device_pk || !binding_sig) {
         throw new Error('device event missing required tags');
     }
+
+    // The BIP-322 signature covers `event.content` — the statement — and nothing
+    // else. Tags are an index the relay lets anyone write, so a value read from a
+    // tag has been authenticated by nobody.
+    //
+    // Skipping this check was a total confidentiality break, and it needed no key
+    // material: republish a victim's device event with their real content and
+    // real binding_sig, change only the `device_pk` TAG to your own X25519 key.
+    // verifyBip322(content, sig, addr) passes — every signed byte is genuine —
+    // and the sender then seals the content key to the attacker's key, because
+    // the recipient record was built from the tag. Proven against the published
+    // package before this existed.
+    //
+    // So the statement is the source of truth and the tags must agree with it.
+    const signed = parseBindingStatement(event.content);
+    if (!signed) {
+        throw new Error('device event content is not a v2 bind or revoke statement');
+    }
+    if (signed.address !== address) {
+        throw new Error(
+            `device event addr tag (${address}) does not match the signed statement (${signed.address})`,
+        );
+    }
+    if (signed.device_id !== device_id) {
+        throw new Error(
+            `device event device_id tag (${device_id}) does not match the signed statement (${signed.device_id})`,
+        );
+    }
+    if (signed.kind === 'bind') {
+        if (signed.device_pk !== device_pk) {
+            throw new Error(
+                `device event device_pk tag does not match the signed statement — ` +
+                    `tag says ${device_pk}, the signature covers ${signed.device_pk}`,
+            );
+        }
+    } else if (device_pk !== 'revoked') {
+        throw new Error(
+            `device event carries a revocation statement but its device_pk tag is ${device_pk}, not "revoked"`,
+        );
+    }
+
     return {
-        address,
-        device_id,
-        device_pk,
+        address: signed.address,
+        device_id: signed.device_id,
+        // Take the key from the SIGNED bytes, never the tag.
+        device_pk: signed.kind === 'bind' ? signed.device_pk : 'revoked',
         bindingStatement: event.content,
         bindingSigBase64: binding_sig,
-        revoked: device_pk === 'revoked',
+        revoked: signed.kind === 'revoke',
         createdAtUnix: event.created_at,
         nostrPubkey: event.pubkey,
         eventId: event.id,
     };
+}
+
+/**
+ * Read back the fields the signature actually commits to. Returns null for
+ * anything that is not a well-formed v2 bind/revoke statement, which the caller
+ * treats as an unusable record.
+ */
+function parseBindingStatement(
+    content: string,
+):
+    | { kind: 'bind'; address: string; device_pk: string; device_id: string }
+    | { kind: 'revoke'; address: string; device_id: string }
+    | null {
+    const lines = content.split('\n');
+    const header = lines[0];
+    const field = (name: string): string | null => {
+        const prefix = `${name}: `;
+        for (const l of lines.slice(1)) {
+            if (l.startsWith(prefix)) return l.slice(prefix.length);
+        }
+        return null;
+    };
+    const address = field('address');
+    const device_id = field('device_id');
+    if (!address || !device_id) return null;
+
+    if (header === `oc-lock:device-bind:${BINDING_VERSION}`) {
+        const device_pk = field('device_pk');
+        if (!device_pk) return null;
+        return { kind: 'bind', address, device_pk, device_id };
+    }
+    if (header === `oc-lock:device-revoke:${BINDING_VERSION}`) {
+        return { kind: 'revoke', address, device_id };
+    }
+    return null;
 }
