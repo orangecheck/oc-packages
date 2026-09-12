@@ -170,7 +170,7 @@ async function runOutcomeVector(vec: AnyVector) {
     const env = expected['envelope'] as OutcomeEnvelope;
     expect(env.id).toBe(id);
 
-    const r = await verifyOutcome({ envelope: env, skipSignatureVerification: true });
+    const r = await verifyOutcome({ envelope: env, skipSignatureVerification: true, skipResolverAuthorization: true });
     if (!r.ok) {
         throw new Error(`verifyOutcome() failed for declared envelope: ${r.code} ${r.message}`);
     }

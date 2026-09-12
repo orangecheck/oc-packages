@@ -329,6 +329,31 @@ export interface DelegationLookupResult {
 export interface VerifyOutcomeInput {
     envelope: OutcomeEnvelope;
     /**
+     * The pledge this outcome claims to resolve. Supply it and the resolver is
+     * checked against SPEC §1; omit it and you MUST say so with
+     * `skipResolverAuthorization`.
+     *
+     * Without it `verifyOutcome` can only check that `sig.pubkey ===
+     * resolved_by` — self-consistency, which a forger satisfies by naming
+     * their own address and signing with their own key. Proven against the
+     * published core: an outcome from an unrelated address, and an unsigned
+     * one with `resolved_by: "deterministic"`, both verified clean and
+     * classified a stranger's pledge as `broken`.
+     */
+    pledge?: PledgeCanonicalInput;
+    /**
+     * Verify the envelope WITHOUT checking whether its resolver is entitled to
+     * resolve the pledge. Required to be explicit: verifyOutcome refuses when
+     * neither this nor `pledge` is supplied, rather than quietly accepting a
+     * forgery.
+     *
+     * Legitimate uses are narrow — the spec conformance vectors, which carry a
+     * `pledge_id` but no pledge object, and a UI verifying a pasted envelope in
+     * isolation. Such a caller MUST NOT present the result as authentic; it has
+     * checked shape and signature, not authority.
+     */
+    skipResolverAuthorization?: boolean;
+    /**
      * Required when the outcome envelope's mechanism requires a signature
      * (counterparty_signs). For deterministic outcomes, sig === null and
      * BIP-322 is not consulted.

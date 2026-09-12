@@ -5,6 +5,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import {
     canonicalOutcomeMessage,
     canonicalOutcomeMessageBytes,
+    canonicalPledgeMessageBytes,
     computeOutcomeId,
     hexEncode,
     validateOutcomeInput,
@@ -14,6 +15,7 @@ import {
     type CreateOutcomeInput,
     type OutcomeCanonicalInput,
     type OutcomeEnvelope,
+    type PledgeCanonicalInput,
     type PledgeErrorCode,
     type VerifyErr,
     type VerifyOutcomeInput,
@@ -173,6 +175,21 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
     const shape = checkOutcomeShape(env);
     if (shape) return shape;
 
+    // Fail CLOSED on a missing pledge. Skipping authorization has to be a
+    // decision the caller states, the same way vote-core's tally refuses to run
+    // without either a signature verifier or an explicit skip.
+    if (!input.pledge && !input.skipResolverAuthorization) {
+        return err(
+            'E_OUTCOME_RESOLVER_UNAUTHORIZED',
+            'verifyOutcome requires the pledge this outcome resolves, or an explicit ' +
+                'skipResolverAuthorization:true to state that authority is not being checked',
+        );
+    }
+    if (input.pledge) {
+        const authz = checkResolverAuthorized(env, input.pledge);
+        if (authz) return authz;
+    }
+
     const canon: OutcomeCanonicalInput = {
         pledge_id: env.pledge_id,
         outcome: env.outcome,
@@ -233,6 +250,65 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
         id: env.id,
     };
     return result;
+}
+
+/**
+ * SPEC §1 (Resolver) and SECURITY §6: is this envelope's resolver actually
+ * entitled to resolve THIS pledge?
+ *
+ * Before this existed, `verifyOutcome` checked only that `sig.pubkey` equalled
+ * `resolved_by` — which a forger satisfies trivially by naming their own
+ * address and signing with their own key. Proven end to end against the
+ * published core: an outcome from an unrelated address, and an unsigned one
+ * with `resolved_by: "deterministic"`, both verified clean and classified a
+ * stranger's pledge as `broken`. Public exposure is the whole enforcement
+ * mechanism of this protocol, so a forged `broken` is the attack.
+ *
+ * Two bindings, both required:
+ *   1. the outcome names THIS pledge (`pledge_id` recomputed, not trusted), and
+ *   2. the resolver is the one §1 names for that pledge's mechanism —
+ *      the counterparty for `counterparty_signs`, the literal "deterministic"
+ *      for the five deterministic mechanisms and `vote_resolves`.
+ */
+function checkResolverAuthorized(
+    env: OutcomeEnvelope,
+    pledge: PledgeCanonicalInput,
+): VerifyErr | null {
+    const expectedPledgeId = hexEncode(sha256(canonicalPledgeMessageBytes(pledge)));
+    if (env.pledge_id !== expectedPledgeId) {
+        return err(
+            'E_OUTCOME_RESOLVER_UNAUTHORIZED',
+            `outcome.pledge_id ${env.pledge_id} does not match the supplied pledge (${expectedPledgeId})`,
+        );
+    }
+
+    const mechanism = pledge.resolution.mechanism;
+    if (mechanism === 'counterparty_signs') {
+        if (pledge.counterparty === null) {
+            return err(
+                'E_OUTCOME_RESOLVER_UNAUTHORIZED',
+                'counterparty_signs pledge names no counterparty, so no resolver is authorized',
+            );
+        }
+        if (env.resolved_by !== pledge.counterparty) {
+            return err(
+                'E_OUTCOME_RESOLVER_UNAUTHORIZED',
+                `resolved_by (${env.resolved_by}) is not the pledge's counterparty (${pledge.counterparty})`,
+            );
+        }
+        return null;
+    }
+
+    // Every other mechanism resolves as a pure function of public state, so the
+    // only legitimate resolver is the literal string. An address here means
+    // someone is asserting an outcome they are not entitled to assert.
+    if (env.resolved_by !== 'deterministic') {
+        return err(
+            'E_OUTCOME_RESOLVER_UNAUTHORIZED',
+            `mechanism "${mechanism}" resolves deterministically, so resolved_by must be "deterministic", not ${env.resolved_by}`,
+        );
+    }
+    return null;
 }
 
 function checkOutcomeShape(env: OutcomeEnvelope): VerifyErr | null {

@@ -2,6 +2,7 @@ export * from './types.js';
 export {
     canonicalPledgeMessage,
     canonicalPledgeMessageBytes,
+    pledgeCanonicalInputFromEnvelope,
     canonicalOutcomeMessage,
     canonicalOutcomeMessageBytes,
     canonicalAbandonmentMessage,

@@ -2,6 +2,7 @@
 
 import {
     canonicalPledgeMessage,
+    pledgeCanonicalInputFromEnvelope,
     canonicalPledgeMessageBytes,
     computePledgeId,
     generateNonce,
@@ -231,19 +232,7 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
     if (shape) return shape;
 
     // 3. Canonical-message reconstruction + id
-    const canon: PledgeCanonicalInput = {
-        swearer: env.swearer.address,
-        proposition: env.proposition,
-        resolution: env.resolution,
-        resolves_at: env.resolves_at,
-        expires_at: env.expires_at,
-        bond: env.bond,
-        counterparty: env.counterparty,
-        dispute: env.dispute,
-        remediation: env.remediation,
-        sworn_at: env.sworn_at,
-        nonce: env.nonce,
-    };
+    const canon: PledgeCanonicalInput = pledgeCanonicalInputFromEnvelope(env);
     // Field-validity check before trusting the declared id — catches malformed
     // inputs that would silently produce a non-conforming canonical message.
     const fieldCheck = validatePledgeInput(canon);

@@ -85,6 +85,28 @@ function resolvesAtLine(r: PledgeResolvesAt): string {
     return `block: ${r.block}`;
 }
 
+/**
+ * Project a signed envelope back to the canonical input its id was computed
+ * over. The mapping existed in three hand-rolled copies — verifyPledge and two
+ * components in oc-pledge-web — which is one transcription error away from a
+ * verifier that disagrees with the signer about what was signed.
+ */
+export function pledgeCanonicalInputFromEnvelope(env: PledgeEnvelope): PledgeCanonicalInput {
+    return {
+        swearer: env.swearer.address,
+        proposition: env.proposition,
+        resolution: env.resolution,
+        resolves_at: env.resolves_at,
+        expires_at: env.expires_at,
+        bond: env.bond,
+        counterparty: env.counterparty,
+        dispute: env.dispute,
+        remediation: env.remediation,
+        sworn_at: env.sworn_at,
+        nonce: env.nonce,
+    };
+}
+
 export function canonicalPledgeMessageBytes(input: PledgeCanonicalInput): Uint8Array {
     return new TextEncoder().encode(canonicalPledgeMessage(input));
 }

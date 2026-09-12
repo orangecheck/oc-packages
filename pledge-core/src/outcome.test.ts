@@ -110,7 +110,7 @@ describe('wrapOutcomeEnvelope', () => {
 describe('verifyOutcome', () => {
     it('accepts a deterministic outcome (sig=null)', async () => {
         const env = await createOutcome(deterministicInput);
-        const r = await verifyOutcome({ envelope: env });
+        const r = await verifyOutcome({ envelope: env, skipResolverAuthorization: true });
         expect(r.ok).toBe(true);
     });
 
@@ -120,6 +120,7 @@ describe('verifyOutcome', () => {
         const r = await verifyOutcome({
             envelope: env,
             verifyBip322: async () => true,
+            skipResolverAuthorization: true,
         });
         expect(r.ok).toBe(true);
     });
@@ -127,7 +128,7 @@ describe('verifyOutcome', () => {
     it('detects E_OUTCOME_BAD_ID on tampered envelope', async () => {
         const env = await createOutcome(deterministicInput);
         const tampered: OutcomeEnvelope = { ...env, outcome: 'broken' };
-        const r = await verifyOutcome({ envelope: tampered });
+        const r = await verifyOutcome({ envelope: tampered, skipResolverAuthorization: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_OUTCOME_BAD_ID');
     });
@@ -138,7 +139,7 @@ describe('verifyOutcome', () => {
             ...env,
             sig: { alg: 'bip322', pubkey: 'bc1qsomeone', value: 'AAAA' },
         };
-        const r = await verifyOutcome({ envelope: tampered });
+        const r = await verifyOutcome({ envelope: tampered, skipResolverAuthorization: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_OUTCOME_MALFORMED');
     });
@@ -147,7 +148,7 @@ describe('verifyOutcome', () => {
         const signer = fakeSigner('bc1qcounter000');
         const env = await createOutcome({ ...counterpartyInput, signer });
         const tampered: OutcomeEnvelope = { ...env, sig: null };
-        const r = await verifyOutcome({ envelope: tampered });
+        const r = await verifyOutcome({ envelope: tampered, skipResolverAuthorization: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_OUTCOME_BAD_SIG');
     });
