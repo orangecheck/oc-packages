@@ -72,6 +72,12 @@ program
                     delegation: d,
                     verifyBip322,
                     skipSignatureVerification: opts.skipSig,
+                    // This CLI reads envelopes from files and stdin and has no
+                    // relay access by design, so it genuinely cannot query the
+                    // kind-30085 feed. agent-core 2.0.0 makes that a statement
+                    // rather than an omission — and report() discloses it, so
+                    // "OK" never silently means "possibly revoked".
+                    skipRevocationCheck: true,
                 });
                 report(r, opts.json, 'action + delegation');
                 return;
@@ -96,6 +102,7 @@ program
                 verifyBip322,
                 skipSignatureVerification: opts.skipSig,
                 skipTemporalCheck: opts.skipTemporal,
+                skipRevocationCheck: true, // offline verifier — see the note above
             });
             report(r, opts.json, 'delegation');
             return;
@@ -147,8 +154,16 @@ program
             } else {
                 console.log(`bond:      none`);
             }
-            console.log(`scopes:`);
-            for (const s of env.scopes) console.log(`  - ${s}`);
+            // v1.2 private mode seals the grant into `scopes_encrypted` and
+            // omits `scopes`, so an absent list is not an empty grant — it is a
+            // grant this reader cannot see. Printing "scopes:" with nothing
+            // under it would read as "no permissions", the opposite of true.
+            if (env.scopes) {
+                console.log(`scopes:`);
+                for (const s of env.scopes) console.log(`  - ${s}`);
+            } else {
+                console.log(`scopes:    sealed (v1.2 private mode) — needs a recipient device key`);
+            }
         } else if (env.kind === 'agent-action') {
             console.log(`agent:           ${env.signer.address}`);
             console.log(`signed_at:       ${env.signed_at}`);
@@ -257,6 +272,12 @@ async function read(path: string): Promise<string> {
 
 function recomputeId(env: AnyEnvelope): string {
     if (env.kind === 'agent-delegation') {
+        if (!env.scopes) {
+            throw new Error(
+                'cannot recompute a delegation id for a v1.2 private delegation: scopes are ' +
+                    'sealed in scopes_encrypted and must be decrypted with a recipient device key first',
+            );
+        }
         return computeDelegationId({
             principal: env.principal.address,
             agent: env.agent.address,
@@ -289,6 +310,12 @@ function recomputeId(env: AnyEnvelope): string {
 
 function canonicalMessageFor(env: AnyEnvelope): string {
     if (env.kind === 'agent-delegation') {
+        if (!env.scopes) {
+            throw new Error(
+                'cannot rebuild the canonical message for a v1.2 private delegation: scopes are ' +
+                    'sealed in scopes_encrypted',
+            );
+        }
         return delegationCanonicalMessage({
             principal: env.principal.address,
             agent: env.agent.address,
@@ -325,11 +352,24 @@ function report(
     what: string
 ): void {
     if (result.ok) {
+        // Revocation is NOT part of this verdict: the CLI has no relay. Saying
+        // so is the difference between "this envelope is authentic" and "this
+        // grant is still in force", which are not the same claim.
+        const revNote = 'revocation not checked (offline) — query kind-30085 by #delegation';
         if (asJson) {
-            console.log(JSON.stringify({ ok: true, verified: what, id: result.id }));
+            console.log(
+                JSON.stringify({
+                    ok: true,
+                    verified: what,
+                    id: result.id,
+                    revocation_checked: false,
+                    note: revNote,
+                }),
+            );
         } else {
             console.log(`OK · ${what} verified`);
             console.log(`  id: ${result.id}`);
+            console.log(`  ! ${revNote}`);
         }
         return;
     }
