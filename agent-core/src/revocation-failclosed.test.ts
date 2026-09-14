@@ -10,19 +10,30 @@
 //
 // This library has no network by design, so the caller fetches the feed. What
 // changed is that declining to is now a decision they have to state.
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { describe, expect, it } from 'vitest';
 
 import { verifyDelegation } from './verify.js';
 import type { DelegationEnvelope } from './types.js';
 
-const vectors = join(dirname(fileURLToPath(import.meta.url)), '../../../oc-agent-protocol/test-vectors');
-const delegation = JSON.parse(
-    readFileSync(join(vectors, 'v01-delegation-minimal.json'), 'utf8'),
-).expected.envelope as DelegationEnvelope;
+// Inlined rather than read from oc-agent-protocol/test-vectors: this test is
+// about the revocation guard, not vector conformance, and a relative path into
+// a sibling repo resolves locally but not in CI, where the spec repo is not
+// checked out beside this one. test-vectors.test.ts is the place that depends
+// on the real vectors, and CI checks them out for it.
+const delegation: DelegationEnvelope = {
+    v: 1,
+    kind: 'agent-delegation',
+    id: '36d79600191db871baa3fc9aa3b5e77750a5c423b1f620ec26cf16bd122e19a7',
+    principal: { address: 'bc1qprincipal000000000000000000000000000000', alg: 'bip322' },
+    agent: { address: 'bc1qagent0000000000000000000000000000000000', alg: 'bip322' },
+    scopes: ['lock:seal(recipient=bc1qalice000000000000000000000000000000000)'],
+    bond: null,
+    issued_at: '2026-04-22T12:00:00Z',
+    expires_at: '2026-04-29T12:00:00Z',
+    nonce: '0123456789abcdef0123456789abcdef',
+    revocation: { holders: ['principal'], ref: null },
+    sig: { alg: 'bip322', pubkey: 'bc1qprincipal000000000000000000000000000000', value: 'AAAA' },
+} as DelegationEnvelope;
 
 const AT = new Date('2026-04-23T12:00:00Z'); // inside the delegation's window
 
