@@ -309,10 +309,25 @@ function rangeSubset(ex: ScopeConstraint, g: ScopeConstraint): boolean {
     return gRange.lo <= exRange.lo && exRange.hi <= gRange.hi;
 }
 
+/**
+ * SPEC §7.4: "values MUST be decimal integers for ordered ops".
+ *
+ * `Number()` is far more permissive than that and accepts `1e3`, `0x3e8`,
+ * `+1000`, `" 1000 "`, `1.5` — and `""`, which becomes 0, turning an empty
+ * constraint into a silent zero bound. A verifier using a strict decimal parser
+ * rejects every one of those, so the same bytes produced different accept/reject
+ * answers on different implementations. SECURITY §5 requires they not.
+ */
+function parseDecimalInteger(value: string): number | null {
+    if (!/^-?\d+$/.test(value)) return null;
+    const n = Number(value);
+    return Number.isSafeInteger(n) ? n : null;
+}
+
 function opToRange(c: ScopeConstraint): { lo: number; hi: number } | null {
     if (c.value === undefined) return null;
-    const n = Number(c.value);
-    if (!Number.isFinite(n)) return null;
+    const n = parseDecimalInteger(c.value);
+    if (n === null) return null;
     switch (c.op) {
         case '=':
             return { lo: n, hi: n };

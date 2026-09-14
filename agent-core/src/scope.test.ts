@@ -160,3 +160,47 @@ describe('isSubScope (SPEC §7.4)', () => {
         ).toBe(false);
     });
 });
+
+// SPEC §7.4: "values MUST be decimal integers for ordered ops". `Number()` is
+// much looser and accepted 1e3, 0x3e8, +1000, " 1000 " and 1.5 — plus "", which
+// becomes 0 and turns an empty constraint into a silent zero bound. A verifier
+// with a strict decimal parser rejects all of them, so identical bytes produced
+// different accept/reject answers across implementations, which SECURITY §5
+// rules out.
+describe('ordered-op values must be decimal integers (SPEC §7.4)', () => {
+    const granted = parseScope('ln:send(max_sats<=1000)');
+
+    it('still admits a plain decimal integer', () => {
+        expect(isSubScope(parseScope('ln:send(max_sats<=500)'), granted)).toBe(true);
+        expect(isSubScope(parseScope('ln:send(max_sats<=1000)'), granted)).toBe(true);
+    });
+
+    it('still rejects a decimal integer outside the granted range', () => {
+        expect(isSubScope(parseScope('ln:send(max_sats<=1001)'), granted)).toBe(false);
+    });
+
+    // Each of these previously compared numerically and could be ADMITTED.
+    for (const v of ['1e3', '0x3e8', '+1000', '1.5']) {
+        it(`rejects ${JSON.stringify(v)} rather than coercing it`, () => {
+            let exercised;
+            try {
+                exercised = parseScope(`ln:send(max_sats<=${v})`);
+            } catch {
+                return; // rejected at parse time is also a rejection
+            }
+            expect(isSubScope(exercised, granted)).toBe(false);
+        });
+    }
+
+    // The sharpest case: Number('') === 0, so an empty constraint became
+    // max_sats<=0 — a real bound nobody wrote.
+    it('does not silently read an empty value as zero', () => {
+        let exercised;
+        try {
+            exercised = parseScope('ln:send(max_sats<=)');
+        } catch {
+            return;
+        }
+        expect(isSubScope(exercised, parseScope('ln:send(max_sats<=0)'))).toBe(false);
+    });
+});

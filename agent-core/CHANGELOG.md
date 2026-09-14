@@ -7,6 +7,25 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.1.0] — 2026-09-14
+
+### Fixed — ordered-op constraint values are now parsed as decimal integers
+
+SPEC §7.4: "values MUST be decimal integers for ordered ops". `opToRange` used
+`Number()`, which is far looser and accepted `1e3`, `0x3e8`, `+1000`,
+`" 1000 "` and `1.5` — and `""`, which becomes `0`, turning an empty constraint
+into a silent zero bound nobody wrote.
+
+A verifier using a strict decimal parser rejects every one of those, so the same
+delegation bytes produced different accept/reject answers on different
+implementations. SECURITY §5 requires that they not: "same inputs on different
+implementations MUST produce the same accept/reject answer."
+
+Now `/^-?\d+$/` plus a safe-integer bound. Checked the conformance vectors
+first: no vector uses a non-decimal ordered-op value, and the one that looks
+like it (`max_bytes<=abc` in v09) is the malformed-scope vector that expects
+rejection anyway.
+
 ## [2.0.0] — 2026-09-14
 
 ### Security — revocation checking was opt-IN, and the spec says opt-OUT
