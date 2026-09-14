@@ -82,3 +82,22 @@ export function handleSudoRequired(
     }
     return false;
 }
+
+/**
+ * The message for `sudo_account_mismatch` — a fresh sudo proof exists, but for
+ * a different account than this tab is acting as.
+ *
+ * Deliberately NOT a redirect. The ceremony runs on ochk.io for the cookie's
+ * default account and cannot reach this tab's pinned account, so bouncing there
+ * re-proves the wrong one forever. Callers must show this and stop.
+ */
+export const SUDO_ACCOUNT_MISMATCH_MESSAGE =
+    'Switch this tab to that account first — the confirmation on file is for a different one.';
+
+/**
+ * True when the response says a sudo ceremony cannot resolve this request.
+ * Pairs with {@link handleSudoRequired}: try the redirect first, then this.
+ */
+export function isSudoAccountMismatch(body: { reason?: string } | null | undefined): boolean {
+    return body?.reason === 'sudo_account_mismatch';
+}

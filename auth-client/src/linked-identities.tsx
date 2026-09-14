@@ -28,6 +28,11 @@
  */
 
 import * as React from 'react';
+import {
+    handleSudoRequired,
+    isSudoAccountMismatch,
+    SUDO_ACCOUNT_MISMATCH_MESSAGE,
+} from './sudo';
 
 import { tabSessionHeader } from './tab-session';
 
@@ -602,6 +607,12 @@ function EmailLinkForm({
                 setBusy(false);
                 return;
             }
+            if (handleSudoRequired(j, { purpose: 'link an email' })) return;
+            if (isSudoAccountMismatch(j)) {
+                setErr(SUDO_ACCOUNT_MISMATCH_MESSAGE);
+                setBusy(false);
+                return;
+            }
             if (!r.ok || !j.ok) throw new Error(j.reason ?? `http_${r.status}`);
             onDone();
         } catch (e) {
@@ -750,6 +761,12 @@ function BtcLinkForm({
             const j = (await r.json()) as { ok?: boolean; reason?: string };
             if (r.status === 409 && j.reason === 'address_linked_elsewhere') {
                 setPendingSig(sig);
+                setBusy(false);
+                return;
+            }
+            if (handleSudoRequired(j, { purpose: 'link a Bitcoin address' })) return;
+            if (isSudoAccountMismatch(j)) {
+                setErr(SUDO_ACCOUNT_MISMATCH_MESSAGE);
                 setBusy(false);
                 return;
             }

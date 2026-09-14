@@ -75,5 +75,10 @@ export type {
     UseWebAuthnListReturn,
     UseStepUpAuthReturn,
 } from './webauthn';
-export { redirectToSudo, handleSudoRequired } from './sudo';
+export {
+    redirectToSudo,
+    handleSudoRequired,
+    isSudoAccountMismatch,
+    SUDO_ACCOUNT_MISMATCH_MESSAGE,
+} from './sudo';
 export type { RedirectToSudoArgs } from './sudo';

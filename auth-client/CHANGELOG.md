@@ -7,13 +7,38 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.25.0] — 2026-09-14
+
+### Added
+
+- `isSudoAccountMismatch()` and `SUDO_ACCOUNT_MISMATCH_MESSAGE`. The host
+  distinguishes two sudo failures — `sudo_required`, which the ceremony fixes,
+  and `sudo_account_mismatch`, which it cannot, because the ceremony runs on
+  ochk.io for the cookie's default account and can't reach a tab pinned to a
+  different one. `handleSudoRequired()` only ever knew the first, so a caller
+  holding just that helper had no way to tell them apart and would bounce the
+  user to `/sudo` forever.
+
+### Fixed
+
+- **The identity-linking forms ignored a sudo challenge entirely.** Linking a
+  Bitcoin address or an email mutates the account's auth graph — the same
+  surface a stolen cookie attacks, and the reason registering a second hardware
+  key already asks for a fresh proof. Both link forms now route
+  `sudo_required` to the ceremony and stop on `sudo_account_mismatch` with a
+  message that says which account to switch to.
+
+  This ships BEFORE the host begins enforcing that gate. A client that cannot
+  act on the challenge would surface it as a bare `sudo_required` string with
+  no way forward, so the order matters.
+
 ## [2.24.0] — 2026-09-03
 
 ### Fixed
 
 - **The email sign-in copy said something untrue, on every `/signin` page in
-  the family.** It read: *"The federation provisions a custodial wallet for you
-  in your browser."* Two problems.
+  the family.** It read: _"The federation provisions a custodial wallet for you
+  in your browser."_ Two problems.
 
   Nothing is provisioned at sign-in. `oc-www`'s `email-otp/verify` route
   creates an account row, a `did:oc` and a session cookie — a Fedimint wallet
@@ -28,17 +53,17 @@ this file tracks the package's TS / Node / runtime API surface.
   `@orangecheck/legal` ("no custodial wallet of any kind"). Naming the trust
   anchor is family invariant 8.
 
-  Now: *"We email you a 6-digit code. No password, and no wallet needed to
+  Now: _"We email you a 6-digit code. No password, and no wallet needed to
   start. Link a Bitcoin address any time — that is the identity you hold
-  yourself."* True at the moment it is shown, and the custody disclosure moves
+  yourself."_ True at the moment it is shown, and the custody disclosure moves
   to where the wallet is actually created, which is also where it matters.
 
 ### Changed
 
 - The email-form hint drops `Rate-limited 5 starts/hour/IP` — operator detail
   on a consumer sign-up, and a user who hits the limit gets an error that says
-  so. It keeps the trust anchor and the two facts a user needs: *"Codes come
-  from the auth host, expire in 10 minutes, and work once."*
+  so. It keeps the trust anchor and the two facts a user needs: _"Codes come
+  from the auth host, expire in 10 minutes, and work once."_
 
   Together these take the email path from ~48 words of prose around one input
   to ~22.
@@ -147,7 +172,7 @@ each tab actively operating as its own one:
 
 - New `tab-session` module: a tab pins itself to an account by holding
   that account's session JWT in sessionStorage and sending it as the
-  `x-oc-tab-session` header (a *credential*, never a bare selector —
+  `x-oc-tab-session` header (a _credential_, never a bare selector —
   servers verify it exactly like the cookie token). Exports
   `readTabSession` / `writeTabSession` / `clearTabSession` /
   `tabSessionHeader` / `installTabFetchInterceptor` /
@@ -299,7 +324,7 @@ there is nothing to remember.
 
 ## [2.9.1] — 2026-05-18 · linkPrompt is an optional offer, not a gate
 
-Refines 2.9.0's link-at-sign-in so it is clearly *optional*:
+Refines 2.9.0's link-at-sign-in so it is clearly _optional_:
 
 - **A decline is remembered.** "Not now" writes `LINK_PROMPT_DISMISS_KEY`
   to `localStorage`; `OcSignIn` reads it and does not re-show the offer on
@@ -322,7 +347,7 @@ Immediately after a successful sign-in, `OcSignIn` checks (one `/api/auth/me`
 call) whether the account is missing its **complementary** identity. If so it
 shows a focused step: a user who signed in with email is offered their
 **Bitcoin wallet**; a wallet user is offered their **email**. "Link now" drops
-straight into the BIP-322 / OTP ceremony *inline* — no navigation — because the
+straight into the BIP-322 / OTP ceremony _inline_ — no navigation — because the
 sign-in just proved one credential and this is the moment to prove the second.
 The user can skip.
 
