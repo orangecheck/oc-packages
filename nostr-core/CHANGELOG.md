@@ -12,6 +12,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.3] — 2026-09-14
+
+### Fixed
+
+- **A relay that ends a subscription with `CLOSED` no longer costs the full
+  timeout.** `CLOSED` was a recognised frame type with no branch in the query
+  loop, so the client kept waiting for an answer that had already arrived, then
+  reported `reason: 'timeout'` and discarded the relay's own explanation.
+
+  Not theoretical: strfry CLOSEs a subscription whose filter uses an unindexed
+  multi-letter tag, and `relay.snort.social` is in `DEFAULT_RELAYS`. One such
+  relay added the whole timeout to every fan-out — 8 seconds on oc-chat's
+  device lookup, which is on the deliverability path.
+
+  `ok` still keys off whether events actually arrived, since a relay may stream
+  stored events and then close.
+
 ## [0.2.1] — 2026-09-03
 
 ### Fixed
@@ -28,7 +45,7 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - `wss://relay.snort.social` takes its place, keeping the five-relay breadth
   the set exists for (no artifact should depend on a single relay being up).
-  It answered every probe. Note it accepts unindexed tag filters by *ignoring*
+  It answered every probe. Note it accepts unindexed tag filters by _ignoring_
   them rather than rejecting, so a multi-letter filter makes it return a flood
   of unrelated events — which the `Filter` type in this package now makes
   impossible to express.

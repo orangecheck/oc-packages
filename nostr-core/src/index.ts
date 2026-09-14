@@ -35,34 +35,37 @@
  * If `T` violates either rule, this resolves to `never` and the assignment
  * below fails at `tsc` time.
  */
-type ValidRelaySet<T extends readonly string[]> =
-    T['length'] extends 0 | 1 ? never :
-    T extends readonly ['wss://relay.ochk.io'] ? never :
-    T;
+type ValidRelaySet<T extends readonly string[]> = T["length"] extends 0 | 1
+  ? never
+  : T extends readonly ["wss://relay.ochk.io"]
+    ? never
+    : T;
 
-const _RELAYS: ValidRelaySet<readonly [
-    'wss://nos.lol',
-    'wss://relay.primal.net',
-    'wss://offchain.pub',
-    'wss://relay.snort.social',
-    'wss://relay.ochk.io',
-]> = [
-    'wss://nos.lol',
-    'wss://relay.primal.net',
-    'wss://offchain.pub',
-    // relay.nostr.band sat here until 2026-09-03, when it stopped accepting
-    // TCP connections altogether (DNS resolves, port 443 never handshakes, and
-    // the apex nostr.band is down too — from two independent networks).
-    // relay.snort.social replaces it to keep the breadth this set exists for;
-    // it answered every probe. Note it ACCEPTS unindexed tag filters by
-    // ignoring them rather than rejecting, so it will happily return a flood of
-    // unrelated events for a multi-letter filter — which the Filter type in
-    // this file now makes impossible to express.
-    'wss://relay.snort.social',
-    // First-party family relay — kind allowlist 30078-30087 + 30110-30114 + canonical
-    // OC d-tag prefixes. Always co-published with public relays; never
-    // the only copy. See https://github.com/orangecheck/oc-relay-infra.
-    'wss://relay.ochk.io',
+const _RELAYS: ValidRelaySet<
+  readonly [
+    "wss://nos.lol",
+    "wss://relay.primal.net",
+    "wss://offchain.pub",
+    "wss://relay.snort.social",
+    "wss://relay.ochk.io",
+  ]
+> = [
+  "wss://nos.lol",
+  "wss://relay.primal.net",
+  "wss://offchain.pub",
+  // relay.nostr.band sat here until 2026-09-03, when it stopped accepting
+  // TCP connections altogether (DNS resolves, port 443 never handshakes, and
+  // the apex nostr.band is down too — from two independent networks).
+  // relay.snort.social replaces it to keep the breadth this set exists for;
+  // it answered every probe. Note it ACCEPTS unindexed tag filters by
+  // ignoring them rather than rejecting, so it will happily return a flood of
+  // unrelated events for a multi-letter filter — which the Filter type in
+  // this file now makes impossible to express.
+  "wss://relay.snort.social",
+  // First-party family relay — kind allowlist 30078-30087 + 30110-30114 + canonical
+  // OC d-tag prefixes. Always co-published with public relays; never
+  // the only copy. See https://github.com/orangecheck/oc-relay-infra.
+  "wss://relay.ochk.io",
 ] as const;
 
 /**
@@ -87,20 +90,20 @@ export const DEFAULT_RELAYS: readonly string[] = Object.freeze([..._RELAYS]);
 // ─────────────────────────────────────────────────────────────────────────
 
 export interface NostrEvent {
-    id: string;
-    kind: number;
-    pubkey: string;
-    created_at: number;
-    content: string;
-    tags: string[][];
-    sig: string;
+  id: string;
+  kind: number;
+  pubkey: string;
+  created_at: number;
+  content: string;
+  tags: string[][];
+  sig: string;
 }
 
 export interface PublishResult {
-    relay: string;
-    ok: boolean;
-    reason?: string;
-    attempts: number;
+  relay: string;
+  ok: boolean;
+  reason?: string;
+  attempts: number;
 }
 
 /**
@@ -125,36 +128,89 @@ export interface PublishResult {
  * Nostr, not a preference.
  */
 type IndexableTagName =
-    | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm'
-    | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
-    | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
-    | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z"
+  | "A"
+  | "B"
+  | "C"
+  | "D"
+  | "E"
+  | "F"
+  | "G"
+  | "H"
+  | "I"
+  | "J"
+  | "K"
+  | "L"
+  | "M"
+  | "N"
+  | "O"
+  | "P"
+  | "Q"
+  | "R"
+  | "S"
+  | "T"
+  | "U"
+  | "V"
+  | "W"
+  | "X"
+  | "Y"
+  | "Z";
 
 /** `#a` … `#Z` — the only tag filters a relay must honour. */
 export type IndexableTagFilter = `#${IndexableTagName}`;
 
 export interface Filter extends Partial<Record<IndexableTagFilter, string[]>> {
-    kinds?: number[];
-    authors?: string[];
-    ids?: string[];
-    limit?: number;
-    since?: number;
-    until?: number;
+  kinds?: number[];
+  authors?: string[];
+  ids?: string[];
+  limit?: number;
+  since?: number;
+  until?: number;
 }
 
 export interface QueryResult {
-    events: NostrEvent[];
-    relayStatus: { relay: string; ok: boolean; reason?: string; events: number }[];
+  events: NostrEvent[];
+  relayStatus: {
+    relay: string;
+    ok: boolean;
+    reason?: string;
+    events: number;
+  }[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Internal — frame parsing + retry config.
 // ─────────────────────────────────────────────────────────────────────────
 
-type FrameType = 'OK' | 'EVENT' | 'EOSE' | 'NOTICE' | 'CLOSED' | 'AUTH';
+type FrameType = "OK" | "EVENT" | "EOSE" | "NOTICE" | "CLOSED" | "AUTH";
 interface RelayFrame {
-    type: FrameType;
-    payload: unknown[];
+  type: FrameType;
+  payload: unknown[];
 }
 
 /**
@@ -165,47 +221,47 @@ interface RelayFrame {
  * `auth-required` relays; absent it, an AUTH challenge is ignored (today's behavior).
  */
 export type AuthSigner = (
-    challenge: string,
-    relayUrl: string
+  challenge: string,
+  relayUrl: string,
 ) => NostrEvent | Promise<NostrEvent>;
 
 function parseFrame(raw: string): RelayFrame | null {
-    try {
-        const arr = JSON.parse(raw) as unknown[];
-        if (!Array.isArray(arr) || arr.length === 0) return null;
-        const type = arr[0];
-        if (
-            type === 'OK' ||
-            type === 'EVENT' ||
-            type === 'EOSE' ||
-            type === 'NOTICE' ||
-            type === 'CLOSED' ||
-            type === 'AUTH'
-        ) {
-            return { type: type as FrameType, payload: arr.slice(1) };
-        }
-        return null;
-    } catch {
-        return null;
+  try {
+    const arr = JSON.parse(raw) as unknown[];
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const type = arr[0];
+    if (
+      type === "OK" ||
+      type === "EVENT" ||
+      type === "EOSE" ||
+      type === "NOTICE" ||
+      type === "CLOSED" ||
+      type === "AUTH"
+    ) {
+      return { type: type as FrameType, payload: arr.slice(1) };
     }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 interface RetryOptions {
-    attempts: number;
-    timeoutMs: number;
-    initialBackoffMs: number;
-    maxBackoffMs: number;
+  attempts: number;
+  timeoutMs: number;
+  initialBackoffMs: number;
+  maxBackoffMs: number;
 }
 
 const DEFAULT_RETRY: RetryOptions = {
-    attempts: 3,
-    timeoutMs: 5000,
-    initialBackoffMs: 500,
-    maxBackoffMs: 4000,
+  attempts: 3,
+  timeoutMs: 5000,
+  initialBackoffMs: 500,
+  maxBackoffMs: 4000,
 };
 
 function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -213,121 +269,121 @@ function delay(ms: number): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────────
 
 async function publishOne(
-    url: string,
-    event: NostrEvent,
-    retry: RetryOptions,
-    auth?: AuthSigner
+  url: string,
+  event: NostrEvent,
+  retry: RetryOptions,
+  auth?: AuthSigner,
 ): Promise<PublishResult> {
-    let attempts = 0;
-    let backoff = retry.initialBackoffMs;
-    let lastReason: string | undefined;
+  let attempts = 0;
+  let backoff = retry.initialBackoffMs;
+  let lastReason: string | undefined;
 
-    while (attempts < retry.attempts) {
-        attempts++;
-        const attempt = await attemptPublish(url, event, retry.timeoutMs, auth);
-        if (attempt.ok) {
-            return {
-                relay: url,
-                ok: true,
-                attempts,
-                ...(attempt.reason ? { reason: attempt.reason } : {}),
-            };
-        }
-        lastReason = attempt.reason;
-        if (attempt.retryable && attempts < retry.attempts) {
-            await delay(backoff);
-            backoff = Math.min(backoff * 2, retry.maxBackoffMs);
-            continue;
-        }
-        break;
-    }
-    return {
+  while (attempts < retry.attempts) {
+    attempts++;
+    const attempt = await attemptPublish(url, event, retry.timeoutMs, auth);
+    if (attempt.ok) {
+      return {
         relay: url,
-        ok: false,
+        ok: true,
         attempts,
-        ...(lastReason ? { reason: lastReason } : {}),
-    };
+        ...(attempt.reason ? { reason: attempt.reason } : {}),
+      };
+    }
+    lastReason = attempt.reason;
+    if (attempt.retryable && attempts < retry.attempts) {
+      await delay(backoff);
+      backoff = Math.min(backoff * 2, retry.maxBackoffMs);
+      continue;
+    }
+    break;
+  }
+  return {
+    relay: url,
+    ok: false,
+    attempts,
+    ...(lastReason ? { reason: lastReason } : {}),
+  };
 }
 
 function attemptPublish(
-    url: string,
-    event: NostrEvent,
-    timeoutMs: number,
-    auth?: AuthSigner
+  url: string,
+  event: NostrEvent,
+  timeoutMs: number,
+  auth?: AuthSigner,
 ): Promise<{ ok: boolean; reason?: string; retryable: boolean }> {
-    return new Promise((resolve) => {
-        let settled = false;
-        let authed = false; // a NIP-42 AUTH handshake is attempted at most once
-        let ws: WebSocket | null = null;
-        const timer = setTimeout(() => {
-            if (settled) return;
-            settled = true;
-            try {
-                ws?.close();
-            } catch {}
-            resolve({ ok: false, reason: 'timeout', retryable: true });
-        }, timeoutMs);
-        try {
-            ws = new WebSocket(url);
-            ws.onopen = () => ws?.send(JSON.stringify(['EVENT', event]));
-            ws.onmessage = (msg) => {
-                const frame = parseFrame(msg.data as string);
-                if (!frame) return;
-                // NIP-42: an auth-required relay challenges before it accepts the
-                // EVENT. Sign the challenge with the caller's signer, send AUTH,
-                // then re-send the EVENT. Without an `auth` signer this is ignored.
-                if (frame.type === 'AUTH' && auth && !authed) {
-                    authed = true;
-                    const challenge = String(frame.payload[0] ?? '');
-                    void Promise.resolve(auth(challenge, url))
-                        .then((authEvent) => {
-                            ws?.send(JSON.stringify(['AUTH', authEvent]));
-                            ws?.send(JSON.stringify(['EVENT', event]));
-                        })
-                        .catch(() => {
-                            /* signer failed → let the attempt time out / fail */
-                        });
-                    return;
-                }
-                if (frame.type === 'OK' && frame.payload[0] === event.id) {
-                    if (settled) return;
-                    settled = true;
-                    clearTimeout(timer);
-                    try {
-                        ws?.close();
-                    } catch {}
-                    const ok = frame.payload[1] === true;
-                    const reason = frame.payload[2] as string | undefined;
-                    resolve({
-                        ok,
-                        ...(reason ? { reason } : {}),
-                        retryable: false,
-                    });
-                }
-            };
-            ws.onerror = () => {
-                if (settled) return;
-                settled = true;
-                clearTimeout(timer);
-                resolve({ ok: false, reason: 'websocket_error', retryable: true });
-            };
-            ws.onclose = () => {
-                if (settled) return;
-                settled = true;
-                clearTimeout(timer);
-                resolve({ ok: false, reason: 'closed_early', retryable: true });
-            };
-        } catch (err) {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            resolve({
-                ok: false,
-                reason: err instanceof Error ? err.message : 'unknown',
-                retryable: true,
+  return new Promise((resolve) => {
+    let settled = false;
+    let authed = false; // a NIP-42 AUTH handshake is attempted at most once
+    let ws: WebSocket | null = null;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try {
+        ws?.close();
+      } catch {}
+      resolve({ ok: false, reason: "timeout", retryable: true });
+    }, timeoutMs);
+    try {
+      ws = new WebSocket(url);
+      ws.onopen = () => ws?.send(JSON.stringify(["EVENT", event]));
+      ws.onmessage = (msg) => {
+        const frame = parseFrame(msg.data as string);
+        if (!frame) return;
+        // NIP-42: an auth-required relay challenges before it accepts the
+        // EVENT. Sign the challenge with the caller's signer, send AUTH,
+        // then re-send the EVENT. Without an `auth` signer this is ignored.
+        if (frame.type === "AUTH" && auth && !authed) {
+          authed = true;
+          const challenge = String(frame.payload[0] ?? "");
+          void Promise.resolve(auth(challenge, url))
+            .then((authEvent) => {
+              ws?.send(JSON.stringify(["AUTH", authEvent]));
+              ws?.send(JSON.stringify(["EVENT", event]));
+            })
+            .catch(() => {
+              /* signer failed → let the attempt time out / fail */
             });
+          return;
         }
-    });
+        if (frame.type === "OK" && frame.payload[0] === event.id) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try {
+            ws?.close();
+          } catch {}
+          const ok = frame.payload[1] === true;
+          const reason = frame.payload[2] as string | undefined;
+          resolve({
+            ok,
+            ...(reason ? { reason } : {}),
+            retryable: false,
+          });
+        }
+      };
+      ws.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve({ ok: false, reason: "websocket_error", retryable: true });
+      };
+      ws.onclose = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve({ ok: false, reason: "closed_early", retryable: true });
+      };
+    } catch (err) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({
+        ok: false,
+        reason: err instanceof Error ? err.message : "unknown",
+        retryable: true,
+      });
+    }
+  });
 }
 
 /**
@@ -335,13 +391,13 @@ function attemptPublish(
  * `PublishResult` per relay. Default timeout 5000ms.
  */
 export async function publishEvent(
-    event: NostrEvent,
-    relays: readonly string[] = DEFAULT_RELAYS,
-    timeoutMs = 5000,
-    auth?: AuthSigner
+  event: NostrEvent,
+  relays: readonly string[] = DEFAULT_RELAYS,
+  timeoutMs = 5000,
+  auth?: AuthSigner,
 ): Promise<PublishResult[]> {
-    const retry: RetryOptions = { ...DEFAULT_RETRY, timeoutMs };
-    return Promise.all(relays.map((r) => publishOne(r, event, retry, auth)));
+  const retry: RetryOptions = { ...DEFAULT_RETRY, timeoutMs };
+  return Promise.all(relays.map((r) => publishOne(r, event, retry, auth)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -358,122 +414,156 @@ export async function publishEvent(
  * the slowest relay matters.
  */
 export async function queryEvents(
-    filter: Filter,
-    relays: readonly string[] = DEFAULT_RELAYS,
-    timeoutMs = 1500,
-    auth?: AuthSigner
+  filter: Filter,
+  relays: readonly string[] = DEFAULT_RELAYS,
+  timeoutMs = 1500,
+  auth?: AuthSigner,
 ): Promise<QueryResult> {
-    const subId = 'ocnc-' + Math.random().toString(36).slice(2, 10);
-    const byId = new Map<string, NostrEvent>();
-    const status: QueryResult['relayStatus'] = [];
+  const subId = "ocnc-" + Math.random().toString(36).slice(2, 10);
+  const byId = new Map<string, NostrEvent>();
+  const status: QueryResult["relayStatus"] = [];
 
-    await Promise.all(
-        relays.map(
-            (url) =>
-                new Promise<void>((resolve) => {
-                    let settled = false;
-                    let authed = false; // NIP-42 handshake attempted at most once
-                    let count = 0;
-                    let reason: string | undefined;
-                    let ws: WebSocket | null = null;
-                    const timer = setTimeout(() => {
-                        if (settled) return;
-                        settled = true;
-                        try {
-                            ws?.close();
-                        } catch {}
-                        status.push({
-                            relay: url,
-                            ok: count > 0,
-                            reason: reason ?? 'timeout',
-                            events: count,
-                        });
-                        resolve();
-                    }, timeoutMs);
-                    try {
-                        ws = new WebSocket(url);
-                        ws.onopen = () => ws?.send(JSON.stringify(['REQ', subId, filter]));
-                        ws.onmessage = (msg) => {
-                            const frame = parseFrame(msg.data as string);
-                            if (!frame) return;
-                            // NIP-42: auth-required relay challenges before serving the
-                            // REQ — sign, send AUTH, then re-send the REQ. Ignored absent
-                            // an `auth` signer (today's behavior).
-                            if (frame.type === 'AUTH' && auth && !authed) {
-                                authed = true;
-                                const challenge = String(frame.payload[0] ?? '');
-                                void Promise.resolve(auth(challenge, url))
-                                    .then((authEvent) => {
-                                        ws?.send(JSON.stringify(['AUTH', authEvent]));
-                                        ws?.send(JSON.stringify(['REQ', subId, filter]));
-                                    })
-                                    .catch(() => {
-                                        /* signer failed → let the query time out */
-                                    });
-                                return;
-                            }
-                            if (frame.type === 'EVENT' && frame.payload[0] === subId) {
-                                const event = frame.payload[1] as NostrEvent | undefined;
-                                if (event && event.id) {
-                                    byId.set(event.id, event);
-                                    count++;
-                                }
-                            } else if (frame.type === 'EOSE' && frame.payload[0] === subId) {
-                                if (settled) return;
-                                settled = true;
-                                clearTimeout(timer);
-                                try {
-                                    ws?.send(JSON.stringify(['CLOSE', subId]));
-                                    ws?.close();
-                                } catch {}
-                                status.push({ relay: url, ok: true, events: count });
-                                resolve();
-                            } else if (frame.type === 'NOTICE') {
-                                reason = String(frame.payload[0] ?? 'notice');
-                            }
-                        };
-                        ws.onerror = () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            status.push({
-                                relay: url,
-                                ok: false,
-                                reason: 'ws_error',
-                                events: count,
-                            });
-                            resolve();
-                        };
-                        ws.onclose = () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            status.push({
-                                relay: url,
-                                ok: count > 0,
-                                reason: reason ?? 'closed_early',
-                                events: count,
-                            });
-                            resolve();
-                        };
-                    } catch (err) {
-                        if (settled) return;
-                        settled = true;
-                        clearTimeout(timer);
-                        status.push({
-                            relay: url,
-                            ok: false,
-                            reason: err instanceof Error ? err.message : 'unknown',
-                            events: count,
-                        });
-                        resolve();
-                    }
-                })
-        )
-    );
+  await Promise.all(
+    relays.map(
+      (url) =>
+        new Promise<void>((resolve) => {
+          let settled = false;
+          let authed = false; // NIP-42 handshake attempted at most once
+          let count = 0;
+          let reason: string | undefined;
+          let ws: WebSocket | null = null;
+          const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            try {
+              ws?.close();
+            } catch {}
+            status.push({
+              relay: url,
+              ok: count > 0,
+              reason: reason ?? "timeout",
+              events: count,
+            });
+            resolve();
+          }, timeoutMs);
+          try {
+            ws = new WebSocket(url);
+            ws.onopen = () => ws?.send(JSON.stringify(["REQ", subId, filter]));
+            ws.onmessage = (msg) => {
+              const frame = parseFrame(msg.data as string);
+              if (!frame) return;
+              // NIP-42: auth-required relay challenges before serving the
+              // REQ — sign, send AUTH, then re-send the REQ. Ignored absent
+              // an `auth` signer (today's behavior).
+              if (frame.type === "AUTH" && auth && !authed) {
+                authed = true;
+                const challenge = String(frame.payload[0] ?? "");
+                void Promise.resolve(auth(challenge, url))
+                  .then((authEvent) => {
+                    ws?.send(JSON.stringify(["AUTH", authEvent]));
+                    ws?.send(JSON.stringify(["REQ", subId, filter]));
+                  })
+                  .catch(() => {
+                    /* signer failed → let the query time out */
+                  });
+                return;
+              }
+              if (frame.type === "EVENT" && frame.payload[0] === subId) {
+                const event = frame.payload[1] as NostrEvent | undefined;
+                if (event && event.id) {
+                  byId.set(event.id, event);
+                  count++;
+                }
+              } else if (frame.type === "EOSE" && frame.payload[0] === subId) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                try {
+                  ws?.send(JSON.stringify(["CLOSE", subId]));
+                  ws?.close();
+                } catch {}
+                status.push({ relay: url, ok: true, events: count });
+                resolve();
+              } else if (
+                frame.type === "CLOSED" &&
+                frame.payload[0] === subId
+              ) {
+                // The relay ENDED the subscription — it will send
+                // nothing further. Without this branch the client
+                // waited out the whole timeout for an answer that
+                // had already arrived, and then reported 'timeout'
+                // while discarding the relay's own explanation.
+                //
+                // Not theoretical: strfry CLOSEs a sub whose filter
+                // uses an unindexed multi-letter tag, and
+                // relay.snort.social is in DEFAULT_RELAYS. One such
+                // relay added the full timeout to every query —
+                // 8s on chat's device lookup, which is on the
+                // deliverability path.
+                //
+                // `ok` still keys off whether events actually
+                // arrived: a relay may stream some and then close.
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                try {
+                  ws?.close();
+                } catch {}
+                status.push({
+                  relay: url,
+                  ok: count > 0,
+                  reason: String(frame.payload[1] ?? "closed"),
+                  events: count,
+                });
+                resolve();
+              } else if (frame.type === "NOTICE") {
+                reason = String(frame.payload[0] ?? "notice");
+              }
+            };
+            ws.onerror = () => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+              status.push({
+                relay: url,
+                ok: false,
+                reason: "ws_error",
+                events: count,
+              });
+              resolve();
+            };
+            ws.onclose = () => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+              status.push({
+                relay: url,
+                ok: count > 0,
+                reason: reason ?? "closed_early",
+                events: count,
+              });
+              resolve();
+            };
+          } catch (err) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            status.push({
+              relay: url,
+              ok: false,
+              reason: err instanceof Error ? err.message : "unknown",
+              events: count,
+            });
+            resolve();
+          }
+        }),
+    ),
+  );
 
-    return {
-        events: Array.from(byId.values()).sort((a, b) => b.created_at - a.created_at),
-        relayStatus: status,
-    };
+  return {
+    events: Array.from(byId.values()).sort(
+      (a, b) => b.created_at - a.created_at,
+    ),
+    relayStatus: status,
+  };
 }
