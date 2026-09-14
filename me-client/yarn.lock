@@ -252,10 +252,10 @@
   dependencies:
     "@simplewebauthn/browser" "^13.3.0"
 
-"@orangecheck/auth-core@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.0.0.tgz#a277c186719898fa05ae74c0be53b4626b0c1814"
-  integrity sha512-8lJoHrtk8nZh4PjNO+GSD6K6VZuSPEv3gEOo1VqQC15P/8Oqewwuqz3BCx/FNzqWOgTWOJKh2UaCahvJCUNLaA==
+"@orangecheck/auth-core@^2.6.0":
+  version "2.6.0"
+  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.6.0.tgz#679b84b60f1a452c0ae0faa9b90a2531abae2c9f"
+  integrity sha512-v8xif2THYs7oXpSWWlSVB6zOxxy2+SlTM5OCw2g+kuWUPAY1Ipu8KOdgLLOnNCjc43yR7cNLSPCROtbsRsIUpg==
   dependencies:
     jose "^6.2.2"
 
