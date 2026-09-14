@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Command-line tool for OC Agent — verify, inspect, and canonicalize delegation / action / revocation envelopes from your shell.",
   "keywords": [
     "oc-agent",
