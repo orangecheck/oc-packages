@@ -7,6 +7,40 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.0.0] — 2026-09-14
+
+### Security — revocation checking was opt-IN, and the spec says opt-OUT
+
+**BREAKING.** SECURITY §7 item 7: "Query revocation feeds (Nostr kind-30085 by
+`#delegation`) for the cited delegation id before reporting OK, **unless the
+caller explicitly opts out** of revocation checking."
+
+The default was inverted:
+
+- `verifyDelegation` had **no revocations parameter at all**. A revoked
+  delegation returned `ok: true`, and a caller who wanted the check had no way
+  to ask for it.
+- `verifyAction` accepted `revocations` and evaluated them correctly, but only
+  `if (input.revocations && length > 0)`. Omitting them skipped the check
+  silently, so "checked, clean" and "never checked" were the same result, and
+  `VerifyActionOkExtra` carried no revocation-status field to tell them apart.
+
+Both verifiers now refuse unless given `revocations` or an explicit
+`skipRevocationCheck: true`. An empty array is a valid, meaningful answer — "I
+queried the feed and there were none" — and is distinct from declining to look.
+
+This library has no network by design, so the caller still fetches the feed.
+What changed is that declining to is a decision they must state, rather than
+something that happens by omission. Same shape as vote-core's refusal to tally
+without a signature verifier and pledge-core's refusal to verify an outcome
+without the pledge.
+
+`verifyDelegation` also now actually evaluates the revocations it is handed,
+returning `E_REVOKED`. `verifyAction` continues to evaluate the whole chain
+against the action's effective time; its internal `verifyDelegation` call
+forwards `skipRevocationCheck: true` deliberately, because a per-link check
+there would use the wrong clock and double-report.
+
 ## [Unreleased]
 
 - _(no pending changes)_

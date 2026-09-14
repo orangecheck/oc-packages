@@ -48,6 +48,24 @@ export interface VerifyBase {
     verifyBip322?: (msg: string, signatureB64: string, address: string) => Promise<boolean>;
     skipSignatureVerification?: boolean;
     scopeMode?: ValidationOptions['mode'];
+    /**
+     * Verify WITHOUT consulting revocation feeds. Required to be explicit.
+     *
+     * SECURITY §7 item 7: "Query revocation feeds (Nostr kind-30085 by
+     * `#delegation`) for the cited delegation id before reporting OK, **unless
+     * the caller explicitly opts out**." The default was inverted — revocations
+     * were checked only when supplied, and omitting them skipped the check
+     * silently, so "checked, clean" was indistinguishable from "never checked".
+     *
+     * This library has no network by design, so the caller fetches the feed and
+     * passes `revocations`. Declining to is a decision they must state.
+     */
+    skipRevocationCheck?: boolean;
+    /**
+     * Revocations to evaluate against the delegation (or, for an action, every
+     * link in its chain). Fetch these from kind-30085 by `#delegation`.
+     */
+    revocations?: RevocationEnvelope[];
 }
 
 export class AgentError extends Error {
@@ -204,6 +222,31 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
         if (!ok) return err('E_BAD_SIG', 'BIP-322 signature did not verify');
     }
 
+    // Revocation. SECURITY §7 item 7 — check unless the caller states otherwise.
+    // Before this, verifyDelegation had NO revocations parameter at all: a
+    // revoked delegation returned ok:true and a caller had no way to say
+    // otherwise.
+    if (!input.skipRevocationCheck && !input.revocations) {
+        return err(
+            'E_MALFORMED',
+            'verifyDelegation requires `revocations` (fetch kind-30085 by #delegation) or an ' +
+                'explicit skipRevocationCheck:true to state that revocation is not being checked',
+        );
+    }
+    if (input.revocations) {
+        for (const rev of input.revocations) {
+            if (rev.delegation_id !== env.id) continue;
+            const rr = await verifyRevocation({
+                envelope: rev,
+                delegation: env,
+                verifyBip322: input.verifyBip322,
+                skipSignatureVerification: input.skipSignatureVerification,
+            });
+            if (!rr.ok) continue; // a malformed revocation revokes nothing
+            return err('E_REVOKED', `delegation ${env.id} was revoked by ${rev.id}`);
+        }
+    }
+
     // Temporal.
     if (!input.skipTemporalCheck) {
         const now = input.now ?? new Date();
@@ -254,12 +297,6 @@ export interface VerifyActionInput extends VerifyBase {
      * E_SUBDELEGATION_DEPTH_EXCEEDED before any per-link work is performed.
      */
     maxChainDepth?: number;
-    /**
-     * Known revocations targeting any envelope in the chain (root + each
-     * subdelegation). The verifier checks every link per SUB-DELEGATION.md §2.2
-     * step 5 — a revocation against ANY link invalidates the action.
-     */
-    revocations?: RevocationEnvelope[];
     content?: Uint8Array;
     verifyOtsAnchor?: (proofB64: string, blockHeight: number, blockHash: string) => Promise<boolean>;
     /** If action and revocation are both OTS-anchored, pass a function that returns the comparable block height of each via proof parsing. Defaults: use envelope.ots.block_height. */
@@ -301,6 +338,12 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         skipSignatureVerification: input.skipSignatureVerification,
         scopeMode: input.scopeMode,
         skipTemporalCheck: true, // action window check dominates
+        // Revocation is evaluated ONCE, below, across every link in the chain
+        // (root + subdelegations) against the action's effective time — a
+        // per-link check here would use the wrong clock and would also
+        // double-report. Forward the caller's decision so this inner call does
+        // not trip the fail-closed guard.
+        skipRevocationCheck: true,
         ...(input.decryptScopesWith ? { decryptScopesWith: input.decryptScopesWith } : {}),
     });
     if (!dr.ok) return dr;
@@ -395,6 +438,13 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
     // 6. Revocation check — applies per-link to ALL envelopes in the chain
     //    (root + every subdelegation). Per SUB-DELEGATION.md §2.2 step 5, a
     //    revocation against ANY link invalidates the action.
+    if (!input.skipRevocationCheck && !input.revocations) {
+        return err(
+            'E_MALFORMED',
+            'verifyAction requires `revocations` (fetch kind-30085 by #delegation for every link ' +
+                'in the chain) or an explicit skipRevocationCheck:true',
+        );
+    }
     if (input.revocations && input.revocations.length > 0) {
         const allLinks: ChainLink[] = [rootHydrated, ...hydratedChain];
         for (const link of allLinks) {

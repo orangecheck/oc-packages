@@ -118,7 +118,7 @@ describe('verifyDelegation with v1.2 scopes_encrypted', () => {
         const env = await buildPrivateEnvelope(['ln:send(max_sats<=100)']);
         // Inject a public scopes field too — illegal.
         const both = { ...env, scopes: ['ln:send(max_sats<=100)'] } as DelegationEnvelope;
-        const r = await verifyDelegation({ envelope: both, skipSignatureVerification: true });
+        const r = await verifyDelegation({ envelope: both, skipSignatureVerification: true, skipRevocationCheck: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_SCOPES_BOTH_PROVIDED');
     });
@@ -127,14 +127,14 @@ describe('verifyDelegation with v1.2 scopes_encrypted', () => {
         const env = await buildPrivateEnvelope(['ln:send(max_sats<=100)']);
         const neither = { ...env } as DelegationEnvelope;
         delete neither.scopes_encrypted;
-        const r = await verifyDelegation({ envelope: neither, skipSignatureVerification: true });
+        const r = await verifyDelegation({ envelope: neither, skipSignatureVerification: true, skipRevocationCheck: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_SCOPES_NEITHER_PROVIDED');
     });
 
     it('returns E_SCOPES_UNREADABLE when no decryption key is supplied', async () => {
         const env = await buildPrivateEnvelope(['ln:send(max_sats<=100)']);
-        const r = await verifyDelegation({ envelope: env, skipSignatureVerification: true });
+        const r = await verifyDelegation({ envelope: env, skipSignatureVerification: true, skipRevocationCheck: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_SCOPES_UNREADABLE');
     });
@@ -144,6 +144,7 @@ describe('verifyDelegation with v1.2 scopes_encrypted', () => {
             'ln:send(max_sats<=100)',
         ]);
         const r = await verifyDelegation({
+                    skipRevocationCheck: true,
             envelope,
             skipSignatureVerification: true,
             decryptScopesWith: { device_id: 'agent', secretKey: agentSecret },

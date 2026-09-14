@@ -81,6 +81,7 @@ d('federation delegation vectors (v19–v24, v26)', () => {
                           ...opts,
                       })
                     : await verifyDelegation({
+                    skipRevocationCheck: true,
                           envelope: env as DelegationEnvelope,
                           skipSignatureVerification: true,
                           skipTemporalCheck: true,

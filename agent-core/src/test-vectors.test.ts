@@ -262,6 +262,7 @@ describe('oc-agent-protocol test vectors', () => {
         it(`${name} — declared envelope passes verify() with skipSignatureVerification`, async () => {
             if (data.kind === 'delegation') {
                 const r = await verifyDelegation({
+                    skipRevocationCheck: true,
                     envelope: data.expected.envelope,
                     skipSignatureVerification: true,
                     skipTemporalCheck: true,
@@ -273,6 +274,7 @@ describe('oc-agent-protocol test vectors', () => {
                     throw new Error(`action vector ${name} references missing delegation ${data.inputs.delegation_id}`);
                 }
                 const r = await verifyAction({
+                    skipRevocationCheck: true,
                     action: data.expected.envelope,
                     delegation,
                     skipSignatureVerification: true,
@@ -454,6 +456,7 @@ describe('oc-agent-protocol negative test vectors', () => {
                     sig: { alg: 'bip322', pubkey: v.inputs.address, value: 'AAAA' },
                 };
                 const r = await verifyAction({
+                    skipRevocationCheck: true,
                     action,
                     delegation,
                     skipSignatureVerification: true,
@@ -704,6 +707,7 @@ describe('oc-agent-protocol private-scope vectors (v1.2)', () => {
                     );
                 }
                 const r = await verifyDelegation({
+                    skipRevocationCheck: true,
                     envelope: env,
                     skipSignatureVerification: true,
                     skipTemporalCheck: true,
@@ -721,6 +725,7 @@ describe('oc-agent-protocol private-scope vectors (v1.2)', () => {
             } else {
                 const negative = data as PrivateScopeNegativeVector;
                 const r = await verifyDelegation({
+                    skipRevocationCheck: true,
                     envelope: env,
                     skipSignatureVerification: true,
                     skipTemporalCheck: true,
