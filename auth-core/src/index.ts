@@ -14,17 +14,17 @@
  */
 
 import {
-    importJWK,
-    jwtVerify,
-    SignJWT,
-    type CryptoKey,
-    type JWTPayload,
-    type KeyObject,
-} from 'jose';
+  importJWK,
+  jwtVerify,
+  SignJWT,
+  type CryptoKey,
+  type JWTPayload,
+  type KeyObject,
+} from "jose";
 
-export const JWT_ALG = 'EdDSA' as const;
-export const SESSION_COOKIE = 'oc_session' as const;
-export const DEFAULT_ISSUER = 'https://ochk.io' as const;
+export const JWT_ALG = "EdDSA" as const;
+export const SESSION_COOKIE = "oc_session" as const;
+export const DEFAULT_ISSUER = "https://ochk.io" as const;
 
 export type AuthKey = CryptoKey | KeyObject;
 
@@ -34,7 +34,7 @@ export type AuthKey = CryptoKey | KeyObject;
  * and the ultimate fallback); the other three are linked identities
  * the user may or may not have.
  */
-export const DISPLAY_IDENTITY_KINDS = ['did', 'btc', 'email', 'nostr'] as const;
+export const DISPLAY_IDENTITY_KINDS = ["did", "btc", "email", "nostr"] as const;
 export type DisplayIdentityKind = (typeof DISPLAY_IDENTITY_KINDS)[number];
 
 /**
@@ -49,123 +49,123 @@ export type DisplayIdentityKind = (typeof DISPLAY_IDENTITY_KINDS)[number];
  * set — so an unrelated email never enters the token.
  */
 export interface DisplayIdentity {
-    kind: DisplayIdentityKind;
-    value: string;
+  kind: DisplayIdentityKind;
+  value: string;
 }
 
 export interface SessionPayload extends JWTPayload {
-    sub: string;
-    /**
-     * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
-     * canonical user identifier post auth-refactor. Stable across
-     * linking events. Per AUTH-REFACTOR-PLAN.md §2.1.
-     */
-    did_oc: string;
-    jti: string;
-    /**
-     * Optional display name set by the user via the auth host's profile
-     * surface. When present, consumer subdomains can render it in their
-     * header chip without a network round-trip. Re-minted on signin and
-     * whenever the user updates their profile.
-     */
-    name?: string | null;
-    /** Optional Nostr npub set by the user. Same lifecycle as `name`. */
-    npub?: string | null;
-    /**
-     * Slug of the federation this user is bound to (their "home"
-     * federation). Multi-federation routing reads this; v1 has one live
-     * federation so it's set on first signin and rarely changes. Absent
-     * on tokens minted before this field shipped, and on accounts that
-     * have never bound to a federation. Consumers fall back to the
-     * directory default at /api/federations when absent.
-     */
-    home_federation?: string | null;
-    /**
-     * Discriminator recording where this user is on the custody-state
-     * graph. Three legitimate states:
-     *
-     *   - 'fedimint_threshold' — federation custody via the OC-introduced
-     *     federation (default for email-OTP signups; OC's threshold
-     *     guardians hold key shares).
-     *   - 'fedimint_client'    — user moved their balance to a Fedimint
-     *     federation they picked themselves (still federation custody,
-     *     but on a federation OC didn't introduce).
-     *   - 'bip322'             — full self-custody. The user signs with
-     *     their own Bitcoin key. OC has zero authority over their funds.
-     *
-     * Graduation is the product thesis. This field is the structural
-     * primitive that records progress along the custody-state graph;
-     * transitions are recorded as anchored "rebind" envelopes. Absent
-     * on tokens minted before the field shipped — consumers should
-     * treat undefined as 'fedimint_threshold' for email-OTP identities
-     * and 'bip322' for BIP-322 identities (the default-by-construction
-     * mapping).
-     */
-    signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
-    /**
-     * Historical did_ocs consolidated INTO this account via the
-     * /api/auth/link/btc transfer-under-dual-proof flow. Consumers that
-     * aggregate per-user data should union queries across
-     * `[did_oc, ...merged_from]`. Absent / empty means "no absorbed
-     * accounts." Order is not significant.
-     */
-    merged_from?: string[];
-    /**
-     * Unix seconds when the user last successfully completed a WebAuthn
-     * step-up assertion on the auth host. Consumer subdomains gate
-     * sensitive actions on `(now - step_up_at) < their_window` —
-     * typically 5 minutes. Absent on JWTs minted before WebAuthn
-     * shipped, or on tokens minted by ordinary signin (only set by
-     * /api/auth/webauthn/assertion/verify on success). Use
-     * `verifyStepUpClaim()` to read it safely.
-     */
-    step_up_at?: number;
-    /**
-     * Unix seconds when the user last successfully completed an inline
-     * sudo-mode re-authentication on the auth host (email-OTP for
-     * email-primary identities, BIP-322 challenge for btc-primary
-     * identities). Gates auth-graph-mutating operations — register an
-     * additional WebAuthn credential, revoke one, link a new identity,
-     * change recovery method — without forcing a full sign-out/sign-in.
-     * Same shape and freshness window posture as `step_up_at`; the two
-     * are independent claims (sudo proves "you typed your password
-     * again," step-up proves "you tapped your hardware key"). Read it
-     * with `verifySudoClaim()`.
-     */
-    sudo_at?: number;
-    /**
-     * Optional best-effort owner flag · set by the auth host at signin
-     * time when the new did_oc matches OWNER_OC_ADDRESSES. Surfaced
-     * through to clients via `useOcSession().account.isOwner` so the
-     * family-switcher and other low-stakes UX can render owner-only
-     * affordances (e.g. an analytics.ochk.io entry).
-     *
-     * **NOT A SECURITY BOUNDARY.** Sensitive surfaces still re-check
-     * the live `OWNER_OC_ADDRESSES` env against `session.did_oc` on
-     * every request (analytics.ochk.io's requireOwner does this).
-     * If an owner is removed from the env, their JWT may still carry
-     * `is_owner: true` for up to 30 days — the UX hint goes stale,
-     * but every gated action they attempt re-fails server-side.
-     *
-     * Treat absence as `false`. Set only on first signin or re-issue;
-     * never mutated mid-session.
-     */
-    is_owner?: boolean;
-    /**
-     * The identity the user has chosen to show in their account badge
-     * — the collapsed label every family site (and any integrator)
-     * renders instead of the raw `did:oc`. Baked into the JWT so the
-     * choice is consistent across every `.ochk.io` subdomain with no
-     * round-trip, the same posture as `name` / `npub`.
-     *
-     * Re-resolved by the auth host on every mint: an explicit user
-     * promotion wins; absent that, it defaults to the account's
-     * sign-in identity (BIP-322 accounts → their Bitcoin address,
-     * federation accounts → their email). Absent / null on tokens
-     * minted before this field shipped — consumers fall back to the
-     * `did_oc`. Read it safely with `resolveDisplayIdentity()`.
-     */
-    display_identity?: DisplayIdentity | null;
+  sub: string;
+  /**
+   * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
+   * canonical user identifier post auth-refactor. Stable across
+   * linking events. Per AUTH-REFACTOR-PLAN.md §2.1.
+   */
+  did_oc: string;
+  jti: string;
+  /**
+   * Optional display name set by the user via the auth host's profile
+   * surface. When present, consumer subdomains can render it in their
+   * header chip without a network round-trip. Re-minted on signin and
+   * whenever the user updates their profile.
+   */
+  name?: string | null;
+  /** Optional Nostr npub set by the user. Same lifecycle as `name`. */
+  npub?: string | null;
+  /**
+   * Slug of the federation this user is bound to (their "home"
+   * federation). Multi-federation routing reads this; v1 has one live
+   * federation so it's set on first signin and rarely changes. Absent
+   * on tokens minted before this field shipped, and on accounts that
+   * have never bound to a federation. Consumers fall back to the
+   * directory default at /api/federations when absent.
+   */
+  home_federation?: string | null;
+  /**
+   * Discriminator recording where this user is on the custody-state
+   * graph. Three legitimate states:
+   *
+   *   - 'fedimint_threshold' — federation custody via the OC-introduced
+   *     federation (default for email-OTP signups; OC's threshold
+   *     guardians hold key shares).
+   *   - 'fedimint_client'    — user moved their balance to a Fedimint
+   *     federation they picked themselves (still federation custody,
+   *     but on a federation OC didn't introduce).
+   *   - 'bip322'             — full self-custody. The user signs with
+   *     their own Bitcoin key. OC has zero authority over their funds.
+   *
+   * Graduation is the product thesis. This field is the structural
+   * primitive that records progress along the custody-state graph;
+   * transitions are recorded as anchored "rebind" envelopes. Absent
+   * on tokens minted before the field shipped — consumers should
+   * treat undefined as 'fedimint_threshold' for email-OTP identities
+   * and 'bip322' for BIP-322 identities (the default-by-construction
+   * mapping).
+   */
+  signing_method?: "fedimint_threshold" | "fedimint_client" | "bip322" | null;
+  /**
+   * Historical did_ocs consolidated INTO this account via the
+   * /api/auth/link/btc transfer-under-dual-proof flow. Consumers that
+   * aggregate per-user data should union queries across
+   * `[did_oc, ...merged_from]`. Absent / empty means "no absorbed
+   * accounts." Order is not significant.
+   */
+  merged_from?: string[];
+  /**
+   * Unix seconds when the user last successfully completed a WebAuthn
+   * step-up assertion on the auth host. Consumer subdomains gate
+   * sensitive actions on `(now - step_up_at) < their_window` —
+   * typically 5 minutes. Absent on JWTs minted before WebAuthn
+   * shipped, or on tokens minted by ordinary signin (only set by
+   * /api/auth/webauthn/assertion/verify on success). Use
+   * `verifyStepUpClaim()` to read it safely.
+   */
+  step_up_at?: number;
+  /**
+   * Unix seconds when the user last successfully completed an inline
+   * sudo-mode re-authentication on the auth host (email-OTP for
+   * email-primary identities, BIP-322 challenge for btc-primary
+   * identities). Gates auth-graph-mutating operations — register an
+   * additional WebAuthn credential, revoke one, link a new identity,
+   * change recovery method — without forcing a full sign-out/sign-in.
+   * Same shape and freshness window posture as `step_up_at`; the two
+   * are independent claims (sudo proves "you typed your password
+   * again," step-up proves "you tapped your hardware key"). Read it
+   * with `verifySudoClaim()`.
+   */
+  sudo_at?: number;
+  /**
+   * Optional best-effort owner flag · set by the auth host at signin
+   * time when the new did_oc matches OWNER_OC_ADDRESSES. Surfaced
+   * through to clients via `useOcSession().account.isOwner` so the
+   * family-switcher and other low-stakes UX can render owner-only
+   * affordances (e.g. an analytics.ochk.io entry).
+   *
+   * **NOT A SECURITY BOUNDARY.** Sensitive surfaces still re-check
+   * the live `OWNER_OC_ADDRESSES` env against `session.did_oc` on
+   * every request (analytics.ochk.io's requireOwner does this).
+   * If an owner is removed from the env, their JWT may still carry
+   * `is_owner: true` for up to 30 days — the UX hint goes stale,
+   * but every gated action they attempt re-fails server-side.
+   *
+   * Treat absence as `false`. Set only on first signin or re-issue;
+   * never mutated mid-session.
+   */
+  is_owner?: boolean;
+  /**
+   * The identity the user has chosen to show in their account badge
+   * — the collapsed label every family site (and any integrator)
+   * renders instead of the raw `did:oc`. Baked into the JWT so the
+   * choice is consistent across every `.ochk.io` subdomain with no
+   * round-trip, the same posture as `name` / `npub`.
+   *
+   * Re-resolved by the auth host on every mint: an explicit user
+   * promotion wins; absent that, it defaults to the account's
+   * sign-in identity (BIP-322 accounts → their Bitcoin address,
+   * federation accounts → their email). Absent / null on tokens
+   * minted before this field shipped — consumers fall back to the
+   * `did_oc`. Read it safely with `resolveDisplayIdentity()`.
+   */
+  display_identity?: DisplayIdentity | null;
 }
 
 /**
@@ -187,14 +187,14 @@ export interface SessionPayload extends JWTPayload {
  * (5 min); higher-value spends might use 60s.
  */
 export function verifyStepUpClaim(
-    payload: SessionPayload,
-    opts: { max_age_secs: number }
+  payload: SessionPayload,
+  opts: { max_age_secs: number },
 ): boolean {
-    if (typeof payload.step_up_at !== 'number') return false;
-    if (!Number.isFinite(payload.step_up_at)) return false;
-    if (opts.max_age_secs <= 0) return false;
-    const ageSec = Math.floor(Date.now() / 1000) - payload.step_up_at;
-    return ageSec >= 0 && ageSec < opts.max_age_secs;
+  if (typeof payload.step_up_at !== "number") return false;
+  if (!Number.isFinite(payload.step_up_at)) return false;
+  if (opts.max_age_secs <= 0) return false;
+  const ageSec = Math.floor(Date.now() / 1000) - payload.step_up_at;
+  return ageSec >= 0 && ageSec < opts.max_age_secs;
 }
 
 /**
@@ -214,14 +214,14 @@ export function verifyStepUpClaim(
  * minutes; tighten per-operation as needed.
  */
 export function verifySudoClaim(
-    payload: SessionPayload,
-    opts: { max_age_secs: number }
+  payload: SessionPayload,
+  opts: { max_age_secs: number },
 ): boolean {
-    if (typeof payload.sudo_at !== 'number') return false;
-    if (!Number.isFinite(payload.sudo_at)) return false;
-    if (opts.max_age_secs <= 0) return false;
-    const ageSec = Math.floor(Date.now() / 1000) - payload.sudo_at;
-    return ageSec >= 0 && ageSec < opts.max_age_secs;
+  if (typeof payload.sudo_at !== "number") return false;
+  if (!Number.isFinite(payload.sudo_at)) return false;
+  if (opts.max_age_secs <= 0) return false;
+  const ageSec = Math.floor(Date.now() / 1000) - payload.sudo_at;
+  return ageSec >= 0 && ageSec < opts.max_age_secs;
 }
 
 /**
@@ -237,80 +237,90 @@ export function verifySudoClaim(
  * This is the single resolver both `<OcAccountMenu>` and integrators
  * building their own chip should call.
  */
-export function resolveDisplayIdentity(payload: SessionPayload): DisplayIdentity {
-    const claim = payload.display_identity;
-    if (
-        claim &&
-        typeof claim === 'object' &&
-        typeof claim.value === 'string' &&
-        claim.value.length > 0 &&
-        (DISPLAY_IDENTITY_KINDS as readonly string[]).includes(claim.kind)
-    ) {
-        return { kind: claim.kind, value: claim.value };
-    }
-    return { kind: 'did', value: payload.did_oc };
+export function resolveDisplayIdentity(
+  payload: SessionPayload,
+): DisplayIdentity {
+  const claim = payload.display_identity;
+  if (
+    claim &&
+    typeof claim === "object" &&
+    typeof claim.value === "string" &&
+    claim.value.length > 0 &&
+    (DISPLAY_IDENTITY_KINDS as readonly string[]).includes(claim.kind)
+  ) {
+    return { kind: claim.kind, value: claim.value };
+  }
+  return { kind: "did", value: payload.did_oc };
 }
 
 export interface VerifyConfig {
-    /** Base64url-encoded JWK containing the Ed25519 public key. */
-    publicJwk: string;
-    /** Expected `iss` claim. Tokens with a different issuer are rejected. */
-    issuer?: string;
+  /** Base64url-encoded JWK containing the Ed25519 public key. */
+  publicJwk: string;
+  /** Expected `iss` claim. Tokens with a different issuer are rejected. */
+  issuer?: string;
 }
 
 export interface SignConfig extends VerifyConfig {
-    /** Base64url-encoded JWK containing the Ed25519 private key. */
-    privateJwk: string;
-    /** Short key id placed in the JWT header (`kid`). Must match the JWK. */
-    kid: string;
+  /** Base64url-encoded JWK containing the Ed25519 private key. */
+  privateJwk: string;
+  /** Short key id placed in the JWT header (`kid`). Must match the JWK. */
+  kid: string;
 }
 
 // ─── JWK helpers ────────────────────────────────────────────────────────
 
 function decodeJwk(value: string): Record<string, unknown> {
-    const json =
-        typeof Buffer !== 'undefined'
-            ? Buffer.from(value, 'base64url').toString('utf8')
-            : new TextDecoder().decode(base64UrlDecode(value));
-    const parsed = JSON.parse(json) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== 'object') {
-        throw new Error('[@orangecheck/auth-core] JWK env did not decode to an object');
-    }
-    return parsed;
+  const json =
+    typeof Buffer !== "undefined"
+      ? Buffer.from(value, "base64url").toString("utf8")
+      : new TextDecoder().decode(base64UrlDecode(value));
+  const parsed = JSON.parse(json) as Record<string, unknown>;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(
+      "[@orangecheck/auth-core] JWK env did not decode to an object",
+    );
+  }
+  return parsed;
 }
 
 function base64UrlDecode(input: string): Uint8Array {
-    const pad = input.length % 4 === 0 ? '' : '='.repeat(4 - (input.length % 4));
-    const b64 = (input + pad).replace(/-/g, '+').replace(/_/g, '/');
-    const bin = typeof atob !== 'undefined' ? atob(b64) : '';
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
+  const pad = input.length % 4 === 0 ? "" : "=".repeat(4 - (input.length % 4));
+  const b64 = (input + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const bin = typeof atob !== "undefined" ? atob(b64) : "";
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
 }
 
 let publicKeyPromise: Promise<AuthKey> | null = null;
 let publicKeyCache: string | null = null;
 export function loadPublicKey(publicJwk: string): Promise<AuthKey> {
-    if (!publicKeyPromise || publicKeyCache !== publicJwk) {
-        publicKeyCache = publicJwk;
-        publicKeyPromise = importJWK(decodeJwk(publicJwk), JWT_ALG) as Promise<AuthKey>;
-    }
-    return publicKeyPromise;
+  if (!publicKeyPromise || publicKeyCache !== publicJwk) {
+    publicKeyCache = publicJwk;
+    publicKeyPromise = importJWK(
+      decodeJwk(publicJwk),
+      JWT_ALG,
+    ) as Promise<AuthKey>;
+  }
+  return publicKeyPromise;
 }
 
 let privateKeyPromise: Promise<AuthKey> | null = null;
 let privateKeyCache: string | null = null;
 export function loadPrivateKey(privateJwk: string): Promise<AuthKey> {
-    if (!privateKeyPromise || privateKeyCache !== privateJwk) {
-        privateKeyCache = privateJwk;
-        privateKeyPromise = importJWK(decodeJwk(privateJwk), JWT_ALG) as Promise<AuthKey>;
-    }
-    return privateKeyPromise;
+  if (!privateKeyPromise || privateKeyCache !== privateJwk) {
+    privateKeyCache = privateJwk;
+    privateKeyPromise = importJWK(
+      decodeJwk(privateJwk),
+      JWT_ALG,
+    ) as Promise<AuthKey>;
+  }
+  return privateKeyPromise;
 }
 
 /** Parse the `OC_AUTH_PUBLIC_JWK` env var back into a JWK object. */
 export function parsePublicJwk(publicJwk: string): Record<string, unknown> {
-    return decodeJwk(publicJwk);
+  return decodeJwk(publicJwk);
 }
 
 // ─── Sign / verify ──────────────────────────────────────────────────────
@@ -323,31 +333,31 @@ export function parsePublicJwk(publicJwk: string): Record<string, unknown> {
  * revocation semantics — auth-core is deliberately stateless.
  */
 export async function signSession(
-    claims: {
-        sub: string;
-        did_oc: string;
-        jti: string;
-        name?: string | null;
-        npub?: string | null;
-        home_federation?: string | null;
-        signing_method?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
-        merged_from?: string[];
-        step_up_at?: number;
-        sudo_at?: number;
-        display_identity?: DisplayIdentity | null;
-    },
-    cfg: SignConfig,
-    ttlSeconds: number
+  claims: {
+    sub: string;
+    did_oc: string;
+    jti: string;
+    name?: string | null;
+    npub?: string | null;
+    home_federation?: string | null;
+    signing_method?: "fedimint_threshold" | "fedimint_client" | "bip322" | null;
+    merged_from?: string[];
+    step_up_at?: number;
+    sudo_at?: number;
+    display_identity?: DisplayIdentity | null;
+  },
+  cfg: SignConfig,
+  ttlSeconds: number,
 ): Promise<string> {
-    const now = Math.floor(Date.now() / 1000);
-    // did_oc is the sole user identifier. The legacy `addr` shim that
-    // mirrored did_oc was dropped in v2.0.0 along with the type field.
-    return new SignJWT(claims)
-        .setProtectedHeader({ alg: JWT_ALG, typ: 'JWT', kid: cfg.kid })
-        .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)
-        .setIssuedAt(now)
-        .setExpirationTime(now + ttlSeconds)
-        .sign(await loadPrivateKey(cfg.privateJwk));
+  const now = Math.floor(Date.now() / 1000);
+  // did_oc is the sole user identifier. The legacy `addr` shim that
+  // mirrored did_oc was dropped in v2.0.0 along with the type field.
+  return new SignJWT(claims)
+    .setProtectedHeader({ alg: JWT_ALG, typ: "JWT", kid: cfg.kid })
+    .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)
+    .setIssuedAt(now)
+    .setExpirationTime(now + ttlSeconds)
+    .sign(await loadPrivateKey(cfg.privateJwk));
 }
 
 /**
@@ -358,32 +368,32 @@ export async function signSession(
  * Revocation-aware checks live on the auth host.
  */
 export async function verifySessionToken(
-    token: string,
-    cfg: VerifyConfig
+  token: string,
+  cfg: VerifyConfig,
 ): Promise<SessionPayload | null> {
-    try {
-        const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
-            algorithms: [JWT_ALG],
-            issuer: cfg.issuer ?? DEFAULT_ISSUER,
-        });
-        const p = res.payload as SessionPayload;
-        if (!p.sub || !p.did_oc || !p.jti) return null;
-        return p;
-    } catch {
-        return null;
-    }
+  try {
+    const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
+      algorithms: [JWT_ALG],
+      issuer: cfg.issuer ?? DEFAULT_ISSUER,
+    });
+    const p = res.payload as SessionPayload;
+    if (!p.sub || !p.did_oc || !p.jti) return null;
+    return p;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Cookie helpers ─────────────────────────────────────────────────────
 
 export interface CookieOptions {
-    domain?: string;
-    maxAge?: number;
-    expires?: Date;
-    path?: string;
-    secure?: boolean;
-    httpOnly?: boolean;
-    sameSite?: 'Lax' | 'Strict' | 'None';
+  domain?: string;
+  maxAge?: number;
+  expires?: Date;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "Lax" | "Strict" | "None";
 }
 
 /**
@@ -391,44 +401,48 @@ export interface CookieOptions {
  * ochk.io session shape: HttpOnly, SameSite=Lax, Path=/, Secure in prod.
  */
 export function serializeSessionCookie(
-    token: string,
-    opts: CookieOptions = {}
+  token: string,
+  opts: CookieOptions = {},
 ): string {
-    const parts: string[] = [`${SESSION_COOKIE}=${token}`];
-    parts.push(`Path=${opts.path ?? '/'}`);
-    if (opts.httpOnly ?? true) parts.push('HttpOnly');
-    parts.push(`SameSite=${opts.sameSite ?? 'Lax'}`);
-    if (opts.secure ?? true) parts.push('Secure');
-    if (opts.domain) parts.push(`Domain=${opts.domain}`);
-    if (opts.maxAge != null) parts.push(`Max-Age=${opts.maxAge}`);
-    if (opts.expires) parts.push(`Expires=${opts.expires.toUTCString()}`);
-    return parts.join('; ');
+  const parts: string[] = [`${SESSION_COOKIE}=${token}`];
+  parts.push(`Path=${opts.path ?? "/"}`);
+  if (opts.httpOnly ?? true) parts.push("HttpOnly");
+  parts.push(`SameSite=${opts.sameSite ?? "Lax"}`);
+  if (opts.secure ?? true) parts.push("Secure");
+  if (opts.domain) parts.push(`Domain=${opts.domain}`);
+  if (opts.maxAge != null) parts.push(`Max-Age=${opts.maxAge}`);
+  if (opts.expires) parts.push(`Expires=${opts.expires.toUTCString()}`);
+  return parts.join("; ");
 }
 
 /** Clear the session cookie. Must match the Domain used when it was set. */
-export function clearSessionCookieHeader(opts: Pick<CookieOptions, 'domain' | 'path' | 'secure'> = {}): string {
-    return serializeSessionCookie('', {
-        ...opts,
-        maxAge: 0,
-        expires: new Date(0),
-    });
+export function clearSessionCookieHeader(
+  opts: Pick<CookieOptions, "domain" | "path" | "secure"> = {},
+): string {
+  return serializeSessionCookie("", {
+    ...opts,
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
 
 /**
  * Read the oc_session token out of a raw `Cookie:` header string.
  * Returns `null` if the cookie is missing or empty.
  */
-export function readSessionCookie(cookieHeader: string | null | undefined): string | null {
-    if (!cookieHeader) return null;
-    const prefix = `${SESSION_COOKIE}=`;
-    for (const part of cookieHeader.split(';')) {
-        const trimmed = part.trim();
-        if (trimmed.startsWith(prefix)) {
-            const val = trimmed.slice(prefix.length);
-            return val.length > 0 ? val : null;
-        }
+export function readSessionCookie(
+  cookieHeader: string | null | undefined,
+): string | null {
+  if (!cookieHeader) return null;
+  const prefix = `${SESSION_COOKIE}=`;
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      const val = trimmed.slice(prefix.length);
+      return val.length > 0 ? val : null;
     }
-    return null;
+  }
+  return null;
 }
 
 /**
@@ -437,18 +451,20 @@ export function readSessionCookie(cookieHeader: string | null | undefined): stri
  * cookie shadowing the `Domain=.ochk.io` one) — verification should
  * try each rather than trust ordering.
  */
-export function readAllSessionCookies(cookieHeader: string | null | undefined): string[] {
-    if (!cookieHeader) return [];
-    const prefix = `${SESSION_COOKIE}=`;
-    const out: string[] = [];
-    for (const part of cookieHeader.split(';')) {
-        const trimmed = part.trim();
-        if (trimmed.startsWith(prefix)) {
-            const val = trimmed.slice(prefix.length);
-            if (val.length > 0) out.push(val);
-        }
+export function readAllSessionCookies(
+  cookieHeader: string | null | undefined,
+): string[] {
+  if (!cookieHeader) return [];
+  const prefix = `${SESSION_COOKIE}=`;
+  const out: string[] = [];
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      const val = trimmed.slice(prefix.length);
+      if (val.length > 0) out.push(val);
     }
-    return out;
+  }
+  return out;
 }
 
 // ─── Per-tab session resolution (multi-account · tab pinning) ───────────
@@ -463,22 +479,24 @@ export function readAllSessionCookies(cookieHeader: string | null | undefined): 
 // stateless.
 
 /** Header carrying a tab-pinned session JWT. Lowercase (Node folds headers). */
-export const TAB_SESSION_HEADER = 'x-oc-tab-session' as const;
+export const TAB_SESSION_HEADER = "x-oc-tab-session" as const;
 
 export type ResolveSessionResult =
-    | { ok: true; payload: SessionPayload; via: 'tab' | 'cookie' }
-    | { ok: false; reason: 'tab_invalid' | 'no_session' };
+  | { ok: true; payload: SessionPayload; via: "tab" | "cookie" }
+  | { ok: false; reason: "tab_invalid" | "no_session" };
 
 /** Header bag shapes accepted by {@link resolveSessionFromRequest}. */
 export type IncomingRequestHeaders =
-    | Headers
-    | Record<string, string | string[] | undefined>;
+  Headers | Record<string, string | string[] | undefined>;
 
-function headerValue(headers: IncomingRequestHeaders, name: string): string | null {
-    if (isHeaders(headers)) return headers.get(name);
-    const raw = headers[name] ?? headers[name.toLowerCase()];
-    if (Array.isArray(raw)) return raw[0] ?? null;
-    return typeof raw === 'string' ? raw : null;
+function headerValue(
+  headers: IncomingRequestHeaders,
+  name: string,
+): string | null {
+  if (isHeaders(headers)) return headers.get(name);
+  const raw = headers[name] ?? headers[name.toLowerCase()];
+  if (Array.isArray(raw)) return raw[0] ?? null;
+  return typeof raw === "string" ? raw : null;
 }
 
 /**
@@ -499,21 +517,21 @@ function headerValue(headers: IncomingRequestHeaders, name: string): string | nu
  * revocation-aware checks remain the auth host's job. Never throws.
  */
 export async function resolveSessionFromRequest(
-    headers: IncomingRequestHeaders,
-    cfg: VerifyConfig
+  headers: IncomingRequestHeaders,
+  cfg: VerifyConfig,
 ): Promise<ResolveSessionResult> {
-    const tabToken = headerValue(headers, TAB_SESSION_HEADER);
-    if (tabToken) {
-        const payload = await verifySessionToken(tabToken, cfg);
-        if (payload) return { ok: true, payload, via: 'tab' };
-        return { ok: false, reason: 'tab_invalid' };
-    }
-    const cookieHeader = headerValue(headers, 'cookie');
-    for (const token of readAllSessionCookies(cookieHeader)) {
-        const payload = await verifySessionToken(token, cfg);
-        if (payload) return { ok: true, payload, via: 'cookie' };
-    }
-    return { ok: false, reason: 'no_session' };
+  const tabToken = headerValue(headers, TAB_SESSION_HEADER);
+  if (tabToken) {
+    const payload = await verifySessionToken(tabToken, cfg);
+    if (payload) return { ok: true, payload, via: "tab" };
+    return { ok: false, reason: "tab_invalid" };
+  }
+  const cookieHeader = headerValue(headers, "cookie");
+  for (const token of readAllSessionCookies(cookieHeader)) {
+    const payload = await verifySessionToken(token, cfg);
+    if (payload) return { ok: true, payload, via: "cookie" };
+  }
+  return { ok: false, reason: "no_session" };
 }
 
 // ─── JWKS-aware verification (zero env vars · zero JWK handling) ─────────
@@ -528,91 +546,115 @@ export async function resolveSessionFromRequest(
 const DEFAULT_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 interface JwksCacheEntry {
-    keys: Record<string, AuthKey>;
-    fetchedAt: number;
+  keys: Record<string, AuthKey>;
+  fetchedAt: number;
 }
 
 const jwksCache = new Map<string, JwksCacheEntry>();
 const inflight = new Map<string, Promise<JwksCacheEntry>>();
 
+/**
+ * When each issuer last had its cache force-refreshed by an unrecognised
+ * `kid`, and how long that path must wait before doing it again.
+ *
+ * Without this, a token carrying any unknown kid makes the verifier drop its
+ * cache and fetch the JWKS again — so a stream of tokens with random kids turns
+ * every integrator's server into a refetch amplifier pointed at the auth host,
+ * and puts a network round-trip in front of each rejection. `inflight` only
+ * collapses CONCURRENT fetches; sequential requests each got their own.
+ *
+ * A minute is far below any real rotation window, so a genuinely new key is
+ * still picked up promptly — the bust exists for rotation, not for every
+ * malformed token.
+ */
+const lastForcedRefresh = new Map<string, number>();
+const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
+
 interface JwksJson {
-    keys: Array<Record<string, unknown> & { kid?: string }>;
+  keys: Array<Record<string, unknown> & { kid?: string }>;
 }
 
-async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry> {
-    const cached = jwksCache.get(issuer);
-    if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
-    const existing = inflight.get(issuer);
-    if (existing) return existing;
-    const p = (async (): Promise<JwksCacheEntry> => {
+async function fetchJwks(
+  issuer: string,
+  ttlMs: number,
+): Promise<JwksCacheEntry> {
+  const cached = jwksCache.get(issuer);
+  if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
+  const existing = inflight.get(issuer);
+  if (existing) return existing;
+  const p = (async (): Promise<JwksCacheEntry> => {
+    try {
+      const url = `${issuer.replace(/\/$/, "")}/.well-known/jwks.json`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) {
+        throw new Error(
+          `[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`,
+        );
+      }
+      const json = (await res.json()) as JwksJson;
+      if (!json || !Array.isArray(json.keys)) {
+        throw new Error(
+          `[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`,
+        );
+      }
+      const keys: Record<string, AuthKey> = {};
+      for (const k of json.keys) {
+        if (typeof k.kid !== "string") continue;
         try {
-            const url = `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
-            const res = await fetch(url, { headers: { Accept: 'application/json' } });
-            if (!res.ok) {
-                throw new Error(`[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`);
-            }
-            const json = (await res.json()) as JwksJson;
-            if (!json || !Array.isArray(json.keys)) {
-                throw new Error(`[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`);
-            }
-            const keys: Record<string, AuthKey> = {};
-            for (const k of json.keys) {
-                if (typeof k.kid !== 'string') continue;
-                try {
-                    keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
-                } catch {
-                    /* skip keys that won't import for our alg */
-                }
-            }
-            const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
-            jwksCache.set(issuer, entry);
-            return entry;
-        } catch (err) {
-            // Stale-on-error: a transient JWKS outage shouldn't lock out
-            // every consumer. If we have a cache entry — even an expired
-            // one — keep using it until the next successful fetch. Throw
-            // only when we've never seen a usable JWKS.
-            const stale = jwksCache.get(issuer);
-            if (stale) return stale;
-            throw err;
+          keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
+        } catch {
+          /* skip keys that won't import for our alg */
         }
-    })().finally(() => {
-        inflight.delete(issuer);
-    });
-    inflight.set(issuer, p);
-    return p;
+      }
+      const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
+      jwksCache.set(issuer, entry);
+      return entry;
+    } catch (err) {
+      // Stale-on-error: a transient JWKS outage shouldn't lock out
+      // every consumer. If we have a cache entry — even an expired
+      // one — keep using it until the next successful fetch. Throw
+      // only when we've never seen a usable JWKS.
+      const stale = jwksCache.get(issuer);
+      if (stale) return stale;
+      throw err;
+    }
+  })().finally(() => {
+    inflight.delete(issuer);
+  });
+  inflight.set(issuer, p);
+  return p;
 }
 
 function assertSafeIssuer(issuer: string): void {
-    let url: URL;
-    try {
-        url = new URL(issuer);
-    } catch {
-        throw new Error(
-            `[@orangecheck/auth-core] issuer must be an absolute URL, got ${issuer}`
-        );
-    }
-    // Allow http only for loopback / local dev. Any production-shaped
-    // hostname (real DNS) is required to be https — JWKS fetched over
-    // plaintext HTTP is trivially MITM-able and would defeat the whole
-    // verification stack.
-    const isLoopback =
-        url.hostname === 'localhost' ||
-        url.hostname === '127.0.0.1' ||
-        url.hostname === '::1';
-    if (url.protocol !== 'https:' && !isLoopback) {
-        throw new Error(
-            `[@orangecheck/auth-core] issuer must be https (got ${url.protocol}//${url.hostname}); plaintext JWKS is not safe`
-        );
-    }
+  let url: URL;
+  try {
+    url = new URL(issuer);
+  } catch {
+    throw new Error(
+      `[@orangecheck/auth-core] issuer must be an absolute URL, got ${issuer}`,
+    );
+  }
+  // Allow http only for loopback / local dev. Any production-shaped
+  // hostname (real DNS) is required to be https — JWKS fetched over
+  // plaintext HTTP is trivially MITM-able and would defeat the whole
+  // verification stack.
+  const isLoopback =
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "::1";
+  if (url.protocol !== "https:" && !isLoopback) {
+    throw new Error(
+      `[@orangecheck/auth-core] issuer must be https (got ${url.protocol}//${url.hostname}); plaintext JWKS is not safe`,
+    );
+  }
 }
 
 export interface VerifyOcOptions {
-    /** Auth host issuer. Defaults to https://ochk.io. */
-    issuer?: string;
-    /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
-     *  cache exists, verification still works during a transient outage. */
-    jwksCacheTtlMs?: number;
+  /** Auth host issuer. Defaults to https://ochk.io. */
+  issuer?: string;
+  /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
+   *  cache exists, verification still works during a transient outage. */
+  jwksCacheTtlMs?: number;
 }
 
 /**
@@ -630,48 +672,55 @@ export interface VerifyOcOptions {
  * key-rotation overlap window).
  */
 export async function verifyOcToken(
-    token: string,
-    options: VerifyOcOptions = {}
+  token: string,
+  options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
-    const issuer = options.issuer ?? DEFAULT_ISSUER;
-    const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
-    try {
-        assertSafeIssuer(issuer);
-        // Fast path: try the cache. If the kid isn't in the cache (e.g.
-        // brand-new key just rotated in), fall through to a fresh fetch.
-        let entry = await fetchJwks(issuer, ttl);
-        const headerB64 = token.split('.')[0];
-        if (!headerB64) return null;
-        const headerJson =
-            typeof Buffer !== 'undefined'
-                ? Buffer.from(headerB64, 'base64url').toString('utf8')
-                : new TextDecoder().decode(base64UrlDecode(headerB64));
-        const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
-        if (!header.kid) return null;
-        let key = entry.keys[header.kid];
-        if (!key) {
-            // Force a fresh JWKS fetch in case the integrator's cache is
-            // older than the active key set on the auth host.
-            jwksCache.delete(issuer);
-            entry = await fetchJwks(issuer, ttl);
-            key = entry.keys[header.kid];
-        }
-        if (!key) return null;
-        const res = await jwtVerify(token, key, {
-            algorithms: [JWT_ALG],
-            issuer,
-        });
-        const p = res.payload as SessionPayload;
-        if (!p.sub || !p.did_oc || !p.jti) return null;
-        return p;
-    } catch {
-        return null;
+  const issuer = options.issuer ?? DEFAULT_ISSUER;
+  const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
+  try {
+    assertSafeIssuer(issuer);
+    // Fast path: try the cache. If the kid isn't in the cache (e.g.
+    // brand-new key just rotated in), fall through to a fresh fetch.
+    let entry = await fetchJwks(issuer, ttl);
+    const headerB64 = token.split(".")[0];
+    if (!headerB64) return null;
+    const headerJson =
+      typeof Buffer !== "undefined"
+        ? Buffer.from(headerB64, "base64url").toString("utf8")
+        : new TextDecoder().decode(base64UrlDecode(headerB64));
+    const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
+    if (!header.kid) return null;
+    let key = entry.keys[header.kid];
+    if (!key) {
+      // Force a fresh JWKS fetch in case the integrator's cache is older
+      // than the active key set on the auth host — but at most once a
+      // minute per issuer, so an unknown kid cannot be used to drive
+      // unbounded refetches (see lastForcedRefresh).
+      const now = Date.now();
+      const last = lastForcedRefresh.get(issuer) ?? 0;
+      if (now - last >= FORCED_REFRESH_MIN_INTERVAL_MS) {
+        lastForcedRefresh.set(issuer, now);
+        jwksCache.delete(issuer);
+        entry = await fetchJwks(issuer, ttl);
+        key = entry.keys[header.kid];
+      }
     }
+    if (!key) return null;
+    const res = await jwtVerify(token, key, {
+      algorithms: [JWT_ALG],
+      issuer,
+    });
+    const p = res.payload as SessionPayload;
+    if (!p.sub || !p.did_oc || !p.jti) return null;
+    return p;
+  } catch {
+    return null;
+  }
 }
 
 export interface SessionRequestHeaders {
-    cookie?: string | null;
-    authorization?: string | null;
+  cookie?: string | null;
+  authorization?: string | null;
 }
 
 /**
@@ -686,24 +735,40 @@ export interface SessionRequestHeaders {
  * Never throws.
  */
 export async function getOcSession(
-    headers: SessionRequestHeaders | Headers,
-    options: VerifyOcOptions = {}
+  headers: SessionRequestHeaders | Headers,
+  options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
-    const cookie = isHeaders(headers) ? headers.get('cookie') : (headers.cookie ?? null);
-    const authorization = isHeaders(headers)
-        ? headers.get('authorization')
-        : (headers.authorization ?? null);
-    let token = readSessionCookie(cookie);
-    if (!token && typeof authorization === 'string') {
-        const m = /^Bearer\s+(.+)$/i.exec(authorization);
-        if (m) token = m[1]!;
-    }
-    if (!token) return null;
-    return verifyOcToken(token, options);
+  const cookie = isHeaders(headers)
+    ? headers.get("cookie")
+    : (headers.cookie ?? null);
+  const authorization = isHeaders(headers)
+    ? headers.get("authorization")
+    : (headers.authorization ?? null);
+  let token = readSessionCookie(cookie);
+  if (!token && typeof authorization === "string") {
+    const m = /^Bearer\s+(.+)$/i.exec(authorization);
+    if (m) token = m[1]!;
+  }
+  if (!token) return null;
+  return verifyOcToken(token, options);
 }
 
 function isHeaders(value: unknown): value is Headers {
-    return (
-        typeof Headers !== 'undefined' && value !== null && typeof value === 'object' && value instanceof Headers
-    );
+  return (
+    typeof Headers !== "undefined" &&
+    value !== null &&
+    typeof value === "object" &&
+    value instanceof Headers
+  );
+}
+
+/**
+ * Clear the module-level JWKS caches. Test-only — the caches are process-wide
+ * by design (that is the point of them), which makes any test that touches
+ * verification order-dependent without a reset.
+ */
+export function _resetJwksCachesForTests(): void {
+  jwksCache.clear();
+  inflight.clear();
+  lastForcedRefresh.clear();
 }

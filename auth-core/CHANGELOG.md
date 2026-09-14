@@ -11,6 +11,32 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.6.0] — 2026-09-14
+
+### Added
+
+- `_resetJwksCachesForTests()` — the JWKS caches are process-wide by design,
+  which made any test touching verification order-dependent. Test-only.
+
+### Fixed
+
+- **An unrecognised `kid` could force an unbounded number of JWKS refetches.**
+  A miss dropped the cache and fetched again, so a stream of tokens carrying
+  random kids turned every integrator's server into a refetch amplifier pointed
+  at the auth host, and put a network round-trip in front of each rejection.
+  `inflight` only collapses CONCURRENT fetches; sequential requests each got
+  their own. The forced refresh is now at most once a minute per issuer — far
+  below any real rotation window, so a genuinely new key is still picked up on
+  the first miss.
+
+### Tests
+
+- First coverage of the JWKS path. `verifyOcToken` / `getOcSession` are what
+  me-client re-exports and what a third party installs, and no existing test
+  reached them: kid required (no try-every-key fallback), plaintext issuer
+  refused, issuer mismatch rejected, JWKS outage returns null rather than
+  throwing, rotation still picked up, and the refetch bound above.
+
 ## [2.5.0] — 2026-06-11 · per-tab session resolution
 
 Adds the server half of per-tab account pinning (multi-account: one
@@ -19,7 +45,7 @@ one):
 
 - `TAB_SESSION_HEADER` (`x-oc-tab-session`) — the header carrying a
   tab-pinned session JWT. The value is a full session token, a
-  *credential* verified exactly like the cookie token — never a bare
+  _credential_ verified exactly like the cookie token — never a bare
   account selector the server would have to trust.
 - `resolveSessionFromRequest(headers, cfg)` — the per-tab choke point
   every consumer's `readJwtSession` should delegate to. Tab header
@@ -43,7 +69,7 @@ choice renders consistently with no network round-trip.
 
 - `SessionPayload.display_identity?: DisplayIdentity | null` — `{ kind, value }`
   where `kind ∈ {did,btc,email,nostr}` and `value` is the full renderable
-  value. Only the *promoted* identity's value is ever carried, so an
+  value. Only the _promoted_ identity's value is ever carried, so an
   unrelated email never enters the token.
 - New exports: `DisplayIdentity`, `DisplayIdentityKind`,
   `DISPLAY_IDENTITY_KINDS`, and `resolveDisplayIdentity(payload)` — a
