@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/lock-device",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Device-key binding and Nostr kind-30078 directory publication for OC Lock.",
   "keywords": [
     "bitcoin",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@noble/curves": "^1.6.0",
-    "@orangecheck/lock-crypto": "file:../lock-crypto"
+    "@orangecheck/lock-crypto": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

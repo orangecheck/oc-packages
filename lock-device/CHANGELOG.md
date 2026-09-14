@@ -8,6 +8,25 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.2.1] — 2026-09-14
+
+### Fixed — 0.2.0 was uninstallable
+
+`dependencies` carried `"@orangecheck/lock-crypto": "file:../lock-crypto"`, a
+workspace-relative path that only resolves inside this monorepo. 0.1.0 had
+published a proper `^0.1.0` range; the `file:` reference was sitting in the
+working tree and the 0.2.0 publish captured it, so
+`yarn add @orangecheck/lock-device@^0.2.0` failed with *Package "" refers to a
+non-existing file*.
+
+Every other package here declares real ranges — lock-device was the lone
+outlier. The security fix in 0.2.0 therefore reached no consumer; 0.2.1 is that
+same fix, installable.
+
+**Check `dependencies` for `file:` before tagging a release.** A publish
+captures the manifest as it is on disk, so a local-dev convenience becomes a
+broken public artifact.
+
 ## [0.2.0] — 2026-09-12
 
 ### Security — `parseDeviceEvent` read the device key from an unsigned tag
