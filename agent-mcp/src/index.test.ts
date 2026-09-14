@@ -62,7 +62,7 @@ describe('stampInvocation', () => {
             },
         });
         expect(action.content.mime).toBe('application/vnd.oc-agent.mcp-invocation+json');
-        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify });
+        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify, skipRevocationCheck: true });
         expect(r.ok).toBe(true);
     });
 

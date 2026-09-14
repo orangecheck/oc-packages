@@ -182,10 +182,10 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/agent-core@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-2.0.0.tgz#265e9d4bbfa6e1a6f61f2205c3b9fde3663dbd7d"
-  integrity sha512-cEAiuxYCTcixTR+cupKS3xS6uzj2xL45bzCY33zkSCMFMTKHZJ7coqS2ulevwECZNWT5i33oK9Ei63D0oDaZLA==
+"@orangecheck/agent-core@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-2.1.0.tgz#8675525d21d188afcd0a25273edd21529625d990"
+  integrity sha512-afeOOJOk4kpKyP85I4M8DQiF03E7cUU9PbKrEihY1eQ5/+Ow+q/Tqw9+IxSrjn+mFfozKuRY+F9wccxNIQWVeg==
   dependencies:
     "@noble/hashes" "^1.5.0"
     "@orangecheck/lock-core" "^1.0.1"

@@ -189,6 +189,15 @@
     "@orangecheck/lock-core" "^1.0.1"
     "@orangecheck/stamp-core" "^1.0.0"
 
+"@orangecheck/agent-core@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/@orangecheck/agent-core/-/agent-core-2.1.0.tgz#8675525d21d188afcd0a25273edd21529625d990"
+  integrity sha512-afeOOJOk4kpKyP85I4M8DQiF03E7cUU9PbKrEihY1eQ5/+Ow+q/Tqw9+IxSrjn+mFfozKuRY+F9wccxNIQWVeg==
+  dependencies:
+    "@noble/hashes" "^1.5.0"
+    "@orangecheck/lock-core" "^1.0.1"
+    "@orangecheck/stamp-core" "^1.0.0"
+
 "@orangecheck/agent-signer@^0.3.0":
   version "0.3.0"
   resolved "https://registry.npmjs.org/@orangecheck/agent-signer/-/agent-signer-0.3.0.tgz#68961288c8bc1227687cf41bc8b36315a81b2c1a"

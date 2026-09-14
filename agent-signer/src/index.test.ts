@@ -31,7 +31,7 @@ describe('createDelegation', () => {
         expect(envelope.id).toMatch(/^[0-9a-f]{64}$/);
         expect(envelope.scopes).toHaveLength(1);
 
-        const r = await verifyDelegation({ envelope, verifyBip322: fakeVerify });
+        const r = await verifyDelegation({ envelope, verifyBip322: fakeVerify, skipRevocationCheck: true });
         expect(r.ok).toBe(true);
     });
 
@@ -89,6 +89,7 @@ describe('signAsAgent', () => {
         expect(action.delegation_id).toBe(delegation.id);
 
         const r = await verifyAction({
+            skipRevocationCheck: true, // offline test — no relay to query
             action,
             delegation,
             verifyBip322: fakeVerify,
@@ -128,7 +129,7 @@ describe('signAsAgent', () => {
             mime: 'application/pdf',
             scopeExercised: 'stamp:sign(mime=application/pdf)',
         });
-        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify });
+        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify, skipRevocationCheck: true });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_SCOPE_DENIED');
     });
