@@ -12,6 +12,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.25.1] — 2026-09-14
+
+### Fixed
+
+- Raises the `@orangecheck/auth-core` floor to `^2.6.0`, which bounds how often
+  an unrecognised `kid` can force a JWKS refetch. This package re-exports
+  `verifyOcToken` / `getOcSession`, so an integrator verifying tokens on their
+  own server was the one paying for it: a stream of tokens carrying random kids
+  dropped the key cache and refetched on every rejection, putting a network
+  round-trip in front of each and pointing the volume at the auth host.
+
 ## [0.25.0] — 2026-09-03
 
 ### Fixed
