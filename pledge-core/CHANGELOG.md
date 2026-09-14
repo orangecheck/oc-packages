@@ -8,6 +8,33 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [2.1.0] — 2026-09-14
+
+### Fixed — two §3 field rules were declared and never enforced
+
+**`resolution.query` must match its mechanism's grammar.** The grammar validator
+existed in `resolution.ts` and had exactly ONE non-test caller family-wide — a
+UI playground. Nothing on the create or verify path consulted it, so only the
+MECHANISM was checked and any query string at all was accepted: `chain_state`
+with `"q"` was signable and verified clean. A pledge whose resolution nobody can
+evaluate is not a pledge — the entire claim is that a stranger can decide the
+outcome without asking the swearer.
+
+Consequence of the gap beyond malformed pledges: because `verifyPledge` never
+called it, neither `E_RESOLUTION_UNKNOWN` nor `E_RESOLUTION_NONDETERMINISTIC`
+was reachable from any verification path. Both now surface through
+`validatePledgeInput`, which `createPledge`, `wrapPledgeEnvelope` and
+`verifyPledge` all run.
+
+**`expires_at >= resolves_at` when both are time-typed.** Only the ISO format
+was checked, so a pledge that expired BEFORE it could resolve was signable and
+verified clean — it can never be kept, only run out. The bound is inclusive
+(vector v09 is the deliberate same-time edge case) and does not apply to a
+block-typed `resolves_at`, which has no wall clock to compare against.
+
+All 11 protocol test vectors were checked against both rules before enforcing:
+every one already conforms.
+
 ## [2.0.0] — 2026-09-12
 
 ### Security — `verifyOutcome` never checked who was entitled to resolve a pledge

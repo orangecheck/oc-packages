@@ -20,6 +20,7 @@ import type {
     PledgeResolvesAt,
 } from './types.js';
 import { RESOLUTION_MECHANISMS } from './types.js';
+import { validateResolutionQuery } from './resolution.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pledge canonical message — SPEC §3.1
@@ -222,6 +223,20 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
     if (new TextEncoder().encode(input.resolution.query).byteLength > 1024) {
         return r('resolution.query exceeds 1024 UTF-8 bytes');
     }
+    // SPEC §3.4 field table: "resolution.query MUST match the grammar of the
+    // named mechanism."
+    //
+    // The grammar validator existed (resolution.ts) and had exactly ONE
+    // non-test caller family-wide — a UI playground. Nothing on the create or
+    // verify path consulted it, so only the MECHANISM was checked and any query
+    // string at all was accepted: `chain_state` with "whatever" was signable and
+    // verified clean. A pledge whose resolution nobody can evaluate is not a
+    // pledge — the whole claim is that a stranger can decide the outcome
+    // without asking the swearer.
+    const grammar = validateResolutionQuery(input.resolution.mechanism, input.resolution.query);
+    if (!grammar.ok) {
+        return r(`${grammar.code}: ${grammar.reason}`);
+    }
     if ('time' in input.resolves_at) {
         if (!ISO_UTC_STRICT.test(input.resolves_at.time)) {
             return r('resolves_at.time must be ISO 8601 UTC ending in Z (no fractional seconds)');
@@ -232,6 +247,17 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
         }
     } else {
         return r('resolves_at must contain exactly one of {time} or {block}');
+    }
+    // SPEC §3 field table: "expires_at MUST satisfy expires_at >= resolves_at
+    // when both are time-typed". Unenforced — only the ISO format was checked —
+    // so a pledge that expired BEFORE it could resolve was signable and verified
+    // clean. It can never be kept, only run out.
+    if ('time' in input.resolves_at && ISO_UTC_STRICT.test(input.expires_at)) {
+        if (Date.parse(input.expires_at) < Date.parse(input.resolves_at.time)) {
+            return r(
+                `expires_at (${input.expires_at}) is before resolves_at (${input.resolves_at.time})`,
+            );
+        }
     }
     if (!ISO_UTC_STRICT.test(input.expires_at)) {
         return r('expires_at must be ISO 8601 UTC ending in Z (no fractional seconds)');

@@ -20,7 +20,9 @@ function pledge(opts: Partial<PledgeEnvelope> = {}): PledgeEnvelope {
     const base = {
         swearer: { address: 'bc1qprincipal', alg: 'bip322' as const },
         proposition: 'p',
-        resolution: { mechanism: 'chain_state' as const, query: 'q' },
+        // A real §3.4.1 chain_state query. This was `query: 'q'` — a placeholder
+        // that conforms to no grammar, which the missing validation let through.
+        resolution: { mechanism: 'chain_state' as const, query: 'block(900000).exists' },
         resolves_at: { block: 100 } as PledgeEnvelope['resolves_at'],
         expires_at: '2099-01-01T00:00:00Z',
         bond: { attestation_id: '0'.repeat(64), min_sats: 1_000_000, min_days: 90 },
