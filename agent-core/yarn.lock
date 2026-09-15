@@ -165,12 +165,12 @@
 
 "@noble/ciphers@^1.3.0":
   version "1.3.0"
-  resolved "https://registry.npmjs.org/@noble/ciphers/-/ciphers-1.3.0.tgz#f64b8ff886c240e644e5573c097f86e5b43676dc"
+  resolved "https://registry.yarnpkg.com/@noble/ciphers/-/ciphers-1.3.0.tgz#f64b8ff886c240e644e5573c097f86e5b43676dc"
   integrity sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==
 
 "@noble/curves@^1.6.0":
   version "1.9.7"
-  resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
+  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
   dependencies:
     "@noble/hashes" "1.8.0"
@@ -181,15 +181,15 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/lock-core@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@orangecheck/lock-core/-/lock-core-1.0.1.tgz#8ec522d06f2187ed860126eaf949508f6ca82272"
-  integrity sha512-+ydUj5VteHY9XI6PoXnRUqpPMFy12AHRiJGG059FeAE4mHPYD9ZwAxFl09ljh4FNJpaWcxD60FlYRYe3p4ha3Q==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.1.0.tgz#37ef7d04b936d0c52eb004955f7b58c3ed953291"
+  integrity sha512-57Xyfgjz6pU8qb4xdpWocvoqY8Zwrgz6ieYxgkitEDDQ5aFHPFY9NNyt15nH8kY/eZv+FNPQb3LorjzAQ807CA==
   dependencies:
     "@orangecheck/lock-crypto" "^0.1.0"
 
 "@orangecheck/lock-crypto@^0.1.0":
   version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/lock-crypto/-/lock-crypto-0.1.0.tgz#f44f029ab88ff7cf9656914abae89f0650b21c68"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-crypto/-/lock-crypto-0.1.0.tgz#f44f029ab88ff7cf9656914abae89f0650b21c68"
   integrity sha512-LdcPQbTAyyyQrk7cFl0r5dCMvxTqqmFhgC2DriWllmNKyOUWH16EvuWC7IQZU70dV8C1lGGsyX+eddwwsQXUMA==
   dependencies:
     "@noble/ciphers" "^1.3.0"
