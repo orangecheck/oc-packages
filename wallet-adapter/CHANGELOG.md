@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.2] — 2026-09-14
+
+### Fixed
+
+- **Phantom signed with the wrong account instead of refusing.** When the
+  wallet had no account matching `opts.address`, the signer fell back to
+  `accounts[0]`. The challenge message NAMES the address, so a signature from
+  another account is rejected by the verifier — and the user is told "invalid
+  signature", never the one thing that would fix it. It now refuses and names
+  the accounts the wallet does have, which is what `signWithOkx` already did
+  forty lines up in the same file.
+
 ## [0.4.1]
 
 ### Fixed
