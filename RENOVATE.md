@@ -51,11 +51,18 @@ Renovate needs cross-repo write access, which the default
        repos without this — the `:dependencyDashboard` extend also
        needs it to maintain the per-repo dashboard issue)
      - `Pull requests` → **Read and write**
+     - `Commit statuses` → **Read and write** (without it Renovate
+       pushes the branch, 403s reading `commits/{sha}/statuses`, logs
+       "Error updating branch" and never opens the PR — so nothing
+       auto-merges and the run still reports success)
      - `Workflows` → **Read and write** (so Renovate can update
        workflow files when those have dep refs)
      - `Dependabot alerts` → Read (optional — lets Renovate flag
        vulnerable deps in PR descriptions)
      - `Metadata` → Read (granted automatically)
+   - **Organization permissions:** `Members` → Read-only
+   - This list follows Renovate's own table for fine-grained tokens:
+     https://docs.renovatebot.com/modules/platform/github/
    - **Expiration:** 1 year (renew via the calendar reminder you
      will set on the date you mint this token)
 2. Copy the token. On `oc-packages`, save it as the
