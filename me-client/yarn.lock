@@ -246,10 +246,11 @@
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
 "@orangecheck/auth-client@^2.6.0":
-  version "2.6.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.6.0.tgz#f5c0956ad8bd90f21fad412055d0bfa768d85757"
-  integrity sha512-xgdaHENYi2H6t3mn781tbXEI/NiGhxtBsifV4XVPPwg0pqx/zoTWImoH4J3Ygq3sD2LxMV3Ca9DXaGGIIbiAfg==
+  version "2.25.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.25.1.tgz#02ab07812f43c0889d01db86c1cf0a5a1fa60e40"
+  integrity sha512-bXNGGkIxR2VkdUKrAVAL12369tWsQmSUk+mNBMgtWe3PkXOrCc2IqFmbPhZ6EEgVk1cK+aGUNLxT5L0N77sVpg==
   dependencies:
+    "@orangecheck/wallet-adapter" "^0.4.2"
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.6.0":
@@ -258,6 +259,11 @@
   integrity sha512-v8xif2THYs7oXpSWWlSVB6zOxxy2+SlTM5OCw2g+kuWUPAY1Ipu8KOdgLLOnNCjc43yR7cNLSPCROtbsRsIUpg==
   dependencies:
     jose "^6.2.2"
+
+"@orangecheck/wallet-adapter@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.4.2.tgz#50790543547ed89aa3cc9e2d07265125c0575eb0"
+  integrity sha512-9VLH5ypZVzaf+nCA5KBRYnRERUWNvLbzAm0kk2XtqbC6otcx1ZLNz2etMlpi6qi4BswadHEbDm49q51pgAb2Mw==
 
 "@oxc-project/types@=0.149.0":
   version "0.149.0"
@@ -471,7 +477,7 @@
 
 "@simplewebauthn/browser@^13.3.0":
   version "13.3.0"
-  resolved "https://registry.npmjs.org/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
+  resolved "https://registry.yarnpkg.com/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
   integrity sha512-BE/UWv6FOToAdVk0EokzkqQQDOWtNydYlY6+OrmiZ5SCNmb41VehttboTetUM3T/fr6EAFYVXjz4My2wg230rQ==
 
 "@standard-schema/spec@^1.1.0":

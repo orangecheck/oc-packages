@@ -792,11 +792,17 @@
   integrity sha512-vvBzwu1pYQCp92maZCFCIw/XgOTMR5tur9GjakwIo2cmwRTMKajRZZDS9+e4KsUZWKu1E007WUeAFXRRjZeuzw==
 
 "@orangecheck/auth-client@^2.17.0":
-  version "2.17.2"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-client/-/auth-client-2.17.2.tgz#1b1bf6675d3c4d275d2abebafefb780588b02797"
-  integrity sha512-14frnkxLr6NKWTLLA2S/UzVEgMo7w4ZrOPnkhN/3mutqlW8scvEVFpSV4XM+Yr865+gZUScCVT3Ukrc2Eifklw==
+  version "2.25.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.25.1.tgz#02ab07812f43c0889d01db86c1cf0a5a1fa60e40"
+  integrity sha512-bXNGGkIxR2VkdUKrAVAL12369tWsQmSUk+mNBMgtWe3PkXOrCc2IqFmbPhZ6EEgVk1cK+aGUNLxT5L0N77sVpg==
   dependencies:
+    "@orangecheck/wallet-adapter" "^0.4.2"
     "@simplewebauthn/browser" "^13.3.0"
+
+"@orangecheck/wallet-adapter@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.4.2.tgz#50790543547ed89aa3cc9e2d07265125c0575eb0"
+  integrity sha512-9VLH5ypZVzaf+nCA5KBRYnRERUWNvLbzAm0kk2XtqbC6otcx1ZLNz2etMlpi6qi4BswadHEbDm49q51pgAb2Mw==
 
 "@oxc-parser/binding-android-arm-eabi@0.127.0":
   version "0.127.0"
@@ -1614,7 +1620,7 @@
 
 "@simplewebauthn/browser@^13.3.0":
   version "13.3.0"
-  resolved "https://registry.npmjs.org/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
+  resolved "https://registry.yarnpkg.com/@simplewebauthn/browser/-/browser-13.3.0.tgz#e12153e71f4a8f4f8f17f94ca9c5161115306239"
   integrity sha512-BE/UWv6FOToAdVk0EokzkqQQDOWtNydYlY6+OrmiZ5SCNmb41VehttboTetUM3T/fr6EAFYVXjz4My2wg230rQ==
 
 "@storybook/builder-vite@10.6.0":
