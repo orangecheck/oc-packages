@@ -189,6 +189,13 @@
   dependencies:
     "@noble/hashes" "^1.5.0"
 
+"@orangecheck/stamp-core@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.0.0.tgz#b1196da78408a0cf1d89ff4e09cad18fc3383c85"
+  integrity sha512-CSeIvBPB7pCCzOk756rcxhm+eAF8MEqlQ6E8BJ2VxRoCS/Q4IJhv1G3qnxT5AVESVhPKw/RO/dAQh9a0dm6o5A==
+  dependencies:
+    "@noble/hashes" "^1.5.0"
+
 "@orangecheck/stamp-ots@^0.1.1":
   version "0.1.1"
   resolved "https://registry.npmjs.org/@orangecheck/stamp-ots/-/stamp-ots-0.1.1.tgz#02202a2ffff27d78228e398c4b0bcebb23346fe7"

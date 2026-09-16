@@ -44,7 +44,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/stamp-core": "^0.1.2",
+    "@orangecheck/stamp-core": "^1.0.0",
     "@orangecheck/stamp-ots": "^0.1.1",
     "bip322-js": "^3.0.0",
     "commander": "^12.1.0"
