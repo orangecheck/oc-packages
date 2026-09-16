@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.25.1] — 2026-09-16
+
+### Fixed
+
+- **`@orangecheck/wallet-adapter` was declared optional but could not be
+  omitted.** The sign-in and link-identity components load it with
+  `import('@orangecheck/wallet-adapter')`, and a bundler resolves that specifier
+  at build time, so a site without it failed to build — `Module not found`
+  from `dist/index.mjs`, even for a site that only mounts `OcSessionProvider`.
+  It is now a dependency; the chunk is still loaded on demand. The "not
+  installed" error messages could no longer fire and now say the chunk failed
+  to load. A test checks every package the source imports against the
+  manifest.
+
 ## [2.25.0] — 2026-09-14
 
 ### Added

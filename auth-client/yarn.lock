@@ -266,10 +266,10 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/wallet-adapter@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@orangecheck/wallet-adapter/-/wallet-adapter-0.4.0.tgz#98931bfab0a6b38811f3cbe5195f4cef91700edc"
-  integrity sha512-l+cmmSSHptW6woXZKl4GMyqxPb/+bRLUBx5JsAxMeEg5Im7PiElovDVmo8PJmEnLIlnS77Iw1/dA+vRbicr0ZQ==
+"@orangecheck/wallet-adapter@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.npmjs.org/@orangecheck/wallet-adapter/-/wallet-adapter-0.4.2.tgz#50790543547ed89aa3cc9e2d07265125c0575eb0"
+  integrity sha512-9VLH5ypZVzaf+nCA5KBRYnRERUWNvLbzAm0kk2XtqbC6otcx1ZLNz2etMlpi6qi4BswadHEbDm49q51pgAb2Mw==
 
 "@oxc-project/types@=0.149.0":
   version "0.149.0"

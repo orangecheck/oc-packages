@@ -855,7 +855,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
             }
 
             // 2. Sign the challenge via @orangecheck/wallet-adapter (loaded
-            //    on-demand so the package doesn't hard-depend on it).
+            //    on demand so it stays out of the initial bundle).
             type AdapterShape = {
                 detectWallets: () => Array<{ id: string; detected: boolean }>;
                 getSigner: (
@@ -865,10 +865,9 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
             };
             let adapter: AdapterShape;
             try {
-                // Optional peer dep — the consumer site installs it. This is
-                // a *static* dynamic import: tsup keeps the specifier verbatim
-                // (it's in `external`), and the consumer's bundler resolves it
-                // against the consumer's node_modules at build time. The old
+                // A dependency, not an optional peer: this is a *static*
+                // dynamic import, so the consumer's bundler must resolve it at
+                // build time and a missing package fails the build. The old
                 // `Function('m','return import(m)')` trick produced a runtime
                 // bare-specifier `import()` the browser cannot resolve without
                 // an import map — which is what broke sign-in everywhere.
@@ -877,7 +876,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                 )) as unknown as AdapterShape;
             } catch {
                 throw new Error(
-                    '@orangecheck/wallet-adapter not installed · add it to your consumer site'
+                    'could not load wallet support · refresh to try again'
                 );
             }
             const wallets = adapter

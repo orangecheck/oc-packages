@@ -897,7 +897,7 @@ function TransferConfirm({
     );
 }
 
-/* --- lazy wallet button · keeps @orangecheck/wallet-adapter optional --- */
+/* --- lazy wallet button · wallet-adapter loads on demand, not with the page --- */
 
 interface WalletButtonProps {
     address: string;
@@ -915,9 +915,8 @@ function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
 
     React.useEffect(() => {
         let alive = true;
-        // Static dynamic import — tsup keeps the specifier verbatim
-        // (wallet-adapter is in `external`); the consumer's bundler
-        // resolves it. wallet-adapter is an optional peer dep.
+        // A bundler resolves this specifier at build time, so wallet-adapter
+        // is a real dependency; only the chunk is deferred.
         import('@orangecheck/wallet-adapter/react')
             .then((m) => {
                 if (alive) {
@@ -938,7 +937,7 @@ function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
     if (failed) {
         return (
             <ErrorLine>
-                @orangecheck/wallet-adapter not installed · add it to your site to link a wallet
+                could not load wallet support · refresh to try again
             </ErrorLine>
         );
     }
