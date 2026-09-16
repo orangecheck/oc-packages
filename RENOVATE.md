@@ -9,9 +9,16 @@ new version lands on every subdomain.
 
 - Runs Renovate every 30 minutes (self-hosted via GitHub Actions).
 - Reads the per-repo rules in each consumer's `renovate.json`.
-- For `@orangecheck/*` **patch + minor** bumps: opens a branch with
-  the lockfile + `package.json` update; if CI goes green, Renovate
-  squash-merges to `main`; Vercel auto-deploys.
+- For `@orangecheck/*` **patch + minor** bumps: opens one PR on
+  `renovate/@orangecheck-(family)`. Renovate does **not** merge it. The
+  consumer's own CI does: its `merge-renovate` job `needs` the gating jobs
+  and rebase-merges the PR with `GITHUB_TOKEN` once they pass. Vercel then
+  auto-deploys. A red gating job skips the merge and the PR stays open.
+- Why CI merges instead of Renovate: this token cannot read check runs
+  (403), so Renovate would merge on Vercel's status alone, before CI has
+  run. It did exactly that to twelve repos on 2026-09-16. A ruleset
+  cannot stop it either: Renovate acts as an org admin, and the admin
+  bypass lets its merge through.
 - For `@orangecheck/*` **major** bumps: opens a PR labelled
   `major-bump` for human review (these change wire shape).
 - 1-day **stability window** — Renovate waits 24 h after a publish
@@ -27,13 +34,16 @@ Result: net manual work on a routine publish — **zero**.
 The 13 consumer surfaces listed in [`renovate-global.json`](./renovate-global.json) —
 every site that pins `@orangecheck/*` via npm. Add a new site by
 appending it to that file _and_ dropping a `renovate.json` in its
-repo (copy any existing one — they are identical).
+repo (copy any existing one), _and_ adding the `merge-renovate` job to the
+end of its CI workflow with `needs` naming its gating jobs. Without that
+job the family PR opens and never merges.
 
 `oc-packages` itself is also under management, but with the **stricter
-rule set** in its own [`renovate.json`](./renovate.json): PRs open for
-visibility, **nothing auto-merges**. A third-party bump that lands here
-propagates to every consumer via the next npm publish, so each one is a
-deliberate human decision.
+rule set** in its own [`renovate.json`](./renovate.json). Its family PR
+is merged by `packages.yml`'s `merge-renovate` job after every package
+builds; anything else opens for visibility and waits for a human. A
+third-party bump that lands here propagates to every consumer via the
+next npm publish, so each one is a deliberate decision.
 
 ## One-time setup (operator)
 
@@ -81,8 +91,9 @@ unless it stops succeeding.
 
 Tweak per-repo behaviour in that repo's `renovate.json`:
 
-- Disable auto-merge for one repo only:
-  `"packageRules[0].automerge": false`.
+- Stop merging family bumps in one repo: delete that repo's
+  `merge-renovate` job. (Renovate's own `automerge` is `false` everywhere
+  and must stay that way — see "What it does".)
 - Tighten the stability window:
   `"minimumReleaseAge": "3 days"`.
 - Exclude a specific package:
