@@ -260,9 +260,9 @@
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
 "@orangecheck/auth-core@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.npmjs.org/@orangecheck/auth-core/-/auth-core-2.3.0.tgz#31f468384d161d7e5e96e3eddcea878bfe7897fc"
-  integrity sha512-LXd0zbGODuVkoX6oTXnAokP3FDPGjcqrdH18kOxD4toba75jo9POBnGVP2CQVaVX5GPnGGWMLEmx0Crnd0H/dg==
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.6.0.tgz#679b84b60f1a452c0ae0faa9b90a2531abae2c9f"
+  integrity sha512-v8xif2THYs7oXpSWWlSVB6zOxxy2+SlTM5OCw2g+kuWUPAY1Ipu8KOdgLLOnNCjc43yR7cNLSPCROtbsRsIUpg==
   dependencies:
     jose "^6.2.2"
 
@@ -842,9 +842,9 @@ is-potential-custom-element-name@^1.0.1:
   integrity sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==
 
 jose@^6.2.2:
-  version "6.2.2"
-  resolved "https://registry.npmjs.org/jose/-/jose-6.2.2.tgz#d6b5279b89b3e88d531c202e3fbe351f39a44aac"
-  integrity sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ==
+  version "6.2.12"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.12.tgz#65663e146edd010b98ece83f81737d3aa95fd0d7"
+  integrity sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==
 
 joycon@^3.1.1:
   version "3.1.1"
