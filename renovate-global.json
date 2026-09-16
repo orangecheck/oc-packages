@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "platform": "github",
+  "gitAuthor": "Xaxis <william.neeley@gmail.com>",
   "onboarding": false,
   "requireConfig": "optional",
   "autodiscover": false,
