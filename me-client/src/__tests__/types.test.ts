@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+    MAX_INTEGRATOR_PRICE_SATS,
     MIN_INTEGRATOR_PRICE_SATS,
     PLATFORM_FEE_POLICY,
     computeFees,
@@ -229,5 +230,30 @@ describe('@orangecheck/me-client · validateIntegratorConfig', () => {
         });
         expect(r.errors).toEqual([]);
         expect(r.ok).toBe(true);
+    });
+});
+
+describe('computeFees · the per-event ceiling', () => {
+    it('clamps gross to MAX_INTEGRATOR_PRICE_SATS, as the server does', () => {
+        // This package had no ceiling while the server did, so verify()
+        // re-derived 99,000,000 for an envelope recorded at 10,000,000 and
+        // rejected a correct receipt. Caught by oc-me-web's cross-package
+        // vector test on its first run.
+        const f = computeFees(
+            { enabled: true, site_pays: { kind: 'fixed_sats', sats: 99_000_000 }, user_share_pct: 0.5 },
+            undefined
+        );
+        expect(f.gross_fee_sats).toBe(MAX_INTEGRATOR_PRICE_SATS);
+        expect(f.platform_fee_sats + f.user_earned_sats + f.site_rebate_sats).toBe(
+            f.gross_fee_sats
+        );
+    });
+
+    it('clamps a percent config priced off an enormous payment too', () => {
+        const f = computeFees(
+            { enabled: true, site_pays: { kind: 'percent_of_amount', pct: 0.5 }, user_share_pct: 0.5 },
+            100_000_000
+        );
+        expect(f.gross_fee_sats).toBe(MAX_INTEGRATOR_PRICE_SATS);
     });
 });

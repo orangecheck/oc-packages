@@ -35,6 +35,21 @@ export const PLATFORM_FEE_POLICY = {
  *  drifted to 5 while the platform ratified 1). */
 export const MIN_INTEGRATOR_PRICE_SATS = 1;
 
+/**
+ * Hard per-event ceiling, mirroring the server's own bound.
+ *
+ * The server clamps gross to this before splitting it; this package did not,
+ * so `verify()` re-derived 99,000,000 for an envelope the server had recorded
+ * at 10,000,000 and rejected a correct receipt. It also over-reported what a
+ * misconfigured site would be charged, by the ratio of the two numbers.
+ *
+ * 10,000,000 sats = 0.1 BTC: orders of magnitude above any real per-event
+ * price, low enough that a misconfiguration cannot mint an unbounded number
+ * of sats in one event. Found by the cross-package vector test in oc-me-web
+ * on its first run.
+ */
+export const MAX_INTEGRATOR_PRICE_SATS = 10_000_000;
+
 /** Platform ceiling on drop-period windows: no integrator schedule may
  *  hold a user's earned share open longer than this, regardless of
  *  cadence. Published in ABUSE_LIMITS on me.ochk.io /trust + /security. */
@@ -193,6 +208,10 @@ export function computeFees(
             Math.round(payment_amount_sats * effective_site_pays.pct)
         );
     }
+    // Hard ceiling · no single event mints more than MAX_INTEGRATOR_PRICE_SATS.
+    // The server applies this before splitting; omitting it here made verify()
+    // reject correct envelopes priced above the bound.
+    gross = Math.min(gross, MAX_INTEGRATOR_PRICE_SATS);
     const platform_fee_sats = Math.min(
         gross,
         Math.max(PLATFORM_FEE_POLICY.min_floor_sats, Math.round(gross * PLATFORM_FEE_POLICY.pct))
