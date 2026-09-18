@@ -204,8 +204,8 @@ export interface OcAuthConfig {
      * Path on the auth host that accepts `?return_to=<url>` and drives the
      * sign-in flow. The page offers two paths in-place:
      *
-     *   - email + OTP (default — federation-custodied wallet provisioned
-     *     for the user; identity is `did:email:<sha256(email)>`)
+     *   - email + OTP (default — no wallet and no key of the user's own;
+     *     identity is `did:email:<sha256(email)>`)
      *   - BIP-322 wallet sign (paste address → in-page wallet sign;
      *     identity is the Bitcoin address itself)
      *

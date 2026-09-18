@@ -93,7 +93,7 @@ const terms: DocSpec = {
         {
             id: 'custody',
             heading: 'custody & graduation',
-            hint: 'federation-custodied · self-custody exit',
+            hint: 'orangecheck-held during bring-up · federation custody and self-custody exit next',
             blocks: [
                 {
                     kind: 'para',
