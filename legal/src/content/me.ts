@@ -70,7 +70,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'You may create an identity two ways: **BIP-322** (you sign with your own Bitcoin wallet — full self-custody) or **email-OTP** (a one-time code; a federation-custodied wallet provisions in your browser). Both produce a stable, opaque `did:oc` identifier. No password is ever stored.',
+                    text: 'You may create an identity two ways: **BIP-322** (you sign with your own Bitcoin wallet — full self-custody of your signing key) or **email-OTP** (a one-time code; you hold no key of your own, so OrangeCheck holds what you accrue during bring-up). Both produce a stable, opaque `did:oc` identifier. No password is ever stored.',
                 },
                 {
                     kind: 'para',
@@ -185,7 +185,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity from `/me/settings`. **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Before deletion you should sweep any federation-custodied balance to self-custody (the graduate flow) — anchored events on Bitcoin and Nostr-published envelopes are immutable and cannot be deleted by OrangeCheck. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity from `/me/settings`. **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Anchored events on Bitcoin and Nostr-published envelopes are immutable and cannot be deleted by OrangeCheck. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },
@@ -377,7 +377,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'From `/me/settings → advanced → delete` you can permanently revoke your OrangeCheck identity. A federation-custodied balance must be swept to your own wallet first (the graduate flow). OrangeCheck deletes the operational records it holds about you; events already anchored to Bitcoin headers or published to Nostr are immutable public records of fee flows and cannot be deleted by anyone.',
+                    text: 'From `/me/settings → advanced → delete` you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; events already anchored to Bitcoin headers or published to Nostr are immutable public records of fee flows and cannot be deleted by anyone.',
                 },
             ],
         },
