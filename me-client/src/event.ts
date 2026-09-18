@@ -70,12 +70,26 @@ export interface FireEventOptions {
      *  ONLY: never ship this secret to a browser. Find/rotate it on the project
      *  Keys tab (/me/projects/<id>/keys). */
     signingSecret?: string;
+    /** Who earns, as their `did:oc` — the value `/api/auth/me` returns as
+     *  `did_oc`.
+     *
+     *  This is the BACKEND path, and it is the one to prefer. Your server
+     *  signs the request with `signingSecret`, the signature covers these
+     *  bytes, and the earner rides inside them — so the signature is your
+     *  project asserting "this identity did this on my site". No browser, no
+     *  user cookie, and no reason for your backend to be holding your users'
+     *  session tokens at all.
+     *
+     *  REQUIRES `signingSecret`. A session alone may never name an earner: it
+     *  proves a user, not a project, and that would let any signed-in caller
+     *  credit anybody. */
+    userAddress?: string;
     /** The forwarded user oc_session JWT (the `token` from the sign-in popup
-     *  result). Identifies which user earns the cashback. Pass it per-call for
-     *  stateless, concurrency-safe server-side firing — preferred over the
-     *  process-global setBearerToken when your backend serves many users. A
-     *  same-origin family integrator (*.ochk.io) can omit it; the oc_session
-     *  cookie rides automatically. */
+     *  result). Identifies which user earns the cashback when `userAddress` is
+     *  not given. Pass it per-call for stateless, concurrency-safe server-side
+     *  firing — preferred over the process-global setBearerToken when your
+     *  backend serves many users. A same-origin family integrator (*.ochk.io)
+     *  can omit it; the oc_session cookie rides automatically. */
     bearerToken?: string;
     /** Idempotency key (e.g. a UUID v7 per logical event). A retry with the
      *  same key returns the prior event rather than double-billing. */
@@ -117,6 +131,17 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
     if (!options.subtype) {
         throw new Error('event.fire requires subtype');
     }
+    // Fail here rather than letting the server 401 — the mistake is always the
+    // same one (naming an earner from a browser or an unsigned backend call),
+    // and the round-trip tells you less than this sentence does.
+    if (options.userAddress && !options.signingSecret) {
+        throw new Error(
+            'event.fire: userAddress names who earns, so it requires signingSecret — ' +
+                'the signature over the request body is what authorises that earner. ' +
+                'Without the secret, pass bearerToken (or rely on the oc_session cookie) ' +
+                'and the caller earns instead.'
+        );
+    }
 
     // Build the request body from server-recognized fields ONLY — never let the
     // signing secret or bearer token leak into the transmitted payload.
@@ -129,6 +154,8 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
     if (options.action_label !== undefined) requestBody.action_label = options.action_label;
     if (options.metadata !== undefined) requestBody.metadata = options.metadata;
     if (options.is_agent !== undefined) requestBody.is_agent = options.is_agent;
+    // Inside the signed bytes on purpose — see `userAddress` above.
+    if (options.userAddress !== undefined) requestBody.user_address = options.userAddress;
 
     const headers: Record<string, string> = {};
     if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey;

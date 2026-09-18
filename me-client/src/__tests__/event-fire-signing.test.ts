@@ -81,16 +81,62 @@ describe('oc.event.fire · request signing', () => {
         expect(headers['authorization']).toBeUndefined();
     });
 
-    it('there is no user_address field to misattribute cashback', async () => {
+    it('ignores a hand-rolled snake_case user_address · it is not part of the API', async () => {
         const calls = captureFetch();
         await oc.event.fire({
             project_key: 'pk_test',
             subtype: 'session_creation',
-            // @ts-expect-error user_address was removed — the recipient is the forwarded session.
-            user_address: 'bc1qattacker',
+            // @ts-expect-error the option is `userAddress`, and it requires signingSecret.
+            user_address: 'did:oc:attacker',
         });
         const body = calls[0]!.init.body as string;
-        expect(body).not.toContain('user_address');
-        expect(body).not.toContain('bc1qattacker');
+        expect(body).not.toContain('attacker');
+    });
+
+    it('refuses to name an earner without the secret that authorises it', async () => {
+        captureFetch();
+        // A session proves a user, never a project. Naming an earner without
+        // the signature would let any signed-in caller credit anybody, so the
+        // SDK fails here rather than spending a round-trip on a 401.
+        await expect(
+            oc.event.fire({
+                project_key: 'pk_test',
+                subtype: 'session_creation',
+                userAddress: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            })
+        ).rejects.toThrow(/requires signingSecret/);
+    });
+
+    it('puts the earner INSIDE the signed bytes, not beside them', async () => {
+        // The whole security property: the MAC covers the earner, so the
+        // signature is the project authorising that specific identity. If the
+        // field were sent outside the signed body, swapping it would be free.
+        const calls = captureFetch();
+        const secret = 'whsec_earner';
+        const earner = 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        await oc.event.fire({
+            project_key: 'pk_test',
+            subtype: 'session_creation',
+            userAddress: earner,
+            signingSecret: secret,
+        });
+
+        const { init } = calls[0]!;
+        const body = init.body as string;
+        expect(JSON.parse(body).user_address).toBe(earner);
+
+        const header = (init.headers as Record<string, string>)['x-oc-signature']!;
+        const t = /t=(\d+)/.exec(header)![1]!;
+        const v1 = /v1=([0-9a-f]+)/.exec(header)![1]!;
+        const expected = createHmac('sha256', secret).update(`${t}.${body}`).digest('hex');
+        expect(v1).toBe(expected);
+
+        // And the MAC is over bytes that contain the earner — swap it and the
+        // same signature no longer verifies.
+        const swapped = JSON.stringify({
+            ...JSON.parse(body),
+            user_address: 'did:oc:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        });
+        expect(createHmac('sha256', secret).update(`${t}.${swapped}`).digest('hex')).not.toBe(v1);
     });
 });
