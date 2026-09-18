@@ -62,8 +62,11 @@ export interface FireEventOptions {
     is_agent?: boolean;
     /** The project's HMAC signing secret. When provided, the SDK signs the
      *  request with X-OC-Signature, authenticating the call as the INTEGRATOR.
-     *  This is REQUIRED in live mode — without it the server 401s, because a
-     *  user session alone proves a user, never the paying project. SERVER-SIDE
+     *  REQUIRED in test mode as well as live — without it the server 401s,
+     *  because a user session alone proves a user, never the paying project.
+     *  The one exception is a session that owns the project (the CLI
+     *  test-fire path), which is not a shape a backend should rely on.
+     *  SERVER-SIDE
      *  ONLY: never ship this secret to a browser. Find/rotate it on the project
      *  Keys tab (/me/projects/<id>/keys). */
     signingSecret?: string;

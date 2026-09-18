@@ -8,6 +8,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.25.2] — 2026-09-18
+
+### Fixed
+
+- `FireEventOptions.signingSecret` said the signature is "REQUIRED in live
+  mode". me.ochk.io now refuses an unsigned `/api/integrator/event` POST in
+  **test mode too** — a user session proves a user, never the paying project,
+  and a signed-in stranger holding a public `project_key` could otherwise bill
+  that project into their own ledger. The docstring is published as SDK
+  reference on docs.ochk.io, so a stale one is a false published claim.
+
 ## [Unreleased]
 
 - _(no pending changes)_
