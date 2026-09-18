@@ -33,10 +33,10 @@ const terms: DocSpec = {
     eyebrow: 'terms',
     title: 'Terms of service',
     description:
-        'The terms governing your use of me.ochk.io — a Bitcoin-backed identity that pays you in sats. Federation-custodied by default, self-custody graduation, no KYC.',
+        'The terms governing your use of me.ochk.io — a Bitcoin-backed identity that pays you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     metaTitle: 'Terms of Service — me.ochk.io',
     metaDescription:
-        'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. Federation custody, graduation to self-custody, no KYC.',
+        'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
     updated: '2026-05-15',
     preamble: [
@@ -59,7 +59,7 @@ const terms: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'me.ochk.io is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. OrangeCheck does not hold your funds — see section on custody below.',
+                    text: 'me.ochk.io is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it pays you.** That is a stage, not the design — see the custody section below for what holds today and what replaces it.',
                 },
             ],
         },
@@ -173,7 +173,7 @@ const terms: DocSpec = {
                 { kind: 'subhead', text: 'regulatory status' },
                 {
                     kind: 'stub',
-                    text: 'me.ochk.io facilitates cashback that is custodied and disbursed by independent Fedimint federations; OrangeCheck does not itself custody, transmit, or take possession of user funds. The full regulatory analysis of this arrangement — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
+                    text: 'me.ochk.io is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies and transmits the funds it pays to email-identity users**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users are unaffected: OrangeCheck never holds their keys or their funds. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -194,7 +194,7 @@ const terms: DocSpec = {
         miscellaneous,
     ],
     summary:
-        'summary: an identity that pays you in sats. orangecheck holds no keys and no funds. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
+        'summary: an identity that pays you in sats. if you sign in with your own bitcoin wallet, orangecheck holds no keys and no funds. if you sign in with email, orangecheck holds the paying key during bring-up, until independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
 };
 
 const privacy: DocSpec = {

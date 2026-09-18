@@ -6,6 +6,37 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.0] — 2026-09-18
+
+### Fixed — four passages still denied the custody that §custody admits
+
+0.5.0 corrected the custody clause to say plainly that during bring-up
+OrangeCheck holds the key that pays email-identity users. Four other passages in
+the same document were left asserting the destination as the present, including
+the one a regulator reads:
+
+- "OrangeCheck does not hold your funds" (what this is) → now states that during
+  bring-up OrangeCheck operates every role, custody included, and points at the
+  custody section.
+- "OrangeCheck does not itself custody, transmit, or take possession of user
+  funds" (regulatory) → now states that the federations do not exist yet, that
+  OrangeCheck itself custodies and transmits for email users during bring-up and
+  why, and that BIP-322 users are unaffected. The pending counsel analysis now
+  covers both the bring-up posture and the end state.
+- "orangecheck holds no keys and no funds" (summary) → now splits by sign-in
+  method, which is the only honest one-line answer.
+- Both meta descriptions said "federation-custodied by default" → now
+  "OrangeCheck-custodied during bring-up, federation custody and self-custody
+  graduation as the destination".
+
+This matters beyond accuracy: `me.ochk.io`'s rail-posture store refuses to arm a
+bounded mainnet test until the Terms are marked corrected. With the document
+contradicting itself, that gate could be satisfied over a live falsehood.
+
+Custody is staged by design — OrangeCheck plays every role during bring-up to
+prove the system works, and hands each one to independent operators as they
+arrive. The documents now say that, in one voice.
+
 ## [0.5.0] — 2026-09-04
 
 ### Fixed — the me.ochk.io custody clause asserted three things that are not true
