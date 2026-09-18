@@ -19,14 +19,23 @@
  *   );
  *   if (!result.ok) return res.status(401).send(result.reason);
  *
- * The verifier auto-fetches and caches the JWKS at
- * `https://ochk.io/.well-known/jwks.json` for 1h. Pass `{ jwk }` to
- * skip the network round-trip if you've embedded the key.
+ * The verifier auto-fetches and caches the webhook-signing JWKS at
+ * `https://me.ochk.io/api/dev-jwks` for 1h. Pass `{ jwk }` to skip the
+ * network round-trip if you've embedded the key.
+ *
+ * It used to fetch `https://ochk.io/.well-known/jwks.json` — the family
+ * SESSION key, a different key for a different job — so every verification
+ * that did not pass `{ jwk }` failed with `kid … not in JWKS` before it could
+ * check anything.
  */
 
 import { importJWK, type CryptoKey, type KeyObject } from 'jose';
 
-const DEFAULT_ISSUER = 'https://ochk.io';
+/** me.ochk.io signs its own webhook deliveries; the family auth host does not.
+ *  Its published key lives at /api/dev-jwks (the path is historical — the note
+ *  in that document names it as the production webhook-signing key). */
+const DEFAULT_ISSUER = 'https://me.ochk.io';
+const JWKS_PATH = '/api/dev-jwks';
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
 export interface VerifyResult {
@@ -73,7 +82,7 @@ async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry>
     if (existing) return existing;
     const p = (async (): Promise<JwksCacheEntry> => {
         try {
-            const url = `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
+            const url = `${issuer.replace(/\/$/, '')}${JWKS_PATH}`;
             const res = await fetch(url, { headers: { Accept: 'application/json' } });
             if (!res.ok) throw new Error(`JWKS fetch ${url} returned ${res.status}`);
             const json = (await res.json()) as { keys: OcPublicJwk[] };

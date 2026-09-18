@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.25.3] — 2026-09-18
+
+### Fixed — webhook verification could never succeed
+
+Two independent defects, either of which was fatal:
+
+- **Wrong JWKS.** `webhook.verify` fetched `https://ochk.io/.well-known/jwks.json`
+  — the family SESSION key — when me.ochk.io signs its deliveries with a
+  different key, published at `https://me.ochk.io/api/dev-jwks`. Any caller that
+  did not pass `{ jwk }` failed with `kid … not in JWKS` before it could check a
+  signature. The default is now the webhook JWKS; `{ issuer }` still overrides.
+- **Signed material disagreed.** me.ochk.io signed `sha256(body)` while this
+  verifier verifies over the raw body — so no delivery it ever sent could
+  validate. The server is the side that drifted (its own published JWKS note
+  says "sigs over the raw webhook body") and has been corrected; this release
+  is the matching half, plus a contract test on the server that signs here and
+  verifies with this function.
+
 ## [0.25.2] — 2026-09-18
 
 ### Fixed
