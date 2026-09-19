@@ -196,10 +196,10 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/me-client@^0.25.0":
-  version "0.25.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.25.3.tgz#c2ae036917f035fe54e9535c3e00e916eead76c5"
-  integrity sha512-5DUeaNJkrbkqy24ARzwEh6g12MJWkklWFZc0ogdG0clh9qDGHEC70PaBce0WXK+4PI8beDn7cDBrf/QctMXv7g==
+"@orangecheck/me-client@^0.26.0":
+  version "0.26.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.26.1.tgz#d3e46bb109e03235122d21b7e01f0b44c43962c5"
+  integrity sha512-ngg91oQYn6/IEXkDooBVUOcbIo7b/OEiNSFeRY+7kYV/wUiT/dp3udSsSIpLOzrrEIumKHa2IM8W/ihAmYK0mQ==
   dependencies:
     "@orangecheck/auth-core" "^2.6.0"
 
