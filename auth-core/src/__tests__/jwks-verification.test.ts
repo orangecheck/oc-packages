@@ -156,3 +156,28 @@ describe("getOcSession", () => {
     expect(await getOcSession({}, { issuer: ISSUER })).toBeNull();
   });
 });
+
+describe("verifyOcToken · audience", () => {
+  // The path integrators call from their own backends, via withOcAuth.
+  const A = "https://site-a.example";
+  const B = "https://site-b.example";
+
+  it("accepts a token bound to the integrator's own audience", async () => {
+    stubJwks();
+    const t = await mint(KID, { aud: A });
+    expect(await verifyOcToken(t, { issuer: ISSUER, audience: A })).not.toBeNull();
+  });
+
+  it("refuses a token another site was given", async () => {
+    stubJwks();
+    const t = await mint(KID, { aud: A });
+    expect(await verifyOcToken(t, { issuer: ISSUER, audience: B })).toBeNull();
+  });
+
+  it("refuses a bound token where a family session is expected", async () => {
+    stubJwks();
+    const t = await mint(KID, { aud: A });
+    expect(await verifyOcToken(t, { issuer: ISSUER })).toBeNull();
+  });
+});
+

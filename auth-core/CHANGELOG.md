@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.7.0] — 2026-09-22
+
+### Added
+
+- **Audience-bound session tokens.** `signSession` takes an optional `aud`
+  claim, and `verifySessionToken` / `verifyOcToken` / `getOcSession` take an
+  `audience` option (`AudienceRule`): a string or list for a relying party's
+  own origin, or `"*"` to accept any.
+- `audienceSatisfied(aud, rule)` — the pure check, exported.
+
+### Changed
+
+- With no `audience` given, a verifier accepts only tokens that carry **no**
+  `aud` — a family session. No token minted before this release carries one,
+  so existing sessions verify exactly as before. A relying party outside the
+  family should pass its own origin as `audience`.
+
 ## [2.6.0] — 2026-09-14
 
 ### Added

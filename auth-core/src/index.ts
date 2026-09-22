@@ -253,11 +253,37 @@ export function resolveDisplayIdentity(
   return { kind: "did", value: payload.did_oc };
 }
 
+/**
+ * Which audience a verifier accepts.
+ *
+ *   omitted   → a FAMILY session only: the token must carry no `aud`.
+ *   a string  → a token bound to that audience (or one of several).
+ *   "*"       → either. For the routes built to receive tokens that
+ *               integrators forward.
+ *
+ * Omitted is the strict default: a token bound to a relying party is that
+ * party's credential and never a family sign-in. Tokens minted before
+ * audiences existed carry no `aud`, so every existing session keeps
+ * verifying exactly as before.
+ */
+export type AudienceRule = string | readonly string[] | "*";
+
+/** Pure · does the payload's `aud` satisfy the rule? */
+export function audienceSatisfied(aud: unknown, rule: AudienceRule | undefined): boolean {
+  const have = aud === undefined ? [] : Array.isArray(aud) ? aud : [aud];
+  if (rule === "*") return true;
+  if (rule === undefined) return have.length === 0;
+  const want = typeof rule === "string" ? [rule] : rule;
+  return have.some((a) => typeof a === "string" && want.includes(a));
+}
+
 export interface VerifyConfig {
   /** Base64url-encoded JWK containing the Ed25519 public key. */
   publicJwk: string;
   /** Expected `iss` claim. Tokens with a different issuer are rejected. */
   issuer?: string;
+  /** Accepted `aud` · see AudienceRule. Omit for family sessions. */
+  audience?: AudienceRule;
 }
 
 export interface SignConfig extends VerifyConfig {
@@ -345,6 +371,10 @@ export async function signSession(
     step_up_at?: number;
     sudo_at?: number;
     display_identity?: DisplayIdentity | null;
+    /** Bind the token to one relying party (e.g. `https://example.com`).
+     *  Omit for a family session. A bound token verifies only where that
+     *  audience is expected — never as a family sign-in. */
+    aud?: string;
   },
   cfg: SignConfig,
   ttlSeconds: number,
@@ -352,12 +382,14 @@ export async function signSession(
   const now = Math.floor(Date.now() / 1000);
   // did_oc is the sole user identifier. The legacy `addr` shim that
   // mirrored did_oc was dropped in v2.0.0 along with the type field.
-  return new SignJWT(claims)
+  const { aud, ...rest } = claims;
+  const jwt = new SignJWT(rest)
     .setProtectedHeader({ alg: JWT_ALG, typ: "JWT", kid: cfg.kid })
     .setIssuer(cfg.issuer ?? DEFAULT_ISSUER)
     .setIssuedAt(now)
-    .setExpirationTime(now + ttlSeconds)
-    .sign(await loadPrivateKey(cfg.privateJwk));
+    .setExpirationTime(now + ttlSeconds);
+  if (aud) jwt.setAudience(aud);
+  return jwt.sign(await loadPrivateKey(cfg.privateJwk));
 }
 
 /**
@@ -378,6 +410,7 @@ export async function verifySessionToken(
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
+    if (!audienceSatisfied(p.aud, cfg.audience)) return null;
     return p;
   } catch {
     return null;
@@ -655,6 +688,10 @@ export interface VerifyOcOptions {
   /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
    *  cache exists, verification still works during a transient outage. */
   jwksCacheTtlMs?: number;
+  /** Accepted `aud` · see AudienceRule. An integrator verifying tokens from
+   *  the sign-in popup sets this to its own origin, e.g.
+   *  `"https://example.com"`, so a token issued to another site is refused. */
+  audience?: AudienceRule;
 }
 
 /**
@@ -712,6 +749,7 @@ export async function verifyOcToken(
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
+    if (!audienceSatisfied(p.aud, options.audience)) return null;
     return p;
   } catch {
     return null;
