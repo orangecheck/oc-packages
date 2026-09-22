@@ -8,6 +8,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.27.0] — 2026-09-22
+
+### Added
+
+- **`audience` on `withOcAuth`, `ocAuthExpress`, `ocAuthHono` and
+  `getOcSession`.** The sign-in popup issues each site a token bound to that
+  site's origin. Pass your own origin —
+  `withOcAuth(handler, { audience: 'https://your-site.example' })` — and a
+  token issued to any other site is refused. Sites on `*.ochk.io` that read the
+  family cookie leave it out.
+- A one-time console warning when a site-bound token reaches a verifier with
+  no `audience` configured, rather than a silent 401 on every sign-in.
+
+### Changed
+
+- Requires `@orangecheck/auth-core` ^2.7.0.
+
 ## [0.25.3] — 2026-09-18
 
 ### Fixed — webhook verification could never succeed

@@ -82,7 +82,45 @@ export async function getOcSession(
     headers: SessionRequestHeaders | Headers,
     options: VerifyOcOptions = {}
 ): Promise<SessionPayload | null> {
-    return getOcSessionCore(headers, options);
+    const session = await getOcSessionCore(headers, options);
+    if (!session && options.audience === undefined) warnIfAudienceMissing(headers);
+    return session;
+}
+
+let warnedAudience = false;
+
+/**
+ * The popup issues a token bound to your site's origin. Verified with no
+ * `audience`, it is refused — correctly, since a verifier with no audience
+ * accepts only family sessions — and every popup sign-in would 401 with no
+ * clue why. Say so, once, the first time it happens.
+ */
+function warnIfAudienceMissing(headers: SessionRequestHeaders | Headers): void {
+    if (warnedAudience) return;
+    const auth =
+        typeof Headers !== 'undefined' && headers instanceof Headers
+            ? headers.get('authorization')
+            : (headers as SessionRequestHeaders).authorization;
+    const m = typeof auth === 'string' ? /^Bearer\s+([^.]+)\.([^.]+)\./i.exec(auth) : null;
+    if (!m) return;
+    try {
+        const payload = JSON.parse(base64UrlToString(m[2]!)) as { aud?: unknown };
+        if (payload.aud === undefined) return;
+        warnedAudience = true;
+        console.warn(
+            `[@orangecheck/me-client] a sign-in token bound to ${JSON.stringify(payload.aud)} was refused ` +
+                'because no `audience` is configured. Pass your site origin, e.g. ' +
+                "withOcAuth(handler, { audience: 'https://your-site.example' })."
+        );
+    } catch {
+        // Not a JWT we can read · nothing useful to say.
+    }
+}
+
+function base64UrlToString(s: string): string {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    if (typeof atob === 'function') return atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+    return Buffer.from(s, 'base64url').toString('utf8');
 }
 
 // ─── Next.js Pages Router adapter ────────────────────────────────────────
@@ -116,7 +154,10 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
  *   export default withOcAuth(async (req, res) => {
  *     if (!req.ocSession) return res.status(401).json({ ok: false });
  *     res.status(200).json({ account: { address: req.ocSession.did_oc } });
- *   }, { required: true });
+ *   }, { required: true, audience: 'https://your-site.example' });
+ *
+ * `audience` is your own origin. The sign-in popup issues each site a token
+ * bound to it; a site on *.ochk.io that reads the family cookie omits it.
  *
  * `Cache-Control: no-store, private` and `Vary: Cookie, Authorization`
  * are set on every authenticated response — without them a cached 401
