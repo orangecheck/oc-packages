@@ -6,6 +6,7 @@
 
 import type { AttestationEnvelope, IdentityBinding, NostrEvent } from './types';
 
+import { nostrIdentifierForms } from './nostr-pubkey';
 import { createLogger } from './utils/logger';
 
 const log = createLogger('ocp/nostr');
@@ -499,6 +500,10 @@ export async function queryByIdentity(
 ): Promise<NostrEvent[]> {
     const events: NostrEvent[] = [];
     const identityTag = `${protocol}:${identifier}`;
+    const identityTags =
+        protocol === 'nostr'
+            ? nostrIdentifierForms(identifier).map((f) => `nostr:${f}`)
+            : [identityTag];
 
     log.info({ protocol, identifier, relayCount: relays.length }, 'Querying relays for identity');
 
@@ -524,7 +529,7 @@ export async function queryByIdentity(
                             subscriptionId,
                             {
                                 kinds: [30078],
-                                '#i': [identityTag],
+                                '#i': identityTags,
                                 limit: 10,
                             },
                         ])

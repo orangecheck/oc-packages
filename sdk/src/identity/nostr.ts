@@ -21,9 +21,9 @@ import type { NostrEvent } from '../types';
 
 import { schnorr } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { bech32 } from '@scure/base';
 
 import { DEFAULT_RELAYS } from '../nostr';
+import { nostrPubkeyToHex } from '../nostr-pubkey';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('identity-verification/nostr');
@@ -60,23 +60,9 @@ export interface NostrVerificationResult {
  * throw as "not a valid npub" and fail closed.
  */
 function npubToHex(npub: string): string {
-    const trimmed = npub.trim();
-    if (HEX_64_RE.test(trimmed.toLowerCase())) {
-        return trimmed.toLowerCase();
-    }
-    if (!trimmed.toLowerCase().startsWith('npub1')) {
-        throw new Error(`not an npub: ${trimmed.slice(0, 12)}…`);
-    }
-    // `@scure/base` bech32 decoder; unlimited length is fine for NIP-19.
-    const decoded = bech32.decode(trimmed.toLowerCase() as `${string}1${string}`, 1023);
-    if (decoded.prefix !== 'npub') {
-        throw new Error(`bech32 prefix mismatch: expected npub, got ${decoded.prefix}`);
-    }
-    const bytes = bech32.fromWords(decoded.words);
-    if (bytes.length !== 32) {
-        throw new Error(`invalid npub payload length: ${bytes.length}`);
-    }
-    return toHex(Uint8Array.from(bytes));
+    const hex = nostrPubkeyToHex(npub);
+    if (!hex) throw new Error(`not an npub: ${npub.trim().slice(0, 12)}…`);
+    return hex;
 }
 
 /**

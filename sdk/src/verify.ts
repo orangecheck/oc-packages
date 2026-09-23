@@ -216,7 +216,7 @@ async function verifySignature({
 }
 
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)
-function parseCanonicalMessage(msg: string) {
+export function parseCanonicalMessage(msg: string) {
     const lines = msg.split('\n').map((l) => l.trim());
     // `.split(':', 2)[1]` truncates values containing a colon (e.g. URLs in
     // extensions, or npubs in identities). Use the first colon as the

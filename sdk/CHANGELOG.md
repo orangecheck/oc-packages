@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.7.0] — 2026-09-23
+
+### Changed — `check()` resolves its subject from the signed message
+
+- A Nostr identity matches in either spelling. SPEC §2 binds `nostr:npub1…`,
+  relays and event authors carry hex, and the reference site accepts both. A
+  lookup by one form now finds a binding written in the other, so
+  `@orangecheck/relay-filter` can look up an event's hex `pubkey` directly.
+- The subject is taken from the signed canonical message: the queried id,
+  address, or identity must appear there. Event tags are indexes, not claims.
+- Discovery skips an event whose `d` or `t` tag disagrees with its envelope
+  (NIP_ORANGECHECK "Required invariants").
+- **One bond, one identity per protocol** (SECURITY.md §3). A query by identity
+  returns `ok: false` with reason `stake_shared` when the same address also
+  binds a different identity on that protocol, in the same attestation or
+  another one. Holders who want two Nostr keys gated use two addresses.
+
+### Added
+
+- `nostrPubkeyToHex()` and `nostrIdentifierForms()`.
+
 ## [1.6.0] — 2026-09-11
 
 ### Added — the parameter types of `buildCanonicalMessage` are exported

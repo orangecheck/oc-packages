@@ -201,6 +201,18 @@ export async function publishAttestation(
 }
 
 /**
+ * An event's index tags are unsigned, so a relay hit proves nothing until they
+ * agree with the envelope. Requiring the `t` address tag also keeps every
+ * attestation findable by address, which check()'s shared-stake audit relies on.
+ */
+function eventIndexesEnvelope(event: NostrEvent, envelope: AttestationEnvelope): boolean {
+    const d = event.tags.find((t) => t[0] === 'd')?.[1];
+    const id = envelope.attestation_id;
+    if (d !== id && d !== `orangecheck:${id}`) return false;
+    return event.tags.some((t) => t[0] === 't' && t[1] === envelope.address);
+}
+
+/**
  * Discover attestations from Nostr relays
  */
 export async function discoverAttestations(
@@ -227,7 +239,9 @@ export async function discoverAttestations(
     const envelopes: AttestationEnvelope[] = [];
     for (const event of events) {
         const envelope = parseAttestationFromEvent(event);
-        if (envelope) {
+        if (envelope && !eventIndexesEnvelope(event, envelope)) {
+            log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
+        } else if (envelope) {
             // Verify envelope integrity
             const isValid = await verifyAttestationEnvelope(envelope);
             if (isValid) {

@@ -30,6 +30,7 @@ export { check } from './check';
 export type { CheckParams, CheckResult } from './check';
 export { verify } from './verify';
 export { createAttestation } from './attestation';
+export { nostrIdentifierForms, nostrPubkeyToHex } from './nostr-pubkey';
 
 // ─── Signed-challenge auth (for gates that can't trust the address source) ─
 export { issueChallenge, verifyChallenge } from './challenge';

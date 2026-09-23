@@ -18,7 +18,8 @@ import {
     getAttestationsForIdentity,
 } from './attestation';
 import { DEFAULT_RELAYS } from './nostr';
-import { verify } from './verify';
+import { nostrPubkeyToHex } from './nostr-pubkey';
+import { parseCanonicalMessage, verify } from './verify';
 
 export interface CheckParams {
     /** Bitcoin address to look up. */
@@ -73,19 +74,18 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['bad_request'] };
     }
 
-    let envelopes: AttestationEnvelope[] = [];
+    let found: AttestationEnvelope[] = [];
     if (id) {
-        envelopes = await discoverAttestations({ attestationId: id, relays });
+        found = await discoverAttestations({ attestationId: id, relays });
     } else if (addr) {
-        envelopes = await getAttestationsForAddress(addr, relays);
+        found = await getAttestationsForAddress(addr, relays);
     } else if (identity) {
-        envelopes = await getAttestationsForIdentity(
-            identity.protocol,
-            identity.identifier,
-            relays
-        );
+        found = await getAttestationsForIdentity(identity.protocol, identity.identifier, relays);
     }
 
+    // Relays match on unsigned tags. Keep only envelopes whose signed message
+    // says what was asked, or anyone could re-tag a stranger's attestation.
+    const envelopes = found.filter((e) => signedMatch(e, { addr, id, identity }));
     if (envelopes.length === 0) {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['not_found'] };
     }
@@ -96,6 +96,10 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     if (!env) {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['not_found'] };
     }
+
+    // SECURITY.md §3: one address, one bond. An address that also backs a
+    // different identity on the same protocol is lending one stake to several.
+    const shared = identity ? await backsOtherIdentity(env, identity, relays) : false;
 
     const outcome = await verify(
         {
@@ -113,10 +117,11 @@ export async function check(params: CheckParams): Promise<CheckResult> {
 
     const reasons: string[] = [];
     if (!outcome.ok) reasons.push(...outcome.codes);
+    if (shared) reasons.push('stake_shared');
     if (sats < minSats) reasons.push('below_min_sats');
     if (days < minDays) reasons.push('below_min_days');
 
-    const ok = outcome.ok && sats >= minSats && days >= minDays;
+    const ok = outcome.ok && !shared && sats >= minSats && days >= minDays;
 
     return {
         ok,
@@ -129,4 +134,61 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         network: outcome.network,
         ...(reasons.length ? { reasons } : {}),
     };
+}
+
+type Identity = { protocol: string; identifier: string };
+
+function identityKey(b: Identity): string | null {
+    const protocol = b.protocol.trim().toLowerCase();
+    if (protocol === 'nostr') {
+        const hex = nostrPubkeyToHex(b.identifier);
+        return hex ? `nostr:${hex}` : null;
+    }
+    return `${protocol}:${b.identifier.trim()}`;
+}
+
+function signedIdentities(env: AttestationEnvelope): Identity[] {
+    try {
+        return parseCanonicalMessage(env.message).core.identities;
+    } catch {
+        return [];
+    }
+}
+
+function signedMatch(
+    env: AttestationEnvelope,
+    q: { addr?: string; id?: string; identity?: Identity }
+): boolean {
+    if (q.id) return env.attestation_id.toLowerCase() === q.id.trim().toLowerCase();
+    let signedAddress: string;
+    try {
+        signedAddress = parseCanonicalMessage(env.message).core.address;
+    } catch {
+        return false;
+    }
+    if (signedAddress !== env.address) return false;
+    if (q.addr) return signedAddress === q.addr;
+    if (q.identity) {
+        const want = identityKey(q.identity);
+        return want !== null && signedIdentities(env).some((b) => identityKey(b) === want);
+    }
+    return false;
+}
+
+async function backsOtherIdentity(
+    env: AttestationEnvelope,
+    identity: Identity,
+    relays: string[]
+): Promise<boolean> {
+    const want = identityKey(identity);
+    const protocol = identity.protocol.trim().toLowerCase();
+    const siblings = await getAttestationsForAddress(env.address, relays);
+    for (const e of [env, ...siblings]) {
+        if (!signedMatch(e, { addr: env.address })) continue;
+        for (const b of signedIdentities(e)) {
+            if (b.protocol.trim().toLowerCase() !== protocol) continue;
+            if (identityKey(b) !== want) return true;
+        }
+    }
+    return false;
 }
