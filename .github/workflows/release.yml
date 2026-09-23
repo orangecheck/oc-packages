@@ -34,6 +34,11 @@ name: Release
 #     granted below for provenance, so migrating drops the shared secret
 #     entirely. Worth doing per-package for the frequent publishers
 #     (design, auth-client, auth-core, me-client) rather than all 36 at once.
+#     DEADLINE: npm targets January 2027 for 2FA-bypass tokens to lose direct
+#     publish (github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-
+#     granular-access-tokens). After that, a package without a Trusted
+#     Publisher cannot ship from this workflow at all — including a security
+#     fix. Configuring one needs an interactive 2FA session on npmjs.com.
 
 on:
     push:
