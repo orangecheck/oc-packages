@@ -25,5 +25,7 @@
  * from `@orangecheck/relay-filter/strfry`.
  */
 
+export { AttestationIndex, parseAttestationEvent } from './attestation-index';
+export type { IndexOptions } from './attestation-index';
 export { filterEvent } from './filter';
 export type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';

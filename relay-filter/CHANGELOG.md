@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.0] — 2026-09-23
+
+### Changed — the Strfry plugin decides from memory
+
+Strfry waits on the plugin for every event. The plugin looked each pubkey up
+over the network, about 6 s on a miss, so a sender rotating fresh pubkeys could
+stall the relay's write path, which is the traffic this filter exists to stop.
+
+`oc-strfry` now holds an `AttestationIndex`: every OC attestation that binds a
+Nostr key, kept current by one standing subscription, with bonds re-read from
+the chain every `OC_REFRESH_MS` (default 10 minutes). Each decision is a memory
+read. Measured on the built binary against live relays: p50 0.06 ms, max
+1.6 ms, for 50 fresh pubkeys.
+
+- `OC_CACHE_TTL_MS` no longer applies to the plugin; `OC_REFRESH_MS` replaces it.
+- During the first seconds after start an unknown key is told to retry rather
+  than refused.
+
+### Added
+
+- `AttestationIndex` and `parseAttestationEvent`, for any long-running relay.
+  `filterEvent` is unchanged.
+
 ## [0.3.0] — 2026-09-23
 
 ### Fixed

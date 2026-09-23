@@ -22,7 +22,7 @@
  *   OC_ALLOW_PUBKEYS  — comma-separated hex pubkeys to bypass (default: none)
  *   OC_FAIL_OPEN      — "true" to allow events through on lookup failure
  *   OC_RELAYS         — comma-separated Nostr relay URLs (default: SDK defaults)
- *   OC_CACHE_TTL_MS   — cache TTL in ms (default: 60000)
+ *   OC_REFRESH_MS     — how often each bond is re-read from the chain (default: 600000)
  *
  * Usage with Strfry:
  *
@@ -38,11 +38,12 @@
  * (Strfry docs: https://github.com/hoytech/strfry)
  */
 
-import type { FilterOptions, MinimalNostrEvent } from './types';
+import type { FilterOptions } from './types';
 
 import { createInterface } from 'node:readline';
 
-import { filterEvent } from './filter';
+import { AttestationIndex } from './attestation-index';
+import { handleLine } from './strfry-line';
 
 function parseList(raw: string | undefined): string[] | undefined {
     if (!raw) return undefined;
@@ -65,74 +66,17 @@ function optionsFromEnv(): FilterOptions {
         minDays: env.OC_MIN_DAYS ? Number(env.OC_MIN_DAYS) : 0,
         allowKinds: parseNumList(env.OC_ALLOW_KINDS) ?? [0, 3, 10002],
         allowPubkeys: parseList(env.OC_ALLOW_PUBKEYS),
-        relays: parseList(env.OC_RELAYS),
         failOpen: env.OC_FAIL_OPEN === 'true',
-        cacheTtlMs: env.OC_CACHE_TTL_MS ? Number(env.OC_CACHE_TTL_MS) : 60_000,
-        onDecision: (event, decision) => {
-            if (env.OC_LOG !== 'false') {
-                process.stderr.write(
-                    `[oc-strfry] ${decision.action} ${event.kind} ${event.pubkey.slice(0, 12)}… (${decision.reason})\n`
-                );
-            }
-        },
     };
-}
-
-interface StrfryInput {
-    type: 'new' | 'lookback';
-    event?: MinimalNostrEvent;
-    receivedAt?: number;
-    sourceType?: string;
-    sourceInfo?: string;
-}
-
-const HEX_64_RE = /^[0-9a-f]{64}$/;
-
-async function handleLine(line: string, options: FilterOptions): Promise<string | null> {
-    let input: StrfryInput;
-    try {
-        input = JSON.parse(line);
-    } catch {
-        return null;
-    }
-
-    // Lookback events are already stored; skip entirely so we don't emit a
-    // malformed echo (Strfry expects the id to match the input event).
-    if (input.type !== 'new') {
-        return null;
-    }
-    if (!input.event || typeof input.event !== 'object') {
-        return null;
-    }
-
-    // Validate event shape before it reaches the filter — otherwise a
-    // malformed `pubkey` becomes a cache-poisoning vector (a bogus key like
-    // `undefined` shares a cache entry with every future malformed event).
-    const ev = input.event;
-    if (
-        typeof ev.id !== 'string' ||
-        typeof ev.pubkey !== 'string' ||
-        typeof ev.kind !== 'number' ||
-        !HEX_64_RE.test(ev.id) ||
-        !HEX_64_RE.test(ev.pubkey)
-    ) {
-        return JSON.stringify({
-            id: typeof ev.id === 'string' ? ev.id : '',
-            action: 'reject',
-            msg: 'orangecheck: malformed event shape',
-        });
-    }
-
-    const decision = await filterEvent(ev, options);
-    return JSON.stringify({
-        id: ev.id,
-        action: decision.action,
-        ...(decision.message ? { msg: decision.message } : {}),
-    });
 }
 
 async function main(): Promise<void> {
     const options = optionsFromEnv();
+    const index = new AttestationIndex({
+        relays: parseList(process.env.OC_RELAYS),
+        refreshMs: process.env.OC_REFRESH_MS ? Number(process.env.OC_REFRESH_MS) : undefined,
+    });
+    index.start();
     const rl = createInterface({ input: process.stdin, terminal: false });
 
     for await (const line of rl) {
@@ -142,7 +86,7 @@ async function main(): Promise<void> {
         // relay accepted or rejected every subsequent event). Catch and emit
         // an explicit reject instead.
         try {
-            const out = await handleLine(line, options);
+            const out = handleLine(line, index, options);
             if (out) process.stdout.write(out + '\n');
         } catch (err) {
             let id = '';
@@ -173,5 +117,4 @@ main().catch((err) => {
     process.exit(1);
 });
 
-export { filterEvent } from './filter';
 export type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';

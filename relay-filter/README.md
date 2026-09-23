@@ -62,6 +62,18 @@ writePolicy = {
 }
 ```
 
+Strfry asks the plugin about one event at a time and waits for the answer, so
+the plugin never touches the network on that path. It holds every OC
+attestation that binds a Nostr key in memory, kept current by one standing
+subscription (`kinds: [30078], #t: ["oc-attest"]`), and re-reads each bond from
+the chain in the background. Measured on the built binary against live relays:
+**p50 0.06 ms, max 1.6 ms** per decision for 50 fresh pubkeys. A lookup per
+event took about 6 s, which would let anyone rotating pubkeys stall your relay.
+
+For the first few seconds after start, before the backlog has loaded, an
+unknown key gets `verifying your proof, try again shortly` rather than a
+refusal.
+
 Configure via environment variables in the Strfry unit file (or wherever Strfry starts):
 
 | Env var            | Default     | Meaning                                  |
@@ -72,7 +84,7 @@ Configure via environment variables in the Strfry unit file (or wherever Strfry 
 | `OC_ALLOW_PUBKEYS` | _(none)_    | Comma-separated hex pubkeys that bypass  |
 | `OC_RELAYS`        | SDK default | Discovery relays for lookups             |
 | `OC_FAIL_OPEN`     | `false`     | Allow events through on lookup failure   |
-| `OC_CACHE_TTL_MS`  | `60000`     | Cache TTL                                |
+| `OC_REFRESH_MS`    | `600000`    | How often each bond is re-read from the chain. A spent bond keeps passing for at most this long. |
 | `OC_LOG`           | `true`      | Emit one log line per decision on stderr |
 
 ### Install globally for Strfry
@@ -113,7 +125,21 @@ Strfry forwards `msg` to the client as the `OK` message on reject.
 
 ## `nostr-tools` relay
 
-If you're building a relay in JS with [nostr-tools](https://github.com/nbd-wtf/nostr-tools), wire `filterEvent` into the event handler directly:
+If your relay is a long-running JS process, use the same in-memory index the
+Strfry plugin uses. `decide()` is synchronous:
+
+```ts
+import { AttestationIndex } from '@orangecheck/relay-filter';
+
+const index = new AttestationIndex(); // { relays?, refreshMs? }
+index.start();
+
+// in the EVENT handler, after verifyEvent():
+const decision = index.decide(event, { minSats: 100_000, minDays: 30 });
+```
+
+`filterEvent` below looks each pubkey up over the network instead. It suits a
+serverless handler that cannot hold state, and costs seconds on a cache miss:
 
 ```ts
 import { filterEvent } from '@orangecheck/relay-filter';
@@ -152,7 +178,9 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 - **Bypass `allowKinds` on purpose.** Kind 0 (profile metadata), kind 3 (contacts), and kind 10002 (relay list) are bootstrap data — users need to publish those before they can create an OC proof. Gating them creates a chicken-and-egg problem. Ephemeral / bootstrap kinds are the only things that bypass by default; everything else (posts, DMs, reactions, zaps) is gated.
 - **Bypass `allowPubkeys`.** The operator's own key should never be filtered.
 - **Fail closed by default.** If the SDK throws (relays unreachable, network down), we reject. `failOpen: true` opts into degraded-mode — useful for non-critical relays.
-- **Per-pubkey cache.** The SDK's `check()` already caches lookups for 60 seconds via the hosted API. This package adds a second in-process LRU so a busy relay doesn't even hit the network for hot pubkeys. Decisions stay fresh enough for sybil-gating; bond state changes at Bitcoin's block cadence.
+- **One bond, one key.** An address that backs more than one Nostr key admits none of them through that bond (`stake_shared`), as SECURITY.md §3 of the protocol requires. A holder who wants two keys gated uses two addresses.
+- **Only the signed message counts.** Event tags are indexes. A key is admitted only if the attestation's signed `identities:` line binds it, in npub or hex form.
+- **Freshness is bounded, not live.** The index re-reads bonds every `OC_REFRESH_MS`. `filterEvent` caches per pubkey for `cacheTtlMs`. Either way, pick the window your relay can tolerate a spent bond passing for.
 
 ---
 
@@ -160,7 +188,7 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 
 - **Doesn't verify Nostr event signatures.** Use `nostr-tools`' `verifyEvent()` before calling `filterEvent()`. We only care about the _author's OC proof_, not the event integrity.
 - **Doesn't authenticate the caller.** This is a write-time filter, not a NIP-42 `AUTH` implementation. Combine with NIP-42 if you also want AUTH-gated reads.
-- **Doesn't fetch profiles or resolve NIP-05.** The filter uses the raw hex pubkey as the `nostr:` identity. Users bind their npub when they create the attestation; we just look it up.
+- **Doesn't fetch profiles or resolve NIP-05.** The filter matches the event's hex pubkey against the npub or hex key the attestation binds.
 
 ---
 
