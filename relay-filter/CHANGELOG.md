@@ -11,6 +11,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.1] — 2026-09-23
+
+### Fixed
+
+- **The index missed attestations without the `oc-attest` marker.** At least
+  one live, signed, npub-bound attestation carries no such tag, and the
+  subscription filters on it. An unseen key is now also looked up by identity
+  in the background (at most 4 at once, each key at most every 10 minutes), and
+  its next event is decided with the result. The write path still never waits.
+  Verified against live relays and chain: that attestation's key is refused on
+  its first event and admitted on the next.
+- **A new address's other attestations are fetched** by `#t`, so a second key
+  it backs through an unmarked attestation still counts toward `stake_shared`.
+- The no-proof message tells a holder who has one to retry.
+
 ## [0.4.0] — 2026-09-23
 
 ### Changed — the Strfry plugin decides from memory

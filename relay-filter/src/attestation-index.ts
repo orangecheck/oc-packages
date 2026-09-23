@@ -3,11 +3,23 @@ import type { Scheme } from '@orangecheck/sdk';
 
 import { createHash } from 'node:crypto';
 
-import { DEFAULT_RELAYS, nostrPubkeyToHex, parseIdentities, verify } from '@orangecheck/sdk';
+import {
+    DEFAULT_RELAYS,
+    nostrPubkeyToHex,
+    parseIdentities,
+    queryByAddress,
+    queryByIdentity,
+    verify,
+} from '@orangecheck/sdk';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002];
 const DEFAULT_REFRESH_MS = 10 * 60_000;
 const WARMUP_MS = 10_000;
+// Background lookups for keys the subscription has not seen. Bounded so a
+// sender rotating pubkeys costs at most this many open queries, never a queue.
+const MAX_LOOKUPS_IN_FLIGHT = 4;
+const LOOKUP_AGAIN_AFTER_MS = 10 * 60_000;
+const MAX_LOOKUPS_REMEMBERED = 10_000;
 
 interface Attestation {
     id: string;
@@ -84,6 +96,8 @@ export class AttestationIndex {
     private readonly sockets: WebSocket[] = [];
     private timer: ReturnType<typeof setInterval> | undefined;
     private startedAt = 0;
+    private readonly lookedUp = new Map<string, number>();
+    private lookupsInFlight = 0;
     private synced = false;
     private stopped = false;
 
@@ -106,7 +120,14 @@ export class AttestationIndex {
     ingest(event: { tags?: string[][]; content?: string }): boolean {
         const att = parseAttestationEvent(event);
         if (!att || att.keys.length === 0 || this.byId.has(att.id)) return false;
+        const newAddress = ![...this.byId.values()].some((a) => a.address === att.address);
         this.byId.set(att.id, att);
+        // Everything this address signed, marker or not, so a second key it backs is seen.
+        if (newAddress) {
+            void queryByAddress(att.address, this.options.relays ?? DEFAULT_RELAYS)
+                .then((events) => events.forEach((e) => this.ingest(e)))
+                .catch(() => {});
+        }
         void this.refresh(att.address);
         return true;
     }
@@ -129,11 +150,12 @@ export class AttestationIndex {
         for (const a of this.byId.values()) if (a.keys.includes(pubkey)) addresses.add(a.address);
 
         if (addresses.size === 0) {
+            this.lookUp(pubkey);
             if (!this.synced && Date.now() - this.startedAt < WARMUP_MS) return this.pending(pubkey, opts);
             return {
                 action: 'reject',
                 reason: 'no_attestation',
-                message: 'orangecheck: this relay requires a Bitcoin-stake proof. See https://ochk.io',
+                message: 'orangecheck: this relay requires a Bitcoin-stake proof (https://ochk.io). Have one? Retry in a few seconds.',
                 pubkey,
             };
         }
@@ -192,6 +214,27 @@ export class AttestationIndex {
             message: 'orangecheck: verifying your proof, try again shortly',
             pubkey,
         };
+    }
+
+    /**
+     * Not every attestation carries the `oc-attest` marker the subscription
+     * filters on, so an unseen key is also looked up by identity, off the
+     * write path. The key's next event is decided with whatever was found.
+     */
+    private lookUp(pubkey: string): void {
+        const last = this.lookedUp.get(pubkey);
+        if (last !== undefined && Date.now() - last < LOOKUP_AGAIN_AFTER_MS) return;
+        if (this.lookupsInFlight >= MAX_LOOKUPS_IN_FLIGHT) return;
+        if (this.lookedUp.size >= MAX_LOOKUPS_REMEMBERED) {
+            const oldest = this.lookedUp.keys().next().value;
+            if (oldest !== undefined) this.lookedUp.delete(oldest);
+        }
+        this.lookedUp.set(pubkey, Date.now());
+        this.lookupsInFlight++;
+        queryByIdentity('nostr', pubkey, this.options.relays ?? DEFAULT_RELAYS)
+            .then((events) => events.forEach((e) => this.ingest(e)))
+            .catch(() => {})
+            .finally(() => this.lookupsInFlight--);
     }
 
     private keysFor(address: string): Set<string> {

@@ -72,7 +72,9 @@ event took about 6 s, which would let anyone rotating pubkeys stall your relay.
 
 For the first few seconds after start, before the backlog has loaded, an
 unknown key gets `verifying your proof, try again shortly` rather than a
-refusal.
+refusal. After that, an unseen key is refused at once and looked up by
+identity in the background, so an attested key that the subscription missed
+is admitted on its next event.
 
 Configure via environment variables in the Strfry unit file (or wherever Strfry starts):
 

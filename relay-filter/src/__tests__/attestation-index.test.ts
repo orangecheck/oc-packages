@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@orangecheck/sdk', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@orangecheck/sdk')>()),
     verify: vi.fn(),
+    queryByIdentity: vi.fn(async () => []),
+    queryByAddress: vi.fn(async () => []),
 }));
 
 import {
@@ -16,6 +18,8 @@ import {
     createAttestationEnvelope,
     createAttestationEvent,
     nostrIdentifierForms,
+    queryByAddress,
+    queryByIdentity,
     verify,
 } from '@orangecheck/sdk';
 import type { IdentityBinding } from '@orangecheck/sdk';
@@ -50,6 +54,8 @@ function bond(sats: number, days = 400) {
 let index: AttestationIndex;
 beforeEach(() => {
     vi.mocked(verify).mockReset();
+    vi.mocked(queryByIdentity).mockReset().mockResolvedValue([]);
+    vi.mocked(queryByAddress).mockReset().mockResolvedValue([]);
     index = new AttestationIndex();
     index.markSynced();
 });
@@ -102,6 +108,36 @@ describe('AttestationIndex.decide', () => {
         index.ingest(await attestation(ADDR_2, [{ protocol: 'nostr', identifier: HEX_A! }]));
         await flush();
         expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
+    });
+
+    it('looks an unseen key up off the write path, then admits it', async () => {
+        bond(500_000);
+        const unmarked = await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]);
+        unmarked.tags = unmarked.tags.filter((t) => !(t[0] === 't' && t[1] === 'oc-attest'));
+        vi.mocked(queryByIdentity).mockResolvedValue([unmarked as never]);
+        expect(index.decide(ev(HEX_A!)).reason).toBe('no_attestation');
+        expect(queryByIdentity).toHaveBeenCalledWith('nostr', HEX_A, expect.any(Array));
+        await flush();
+        await flush();
+        expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
+    });
+
+    it('fetches everything a new address signed, so an unmarked second key is seen', async () => {
+        bond(500_000);
+        const second = await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_B! }]);
+        second.tags = second.tags.filter((t) => !(t[0] === 't' && t[1] === 'oc-attest'));
+        vi.mocked(queryByAddress).mockResolvedValue([second as never]);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        await flush();
+        expect(queryByAddress).toHaveBeenCalledTimes(1);
+        expect(index.decide(ev(HEX_A!)).reason).toBe('stake_shared');
+    });
+
+    it('bounds background lookups when senders rotate keys', () => {
+        vi.mocked(queryByIdentity).mockReturnValue(new Promise(() => {}));
+        for (let i = 0; i < 50; i++) index.decide(ev(i.toString(16).padStart(64, '0')));
+        expect(queryByIdentity).toHaveBeenCalledTimes(4);
     });
 
     it('treats unknown keys as "not yet" until the backlog has loaded', () => {

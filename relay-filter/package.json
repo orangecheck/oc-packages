@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/relay-filter",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Sybil filter for Nostr relays — reject events from pubkeys without an OrangeCheck proof meeting configurable thresholds.",
   "keywords": [
     "orangecheck",
