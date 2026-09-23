@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/relay-filter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Sybil filter for Nostr relays — reject events from pubkeys without an OrangeCheck proof meeting configurable thresholds.",
   "keywords": [
     "orangecheck",
@@ -56,7 +56,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/sdk": "^1.4.0"
+    "@orangecheck/sdk": "^1.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

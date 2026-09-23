@@ -11,8 +11,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@orangecheck/sdk', () => ({ check: vi.fn() }));
-import { check } from '@orangecheck/sdk';
+vi.mock('@orangecheck/sdk', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@orangecheck/sdk')>()),
+    check: vi.fn(),
+}));
+import { check, nostrIdentifierForms } from '@orangecheck/sdk';
 
 import { TtlLru } from '../cache';
 import { __clearFilterCachesForTests, filterEvent } from '../filter';
@@ -54,6 +57,14 @@ describe('bypass paths', () => {
     it('allows pubkeys listed in allowPubkeys', async () => {
         const decision = await filterEvent(evt(), { allowPubkeys: [PUBKEY_HEX] });
         expect(decision.action).toBe('accept');
+        expect(decision.reason).toBe('allowed_pubkey');
+        expect(vi.mocked(check)).not.toHaveBeenCalled();
+    });
+
+    it('matches allowPubkeys given as npub against the event\'s hex pubkey', async () => {
+        const hex = '7e7e9c42a91bfef19fa929e5fda1b72e0ebc1a4c1141673e2794234d86addf4e';
+        const [npub] = nostrIdentifierForms(hex);
+        const decision = await filterEvent(evt({ pubkey: hex }), { allowPubkeys: [npub!] });
         expect(decision.reason).toBe('allowed_pubkey');
         expect(vi.mocked(check)).not.toHaveBeenCalled();
     });
@@ -104,6 +115,20 @@ describe('threshold decisions', () => {
         } as never);
         const decision = await filterEvent(evt(), { minSats: 100_000 });
         expect(decision.reason).toBe('below_threshold');
+    });
+
+    it('rejects with stake_shared when the address backs another key', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 5_000_000,
+            days: 400,
+            score: 90,
+            reasons: ['stake_shared'],
+        } as never);
+        const decision = await filterEvent(evt(), { minSats: 100_000 });
+        expect(decision.action).toBe('reject');
+        expect(decision.reason).toBe('stake_shared');
+        expect(decision.message).toContain('one address per key');
     });
 });
 

@@ -1,6 +1,6 @@
 import type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';
 
-import { check } from '@orangecheck/sdk';
+import { check, nostrPubkeyToHex } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
 
@@ -91,8 +91,8 @@ export async function filterEvent(
         return finish(event, accept('allowed_kind'), options);
     }
 
-    // Bypass: operator / admin pubkeys.
-    if (options.allowPubkeys?.includes(event.pubkey)) {
+    // Bypass: operator / admin pubkeys, given as hex or npub.
+    if (options.allowPubkeys?.some((k) => nostrPubkeyToHex(k) === event.pubkey.toLowerCase())) {
         return finish(event, accept('allowed_pubkey', { pubkey: event.pubkey }), options);
     }
 
@@ -120,6 +120,12 @@ export async function filterEvent(
             decision = reject(
                 'no_attestation',
                 `orangecheck: this relay requires a Bitcoin-stake proof. See https://ochk.io`,
+                { check: result, pubkey: event.pubkey }
+            );
+        } else if (result.reasons?.includes('stake_shared')) {
+            decision = reject(
+                'stake_shared',
+                `orangecheck: this Bitcoin address also backs another Nostr key; use one address per key`,
                 { check: result, pubkey: event.pubkey }
             );
         } else if (result.reasons?.some((r) => r === 'below_min_sats' || r === 'below_min_days')) {

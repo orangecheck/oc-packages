@@ -69,6 +69,7 @@ export interface FilterDecision {
         | 'allowed_pubkey'
         | 'no_attestation'
         | 'below_threshold'
+        | 'stake_shared'
         | 'invalid_proof'
         | 'lookup_error'
         | 'fail_open';

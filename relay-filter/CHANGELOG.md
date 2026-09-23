@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-09-23
+
+### Fixed
+
+- **An attested Nostr key is now found.** SPEC §2 binds keys as `nostr:npub1…`
+  and this filter looked up the event's hex `pubkey`, so it found no binding
+  written the documented way. The 0.2.0 note below that the `#i` path "was
+  never broken" was wrong. `@orangecheck/sdk` 1.7.0 matches either form.
+- `allowPubkeys` accepts npub as documented; it was compared raw against hex.
+
+### Changed
+
+- `@orangecheck/sdk` `^1.4.0` → `^1.7.0`, which resolves the subject from the
+  signed message and holds one bond to one Nostr key. A key whose address also
+  backs another key is rejected with the new reason `stake_shared`.
+
 ## [0.2.0] — 2026-09-03
 
 ### Fixed
