@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/stamp-ots",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "OpenTimestamps calendar client, proof helpers, and anchor-verification hooks for OC Stamp envelopes. See https://github.com/orangecheck/oc-stamp-protocol.",
   "keywords": [
     "bitcoin",
@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",
-    "@orangecheck/stamp-core": "^0.1.2"
+    "@orangecheck/stamp-core": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

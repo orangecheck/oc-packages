@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0]
+
+### Changed
+
+- Depends on `@orangecheck/stamp-core ^1.0.0` (was `^0.1.2`). stamp-core 1.0.0
+  ships the same `dist` as 0.1.2, and this package uses only its `StampOts`
+  type, so behaviour is unchanged. A test now runs `makeAnchorVerifier`
+  through stamp-core 1.x `verify()` to pin the `verifyOtsAnchor` contract.
+
 ## [0.2.1]
 
 ### Fixed

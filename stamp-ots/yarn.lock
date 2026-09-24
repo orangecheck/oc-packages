@@ -168,10 +168,10 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/stamp-core@^0.1.2":
-  version "0.1.2"
-  resolved "https://registry.npmjs.org/@orangecheck/stamp-core/-/stamp-core-0.1.2.tgz#702a8ea5d5af6f815c30b6216dae2184d2150de6"
-  integrity sha512-YAW8MHL3FZtY38UzzCiQumMUuWqjxgEbX4XuH0F8V8d1SVqNi/YpQ4+Uth4oHyjFxo3rhRV3Q3rWIsJWHfq/gw==
+"@orangecheck/stamp-core@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/@orangecheck/stamp-core/-/stamp-core-1.0.0.tgz#b1196da78408a0cf1d89ff4e09cad18fc3383c85"
+  integrity sha512-CSeIvBPB7pCCzOk756rcxhm+eAF8MEqlQ6E8BJ2VxRoCS/Q4IJhv1G3qnxT5AVESVhPKw/RO/dAQh9a0dm6o5A==
   dependencies:
     "@noble/hashes" "^1.5.0"
 
