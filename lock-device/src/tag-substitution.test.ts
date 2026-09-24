@@ -65,6 +65,23 @@ describe('parseDeviceEvent trusts the signed statement, not the tags', () => {
         expect(() => parseDeviceEvent(event(tags))).toThrow(/addr tag .* does not match/i);
     });
 
+    it('REJECTS a record filed under another address\'s d tag', () => {
+        const tags = honestTags.map((t) => (t[0] === 'd' ? ['d', 'oc-lock:device:bc1qother'] : t));
+        expect(() => parseDeviceEvent(event(tags))).toThrow(/d tag .* is not the slot/i);
+    });
+
+    it('REJECTS a record with no d tag', () => {
+        const tags = honestTags.filter((t) => t[0] !== 'd');
+        expect(() => parseDeviceEvent(event(tags))).toThrow(/d tag .* is not the slot/i);
+    });
+
+    it('accepts the per-device d tag form', () => {
+        const tags = honestTags.map((t) =>
+            t[0] === 'd' ? ['d', `oc-lock:device:${VICTIM}:${DEVICE}`] : t,
+        );
+        expect(parseDeviceEvent(event(tags)).address).toBe(VICTIM);
+    });
+
     it('REJECTS a substituted device_id tag', () => {
         const tags = honestTags.map((t) =>
             t[0] === 'device_id' ? ['device_id', 'other-device'] : t,

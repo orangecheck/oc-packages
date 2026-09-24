@@ -8,6 +8,20 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.2.2] — 2026-09-24
+
+### Changed — `parseDeviceEvent` requires the `d` tag to match the signed address
+
+A record must sit at `oc-lock:device:<addr>` or the per-device
+`oc-lock:device:<addr>:<device_id>` (SPEC §3.3, §3.6), where `<addr>` is the
+address in the signed statement. Lookups filter on `d`, so a record signed for
+one address but filed under another's slot was returned for the wrong address.
+Such records, and records with no `d` tag, now throw. Records built with
+`buildDeviceEvent` are unaffected.
+
+Callers should still check that the parsed `address` is the address they asked
+for.
+
 ## [0.2.1] — 2026-09-14
 
 ### Fixed — 0.2.0 was uninstallable

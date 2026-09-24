@@ -238,6 +238,18 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
             `device event addr tag (${address}) does not match the signed statement (${signed.address})`,
         );
     }
+    // SPEC §3.3 / §3.6: the record lives at `oc-lock:device:<addr>` or the
+    // per-device `oc-lock:device:<addr>:<device_id>`. Lookups filter on `d`, so a
+    // record for one address filed under another's slot must not parse.
+    const d = tag('d');
+    if (
+        d !== `oc-lock:device:${signed.address}` &&
+        d !== `oc-lock:device:${signed.address}:${signed.device_id}`
+    ) {
+        throw new Error(
+            `device event d tag (${d}) is not the slot for the signed address (${signed.address})`,
+        );
+    }
     if (signed.device_id !== device_id) {
         throw new Error(
             `device event device_id tag (${device_id}) does not match the signed statement (${signed.device_id})`,
