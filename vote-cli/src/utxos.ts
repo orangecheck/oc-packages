@@ -12,7 +12,6 @@ interface MempoolUtxo {
 
 export interface UtxoSource {
     fetchUtxos(address: string): Promise<Utxo[]>;
-    fetchTipHeight(): Promise<number>;
 }
 
 export function mempoolSource(base = 'https://mempool.space/api'): UtxoSource {
@@ -29,11 +28,6 @@ export function mempoolSource(base = 'https://mempool.space/api'): UtxoSource {
                     value: u.value,
                     confirmed_height: u.status.block_height as number,
                 }));
-        },
-        async fetchTipHeight() {
-            const res = await fetch(`${base}/blocks/tip/height`);
-            if (!res.ok) throw new Error(`tip ${res.status}`);
-            return Number.parseInt((await res.text()).trim(), 10);
         },
     };
 }

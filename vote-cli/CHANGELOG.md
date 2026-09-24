@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-09-24
+
+### Fixed
+
+- **`tally` resolves a `"deadline"` snapshot per SPEC §3** — the greatest
+  block whose `median_time_past` is ≤ the deadline, with 6 confirmations —
+  instead of the current chain tip. The tip moved after voting closed, so
+  the CLI weighed UTXOs at a different block than other talliers (968432
+  against 947961 on a live poll). Resolution is vote-core 1.4's
+  `resolvePollSnapshot`, the same code the web tallier runs. A snapshot
+  without 6 confirmations is an error, not a tally. `--snapshot` still
+  overrides a deadline poll explicitly.
+- Requires `@orangecheck/vote-core` ^1.4.0.
+
 ## [0.4.1] — 2026-09-24
 
 ### Changed

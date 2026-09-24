@@ -4,6 +4,8 @@ import { hexDecode, utf8Decode } from '@orangecheck/lock-crypto';
 import { unseal } from '@orangecheck/lock-core';
 import {
     ballotId,
+    mempoolBlockTimeSource,
+    resolvePollSnapshot,
     tally,
     type Ballot,
     type Poll,
@@ -50,7 +52,6 @@ export interface ComputeTallyInput {
     reveal: Reveal | null;
     utxosAt: UtxoLookup;
     snapshotBlock: number;
-    tipHeight?: number;
     /** null skips every signature check (--no-verify). */
     verify: SignatureVerifier | null;
 }
@@ -67,12 +68,35 @@ export function computeTally(input: ComputeTallyInput): Promise<TallyResult> {
         ballots: input.ballots,
         utxosAt: input.utxosAt,
         snapshotBlock: input.snapshotBlock,
-        ...(input.tipHeight !== undefined ? { tipHeight: input.tipHeight } : {}),
         ...(input.verify ? { verify: input.verify } : { skipSignatures: true }),
         ...(poll.mode === 'secret' && reveal
             ? { unseal: (b: Ballot) => unsealOption(b, reveal.reveal_sk) }
             : {}),
     });
+}
+
+/**
+ * The snapshot height, resolved by vote-core per SPEC §3 (greatest
+ * median_time_past ≤ deadline, ≥ 6 confirmations) — the same code the web
+ * tallier runs. `--snapshot` overrides a deadline poll explicitly.
+ */
+export async function resolveSnapshot(
+    poll: Poll,
+    opts: Pick<TallyOptions, 'mempoolBase' | 'snapshotBlock'>,
+    fetchImpl?: typeof fetch
+): Promise<number> {
+    if (poll.snapshot_block === 'deadline' && opts.snapshotBlock !== undefined) {
+        return opts.snapshotBlock;
+    }
+    const r = await resolvePollSnapshot(
+        poll,
+        mempoolBlockTimeSource({
+            ...(opts.mempoolBase ? { base: opts.mempoolBase } : {}),
+            ...(fetchImpl ? { fetch: fetchImpl } : {}),
+        })
+    );
+    if (!r.ok) throw new Error(`snapshot not tallyable yet (${r.code}): ${r.reason}`);
+    return r.height;
 }
 
 export async function runTally(opts: TallyOptions): Promise<void> {
@@ -115,27 +139,19 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     const reveal: Reveal | null =
         poll.mode === 'secret' ? await selectReveal(revealEvents, poll, bip322Verify) : null;
 
-    // Resolve snapshot
     const source = mempoolSource(opts.mempoolBase);
     const utxosAt = buildLookup(source);
-    let snapshot = poll.snapshot_block;
-    if (typeof snapshot !== 'number') {
-        snapshot = opts.snapshotBlock ?? (await source.fetchTipHeight());
-    }
+    const snapshot = await resolveSnapshot(poll, opts);
 
     // Pass `snapshotBlock` rather than mutating poll.snapshot_block: the
     // poll's canonical bytes (and therefore pollId) include snapshot_block
     // verbatim, and mutating it would invalidate every ballot's poll_id.
-    // A snapshot fixed by the poll must have 6 confirmations (SPEC §10.5).
     const result = await computeTally({
         poll,
         ballots,
         reveal,
         utxosAt,
         snapshotBlock: snapshot,
-        ...(typeof poll.snapshot_block === 'number'
-            ? { tipHeight: await source.fetchTipHeight() }
-            : {}),
         verify,
     });
 
