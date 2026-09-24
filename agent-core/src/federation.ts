@@ -291,6 +291,8 @@ export async function verifyFederationDelegation(
 
 export interface VerifyFederationRevocationInput extends VerifyFederationBase {
     envelope: FederationRevocationEnvelope;
+    /** The delegation being revoked. Its federation is the one that may revoke it. */
+    delegation: FederationDelegationEnvelope;
 }
 
 export async function verifyFederationRevocation(
@@ -304,6 +306,18 @@ export async function verifyFederationRevocation(
         return fail('E_MALFORMED', 'reason must be a string ≤128 bytes');
     }
     if (!ISO_UTC.test(env.signed_at)) return fail('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
+
+    const d = input.delegation;
+    if (!d || !HEX64.test(d.id ?? '')) return fail('E_MALFORMED', 'the revoked delegation is required');
+    if (env.delegation_id !== d.id) {
+        return fail('E_DELEGATION_MISMATCH', `revocation.delegation_id (${env.delegation_id}) != delegation.id (${d.id})`);
+    }
+    if (d.principal?.alg !== 'federation' || env.signer?.descriptor_id !== d.principal.descriptor_id) {
+        return fail(
+            'E_REVOKER_UNAUTHORIZED',
+            `revoking federation (${env.signer?.descriptor_id}) is not the delegation's principal`
+        );
+    }
 
     // §4 — the `address:` line carries the `federation:<descriptor_id>`
     // substitution; everything else is the v1 revocation canonical message.

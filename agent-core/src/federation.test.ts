@@ -97,12 +97,38 @@ d('federation delegation vectors (v19–v24, v26)', () => {
 d('federation revocation (v25)', () => {
     it('3-of-5 threshold met → valid', async () => {
         const v = await load('v25-federation-revocation-3of5-valid.json');
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
         const result = await verifyFederationRevocation({
             envelope: v.expected.envelope as FederationRevocationEnvelope,
+            delegation: dv.expected.envelope as FederationDelegationEnvelope,
             skipSignatureVerification: true,
         });
         expect(result.ok).toBe(true);
         if (result.ok) expect(result.id).toBe(v.expected.envelope.id);
+    });
+
+    it('is bound to the delegation it revokes and to that delegation\'s federation', async () => {
+        const v = await load('v25-federation-revocation-3of5-valid.json');
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const rev = v.expected.envelope as FederationRevocationEnvelope;
+        const del = dv.expected.envelope as FederationDelegationEnvelope;
+        const otherDelegation = await verifyFederationRevocation({
+            envelope: rev,
+            delegation: { ...del, id: 'f'.repeat(64) },
+            skipSignatureVerification: true,
+        });
+        expect(otherDelegation.ok === false && otherDelegation.code).toBe('E_DELEGATION_MISMATCH');
+        const otherFederation = await verifyFederationRevocation({
+            envelope: rev,
+            delegation: { ...del, principal: { ...del.principal, descriptor_id: 'e'.repeat(64) } },
+            skipSignatureVerification: true,
+        });
+        expect(otherFederation.ok === false && otherFederation.code).toBe('E_REVOKER_UNAUTHORIZED');
+        const missing = await verifyFederationRevocation({
+            envelope: rev,
+            skipSignatureVerification: true,
+        } as Parameters<typeof verifyFederationRevocation>[0]);
+        expect(missing.ok).toBe(false);
     });
 });
 

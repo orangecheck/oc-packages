@@ -298,8 +298,19 @@ export interface VerifyActionInput extends VerifyBase {
      */
     maxChainDepth?: number;
     content?: Uint8Array;
-    verifyOtsAnchor?: (proofB64: string, blockHeight: number, blockHash: string) => Promise<boolean>;
-    /** If action and revocation are both OTS-anchored, pass a function that returns the comparable block height of each via proof parsing. Defaults: use envelope.ots.block_height. */
+    /**
+     * Verify an OTS proof commits `envelopeId` into the block at `blockHeight`.
+     * Same shape as @orangecheck/stamp-core. An anchor is used for revocation
+     * priority (SPEC §9.3) only when this returns true; without it every
+     * anchor is treated as absent.
+     */
+    verifyOtsAnchor?: (
+        proofB64: string,
+        blockHeight: number,
+        blockHash: string,
+        envelopeId: string
+    ) => Promise<boolean>;
+    /** If action and revocation are both OTS-anchored, pass a function that returns the comparable block height of each via proof parsing. Defaults: use envelope.ots.block_height. The height is still checked by verifyOtsAnchor. */
     resolveAnchorBlockHeight?: (env: ActionEnvelope | RevocationEnvelope) => number | null;
     /**
      * v1.2 private-scope decryption key. Applied to the root delegation AND
@@ -445,6 +456,14 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
                 'in the chain) or an explicit skipRevocationCheck:true',
         );
     }
+    // Anchor heights only count once the proof is verified against the
+    // envelope's own id; `ots` is outside the signature.
+    let actionAnchor: number | null;
+    try {
+        actionAnchor = await verifiedAnchorHeight(a, input);
+    } catch (e) {
+        return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
+    }
     if (input.revocations && input.revocations.length > 0) {
         const allLinks: ChainLink[] = [rootHydrated, ...hydratedChain];
         for (const link of allLinks) {
@@ -460,9 +479,13 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
                     skipSignatureVerification: input.skipSignatureVerification,
                 });
                 if (!rr.ok) continue; // malformed revocations don't affect the action
-                const effective = effectiveRevocationTime(rev, input.resolveAnchorBlockHeight);
-                const actionTime = actionEffectiveTime(a, input.resolveAnchorBlockHeight);
-                if (compareTimes(effective, actionTime) <= 0) {
+                let revAnchor: number | null;
+                try {
+                    revAnchor = await verifiedAnchorHeight(rev, input);
+                } catch (e) {
+                    return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
+                }
+                if (revocationPrecedes(rev, revAnchor, a, actionAnchor)) {
                     return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id} before action was signed`);
                 }
             }
@@ -489,14 +512,7 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         if (h === null || hash === null) {
             return err('E_MALFORMED', 'confirmed OTS proof missing block_height or block_hash');
         }
-        let verified = false;
-        if (input.verifyOtsAnchor) {
-            try {
-                verified = await input.verifyOtsAnchor(a.ots.proof, h, hash);
-            } catch (e) {
-                return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
-            }
-        }
+        const verified = actionAnchor !== null;
         anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified } as typeof anchor;
     }
 
@@ -597,11 +613,11 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
         return err('E_DELEGATION_MISMATCH', `revocation.delegation_id (${env.delegation_id}) != delegation.id (${d.id})`);
     }
 
-    // Signer must be authorized per delegation.revocation.holders.
+    // The principal may always revoke (SPEC §9.5). `revocation.holders` is not
+    // covered by the delegation signature, so it may only add the agent.
     const holders = d.revocation?.holders ?? ['principal'];
-    const holderAddrs = new Set<string>();
-    if (holders.includes('principal')) holderAddrs.add(d.principal.address);
-    if (holders.includes('agent')) holderAddrs.add(d.agent.address);
+    const holderAddrs = new Set<string>([d.principal.address]);
+    if (Array.isArray(holders) && holders.includes('agent')) holderAddrs.add(d.agent.address);
     if (!holderAddrs.has(env.signer.address)) {
         return err('E_REVOKER_UNAUTHORIZED', `revocation signer ${env.signer.address} not in delegation holders`);
     }
@@ -901,40 +917,36 @@ export async function verifySubdelegation(
 // Time comparison for revocation vs action (SPEC §9.3)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type EffectiveTime =
-    | { kind: 'anchor'; blockHeight: number }
-    | { kind: 'signed'; ms: number };
-
-function actionEffectiveTime(
-    a: ActionEnvelope,
-    resolve?: (env: ActionEnvelope | RevocationEnvelope) => number | null
-): EffectiveTime {
-    if (a.ots?.status === 'confirmed') {
-        const h = resolve ? resolve(a) : a.ots.block_height;
-        if (h !== null && h !== undefined) return { kind: 'anchor', blockHeight: h };
-    }
-    return { kind: 'signed', ms: new Date(a.signed_at).getTime() };
+/**
+ * The block height of an envelope's OTS anchor, or null unless the proof has
+ * been verified to commit this envelope's id at that height.
+ */
+async function verifiedAnchorHeight(
+    env: ActionEnvelope | RevocationEnvelope,
+    input: Pick<VerifyActionInput, 'verifyOtsAnchor' | 'resolveAnchorBlockHeight'>
+): Promise<number | null> {
+    if (env.ots?.status !== 'confirmed' || !input.verifyOtsAnchor) return null;
+    const h = input.resolveAnchorBlockHeight ? input.resolveAnchorBlockHeight(env) : env.ots.block_height;
+    const hash = env.ots.block_hash;
+    if (h === null || h === undefined || !Number.isInteger(h) || !hash) return null;
+    return (await input.verifyOtsAnchor(env.ots.proof, h, hash, env.id)) ? h : null;
 }
 
-function effectiveRevocationTime(
-    r: RevocationEnvelope,
-    resolve?: (env: ActionEnvelope | RevocationEnvelope) => number | null
-): EffectiveTime {
-    if (r.ots?.status === 'confirmed') {
-        const h = resolve ? resolve(r) : r.ots.block_height;
-        if (h !== null && h !== undefined) return { kind: 'anchor', blockHeight: h };
-    }
-    return { kind: 'signed', ms: new Date(r.signed_at).getTime() };
-}
-
-/** Returns <0 if a < b, 0 if equal, >0 if a > b. Anchored always beats signed-only. */
-function compareTimes(a: EffectiveTime, b: EffectiveTime): number {
-    if (a.kind === 'anchor' && b.kind === 'anchor') return a.blockHeight - b.blockHeight;
-    // If only one anchored, the anchored one is authoritative: an unanchored action cannot
-    // prove priority against an anchored revocation, so the anchored side is treated as "earlier".
-    if (a.kind === 'anchor') return -1;
-    if (b.kind === 'anchor') return 1;
-    return a.ms - b.ms;
+/**
+ * True when the revocation takes effect at or before the action (SPEC §9.3).
+ * Only verified anchors count for priority. An action without one cannot prove
+ * priority over a revocation that claims an anchor; an anchored action against
+ * an unanchored revocation falls back to the signed times.
+ */
+function revocationPrecedes(
+    rev: RevocationEnvelope,
+    revAnchor: number | null,
+    action: ActionEnvelope,
+    actionAnchor: number | null
+): boolean {
+    if (revAnchor !== null && actionAnchor !== null) return revAnchor <= actionAnchor;
+    if (actionAnchor === null && rev.ots?.status === 'confirmed') return true;
+    return new Date(rev.signed_at).getTime() <= new Date(action.signed_at).getTime();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

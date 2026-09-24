@@ -7,6 +7,40 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.2.0] — 2026-09-24
+
+### Fixed — the principal is always an authorised revoker
+
+SPEC §9.5. `revocation.holders` is not part of the delegation's canonical
+message (§4.1), so it cannot restrict who revokes. The principal (the link's
+`principal.address`) is now always an authorised revoker; `holders` can only add
+the agent.
+
+### Fixed — revocation priority uses only verified anchors
+
+SPEC §9.3. An envelope's `ots` is outside its signature, so an anchor orders
+an action against a revocation only once its proof is checked against that
+envelope's id.
+
+- `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` receives the
+  envelope id, the same shape as `@orangecheck/stamp-core`, and runs before the
+  revocation check, for the action and for each revocation.
+- An anchor counts for priority only if that call returns true. Without a
+  verifier, anchors are ignored for priority.
+- Both anchors verified: revoked iff the revocation's block ≤ the action's.
+  Action not verifiably anchored and the revocation claims an anchor: revoked.
+  Otherwise the signed times decide, revoked iff revocation `signed_at` ≤ action
+  `signed_at`.
+
+`anchor.verified` in the result now reflects the same bound check.
+
+### Changed — `verifyFederationRevocation` takes the revoked delegation
+
+FEDERATION.md §4. The function now requires `delegation` and checks that
+`delegation_id` matches it (`E_DELEGATION_MISMATCH`) and that the signing
+federation is that delegation's principal (`E_REVOKER_UNAUTHORIZED`). This is a
+new required input; no published package calls the function.
+
 ## [2.1.0] — 2026-09-14
 
 ### Fixed — ordered-op constraint values are now parsed as decimal integers

@@ -95,7 +95,9 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 
 - `verifyDelegation({ envelope, verifyBip322, now?, skipTemporalCheck?, scopeMode? })`
 - `verifyAction({ action, delegation, revocations?, verifyBip322, verifyOtsAnchor?, content?, resolveAnchorBlockHeight?, scopeMode? })`
-- `verifyRevocation({ envelope, delegation, verifyBip322 })`
+- `verifyRevocation({ envelope, delegation, verifyBip322 })` — the principal may always revoke; `revocation.holders` can only add the agent
+- `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
+- `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`
 
 Each returns a discriminated union:
 
