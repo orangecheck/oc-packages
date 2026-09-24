@@ -14,6 +14,8 @@ import {
 
 export const DEVICE_KIND = 30078;
 export const BINDING_VERSION = 'v2';
+/** Bind statement version that also signs the device's Nostr inbox pubkey. */
+export const BINDING_VERSION_V3 = 'v3';
 
 export interface DeviceKeyPair {
     device_id: string;
@@ -38,16 +40,27 @@ export function buildBindingStatement(params: {
     device_pk: string;
     device_id: string;
     created_at: string;
+    /** The device's Nostr pubkey (deriveNostrKey). Present ⇒ a v3 statement. */
+    nostr_pk?: string;
 }): string {
     // Exact byte layout per SPEC §3.2. Each line ends with LF; no trailing LF
     // beyond the last field's. Order is fixed.
-    const lines = [
-        `oc-lock:device-bind:${BINDING_VERSION}`,
-        `address: ${params.address}`,
-        `device_pk: ${params.device_pk}`,
-        `device_id: ${params.device_id}`,
-        `created_at: ${params.created_at}`,
-    ];
+    const lines = params.nostr_pk
+        ? [
+              `oc-lock:device-bind:${BINDING_VERSION_V3}`,
+              `address: ${params.address}`,
+              `device_pk: ${params.device_pk}`,
+              `nostr_pk: ${params.nostr_pk}`,
+              `device_id: ${params.device_id}`,
+              `created_at: ${params.created_at}`,
+          ]
+        : [
+              `oc-lock:device-bind:${BINDING_VERSION}`,
+              `address: ${params.address}`,
+              `device_pk: ${params.device_pk}`,
+              `device_id: ${params.device_id}`,
+              `created_at: ${params.created_at}`,
+          ];
     return lines.join('\n') + '\n';
 }
 
@@ -196,6 +209,8 @@ export interface ParsedDeviceEvent {
     createdAtUnix: number;
     nostrPubkey: string;
     eventId: string;
+    /** 'v3' binds signed the Nostr pubkey; 'v2' binds and revocations did not. */
+    bindingVersion: 'v2' | 'v3';
 }
 
 export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
@@ -231,7 +246,7 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
     // So the statement is the source of truth and the tags must agree with it.
     const signed = parseBindingStatement(event.content);
     if (!signed) {
-        throw new Error('device event content is not a v2 bind or revoke statement');
+        throw new Error('device event content is not a v2/v3 bind or revoke statement');
     }
     if (signed.address !== address) {
         throw new Error(
@@ -262,6 +277,12 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
                     `tag says ${device_pk}, the signature covers ${signed.device_pk}`,
             );
         }
+        // A v3 statement names the one Nostr key allowed to carry it.
+        if (signed.nostr_pk !== null && signed.nostr_pk !== event.pubkey) {
+            throw new Error(
+                `device event pubkey (${event.pubkey}) does not match the signed nostr_pk (${signed.nostr_pk})`,
+            );
+        }
     } else if (device_pk !== 'revoked') {
         throw new Error(
             `device event carries a revocation statement but its device_pk tag is ${device_pk}, not "revoked"`,
@@ -279,18 +300,25 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
         createdAtUnix: event.created_at,
         nostrPubkey: event.pubkey,
         eventId: event.id,
+        bindingVersion: signed.kind === 'bind' && signed.nostr_pk !== null ? 'v3' : 'v2',
     };
 }
 
 /**
  * Read back the fields the signature actually commits to. Returns null for
- * anything that is not a well-formed v2 bind/revoke statement, which the caller
+ * anything that is not a well-formed v2/v3 bind or v2 revoke statement, which the caller
  * treats as an unusable record.
  */
 function parseBindingStatement(
     content: string,
 ):
-    | { kind: 'bind'; address: string; device_pk: string; device_id: string }
+    | {
+          kind: 'bind';
+          address: string;
+          device_pk: string;
+          device_id: string;
+          nostr_pk: string | null;
+      }
     | { kind: 'revoke'; address: string; device_id: string }
     | null {
     const lines = content.split('\n');
@@ -309,10 +337,18 @@ function parseBindingStatement(
     if (header === `oc-lock:device-bind:${BINDING_VERSION}`) {
         const device_pk = field('device_pk');
         if (!device_pk) return null;
-        return { kind: 'bind', address, device_pk, device_id };
+        return { kind: 'bind', address, device_pk, device_id, nostr_pk: null };
+    }
+    if (header === `oc-lock:device-bind:${BINDING_VERSION_V3}`) {
+        const device_pk = field('device_pk');
+        const nostr_pk = field('nostr_pk');
+        if (!device_pk || !nostr_pk || !/^[0-9a-f]{64}$/.test(nostr_pk)) return null;
+        return { kind: 'bind', address, device_pk, device_id, nostr_pk };
     }
     if (header === `oc-lock:device-revoke:${BINDING_VERSION}`) {
         return { kind: 'revoke', address, device_id };
     }
     return null;
 }
+
+export { authorizedDevices } from './authorize.js';

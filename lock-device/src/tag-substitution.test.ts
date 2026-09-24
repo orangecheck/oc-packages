@@ -90,7 +90,7 @@ describe('parseDeviceEvent trusts the signed statement, not the tags', () => {
     });
 
     it('REJECTS content that is not a v2 statement at all', () => {
-        expect(() => parseDeviceEvent(event(honestTags, 'hello'))).toThrow(/not a v2 bind or revoke/i);
+        expect(() => parseDeviceEvent(event(honestTags, 'hello'))).toThrow(/not a v2\/v3 bind or revoke/i);
     });
 
     it('accepts a genuine revocation and reports it revoked', () => {

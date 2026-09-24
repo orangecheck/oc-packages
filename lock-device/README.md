@@ -24,7 +24,8 @@ This package is WebCrypto-free: it works in Node and in the browser.
 ## Exports
 
 - `generateDeviceKey()` — new `(device_sk, device_pk, device_id, created_at)`.
-- `buildBindingStatement({ address, device_pk, device_id, created_at })` — exact bytes per SPEC §3.2.
+- `buildBindingStatement({ address, device_pk, device_id, created_at, nostr_pk? })` — exact bytes per SPEC §3.2 (v3 when `nostr_pk` is given).
+- `authorizedDevices(records)` — the verified records whose Nostr pubkey may act for their address (SPEC §3.4).
 - `buildRevocationStatement({ address, device_id, revoked_at })` — for explicit revocation.
 - `deriveNostrKey(deviceSk)` — deterministic `nostr_sk` from `device_sk` (HKDF).
 - `finalizeDeviceEvent({ ... bindingSigBase64, ... })` — returns a fully signed kind-30078 `NostrEvent`.

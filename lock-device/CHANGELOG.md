@@ -8,6 +8,23 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.3.0] — 2026-09-24
+
+### Added — v3 bind statement signs the device's Nostr pubkey
+
+- `buildBindingStatement({ …, nostr_pk })` emits `oc-lock:device-bind:v3`, which
+  adds a `nostr_pk:` line after `device_pk:` (OC Lock SPEC §3.2). Publishers
+  SHOULD pass `deriveNostrKey(device_sk).nostrPk`.
+- `parseDeviceEvent` accepts v3 and requires `event.pubkey` to equal the signed
+  `nostr_pk`. `ParsedDeviceEvent.bindingVersion` reports `'v2'` or `'v3'`.
+- `authorizedDevices(records)` selects the records whose `nostrPubkey` may act
+  for their address (SPEC §3.4): every v3 record, and a v2 record only while its
+  `device_id` has no v3 record and appears under exactly one Nostr pubkey.
+
+v2 statements still parse; a v2 statement does not sign the Nostr pubkey, so
+consumers that authorize a pubkey from a device record should route through
+`authorizedDevices`.
+
 ## [0.2.2] — 2026-09-24
 
 ### Changed — `parseDeviceEvent` requires the `d` tag to match the signed address
