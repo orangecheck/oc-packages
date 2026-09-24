@@ -8,6 +8,14 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.1.1] — 2026-09-24
+
+### Fixed — `counterparty=null` scope
+
+REGISTRY.md defines `pledge:create(counterparty=null)` as "only pledges with no
+counterparty". The value was compared as the string `"null"`, so no pledge ever
+satisfied it.
+
 ## [3.1.0] — 2026-09-24
 
 ### Changed — `pledge:create` ceilings use `<=`; unknown constraints do not match

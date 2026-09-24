@@ -151,7 +151,8 @@ function pledgeFailsConstraint(
         }
     }
     if ('counterparty' in constraints) {
-        const want = constraints['counterparty'];
+        // REGISTRY.md: `counterparty=null` restricts the agent to pledges with none.
+        const want = constraints['counterparty'] === 'null' ? null : constraints['counterparty'];
         if (pledge.counterparty !== want) {
             return `pledge.counterparty=${pledge.counterparty === null ? 'null' : `"${pledge.counterparty}"`} does not match delegation's counterparty="${want}"`;
         }

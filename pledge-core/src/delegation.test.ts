@@ -155,6 +155,15 @@ describe('checkPledgeCreateScope', () => {
         );
         expect(under.ok).toBe(true);
     });
+    it('reads counterparty=null as "no counterparty"', () => {
+        const scope = { scopes: ['pledge:create(counterparty=null)'] };
+        expect(checkPledgeCreateScope(pledge({ counterparty: null }), delegation(scope)).ok).toBe(
+            true,
+        );
+        expect(
+            checkPledgeCreateScope(pledge({ counterparty: 'bc1qcp' }), delegation(scope)).ok,
+        ).toBe(false);
+    });
     it('fails on a constraint key it does not understand', () => {
         const r = checkPledgeCreateScope(
             pledge(),
