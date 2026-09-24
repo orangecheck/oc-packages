@@ -6,7 +6,7 @@ import { commit } from './commit.js';
 import { ballotId, pollId, revealId } from './ids.js';
 import { tally } from './tally.js';
 import type { Ballot, Poll, Reveal } from './types.js';
-import { isMainnetAddress, verifyPoll, verifyReveal, VoteError } from './verify.js';
+import { isMainnetAddress, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 
 const CREATOR = 'bc1qcreator0000000000000000000000000000000';
 const ALICE = 'bc1qalice00000000000000000000000000000000';
@@ -271,5 +271,51 @@ describe('verifyReveal (SPEC §6.4, §10.3)', () => {
         ['malformed reveal_sk', { reveal_sk: 'zz' }],
     ])('rejects: %s', async (_name, over) => {
         expect((await verifyReveal(mkReveal(over as Partial<Reveal>), poll, verify)).ok).toBe(false);
+    });
+});
+
+describe('verifyBallot (SPEC §4.3, §10.1)', () => {
+    const poll = mkPoll();
+
+    it('accepts a voter-signed ballot, signed over ballot_id', async () => {
+        const b = mkBallot(poll, ALICE);
+        const calls: string[] = [];
+        const res = await verifyBallot(b, (a) => {
+            calls.push(`${a.address}:${a.message}`);
+            return verify(a);
+        });
+        expect(res).toEqual({ ok: true });
+        expect(calls).toEqual([`${ALICE}:${ballotId(b)}`]);
+    });
+
+    it('accepts a secret ballot carrying a commit and no option', async () => {
+        const b = mkBallot(poll, ALICE, { option: null, secret: { envelope: {}, commit: 'ab'.repeat(32) } });
+        expect(await verifyBallot(b, verify)).toEqual({ ok: true });
+    });
+
+    it.each([
+        ['bad signature', { sig: { alg: 'bip322' as const, pubkey: ALICE, value: 'bad' } }, 'E_BAD_SIG'],
+        ['empty signature', { sig: { alg: 'bip322' as const, pubkey: ALICE, value: '' } }, 'E_BAD_SIG'],
+        ['testnet voter', { voter: 'tb1qalice' }, 'E_WRONG_POLL'],
+        ['other version', { v: 1 as unknown as 0 }, 'E_WRONG_POLL'],
+        ['malformed poll_id', { poll_id: 'nope' }, 'E_WRONG_POLL'],
+        ['neither option nor secret', { option: null }, 'E_UNKNOWN_OPTION'],
+        [
+            'both option and secret',
+            { secret: { envelope: {}, commit: 'ab'.repeat(32) } },
+            'E_UNKNOWN_OPTION',
+        ],
+    ])('rejects: %s', async (_name, over, code) => {
+        const r = await verifyBallot(mkBallot(poll, ALICE, over as Partial<Ballot>), verify);
+        expect(r).toMatchObject({ ok: false, code });
+    });
+
+    it('rejects a ballot whose signed voter is not the address the signature is checked against', async () => {
+        // The signature is checked against `voter`, so a ballot re-labelled
+        // with another voter no longer verifies.
+        const signedByAlice = mkBallot(poll, ALICE);
+        const relabelled = { ...signedByAlice, voter: BOB };
+        const res = await verifyBallot(relabelled, ({ address, signature }) => address === ALICE && signature === 'good');
+        expect(res).toMatchObject({ ok: false, code: 'E_BAD_SIG' });
     });
 });

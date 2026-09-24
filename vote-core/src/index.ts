@@ -18,7 +18,7 @@ export {
 } from './weight.js';
 export { tally } from './tally.js';
 export type { TallyOptions } from './tally.js';
-export { isMainnetAddress, verifyPoll, verifyReveal, VoteError } from './verify.js';
+export { isMainnetAddress, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 export {
     MIN_SNAPSHOT_CONFIRMATIONS,
     mempoolBlockTimeSource,

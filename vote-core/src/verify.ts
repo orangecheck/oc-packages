@@ -1,11 +1,11 @@
-// Authenticity checks for polls and reveals per SPEC §3.3, §6.4 and §10.
+// Authenticity checks for polls, ballots and reveals per SPEC §3.3, §4.3, §6.4 and §10.
 //
 // Like `tally`, these take the BIP-322 verifier as a callback: this package
 // stays free of any secp256k1 / bip322 dependency.
 
-import { pollId, revealId } from './ids.js';
-import { POLL_VERSION, REVEAL_VERSION } from './types.js';
-import type { Poll, Reveal, VoteErrorCode } from './types.js';
+import { ballotId, pollId, revealId } from './ids.js';
+import { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
+import type { Ballot, Poll, Reveal, VoteErrorCode } from './types.js';
 
 /** Named-argument BIP-322 verifier, the same shape as `TallyOptions.verify`. */
 export type SignatureVerifier = (args: {
@@ -84,6 +84,45 @@ export async function verifyPoll(poll: Poll, verify: SignatureVerifier): Promise
     }
     const ok = await verify({ address: poll.creator, message: pollId(poll), signature });
     return ok ? { ok: true } : bad('E_BAD_SIG', 'poll signature does not verify against creator');
+}
+
+/**
+ * Structural checks from SPEC §4.3 plus the voter's BIP-322 signature over
+ * `ballot_id` (§10.1), for a ballot read on its own, without its poll. Whether
+ * the option belongs to the poll, and whether the ballot is in time, are
+ * questions for `tally`, which has the poll.
+ */
+export async function verifyBallot(ballot: Ballot, verify: SignatureVerifier): Promise<VerifyResult> {
+    const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
+    if (!ballot || typeof ballot !== 'object') return bad('E_WRONG_POLL', 'not a ballot object');
+    if (ballot.v !== BALLOT_VERSION || ballot.kind !== 'oc-vote/ballot') {
+        return bad('E_WRONG_POLL', 'not an oc-vote/ballot v0 object');
+    }
+    if (typeof ballot.poll_id !== 'string' || !/^[0-9a-f]{64}$/.test(ballot.poll_id)) {
+        return bad('E_WRONG_POLL', 'poll_id is not 32-byte hex');
+    }
+    if (!isMainnetAddress(ballot.voter)) {
+        return bad('E_WRONG_POLL', 'voter is not a Bitcoin mainnet address');
+    }
+    // Public ballots carry `option`, secret ones `secret`; never both, never neither.
+    const isPublic = typeof ballot.option === 'string' && ballot.secret == null;
+    const isSecret =
+        ballot.option == null &&
+        ballot.secret != null &&
+        typeof ballot.secret === 'object' &&
+        typeof ballot.secret.commit === 'string';
+    if (!isPublic && !isSecret) {
+        return bad('E_UNKNOWN_OPTION', 'ballot must carry exactly one of option or secret');
+    }
+    if (!Number.isFinite(Date.parse(ballot.created_at))) {
+        return bad('E_WRONG_POLL', 'unparseable created_at');
+    }
+    const signature = ballot.sig?.value;
+    if (ballot.sig?.alg !== 'bip322' || typeof signature !== 'string' || !signature) {
+        return bad('E_BAD_SIG', 'ballot is unsigned');
+    }
+    const ok = await verify({ address: ballot.voter, message: ballotId(ballot), signature });
+    return ok ? { ok: true } : bad('E_BAD_SIG', 'ballot signature does not verify against voter');
 }
 
 /**

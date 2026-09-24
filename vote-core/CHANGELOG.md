@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.0] — 2026-09-24
+
+### Added — `verifyBallot`
+
+- `verifyBallot(ballot, verify)` checks a ballot on its own: SPEC §4.3
+  structure (version, kind, `poll_id`, mainnet `voter`, exactly one of
+  `option` / `secret`) and the voter's BIP-322 signature over `ballot_id`
+  (§10.1). It completes the set with `verifyPoll` and `verifyReveal`, so a
+  reader that lists ballots outside a tally uses the same checks `tally` does.
+
 ## [1.4.0] — 2026-09-24
 
 ### Added — SPEC §3 snapshot resolution
