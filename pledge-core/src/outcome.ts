@@ -248,6 +248,7 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
         envelope: env,
         canonicalMessage: reconstructed,
         id: env.id,
+        recomputeRequired: !requiresSig,
     };
     return result;
 }
@@ -283,6 +284,12 @@ function checkResolverAuthorized(
     }
 
     const mechanism = pledge.resolution.mechanism;
+    if (env.evidence.mechanism !== mechanism) {
+        return err(
+            'E_OUTCOME_EVIDENCE_MISMATCH',
+            `evidence.mechanism (${env.evidence.mechanism}) is not the pledge's mechanism (${mechanism})`,
+        );
+    }
     if (mechanism === 'counterparty_signs') {
         if (pledge.counterparty === null) {
             return err(
@@ -306,6 +313,23 @@ function checkResolverAuthorized(
         return err(
             'E_OUTCOME_RESOLVER_UNAUTHORIZED',
             `mechanism "${mechanism}" resolves deterministically, so resolved_by must be "deterministic", not ${env.resolved_by}`,
+        );
+    }
+    // A deterministic outcome evaluates public state AT resolution, so it cannot
+    // be dated before the pledge resolves (or, for expired_unresolved, expires).
+    // Block-typed resolves_at has no wall clock to compare here; the caller's
+    // recomputation (recomputeRequired) covers it.
+    const resolvedMs = Date.parse(env.resolved_at);
+    if ('time' in pledge.resolves_at && !(resolvedMs >= Date.parse(pledge.resolves_at.time))) {
+        return err(
+            'E_OUTCOME_MALFORMED',
+            `resolved_at (${env.resolved_at}) precedes the pledge's resolves_at (${pledge.resolves_at.time})`,
+        );
+    }
+    if (env.outcome === 'expired_unresolved' && !(resolvedMs >= Date.parse(pledge.expires_at))) {
+        return err(
+            'E_OUTCOME_MALFORMED',
+            `expired_unresolved resolved_at (${env.resolved_at}) precedes the pledge's expires_at (${pledge.expires_at})`,
         );
     }
     return null;

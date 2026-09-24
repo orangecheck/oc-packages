@@ -286,13 +286,18 @@ export interface VerifyPledgeInput {
      * and that scopes contain a `pledge:create(...)` whose constraints fit
      * the pledge's bond / mechanism / counterparty.
      *
-     * Without this hook, agent-delegated pledges still verify at the
-     * envelope-shape + BIP-322 layer (§7.3 step 6), but the §7.3 1–5 chain
-     * is skipped. Surface a delegationLookup adapter (e.g. one that uses
-     * `@orangecheck/agent-core`'s `verifyDelegation`) for full scope
-     * enforcement.
+     * An agent-delegated pledge is refused with `E_DELEGATION_NOT_FOUND`
+     * when this hook is absent, unless `skipDelegationVerification` says so
+     * explicitly: the signature alone proves only that the agent signed, not
+     * that the swearer authorised it (SPEC §7.3).
      */
     delegationLookup?: DelegationLookup;
+    /**
+     * Verify an agent-delegated pledge WITHOUT resolving its delegation. Only
+     * for callers that check the §7.3 chain themselves or that present the
+     * result as unauthorised (test vectors, offline previews).
+     */
+    skipDelegationVerification?: boolean;
 }
 
 /**
@@ -364,6 +369,19 @@ export interface VerifyOutcomeInput {
 
 export interface VerifyAbandonmentInput {
     envelope: AbandonmentEnvelope;
+    /**
+     * The pledge this abandonment refers to. Supply it and SPEC §5.3 is
+     * enforced: `pledge_id` names it, `sig.pubkey` is its swearer, and
+     * `abandoned_at >= sworn_at`. Omit it and you MUST say so with
+     * `skipPledgeBinding`.
+     */
+    pledge?: PledgeCanonicalInput;
+    /**
+     * Verify the envelope WITHOUT binding it to a pledge. The result then
+     * says only that someone signed this abandonment, not that the swearer
+     * abandoned the pledge; callers MUST NOT classify a pledge with it.
+     */
+    skipPledgeBinding?: boolean;
     verifyBip322?: VerifyBip322;
     skipSignatureVerification?: boolean;
 }
@@ -404,6 +422,13 @@ export interface VerifyOutcomeOk {
     envelope: OutcomeEnvelope;
     canonicalMessage: string;
     id: string;
+    /**
+     * True for `resolved_by: "deterministic"`. Such an outcome is unsigned, so
+     * verifying it proves only that it is well formed and bound to the pledge:
+     * it is a claim about public state. Callers MUST recompute the mechanism
+     * before treating it as final (SPEC §9.1 step 8, §11.4).
+     */
+    recomputeRequired: boolean;
 }
 
 export interface VerifyAbandonmentOk {

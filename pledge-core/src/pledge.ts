@@ -263,12 +263,16 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
         if (!ok) return err('E_PLEDGE_BAD_SIG', 'BIP-322 signature did not verify');
     }
 
-    // 5. Delegation lookup (SPEC §7.3 steps 1–5) when via_delegation is
-    // present AND a delegationLookup adapter was supplied. Without an
-    // adapter the agent path is shape-and-signature-only — the verifier
-    // accepts the envelope but doesn't enforce the principal/agent/scope
-    // chain. Documented as an implementation note in oc-pledge-protocol/
-    // SECURITY.md scenarios 15 + 16.
+    // 5. Delegation (SPEC §7.3 steps 1–5). The agent's signature alone does
+    // not show the swearer authorised the pledge, so without a lookup the
+    // agent path is refused unless the caller explicitly opts out.
+    if (env.via_delegation && !input.delegationLookup && !input.skipDelegationVerification) {
+        return err(
+            'E_DELEGATION_NOT_FOUND',
+            'agent-delegated pledge requires a delegationLookup, or an explicit ' +
+                'skipDelegationVerification:true to state that the delegation is not being checked',
+        );
+    }
     if (env.via_delegation && env.agent_address && input.delegationLookup) {
         const delegation = await input.delegationLookup(env.via_delegation, env.sworn_at);
         if (delegation === null) {

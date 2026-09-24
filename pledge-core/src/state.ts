@@ -24,21 +24,29 @@ import type {
 } from './types.js';
 
 export function classifyState(input: ClassifyStateInput): PledgeState {
-    const { pledge, outcome, abandonment, now, contradictoryOutcomes } = input;
+    const { pledge, now, contradictoryOutcomes } = input;
     const nowMs = parseUtc(now);
+
+    // Envelopes about another pledge say nothing about this one, and only the
+    // swearer can abandon (SPEC §5.3). Signatures are the caller's job via
+    // verifyAbandonment()/verifyOutcome() with the pledge supplied.
+    const outcome = input.outcome && input.outcome.pledge_id === pledge.id ? input.outcome : null;
+    const abandonment =
+        input.abandonment &&
+        input.abandonment.pledge_id === pledge.id &&
+        input.abandonment.sig.pubkey === pledge.swearer.address
+            ? input.abandonment
+            : null;
 
     // Abandonment trumps everything: SPEC §5.4 — no honorable-exit path.
     if (abandonment !== null) {
-        // Trust the caller to have signature-verified the abandonment via
-        // verifyAbandonment(); state classification is a pure function of
-        // valid inputs.
         return 'broken';
     }
 
     // Contradictory outcome envelopes from authorized resolvers → disputed.
     if (outcome !== null && contradictoryOutcomes && contradictoryOutcomes.length > 0) {
         for (const other of contradictoryOutcomes) {
-            if (other.pledge_id === outcome.pledge_id && other.outcome !== outcome.outcome) {
+            if (other.pledge_id === pledge.id && other.outcome !== outcome.outcome) {
                 return 'disputed';
             }
         }

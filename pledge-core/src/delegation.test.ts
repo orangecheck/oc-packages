@@ -232,12 +232,22 @@ describe('verifyPledge — delegationLookup integration', () => {
         if (!r.ok) expect(r.code).toBe('E_DELEGATION_EXPIRED');
     });
 
-    it('skips delegation chain when no delegationLookup supplied (back-compat)', async () => {
-        // Without a lookup, agent path falls back to envelope-shape + sig-only
-        // verification per SPEC §7.3 step 6 — same as pre-0.2.0.
+    it('refuses an agent pledge when no delegationLookup is supplied', async () => {
+        // The agent's signature shows the agent signed, not that the swearer
+        // authorised it (SPEC §7.3 steps 1–5).
         const r = await verifyPledge({
             envelope: pledge(),
             skipSignatureVerification: true,
+        });
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe('E_DELEGATION_NOT_FOUND');
+    });
+
+    it('accepts an agent pledge without a lookup only when the skip is explicit', async () => {
+        const r = await verifyPledge({
+            envelope: pledge(),
+            skipSignatureVerification: true,
+            skipDelegationVerification: true,
         });
         expect(r.ok).toBe(true);
     });

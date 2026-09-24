@@ -120,7 +120,12 @@ async function runPledgeVector(vec: AnyVector) {
     const env = expected['envelope'] as PledgeEnvelope;
     expect(env.id).toBe(id);
 
-    const r = await verifyPledge({ envelope: env, skipSignatureVerification: true });
+    // Envelope conformance only: vectors carry no resolvable delegation.
+    const r = await verifyPledge({
+        envelope: env,
+        skipSignatureVerification: true,
+        skipDelegationVerification: true,
+    });
     if (!r.ok) {
         throw new Error(`verifyPledge() failed for declared envelope: ${r.code} ${r.message}`);
     }
@@ -201,7 +206,12 @@ async function runAbandonmentVector(vec: AnyVector) {
     const env = expected['envelope'] as AbandonmentEnvelope;
     expect(env.id).toBe(id);
 
-    const r = await verifyAbandonment({ envelope: env, skipSignatureVerification: true });
+    // Envelope conformance only: abandonment vectors carry a pledge_id, not a pledge.
+    const r = await verifyAbandonment({
+        envelope: env,
+        skipSignatureVerification: true,
+        skipPledgeBinding: true,
+    });
     if (!r.ok) {
         throw new Error(
             `verifyAbandonment() failed for declared envelope: ${r.code} ${r.message}`,

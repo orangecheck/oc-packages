@@ -8,6 +8,42 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.0.0] — 2026-09-24
+
+### Changed — abandonments, deterministic outcomes and agent pledges bind to the pledge
+
+**BREAKING.** Four SPEC rules are now enforced by the verifiers rather than left
+to callers.
+
+**`verifyAbandonment` takes the pledge (SPEC §5.3).** `VerifyAbandonmentInput`
+gains `pledge`. With it, the abandonment must name that pledge (`pledge_id`
+recomputed), `sig.pubkey` must be the pledge's `swearer.address`
+(`E_ABANDONMENT_BAD_SIG`), and `abandoned_at >= sworn_at`
+(`E_ABANDONMENT_MALFORMED`). Omitting `pledge` is an error unless the caller
+passes `skipPledgeBinding: true`, which states that the result says nothing
+about who abandoned what.
+
+**Deterministic outcomes are bound claims (SPEC §4.3, §9.1 step 8, §11.4).**
+With `pledge` supplied, `verifyOutcome` requires `evidence.mechanism` to equal
+the pledge's mechanism (`E_OUTCOME_EVIDENCE_MISMATCH`, every mechanism), and a
+`"deterministic"` outcome must be dated at or after a time-typed `resolves_at`,
+and an `expired_unresolved` one at or after `expires_at` (`E_OUTCOME_MALFORMED`).
+`VerifyOutcomeOk` gains `recomputeRequired`: `true` for every deterministic
+outcome. Such an outcome is unsigned, so verification shows it is well formed
+and bound to the pledge, not that public state agrees; callers MUST recompute
+the mechanism before treating it as final.
+
+**`classifyState` ignores envelopes about another pledge (SPEC §4.4).** An
+outcome, contradictory outcome or abandonment whose `pledge_id` is not
+`pledge.id` is treated as absent, as is an abandonment whose `sig.pubkey` is not
+the swearer.
+
+**Agent pledges require a delegation lookup (SPEC §7.3).** `verifyPledge`
+returns `E_DELEGATION_NOT_FOUND` for a `via_delegation` pledge when no
+`delegationLookup` is supplied, unless the caller passes
+`skipDelegationVerification: true`. The agent's signature alone does not show
+that the swearer authorised the pledge.
+
 ## [2.1.0] — 2026-09-14
 
 ### Fixed — two §3 field rules were declared and never enforced

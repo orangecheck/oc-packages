@@ -5,6 +5,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import {
     canonicalAbandonmentMessage,
     canonicalAbandonmentMessageBytes,
+    canonicalPledgeMessageBytes,
     computeAbandonmentId,
     hexEncode,
     validateAbandonmentInput,
@@ -14,6 +15,7 @@ import {
     type AbandonmentCanonicalInput,
     type AbandonmentEnvelope,
     type CreateAbandonmentInput,
+    type PledgeCanonicalInput,
     type PledgeErrorCode,
     type VerifyAbandonmentInput,
     type VerifyAbandonmentOk,
@@ -124,6 +126,18 @@ export async function verifyAbandonment(
         );
     }
 
+    if (!input.pledge && !input.skipPledgeBinding) {
+        return err(
+            'E_ABANDONMENT_BAD_SIG',
+            'verifyAbandonment requires the pledge it abandons, or an explicit ' +
+                'skipPledgeBinding:true to state that the swearer is not being checked',
+        );
+    }
+    if (input.pledge) {
+        const binding = checkPledgeBinding(env, input.pledge);
+        if (binding) return binding;
+    }
+
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) {
             return err('E_ABANDONMENT_BAD_SIG', 'no BIP-322 verifier supplied');
@@ -139,6 +153,39 @@ export async function verifyAbandonment(
         id: env.id,
     };
     return result;
+}
+
+/**
+ * SPEC §5.3: an abandonment names THIS pledge, is signed by its swearer
+ * (principal-only; agents may not abandon), and is not dated before the pledge
+ * was sworn.
+ */
+function checkPledgeBinding(
+    env: AbandonmentEnvelope,
+    pledge: PledgeCanonicalInput,
+): VerifyErr | null {
+    const expectedPledgeId = hexEncode(sha256(canonicalPledgeMessageBytes(pledge)));
+    if (env.pledge_id !== expectedPledgeId) {
+        return err(
+            'E_ABANDONMENT_MALFORMED',
+            `abandonment.pledge_id ${env.pledge_id} does not match the supplied pledge (${expectedPledgeId})`,
+        );
+    }
+    if (env.sig.pubkey !== pledge.swearer) {
+        return err(
+            'E_ABANDONMENT_BAD_SIG',
+            `sig.pubkey (${env.sig.pubkey}) must equal the pledge's swearer (${pledge.swearer})`,
+        );
+    }
+    const abandonedMs = Date.parse(env.abandoned_at);
+    const swornMs = Date.parse(pledge.sworn_at);
+    if (Number.isNaN(swornMs) || !(abandonedMs >= swornMs)) {
+        return err(
+            'E_ABANDONMENT_MALFORMED',
+            `abandoned_at (${env.abandoned_at}) precedes the pledge's sworn_at (${pledge.sworn_at})`,
+        );
+    }
+    return null;
 }
 
 function checkAbandonmentShape(env: AbandonmentEnvelope): VerifyErr | null {
