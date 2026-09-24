@@ -204,6 +204,12 @@ export interface QueryResult {
     relay: string;
     /** The relay returned at least one verified, filter-matching event, or reached EOSE. */
     ok: boolean;
+    /**
+     * The relay sent EOSE: it finished answering, so an empty or short result
+     * from it is complete. `ok` is also true when a relay timed out or closed
+     * after sending some events; use `eose` for completeness.
+     */
+    eose: boolean;
     reason?: string;
     /** Verified, filter-matching events received from this relay. */
     events: number;
@@ -529,6 +535,7 @@ export async function queryEvents(
             status.push({
               relay: url,
               ok: count > 0,
+              eose: false,
               reason: reason ?? "timeout",
               events: count,
               rejected,
@@ -573,7 +580,7 @@ export async function queryEvents(
                   ws?.send(JSON.stringify(["CLOSE", subId]));
                   ws?.close();
                 } catch {}
-                status.push({ relay: url, ok: true, events: count, rejected });
+                status.push({ relay: url, ok: true, eose: true, events: count, rejected });
                 resolve();
               } else if (
                 frame.type === "CLOSED" &&
@@ -603,6 +610,7 @@ export async function queryEvents(
                 status.push({
                   relay: url,
                   ok: count > 0,
+                  eose: false,
                   reason: String(frame.payload[1] ?? "closed"),
                   events: count,
               rejected,
@@ -619,6 +627,7 @@ export async function queryEvents(
               status.push({
                 relay: url,
                 ok: false,
+                eose: false,
                 reason: "ws_error",
                 events: count,
               rejected,
@@ -632,6 +641,7 @@ export async function queryEvents(
               status.push({
                 relay: url,
                 ok: count > 0,
+                eose: false,
                 reason: reason ?? "closed_early",
                 events: count,
               rejected,
@@ -645,6 +655,7 @@ export async function queryEvents(
             status.push({
               relay: url,
               ok: false,
+              eose: false,
               reason: err instanceof Error ? err.message : "unknown",
               events: count,
               rejected,

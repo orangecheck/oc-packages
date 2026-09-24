@@ -12,6 +12,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.0] — 2026-09-24
+
+### Added
+
+- **`relayStatus[].eose`**: true only when the relay sent EOSE, meaning it
+  finished answering and an empty or short result from it is complete. `ok`
+  is also true when a relay timed out or closed after sending some events
+  (those carry a `reason`), so completeness checks should read `eose` rather
+  than `ok`. The field is required on the type, so code that builds its own
+  `QueryResult` values must set it.
+
 ## [0.3.0] — 2026-09-24
 
 ### Changed

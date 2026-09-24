@@ -173,6 +173,7 @@ describe("queryEvents", () => {
     expect(result.events[0]!.id).toBe(ev2.id);
     expect(result.events[1]!.id).toBe(ev1.id);
     expect(result.relayStatus.filter((s) => s.ok)).toHaveLength(2);
+    expect(result.relayStatus.every((s) => s.eose)).toBe(true);
   });
 
   it("reports per-relay status — failure on one does not block others", async () => {
@@ -231,6 +232,8 @@ describe("queryEvents", () => {
     );
     expect(result.events).toHaveLength(1);
     expect(result.relayStatus[0]!.ok).toBe(true);
+    // Answered, but not completely: the relay never said it was done.
+    expect(result.relayStatus[0]!.eose).toBe(false);
   });
 
   it("respects timeoutMs when relay never sends EOSE", async () => {
@@ -241,6 +244,19 @@ describe("queryEvents", () => {
     expect(elapsed).toBeGreaterThanOrEqual(200);
     expect(elapsed).toBeLessThan(500);
     expect(result.relayStatus[0]!.reason).toBe("timeout");
+    expect(result.relayStatus[0]!.eose).toBe(false);
+  });
+
+  it("reports eose only for a relay that finished, even when it returned nothing", async () => {
+    mockNextQuery([]);
+    mockNextQuery("error");
+    const result = await queryEvents({ kinds: [30078] }, [
+      "wss://empty",
+      "wss://down",
+    ]);
+    expect(result.events).toHaveLength(0);
+    expect(result.relayStatus.find((s) => s.relay === "wss://empty")!.eose).toBe(true);
+    expect(result.relayStatus.find((s) => s.relay === "wss://down")!.eose).toBe(false);
   });
 });
 

@@ -16,7 +16,7 @@ npm install @orangecheck/nostr-core
 
 Uses the platform `WebSocket` global. Works in any runtime that ships a WHATWG WebSocket (browsers, Node 22+, Deno, Bun, Cloudflare Workers).
 
-`queryEvents` keeps only events whose id recomputes (NIP-01), whose BIP-340 signature verifies against `pubkey`, and which match the filter it sent. Everything else is dropped and counted per relay in `relayStatus[].rejected`. `verifyEvent`, `getEventHash` and `matchFilter` are exported for events obtained elsewhere.
+`queryEvents` keeps only events whose id recomputes (NIP-01), whose BIP-340 signature verifies against `pubkey`, and which match the filter it sent. Everything else is dropped and counted per relay in `relayStatus[].rejected`. `relayStatus[].eose` is true only for a relay that sent EOSE; use it, not `ok`, to decide whether an empty result is complete. `verifyEvent`, `getEventHash` and `matchFilter` are exported for events obtained elsewhere.
 
 ## Use
 
