@@ -12,6 +12,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-09-24
+
+### Changed
+
+- **`queryEvents` returns only verified events.** Each event a relay returns
+  is kept only if its id equals the NIP-01 hash of its fields, its `sig` is a
+  valid BIP-340 signature of that id by `pubkey`, and it matches the filter
+  that was sent (`ids`, `kinds`, `authors`, `since`, `until`, `#x` tags).
+  Deduplication is keyed on the verified id, so the first copy of an id no
+  longer decides which content is returned. There is no opt-out.
+- `relayStatus[].events` now counts accepted events only, and `ok` after a
+  `CLOSED` or early close reflects accepted events.
+
+### Added
+
+- `relayStatus[].rejected` — events from that relay dropped by the checks above.
+- `verifyEvent()`, `getEventHash()` and `matchFilter()`.
+- Dependencies on `@noble/curves` and `@noble/hashes` for the signature check.
+
 ## [0.2.3] — 2026-09-14
 
 ### Fixed

@@ -13,10 +13,15 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { schnorr } from "@noble/curves/secp256k1.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   DEFAULT_RELAYS,
+  getEventHash,
+  matchFilter,
   publishEvent,
   queryEvents,
+  verifyEvent,
   type Filter,
   type NostrEvent,
 } from "./index";
@@ -73,6 +78,26 @@ const SAMPLE_EVENT: NostrEvent = {
   tags: [["d", "oc-test:abc"]],
   sig: "cafebabe".repeat(16),
 };
+
+const SK = new Uint8Array(32).fill(7);
+const SK2 = new Uint8Array(32).fill(9);
+
+/** A correctly signed event over SAMPLE_EVENT's fields plus `overrides`. */
+function signed(
+  overrides: Partial<Omit<NostrEvent, "id" | "sig" | "pubkey">> = {},
+  sk: Uint8Array = SK,
+): NostrEvent {
+  const base = {
+    kind: SAMPLE_EVENT.kind,
+    created_at: SAMPLE_EVENT.created_at,
+    content: SAMPLE_EVENT.content,
+    tags: SAMPLE_EVENT.tags,
+    ...overrides,
+    pubkey: bytesToHex(schnorr.getPublicKey(sk)),
+  };
+  const id = getEventHash(base);
+  return { ...base, id, sig: bytesToHex(schnorr.sign(id, sk)) };
+}
 
 beforeEach(() => {
   installMockWebSocket();
@@ -133,8 +158,8 @@ describe("publishEvent", () => {
 
 describe("queryEvents", () => {
   it("returns events streamed via EVENT, dedupes across relays", async () => {
-    const ev1 = { ...SAMPLE_EVENT, id: "a".repeat(64) };
-    const ev2 = { ...SAMPLE_EVENT, id: "b".repeat(64), created_at: 1735689700 };
+    const ev1 = signed({ content: "one" });
+    const ev2 = signed({ content: "two", created_at: 1735689700 });
     mockNextQuery([ev1, ev2]);
     // Same event id on a second relay — should dedupe.
     mockNextQuery([ev1]);
@@ -145,13 +170,13 @@ describe("queryEvents", () => {
     ]);
     expect(result.events).toHaveLength(2);
     // Sorted by created_at desc.
-    expect(result.events[0]!.id).toBe("b".repeat(64));
-    expect(result.events[1]!.id).toBe("a".repeat(64));
+    expect(result.events[0]!.id).toBe(ev2.id);
+    expect(result.events[1]!.id).toBe(ev1.id);
     expect(result.relayStatus.filter((s) => s.ok)).toHaveLength(2);
   });
 
   it("reports per-relay status — failure on one does not block others", async () => {
-    const ev = { ...SAMPLE_EVENT };
+    const ev = signed();
     mockNextQuery([ev]);
     mockNextQuery("error");
 
@@ -198,7 +223,7 @@ describe("queryEvents", () => {
   it("counts a relay that streamed events before closing as having answered", async () => {
     // A relay may serve some stored events and then end the sub. Those
     // events are real; ok must not depend on the frame that ended it.
-    mockNextQueryClosed("done", [SAMPLE_EVENT]);
+    mockNextQueryClosed("done", [signed()]);
     const result = await queryEvents(
       { kinds: [30078] },
       ["wss://closed3"],
@@ -243,7 +268,7 @@ describe("NIP-42 AUTH (additive)", () => {
   }, 10_000);
 
   it("queryEvents completes the AUTH handshake then serves the REQ", async () => {
-    const ev = { ...SAMPLE_EVENT, id: "c".repeat(64) };
+    const ev = signed({ content: "c" });
     mockNextAuthQuery("chal-q", [ev]);
     const result = await queryEvents(
       { kinds: [30078] },
@@ -252,7 +277,123 @@ describe("NIP-42 AUTH (additive)", () => {
       fakeAuthSigner,
     );
     expect(result.events).toHaveLength(1);
-    expect(result.events[0]!.id).toBe("c".repeat(64));
+    expect(result.events[0]!.id).toBe(ev.id);
+  });
+});
+
+describe("queryEvents returns only verified, filter-matching events", () => {
+  it("drops an event whose content does not hash to its id", async () => {
+    const good = signed();
+    const altered = { ...good, content: "altered" };
+    mockNextQuery([altered]);
+    const result = await queryEvents({ kinds: [30078] }, ["wss://a"]);
+    expect(result.events).toHaveLength(0);
+    expect(result.relayStatus[0]!.rejected).toBe(1);
+    expect(result.relayStatus[0]!.events).toBe(0);
+  });
+
+  it("drops an event whose signature is not by its pubkey", async () => {
+    const good = signed();
+    const other = signed({}, SK2);
+    // Correct id for these fields, but the signature belongs to another key.
+    mockNextQuery([{ ...good, sig: bytesToHex(schnorr.sign(good.id, SK2)) }]);
+    mockNextQuery([{ ...other, pubkey: good.pubkey }]);
+    const result = await queryEvents({ kinds: [30078] }, [
+      "wss://a",
+      "wss://b",
+    ]);
+    expect(result.events).toHaveLength(0);
+    expect(result.relayStatus.map((s) => s.rejected)).toEqual([1, 1]);
+  });
+
+  it("drops a valid event that does not match the filter", async () => {
+    mockNextQuery([
+      signed({ kind: 1 }),
+      signed({ tags: [["d", "other"]] }),
+      signed({ created_at: 100 }),
+    ]);
+    const result = await queryEvents(
+      { kinds: [30078], "#d": ["oc-test:abc"], since: 1000 },
+      ["wss://a"],
+    );
+    expect(result.events).toHaveLength(0);
+    expect(result.relayStatus[0]!.rejected).toBe(3);
+    expect(result.relayStatus[0]!.ok).toBe(true); // it did reach EOSE
+  });
+
+  it("drops an event from an author outside the filter", async () => {
+    mockNextQuery([signed({}, SK2)]);
+    const result = await queryEvents(
+      { authors: [signed().pubkey] },
+      ["wss://a"],
+    );
+    expect(result.events).toHaveLength(0);
+  });
+
+  it("an altered copy under a known id cannot displace the signed event", async () => {
+    const good = signed({ content: "original" });
+    mockNextQuery([{ ...good, content: "replacement" }]);
+    mockNextQuery([good]);
+    const result = await queryEvents({ kinds: [30078] }, [
+      "wss://first",
+      "wss://second",
+    ]);
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]!.content).toBe("original");
+  });
+
+  it("a relay that returns only rejected events is not reported ok after closing", async () => {
+    mockNextQueryClosed("done", [{ ...signed(), content: "x" }]);
+    const result = await queryEvents({ kinds: [30078] }, ["wss://c"], 2000);
+    expect(result.relayStatus[0]!.ok).toBe(false);
+    expect(result.relayStatus[0]!.rejected).toBe(1);
+  });
+});
+
+describe("verifyEvent", () => {
+  it("accepts a correctly signed event", () => {
+    expect(verifyEvent(signed())).toBe(true);
+  });
+
+  it("rejects malformed shapes", () => {
+    const ev = signed();
+    expect(verifyEvent(null)).toBe(false);
+    expect(verifyEvent({ ...ev, id: ev.id.toUpperCase() })).toBe(false);
+    expect(verifyEvent({ ...ev, tags: [[1]] })).toBe(false);
+    expect(verifyEvent({ ...ev, created_at: "1" })).toBe(false);
+    expect(verifyEvent({ ...ev, sig: "00" })).toBe(false);
+  });
+
+  it("rejects any changed field", () => {
+    const ev = signed();
+    expect(verifyEvent({ ...ev, kind: 30079 })).toBe(false);
+    expect(verifyEvent({ ...ev, created_at: ev.created_at + 1 })).toBe(false);
+    expect(verifyEvent({ ...ev, tags: [["d", "oc-test:xyz"]] })).toBe(false);
+  });
+});
+
+describe("matchFilter", () => {
+  const ev = signed({ tags: [["t", "oc-attest"], ["d", "x"]] });
+
+  it("matches on every constraint together", () => {
+    expect(
+      matchFilter(ev, {
+        ids: [ev.id],
+        kinds: [30078],
+        authors: [ev.pubkey],
+        "#t": ["oc-attest", "other"],
+        since: ev.created_at,
+        until: ev.created_at,
+        limit: 1,
+      }),
+    ).toBe(true);
+  });
+
+  it("fails when any single constraint fails", () => {
+    expect(matchFilter(ev, { ids: ["f".repeat(64)] })).toBe(false);
+    expect(matchFilter(ev, { "#t": ["oc-vote"] })).toBe(false);
+    expect(matchFilter(ev, { "#p": [ev.pubkey] })).toBe(false);
+    expect(matchFilter(ev, { until: ev.created_at - 1 })).toBe(false);
   });
 });
 

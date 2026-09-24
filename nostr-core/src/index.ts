@@ -7,9 +7,10 @@
  * can distinguish "nobody replied" from "one relay rejected." Retries with
  * exponential backoff on transport errors only.
  *
- * No dependencies — uses the platform `WebSocket` global. Works in any
- * runtime that ships a WHATWG WebSocket (browser, Node 22+, Deno, Bun,
- * Cloudflare Workers).
+ * Uses the platform `WebSocket` global. Works in any runtime that ships a
+ * WHATWG WebSocket (browser, Node 22+, Deno, Bun, Cloudflare Workers).
+ * `queryEvents` returns only events whose id and BIP-340 signature verify
+ * and which match the filter (`@noble/curves` + `@noble/hashes`).
  *
  * Source-of-truth `DEFAULT_RELAYS` for the OC family. Co-publishes to four
  * public relays plus `wss://relay.ochk.io` (the family's first-party
@@ -20,6 +21,10 @@
  * future engineer simplifying to ours-only fails `tsc`. See `_validate`
  * below.
  */
+
+import { schnorr } from "@noble/curves/secp256k1.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Build-time invariants + default relay set.
@@ -197,10 +202,87 @@ export interface QueryResult {
   events: NostrEvent[];
   relayStatus: {
     relay: string;
+    /** The relay returned at least one verified, filter-matching event, or reached EOSE. */
     ok: boolean;
     reason?: string;
+    /** Verified, filter-matching events received from this relay. */
     events: number;
+    /** Events from this relay dropped for a bad id, bad signature or filter mismatch. */
+    rejected: number;
   }[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Event verification — NIP-01 id + BIP-340 signature + filter match.
+// ─────────────────────────────────────────────────────────────────────────
+
+const HEX64 = /^[0-9a-f]{64}$/;
+const HEX128 = /^[0-9a-f]{128}$/;
+
+/** NIP-01 event id: sha256 of `[0, pubkey, created_at, kind, tags, content]`. */
+export function getEventHash(event: Omit<NostrEvent, "id" | "sig">): string {
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content,
+  ]);
+  return bytesToHex(sha256(utf8ToBytes(serialized)));
+}
+
+/**
+ * True when `event` is well-formed, its `id` equals the NIP-01 hash of its
+ * content, and `sig` is a valid BIP-340 signature of that id by `pubkey`.
+ */
+export function verifyEvent(event: unknown): event is NostrEvent {
+  if (!event || typeof event !== "object") return false;
+  const e = event as Record<string, unknown>;
+  if (
+    typeof e.id !== "string" ||
+    typeof e.pubkey !== "string" ||
+    typeof e.sig !== "string" ||
+    typeof e.content !== "string" ||
+    !Number.isSafeInteger(e.kind) ||
+    !Number.isSafeInteger(e.created_at) ||
+    !Array.isArray(e.tags) ||
+    !e.tags.every(
+      (t) => Array.isArray(t) && t.every((v) => typeof v === "string"),
+    )
+  )
+    return false;
+  if (!HEX64.test(e.id) || !HEX64.test(e.pubkey) || !HEX128.test(e.sig))
+    return false;
+  const ev = e as unknown as NostrEvent;
+  if (getEventHash(ev) !== ev.id) return false;
+  try {
+    return schnorr.verify(ev.sig, ev.id, ev.pubkey);
+  } catch {
+    return false;
+  }
+}
+
+/** True when `event` satisfies every constraint in `filter` (NIP-01 semantics; `limit` is ignored). */
+export function matchFilter(event: NostrEvent, filter: Filter): boolean {
+  if (filter.ids && !filter.ids.includes(event.id)) return false;
+  if (filter.kinds && !filter.kinds.includes(event.kind)) return false;
+  if (filter.authors && !filter.authors.includes(event.pubkey)) return false;
+  if (filter.since !== undefined && event.created_at < filter.since)
+    return false;
+  if (filter.until !== undefined && event.created_at > filter.until)
+    return false;
+  for (const [key, values] of Object.entries(filter)) {
+    if (key[0] !== "#" || !Array.isArray(values)) continue;
+    const name = key.slice(1);
+    if (
+      !event.tags.some(
+        (t) => t[0] === name && t[1] !== undefined && values.includes(t[1]),
+      )
+    )
+      return false;
+  }
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -408,6 +490,11 @@ export async function publishEvent(
  * Issue a NIP-01 REQ across all `relays` in parallel. Returns deduplicated
  * events sorted newest-first plus per-relay status.
  *
+ * Every event a relay returns is checked before it is kept: the id is
+ * recomputed, the signature verified, and the filter re-applied. Events that
+ * fail are dropped and counted in that relay's `rejected`; dedupe is keyed on
+ * the verified id only.
+ *
  * Default timeout 1500ms — short enough that a momentary blip on any one
  * relay (including relay.ochk.io) never holds up the racing reads. Pass an
  * explicit `timeoutMs` for slow filters or for use cases where waiting on
@@ -430,6 +517,7 @@ export async function queryEvents(
           let settled = false;
           let authed = false; // NIP-42 handshake attempted at most once
           let count = 0;
+          let rejected = 0;
           let reason: string | undefined;
           let ws: WebSocket | null = null;
           const timer = setTimeout(() => {
@@ -443,6 +531,7 @@ export async function queryEvents(
               ok: count > 0,
               reason: reason ?? "timeout",
               events: count,
+              rejected,
             });
             resolve();
           }, timeoutMs);
@@ -469,10 +558,12 @@ export async function queryEvents(
                 return;
               }
               if (frame.type === "EVENT" && frame.payload[0] === subId) {
-                const event = frame.payload[1] as NostrEvent | undefined;
-                if (event && event.id) {
-                  byId.set(event.id, event);
+                const event = frame.payload[1];
+                if (verifyEvent(event) && matchFilter(event, filter)) {
+                  if (!byId.has(event.id)) byId.set(event.id, event);
                   count++;
+                } else {
+                  rejected++;
                 }
               } else if (frame.type === "EOSE" && frame.payload[0] === subId) {
                 if (settled) return;
@@ -482,7 +573,7 @@ export async function queryEvents(
                   ws?.send(JSON.stringify(["CLOSE", subId]));
                   ws?.close();
                 } catch {}
-                status.push({ relay: url, ok: true, events: count });
+                status.push({ relay: url, ok: true, events: count, rejected });
                 resolve();
               } else if (
                 frame.type === "CLOSED" &&
@@ -514,6 +605,7 @@ export async function queryEvents(
                   ok: count > 0,
                   reason: String(frame.payload[1] ?? "closed"),
                   events: count,
+              rejected,
                 });
                 resolve();
               } else if (frame.type === "NOTICE") {
@@ -529,6 +621,7 @@ export async function queryEvents(
                 ok: false,
                 reason: "ws_error",
                 events: count,
+              rejected,
               });
               resolve();
             };
@@ -541,6 +634,7 @@ export async function queryEvents(
                 ok: count > 0,
                 reason: reason ?? "closed_early",
                 events: count,
+              rejected,
               });
               resolve();
             };
@@ -553,6 +647,7 @@ export async function queryEvents(
               ok: false,
               reason: err instanceof Error ? err.message : "unknown",
               events: count,
+              rejected,
             });
             resolve();
           }
