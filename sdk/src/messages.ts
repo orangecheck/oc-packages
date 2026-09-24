@@ -36,12 +36,12 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
     },
     bond_zero: {
         label: 'No confirmed bitcoin found',
-        detail: 'This address has no confirmed UTXOs. Send some bitcoin to this address and wait for confirmation to establish a reputation score.',
+        detail: 'This address has no confirmed UTXOs. Send some bitcoin to this address and wait for confirmation to establish a stake.',
         severity: 'warn',
     },
     bond_pending: {
         label: 'Pending transactions detected',
-        detail: 'This address has unconfirmed transactions. Wait for confirmations before they count toward your reputation score.',
+        detail: 'This address has unconfirmed transactions. Wait for confirmations before they count toward your stake.',
         severity: 'info',
     },
     bond_insufficient: {

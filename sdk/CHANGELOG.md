@@ -7,6 +7,22 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.8.0] — 2026-09-24
+
+### Added
+
+- `queryRecent(relays?, limit?)` — the most recent attestations across every
+  publisher, for aggregate views such as network stats. Filters on the
+  `#t=["oc-attest"]` family marker, because kind 30078 is shared by every
+  NIP-78 app. Keeps envelopes whose `attestation_id` is the hash of their
+  message, one per id, and shares the fan-out deadline with the other queries.
+  Signatures are not checked; call `verify()` on anything you act on.
+
+### Changed
+
+- `bond_zero` and `bond_pending` detail text says "stake" rather than
+  "reputation score", matching the reference site.
+
 ## [1.7.0] — 2026-09-23
 
 ### Changed — `check()` resolves its subject from the signed message

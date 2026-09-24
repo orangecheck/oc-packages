@@ -76,6 +76,19 @@ describe('buildCanonicalMessage', () => {
         expect(msg).not.toContain('BOND: 100');
     });
 
+    it('appends extensions after the core lines, sorted by key', () => {
+        const msg = buildCanonicalMessage(
+            { address: 'bc1qtest', identities: [] },
+            { scope: 's', aud: 'https://example.com', bond: '100' },
+            { nonce: FIXED_NONCE, issuedAt: FIXED_T }
+        );
+        expect(msg.split('\n').slice(7, 10)).toEqual([
+            'aud: https://example.com',
+            'bond: 100',
+            'scope: s',
+        ]);
+    });
+
     it('rejects an invalid nonce override (not hex)', () => {
         expect(() =>
             buildCanonicalMessage(

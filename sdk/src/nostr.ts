@@ -570,6 +570,96 @@ export async function queryByIdentity(
 }
 
 /**
+ * Query relays for the most recent attestations across every publisher.
+ *
+ * For aggregate views (network stats, a recent-activity feed), not per-subject
+ * lookups. Filters on the `#t=["oc-attest"]` family marker because kind 30078
+ * is shared by every NIP-78 app: an unfiltered window fills with other apps'
+ * data. Returns envelopes whose attestation_id matches their message,
+ * deduplicated by attestation_id. Signatures are not checked — call verify()
+ * on anything you act on.
+ */
+export async function queryRecent(
+    relays: string[] = DEFAULT_RELAYS,
+    limit: number = 200
+): Promise<AttestationEnvelope[]> {
+    const events: NostrEvent[] = [];
+
+    log.info({ relayCount: relays.length, limit }, 'Querying relays for recent attestations');
+
+    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
+    const queryPromises = relays.map(async (relayUrl) => {
+        try {
+            const ws = new WebSocket(relayUrl);
+
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    ws.close();
+                    reject(new Error('Query timeout'));
+                }, budgetFor(deadlineAt));
+
+                ws.onopen = () => {
+                    const subscriptionId = `ochk_recent_${Date.now()}`;
+                    ws.send(
+                        JSON.stringify([
+                            'REQ',
+                            subscriptionId,
+                            { kinds: [ATTESTATION_EVENT_KIND], '#t': ['oc-attest'], limit },
+                        ])
+                    );
+                };
+
+                ws.onmessage = (msg) => {
+                    try {
+                        const data = JSON.parse(msg.data);
+                        if (data[0] === 'EVENT') {
+                            const ev = data[2] as NostrEvent;
+                            const scheme = ev.tags?.find((t) => t[0] === 'scheme')?.[1];
+                            const dTag = ev.tags?.find((t) => t[0] === 'd')?.[1];
+                            if ((scheme === 'bip322' || scheme === 'legacy') && dTag) {
+                                events.push(ev);
+                            }
+                        } else if (data[0] === 'EOSE') {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve();
+                        }
+                    } catch (err) {
+                        log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
+                    }
+                };
+
+                ws.onerror = (err) => {
+                    clearTimeout(timeout);
+                    log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
+                    reject(err);
+                };
+            });
+        } catch (err) {
+            log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
+        }
+    });
+
+    await Promise.allSettled(queryPromises);
+
+    const seen = new Set<string>();
+    const envelopes: AttestationEnvelope[] = [];
+    for (const ev of events) {
+        const envelope = parseAttestationFromEvent(ev);
+        if (!envelope || seen.has(envelope.attestation_id)) continue;
+        if (!(await verifyAttestationEnvelope(envelope))) continue;
+        seen.add(envelope.attestation_id);
+        envelopes.push(envelope);
+    }
+
+    log.info({ eventCount: events.length, unique: envelopes.length }, 'Recent query complete');
+
+    return envelopes;
+}
+
+/**
  * Verify attestation envelope integrity
  * Checks that the attestation ID matches the message hash
  */

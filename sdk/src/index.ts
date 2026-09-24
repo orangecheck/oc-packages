@@ -82,6 +82,7 @@ export {
     queryByAddress,
     queryByAttestationId,
     queryByIdentity,
+    queryRecent,
 } from './nostr';
 export {
     getNip07Info,
