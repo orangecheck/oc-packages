@@ -7,6 +7,22 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.4.0] — 2026-09-24
+
+### Added — SPEC §3 snapshot resolution
+
+- `resolveDeadlineSnapshot(deadline, source)` resolves `snapshot_block:
+  "deadline"` to the greatest block whose `median_time_past` is ≤ the
+  deadline, and returns `E_REORG` until it has 6 confirmations. Fails closed
+  (`E_SNAPSHOT_UNRESOLVED`) on explorer errors or an unbounded walk.
+- `resolvePollSnapshot(poll, source)` applies it to any poll: a numeric
+  `snapshot_block` is kept and held to the same 6-confirmation floor.
+- `mempoolBlockTimeSource({ base?, fetch? })` is a `BlockTimeSource` over a
+  mempool.space-compatible REST API.
+
+This was implemented separately by each client; one implementation here
+means every tallier resolves the same poll to the same block.
+
 ## [1.3.0] — 2026-09-24
 
 ### Added — `unseal` for secret-mode tallies

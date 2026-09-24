@@ -19,6 +19,7 @@ npm i @orangecheck/vote-core
 - `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot.
 - `verifyPoll(poll, verify)` / `verifyReveal(reveal, poll, verify)` — SPEC §3.3 structure plus the creator's BIP-322 signature (§10.1, §6.4, §10.3).
 - `isMainnetAddress(addr)` — network check by address prefix (§3.3, §4.3).
+- `resolvePollSnapshot(poll, source)` / `resolveDeadlineSnapshot(deadline, source)` — the §3 snapshot block (greatest `median_time_past` ≤ deadline, ≥ 6 confirmations); `mempoolBlockTimeSource()` supplies chain data from mempool.space or your own instance.
 - Full TypeScript types for `Poll`, `Ballot`, `Reveal`, `TallyResult`.
 
 ## Conformance
