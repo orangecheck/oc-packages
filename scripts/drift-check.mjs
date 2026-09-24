@@ -26,6 +26,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { mdxTransform } from './mdx-transform.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 const TYPEDOC_BIN = resolve(REPO_ROOT, 'node_modules/.bin/typedoc');
@@ -133,7 +135,7 @@ try {
 
 process.exit(exitCode);
 
-// ─── helpers (mirror gen-docs.mjs) ───────────────────────────────────────
+// ─── helpers ───────────────────────────────────────
 
 function discoverAllPackages() {
     const out = [];
@@ -154,59 +156,4 @@ function walkMdx(dir, onFile) {
         if (st.isDirectory()) walkMdx(full, onFile);
         else if (entry.endsWith('.mdx')) onFile(full);
     }
-}
-
-function mdxTransform(raw) {
-    const frontmatterMatch = raw.match(/^---\n([\s\S]*?)\n---\n+/);
-    if (!frontmatterMatch) return raw;
-    const body = raw.slice(frontmatterMatch[0].length);
-    const titleMatch = body.match(/^#\s+(.+?)\s*$/m);
-    const rawTitle = titleMatch ? titleMatch[1] : 'API reference';
-    const title = stripMd(rawTitle);
-    const description = `Auto-generated API reference for ${title}. Source: TypeScript types in oc-packages.`;
-    const exportBlock =
-        `export const metadata = {\n` +
-        `    title: ${JSON.stringify(title)},\n` +
-        `    description: ${JSON.stringify(description)},\n` +
-        `};\n\n`;
-    return exportBlock + escapeBracesOutsideCodeFences(body);
-}
-
-function escapeBracesOutsideCodeFences(s) {
-    const out = [];
-    let inFence = false;
-    let inInline = false;
-    for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (
-            c === '`' && s[i + 1] === '`' && s[i + 2] === '`' &&
-            (i === 0 || s[i - 1] === '\n')
-        ) {
-            inFence = !inFence;
-            out.push('```');
-            i += 2;
-            continue;
-        }
-        if (!inFence && c === '`') {
-            inInline = !inInline;
-            out.push(c);
-            continue;
-        }
-        if (!inFence && c === '\n' && inInline) inInline = false;
-        if (!inFence && !inInline) {
-            if (c === '{') { out.push('&#123;'); continue; }
-            if (c === '}') { out.push('&#125;'); continue; }
-            if (c === '<') { out.push('&lt;'); continue; }
-        }
-        out.push(c);
-    }
-    return out.join('');
-}
-
-function stripMd(s) {
-    return s
-        .replace(/\\(.)/g, '$1')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/[`*_]/g, '')
-        .trim();
 }

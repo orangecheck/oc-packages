@@ -22,6 +22,7 @@ on:
             - '**/typedoc.json'
             - 'typedoc.base.json'
             - 'scripts/gen-docs.mjs'
+            - 'scripts/mdx-transform.mjs'
             - 'scripts/drift-check.mjs'
             - '.github/workflows/docs-drift.yml'
     push:
@@ -31,6 +32,7 @@ on:
             - '**/typedoc.json'
             - 'typedoc.base.json'
             - 'scripts/gen-docs.mjs'
+            - 'scripts/mdx-transform.mjs'
             - 'scripts/drift-check.mjs'
     # Manual trigger: useful after a cross-repo race (oc-packages and
     # oc-docs commits land out of order — drift-check flickers red until
