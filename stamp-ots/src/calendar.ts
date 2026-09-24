@@ -2,11 +2,9 @@
 // of the calendar protocol that an OC Stamp implementation needs:
 //
 //   POST <url>/digest          body = raw digest bytes        -> pending proof bytes
-//   GET  <url>/timestamp/<hex>                                -> upgraded proof bytes, or 404
+//   GET  <url>/timestamp/<hex(commitment)>                    -> continuation, or 404
 //
-// The client is thin by design. It does not parse proof bytes; that is a
-// separate concern addressed by whichever OTS proof library the consumer
-// plugs in (see verifyOtsAnchor in ./anchor.ts).
+// The client moves bytes only; ./ots.ts parses them.
 
 import type { CalendarClient } from './types.js';
 import { hexEncode } from './base64.js';
@@ -62,12 +60,12 @@ export function createCalendarClient(url: string, opts: HttpCalendarOptions = {}
             const buf = await resp.arrayBuffer();
             return new Uint8Array(buf);
         },
-        async fetchProof(digest, signal) {
-            if (digest.byteLength !== 32) {
-                throw new Error('OTS: digest must be exactly 32 bytes');
+        async fetchProof(commitment, signal) {
+            if (commitment.byteLength === 0 || commitment.byteLength > 64) {
+                throw new Error('OTS: commitment must be 1-64 bytes');
             }
             const ac = withTimeout(signal, timeoutMs);
-            const resp = await fetchImpl(`${base}/timestamp/${hexEncode(digest)}`, {
+            const resp = await fetchImpl(`${base}/timestamp/${hexEncode(commitment)}`, {
                 method: 'GET',
                 headers: { Accept: 'application/vnd.opentimestamps.v1' },
                 signal: ac.signal,

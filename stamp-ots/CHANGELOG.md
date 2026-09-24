@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.0]
+
+### Added
+
+- Built-in OpenTimestamps proof parser and serializer (`parseProof`, `parseDetached`, `serializeTimestamp`, `bitcoinAnchors`, `pendingCommitments`, `mergeAt`). Accepts the bare timestamp carried in `ots.proof` and detached `.ots` files. Depends on `@noble/hashes`.
+- `mempoolHeaderSource()`, `walkOtsProof()`, `blockHashOf()`.
+
+### Changed
+
+- `makeAnchorVerifier`: `walkProof` is optional and defaults to the built-in parser. The proof must commit to the envelope id, the header at the declared height must hash to the declared block hash, and its Merkle root is compared in header byte order.
+- `makeDefaultAnchorVerifier` uses the built-in parser; the optional `opentimestamps` peer dependency is removed.
+- `upgradeProof` requests each pending attestation's commitment from its calendar (`GET /timestamp/<hex(commitment)>`), as the calendar protocol defines, and merges the answer into the proof. It takes `headerSource` (or `parseAnchor`, now called with the merged proof) and only contacts calendars listed in the proof.
+- `CalendarClient.fetchProof` takes the commitment rather than the submitted digest.
+
 ## [0.1.1] — Initial published state
 
 Initial public release. OpenTimestamps calendar client + proof helpers — bridges OTS into the Stamp envelope.

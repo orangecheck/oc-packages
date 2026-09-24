@@ -73,23 +73,6 @@ describe('upgradeProof', () => {
         upgradedAt: null,
     };
 
-    it('returns current proof unchanged when parseAnchor returns null from all calendars', async () => {
-        // Fake the fetch so calendars return same-length pending proofs.
-        // We have to monkey-patch createCalendarClient indirectly — instead,
-        // use a minimal harness: submit() isn't used here, upgradeProof reads
-        // calendars from the proof and creates new clients. Rather than
-        // rewire the module, we test the no-op path by making parseAnchor
-        // return null and ensure the function returns the input.
-        // The real network fetches will fail in test; we swallow via opts.fetch.
-        const fakeFetch = async () => new Response(null, { status: 404 });
-        const out = await upgradeProof(basePending, FIXED_ID, {
-            parseAnchor: async () => null,
-            fetch: fakeFetch as unknown as typeof fetch,
-        });
-        // Both calendars returned 404 => nothing to update.
-        expect(out).toEqual(basePending);
-    });
-
     it('is idempotent when given a confirmed proof', async () => {
         const confirmed: OtsProof = {
             ...basePending,

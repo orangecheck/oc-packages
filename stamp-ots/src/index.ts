@@ -6,5 +6,22 @@ export { submitToCalendars } from './submit.js';
 export type { SubmitOptions } from './submit.js';
 export { upgradeProof } from './upgrade.js';
 export type { UpgradeOptions } from './upgrade.js';
-export { makeAnchorVerifier, makeDefaultAnchorVerifier } from './anchor.js';
-export type { AnchorVerifierConfig } from './anchor.js';
+export {
+    blockHashOf,
+    makeAnchorVerifier,
+    makeDefaultAnchorVerifier,
+    mempoolHeaderSource,
+    walkOtsProof,
+} from './anchor.js';
+export type { AnchorVerifierConfig, MempoolHeaderSourceOptions } from './anchor.js';
+export {
+    attestations,
+    bitcoinAnchors,
+    mergeAt,
+    parseDetached,
+    parseProof,
+    parseTimestamp,
+    pendingCommitments,
+    serializeTimestamp,
+} from './ots.js';
+export type { OtsAttestation, OtsOp, OtsTimestamp } from './ots.js';

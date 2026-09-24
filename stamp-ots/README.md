@@ -17,31 +17,24 @@ npm i @orangecheck/stamp-core @orangecheck/stamp-ots
 OC Stamp envelopes carry an optional `ots` field that anchors the envelope `id` to a Bitcoin block via the [OpenTimestamps](https://opentimestamps.org) protocol. This package provides the thin client-side glue:
 
 - **`submitToCalendars(id, opts)`** — POST the envelope's 32-byte digest to one or more OTS calendars. Returns a pending `OtsProof` you can fold into the envelope's `ots` field.
-- **`upgradeProof(proof, id, opts)`** — poll calendars for an upgraded proof once OTS has anchored the containing batch to a Bitcoin block. Returns a confirmed `OtsProof` when available.
-- **`createCalendarClient(url)`** — low-level HTTP client implementing the minimal OTS calendar API (`POST /digest`, `GET /timestamp/<hex>`).
-- **`makeAnchorVerifier({ walkProof, headerSource })`** — adapter that turns a proof-parser plus a block-header source into a function `verify()` (from `@orangecheck/stamp-core`) can call via its `verifyOtsAnchor` parameter.
+- **`upgradeProof(proof, id, { headerSource })`** — ask each calendar for the continuation of its pending attestation (calendars index upgrades by that commitment) and graft it on. Returns a confirmed `OtsProof` once the proof reaches a Bitcoin block whose header checks out.
+- **`createCalendarClient(url)`** — low-level HTTP client implementing the minimal OTS calendar API (`POST /digest`, `GET /timestamp/<hex(commitment)>`).
+- **`makeAnchorVerifier({ headerSource })`** — the `verifyOtsAnchor` hook for `verify()` from `@orangecheck/stamp-core`. It walks the proof with the built-in OTS parser and requires that the proof commits to the envelope id, attests at the declared height, and that the header at that height has the proof's Merkle root and hashes to the declared block hash.
+- **`mempoolHeaderSource(opts)`** — block headers from an Esplora-compatible API (default `https://mempool.space/api`). Each header is checked against the declared block hash, so this source is trusted only to say which block sits at a height. Supply your own node or headers snapshot to remove that trust.
+- **`parseProof` / `parseDetached` / `serializeTimestamp` / `bitcoinAnchors` / `pendingCommitments`** — the OTS proof format, accepting both the bare timestamp carried in `ots.proof` and detached `.ots` files.
 
-## What it does NOT do
-
-This package does **not** ship a full OpenTimestamps proof parser. Parsing the binary proof format (Merkle path chunks, calendar attestations, Bitcoin attestations) requires a larger, maintained library like `javascript-opentimestamps`. We keep this package's dependency surface narrow and expose `walkProof` as a plug-in point.
-
-Consumers who want fully-offline verification should combine:
+## Verify an anchor
 
 ```ts
 import { verify } from '@orangecheck/stamp-core';
-import { makeAnchorVerifier, adaptAnchorVerifier, base64Decode, hexDecode } from '@orangecheck/stamp-ots';
-import { myOtsParser, myHeaderSource } from './your-adapters';
-
-const anchor = makeAnchorVerifier({
-    walkProof: myOtsParser,
-    headerSource: myHeaderSource,
-});
+import { makeAnchorVerifier, mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 const result = await verify({
     envelope: env,
-    verifyOtsAnchor: adaptAnchorVerifier(anchor, (blockHash) => hexDecode(env.id)),
+    verifyOtsAnchor: makeAnchorVerifier({ headerSource: mempoolHeaderSource() }),
     verifyBip322: myBip322Verifier,
 });
+// result.anchor.verified is true only when the proof checked out.
 ```
 
 ## Usage
@@ -61,11 +54,11 @@ const envWithOts = { ...env, ots: toStampOts(proof) };
 ### Upgrade later
 
 ```ts
-import { upgradeProof, fromStampOts, toStampOts } from '@orangecheck/stamp-ots';
+import { fromStampOts, mempoolHeaderSource, toStampOts, upgradeProof } from '@orangecheck/stamp-ots';
 
 const current = fromStampOts(envWithOts.ots!);
 const upgraded = await upgradeProof(current, envWithOts.id, {
-    parseAnchor: myOtsParser, // plug in your OTS proof parser
+    headerSource: mempoolHeaderSource(),
 });
 const envUpgraded = { ...envWithOts, ots: toStampOts(upgraded) };
 ```
@@ -74,7 +67,8 @@ const envUpgraded = { ...envWithOts, ots: toStampOts(upgraded) };
 
 - `submitToCalendars(id, opts)` / `upgradeProof(proof, id, opts)`
 - `createCalendarClient(url, opts)` / `DEFAULT_CALENDARS`
-- `makeAnchorVerifier(config)` / `adaptAnchorVerifier(verifier, digestLookup)`
+- `makeAnchorVerifier(config)` / `makeDefaultAnchorVerifier(config)` / `mempoolHeaderSource(opts)` / `walkOtsProof(input)` / `blockHashOf(header)`
+- `parseProof` / `parseDetached` / `parseTimestamp` / `serializeTimestamp` / `bitcoinAnchors` / `pendingCommitments` / `mergeAt` / `attestations`
 - `toStampOts(proof)` / `fromStampOts(stampOts)` — shape adapters
 - `base64Encode` / `base64Decode` / `hexEncode` / `hexDecode`
 - Types: `OtsProof`, `CalendarClient`, `AnchorVerifier`, `BlockHeaderSource`, etc.

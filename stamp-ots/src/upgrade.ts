@@ -1,28 +1,37 @@
 // Upgrade a pending OTS proof to a confirmed one. See SPEC.md §6.2.
 //
-// Upgrade strategy: for each listed calendar, ask whether it has an upgraded
-// proof for this digest. If at least one calendar returns a proof longer than
-// the current pending one (heuristic for "more commitments included"),
-// return an upgraded OtsProof. The caller is responsible for verifying the
-// proof chains to a real Bitcoin block header (see anchor.ts).
-//
-// This package does NOT parse the proof bytes to extract block_height /
-// block_hash — that requires a full OTS proof parser. We provide an anchor
-// verifier callback pattern instead (see AnchorVerifier in ./types.ts).
+// A pending proof ends in calendar attestations, each naming a calendar and
+// the commitment (the message at that leaf) the calendar will later anchor.
+// Calendars index upgrades by that commitment, not by the submitted digest.
+// For each pending leaf we ask its calendar for the continuation, graft it on,
+// and report the proof as confirmed once it reaches a Bitcoin attestation
+// whose block header checks out.
 
+import { blockHashOf } from './anchor.js';
 import { base64Decode, base64Encode, hexDecode } from './base64.js';
 import { createCalendarClient } from './calendar.js';
-import type { CalendarClient, OtsProof } from './types.js';
+import {
+    bitcoinAnchors,
+    bytesEqual,
+    mergeAt,
+    parseProof,
+    parseTimestamp,
+    pendingCommitments,
+    serializeTimestamp,
+} from './ots.js';
+import type { BlockHeaderSource, OtsProof } from './types.js';
 
 export interface UpgradeOptions {
     /**
-     * A parser that, given proof bytes, returns `{blockHeight, blockHash}` if
-     * the proof is fully anchored, or null if it's still pending.
-     *
-     * Callers plug in their own parser (e.g., via the `opentimestamps` npm
-     * package). This keeps @orangecheck/stamp-ots free of heavy parser deps.
+     * Header source used to resolve the anchor's block hash and to check that
+     * the proof's Merkle root is in that block.
      */
-    parseAnchor: (proofBytes: Uint8Array) => Promise<{ blockHeight: number; blockHash: string } | null>;
+    headerSource?: BlockHeaderSource;
+    /**
+     * Alternative to `headerSource`: given the merged proof bytes, return the
+     * anchor if the proof is confirmed, else null.
+     */
+    parseAnchor?: (proofBytes: Uint8Array) => Promise<{ blockHeight: number; blockHash: string } | null>;
     /** Optional custom fetch passed through to calendar clients. */
     fetch?: typeof fetch;
     /** Request timeout per calendar. Default 30_000ms. */
@@ -30,73 +39,69 @@ export interface UpgradeOptions {
     signal?: AbortSignal;
 }
 
+const norm = (u: string) => u.replace(/\/+$/, '');
+
 export async function upgradeProof(
     current: OtsProof,
     idHex: string,
     opts: UpgradeOptions
 ): Promise<OtsProof> {
     if (current.status === 'confirmed') return current; // idempotent
-
-    const digest = hexDecode(idHex);
-    const clients: CalendarClient[] = current.calendars.map((url) =>
-        createCalendarClient(url, { fetch: opts.fetch, timeoutMs: opts.timeoutMs })
-    );
-    if (clients.length === 0) {
-        throw new Error('upgradeProof: no calendars listed in current proof');
+    if (!opts.headerSource && !opts.parseAnchor) {
+        throw new Error('upgradeProof: pass headerSource or parseAnchor');
     }
 
-    const attempts = await Promise.allSettled(
-        clients.map(async (c) => {
-            const proof = await c.fetchProof(digest, opts.signal);
-            if (!proof) return null;
-            const anchor = await opts.parseAnchor(proof);
-            return { url: c.url, proof, anchor };
+    const before = base64Decode(current.proof);
+    const tree = parseProof(before, hexDecode(idHex));
+
+    // Only ask calendars this proof was submitted to.
+    const listed = new Set(current.calendars.map(norm));
+    const pending = pendingCommitments(tree).filter((p) => listed.has(norm(p.uri)));
+    if (pending.length === 0 && bitcoinAnchors(tree).length === 0) {
+        throw new Error('upgradeProof: proof has no pending attestation from a listed calendar');
+    }
+
+    const answered: string[] = [];
+    await Promise.allSettled(
+        pending.map(async ({ uri, commitment }) => {
+            const client = createCalendarClient(uri, { fetch: opts.fetch, timeoutMs: opts.timeoutMs });
+            const bytes = await client.fetchProof(commitment, opts.signal);
+            if (!bytes) return;
+            if (mergeAt(tree, parseTimestamp(bytes, commitment))) answered.push(norm(uri));
         })
     );
 
-    // Prefer a fully-confirmed proof from any calendar.
-    for (const r of attempts) {
-        if (r.status !== 'fulfilled' || r.value === null) continue;
-        const { url, proof, anchor } = r.value;
-        if (anchor) {
-            return {
-                status: 'confirmed',
-                proof: base64Encode(proof),
-                calendars: uniqueFirst(current.calendars, url),
-                blockHeight: anchor.blockHeight,
-                blockHash: anchor.blockHash,
-                upgradedAt: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
-            };
-        }
-    }
+    const merged = serializeTimestamp(tree);
+    const anchor = await resolveAnchor(merged, tree, opts);
+    const calendars = [...answered, ...current.calendars.filter((c) => !answered.includes(norm(c)))];
 
-    // No confirmation yet. Some calendars may still have returned updated
-    // pending bytes (more commitments included). Prefer the longest.
-    let longest: { url: string; proof: Uint8Array } | null = null;
-    for (const r of attempts) {
-        if (r.status !== 'fulfilled' || r.value === null) continue;
-        if (!longest || r.value.proof.byteLength > longest.proof.byteLength) {
-            longest = { url: r.value.url, proof: r.value.proof };
-        }
+    if (anchor) {
+        return {
+            status: 'confirmed',
+            proof: base64Encode(merged),
+            calendars,
+            blockHeight: anchor.blockHeight,
+            blockHash: anchor.blockHash,
+            upgradedAt: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+        };
     }
-    if (longest) {
-        const currentBytes = base64Decode(current.proof);
-        if (longest.proof.byteLength > currentBytes.byteLength) {
-            return {
-                status: 'pending',
-                proof: base64Encode(longest.proof),
-                calendars: uniqueFirst(current.calendars, longest.url),
-                blockHeight: null,
-                blockHash: null,
-                upgradedAt: null,
-            };
-        }
+    if (!bytesEqual(merged, before)) {
+        return { ...current, proof: base64Encode(merged), calendars };
     }
     return current;
 }
 
-function uniqueFirst(arr: readonly string[], first: string): string[] {
-    const out = [first];
-    for (const x of arr) if (x !== first && !out.includes(x)) out.push(x);
-    return out;
+async function resolveAnchor(
+    merged: Uint8Array,
+    tree: ReturnType<typeof parseTimestamp>,
+    opts: UpgradeOptions
+): Promise<{ blockHeight: number; blockHash: string } | null> {
+    if (opts.parseAnchor) return opts.parseAnchor(merged);
+    for (const a of bitcoinAnchors(tree)) {
+        const header = await opts.headerSource!.getHeaderAt(a.blockHeight);
+        if (header && header.byteLength === 80 && bytesEqual(header.subarray(36, 68), a.merkleRoot)) {
+            return { blockHeight: a.blockHeight, blockHash: blockHashOf(header) };
+        }
+    }
+    return null;
 }

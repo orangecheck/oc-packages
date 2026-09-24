@@ -6,7 +6,7 @@ export type OtsProofStatus = 'pending' | 'confirmed';
 
 export interface OtsProof {
     status: OtsProofStatus;
-    /** Raw proof bytes as base64. Opaque at this layer; parsers plug in. */
+    /** OTS timestamp rooted at the envelope id (or a detached .ots file), base64. */
     proof: string;
     /** Calendar URLs that contain this proof, in submission order. */
     calendars: string[];
@@ -33,13 +33,14 @@ export interface CalendarClient {
     submit(digest: Uint8Array, signal?: AbortSignal): Promise<Uint8Array>;
 
     /**
-     * Fetch the current (possibly upgraded) proof for a previously-submitted
-     * digest. Returns null if the calendar has no proof for this digest yet.
+     * Fetch the continuation of a pending proof. `commitment` is the message
+     * at the calendar's pending attestation (see `pendingCommitments`), not
+     * the submitted digest. Returns null if the calendar has nothing yet.
      *
-     * OTS calendar HTTP API: GET <url>/timestamp/<hex(digest)>, returns the
-     * proof bytes or 404.
+     * OTS calendar HTTP API: GET <url>/timestamp/<hex(commitment)>, returns a
+     * timestamp rooted at the commitment, or 404.
      */
-    fetchProof(digest: Uint8Array, signal?: AbortSignal): Promise<Uint8Array | null>;
+    fetchProof(commitment: Uint8Array, signal?: AbortSignal): Promise<Uint8Array | null>;
 }
 
 export interface AnchorVerificationInput {
