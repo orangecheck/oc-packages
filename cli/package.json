@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Command-line tool for OrangeCheck — check, verify, create, challenge, discover from your shell.",
   "keywords": [
     "orangecheck",
@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@orangecheck/me-client": "^0.27.0",
-    "@orangecheck/sdk": "^1.4.0",
+    "@orangecheck/sdk": "^1.7.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

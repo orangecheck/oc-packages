@@ -203,10 +203,10 @@
   dependencies:
     "@orangecheck/auth-core" "^2.7.0"
 
-"@orangecheck/sdk@^1.4.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.6.0.tgz#59219eb46f5eecb86c8c64c447217543bb765b2c"
-  integrity sha512-7pUrBA8e2CGNsMHaXxmp6wWSCuyaIbrRU1zGfcQXgt35cegt3hMZnwiBmpAjtORm/5Nah5hfrD+ZlHqo0Gom4A==
+"@orangecheck/sdk@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.npmjs.org/@orangecheck/sdk/-/sdk-1.7.0.tgz#6cb893998f9ad66fcd9625b17ac8549ea55f0277"
+  integrity sha512-ks4A3bq5t0CJoUtwgnaZE6x5uaXK8UwrH7D52dK86bVnaDZK0LYSRWwp1w1crH2fqBAVUASzl7W77n2OnYqD+Q==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"

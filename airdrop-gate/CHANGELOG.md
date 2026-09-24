@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.1] — 2026-09-24
+
+### Changed
+
+- **`@orangecheck/sdk` `^1.4.0` → `^1.7.0`.** The range previously resolved
+  to 1.6.0. From 1.7.0, `check()` takes the subject from the signed canonical
+  message rather than from event tags, matches a Nostr identity in either the
+  `npub` or hex spelling, and applies the one-bond-one-identity rule
+  (SECURITY.md §3, reason `stake_shared`). An allowlist filtered by identity now follows those rules.
+
 ## [0.2.0] — 2026-09-03
 
 ### Fixed
