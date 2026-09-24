@@ -34,6 +34,8 @@ export const REGISTERED_SCOPES: Record<string, { keys: string[] }> = {
     'http:request': { keys: ['origin', 'method', 'max_rps', 'max_bytes_out'] },
     'ln:send': { keys: ['max_sats', 'node', 'max_fee_sats'] },
     'mcp:invoke': { keys: ['server', 'tool', 'max_invocations'] },
+    // oc-pledge-protocol SPEC §7.3.
+    'pledge:create': { keys: ['max_bond_sats', 'mechanism', 'counterparty'] },
 };
 
 /** Keys whose values are compared numerically for sub-scope ordering. */
@@ -46,6 +48,7 @@ const NUMERIC_KEYS = new Set<string>([
     'max_sats',
     'max_fee_sats',
     'max_invocations',
+    'max_bond_sats',
     'kind',
 ]);
 

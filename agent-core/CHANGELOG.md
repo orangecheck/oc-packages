@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.3.0] — 2026-09-24
+
+### Added — `pledge:create` is a registered scope
+
+oc-pledge-protocol SPEC §7.3 defines `pledge:create` with the constraint keys
+`max_bond_sats`, `mechanism` and `counterparty`, and OC Agent SPEC §7.3 / §7.6
+now registers it. Strict mode rejected it as unregistered, so a delegation
+carrying it failed `E_BAD_SCOPE_GRAMMAR` unless the caller verified in
+permissive mode. `max_bond_sats` compares numerically, like the other `max_*`
+keys.
+
 ## [2.2.0] — 2026-09-24
 
 ### Fixed — the principal is always an authorised revoker

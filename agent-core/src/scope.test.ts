@@ -204,3 +204,28 @@ describe('ordered-op values must be decimal integers (SPEC §7.4)', () => {
         expect(isSubScope(exercised, parseScope('ln:send(max_sats<=0)'))).toBe(false);
     });
 });
+
+// oc-pledge-protocol SPEC §7.3 defines pledge:create and its constraint keys.
+describe('pledge:create is a registered scope', () => {
+    for (const s of [
+        'pledge:create',
+        'pledge:create(max_bond_sats=2000000)',
+        'pledge:create(mechanism=vote_resolves)',
+        'pledge:create(counterparty=bc1qalice000000000000000000000000000000000)',
+        'pledge:create(max_bond_sats=2000000,mechanism=vote_resolves,counterparty=bc1qalice000000000000000000000000000000000)',
+    ]) {
+        it(`strict mode accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+
+    it('strict mode still rejects an unregistered pledge:create key', () => {
+        expect(() => validateScope(parseScope('pledge:create(foo=1)'), { mode: 'strict' })).toThrow(ScopeParseError);
+    });
+
+    it('max_bond_sats is an ordered numeric bound', () => {
+        const granted = parseScope('pledge:create(max_bond_sats<=2000000)');
+        expect(isSubScope(parseScope('pledge:create(max_bond_sats=500000)'), granted)).toBe(true);
+        expect(isSubScope(parseScope('pledge:create(max_bond_sats=3000000)'), granted)).toBe(false);
+    });
+});
