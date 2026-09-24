@@ -47,9 +47,10 @@ export function createCalendarClient(url: string, opts: HttpCalendarOptions = {}
             // modern browsers, but TypeScript's DOM typings don't accept it
             // directly under `strict` + `noUncheckedIndexedAccess`. The cast is
             // narrow and intentional.
+            // No Content-Type: a non-safelisted type makes browsers send a
+            // CORS preflight, and OTS calendars answer OPTIONS with 501.
             const resp = await fetchImpl(`${base}/digest`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/vnd.opentimestamps.v1' },
                 body: digest as unknown as BodyInit,
                 signal: ac.signal,
             });

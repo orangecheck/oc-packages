@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.1]
+
+### Fixed
+
+- Calendar submission sends no `Content-Type`. `application/vnd.opentimestamps.v1`
+  is not a CORS-safelisted type, so browsers sent a preflight, which OTS
+  calendars answer with 501, and the submission never left the page. The
+  calendars accept the bare digest body.
+
 ## [0.2.0]
 
 ### Added
