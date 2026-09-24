@@ -24,6 +24,20 @@ describe('oc.family.scopes', () => {
         ).rejects.toThrow(/unknown verb/);
     });
 
+    it('accepts every verb in the family, oc-pledge included', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, sub: 's', scopes_granted: [], scopes: {} }),
+        });
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+        const verbs = ['oc-attest', 'oc-lock', 'oc-vote', 'oc-stamp', 'oc-agent', 'oc-pledge'] as const;
+        for (const verb of verbs) await family.scopes(verb);
+        expect(fetchMock.mock.calls.map(([url]) => url)).toContain(
+            'https://me.ochk.io/api/family/scopes/oc-pledge'
+        );
+    });
+
     it('hits /api/family/scopes/<verb> with credentials and returns the parsed body', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,

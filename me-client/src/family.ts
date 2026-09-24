@@ -29,7 +29,7 @@
 
 import type { Scope } from './scope';
 
-export type FamilyVerb = 'oc-vote' | 'oc-stamp' | 'oc-agent' | 'oc-attest' | 'oc-lock';
+export type FamilyVerb = 'oc-vote' | 'oc-stamp' | 'oc-agent' | 'oc-attest' | 'oc-lock' | 'oc-pledge';
 
 const VALID_VERBS: ReadonlyArray<FamilyVerb> = [
     'oc-vote',
@@ -37,6 +37,7 @@ const VALID_VERBS: ReadonlyArray<FamilyVerb> = [
     'oc-agent',
     'oc-attest',
     'oc-lock',
+    'oc-pledge',
 ];
 
 export interface FamilyScopesOptions {

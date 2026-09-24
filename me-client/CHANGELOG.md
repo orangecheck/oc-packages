@@ -8,6 +8,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.27.1] — 2026-09-24
+
+### Fixed
+
+- **`oc.family.scopes('oc-pledge')`.** `FamilyVerb` and the verb allowlist
+  covered five of the six family verbs, so the pledge verb was refused before
+  any request was made. me.ochk.io serves `/api/family/scopes/oc-pledge` as of
+  the same day.
+
 ## [0.27.0] — 2026-09-22
 
 ### Added
