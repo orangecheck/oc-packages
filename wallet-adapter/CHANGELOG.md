@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.3] — 2026-09-24
+
+### Fixed — a signer only returns a signature by the requested address
+
+UniSat and Leather sign with the wallet's active account and take no address,
+so with another account active `getSigner(id, { address })` returned a valid
+signature by a different key. Nothing the caller could verify against
+`address` would accept it.
+
+- Every signer now BIP-322-verifies its result against `opts.address` before
+  returning it (legacy BIP-137 signatures for P2PKH / P2WPKH still pass), and
+  throws `WrongAccountError` (`code: "E_WRONG_ACCOUNT"`) otherwise.
+- UniSat (`getAccounts`) and Leather (`getAddresses`) are asked for the active
+  account first and refuse before prompting when it is not `address`; the
+  error names the active account. OKX's existing check throws the same error.
+- `OcWalletButton`'s paste panel runs the same check and reports a mismatch
+  through `onError` instead of calling `onSigned`.
+- New exports: `WrongAccountError`, `assertSignedBy(message, signature, address)`.
+- New dependency: `bip322-js` ^3, loaded lazily on first signature.
+
+Alby / WebLN signatures are Lightning node signatures, not BIP-322, so they
+now always fail this check; they never verified for a Bitcoin address.
+
 ## [0.4.2] — 2026-09-14
 
 ### Fixed

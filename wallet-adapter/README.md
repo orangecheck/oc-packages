@@ -61,7 +61,7 @@ const sign = getSigner('unisat', { address: userBtcAddress });
 const signature = await sign(canonicalMessage);
 ```
 
-`SignFn` is `(message: string) => Promise<string>`. Throws when the wallet isn't available or the user cancels.
+`SignFn` is `(message: string) => Promise<string>`. Throws when the wallet isn't available or the user cancels, and throws `WrongAccountError` (`code: 'E_WRONG_ACCOUNT'`) when the signature is not by `address` — some wallets sign with their active account whatever address is asked for. `assertSignedBy(message, signature, address)` runs the same check on a signature obtained elsewhere.
 
 ---
 

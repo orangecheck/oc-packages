@@ -19,7 +19,7 @@ import type { WalletId, WalletInfo } from "./types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { detectWallets } from "./detect";
-import { getSigner } from "./sign";
+import { assertSignedBy, getSigner } from "./sign";
 
 // ─────────────────────────────────────────────────────────────────────────
 // <OcWalletPicker /> — controlled radio-group of detected wallets
@@ -471,10 +471,17 @@ export function OcWalletButton({
             <button
               type="button"
               disabled={!manual.sig.trim()}
-              onClick={() => {
+              onClick={async () => {
                 const sig = manual.sig.trim();
                 if (!sig) return;
                 const wid = manual.walletId;
+                try {
+                  await assertSignedBy(message, sig, address);
+                } catch (err) {
+                  const e = err instanceof Error ? err : new Error(String(err));
+                  onError?.(e, wid);
+                  return;
+                }
                 setManual(null);
                 onSigned(sig, wid);
               }}

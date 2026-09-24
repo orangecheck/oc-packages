@@ -34,8 +34,8 @@ export interface WalletInfo {
 
 export interface SignOptions {
     /**
-     * Bitcoin address the caller expects to sign under. Not all wallets use this
-     * (UniSat ignores it), but some (Xverse, Leather) require it in their API.
+     * Bitcoin address the caller expects to sign under. Every signature is
+     * verified against it before it is returned (`WrongAccountError` if not).
      */
     address: string;
     /**

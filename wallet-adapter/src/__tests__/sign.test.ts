@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Regression tests for the signature-shape validation wrapper + the UniSat
  * no-silent-legacy-fallback change.
@@ -5,7 +6,12 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getSigner } from "../sign";
+// bitcoinjs-lib's ecc self-check fails under jsdom's Uint8Array, so these run
+// in node with a bare `window` object for the wallet globals.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).window ??= {};
+
+import { getSigner, WrongAccountError } from "../sign";
 
 afterEach(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,17 +33,20 @@ describe("signature-shape validation wrapper", () => {
     };
   }
 
-  it("accepts a plausible base64 signature", async () => {
+  // Well-formed but not a signature by the address: passes the shape check
+  // and is then refused by the address check.
+  it("refuses a well-formed base64 string that is not a signature by the address", async () => {
     mockUnisat("AkcwRAIgXyZabc+defGhi=");
-    const sig = await getSigner("unisat", { address: "bc1q" })("msg");
-    expect(sig).toBe("AkcwRAIgXyZabc+defGhi=");
+    await expect(
+      getSigner("unisat", { address: "bc1q" })("msg"),
+    ).rejects.toBeInstanceOf(WrongAccountError);
   });
 
-  it("accepts a plausible hex signature", async () => {
+  it("refuses a well-formed hex string that is not a signature by the address", async () => {
     mockUnisat("a1b2c3d4".repeat(16));
     await expect(
       getSigner("unisat", { address: "bc1q" })("msg"),
-    ).resolves.toBeTruthy();
+    ).rejects.toBeInstanceOf(WrongAccountError);
   });
 
   it("rejects an HTML error page returned instead of a signature", async () => {
@@ -91,7 +100,11 @@ describe("Phantom · the requested address is the one that must sign", () => {
       { address: "bc1qother", addressType: "p2wpkh" },
       { address: "bc1qwanted", addressType: "p2tr" },
     ]);
-    await getSigner("phantom", { address: "bc1qwanted" })("msg");
+    // SIG is not a real signature, so the address check refuses it after the
+    // wallet is asked; what matters here is which account was asked.
+    await expect(
+      getSigner("phantom", { address: "bc1qwanted" })("msg"),
+    ).rejects.toBeInstanceOf(WrongAccountError);
     expect(signMessage).toHaveBeenCalledWith(expect.anything(), "p2tr");
   });
 
