@@ -78,7 +78,7 @@ try {
     // Apply the same post-process the publisher does.
     walkMdx(tmpRoot, (file) => {
         const raw = readFileSync(file, 'utf8');
-        const transformed = mdxTransform(raw);
+        const transformed = mdxTransform(raw, relative(tmpRoot, file));
         if (transformed !== raw) writeFileSync(file, transformed);
     });
 

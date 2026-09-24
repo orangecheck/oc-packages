@@ -23,7 +23,7 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { mdxTransform } from './mdx-transform.mjs';
@@ -81,7 +81,7 @@ if (existsSync(OC_DOCS_SDK_ROOT)) {
     let processed = 0;
     walkMdx(OC_DOCS_SDK_ROOT, (file) => {
         const raw = readFileSync(file, 'utf8');
-        const transformed = mdxTransform(raw);
+        const transformed = mdxTransform(raw, relative(OC_DOCS_SDK_ROOT, file));
         if (transformed !== raw) {
             writeFileSync(file, transformed);
             processed += 1;

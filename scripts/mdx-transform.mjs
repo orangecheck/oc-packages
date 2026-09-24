@@ -3,7 +3,21 @@
  * drift-check.mjs so the two cannot diverge.
  */
 
-export function mdxTransform(raw) {
+// Deprecated packages, by directory. Their reference index opens with this notice;
+// keep it in step with `npm deprecate`.
+const DEPRECATED = {
+    ui:
+        '`@orangecheck/ui` is deprecated on npm and receives no updates.\n' +
+        'Use [`@orangecheck/design`](https://design.ochk.io) instead; it ships every\n' +
+        'component below.',
+    'webhook-verify':
+        '`@orangecheck/webhook-verify` verified webhook deliveries from\n' +
+        'fleet.ochk.io, which is retired. It is deprecated on npm, receives no updates,\n' +
+        'and has no replacement.',
+};
+
+/** `relPath` is the file's path under sdk/, e.g. `ui/README.mdx`. */
+export function mdxTransform(raw, relPath = '') {
     // Match the YAML frontmatter that typedoc-plugin-frontmatter emits.
     const frontmatterMatch = raw.match(/^---\n([\s\S]*?)\n---\n+/);
     if (!frontmatterMatch) return raw;
@@ -21,7 +35,15 @@ export function mdxTransform(raw) {
         `    description: ${JSON.stringify(description)},\n` +
         `};\n\n`;
 
-    return exportBlock + escapeBracesOutsideCodeFences(stripLinkExtensions(body));
+    return exportBlock + deprecationNotice(relPath) + escapeBracesOutsideCodeFences(stripLinkExtensions(body));
+}
+
+function deprecationNotice(relPath) {
+    const [pkg, file] = relPath.split(/[\\/]/);
+    const text = file === 'README.mdx' ? DEPRECATED[pkg] : undefined;
+    if (!text) return '';
+    const lines = `**Deprecated.** ${text}`.split('\n');
+    return lines.map((l) => `> ${l}`).join('\n') + '\n\n';
 }
 
 function escapeBracesOutsideCodeFences(s) {
