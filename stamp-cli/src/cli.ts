@@ -3,7 +3,7 @@
  *
  *   stamp file <path>              — sign a file, optionally anchor
  *   stamp verify <stamp> [content] — full SPEC §8 verification
- *   stamp anchor <stamp>           — submit/re-submit to OTS calendars
+ *   stamp anchor <stamp>           — submit to OTS calendars, or upgrade a pending proof
  *   stamp canonical <path>         — print the canonical message (dry run)
  *
  * Git aliases (same binary, invoked as `git-stamp`):
@@ -37,7 +37,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('git-stamp')
         .description('Stamp git tags with your Bitcoin address, anchored to Bitcoin.')
-        .version('0.1.0');
+        .version('0.2.0');
 
     program
         .command('tag <tagname>')
@@ -59,7 +59,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .command('verify <tagname>')
         .description('Verify the stamp stored under .git/stamps/<tagname>.stamp')
-        .option('--require-anchor', 'Fail unless the OTS proof is confirmed')
+        .option('--require-anchor', 'Fail unless the OTS anchor is confirmed and checked against the block header')
         .option('--json', 'Emit JSON')
         .action(async (tag, opts) => {
             await runGitVerify({
@@ -72,7 +72,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('stamp')
         .description('OC Stamp — sign anything with your Bitcoin address, anchor to Bitcoin.')
-        .version('0.1.0');
+        .version('0.2.0');
 
     program
         .command('file <path>')
@@ -100,8 +100,9 @@ if (invoked.startsWith('git-stamp')) {
     program
         .command('verify <stamp> [content]')
         .description('Run the full SPEC §8 verification')
-        .option('--require-anchor', 'Fail unless the OTS proof is confirmed')
+        .option('--require-anchor', 'Fail unless the OTS anchor is confirmed and checked against the block header')
         .option('--skip-signature', 'Skip BIP-322 verification (for CI smoke tests only)')
+        .option('--headers-url <url>', 'Esplora API for block headers (default: https://mempool.space/api)')
         .option('--json', 'Emit JSON')
         .action(async (stampPath, contentPath, opts) => {
             await runVerify({
@@ -109,16 +110,18 @@ if (invoked.startsWith('git-stamp')) {
                 contentPath,
                 requireAnchor: Boolean(opts.requireAnchor),
                 skipSignature: Boolean(opts.skipSignature),
+                headersUrl: opts.headersUrl,
                 json: Boolean(opts.json),
             });
         });
 
     program
         .command('anchor <stamp>')
-        .description('Submit an existing stamp envelope to OTS calendars')
+        .description('Submit a stamp to OTS calendars, or upgrade its pending proof')
+        .option('--headers-url <url>', 'Esplora API for block headers (default: https://mempool.space/api)')
         .option('--json', 'Emit JSON')
         .action(async (stampPath, opts) => {
-            await runAnchor({ stampPath, json: Boolean(opts.json) });
+            await runAnchor({ stampPath, headersUrl: opts.headersUrl, json: Boolean(opts.json) });
         });
 
     program

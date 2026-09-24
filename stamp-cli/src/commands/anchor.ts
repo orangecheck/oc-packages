@@ -1,16 +1,19 @@
-// `stamp anchor <stamp-path>` — submit (or re-submit) an existing stamp's id
-// to OTS calendars. If the proof is already confirmed, no-op. If it's
-// pending, try to upgrade via the listed calendars.
+// `stamp anchor <stamp-path>` — advance a stamp's OTS proof: submit its id to
+// the calendars when it has none, ask the listed calendars to upgrade a
+// pending one, leave a confirmed one alone.
 
 import { writeFile } from 'node:fs/promises';
 
-import { submitToCalendars, toStampOts } from '@orangecheck/stamp-ots';
 import type { StampEnvelope } from '@orangecheck/stamp-core';
+import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
+import { advanceOts } from '../anchor-check.js';
 import { die, emit, pathExists, readJson } from '../util.js';
 
 export interface AnchorOptions {
     stampPath: string;
+    /** Esplora-compatible API for block headers. Default mempool.space. */
+    headersUrl?: string;
     json: boolean;
 }
 
@@ -27,18 +30,24 @@ export async function runAnchor(opts: AnchorOptions): Promise<void> {
         return;
     }
 
+    let next: StampEnvelope;
     try {
-        const proof = await submitToCalendars(envelope.id);
-        const next: StampEnvelope = { ...envelope, ots: toStampOts(proof) };
-        await writeFile(opts.stampPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
-        emit(opts.json, {
-            ok: true,
-            id: next.id,
-            status: next.ots?.status,
-            calendars: next.ots?.calendars ?? [],
-            written: opts.stampPath,
+        next = await advanceOts(envelope, {
+            headers: mempoolHeaderSource({ baseUrl: opts.headersUrl }),
         });
     } catch (e) {
-        die(`OTS submission failed: ${e instanceof Error ? e.message : String(e)}`);
+        die(`OTS ${envelope.ots ? 'upgrade' : 'submission'} failed: ${e instanceof Error ? e.message : String(e)}`);
     }
+    const changed = JSON.stringify(next.ots) !== JSON.stringify(envelope.ots);
+    if (changed) {
+        await writeFile(opts.stampPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
+    }
+    emit(opts.json, {
+        ok: true,
+        id: next.id,
+        status: next.ots?.status,
+        block_height: next.ots?.block_height ?? null,
+        calendars: next.ots?.calendars ?? [],
+        written: changed ? opts.stampPath : null,
+    });
 }

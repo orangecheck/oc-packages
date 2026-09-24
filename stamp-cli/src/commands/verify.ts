@@ -2,6 +2,9 @@
 // verification algorithm locally. Structured JSON output with `--json`.
 
 import { verify, type StampEnvelope } from '@orangecheck/stamp-core';
+import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
+
+import { checkAnchorClaim } from '../anchor-check.js';
 
 import { die, emit, hashFile, pathExists, readBytes, readJson } from '../util.js';
 
@@ -15,6 +18,8 @@ export interface VerifyOptions {
      * never pass this.
      */
     skipSignature: boolean;
+    /** Esplora-compatible API for block headers. Default mempool.space. */
+    headersUrl?: string;
     json: boolean;
 }
 
@@ -63,18 +68,27 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         process.exit(2);
     }
 
-    const anchorLabel =
-        r.anchor.status === 'none'
-            ? 'none'
-            : r.anchor.status === 'pending'
-              ? 'pending'
-              : `confirmed at block ${r.anchor.blockHeight}`;
+    const anchor = await checkAnchorClaim(
+        envelope,
+        mempoolHeaderSource({ baseUrl: opts.headersUrl })
+    );
+    if (anchor.state === 'fail') {
+        emit(opts.json, { ok: false, code: 'E_BAD_ANCHOR', message: anchor.message });
+        process.exit(2);
+    }
 
-    if (opts.requireAnchor && r.anchor.status !== 'confirmed') {
+    const anchorLabel =
+        anchor.state === 'anchored'
+            ? `confirmed at block ${anchor.blockHeight} (checked against the block header)`
+            : anchor.state === 'unverified'
+              ? `claims block ${anchor.blockHeight}, unverified: ${anchor.message}`
+              : anchor.state;
+
+    if (opts.requireAnchor && anchor.state !== 'anchored') {
         emit(opts.json, {
             ok: false,
             code: 'E_NO_ANCHOR',
-            message: `required confirmed OTS anchor, got ${r.anchor.status}`,
+            message: `required a verified OTS anchor, got ${anchor.state}`,
         });
         process.exit(2);
     }
@@ -89,6 +103,7 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         content_length: envelope.content.length,
         content_checked: Boolean(contentBytes),
         anchor: anchorLabel,
+        anchor_state: anchor.state,
         signature_checked: !opts.skipSignature,
         stake: envelope.stake,
     });

@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/stamp-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shell interface to OC Stamp — sign files and git tags with your Bitcoin address, anchor to Bitcoin, verify offline. Exposes `stamp` and `git-stamp` binaries.",
   "keywords": [
     "bitcoin",
@@ -44,8 +44,8 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/stamp-core": "^0.1.2",
-    "@orangecheck/stamp-ots": "^0.1.1",
+    "@orangecheck/stamp-core": "^1.0.0",
+    "@orangecheck/stamp-ots": "^0.3.0",
     "bip322-js": "^3.0.0",
     "commander": "^12.1.0"
   },

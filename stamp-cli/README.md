@@ -30,7 +30,8 @@ $ stamp canonical blogpost.md --addr bc1qalice...
 # Verify a stamp:
 $ stamp verify blogpost.md.stamp blogpost.md --require-anchor
 
-# Retry anchoring on an existing stamp:
+# Anchor an existing stamp, or upgrade its pending proof once the
+# calendars have reached a block (rewrites the .stamp only on change):
 $ stamp anchor blogpost.md.stamp
 ```
 
@@ -62,11 +63,19 @@ $ stamp verify blogpost.md.stamp blogpost.md --json
   "content_mime": "text/markdown",
   "content_length": 12843,
   "content_checked": true,
-  "anchor": "confirmed at block 890123",
+  "anchor": "confirmed at block 890123 (checked against the block header)",
+  "anchor_state": "anchored",
   "signature_checked": true,
   "stake": null
 }
 ```
+
+A confirmed anchor is checked per SPEC §6.3: the proof must commit to the
+stamp id, and the block header at the claimed height (from
+`--headers-url`, default `https://mempool.space/api`) must hash to the claimed
+block hash and carry the proof's Merkle root. A proof that does not chain
+exits 2 with `E_BAD_ANCHOR`. If no header can be fetched the claim is reported
+as unverified, and `--require-anchor` fails.
 
 On failure, exits `2` with an error code:
 
