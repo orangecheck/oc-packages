@@ -32,6 +32,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 const TYPEDOC_BIN = resolve(REPO_ROOT, 'node_modules/.bin/typedoc');
 const COMMITTED_DIR = resolve(REPO_ROOT, '..', 'oc-docs', 'src', 'pages', 'sdk');
+// Hand-written pages that live beside the generated package trees.
+const HAND_WRITTEN = new Set(['index.mdx', 'cli.mdx', 'python.mdx']);
 
 if (!existsSync(TYPEDOC_BIN)) {
     console.error('[drift-check] ✗ typedoc binary missing — run `yarn install` at oc-packages root');
@@ -86,7 +88,10 @@ try {
     let diffs = 0;
     const allFiles = new Set();
     walkMdx(tmpRoot, (file) => allFiles.add(relative(tmpRoot, file)));
-    walkMdx(COMMITTED_DIR, (file) => allFiles.add(relative(COMMITTED_DIR, file)));
+    walkMdx(COMMITTED_DIR, (file) => {
+        const rel = relative(COMMITTED_DIR, file);
+        if (!HAND_WRITTEN.has(rel)) allFiles.add(rel);
+    });
 
     for (const rel of [...allFiles].sort()) {
         const tmpPath = join(tmpRoot, rel);
@@ -110,10 +115,6 @@ try {
             diffs += 1;
         }
     }
-
-    // Filter out the hand-written /sdk/index.mdx — it's not generated.
-    // (walkMdx never recurses into the parent dir; we only walk the
-    // generated package subtrees, so this is a no-op safeguard.)
 
     if (diffs > 0) {
         console.error('');

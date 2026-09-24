@@ -34,6 +34,7 @@ on:
             - 'scripts/gen-docs.mjs'
             - 'scripts/mdx-transform.mjs'
             - 'scripts/drift-check.mjs'
+            - '.github/workflows/docs-drift.yml'
     # Manual trigger: useful after a cross-repo race (oc-packages and
     # oc-docs commits land out of order — drift-check flickers red until
     # the second repo catches up; retrigger once it has).
@@ -80,6 +81,8 @@ jobs:
               id: diff
               working-directory: oc-docs
               run: |
+                  # intent-to-add, so pages for a never-synced package show up too
+                  git add -N src/pages/sdk
                   git diff --stat src/pages/sdk | tee /tmp/diff-stat.txt
                   git diff src/pages/sdk > /tmp/diff-full.txt 2>&1 || true
                   if [ -s /tmp/diff-stat.txt ]; then

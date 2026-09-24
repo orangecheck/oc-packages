@@ -311,7 +311,9 @@ jobs:
                   VERSION: ${{ steps.parse.outputs.version }}
               run: |
                   set -e
-                  if git diff --quiet src/pages/sdk/$PKG; then
+                  # status, not diff: a package's first sync is all untracked files,
+                  # which `git diff` never reports.
+                  if [ -z "$(git status --porcelain -- src/pages/sdk/$PKG)" ]; then
                       echo "::notice::No diff in src/pages/sdk/$PKG — skipping PR."
                       exit 0
                   fi
