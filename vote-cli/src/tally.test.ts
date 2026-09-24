@@ -1,6 +1,8 @@
 // Secret-mode tally and poll/reveal selection (SPEC §3.2, §6.4, §8, §10.1).
 
-import { seal } from '@orangecheck/lock-core';
+import { canonicalBytes, seal } from '@orangecheck/lock-core';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 import { generateX25519KeyPair, hexEncode, utf8Encode } from '@orangecheck/lock-crypto';
 import { commit, pollId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { describe, expect, it } from 'vitest';
@@ -103,12 +105,21 @@ describe('computeTally (secret mode)', () => {
         const good = await secretBallot('yes', '2026-06-02T00:00:00Z', 'good');
         const other = await secretBallot('no', '2026-06-02T00:00:00Z', 'good');
         const env = other.secret!.envelope as { sig: Record<string, unknown> };
-        // lock-core >= 1.2 throws E_BAD_SIG when sig.pubkey differs from from.address.
+        // lock-core >= 1.2 throws E_BAD_SIG when sig.pubkey differs from
+        // from.address. The id is recomputed so that check is the only thing
+        // wrong with the envelope.
+        const envelope: Record<string, unknown> = {
+            ...other.secret!.envelope,
+            sig: { ...env.sig, pubkey: 'bc1qsomeoneelse', value: 'AAAA' },
+        };
+        envelope.id = bytesToHex(
+            sha256(canonicalBytes({ ...envelope, id: '', sig: { ...(envelope.sig as object), value: '' } } as never))
+        );
         const bad: Ballot = {
             ...other,
             voter: 'bc1qbob0000000000000000000000000000000000',
             secret: {
-                envelope: { ...other.secret!.envelope, sig: { ...env.sig, pubkey: 'bc1qsomeoneelse', value: 'AAAA' } },
+                envelope,
                 commit: commit(pid, 'bc1qbob0000000000000000000000000000000000', 'no'),
             },
         };
