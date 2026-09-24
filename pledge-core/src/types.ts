@@ -323,7 +323,7 @@ export interface DelegationLookupResult {
     agent: string;
     /**
      * Raw scope strings as registered in the delegation (e.g.
-     * `["pledge:create(max_bond_sats=2000000)", "stamp:sign(mime=*)"]`).
+     * `["pledge:create(max_bond_sats<=2000000)", "stamp:sign(mime=*)"]`).
      * pledge-core scans for an entry whose product:verb is `pledge:create`.
      */
     scopes: string[];

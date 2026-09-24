@@ -9,11 +9,11 @@
 // The pledge:create scope grammar is documented in SPEC §7.3:
 //
 //   pledge:create
-//   pledge:create(max_bond_sats=<N>)
+//   pledge:create(max_bond_sats<=<N>)
 //   pledge:create(mechanism=<m>)
 //   pledge:create(counterparty=<addr>)
-//   pledge:create(max_bond_sats=<N>,mechanism=<m>)
-//   pledge:create(max_bond_sats=<N>,mechanism=<m>,counterparty=<addr>)
+//   pledge:create(max_bond_sats<=<N>,mechanism=<m>)
+//   pledge:create(max_bond_sats<=<N>,mechanism=<m>,counterparty=<addr>)
 //
 // Multiple constraints are AND-joined by comma. A pledge passes scope
 // check iff every named constraint is satisfied.
