@@ -99,6 +99,30 @@ describe('computeTally (secret mode)', () => {
         expect(r).toMatchObject({ state: 'tallied', tallies: { yes: 1, no: 0 } });
     });
 
+    it('drops a voter whose envelope lock-core rejects, and still tallies the rest', async () => {
+        const good = await secretBallot('yes', '2026-06-02T00:00:00Z', 'good');
+        const other = await secretBallot('no', '2026-06-02T00:00:00Z', 'good');
+        const env = other.secret!.envelope as { sig: Record<string, unknown> };
+        // lock-core >= 1.2 throws E_BAD_SIG when sig.pubkey differs from from.address.
+        const bad: Ballot = {
+            ...other,
+            voter: 'bc1qbob0000000000000000000000000000000000',
+            secret: {
+                envelope: { ...other.secret!.envelope, sig: { ...env.sig, pubkey: 'bc1qsomeoneelse', value: 'AAAA' } },
+                commit: commit(pid, 'bc1qbob0000000000000000000000000000000000', 'no'),
+            },
+        };
+        const r = await computeTally({
+            poll,
+            ballots: [good, bad],
+            reveal,
+            utxosAt: async () => [{ value: 1000, confirmed_height: 800_000 }],
+            snapshotBlock: 900000,
+            verify,
+        });
+        expect(r).toMatchObject({ state: 'tallied', turnout: { voters: 1 }, tallies: { yes: 1, no: 0 } });
+    });
+
     it('stays sealed without a reveal', async () => {
         const signed = await secretBallot('yes', '2026-06-02T00:00:00Z', 'good');
         const r = await computeTally({

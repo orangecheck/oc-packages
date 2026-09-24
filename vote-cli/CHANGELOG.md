@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.1] — 2026-09-24
+
+### Changed
+
+- **Requires `@orangecheck/lock-core` ^1.2.0** (was ^0.1.0). lock-core now
+  rejects an envelope whose `sig.pubkey` differs from `from.address`; in
+  `tally` such a ballot drops its voter and the rest of the tally stands.
+
 ## [0.4.0] — 2026-09-24
 
 ### Changed
