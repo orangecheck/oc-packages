@@ -13,7 +13,7 @@ import {
     type SignatureVerifier,
 } from '@orangecheck/vote-core';
 
-import type { NostrEvent } from './nostr.js';
+import type { EventsFetch, NostrEvent } from './nostr.js';
 
 function parse<T>(ev: NostrEvent): T | null {
     try {
@@ -36,6 +36,30 @@ export async function selectPoll(
         unverified ??= p;
     }
     return unverified ? { poll: unverified, signatureValid: false } : null;
+}
+
+/**
+ * selectPoll over a relay answer, distinguishing "no relay has it" from "no
+ * relay finished answering" — only the first is "not found".
+ */
+export async function findPoll(
+    fetched: EventsFetch,
+    pid: string,
+    verify: SignatureVerifier
+): Promise<{ poll: Poll; signatureValid: boolean }> {
+    const selected = await selectPoll(fetched.events, pid, verify);
+    if (selected) return selected;
+    throw new Error(
+        fetched.complete
+            ? 'poll not found on relays'
+            : 'no relay finished answering the poll query; try again'
+    );
+}
+
+/** Refuse to draw a conclusion from a set no relay finished sending. */
+export function requireComplete(fetched: EventsFetch, what: string): NostrEvent[] {
+    if (!fetched.complete) throw new Error(`no relay finished answering the ${what} query; try again`);
+    return fetched.events;
 }
 
 export async function selectReveal(

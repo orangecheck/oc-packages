@@ -22,7 +22,7 @@ import {
     fetchPollEvents,
     fetchRevealEvents,
 } from '../nostr.js';
-import { selectPoll, selectReveal } from '../select.js';
+import { findPoll, requireComplete, selectReveal } from '../select.js';
 import { buildLookup, mempoolSource } from '../utxos.js';
 
 export interface TallyOptions {
@@ -107,14 +107,13 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
     const verify = opts.verify !== false ? bip322Verify : null;
-    const [pollEvents, ballotEvents, revealEvents] = await Promise.all([
+    const [pollFetch, ballotFetch, revealFetch] = await Promise.all([
         fetchPollEvents(pid, relays),
         fetchBallotEvents(pid, relays),
         fetchRevealEvents(pid, relays),
     ]);
 
-    const selected = await selectPoll(pollEvents, pid, verify ?? bip322Verify);
-    if (!selected) throw new Error('poll not found on any relay');
+    const selected = await findPoll(pollFetch, pid, verify ?? bip322Verify);
     if (verify && !selected.signatureValid) {
         throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
@@ -122,7 +121,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
 
     const ballots: Ballot[] = [];
     const seen = new Set<string>();
-    for (const ev of ballotEvents) {
+    for (const ev of requireComplete(ballotFetch, 'ballot')) {
         try {
             const b = JSON.parse(ev.content) as Ballot;
             if (b.poll_id !== pid) continue;
@@ -137,7 +136,9 @@ export async function runTally(opts: TallyOptions): Promise<void> {
 
     // Only a reveal signed by the creator, after the deadline, opens ballots.
     const reveal: Reveal | null =
-        poll.mode === 'secret' ? await selectReveal(revealEvents, poll, bip322Verify) : null;
+        poll.mode === 'secret' ? await selectReveal(revealFetch.events, poll, bip322Verify) : null;
+    // No reveal found is only "awaiting reveal" if a relay finished answering.
+    if (poll.mode === 'secret' && !reveal) requireComplete(revealFetch, 'reveal');
 
     const source = mempoolSource(opts.mempoolBase);
     const utxosAt = buildLookup(source);

@@ -1,103 +1,34 @@
-// Minimal NIP-01 WebSocket client for oc-vote. Node-native via the `ws` package.
+// oc-vote's Nostr layer: @orangecheck/nostr-core for transport (which checks
+// each event's id, signature and filter match), plus vote-shaped queries.
 
-import WebSocket from 'ws';
+import {
+    queryEvents,
+    type Filter,
+    type NostrEvent,
+    type QueryResult,
+} from '@orangecheck/nostr-core';
 
-export interface NostrEvent {
-    id: string;
-    kind: number;
-    pubkey: string;
-    created_at: number;
-    content: string;
-    tags: string[][];
-    sig: string;
+export { DEFAULT_RELAYS, publishEvent } from '@orangecheck/nostr-core';
+export type { NostrEvent, PublishResult } from '@orangecheck/nostr-core';
+
+const QUERY_TIMEOUT_MS = 8000;
+
+export interface EventsFetch {
+    events: NostrEvent[];
+    /** At least one relay reached EOSE. Without that, an empty or short
+     *  result says nothing about what exists. */
+    complete: boolean;
 }
 
-export interface Filter {
-    kinds?: number[];
-    '#d'?: string[];
-    /** NIP-12 indexable single-letter tag filter. */
-    '#t'?: string[];
-    limit?: number;
+/** A relay finished answering only if it sent EOSE; `ok` alone also covers
+ *  a relay that timed out or closed after sending some events. */
+export function reachedEose(relayStatus: QueryResult['relayStatus']): boolean {
+    return relayStatus.some((r) => r.eose);
 }
 
-export const DEFAULT_RELAYS = [
-    'wss://relay.damus.io',
-    'wss://nos.lol',
-    'wss://relay.snort.social',
-    // First-party family relay. Its write policy allows only family kinds with
-    // canonical OC d-tag prefixes, and it is always queried alongside public
-    // relays, never the only copy. See github.com/orangecheck/oc-relay-infra.
-    'wss://relay.ochk.io',
-];
-
-export async function queryRelays(
-    filter: Filter,
-    relays: string[] = DEFAULT_RELAYS,
-    timeoutMs = 8000
-): Promise<NostrEvent[]> {
-    const byId = new Map<string, NostrEvent>();
-    await Promise.all(
-        relays.map(
-            (url) =>
-                new Promise<void>((resolve) => {
-                    const subId = 'ocvcli-' + Math.random().toString(36).slice(2, 10);
-                    let settled = false;
-                    let ws: WebSocket | null = null;
-                    const timer = setTimeout(() => {
-                        if (settled) return;
-                        settled = true;
-                        try {
-                            ws?.close();
-                        } catch {}
-                        resolve();
-                    }, timeoutMs);
-                    try {
-                        ws = new WebSocket(url);
-                        ws.on('open', () => ws?.send(JSON.stringify(['REQ', subId, filter])));
-                        ws.on('message', (raw: WebSocket.RawData) => {
-                            try {
-                                const arr = JSON.parse(raw.toString()) as unknown[];
-                                if (!Array.isArray(arr) || arr.length === 0) return;
-                                if (arr[0] === 'EVENT' && arr[1] === subId) {
-                                    const event = arr[2] as NostrEvent;
-                                    if (event?.id) byId.set(event.id, event);
-                                } else if (arr[0] === 'EOSE' && arr[1] === subId) {
-                                    if (settled) return;
-                                    settled = true;
-                                    clearTimeout(timer);
-                                    try {
-                                        ws?.send(JSON.stringify(['CLOSE', subId]));
-                                        ws?.close();
-                                    } catch {}
-                                    resolve();
-                                }
-                            } catch {
-                                // ignore parse errors
-                            }
-                        });
-                        ws.on('error', () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            resolve();
-                        });
-                        ws.on('close', () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            resolve();
-                        });
-                    } catch {
-                        if (!settled) {
-                            settled = true;
-                            clearTimeout(timer);
-                            resolve();
-                        }
-                    }
-                })
-        )
-    );
-    return Array.from(byId.values()).sort((a, b) => b.created_at - a.created_at);
+export async function query(filter: Filter, relays?: readonly string[]): Promise<EventsFetch> {
+    const { events, relayStatus } = await queryEvents(filter, relays, QUERY_TIMEOUT_MS);
+    return { events, complete: reachedEose(relayStatus) };
 }
 
 /**
@@ -105,106 +36,25 @@ export async function queryRelays(
  * can publish under any d-tag with any created_at, so callers choose by
  * content and signature (see select.ts).
  */
-export async function fetchPollEvents(pollId: string, relays?: string[]) {
-    return queryRelays({ kinds: [30080], '#d': [`oc-vote:poll:${pollId}`] }, relays);
+export function fetchPollEvents(pollId: string, relays?: readonly string[]) {
+    return query({ kinds: [30080], '#d': [`oc-vote:poll:${pollId}`] }, relays);
 }
 
 /**
- * Every ballot in a poll.
- *
- * `#t`, not `#poll_id`: relays index single-letter tag names only, so the old
- * filter matched nothing and every tally saw zero ballots. Callers must still
- * check each parsed ballot's `poll_id` — `t` is a shared namespace on these
- * events (poll id, family marker, voter address).
+ * Every ballot in a poll, by the indexed `t` tag (relays index single-letter
+ * tags only). Callers must still check each parsed ballot's `poll_id`: `t` is
+ * shared by poll id, family marker and voter address.
  */
-export async function fetchBallotEvents(pollId: string, relays?: string[]) {
-    return queryRelays({ kinds: [30081], '#t': [pollId] }, relays);
+export function fetchBallotEvents(pollId: string, relays?: readonly string[]) {
+    return query({ kinds: [30081], '#t': [pollId] }, relays);
 }
 
 /** Every event under the poll's reveal d-tag; same reasoning as `fetchPollEvents`. */
-export async function fetchRevealEvents(pollId: string, relays?: string[]) {
-    return queryRelays({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays);
+export function fetchRevealEvents(pollId: string, relays?: readonly string[]) {
+    return query({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays);
 }
 
 // `oc-vote-poll` marker: kind 30080 is shared with other Nostr applications.
-export async function fetchRecentPolls(limit = 30, relays?: string[]) {
-    return queryRelays({ kinds: [30080], '#t': ['oc-vote-poll'], limit }, relays);
-}
-
-// ── Publish ────────────────────────────────────────────────────────────────
-
-export interface PublishResult {
-    relay: string;
-    ok: boolean;
-    reason?: string;
-}
-
-export async function publishEvent(
-    event: NostrEvent,
-    relays: string[] = DEFAULT_RELAYS,
-    timeoutMs = 6000
-): Promise<PublishResult[]> {
-    return Promise.all(
-        relays.map(
-            (url) =>
-                new Promise<PublishResult>((resolve) => {
-                    let settled = false;
-                    let ws: WebSocket | null = null;
-                    const timer = setTimeout(() => {
-                        if (settled) return;
-                        settled = true;
-                        try {
-                            ws?.close();
-                        } catch {}
-                        resolve({ relay: url, ok: false, reason: 'timeout' });
-                    }, timeoutMs);
-                    try {
-                        ws = new WebSocket(url);
-                        ws.on('open', () => ws?.send(JSON.stringify(['EVENT', event])));
-                        ws.on('message', (raw: WebSocket.RawData) => {
-                            try {
-                                const arr = JSON.parse(raw.toString()) as unknown[];
-                                if (Array.isArray(arr) && arr[0] === 'OK' && arr[1] === event.id) {
-                                    if (settled) return;
-                                    settled = true;
-                                    clearTimeout(timer);
-                                    try {
-                                        ws?.close();
-                                    } catch {}
-                                    const ok = arr[2] === true;
-                                    const reason =
-                                        typeof arr[3] === 'string' ? arr[3] : undefined;
-                                    resolve({
-                                        relay: url,
-                                        ok,
-                                        ...(reason ? { reason } : {}),
-                                    });
-                                }
-                            } catch {}
-                        });
-                        ws.on('error', () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            resolve({ relay: url, ok: false, reason: 'ws_error' });
-                        });
-                        ws.on('close', () => {
-                            if (settled) return;
-                            settled = true;
-                            clearTimeout(timer);
-                            resolve({ relay: url, ok: false, reason: 'closed_early' });
-                        });
-                    } catch (err) {
-                        if (settled) return;
-                        settled = true;
-                        clearTimeout(timer);
-                        resolve({
-                            relay: url,
-                            ok: false,
-                            reason: err instanceof Error ? err.message : 'unknown',
-                        });
-                    }
-                })
-        )
-    );
+export function fetchRecentPolls(limit = 30, relays?: readonly string[]) {
+    return query({ kinds: [30080], '#t': ['oc-vote-poll'], limit }, relays);
 }

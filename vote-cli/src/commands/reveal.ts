@@ -7,7 +7,7 @@ import { bip322Verify } from '../bip322.js';
 
 import { buildRevealEvent } from '../events.js';
 import { DEFAULT_RELAYS, fetchPollEvents, fetchRevealEvents, publishEvent } from '../nostr.js';
-import { selectPoll, selectReveal } from '../select.js';
+import { findPoll, selectReveal } from '../select.js';
 import { promptForSignature } from '../sig.js';
 
 export interface RevealOptions {
@@ -30,8 +30,7 @@ export async function runReveal(opts: RevealOptions): Promise<void> {
     }
 
     const relays = opts.relays ?? DEFAULT_RELAYS;
-    const selected = await selectPoll(await fetchPollEvents(opts.pollId, relays), opts.pollId, bip322Verify);
-    if (!selected) throw new Error('poll not found on relays');
+    const selected = await findPoll(await fetchPollEvents(opts.pollId, relays), opts.pollId, bip322Verify);
     const poll = selected.poll;
     if (poll.mode !== 'secret') throw new Error('poll is public-mode — no reveal needed');
     if (poll.creator !== opts.creator) {
@@ -46,7 +45,7 @@ export async function runReveal(opts: RevealOptions): Promise<void> {
     }
 
     // Only a reveal that verifies against the poll counts as already published.
-    const existing = await selectReveal(await fetchRevealEvents(opts.pollId, relays), poll, bip322Verify);
+    const existing = await selectReveal((await fetchRevealEvents(opts.pollId, relays)).events, poll, bip322Verify);
     if (existing && !opts.force) {
         throw new Error('a reveal event already exists for this poll (pass --force to replace)');
     }

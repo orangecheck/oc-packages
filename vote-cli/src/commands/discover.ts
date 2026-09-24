@@ -5,6 +5,7 @@ import type { Poll } from '@orangecheck/vote-core';
 
 import { bip322Verify } from '../bip322.js';
 import { DEFAULT_RELAYS, fetchRecentPolls } from '../nostr.js';
+import { requireComplete } from '../select.js';
 
 export interface DiscoverOptions {
     limit?: number;
@@ -15,7 +16,7 @@ export interface DiscoverOptions {
 
 export async function runDiscover(opts: DiscoverOptions): Promise<void> {
     const limit = opts.limit ?? 30;
-    const events = await fetchRecentPolls(limit, opts.relays ?? DEFAULT_RELAYS);
+    const events = requireComplete(await fetchRecentPolls(limit, opts.relays ?? DEFAULT_RELAYS), 'poll listing');
 
     interface Item {
         poll_id: string;

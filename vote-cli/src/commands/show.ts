@@ -3,7 +3,7 @@
 
 import { bip322Verify } from '../bip322.js';
 import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvents } from '../nostr.js';
-import { selectPoll } from '../select.js';
+import { findPoll, requireComplete } from '../select.js';
 
 export interface ShowOptions {
     pollId: string;
@@ -18,12 +18,12 @@ export async function runShow(opts: ShowOptions): Promise<void> {
     }
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
-    const [pollEvents, ballotEvents] = await Promise.all([
+    const [pollFetch, ballotFetch] = await Promise.all([
         fetchPollEvents(pid, relays),
         fetchBallotEvents(pid, relays),
     ]);
-    const selected = await selectPoll(pollEvents, pid, bip322Verify);
-    if (!selected) throw new Error('poll not found');
+    const selected = await findPoll(pollFetch, pid, bip322Verify);
+    const ballotEvents = requireComplete(ballotFetch, 'ballot');
     const { poll, signatureValid } = selected;
 
     if (opts.json) {

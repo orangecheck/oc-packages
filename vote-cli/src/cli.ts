@@ -15,11 +15,12 @@
  *   utility:
  *     oc-vote gen-reveal-key              mint a fresh X25519 pair
  *
- * Defaults: canonical 4-relay set + mempool.space for UTXOs.
+ * Defaults: nostr-core's DEFAULT_RELAYS + mempool.space for UTXOs.
  * Swap via --relay wss://... (repeatable) and --mempool-base https://...
  */
 
 import { Command, Option } from 'commander';
+import WebSocket from 'ws';
 
 import { runCreate } from './commands/create.js';
 import { runDiscover } from './commands/discover.js';
@@ -29,6 +30,11 @@ import { runShow } from './commands/show.js';
 import { runTally } from './commands/tally.js';
 import { runVerify } from './commands/verify.js';
 import { runVote } from './commands/vote.js';
+
+// nostr-core uses the global WebSocket, which Node only ships from v22.
+if (typeof globalThis.WebSocket === 'undefined') {
+    (globalThis as { WebSocket?: unknown }).WebSocket = WebSocket;
+}
 
 const program = new Command();
 

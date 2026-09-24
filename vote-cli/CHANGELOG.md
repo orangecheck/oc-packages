@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.0] — 2026-09-24
+
+### Changed
+
+- **Relay transport is `@orangecheck/nostr-core` ^0.4.0.** The CLI's own
+  WebSocket query and publish code is removed. Queries now keep only events
+  whose NIP-01 id, BIP-340 signature and filter match verify, and the default
+  relay set is nostr-core's `DEFAULT_RELAYS` (the one vote.ochk.io uses).
+  On Node < 22, which has no global `WebSocket`, the CLI installs `ws` as it.
+- **Absence needs a finished answer.** A relay counts as having answered only
+  if it sent EOSE; a relay that timed out or closed after sending some events
+  does not. `tally`, `show`, `verify`, `vote` and `reveal` report "no relay
+  finished answering" instead of "poll not found" when no relay reached EOSE,
+  and `tally`, `show`, `verify` and `discover` refuse to work from a ballot or
+  poll set no relay finished sending. `tally` likewise refuses to report a
+  secret poll as awaiting reveal on an unfinished reveal query.
+
 ## [0.5.0] — 2026-09-24
 
 ### Fixed

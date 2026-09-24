@@ -13,7 +13,7 @@ import { bip322Verify } from '../bip322.js';
 
 import { buildBallotEvent } from '../events.js';
 import { DEFAULT_RELAYS, fetchPollEvents, publishEvent } from '../nostr.js';
-import { selectPoll } from '../select.js';
+import { findPoll } from '../select.js';
 import { promptForSignature } from '../sig.js';
 
 export interface VoteOptions {
@@ -32,9 +32,8 @@ export async function runVote(opts: VoteOptions): Promise<void> {
     }
 
     // Fetch the poll from relays so we know the mode + options + reveal_pk.
-    const events = await fetchPollEvents(opts.pollId, opts.relays ?? DEFAULT_RELAYS);
-    const selected = await selectPoll(events, opts.pollId, bip322Verify);
-    if (!selected) throw new Error('poll not found on relays');
+    const fetched = await fetchPollEvents(opts.pollId, opts.relays ?? DEFAULT_RELAYS);
+    const selected = await findPoll(fetched, opts.pollId, bip322Verify);
     if (!selected.signatureValid) {
         throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
