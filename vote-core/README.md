@@ -16,7 +16,9 @@ npm i @orangecheck/vote-core
 - `pollId(poll) / ballotId(ballot) / revealId(reveal)` — content-addressed ids via SHA-256 of canonical bytes with `sig.value` emptied.
 - `commit(pollId, voter, option)` — secret-mode commitment per SPEC §4.4.
 - `voterWeight({ utxos, snapshot, minSats, minDays, mode, params })` — three canonical weight modes: `one_per_address`, `sats`, `sats_days`.
-- `tally({ poll, ballots, utxosAt, revealedOptions?, verifyBip322?, skipSignatures? })` — deterministic pure tally function.
+- `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot.
+- `verifyPoll(poll, verify)` / `verifyReveal(reveal, poll, verify)` — SPEC §3.3 structure plus the creator's BIP-322 signature (§10.1, §6.4, §10.3).
+- `isMainnetAddress(addr)` — network check by address prefix (§3.3, §4.3).
 - Full TypeScript types for `Poll`, `Ballot`, `Reveal`, `TallyResult`.
 
 ## Conformance
@@ -34,11 +36,13 @@ const result = await tally({
   poll,
   ballots,
   utxosAt: (addr, snapshotBlock) => fetchUtxos(addr, snapshotBlock),
-  skipSignatures: false,
-  verifyBip322: async (address, message, sig) => {
+  tipHeight, // optional: refuse a snapshot with < 6 confirmations (E_REORG)
+  verify: async ({ address, message, signature }) => {
     const { Verifier } = await import('bip322-js');
-    return Verifier.verifySignature(address, message, sig);
+    return Verifier.verifySignature(address, message, signature);
   },
+  // secret mode only, once the creator's reveal is verified:
+  // unseal: (ballot) => openEnvelope(ballot.secret.envelope, reveal.reveal_sk),
 });
 
 // { state: 'tallied', snapshot_block: 900000, turnout: {...}, tallies: {...} }

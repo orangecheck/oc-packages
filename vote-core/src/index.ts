@@ -17,6 +17,9 @@ export {
     voterWeight,
 } from './weight.js';
 export { tally } from './tally.js';
+export type { TallyOptions } from './tally.js';
+export { isMainnetAddress, verifyPoll, verifyReveal, VoteError } from './verify.js';
+export type { SignatureVerifier, VerifyResult } from './verify.js';
 export { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
 export type {
     AwaitingRevealResult,

@@ -7,6 +7,46 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.3.0] — 2026-09-24
+
+### Added — `unseal` for secret-mode tallies
+
+`tally({ unseal })` takes a callback that opens one ballot's envelope. It is
+called once per voter, on the ballot that passed signature verification and
+the tiebreak (SPEC §8 steps 1-3), so the plaintext always comes from the
+ballot being counted.
+
+`revealedOptions` is deprecated. It is keyed by voter, so it cannot record
+which of a voter's ballots an option was unsealed from; a caller filling it
+from every relay ballot could have a voter's signed ballot judged against a
+different ballot's envelope. It still works and is ignored when `unseal` is
+given.
+
+### Added — `verifyPoll`, `verifyReveal`, `isMainnetAddress`, `VoteError`
+
+- `verifyPoll(poll, verify)` checks SPEC §3.3 structure and the creator's
+  BIP-322 signature over `poll_id` (§10.1).
+- `verifyReveal(reveal, poll, verify)` checks the poll binding, the
+  not-before-deadline rule (§10.3) and the creator's signature over
+  `reveal_id` (§6.4).
+- `isMainnetAddress(addr)` classifies an address by network prefix.
+- `VoteError` carries a SPEC §9 `code`.
+
+### Changed — `tally` enforces more of SPEC §3.3, §4.3, §8 and §10
+
+- The poll's creator signature is verified whenever ballot signatures are;
+  a poll that fails throws `VoteError('E_BAD_SIG')`.
+- Ballots whose `voter` is not a mainnet address are dropped before any UTXO
+  lookup.
+- A revealed option must be one of `poll.options` (or `withdraw`); anything
+  else drops the ballot (`E_UNKNOWN_OPTION`).
+- Option ids are plain keys: `tallies` is built with own properties and
+  membership is tested with `hasOwnProperty`, so ids like `__proto__` count
+  like any other.
+- The snapshot height must be a positive integer, and with the new
+  `tipHeight` option `tally` throws `VoteError('E_REORG')` unless the snapshot
+  has at least 6 confirmations (§10.5).
+
 ## [1.2.0] — 2026-09-11
 
 ### Added — `tally` rejects poll and ballot versions it does not support

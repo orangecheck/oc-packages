@@ -19,6 +19,7 @@ import type {
     UtxoLookup,
     Utxo,
 } from './types.js';
+import { isBlockHeight, isMainnetAddress, VoteError } from './verify.js';
 import { isSupportedMode, voterWeight } from './weight.js';
 
 export interface TallyOptions {
@@ -37,8 +38,27 @@ export interface TallyOptions {
      * every ballot. Use this field instead.
      */
     snapshotBlock?: number;
-    /** Optional: map of voter→plaintext option id, populated from unsealed secret ballots. */
+    /**
+     * Secret mode: recover the plaintext option id from a ballot's
+     * `secret.envelope` (SPEC §6.4 step 2). Called once per voter, and only on
+     * the ballot that survived signature checks and the tiebreak, so a relay
+     * cannot substitute another ballot's envelope for a voter. Return null or
+     * throw when the envelope does not open; the voter is then dropped.
+     */
+    unseal?: (ballot: Ballot) => Promise<string | null> | string | null;
+    /**
+     * @deprecated Use `unseal`. A voter-keyed map cannot say WHICH of a
+     * voter's ballots it was unsealed from, so a caller that fills it from
+     * every relay ballot lets an unsigned ballot's envelope stand in for the
+     * voter's signed one. Ignored when `unseal` is supplied.
+     */
     revealedOptions?: Record<string, string>;
+    /**
+     * Current chain tip height. When supplied, `tally` throws `VoteError`
+     * `E_REORG` unless the snapshot block has at least 6 confirmations
+     * (SPEC §10.5), which also refuses a snapshot that has not been mined.
+     */
+    tipHeight?: number;
     /** Async BIP-322 verifier. Omitting every verifier throws — see `skipSignatures`. */
     /**
      * POSITIONAL, and this package's order is `(address, message, signature)`.
@@ -120,9 +140,21 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         );
     }
 
+    // SPEC §10.1: a poll whose signature fails against `creator` MUST be rejected.
+    const pid = pollId(poll);
+    if (!opts.skipSignatures) {
+        const ok =
+            isMainnetAddress(poll.creator) &&
+            typeof poll.sig?.value === 'string' &&
+            poll.sig.value !== '' &&
+            (opts.verify
+                ? await opts.verify({ address: poll.creator, message: pid, signature: poll.sig.value })
+                : await opts.verifyBip322!(poll.creator, pid, poll.sig.value));
+        if (!ok) throw new VoteError('E_BAD_SIG', 'poll signature does not verify against creator');
+    }
+
     // 1. Filter to ballots that structurally belong to this poll and are in time.
     const deadlineMs = Date.parse(poll.deadline);
-    const pid = pollId(poll);
     const filtered: Ballot[] = [];
     for (const b of ballots) {
         // Per-ballot version, dropped rather than thrown: one publisher on a
@@ -130,6 +162,9 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         // how every other structural mismatch in this loop behaves.
         if (b.v !== BALLOT_VERSION) continue;
         if (b.poll_id !== pid) continue;
+        // SPEC §4.3: voter MUST be a mainnet address. A UTXO lookup on another
+        // network's address answers for a different chain, or not at all.
+        if (!isMainnetAddress(b.voter)) continue;
         if (Date.parse(b.created_at) > deadlineMs) continue;
 
         if (poll.mode === 'secret') {
@@ -166,13 +201,28 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         }
     }
 
-    // 3. Reveal: if secret mode, substitute plaintext option from revealedOptions,
-    //    verifying the commit binding per SPEC §4.4.
+    // 3. Reveal: if secret mode, unseal each voter's surviving ballot and
+    //    verify the commit binding per SPEC §4.4.
     if (poll.mode === 'secret') {
-        if (!opts.revealedOptions) return { state: 'awaiting_reveal' };
+        const { unseal, revealedOptions } = opts;
+        if (!unseal && !revealedOptions) return { state: 'awaiting_reveal' };
         for (const [voter, b] of Array.from(perVoter.entries())) {
-            const option = opts.revealedOptions[voter];
-            if (option == null || !b.secret) {
+            let option: string | null = null;
+            if (unseal) {
+                try {
+                    option = await unseal(b);
+                } catch {
+                    option = null;
+                }
+            } else if (revealedOptions && hasOwn(revealedOptions, voter)) {
+                option = revealedOptions[voter] ?? null;
+            }
+            // E_UNKNOWN_OPTION: the plaintext must name one of the poll's options.
+            if (
+                typeof option !== 'string' ||
+                !b.secret ||
+                (option !== 'withdraw' && !poll.options.some((o) => o.id === option))
+            ) {
                 perVoter.delete(voter);
                 continue;
             }
@@ -192,7 +242,7 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
     let H: number;
     if (typeof poll.snapshot_block === 'number') {
         H = poll.snapshot_block;
-    } else if (typeof opts.snapshotBlock === 'number') {
+    } else if (poll.snapshot_block === 'deadline' && typeof opts.snapshotBlock === 'number') {
         H = opts.snapshotBlock;
     } else {
         throw new Error(
@@ -200,10 +250,25 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
                 'Pass the resolved block height via opts.snapshotBlock — do NOT mutate poll.snapshot_block.'
         );
     }
+    if (!isBlockHeight(H)) {
+        throw new VoteError('E_WRONG_POLL', `snapshot block ${String(H)} is not a positive integer`);
+    }
+    if (opts.tipHeight !== undefined) {
+        if (!isBlockHeight(opts.tipHeight)) throw new Error('tally: tipHeight must be a positive integer');
+        if (opts.tipHeight - H + 1 < 6) {
+            throw new VoteError(
+                'E_REORG',
+                `snapshot block ${H} has ${Math.max(0, opts.tipHeight - H + 1)} confirmations; 6 required`
+            );
+        }
+    }
 
     // 5. Sum weights per option. Deterministic iteration order by voter (sorted).
-    const tallies: Record<string, number> = {};
-    for (const o of poll.options) tallies[o.id] = 0;
+    // fromEntries defines own properties, so an option id such as "__proto__"
+    // is a key like any other; membership is tested with hasOwn, never `in`.
+    const tallies: Record<string, number> = Object.fromEntries(
+        poll.options.map((o) => [o.id, 0])
+    );
     let turnoutVoters = 0;
     let turnoutWeight = 0;
     const voters = Array.from(perVoter.keys()).sort();
@@ -211,7 +276,7 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         const b = perVoter.get(voter);
         if (!b) continue;
         if (b.option === 'withdraw' || b.option == null) continue;
-        if (!(b.option in tallies)) continue;
+        if (!hasOwn(tallies, b.option)) continue;
         const utxos: Utxo[] = await Promise.resolve(utxosAt(voter, H));
         const w = voterWeight({
             utxos,
@@ -233,6 +298,10 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         turnout: { voters: turnoutVoters, weight: turnoutWeight },
         tallies,
     };
+}
+
+function hasOwn(obj: object, key: string): boolean {
+    return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
 function chooseByTiebreak(a: Ballot, b: Ballot, t: Tiebreak): Ballot {
