@@ -8,6 +8,22 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.1.0] — 2026-09-24
+
+### Changed — `pledge:create` ceilings use `<=`; unknown constraints do not match
+
+SPEC §7.3 now writes the bond ceiling `max_bond_sats<=N`, OC Agent's range
+operator; in OC Agent `=` is an exact match. `parsePledgeCreateScope` reads
+both forms as the ceiling, so delegations issued with `max_bond_sats=N` keep
+verifying. Before, `<=` was split at its `=`, which produced the key
+`max_bond_sats<` and left the ceiling unchecked.
+
+`checkPledgeCreateScope` now fails a scope that carries a constraint key other
+than `max_bond_sats`, `mechanism` or `counterparty`, uses an operator other
+than `=` (or `<=` on the ceiling), repeats a key, or gives a ceiling that is
+not a whole number. A constraint the verifier cannot evaluate cannot be shown
+to hold. Quoted values are unquoted.
+
 ## [3.0.0] — 2026-09-24
 
 ### Changed — abandonments, deterministic outcomes and agent pledges bind to the pledge

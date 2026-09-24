@@ -105,6 +105,15 @@ describe('parsePledgeCreateScope', () => {
         expect(parsePledgeCreateScope('pledge:create(missing_close')).toBeNull();
         expect(parsePledgeCreateScope('pledge:create(no_equals)')).toBeNull();
     });
+    it('reads max_bond_sats<=N as the ceiling', () => {
+        expect(parsePledgeCreateScope('pledge:create(max_bond_sats<=2000000)')).toEqual({
+            max_bond_sats: '2000000',
+        });
+    });
+    it('rejects an operator other than = or <=, and <= on a non-ceiling key', () => {
+        expect(parsePledgeCreateScope('pledge:create(max_bond_sats>=1)')).toBeNull();
+        expect(parsePledgeCreateScope('pledge:create(mechanism<=chain_state)')).toBeNull();
+    });
 });
 
 describe('checkPledgeCreateScope', () => {
@@ -131,6 +140,34 @@ describe('checkPledgeCreateScope', () => {
             expect(r.code).toBe('E_DELEGATION_SCOPE_VIOLATED');
             expect(r.reason).toMatch(/exceeds.*max_bond_sats/);
         }
+    });
+    it('enforces a max_bond_sats<=N ceiling', () => {
+        const over = checkPledgeCreateScope(
+            pledge({
+                bond: { attestation_id: '0'.repeat(64), min_sats: 5_000_000, min_days: 30 },
+            }),
+            delegation({ scopes: ['pledge:create(max_bond_sats<=1000000)'] }),
+        );
+        expect(over.ok).toBe(false);
+        const under = checkPledgeCreateScope(
+            pledge({ bond: { attestation_id: '0'.repeat(64), min_sats: 500_000, min_days: 30 } }),
+            delegation({ scopes: ['pledge:create(max_bond_sats<=1000000)'] }),
+        );
+        expect(under.ok).toBe(true);
+    });
+    it('fails on a constraint key it does not understand', () => {
+        const r = checkPledgeCreateScope(
+            pledge(),
+            delegation({ scopes: ['pledge:create(max_bond_btc=1)'] }),
+        );
+        expect(r.ok).toBe(false);
+    });
+    it('fails on a max_bond_sats value that is not a whole number', () => {
+        const r = checkPledgeCreateScope(
+            pledge(),
+            delegation({ scopes: ['pledge:create(max_bond_sats=99999999999abc)'] }),
+        );
+        expect(r.ok).toBe(false);
     });
     it('fails when mechanism does not match', () => {
         const r = checkPledgeCreateScope(

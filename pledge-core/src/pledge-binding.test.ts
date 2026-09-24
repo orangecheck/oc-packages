@@ -164,7 +164,7 @@ describe('verifyAbandonment binds to the pledge (SPEC §5.3)', () => {
         expect(r.ok === false && r.code).toBe('E_ABANDONMENT_MALFORMED');
     });
 
-    it('verifies the signature under the swearer address', async () => {
+    it('checks the BIP-322 signature, under the swearer address', async () => {
         const seen: string[] = [];
         const r = await verifyAbandonment({
             envelope: abandonment(base),
@@ -176,6 +176,14 @@ describe('verifyAbandonment binds to the pledge (SPEC §5.3)', () => {
         });
         expect(r.ok).toBe(true);
         expect(seen).toEqual([SWEARER]);
+
+        const bad = await verifyAbandonment({
+            envelope: abandonment(base),
+            pledge: base,
+            verifyBip322: async () => false,
+        });
+        expect(bad.ok).toBe(false);
+        expect(bad.ok === false && bad.code).toBe('E_ABANDONMENT_BAD_SIG');
     });
 });
 
