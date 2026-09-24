@@ -1,13 +1,10 @@
 // oc-vote verify <poll_id> — fetch poll + ballots, verify every BIP-322 signature, report.
 
-import {
-    ballotId as computeBallotId,
-    pollId as computePollId,
-    type Ballot,
-    type Poll,
-} from '@orangecheck/vote-core';
+import { ballotId as computeBallotId, type Ballot } from '@orangecheck/vote-core';
 
-import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvent } from '../nostr.js';
+import { bip322Verify } from '../bip322.js';
+import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvents } from '../nostr.js';
+import { selectPoll } from '../select.js';
 
 export interface VerifyOptions {
     pollId: string;
@@ -22,13 +19,12 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
     }
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
-    const [pollEvent, ballotEvents] = await Promise.all([
-        fetchPollEvent(pid, relays),
+    const [pollEvents, ballotEvents] = await Promise.all([
+        fetchPollEvents(pid, relays),
         fetchBallotEvents(pid, relays),
     ]);
-    if (!pollEvent) throw new Error('poll not found');
-    const poll = JSON.parse(pollEvent.content) as Poll;
-    if (computePollId(poll) !== pid) throw new Error('poll content mismatch');
+    const selected = await selectPoll(pollEvents, pid, bip322Verify);
+    if (!selected) throw new Error('poll not found');
 
     const mod = (await import('bip322-js')) as unknown as {
         Verifier?: { verifySignature(a: string, m: string, s: string): boolean };
@@ -39,7 +35,7 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
     const Verifier = mod.Verifier ?? mod.default?.Verifier;
     if (!Verifier) throw new Error('bip322 verifier unavailable');
 
-    const pollSigOk = Verifier.verifySignature(poll.creator, pid, poll.sig.value);
+    const pollSigOk = selected.signatureValid;
 
     const ballots: Ballot[] = [];
     const seen = new Set<string>();

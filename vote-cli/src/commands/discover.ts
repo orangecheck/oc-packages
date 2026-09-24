@@ -1,8 +1,9 @@
 // oc-vote discover — list recent polls across the default relay set.
 
-import { pollId as computePollId } from '@orangecheck/vote-core';
+import { pollId as computePollId, verifyPoll } from '@orangecheck/vote-core';
 import type { Poll } from '@orangecheck/vote-core';
 
+import { bip322Verify } from '../bip322.js';
 import { DEFAULT_RELAYS, fetchRecentPolls } from '../nostr.js';
 
 export interface DiscoverOptions {
@@ -31,6 +32,8 @@ export async function runDiscover(opts: DiscoverOptions): Promise<void> {
             if (seen.has(pid)) continue;
             seen.add(pid);
             if (opts.openOnly && Date.parse(poll.deadline) < Date.now()) continue;
+            // Listed only when the creator's signature verifies (SPEC §10.1).
+            if (!(await verifyPoll(poll, bip322Verify)).ok) continue;
             items.push({ poll_id: pid, poll, nostr_created_at: ev.created_at });
         } catch {}
     }

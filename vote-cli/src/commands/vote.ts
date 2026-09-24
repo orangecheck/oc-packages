@@ -6,11 +6,14 @@
 
 import { seal } from '@orangecheck/lock-core';
 import { utf8Encode } from '@orangecheck/lock-crypto';
-import { ballotId, commit, pollId as computePollId } from '@orangecheck/vote-core';
-import type { Ballot, Poll } from '@orangecheck/vote-core';
+import { ballotId, commit } from '@orangecheck/vote-core';
+import type { Ballot } from '@orangecheck/vote-core';
+
+import { bip322Verify } from '../bip322.js';
 
 import { buildBallotEvent } from '../events.js';
-import { DEFAULT_RELAYS, fetchPollEvent, publishEvent } from '../nostr.js';
+import { DEFAULT_RELAYS, fetchPollEvents, publishEvent } from '../nostr.js';
+import { selectPoll } from '../select.js';
 import { promptForSignature } from '../sig.js';
 
 export interface VoteOptions {
@@ -29,12 +32,13 @@ export async function runVote(opts: VoteOptions): Promise<void> {
     }
 
     // Fetch the poll from relays so we know the mode + options + reveal_pk.
-    const event = await fetchPollEvent(opts.pollId, opts.relays ?? DEFAULT_RELAYS);
-    if (!event) throw new Error('poll not found on relays');
-    const poll = JSON.parse(event.content) as Poll;
-    if (computePollId(poll) !== opts.pollId) {
-        throw new Error('poll content does not match poll_id');
+    const events = await fetchPollEvents(opts.pollId, opts.relays ?? DEFAULT_RELAYS);
+    const selected = await selectPoll(events, opts.pollId, bip322Verify);
+    if (!selected) throw new Error('poll not found on relays');
+    if (!selected.signatureValid) {
+        throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
+    const poll = selected.poll;
     if (poll.mode === 'public' && !poll.options.some((o) => o.id === opts.option)) {
         throw new Error(`option "${opts.option}" not in poll options (${poll.options.map((o) => o.id).join(', ')})`);
     }

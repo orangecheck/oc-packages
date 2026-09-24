@@ -4,19 +4,23 @@ import { hexDecode, utf8Decode } from '@orangecheck/lock-crypto';
 import { unseal } from '@orangecheck/lock-core';
 import {
     ballotId,
-    pollId as computePollId,
     tally,
     type Ballot,
     type Poll,
     type Reveal,
+    type SignatureVerifier,
+    type TallyResult,
+    type UtxoLookup,
 } from '@orangecheck/vote-core';
 
+import { bip322Verify } from '../bip322.js';
 import {
     DEFAULT_RELAYS,
     fetchBallotEvents,
-    fetchPollEvent,
-    fetchRevealEvent,
+    fetchPollEvents,
+    fetchRevealEvents,
 } from '../nostr.js';
+import { selectPoll, selectReveal } from '../select.js';
 import { buildLookup, mempoolSource } from '../utxos.js';
 
 export interface TallyOptions {
@@ -28,6 +32,49 @@ export interface TallyOptions {
     snapshotBlock?: number;
 }
 
+/** Open a secret ballot's envelope with the revealed key (SPEC §6.4 step 2). */
+export async function unsealOption(ballot: Ballot, revealSk: string): Promise<string | null> {
+    if (!ballot.secret) return null;
+    const result = await unseal({
+        envelope: ballot.secret.envelope as unknown as Parameters<typeof unseal>[0]['envelope'],
+        device: { device_id: 'reveal', secretKey: hexDecode(revealSk) },
+        skipSenderVerification: true,
+    });
+    return utf8Decode(result.payload);
+}
+
+export interface ComputeTallyInput {
+    poll: Poll;
+    ballots: Ballot[];
+    /** A reveal that already passed verifyReveal; null when none exists. */
+    reveal: Reveal | null;
+    utxosAt: UtxoLookup;
+    snapshotBlock: number;
+    tipHeight?: number;
+    /** null skips every signature check (--no-verify). */
+    verify: SignatureVerifier | null;
+}
+
+/**
+ * vote-core's tally with this CLI's unsealer. vote-core calls `unseal` on each
+ * voter's verified, tiebroken ballot only, so a ballot that fails its
+ * signature never supplies a voter's option.
+ */
+export function computeTally(input: ComputeTallyInput): Promise<TallyResult> {
+    const { poll, reveal } = input;
+    return tally({
+        poll,
+        ballots: input.ballots,
+        utxosAt: input.utxosAt,
+        snapshotBlock: input.snapshotBlock,
+        ...(input.tipHeight !== undefined ? { tipHeight: input.tipHeight } : {}),
+        ...(input.verify ? { verify: input.verify } : { skipSignatures: true }),
+        ...(poll.mode === 'secret' && reveal
+            ? { unseal: (b: Ballot) => unsealOption(b, reveal.reveal_sk) }
+            : {}),
+    });
+}
+
 export async function runTally(opts: TallyOptions): Promise<void> {
     const { pollId: pid } = opts;
     if (!/^[0-9a-f]{64}$/.test(pid)) {
@@ -35,17 +82,19 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     }
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
-    const [pollEvent, ballotEvents, revealEvent] = await Promise.all([
-        fetchPollEvent(pid, relays),
+    const verify = opts.verify !== false ? bip322Verify : null;
+    const [pollEvents, ballotEvents, revealEvents] = await Promise.all([
+        fetchPollEvents(pid, relays),
         fetchBallotEvents(pid, relays),
-        fetchRevealEvent(pid, relays),
+        fetchRevealEvents(pid, relays),
     ]);
 
-    if (!pollEvent) throw new Error('poll not found on any relay');
-    const poll = JSON.parse(pollEvent.content) as Poll;
-    if (computePollId(poll) !== pid) {
-        throw new Error('poll content does not match poll_id');
+    const selected = await selectPoll(pollEvents, pid, verify ?? bip322Verify);
+    if (!selected) throw new Error('poll not found on any relay');
+    if (verify && !selected.signatureValid) {
+        throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
+    const poll = selected.poll;
 
     const ballots: Ballot[] = [];
     const seen = new Set<string>();
@@ -62,9 +111,9 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         }
     }
 
-    const reveal: Reveal | null = revealEvent
-        ? (JSON.parse(revealEvent.content) as Reveal)
-        : null;
+    // Only a reveal signed by the creator, after the deadline, opens ballots.
+    const reveal: Reveal | null =
+        poll.mode === 'secret' ? await selectReveal(revealEvents, poll, bip322Verify) : null;
 
     // Resolve snapshot
     const source = mempoolSource(opts.mempoolBase);
@@ -74,57 +123,20 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         snapshot = opts.snapshotBlock ?? (await source.fetchTipHeight());
     }
 
-    // Unseal secret-mode ballots if a reveal is published
-    let revealedOptions: Record<string, string> | undefined;
-    if (poll.mode === 'secret' && reveal) {
-        revealedOptions = {};
-        for (const b of ballots) {
-            if (!b.secret) continue;
-            try {
-                const result = await unseal({
-                    envelope: b.secret.envelope as unknown as Parameters<typeof unseal>[0]['envelope'],
-                    device: { device_id: 'reveal', secretKey: hexDecode(reveal.reveal_sk) },
-                    skipSenderVerification: true,
-                });
-                revealedOptions[b.voter] = utf8Decode(result.payload);
-            } catch {
-                // skip: bad envelope or wrong reveal key
-            }
-        }
-    }
-
-    const verify = opts.verify !== false;
-    const verifyBip322 = verify
-        ? async (address: string, message: string, signatureB64: string) => {
-              try {
-                  const mod = (await import('bip322-js')) as unknown as {
-                      Verifier?: { verifySignature(a: string, m: string, s: string): boolean };
-                      default?: {
-                          Verifier?: {
-                              verifySignature(a: string, m: string, s: string): boolean;
-                          };
-                      };
-                  };
-                  const Verifier = mod.Verifier ?? mod.default?.Verifier;
-                  if (!Verifier) return false;
-                  return Verifier.verifySignature(address, message, signatureB64);
-              } catch {
-                  return false;
-              }
-          }
-        : undefined;
-
     // Pass `snapshotBlock` rather than mutating poll.snapshot_block: the
     // poll's canonical bytes (and therefore pollId) include snapshot_block
     // verbatim, and mutating it would invalidate every ballot's poll_id.
-    const result = await tally({
+    // A snapshot fixed by the poll must have 6 confirmations (SPEC §10.5).
+    const result = await computeTally({
         poll,
         ballots,
+        reveal,
         utxosAt,
         snapshotBlock: snapshot,
-        skipSignatures: !verify,
-        ...(verifyBip322 ? { verifyBip322 } : {}),
-        ...(revealedOptions ? { revealedOptions } : {}),
+        ...(typeof poll.snapshot_block === 'number'
+            ? { tipHeight: await source.fetchTipHeight() }
+            : {}),
+        verify,
     });
 
     const output = {

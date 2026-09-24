@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.0] — 2026-09-24
+
+### Changed
+
+- **Requires `@orangecheck/vote-core` ^1.3.0** (was ^0.1.1).
+- **`tally` unseals through vote-core's `unseal` callback.** Each voter's
+  option now comes from the ballot vote-core verified and kept after the
+  tiebreak (SPEC §8), not from a voter-keyed map filled from every relay
+  ballot.
+- **Polls and reveals are chosen by content and signature, not recency.**
+  Every command fetched `limit: 1` under the d-tag and used the newest event.
+  They now fetch every event under the d-tag and take one whose content
+  hashes to the requested id and whose creator signature verifies
+  (SPEC §3.2, §10.1). `tally` and `vote` refuse a poll whose signature does
+  not verify; `show` and `verify` report it.
+- **`tally` uses a reveal only if it verifies** (creator signature over
+  `reveal_id`, not before the deadline — §6.4, §10.3); `reveal` likewise
+  counts only a verified reveal as already published.
+- **`tally` passes the chain tip** so a poll's fixed `snapshot_block` must
+  have 6 confirmations (§10.5).
+- **`discover`** filters on the `oc-vote-poll` tag and lists only polls whose
+  creator signature verifies.
+
 ## [0.3.1] — 2026-09-03
 
 ### Fixed

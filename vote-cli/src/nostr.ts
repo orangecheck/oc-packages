@@ -100,12 +100,13 @@ export async function queryRelays(
     return Array.from(byId.values()).sort((a, b) => b.created_at - a.created_at);
 }
 
-export async function fetchPollEvent(pollId: string, relays?: string[]) {
-    const events = await queryRelays(
-        { kinds: [30080], '#d': [`oc-vote:poll:${pollId}`], limit: 1 },
-        relays
-    );
-    return events[0] ?? null;
+/**
+ * Every event under the poll's d-tag, newest first. Not `limit: 1`: anyone
+ * can publish under any d-tag with any created_at, so callers choose by
+ * content and signature (see select.ts).
+ */
+export async function fetchPollEvents(pollId: string, relays?: string[]) {
+    return queryRelays({ kinds: [30080], '#d': [`oc-vote:poll:${pollId}`] }, relays);
 }
 
 /**
@@ -120,16 +121,14 @@ export async function fetchBallotEvents(pollId: string, relays?: string[]) {
     return queryRelays({ kinds: [30081], '#t': [pollId] }, relays);
 }
 
-export async function fetchRevealEvent(pollId: string, relays?: string[]) {
-    const events = await queryRelays(
-        { kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`], limit: 1 },
-        relays
-    );
-    return events[0] ?? null;
+/** Every event under the poll's reveal d-tag; same reasoning as `fetchPollEvents`. */
+export async function fetchRevealEvents(pollId: string, relays?: string[]) {
+    return queryRelays({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays);
 }
 
+// `oc-vote-poll` marker: kind 30080 is shared with other Nostr applications.
 export async function fetchRecentPolls(limit = 30, relays?: string[]) {
-    return queryRelays({ kinds: [30080], limit }, relays);
+    return queryRelays({ kinds: [30080], '#t': ['oc-vote-poll'], limit }, relays);
 }
 
 // ── Publish ────────────────────────────────────────────────────────────────
