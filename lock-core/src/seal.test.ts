@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
     generateX25519KeyPair,
     hexEncode,
+    sha256Bytes,
     utf8Encode,
 } from '@orangecheck/lock-crypto';
+import { canonicalBytes } from './canonical.js';
 import { LockError, seal, unseal } from './seal.js';
 import type { DeviceRecord } from './types.js';
 
@@ -288,5 +290,66 @@ describe('seal refuses a revoked device record (SPEC §3.5)', () => {
             recipients: [carol.record],
         });
         expect(env.recipients).toHaveLength(1);
+    });
+});
+
+describe('unseal ties the signature to from.address (SPEC §4.3, §7.1)', () => {
+    it('rejects a signature whose sig.pubkey differs from from.address', async () => {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [bob.record],
+        });
+        // A self-consistent envelope: `id` recomputed over the new sig.pubkey,
+        // and a verifier that accepts the signature for the address it names.
+        const draft = {
+            ...envelope,
+            id: '',
+            sig: { alg: 'bip322' as const, pubkey: 'bc1qcarol', value: '' },
+        };
+        const id = hexEncode(sha256Bytes(canonicalBytes(draft as never)));
+        const resigned = { ...draft, id, sig: { ...draft.sig, value: FAKE_SIG } };
+        const verifyForCarol = async (_m: string, _s: string, addr: string) => addr === 'bc1qcarol';
+        await expect(
+            unseal({
+                envelope: resigned,
+                device: { device_id: 'bob-laptop', secretKey: bob.secret },
+                verifyBip322: verifyForCarol,
+            })
+        ).rejects.toSatisfy((e: unknown) => (e as LockError).code === 'E_BAD_SIG');
+    });
+
+    it('reports authenticated: true when the signature was verified', async () => {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [bob.record],
+        });
+        const out = await unseal({
+            envelope,
+            device: { device_id: 'bob-laptop', secretKey: bob.secret },
+            verifyBip322: passingVerify,
+        });
+        expect(out.authenticated).toBe(true);
+        expect(out.sender.address).toBe('bc1qalice');
+    });
+
+    it('reports authenticated: false for an unsigned envelope opened without verification', async () => {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello'),
+            sender: { address: 'bc1qalice', signMessage: async () => '' },
+            recipients: [bob.record],
+        });
+        expect(envelope.sig.value).toBe('');
+        const out = await unseal({
+            envelope,
+            device: { device_id: 'bob-laptop', secretKey: bob.secret },
+            skipSenderVerification: true,
+        });
+        expect(out.authenticated).toBe(false);
+        expect(out.sender.address).toBe('bc1qalice');
     });
 });

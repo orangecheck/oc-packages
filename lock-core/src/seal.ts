@@ -207,13 +207,25 @@ export async function unseal(input: UnsealInput): Promise<UnsealResult> {
         throw makeError('E_BAD_SIG', 'envelope id mismatch');
     }
 
+    // SPEC §4.3 step 2: the signature is verified against `sig.pubkey`, and it
+    // is `from.address` that §7.1 says it authenticates, so the two must name
+    // the same address, or a valid signature by one address vouches for another.
+    if (env.sig.value !== '' && env.sig.pubkey !== env.from.address) {
+        throw makeError(
+            'E_BAD_SIG',
+            `sig.pubkey (${env.sig.pubkey}) does not match from.address (${env.from.address})`
+        );
+    }
+
     // Verify sender signature unless caller opts out (self-seal).
+    let authenticated = false;
     if (!input.skipSenderVerification) {
         if (!input.verifyBip322) {
             throw makeError('E_BAD_SIG', 'no bip322 verifier supplied');
         }
         const ok = await input.verifyBip322(env.id, env.sig.value, env.sig.pubkey);
         if (!ok) throw makeError('E_BAD_SIG', 'sender signature did not verify');
+        authenticated = true;
     }
 
     // Find our recipient entry.
@@ -259,6 +271,7 @@ export async function unseal(input: UnsealInput): Promise<UnsealResult> {
         payload,
         envelopeId: env.id,
         sender: env.from,
+        authenticated,
         matchedDeviceId: mine.device_id,
     };
 }

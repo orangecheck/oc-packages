@@ -7,6 +7,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.2.0] — 2026-09-24
+
+### Added — `unseal` requires `sig.pubkey` to equal `from.address`
+
+SPEC §4.3 verifies the signature against `sig.pubkey`, and §7.1 says the
+envelope proves authorship by `from.address`. Nothing required the two to be
+the same address, so a signature valid for one address was accepted on an
+envelope whose `from` named another. `unseal()` now rejects a signed envelope
+whose `sig.pubkey` differs from `from.address` with `E_BAD_SIG`. Envelopes made
+by `seal()` always set both from the same value and are unaffected.
+
+### Added — `UnsealResult.authenticated`
+
+`true` only when the call verified the BIP-322 signature for `sender.address`.
+`false` when `skipSenderVerification` was set, including every unsigned
+envelope (`sig.value === ''`). In that case `sender` is an unverified claim;
+show it as one, and do not treat `sender.address === self` as "sent by me".
+
 ## [1.1.0] — 2026-09-11
 
 ### Added — `unseal` rejects an unsupported envelope version

@@ -106,5 +106,11 @@ export interface UnsealResult {
     payload: Uint8Array;
     envelopeId: string;
     sender: EnvelopeFrom;
+    /**
+     * True only when this call verified the BIP-322 signature over `id` for
+     * `sender.address`. False when verification was skipped, in which case
+     * `sender` is an unauthenticated claim and must be shown as one.
+     */
+    authenticated: boolean;
     matchedDeviceId: string;
 }
