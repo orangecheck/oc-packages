@@ -190,11 +190,13 @@
     .oc-sigil {
         width: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
         height: var(--oc-sigil-size-sm, clamp(170px, 56vw, 300px));
-        opacity: var(--oc-sigil-opacity-sm, 0.34);
+        /* Phones anchor the mark top-right, where it can sit under the headline;
+           a text-colored headline on the mark at desktop alpha loses glyphs. */
+        opacity: var(--oc-sigil-opacity-sm, 0.16);
         --oc-sigil-mask-at: 32% 66%;
     }
     :root.dark .oc-sigil {
-        opacity: var(--oc-sigil-opacity-sm, 0.42);
+        opacity: var(--oc-sigil-opacity-sm, 0.18);
     }
     .oc-sigil--bottom-left,
     .oc-sigil--bottom-right,

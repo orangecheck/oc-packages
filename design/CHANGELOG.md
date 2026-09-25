@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.32.1] — 2026-09-25
+
+### Changed — the sigil is quieter on phones
+
+On phones `OcSigil` re-anchors top-right, where it can sit under a hero
+headline. At its phone opacity (0.34 light, 0.42 dark) a headline set in the
+primary colour lost glyphs against the mark: on vote.ochk.io at 390px the
+"×" of "sats × days" disappeared. Phone opacity is now 0.16 light and 0.18
+dark. Desktop is unchanged, and `--oc-sigil-opacity-sm` still overrides it
+per site.
+
 ## [0.32.0] — 2026-09-11
 
 ### Added — `Acknowledgement`
