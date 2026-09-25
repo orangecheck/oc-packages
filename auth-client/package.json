@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/auth-client",
-  "version": "2.25.2",
+  "version": "2.25.3",
   "description": "React hooks and components for the cross-subdomain oc_session. Drop-in sign-in button, account chip with dashboard link, session-aware address input, and useOcSession() hook.",
   "keywords": [
     "orangecheck",
@@ -45,7 +45,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@orangecheck/wallet-adapter": "^0.4.2",
+    "@orangecheck/wallet-adapter": "^0.4.2 || ^0.5.0",
     "@simplewebauthn/browser": "^13.3.0"
   },
   "peerDependencies": {

@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.25.3] — 2026-09-25
+
+### Changed
+
+- `@orangecheck/wallet-adapter` range widened to `^0.4.2 || ^0.5.0`. A site
+  on wallet-adapter 0.5.0 no longer bundles a second 0.4.x copy through
+  auth-client. auth-client uses only `detectWallets`, `getSigner` and
+  `OcWalletButton`, which are unchanged in 0.5.0.
+
 ## [2.25.1] — 2026-09-16
 
 ### Fixed
