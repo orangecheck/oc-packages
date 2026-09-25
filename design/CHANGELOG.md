@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.32.3] — 2026-09-25
+
+### Added — `styles/swagger.css`, Swagger UI in dark mode
+
+The API explorers on ochk.io and attest.ochk.io, and the embedded references on
+docs.ochk.io, render Swagger UI, whose stylesheet is light-only. In dark mode
+its body text sat at about 1.6:1 against the page and the Servers band was a
+white slab. The new opt-in stylesheet maps Swagger's hard-coded text, border
+and fill colours onto the skin tokens under `.dark`. Light mode is unchanged.
+Import it after `swagger-ui-react/swagger-ui.css`.
+
 ## [0.32.2] — 2026-09-25
 
 ### Changed — form fields are 16px on phones, whatever the call site says

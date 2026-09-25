@@ -1,0 +1,205 @@
+/*
+ * swagger.css — Swagger UI in the family's dark mode.
+ *
+ * swagger-ui.css ships light-only, with body text hard-coded to #3b4151, so on
+ * a dark page the explorer reads at ~1.6:1 and the Servers band is a white
+ * slab. This maps those colours onto the skin tokens under `.dark` only, so
+ * light mode is untouched. Opt-in, not part of styles.css; import it after
+ * swagger-ui.css:
+ *
+ *     import 'swagger-ui-react/swagger-ui.css';
+ *     import '@orangecheck/design/styles/swagger.css';
+ *
+ * The first block mirrors every swagger-ui rule that sets #3b4151 / #000 /
+ * #333 (text), #6b6b6b / #606060 / #929292 (secondary text) or a white fill.
+ */
+.dark .swagger-ui,
+.dark .swagger-ui .opblock-tag,
+.dark .swagger-ui .opblock-tag small,
+.dark .swagger-ui .parameter__type,
+.dark .swagger-ui .opblock .opblock-section-header>label,
+.dark .swagger-ui .opblock .opblock-section-header h4,
+.dark .swagger-ui .opblock .opblock-summary-operation-id,
+.dark .swagger-ui .opblock .opblock-summary-path,
+.dark .swagger-ui .opblock .opblock-summary-path__deprecated,
+.dark .swagger-ui .opblock .opblock-summary-description,
+.dark .swagger-ui .tab li,
+.dark .swagger-ui .opblock-description-wrapper,
+.dark .swagger-ui .opblock-external-docs-wrapper,
+.dark .swagger-ui .opblock-title_normal,
+.dark .swagger-ui .opblock-description-wrapper h4,
+.dark .swagger-ui .opblock-external-docs-wrapper h4,
+.dark .swagger-ui .opblock-title_normal h4,
+.dark .swagger-ui .opblock-description-wrapper p,
+.dark .swagger-ui .opblock-external-docs-wrapper p,
+.dark .swagger-ui .opblock-title_normal p,
+.dark .swagger-ui .responses-inner h4,
+.dark .swagger-ui .responses-inner h5,
+.dark .swagger-ui .response-col_status,
+.dark .swagger-ui .response-col_links,
+.dark .swagger-ui .scheme-container .schemes>.schemes-server-container>label,
+.dark .swagger-ui section h3,
+.dark .swagger-ui .btn,
+.dark .swagger-ui select,
+.dark .swagger-ui label,
+.dark .swagger-ui textarea,
+.dark .swagger-ui .checkbox p,
+.dark .swagger-ui .dialog-ux .modal-ux-content p,
+.dark .swagger-ui .dialog-ux .modal-ux-content h4,
+.dark .swagger-ui .dialog-ux .modal-ux-header h3,
+.dark .swagger-ui .model,
+.dark .swagger-ui .servers>label,
+.dark .swagger-ui table.headers td,
+.dark .swagger-ui table thead tr td,
+.dark .swagger-ui table thead tr th,
+.dark .swagger-ui .parameter__name,
+.dark .swagger-ui .info h1,
+.dark .swagger-ui .info h2,
+.dark .swagger-ui .info h3,
+.dark .swagger-ui .info h4,
+.dark .swagger-ui .info h5,
+.dark .swagger-ui .info li,
+.dark .swagger-ui .info p,
+.dark .swagger-ui .info table,
+.dark .swagger-ui .info .base-url,
+.dark .swagger-ui .info .title,
+.dark .swagger-ui .auth-container .errors,
+.dark .swagger-ui .scopes h2,
+.dark .swagger-ui .errors-wrapper .errors h4,
+.dark .swagger-ui .errors-wrapper hgroup h4,
+.dark .swagger-ui .json-schema-2020-12-keyword--const .json-schema-2020-12-json-viewer__name,
+.dark .swagger-ui .json-schema-2020-12-keyword--const .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12__constraint,
+.dark .swagger-ui .json-schema-2020-12-keyword--default .json-schema-2020-12-json-viewer__name,
+.dark .swagger-ui .json-schema-2020-12-keyword--default .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12-keyword--enum .json-schema-2020-12-json-viewer__name,
+.dark .swagger-ui .json-schema-2020-12-keyword--enum .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12-keyword--examples .json-schema-2020-12-json-viewer__name,
+.dark .swagger-ui .json-schema-2020-12-keyword--examples .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12-property .json-schema-2020-12__title,
+.dark .swagger-ui .json-schema-2020-12-keyword__name--primary,
+.dark .swagger-ui .json-schema-2020-12-keyword__value--primary,
+.dark .swagger-ui .json-schema-2020-12-keyword__value--warning,
+.dark .swagger-ui .json-schema-2020-12__attribute,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__name--primary,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__value--primary,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__value--warning {
+    color: var(--foreground);
+}
+.dark .swagger-ui .opblock .opblock-section-header,
+.dark .swagger-ui textarea {
+    background-color: color-mix(in oklab, var(--card) 80%, transparent);
+}
+.dark .swagger-ui .scheme-container,
+.dark .swagger-ui input[type=email],
+.dark .swagger-ui input[type=file],
+.dark .swagger-ui input[type=password],
+.dark .swagger-ui input[type=search],
+.dark .swagger-ui input[type=text],
+.dark .swagger-ui textarea,
+.dark .swagger-ui .dialog-ux .modal-ux {
+    background-color: var(--card);
+}
+.dark .swagger-ui input[disabled],
+.dark .swagger-ui select[disabled],
+.dark .swagger-ui textarea[disabled] {
+    background-color: var(--muted);
+}
+.dark .swagger-ui .model .property.primitive,
+.dark .swagger-ui section.models h4,
+.dark .swagger-ui .prop-format,
+.dark .swagger-ui .errors-wrapper .errors small,
+.dark .swagger-ui .json-schema-2020-12-keyword--description,
+.dark .swagger-ui .json-schema-2020-12-json-viewer-extension-keyword .json-schema-2020-12-json-viewer__name,
+.dark .swagger-ui .json-schema-2020-12-json-viewer-extension-keyword .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12-keyword__name--secondary,
+.dark .swagger-ui .json-schema-2020-12-keyword__name--extension,
+.dark .swagger-ui .json-schema-2020-12-keyword__value,
+.dark .swagger-ui .json-schema-2020-12-keyword__value--secondary,
+.dark .swagger-ui .json-schema-2020-12-keyword__value--extension,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__name--secondary,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__name--extension,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__value,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__value--secondary,
+.dark .swagger-ui .json-schema-2020-12-json-viewer__value--extension {
+    color: var(--muted-foreground);
+}
+.dark .swagger-ui .scheme-container {
+    box-shadow: none;
+    border-block: 1px solid var(--border);
+}
+.dark .swagger-ui .opblock-tag,
+.dark .swagger-ui .opblock .opblock-section-header,
+.dark .swagger-ui section.models,
+.dark .swagger-ui section.models.is-open h4,
+.dark .swagger-ui table thead tr td,
+.dark .swagger-ui table thead tr th,
+.dark .swagger-ui .responses-inner,
+.dark .swagger-ui .opblock .opblock-summary {
+    border-color: var(--border);
+}
+.dark .swagger-ui input[type='email'],
+.dark .swagger-ui input[type='file'],
+.dark .swagger-ui input[type='password'],
+.dark .swagger-ui input[type='search'],
+.dark .swagger-ui input[type='text'],
+.dark .swagger-ui select,
+.dark .swagger-ui textarea {
+    border-color: var(--input);
+    color: var(--foreground);
+    background-color: var(--card);
+}
+.dark .swagger-ui select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23a1a1aa' d='M13.418 7.859a.695.695 0 0 1 .978 0 .68.68 0 0 1 0 .969l-3.908 3.83a.697.697 0 0 1-.979 0l-3.908-3.83a.68.68 0 0 1 0-.969.695.695 0 0 1 .978 0L10 11z'/%3E%3C/svg%3E");
+    box-shadow: none;
+}
+.dark .swagger-ui .arrow,
+.dark .swagger-ui .opblock-control-arrow svg,
+.dark .swagger-ui .expand-operation svg,
+.dark .swagger-ui .models-control svg,
+.dark .swagger-ui .opblock-tag svg,
+.dark .swagger-ui .model-toggle::after {
+    fill: var(--muted-foreground);
+}
+.dark .swagger-ui .model-toggle::after {
+    filter: invert(1);
+}
+.dark .swagger-ui .markdown code,
+.dark .swagger-ui .renderedMarkdown code {
+    color: var(--foreground);
+    background: var(--muted);
+}
+.dark .swagger-ui .info a,
+.dark .swagger-ui .info .base-url a,
+.dark .swagger-ui .info .link {
+    color: var(--primary);
+}
+.dark .swagger-ui .model-box,
+.dark .swagger-ui section.models .model-container {
+    background: var(--muted);
+}
+.dark .swagger-ui .btn {
+    border-color: var(--border);
+}
+.dark .swagger-ui .dialog-ux .backdrop-ux {
+    background: rgb(0 0 0 / 0.6);
+}
+.dark .swagger-ui .dialog-ux .modal-ux-header {
+    border-color: var(--border);
+}
+.dark .swagger-ui .dialog-ux .modal-ux-header .close-modal svg {
+    fill: var(--foreground);
+}
+.dark .swagger-ui .model-title,
+.dark .swagger-ui .json-schema-2020-12__title,
+.dark .swagger-ui span.token-string,
+.dark .swagger-ui span.token-not-formatted {
+    color: var(--foreground);
+}
+.dark .swagger-ui .model .property,
+.dark .swagger-ui .model .external-docs,
+.dark .swagger-ui table.model tr.description,
+.dark .swagger-ui table.model tr.extension,
+.dark .swagger-ui table.headers .header-example {
+    color: var(--muted-foreground);
+}
