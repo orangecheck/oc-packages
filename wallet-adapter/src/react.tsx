@@ -476,7 +476,7 @@ export function OcWalletButton({
                 if (!sig) return;
                 const wid = manual.walletId;
                 try {
-                  await assertSignedBy(message, sig, address);
+                  await assertSignedBy({ address, message, signature: sig });
                 } catch (err) {
                   const e = err instanceof Error ? err : new Error(String(err));
                   onError?.(e, wid);

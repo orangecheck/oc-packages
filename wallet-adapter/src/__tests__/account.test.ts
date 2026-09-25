@@ -16,11 +16,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).window ??= {};
 
-import { assertSignedBy, getSigner, WrongAccountError } from "../sign";
+import { assertSignedBy, getSigner, verifyBip322, WrongAccountError } from "../sign";
 
 const ECPair = ECPairFactory(ecc);
 
-function key(seed: number, type: "p2tr" | "p2wpkh") {
+function key(seed: number, type: "p2tr" | "p2wpkh" | "p2pkh") {
   const pair = ECPair.fromPrivateKey(Buffer.alloc(32, seed));
   return {
     address: Address.convertPubKeyIntoAddress(pair.publicKey, type).mainnet,
@@ -31,6 +31,7 @@ function key(seed: number, type: "p2tr" | "p2wpkh") {
 const PRINCIPAL = key(7, "p2tr");
 const OTHER = key(9, "p2tr");
 const PRINCIPAL_SEGWIT = key(7, "p2wpkh");
+const PRINCIPAL_LEGACY = key(7, "p2pkh");
 const MESSAGE = "67ea21d93ea2cc2d4ac4aa3527f3a9ff082246c7d81b2f4ead070b893e05e25e";
 
 function sign(k: { address: string; wif: string }, m: string): string {
@@ -84,7 +85,7 @@ describe("UniSat", () => {
   it("returns a signature that verifies for the requested address", async () => {
     mockUnisat(PRINCIPAL);
     const sig = await getSigner("unisat", { address: PRINCIPAL.address })(MESSAGE);
-    await expect(assertSignedBy(MESSAGE, sig, PRINCIPAL.address)).resolves.toBeUndefined();
+    await expect(assertSignedBy({ address: PRINCIPAL.address, message: MESSAGE, signature: sig })).resolves.toBeUndefined();
   });
 
   it("refuses before signing when the active account is another address", async () => {
@@ -111,7 +112,7 @@ describe("Leather", () => {
   it("returns a signature that verifies for the requested address", async () => {
     mockLeather(PRINCIPAL, { addresses: [PRINCIPAL_SEGWIT.address, PRINCIPAL.address] });
     const sig = await getSigner("leather", { address: PRINCIPAL.address })(MESSAGE);
-    await expect(assertSignedBy(MESSAGE, sig, PRINCIPAL.address)).resolves.toBeUndefined();
+    await expect(assertSignedBy({ address: PRINCIPAL.address, message: MESSAGE, signature: sig })).resolves.toBeUndefined();
   });
 
   it("refuses before signing when the active account does not hold the address", async () => {
@@ -133,18 +134,74 @@ describe("Leather", () => {
 describe("assertSignedBy", () => {
   it("accepts the same signature hex-encoded", async () => {
     const hex = Buffer.from(sign(PRINCIPAL, MESSAGE), "base64").toString("hex");
-    await expect(assertSignedBy(MESSAGE, hex, PRINCIPAL.address)).resolves.toBeUndefined();
+    await expect(assertSignedBy({ address: PRINCIPAL.address, message: MESSAGE, signature: hex })).resolves.toBeUndefined();
   });
 
   it("refuses a valid signature for a different message", async () => {
     await expect(
-      assertSignedBy(MESSAGE, sign(PRINCIPAL, "other"), PRINCIPAL.address),
+      assertSignedBy({
+        address: PRINCIPAL.address,
+        message: MESSAGE,
+        signature: sign(PRINCIPAL, "other"),
+      }),
     ).rejects.toBeInstanceOf(WrongAccountError);
   });
 
   it("accepts a p2wpkh signature", async () => {
     await expect(
-      assertSignedBy(MESSAGE, sign(PRINCIPAL_SEGWIT, MESSAGE), PRINCIPAL_SEGWIT.address),
+      assertSignedBy({
+        address: PRINCIPAL_SEGWIT.address,
+        message: MESSAGE,
+        signature: sign(PRINCIPAL_SEGWIT, MESSAGE),
+      }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("verifyBip322", () => {
+  const signature = sign(PRINCIPAL, MESSAGE);
+
+  it("verifies a real signature by its address", async () => {
+    await expect(
+      verifyBip322({ address: PRINCIPAL.address, message: MESSAGE, signature }),
+    ).resolves.toBe(true);
+  });
+
+  it("rejects the same values bound to the wrong names", async () => {
+    await expect(
+      verifyBip322({ address: MESSAGE, message: signature, signature: PRINCIPAL.address }),
+    ).resolves.toBe(false);
+    await expect(
+      verifyBip322({ address: PRINCIPAL.address, message: signature, signature: MESSAGE }),
+    ).resolves.toBe(false);
+  });
+
+  it("rejects a signature by another address", async () => {
+    await expect(
+      verifyBip322({ address: OTHER.address, message: MESSAGE, signature }),
+    ).resolves.toBe(false);
+  });
+
+  it("accepts hex and surrounding whitespace", async () => {
+    const hex = Buffer.from(signature, "base64").toString("hex");
+    await expect(
+      verifyBip322({ address: PRINCIPAL.address, message: MESSAGE, signature: ` ${hex}\n` }),
+    ).resolves.toBe(true);
+  });
+
+  it("accepts a legacy signature for a p2pkh address", async () => {
+    await expect(
+      verifyBip322({
+        address: PRINCIPAL_LEGACY.address,
+        message: MESSAGE,
+        signature: sign(PRINCIPAL_LEGACY, MESSAGE),
+      }),
+    ).resolves.toBe(true);
+  });
+
+  it("returns false on malformed input", async () => {
+    await expect(
+      verifyBip322({ address: "not-an-address", message: MESSAGE, signature: "!!" }),
+    ).resolves.toBe(false);
   });
 });

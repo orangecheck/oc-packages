@@ -28,14 +28,18 @@ function hexToBase64(hex: string): string {
 }
 
 /**
- * Throw `WrongAccountError` unless `signature` is a valid BIP-322 (or legacy)
- * signature of `message` by `address`. Every signer runs this before returning.
+ * Whether `signature` is a valid BIP-322 (or legacy BIP-137) signature of
+ * `message` by `address`. Accepts base64 or hex. Never throws.
  */
-export async function assertSignedBy(
-  message: string,
-  signature: string,
-  address: string,
-): Promise<void> {
+export async function verifyBip322({
+  address,
+  message,
+  signature,
+}: {
+  address: string;
+  message: string;
+  signature: string;
+}): Promise<boolean> {
   const { Verifier } = await import("bip322-js");
   const check = (sig: string) => {
     try {
@@ -45,10 +49,20 @@ export async function assertSignedBy(
     }
   };
   const sig = signature.trim();
-  if (check(sig)) return;
-  if (HEX_RE.test(sig) && sig.length % 2 === 0 && check(hexToBase64(sig)))
-    return;
-  throw new WrongAccountError(address);
+  if (check(sig)) return true;
+  return HEX_RE.test(sig) && sig.length % 2 === 0 && check(hexToBase64(sig));
+}
+
+/**
+ * Throw `WrongAccountError` unless `signature` is a valid BIP-322 (or legacy)
+ * signature of `message` by `address`. Every signer runs this before returning.
+ */
+export async function assertSignedBy(args: {
+  address: string;
+  message: string;
+  signature: string;
+}): Promise<void> {
+  if (!(await verifyBip322(args))) throw new WrongAccountError(args.address);
 }
 
 /** Signatures from every supported wallet are either base64 or hex. Anything
@@ -103,7 +117,7 @@ export function getSigner(wallet: WalletId, opts: SignOptions): SignFn {
   // requested address.
   return async (message) => {
     const sig = assertPlausibleSignature(await inner(message));
-    await assertSignedBy(message, sig, opts.address);
+    await assertSignedBy({ address: opts.address, message, signature: sig });
     return sig;
   };
 }

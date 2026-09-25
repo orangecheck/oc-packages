@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-09-25
+
+### Added — `verifyBip322({ address, message, signature })`
+
+One BIP-322 verifier for every consumer, with named arguments. All three
+arguments are strings, so a positional signature cannot be type-checked:
+callers that pass them in a different order compile and then reject every
+valid signature. Named arguments make the binding visible at the call site.
+
+- Accepts base64 or hex, trims surrounding whitespace, and accepts legacy
+  BIP-137 signatures where bip322-js does (P2PKH, P2SH-P2WPKH, P2WPKH).
+- Resolves `false` on any malformed input; never throws.
+
+### Changed
+
+- `assertSignedBy` now takes the same named arguments,
+  `assertSignedBy({ address, message, signature })`, and is built on
+  `verifyBip322`.
+
 ## [0.4.3] — 2026-09-24
 
 ### Fixed — a signer only returns a signature by the requested address
