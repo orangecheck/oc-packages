@@ -190,9 +190,9 @@
   integrity sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==
 
 "@orangecheck/sdk@^1.7.0":
-  version "1.7.0"
-  resolved "https://registry.npmjs.org/@orangecheck/sdk/-/sdk-1.7.0.tgz#6cb893998f9ad66fcd9625b17ac8549ea55f0277"
-  integrity sha512-ks4A3bq5t0CJoUtwgnaZE6x5uaXK8UwrH7D52dK86bVnaDZK0LYSRWwp1w1crH2fqBAVUASzl7W77n2OnYqD+Q==
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.8.0.tgz#235a3988c6b5ce3ff98d3c6d54ea5cbad0b5cbf4"
+  integrity sha512-Fr9qydeEuYl94fjH44BvhPcZmdQaLU1xO/NEXb2SqXmD85pmc+w5ETR+MC2A6MhrWl6jbpZy1WcUTcmd8jvYNw==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"
@@ -1687,9 +1687,9 @@ vitest@^4.1.11:
     why-is-node-running "^2.3.0"
 
 which-typed-array@^1.1.16:
-  version "1.1.22"
-  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.22.tgz#8f3cc78aefb40b437346dd40a1dbfa5d1da43fe9"
-  integrity sha512-fvO4ExWMFsqyhG3AiPAObMuY1lxaqgYcxbc49CNdWDDECOJNgQyvsOWVwbZc+qf3rzRtxojBK+CMEv0Ld5CYpw==
+  version "1.1.24"
+  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.24.tgz#211f5877c29e6213d50e8f2dce4ac9ca2d0008cf"
+  integrity sha512-wk4Mf4pR5mRP7eYuuTBCIQ9d0ud2Fv2jRLQpfgnRjbOxAFHmjKFValgTpitVKzJJS8ajnYQV2Du1SZ8j6b/EUQ==
   dependencies:
     available-typed-arrays "^1.0.7"
     call-bind "^1.0.9"

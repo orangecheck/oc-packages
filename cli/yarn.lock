@@ -197,16 +197,16 @@
     jose "^6.2.2"
 
 "@orangecheck/me-client@^0.27.0":
-  version "0.27.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.27.0.tgz#25c55bb265e0fdd5686dc5b31427455fe2639f63"
-  integrity sha512-XLPXrHv820HAwIlCyfFUD/4hVgNzQbwqBKaZRPziKFLUDgZ+oKm/jFaLPaqXpyPUesw7tmiy/QJfVwVDKXD3XQ==
+  version "0.27.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.27.1.tgz#63b8655365fa206329e0a19ec975caa1bf289d34"
+  integrity sha512-zgtaU0AupgUJ8eQ9gHrJOGN4bAj25Jhb9QCdAEds1sdI0Zdi34PBvPhVXLderQNFRIz3EkY1MFoIL9ds6Ua16A==
   dependencies:
     "@orangecheck/auth-core" "^2.7.0"
 
 "@orangecheck/sdk@^1.7.0":
-  version "1.7.0"
-  resolved "https://registry.npmjs.org/@orangecheck/sdk/-/sdk-1.7.0.tgz#6cb893998f9ad66fcd9625b17ac8549ea55f0277"
-  integrity sha512-ks4A3bq5t0CJoUtwgnaZE6x5uaXK8UwrH7D52dK86bVnaDZK0LYSRWwp1w1crH2fqBAVUASzl7W77n2OnYqD+Q==
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.8.0.tgz#235a3988c6b5ce3ff98d3c6d54ea5cbad0b5cbf4"
+  integrity sha512-Fr9qydeEuYl94fjH44BvhPcZmdQaLU1xO/NEXb2SqXmD85pmc+w5ETR+MC2A6MhrWl6jbpZy1WcUTcmd8jvYNw==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"
@@ -1711,9 +1711,9 @@ vitest@^4.1.11:
     why-is-node-running "^2.3.0"
 
 which-typed-array@^1.1.16:
-  version "1.1.22"
-  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.22.tgz#8f3cc78aefb40b437346dd40a1dbfa5d1da43fe9"
-  integrity sha512-fvO4ExWMFsqyhG3AiPAObMuY1lxaqgYcxbc49CNdWDDECOJNgQyvsOWVwbZc+qf3rzRtxojBK+CMEv0Ld5CYpw==
+  version "1.1.24"
+  resolved "https://registry.yarnpkg.com/which-typed-array/-/which-typed-array-1.1.24.tgz#211f5877c29e6213d50e8f2dce4ac9ca2d0008cf"
+  integrity sha512-wk4Mf4pR5mRP7eYuuTBCIQ9d0ud2Fv2jRLQpfgnRjbOxAFHmjKFValgTpitVKzJJS8ajnYQV2Du1SZ8j6b/EUQ==
   dependencies:
     available-typed-arrays "^1.0.7"
     call-bind "^1.0.9"

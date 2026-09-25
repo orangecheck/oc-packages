@@ -207,9 +207,9 @@
     "@noble/hashes" "^1.8.0"
 
 "@orangecheck/vote-core@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.npmjs.org/@orangecheck/vote-core/-/vote-core-1.4.0.tgz#eebf740692879db59e139f72d79e2c254c838fab"
-  integrity sha512-p2ARxrZdpuy/cWZ5OOzMiTppNYTvLJ1KZFWichuYe4eqFXBz97yuEE381UQvtAMnkeZw6G9MmwK+HFHyT64F7w==
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-1.5.0.tgz#9caa3bde6942d3b235db3caadd603cc3ca7d6abb"
+  integrity sha512-YI9RyUXMT0AfOmKQQdVNADNnQCHwhLt/c96jMoBdxaRuqu/Cq77TfgkcnjOYd22PbaU2oTN8akJt6Kw7YKyZ7g==
   dependencies:
     "@noble/hashes" "^1.5.0"
 
