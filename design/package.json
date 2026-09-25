@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/design",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "description": "OrangeCheck design system — multi-theme tokens, primitives, and family composites for the .ochk.io sub-sites. Tailwind 4 + Next.js Pages Router. Not for third-party integration.",
   "keywords": [
     "orangecheck",
@@ -71,6 +71,7 @@
   ],
   "scripts": {
     "build": "tsup && yarn copy:css",
+    "test": "node scripts/check-a11y-floors.mjs",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",

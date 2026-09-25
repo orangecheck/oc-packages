@@ -7,6 +7,36 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.32.2] — 2026-09-25
+
+### Changed — form fields are 16px on phones, whatever the call site says
+
+iOS Safari zooms the page when a field under 16px takes focus. The primitives
+already used the `text-base md:text-*` ladder, but call sites that passed
+`text-xs` or used a raw `<input>`, `<textarea>` or `<select>` still rendered at
+11–14px on eleven pages across lock, stamp, agent, pledge, attest and vote.
+`styles/theme.css` now sets every text-entry field to 16px below `md`, outside
+any `@layer`, so no utility can undercut it. Desktop sizes are unchanged.
+
+### Changed — footer links are 44px tap targets on phones
+
+`OcFamilyFooter` column links and legal links were 16px tall on phones. Below
+`md` each one is now at least 44px tall, and the column links are at least 44px
+wide. The columns drop their `space-y-2` gap there, so the list is taller
+by padding, not by extra gaps. Desktop density is unchanged.
+
+### Changed — quiet chrome text is full muted tone
+
+Small chrome text was dimmed with `text-muted-foreground/NN`. Muted text sits
+at 5.25:1 or better in every skin and mode, and any opacity under 1 takes some
+skin below WCAG AA's 4.5:1 (ember light at 0.8: 3.54). Every opacity modifier on
+muted text is gone: the `LayoutSubHeader` capability tags (were /55),
+`OcFamilyFooter` legal links (/80), `DashboardShell` tool-row sublabels and
+section labels (/60), and the account menu, logo dropdown, card, modal,
+pagination, stat-grid and section-header labels. Hierarchy now comes from size
+and case. `yarn test` (`scripts/check-a11y-floors.mjs`) fails the build if a
+`text-muted-foreground/NN` or a layered field floor comes back.
+
 ## [0.32.1] — 2026-09-25
 
 ### Changed — the sigil is quieter on phones

@@ -102,6 +102,16 @@
     }
 }
 
+/* iOS Safari zooms into any focused field under 16px. Unlayered on purpose: it
+   outranks every utility, so a `text-xs` override or a raw field cannot re-break it. */
+@media (width < 48rem) {
+    input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='hidden']),
+    textarea,
+    select {
+        font-size: 16px;
+    }
+}
+
 /* Accordion animations */
 @keyframes accordion-down {
     from {

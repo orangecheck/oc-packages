@@ -64,8 +64,9 @@ const GRID: Record<number, string> = {
   5: "md:grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr]",
 };
 
+// min-h-11 on phones is the 44px tap target; md restores the dense desktop list.
 const LINK_CLS =
-  "text-muted-foreground hover:text-foreground font-mono text-xs tracking-wide lowercase transition-colors";
+  "text-muted-foreground hover:text-foreground inline-flex min-h-11 min-w-11 items-center font-mono text-xs tracking-wide lowercase transition-colors md:min-h-0 md:min-w-0";
 
 function FooterLinkItem({ link }: { link: FooterLink }) {
   if (link.external) {
@@ -88,7 +89,7 @@ function FooterColumnView({ column }: { column: FooterColumn }) {
   return (
     <div>
       <div className="label-mono text-primary mb-3">{column.label}</div>
-      <ul className="space-y-2">
+      <ul className="md:space-y-2">
         {column.links.map((link) => (
           <li key={`${column.label}:${link.href}`}>
             <FooterLinkItem link={link} />
@@ -174,7 +175,7 @@ export function OcFamilyFooter({
           <span className="text-muted-foreground">
             {legalCopyright ?? <>© {year} orangecheck · mit + cc-by-4.0</>}
           </span>
-          <div className="text-muted-foreground/80 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 md:gap-y-1">
             {links.map((link) => (
               <a
                 key={link.label}
@@ -182,7 +183,7 @@ export function OcFamilyFooter({
                 {...(link.external
                   ? { target: "_blank", rel: "noreferrer" }
                   : {})}
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground inline-flex min-h-11 items-center transition-colors md:min-h-0"
               >
                 {link.label}
               </a>

@@ -23,7 +23,7 @@ export function Pagination({ page, pageSize, total, onPage, className }: Paginat
     const shown = Math.max(0, Math.min(pageSize, total - start));
     return (
         <div className={'flex items-center justify-between ' + (className ?? 'mt-3')}>
-            <span className="text-muted-foreground/70 font-mono text-[10px]">
+            <span className="text-muted-foreground font-mono text-[10px]">
                 {start + 1}–{start + shown} of {total}
             </span>
             <div className="flex gap-2">

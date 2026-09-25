@@ -334,7 +334,7 @@ function CopyableDid({ did }: { did: string }) {
                     'mt-px shrink-0 transition-colors ' +
                     (copied
                         ? 'text-primary'
-                        : 'text-muted-foreground/50 group-hover/did:text-foreground/80')
+                        : 'text-muted-foreground group-hover/did:text-foreground/80')
                 }
                 aria-hidden
             >
@@ -437,10 +437,10 @@ function PromoteRow({
                 {copied ? (
                     <Check className="text-primary size-3.5" />
                 ) : (
-                    <Copy className="text-muted-foreground/50 size-3.5" />
+                    <Copy className="text-muted-foreground size-3.5" />
                 )}
             </button>
-            <span className="text-muted-foreground/50 w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
+            <span className="text-muted-foreground w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
                 {busy ? <Loader2 className="ml-auto size-3 animate-spin" /> : kindLabel}
             </span>
             <span className="sr-only" aria-live="polite">
@@ -549,7 +549,7 @@ function IdentityPromoteSection({
 
     return (
         <div className="border-border border-b p-1" data-oc-account-menu-section="show-as">
-            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+            <div className="text-muted-foreground px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                 § show as
             </div>
             {options.map((opt) => (
@@ -687,7 +687,7 @@ function MobileMenu({
                 >
                     {links.length > 0 && (
                         <div className="border-b p-1">
-                            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                            <div className="text-muted-foreground px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                                 § navigate
                             </div>
                             {links.map((l) =>
@@ -705,7 +705,7 @@ function MobileMenu({
                                             →
                                         </span>
                                         <span className="flex-1">{l.label}</span>
-                                        <span className="text-muted-foreground/70 text-[10px]" aria-hidden>
+                                        <span className="text-muted-foreground text-[10px]" aria-hidden>
                                             ↗
                                         </span>
                                     </a>
@@ -900,7 +900,7 @@ export function OcAccountMenuView({
                             § signed in · {hostname}
                             {tabPinned ? (
                                 <span
-                                    className="text-muted-foreground/70 normal-case"
+                                    className="text-muted-foreground normal-case"
                                     data-oc-account-menu-tab-pin=""
                                     title="This tab keeps this account even if you switch accounts in another tab"
                                 >
@@ -919,7 +919,7 @@ export function OcAccountMenuView({
                         {account.displayIdentity.kind !== 'did' &&
                         account.displayIdentity.value ? (
                             <div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] tracking-wide">
-                                <span className="text-muted-foreground/50 uppercase">
+                                <span className="text-muted-foreground uppercase">
                                     {IDENTITY_KIND_LABEL[account.displayIdentity.kind]}
                                 </span>
                                 <span className="text-foreground/75">
@@ -928,7 +928,7 @@ export function OcAccountMenuView({
                             </div>
                         ) : null}
                         {displayName ? (
-                            <div className="text-muted-foreground/80 mt-1 font-mono text-[10px] tracking-wide">
+                            <div className="text-muted-foreground mt-1 font-mono text-[10px] tracking-wide">
                                 {displayName}
                             </div>
                         ) : null}
@@ -972,7 +972,7 @@ export function OcAccountMenuView({
                                     <span className="flex-1">{item.label}</span>
                                     {item.external ? (
                                         <span
-                                            className="text-muted-foreground/70 text-[10px]"
+                                            className="text-muted-foreground text-[10px]"
                                             aria-hidden
                                         >
                                             ↗
@@ -1023,7 +1023,7 @@ export function OcAccountMenuView({
                                 </span>
                                 <span className="flex-1">family dashboard</span>
                                 <span
-                                    className="text-muted-foreground/70 text-[10px]"
+                                    className="text-muted-foreground text-[10px]"
                                     aria-hidden
                                 >
                                     ↗
@@ -1131,7 +1131,7 @@ function AccountsSection({
 
     return (
         <div className="border-border border-b p-1" data-oc-account-menu-section="accounts">
-            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+            <div className="text-muted-foreground px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                 § accounts
             </div>
             {roster.map((peer) => (
@@ -1230,7 +1230,7 @@ function SwitchRow({
                 aria-hidden
             />
             <span className="text-foreground/90 min-w-0 flex-1 truncate">{label}</span>
-            <span className="text-muted-foreground/50 w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
+            <span className="text-muted-foreground w-14 shrink-0 text-right text-[9px] tracking-widest uppercase">
                 {busy ? <Loader2 className="ml-auto size-3 animate-spin" /> : kindLabel}
             </span>
         </button>
@@ -1264,7 +1264,7 @@ function PopoverSection({
             className={cn('p-1', bordered && 'border-border border-t', className)}
             data-oc-account-menu-section={label}
         >
-            <div className="text-muted-foreground/60 px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+            <div className="text-muted-foreground px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
                 § {label}
             </div>
             {items.map((item) =>
@@ -1283,7 +1283,7 @@ function PopoverSection({
                             →
                         </span>
                         <span className="flex-1">{item.label}</span>
-                        <span className="text-muted-foreground/70 text-[10px]" aria-hidden>
+                        <span className="text-muted-foreground text-[10px]" aria-hidden>
                             ↗
                         </span>
                     </a>
@@ -1321,17 +1321,17 @@ function BuildFooter({
     const commitUrl = showSha && build.repo ? `https://github.com/${build.repo}/commit/${sha}` : null;
     return (
         <div
-            className="text-muted-foreground/60 border-border border-t px-3 py-2 font-mono text-[9.5px] tracking-widest uppercase"
+            className="text-muted-foreground border-border border-t px-3 py-2 font-mono text-[9.5px] tracking-widest uppercase"
             data-oc-account-menu-build=""
         >
             {hostname}
             {state && state !== 'live' ? (
                 <>
                     {' · '}
-                    <span className="text-muted-foreground/80">{state}</span>
+                    <span className="text-muted-foreground">{state}</span>
                 </>
             ) : null}{' '}
-            <span className="text-muted-foreground/80">
+            <span className="text-muted-foreground">
                 v{build.version}
                 {showSha ? (
                     <>

@@ -115,7 +115,7 @@ function CategoryChip({ category }: { category: FamilyCategory }) {
         category === 'product'
             ? 'border-primary/25 bg-primary/10 text-primary'
             : category === 'protocol'
-              ? 'border-muted-foreground/20 bg-muted/40 text-muted-foreground/85'
+              ? 'border-muted-foreground/20 bg-muted/40 text-muted-foreground'
               : 'border-warning/30 bg-warning/10 text-warning';
     return (
         <span
@@ -142,7 +142,7 @@ function SiteStateBadge({ state }: { state: SiteState }) {
     return (
         <span
             aria-label={`site lifecycle: ${state}`}
-            className="text-muted-foreground/70 ml-1 hidden font-mono text-[9px] font-medium tracking-widest uppercase sm:inline-block"
+            className="text-muted-foreground ml-1 hidden font-mono text-[9px] font-medium tracking-widest uppercase sm:inline-block"
             data-oc-site-state={state}
         >
             {SITE_STATE_LABEL[state]}
@@ -158,7 +158,7 @@ function MenuCategoryChip({ category }: { category: FamilyCategory }) {
         category === 'product'
             ? 'bg-primary/10 text-primary'
             : category === 'protocol'
-              ? 'bg-muted/60 text-muted-foreground/80'
+              ? 'bg-muted/60 text-muted-foreground'
               : 'bg-warning/15 text-warning';
     return (
         <span
@@ -320,7 +320,7 @@ export function OcLogoDropdown({
                     <ChevronDown
                         aria-hidden
                         className={
-                            'text-muted-foreground/70 group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform duration-200 ' +
+                            'text-muted-foreground group-hover:text-foreground/80 h-3.5 w-3.5 shrink-0 transition-transform duration-200 ' +
                             (open ? 'rotate-180' : '')
                         }
                     />
@@ -342,7 +342,7 @@ export function OcLogoDropdown({
                 className={
                     'hover:text-primary group/home -ml-1 hidden items-center gap-1 rounded-sm px-1.5 py-1 font-mono text-[9px] tracking-widest uppercase transition-all duration-200 sm:inline-flex ' +
                     (open
-                        ? 'pointer-events-auto translate-x-0 text-muted-foreground/70 opacity-100 hover:bg-accent/30'
+                        ? 'pointer-events-auto translate-x-0 text-muted-foreground opacity-100 hover:bg-accent/30'
                         : 'pointer-events-none -translate-x-1 opacity-0')
                 }
                 data-oc-logo-dropdown-home-hint=""
@@ -390,7 +390,7 @@ export function OcLogoDropdown({
                                         role="separator"
                                         aria-hidden
                                         className={
-                                            'text-muted-foreground/60 px-4 pt-2.5 pb-1 font-mono text-[9px] font-medium tracking-widest uppercase ' +
+                                            'text-muted-foreground px-4 pt-2.5 pb-1 font-mono text-[9px] font-medium tracking-widest uppercase ' +
                                             (category === 'hub' ? '' : 'border-t mt-1')
                                         }
                                     >

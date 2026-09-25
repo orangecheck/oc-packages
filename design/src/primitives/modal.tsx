@@ -44,7 +44,7 @@ export function Modal({ open, onOpenChange, title, subtitle, children, actions, 
                             <span className="terminal-dot opacity-50" aria-hidden />
                             <DialogPrimitive.Title className="ml-2 truncate [flex-shrink:1]">{title}</DialogPrimitive.Title>
                             {subtitle && (
-                                <span className="text-muted-foreground/70 ml-1 min-w-0 truncate text-[10px] normal-case tracking-normal [flex-shrink:100]">
+                                <span className="text-muted-foreground ml-1 min-w-0 truncate text-[10px] normal-case tracking-normal [flex-shrink:100]">
                                     · {subtitle}
                                 </span>
                             )}

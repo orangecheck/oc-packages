@@ -80,7 +80,7 @@ export function OcPrimaryNav({
             {link.external ? (
               <span
                 aria-hidden
-                className="text-muted-foreground/60 ml-1 text-[9px]"
+                className="text-muted-foreground ml-1 text-[9px]"
               >
                 ↗
               </span>

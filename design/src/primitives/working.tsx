@@ -43,7 +43,7 @@ export function Working({ text, size = 'md', progress, className }: WorkingProps
             </span>
             <span className="oc-working-text">
                 {text}
-                {progress && <span className="text-muted-foreground/60 ml-1.5">[{progress}]</span>}
+                {progress && <span className="text-muted-foreground ml-1.5">[{progress}]</span>}
             </span>
         </span>
     );

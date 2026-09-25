@@ -47,7 +47,7 @@ export function SectionHeader({
                 )}
             </div>
             {meta && (
-                <span className="text-muted-foreground/70 font-mono text-[10px] tracking-widest uppercase">
+                <span className="text-muted-foreground font-mono text-[10px] tracking-widest uppercase">
                     {meta}
                 </span>
             )}

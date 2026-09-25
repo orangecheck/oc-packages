@@ -247,14 +247,14 @@ function Sidebar({
                     ) : null}
                 </div>
                 {siteLabel ? (
-                    <div className="text-muted-foreground/70 mt-1 font-mono text-[10px] tracking-widest uppercase">
+                    <div className="text-muted-foreground mt-1 font-mono text-[10px] tracking-widest uppercase">
                         {siteLabel}
                     </div>
                 ) : null}
             </div>
 
             <nav className="flex-1 overflow-y-auto px-2 py-3">
-                <div className="text-muted-foreground/60 mb-1 px-3 font-mono text-[10px] tracking-widest uppercase">
+                <div className="text-muted-foreground mb-1 px-3 font-mono text-[10px] tracking-widest uppercase">
                     § tools
                 </div>
                 <ul className="space-y-0.5">
@@ -271,7 +271,7 @@ function Sidebar({
                                     <span
                                         className={
                                             'shrink-0 font-mono text-[11px] ' +
-                                            (isActive ? 'text-primary' : 'text-muted-foreground/70')
+                                            (isActive ? 'text-primary' : 'text-muted-foreground')
                                         }
                                         aria-hidden
                                     >
@@ -281,14 +281,14 @@ function Sidebar({
                                 <span className="flex-1 leading-tight">
                                     <span>{tool.label}</span>
                                     {tool.tagline ? (
-                                        <span className="text-muted-foreground/60 mt-0.5 block font-mono text-[10px] tracking-wide normal-case">
+                                        <span className="text-muted-foreground mt-0.5 block font-mono text-[10px] tracking-wide normal-case">
                                             {tool.tagline}
                                         </span>
                                     ) : null}
                                 </span>
                                 {tool.external ? (
                                     <span
-                                        className="text-muted-foreground/60 text-[10px]"
+                                        className="text-muted-foreground text-[10px]"
                                         aria-hidden
                                     >
                                         ↗
@@ -364,14 +364,14 @@ export function OcDashboardHub({ tools, className }: OcDashboardHubProps) {
                             </span>
                             {tool.external ? (
                                 <span
-                                    className="text-muted-foreground/60 ml-auto text-xs"
+                                    className="text-muted-foreground ml-auto text-xs"
                                     aria-hidden
                                 >
                                     ↗
                                 </span>
                             ) : (
                                 <span
-                                    className="text-muted-foreground/60 ml-auto text-xs"
+                                    className="text-muted-foreground ml-auto text-xs"
                                     aria-hidden
                                 >
                                     →

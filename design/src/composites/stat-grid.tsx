@@ -55,7 +55,7 @@ function Tile({ item }: { item: StatItem }) {
     const tone = item.tone ?? (item.accent ? 'primary' : 'default');
     return (
         <div className="oc-stat-tile bg-background p-5">
-            <div className="text-muted-foreground/80 font-mono text-[10px] tracking-widest uppercase">
+            <div className="text-muted-foreground font-mono text-[10px] tracking-widest uppercase">
                 {item.label}
             </div>
             <div
@@ -64,7 +64,7 @@ function Tile({ item }: { item: StatItem }) {
                 {item.value}
             </div>
             {item.sub && (
-                <div className="text-muted-foreground/70 mt-1 font-mono text-[10px] tracking-widest uppercase">
+                <div className="text-muted-foreground mt-1 font-mono text-[10px] tracking-widest uppercase">
                     {item.sub}
                 </div>
             )}

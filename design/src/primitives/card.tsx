@@ -74,14 +74,14 @@ export function Card({
                 it collapses fully before the title gives up a character. */}
             <span className="ml-2 truncate [flex-shrink:1]">{title}</span>
             {subtitle && (
-              <span className="text-muted-foreground/70 ml-1 min-w-0 truncate text-[10px] tracking-normal normal-case [flex-shrink:100]">
+              <span className="text-muted-foreground ml-1 min-w-0 truncate text-[10px] tracking-normal normal-case [flex-shrink:100]">
                 · {subtitle}
               </span>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {refreshedAt && (
-              <span className="text-muted-foreground/60 hidden text-[10px] tracking-normal normal-case sm:inline">
+              <span className="text-muted-foreground hidden text-[10px] tracking-normal normal-case sm:inline">
                 {refreshedAt}
               </span>
             )}
@@ -92,7 +92,7 @@ export function Card({
                 onClick={() => setExpanded(true)}
                 aria-label={`expand ${title}`}
                 title="expand to fullscreen"
-                className="text-muted-foreground/70 hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
+                className="text-muted-foreground hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
               >
                 <Maximize2 className="size-3" />
               </button>
@@ -110,7 +110,7 @@ export function Card({
           {...(subtitle ? { subtitle } : {})}
           actions={
             refreshedAt ? (
-              <span className="text-muted-foreground/60 hidden text-[10px] tracking-normal normal-case sm:inline">
+              <span className="text-muted-foreground hidden text-[10px] tracking-normal normal-case sm:inline">
                 {refreshedAt}
               </span>
             ) : null

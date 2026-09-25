@@ -36,7 +36,7 @@ const HIDE: Record<NonNullable<LayoutSubHeaderTag['hideBelow']>, string> = {
  *   ● live · mainnet   oc · stamp ················· bip-322 · opentimestamps
  *
  * Left cluster (heartbeat + status + product) is the identity; the right
- * cluster is a quiet, low-contrast capability whisper. Below `sm` the strip
+ * cluster is a quiet capability whisper (full muted tone: any opacity drops it under 4.5:1). Below `sm` the strip
  * collapses to just the heartbeat + product so it never wraps or crowds a
  * phone header — the right cluster and the `status` reappear from `sm` up.
  *
@@ -67,7 +67,7 @@ export function LayoutSubHeader({
                     <span className="text-foreground truncate">{product}</span>
                 </div>
                 {tags.length > 0 && (
-                    <div className="text-muted-foreground/55 hidden shrink-0 items-center gap-x-3 tracking-wider whitespace-nowrap uppercase sm:flex">
+                    <div className="text-muted-foreground hidden shrink-0 items-center gap-x-3 tracking-wider whitespace-nowrap uppercase sm:flex">
                         {tags.map((tag, i) => (
                             <span key={i} className={tag.hideBelow ? HIDE[tag.hideBelow] : undefined}>
                                 {tag.label}

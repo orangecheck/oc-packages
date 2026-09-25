@@ -44,7 +44,7 @@ export function ComparisonTable({ rows, columns, className }: ComparisonTablePro
                                 {row.label}
                             </div>
                             <div className="text-muted-foreground flex items-center gap-2 px-4 py-3.5 sm:px-6">
-                                <X className="text-muted-foreground/70 size-4" />
+                                <X className="text-muted-foreground size-4" />
                                 <span>{row.theirs}</span>
                             </div>
                             <div className="bg-accent/40 border-border/60 flex items-center gap-2 border-l px-4 py-3.5 text-foreground sm:px-6">
