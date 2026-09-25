@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.32.4] — 2026-09-25
+
+### Changed — ember text no longer re-wraps when Hanken Grotesk arrives
+
+Hanken loads with `font-display: swap` and nothing in the stack matched its
+metrics, so pages first laid out in the system face and re-wrapped when Hanken
+landed: me.ochk.io's hero measured a cumulative layout shift of 0.13. `fonts.css`
+now declares `Hanken Grotesk Fallback`, local Arial scaled to Hanken's average
+advance and vertical metrics, and ember's `--oc-font-sans` lists it second. With
+the font held back, the hero paragraph lays out at 610px wide and 88px tall,
+against 605px and 88px once Hanken arrives. The final rendering is unchanged.
+
 ## [0.32.3] — 2026-09-25
 
 ### Added — `styles/swagger.css`, Swagger UI in dark mode

@@ -27,3 +27,17 @@
         U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
         U+2C60-2C7F, U+A720-A7FF;
 }
+/*
+ * Metric-matched stand-in while Hanken loads. Arial scaled so its average
+ * advance and vertical metrics equal Hanken's (Hanken 1000 upm, asc 1000,
+ * desc 303, no gap), so the font swap does not re-wrap the page. Without it the
+ * hero re-flowed on arrival and me.ochk.io scored CLS 0.13.
+ */
+@font-face {
+    font-family: 'Hanken Grotesk Fallback';
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans');
+    size-adjust: 101.5%;
+    ascent-override: 98.53%;
+    descent-override: 29.85%;
+    line-gap-override: 0%;
+}

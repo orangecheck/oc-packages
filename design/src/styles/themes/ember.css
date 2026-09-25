@@ -32,8 +32,8 @@
        single --oc-font-sans). Hanken Grotesk is OFL + variable to 900, so the
        800 hero weight is native. Eyebrows/metadata reuse the already-loaded
        JetBrains Mono — no new mono face. */
-    --oc-font-sans: 'Hanken Grotesk', var(--font-sans-display, 'Inter'), ui-sans-serif,
-        system-ui, sans-serif;
+    --oc-font-sans: 'Hanken Grotesk', 'Hanken Grotesk Fallback', var(--font-sans-display, 'Inter'),
+        ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
             monospace);
     /* The big display face (wordmark, page/section headings, .font-display) is
