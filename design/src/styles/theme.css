@@ -148,8 +148,9 @@
 }
 
 /* A 44px tap target on phones for a control drawn smaller, without moving
-   anything: the hit area grows, the box does not. In components so a call
-   site's `absolute` / `fixed` still wins the position. */
+   anything: the hit area grows, the box does not. It grows leftward from the
+   right edge, so a control at the end of a line cannot widen the page. In
+   components so a call site's `absolute` / `fixed` still wins the position. */
 @layer components {
     @media (width < 48rem) {
         .oc-hit {
@@ -159,10 +160,10 @@
             content: '';
             position: absolute;
             top: 50%;
-            left: 50%;
+            right: 0;
             width: max(100%, 44px);
             height: max(100%, 44px);
-            translate: -50% -50%;
+            translate: 0 -50%;
         }
     }
 }

@@ -59,7 +59,12 @@ export function FeatureCard({
             <div className={cn(horizontal && 'min-w-0')}>
                 <h3 className="text-lg font-semibold">{title}</h3>
                 {children && (
-                    <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                    <p
+                        className={cn(
+                            'mt-1.5 text-sm leading-relaxed',
+                            tone === 'onBrand' ? 'text-brand-foreground' : 'text-muted-foreground'
+                        )}
+                    >
                         {children}
                     </p>
                 )}

@@ -28,8 +28,11 @@ export function BitcoinAddress({
     className,
 }: BitcoinAddressProps) {
     return (
-        <span className={cn('inline-flex items-center gap-1.5 font-mono text-xs', className)}>
-            <span title={address}>{full ? address : shortenAddress(address, head, tail)}</span>
+        <span className={cn('inline-flex max-w-full items-center gap-1.5 font-mono text-xs', className)}>
+            {/* A full address is wider than a phone; let it break rather than push the page sideways. */}
+            <span title={address} className={full ? 'min-w-0 break-all' : undefined}>
+                {full ? address : shortenAddress(address, head, tail)}
+            </span>
             {copyable && <CopyButton value={address} size="sm" title="copy address" />}
         </span>
     );

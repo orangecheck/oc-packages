@@ -2,7 +2,7 @@ import { Check, ChevronDown, CornerDownLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import * as React from 'react';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 
 import { Tooltip } from '../primitives/tooltip';
 import { cn } from '../tokens/cn';
@@ -14,6 +14,7 @@ import {
     type FamilyCategory,
     type SiteState,
 } from './family-properties';
+import { useMenu } from '../tokens/use-menu';
 
 /**
  * `<OcLogoDropdown>` — the logo IS the dropdown.
@@ -263,23 +264,7 @@ export function OcLogoDropdown({
         setOpen((v) => !v);
     }
 
-    // Outside-click + Escape close.
-    useEffect(() => {
-        if (!open) return;
-        function onDoc(e: MouseEvent) {
-            if (!containerRef.current) return;
-            if (!containerRef.current.contains(e.target as Node)) setOpen(false);
-        }
-        function onKey(e: KeyboardEvent) {
-            if (e.key === 'Escape') setOpen(false);
-        }
-        document.addEventListener('pointerdown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onDoc);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, containerRef);
 
     return (
         <div

@@ -17,6 +17,7 @@ import { AppearanceControls } from '../tokens/appearance-menu';
 import { cn } from '../tokens/cn';
 import type { EcosystemSlug } from './ecosystem-switcher';
 import { findFamilyProperty, type SiteState } from './family-properties';
+import { useMenu } from '../tokens/use-menu';
 
 /**
  * `<OcAccountMenu>` — the canonical top-right account affordance for
@@ -645,21 +646,7 @@ function MobileMenu({
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        if (!open) return;
-        const onClick = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setOpen(false);
-        };
-        document.addEventListener('pointerdown', onClick);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onClick);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, ref);
 
     const links = [...(primary ?? []), ...(secondary ?? [])];
     const rowCls =
@@ -785,22 +772,7 @@ export function OcAccountMenuView({
         };
     }, [refresh]);
 
-    // Outside-click + Escape close.
-    useEffect(() => {
-        if (!open) return;
-        const onClick = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-        };
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setOpen(false);
-        };
-        document.addEventListener('pointerdown', onClick);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onClick);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, wrapRef);
 
     const signInTrigger = (
         <a

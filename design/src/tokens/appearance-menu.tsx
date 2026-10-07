@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from './cn';
 import { useOcMotion, useOcSkin } from './provider';
+import { useMenu } from './use-menu';
 
 /**
  * OcAppearanceMenu — the single header control for ALL appearance settings.
@@ -148,21 +149,7 @@ export function OcAppearanceMenu({
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!open) return;
-        function onDown(e: MouseEvent) {
-            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-        }
-        function onKey(e: KeyboardEvent) {
-            if (e.key === 'Escape') setOpen(false);
-        }
-        document.addEventListener('pointerdown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, rootRef);
 
     return (
         <div ref={rootRef} className={cn('relative', className)}>

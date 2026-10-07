@@ -1,7 +1,7 @@
 // check-token-contrast — every text token clears WCAG AA (4.5:1) in every skin × mode.
 //
 // Reads the theme CSS directly, so it gates the code rather than a deploy. Pairs:
-//   - foreground / muted-foreground on background, card and muted
+//   - foreground / muted-foreground on background, card, muted and the terminal strip
 //   - primary and the four status tokens as text on background, card and their
 //     own 12% tint (the pill / callout surface)
 //   - every *-foreground on its fill (buttons, badges, the brand band)
@@ -68,8 +68,11 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.css'))) {
             const r = ratio(fg, bg);
             if (r < MIN) fails.push(`${skin} ${mode}: ${label} ${r.toFixed(2)}:1`);
         };
-        for (const fg of NEUTRAL)
+        for (const fg of NEUTRAL) {
             for (const bg of ['background', 'card', 'muted']) check(t[fg], t[bg], `${fg} on ${bg}`);
+            // .terminal-title strip: foreground at 8% over card
+            if (t.card) check(t[fg], mix(t.foreground, t.card, 0.08), `${fg} on the terminal strip`);
+        }
         for (const fg of COLORED) {
             for (const bg of ['background', 'card']) check(t[fg], t[bg], `${fg} on ${bg}`);
             if (t[fg]) check(t[fg], mix(t[fg], t.background, 0.12), `${fg} on its 12% tint`);

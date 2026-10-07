@@ -7,6 +7,32 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.33.1] — 2026-10-07
+
+### Fixed — what the live Storybook pass on 0.33.0 still found
+
+- **FeatureCard on a band**: body text was `text-muted-foreground` in every tone,
+  1.2–3.1:1 on the band. It now follows the band. IconBadge `onBrand` uses the
+  gated brand pair, so the numbered-step digits measure 4.6:1, up from 3.3:1.
+- **ComparisonTable**: the "ours" header uses `text-accent-foreground` on its
+  peach tint. It was 4.2:1 in ember dark.
+- **orangecheck dark**: muted text on the terminal title strip was 4.47:1. Muted
+  is now lifted a little, and the token gate checks the strip.
+- **BitcoinAddress `full`**: the address breaks instead of widening a phone page.
+  `.oc-hit` grows its hit area leftward, so a control at the end of a line
+  cannot add horizontal scroll.
+- **Header menus have a keyboard model**. These six menus hand-rolled their own
+  dismiss logic:
+  - the appearance menu and the theme picker
+  - the logo dropdown and the ecosystem switcher
+  - the account menu and the mobile account menu
+
+  They now share `useMenu`. Opening moves focus to the first item; arrows and
+  Home/End move between items; Escape closes the menu and returns focus to the
+  trigger.
+- Stories carried the same dimmed text the components shed: the ember showcase,
+  the StatusPill and the sigil band.
+
 ## [0.33.0] — 2026-10-07
 
 ### Changed — every text token clears 4.5:1 in every skin and mode (visible)

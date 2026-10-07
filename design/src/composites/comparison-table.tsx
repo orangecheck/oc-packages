@@ -34,7 +34,7 @@ export function ComparisonTable({ rows, columns, className }: ComparisonTablePro
                         <div className="px-4 py-3.5 font-semibold text-foreground sm:px-6">
                             {cols.theirs}
                         </div>
-                        <div className="bg-accent/60 border-border/60 border-l px-4 py-3.5 font-semibold text-primary sm:px-6">
+                        <div className="bg-accent/60 border-border/60 text-accent-foreground border-l px-4 py-3.5 font-semibold sm:px-6">
                             {cols.ours}
                         </div>
                     </div>

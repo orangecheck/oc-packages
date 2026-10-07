@@ -68,7 +68,7 @@ export const Bordered: Story = {
             <StatusPill variant="bordered" tone="success" label="kept" />
             <StatusPill variant="bordered" tone="destructive" label="broken" />
             <StatusPill variant="bordered" tone="muted" label="expired" />
-            <span className="mx-2 opacity-40">via makeStatusPill →</span>
+            <span className="text-muted-foreground mx-2">via makeStatusPill →</span>
             <PledgeBadge status="kept" />
             <PledgeBadge status="broken" />
         </div>

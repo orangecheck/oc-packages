@@ -18,7 +18,7 @@ const iconBadgeVariants = cva(
                 /* Solid brand tile. */
                 brand: 'bg-primary text-primary-foreground',
                 /* White tile on a brand band, terracotta glyph (numbered steps). */
-                onBrand: 'bg-brand-foreground text-primary',
+                onBrand: 'bg-brand-foreground text-brand',
                 /* Quiet neutral tile. */
                 muted: 'bg-muted text-foreground',
                 /* Crisp white (card-colored) tile with a terracotta glyph and a

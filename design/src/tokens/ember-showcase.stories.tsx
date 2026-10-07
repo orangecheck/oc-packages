@@ -48,7 +48,7 @@ function FauxNav() {
                 </IconBadge>
                 <span className="text-lg font-bold tracking-tight">orangecheck</span>
             </div>
-            <div className="text-primary-foreground/85 hidden items-center gap-7 text-sm font-medium md:flex">
+            <div className="text-brand-foreground hidden items-center gap-7 text-sm font-medium md:flex">
                 <span>How it works</span>
                 <span>For business</span>
                 <span>Sign in</span>
@@ -64,25 +64,25 @@ function HeroArt() {
             {/* dashed diamond scaffold */}
             <div className="oc-dots absolute size-72 rotate-45 rounded-[2.5rem] border border-dashed border-[color-mix(in_oklch,var(--brand-foreground)_28%,transparent)]" />
             {/* dotted check seal + soft glow */}
-            <div className="text-primary-foreground/85 absolute flex size-32 items-center justify-center rounded-full border border-dotted border-[color-mix(in_oklch,var(--brand-foreground)_45%,transparent)] [background:radial-gradient(circle,color-mix(in_oklch,var(--brand-foreground)_16%,transparent),transparent_72%)]">
+            <div className="text-brand-foreground absolute flex size-32 items-center justify-center rounded-full border border-dotted border-[color-mix(in_oklch,var(--brand-foreground)_45%,transparent)] [background:radial-gradient(circle,color-mix(in_oklch,var(--brand-foreground)_16%,transparent),transparent_72%)]">
                 <Check className="size-12" strokeWidth={2.25} />
             </div>
             {/* mono identity list, lower-left */}
-            <div className="text-primary-foreground/75 absolute bottom-8 left-2 font-mono text-sm leading-7">
+            <div className="text-brand-foreground absolute bottom-8 left-2 font-mono text-sm leading-7">
                 <div>
-                    did:oc <span className="text-primary-foreground/45">bc1q…k7x4</span>
+                    did:oc <span className="text-brand-foreground">bc1q…k7x4</span>
                 </div>
                 <div>
-                    google <span className="text-primary-foreground/45">linked</span>
+                    google <span className="text-brand-foreground">linked</span>
                 </div>
                 <div>
-                    email <span className="text-primary-foreground/45">linked</span>
+                    email <span className="text-brand-foreground">linked</span>
                 </div>
                 <div>
-                    bitcoin <span className="text-primary-foreground/45">optional</span>
+                    bitcoin <span className="text-brand-foreground">optional</span>
                 </div>
                 <div>
-                    status <span className="text-primary-foreground/45">verified</span>
+                    status <span className="text-brand-foreground">verified</span>
                 </div>
             </div>
             <div className="absolute right-0 -bottom-3">
@@ -212,9 +212,9 @@ function Page() {
                             lead="Your accounts aren’t really yours."
                             className="font-black md:text-6xl"
                         />
-                        <p className="text-primary-foreground/85 mt-5 max-w-md text-lg leading-relaxed">
+                        <p className="text-brand-foreground mt-5 max-w-md text-lg leading-relaxed">
                             We give you one that is.{' '}
-                            <strong className="text-primary-foreground font-semibold">
+                            <strong className="text-brand-foreground font-semibold">
                                 A single login for every app
                             </strong>{' '}
                             that no company can ban, delete, or take away. Free to create with
@@ -228,7 +228,7 @@ function Page() {
                                 See how it works
                             </Button>
                         </div>
-                        <p className="text-primary-foreground/70 mt-3 text-sm">
+                        <p className="text-brand-foreground mt-3 text-sm">
                             Takes about 30 seconds. Nothing to install.
                         </p>
                         <div className="mt-8 flex max-w-md flex-col gap-3">
@@ -428,7 +428,7 @@ function Page() {
                         muted="Yours for good."
                         className="mx-auto text-balance"
                     />
-                    <p className="text-primary-foreground/85 mx-auto mt-4 max-w-xl text-lg">
+                    <p className="text-brand-foreground mx-auto mt-4 max-w-xl text-lg">
                         Be first to claim yours. We’ll email you the moment it opens, and nothing else.
                     </p>
                     <div className="mt-8 flex justify-center">

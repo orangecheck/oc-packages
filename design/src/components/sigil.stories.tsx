@@ -99,7 +99,7 @@ export const Band: Story = {
                     <h2 className="font-display text-3xl font-bold tracking-tight">
                         one identity. every product.
                     </h2>
-                    <p className="mt-3 opacity-85">
+                    <p className="mt-3">
                         Your Bitcoin address is the account. Sign in once, carry it across the
                         whole family.
                     </p>

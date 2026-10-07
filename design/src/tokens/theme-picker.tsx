@@ -1,10 +1,11 @@
 'use client';
 
 import { Check, Palette } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { cn } from './cn';
 import { useOcSkin } from './provider';
+import { useMenu } from './use-menu';
 
 /**
  * OcThemePicker — the skin selector. Sits beside `ThemeToggle` in the header.
@@ -23,21 +24,7 @@ export function OcThemePicker({ className, triggerClassName, popoverClassName }:
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!open) return;
-        function onDown(e: MouseEvent) {
-            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-        }
-        function onKey(e: KeyboardEvent) {
-            if (e.key === 'Escape') setOpen(false);
-        }
-        document.addEventListener('pointerdown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onDown);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, rootRef);
 
     return (
         <div ref={rootRef} className={cn('relative', className)}>

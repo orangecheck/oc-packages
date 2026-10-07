@@ -1,6 +1,7 @@
 import { Boxes, Check, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useMenu } from '../tokens/use-menu';
 
 /**
  * EcosystemSwitcher — cross-product dropdown for jumping between every
@@ -195,23 +196,7 @@ export function EcosystemSwitcher({
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Outside-click + Escape close.
-    useEffect(() => {
-        if (!open) return;
-        function onDoc(e: MouseEvent) {
-            if (!containerRef.current) return;
-            if (!containerRef.current.contains(e.target as Node)) setOpen(false);
-        }
-        function onKey(e: KeyboardEvent) {
-            if (e.key === 'Escape') setOpen(false);
-        }
-        document.addEventListener('pointerdown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('pointerdown', onDoc);
-            document.removeEventListener('keydown', onKey);
-        };
-    }, [open]);
+    useMenu(open, setOpen, containerRef);
 
     return (
         <div ref={containerRef} className={'relative ' + (className ?? '')}>
