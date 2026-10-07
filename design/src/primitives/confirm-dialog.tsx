@@ -34,6 +34,8 @@ let hostMountCount = 0;
 
 export function confirm(opts: ConfirmOptions): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
+        // A second confirm() cancels the first rather than leaving its caller awaiting forever.
+        pending?.resolve(false);
         pending = { ...opts, resolve };
         if (notifyHost) {
             notifyHost();
@@ -83,7 +85,7 @@ export function ConfirmHost() {
         <Dialog.Root open onOpenChange={(open) => !open && close(false)}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-                <Dialog.Content className="bg-card border-border fixed top-1/2 left-1/2 z-50 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 border shadow-lg outline-none">
+                <Dialog.Content className="bg-card border-border fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto border shadow-lg outline-none">
                     <div className="terminal-title">
                         <span
                             className={

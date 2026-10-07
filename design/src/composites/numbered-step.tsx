@@ -43,7 +43,7 @@ export function NumberedStep({
                 <div
                     className={cn(
                         'mt-1.5 text-sm leading-relaxed',
-                        onBrand ? 'text-brand-foreground/80' : 'text-muted-foreground'
+                        onBrand ? 'text-brand-foreground' : 'text-muted-foreground'
                     )}
                 >
                     {children}

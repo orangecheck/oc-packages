@@ -92,7 +92,7 @@ export function Card({
                 onClick={() => setExpanded(true)}
                 aria-label={`expand ${title}`}
                 title="expand to fullscreen"
-                className="text-muted-foreground hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
+                className="oc-hit text-muted-foreground hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
               >
                 <Maximize2 className="size-3" />
               </button>

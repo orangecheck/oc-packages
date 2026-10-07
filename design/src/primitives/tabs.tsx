@@ -50,7 +50,7 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
     return (
         <TabsPrimitive.Content
             data-slot="tabs-content"
-            className={cn('mt-4 outline-none', className)}
+            className={cn('focus-visible:ring-ring/50 mt-4 rounded-sm outline-none focus-visible:ring-[3px]', className)}
             {...props}
         />
     );

@@ -30,9 +30,9 @@ export function DataRow({ children, meta, action, as, className }: DataRowProps)
                 className
             )}
         >
-            <div className="min-w-0 flex-1">{children}</div>
+            <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">{children}</div>
             {(meta || action) && (
-                <div className="flex shrink-0 items-center gap-3 sm:justify-end">
+                <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
                     {meta && (
                         <span className="text-muted-foreground font-mono text-[11px] tracking-wide">
                             {meta}

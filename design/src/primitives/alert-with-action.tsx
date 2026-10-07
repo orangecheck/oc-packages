@@ -111,7 +111,8 @@ export function AlertWithCountdown({
                 {description}
                 <div className="mt-3 flex items-center gap-2 text-sm">
                     {countdownIcon}
-                    <span>{label}</span>
+                    {/* Ticks every second; the alert must not re-announce each one. */}
+                    <span aria-live="off">{label}</span>
                     {onAction && (
                         <Button
                             size="sm"

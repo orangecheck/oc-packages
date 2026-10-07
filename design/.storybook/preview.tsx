@@ -2,7 +2,7 @@ import type { Decorator, Preview } from '@storybook/react';
 import { useEffect } from 'react';
 
 import './storybook.css';
-import { OC_THEMES } from '../src/tokens/themes';
+import { DEFAULT_OC_THEME, OC_THEMES } from '../src/tokens/themes';
 
 /**
  * Two-axis toolbar: `skin` (data-oc-theme) × `mode` (.dark). Applied to
@@ -23,7 +23,7 @@ const withTheme: Decorator = (Story, context) => {
         const root = document.documentElement;
         if (disabled) {
             root.classList.remove('dark');
-            root.setAttribute('data-oc-theme', 'orangecheck');
+            root.setAttribute('data-oc-theme', DEFAULT_OC_THEME);
         } else {
             root.setAttribute('data-oc-theme', skin);
             root.classList.toggle('dark', mode === 'dark');
@@ -55,11 +55,12 @@ const preview: Preview = {
         controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
         options: {
             storySort: {
-                order: ['Overview', 'Tokens', 'Primitives', 'Composites', 'Patterns'],
+                order: ['Tokens', 'Primitives', 'Composites', 'Patterns'],
             },
         },
     },
-    initialGlobals: { mode: 'light', skin: 'orangecheck' },
+    // Open on what a visitor with no oc_skin cookie sees.
+    initialGlobals: { mode: 'light', skin: DEFAULT_OC_THEME },
     globalTypes: {
         skin: {
             description: 'Theme skin (data-oc-theme)',

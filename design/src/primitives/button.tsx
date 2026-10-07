@@ -13,7 +13,7 @@ const buttonVariants = cva(
             variant: {
                 default: 'bg-primary text-primary-foreground hover:bg-primary/90',
                 destructive:
-                    'bg-destructive hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 text-white',
+                    'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
                 outline:
                     'bg-background hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 border shadow-xs',
                 secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -23,16 +23,17 @@ const buttonVariants = cva(
                 // (e.g. a terracotta hero / footer / a forced-dark block) where
                 // the surface is dark+light-text in either mode. A neutral white
                 // pill + a translucent-white ghost read on any such surface;
-                // hardcoded white is deliberate (cf. destructive's text-white).
+                // hardcoded white is deliberate: the band is dark in both modes.
                 onBrand: 'bg-white text-neutral-900 shadow-sm hover:bg-white/90',
                 onBrandOutline:
                     'border border-white/40 bg-transparent text-white hover:bg-white/10',
             },
             size: {
-                default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-                sm: 'h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5',
-                lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
-                icon: 'size-9',
+                // min-h-11 is the 44px tap-target floor on phones; an `h-*` override still sets desktop.
+                default: 'h-9 px-4 py-2 has-[>svg]:px-3 max-md:min-h-11',
+                sm: 'h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5 max-md:min-h-11',
+                lg: 'h-10 rounded-md px-6 has-[>svg]:px-4 max-md:min-h-11',
+                icon: 'size-9 max-md:min-h-11 max-md:min-w-11',
             },
         },
         defaultVariants: {

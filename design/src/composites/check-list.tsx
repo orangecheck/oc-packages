@@ -24,7 +24,7 @@ export function CheckList({
     className,
 }: CheckListProps) {
     const glyph = tone === 'onBrand' ? 'text-brand-foreground' : 'text-primary';
-    const label = tone === 'onBrand' ? 'text-brand-foreground/90' : 'text-foreground';
+    const label = tone === 'onBrand' ? 'text-brand-foreground' : 'text-foreground';
 
     return (
         <ul

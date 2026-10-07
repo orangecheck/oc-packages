@@ -53,7 +53,7 @@ export function EmailCapture({
                     className={cn(
                         'rounded-full text-base md:text-sm',
                         onBrand &&
-                            '[background:color-mix(in_oklch,white_18%,transparent)] placeholder:text-primary-foreground/60 border-transparent text-primary-foreground'
+                            'border-transparent bg-white text-neutral-900 placeholder:text-neutral-500'
                     )}
                 />
                 <Button type="submit" variant={onBrand ? 'onBrand' : 'default'} className="rounded-full">
@@ -64,7 +64,7 @@ export function EmailCapture({
                 <p
                     className={cn(
                         'mt-3 text-sm',
-                        onBrand ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        onBrand ? 'text-brand-foreground' : 'text-muted-foreground'
                     )}
                 >
                     {note}

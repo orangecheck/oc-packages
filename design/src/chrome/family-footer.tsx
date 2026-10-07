@@ -24,7 +24,11 @@ export interface OcFamilyFooterBrand {
   wordmark: ReactNode;
   /** One-paragraph blurb under the wordmark (may contain links). */
   tagline: ReactNode;
-  /** Optional license / attribution lines under the blurb. */
+  /**
+   * Optional license / attribution lines under the blurb. Links here and in the
+   * tagline get 44px tap targets on phones, and opacity-dimmed muted text is
+   * floored at the full muted tone, so neither can fall under AA.
+   */
   meta?: ReactNode;
 }
 
@@ -154,7 +158,7 @@ export function OcFamilyFooter({
     <footer className={cn("border-t", className)}>
       <div className="container py-10 sm:py-12 md:py-16">
         <div className={cn("grid gap-8 sm:grid-cols-2 sm:gap-10", grid)}>
-          <div>
+          <div className="oc-footer-brand">
             <div className="flex items-center gap-2">
               {brand.mark}
               <span className="font-display text-sm font-bold tracking-tight">

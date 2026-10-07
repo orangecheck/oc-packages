@@ -1,9 +1,11 @@
 // check-a11y-floors — static guards for two floors every family site inherits.
 //
-// 1. No `text-muted-foreground/NN` in shipped source. Muted text is 5.25:1 on
-//    its background in the weakest skin (orangecheck dark); any opacity under
-//    1 pushes some skin × mode under WCAG AA's 4.5:1 for small text (0.9 →
-//    4.33 in ember light). Quiet hierarchy comes from size and case instead.
+// 1. No opacity modifier on a text token that sits near the 4.5:1 floor (muted,
+//    primary, the status tokens, the on-fill foregrounds) in shipped source,
+//    and none under /70 on foreground. check-token-contrast holds the tokens at
+//    4.5:1, so any opacity under 1 pushes some skin × mode below it. Quiet
+//    hierarchy comes from size and case instead. Display-size text that only
+//    needs 3:1 says so with an `a11y-floor: large` comment on the line.
 // 2. theme.css keeps the unlayered 16px floor for form fields under md, or
 //    iOS Safari zooms the viewport whenever a field takes focus.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -21,8 +23,13 @@ function walk(dir) {
             readFileSync(p, 'utf8')
                 .split('\n')
                 .forEach((line, i) => {
-                    if (/(^|[^-\w])text-muted-foreground\/\d+/.test(line)) {
-                        fails.push(`${path.relative(root, p)}:${i + 1} dims muted text with an opacity modifier`);
+                    if (/a11y-floor: large/.test(line)) return;
+                    const near = line.match(
+                        /(?:^|[^-\w])text-(muted-foreground|primary|destructive|success|warning|info|brand-foreground|primary-foreground)\/\d+/
+                    );
+                    const fg = line.match(/(?:^|[^-\w])text-foreground\/(\d+)/);
+                    if (near || (fg && +fg[1] < 70)) {
+                        fails.push(`${path.relative(root, p)}:${i + 1} dims ${near ? near[1] : 'foreground'} text with an opacity modifier`);
                     }
                 });
         }

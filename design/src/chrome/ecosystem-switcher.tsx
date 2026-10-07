@@ -205,10 +205,10 @@ export function EcosystemSwitcher({
         function onKey(e: KeyboardEvent) {
             if (e.key === 'Escape') setOpen(false);
         }
-        document.addEventListener('mousedown', onDoc);
+        document.addEventListener('pointerdown', onDoc);
         document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', onDoc);
+            document.removeEventListener('pointerdown', onDoc);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);

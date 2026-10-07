@@ -273,10 +273,10 @@ export function OcLogoDropdown({
         function onKey(e: KeyboardEvent) {
             if (e.key === 'Escape') setOpen(false);
         }
-        document.addEventListener('mousedown', onDoc);
+        document.addEventListener('pointerdown', onDoc);
         document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', onDoc);
+            document.removeEventListener('pointerdown', onDoc);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
@@ -308,7 +308,7 @@ export function OcLogoDropdown({
                         // focus indicator is guaranteed even if a consumer overrides triggerClassName
                         'focus-visible:ring-primary/60 rounded-sm focus-visible:ring-2 focus-visible:outline-none',
                         triggerClassName ??
-                            'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-[40px] items-center gap-2 rounded-sm px-1.5 py-1 transition-colors ' +
+                            'group hover:bg-accent/30 -mx-1.5 -my-1 flex min-h-11 items-center gap-2 rounded-sm px-1.5 py-1 transition-colors ' +
                                 (open ? 'bg-accent/20' : '')
                     )}
                     data-oc-logo-dropdown-trigger=""
@@ -354,7 +354,7 @@ export function OcLogoDropdown({
                         (open ? 'motion-safe:animate-pulse' : '')
                     }
                 />
-                <span className="text-primary/70 group-hover/home:text-primary">
+                <span className="text-primary">
                     home
                 </span>
             </Link>

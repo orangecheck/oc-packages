@@ -15,11 +15,9 @@
  * specificity via source order; phosphor/lightning/gold via `:root[data-oc-theme]`).
  * A skin must declare the COMPLETE token set in both modes so it fully overrides.
  *
- * --primary vs --brand split is intentional: --brand (oklch 0.635) is the exact
- * sampled band terracotta (decorative full-bleed sections); --primary is one
- * step darker (oklch 0.585) so white-on-primary button labels clear AA-normal
- * (4.59:1) where white-on-band would only be AA-large (3.65:1). Use --brand for
- * the big hero/CTA bands, --primary for interactive surfaces + text accents.
+ * --primary vs --brand: --brand is the full-bleed band, --primary the
+ * interactive shade and text accent. Both carry small white text somewhere, so
+ * both clear 4.5:1 against their label; `yarn test` checks every pair.
  */
 
 :root,
@@ -32,10 +30,8 @@
        single --oc-font-sans). Hanken Grotesk is OFL + variable to 900, so the
        800 hero weight is native. Eyebrows/metadata reuse the already-loaded
        JetBrains Mono — no new mono face. */
-    --oc-font-sans: 'Hanken Grotesk', 'Hanken Grotesk Fallback', var(--font-sans-display, 'Inter'),
-        ui-sans-serif, system-ui, sans-serif;
-    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
-            monospace);
+    --oc-font-sans: 'Hanken Grotesk', 'Hanken Grotesk Fallback', var(--oc-stack-sans);
+    --oc-font-mono: var(--oc-stack-mono);
     /* The big display face (wordmark, page/section headings, .font-display) is
        the warm grotesk under ember — NOT the mono the cypherpunk skins use.
        Eyebrows / small chrome labels stay mono via --oc-font-mono. */
@@ -63,7 +59,7 @@
     /* Interactive terracotta — darkened from the band so white button labels
        AND text-primary eyebrows clear AA-normal (4.5:1) on white. The vivid
        band lives in --brand; this is the accessible interactive shade. */
-    --primary: oklch(0.55 0.162 42);
+    --primary: oklch(0.53 0.162 42);
     --primary-foreground: oklch(0.99 0.005 75);
 
     --secondary: oklch(0.962 0.006 65);
@@ -71,7 +67,7 @@
 
     /* Warm light-gray alt sections. */
     --muted: oklch(0.972 0.005 70);
-    --muted-foreground: oklch(0.52 0.012 70);
+    --muted-foreground: oklch(0.515 0.012 70);
 
     /* Peach — the signature accent surface (icon badges, comparison tint). */
     --accent: oklch(0.91 0.034 62);
@@ -79,28 +75,27 @@
 
     --border: oklch(0.91 0.006 65);
     --input: oklch(0.9 0.006 65);
-    --ring: oklch(0.55 0.162 42);
+    --ring: oklch(0.53 0.162 42);
 
-    --destructive: oklch(0.585 0.205 27);
+    --destructive: oklch(0.53 0.205 27);
     --destructive-foreground: oklch(0.99 0.005 75);
 
-    /* Burnt amber: dark enough to read as TEXT on the warm white card (the old
-       0.8 washed out as a status/stat label) yet light enough that a solid
-       bg-warning chip pairs with DARK text. Amber is intrinsically light, so a
-       mid burnt-amber + dark foreground is the legible compromise for both uses. */
-    --warning: oklch(0.58 0.13 72);
-    --warning-foreground: oklch(0.18 0.04 72);
+    /* Burnt amber, dark enough for 4.5:1 as text. A light amber cannot clear AA
+       both as text on white and under a dark label, so chips take a white label. */
+    --warning: oklch(0.52 0.13 72);
+    --warning-foreground: oklch(0.99 0.005 72);
 
     /* Semantics calmed (lower chroma) so green/blue harmonize with the warm
        palette instead of reading neon-cold, while staying recognizably green/blue. */
-    --info: oklch(0.56 0.11 240);
+    --info: oklch(0.515 0.11 240);
     --info-foreground: oklch(0.99 0.005 75);
 
-    --success: oklch(0.56 0.11 150);
+    --success: oklch(0.505 0.11 150);
     --success-foreground: oklch(0.99 0.005 75);
 
-    /* Decorative band terracotta — the exact sampled #d76433. */
-    --brand: oklch(0.635 0.158 42);
+    /* Band terracotta, one step deeper than the sampled #d76433 so the band's
+       small white copy clears 4.5:1. */
+    --brand: oklch(0.57 0.158 42);
     --brand-foreground: oklch(0.99 0.005 75);
 }
 
@@ -118,11 +113,11 @@
     --popover: oklch(0.235 0.006 55);
     --popover-foreground: oklch(0.97 0.004 70);
 
-    /* Same DEEP terracotta + WHITE label as light mode, so filled primary
-       buttons are consistent across modes (no bright-amber + dark-text drift).
-       White-on-0.55 clears AA (~5:1); text-primary on near-black clears UI (~3:1). */
-    --primary: oklch(0.55 0.162 42);
-    --primary-foreground: oklch(0.99 0.005 75);
+    /* Lifted terracotta + dark label. No single shade gives both a white label
+       and 4.5:1 text-primary on near-black (0.55 was 3.65:1 as text), so dark
+       mode follows the other skins: light fill, dark label. */
+    --primary: oklch(0.64 0.162 42);
+    --primary-foreground: oklch(0.17 0.006 50);
 
     --secondary: oklch(0.27 0.006 55);
     --secondary-foreground: oklch(0.97 0.004 70);
@@ -144,8 +139,8 @@
     /* Brighter than --primary so the focus ring stays visible on near-black. */
     --ring: oklch(0.64 0.16 44);
 
-    --destructive: oklch(0.64 0.19 27);
-    --destructive-foreground: oklch(0.985 0.004 75);
+    --destructive: oklch(0.645 0.19 27);
+    --destructive-foreground: oklch(0.17 0.006 50);
 
     --warning: oklch(0.82 0.15 75);
     --warning-foreground: oklch(0.2 0.03 70);
@@ -156,7 +151,7 @@
     --success: oklch(0.7 0.12 150);
     --success-foreground: oklch(0.16 0.02 150);
 
-    --brand: oklch(0.645 0.158 42);
+    --brand: oklch(0.57 0.158 42);
     --brand-foreground: oklch(0.99 0.005 75);
 
     /* Near-flat warm elevation in dark — separation comes from --border. */

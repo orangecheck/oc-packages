@@ -7,18 +7,15 @@
  * skip-link, brand utilities). Token *values* live in `themes/*.css`.
  *
  * This file expects to be imported into a Tailwind 4 pipeline that has already
- * done `@import 'tailwindcss'` and declared `@custom-variant dark`. It also
- * expects the consumer to define the font vars `--font-sans-display` and
- * `--font-mono-display` (every family site loads these via next/font).
+ * done `@import 'tailwindcss'` and declared `@custom-variant dark`. Inter and
+ * JetBrains Mono come from each site's next/font; Hanken ships in fonts.css.
  */
 
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    /* Typography is theme-controlled: each skin sets --oc-font-sans / --oc-font-mono.
-       The default skin points these at the app's next/font vars
-       (--font-sans-display / --font-mono-display), so nothing changes for the
-       default; alternate skins can swap the typeface entirely. */
+    /* Typography is theme-controlled: each skin sets --oc-font-sans / --oc-font-mono
+       from the stacks in fonts.css. */
     --font-sans: var(--oc-font-sans);
     --font-mono: var(--oc-font-mono);
     --color-ring: var(--ring);
@@ -112,6 +109,18 @@
     }
 }
 
+/* The footer brand block holds site-supplied copy. Unlayered for the same reason:
+   its links reach 44px on phones without moving a line, and muted text dimmed
+   by an opacity modifier stays at the full muted tone (4.5:1 in every skin). */
+@media (width < 48rem) {
+    .oc-footer-brand a {
+        padding-block: max(0px, calc((44px - 1.1em) / 2));
+    }
+}
+.oc-footer-brand [class*='text-muted-foreground/']:not(:hover) {
+    color: var(--muted-foreground);
+}
+
 /* Accordion animations */
 @keyframes accordion-down {
     from {
@@ -136,6 +145,26 @@
 }
 .animate-accordion-up {
     animation: accordion-up 0.2s ease-out;
+}
+
+/* A 44px tap target on phones for a control drawn smaller, without moving
+   anything: the hit area grows, the box does not. In components so a call
+   site's `absolute` / `fixed` still wins the position. */
+@layer components {
+    @media (width < 48rem) {
+        .oc-hit {
+            position: relative;
+        }
+        .oc-hit::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: max(100%, 44px);
+            height: max(100%, 44px);
+            translate: -50% -50%;
+        }
+    }
 }
 
 @layer utilities {

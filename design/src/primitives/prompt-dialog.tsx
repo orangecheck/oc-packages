@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { Pencil } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from './button';
 import { Input } from './input';
@@ -47,6 +47,8 @@ let hostMountCount = 0;
 /** Open a prompt dialog. Resolves to the entered string, or null if cancelled. */
 export function prompt(opts: PromptOptions): Promise<string | null> {
     return new Promise<string | null>((resolve) => {
+        // A second prompt() cancels the first rather than leaving its caller awaiting forever.
+        pending?.resolve(null);
         pending = { ...opts, resolve };
         if (notifyHost) {
             notifyHost();
@@ -62,6 +64,7 @@ export function PromptHost() {
     const [confirmValue, setConfirmValue] = useState('');
     const [error, setError] = useState<string | null>(null);
     const submittingRef = useRef(false);
+    const id = useId();
 
     useEffect(() => {
         hostMountCount += 1;
@@ -123,9 +126,10 @@ export function PromptHost() {
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
                 <Dialog.Content
-                    className="bg-card border-border fixed top-1/2 left-1/2 z-50 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 border shadow-lg outline-none"
+                    className="bg-card border-border fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto border shadow-lg outline-none"
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
+                        // Enter submits from a field only: on "cancel" it must cancel.
+                        if (e.key === 'Enter' && !e.shiftKey && e.target instanceof HTMLInputElement) {
                             e.preventDefault();
                             submit();
                         }
@@ -147,8 +151,12 @@ export function PromptHost() {
                             </Dialog.Description>
                         )}
                         <div>
-                            {state.label && <Label>{state.label}</Label>}
+                            {state.label && <Label htmlFor={`${id}-value`}>{state.label}</Label>}
                             <Input
+                                id={`${id}-value`}
+                                aria-label={state.label ? undefined : state.title}
+                                aria-invalid={error ? true : undefined}
+                                aria-describedby={error ? `${id}-error` : undefined}
                                 autoFocus
                                 type={state.secret ? 'password' : 'text'}
                                 value={value}
@@ -166,8 +174,11 @@ export function PromptHost() {
                         </div>
                         {state.confirmField && (
                             <div>
-                                <Label>confirm</Label>
+                                <Label htmlFor={`${id}-confirm`}>confirm</Label>
                                 <Input
+                                    id={`${id}-confirm`}
+                                    aria-invalid={error ? true : undefined}
+                                    aria-describedby={error ? `${id}-error` : undefined}
                                     type={state.secret ? 'password' : 'text'}
                                     value={confirmValue}
                                     onChange={(e) => {
@@ -181,7 +192,11 @@ export function PromptHost() {
                                 />
                             </div>
                         )}
-                        {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+                        {error && (
+                            <p id={`${id}-error`} role="alert" className="text-destructive font-mono text-xs">
+                                {error}
+                            </p>
+                        )}
                         <div className="flex flex-wrap items-center justify-end gap-2">
                             <Button
                                 variant="outline"

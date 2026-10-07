@@ -13,8 +13,8 @@
     --radius: 0.125rem;
 
     /* Full terminal: monospace everywhere, sans included. */
-    --oc-font-sans: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
-    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    --oc-font-sans: var(--oc-stack-mono);
+    --oc-font-mono: var(--oc-stack-mono);
 
     /* Light — pale green paper, deep green ink */
     --background: oklch(0.985 0.006 150);
@@ -27,7 +27,7 @@
     --popover-foreground: oklch(0.18 0.02 150);
 
     /* Phosphor green is the primary. */
-    --primary: oklch(0.52 0.15 150);
+    --primary: oklch(0.49 0.15 150);
     --primary-foreground: oklch(0.98 0.01 150);
 
     --secondary: oklch(0.96 0.008 150);
@@ -43,19 +43,19 @@
     --input: oklch(0.9 0.012 150);
     --ring: oklch(0.52 0.15 150);
 
-    --destructive: oklch(0.55 0.08 30);
+    --destructive: oklch(0.52 0.08 30);
     --destructive-foreground: oklch(0.98 0 0);
 
-    --warning: oklch(0.65 0.08 75);
-    --warning-foreground: oklch(0.15 0 0);
+    --warning: oklch(0.515 0.08 75);
+    --warning-foreground: oklch(0.99 0.005 75);
 
-    --info: oklch(0.6 0.07 220);
+    --info: oklch(0.505 0.07 220);
     --info-foreground: oklch(0.98 0 0);
 
-    --success: oklch(0.58 0.12 150);
+    --success: oklch(0.495 0.12 150);
     --success-foreground: oklch(0.98 0 0);
 
-    --brand: oklch(0.58 0.16 150);
+    --brand: oklch(0.525 0.16 150);
     --brand-foreground: oklch(0.98 0.01 150);
 }
 
@@ -87,14 +87,14 @@
     --input: oklch(0.26 0.025 150);
     --ring: oklch(0.78 0.18 148);
 
-    --destructive: oklch(0.6 0.1 30);
-    --destructive-foreground: oklch(0.95 0 0);
+    --destructive: oklch(0.605 0.1 30);
+    --destructive-foreground: oklch(0.1 0.012 150);
 
     --warning: oklch(0.7 0.1 75);
     --warning-foreground: oklch(0.12 0 0);
 
     --info: oklch(0.65 0.08 220);
-    --info-foreground: oklch(0.95 0 0);
+    --info-foreground: oklch(0.1 0.012 150);
 
     --success: oklch(0.7 0.14 150);
     --success-foreground: oklch(0.1 0.02 150);

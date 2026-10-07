@@ -16,8 +16,8 @@
     --radius: 0.125rem;
 
     /* Monospace everywhere — a ledger, a balance, sound accounting. */
-    --oc-font-sans: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
-    --oc-font-mono: var(--font-mono-display, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    --oc-font-sans: var(--oc-stack-mono);
+    --oc-font-mono: var(--oc-stack-mono);
 
     /* Light — warm paper, deep gold ink. */
     --background: oklch(0.99 0.008 90);
@@ -30,7 +30,7 @@
     --popover-foreground: oklch(0.18 0.02 80);
 
     /* Deep gold primary. L .52 so white labels clear AA. */
-    --primary: oklch(0.52 0.13 90);
+    --primary: oklch(0.515 0.13 90);
     --primary-foreground: oklch(0.99 0.01 90);
 
     --secondary: oklch(0.96 0.012 90);
@@ -46,16 +46,16 @@
     --input: oklch(0.9 0.015 88);
     --ring: oklch(0.52 0.13 90);
 
-    --destructive: oklch(0.55 0.08 30);
+    --destructive: oklch(0.525 0.08 30);
     --destructive-foreground: oklch(0.98 0 0);
 
-    --warning: oklch(0.62 0.1 70);
-    --warning-foreground: oklch(0.15 0 0);
+    --warning: oklch(0.52 0.1 70);
+    --warning-foreground: oklch(0.99 0.005 70);
 
-    --info: oklch(0.6 0.07 230);
+    --info: oklch(0.51 0.07 230);
     --info-foreground: oklch(0.98 0 0);
 
-    --success: oklch(0.58 0.1 150);
+    --success: oklch(0.505 0.1 150);
     --success-foreground: oklch(0.98 0 0);
 
     /* Bright minted gold. */
@@ -91,14 +91,14 @@
     --input: oklch(0.28 0.02 82);
     --ring: oklch(0.8 0.15 90);
 
-    --destructive: oklch(0.6 0.1 30);
-    --destructive-foreground: oklch(0.95 0 0);
+    --destructive: oklch(0.615 0.1 30);
+    --destructive-foreground: oklch(0.13 0.012 80);
 
     --warning: oklch(0.72 0.11 70);
     --warning-foreground: oklch(0.12 0 0);
 
     --info: oklch(0.66 0.08 230);
-    --info-foreground: oklch(0.95 0 0);
+    --info-foreground: oklch(0.13 0.012 80);
 
     --success: oklch(0.7 0.12 150);
     --success-foreground: oklch(0.13 0.012 80);

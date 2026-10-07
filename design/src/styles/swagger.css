@@ -1,5 +1,5 @@
 /*
- * swagger.css — Swagger UI in the family's dark mode.
+ * swagger.css — Swagger UI in the family's dark mode, with phone-safe fields.
  *
  * swagger-ui.css ships light-only, with body text hard-coded to #3b4151, so on
  * a dark page the explorer reads at ~1.6:1 and the Servers band is a white
@@ -202,4 +202,12 @@
 .dark .swagger-ui table.model tr.extension,
 .dark .swagger-ui table.headers .header-example {
     color: var(--muted-foreground);
+}
+
+/* Swagger UI sets its fields to 12-14px at a specificity that beats theme.css's
+   16px phone floor, so iOS zoomed on every focus. One class more wins here. */
+@media (width < 48rem) {
+    .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
+        font-size: 16px;
+    }
 }

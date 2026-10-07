@@ -26,12 +26,10 @@ export function TwoToneHeading({
     className,
 }: TwoToneHeadingProps) {
     const Tag = as ?? 'h2';
-    const leadColor = tone === 'onBrand' ? 'text-primary-foreground' : 'text-foreground';
-    // Lighter, cleaner muted clause so the two-tone contrast reads (matches the
-    // designer's light-gray second phrase, not a heavy taupe). On a brand band
-    // /60 fell below AA-large (~2.5:1); /75 keeps the two-tone read while staying
-    // legible on terracotta.
-    const mutedColor = tone === 'onBrand' ? 'text-primary-foreground/75' : 'text-foreground/40';
+    const leadColor = tone === 'onBrand' ? 'text-brand-foreground' : 'text-foreground';
+    // The lighter second phrase is display-size only, so it needs AA-large (3:1):
+    // /55 is 3.9:1 at worst on the page, /80 is 3.5:1 on the band. /40 was 2.5:1.
+    const mutedColor = tone === 'onBrand' ? 'text-brand-foreground/80' : 'text-foreground/55'; // a11y-floor: large
     return (
         <Tag
             className={cn(
@@ -75,7 +73,7 @@ export function MarketingHeading({
                 <p
                     className={cn(
                         'label-mono mb-3',
-                        tone === 'onBrand' ? 'text-primary-foreground/80' : 'text-primary',
+                        tone === 'onBrand' ? 'text-brand-foreground' : 'text-primary',
                     )}
                 >
                     {eyebrow}
@@ -92,7 +90,7 @@ export function MarketingHeading({
                 <p
                     className={cn(
                         'mt-4 max-w-2xl text-base sm:text-lg',
-                        tone === 'onBrand' ? 'text-primary-foreground/80' : 'text-muted-foreground',
+                        tone === 'onBrand' ? 'text-brand-foreground' : 'text-muted-foreground',
                         centered && 'mx-auto',
                     )}
                 >

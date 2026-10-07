@@ -24,7 +24,7 @@ export function AccentNote({ lead, children, tone = 'default', className }: Acce
             className={cn(
                 'border-l-2 pl-4 text-sm leading-relaxed',
                 onBrand
-                    ? 'border-primary-foreground/60 text-primary-foreground/80'
+                    ? 'border-brand-foreground/60 text-brand-foreground'
                     : 'border-primary text-muted-foreground',
                 className,
             )}
@@ -33,7 +33,7 @@ export function AccentNote({ lead, children, tone = 'default', className }: Acce
                 <strong
                     className={cn(
                         'mr-1.5 font-semibold',
-                        onBrand ? 'text-primary-foreground' : 'text-foreground',
+                        onBrand ? 'text-brand-foreground' : 'text-foreground',
                     )}
                 >
                     {lead}

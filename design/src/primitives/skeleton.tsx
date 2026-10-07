@@ -6,5 +6,5 @@ export interface SkeletonProps {
 
 /** Inert shimmer placeholder. Pulses subtly while data is loading. */
 export function Skeleton({ className }: SkeletonProps) {
-    return <div className={cn('bg-muted/40 animate-pulse rounded-sm', className)} />;
+    return <div className={cn('bg-foreground/10 animate-pulse rounded-sm', className)} />;
 }

@@ -29,7 +29,7 @@ export function Acknowledgement({ tone = 'default', className }: Acknowledgement
         <p
             className={cn(
                 'mx-auto max-w-[52ch] font-mono text-xs leading-relaxed',
-                onBrand ? 'text-brand-foreground/70' : 'text-muted-foreground',
+                onBrand ? 'text-brand-foreground' : 'text-muted-foreground',
                 className,
             )}
         >

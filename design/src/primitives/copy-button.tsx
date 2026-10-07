@@ -35,23 +35,26 @@ export function CopyButton({
     title,
     onCopied,
 }: CopyButtonProps) {
-    const [copied, setCopied] = useState(false);
+    const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
     const resetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const copy = useCallback(async () => {
+        let next: 'copied' | 'failed' = 'copied';
         try {
             await navigator.clipboard.writeText(value);
-            setCopied(true);
             onCopied?.();
-            if (resetRef.current) clearTimeout(resetRef.current);
-            resetRef.current = setTimeout(() => setCopied(false), 1500);
             if (clearAfter && clearAfter > 0) {
                 setTimeout(() => void wipeIfUnchanged(value), clearAfter * 1000);
             }
         } catch {
-            /* clipboard unavailable — no-op */
+            // Denied or insecure context: say so, so the user knows to select and copy.
+            next = 'failed';
         }
+        setStatus(next);
+        if (resetRef.current) clearTimeout(resetRef.current);
+        resetRef.current = setTimeout(() => setStatus('idle'), next === 'failed' ? 4000 : 1500);
     }, [value, clearAfter, onCopied]);
+    const copied = status === 'copied';
 
     const iconSize = size === 'sm' ? 'size-3' : 'size-3.5';
 
@@ -59,10 +62,10 @@ export function CopyButton({
         <button
             type="button"
             onClick={copy}
-            aria-label={title ?? (copied ? 'copied' : 'copy')}
+            aria-label={label ? undefined : (title ?? 'copy')}
             title={title ?? 'copy'}
             className={cn(
-                'text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                'oc-hit text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                 size === 'sm' ? 'text-[11px]' : 'text-xs',
                 className
             )}
@@ -72,7 +75,12 @@ export function CopyButton({
             ) : (
                 <Copy className={iconSize} aria-hidden />
             )}
-            {label && <span className="font-mono">{copied ? 'copied' : label}</span>}
+            {label && (
+                <span className="font-mono">{copied ? 'copied' : status === 'failed' ? 'copy failed' : label}</span>
+            )}
+            <span className="sr-only" aria-live="polite">
+                {copied ? 'copied' : status === 'failed' ? 'copy failed, select the text to copy it' : ''}
+            </span>
         </button>
     );
 }

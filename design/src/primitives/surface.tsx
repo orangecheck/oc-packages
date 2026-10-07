@@ -16,9 +16,11 @@ const surfaceVariants = cva('rounded-xl transition-colors', {
             brand: 'bg-brand text-brand-foreground',
             /* High-contrast neutral panel (near-black in light, near-white in dark). */
             contrast: 'bg-foreground text-background',
-            /* Translucent lightened tile for cards sitting ON a brand band. */
+            /* A framed tile for cards ON a brand band. Any fill shift costs its text
+               contrast (a white-16% mix measured 2.7:1), so it keeps the band's own
+               4.5:1 and draws the edge in the band's text colour. */
             onBrand:
-                'text-brand-foreground [background:color-mix(in_oklch,white_16%,var(--brand))] [border-color:color-mix(in_oklch,white_24%,transparent)]',
+                'text-brand-foreground bg-transparent [border-color:color-mix(in_oklch,var(--brand-foreground)_32%,transparent)]',
             /* Frame only, transparent fill. */
             outline: 'bg-transparent text-foreground',
         },

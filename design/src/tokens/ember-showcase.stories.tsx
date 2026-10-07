@@ -162,7 +162,7 @@ const PROMISES = [
     { icon: <Search />, title: 'Never store a password', body: 'Nothing to forget, leak, or steal. There simply is no password.' },
     { icon: <LogOut />, title: 'Never lock you in', body: 'Leave whenever you want and take your identity with you.' },
     { icon: <EyeOff />, title: 'Never watch you', body: 'No record of where you sign in. No one sits in the middle.' },
-    { icon: <Lock />, title: 'Never hold your money', body: 'Even if you add Bitcoin, your coins never move. We cannot touch them.' },
+    { icon: <Lock />, title: 'Never move your coins', body: 'Signing in is a signature. Nothing leaves your wallet.' },
     { icon: <Check />, title: 'Never hide how it works', body: 'It is open source, so anyone can check exactly what it does.' },
 ];
 
@@ -184,7 +184,7 @@ const COMPARISON = [
 
 const FAQ = [
     { q: 'Is it free?', a: 'Yes. Creating your account is free, and it always will be.' },
-    { q: 'Do I need to know anything about Bitcoin?', a: 'No. You can use Google or email and never touch Bitcoin.' },
+    { q: 'Do I need to know anything about Bitcoin?', a: 'Not to start. Email signs you in; your Bitcoin address is the identity you keep.' },
     { q: 'What if I lose my phone?', a: 'Your identity lives with you, not the phone. You can recover it.' },
     { q: 'Is it safe?', a: 'It is open source and offline-verifiable. No black box.' },
     { q: 'Who owns my account?', a: 'You do. No company can ban it, delete it, or lock you out.' },

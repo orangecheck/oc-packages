@@ -6,6 +6,8 @@ import { Toaster as Sonner, type ToasterProps } from 'sonner';
 /**
  * Toast host in the house design language. Mount once at the app root, then
  * call `toast()` from `sonner` anywhere. Re-exported here for convenience.
+ * Toasts stay 6s with a close button; pass `{ duration: Infinity }` to an error
+ * the user must act on.
  */
 const Toaster = ({ ...props }: ToasterProps) => {
     const { theme = 'system' } = useTheme();
@@ -13,6 +15,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
     return (
         <Sonner
             theme={theme as ToasterProps['theme']}
+            closeButton
+            duration={6000}
             className="toaster group"
             toastOptions={{
                 classNames: {

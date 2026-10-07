@@ -7,6 +7,111 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.33.0] — 2026-10-07
+
+### Changed — every text token clears 4.5:1 in every skin and mode (visible)
+
+Measured on the live sites, several tokens failed WCAG AA as text:
+
+- ember dark `text-primary` was 3.65:1. It is on every eyebrow and footer
+  column label.
+- The status tokens were 3.1–4.4:1 in most light skins.
+- Filled badge labels went as low as 2.6:1.
+- White on the ember band was 3.5:1.
+
+`scripts/check-token-contrast.mjs` now runs in `yarn test`. It checks the pairs
+that carry text: foreground and muted on background, card and muted; primary
+and the status tokens on background, card and their own 12% tint; and every
+`*-foreground` on its fill. It failed 77 pairs before this release and passes
+all of them now.
+
+To get there:
+
+- **ember dark primary** is a lifted terracotta, `oklch(0.64 0.162 42)`, with a
+  dark label. No shade carries both a white label and 4.5:1 text on near-black,
+  so dark mode now works the way the other four skins already did.
+- **The ember band** (`--brand`) is one step deeper, `oklch(0.57 0.158 42)`, so
+  the small white copy on it reads.
+- **Warning chips** take a white label on a darker amber, in every light skin.
+- **Status colours** in light mode are 0.03–0.1 L darker.
+- **Destructive and info labels** in dark mode are dark.
+
+Composites that put text on the band now use `text-brand-foreground` at full
+strength instead of `text-primary-foreground` at 70–80%. That covers
+MarketingHeading, EmailCapture, AccentNote, Acknowledgement, CheckList and
+NumberedStep. Under ember dark, primary-foreground is now the dark label, which
+would have put dark text on the band.
+
+The Button destructive variant uses the gated `destructive-foreground` pair in
+both modes. It no longer uses `text-white` over a 60% fill.
+
+The a11y-floor guard now rejects opacity modifiers on any near-floor text token,
+not only muted. The only opacity it still allows is on display-size text.
+
+### Changed — text no longer re-wraps when the web fonts arrive
+
+Layout shift on vault (0.20), agent (0.12), pledge /verify (0.13) and vote
+(0.09) was all font swap. Blocking the woff2 files dropped every page to 0.004
+or less. There were two causes:
+
+- **Hanken's fallback had one regular face.** Bold headings were 9% narrower
+  until Hanken arrived. The fallback is now five faces per weight band, each
+  fitted on family copy (regular or bold Arial / Liberation Sans).
+- **Mono fell through to the system monospace.** Those fonts advance 0.6em, but
+  JetBrains Mono advances 0.625em. `OC Mono Fallback` scales the local mono to
+  match.
+
+The skins now share `--oc-stack-sans` / `--oc-stack-mono` from `fonts.css`. The
+`var(--font-*-display)` they used to wrap resolved on `:root`, where no site
+defines it, so those wrappers never did anything.
+
+### Changed — footer brand block: 44px links, AA meta text
+
+Sites pass tagline and meta copy into `OcFamilyFooter`. On phones, links in that
+copy were 13–18px tall. Meta lines dimmed with `text-muted-foreground/60` or
+`/40` measured 1.7–3.6:1 on eleven sites. The brand block is now
+`.oc-footer-brand`, and two unlayered rules cover it. Its links get vertical
+padding up to 44px on phones without moving a line. Opacity-dimmed muted text
+renders at the full muted tone. No site change is needed.
+
+### Changed — 44px tap targets on phones
+
+Below `md`, Button (every size), Input and the Select trigger get `min-h-11`. A
+call site's `h-*` still sets the desktop size. Some controls are drawn small on
+purpose and only their hit area grows, through the new `.oc-hit` class, so
+nothing moves:
+
+- the CopyButton, Dialog, Sheet and Modal closes, and Card expand
+- the account-menu triggers, the appearance menu and the logo dropdown
+
+### Fixed
+
+- `styles/swagger.css`: Swagger's 12–14px fields outranked the 16px phone floor
+  (attest /api-explorer measured 14px). It now restates the floor.
+- ErrorBoundary no longer shows `error.message` to users. The default is
+  "something went wrong" with reload and home. The raw message shows only when
+  `NODE_ENV` is `development`.
+- Dialog, ConfirmHost and PromptHost scroll when taller than the viewport. Sheet
+  scrolls, and top and bottom sheets cap at 85dvh.
+- A second `confirm()` / `prompt()` resolves the first, which used to await
+  forever. PromptHost now:
+  - ties its labels to its fields
+  - sets `aria-invalid` and announces its error
+  - submits on Enter only from a field
+- The Toaster has a close button and a 6s duration.
+- CopyButton says "copy failed" when the clipboard refuses, and announces both
+  outcomes.
+- Pagination clamps a stale page, so it can no longer show "51–50 of 50". It is
+  now a labelled nav.
+- DataRow wraps long hashes. AlertTitle no longer clamps to one line. The
+  countdown in AlertWithCountdown no longer re-announces every second. TabsContent
+  shows a focus ring.
+- Skeleton is `bg-foreground/10`. `bg-muted/40` was invisible on cards.
+- `Surface tone="onBrand"` is a framed tile. The lightened fill put its text at
+  2.7:1.
+- Menus close on `pointerdown`, so a tap outside closes them on iOS.
+- Storybook opens on ember, the family default.
+
 ## [0.32.4] — 2026-09-25
 
 ### Changed — ember text no longer re-wraps when Hanken Grotesk arrives

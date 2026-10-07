@@ -156,10 +156,10 @@ export function OcAppearanceMenu({
         function onKey(e: KeyboardEvent) {
             if (e.key === 'Escape') setOpen(false);
         }
-        document.addEventListener('mousedown', onDown);
+        document.addEventListener('pointerdown', onDown);
         document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('pointerdown', onDown);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
@@ -174,7 +174,7 @@ export function OcAppearanceMenu({
                 title="appearance · mode + theme"
                 onClick={() => setOpen((v) => !v)}
                 className={cn(
-                    'text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    'oc-hit text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     triggerClassName
                 )}
             >

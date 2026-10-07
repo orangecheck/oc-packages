@@ -49,7 +49,7 @@ export function HelpHint({
                     'focus-visible:ring-primary/60 inline-flex shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2',
                     tone === 'subtle'
                         ? 'text-muted-foreground hover:text-foreground/80'
-                        : 'text-primary/70 hover:text-primary',
+                        : 'text-primary hover:text-foreground',
                     className
                 )}
             >

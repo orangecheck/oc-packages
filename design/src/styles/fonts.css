@@ -28,16 +28,93 @@
         U+2C60-2C7F, U+A720-A7FF;
 }
 /*
- * Metric-matched stand-in while Hanken loads. Arial scaled so its average
- * advance and vertical metrics equal Hanken's (Hanken 1000 upm, asc 1000,
- * desc 303, no gap), so the font swap does not re-wrap the page. Without it the
- * hero re-flowed on arrival and me.ochk.io scored CLS 0.13.
+ * Metric-matched stand-ins while the web fonts load, so the swap does not
+ * re-wrap the page (it cost vault, agent, vote and pledge CLS 0.09-0.21 on
+ * phones). Widths are fitted on family copy, per weight: Hanken widens with
+ * weight, and one regular Arial face made bold headings 9% narrower before the
+ * swap. Liberation Sans shares Arial's advances. Overrides are Hanken's
+ * (1000 upm, asc 1000, desc 303) divided by each size-adjust.
  */
 @font-face {
     font-family: 'Hanken Grotesk Fallback';
-    src: local('Arial'), local('ArialMT'), local('Liberation Sans');
-    size-adjust: 101.5%;
-    ascent-override: 98.53%;
-    descent-override: 29.85%;
+    font-weight: 100 450;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans');
+    size-adjust: 97.96%;
+    ascent-override: 102.08%;
+    descent-override: 30.93%;
     line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Hanken Grotesk Fallback';
+    font-weight: 451 550;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans');
+    size-adjust: 103.82%;
+    ascent-override: 96.32%;
+    descent-override: 29.19%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Hanken Grotesk Fallback';
+    font-weight: 551 650;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+    size-adjust: 95.81%;
+    ascent-override: 104.37%;
+    descent-override: 31.62%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Hanken Grotesk Fallback';
+    font-weight: 651 750;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+    size-adjust: 98.71%;
+    ascent-override: 101.31%;
+    descent-override: 30.7%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'Hanken Grotesk Fallback';
+    font-weight: 751 1000;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+    size-adjust: 99.75%;
+    ascent-override: 100.25%;
+    descent-override: 30.38%;
+    line-gap-override: 0%;
+}
+/*
+ * JetBrains Mono advances 0.625em; the system monos advance 0.6em, so text in
+ * the generic fallback came out 4% narrower and re-wrapped on arrival.
+ * next/font's own 'JetBrains Mono Fallback' is local Arial, which a phone
+ * without Arial does not have. Overrides: asc 1020, desc 300.
+ */
+@font-face {
+    font-family: 'OC Mono Fallback';
+    font-weight: 100 550;
+    src: local('Menlo'), local('Menlo-Regular'), local('SF Mono'), local('SFMono-Regular'), local('Liberation Mono'),
+        local('LiberationMono'), local('DejaVu Sans Mono'), local('DejaVuSansMono'), local('Courier New'),
+        local('CourierNewPSMT'), local('Droid Sans Mono'), local('DroidSansMono');
+    size-adjust: 104.17%;
+    ascent-override: 97.92%;
+    descent-override: 28.8%;
+    line-gap-override: 0%;
+}
+@font-face {
+    font-family: 'OC Mono Fallback';
+    font-weight: 551 1000;
+    src: local('Menlo Bold'), local('Menlo-Bold'), local('SF Mono Bold'), local('SFMono-Bold'), local('Liberation Mono Bold'),
+        local('LiberationMono-Bold'), local('DejaVu Sans Mono Bold'), local('DejaVuSansMono-Bold'), local('Courier New Bold'),
+        local('CourierNewPS-BoldMT');
+    size-adjust: 104.17%;
+    ascent-override: 97.92%;
+    descent-override: 28.8%;
+    line-gap-override: 0%;
+}
+
+/*
+ * The stacks every skin composes. They resolve on :root, where a site's
+ * next/font variables are not defined (those sit on the app wrapper), so they
+ * name the families directly; next/font registers both under their real names.
+ */
+:root {
+    --oc-stack-sans: 'Inter', 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+    --oc-stack-mono: 'JetBrains Mono', 'OC Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 }

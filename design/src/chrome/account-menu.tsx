@@ -432,7 +432,7 @@ function PromoteRow({
                 title="Copy"
                 data-oc-account-menu-promote-copy={kind}
                 data-copied={copied ? '' : undefined}
-                className="hover:bg-background/70 focus-visible:ring-ring/60 flex size-6 shrink-0 items-center justify-center rounded transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="oc-hit hover:bg-background/70 focus-visible:ring-ring/60 flex size-6 shrink-0 items-center justify-center rounded transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
                 {copied ? (
                     <Check className="text-primary size-3.5" />
@@ -564,7 +564,7 @@ function IdentityPromoteSection({
                 />
             ))}
             {promoteErr ? (
-                <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
+                <div className="text-destructive px-3 pt-1 pb-2 font-mono text-[10px]">
                     {promoteErr}
                 </div>
             ) : null}
@@ -653,10 +653,10 @@ function MobileMenu({
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
-        document.addEventListener('mousedown', onClick);
+        document.addEventListener('pointerdown', onClick);
         document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', onClick);
+            document.removeEventListener('pointerdown', onClick);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
@@ -673,7 +673,7 @@ function MobileMenu({
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label="menu"
-                className="border-input bg-background hover:bg-accent text-muted-foreground inline-flex size-8 items-center justify-center rounded-md border transition-colors"
+                className="oc-hit border-input bg-background hover:bg-accent text-muted-foreground inline-flex size-8 items-center justify-center rounded-md border transition-colors"
                 data-oc-account-mobile-toggle=""
             >
                 {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
@@ -794,10 +794,10 @@ export function OcAccountMenuView({
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
-        document.addEventListener('mousedown', onClick);
+        document.addEventListener('pointerdown', onClick);
         document.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('mousedown', onClick);
+            document.removeEventListener('pointerdown', onClick);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
@@ -809,7 +809,7 @@ export function OcAccountMenuView({
             data-oc-account-menu-signin=""
             className={
                 triggerClassName ??
-                'border-input bg-background hover:bg-accent inline-flex h-8 items-center justify-center rounded-md border px-3 font-mono text-[11px] font-semibold tracking-widest uppercase transition-colors'
+                'oc-hit border-input bg-background hover:bg-accent inline-flex h-8 items-center justify-center rounded-md border px-3 font-mono text-[11px] font-semibold tracking-widest uppercase transition-colors'
             }
         >
             {signInLabel}
@@ -854,7 +854,7 @@ export function OcAccountMenuView({
                 aria-label={`Signed in as ${account.didOc}. Open account menu.`}
                 className={
                     triggerClassName ??
-                    'border-primary/40 bg-card hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] tracking-wide transition-colors sm:px-3'
+                    'oc-hit border-primary/40 bg-card hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] tracking-wide transition-colors sm:px-3'
                 }
                 data-oc-account-menu-trigger=""
             >
@@ -1188,7 +1188,7 @@ function AccountsSection({
                 </button>
             ) : null}
             {err ? (
-                <div className="text-destructive/80 px-3 pt-1 pb-2 font-mono text-[10px]">
+                <div className="text-destructive px-3 pt-1 pb-2 font-mono text-[10px]">
                     {err}
                 </div>
             ) : null}

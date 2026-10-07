@@ -29,6 +29,7 @@ export function Modal({ open, onOpenChange, title, subtitle, children, actions, 
             <DialogPrimitive.Portal>
                 <DialogPrimitive.Overlay className="bg-background/80 fixed inset-0 z-[100] backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
                 <DialogPrimitive.Content
+                    aria-describedby={undefined}
                     className={cn(
                         'terminal fixed top-[5vh] left-1/2 z-[110] flex max-h-[90vh] -translate-x-1/2 flex-col overflow-hidden rounded-sm border',
                         width === 'wide' ? 'w-[95vw] max-w-screen-2xl' : 'w-[80vw] max-w-3xl',
@@ -53,7 +54,7 @@ export function Modal({ open, onOpenChange, title, subtitle, children, actions, 
                             {actions}
                             <DialogPrimitive.Close
                                 aria-label="close"
-                                className="text-muted-foreground hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
+                                className="oc-hit text-muted-foreground hover:text-foreground inline-flex h-6 w-6 items-center justify-center rounded-sm"
                             >
                                 <X className="size-3.5" />
                             </DialogPrimitive.Close>

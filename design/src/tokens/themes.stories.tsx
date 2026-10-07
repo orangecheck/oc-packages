@@ -85,7 +85,7 @@ export const Picker: Story = {
         <OcThemeProvider>
             <div className="space-y-4">
                 <p className="text-muted-foreground max-w-prose text-sm">
-                    The picker sits beside the light/dark toggle in the header. It writes the{' '}
+                    The picker lives in the header's appearance menu, beside the mode switch. It writes the{' '}
                     <code className="text-primary font-mono">oc_skin</code> cookie at{' '}
                     <code className="text-primary font-mono">Domain=.ochk.io</code> so the choice
                     follows the user across every family site. Click it, then watch the components
