@@ -69,7 +69,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Your identity is a Bitcoin address you prove control of via BIP-322. No email or password is required. You are responsible for the security of the wallet you sign with and of the vault key that encrypts your data.',
+                    text: 'You sign in with your OrangeCheck account: a Bitcoin address you prove via BIP-322, an email one-time code, or Google/GitHub. Your entries are encrypted under a vault key that your vault passphrase (or recovery code) unlocks; signing in does not decrypt anything. You are responsible for keeping that passphrase and recovery code safe.',
                 },
             ],
         },
@@ -244,8 +244,16 @@ const privacy: DocSpec = {
                     kind: 'bullets',
                     items: [
                         {
-                            k: 'identity address',
-                            v: 'the Bitcoin address you sign in with — public on-chain already; no email, no name',
+                            k: 'account id',
+                            v: 'the opaque did:oc of the OrangeCheck account you sign in with; your vault is filed under it',
+                        },
+                        {
+                            k: 'sealed vault key',
+                            v: 'your vault key, encrypted under your passphrase and under your recovery code, so a new device can unlock; OrangeCheck cannot open it without one of them',
+                        },
+                        {
+                            k: 'team email (optional)',
+                            v: 'if you choose to show teammates an email address in a team vault, that address',
                         },
                         {
                             k: 'payment records',
@@ -253,7 +261,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'encrypted blobs',
-                            v: 'opaque ciphertext keyed to your identity address — OrangeCheck cannot decrypt it',
+                            v: 'opaque ciphertext filed under your account id — OrangeCheck cannot decrypt it',
                         },
                         {
                             k: 'per-item metadata',
