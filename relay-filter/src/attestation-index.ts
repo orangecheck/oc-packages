@@ -12,6 +12,8 @@ import {
     verify,
 } from '@orangecheck/sdk';
 
+import { chainUnreachable } from './outage';
+
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002];
 const DEFAULT_REFRESH_MS = 10 * 60_000;
 const WARMUP_MS = 10_000;
@@ -93,6 +95,8 @@ export function parseAttestationEvent(event: {
 export class AttestationIndex {
     private readonly byId = new Map<string, Attestation>();
     private readonly bonds = new Map<string, Bond>();
+    /** Signature verified, but the chain API has not answered yet for this address. */
+    private readonly chainDown = new Set<string>();
     private readonly sockets: WebSocket[] = [];
     private timer: ReturnType<typeof setInterval> | undefined;
     private startedAt = 0;
@@ -151,7 +155,7 @@ export class AttestationIndex {
 
         if (addresses.size === 0) {
             this.lookUp(pubkey);
-            if (!this.synced && Date.now() - this.startedAt < WARMUP_MS) return this.pending(pubkey, opts);
+            if (!this.synced && Date.now() - this.startedAt < WARMUP_MS) return this.pending(pubkey);
             return {
                 action: 'reject',
                 reason: 'no_attestation',
@@ -161,6 +165,7 @@ export class AttestationIndex {
         }
 
         let unverified = false;
+        let unreadable = false;
         let shared = false;
         let best: Bond | undefined;
         for (const address of addresses) {
@@ -170,7 +175,8 @@ export class AttestationIndex {
             }
             const bond = this.bonds.get(address);
             if (!bond) {
-                unverified = true;
+                if (this.chainDown.has(address)) unreadable = true;
+                else unverified = true;
                 continue;
             }
             if (bond.ok && (!best || bond.sats > best.sats)) best = bond;
@@ -181,7 +187,16 @@ export class AttestationIndex {
         if (best && best.sats >= minSats && best.days >= minDays) {
             return { action: 'accept', reason: 'ok', pubkey };
         }
-        if (unverified) return this.pending(pubkey, opts);
+        if (unverified) return this.pending(pubkey);
+        if (unreadable) {
+            if (opts.failOpen) return { action: 'accept', reason: 'fail_open', pubkey };
+            return {
+                action: 'reject',
+                reason: 'lookup_error',
+                message: 'orangecheck: cannot read your bond from the chain right now, try again shortly',
+                pubkey,
+            };
+        }
         if (shared && !best) {
             return {
                 action: 'reject',
@@ -206,8 +221,8 @@ export class AttestationIndex {
         return this.byId.size;
     }
 
-    private pending(pubkey: string, opts: FilterOptions): FilterDecision {
-        if (opts.failOpen) return { action: 'accept', reason: 'fail_open', pubkey };
+    /** Not yet verified. Never fails open: an unchecked signature proves nothing. */
+    private pending(pubkey: string): FilterDecision {
         return {
             action: 'reject',
             reason: 'lookup_error',
@@ -256,6 +271,12 @@ export class AttestationIndex {
                 sig: latest.signature,
                 scheme: latest.scheme,
             });
+            // A chain-API outage is not a verdict: keep the last known bond.
+            if (chainUnreachable(out.codes)) {
+                if (!this.bonds.has(address)) this.chainDown.add(address);
+                return;
+            }
+            this.chainDown.delete(address);
             this.bonds.set(address, {
                 ok: out.ok,
                 sats: out.metrics?.sats_bonded ?? 0,

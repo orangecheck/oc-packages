@@ -146,6 +146,36 @@ describe('lookup error handling — fail-closed default, fail-open opt-in', () =
         expect(decision.action).toBe('accept');
         expect(decision.reason).toBe('fail_open');
     });
+
+    it('treats a verified signature with no chain answer as an outage, not a bad proof', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_ok_bip322', 'bad_request'],
+        } as never);
+        expect(await filterEvent(evt(), {})).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        __clearFilterCachesForTests();
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({
+            action: 'accept',
+            reason: 'fail_open',
+        });
+    });
+
+    it('never fails open for a signature that did not verify', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_invalid'],
+        } as never);
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({
+            action: 'reject',
+            reason: 'invalid_proof',
+        });
+    });
 });
 
 describe('caching', () => {

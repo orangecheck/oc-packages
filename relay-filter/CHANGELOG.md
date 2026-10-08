@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-10-08
+
+### Changed
+
+- **`failOpen` / `OC_FAIL_OPEN` applies only when the verifier is
+  unreachable.** In the strfry index that means the signature verified and
+  no Esplora endpoint answered. A key whose signature has not been checked
+  yet, including during the warm-up after start, is now refused with
+  `lookup_error` whatever the flag says. In `filterEvent`, a verified
+  signature with no chain answer now counts as an outage (`lookup_error`, or
+  `fail_open` with the flag) rather than `invalid_proof`.
+- **A chain-API outage no longer replaces a known bond.** The index keeps the
+  last bond it read until the chain answers again.
+
 ## [0.4.1] — 2026-09-23
 
 ### Fixed

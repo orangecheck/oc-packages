@@ -85,7 +85,7 @@ Configure via environment variables in the Strfry unit file (or wherever Strfry 
 | `OC_ALLOW_KINDS`   | `0,3,10002` | Event kinds that bypass the filter       |
 | `OC_ALLOW_PUBKEYS` | _(none)_    | Comma-separated hex pubkeys that bypass  |
 | `OC_RELAYS`        | SDK default | Discovery relays for lookups             |
-| `OC_FAIL_OPEN`     | `false`     | Allow events through on lookup failure   |
+| `OC_FAIL_OPEN`     | `false`     | Accept a verified signature whose bond the chain API cannot read. Never a signature not yet checked |
 | `OC_REFRESH_MS`    | `600000`    | How often each bond is re-read from the chain. A spent bond keeps passing for at most this long. |
 | `OC_LOG`           | `true`      | Emit one log line per decision on stderr |
 
@@ -179,7 +179,7 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 
 - **Bypass `allowKinds` on purpose.** Kind 0 (profile metadata), kind 3 (contacts), and kind 10002 (relay list) are bootstrap data — users need to publish those before they can create an OC proof. Gating them creates a chicken-and-egg problem. Ephemeral / bootstrap kinds are the only things that bypass by default; everything else (posts, DMs, reactions, zaps) is gated.
 - **Bypass `allowPubkeys`.** The operator's own key should never be filtered.
-- **Fail closed by default.** If the SDK throws (relays unreachable, network down), we reject. `failOpen: true` opts into degraded-mode — useful for non-critical relays.
+- **Fail closed by default.** If the verifier is unreachable, we reject. `failOpen: true` opts into degraded mode, and it covers only that: the lookup throws, or the signature verified and no Esplora endpoint answered. A key whose signature has not been checked yet, including in the first seconds after the plugin starts, is never let through.
 - **One bond, one key.** An address that backs more than one Nostr key admits none of them through that bond (`stake_shared`), as SECURITY.md §3 of the protocol requires. A holder who wants two keys gated uses two addresses.
 - **Only the signed message counts.** Event tags are indexes. A key is admitted only if the attestation's signed `identities:` line binds it, in npub or hex form.
 - **Freshness is bounded, not live.** The index re-reads bonds every `OC_REFRESH_MS`. `filterEvent` caches per pubkey for `cacheTtlMs`. Either way, pick the window your relay can tolerate a spent bond passing for.

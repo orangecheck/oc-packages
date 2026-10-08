@@ -3,6 +3,7 @@ import type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';
 import { check, nostrPubkeyToHex } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
+import { chainUnreachable } from './outage';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
 
@@ -113,6 +114,9 @@ export async function filterEvent(
             minDays: options.minDays,
             ...(options.relays ? { relays: options.relays } : {}),
         });
+
+        // Signature fine, chain API silent: an outage, handled like a throw below.
+        if (chainUnreachable(result.reasons)) throw new Error('chain API unreachable');
 
         if (result.ok) {
             decision = accept('ok', { check: result, pubkey: event.pubkey });

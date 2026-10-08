@@ -20,7 +20,7 @@
  *   OC_MIN_DAYS       — minimum days unspent (default: 0)
  *   OC_ALLOW_KINDS    — comma-separated kinds to bypass (default: "0,3,10002")
  *   OC_ALLOW_PUBKEYS  — comma-separated hex pubkeys to bypass (default: none)
- *   OC_FAIL_OPEN      — "true" to allow events through on lookup failure
+ *   OC_FAIL_OPEN      — "true" to accept a verified signature whose bond the chain API cannot read
  *   OC_RELAYS         — comma-separated Nostr relay URLs (default: SDK defaults)
  *   OC_REFRESH_MS     — how often each bond is re-read from the chain (default: 600000)
  *

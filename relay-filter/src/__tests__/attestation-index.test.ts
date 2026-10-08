@@ -78,11 +78,53 @@ describe('AttestationIndex.decide', () => {
         });
     });
 
-    it('asks the client to retry while the bond is still being read', async () => {
+    it('asks the client to retry while the bond is still being read, even with failOpen', async () => {
+        // The signature has not been checked yet: failing open here admits any forgery.
         vi.mocked(verify).mockReturnValue(new Promise(() => {}));
         index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
         expect(index.decide(ev(HEX_A!)).reason).toBe('lookup_error');
-        expect(index.decide(ev(HEX_A!), { failOpen: true }).action).toBe('accept');
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({
+            action: 'reject',
+            reason: 'lookup_error',
+        });
+    });
+
+    it('fails open only for a verified signature whose bond the chain API cannot read', async () => {
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'bad_request'],
+            network: 'mainnet',
+        } as never);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!))).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({
+            action: 'accept',
+            reason: 'fail_open',
+        });
+    });
+
+    it('never fails open for a signature that did not verify', async () => {
+        vi.mocked(verify).mockResolvedValue({ ok: false, codes: ['sig_invalid'], network: 'mainnet' } as never);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({
+            action: 'reject',
+            reason: 'invalid_proof',
+        });
+    });
+
+    it('keeps the last known bond through a chain-API outage', async () => {
+        bond(500_000);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'bad_request'],
+            network: 'mainnet',
+        } as never);
+        await (index as unknown as { refresh(a: string): Promise<void> }).refresh(ADDR);
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000 }).reason).toBe('ok');
     });
 
     it('rejects below the thresholds', async () => {
@@ -140,10 +182,11 @@ describe('AttestationIndex.decide', () => {
         expect(queryByIdentity).toHaveBeenCalledTimes(4);
     });
 
-    it('treats unknown keys as "not yet" until the backlog has loaded', () => {
+    it('treats unknown keys as "not yet" until the backlog has loaded, and never fails open on it', () => {
         const cold = new AttestationIndex();
         (cold as unknown as { startedAt: number }).startedAt = Date.now();
         expect(cold.decide(ev(STRANGER)).reason).toBe('lookup_error');
+        expect(cold.decide(ev(STRANGER), { failOpen: true }).action).toBe('reject');
     });
 });
 

@@ -41,8 +41,10 @@ export interface FilterOptions {
     cacheMax?: number;
 
     /**
-     * If the OrangeCheck lookup throws (relays unreachable, network down),
-     * let the event through. Default `false` — we fail closed.
+     * Let the event through when the verifier is unreachable: the lookup
+     * throws, or the signature verified but no Esplora endpoint answered.
+     * Never for a signature that has not been checked yet. Default `false`,
+     * we fail closed.
      */
     failOpen?: boolean;
 
