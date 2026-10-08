@@ -70,22 +70,41 @@ describe('looksLikeBitcoinAddress', () => {
 });
 
 describe('OcSignIn · wallet path', () => {
-    function openWalletTab() {
-        stubFetch((url) => {
+    const SIG = 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9kAiBvOvnMEzFhPq';
+
+    function openWalletTab(signin: { status: number; body: unknown }) {
+        const posts: Array<Record<string, unknown>> = [];
+        stubFetch((url, init) => {
             if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
             if (url.includes('/api/challenge'))
                 return { body: { message: 'sign this', nonce: 'n1' } };
-            if (url.endsWith('/api/auth/signin'))
-                return { status: 401, body: { ok: false, reason: 'sig_invalid' } };
+            if (url.endsWith('/api/auth/signin')) {
+                posts.push(JSON.parse(String(init?.body)));
+                return signin;
+            }
             return undefined;
         });
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
         fireEvent.click(screen.getByRole('tab', { name: 'bitcoin wallet' }));
+        return posts;
+    }
+
+    async function pasteSignature(sig: string) {
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /get the message to sign/ }));
+        });
+        expect(screen.getByLabelText('message to sign')).toHaveProperty('value', 'sign this');
+        fireEvent.change(screen.getByLabelText('signature'), { target: { value: sig } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /sign me in/ }));
+        });
     }
 
     it('refuses a typo without fetching a challenge', async () => {
-        openWalletTab();
-        fireEvent.change(screen.getByPlaceholderText(/bc1q/), { target: { value: 'hello' } });
+        openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
+        fireEvent.change(screen.getByLabelText('bitcoin address'), { target: { value: 'hello' } });
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: /→/ }));
         });
@@ -94,22 +113,28 @@ describe('OcSignIn · wallet path', () => {
         expect(fetched.some((c) => String(c[0]).includes('/api/challenge'))).toBe(false);
     });
 
-    it('with no browser wallet, offers the message to sign elsewhere', async () => {
-        openWalletTab();
-        await act(async () => {});
-        fireEvent.change(screen.getByPlaceholderText(/bc1q/), { target: { value: ADDR } });
-        await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /get the message to sign/ }));
-        });
-        expect(screen.getByDisplayValue('sign this')).toBeTruthy();
-        fireEvent.change(screen.getByPlaceholderText('paste the signature'), {
-            target: { value: 'AkcwRAIg' },
-        });
-        await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /sign me in/ }));
-        });
+    it('with no browser wallet, takes a pasted signature and names no scheme', async () => {
+        const posts = openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
+        await pasteSignature(SIG);
+        // No scheme: the verifier only detects a legacy BIP-137 signature
+        // (Electrum, hardware wallets on a 1… address) when none is named.
+        expect(posts).toEqual([
+            {
+                message: 'sign this',
+                signature: SIG,
+                expectedNonce: 'n1',
+                expectedAudience: 'https://ochk.io',
+                expectedPurpose: 'login',
+            },
+        ]);
         expect(screen.getByRole('alert').textContent).toMatch(/doesn't match this address/);
         expect(screen.queryByText(/sig_invalid/)).toBeNull();
+    });
+
+    it('a malformed paste is about the signature, not the address', async () => {
+        openWalletTab({ status: 400, body: { error: 'bad_request' } });
+        await pasteSignature('AkcwRAIg');
+        expect(screen.getByRole('alert').textContent).toMatch(/signature couldn't be read/);
     });
 });
 
@@ -123,13 +148,13 @@ describe('OcSignIn · email path', () => {
             return undefined;
         });
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
+        fireEvent.change(screen.getByLabelText('email'), {
             target: { value: 'a@example.com' },
         });
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: /send one-time code/ }));
         });
-        fireEvent.change(screen.getByPlaceholderText('6 digits'), { target: { value: '123456' } });
+        fireEvent.change(screen.getByLabelText('one-time code'), { target: { value: '123456' } });
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: /verify/ }));
         });
@@ -138,5 +163,23 @@ describe('OcSignIn · email path', () => {
             fireEvent.click(screen.getByRole('button', { name: 'send a new code' }));
         });
         expect(screen.getByText(/Sent a new code to/)).toBeTruthy();
+    });
+});
+
+describe('OcSignIn · network failure', () => {
+    it('says the server was unreachable instead of printing "Failed to fetch"', async () => {
+        globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
+            if (String(url).endsWith('/api/auth/providers')) {
+                return new Response(JSON.stringify({ providers: [] }));
+            }
+            throw new TypeError('Failed to fetch');
+        }) as unknown as typeof fetch;
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByLabelText('email'), { target: { value: 'a@example.com' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /send one-time code/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toMatch(/couldn't reach the server/);
+        expect(screen.queryByText(/Failed to fetch/)).toBeNull();
     });
 });
