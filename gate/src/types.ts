@@ -66,8 +66,10 @@ export interface GateOptions {
     cacheMax?: number;
 
     /**
-     * If the OrangeCheck lookup throws (relays unreachable, etc.), let the
-     * request through. Default `false` — degraded-mode should be explicit.
+     * If the upstream fails (relays throw, or the signature verified but no
+     * Esplora endpoint answered), let the request through. Default `false`:
+     * degraded mode should be explicit. A lookup the gate abandons at its own
+     * `lookupTimeoutMs` is not an outage and is never let through.
      */
     failOpen?: boolean;
 
@@ -75,8 +77,10 @@ export interface GateOptions {
     relays?: string[];
 
     /**
-     * Hard deadline for the upstream lookup. Default 5_000 ms. Beyond this the
-     * gate returns `lookup_error` (fail-closed unless `failOpen` is set).
+     * Hard deadline for the upstream lookup. The default outlasts the SDK's own
+     * worst case (two relay fan-outs plus two Esplora tries), about 19s. Beyond
+     * it the gate returns `lookup_timeout`, which fails closed even with
+     * `failOpen`. Set it lower only if you prefer a fast "no" to a slow "yes".
      */
     lookupTimeoutMs?: number;
 
@@ -121,6 +125,7 @@ export interface GateDecision {
         | 'invalid_proof'
         | 'not_found'
         | 'lookup_error'
+        | 'lookup_timeout'
         | 'fail_open';
     /** Underlying SDK result, present when a lookup happened. */
     check?: CheckResult;

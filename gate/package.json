@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/gate",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Drop-in sybil-resistance middleware for Express, Next.js, Fastify, and any Node HTTP framework. Built on OrangeCheck.",
   "keywords": [
     "orangecheck",

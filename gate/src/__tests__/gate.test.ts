@@ -10,10 +10,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // hitting the network. Scoped per-test via vi.mocked below.
 vi.mock('@orangecheck/sdk', () => ({
     check: vi.fn(),
+    FANOUT_DEADLINE_MS: 4000,
 }));
 import { check } from '@orangecheck/sdk';
 
-import { assertOc } from '../core';
+import { assertOc, DEFAULT_LOOKUP_TIMEOUT_MS } from '../core';
 import type { GateOptions, MinimalReq } from '../types';
 
 function req(partial: Partial<MinimalReq> = {}): MinimalReq {
@@ -89,10 +90,11 @@ describe('lookup timeout', () => {
             lookupTimeoutMs: 50,
         });
         expect(d.ok).toBe(false);
-        expect(d.reason).toBe('lookup_error');
+        expect(d.reason).toBe('lookup_timeout');
     }, 1000);
 
-    it('fails open only when explicitly opted in', async () => {
+    it('never fails open on its own deadline, even with failOpen', async () => {
+        // A lookup the gate abandoned is not evidence of an outage.
         vi.mocked(check).mockImplementation(() => new Promise(() => {}));
         const d = await assertOc(req({ headers: { 'x-oc-address': 'bc1qhang' } }), {
             address: { from: 'header' },
@@ -100,9 +102,79 @@ describe('lookup timeout', () => {
             lookupTimeoutMs: 50,
             failOpen: true,
         });
-        expect(d.ok).toBe(true);
-        expect(d.reason).toBe('fail_open');
+        expect(d.ok).toBe(false);
+        expect(d.reason).toBe('lookup_timeout');
     }, 1000);
+
+    it('waits out a slow chain API by default instead of timing out first', async () => {
+        // One Esplora endpoint timing out (5s) before the second answers.
+        vi.useFakeTimers();
+        vi.mocked(check).mockImplementation(
+            () =>
+                new Promise((r) =>
+                    setTimeout(() => r({ ok: true, sats: 100, days: 30 } as never), 4_000 + 5_000 + 500)
+                )
+        );
+        const pending = assertOc(req({ headers: { 'x-oc-address': 'bc1qslowchain' } }), {
+            address: { from: 'header' },
+            trustUnsafeSources: true,
+            failOpen: true,
+        });
+        await vi.advanceTimersByTimeAsync(4_000 + 5_000 + 500);
+        const d = await pending;
+        vi.useRealTimers();
+        expect(d).toMatchObject({ ok: true, reason: 'ok' });
+        expect(DEFAULT_LOOKUP_TIMEOUT_MS).toBeGreaterThan(2 * 4_000 + 2 * 5_000);
+    });
+});
+
+describe('failOpen', () => {
+    const opts = { address: { from: 'header' }, trustUnsafeSources: true } as const;
+
+    it('lets a request through when the upstream throws, only if opted in', async () => {
+        vi.mocked(check).mockRejectedValue(new Error('relays down'));
+        const closed = await assertOc(req({ headers: { 'x-oc-address': 'bc1qdown' } }), opts);
+        expect(closed).toMatchObject({ ok: false, reason: 'lookup_error' });
+        const open = await assertOc(req({ headers: { 'x-oc-address': 'bc1qdown' } }), {
+            ...opts,
+            failOpen: true,
+        });
+        expect(open).toMatchObject({ ok: true, reason: 'fail_open' });
+    });
+
+    it('treats a verified signature with no chain answer as an outage, not a bad proof', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_ok_bip322', 'bad_request', 'below_min_sats'],
+        } as never);
+        const closed = await assertOc(req({ headers: { 'x-oc-address': 'bc1qnochain' } }), opts);
+        expect(closed).toMatchObject({ ok: false, reason: 'lookup_error' });
+        const open = await assertOc(req({ headers: { 'x-oc-address': 'bc1qnochain' } }), {
+            ...opts,
+            failOpen: true,
+        });
+        expect(open).toMatchObject({ ok: true, reason: 'fail_open' });
+        // Not cached: the next request asks again.
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+    });
+
+    it('never opens for a signature that did not verify', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_invalid'],
+        } as never);
+        const d = await assertOc(req({ headers: { 'x-oc-address': 'bc1qforged' } }), {
+            ...opts,
+            failOpen: true,
+        });
+        expect(d).toMatchObject({ ok: false, reason: 'invalid_proof' });
+    });
 });
 
 describe('cache TTL clamp', () => {

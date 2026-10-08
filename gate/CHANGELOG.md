@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-10-08
+
+### Changed
+
+- **`failOpen` applies to upstream failures only.** It lets a request through
+  when `check()` throws, or when the signature verified but no Esplora endpoint
+  answered (that case was `invalid_proof` before; it is now `lookup_error`, or
+  `fail_open` with the flag). It no longer applies when the gate's own deadline
+  expires. That case has a new reason, `lookup_timeout`, and always fails closed.
+- **The default `lookupTimeoutMs` outlasts the SDK** (about 19s: two relay
+  fan-outs plus two 5s Esplora tries). At 5s, one slow Esplora endpoint was
+  enough to lose the race. The deadline timer is now cleared once the lookup
+  settles.
+
 ## [0.2.1] — 2026-09-24
 
 ### Changed

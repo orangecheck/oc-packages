@@ -192,11 +192,14 @@ interface GateOptions {
 
     cacheMax?: number; // default 1_000 entries
 
-    // Hard deadline on the upstream lookup. Past this, the gate returns
-    // lookup_error (fail-closed unless failOpen is set).
-    lookupTimeoutMs?: number; // default 5_000
+    // Hard deadline on the upstream lookup. The default outlasts the SDK's own
+    // worst case (two relay fan-outs plus two Esplora tries). Past it the gate
+    // returns lookup_timeout, which fails closed even with failOpen.
+    lookupTimeoutMs?: number; // default ~19_000
 
-    // Degrade gracefully when relays are unreachable.
+    // Let requests through when the upstream fails: relays throw, or the
+    // signature verified but no Esplora endpoint answered. Never for a lookup
+    // the gate itself abandoned, and never for a signature that did not verify.
     failOpen?: boolean; // default false — closed by default
 
     // `header` / `query` / `cookie` / `body` sources are caller-supplied

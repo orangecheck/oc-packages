@@ -1,6 +1,7 @@
 import type { GateDecision, GateOptions, MinimalReq, MinimalRes, SubjectSource } from './types';
+import type { CheckResult } from '@orangecheck/sdk';
 
-import { check } from '@orangecheck/sdk';
+import { check, FANOUT_DEADLINE_MS } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
 
@@ -10,7 +11,29 @@ const caches = new WeakMap<GateOptions, TtlLru>();
  * by passing a huge number — the cache isn't a session store. */
 const MAX_CACHE_TTL_MS = 10 * 60_000; // 10 minutes
 const DEFAULT_CACHE_TTL_MS = 60_000;
-const DEFAULT_LOOKUP_TIMEOUT_MS = 5_000;
+
+/**
+ * check() runs up to two relay fan-outs (discovery, then the shared-stake probe
+ * for identities) and then tries two Esplora endpoints at 5s each
+ * (sdk/src/verify.ts). The deadline has to outlast all of that. When it was
+ * 5s, one slow Esplora endpoint was enough to lose the race, and a lost race
+ * read as an outage.
+ */
+const ESPLORA_WORST_MS = 2 * 5_000;
+export const DEFAULT_LOOKUP_TIMEOUT_MS = 2 * FANOUT_DEADLINE_MS + ESPLORA_WORST_MS + 1_000;
+
+/** Our own deadline expired. Never treated as an outage, so never fails open. */
+class LookupTimeout extends Error {}
+
+/** The signature verified but no Esplora endpoint answered: the bond is unknown, not absent. */
+export function chainUnreachable(result: CheckResult): boolean {
+    const reasons = result.reasons ?? [];
+    return (
+        !result.ok &&
+        reasons.includes('bad_request') &&
+        reasons.some((r) => r === 'sig_ok_bip322' || r === 'sig_ok_legacy')
+    );
+}
 
 /** Subject strings > this length are almost certainly garbage — reject at
  * the gate instead of building a 10 KB cache key. */
@@ -189,15 +212,17 @@ export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<Gate
             };
         }
 
-        // Hard deadline. `check()` may call out to a relay/Esplora, and we
-        // do not want the gate to hang a request indefinitely.
+        // Hard deadline, so a hung upstream cannot hang the request.
         const timeoutMs = opts.lookupTimeoutMs ?? DEFAULT_LOOKUP_TIMEOUT_MS;
+        let timer: ReturnType<typeof setTimeout> | undefined;
         const result = await Promise.race([
             check(params),
-            new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('lookup_timeout')), timeoutMs)
-            ),
-        ]);
+            new Promise<never>((_, reject) => {
+                timer = setTimeout(() => reject(new LookupTimeout('lookup_timeout')), timeoutMs);
+            }),
+        ]).finally(() => clearTimeout(timer));
+
+        if (chainUnreachable(result)) throw new Error('chain API unreachable');
 
         let reason: GateDecision['reason'];
         if (result.ok) reason = 'ok';
@@ -216,9 +241,11 @@ export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<Gate
         cache.set(cacheKey, decision);
         return decision;
     } catch (err) {
+        // failOpen covers an upstream that failed, never a lookup we abandoned.
+        const outage = !(err instanceof LookupTimeout);
         const decision: GateDecision = {
-            ok: Boolean(opts.failOpen),
-            reason: opts.failOpen ? 'fail_open' : 'lookup_error',
+            ok: outage && Boolean(opts.failOpen),
+            reason: !outage ? 'lookup_timeout' : opts.failOpen ? 'fail_open' : 'lookup_error',
             subject,
             subjectKind,
         };
