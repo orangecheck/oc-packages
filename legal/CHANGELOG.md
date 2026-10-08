@@ -22,6 +22,11 @@ plainly what was claimed before and what is claimed now.
 - **Was:** "idle accounts with no session activity for 24 months are deleted
   automatically". No such job runs. **Now:** an account stays until you ask
   for it to be deleted.
+- **Vault, was:** "Your identity is a Bitcoin address … no email", and the
+  collected data listed the sign-in address. **Now:** sign-in is any
+  OrangeCheck method; vault files data under the did:oc; the vault key is
+  stored sealed under the passphrase and recovery code (it is escrowed, which
+  is how a new device unlocks); an optional team email is listed.
 
 ## [0.7.0] — 2026-09-18
 
