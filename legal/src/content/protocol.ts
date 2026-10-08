@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'The terms and conditions for using OrangeCheck. Non-custodial service provided as-is. You are responsible for your wallet and private keys.',
     effective: '2025-09-30',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     preamble: [
         {
             kind: 'callout',
@@ -227,7 +227,7 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     preamble: [
         {
             kind: 'callout',
@@ -287,7 +287,34 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'information you provide' },
                 {
                     kind: 'para',
-                    text: '**Bitcoin addresses and signatures** are processed client-side to generate a cryptographic proof; this data is public by design. **Identity bindings** you add are included in the signed message and are public. **Contact information** is collected only if you email us for support, solely to respond. **Sign-in** stores an account row with an opaque `did:oc` identifier and the identities you sign in with: a Bitcoin address (public by design), and an email address if you use an email code, Google or GitHub (encrypted at rest). Each session row records a random id, the source IP, your browser\'s user-agent string, and timestamps; each sign-in and identity change is also logged with IP and user-agent for security. No password is ever stored.',
+                    text: '**Bitcoin addresses and signatures** are processed client-side to generate a cryptographic proof; this data is public by design. **Identity bindings** you add are included in the signed message and are public. **Messages you send us** — through the contact form or by email — reach our inbox through our email provider (Resend) and are kept only as long as we need them to reply.',
+                },
+                { kind: 'subhead', text: 'if you sign in' },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'account',
+                            v: 'an opaque `did:oc` identifier, an optional display name and Nostr npub, and when the account was created and last signed in',
+                        },
+                        {
+                            k: 'how you sign in',
+                            v: 'a Bitcoin address you prove with a signature (stored as is — it is public on-chain anyway); or, for an email code, Google or GitHub, the verified email address — encrypted at rest, plus a one-way hash of it so we can find your account',
+                        },
+                        {
+                            k: 'passkeys',
+                            v: 'for each passkey you register: its public key, a label, the transports it reported, and when it was added and last used',
+                        },
+                        {
+                            k: 'each session',
+                            v: 'a hash of the session token, the IP address and full user-agent string of the device that opened it, and timestamps',
+                        },
+                        {
+                            k: 'sign-in log',
+                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time — kept for security',
+                        },
+                        { k: 'never', v: 'a password, a private key, or a seed phrase' },
+                    ],
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {
@@ -300,8 +327,25 @@ const privacy: DocSpec = {
                 },
                 { kind: 'subhead', text: 'cookies & analytics' },
                 {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'oc_session',
+                            v: 'your sign-in, set by ochk.io for every `*.ochk.io` site: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days',
+                        },
+                        {
+                            k: 'oc_oauth_state',
+                            v: 'only during a Google or GitHub sign-in: HttpOnly; SameSite=Lax; 10 minutes; deleted when the sign-in completes',
+                        },
+                        {
+                            k: 'oc_theme · oc_skin · oc_motion',
+                            v: 'your light/dark, appearance and reduced-motion choices (Domain=.ochk.io); not used to identify you',
+                        },
+                    ],
+                },
+                {
                     kind: 'para',
-                    text: 'Essential cookies are required for the Service to function; a preference cookie stores your theme. We use [Plausible Analytics](https://plausible.io/privacy) — cookie-free, no personal data, aggregate statistics only — alongside our own first-party, cookieless analytics (oc insights): no cookies, no cross-site identity, your IP address is hashed and immediately discarded (never stored), and Do-Not-Track / Global Privacy Control signals are honored. No advertising or tracking cookies.',
+                    text: 'A browser tab may also keep its own copy of a sign-in token in session storage, cleared when the tab closes. We use [Plausible Analytics](https://plausible.io/privacy) — cookie-free, no personal data, aggregate statistics only — alongside our own first-party, cookieless analytics (oc insights): no cookies, no cross-site identity, your IP address is hashed and immediately discarded (never stored), and Do-Not-Track / Global Privacy Control signals are honored. No advertising or tracking cookies.',
                 },
             ],
         },
@@ -323,7 +367,7 @@ const privacy: DocSpec = {
         {
             id: 'retention',
             heading: 'data retention',
-            hint: '90d logs · permanent public artifacts',
+            hint: 'no automatic deletion yet · permanent public artifacts',
             blocks: [
                 {
                     kind: 'bullets',
@@ -333,12 +377,16 @@ const privacy: DocSpec = {
                             v: 'permanent and publicly shareable; data published to Nostr cannot be deleted by OrangeCheck',
                         },
                         {
-                            k: 'technical logs',
-                            v: 'server logs retained 90 days for security and debugging, then auto-deleted',
+                            k: 'request logs',
+                            v: 'held by our hosting provider (Vercel) for its own short retention window; we keep no separate copy',
                         },
                         {
-                            k: 'session rows',
-                            v: 'live up to 30 days (cookie max-age) or until revoked; your account stays until you ask us to delete it',
+                            k: 'sessions',
+                            v: 'deleted when you sign out. A session that simply expires after 30 days is not yet deleted automatically.',
+                        },
+                        {
+                            k: 'account, sign-in identities, passkeys and sign-in log',
+                            v: 'kept until you ask us to delete them at [[PRIVACY_CONTACT]]; there is no automatic deletion yet',
                         },
                         {
                             k: 'support emails',
