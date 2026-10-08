@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.33.3] — 2026-10-08
+
+### Fixed — the dimmed-text floor skipped anything with a responsive size
+
+0.33.2 exempted any element with a variant `:text-` class, so the floor kept
+working for hover and data states. That also caught responsive sizes like
+`sm:text-base`. So the band body copy every BottomCta writes
+(`text-brand-foreground/80 text-sm sm:text-base`) stayed at 3.55:1 on chat,
+lock and cosign. The exemption now names the state variants instead: hover,
+focus, active, `data-[…]` / `aria-*`. Simulated on the live homepages of
+attest, vote, lock, agent, pledge, vault, chat, cosign and stamp at 390, the
+only remaining contrast misses are two attest glyphs dimmed with `opacity-60`.
+
 ## [0.33.2] — 2026-10-08
 
 ### Fixed — font fallbacks fitted to how phones render (visible on slow loads)
