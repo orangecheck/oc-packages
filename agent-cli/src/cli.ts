@@ -79,7 +79,7 @@ program
                     // "OK" never silently means "possibly revoked".
                     skipRevocationCheck: true,
                 });
-                report(r, opts.json, 'action + delegation');
+                report(r, opts.json, 'action + delegation', !opts.skipSig);
                 return;
             }
             if (a.kind === 'agent-revocation') {
@@ -89,7 +89,7 @@ program
                     verifyBip322,
                     skipSignatureVerification: opts.skipSig,
                 });
-                report(r, opts.json, 'revocation + delegation');
+                report(r, opts.json, 'revocation + delegation', !opts.skipSig);
                 return;
             }
             die(opts.json, 'UNKNOWN_PAIR', `unknown second envelope kind: ${(a as AnyEnvelope).kind}`);
@@ -104,7 +104,7 @@ program
                 skipTemporalCheck: opts.skipTemporal,
                 skipRevocationCheck: true, // offline verifier — see the note above
             });
-            report(r, opts.json, 'delegation');
+            report(r, opts.json, 'delegation', !opts.skipSig);
             return;
         }
         if (env.kind === 'agent-action') {
@@ -349,7 +349,8 @@ function canonicalMessageFor(env: AnyEnvelope): string {
 function report(
     result: { ok: true; id: string } | { ok: false; code: string; message: string },
     asJson: boolean,
-    what: string
+    what: string,
+    signatureChecked: boolean
 ): void {
     if (result.ok) {
         // Revocation is NOT part of this verdict: the CLI has no relay. Saying
@@ -362,12 +363,17 @@ function report(
                     ok: true,
                     verified: what,
                     id: result.id,
+                    signature_checked: signatureChecked,
                     revocation_checked: false,
                     note: revNote,
                 }),
             );
         } else {
-            console.log(`OK · ${what} verified`);
+            console.log(
+                signatureChecked
+                    ? `OK · ${what} verified`
+                    : `OK · ${what} well-formed — signature NOT checked (--skip-sig)`,
+            );
             console.log(`  id: ${result.id}`);
             console.log(`  ! ${revNote}`);
         }

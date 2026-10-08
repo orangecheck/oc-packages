@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.2] — 2026-10-08
+
+### Changed
+
+- `oc-agent verify --skip-sig` no longer prints "verified": the line says the
+  envelope is well-formed and its signature was not checked. `--json` output
+  carries `signature_checked`.
+
 ## [0.1.0] — Initial published state
 
 Initial public release. CLI for OC Agent — mint delegations, sign actions, verify, inspect envelopes from the shell.
