@@ -110,9 +110,9 @@ export interface VerifyInput {
      * the broken "look up the digest from the block hash" dance the old adapter
      * tried to do.
      *
-     * The default behavior (anchor hook omitted) is to ACCEPT a confirmed envelope on
-     * shape alone — useful for preview UIs. Callers that attach legal or economic
-     * weight MUST supply this hook.
+     * Without this hook a confirmed proof is reported as `claimed`: the `ots` block is
+     * not covered by the signature, so its block is the envelope's say-so until a
+     * verifier walks the proof (SPEC §6.3). Only a passing hook yields `confirmed`.
      */
     verifyOtsAnchor?: (
         proofB64: string,
@@ -146,7 +146,8 @@ export interface VerifyOk {
     anchor:
         | { status: 'none' }
         | { status: 'pending' }
-        | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: boolean };
+        | { status: 'claimed'; blockHeight: number; blockHash: string; verified: false }
+        | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: true };
 }
 
 export interface VerifyErr {

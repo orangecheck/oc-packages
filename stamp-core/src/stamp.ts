@@ -178,18 +178,19 @@ export async function verify(input: VerifyInput): Promise<VerifyResult> {
         if (h === null || hash === null) {
             return err('E_BAD_ANCHOR', 'confirmed OTS proof missing block_height or block_hash');
         }
-        let verified = false;
         if (input.verifyOtsAnchor) {
+            let verified: boolean;
             try {
                 verified = await input.verifyOtsAnchor(env.ots.proof, h, hash, env.id);
             } catch (e) {
                 return err('E_BAD_ANCHOR', `anchor verifier threw: ${(e as Error).message}`);
             }
             if (!verified) return err('E_BAD_ANCHOR', 'OTS proof did not chain to declared Bitcoin block header');
+            anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified: true };
+        } else {
+            // The ots block is outside the signature: without a walk, the block is a claim.
+            anchor = { status: 'claimed', blockHeight: h, blockHash: hash, verified: false };
         }
-        // If no anchor verifier was supplied, we accept on shape. The result
-        // reports verified: false so callers can decide what to do.
-        anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified };
     }
 
     // 6. Content bytes check (if supplied).

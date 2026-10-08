@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.1.0] — 2026-10-08
+
+### Changed — an unwalked anchor is `claimed`, not `confirmed`
+
+`verify()` without `verifyOtsAnchor` now reports a confirmed `ots` block as
+`{ status: 'claimed', blockHeight, blockHash, verified: false }`. The `ots`
+block is not covered by the signature, so its block is the envelope's say-so
+until a verifier walks the proof (SPEC §6.3). `confirmed` now always means a
+passing `verifyOtsAnchor`, and carries `verified: true`.
+
+Shipped as a minor so `^1` consumers pick it up. Code that read
+`status === 'confirmed'` and then checked the anchor itself should accept
+`claimed` as well.
+
 ## [Unreleased]
 
 - _(no pending changes)_

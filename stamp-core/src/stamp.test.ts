@@ -217,6 +217,29 @@ describe('verify()', () => {
         }
     });
 
+    // The ots block is outside the signature, so its block is a claim until a
+    // verifier walks the proof (SPEC §6.3).
+    it('reports a confirmed proof as claimed when no anchor verifier is supplied', async () => {
+        const env = await freshEnv({
+            ots: {
+                status: 'confirmed',
+                proof: 'xxx',
+                calendars: ['x'],
+                block_height: 1,
+                block_hash: '0'.repeat(64),
+                upgraded_at: '2026-04-24T19:00:00Z',
+            },
+        });
+        const r = await verify({ envelope: env, skipSignatureVerification: true });
+        expect(r.ok).toBe(true);
+        if (!r.ok) return;
+        expect(r.anchor.status).toBe('claimed');
+        if (r.anchor.status === 'claimed') {
+            expect(r.anchor.verified).toBe(false);
+            expect(r.anchor.blockHeight).toBe(1);
+        }
+    });
+
     it('returns E_BAD_ANCHOR when verifyOtsAnchor rejects a confirmed proof', async () => {
         const env = await freshEnv({
             ots: {
