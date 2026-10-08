@@ -53,6 +53,19 @@ def classify_state(
     """
     now_ms = _parse_utc(now)
 
+    # Envelopes about another pledge say nothing about this one, and only the
+    # swearer can abandon (SPEC §5.3). Signatures are the caller's job via
+    # verify_abandonment()/verify_outcome() with the pledge supplied.
+    pledge_id = pledge.get("id")
+    swearer = (pledge.get("swearer") or {}).get("address")
+    if outcome is not None and outcome.get("pledge_id") != pledge_id:
+        outcome = None
+    if abandonment is not None and (
+        abandonment.get("pledge_id") != pledge_id
+        or (abandonment.get("sig") or {}).get("pubkey") != swearer
+    ):
+        abandonment = None
+
     # Abandonment trumps everything — SPEC §5.4 / WHY §H8.
     if abandonment is not None:
         return "broken"
@@ -60,9 +73,8 @@ def classify_state(
     # Contradictory outcome envelopes from authorized resolvers → disputed.
     if outcome is not None and contradictory_outcomes:
         for other in contradictory_outcomes:
-            if (
-                other.get("pledge_id") == outcome.get("pledge_id")
-                and other.get("outcome") != outcome.get("outcome")
+            if other.get("pledge_id") == pledge_id and other.get("outcome") != outcome.get(
+                "outcome"
             ):
                 return "disputed"
 

@@ -221,10 +221,17 @@ def test_verify_expired_delegation():
     assert r.code == "E_DELEGATION_EXPIRED"
 
 
-def test_verify_skips_when_no_lookup_supplied():
-    # Back-compat: agent-delegated envelope verifies at shape + sig layer
-    # without the §7.3 1–5 chain when no lookup is provided.
+def test_verify_refuses_when_no_lookup_supplied():
+    # The agent's signature alone does not show the swearer authorised it.
     r = verify_pledge(_pledge(), skip_signature_verification=True)
+    assert not r.ok
+    assert r.code == "E_DELEGATION_NOT_FOUND"
+
+
+def test_verify_skips_delegation_only_when_told_to():
+    r = verify_pledge(
+        _pledge(), skip_signature_verification=True, skip_delegation_verification=True
+    )
     assert r.ok
 
 

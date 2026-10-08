@@ -118,7 +118,11 @@ def _run_pledge(vec: dict[str, Any]) -> None:
     assert pid == expected["pledge_id"]
     assert pid == expected["envelope"]["id"]
 
-    r = verify_pledge(expected["envelope"], skip_signature_verification=True)
+    r = verify_pledge(
+        expected["envelope"],
+        skip_signature_verification=True,
+        skip_delegation_verification=True,
+    )
     assert r.ok, f"verify_pledge failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
 
 
@@ -138,7 +142,11 @@ def _run_outcome(vec: dict[str, Any]) -> None:
     assert oid == expected["outcome_id"]
     assert oid == expected["envelope"]["id"]
 
-    r = verify_outcome(expected["envelope"], skip_signature_verification=True)
+    r = verify_outcome(
+        expected["envelope"],
+        skip_signature_verification=True,
+        skip_resolver_authorization=True,
+    )
     assert r.ok, f"verify_outcome failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
 
 
@@ -158,7 +166,9 @@ def _run_abandonment(vec: dict[str, Any]) -> None:
     assert aid == expected["abandonment_id"]
     assert aid == expected["envelope"]["id"]
 
-    r = verify_abandonment(expected["envelope"], skip_signature_verification=True)
+    r = verify_abandonment(
+        expected["envelope"], skip_signature_verification=True, skip_pledge_binding=True
+    )
     assert (
         r.ok
     ), f"verify_abandonment failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"

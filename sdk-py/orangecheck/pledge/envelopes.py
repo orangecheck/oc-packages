@@ -97,6 +97,9 @@ class VerifyOk:
     envelope: dict[str, Any]
     canonical_message: str
     id: str
+    # True for an unsigned deterministic outcome: the envelope is a claim, and
+    # the caller must re-evaluate the mechanism against public state (§11.4).
+    recompute_required: bool = False
 
 
 @dataclass(frozen=True)
@@ -255,6 +258,8 @@ def verify_pledge(
     verify_bip322: Optional[VerifyBip322] = None,
     skip_signature_verification: bool = False,
     delegation_lookup: Optional[Callable[[str, str], Any]] = None,
+    *,
+    skip_delegation_verification: bool = False,
 ) -> VerifyResult:
     """
     Envelope-only verify per SPEC §9.1 steps 1–4.
@@ -266,6 +271,10 @@ def verify_pledge(
 
     ``skip_signature_verification=True`` is the test-vector path (placeholder
     sigs); production callers MUST supply ``verify_bip322``.
+
+    An agent pledge (``via_delegation``) is refused without a
+    ``delegation_lookup`` unless ``skip_delegation_verification=True`` states
+    that the delegation is not being checked.
     """
     if envelope.get("v") != ENVELOPE_VERSION:
         return _err("E_UNSUPPORTED_VERSION", f"pledge envelope v={envelope.get('v')!r} not supported")
@@ -308,12 +317,19 @@ def verify_pledge(
         if not verify_bip322(envelope["id"], sig["value"], verify_key):
             return _err("E_PLEDGE_BAD_SIG", "BIP-322 signature did not verify")
 
-    # SPEC §7.3 steps 1–5 — delegation lookup. When via_delegation is present
-    # AND a delegation_lookup adapter was supplied, run the principal/agent/
-    # scope/expiry chain. Without an adapter the agent path is shape-and-
-    # signature-only; consumers must layer agent-core's verifyDelegation
-    # themselves until they wire this hook. SECURITY scenarios 15+16
-    # document the gap.
+    # SPEC §7.3 steps 1–5. The agent's signature alone does not show the
+    # swearer authorised the pledge, so without a lookup the agent path is
+    # refused unless the caller explicitly opts out.
+    if (
+        envelope.get("via_delegation")
+        and delegation_lookup is None
+        and not skip_delegation_verification
+    ):
+        return _err(
+            "E_DELEGATION_NOT_FOUND",
+            "agent-delegated pledge requires a delegation_lookup, or an explicit "
+            "skip_delegation_verification=True to state that the delegation is not being checked",
+        )
     if envelope.get("via_delegation") and envelope.get("agent_address") and delegation_lookup:
         from .delegation import (
             DelegationLookupResult,
@@ -526,13 +542,36 @@ def verify_outcome(
     envelope: dict[str, Any],
     verify_bip322: Optional[VerifyBip322] = None,
     skip_signature_verification: bool = False,
+    *,
+    pledge: Union[PledgeCanonicalInput, dict[str, Any], None] = None,
+    skip_resolver_authorization: bool = False,
 ) -> VerifyResult:
+    """Verify an outcome envelope against the pledge it resolves (SPEC §4).
+
+    ``pledge`` is the pledge's canonical input or its envelope dict. Without
+    it the result says nothing about who may resolve, so the call fails
+    closed unless ``skip_resolver_authorization=True`` says so explicitly.
+    """
     if envelope.get("v") != ENVELOPE_VERSION:
         return _err("E_UNSUPPORTED_VERSION", f"outcome envelope v={envelope.get('v')!r} not supported")
 
     shape = _check_outcome_shape(envelope)
     if shape:
         return shape
+
+    if pledge is None and not skip_resolver_authorization:
+        return _err(
+            "E_OUTCOME_RESOLVER_UNAUTHORIZED",
+            "verify_outcome requires the pledge this outcome resolves, or an explicit "
+            "skip_resolver_authorization=True to state that authority is not being checked",
+        )
+    if pledge is not None:
+        pledge_canon = _as_pledge_canon(pledge)
+        if isinstance(pledge_canon, VerifyErr):
+            return pledge_canon
+        authz = _check_resolver_authorized(envelope, pledge_canon)
+        if authz:
+            return authz
 
     from .canonical import outcome_input_from_dict
 
@@ -579,8 +618,93 @@ def verify_outcome(
             )
 
     return VerifyOk(
-        ok=True, envelope=envelope, canonical_message=canonical_message, id=envelope["id"]
+        ok=True,
+        envelope=envelope,
+        canonical_message=canonical_message,
+        id=envelope["id"],
+        recompute_required=not requires_sig,
     )
+
+
+def _as_pledge_canon(
+    pledge: Union[PledgeCanonicalInput, dict[str, Any]],
+) -> Union[PledgeCanonicalInput, VerifyErr]:
+    """Accept a pledge as its canonical input or as its wire envelope."""
+    if isinstance(pledge, PledgeCanonicalInput):
+        return pledge
+    from .canonical import pledge_input_from_dict
+
+    try:
+        d = _pledge_canon_dict_from_envelope(pledge) if pledge.get("kind") == "pledge" else pledge
+        return pledge_input_from_dict(d)
+    except (AttributeError, KeyError, TypeError, ValueError) as e:
+        return _err("E_PLEDGE_MALFORMED", f"could not parse the supplied pledge: {e}")
+
+
+def _check_resolver_authorized(
+    env: dict[str, Any], pledge: PledgeCanonicalInput
+) -> Optional[VerifyErr]:
+    """SPEC §1 (Resolver) and SECURITY §6: the outcome names THIS pledge
+    (pledge_id recomputed, not trusted), and its resolver is the one §1 names
+    for the pledge's mechanism — the counterparty for counterparty_signs, the
+    literal "deterministic" for everything else."""
+    from .state import _parse_utc
+
+    expected_pledge_id = compute_pledge_id(pledge)
+    resolved_by = env.get("resolved_by")
+    if env["pledge_id"] != expected_pledge_id:
+        return _err(
+            "E_OUTCOME_RESOLVER_UNAUTHORIZED",
+            f"outcome.pledge_id {env['pledge_id']} does not match the supplied pledge ({expected_pledge_id})",
+        )
+
+    mechanism = pledge.resolution.mechanism
+    if env["evidence"]["mechanism"] != mechanism:
+        return _err(
+            "E_OUTCOME_EVIDENCE_MISMATCH",
+            f"evidence.mechanism ({env['evidence']['mechanism']}) is not the pledge's mechanism ({mechanism})",
+        )
+    if mechanism == "counterparty_signs":
+        if pledge.counterparty is None:
+            return _err(
+                "E_OUTCOME_RESOLVER_UNAUTHORIZED",
+                "counterparty_signs pledge names no counterparty, so no resolver is authorized",
+            )
+        if resolved_by != pledge.counterparty:
+            return _err(
+                "E_OUTCOME_RESOLVER_UNAUTHORIZED",
+                f"resolved_by ({resolved_by}) is not the pledge's counterparty ({pledge.counterparty})",
+            )
+        return None
+
+    # Every other mechanism resolves from public state, so the only legitimate
+    # resolver is the literal string.
+    if resolved_by != "deterministic":
+        return _err(
+            "E_OUTCOME_RESOLVER_UNAUTHORIZED",
+            f'mechanism "{mechanism}" resolves deterministically, so resolved_by must be '
+            f'"deterministic", not {resolved_by}',
+        )
+    # A deterministic outcome evaluates public state AT resolution, so it cannot
+    # predate resolves_at (or expires_at for expired_unresolved). Block-typed
+    # resolves_at has no wall clock here; recompute_required covers it.
+    try:
+        resolved_ms = _parse_utc(env.get("resolved_at"))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return _err("E_OUTCOME_MALFORMED", f"resolved_at ({env.get('resolved_at')}) is not ISO 8601 UTC")
+    resolves_time = getattr(pledge.resolves_at, "time", None)
+    if resolves_time is not None and resolved_ms < _parse_utc(resolves_time):
+        return _err(
+            "E_OUTCOME_MALFORMED",
+            f"resolved_at ({env['resolved_at']}) precedes the pledge's resolves_at ({resolves_time})",
+        )
+    if env.get("outcome") == "expired_unresolved" and resolved_ms < _parse_utc(pledge.expires_at):
+        return _err(
+            "E_OUTCOME_MALFORMED",
+            f"expired_unresolved resolved_at ({env['resolved_at']}) precedes the pledge's "
+            f"expires_at ({pledge.expires_at})",
+        )
+    return None
 
 
 def _check_outcome_shape(env: dict[str, Any]) -> Optional[VerifyErr]:
@@ -637,7 +761,16 @@ def verify_abandonment(
     envelope: dict[str, Any],
     verify_bip322: Optional[VerifyBip322] = None,
     skip_signature_verification: bool = False,
+    *,
+    pledge: Union[PledgeCanonicalInput, dict[str, Any], None] = None,
+    skip_pledge_binding: bool = False,
 ) -> VerifyResult:
+    """Verify an abandonment envelope against the pledge it abandons (SPEC §5).
+
+    ``pledge`` is the pledge's canonical input or its envelope dict. Only the
+    swearer may abandon, so without it the call fails closed unless
+    ``skip_pledge_binding=True`` states that the swearer is not being checked.
+    """
     if envelope.get("v") != ENVELOPE_VERSION:
         return _err(
             "E_UNSUPPORTED_VERSION",
@@ -667,6 +800,20 @@ def verify_abandonment(
             f"reconstructed id {reconstructed_id} != envelope.id {envelope['id']}",
         )
 
+    if pledge is None and not skip_pledge_binding:
+        return _err(
+            "E_ABANDONMENT_BAD_SIG",
+            "verify_abandonment requires the pledge it abandons, or an explicit "
+            "skip_pledge_binding=True to state that the swearer is not being checked",
+        )
+    if pledge is not None:
+        pledge_canon = _as_pledge_canon(pledge)
+        if isinstance(pledge_canon, VerifyErr):
+            return pledge_canon
+        binding = _check_pledge_binding(envelope, pledge_canon)
+        if binding:
+            return binding
+
     if not skip_signature_verification:
         if verify_bip322 is None:
             return _err("E_ABANDONMENT_BAD_SIG", "no BIP-322 verifier supplied")
@@ -677,6 +824,36 @@ def verify_abandonment(
     return VerifyOk(
         ok=True, envelope=envelope, canonical_message=canonical_message, id=envelope["id"]
     )
+
+
+def _check_pledge_binding(
+    env: dict[str, Any], pledge: PledgeCanonicalInput
+) -> Optional[VerifyErr]:
+    """SPEC §5.3: the abandonment names THIS pledge, is signed by its swearer
+    (agents may not abandon), and is not dated before the pledge was sworn."""
+    from .state import _parse_utc
+
+    expected_pledge_id = compute_pledge_id(pledge)
+    if env["pledge_id"] != expected_pledge_id:
+        return _err(
+            "E_ABANDONMENT_MALFORMED",
+            f"abandonment.pledge_id {env['pledge_id']} does not match the supplied pledge ({expected_pledge_id})",
+        )
+    if env["sig"].get("pubkey") != pledge.swearer:
+        return _err(
+            "E_ABANDONMENT_BAD_SIG",
+            f"sig.pubkey ({env['sig'].get('pubkey')}) must equal the pledge's swearer ({pledge.swearer})",
+        )
+    try:
+        too_early = _parse_utc(env.get("abandoned_at")) < _parse_utc(pledge.sworn_at)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        too_early = True
+    if too_early:
+        return _err(
+            "E_ABANDONMENT_MALFORMED",
+            f"abandoned_at ({env['abandoned_at']}) precedes the pledge's sworn_at ({pledge.sworn_at})",
+        )
+    return None
 
 
 def _check_abandonment_shape(env: dict[str, Any]) -> Optional[VerifyErr]:

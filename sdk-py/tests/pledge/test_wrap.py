@@ -159,7 +159,7 @@ def test_wrap_outcome_envelope_deterministic_sig_null():
     assert env["kind"] == "pledge-outcome"
     assert env["sig"] is None
     assert env["id"] == compute_outcome_id(inp)
-    r = verify_outcome(env)
+    r = verify_outcome(env, skip_resolver_authorization=True)
     assert r.ok
 
 
@@ -197,7 +197,7 @@ def test_wrap_abandonment_envelope_round_trip():
     assert env["id"] == compute_abandonment_id(inp)
     assert env["sig"]["pubkey"] == "bc1qalice"
     assert env["sig"]["value"] == "AAAA"
-    r = verify_abandonment(env, skip_signature_verification=True)
+    r = verify_abandonment(env, skip_signature_verification=True, skip_pledge_binding=True)
     assert r.ok
 
 
