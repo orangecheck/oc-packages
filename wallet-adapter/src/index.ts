@@ -18,5 +18,11 @@
  */
 
 export { detectWallets, isWalletDetected } from './detect';
-export { assertSignedBy, getSigner, verifyBip322, WrongAccountError } from './sign';
+export {
+    assertSignedBy,
+    getSigner,
+    ManualSignUnavailable,
+    verifyBip322,
+    WrongAccountError,
+} from './sign';
 export type { SignFn, SignOptions, WalletId, WalletInfo } from './types';

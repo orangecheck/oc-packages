@@ -345,18 +345,44 @@ function signWithAlby(): SignFn {
 }
 
 /**
- * Manual / paste fallback. Opens a browser prompt showing the canonical
- * message and asks the user to paste the signature. Works for Sparrow,
- * Bitcoin Core, hardware wallets via PSBT — anything that can produce a
- * BIP-322 or legacy signature out-of-band.
- *
- * In React apps, use `<OcWalletButton>` which renders a custom modal with a
- * copy-to-clipboard + proper textarea instead of browser prompts.
+ * `getSigner('manual')` was asked to sign with no way to collect a signature:
+ * no `onManualSign`, and no browser prompt to fall back on.
+ */
+export class ManualSignUnavailable extends Error {
+  readonly code = "E_MANUAL_SIGN_UNAVAILABLE" as const;
+  constructor() {
+    super(
+      "manual signing needs an onManualSign handler to collect the pasted signature",
+    );
+    this.name = "ManualSignUnavailable";
+  }
+}
+
+let warnedPromptFallback = false;
+
+/**
+ * Manual / paste signing for Sparrow, Bitcoin Core, hardware wallets via PSBT —
+ * anything that signs out-of-band. The caller's `onManualSign` shows the
+ * message and collects the paste. In React apps `<OcWalletButton>` already
+ * renders that panel and never comes here.
  */
 function signManual(opts: SignOptions): SignFn {
   return async (message) => {
-    if (typeof window === "undefined") {
-      throw new Error("Manual signing requires a browser environment");
+    if (opts.onManualSign) {
+      const sig = await opts.onManualSign(message);
+      if (!sig?.trim()) throw new Error("Manual signing cancelled");
+      return sig.trim();
+    }
+    if (typeof window === "undefined" || typeof window.prompt !== "function") {
+      throw new ManualSignUnavailable();
+    }
+    // Deprecated: a native prompt is unstyled, has no copy button, collapses a
+    // multi-line message in some browsers, and blocks the page.
+    if (!warnedPromptFallback) {
+      warnedPromptFallback = true;
+      console.warn(
+        "[@orangecheck/wallet-adapter] getSigner('manual') without onManualSign falls back to window.prompt, which is deprecated and will be removed. Pass onManualSign, or use <OcWalletButton>.",
+      );
     }
     const heading =
       opts.manualPrompt ??
@@ -366,4 +392,9 @@ function signManual(opts: SignOptions): SignFn {
     if (!sig) throw new Error("Manual signing cancelled");
     return sig.trim();
   };
+}
+
+/** Test seam: re-arm the one-time deprecation warning. */
+export function _resetManualPromptWarningForTests(): void {
+  warnedPromptFallback = false;
 }

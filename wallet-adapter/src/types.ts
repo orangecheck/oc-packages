@@ -39,8 +39,15 @@ export interface SignOptions {
      */
     address: string;
     /**
-     * Prompt text for the `manual` adapter. Shown alongside the message so the
-     * user knows what they're signing.
+     * How the `manual` adapter gets a signature: show `message` to the user (a
+     * copy button and a paste field, say) and resolve with what they paste.
+     * Reject, or resolve empty, to cancel. Without it, `manual` falls back to
+     * `window.prompt`, which is deprecated and will be removed.
+     */
+    onManualSign?: (message: string) => Promise<string>;
+    /**
+     * Prompt text for the deprecated `window.prompt` fallback of the `manual`
+     * adapter. Ignored when `onManualSign` is given.
      */
     manualPrompt?: string;
 }

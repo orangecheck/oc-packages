@@ -61,6 +61,17 @@ const sign = getSigner('unisat', { address: userBtcAddress });
 const signature = await sign(canonicalMessage);
 ```
 
+For the `manual` wallet (Sparrow, Bitcoin Core, a hardware wallet), pass `onManualSign`: it receives the message, shows it however your UI does, and resolves with the pasted signature.
+
+```ts
+const sign = getSigner('manual', {
+    address: userBtcAddress,
+    onManualSign: (message) => openPasteDialog(message), // resolves with the paste
+});
+```
+
+Without `onManualSign`, `manual` falls back to `window.prompt` with a one-time console warning; that fallback is deprecated and will be removed. Outside a browser it throws `ManualSignUnavailable` (`code: 'E_MANUAL_SIGN_UNAVAILABLE'`). `<OcWalletButton />` renders its own paste panel and needs neither.
+
 `SignFn` is `(message: string) => Promise<string>`. Throws when the wallet isn't available or the user cancels, and throws `WrongAccountError` (`code: 'E_WRONG_ACCOUNT'`) when the signature is not by `address` — some wallets sign with their active account whatever address is asked for. `verifyBip322({ address, message, signature })` resolves to whether a signature obtained elsewhere passes the same check (BIP-322 or legacy BIP-137, base64 or hex); `assertSignedBy({ address, message, signature })` throws `WrongAccountError` instead.
 
 ---
@@ -146,7 +157,7 @@ export function SignIn({ address }: { address: string }) {
 | Xverse       | `window.BitcoinProvider.request('signMessage', { address, message, protocol: 'BIP322' })` | Full                                                             |
 | Leather      | `window.LeatherProvider.request('signMessage', { message, paymentType: 'p2tr' })`         | Full                                                             |
 | Alby / WebLN | `window.webln.signMessage(msg)`                                                           | Raw message (not BIP-322 on all addresses — works best for `1…`) |
-| Manual       | Browser `prompt()`                                                                        | Caller's wallet produces the signature out-of-band               |
+| Manual       | The caller's `onManualSign` (deprecated fallback: `window.prompt`)                        | Caller's wallet produces the signature out-of-band               |
 
 The shims are duck-typed — we check shape, not just presence of globals, so spoofing wrappers don't produce false positives.
 

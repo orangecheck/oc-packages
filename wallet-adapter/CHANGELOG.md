@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.1] — 2026-10-08
+
+### Added — `onManualSign` for the `manual` wallet
+
+`getSigner('manual', { address, onManualSign })` hands the message to the
+caller, which shows it in its own UI and resolves with the pasted signature.
+The result goes through the same shape and address checks as every other
+wallet. An empty paste is a cancel.
+
+- `ManualSignUnavailable` (`code: 'E_MANUAL_SIGN_UNAVAILABLE'`) is thrown when
+  there is neither an `onManualSign` nor a browser prompt to fall back on.
+
+### Deprecated
+
+- The `window.prompt` fallback used when `onManualSign` is absent. It still
+  works and logs a one-time warning; it will be removed in a later minor.
+  `manualPrompt` applies only to that fallback. `<OcWalletButton />` is
+  unaffected: it renders its own paste panel and never used the prompt.
+
 ## [0.5.0] — 2026-09-25
 
 ### Added — `verifyBip322({ address, message, signature })`
