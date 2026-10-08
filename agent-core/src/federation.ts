@@ -25,7 +25,13 @@ import {
     hexEncode,
     revocationCanonicalMessage,
 } from './canonical.js';
-import type { ActorRef, AgentErrorCode, DelegationBond, DelegationRevocationRef } from './types.js';
+import type {
+    ActorRef,
+    AgentErrorCode,
+    DelegationBond,
+    DelegationRevocationRef,
+    RevocationEnvelope,
+} from './types.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (FEDERATION.md §2 / §3.2)
@@ -221,6 +227,13 @@ async function checkFederationQuorum(
 
 export interface VerifyFederationDelegationInput extends VerifyFederationBase {
     envelope: FederationDelegationEnvelope;
+    /**
+     * Revocations to check (kind-30085 by `#delegation`): federation revocations,
+     * and agent self-revocations when `revocation.holders` includes "agent".
+     * Required unless `skipRevocationCheck` states that revocation is not checked.
+     */
+    revocations?: Array<FederationRevocationEnvelope | RevocationEnvelope>;
+    skipRevocationCheck?: boolean;
     now?: Date;
     skipTemporalCheck?: boolean;
 }
@@ -273,6 +286,21 @@ export async function verifyFederationDelegation(
     const quorum = await checkFederationQuorum(env.principal, env.sig, env.id, input);
     if (!quorum.ok) return quorum;
 
+    // Revocation — the same rule as verifyDelegation: check unless told not to.
+    if (!input.skipRevocationCheck && !input.revocations) {
+        return fail(
+            'E_MALFORMED',
+            'verifyFederationDelegation requires `revocations` (fetch kind-30085 by #delegation) ' +
+                'or an explicit skipRevocationCheck:true to state that revocation is not being checked'
+        );
+    }
+    for (const rev of input.revocations ?? []) {
+        if (rev?.delegation_id !== env.id) continue;
+        const rr = await verifyRevocationOf(env, rev, input);
+        if (!rr.ok) continue; // a malformed or unauthorized revocation revokes nothing
+        return fail('E_REVOKED', `delegation ${env.id} was revoked by ${rev.id}`);
+    }
+
     if (!input.skipTemporalCheck) {
         const now = input.now ?? new Date();
         const issued = new Date(env.issued_at);
@@ -283,6 +311,52 @@ export async function verifyFederationDelegation(
     }
 
     return { ok: true, id: env.id, canonicalMessage: delegationCanonicalMessage(canonInput) };
+}
+
+/**
+ * FEDERATION.md §4: the federation (M-of-N) may always revoke; the agent may
+ * self-revoke with its own BIP-322 signature when `revocation.holders`
+ * includes "agent".
+ */
+async function verifyRevocationOf(
+    d: FederationDelegationEnvelope,
+    rev: FederationRevocationEnvelope | RevocationEnvelope,
+    input: VerifyFederationBase
+): Promise<FederationVerifyResult> {
+    if ((rev.signer as FederationPrincipal | undefined)?.alg === 'federation') {
+        return verifyFederationRevocation({
+            envelope: rev as FederationRevocationEnvelope,
+            delegation: d,
+            verifyBip322: input.verifyBip322,
+            skipSignatureVerification: input.skipSignatureVerification,
+        });
+    }
+    const v1 = rev as RevocationEnvelope;
+    const holders = d.revocation?.holders ?? ['principal'];
+    if (!Array.isArray(holders) || !holders.includes('agent')) {
+        return fail('E_REVOKER_UNAUTHORIZED', 'only the federation may revoke this delegation');
+    }
+    if (v1.kind !== 'agent-revocation' || v1.signer?.address !== d.agent.address) {
+        return fail('E_REVOKER_UNAUTHORIZED', 'a single-address revocation must be signed by the agent');
+    }
+    if (typeof v1.reason !== 'string' || !ISO_UTC.test(v1.signed_at ?? '')) {
+        return fail('E_MALFORMED', 'revocation reason / signed_at invalid');
+    }
+    const canonInput = {
+        address: v1.signer.address,
+        delegation_id: v1.delegation_id,
+        reason: v1.reason,
+        signed_at: v1.signed_at,
+    };
+    const id = computeRevocationId(canonInput);
+    if (id !== v1.id) return fail('E_BAD_ID', `reconstructed id (${id}) != revocation.id (${v1.id})`);
+    if (!input.skipSignatureVerification) {
+        if (!input.verifyBip322) return fail('E_BAD_SIG', 'no BIP-322 verifier supplied');
+        if (typeof v1.sig?.value !== 'string' || !(await input.verifyBip322(v1.id, v1.sig.value, v1.signer.address))) {
+            return fail('E_BAD_SIG', 'revocation BIP-322 signature did not verify');
+        }
+    }
+    return { ok: true, id: v1.id, canonicalMessage: revocationCanonicalMessage(canonInput) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

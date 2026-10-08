@@ -512,8 +512,11 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         if (h === null || hash === null) {
             return err('E_MALFORMED', 'confirmed OTS proof missing block_height or block_hash');
         }
-        const verified = actionAnchor !== null;
-        anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified } as typeof anchor;
+        anchor = (
+            actionAnchor !== null
+                ? { status: 'confirmed', blockHeight: h, blockHash: hash, verified: true }
+                : { status: 'claimed', blockHeight: h, blockHash: hash, verified: false }
+        ) as typeof anchor;
     }
 
     return {

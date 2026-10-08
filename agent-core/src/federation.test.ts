@@ -16,6 +16,7 @@ import {
     type FederationDelegationEnvelope,
     type FederationRevocationEnvelope,
 } from './federation.js';
+import { computeRevocationId } from './canonical.js';
 import { verifyDelegation } from './verify.js';
 import type { DelegationEnvelope } from './types.js';
 
@@ -28,7 +29,11 @@ async function load(name: string): Promise<any> {
     return JSON.parse(await readFile(resolve(VECTORS_DIR, name), 'utf8'));
 }
 
-const opts = { skipSignatureVerification: true, skipTemporalCheck: true } as const;
+const opts = {
+    skipSignatureVerification: true,
+    skipTemporalCheck: true,
+    skipRevocationCheck: true,
+} as const;
 
 // FEDERATION.md + its v18–v26 vectors live on the oc-agent-protocol
 // `spec/federation-v1.2` DRAFT branch (not yet merged to main). When the spec
@@ -162,5 +167,96 @@ d('federation reject reasons (each invalid case fails for its named reason)', ()
         const r = await verifyFederationDelegation({ envelope: v.expected.envelope, ...opts });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_THRESHOLD_MISMATCH');
+    });
+});
+
+// FEDERATION.md §4 / SECURITY §7 item 7: a revoked federation delegation must
+// not verify, and skipping the revocation check has to be stated.
+d('federation delegation revocation check', () => {
+    const base = { skipSignatureVerification: true, skipTemporalCheck: true } as const;
+
+    it('fails closed when given neither revocations nor an explicit skip', async () => {
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const r = await verifyFederationDelegation({ envelope: dv.expected.envelope, ...base });
+        expect(r.ok).toBe(false);
+        expect(r.ok === false && r.message).toMatch(/requires `revocations`/);
+    });
+
+    it('verifies with an empty revocation list', async () => {
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const r = await verifyFederationDelegation({
+            envelope: dv.expected.envelope,
+            revocations: [],
+            ...base,
+        });
+        expect(r.ok).toBe(true);
+    });
+
+    it('refuses a delegation its federation revoked (v25)', async () => {
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const rv = await load('v25-federation-revocation-3of5-valid.json');
+        const r = await verifyFederationDelegation({
+            envelope: dv.expected.envelope,
+            revocations: [rv.expected.envelope],
+            ...base,
+        });
+        expect(r.ok === false && r.code).toBe('E_REVOKED');
+    });
+
+    function agentRevocation(del: FederationDelegationEnvelope) {
+        const canon = {
+            address: del.agent.address,
+            delegation_id: del.id,
+            reason: 'agent retired',
+            signed_at: '2026-06-01T00:00:00Z',
+        };
+        return {
+            v: 1 as const,
+            kind: 'agent-revocation' as const,
+            id: computeRevocationId(canon),
+            delegation_id: del.id,
+            signer: { address: del.agent.address, alg: 'bip322' as const },
+            reason: canon.reason,
+            signed_at: canon.signed_at,
+            ots: null,
+            sig: { alg: 'bip322' as const, pubkey: del.agent.address, value: 'AAAA' },
+        };
+    }
+
+    it('honours an agent self-revocation only when holders include the agent', async () => {
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const del = dv.expected.envelope as FederationDelegationEnvelope;
+        const principalOnly = { ...del, revocation: { holders: ['principal' as const], ref: null } };
+        const withAgent = {
+            ...del,
+            revocation: { holders: ['principal' as const, 'agent' as const], ref: null },
+        };
+        const ignored = await verifyFederationDelegation({
+            envelope: principalOnly,
+            revocations: [agentRevocation(principalOnly)],
+            ...base,
+        });
+        expect(ignored.ok).toBe(true);
+        const revoked = await verifyFederationDelegation({
+            envelope: withAgent,
+            revocations: [agentRevocation(withAgent)],
+            ...base,
+        });
+        expect(revoked.ok === false && revoked.code).toBe('E_REVOKED');
+    });
+
+    it('ignores a revocation from another federation', async () => {
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const rv = await load('v25-federation-revocation-3of5-valid.json');
+        const forged = {
+            ...rv.expected.envelope,
+            signer: { ...rv.expected.envelope.signer, descriptor_id: 'e'.repeat(64) },
+        };
+        const r = await verifyFederationDelegation({
+            envelope: dv.expected.envelope,
+            revocations: [forged],
+            ...base,
+        });
+        expect(r.ok).toBe(true);
     });
 });

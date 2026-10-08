@@ -7,6 +7,22 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.4.0] — 2026-10-08
+
+### Changed — `verifyFederationDelegation` checks revocation
+
+It takes `revocations` (federation revocations, and agent self-revocations
+when `revocation.holders` includes "agent") and returns `E_REVOKED` for a
+revoked delegation. Without `revocations` or an explicit
+`skipRevocationCheck: true` it refuses, as `verifyDelegation` has since 2.0.0.
+Shipped as a minor so the `^2` range picks it up.
+
+### Changed — an unwalked action anchor is `claimed`
+
+`verifyAction` reports a confirmed `ots` block it did not verify as
+`{ status: 'claimed', verified: false }`. `confirmed` now always carries
+`verified: true`.
+
 ## [2.3.0] — 2026-09-24
 
 ### Added — `pledge:create` is a registered scope

@@ -289,10 +289,15 @@ export interface VerifyActionOkExtra {
      */
     chain: SubdelegationEnvelope[];
     scopeExercised: string;
+    /**
+     * `claimed` is a confirmed `ots` block no verifier walked: the block is the
+     * envelope's say-so. Only a passing `verifyOtsAnchor` yields `confirmed`.
+     */
     anchor:
         | { status: 'none' }
         | { status: 'pending' }
-        | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: boolean };
+        | { status: 'claimed'; blockHeight: number; blockHash: string; verified: false }
+        | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: true };
 }
 
 export type VerifyActionResult =

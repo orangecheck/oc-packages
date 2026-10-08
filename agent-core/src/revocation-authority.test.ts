@@ -176,10 +176,34 @@ describe('revocation priority uses only verified anchors', () => {
             verifyOtsAnchor: async () => false,
         });
         expect(clean.ok && clean.anchor).toEqual({
-            status: 'confirmed',
+            status: 'claimed',
             blockHeight: 1,
             blockHash: 'ab'.repeat(32),
             verified: false,
+        });
+    });
+
+    // The ots block is outside the signature: its block is a claim until walked.
+    it('reports an unwalked anchor as claimed, and a walked one as confirmed', async () => {
+        const unwalked = await verifyAction({
+            action: action(d, later, confirmed(1)),
+            delegation: d,
+            revocations: [],
+            skipSignatureVerification: true,
+        });
+        expect(unwalked.ok && unwalked.anchor.status).toBe('claimed');
+        const walked = await verifyAction({
+            action: action(d, later, confirmed(1)),
+            delegation: d,
+            revocations: [],
+            skipSignatureVerification: true,
+            verifyOtsAnchor: async () => true,
+        });
+        expect(walked.ok && walked.anchor).toEqual({
+            status: 'confirmed',
+            blockHeight: 1,
+            blockHash: 'ab'.repeat(32),
+            verified: true,
         });
     });
 
