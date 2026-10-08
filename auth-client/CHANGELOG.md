@@ -7,7 +7,7 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [Unreleased]
+## [2.26.0] — 2026-10-08
 
 ### Fixed
 
@@ -20,8 +20,19 @@ this file tracks the package's TS / Node / runtime API surface.
 - **The wallet tab works with no browser wallet.** On a phone, or with Sparrow
   or a hardware wallet, it used to end at "no BIP-322 wallet extension
   detected · install one and refresh". It now shows the message to sign and
-  takes the signature back. With more than one browser wallet installed you
-  can pick which one signs, where it used to take the first.
+  takes the signature back. That path names no signature scheme, so a legacy
+  BIP-137 signature (Electrum, most hardware wallets on a `1…` address) still
+  verifies. With more than one browser wallet installed you can pick which one
+  signs, where it used to take the first; submitting before detection finishes
+  waits for it instead of falling through to the paste path.
+- A malformed pasted signature says so, instead of "doesn't look like a
+  Bitcoin address" (the host answers `bad_request` for both). A failed fetch
+  or an HTML error page reads "couldn't reach the server", not "Failed to
+  fetch" or a JSON parse error.
+- Every sign-in field has a programmatic label, the signature field takes
+  focus when the paste step opens, "copy message" confirms or says it could
+  not copy, and the hints and the link-also row are full-contrast with a 44px
+  hit area.
 - **Code step can send a new code**, instead of only "use a different email".
 - **Provider buttons hold their space while loading.** `providersFirst`
   rendered nothing until `/api/auth/providers` answered, then pushed the form

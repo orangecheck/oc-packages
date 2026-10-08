@@ -279,9 +279,25 @@ const EMAIL_ERRORS: Record<string, string> = {
     expired: 'That code expired. Send a new one.',
 };
 
-export function humanSigninError(reason: string, path: 'wallet' | 'email'): string {
+/**
+ * `bad_request` means the host's body schema failed. Fetching a challenge
+ * that is the address; submitting a signature it is the pasted signature
+ * (under 10 characters, say), which is not an address problem at all.
+ */
+const SUBMIT_ERRORS: Record<string, string> = {
+    bad_request: "That signature couldn't be read. Copy it again, whole.",
+};
+
+const NETWORK_ERROR = "We couldn't reach the server. Check your connection and try again.";
+
+export function humanSigninError(
+    reason: string,
+    path: 'wallet' | 'email',
+    step: 'challenge' | 'submit' = 'challenge'
+): string {
     // A wallet extension's own message ("User rejected the request") is prose already.
     if (!/^[a-z0-9_]+$/.test(reason)) return reason;
+    if (path === 'wallet' && step === 'submit' && SUBMIT_ERRORS[reason]) return SUBMIT_ERRORS[reason];
     if (path === 'email' && EMAIL_ERRORS[reason]) return EMAIL_ERRORS[reason];
     return (
         SIGNIN_ERRORS[reason] ??
@@ -289,6 +305,16 @@ export function humanSigninError(reason: string, path: 'wallet' | 'email'): stri
             ? "That didn't work. Try again, or send a new code."
             : "That didn't work. Try again.")
     );
+}
+
+/**
+ * A failed fetch ("Failed to fetch") or an HTML error page parsed as JSON
+ * (a SyntaxError) is not prose meant for a person; everything else thrown
+ * here carries a host reason code or a wallet's own message.
+ */
+function failureMessage(err: unknown, path: 'wallet' | 'email', step: 'challenge' | 'submit'): string {
+    if (err instanceof TypeError || err instanceof SyntaxError) return NETWORK_ERROR;
+    return humanSigninError(err instanceof Error ? err.message : 'failed', path, step);
 }
 
 const BECH32_ADDRESS = /^(bc1|tb1|bcrt1)[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{8,87}$/i;
@@ -628,12 +654,12 @@ export function OcSignIn({
                         type="checkbox"
                         checked={linkAlso}
                         onChange={(e) => setLinkAlso(e.target.checked)}
-                        style={{ marginTop: 2, accentColor: 'var(--primary, #f97316)' }}
+                        style={{ margin: 0, accentColor: 'var(--primary, #f97316)' }}
                     />
                     <span>
                         After signing in, also link{' '}
                         {activeMethod === 'email' ? 'a Bitcoin wallet' : 'an email'}{' '}
-                        <span style={{ opacity: 0.65 }}>— optional, one more signature.</span>
+                        <span>— optional, one more signature.</span>
                     </span>
                 </label>
             )}
@@ -920,30 +946,41 @@ async function loadAdapter(): Promise<AdapterShape> {
     return (await import('@orangecheck/wallet-adapter')) as unknown as AdapterShape;
 }
 
+type DetectedWallet = { id: string; name: string };
+
+async function detectBrowserWallets(): Promise<DetectedWallet[]> {
+    return (await loadAdapter())
+        .detectWallets()
+        .filter((w) => w.detected && w.id !== 'manual')
+        .map((w) => ({ id: w.id, name: w.name }));
+}
+
 function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): React.ReactElement {
+    const uid = React.useId();
+    const ids = {
+        address: `${uid}-address`,
+        wallet: `${uid}-wallet`,
+        message: `${uid}-message`,
+        signature: `${uid}-signature`,
+    };
     const [address, setAddress] = React.useState('');
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
     // Browser wallets on this device; null until the adapter has loaded.
-    const [wallets, setWallets] = React.useState<Array<{ id: string; name: string }> | null>(
-        null
-    );
+    const [wallets, setWallets] = React.useState<DetectedWallet[] | null>(null);
     const [walletId, setWalletId] = React.useState<string | null>(null);
     // No browser wallet (every phone, Sparrow, hardware wallets): show the
     // challenge to sign elsewhere and take the signature back. This used to
     // end in "no BIP-322 wallet extension detected · install one and refresh".
     const [manual, setManual] = React.useState<{ message: string; nonce: string } | null>(null);
     const [pasted, setPasted] = React.useState('');
+    const [copied, setCopied] = React.useState<'idle' | 'copied' | 'failed'>('idle');
 
     React.useEffect(() => {
         let cancelled = false;
-        loadAdapter()
-            .then((a) => {
+        detectBrowserWallets()
+            .then((found) => {
                 if (cancelled) return;
-                const found = a
-                    .detectWallets()
-                    .filter((w) => w.detected && w.id !== 'manual')
-                    .map((w) => ({ id: w.id, name: w.name }));
                 setWallets(found);
                 setWalletId(found[0]?.id ?? null);
             })
@@ -966,7 +1003,18 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
         return { message: json.message, nonce: json.nonce };
     }
 
-    async function submitSignature(message: string, nonce: string, signature: string): Promise<void> {
+    /**
+     * POST the signature. A browser wallet signs BIP-322, so that path names
+     * the scheme. A pasted signature may be legacy BIP-137 (Electrum, most
+     * hardware wallets on a `1…` address), which the verifier only detects
+     * when no scheme is named, so the manual path leaves it out.
+     */
+    async function submitSignature(
+        message: string,
+        nonce: string,
+        signature: string,
+        scheme: 'bip322' | undefined
+    ): Promise<void> {
         // Family-CORS lets the .ochk.io session cookie land cross-origin.
         const res = await fetch(`${authOrigin}/api/auth/signin`, {
             method: 'POST',
@@ -975,7 +1023,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
             body: JSON.stringify({
                 message,
                 signature,
-                scheme: 'bip322',
+                ...(scheme ? { scheme } : {}),
                 expectedNonce: nonce,
                 expectedAudience: audience,
                 expectedPurpose: 'login',
@@ -1008,17 +1056,29 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
         }
         setError(null);
         setSubmitting(true);
+        let step: 'challenge' | 'submit' = 'challenge';
         try {
+            // Submitting before detection finished must not send someone with
+            // an extension to the paste-a-signature path.
+            let id = walletId;
+            if (wallets === null) {
+                const found = await detectBrowserWallets().catch(() => []);
+                setWallets(found);
+                id = found[0]?.id ?? null;
+                setWalletId(id);
+            }
             const challenge = await fetchChallenge(addr);
-            if (!walletId) {
+            if (!id) {
                 setManual(challenge);
                 setSubmitting(false);
                 return;
             }
-            const signer = (await loadAdapter()).getSigner(walletId, { address: addr });
-            await submitSignature(challenge.message, challenge.nonce, await signer(challenge.message));
+            const signer = (await loadAdapter()).getSigner(id, { address: addr });
+            const signature = await signer(challenge.message);
+            step = 'submit';
+            await submitSignature(challenge.message, challenge.nonce, signature, 'bip322');
         } catch (err) {
-            setError(humanSigninError(err instanceof Error ? err.message : 'failed', 'wallet'));
+            setError(failureMessage(err, 'wallet', step));
             setSubmitting(false);
         }
     }
@@ -1034,10 +1094,20 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
         setError(null);
         setSubmitting(true);
         try {
-            await submitSignature(manual.message, manual.nonce, sig);
+            await submitSignature(manual.message, manual.nonce, sig, undefined);
         } catch (err) {
-            setError(humanSigninError(err instanceof Error ? err.message : 'failed', 'wallet'));
+            setError(failureMessage(err, 'wallet', 'submit'));
             setSubmitting(false);
+        }
+    }
+
+    async function copyMessage(): Promise<void> {
+        if (!manual) return;
+        try {
+            await navigator.clipboard.writeText(manual.message);
+            setCopied('copied');
+        } catch {
+            setCopied('failed');
         }
     }
 
@@ -1048,24 +1118,25 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                     In your wallet, use “sign message” (BIP-322) with {address.trim()}, sign the
                     text below, and paste the signature back here. Nothing is spent.
                 </FlowHeader>
-                <Label>message to sign</Label>
+                <Label htmlFor={ids.message}>message to sign</Label>
                 <textarea
+                    id={ids.message}
                     readOnly
                     value={manual.message}
                     rows={5}
                     onFocus={(e) => e.currentTarget.select()}
                     style={{ ...inputStyle, resize: 'vertical' }}
                 />
-                <button
-                    type="button"
-                    onClick={() => void navigator.clipboard?.writeText(manual.message)}
-                    style={linkButtonStyle}
-                >
-                    copy message
+                <button type="button" onClick={() => void copyMessage()} style={linkButtonStyle}>
+                    {copied === 'copied' ? 'copied' : 'copy message'}
                 </button>
+                {copied === 'failed' && (
+                    <Hint>Couldn&apos;t copy here. Select the text above and copy it.</Hint>
+                )}
                 <div style={{ marginTop: 14 }}>
-                    <Label>signature</Label>
+                    <Label htmlFor={ids.signature}>signature</Label>
                     <textarea
+                        id={ids.signature}
                         value={pasted}
                         onChange={(e) => {
                             setPasted(e.target.value);
@@ -1074,6 +1145,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                         rows={3}
                         placeholder="paste the signature"
                         spellCheck={false}
+                        autoFocus
                         aria-invalid={error ? true : undefined}
                         style={{ ...inputStyle, resize: 'vertical' }}
                     />
@@ -1092,6 +1164,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                         setManual(null);
                         setPasted('');
                         setError(null);
+                        setCopied('idle');
                     }}
                     style={linkButtonStyle}
                 >
@@ -1109,8 +1182,9 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                 and your key never leaves the wallet. Works with browser wallets, or any wallet that
                 can sign a message, like Sparrow.
             </FlowHeader>
-            <Label>bitcoin address</Label>
+            <Label htmlFor={ids.address}>bitcoin address</Label>
             <input
+                id={ids.address}
                 type="text"
                 value={address}
                 onChange={(e) => {
@@ -1127,8 +1201,9 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
             />
             {wallets && wallets.length > 1 && (
                 <div style={{ marginTop: 12 }}>
-                    <Label>sign with</Label>
+                    <Label htmlFor={ids.wallet}>sign with</Label>
                     <select
+                        id={ids.wallet}
                         value={walletId ?? ''}
                         onChange={(e) => setWalletId(e.target.value)}
                         style={inputStyle}
@@ -1165,6 +1240,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
 type EmailStage = 'enter' | 'code';
 
 function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElement {
+    const uid = React.useId();
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
     const [emailError, setEmailError] = React.useState<string | null>(null);
@@ -1188,7 +1264,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
             setToken(json.token);
             return null;
         } catch {
-            return "We couldn't reach the server. Check your connection and try again.";
+            return NETWORK_ERROR;
         }
     }
 
@@ -1254,7 +1330,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
             }
             onSuccess(json.account, json.token);
         } catch (err) {
-            setCodeError(humanSigninError(err instanceof Error ? err.message : 'failed', 'email'));
+            setCodeError(failureMessage(err, 'email', 'submit'));
         } finally {
             setSubmitting(false);
         }
@@ -1267,8 +1343,9 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
                     We email you a 6-digit code. No password, and no wallet needed to start. Link a
                     Bitcoin address any time — that is the identity you hold yourself.
                 </FlowHeader>
-                <Label>email</Label>
+                <Label htmlFor={`${uid}-email`}>email</Label>
                 <input
+                    id={`${uid}-email`}
                     type="email"
                     autoComplete="email"
                     value={email}
@@ -1296,8 +1373,9 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
                 <span style={{ color: 'var(--foreground, #fafafa)' }}>{email}</span>. It expires in
                 10 minutes.
             </FlowHeader>
-            <Label>one-time code</Label>
+            <Label htmlFor={`${uid}-code`}>one-time code</Label>
             <input
+                id={`${uid}-code`}
                 type="text"
                 inputMode="numeric"
                 pattern="\d{6}"
@@ -1405,9 +1483,16 @@ const linkButtonStyle: React.CSSProperties = {
     padding: 0,
 };
 
-function Label({ children }: { children: React.ReactNode }): React.ReactElement {
+function Label({
+    htmlFor,
+    children,
+}: {
+    htmlFor: string;
+    children: React.ReactNode;
+}): React.ReactElement {
     return (
         <label
+            htmlFor={htmlFor}
             style={{
                 display: 'block',
                 color: 'var(--foreground, #fafafa)',
@@ -1440,7 +1525,9 @@ const inputStyle: React.CSSProperties = {
 
 const linkAlsoStyle: React.CSSProperties = {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    // The whole row is the checkbox's hit area; the 13px box alone was not.
+    minHeight: 44,
     gap: 8,
     marginTop: 16,
     paddingTop: 14,
@@ -1499,7 +1586,6 @@ function Hint({ children }: { children: React.ReactNode }): React.ReactElement {
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 fontSize: 10.5,
                 lineHeight: 1.55,
-                opacity: 0.7,
             }}
         >
             {'> '}
