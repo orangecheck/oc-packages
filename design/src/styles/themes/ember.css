@@ -36,6 +36,8 @@
        the warm grotesk under ember — NOT the mono the cypherpunk skins use.
        Eyebrows / small chrome labels stay mono via --oc-font-mono. */
     --oc-font-display: var(--oc-font-sans);
+    /* Uppercase display text: same face, a fallback fitted to capitals (fonts.css). */
+    --oc-font-caps: 'Hanken Grotesk', 'Hanken Grotesk Caps Fallback', var(--oc-stack-sans);
 
     /* Soft, diffuse, warm-tinted elevation (rgb 31 18 10 ≈ #1f120a, not pure
        black) — the floated-card look of the mockups, well past the flat default. */

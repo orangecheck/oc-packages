@@ -19,6 +19,8 @@
     /* Typography — the app's Inter + JetBrains Mono, with metric-matched fallbacks. */
     --oc-font-sans: var(--oc-stack-sans);
     --oc-font-mono: var(--oc-stack-mono);
+    /* ember's caps face is set on :root too; unset it so this skin keeps its own. */
+    --oc-font-caps: initial;
 
     /* Elevation — EXACTLY Tailwind v4's stock --shadow-* values, so adopting
        @orangecheck/design is a pixel no-op for the default skin (these are what

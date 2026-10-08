@@ -17,7 +17,7 @@ export interface DefinitionListProps {
  * inspector, vote's reveal page, and me (BondAnchorCard, OperatorIdentityCard,
  * FrozenBanner). Labels render in uppercase mono; values align in a second
  * column on wider viewports, stacking on narrow ones. Long values (hashes,
- * addresses) wrap via `break-all`.
+ * addresses) wrap anywhere; prose values keep their words whole.
  */
 export function DefinitionList({ items, className }: DefinitionListProps) {
     return (
@@ -30,7 +30,7 @@ export function DefinitionList({ items, className }: DefinitionListProps) {
             {items.map((item, i) => (
                 <Fragment key={i}>
                     <dt className="label-mono text-muted-foreground text-[10px]">{item.label}</dt>
-                    <dd className="text-foreground font-mono text-xs break-all">{item.value}</dd>
+                    <dd className="text-foreground font-mono text-xs [overflow-wrap:anywhere]">{item.value}</dd>
                 </Fragment>
             ))}
         </dl>

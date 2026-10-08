@@ -7,6 +7,62 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.33.2] — 2026-10-08
+
+### Fixed — font fallbacks fitted to how phones render (visible on slow loads)
+
+The 0.33.0 fallback widths were measured on a hinted Linux render, which rounds
+glyph advances and skews widths by 2–4%. iOS, macOS and Android lay text out
+unhinted. On those devices the 0.33 mono fallback came out 4% wider than
+JetBrains Mono: unhinted, both advance 0.6em, and only a hinted render rounds
+JetBrains up to 0.625em. Hanken's regular fallback was 2.5% narrow.
+
+- Every Hanken face is refitted with hinting off. Mono goes back to 100%; the
+  face now only matches JetBrains' vertical metrics.
+- Uppercase is a different fit. Hanken's capitals run 7–8% narrower than
+  Arial's, so an uppercase CTA that fits one line in Hanken wrapped to two in
+  the fallback. That was the agent and vote hero shift. `Hanken Grotesk Caps
+  Fallback` is fitted to capitals. Under ember, `.font-display.uppercase` uses
+  it via `--oc-font-caps`, and the other skins unset that variable.
+
+Measured on the live pages with this CSS patched in, at 390px with throttling,
+over 3 unhinted runs:
+
+| Page | Before (0.33.1) | After |
+| --- | --- | --- |
+| agent | 0.13–0.18 | ≤0.004 |
+| vault | 0.015 | 0 |
+| pledge /verify | 0.001 | 0 |
+| vote | 0 | 0 |
+
+The pledge /verify paragraph still re-wraps on a hinted Linux render (0.13).
+That is the lab's rounding, not a phone's.
+
+### Changed — dimmed muted text renders at the full muted tone, family-wide
+
+`text-muted-foreground` sits just over 4.5:1 by design, so any opacity modifier
+takes it under AA. Family sites carried about 1,300 of them: 716 in me, 128 in
+analytics, 121 in vault. A new unlayered rule in `theme.css` renders those
+forms at full muted. The same applies to `text-brand-foreground/NN` on a
+`.bg-brand` band, except in h1–h3, where the lighter display phrase only needs
+3:1. Elements that also carry a variant text colour (`hover:`, `data-*:`) are
+left alone, so active and hover states still work, and so are form fields and
+`aria-hidden` decoration. This replaces the footer-only floor from 0.33.0.
+
+### Fixed
+
+- `.docs-prose code` uses `accent-foreground` on its primary tint. In
+  ember-dark zebra table rows primary measured 3.1:1; accent-foreground holds
+  at least 5.6:1 on any surface.
+- Card and Modal title rows: the title truncates only when it alone overflows.
+  The 1-vs-100 shrink ratio still shaved it ("§ distributi…" on analytics).
+- DefinitionList values wrap with `overflow-wrap: anywhere` rather than
+  `break-all`, so prose keeps its words whole.
+- The OcDashboardShell sidebar is `max-h` rather than `h`, so it sizes to its
+  links instead of filling the viewport with an empty card.
+- Dev only: `next` 16.3.8 (GHSA-vcvr-r3jv-pc5j) and brace-expansion 5.0.12 in
+  the Storybook toolchain.
+
 ## [0.33.1] — 2026-10-07
 
 ### Fixed — what the live Storybook pass on 0.33.0 still found

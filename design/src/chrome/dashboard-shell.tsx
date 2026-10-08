@@ -220,7 +220,7 @@ function Sidebar({
             className={
                 isDrawer
                     ? 'flex h-full w-full flex-col bg-card'
-                    : 'hidden md:sticky md:top-4 md:flex md:h-[calc(100vh-2rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:overflow-y-auto md:rounded md:border md:bg-card/40 lg:w-60'
+                    : 'hidden md:sticky md:top-4 md:flex md:max-h-[calc(100vh-2rem)] md:w-56 md:shrink-0 md:flex-col md:self-start md:overflow-y-auto md:rounded md:border md:bg-card/40 lg:w-60'
             }
             aria-label="dashboard tools"
             data-oc-dashboard-sidebar={variant}

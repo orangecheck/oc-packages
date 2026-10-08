@@ -15,6 +15,8 @@
     /* Full terminal: monospace everywhere, sans included. */
     --oc-font-sans: var(--oc-stack-mono);
     --oc-font-mono: var(--oc-stack-mono);
+    /* ember's caps face is set on :root too; unset it so this skin keeps its own. */
+    --oc-font-caps: initial;
 
     /* Light — pale green paper, deep green ink */
     --background: oklch(0.985 0.006 150);

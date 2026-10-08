@@ -110,15 +110,37 @@
 }
 
 /* The footer brand block holds site-supplied copy. Unlayered for the same reason:
-   its links reach 44px on phones without moving a line, and muted text dimmed
-   by an opacity modifier stays at the full muted tone (4.5:1 in every skin). */
+   its links reach 44px on phones without moving a line. */
 @media (width < 48rem) {
     .oc-footer-brand a {
         padding-block: max(0px, calc((44px - 1.1em) / 2));
     }
 }
-.oc-footer-brand [class*='text-muted-foreground/']:not(:hover) {
+
+/* Muted text and the band's text sit just over 4.5:1 by design (check-token-contrast),
+   so any opacity takes them under AA. Family sites carried ~1,300 such dims, so the
+   dimmed forms render at the full tone. Unlayered, it outranks the utility; an element
+   that also carries a variant text colour (hover:, data-*:) is left alone so the
+   variant keeps working. Display-size headings on a band keep their lighter phrase. */
+:is([class^='text-muted-foreground/'], [class*=' text-muted-foreground/']):not(
+        [class*=':text-'],
+        input,
+        textarea,
+        select,
+        [aria-hidden='true']
+    ) {
     color: var(--muted-foreground);
+}
+.bg-brand
+    :is([class^='text-brand-foreground/'], [class*=' text-brand-foreground/']):not(
+        [class*=':text-'],
+        h1,
+        h2,
+        h3,
+        :is(h1, h2, h3) *,
+        [aria-hidden='true']
+    ) {
+    color: var(--brand-foreground);
 }
 
 /* Accordion animations */
@@ -222,6 +244,11 @@
             SFMono-Regular, Menlo, monospace;
         letter-spacing: -0.02em;
         font-feature-settings: 'ss01', 'cv01', 'zero';
+    }
+    .font-display.uppercase {
+        font-family:
+            var(--oc-font-caps, var(--oc-font-display, var(--oc-font-mono))), ui-monospace,
+            'JetBrains Mono', SFMono-Regular, Menlo, monospace;
     }
 
     /* Mono eyebrow/label TYPE only — no color, so the caller's text-* utility
@@ -525,7 +552,9 @@
         font-family: var(--oc-font-mono), ui-monospace, monospace;
         font-size: 0.85em;
         background: color-mix(in oklch, var(--primary), transparent 88%);
-        color: var(--primary);
+        /* accent-foreground holds 4.5:1 on that tint over any surface, a zebra row
+           included; primary was 3.1:1 there in ember dark. */
+        color: var(--accent-foreground);
         padding: 0.12em 0.4em;
         border-radius: 3px;
         border: 1px solid color-mix(in oklch, var(--primary), transparent 70%);

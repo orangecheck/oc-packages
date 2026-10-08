@@ -18,6 +18,8 @@
     /* Monospace everywhere — a ledger, a balance, sound accounting. */
     --oc-font-sans: var(--oc-stack-mono);
     --oc-font-mono: var(--oc-stack-mono);
+    /* ember's caps face is set on :root too; unset it so this skin keeps its own. */
+    --oc-font-caps: initial;
 
     /* Light — warm paper, deep gold ink. */
     --background: oklch(0.99 0.008 90);

@@ -39,13 +39,13 @@ export function Modal({ open, onOpenChange, title, subtitle, children, actions, 
                     <div className="terminal-title flex shrink-0 items-center justify-between gap-3">
                         {/* Same shrink priority as Card's header — the expanded
                             view must not clip a title the collapsed one keeps. */}
-                        <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
                             <span className="terminal-dot" aria-hidden />
                             <span className="terminal-dot opacity-70" aria-hidden />
                             <span className="terminal-dot opacity-50" aria-hidden />
-                            <DialogPrimitive.Title className="ml-2 truncate [flex-shrink:1]">{title}</DialogPrimitive.Title>
+                            <DialogPrimitive.Title className="ml-2 min-w-0 truncate">{title}</DialogPrimitive.Title>
                             {subtitle && (
-                                <span className="text-muted-foreground ml-1 min-w-0 truncate text-[10px] normal-case tracking-normal [flex-shrink:100]">
+                                <span className="text-muted-foreground ml-1 min-w-0 flex-1 truncate text-[10px] normal-case tracking-normal">
                                     · {subtitle}
                                 </span>
                             )}

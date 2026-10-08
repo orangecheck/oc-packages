@@ -18,6 +18,8 @@
 
     --oc-font-sans: var(--oc-stack-sans);
     --oc-font-mono: var(--oc-stack-mono);
+    /* ember's caps face is set on :root too; unset it so this skin keeps its own. */
+    --oc-font-caps: initial;
 
     /* Light — cool paper, electric violet ink. */
     --background: oklch(0.985 0.006 305);
