@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.1] — 2026-10-07
+
+### Changed
+
+- `unwrapVaultKey` checks a blob's scrypt work factors before deriving
+  anything: N a power of two from 2^14 to 2^20, r ≤ 16, p ≤ 4. Outside that
+  it throws `unsupported key-derivation parameters`, distinct from
+  `WrongPassphrase`. Every blob this library has written (N = 2^17, r = 8,
+  p = 1) is inside the range.
+- The package declares `"sideEffects": false`.
+
+### Added
+
+- `assertAcceptableKdfParams(wrapped)`, the same check, for a consumer that
+  wants to test a blob before using it.
+
 ## [0.3.0] — 2026-09-03
 
 ### Security
