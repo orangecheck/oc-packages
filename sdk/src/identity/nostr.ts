@@ -170,6 +170,10 @@ async function queryNostrEvents(options: {
  * proof the event really came from the claimed pubkey.
  */
 async function verifyNostrEventSignature(event: NostrEvent): Promise<boolean> {
+    return nostrEventSignatureValid(event);
+}
+
+function nostrEventSignatureValid(event: NostrEvent): boolean {
     try {
         if (
             !event.id ||
@@ -302,7 +306,8 @@ The verification will search Nostr relays for your note and confirm you control 
 
 /**
  * Check if a Nostr identity is already verified
- * This is a quick check that doesn't re-query relays
+ * This is a quick check that doesn't re-query relays. Each cached note's id and
+ * signature are still checked, since the cache holds what a relay sent.
  */
 export function isNostrIdentityVerified(
     attestationId: string,
@@ -313,6 +318,9 @@ export function isNostrIdentityVerified(
 
     return cachedEvents.some(
         (event) =>
-            event.pubkey === pubkeyHex && event.kind === 1 && event.content.includes(attestationId)
+            event.pubkey === pubkeyHex &&
+            event.kind === 1 &&
+            event.content.includes(attestationId) &&
+            nostrEventSignatureValid(event)
     );
 }

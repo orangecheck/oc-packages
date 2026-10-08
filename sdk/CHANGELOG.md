@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.10.0] — 2026-10-08
+
+### Changed — cached identity checks bind to the identity asked about
+
+- `isGitHubIdentityVerified` counts only gists whose `owner.login` is the
+  username passed. Keep the API's `owner` field in the cache.
+- `isDnsIdentityVerified` refuses a well-known file whose `Domain:` line names
+  another domain. A bare TXT value is still accepted on the id alone.
+- `isNostrIdentityVerified` recomputes each cached note's id and checks its
+  signature, as `verifyNostrIdentity` already did.
+
 ## [1.9.0] — 2026-10-07
 
 ### Deprecated

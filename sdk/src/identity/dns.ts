@@ -212,16 +212,19 @@ export function isValidDomain(domain: string): boolean {
 
 /**
  * Check if a DNS identity is already verified
- * This is a quick check using cached data
+ * This is a quick check using cached data: the TXT value or the well-known file
+ * fetched from `domain`. A well-known file names its domain, and must name this one.
  */
 export function isDnsIdentityVerified(
     attestationId: string,
-    _domain: string,
+    domain: string,
     cachedContent?: string
 ): boolean {
-    if (!cachedContent) {
+    if (!cachedContent || !cachedContent.includes(attestationId)) {
         return false;
     }
-
-    return cachedContent.includes(attestationId);
+    const named = /^Domain:\s*(\S+)\s*$/im.exec(cachedContent);
+    if (!named) return true;
+    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+    return named[1]!.toLowerCase() === cleanDomain;
 }

@@ -69,6 +69,8 @@ interface GitHubGist {
     created_at: string;
     updated_at: string;
     files: Record<string, GitHubGistFile>;
+    /** Present on every gist the GitHub API returns. */
+    owner?: { login: string };
 }
 
 /**
@@ -243,14 +245,18 @@ Learn more about OrangeCheck: https://ochk.io
 
 /**
  * Check if a GitHub identity is already verified
- * This is a quick check using cached gist data
+ * This is a quick check using cached gist data. Only gists owned by `username`
+ * count, so the cache must keep the API's `owner` field.
  */
 export function isGitHubIdentityVerified(
     attestationId: string,
-    _username: string,
+    username: string,
     cachedGists: GitHubGist[]
 ): boolean {
+    const login = username.replace(/^@/, '').toLowerCase();
     return cachedGists.some((gist) => {
+        if (gist.owner?.login?.toLowerCase() !== login) return false;
+
         // Check description
         if (gist.description?.includes(attestationId)) {
             return true;
