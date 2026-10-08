@@ -7,6 +7,31 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.34.1] — 2026-10-08
+
+### Fixed — phone footer: one rule, not two
+
+On phones, the disclosures' bottom rule and the legal bar's top rule sat 32px
+apart. The legal bar now uses the last disclosure's rule, and the phone gaps
+are tighter.
+
+Phone footer height at 390 (light and dark measure the same):
+
+| Site | Before 0.34 | 0.34.0 |
+| --- | --- | --- |
+| vote | 1,227px | 528px |
+| attest | 1,261px | 562px |
+| me | 1,144px | 577px |
+
+This release takes about 40px more off each.
+
+### Fixed — a hover colour no longer exempts dimmed text from the floor
+
+`text-brand-foreground/80 hover:text-brand-foreground` stayed at 3.55:1 at
+rest, as on me.ochk.io's band links, because any `hover:` exempted it. The
+floor now skips only an element that is currently hovered, so its hover colour
+still shows. `group-hover:` and the other state variants are still exempt.
+
 ## [0.34.0] — 2026-10-08
 
 ### Changed — Pagination takes `pageIndex`, and the base is in the name

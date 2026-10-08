@@ -109,7 +109,7 @@ function FooterColumnView({ column }: { column: FooterColumn }) {
 // per link in one column ran the footer to 1,100-1,260px, longer than many pages.
 function FooterColumnDisclosure({ column }: { column: FooterColumn }) {
   return (
-    <details className="group border-b last:border-b-0">
+    <details className="group border-b">
       <summary className="label-mono text-primary flex min-h-11 cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
         {column.label}
         <ChevronDown
@@ -181,7 +181,7 @@ export function OcFamilyFooter({
   return (
     <footer className={cn("border-t", className)}>
       <div className="container py-8 sm:py-12 md:py-16">
-        <div className={cn("grid gap-8 sm:grid-cols-2 sm:gap-10", grid)}>
+        <div className={cn("grid gap-6 sm:grid-cols-2 sm:gap-10", grid)}>
           <div className="oc-footer-brand">
             <div className="flex items-center gap-2">
               {brand.mark}
@@ -195,7 +195,7 @@ export function OcFamilyFooter({
             {brand.meta && <div className="mt-4">{brand.meta}</div>}
           </div>
           {allColumns.length > 0 && (
-            <div className="border-y sm:hidden">
+            <div className="border-t sm:hidden">
               {allColumns.map((column) => (
                 <FooterColumnDisclosure key={column.label} column={column} />
               ))}
@@ -206,7 +206,13 @@ export function OcFamilyFooter({
           ))}
         </div>
 
-        <div className="mt-8 flex sm:mt-10 flex-col items-start justify-between gap-3 border-t pt-6 font-mono text-[11px] tracking-widest uppercase sm:flex-row sm:items-center">
+        {/* On a phone the last disclosure's rule already divides the legal bar. */}
+        <div
+          className={cn(
+            "flex flex-col items-start justify-between gap-3 font-mono text-[11px] tracking-widest uppercase sm:mt-10 sm:flex-row sm:items-center sm:border-t sm:pt-6",
+            allColumns.length > 0 ? "mt-4" : "mt-8 border-t pt-6",
+          )}
+        >
           <span className="text-muted-foreground">
             {legalCopyright ?? <>© {year} orangecheck · mit + cc-by-4.0</>}
           </span>

@@ -119,13 +119,15 @@
 
 /* Muted text and the band's text sit just over 4.5:1 by design (check-token-contrast),
    so any opacity takes them under AA. Family sites carried ~1,300 such dims, so the
-   dimmed forms render at the full tone. Unlayered, it outranks the utility. An element
-   that also changes colour on a state (hover:, focus:, data-[…]:, aria-*:) is left
-   alone so that state keeps working; a responsive size like `sm:text-base` is not a
-   state and does not exempt it. Display-size headings on a band keep their lighter
-   phrase. */
+   dimmed forms render at the full tone. Unlayered, it outranks the utility. A hovered
+   element is skipped so its hover: colour still shows; one that changes colour on
+   another state (group-hover:, focus:, data-[…]:, aria-*:) is left alone so that state
+   keeps working. A responsive size like `sm:text-base` is not a state and does not
+   exempt it. Display-size headings on a band keep their lighter phrase. */
 :is([class^='text-muted-foreground/'], [class*=' text-muted-foreground/']):not(
-        [class*='hover:text-'],
+        :hover,
+        [class*='group-hover:text-'],
+        [class*='peer-hover:text-'],
         [class*='focus:text-'],
         [class*='focus-visible:text-'],
         [class*='active:text-'],
@@ -140,7 +142,9 @@
 }
 .bg-brand
     :is([class^='text-brand-foreground/'], [class*=' text-brand-foreground/']):not(
-        [class*='hover:text-'],
+        :hover,
+        [class*='group-hover:text-'],
+        [class*='peer-hover:text-'],
         [class*='focus:text-'],
         [class*='focus-visible:text-'],
         [class*='active:text-'],
