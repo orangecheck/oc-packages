@@ -660,7 +660,7 @@ function MobileMenu({
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label="menu"
-                className="oc-hit border-input bg-background hover:bg-accent text-muted-foreground inline-flex size-8 items-center justify-center rounded-md border transition-colors"
+                className="border-input bg-background hover:bg-accent text-muted-foreground inline-flex size-11 items-center justify-center rounded-md border transition-colors md:size-8"
                 data-oc-account-mobile-toggle=""
             >
                 {open ? <X className="size-4" aria-hidden /> : <Menu className="size-4" aria-hidden />}
@@ -781,7 +781,7 @@ export function OcAccountMenuView({
             data-oc-account-menu-signin=""
             className={
                 triggerClassName ??
-                'oc-hit border-input bg-background hover:bg-accent inline-flex h-8 items-center justify-center rounded-md border px-3 font-mono text-[11px] font-semibold tracking-widest uppercase transition-colors'
+                'border-input bg-background hover:bg-accent inline-flex h-11 items-center justify-center rounded-md border px-3 font-mono md:h-8 text-[11px] font-semibold tracking-widest uppercase transition-colors'
             }
         >
             {signInLabel}
@@ -826,7 +826,7 @@ export function OcAccountMenuView({
                 aria-label={`Signed in as ${account.didOc}. Open account menu.`}
                 className={
                     triggerClassName ??
-                    'oc-hit border-primary/40 bg-card hover:bg-accent inline-flex h-8 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] tracking-wide transition-colors sm:px-3'
+                    'border-primary/40 bg-card hover:bg-accent inline-flex h-11 items-center gap-1.5 md:h-8 rounded-md border px-2 font-mono text-[11px] tracking-wide transition-colors sm:px-3'
                 }
                 data-oc-account-menu-trigger=""
             >

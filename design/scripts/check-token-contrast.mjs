@@ -2,8 +2,8 @@
 //
 // Reads the theme CSS directly, so it gates the code rather than a deploy. Pairs:
 //   - foreground / muted-foreground on background, card, muted and the terminal strip
-//   - primary and the four status tokens as text on background, card and their
-//     own 12% tint (the pill / callout surface)
+//   - primary and the four status tokens as text on background, card, muted (zebra
+//     rows, table heads, tier chips) and their own 12% tint (the pill / callout surface)
 //   - every *-foreground on its fill (buttons, badges, the brand band)
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -74,7 +74,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.css'))) {
             if (t.card) check(t[fg], mix(t.foreground, t.card, 0.08), `${fg} on the terminal strip`);
         }
         for (const fg of COLORED) {
-            for (const bg of ['background', 'card']) check(t[fg], t[bg], `${fg} on ${bg}`);
+            for (const bg of ['background', 'card', 'muted']) check(t[fg], t[bg], `${fg} on ${bg}`);
             if (t[fg]) check(t[fg], mix(t[fg], t.background, 0.12), `${fg} on its 12% tint`);
         }
         for (const fill of FILLS) check(t[`${fill}-foreground`], t[fill], `${fill}-foreground on ${fill}`);

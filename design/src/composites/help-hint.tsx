@@ -46,7 +46,7 @@ export function HelpHint({
                 aria-label={label}
                 onClick={(e) => e.stopPropagation()}
                 className={cn(
-                    'focus-visible:ring-primary/60 inline-flex shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2',
+                    'oc-hit focus-visible:ring-primary/60 inline-flex shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2',
                     tone === 'subtle'
                         ? 'text-muted-foreground hover:text-foreground/80'
                         : 'text-primary hover:text-foreground',

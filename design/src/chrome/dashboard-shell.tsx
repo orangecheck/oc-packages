@@ -128,7 +128,7 @@ export function OcDashboardShell({
                         <button
                             type="button"
                             onClick={() => setDrawerOpen(true)}
-                            className="text-muted-foreground hover:text-foreground inline-flex h-9 items-center gap-2 px-1 font-mono text-[11px] tracking-widest uppercase transition-colors"
+                            className="text-muted-foreground hover:text-foreground inline-flex h-11 items-center gap-2 px-1 font-mono text-[11px] tracking-widest uppercase transition-colors"
                             aria-label="open dashboard tools"
                             aria-expanded={drawerOpen}
                             data-oc-dashboard-mobile-trigger=""
@@ -138,7 +138,7 @@ export function OcDashboardShell({
                         </button>
                         <Link
                             href={rootHref}
-                            className="text-primary font-mono text-[11px] tracking-widest uppercase"
+                            className="text-primary inline-flex min-h-11 items-center font-mono text-[11px] tracking-widest uppercase"
                         >
                             § dashboard
                         </Link>
@@ -239,7 +239,7 @@ function Sidebar({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="text-muted-foreground hover:text-foreground -mr-2 inline-flex h-8 w-8 items-center justify-center rounded font-mono text-lg"
+                            className="text-muted-foreground hover:text-foreground -mr-2 inline-flex size-11 items-center justify-center rounded font-mono text-lg md:size-8"
                             aria-label="close navigation"
                         >
                             ×

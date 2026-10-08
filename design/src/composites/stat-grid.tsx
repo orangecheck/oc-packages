@@ -28,11 +28,13 @@ const TONE_CLASS = {
     muted: 'text-muted-foreground',
 } as const;
 
+// Two tiles a row on phones for 2 and 4: one per row turned four short numbers into
+// a whole screen. Three stays single until md, since thirds of a phone are too narrow.
 const COL_CLASS = {
     1: '',
-    2: 'md:grid-cols-2',
+    2: 'grid-cols-2',
     3: 'md:grid-cols-3',
-    4: 'md:grid-cols-2 lg:grid-cols-4',
+    4: 'grid-cols-2 lg:grid-cols-4',
 } as const;
 
 /**
@@ -54,7 +56,7 @@ export function StatGrid({ items, columns = 3, className = '' }: StatGridProps) 
 function Tile({ item }: { item: StatItem }) {
     const tone = item.tone ?? (item.accent ? 'primary' : 'default');
     return (
-        <div className="oc-stat-tile bg-background p-5">
+        <div className="oc-stat-tile bg-background flex-1 p-5">
             <div className="text-muted-foreground font-mono text-[10px] tracking-widest uppercase">
                 {item.label}
             </div>
@@ -73,8 +75,9 @@ function Tile({ item }: { item: StatItem }) {
 }
 
 export function StatTile({ children, ...item }: StatItem & { children?: ReactNode }) {
+    // The tile stretches to its grid row, so a short one shows no gap-px band under it.
     return (
-        <div>
+        <div className="flex h-full flex-col">
             <Tile item={item} />
             {children}
         </div>

@@ -118,14 +118,15 @@
     /* Lifted terracotta + dark label. No single shade gives both a white label
        and 4.5:1 text-primary on near-black (0.55 was 3.65:1 as text), so dark
        mode follows the other skins: light fill, dark label. */
-    --primary: oklch(0.64 0.162 42);
+    --primary: oklch(0.68 0.162 42);
     --primary-foreground: oklch(0.17 0.006 50);
 
     --secondary: oklch(0.27 0.006 55);
     --secondary-foreground: oklch(0.97 0.004 70);
 
-    /* Distinctly above --card (0.235) so skeletons / muted surfaces read. */
-    --muted: oklch(0.32 0.006 55);
+    /* Above --card (0.235) for zebra rows, table heads and chips, and low enough
+       that primary and status text on it still clear 4.5:1. */
+    --muted: oklch(0.28 0.006 55);
     --muted-foreground: oklch(0.73 0.008 60);
 
     /* Peach badge inverts to warm dark-terracotta + light-peach glyph — same
@@ -141,7 +142,7 @@
     /* Brighter than --primary so the focus ring stays visible on near-black. */
     --ring: oklch(0.64 0.16 44);
 
-    --destructive: oklch(0.645 0.19 27);
+    --destructive: oklch(0.69 0.19 27);
     --destructive-foreground: oklch(0.17 0.006 50);
 
     --warning: oklch(0.82 0.15 75);

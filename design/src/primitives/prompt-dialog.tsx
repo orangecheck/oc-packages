@@ -145,7 +145,7 @@ export function PromptHost() {
                         <Dialog.Title className="sr-only">{state.title}</Dialog.Title>
                         {state.message && (
                             <Dialog.Description asChild>
-                                <div className="text-muted-foreground font-mono text-xs leading-relaxed whitespace-pre-wrap">
+                                <div className="text-muted-foreground font-mono text-xs leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                                     {state.message}
                                 </div>
                             </Dialog.Description>

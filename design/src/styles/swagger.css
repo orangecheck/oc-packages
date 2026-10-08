@@ -1,5 +1,5 @@
 /*
- * swagger.css — Swagger UI in the family's dark mode, with phone-safe fields.
+ * swagger.css — Swagger UI in the family's dark mode, with phone-safe fields and AA badges.
  *
  * swagger-ui.css ships light-only, with body text hard-coded to #3b4151, so on
  * a dark page the explorer reads at ~1.6:1 and the Servers band is a white
@@ -210,4 +210,42 @@
     .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
         font-size: 16px;
     }
+}
+
+/* Swagger's method badges put white text on light fills (GET 2.3:1, POST 2.0:1,
+   PATCH 1.6:1). Same hues, deepened to 5.2:1 or better, in both modes. The version
+   pills and the Authorize / info links had the same problem. */
+.swagger-ui .opblock.opblock-get .opblock-summary-method {
+    background: #1d6fb8;
+}
+.swagger-ui .opblock.opblock-post .opblock-summary-method {
+    background: #18794e;
+}
+.swagger-ui .opblock.opblock-put .opblock-summary-method {
+    background: #a35200;
+}
+.swagger-ui .opblock.opblock-delete .opblock-summary-method {
+    background: #c0262d;
+}
+.swagger-ui .opblock.opblock-patch .opblock-summary-method {
+    background: #0f7a6c;
+}
+.swagger-ui .opblock.opblock-head .opblock-summary-method {
+    background: #6f1fd1;
+}
+.swagger-ui .info .title small {
+    background: #5b6270;
+}
+.swagger-ui .info .title small.version-stamp {
+    background-color: #4a7a00;
+}
+.swagger-ui .btn.authorize {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.swagger-ui .btn.authorize svg {
+    fill: var(--primary);
+}
+.swagger-ui .info a {
+    color: var(--primary);
 }

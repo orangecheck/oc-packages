@@ -161,7 +161,7 @@ export function OcAppearanceMenu({
                 title="appearance · mode + theme"
                 onClick={() => setOpen((v) => !v)}
                 className={cn(
-                    'oc-hit text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    'text-muted-foreground hover:text-foreground inline-flex size-11 items-center md:size-9 justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     triggerClassName
                 )}
             >

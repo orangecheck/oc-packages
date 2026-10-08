@@ -18,7 +18,7 @@ export const Default: Story = {
             const [page, setPage] = useState(0);
             return (
                 <div className="max-w-md">
-                    <Pagination page={page} pageSize={10} total={84} onPage={setPage} />
+                    <Pagination pageIndex={page} pageSize={10} total={84} onPage={setPage} />
                 </div>
             );
         }

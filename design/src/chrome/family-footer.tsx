@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -91,7 +92,7 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 
 function FooterColumnView({ column }: { column: FooterColumn }) {
   return (
-    <div>
+    <div className="hidden sm:block">
       <div className="label-mono text-primary mb-3">{column.label}</div>
       <ul className="md:space-y-2">
         {column.links.map((link) => (
@@ -101,6 +102,29 @@ function FooterColumnView({ column }: { column: FooterColumn }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+// Phones get each group as a disclosure with its links two to a row. One 44px row
+// per link in one column ran the footer to 1,100-1,260px, longer than many pages.
+function FooterColumnDisclosure({ column }: { column: FooterColumn }) {
+  return (
+    <details className="group border-b last:border-b-0">
+      <summary className="label-mono text-primary flex min-h-11 cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+        {column.label}
+        <ChevronDown
+          aria-hidden
+          className="size-4 transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <ul className="grid grid-cols-2 gap-x-4 pb-2">
+        {column.links.map((link) => (
+          <li key={`${column.label}:${link.href}`} className="min-w-0">
+            <FooterLinkItem link={link} />
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -156,7 +180,7 @@ export function OcFamilyFooter({
 
   return (
     <footer className={cn("border-t", className)}>
-      <div className="container py-10 sm:py-12 md:py-16">
+      <div className="container py-8 sm:py-12 md:py-16">
         <div className={cn("grid gap-8 sm:grid-cols-2 sm:gap-10", grid)}>
           <div className="oc-footer-brand">
             <div className="flex items-center gap-2">
@@ -170,12 +194,19 @@ export function OcFamilyFooter({
             </div>
             {brand.meta && <div className="mt-4">{brand.meta}</div>}
           </div>
+          {allColumns.length > 0 && (
+            <div className="border-y sm:hidden">
+              {allColumns.map((column) => (
+                <FooterColumnDisclosure key={column.label} column={column} />
+              ))}
+            </div>
+          )}
           {allColumns.map((column) => (
             <FooterColumnView key={column.label} column={column} />
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t pt-6 font-mono text-[11px] tracking-widest uppercase sm:flex-row sm:items-center">
+        <div className="mt-8 flex sm:mt-10 flex-col items-start justify-between gap-3 border-t pt-6 font-mono text-[11px] tracking-widest uppercase sm:flex-row sm:items-center">
           <span className="text-muted-foreground">
             {legalCopyright ?? <>© {year} orangecheck · mit + cc-by-4.0</>}
           </span>

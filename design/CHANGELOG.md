@@ -7,6 +7,62 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.34.0] — 2026-10-08
+
+### Changed — Pagination takes `pageIndex`, and the base is in the name
+
+`page` was zero-based, but the name did not say so. Four of six call sites
+passed 1-based numbers, so page one rendered "11–20 of 20", prev showed an empty
+list, and me.ochk.io's admin could never reach rows 11–20.
+
+- The prop is now `pageIndex`, zero-based. `onPage` receives the next index.
+- `page` still works for this minor and warns once in development.
+- An index past the last page clamps to it and warns that the index is
+  zero-based.
+- `scripts/check-pagination.mjs`, run by `yarn test` against the built dist,
+  renders each case and checks the label and button states. It fails against
+  0.33.3.
+
+### Changed — ember dark: primary and status text clear AA on muted surfaces (visible)
+
+Real pages put `text-primary` on `bg-muted`: zebra rows, table heads and tier
+chips. In ember dark that measured 3.54:1 on vault /pricing and in docs tables.
+
+- ember dark `--primary` goes to `oklch(0.68 0.162 42)` and `--destructive` to
+  0.69.
+- `--muted` goes down to 0.28, still above the card.
+- The token gate now checks coloured text on muted as well. Only ember dark
+  failed it.
+
+### Changed — the footer fits a phone
+
+With 44px links in one column, the footer ran 1,144–1,261px at 390, longer
+than many pages. Below `sm`, each link group is now a disclosure with its links
+two to a row, still 44px.
+
+### Changed — 44px controls on phones
+
+- The account-menu trigger, sign-in button, account chip, appearance menu, the
+  dashboard-shell tools button, its "§ dashboard" link and the drawer close are
+  44px boxes below `md`. The header has room for them.
+- Switch and the HelpHint trigger keep their visual size and get the 44px hit
+  area that CopyButton, Card expand and the dialog and sheet closes already
+  have (`.oc-hit`). Their box still measures small; a tap 10px outside it lands.
+- TabsTrigger is `min-h-11` below `md`.
+
+### Fixed
+
+- StatGrid lays out 2 and 4 columns as two per row on phones. Four short
+  numbers no longer fill a whole screen.
+- StatTile stretches to its grid row, so a shorter tile shows no border-coloured
+  band under it.
+- PromptHost's message wraps anywhere. A 64-hex id no longer overflows the
+  dialog by 107px at 390.
+- `styles/swagger.css`: method badges were white on light fills (GET 2.3:1,
+  PATCH 1.6:1). They now keep their hues at 5.2:1 or better. The version pills
+  and the Authorize and info links use tokens.
+- Dev only: sharp 0.35.5 and source-map-js 1.2.2 in the Storybook toolchain.
+
 ## [0.33.3] — 2026-10-08
 
 ### Fixed — the dimmed-text floor skipped anything with a responsive size
