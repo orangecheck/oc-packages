@@ -117,7 +117,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Most of the Service works without registration. An optional **Sign in with Bitcoin** flow opens a session keyed to a Bitcoin address you prove control of via BIP-322 — no password, no email. A session is a server-side row plus an `httpOnly + Secure + SameSite=Lax` cookie, revoked when you sign out or the cookie expires.',
+                    text: 'Most of the Service works without registration. Optional sign-in proves one of: a Bitcoin address (a BIP-322 signature), an email inbox (a one-time code), or a Google or GitHub account. No password is ever created. A session is a server-side row plus an `HttpOnly; Secure; SameSite=None` cookie on `.ochk.io`, revoked when you sign out or the cookie expires.',
                 },
                 {
                     kind: 'para',
@@ -253,7 +253,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'optional account',
-                            v: 'most of the Service needs no sign-in; the optional Sign in with Bitcoin flow is keyed to a public address — no email, no password',
+                            v: 'most of the Service needs no sign-in; optional sign-in uses a Bitcoin signature, an email code, or Google/GitHub — never a password',
                         },
                         {
                             k: 'transparency',
@@ -287,7 +287,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'information you provide' },
                 {
                     kind: 'para',
-                    text: '**Bitcoin addresses and signatures** are processed client-side to generate a cryptographic proof; this data is public by design. **Identity bindings** you add are included in the signed message and are public. **Contact information** is collected only if you email us for support, solely to respond. **Sign-in sessions** store a minimal account row keyed by your verified Bitcoin address plus session rows with a random id, source IP, a user-agent hash, and timestamps — no password, no email.',
+                    text: '**Bitcoin addresses and signatures** are processed client-side to generate a cryptographic proof; this data is public by design. **Identity bindings** you add are included in the signed message and are public. **Contact information** is collected only if you email us for support, solely to respond. **Sign-in** stores an account row with an opaque `did:oc` identifier and the identities you sign in with: a Bitcoin address (public by design), and an email address if you use an email code, Google or GitHub (encrypted at rest). Each session row records a random id, the source IP, your browser\'s user-agent string, and timestamps; each sign-in and identity change is also logged with IP and user-agent for security. No password is ever stored.',
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {
@@ -338,7 +338,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'session rows',
-                            v: 'live up to 30 days (cookie max-age) or until revoked; idle accounts with no session activity for 24 months are deleted automatically',
+                            v: 'live up to 30 days (cookie max-age) or until revoked; your account stays until you ask us to delete it',
                         },
                         {
                             k: 'support emails',

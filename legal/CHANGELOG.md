@@ -6,6 +6,23 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [Unreleased]
+
+### Fixed — the ochk.io privacy policy described a sign-in that no longer exists
+
+- **Was:** sign-in is "Sign in with Bitcoin … no password, no email", and
+  session rows hold "a user-agent hash". **Now:** sign-in proves a Bitcoin
+  address, an email inbox, or a Google/GitHub account; an email is stored
+  encrypted when one of those is used; session rows hold the raw user-agent
+  string and IP, and sign-ins are logged with both. ochk.io/signin defaults to
+  the email code and leads with Google/GitHub, so the old text was false for
+  most sign-ins.
+- **Was:** the cookie is `SameSite=Lax` (protocol and me profiles). **Now:**
+  `SameSite=None; Secure`, which is what production sets.
+- **Was:** "idle accounts with no session activity for 24 months are deleted
+  automatically". No such job runs. **Now:** an account stays until you ask
+  for it to be deleted.
+
 ## [0.7.0] — 2026-09-18
 
 ### Fixed — four passages still denied the custody that §custody admits

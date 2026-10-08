@@ -100,6 +100,13 @@ export interface OcLinkedIdentitiesProps {
     className?: string;
     /** Called after every successful link / unlink / transfer. */
     onChange?: () => void;
+    /**
+     * Show the "portable attestation" card that links out to attest.ochk.io.
+     * Defaults to `true`. Pass `false` on a page that already hosts its own
+     * attestation builder (ochk.io's dashboard), or the same action is offered
+     * twice, one panel apart.
+     */
+    attestationLink?: boolean;
 }
 
 /* --- main --- */
@@ -108,6 +115,7 @@ export function OcLinkedIdentities({
     authOrigin = DEFAULT_AUTH_ORIGIN,
     className,
     onChange,
+    attestationLink = true,
 }: OcLinkedIdentitiesProps): React.ReactElement {
     const [resp, setResp] = React.useState<IdentitiesResp | null>(null);
     const [error, setError] = React.useState<string | null>(null);
@@ -180,11 +188,9 @@ export function OcLinkedIdentities({
             <div style={panelStyle()}>
                 <SectionLabel>§ what this is</SectionLabel>
                 <p style={bodyStyle}>
-                    Your public identity is the opaque <code style={codeStyle}>did:oc:</code> DID.
-                    Below it sit your private linked identities — your email and your Bitcoin
-                    address. They never appear in dashboard chrome and never reach an integrator
-                    unless you grant the matching scope. Linking a second identity is also your
-                    account-recovery path: if you lose one, the other still signs you in.
+                    These are the ways you can sign in to this account. An app you sign in to
+                    sees one only if you grant it. Linking a second one is also your way back
+                    in: lose one, and the other still signs you in.
                 </p>
             </div>
 
@@ -234,7 +240,7 @@ export function OcLinkedIdentities({
                 />
             )}
 
-            {hasBtc && <AttestationLink />}
+            {hasBtc && attestationLink && <AttestationLink />}
         </div>
     );
 }
@@ -1050,11 +1056,6 @@ const hintStyle: React.CSSProperties = {
     fontFamily: MONO,
     fontSize: 10.5,
     opacity: 0.8,
-};
-
-const codeStyle: React.CSSProperties = {
-    fontFamily: MONO,
-    color: V.foreground,
 };
 
 const rowStyle: React.CSSProperties = {

@@ -7,6 +7,37 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Fixed
+
+- **Sign-in errors are sentences, not reason codes.** `OcSignIn` printed the
+  host's reasons verbatim: an address typo showed `bad_request`, a bad code
+  `wrong_code`, an expired one `expired`. `humanSigninError()` maps each to
+  what happened and what to do next, per path.
+- **A typo no longer blames a missing wallet.** The address is shape-checked
+  before a challenge is fetched (`looksLikeBitcoinAddress()`).
+- **The wallet tab works with no browser wallet.** On a phone, or with Sparrow
+  or a hardware wallet, it used to end at "no BIP-322 wallet extension
+  detected · install one and refresh". It now shows the message to sign and
+  takes the signature back. With more than one browser wallet installed you
+  can pick which one signs, where it used to take the first.
+- **Code step can send a new code**, instead of only "use a different email".
+- **Provider buttons hold their space while loading.** `providersFirst`
+  rendered nothing until `/api/auth/providers` answered, then pushed the form
+  down 130px (CLS 0.11 at 390px on ochk.io/signin?add=1).
+- Tabs read "email" / "bitcoin wallet" and are 44px tall; the long labels
+  wrapped onto two lines in a 318px column. Jargon hints ("Codes come from the
+  auth host", "oc_session is set on Domain=.ochk.io") are gone.
+- `OcLinkedIdentities` no longer says linked identities "never appear in
+  dashboard chrome", which the ochk.io dashboard header contradicts.
+
+### Added
+
+- `OcLinkedIdentities` `attestationLink` prop (default `true`). ochk.io's
+  dashboard hosts its own attestation builder one panel below, so it offered
+  the same action twice.
+
 ## [2.25.3] — 2026-09-25
 
 ### Changed

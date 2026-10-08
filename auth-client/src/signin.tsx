@@ -243,6 +243,67 @@ function hardNavigate(target: string): void {
     window.location.assign(target);
 }
 
+/* --- failures people can act on --- */
+
+/**
+ * The auth host answers with machine reasons. Its /api/auth/signin says it
+ * exposes them "so the /signin UI can give an actionable message", and this
+ * form printed them verbatim instead: typing "hello" as an address showed
+ * `bad_request`. Each reason maps to what happened and what to do next.
+ */
+const SIGNIN_ERRORS: Record<string, string> = {
+    bad_request: "That doesn't look like a Bitcoin address.",
+    invalid_challenge:
+        "That signature doesn't match this address. Sign with the wallet that holds it.",
+    sig_invalid: "That signature doesn't match this address. Sign with the wallet that holds it.",
+    sig_unsupported_scheme:
+        "We can't check this wallet's signature format yet. Try another wallet, or use email.",
+    expired: 'That request timed out. Try again for a fresh one.',
+    not_yet_valid: 'That request is not valid yet. Check your device clock, then try again.',
+    nonce_mismatch: "That request didn't match. Try again for a fresh one.",
+    audience_mismatch: "That request didn't match this site. Reload the page and try again.",
+    purpose_mismatch: "That request didn't match. Try again for a fresh one.",
+    malformed: "That signature couldn't be read. Copy it again, whole.",
+    cross_site_blocked: 'Your browser blocked this request. Reload the page and try again.',
+    rate_limited: 'Too many tries. Wait a minute, then try again.',
+    invalid_email: "That email address doesn't look right.",
+    mailer_unavailable: "We couldn't send the email right now. Try again in a minute.",
+    mailer_error: "We couldn't send the email right now. Try again in a minute.",
+    wrong_code: "That code isn't right. Check the newest email from us.",
+    replay: 'That code was already used. Send a new one.',
+    invalid_token: 'That code is no longer valid. Send a new one.',
+    email_mismatch: 'That code was sent to a different address. Send a new one.',
+};
+
+const EMAIL_ERRORS: Record<string, string> = {
+    expired: 'That code expired. Send a new one.',
+};
+
+export function humanSigninError(reason: string, path: 'wallet' | 'email'): string {
+    // A wallet extension's own message ("User rejected the request") is prose already.
+    if (!/^[a-z0-9_]+$/.test(reason)) return reason;
+    if (path === 'email' && EMAIL_ERRORS[reason]) return EMAIL_ERRORS[reason];
+    return (
+        SIGNIN_ERRORS[reason] ??
+        (path === 'email'
+            ? "That didn't work. Try again, or send a new code."
+            : "That didn't work. Try again.")
+    );
+}
+
+const BECH32_ADDRESS = /^(bc1|tb1|bcrt1)[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{8,87}$/i;
+const BASE58_ADDRESS = /^[123mn][1-9A-HJ-NP-Za-km-z]{25,34}$/;
+
+/**
+ * Shape check only, so a typo fails here with a clear message instead of
+ * fetching a challenge for it and then blaming a missing wallet extension.
+ * The host still verifies the signature against the real address.
+ */
+export function looksLikeBitcoinAddress(input: string): boolean {
+    const s = input.trim();
+    return BECH32_ADDRESS.test(s) || BASE58_ADDRESS.test(s);
+}
+
 /* --- main component --- */
 
 export function OcSignIn({
@@ -444,7 +505,7 @@ export function OcSignIn({
                         fontSize: 11,
                     }}
                 >
-                    That sign-in didn&apos;t complete. Please try again.
+                    That sign-in didn&apos;t finish. Try again, or use another way below.
                 </div>
             )}
             {addMode && (
@@ -511,13 +572,13 @@ export function OcSignIn({
                                 active={path === 'email'}
                                 onClick={() => setPath('email')}
                             >
-                                email + otp
+                                email
                             </SigninTab>
                             <SigninTab
                                 active={path === 'wallet'}
                                 onClick={() => setPath('wallet')}
                             >
-                                bitcoin · self-custody
+                                bitcoin wallet
                             </SigninTab>
                         </>
                     ) : (
@@ -532,7 +593,7 @@ export function OcSignIn({
                                 active={path === 'email'}
                                 onClick={() => setPath('email')}
                             >
-                                email + otp
+                                email
                             </SigninTab>
                         </>
                     )}
@@ -599,6 +660,7 @@ function SigninTab({
             onClick={onClick}
             data-oc-signin-tab={active ? 'active' : 'inactive'}
             style={{
+                minHeight: 44,
                 padding: '0.6rem 0.875rem',
                 background: 'transparent',
                 border: 'none',
@@ -692,7 +754,8 @@ function ProviderSignIn({
      */
     first?: boolean;
 }): React.ReactElement | null {
-    const [providers, setProviders] = React.useState<OAuthProviderEntry[]>([]);
+    // null while the list loads; [] once the host says none are configured.
+    const [providers, setProviders] = React.useState<OAuthProviderEntry[] | null>(null);
     // A provider sign-in redirects THROUGH the auth host, so its final
     // redirect must carry an ABSOLUTE return target — a bare path would
     // resolve against ochk.io and strand a subdomain user there. The
@@ -705,18 +768,19 @@ function ProviderSignIn({
         fetch(`${authOrigin}/api/auth/providers`, { credentials: 'include' })
             .then((r) => (r.ok ? (r.json() as Promise<{ providers?: OAuthProviderEntry[] }>) : null))
             .then((body) => {
-                if (!cancelled && body?.providers) setProviders(body.providers);
+                if (!cancelled) setProviders(body?.providers ?? []);
             })
             .catch(() => {
                 // auth host unreachable — no provider buttons; the
                 // BIP-322 / email-OTP paths are unaffected.
+                if (!cancelled) setProviders([]);
             });
         return () => {
             cancelled = true;
         };
     }, [authOrigin]);
 
-    if (providers.length === 0) return null;
+    if (providers !== null && providers.length === 0) return null;
 
     // An absolute family URL (the add-another-account round trip back to
     // a consumer subdomain) is carried verbatim through the OAuth hop;
@@ -759,6 +823,40 @@ function ProviderSignIn({
             <span style={line} />
         </div>
     );
+    const buttonStyle = (i: number): React.CSSProperties => ({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        boxSizing: 'border-box',
+        width: '100%',
+        minHeight: 44,
+        marginTop: i === 0 ? 0 : BUTTON_GAP,
+        padding: '0.6rem 0.875rem',
+        border: '1px solid var(--border, #27272a)',
+        borderRadius: 6,
+        background: 'transparent',
+        color: 'var(--muted-foreground, #a1a1aa)',
+        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+        fontSize: 12,
+        textDecoration: 'none',
+    });
+    // While the list loads, hold the space two buttons will take. Rendering
+    // nothing and then inserting them above the form pushed it down after
+    // first paint: most of /signin?add=1's CLS (0.11 at 390).
+    if (providers === null) {
+        if (!first) return null;
+        return (
+            <div data-oc-signin-providers="" aria-hidden="true">
+                {[0, 1].map((i) => (
+                    <div key={i} style={{ ...buttonStyle(i), visibility: 'hidden' }}>
+                        &nbsp;
+                    </div>
+                ))}
+                {divider}
+            </div>
+        );
+    }
     const buttons = providers.map((p, i) => (
         <a
             key={p.id}
@@ -766,23 +864,7 @@ function ProviderSignIn({
                 providerReturnTo
             )}${add ? '&add=1' : ''}`}
             data-oc-signin-provider={p.id}
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                boxSizing: 'border-box',
-                width: '100%',
-                marginTop: i === 0 ? 0 : BUTTON_GAP,
-                padding: '0.6rem 0.875rem',
-                border: '1px solid var(--border, #27272a)',
-                borderRadius: 6,
-                background: 'transparent',
-                color: 'var(--muted-foreground, #a1a1aa)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                fontSize: 12,
-                textDecoration: 'none',
-            }}
+            style={buttonStyle(i)}
         >
             <ProviderIcon id={p.id} />
             <span>{p.label}</span>
@@ -824,115 +906,208 @@ interface WalletFlowProps extends FlowProps {
     audience: string;
 }
 
+type AdapterShape = {
+    detectWallets: () => Array<{ id: string; name: string; detected: boolean }>;
+    getSigner: (id: string, opts: { address: string }) => (message: string) => Promise<string>;
+};
+
+async function loadAdapter(): Promise<AdapterShape> {
+    // A dependency, not an optional peer: this is a *static* dynamic import, so
+    // the consumer's bundler must resolve it at build time and a missing package
+    // fails the build. The old `Function('m','return import(m)')` trick produced
+    // a runtime bare-specifier `import()` the browser cannot resolve without an
+    // import map — which is what broke sign-in everywhere.
+    return (await import('@orangecheck/wallet-adapter')) as unknown as AdapterShape;
+}
+
 function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): React.ReactElement {
     const [address, setAddress] = React.useState('');
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
-    const [stage, setStage] = React.useState<'enter' | 'signing'>('enter');
+    // Browser wallets on this device; null until the adapter has loaded.
+    const [wallets, setWallets] = React.useState<Array<{ id: string; name: string }> | null>(
+        null
+    );
+    const [walletId, setWalletId] = React.useState<string | null>(null);
+    // No browser wallet (every phone, Sparrow, hardware wallets): show the
+    // challenge to sign elsewhere and take the signature back. This used to
+    // end in "no BIP-322 wallet extension detected · install one and refresh".
+    const [manual, setManual] = React.useState<{ message: string; nonce: string } | null>(null);
+    const [pasted, setPasted] = React.useState('');
+
+    React.useEffect(() => {
+        let cancelled = false;
+        loadAdapter()
+            .then((a) => {
+                if (cancelled) return;
+                const found = a
+                    .detectWallets()
+                    .filter((w) => w.detected && w.id !== 'manual')
+                    .map((w) => ({ id: w.id, name: w.name }));
+                setWallets(found);
+                setWalletId(found[0]?.id ?? null);
+            })
+            .catch(() => {
+                if (!cancelled) setWallets([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    async function fetchChallenge(addr: string): Promise<{ message: string; nonce: string }> {
+        const res = await fetch(
+            `${authOrigin}/api/challenge?addr=${encodeURIComponent(addr)}&audience=${encodeURIComponent(audience)}&purpose=login`
+        );
+        const json = (await res.json()) as { message?: string; nonce?: string; error?: string };
+        if (!res.ok || !json.message || !json.nonce) {
+            throw new Error(json.error ?? 'challenge_failed');
+        }
+        return { message: json.message, nonce: json.nonce };
+    }
+
+    async function submitSignature(message: string, nonce: string, signature: string): Promise<void> {
+        // Family-CORS lets the .ochk.io session cookie land cross-origin.
+        const res = await fetch(`${authOrigin}/api/auth/signin`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message,
+                signature,
+                scheme: 'bip322',
+                expectedNonce: nonce,
+                expectedAudience: audience,
+                expectedPurpose: 'login',
+                // Multi-account add-mode · the auth host preserves the current
+                // roster_id when set, instead of minting a fresh one.
+                ...(add ? { add: true } : {}),
+            }),
+        });
+        const json = (await res.json()) as SigninJson;
+        if (!res.ok || !('ok' in json) || !json.ok || !json.account) {
+            throw new Error(
+                ('reason' in json && json.reason) ||
+                    ('error' in json && json.error) ||
+                    'verify_failed'
+            );
+        }
+        onSuccess(json.account, json.token);
+    }
 
     async function signIn(e: React.FormEvent): Promise<void> {
         e.preventDefault();
         const addr = address.trim();
         if (!addr) {
-            setError('paste a Bitcoin address');
+            setError('Paste your Bitcoin address.');
+            return;
+        }
+        if (!looksLikeBitcoinAddress(addr)) {
+            setError(humanSigninError('bad_request', 'wallet'));
             return;
         }
         setError(null);
         setSubmitting(true);
-        setStage('signing');
         try {
-            // 1. Fetch a challenge bound to (address, audience, purpose=login).
-            const challengeRes = await fetch(
-                `${authOrigin}/api/challenge?addr=${encodeURIComponent(addr)}&audience=${encodeURIComponent(audience)}&purpose=login`
-            );
-            const challenge = (await challengeRes.json()) as {
-                message?: string;
-                nonce?: string;
-                error?: string;
-            };
-            if (!challengeRes.ok || !challenge.message || !challenge.nonce) {
-                throw new Error(challenge.error ?? 'challenge_failed');
+            const challenge = await fetchChallenge(addr);
+            if (!walletId) {
+                setManual(challenge);
+                setSubmitting(false);
+                return;
             }
-
-            // 2. Sign the challenge via @orangecheck/wallet-adapter (loaded
-            //    on demand so it stays out of the initial bundle).
-            type AdapterShape = {
-                detectWallets: () => Array<{ id: string; detected: boolean }>;
-                getSigner: (
-                    id: string,
-                    opts: { address: string }
-                ) => (message: string) => Promise<string>;
-            };
-            let adapter: AdapterShape;
-            try {
-                // A dependency, not an optional peer: this is a *static*
-                // dynamic import, so the consumer's bundler must resolve it at
-                // build time and a missing package fails the build. The old
-                // `Function('m','return import(m)')` trick produced a runtime
-                // bare-specifier `import()` the browser cannot resolve without
-                // an import map — which is what broke sign-in everywhere.
-                adapter = (await import(
-                    '@orangecheck/wallet-adapter'
-                )) as unknown as AdapterShape;
-            } catch {
-                throw new Error(
-                    'could not load wallet support · refresh to try again'
-                );
-            }
-            const wallets = adapter
-                .detectWallets()
-                .filter((w) => w.detected && w.id !== 'manual');
-            if (wallets.length === 0) {
-                throw new Error('no BIP-322 wallet extension detected · install one and refresh');
-            }
-            const wallet = wallets[0]!;
-            const signer = adapter.getSigner(wallet.id, { address: addr });
-            const signature = await signer(challenge.message);
-
-            // 3. POST { message, signature, … } to ochk.io/api/auth/signin.
-            //    Family-CORS lets the .ochk.io session cookie land cross-origin.
-            const res = await fetch(`${authOrigin}/api/auth/signin`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: challenge.message,
-                    signature,
-                    scheme: 'bip322',
-                    expectedNonce: challenge.nonce,
-                    expectedAudience: audience,
-                    expectedPurpose: 'login',
-                    // Multi-account add-mode · the auth host preserves
-                    // the current roster_id when set, instead of minting
-                    // a fresh one. Hosts that haven't deployed the
-                    // multi-account migration silently ignore the field.
-                    ...(add ? { add: true } : {}),
-                }),
-            });
-            const json = (await res.json()) as SigninJson;
-            if (!res.ok || !('ok' in json) || !json.ok || !json.account) {
-                throw new Error(
-                    ('reason' in json && json.reason) ||
-                        ('error' in json && json.error) ||
-                        `verify_failed_${res.status}`
-                );
-            }
-            onSuccess(json.account, json.token);
+            const signer = (await loadAdapter()).getSigner(walletId, { address: addr });
+            await submitSignature(challenge.message, challenge.nonce, await signer(challenge.message));
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'sign-in failed';
-            setError(msg);
+            setError(humanSigninError(err instanceof Error ? err.message : 'failed', 'wallet'));
             setSubmitting(false);
-            setStage('enter');
         }
     }
 
+    async function signInManual(e: React.FormEvent): Promise<void> {
+        e.preventDefault();
+        if (!manual) return;
+        const sig = pasted.trim();
+        if (!sig) {
+            setError('Paste the signature your wallet gave you.');
+            return;
+        }
+        setError(null);
+        setSubmitting(true);
+        try {
+            await submitSignature(manual.message, manual.nonce, sig);
+        } catch (err) {
+            setError(humanSigninError(err instanceof Error ? err.message : 'failed', 'wallet'));
+            setSubmitting(false);
+        }
+    }
+
+    if (manual) {
+        return (
+            <form onSubmit={signInManual} data-oc-signin-wallet-manual="">
+                <FlowHeader>
+                    In your wallet, use “sign message” (BIP-322) with {address.trim()}, sign the
+                    text below, and paste the signature back here. Nothing is spent.
+                </FlowHeader>
+                <Label>message to sign</Label>
+                <textarea
+                    readOnly
+                    value={manual.message}
+                    rows={5}
+                    onFocus={(e) => e.currentTarget.select()}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                />
+                <button
+                    type="button"
+                    onClick={() => void navigator.clipboard?.writeText(manual.message)}
+                    style={linkButtonStyle}
+                >
+                    copy message
+                </button>
+                <div style={{ marginTop: 14 }}>
+                    <Label>signature</Label>
+                    <textarea
+                        value={pasted}
+                        onChange={(e) => {
+                            setPasted(e.target.value);
+                            if (error) setError(null);
+                        }}
+                        rows={3}
+                        placeholder="paste the signature"
+                        spellCheck={false}
+                        aria-invalid={error ? true : undefined}
+                        style={{ ...inputStyle, resize: 'vertical' }}
+                    />
+                </div>
+                {error && <ErrorLine>{error}</ErrorLine>}
+                <button
+                    type="submit"
+                    disabled={submitting || !pasted.trim()}
+                    style={submitStyle(submitting || !pasted.trim())}
+                >
+                    {submitting ? 'checking…' : 'sign me in →'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setManual(null);
+                        setPasted('');
+                        setError(null);
+                    }}
+                    style={linkButtonStyle}
+                >
+                    use a different address
+                </button>
+            </form>
+        );
+    }
+
+    const noBrowserWallet = wallets !== null && wallets.length === 0;
     return (
         <form onSubmit={signIn} data-oc-signin-wallet="">
-            <FlowHeader label="§ bitcoin wallet">
-                Sign in with any BIP-322-capable Bitcoin wallet (Sparrow, Xverse, Leather, UniSat,
-                Alby, OKX, Phantom). Paste your address, click sign — your wallet extension prompts
-                for a one-time signature on a short challenge. The address becomes your OC
-                identity. Private key material never leaves your wallet.
+            <FlowHeader>
+                Your wallet signs a short message to prove you hold the address. Nothing is spent
+                and your key never leaves the wallet. Works with browser wallets, or any wallet that
+                can sign a message, like Sparrow.
             </FlowHeader>
             <Label>bitcoin address</Label>
             <input
@@ -950,20 +1125,37 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
                 aria-invalid={error ? true : undefined}
                 style={inputStyle}
             />
+            {wallets && wallets.length > 1 && (
+                <div style={{ marginTop: 12 }}>
+                    <Label>sign with</Label>
+                    <select
+                        value={walletId ?? ''}
+                        onChange={(e) => setWalletId(e.target.value)}
+                        style={inputStyle}
+                    >
+                        {wallets.map((w) => (
+                            <option key={w.id} value={w.id}>
+                                {w.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
             {error && <ErrorLine>{error}</ErrorLine>}
             <button
                 type="submit"
                 disabled={submitting || !address.trim()}
                 style={submitStyle(submitting || !address.trim())}
             >
-                {stage === 'signing' && submitting
+                {submitting
                     ? 'waiting for wallet…'
-                    : 'sign challenge · sign me in →'}
+                    : noBrowserWallet
+                      ? 'get the message to sign →'
+                      : 'sign in with wallet →'}
             </button>
-            <Hint>
-                Detection picks the first installed BIP-322-capable extension. Address is the one
-                your wallet will sign for.
-            </Hint>
+            {noBrowserWallet && (
+                <Hint>No browser wallet found here. You can sign with any wallet and paste.</Hint>
+            )}
         </form>
     );
 }
@@ -980,42 +1172,61 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
     const [codeError, setCodeError] = React.useState<string | null>(null);
     const [token, setToken] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
+    const [resent, setResent] = React.useState(false);
 
-    async function start(e: React.FormEvent): Promise<void> {
-        e.preventDefault();
-        const trimmed = email.trim().toLowerCase();
-        if (!trimmed || !/.+@.+\..+/.test(trimmed)) {
-            setEmailError('enter a valid email');
-            return;
-        }
-        setEmailError(null);
-        setSubmitting(true);
+    /** Ask the host to email a code. Returns a human error, or null on success. */
+    async function sendCode(address: string): Promise<string | null> {
         try {
             const res = await fetch(`${authOrigin}/api/auth/email-otp/start`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: trimmed }),
+                body: JSON.stringify({ email: address }),
             });
             const json = (await res.json()) as { ok?: boolean; token?: string; reason?: string };
-            if (!res.ok || !json.token) {
-                throw new Error(json.reason ?? `start failed (${res.status})`);
-            }
+            if (!res.ok || !json.token) return humanSigninError(json.reason ?? 'server_error', 'email');
             setToken(json.token);
-            setEmail(trimmed);
-            setStage('code');
-        } catch (err) {
-            setEmailError(err instanceof Error ? err.message : 'failed to send code');
-        } finally {
-            setSubmitting(false);
+            return null;
+        } catch {
+            return "We couldn't reach the server. Check your connection and try again.";
         }
+    }
+
+    async function start(e: React.FormEvent): Promise<void> {
+        e.preventDefault();
+        const trimmed = email.trim().toLowerCase();
+        if (!trimmed || !/.+@.+\..+/.test(trimmed)) {
+            setEmailError(humanSigninError('invalid_email', 'email'));
+            return;
+        }
+        setEmailError(null);
+        setSubmitting(true);
+        const err = await sendCode(trimmed);
+        setSubmitting(false);
+        if (err) {
+            setEmailError(err);
+            return;
+        }
+        setEmail(trimmed);
+        setStage('code');
+    }
+
+    async function resend(): Promise<void> {
+        setCodeError(null);
+        setResent(false);
+        setSubmitting(true);
+        const err = await sendCode(email);
+        setSubmitting(false);
+        setCode('');
+        if (err) setCodeError(err);
+        else setResent(true);
     }
 
     async function verify(e: React.FormEvent): Promise<void> {
         e.preventDefault();
         if (!token) return;
         if (code.length !== 6) {
-            setCodeError('6 digits');
+            setCodeError('The code is 6 digits.');
             return;
         }
         setCodeError(null);
@@ -1038,12 +1249,12 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
                 throw new Error(
                     ('reason' in json && json.reason) ||
                         ('error' in json && json.error) ||
-                        `verify failed (${res.status})`
+                        'server_error'
                 );
             }
             onSuccess(json.account, json.token);
         } catch (err) {
-            setCodeError(err instanceof Error ? err.message : 'verify failed');
+            setCodeError(humanSigninError(err instanceof Error ? err.message : 'failed', 'email'));
         } finally {
             setSubmitting(false);
         }
@@ -1052,7 +1263,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
     if (stage === 'enter') {
         return (
             <form onSubmit={start} data-oc-signin-email="">
-                <FlowHeader label="§ email + otp">
+                <FlowHeader>
                     We email you a 6-digit code. No password, and no wallet needed to start. Link a
                     Bitcoin address any time — that is the identity you hold yourself.
                 </FlowHeader>
@@ -1074,18 +1285,16 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
                 <button type="submit" disabled={submitting} style={submitStyle(submitting)}>
                     {submitting ? 'sending…' : 'send one-time code →'}
                 </button>
-                <Hint>
-                    Codes come from the auth host, expire in 10 minutes, and work once.
-                </Hint>
             </form>
         );
     }
 
     return (
         <form onSubmit={verify} data-oc-signin-email-verify="">
-            <FlowHeader label="§ enter the code">
-                Sent a 6-digit code to <span style={{ color: 'var(--foreground, #fafafa)' }}>{email}</span>.
-                Code expires in 10 minutes.
+            <FlowHeader>
+                {resent ? 'Sent a new code to ' : 'Sent a 6-digit code to '}
+                <span style={{ color: 'var(--foreground, #fafafa)' }}>{email}</span>. It expires in
+                10 minutes.
             </FlowHeader>
             <Label>one-time code</Label>
             <input
@@ -1113,29 +1322,28 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
             >
                 {submitting ? 'verifying…' : 'verify · sign me in →'}
             </button>
-            <button
-                type="button"
-                onClick={() => {
-                    setStage('enter');
-                    setCode('');
-                    setToken(null);
-                }}
-                style={{
-                    marginTop: 12,
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--muted-foreground, #a1a1aa)',
-                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                    fontSize: 11,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    padding: 0,
-                }}
-            >
-                use a different email
-            </button>
-            <Hint>On verify, oc_session is set on Domain=.ochk.io family-wide.</Hint>
+            <div>
+                <button
+                    type="button"
+                    onClick={() => void resend()}
+                    disabled={submitting}
+                    style={linkButtonStyle}
+                >
+                    send a new code
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setStage('enter');
+                        setCode('');
+                        setToken(null);
+                        setResent(false);
+                    }}
+                    style={linkButtonStyle}
+                >
+                    use a different email
+                </button>
+            </div>
         </form>
     );
 }
@@ -1146,23 +1354,26 @@ function FlowHeader({
     label,
     children,
 }: {
-    label: string;
+    /** Omitted where the active tab already names the method. */
+    label?: string;
     children: React.ReactNode;
 }): React.ReactElement {
     return (
         <div style={{ marginBottom: 16 }}>
-            <div
-                style={{
-                    color: 'var(--primary, #f97316)',
-                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                    fontSize: 10,
-                    letterSpacing: '0.18em',
-                    textTransform: 'uppercase',
-                    marginBottom: 6,
-                }}
-            >
-                {label}
-            </div>
+            {label && (
+                <div
+                    style={{
+                        color: 'var(--primary, #f97316)',
+                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                        fontSize: 10,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        marginBottom: 6,
+                    }}
+                >
+                    {label}
+                </div>
+            )}
             <p
                 style={{
                     color: 'var(--muted-foreground, #a1a1aa)',
@@ -1176,6 +1387,23 @@ function FlowHeader({
         </div>
     );
 }
+
+const linkButtonStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 44,
+    marginTop: 4,
+    marginRight: 16,
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--muted-foreground, #a1a1aa)',
+    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+    fontSize: 11,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+    padding: 0,
+};
 
 function Label({ children }: { children: React.ReactNode }): React.ReactElement {
     return (

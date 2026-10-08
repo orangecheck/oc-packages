@@ -314,7 +314,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Two cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=Lax, Domain=.ochk.io). `oc_theme` — your dark/light preference, not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                    text: 'Two cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme` — your dark/light preference, not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
                 },
             ],
         },
