@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.1] — 2026-10-08
+
+### Changed
+
+- `oc-vote tally` names the checks a run skipped: `--no-verify` (signatures)
+  and `--snapshot` (snapshot resolution and confirmations), as a
+  `! not checked:` line and as `skipped` in `--json` output.
+
 ## [0.6.0] — 2026-09-24
 
 ### Changed

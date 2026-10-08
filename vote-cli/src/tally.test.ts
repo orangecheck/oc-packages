@@ -7,7 +7,7 @@ import { generateX25519KeyPair, hexEncode, utf8Encode } from '@orangecheck/lock-
 import { commit, pollId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { describe, expect, it } from 'vitest';
 
-import { computeTally } from './commands/tally.js';
+import { computeTally, skippedChecks } from './commands/tally.js';
 import type { NostrEvent } from './nostr.js';
 import { selectPoll, selectReveal } from './select.js';
 
@@ -171,5 +171,18 @@ describe('selectPoll / selectReveal', () => {
     it('picks the reveal that verifies, not the newest', async () => {
         const unsignedReveal = { ...reveal, reveal_sk: 'ab'.repeat(32), sig: { ...reveal.sig, value: 'bad' } };
         expect(await selectReveal([ev(unsignedReveal, 9), ev(reveal, 1)], poll, verify)).toEqual(reveal);
+    });
+});
+
+describe('skippedChecks', () => {
+    it('names every check a run skipped, and nothing when none were', () => {
+        expect(skippedChecks({ snapshot_block: 'deadline' }, { verify: true })).toEqual([]);
+        expect(skippedChecks({ snapshot_block: 'deadline' }, { verify: false })).toEqual([
+            'signatures (--no-verify)',
+        ]);
+        expect(
+            skippedChecks({ snapshot_block: 'deadline' }, { verify: true, snapshotBlock: 900000 })
+        ).toEqual(['snapshot resolution and confirmations (--snapshot)']);
+        expect(skippedChecks({ snapshot_block: 900000 }, { snapshotBlock: 1 })).toEqual([]);
     });
 });

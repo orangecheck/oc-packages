@@ -99,6 +99,19 @@ export async function resolveSnapshot(
     return r.height;
 }
 
+/** What a tally run did not check, so its output can say so. */
+export function skippedChecks(
+    poll: Pick<Poll, 'snapshot_block'>,
+    opts: Pick<TallyOptions, 'verify' | 'snapshotBlock'>
+): string[] {
+    const skipped: string[] = [];
+    if (opts.verify === false) skipped.push('signatures (--no-verify)');
+    if (poll.snapshot_block === 'deadline' && opts.snapshotBlock !== undefined) {
+        skipped.push('snapshot resolution and confirmations (--snapshot)');
+    }
+    return skipped;
+}
+
 export async function runTally(opts: TallyOptions): Promise<void> {
     const { pollId: pid } = opts;
     if (!/^[0-9a-f]{64}$/.test(pid)) {
@@ -156,6 +169,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         verify,
     });
 
+    const skipped = skippedChecks(poll, opts);
     const output = {
         poll_id: pid,
         question: poll.question,
@@ -165,6 +179,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         deadline: poll.deadline,
         ballot_count: ballots.length,
         reveal_present: reveal != null,
+        skipped,
         ...result,
     };
 
@@ -184,6 +199,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     w(`  deadline:   ${poll.deadline}\n`);
     w(`  snapshot:   ${snapshot}\n`);
     w(`  ballots:    ${ballots.length}\n`);
+    for (const what of skipped) w(`  ! not checked: ${what}\n`);
     w(`\n`);
 
     if (result.state === 'awaiting_reveal') {
