@@ -57,7 +57,7 @@ export type StatusCode =
 export interface VerifyOptions {
     /** Allow signet network when true */
     testMode?: boolean;
-    /** Short-circuit with demo data */
+    /** @deprecated Has no effect. verify() always checks the signature and chain state. */
     demoMode?: boolean;
     /** Expected audience for RP policy */
     expectedAud?: string;

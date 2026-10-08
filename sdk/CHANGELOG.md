@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.9.0] — 2026-10-07
+
+### Deprecated
+
+- `VerifyOptions.demoMode` has no effect. `verify()`, and `check()` through
+  `verifyOptions`, always check the signature and chain state whatever
+  options are passed. The field stays in the type so existing callers still
+  compile; it goes in 2.0.
+
 ## [1.8.0] — 2026-09-24
 
 ### Added

@@ -112,13 +112,6 @@ async function verifySignature({
     scheme,
 }: SignatureVerifyInput): Promise<StatusCode> {
     try {
-        // Handle demo signatures - these should never reach here in demo mode,
-        // but add defensive check in case demo mode flag isn't set properly
-        if (sig === 'demo_signature') {
-            log.warn('Demo signature detected in verifySignature - should be handled by demo mode');
-            return 'sig_invalid';
-        }
-
         // Auto-detect scheme if not explicitly provided
         const detectedScheme = scheme || detectSignatureScheme(addr, sig);
 
@@ -472,7 +465,7 @@ function computeMetrics(
  * 4. Computes reputation metrics
  *
  * @param input - Verification input (message, address, signature)
- * @param opts - Optional verification options (demo mode, test mode, etc.)
+ * @param opts - Optional verification options (test mode, audience, esplora bases)
  * @returns Verification outcome with status codes and metrics
  *
  * @example
@@ -510,28 +503,6 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
         if (parsed.core.address !== input.addr) {
             codes.push('bad_request');
             return { ok: false, codes, network, attestation_id };
-        }
-
-        // Demo mode short-circuit with demo data matching the App panel
-        if (opts.demoMode) {
-            // Keep demo values in sync with createDemoBadgeData()
-            const sats_bonded = 1_000_000; // 0.01 BTC
-            const days_unspent = 90;
-            const metrics: Metrics = {
-                sats_bonded,
-                days_unspent,
-                score: (computeScore(sats_bonded, days_unspent, { algorithm: 'v0' }) as number), // ≈ 55.26
-            };
-            codes.push('sig_ok_bip322');
-            codes.push('bond_confirmed');
-            return {
-                ok: true,
-                codes,
-                network,
-                attestation_id,
-                identities: parsed.core.identities,
-                metrics,
-            };
         }
 
         // Testnet/Signet policy enforcement
