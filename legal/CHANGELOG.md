@@ -8,28 +8,43 @@ plainly what was claimed before and what is claimed now.
 
 ## [0.7.3] — 2026-10-08
 
-### Fixed — the ochk.io privacy policy described a sign-in that no longer exists
+### Fixed — the policies now say what the code stores
 
-- **Was:** sign-in is "Sign in with Bitcoin … no password, no email", and
-  session rows hold "a user-agent hash". **Now:** sign-in proves a Bitcoin
-  address, an email inbox, or a Google/GitHub account; an email is stored
-  encrypted when one of those is used; session rows hold the raw user-agent
-  string and IP, and sign-ins are logged with both. ochk.io/signin defaults to
-  the email code and leads with Google/GitHub, so the old text was false for
-  most sign-ins.
-- **Was:** me's cookie list named two cookies. **Now:** four; `oc_skin` and
-  `oc_motion` (appearance and reduced-motion preferences, `Domain=.ochk.io`,
-  set by @orangecheck/design) were missing.
-- **Was:** the cookie is `SameSite=Lax` (protocol and me profiles). **Now:**
-  `SameSite=None; Secure`, which is what production sets.
+Each passage below was compared with the code that does the storing (oc-www
+`lib/auth/*`, oc-vault-web `lib/vault-key.ts`, `lib/backup.ts`, `lib/export.ts`),
+and where they disagreed the text was rewritten from the code. A test
+(`test/claims.test.mjs`, now in CI) renders every Terms and Privacy document
+and fails on each phrase that was live and false.
+
+- **ochk.io privacy, was:** sign-in is "Sign in with Bitcoin … no password, no
+  email"; session rows hold "a user-agent hash"; the cookie is `SameSite=Lax`;
+  server logs "retained 90 days, then auto-deleted". **Now:** sign-in is a
+  Bitcoin signature, an email code, Google or GitHub; the verified email is
+  stored encrypted, with a one-way hash for lookup; each session stores the
+  token's hash, the IP address and the full user-agent string; sign-ins and
+  identity changes are logged with IP and user-agent; passkeys store a public
+  key and label; every cookie is listed with its real attributes
+  (`oc_session` HttpOnly; Secure; SameSite=None; 30 days); request logs live
+  only in the hosting provider's own window; nothing is deleted on a timer
+  yet, and the policy says so.
+- **ochk.io terms, was:** the same Bitcoin-only, `SameSite=Lax` account
+  paragraph. **Now:** matches the privacy policy.
 - **Was:** "idle accounts with no session activity for 24 months are deleted
-  automatically". No such job runs. **Now:** an account stays until you ask
-  for it to be deleted.
-- **Vault, was:** "Your identity is a Bitcoin address … no email", and the
-  collected data listed the sign-in address. **Now:** sign-in is any
-  OrangeCheck method; vault files data under the did:oc; the vault key is
-  stored sealed under the passphrase and recovery code (it is escrowed, which
-  is how a new device unlocks); an optional team email is listed.
+  automatically". No such job runs. **Now:** kept until you ask.
+- **vault privacy and terms, was:** "the Bitcoin address you sign in with … no
+  email, no name"; the vault key "never leaves your control"; "we cannot see
+  your vault key or any recovery material"; the export "works offline with
+  vault-core"; a released browser extension; logs kept 90 days. **Now:** data
+  is filed under the did:oc; the vault key is stored sealed under the
+  passphrase and the recovery code, and stays after the cloud copy is
+  deleted unless you ask; the encrypted backup (key plus entries) is the
+  self-sufficient file, the plain export is not; the extension is marked
+  unreleased.
+- **me privacy, was:** "you sign up with a Bitcoin signature or an email/phone
+  one-time code"; session records without device or IP; two cookies; logs
+  kept 90 days. **Now:** no phone sign-in exists and an email is personal
+  data; session records include IP and user-agent; four cookies; request logs
+  as above.
 
 ## [0.7.0] — 2026-09-18
 

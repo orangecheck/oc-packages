@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     preamble: [
         {
             kind: 'callout',
@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'me.ochk.io privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     preamble: [
         {
             kind: 'callout',
@@ -228,8 +228,8 @@ const privacy: DocSpec = {
                             v: 'me.ochk.io never collects your legal name, government ID, or physical address',
                         },
                         {
-                            k: 'no pii at signup',
-                            v: 'you sign up with a Bitcoin signature or an email/phone one-time code — your choice',
+                            k: 'little pii at signup',
+                            v: 'a Bitcoin signature needs no personal data; an email code, Google or GitHub sign-in stores your email address, encrypted',
                         },
                         {
                             k: 'scoped identity',
@@ -265,7 +265,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'session record',
-                            v: 'the session JWT id, account id, and issue/revoke timestamps. The session token itself lives only as a cookie in your browser.',
+                            v: 'a hash of the session token, the account id, the IP address and user-agent of the device that opened it, and timestamps. The token itself lives only in your browser.',
                         },
                         {
                             k: 'event envelopes',
@@ -345,8 +345,8 @@ const privacy: DocSpec = {
                             v: 'retained as the canonical earnings and custody-state record; anchored copies on Bitcoin and Nostr are immutable',
                         },
                         {
-                            k: 'technical logs',
-                            v: 'retained 90 days for security and debugging, then auto-deleted',
+                            k: 'request logs',
+                            v: 'held by our hosting provider (Vercel) for its own short retention window; we keep no separate copy',
                         },
                         {
                             k: 'session records',

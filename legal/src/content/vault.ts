@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for OC Vault (vault.ochk.io): an end-to-end-encrypted secrets vault. Client-side encryption, on-chain Bitcoin payment, no fund custody.',
     effective: '2026-05-15',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     preamble: [
         {
             kind: 'callout',
@@ -55,7 +55,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'OC Vault stores passwords, one-time-password seeds, API keys, notes, and small files. Every item is **encrypted client-side** in your browser under a vault key that never leaves your control. When you sync to the cloud, OrangeCheck stores an opaque encrypted blob — **OrangeCheck cannot read your vault contents, item names, or item types.**',
+                    text: 'OC Vault stores passwords, one-time-password seeds, API keys, notes, and small files. Every item is **encrypted client-side** in your browser under a vault key that only your passphrase or recovery code unlocks; we store that key only in sealed form. When you sync to the cloud, OrangeCheck stores an opaque encrypted blob — **OrangeCheck cannot read your vault contents, item names, or item types.**',
                 },
                 {
                     kind: 'para',
@@ -141,7 +141,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The portable export feature is always free and works offline with [`@orangecheck/vault-core`](https://www.npmjs.com/package/@orangecheck/vault-core) — even if OC Vault is discontinued, you retain a self-decryptable copy of your data. That guarantee does not depend on any paid tier.',
+                    text: 'The encrypted backup (settings → encrypted backup) is free on every tier. It writes one file holding your vault key and every entry, sealed under a passphrase you choose (scrypt, then AES-256-GCM), so it restores on any device and stays decryptable with standard, open primitives if OC Vault is discontinued. The plain export holds entries without the key and is readable only where your vault key already is.',
                 },
                 {
                     kind: 'stub',
@@ -223,7 +223,7 @@ const privacy: DocSpec = {
     metaDescription:
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
-    updated: '2026-05-15',
+    updated: '2026-10-08',
     sections: [
         {
             id: 'principles',
@@ -288,9 +288,8 @@ const privacy: DocSpec = {
                     items: [
                         'The contents of any vault item',
                         'The names, titles, or types of your items',
-                        'Your vault key or any recovery material',
+                        'Your vault key in usable form, your passphrase, or your recovery code — we hold the key only sealed under them',
                         'Your access tokens (only the SHA-256 hash is stored)',
-                        'Which sites the browser extension autofilled on — origin matching happens locally in your browser',
                     ],
                 },
             ],
@@ -302,12 +301,12 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The same encrypted vault is reachable from three surfaces. The zero-knowledge guarantee — that OrangeCheck only ever holds ciphertext — applies to all of them.',
+                    text: 'The same encrypted vault is reachable from the web app and from the CLI and SDK; a browser extension is planned. The zero-knowledge guarantee — that OrangeCheck only ever holds ciphertext — applies to all of them.',
                 },
-                { kind: 'subhead', text: 'browser extension (OC Vault for Chromium / Firefox)' },
+                { kind: 'subhead', text: 'browser extension (not released yet)' },
                 {
                     kind: 'para',
-                    text: 'The extension fetches the same encrypted blobs the web app does, caches them **as ciphertext** in browser-extension storage, and decrypts in the service worker only after you enter your passphrase. The vault key lives in memory and a RAM-only `storage.session` slot — it is never written to disk. The content script that offers autofill receives **one entry\'s field values at fill time** and nothing else; it never receives the vault key or the entry index. The extension talks only to your own `vault.ochk.io` account: no analytics, no telemetry, no remote code.',
+                    text: 'There is no OC Vault browser extension yet. When one ships, it is designed to work this way: the extension fetches the same encrypted blobs the web app does, caches them **as ciphertext** in browser-extension storage, and decrypts in the service worker only after you enter your passphrase. The vault key lives in memory and a RAM-only `storage.session` slot — it is never written to disk. The content script that offers autofill receives **one entry\'s field values at fill time** and nothing else; it never receives the vault key or the entry index. The extension talks only to your own `vault.ochk.io` account: no analytics, no telemetry, no remote code.',
                 },
                 { kind: 'subhead', text: 'developer platform — access tokens, CLI, SDK, GitHub Action' },
                 {
@@ -322,7 +321,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Essential cookies only, plus a theme preference. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
+                    text: 'No cookies of vault.ochk.io\'s own. The family sign-in cookie `oc_session` (set by ochk.io: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days) and the appearance cookies `oc_theme`, `oc_skin` and `oc_motion` apply here. Your vault data lives in your browser\'s IndexedDB, under your account. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
                 },
             ],
         },
@@ -335,15 +334,19 @@ const privacy: DocSpec = {
                     items: [
                         {
                             k: 'encrypted blobs',
-                            v: 'retained while your account is active; deleted on account deletion',
+                            v: 'kept while your account is active; you can delete the whole cloud copy at any time from settings',
+                        },
+                        {
+                            k: 'sealed vault key',
+                            v: 'kept so a new device can unlock; deleting the cloud copy does not remove it — ask us at [[PRIVACY_CONTACT]] and we will',
                         },
                         {
                             k: 'payment records',
                             v: 'retained as required for accounting and entitlement verification',
                         },
                         {
-                            k: 'technical logs',
-                            v: 'retained 90 days, then auto-deleted',
+                            k: 'request logs',
+                            v: 'held by our hosting provider (Vercel) for its own short retention window; rate-limit counters keyed by IP expire with their window',
                         },
                     ],
                 },

@@ -97,6 +97,7 @@ jobs:
                     - insights-client
                     - auth-core
                     - auth-client
+                    - legal
                     - ui
                     - design
         defaults:
