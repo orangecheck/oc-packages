@@ -56,6 +56,11 @@ for (const [rx, truth] of BANNED) {
     });
 }
 
+test('ochk.io privacy names the signup email to operators', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    assert.match(text, /operators get an email[^.]*Resend[^.]*did:oc/i);
+});
+
 test('ochk.io privacy names what sign-in stores', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
     for (const rx of [/user-agent string/i, /SameSite=None/i, /encrypted at rest/i, /no automatic deletion yet/i]) {

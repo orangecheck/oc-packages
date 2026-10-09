@@ -6,6 +6,15 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.5] — 2026-10-09
+
+### Added — the signup email to operators
+
+- **ochk.io privacy, was:** silent on it. **Now:** when a new account first
+  signs in, OrangeCheck's operators get an email through Resend naming its
+  `did:oc` and the identity it signed in with, a Bitcoin address or an email
+  address. oc-www has sent that email since the owner notifications shipped.
+
 ## [0.7.4] — 2026-10-09
 
 ### Fixed — me.ochk.io does not publish envelopes

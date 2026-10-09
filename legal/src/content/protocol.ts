@@ -227,7 +227,7 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-08',
+    updated: '2026-10-09',
     preamble: [
         {
             kind: 'callout',
@@ -312,6 +312,10 @@ const privacy: DocSpec = {
                         {
                             k: 'sign-in log',
                             v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time — kept for security',
+                        },
+                        {
+                            k: 'when you first sign in',
+                            v: 'OrangeCheck’s operators get an email, sent through our email provider (Resend), naming your `did:oc` and the identity you signed in with: your Bitcoin address or your email address',
                         },
                         { k: 'never', v: 'a password, a private key, or a seed phrase' },
                     ],
