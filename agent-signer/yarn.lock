@@ -181,9 +181,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/agent-core@^2.1.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/agent-core/-/agent-core-2.3.0.tgz#70c595932b7a9355c02ad3c9726ef2e8a7ff3f99"
-  integrity sha512-MD6vifp+puH6PejlxG3UaB+Fy8aOmerVPhdhA4ZeuRmR3tM3DuZSdCzQtVFpDPnaumfUWdXWzn0hww1EUlVgzQ==
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/agent-core/-/agent-core-2.4.0.tgz#3013a4305b9193d62effc164be130005e8c54bf4"
+  integrity sha512-KTVEUaU+EaxlqrXw2mF6iUnxXT1TvtwIf362CNU2K/aWnkU0dj3WNDoqIkRT81WrjV0EwwkEOKoQ3roE1QLjxQ==
   dependencies:
     "@noble/hashes" "^1.5.0"
     "@orangecheck/lock-core" "^1.0.1"
@@ -206,9 +206,9 @@
     "@noble/hashes" "^1.5.0"
 
 "@orangecheck/stamp-core@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.0.0.tgz#b1196da78408a0cf1d89ff4e09cad18fc3383c85"
-  integrity sha512-CSeIvBPB7pCCzOk756rcxhm+eAF8MEqlQ6E8BJ2VxRoCS/Q4IJhv1G3qnxT5AVESVhPKw/RO/dAQh9a0dm6o5A==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.1.0.tgz#f2499be9d7997eab56d6fec4ca5f933ccaa4e0d1"
+  integrity sha512-5wEjEPpJH81OW6p/ef4Q+Hvf+ToOyoKYXbbg1LBtxzbWEuOd2IbsIqRROS5keMHu9GuudyHkDsfJQTY5H7icVQ==
   dependencies:
     "@noble/hashes" "^1.5.0"
 
