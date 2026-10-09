@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-08',
+    updated: '2026-10-09',
     preamble: [
         {
             kind: 'callout',
@@ -185,7 +185,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity from `/me/settings`. **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Anchored events on Bitcoin and Nostr-published envelopes are immutable and cannot be deleted by OrangeCheck. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity from `/me/settings`. **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },
@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'me.ochk.io privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-08',
+    updated: '2026-10-09',
     preamble: [
         {
             kind: 'callout',
@@ -277,7 +277,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'public anchors',
-                            v: 'OpenTimestamps proofs and Nostr-published event roots — public by design, verifiable against Bitcoin without OrangeCheck online',
+                            v: 'an OpenTimestamps proof over each envelope’s hash, and a salted commitment to each envelope on Nostr. Public by design, and neither names you, the site or the amount. The envelope itself is served only to whoever holds its id. Drop manifests, which name no one, are published in full.',
                         },
                     ],
                 },
@@ -342,7 +342,7 @@ const privacy: DocSpec = {
                     items: [
                         {
                             k: 'event & rebind envelopes',
-                            v: 'retained as the canonical earnings and custody-state record; anchored copies on Bitcoin and Nostr are immutable',
+                            v: 'retained as the canonical earnings and custody-state record; their hashes on Bitcoin and commitments on Nostr are immutable',
                         },
                         {
                             k: 'request logs',
@@ -377,7 +377,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'From `/me/settings → advanced → delete` you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; events already anchored to Bitcoin headers or published to Nostr are immutable public records of fee flows and cannot be deleted by anyone.',
+                    text: 'From `/me/settings → advanced → delete` you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; hashes already anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by anyone; neither names you.',
                 },
             ],
         },

@@ -42,6 +42,7 @@ const BANNED = [
     [/vault key or any recovery material/i, 'the sealed key and recovery wrap are stored'],
     [/works offline with \[?@?(orangecheck\/)?vault-core/i, 'the plain export has no key; the encrypted backup does'],
     [/OC Vault for Chromium/i, 'no browser extension is released'],
+    [/Nostr-published (envelopes|event roots)/i, 'me.ochk publishes a salted commitment, never the envelope'],
 ];
 
 test('every doc renders', () => {

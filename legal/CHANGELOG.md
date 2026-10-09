@@ -6,6 +6,18 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.4] — 2026-10-09
+
+### Fixed — me.ochk.io does not publish envelopes
+
+- **me.ochk.io terms and privacy, was:** "Nostr-published envelopes" and
+  "Nostr-published event roots" are immutable public records of fee flows.
+  **Now:** each envelope's hash is anchored to Bitcoin and a salted commitment
+  to it goes to Nostr. Neither names the user, the site or the amount; the
+  envelope is served only to whoever holds its id. Drop manifests, which name
+  no one, are published in full. me.ochk.io changed what it publishes on
+  2026-10-09, before any envelope reached a relay.
+
 ## [0.7.3] — 2026-10-08
 
 ### Fixed — the policies now say what the code stores
