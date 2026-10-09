@@ -165,24 +165,24 @@
 
 "@noble/ciphers@^1.3.0":
   version "1.3.0"
-  resolved "https://registry.npmjs.org/@noble/ciphers/-/ciphers-1.3.0.tgz#f64b8ff886c240e644e5573c097f86e5b43676dc"
+  resolved "https://registry.yarnpkg.com/@noble/ciphers/-/ciphers-1.3.0.tgz#f64b8ff886c240e644e5573c097f86e5b43676dc"
   integrity sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==
 
 "@noble/curves@^1.6.0":
   version "1.9.7"
-  resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
+  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
   dependencies:
     "@noble/hashes" "1.8.0"
 
 "@noble/hashes@1.8.0", "@noble/hashes@^1.5.0":
   version "1.8.0"
-  resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/lock-crypto@^0.1.0":
   version "0.1.0"
-  resolved "https://registry.npmjs.org/@orangecheck/lock-crypto/-/lock-crypto-0.1.0.tgz#f44f029ab88ff7cf9656914abae89f0650b21c68"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-crypto/-/lock-crypto-0.1.0.tgz#f44f029ab88ff7cf9656914abae89f0650b21c68"
   integrity sha512-LdcPQbTAyyyQrk7cFl0r5dCMvxTqqmFhgC2DriWllmNKyOUWH16EvuWC7IQZU70dV8C1lGGsyX+eddwwsQXUMA==
   dependencies:
     "@noble/ciphers" "^1.3.0"
@@ -190,9 +190,9 @@
     "@noble/hashes" "^1.5.0"
 
 "@orangecheck/vault-core@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.npmjs.org/@orangecheck/vault-core/-/vault-core-0.3.0.tgz#c2fb2dddbb2eea8ae1561d0692525e720078e7c5"
-  integrity sha512-MBHLa3Y50QAaKE8gS+Yo7fBrmYMRgVWaKbnb9veAGFhVBeQ/+B3izNC7oJKi1C4JP/kMWj4XsYkYWJsvLiWnNA==
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vault-core/-/vault-core-0.3.1.tgz#1b649bc1a28817d5c95d1bd9371ffa2b088b3ccf"
+  integrity sha512-h7R9u4od2ku0QkT1osfUbt87dnXzmEsvtCz1qioQmq4Dp7XxLXth69/rHwAbem4b/Glc6oPLpPAha3Uychdmhw==
   dependencies:
     "@noble/hashes" "^1.5.0"
     "@orangecheck/lock-crypto" "^0.1.0"

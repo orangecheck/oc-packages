@@ -190,9 +190,9 @@
   integrity sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==
 
 "@orangecheck/sdk@^1.7.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.8.0.tgz#235a3988c6b5ce3ff98d3c6d54ea5cbad0b5cbf4"
-  integrity sha512-Fr9qydeEuYl94fjH44BvhPcZmdQaLU1xO/NEXb2SqXmD85pmc+w5ETR+MC2A6MhrWl6jbpZy1WcUTcmd8jvYNw==
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.10.0.tgz#b5660eb83bbadef9f95648a424e3e1f981d9dd6d"
+  integrity sha512-ek/X+FE9m84S1lVEPq183PD33iLB8xWqGQ4K5zzydn9hPYIsW0E5pUjlEdT58yUUE9ya+E0A+TGYuqN0053g7Q==
   dependencies:
     "@bitcoinerlab/secp256k1" "^1.1.1"
     "@noble/curves" "^2.2.0"
