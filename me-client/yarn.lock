@@ -265,9 +265,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.6.0":
-  version "2.25.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.25.3.tgz#6b0433160b522737734b326bf64c5e07a8eea16d"
-  integrity sha512-CNaHrnZF25dx5Lmrx/wlMTbDUZBzphJCNZM91/9o34ezQk9v6fRxYW2OLbQaFtILlAeutlH+mkgbBPREPsulSQ==
+  version "2.26.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.26.0.tgz#b6119db224f111a6d84bf73ed24b724e2bcd0ef8"
+  integrity sha512-N13f8rUYT2DMeCoNTERJ9RfQ1ARRGGqjR8ucd8l14zmT18PxRbwWbp5SBwuFtFI2WTZfVcI1Yj+FeBwI9DJpBg==
   dependencies:
     "@orangecheck/wallet-adapter" "^0.4.2 || ^0.5.0"
     "@simplewebauthn/browser" "^13.3.0"
@@ -280,9 +280,9 @@
     jose "^6.2.2"
 
 "@orangecheck/wallet-adapter@^0.4.2 || ^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.5.0.tgz#3af3fbe858ece8e0a6b234785898b195919accee"
-  integrity sha512-v4jrYM7ngo/9XG0a90GkavRVj8egVRU20kOFOENYj2vCAsTCDRlaXYAg4zfXAg6Zr4Gok+dSIis4cCzHLpv0Dw==
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.5.1.tgz#d3978e7fe647f3a0cf6874b7930a2bf3b808252f"
+  integrity sha512-37zOnEBMWCJb+e9MjA/XAB3Art/hxvT5B+LOyG0Piu7ZWewDNjiizGSN9a6Hqk8NS3490idXUno7woMKH9ln7g==
   dependencies:
     bip322-js "^3.0.0"
 
