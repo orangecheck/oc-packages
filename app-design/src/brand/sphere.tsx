@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
+import { HalftoneCanvas } from './halftone-canvas';
 
 /*
  * The deck's photograph: a halftone portrait on an orange ball, lit from the
@@ -23,27 +24,55 @@ export interface HalftoneSphereProps {
     stadium?: boolean;
     /** Let the sphere drift a few pixels. Off under reduced motion. */
     float?: boolean;
+    /** Screen the portrait live (draw-in, breathing, pointer lens); `src` stays the still fallback. */
+    live?: boolean;
     className?: string;
     style?: CSSProperties;
 }
 
-function Ball({ src, alt, float }: { src: string; alt: string; float: boolean }) {
+// A soft light on the upper left and a floor shadow, so the ball reads as an object.
+const SPHERE_GLOSS = 'radial-gradient(38% 30% at 33% 22%, rgb(255 255 255 / 0.55), transparent 72%)';
+
+function Ball({ src, alt, float, live }: { src: string; alt: string; float: boolean; live: boolean }) {
     return (
-        <div
-            className={cn('relative size-full overflow-hidden rounded-full', float && 'oca-animate-float')}
-            style={{ background: SPHERE_GRADIENT, boxShadow: SPHERE_DEPTH }}
-        >
-            {/* eslint-disable-next-line @next/next/no-img-element -- a static dot layer, sized by CSS */}
-            <img src={src} alt={alt} className="absolute inset-0 size-full select-none" draggable={false} />
+        <div className={cn('relative size-full', float && 'oca-animate-float')}>
+            <div
+                aria-hidden
+                className="absolute inset-x-[14%] -bottom-[7%] h-[10%] rounded-[50%] bg-[rgb(234_88_11/0.28)] blur-2xl"
+            />
+            <div
+                className="relative size-full overflow-hidden rounded-full"
+                style={{ background: SPHERE_GRADIENT, boxShadow: SPHERE_DEPTH }}
+            >
+                {live ? (
+                    <HalftoneCanvas fallbackSrc={src} alt={alt} />
+                ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- a static dot layer, sized by CSS
+                    <img src={src} alt={alt} className="absolute inset-0 size-full select-none" draggable={false} />
+                )}
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-full mix-blend-soft-light"
+                    style={{ background: SPHERE_GLOSS }}
+                />
+            </div>
         </div>
     );
 }
 
-export function HalftoneSphere({ src, alt, stadium = false, float = false, className, style }: HalftoneSphereProps) {
+export function HalftoneSphere({
+    src,
+    alt,
+    stadium = false,
+    float = false,
+    live = false,
+    className,
+    style,
+}: HalftoneSphereProps) {
     if (!stadium) {
         return (
             <div className={cn('relative aspect-square w-full', className)} style={style}>
-                <Ball src={src} alt={alt} float={float} />
+                <Ball src={src} alt={alt} float={float} live={live} />
             </div>
         );
     }
@@ -54,7 +83,7 @@ export function HalftoneSphere({ src, alt, stadium = false, float = false, class
         <div className={cn('relative aspect-[1.255/1.127] w-full', className)} style={style}>
             <div aria-hidden className="oca-stadium pointer-events-none absolute left-0 top-0 h-full w-[88.4%] rounded-[32%]" />
             <div className="absolute bottom-0 right-0 aspect-square w-[79.7%]">
-                <Ball src={src} alt={alt} float={float} />
+                <Ball src={src} alt={alt} float={float} live={live} />
             </div>
         </div>
     );

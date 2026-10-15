@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] — 2026-10-15
+
+The signature pieces, so ochk.app can look like the deck feels instead of
+like a slide pasted on a page.
+
+- `HalftoneCanvas` and `HalftoneSphere live`: the deck portrait screened live
+  on a 45° dot screen. It grows in from the centre, breathes, and parts around
+  the pointer like a finger through sand. It sleeps offscreen, draws once and
+  still under reduced motion, and keeps the static screen as the no-script
+  fallback. The sphere gains a gloss and a floor shadow.
+- `Crowd story` and `ScrollStory`: a pinned section sets `--p` as you scroll;
+  the copies fall away one by one and the real figures grow and glow. Pure CSS
+  variables, so scrolling re-renders nothing.
+- `Reveal`, `Ticker`, `useInView`: content rises into place the first time it
+  is seen; numbers count up from below the fold. Nothing on screen at load
+  moves, and nothing is hidden without script.
+- `PhoneFrame`, `BrowserFrame`, `FloatChip`: the product shown as an object.
+- `IsoCheck tilt`: the check turns a few degrees toward the pointer under a
+  warm light.
+- A `Pages/Home` story composes all of it as the reference for ochk.app's home.
+
 ## [0.3.2] — 2026-10-15
 
 - Sets `--oc-signin-arrow: none`, so the sign-in ceremony's submit labels carry

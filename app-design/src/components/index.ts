@@ -31,3 +31,5 @@ export {
     useCopy,
 } from './data';
 export type { ActivityItem, Column, KeyValueItem, ProgressStep, StatCardProps, StatGridProps, StepState } from './data';
+export { Reveal, ScrollStory, Ticker, useInView } from './motion';
+export { BrowserFrame, FloatChip, PhoneFrame } from './frames';

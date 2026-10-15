@@ -78,3 +78,55 @@
 @utility oca-animate-pulse-dot {
     animation: oca-pulse-dot 1.6s ease-in-out infinite;
 }
+
+/* ── Crowd story ──────────────────────────────────────────────────────────
+   A ScrollStory sets --p from 0 to 1. Each copy (--t) falls away just after
+   --p passes it; the real figures grow and their halo lights. */
+[data-oc-app='ochk'] .oca-crowd-bot {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    opacity: clamp(0, calc(1 - (var(--p, 0) - var(--t)) * 7), 1);
+    transform: translateY(calc(clamp(0, (var(--p, 0) - var(--t)) * 7, 1) * 16px))
+        scale(calc(1 - clamp(0, (var(--p, 0) - var(--t)) * 7, 1) * 0.3));
+}
+
+[data-oc-app='ochk'] .oca-crowd-real {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transform: scale(calc(1 + clamp(0, var(--p, 0) * 1.4 - 0.4, 1) * 0.45));
+}
+
+[data-oc-app='ochk'] .oca-crowd-halo {
+    opacity: clamp(0, calc(var(--p, 0) * 1.6 - 0.5), 1);
+}
+
+/* ── Reveal ───────────────────────────────────────────────────────────────
+   Set by Reveal only for content below the fold at mount, so nothing is
+   hidden without script and nothing above the fold flashes. */
+[data-oc-app='ochk'] [data-reveal='pending'] {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+}
+
+[data-oc-app='ochk'] [data-reveal] {
+    transition:
+        opacity 800ms cubic-bezier(0.2, 0.7, 0.2, 1),
+        transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1),
+        filter 800ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes oca-drift {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+    50% {
+        transform: translate3d(0, -8px, 0);
+    }
+}
+
+@utility oca-animate-drift {
+    animation: oca-drift 7s ease-in-out infinite;
+}

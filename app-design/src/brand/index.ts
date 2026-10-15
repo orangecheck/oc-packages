@@ -6,3 +6,5 @@ export { IsoCheck } from './iso-check';
 export { Crowd } from './crowd';
 export type { CrowdProps } from './crowd';
 export type { IsoCheckProps } from './iso-check';
+export { HalftoneCanvas, portraitTone } from './halftone-canvas';
+export type { HalftoneCanvasProps, Tone } from './halftone-canvas';

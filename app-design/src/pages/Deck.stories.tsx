@@ -19,8 +19,8 @@ import { Button } from '../primitives';
 /*
  * Souheila's partner deck (2026-10-15), slide for slide, as one web page. It is
  * the reference the system is checked against, and the template for a partner
- * page. The fee line on slide 5 is hers, flagged in her own notes to confirm with
- * Wil; it is true of the open layer and not of me.ochk, which takes a fee.
+ * page. The fee line on slide 5 is hers, flagged in her own notes to confirm before
+ * it goes out; it is true of the open layer and not of me.ochk, which takes a fee.
  */
 const meta: Meta = { title: 'Pages/Partner deck', parameters: { fullBleed: true } };
 export default meta;

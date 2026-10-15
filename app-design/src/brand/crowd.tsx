@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import { cn } from '../lib/cn';
 
 /*
@@ -17,6 +19,11 @@ export interface CrowdProps {
     tone?: 'ink' | 'canvas';
     /** Spoken by screen readers. */
     label?: string;
+    /**
+     * Let the copies leave as an ancestor's `--p` (0 to 1, set by ScrollStory)
+     * rises: each fake falls away at its own moment and the real ones grow.
+     */
+    story?: boolean;
     className?: string;
 }
 
@@ -40,6 +47,7 @@ export function Crowd({
     seed = 21,
     tone = 'ink',
     label = 'A crowd of identical accounts. Only a few are real.',
+    story = false,
     className,
 }: CrowdProps) {
     const width = cols * CELL_W;
@@ -49,14 +57,28 @@ export function Crowd({
     const nearFrom = Math.floor(rows / 2) * cols;
     const realSet = new Set([...picks(real, rows * cols - nearFrom, seed)].map((i) => i + nearFrom));
     const bot = tone === 'ink' ? '#ffffff' : '#0a0a0a';
+    // When each copy leaves, from a fixed seed: nearer rows go a little later.
+    let lcg = (seed * 7919) >>> 0;
+    const leaveAt = () => {
+        lcg = (Math.imul(lcg, 1664525) + 1013904223) >>> 0;
+        return 0.12 + (lcg / 2 ** 32) * 0.6;
+    };
     let y = 0;
     return (
         <svg
             role="img"
             aria-label={label}
             viewBox={`0 0 ${width} ${Math.ceil(height)}`}
-            className={cn('block h-auto w-full', className)}
+            className={cn('block h-auto w-full overflow-visible', className)}
         >
+            {story ? (
+                <defs>
+                    <radialGradient id="oca-crowd-glow">
+                        <stop offset="0" stopColor="#ff7a3d" stopOpacity="0.55" />
+                        <stop offset="1" stopColor="#ff7a3d" stopOpacity="0" />
+                    </radialGradient>
+                </defs>
+            ) : null}
             {scales.map((s, r) => {
                 const rowY = y;
                 y += CELL_H * s;
@@ -65,15 +87,21 @@ export function Crowd({
                 return Array.from({ length: cols }, (_, c) => {
                     const i = r * cols + c;
                     const isReal = realSet.has(i);
+                    const t = leaveAt();
                     return (
-                        <g
-                            key={i}
-                            transform={`translate(${x0 + c * CELL_W * s} ${rowY}) scale(${s})`}
-                            fill={isReal ? 'var(--oca-orange)' : bot}
-                            fillOpacity={isReal ? 1 : 0.1 + 0.16 * s}
-                        >
-                            <circle cx={11} cy={8} r={4.4} />
-                            <path d="M3 25a8 8.5 0 0 1 16 0Z" />
+                        <g key={i} transform={`translate(${x0 + c * CELL_W * s} ${rowY}) scale(${s})`}>
+                            {isReal && story ? (
+                                <circle className="oca-crowd-halo" cx={11} cy={14} r={13} fill="url(#oca-crowd-glow)" />
+                            ) : null}
+                            <g
+                                className={story ? (isReal ? 'oca-crowd-real' : 'oca-crowd-bot') : undefined}
+                                style={story && !isReal ? ({ '--t': t.toFixed(3) } as CSSProperties) : undefined}
+                                fill={isReal ? 'var(--oca-orange)' : bot}
+                                fillOpacity={isReal ? 1 : 0.1 + 0.16 * s}
+                            >
+                                <circle cx={11} cy={8} r={4.4} />
+                                <path d="M3 25a8 8.5 0 0 1 16 0Z" />
+                            </g>
                         </g>
                     );
                 });
