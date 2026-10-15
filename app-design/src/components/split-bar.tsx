@@ -29,12 +29,12 @@ export function SplitBar({
                     <div
                         key={i}
                         className={cn(
-                            'flex min-w-0 items-end rounded-[1rem] px-4 pb-3',
+                            'flex min-w-[4.25rem] items-end rounded-[1rem] px-3 pb-2.5 md:px-4 md:pb-3',
                             s.tone === 'card' ? 'bg-white text-oca-ink' : 'bg-oca-ink text-white'
                         )}
                         style={{ flexBasis: `${s.pct}%` }}
                     >
-                        <span className="oca-tabular text-[1.5rem] leading-none tracking-[-0.02em] md:text-[1.875rem]">
+                        <span className="oca-tabular text-[1.25rem] leading-none tracking-[-0.02em] md:text-[1.875rem]">
                             {s.pct}%
                         </span>
                     </div>

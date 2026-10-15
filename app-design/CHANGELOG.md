@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1] — 2026-10-15
+
+- `SplitBar`: a small share keeps its figure inside its segment on a phone.
+
 ## [0.2.0] — 2026-10-15
 
 - The hero sphere draws its stadium inside its own box, so the art can no longer
