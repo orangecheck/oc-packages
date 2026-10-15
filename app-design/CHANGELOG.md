@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] — 2026-10-15
+
+- `ScrollFade` and `DocLayout` work where `ResizeObserver` or
+  `IntersectionObserver` does not exist (old engines, jsdom tests).
+
 ## [0.3.0] — 2026-10-15
 
 The patterns that made every page past the home page look unfinished, fixed

@@ -28,6 +28,8 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
         const el = ref.current;
         if (!el) return;
         measure();
+        // Without ResizeObserver (old engines, jsdom) the edges still follow scrolling.
+        if (typeof ResizeObserver === 'undefined') return;
         const ro = new ResizeObserver(measure);
         ro.observe(el);
         if (el.firstElementChild) ro.observe(el.firstElementChild);

@@ -106,7 +106,7 @@ function useActiveHeading(ids: string[]): string | undefined {
             .split('|')
             .map((id) => document.getElementById(id))
             .filter((el): el is HTMLElement => el !== null);
-        if (els.length === 0) return;
+        if (els.length === 0 || typeof IntersectionObserver === 'undefined') return;
         const io = new IntersectionObserver(
             (entries) => {
                 const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
