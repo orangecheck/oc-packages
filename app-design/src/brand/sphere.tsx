@@ -30,11 +30,13 @@ export function HalftoneSphere({ src, alt, stadium = false, float = false, class
     return (
         <div className={cn('relative aspect-square w-full', className)} style={style}>
             {stadium ? (
-                // The deck's offset stadium on wide screens; centred and inside the
-                // gutter on phones, where the offset would push the page sideways.
+                // Measured from the deck's title slide: a rounded square, its corners
+                // 17% of the sphere, level with the sphere's foot, reaching left behind
+                // the headline. On phones a ring inside the gutter, since the offset
+                // would push the page sideways.
                 <div
                     aria-hidden
-                    className="oca-stadium pointer-events-none absolute inset-[-6%] md:[inset:-13%_10%_-13%_-27%]"
+                    className="oca-stadium pointer-events-none absolute inset-[-6%] rounded-full md:[inset:-12%_14%_0%_-26%] md:rounded-[17%]"
                 />
             ) : null}
             <div

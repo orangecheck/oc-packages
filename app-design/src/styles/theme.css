@@ -168,9 +168,10 @@
 }
 
 /* The stadium hairline behind a hero sphere. */
+/* The hairline behind the hero sphere. Its shape is set where it is drawn
+   (brand/sphere.tsx): a ring on phones, the deck's rounded square beside it. */
 @utility oca-stadium {
     border: 1px solid var(--oca-outline);
-    border-radius: 9999px;
 }
 
 @layer base {

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.1] — 2026-10-15
+
+- The hero stadium is the deck's rounded square beside the sphere, not a tall
+  pill around it. On the live page the pill's curve cut through the headline.
+
 ## [0.1.0] — 2026-10-15
 
 First release: the ochk.app design system from Souheila's partner deck.
