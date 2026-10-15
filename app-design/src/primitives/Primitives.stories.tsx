@@ -254,3 +254,46 @@ export const TabsAndFeedback: StoryObj = {
         </div>
     ),
 };
+
+export const States: StoryObj = {
+    name: 'Disabled, loading, scrolling tabs, level fields',
+    render: () => (
+        <div className="flex max-w-3xl flex-col gap-10">
+            <div className="flex flex-wrap gap-3">
+                <Button disabled>Register key</Button>
+                <Button variant="secondary" disabled>
+                    Add webhook
+                </Button>
+                <Button variant="brand" disabled>
+                    Switch to live
+                </Button>
+                <Button variant="danger" disabled>
+                    Delete
+                </Button>
+            </div>
+            <div className="flex flex-col gap-3">
+                <Skeleton className="h-16 rounded-2xl" />
+                <Skeleton className="h-16 rounded-2xl" />
+            </div>
+            <div className="w-[22rem] max-w-full">
+                <Tabs defaultValue="overview" look="line">
+                    <TabsList>
+                        {['Overview', 'Events', 'Billing', 'Keys', 'Trust', 'Webhooks', 'Drops'].map((t) => (
+                            <TabsTrigger key={t} value={t.toLowerCase()}>
+                                {t}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Email">
+                    <Input placeholder="you@example.com" />
+                </Field>
+                <Field label="Name" optional hint="How the reply should address you.">
+                    <Input />
+                </Field>
+            </div>
+        </div>
+    ),
+};

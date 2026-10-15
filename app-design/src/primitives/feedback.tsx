@@ -1,5 +1,12 @@
 import * as SeparatorPrimitive from '@radix-ui/react-separator';
-import { forwardRef, type ComponentPropsWithoutRef, type ElementRef, type HTMLAttributes } from 'react';
+import {
+    forwardRef,
+    useEffect,
+    useState,
+    type ComponentPropsWithoutRef,
+    type ElementRef,
+    type HTMLAttributes,
+} from 'react';
 import { Toaster as SonnerToaster, type ToasterProps } from 'sonner';
 
 import { cn } from '../lib/cn';
@@ -20,8 +27,32 @@ export function Spinner({ className, label }: { className?: string; label?: stri
     );
 }
 
+/** A placeholder bar, visible on the canvas and on a card in both modes. */
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-    return <div data-ui="skeleton" className={cn('animate-pulse rounded-lg bg-muted', className)} {...props} />;
+    return (
+        <div
+            data-ui="skeleton"
+            className={cn('animate-pulse rounded-lg bg-[var(--oca-skeleton)]', className)}
+            {...props}
+        />
+    );
+}
+
+/**
+ * True once `active` has stayed true for `ms`. A loading state that never
+ * ends reads as a broken page; pass this to show a way out instead.
+ */
+export function useTimedOut(active: boolean, ms = 12_000): boolean {
+    const [timedOut, setTimedOut] = useState(false);
+    useEffect(() => {
+        if (!active) {
+            setTimedOut(false);
+            return;
+        }
+        const t = setTimeout(() => setTimedOut(true), ms);
+        return () => clearTimeout(t);
+    }, [active, ms]);
+    return timedOut;
 }
 
 export const Separator = forwardRef<

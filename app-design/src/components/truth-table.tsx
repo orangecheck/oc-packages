@@ -41,42 +41,59 @@ export function TruthTable({
     className?: string;
 }) {
     return (
-        <div className={cn('overflow-hidden rounded-xl border border-oca-hairline-strong', className)}>
-            <table className="w-full border-collapse text-left text-[0.9375rem] md:text-[1rem]">
-                <thead className="bg-oca-table-head">
-                    <tr>
-                        <th scope="col" className="w-[30%] border-b border-oca-hairline-strong px-4 py-3 font-semibold md:w-[22%]">
-                            {statusHeading}
-                        </th>
-                        <th scope="col" className="border-b border-l border-oca-hairline-strong px-4 py-3 font-semibold">
-                            {whatHeading}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="bg-card">
-                    {rows.map((r, i) => (
-                        <tr key={i} className="align-top">
-                            <td
-                                className={cn(
-                                    'border-t border-oca-hairline-strong px-4 py-3 font-medium',
-                                    i === 0 && 'border-t-0',
-                                    TONE[r.status]
-                                )}
-                            >
-                                {LABEL[r.status]}
-                            </td>
-                            <td
-                                className={cn(
-                                    'border-l border-t border-oca-hairline-strong px-4 py-3 leading-relaxed',
-                                    i === 0 && 'border-t-0'
-                                )}
-                            >
-                                {r.what}
-                            </td>
+        <>
+            {/* Under 640px a two-column table squeezes the text to a few words a
+                line, so each row becomes a status over its sentence. */}
+            <ul
+                className={cn(
+                    'divide-y divide-oca-hairline-strong overflow-hidden rounded-xl border border-oca-hairline-strong bg-card sm:hidden',
+                    className
+                )}
+            >
+                {rows.map((r, i) => (
+                    <li key={i} className="flex flex-col gap-1.5 px-4 py-3.5">
+                        <span className={cn('text-[0.875rem] font-medium', TONE[r.status])}>{LABEL[r.status]}</span>
+                        <span className="text-[0.9375rem] leading-relaxed">{r.what}</span>
+                    </li>
+                ))}
+            </ul>
+            <div className={cn('overflow-hidden rounded-xl border border-oca-hairline-strong max-sm:hidden', className)}>
+                <table className="w-full border-collapse text-left text-[0.9375rem] md:text-[1rem]">
+                    <thead className="bg-oca-table-head">
+                        <tr>
+                            <th scope="col" className="w-[30%] border-b border-oca-hairline-strong px-4 py-3 font-semibold md:w-[22%]">
+                                {statusHeading}
+                            </th>
+                            <th scope="col" className="border-b border-l border-oca-hairline-strong px-4 py-3 font-semibold">
+                                {whatHeading}
+                            </th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody className="bg-card">
+                        {rows.map((r, i) => (
+                            <tr key={i} className="align-top">
+                                <td
+                                    className={cn(
+                                        'border-t border-oca-hairline-strong px-4 py-3 font-medium',
+                                        i === 0 && 'border-t-0',
+                                        TONE[r.status]
+                                    )}
+                                >
+                                    {LABEL[r.status]}
+                                </td>
+                                <td
+                                    className={cn(
+                                        'border-l border-t border-oca-hairline-strong px-4 py-3 leading-relaxed',
+                                        i === 0 && 'border-t-0'
+                                    )}
+                                >
+                                    {r.what}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }

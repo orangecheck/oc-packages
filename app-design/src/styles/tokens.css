@@ -41,7 +41,8 @@
 
     /* Lines */
     --border: #ececec;
-    --input: #e2e2e2;
+    /* A field's edge is how you find it: 3:1 against the card it sits on. */
+    --input: #8f8f8f;
     --ring: #f66d36;
 
     /* Status */
@@ -81,6 +82,12 @@
     --oca-code-package: #e99a8f;
     --oca-code-tag: #e3a8c2;
     --oca-code-link: #9db4ec;
+    /* Code is a dark well in both modes, darker than any card in dark. */
+    --oca-code-surface: #161616;
+    --oca-code-line: #2a2a2a;
+    /* The hairline between bands; only dark needs one. */
+    --oca-band-line: transparent;
+    --oca-skeleton: #e8e8e8;
 
     --radius: 1rem;
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
@@ -120,7 +127,8 @@
     --popover-foreground: #fafafa;
     --muted: #1e1e1e;
     --muted-foreground: #a3a6aa;
-    --secondary: #0a0a0a;
+    /* Lifted above the card, so a secondary button never reads as a hole. */
+    --secondary: #1c1c1c;
     --secondary-foreground: #fafafa;
     --accent: #1e1e1e;
     --accent-foreground: #fafafa;
@@ -130,8 +138,8 @@
     --brand: #f66d36;
     --brand-foreground: #0a0a0a;
 
-    --border: #262626;
-    --input: #303030;
+    --border: #2a2a2a;
+    --input: #6a6a6a;
     --ring: #f66d36;
 
     --destructive: #f87171;
@@ -150,10 +158,14 @@
     --oca-accent-ink: #f0835a;
     --oca-outline: #3a2a24;
     /* In dark the ink band lifts off the canvas, so the deck's rhythm survives. */
-    --oca-ink: #141414;
+    --oca-ink: #171717;
     --oca-ink-card: #1e1e1e;
     --oca-icon-tile: #1e1e1e;
     --oca-icon-ring: #333333;
+    --oca-code-surface: #0e0e0e;
+    --oca-code-line: #2a2a2a;
+    --oca-band-line: #262626;
+    --oca-skeleton: #222222;
 
     --oc-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --oc-shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);

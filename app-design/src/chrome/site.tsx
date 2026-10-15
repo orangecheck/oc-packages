@@ -123,13 +123,13 @@ export function SiteFooter({
 }) {
     return (
         <footer className={cn('border-t border-border bg-background', className)}>
-            <div className="oca-container grid gap-10 py-14 md:grid-cols-[1.3fr_repeat(3,1fr)] md:py-16">
-                <div className="flex flex-col gap-4">
+            <div className="oca-container grid grid-cols-2 gap-x-6 gap-y-10 py-14 md:grid-cols-[1.3fr_repeat(3,1fr)] md:py-16">
+                <div className="col-span-2 flex flex-col gap-4 md:col-span-1">
                     <Lockup size={26} />
                     {fineprint ? <p className="max-w-xs text-[0.9375rem] leading-relaxed text-muted-foreground">{fineprint}</p> : null}
                 </div>
                 {columns.map((col) => (
-                    <div key={col.heading} className="flex flex-col gap-1">
+                    <div key={col.heading} className="flex min-w-0 flex-col gap-1">
                         <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
                         {col.links.map((l) => (
                             <NavLink

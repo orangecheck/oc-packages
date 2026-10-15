@@ -85,3 +85,67 @@ export const SignedIn: StoryObj = {
         </AppShell>
     ),
 };
+
+export const Sections: StoryObj = {
+    name: 'Signed-in shell, with sections',
+    render: () => (
+        <AppShell
+            sections={[
+                {
+                    id: 'you',
+                    label: 'You',
+                    title: 'Your account',
+                    href: '/me',
+                    groups: [
+                        {
+                            items: [
+                                { href: '/me', label: 'Home', icon: <Home /> },
+                                { href: '/me/wallet', label: 'Wallet', icon: <Wallet />, active: true },
+                                { href: '/me/activity', label: 'Activity', icon: <Activity /> },
+                                { href: '/me/identity', label: 'Identity', icon: <BadgeCheck /> },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    id: 'build',
+                    label: 'Build',
+                    href: '/me/developer',
+                    groups: [{ items: [{ href: '/me/projects', label: 'Projects', icon: <Boxes /> }] }],
+                },
+                {
+                    id: 'operate',
+                    label: 'Operate',
+                    href: '/me/operator',
+                    groups: [{ items: [{ href: '/me/operator', label: 'Federations', icon: <ShieldCheck /> }] }],
+                },
+                {
+                    id: 'admin',
+                    label: 'Admin',
+                    href: '/me/admin',
+                    groups: [{ items: [{ href: '/me/admin', label: 'Queue', icon: <ShieldCheck /> }] }],
+                },
+            ]}
+            persistent={[
+                {
+                    label: 'Account',
+                    items: [
+                        { href: '/me/connections', label: 'Connections', icon: <Link2 /> },
+                        { href: '/me/settings', label: 'Settings', icon: <Settings /> },
+                    ],
+                },
+            ]}
+            footer={<ThemeToggle />}
+            account={<AccountMenu name="wil" detail="did:oc:ed30…7fc8" items={[{ label: 'Settings', href: '/settings' }]} />}
+        >
+            <div className="flex flex-col gap-8">
+                <PageHeader title="Wallet" description="What you have earned, and who holds it until it pays out." />
+                <StatGrid>
+                    <StatCard label="Balance" value={<Sats value={12840} />} raw={12840} />
+                    <StatCard label="This week" value={<Sats value={420} />} raw={420} />
+                    <StatCard label="Paid out" value={<Sats value={null} />} raw={null} />
+                </StatGrid>
+            </div>
+        </AppShell>
+    ),
+};

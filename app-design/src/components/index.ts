@@ -1,6 +1,8 @@
 export { Accent, Display, Eyebrow, Footnote, Lead, Prose } from './typography';
 export type { DisplayProps } from './typography';
 export { Container, Section, SectionIntro, sectionVariants } from './section';
+export { DocHeader, DocLayout, PageHero } from './hero';
+export type { PageHeroProps, TocItem } from './hero';
 export type { SectionProps } from './section';
 export { StepGrid } from './steps';
 export type { StepGridProps, StepItem } from './steps';
@@ -16,9 +18,11 @@ export {
     ActivityList,
     CopyButton,
     DataTable,
+    EmptyLine,
     EmptyState,
     HashChip,
     KeyValueList,
+    LoadingBlock,
     Notice,
     PageHeader,
     ProgressSteps,
@@ -26,4 +30,4 @@ export {
     StatGrid,
     useCopy,
 } from './data';
-export type { ActivityItem, Column, KeyValueItem, ProgressStep, StepState } from './data';
+export type { ActivityItem, Column, KeyValueItem, ProgressStep, StatCardProps, StatGridProps, StepState } from './data';

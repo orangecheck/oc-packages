@@ -53,5 +53,7 @@ export {
     TooltipTrigger,
 } from './overlay';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
-export { Kbd, Separator, Skeleton, Spinner, StatusDot, toast, Toaster } from './feedback';
+export { Kbd, Separator, Skeleton, Spinner, StatusDot, toast, Toaster, useTimedOut } from './feedback';
+export { ScrollFade } from './scroll-fade';
+export type { ScrollFadeProps } from './scroll-fade';
 export { cn } from '../lib/cn';

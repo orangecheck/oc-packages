@@ -1,15 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Button, StatusPill } from '../primitives';
+import { useState } from 'react';
+
 import {
     ActivityList,
+    CodeBlock,
     DataTable,
+    DocHeader,
+    DocLayout,
     EmptyState,
     HashChip,
     KeyValueList,
+    LoadingBlock,
     Notice,
     PackageCard,
     PageHeader,
+    PageHero,
+    Prose,
     ProgressSteps,
     Sats,
     SatsFigure,
@@ -188,6 +196,137 @@ export const Status: StoryObj = {
         <div className="flex flex-col gap-4">
             <StatusPill>In testing · payouts start when testing ends</StatusPill>
             <StatusPill pulse={false}>Sign-in is live</StatusPill>
+        </div>
+    ),
+};
+
+export const Heroes: StoryObj = {
+    name: 'Page hero and document layout',
+    parameters: { fullBleed: true },
+    render: () => (
+        <div>
+            <PageHero
+                eyebrow="Who holds what"
+                title="Every sat has a holder, named."
+                lead="Today orangecheck holds what accrues. This page says who replaces it, and when."
+                actions={
+                    <>
+                        <Button>See the live state</Button>
+                        <Button variant="secondary">Read the plan</Button>
+                    </>
+                }
+                art={<div className="aspect-[4/3] rounded-[1.25rem] bg-muted" />}
+            >
+                <StatusPill>In testing · sats accrue, payouts come later</StatusPill>
+            </PageHero>
+            <DocLayout
+                header={
+                    <DocHeader
+                        eyebrow="Legal"
+                        title="Privacy policy"
+                        lead="What orangecheck stores, why, and for how long."
+                        meta="Updated 15 October 2026"
+                    />
+                }
+                toc={[
+                    { id: 'what', label: 'What we store' },
+                    { id: 'why', label: 'Why we store it' },
+                    { id: 'how-long', label: 'How long we keep it' },
+                ]}
+            >
+                <Prose>
+                    {['what', 'why', 'how-long'].map((id) => (
+                        <section key={id}>
+                            <h2 id={id}>{id === 'what' ? 'What we store' : id === 'why' ? 'Why we store it' : 'How long we keep it'}</h2>
+                            <p>
+                                A paragraph of the document, set at a readable measure. The heading above is always
+                                smaller than the page's own title.
+                            </p>
+                            <p>Another paragraph, so the table of contents has something to follow.</p>
+                        </section>
+                    ))}
+                </Prose>
+            </DocLayout>
+        </div>
+    ),
+};
+
+export const StatsShapes: StoryObj = {
+    name: 'Stat grids: odd counts and all zero',
+    render: () => (
+        <div className="flex max-w-5xl flex-col gap-8">
+            <StatGrid>
+                <StatCard label="Balance" value={<Sats value={12840} />} raw={12840} />
+                <StatCard label="Earned this month, across every site you use" value={<Sats value={3120} />} raw={3120} />
+                <StatCard label="Maturing" value={<Sats value={900} />} raw={900} hint="in an open drop" />
+                <StatCard label="Sites" value="3" raw={3} />
+                <StatCard label="Paid out" value={<Sats value={0} />} raw={0} />
+            </StatGrid>
+            <StatGrid empty="Nothing billed yet. Events you fire will show here.">
+                <StatCard label="Billed (7d)" value={<Sats value={0} />} raw={0} />
+                <StatCard label="Billed (30d)" value={<Sats value={0} />} raw={0} />
+                <StatCard label="Events" value="0" raw={0} />
+            </StatGrid>
+        </div>
+    ),
+};
+
+export const TablePhone: StoryObj = {
+    name: 'Table: widths, numbers, phone cards',
+    render: () => (
+        <DataTable
+            caption="Audit"
+            rowKey={(r) => r.id}
+            columns={[
+                { key: 'when', header: 'When', cell: (r) => r.when, width: '9rem' },
+                { key: 'action', header: 'Action', cell: (r) => r.action, primary: true },
+                {
+                    key: 'target',
+                    header: 'Target',
+                    cell: (r) => <HashChip value={r.target} head={10} tail={6} />,
+                    minWidth: '14rem',
+                },
+                { key: 'sats', header: 'Sats', cell: (r) => r.sats.toLocaleString('en-US'), numeric: true },
+            ]}
+            rows={[
+                { id: '1', when: '15 Oct, 16:32', action: 'Network set to signet', target: 'oc-me-federation-bootstrap-1', sats: 0 },
+                { id: '2', when: '15 Oct, 14:02', action: 'Escrow topped up', target: 'pk_test_VRBJTYIdV0i5zfuj', sats: 100000 },
+            ]}
+        />
+    ),
+};
+
+function LoadingDemo() {
+    const [key, setKey] = useState(0);
+    return <LoadingBlock key={key} timeoutMs={3000} onRetry={() => setKey((k) => k + 1)} />;
+}
+
+export const CodeAndStates: StoryObj = {
+    name: 'Code, notices, loading',
+    render: () => (
+        <div className="flex max-w-3xl flex-col gap-8">
+            <CodeBlock
+                caption="Node · fire an event"
+                maxLines={6}
+                code={[
+                    "import { oc } from '@orangecheck/me-client';",
+                    '',
+                    'await oc.event.fire({',
+                    "  project_key: 'pk_test_VRBJTYIdV0i5zfuj', subtype: 'comment.posted', signingSecret: process.env.OC_SIGNING_SECRET!,",
+                    '  userAddress: user.did_oc,',
+                    '  idempotencyKey: crypto.randomUUID(),',
+                    '});',
+                    '',
+                    '// A retry with the same key never bills twice.',
+                    '// The earner rides inside the bytes you sign.',
+                ].join('\n')}
+            />
+            <Notice title="Payouts start when testing ends">Earning runs on test networks until then.</Notice>
+            <Notice tone="brand" title="Escrow is low" action={<Button size="sm" variant="secondary">Top up</Button>}>
+                Events stop billing when it runs out.
+            </Notice>
+            <Notice tone="danger" title="That key was rejected">The signature did not match the address.</Notice>
+            <LoadingDemo />
         </div>
     ),
 };

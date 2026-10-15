@@ -1,11 +1,33 @@
 import { Check, Copy } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react';
+import {
+    Children,
+    cloneElement,
+    createContext,
+    isValidElement,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+    type HTMLAttributes,
+    type ReactElement,
+    type ReactNode,
+} from 'react';
 
 import { cn } from '../lib/cn';
-import { Mark } from '../brand/mark';
+import { useShellPlace } from '../lib/shell-context';
+import { Button } from '../primitives/button';
+import { Skeleton, useTimedOut } from '../primitives/feedback';
+import { ScrollFade } from '../primitives/scroll-fade';
 
 /* ── Page header ─────────────────────────────────────────────────────── */
 
+/**
+ * The top of a signed-in page: section, page title, one sentence, actions.
+ * Inside AppShell the eyebrow defaults to the current section, so every page
+ * in a section opens at the same height. Pass `eyebrow={null}` to omit it.
+ * Public pages use PageHero.
+ */
 export function PageHeader({
     eyebrow,
     title,
@@ -15,46 +37,169 @@ export function PageHeader({
 }: {
     eyebrow?: ReactNode;
     title: ReactNode;
+    /** One sentence. Longer explanation belongs in the docs, not the header. */
     description?: ReactNode;
     actions?: ReactNode;
     className?: string;
 }) {
+    const place = useShellPlace();
+    const eb = eyebrow === undefined ? place.section : eyebrow;
     return (
         <header className={cn('flex flex-col gap-5 md:flex-row md:items-end md:justify-between', className)}>
-            <div className="flex max-w-[44rem] flex-col gap-3">
-                {eyebrow ? <p className="oca-eyebrow">{eyebrow}</p> : null}
+            <div className="flex min-w-0 max-w-[44rem] flex-col gap-2.5">
+                {eb ? <p className="oca-eyebrow">{eb}</p> : null}
                 <h1 className="oca-display-3">{title}</h1>
-                {description ? <p className="oca-body text-[1.0625rem]">{description}</p> : null}
+                {description ? <p className="oca-body max-w-[40rem] text-[1.0625rem]">{description}</p> : null}
             </div>
-            {actions ? <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div> : null}
+            {actions ? <div className="flex flex-wrap items-center gap-2.5 md:shrink-0 md:justify-end">{actions}</div> : null}
         </header>
     );
 }
 
 /* ── Stats ───────────────────────────────────────────────────────────── */
 
-export function StatCard({
-    label,
-    value,
-    hint,
-    className,
-}: {
+const InStatGrid = createContext(false);
+
+export interface StatCardProps {
     label: ReactNode;
     value: ReactNode;
     hint?: ReactNode;
+    /**
+     * The number behind `value`, when there is one. StatGrid reads it: a grid
+     * whose every `raw` is 0 or null shows one empty line instead of zeros.
+     */
+    raw?: number | null;
     className?: string;
-}) {
+}
+
+export function StatCard({ label, value, hint, className }: StatCardProps) {
+    const inGrid = useContext(InStatGrid);
     return (
-        <div className={cn('flex flex-col gap-2 rounded-[1.25rem] border border-border bg-card p-5 md:p-6', className)}>
-            <span className="text-[0.875rem] text-muted-foreground">{label}</span>
-            <span className="oca-tabular text-[1.75rem] leading-tight tracking-[-0.02em]">{value}</span>
-            {hint ? <span className="text-[0.8125rem] leading-snug text-muted-foreground">{hint}</span> : null}
+        <div
+            data-ui="stat"
+            className={cn(
+                'rounded-[1.25rem] border border-border bg-card p-5 md:p-6',
+                // In a grid, label, value and hint each share a row with their
+                // neighbours, so values line up whatever wraps above them.
+                inGrid ? 'row-span-3 grid grid-rows-subgrid gap-1.5' : 'flex flex-col gap-2',
+                className
+            )}
+        >
+            <span className="text-[0.875rem] leading-snug text-muted-foreground">{label}</span>
+            <span className="self-end break-words oca-tabular text-[1.5rem] leading-tight tracking-[-0.02em] md:text-[1.75rem]">
+                {value}
+            </span>
+            {hint ? (
+                <span className="text-[0.8125rem] leading-snug text-muted-foreground">{hint}</span>
+            ) : inGrid ? (
+                <span aria-hidden />
+            ) : null}
         </div>
     );
 }
 
-export function StatGrid({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-    return <div className={cn('grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4', className)} {...props} />;
+const MD_COLS: Record<number, string> = {
+    1: 'md:grid-cols-1',
+    2: 'md:grid-cols-2',
+    3: 'md:grid-cols-3',
+    4: 'md:grid-cols-4',
+};
+const LG_COLS: Record<number, string> = {
+    1: 'lg:grid-cols-1',
+    2: 'lg:grid-cols-2',
+    3: 'lg:grid-cols-3',
+    4: 'lg:grid-cols-4',
+    5: 'lg:grid-cols-5',
+};
+const MD_SPAN: Record<number, string> = {
+    1: 'md:col-span-1',
+    2: 'md:col-span-2',
+    3: 'md:col-span-3',
+    4: 'md:col-span-4',
+};
+const LG_SPAN: Record<number, string> = {
+    1: 'lg:col-span-1',
+    2: 'lg:col-span-2',
+    3: 'lg:col-span-3',
+    4: 'lg:col-span-4',
+};
+
+/** Columns for n tiles: as few ragged rows as possible, never more than five. */
+function statColumns(n: number): number {
+    if (n <= 5) return Math.max(1, n);
+    if (n % 4 === 0) return 4;
+    if (n % 3 === 0) return 3;
+    return 4;
+}
+
+/** How wide the last tile must be to fill its row of `cols`. */
+function lastSpan(n: number, cols: number): number {
+    const rest = n % cols;
+    return rest === 0 ? 1 : cols - rest + 1;
+}
+
+/** One quiet line where a group of numbers would all be zero. */
+export function EmptyLine({ children, className }: { children: ReactNode; className?: string }) {
+    return (
+        <p
+            className={cn(
+                'rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-5 py-4 text-[0.9375rem] text-muted-foreground',
+                className
+            )}
+        >
+            {children}
+        </p>
+    );
+}
+
+export interface StatGridProps extends HTMLAttributes<HTMLDivElement> {
+    /** Columns from md up. Default: the count up to 4, then 3 or 4. */
+    columns?: 1 | 2 | 3 | 4 | 5;
+    /** Shown instead of the tiles when the group is empty. */
+    empty?: ReactNode;
+    /** Force the empty line. Default: every child's `raw` is 0 or null. */
+    isEmpty?: boolean;
+}
+
+/**
+ * Stat tiles, two to a row on a phone. The last tile stretches to fill its row,
+ * so a grid never ends in a hole, and a group of zeros becomes one line.
+ */
+export function StatGrid({ columns, empty, isEmpty, className, children, ...props }: StatGridProps) {
+    const items = Children.toArray(children).filter(isValidElement) as ReactElement<StatCardProps>[];
+    const n = items.length;
+    const allZero =
+        n > 0 && items.every((el) => 'raw' in el.props && (el.props.raw === 0 || el.props.raw === null));
+    if (isEmpty ?? allZero) return <EmptyLine className={className}>{empty ?? 'Nothing here yet.'}</EmptyLine>;
+    const lg = columns ?? statColumns(n);
+    // Five across is a desk-width row; a tablet gets three.
+    const md = lg > 4 ? 3 : lg;
+    const mdSpan = lastSpan(n, md);
+    const lgSpan = lastSpan(n, lg);
+    return (
+        <InStatGrid.Provider value>
+            <div
+                className={cn(
+                    'grid gap-3 md:gap-4',
+                    n === 1 ? 'grid-cols-1' : 'grid-cols-2',
+                    MD_COLS[md],
+                    LG_COLS[lg],
+                    className
+                )}
+                {...props}
+            >
+                {items.map((el, i) => {
+                    if (i !== n - 1) return el;
+                    const span = cn(
+                        n % 2 === 1 && n > 1 && 'max-md:col-span-2',
+                        (mdSpan > 1 || lgSpan > 1) && MD_SPAN[mdSpan],
+                        (mdSpan > 1 || lgSpan > 1) && LG_SPAN[lgSpan]
+                    );
+                    return span ? cloneElement(el, { className: cn(el.props.className, span) }) : el;
+                })}
+            </div>
+        </InStatGrid.Provider>
+    );
 }
 
 /* ── Key / value ─────────────────────────────────────────────────────── */
@@ -87,16 +232,33 @@ export interface Column<T> {
     header: ReactNode;
     cell: (row: T) => ReactNode;
     align?: 'start' | 'end';
-    /** Hide below md. */
+    /** A number: right-aligned, tabular, never wrapped. */
+    numeric?: boolean;
+    /** Hide below md in the table (the phone card list still shows it). */
     wide?: boolean;
+    /** A CSS width for the column, e.g. '12rem' or '30%'. */
+    width?: string;
+    /** The narrowest it may get before the table scrolls instead. */
+    minWidth?: string;
+    /** Cut long content to one line (put the full value in a title or HashChip). */
+    truncate?: boolean;
+    /** The phone card's title. Defaults to the first column. */
+    primary?: boolean;
+    /** Leave out of the phone card list. */
+    hideOnPhone?: boolean;
 }
 
+/**
+ * Rows of data. Wider than its box, the table scrolls with an edge that says
+ * so; under 640px it becomes a list of cards that keep every column's label.
+ */
 export function DataTable<T>({
     columns,
     rows,
     rowKey,
     empty,
     caption,
+    phone = 'cards',
     className,
 }: {
     columns: Column<T>[];
@@ -104,50 +266,98 @@ export function DataTable<T>({
     rowKey: (row: T, i: number) => string;
     empty?: ReactNode;
     caption?: string;
+    /** Under 640px: a card per row (default), or the same table scrolling. */
+    phone?: 'cards' | 'scroll';
     className?: string;
 }) {
     if (rows.length === 0 && empty) return <>{empty}</>;
-    return (
-        <div className={cn('overflow-x-auto rounded-[1.25rem] border border-border bg-card', className)}>
-            <table className="w-full border-collapse text-left text-[0.9375rem]">
-                {caption ? <caption className="sr-only">{caption}</caption> : null}
-                <thead>
-                    <tr className="border-b border-border">
-                        {columns.map((c) => (
-                            <th
-                                key={c.key}
-                                scope="col"
-                                className={cn(
-                                    'whitespace-nowrap px-5 py-3 text-[0.8125rem] font-medium text-muted-foreground',
-                                    c.align === 'end' && 'text-right',
-                                    c.wide && 'hidden md:table-cell'
-                                )}
-                            >
-                                {c.header}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                    {rows.map((r, i) => (
-                        <tr key={rowKey(r, i)} className="transition-colors hover:bg-accent/60">
+    const primary = columns.find((c) => c.primary) ?? columns[0];
+    const right = (c: Column<T>) => c.numeric || c.align === 'end';
+    const table = (
+        <div
+            className={cn(
+                'overflow-hidden rounded-[1.25rem] border border-border bg-card',
+                phone === 'cards' && 'max-sm:hidden',
+                className
+            )}
+        >
+            <ScrollFade fade="var(--card)">
+                <table className="w-full border-collapse text-left text-[0.9375rem]">
+                    {caption ? <caption className="sr-only">{caption}</caption> : null}
+                    <thead>
+                        <tr className="border-b border-border">
                             {columns.map((c) => (
-                                <td
+                                <th
                                     key={c.key}
+                                    scope="col"
+                                    style={{ width: c.width, minWidth: c.minWidth }}
                                     className={cn(
-                                        'px-5 py-3.5 align-middle',
-                                        c.align === 'end' && 'text-right',
+                                        'whitespace-nowrap px-5 py-3 text-[0.8125rem] font-medium text-muted-foreground',
+                                        right(c) && 'text-right',
                                         c.wide && 'hidden md:table-cell'
                                     )}
                                 >
-                                    {c.cell(r)}
-                                </td>
+                                    {c.header}
+                                </th>
                             ))}
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                        {rows.map((r, i) => (
+                            <tr key={rowKey(r, i)} className="transition-colors hover:bg-accent/60">
+                                {columns.map((c) => (
+                                    <td
+                                        key={c.key}
+                                        style={{ minWidth: c.minWidth }}
+                                        className={cn(
+                                            'px-5 py-3.5 align-middle',
+                                            right(c) && 'text-right',
+                                            c.numeric && 'whitespace-nowrap oca-tabular',
+                                            c.wide && 'hidden md:table-cell'
+                                        )}
+                                    >
+                                        {c.truncate ? (
+                                            <div className="truncate" style={{ maxWidth: c.width ?? '16rem' }}>
+                                                {c.cell(r)}
+                                            </div>
+                                        ) : (
+                                            c.cell(r)
+                                        )}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </ScrollFade>
         </div>
+    );
+    if (phone !== 'cards') return table;
+    const rest = columns.filter((c) => c !== primary && !c.hideOnPhone);
+    return (
+        <>
+            {table}
+            <ul
+                aria-label={caption}
+                className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card sm:hidden', className)}
+            >
+                {rows.map((r, i) => (
+                    <li key={rowKey(r, i)} className="flex flex-col gap-2.5 px-4 py-4">
+                        <div className="min-w-0 break-words text-[0.9375rem] font-medium">{primary?.cell(r)}</div>
+                        {rest.length > 0 ? (
+                            <dl className="grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[0.875rem]">
+                                {rest.map((c) => (
+                                    <div key={c.key} className="contents">
+                                        <dt className="text-muted-foreground">{c.header}</dt>
+                                        <dd className={cn('min-w-0 break-words', c.numeric && 'oca-tabular')}>{c.cell(r)}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        ) : null}
+                    </li>
+                ))}
+            </ul>
+        </>
     );
 }
 
@@ -157,49 +367,49 @@ export function EmptyState({
     title,
     children,
     action,
+    icon,
     className,
 }: {
     title: ReactNode;
     children?: ReactNode;
     action?: ReactNode;
+    /** An icon that says what is missing. None by default: the words carry it. */
+    icon?: ReactNode;
     className?: string;
 }) {
     return (
         <div
             className={cn(
-                'flex flex-col items-center gap-4 rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-6 py-12 text-center',
+                'flex flex-col items-center gap-3 rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-6 py-10 text-center',
                 className
             )}
         >
-            <Mark size={56} />
+            {icon ? (
+                <span className="mb-1 flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+                    {icon}
+                </span>
+            ) : null}
             <h3 className="oca-title-sm">{title}</h3>
             {children ? <div className="oca-body max-w-md text-[0.9375rem]">{children}</div> : null}
-            {action ? <div className="mt-1 flex flex-wrap justify-center gap-3">{action}</div> : null}
+            {action ? <div className="mt-2 flex flex-wrap justify-center gap-3">{action}</div> : null}
         </div>
     );
 }
 
-type NoticeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand';
+/*
+ * Three kinds of notice: neutral, the orange accent for something that needs
+ * attention, and red for a real error. The old tone names still compile and
+ * land on one of the three, so no page can add a fourth colour.
+ */
+type NoticeTone = 'neutral' | 'brand' | 'danger' | 'info' | 'success' | 'warning';
 
-const NOTICE: Record<NoticeTone, string> = {
-    neutral: 'border-border bg-card',
-    info: 'border-[color-mix(in_oklab,var(--info)_30%,var(--border))] bg-[color-mix(in_oklab,var(--info)_6%,var(--card))]',
-    success:
-        'border-[color-mix(in_oklab,var(--success)_30%,var(--border))] bg-[color-mix(in_oklab,var(--success)_6%,var(--card))]',
-    warning:
-        'border-[color-mix(in_oklab,var(--warning)_35%,var(--border))] bg-[color-mix(in_oklab,var(--warning)_7%,var(--card))]',
-    danger:
-        'border-[color-mix(in_oklab,var(--destructive)_32%,var(--border))] bg-[color-mix(in_oklab,var(--destructive)_6%,var(--card))]',
-    brand: 'border-[color-mix(in_oklab,var(--oca-orange)_35%,var(--border))] bg-[color-mix(in_oklab,var(--oca-orange)_7%,var(--card))]',
-};
-
-const NOTICE_TITLE: Record<NoticeTone, string> = {
-    neutral: 'text-foreground',
-    info: 'text-info',
-    success: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-destructive',
-    brand: 'text-oca-accent-ink',
+const NOTICE_KIND: Record<NoticeTone, 'neutral' | 'brand' | 'danger'> = {
+    neutral: 'neutral',
+    info: 'neutral',
+    success: 'neutral',
+    brand: 'brand',
+    warning: 'brand',
+    danger: 'danger',
 };
 
 export function Notice({
@@ -215,20 +425,79 @@ export function Notice({
     action?: ReactNode;
     className?: string;
 }) {
+    const kind = NOTICE_KIND[tone];
     return (
         <div
             role={tone === 'danger' || tone === 'warning' ? 'alert' : 'note'}
+            data-tone={kind}
             className={cn(
-                'flex flex-col gap-3 rounded-2xl border px-5 py-4 sm:flex-row sm:items-start sm:justify-between',
-                NOTICE[tone],
+                'flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-4 sm:flex-row sm:items-start sm:justify-between',
+                kind === 'danger' && 'border-[color-mix(in_oklab,var(--destructive)_40%,var(--border))]',
                 className
             )}
         >
-            <div className="flex min-w-0 flex-col gap-1">
-                {title ? <p className={cn('text-[0.9375rem] font-medium', NOTICE_TITLE[tone])}>{title}</p> : null}
-                {children ? <div className="text-[0.9375rem] leading-relaxed text-foreground/85">{children}</div> : null}
+            <div className="flex min-w-0 gap-3">
+                {kind !== 'neutral' ? (
+                    <span
+                        aria-hidden
+                        className={cn(
+                            'mt-[0.45rem] size-2 shrink-0 rounded-full',
+                            kind === 'brand' ? 'bg-oca-orange' : 'bg-destructive'
+                        )}
+                    />
+                ) : null}
+                <div className="flex min-w-0 flex-col gap-1">
+                    {title ? (
+                        <p className={cn('text-[0.9375rem] font-medium', kind === 'danger' && 'text-destructive')}>
+                            {title}
+                        </p>
+                    ) : null}
+                    {children ? <div className="text-[0.9375rem] leading-relaxed text-muted-foreground">{children}</div> : null}
+                </div>
             </div>
             {action ? <div className="shrink-0">{action}</div> : null}
+        </div>
+    );
+}
+
+/**
+ * Placeholder rows while something loads, and a way out if it never does:
+ * after `timeoutMs` the skeleton turns into a message with a retry.
+ */
+export function LoadingBlock({
+    rows = 3,
+    timeoutMs = 12_000,
+    onRetry,
+    label = 'Loading',
+    className,
+}: {
+    rows?: number;
+    timeoutMs?: number;
+    onRetry?: () => void;
+    label?: string;
+    className?: string;
+}) {
+    const timedOut = useTimedOut(true, timeoutMs);
+    if (timedOut) {
+        return (
+            <Notice
+                className={className}
+                title="This is taking longer than it should."
+                action={
+                    <Button size="sm" variant="secondary" onClick={onRetry ?? (() => window.location.reload())}>
+                        Try again
+                    </Button>
+                }
+            >
+                Check your connection, then try again.
+            </Notice>
+        );
+    }
+    return (
+        <div role="status" aria-label={label} className={cn('flex flex-col gap-3', className)}>
+            {Array.from({ length: rows }, (_, i) => (
+                <Skeleton key={i} className="h-16 rounded-2xl" />
+            ))}
         </div>
     );
 }

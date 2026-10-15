@@ -69,6 +69,15 @@ const PAIRS = [
     ['oca-code-package', 'oca-ink-card', 4.5],
     ['oca-code-tag', 'oca-ink-card', 4.5],
     ['oca-code-link', 'oca-ink-card', 4.5],
+    ['oca-ink-muted', 'oca-code-surface', 4.5],
+    ['oca-ink-subtle', 'oca-code-surface', 4.5],
+    ['oca-code-package', 'oca-code-surface', 4.5],
+    ['oca-code-tag', 'oca-code-surface', 4.5],
+    ['oca-code-link', 'oca-code-surface', 4.5],
+    ['secondary-foreground', 'secondary', 4.5],
+    // Non-text: a field's border against the card it sits on (WCAG 1.4.11).
+    ['input', 'card', 3],
+    ['input', 'background', 3],
 ];
 
 let failed = 0;

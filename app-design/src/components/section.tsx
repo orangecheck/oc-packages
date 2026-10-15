@@ -15,7 +15,9 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
         tone: {
             canvas: 'bg-background text-foreground',
             card: 'bg-card text-card-foreground',
-            ink: 'bg-oca-ink text-oca-ink-foreground',
+            // The band line is transparent in light; in dark it keeps the ink
+            // band from melting into the canvas.
+            ink: 'border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground',
             brand: 'bg-brand text-brand-foreground',
         },
         space: {

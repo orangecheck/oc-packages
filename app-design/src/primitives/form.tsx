@@ -64,8 +64,10 @@ export const Label = forwardRef<
 
 export interface FieldProps {
     label: ReactNode;
-    /** One line under the label, before the control. */
+    /** Help under the control. It sits below, so paired fields stay level. */
     hint?: ReactNode;
+    /** Mark the field optional beside its label, rather than in a hint. */
+    optional?: boolean;
     /** Shown in place of nothing; marks the control invalid. */
     error?: ReactNode;
     /** The control. Receives id, aria-describedby and aria-invalid. */
@@ -76,7 +78,7 @@ export interface FieldProps {
 }
 
 /** Label, hint, control and error, wired together by id. */
-export function Field({ label, hint, error, children, className, hideLabel }: FieldProps) {
+export function Field({ label, hint, optional, error, children, className, hideLabel }: FieldProps) {
     const id = useId();
     const hintId = hint ? `${id}-hint` : undefined;
     const errorId = error ? `${id}-error` : undefined;
@@ -90,15 +92,16 @@ export function Field({ label, hint, error, children, className, hideLabel }: Fi
         : children;
     return (
         <div className={cn('flex flex-col gap-2', className)}>
-            <Label htmlFor={id} className={hideLabel ? 'sr-only' : undefined}>
+            <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'flex items-baseline gap-2'}>
                 {label}
+                {optional ? <span className="text-[0.8125rem] font-normal text-muted-foreground">Optional</span> : null}
             </Label>
+            {control}
             {hint ? (
                 <p id={hintId} className="text-[0.8125rem] leading-snug text-muted-foreground">
                     {hint}
                 </p>
             ) : null}
-            {control}
             {error ? (
                 <p id={errorId} role="alert" className="text-[0.8125rem] leading-snug text-destructive">
                     {error}

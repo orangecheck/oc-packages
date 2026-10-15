@@ -15,7 +15,10 @@ export const buttonVariants = cva(
         'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium',
         'transition-[background-color,border-color,color,box-shadow,transform] duration-150',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        'active:translate-y-px disabled:pointer-events-none disabled:opacity-45',
+        'active:translate-y-px disabled:pointer-events-none',
+        // Disabled is one look for every variant: a quiet grey pill, never a
+        // faded black or orange slab that reads as broken.
+        'disabled:border disabled:border-border disabled:bg-muted disabled:text-oca-subtle disabled:shadow-none',
         '[&_svg]:pointer-events-none [&_svg]:size-[1.1em] [&_svg]:shrink-0',
     ],
     {

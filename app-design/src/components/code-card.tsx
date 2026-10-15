@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { ScrollFade } from '../primitives/scroll-fade';
+import { CopyButton } from './data';
 
 /*
  * The deck's "What you get" panel: a dark card of packages, each a peach title,
@@ -57,26 +59,79 @@ export function PackageCard({ items, className }: { items: PackageItem[]; classN
     );
 }
 
-/** A dark block of code with an optional caption, for snippets. */
+/**
+ * A block of code: a header with its name and a copy button, then the code on
+ * a dark well that scrolls sideways (with an edge that says so) rather than
+ * cutting a line off. Past `maxLines` it folds, with a button to show the rest.
+ */
 export function CodeBlock({
     code,
     caption,
+    copy = true,
+    maxLines,
     className,
 }: {
     code: string;
+    /** The file, language or purpose. Defaults to "Code". */
     caption?: ReactNode;
+    copy?: boolean;
+    maxLines?: number;
     className?: string;
 }) {
+    const lines = code.split('\n').length;
+    const foldable = maxLines !== undefined && lines > maxLines + 2;
+    const [open, setOpen] = useState(false);
+    const folded = foldable && !open;
     return (
-        <figure className={cn('overflow-hidden rounded-[1.25rem] border border-oca-ink-line bg-oca-ink-card', className)}>
-            {caption ? (
-                <figcaption className="border-b border-oca-ink-line px-5 py-3 text-[0.8125rem] text-oca-ink-subtle">
-                    {caption}
-                </figcaption>
-            ) : null}
-            <pre className="overflow-x-auto p-5 font-mono text-[0.875rem] leading-relaxed text-oca-ink-muted">
-                <code>{code}</code>
-            </pre>
+        <figure
+            className={cn(
+                'overflow-hidden rounded-[1.25rem] border border-[var(--oca-code-line)] bg-[var(--oca-code-surface)]',
+                className
+            )}
+        >
+            <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
+                <span className="truncate text-[0.8125rem] text-oca-ink-subtle">{caption ?? 'Code'}</span>
+                {copy ? (
+                    <CopyButton
+                        value={code}
+                        label="Copy code"
+                        className="text-oca-ink-subtle hover:bg-white/10 hover:text-white"
+                    />
+                ) : null}
+            </figcaption>
+            <div className="relative">
+                <div
+                    className={cn(folded && 'overflow-hidden')}
+                    style={folded ? { maxHeight: `calc(${maxLines} * 1.625em + 2.5rem)` } : undefined}
+                >
+                    <ScrollFade fade="var(--oca-code-surface)">
+                        <pre className="w-max min-w-full p-5 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted">
+                            <code>{code}</code>
+                        </pre>
+                    </ScrollFade>
+                </div>
+                {foldable ? (
+                    <div
+                        className={cn(
+                            'flex justify-center px-5 pb-4',
+                            folded && 'absolute inset-x-0 bottom-0 pt-16'
+                        )}
+                        style={
+                            folded
+                                ? { background: 'linear-gradient(to top, var(--oca-code-surface) 40%, transparent)' }
+                                : undefined
+                        }
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setOpen((v) => !v)}
+                            className="rounded-full border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10"
+                        >
+                            {open ? 'Show less' : `Show all ${lines} lines`}
+                        </button>
+                    </div>
+                ) : null}
+            </div>
         </figure>
     );
 }

@@ -2,6 +2,7 @@ import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { createContext, forwardRef, useContext, type ComponentPropsWithoutRef, type ElementRef } from 'react';
 
 import { cn } from '../lib/cn';
+import { ScrollFade } from './scroll-fade';
 
 /*
  * Two looks for one behaviour: `pill` is a segmented control for switching a
@@ -26,17 +27,20 @@ export const TabsList = forwardRef<
     ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(function TabsList({ className, ...props }, ref) {
     const look = useContext(LookContext);
+    // More tabs than fit a phone scroll sideways, with an edge that says so.
     return (
-        <TabsPrimitive.List
-            ref={ref}
-            className={cn(
-                look === 'pill'
-                    ? 'inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-muted p-1'
-                    : 'flex max-w-full items-center gap-6 overflow-x-auto border-b border-border',
-                className
-            )}
-            {...props}
-        />
+        <ScrollFade fade="var(--background)" className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
+            <TabsPrimitive.List
+                ref={ref}
+                className={cn(
+                    look === 'pill'
+                        ? 'inline-flex w-max items-center gap-1 rounded-full bg-muted p-1'
+                        : 'flex w-max min-w-full items-center gap-6 border-b border-border',
+                    className
+                )}
+                {...props}
+            />
+        </ScrollFade>
     );
 });
 
