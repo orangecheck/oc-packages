@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1] — 2026-10-15
+
+- Every page's opening settles in once on load (`oca-enter`, staggered through
+  eyebrow, title, lead, actions and art). CSS only: it plays without script and
+  stops under reduced motion.
+- `SectionIntro` rises into place the first time it scrolls into view;
+  `reveal={false}` keeps it still. It now takes only `className`, `style` and
+  children, so an attribute it would drop is a type error.
+
 ## [0.4.0] — 2026-10-15
 
 The signature pieces, so ochk.app can look like the deck feels instead of

@@ -55,14 +55,16 @@ export function PageHero({
         <Section space="none" className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
-                    {eyebrow ? <p className="oca-eyebrow">{eyebrow}</p> : null}
-                    <h1 className={size === 'xl' ? 'oca-display-1' : 'oca-display-2'}>{title}</h1>
-                    {lead ? <p className="oca-lead max-w-[38rem]">{lead}</p> : null}
-                    {meta ? <p className="text-[0.875rem] text-muted-foreground">{meta}</p> : null}
-                    {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
-                    {children}
+                    {eyebrow ? <p className="oca-eyebrow oca-enter">{eyebrow}</p> : null}
+                    <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter [--enter-delay:70ms]')}>
+                        {title}
+                    </h1>
+                    {lead ? <p className="oca-lead oca-enter max-w-[38rem] [--enter-delay:150ms]">{lead}</p> : null}
+                    {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground [--enter-delay:190ms]">{meta}</p> : null}
+                    {actions ? <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">{actions}</div> : null}
+                    {children ? <div className="oca-enter w-full [--enter-delay:270ms]">{children}</div> : null}
                 </div>
-                {art ? <div className="md:col-span-5">{art}</div> : null}
+                {art ? <div className="oca-enter md:col-span-5 [--enter-delay:120ms]">{art}</div> : null}
             </div>
         </Section>
     );
@@ -83,8 +85,8 @@ export function DocHeader({
 }: Pick<PageHeroProps, 'eyebrow' | 'title' | 'lead' | 'meta' | 'actions' | 'children' | 'className'>) {
     return (
         <div className={cn('flex flex-col gap-5', className)}>
-            {eyebrow ? <p className="oca-eyebrow">{eyebrow}</p> : null}
-            <h1 className="oca-display-2">{title}</h1>
+            {eyebrow ? <p className="oca-eyebrow oca-enter">{eyebrow}</p> : null}
+            <h1 className="oca-display-2 oca-enter [--enter-delay:70ms]">{title}</h1>
             {lead ? <p className="oca-lead">{lead}</p> : null}
             {meta ? <p className="text-[0.875rem] text-muted-foreground">{meta}</p> : null}
             {actions ? <div className="mt-1 flex flex-wrap gap-3">{actions}</div> : null}

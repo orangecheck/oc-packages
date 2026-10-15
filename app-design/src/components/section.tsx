@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
+import { Reveal } from './motion';
 
 /*
  * The deck alternates three grounds: the light canvas, the ink band and the
@@ -47,20 +48,28 @@ export function Container({ className, ...props }: HTMLAttributes<HTMLDivElement
     return <div className={cn('oca-container', className)} {...props} />;
 }
 
-/** Eyebrow + headline + lead, the opening of every deck slide. */
+/**
+ * Eyebrow + headline + lead, the opening of every deck slide. It rises into
+ * place the first time it scrolls into view (`reveal={false}` to keep it still).
+ */
 export function SectionIntro({
     className,
     align = 'start',
-    ...props
-}: HTMLAttributes<HTMLDivElement> & { align?: 'start' | 'center' }) {
-    return (
-        <div
-            className={cn(
-                'flex flex-col gap-4 md:gap-5',
-                align === 'center' && 'mx-auto items-center text-center',
-                className
-            )}
-            {...props}
-        />
+    reveal = true,
+    children,
+    style,
+}: Pick<HTMLAttributes<HTMLDivElement>, 'className' | 'style' | 'children'> & {
+    align?: 'start' | 'center';
+    reveal?: boolean;
+}) {
+    const cls = cn('flex flex-col gap-4 md:gap-5', align === 'center' && 'mx-auto items-center text-center', className);
+    return reveal ? (
+        <Reveal className={cls} style={style}>
+            {children}
+        </Reveal>
+    ) : (
+        <div className={cls} style={style}>
+            {children}
+        </div>
     );
 }
