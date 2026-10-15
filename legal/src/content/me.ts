@@ -26,7 +26,7 @@ import {
 } from './clauses';
 
 const COMMERCIAL_NOTE =
-    '**me.ochk.io is a commercial product operated by OrangeCheck.** It is distinct from the non-custodial OrangeCheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern me.ochk.io. These Terms do.';
+    '**me.ochk.io is a commercial product operated by OrangeCheck.** It is distinct from the non-custodial OrangeCheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern me.ochk.io. These Terms do. The same Service is also served at ochk.app, in its own design, from the same accounts and records: these Terms govern it at either address, and “me.ochk.io” in them means both.';
 
 const terms: DocSpec = {
     kind: 'terms',
@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-09',
+    updated: '2026-10-15',
     preamble: [
         {
             kind: 'callout',
@@ -207,11 +207,11 @@ const privacy: DocSpec = {
     metaDescription:
         'me.ochk.io privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-09',
+    updated: '2026-10-15',
     preamble: [
         {
             kind: 'callout',
-            text: 'me.ochk.io’s product is identity that pays you; its privacy posture is what makes it distinct from Sign in with Google. For a side-by-side comparison you can falsify, see [the privacy comparison](/privacy-compare).',
+            text: 'This policy covers the Service at both of its addresses, me.ochk.io and ochk.app: one account, one store of records, one operator; “me.ochk.io” below means both. Its product is identity that pays you; its privacy posture is what makes it distinct from Sign in with Google. For a side-by-side comparison you can falsify, see [the privacy comparison](/privacy-compare).',
         },
     ],
     sections: [
@@ -314,7 +314,11 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Four cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin` and `oc_motion` — your dark/light, appearance and reduced-motion preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                    text: 'On me.ochk.io, four cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin` and `oc_motion` — your dark/light, appearance and reduced-motion preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                },
+                {
+                    kind: 'para',
+                    text: 'On ochk.app, two cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
                 },
             ],
         },

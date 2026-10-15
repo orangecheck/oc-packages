@@ -6,6 +6,18 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.6] — 2026-10-15
+
+### Changed — the Service has a second address
+
+- **me.ochk.io terms and privacy, was:** named only me.ochk.io. **Now:** say
+  once that the same Service is also served at ochk.app, from the same accounts
+  and records, and that both documents govern it at either address.
+- **me.ochk.io privacy, cookies, was:** listed the four `.ochk.io` cookies.
+  **Now:** also lists ochk.app's two (`__Host-oc_session`, bound to ochk.app;
+  `__Host-oc_oauth`, at most ten minutes during a Google or GitHub sign-in) and
+  that ochk.app's page analytics are orangecheck's own cookie-free counter.
+
 ## [0.7.5] — 2026-10-09
 
 ### Added — the signup email to operators

@@ -32,7 +32,8 @@ const BANNED = [
     [/no password,? no email/i, 'email, Google and GitHub sign-in store the email'],
     [/Sign in with Bitcoin\*?\*? flow/i, 'sign-in is Bitcoin, email, Google or GitHub'],
     [/user-agent hash/i, 'session rows store the raw user-agent'],
-    [/oc_session[^;]{0,140}?SameSite=Lax/i, 'oc_session is SameSite=None in production'],
+    // The family cookie. ochk.app's own __Host-oc_session is a different cookie and is Lax.
+    [/(?<!__Host-)oc_session[^;]{0,140}?SameSite=Lax/i, 'oc_session is SameSite=None in production'],
     [/httpOnly \+ Secure \+ SameSite=Lax/i, 'oc_session is SameSite=None in production'],
     [/\bphone\b/i, 'no phone sign-in exists'],
     [/retained 90 days|90 days[^.]{0,40}auto-deleted/i, 'no 90-day log store exists'],
@@ -71,4 +72,16 @@ test('ochk.io privacy names what sign-in stores', () => {
 test('vault privacy says the key is stored sealed', () => {
     const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
     assert.match(text, /sealed vault key/i);
+});
+
+test('me privacy names ochk.app and its own cookies', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    for (const rx of [/me\.ochk\.io and ochk\.app/i, /__Host-oc_session[^.]*bound to ochk\.app/i, /__Host-oc_oauth/i]) {
+        assert.match(text, rx);
+    }
+});
+
+test('me terms govern the Service at both addresses', () => {
+    const text = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.match(text, /also served at ochk\.app[^.]*govern it at either address/i);
 });
