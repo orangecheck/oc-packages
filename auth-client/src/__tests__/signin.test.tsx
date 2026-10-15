@@ -85,28 +85,28 @@ describe('OcSignIn · wallet path', () => {
             return undefined;
         });
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.click(screen.getByRole('tab', { name: 'bitcoin wallet' }));
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
         return posts;
     }
 
     async function pasteSignature(sig: string) {
         await act(async () => {});
-        fireEvent.change(screen.getByLabelText('bitcoin address'), { target: { value: ADDR } });
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /get the message to sign/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
         });
-        expect(screen.getByLabelText('message to sign')).toHaveProperty('value', 'sign this');
-        fireEvent.change(screen.getByLabelText('signature'), { target: { value: sig } });
+        expect(screen.getByLabelText('Message to sign')).toHaveProperty('value', 'sign this');
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: sig } });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /sign me in/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
         });
     }
 
     it('refuses a typo without fetching a challenge', async () => {
         openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
-        fireEvent.change(screen.getByLabelText('bitcoin address'), { target: { value: 'hello' } });
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: 'hello' } });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /→/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign|Sign in with wallet/ }));
         });
         expect(screen.getByRole('alert').textContent).toMatch(/doesn't look like a Bitcoin address/);
         const fetched = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls;
@@ -148,19 +148,19 @@ describe('OcSignIn · email path', () => {
             return undefined;
         });
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.change(screen.getByLabelText('email'), {
+        fireEvent.change(screen.getByLabelText('Email'), {
             target: { value: 'a@example.com' },
         });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /send one-time code/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
         });
-        fireEvent.change(screen.getByLabelText('one-time code'), { target: { value: '123456' } });
+        fireEvent.change(screen.getByLabelText('One-time code'), { target: { value: '123456' } });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /verify/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Verify/ }));
         });
         expect(screen.getByRole('alert').textContent).toBe('That code expired. Send a new one.');
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'send a new code' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Send a new code' }));
         });
         expect(screen.getByText(/Sent a new code to/)).toBeTruthy();
     });
@@ -175,9 +175,9 @@ describe('OcSignIn · network failure', () => {
             throw new TypeError('Failed to fetch');
         }) as unknown as typeof fetch;
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.change(screen.getByLabelText('email'), { target: { value: 'a@example.com' } });
+        fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@example.com' } });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: /send one-time code/ }));
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
         });
         expect(screen.getByRole('alert').textContent).toMatch(/couldn't reach the server/);
         expect(screen.queryByText(/Failed to fetch/)).toBeNull();

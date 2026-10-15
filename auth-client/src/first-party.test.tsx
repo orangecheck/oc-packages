@@ -57,11 +57,11 @@ afterEach(() => {
 });
 
 async function signInByEmail(): Promise<void> {
-    fireEvent.change(screen.getByLabelText('email'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@example.com' } });
     await act(async () => {
-        fireEvent.submit(screen.getByLabelText('email').closest('form')!);
+        fireEvent.submit(screen.getByLabelText('Email').closest('form')!);
     });
-    const code = await screen.findByLabelText('one-time code');
+    const code = await screen.findByLabelText('One-time code');
     fireEvent.change(code, { target: { value: '123456' } });
     await act(async () => {
         fireEvent.submit(code.closest('form')!);
@@ -124,6 +124,19 @@ describe('OcSignIn mode="first-party"', () => {
         expect(document.querySelector('[data-oc-signin-linkalso]')).toBeNull();
         expect(document.querySelector('[data-oc-signin-add-mode]')).toBeNull();
         window.history.replaceState(null, '', '/');
+    });
+});
+
+describe('OcSignIn copy', () => {
+    it('is written in sentence case, so a site without the uppercase transform reads it as written', async () => {
+        render(<OcSignIn mode="first-party" audience="https://ochk.app" onSuccess={vi.fn()} />);
+        await act(async () => {});
+        expect(screen.getByRole('tab', { name: 'Email' })).toBeTruthy();
+        expect(screen.getByRole('tab', { name: 'Bitcoin wallet' })).toBeTruthy();
+        // The arrow is decoration a site can hide; it is never part of the name.
+        expect(screen.getByRole('button', { name: 'Send one-time code' })).toBeTruthy();
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        expect(screen.getByLabelText('Bitcoin address')).toBeTruthy();
     });
 });
 

@@ -13,6 +13,10 @@ import type * as React from 'react';
  *   --oc-signin-radius         fields and notices        (6px; 4px for the add notice)
  *   --oc-signin-button-radius  buttons                   (6px)
  *   --oc-signin-strong         weight of the submit text (600)
+ *   --oc-signin-arrow          display of the → after a submit label (inline)
+ *
+ * Copy is written in sentence case. The family's uppercase transform shows it
+ * as before; a site that sets the case to `none` reads it as written.
  */
 export const SIGNIN_FONT = 'var(--oc-signin-font, ui-monospace, SFMono-Regular, monospace)';
 export const SIGNIN_CASE = 'var(--oc-signin-case, uppercase)' as React.CSSProperties['textTransform'];
@@ -21,3 +25,4 @@ export const signinSize = (px: number): string => `calc(${px}px * var(--oc-signi
 export const signinRadius = (px: number): string => `var(--oc-signin-radius, ${px}px)`;
 export const SIGNIN_BUTTON_RADIUS = 'var(--oc-signin-button-radius, 6px)';
 export const SIGNIN_STRONG = 'var(--oc-signin-strong, 600)' as React.CSSProperties['fontWeight'];
+export const SIGNIN_ARROW = 'var(--oc-signin-arrow, inline)' as React.CSSProperties['display'];

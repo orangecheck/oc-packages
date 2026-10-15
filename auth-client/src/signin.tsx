@@ -43,6 +43,7 @@ import { LinkPromptStep } from './linked-identities';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
 import {
+    SIGNIN_ARROW,
     SIGNIN_BUTTON_RADIUS,
     SIGNIN_CASE,
     SIGNIN_FONT,
@@ -644,13 +645,13 @@ export function OcSignIn({
                                 active={path === 'email'}
                                 onClick={() => setPath('email')}
                             >
-                                email
+                                Email
                             </SigninTab>
                             <SigninTab
                                 active={path === 'wallet'}
                                 onClick={() => setPath('wallet')}
                             >
-                                bitcoin wallet
+                                Bitcoin wallet
                             </SigninTab>
                         </>
                     ) : (
@@ -659,13 +660,13 @@ export function OcSignIn({
                                 active={path === 'wallet'}
                                 onClick={() => setPath('wallet')}
                             >
-                                bitcoin wallet
+                                Bitcoin wallet
                             </SigninTab>
                             <SigninTab
                                 active={path === 'email'}
                                 onClick={() => setPath('email')}
                             >
-                                email
+                                Email
                             </SigninTab>
                         </>
                     )}
@@ -1196,7 +1197,7 @@ function WalletFlow({
                     In your wallet, use “sign message” (BIP-322) with {address.trim()}, sign the
                     text below, and paste the signature back here. Nothing is spent.
                 </FlowHeader>
-                <Label htmlFor={ids.message}>message to sign</Label>
+                <Label htmlFor={ids.message}>Message to sign</Label>
                 <textarea
                     id={ids.message}
                     readOnly
@@ -1206,13 +1207,13 @@ function WalletFlow({
                     style={{ ...inputStyle, resize: 'vertical' }}
                 />
                 <button type="button" onClick={() => void copyMessage()} style={linkButtonStyle}>
-                    {copied === 'copied' ? 'copied' : 'copy message'}
+                    {copied === 'copied' ? 'Copied' : 'Copy message'}
                 </button>
                 {copied === 'failed' && (
                     <Hint>Couldn&apos;t copy here. Select the text above and copy it.</Hint>
                 )}
                 <div style={{ marginTop: 14 }}>
-                    <Label htmlFor={ids.signature}>signature</Label>
+                    <Label htmlFor={ids.signature}>Signature</Label>
                     <textarea
                         id={ids.signature}
                         value={pasted}
@@ -1234,7 +1235,7 @@ function WalletFlow({
                     disabled={submitting || !pasted.trim()}
                     style={submitStyle(submitting || !pasted.trim())}
                 >
-                    {submitting ? 'checking…' : 'sign me in →'}
+                    {submitting ? 'Checking…' : <Submit>Sign me in</Submit>}
                 </button>
                 <button
                     type="button"
@@ -1246,7 +1247,7 @@ function WalletFlow({
                     }}
                     style={linkButtonStyle}
                 >
-                    use a different address
+                    Use a different address
                 </button>
             </form>
         );
@@ -1260,7 +1261,7 @@ function WalletFlow({
                 and your key never leaves the wallet. Works with browser wallets, or any wallet that
                 can sign a message, like Sparrow.
             </FlowHeader>
-            <Label htmlFor={ids.address}>bitcoin address</Label>
+            <Label htmlFor={ids.address}>Bitcoin address</Label>
             <input
                 id={ids.address}
                 type="text"
@@ -1279,7 +1280,7 @@ function WalletFlow({
             />
             {wallets && wallets.length > 1 && (
                 <div style={{ marginTop: 12 }}>
-                    <Label htmlFor={ids.wallet}>sign with</Label>
+                    <Label htmlFor={ids.wallet}>Sign with</Label>
                     <select
                         id={ids.wallet}
                         value={walletId ?? ''}
@@ -1301,10 +1302,10 @@ function WalletFlow({
                 style={submitStyle(submitting || !address.trim())}
             >
                 {submitting
-                    ? 'waiting for wallet…'
+                    ? 'Waiting for wallet…'
                     : noBrowserWallet
-                      ? 'get the message to sign →'
-                      : 'sign in with wallet →'}
+                      ? <Submit>Get the message to sign</Submit>
+                      : <Submit>Sign in with wallet</Submit>}
             </button>
             {noBrowserWallet && (
                 <Hint>No browser wallet found here. You can sign with any wallet and paste.</Hint>
@@ -1421,7 +1422,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                     We email you a 6-digit code. No password, and no wallet needed to start. Link a
                     Bitcoin address any time — that is the identity you hold yourself.
                 </FlowHeader>
-                <Label htmlFor={`${uid}-email`}>email</Label>
+                <Label htmlFor={`${uid}-email`}>Email</Label>
                 <input
                     id={`${uid}-email`}
                     type="email"
@@ -1438,7 +1439,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 />
                 {emailError && <ErrorLine>{emailError}</ErrorLine>}
                 <button type="submit" disabled={submitting} style={submitStyle(submitting)}>
-                    {submitting ? 'sending…' : 'send one-time code →'}
+                    {submitting ? 'Sending…' : <Submit>Send one-time code</Submit>}
                 </button>
             </form>
         );
@@ -1451,7 +1452,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 <span style={{ color: 'var(--foreground, #fafafa)' }}>{email}</span>. It expires in
                 10 minutes.
             </FlowHeader>
-            <Label htmlFor={`${uid}-code`}>one-time code</Label>
+            <Label htmlFor={`${uid}-code`}>One-time code</Label>
             <input
                 id={`${uid}-code`}
                 type="text"
@@ -1476,7 +1477,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 disabled={submitting || code.length !== 6}
                 style={submitStyle(submitting || code.length !== 6)}
             >
-                {submitting ? 'verifying…' : 'verify · sign me in →'}
+                {submitting ? 'Verifying…' : <Submit>Verify · sign me in</Submit>}
             </button>
             <div>
                 <button
@@ -1485,7 +1486,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                     disabled={submitting}
                     style={linkButtonStyle}
                 >
-                    send a new code
+                    Send a new code
                 </button>
                 <button
                     type="button"
@@ -1497,7 +1498,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                     }}
                     style={linkButtonStyle}
                 >
-                    use a different email
+                    Use a different email
                 </button>
             </div>
         </form>
@@ -1505,6 +1506,18 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
 }
 
 /* --- shared subcomponents --- */
+
+/** A submit label and its arrow, which a site can hide (--oc-signin-arrow). */
+function Submit({ children }: { children: string }): React.ReactElement {
+    return (
+        <>
+            {children}
+            <span aria-hidden="true" style={{ display: SIGNIN_ARROW }}>
+                {' →'}
+            </span>
+        </>
+    );
+}
 
 function FlowHeader({
     label,

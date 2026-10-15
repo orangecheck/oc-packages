@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.29.0] — 2026-10-15
+
+### Changed
+
+- **Sign-in copy is written in sentence case** ("Email", "Bitcoin wallet",
+  "Send one-time code"). It was lowercase in source and leaned on the family's
+  uppercase transform, so a site that sets `--oc-signin-case: none` showed
+  lowercase labels. Family sites render exactly as before.
+
+### Added
+
+- **`--oc-signin-arrow`** sets the display of the `→` after a submit label
+  (default `inline`). The arrow is never part of the button's name.
+
 ## [2.28.0] — 2026-10-15
 
 ### Added
