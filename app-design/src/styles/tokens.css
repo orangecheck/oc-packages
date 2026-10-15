@@ -104,6 +104,8 @@
     --oc-signin-radius: 0.875rem;
     --oc-signin-button-radius: 9999px;
     --oc-signin-strong: 500;
+    /* Sentence-case labels carry no trailing arrow (auth-client ≥ 2.29). */
+    --oc-signin-arrow: none;
 
     /* The deck has no shadows. Overlays get one, so a dialog still separates. */
     --oc-shadow-2xs: none;

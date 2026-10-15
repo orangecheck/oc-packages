@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.2] — 2026-10-15
+
+- Sets `--oc-signin-arrow: none`, so the sign-in ceremony's submit labels carry
+  no trailing arrow (auth-client ≥ 2.29) without a per-page override.
+
 ## [0.3.1] — 2026-10-15
 
 - `ScrollFade` and `DocLayout` work where `ResizeObserver` or
