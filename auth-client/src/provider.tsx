@@ -210,7 +210,7 @@ export function OcSessionProvider({
     const pinInFlightRef = React.useRef(false);
     const pinThisTab = React.useCallback(
         async (didOc: string) => {
-            if (pinInFlightRef.current || readTabSession()) return;
+            if (!cfg.multiAccount || pinInFlightRef.current || readTabSession()) return;
             pinInFlightRef.current = true;
             try {
                 const res = await fetch(`${cfg.authOrigin}/api/auth/tab`, {
@@ -241,7 +241,7 @@ export function OcSessionProvider({
                 pinInFlightRef.current = false;
             }
         },
-        [cfg.authOrigin]
+        [cfg.authOrigin, cfg.multiAccount]
     );
 
     const refresh = React.useCallback(async () => {
@@ -311,6 +311,7 @@ export function OcSessionProvider({
             const currentOrigin =
                 typeof window !== 'undefined' ? window.location.origin : null;
             if (
+                cfg.multiAccount &&
                 acct &&
                 rosterEntries.length === 0 &&
                 currentOrigin !== null &&
@@ -336,23 +337,29 @@ export function OcSessionProvider({
             // New-tab inheritance · if the opener stamped `#oc-as=<did>`,
             // adopt that account BEFORE the first /me fetch so this tab
             // resolves as the opener's account, not the cookie default.
-            await consumeTabAccountHint(cfg.authOrigin);
+            if (cfg.multiAccount) await consumeTabAccountHint(cfg.authOrigin);
             if (!cancelled) void refresh();
         })();
         return () => {
             cancelled = true;
         };
-    }, [refresh, cfg.authOrigin]);
+    }, [refresh, cfg.authOrigin, cfg.multiAccount]);
 
     // Per-tab · attach the pin to every same-site fetch so app-level data
     // calls execute as the account this tab displays. Scoped + reversible;
     // see installTabFetchInterceptor for the conservative rules.
-    React.useEffect(() => installTabFetchInterceptor(cfg.authOrigin), [cfg.authOrigin]);
+    React.useEffect(
+        () => (cfg.multiAccount ? installTabFetchInterceptor(cfg.authOrigin) : undefined),
+        [cfg.authOrigin, cfg.multiAccount]
+    );
 
     // Per-tab · stamp this tab's effective account onto outgoing
     // family-origin links so a new/cross-subdomain tab inherits it
     // instead of the shared cookie default. See installTabLinkDecorator.
-    React.useEffect(() => installTabLinkDecorator(cfg.authOrigin), [cfg.authOrigin]);
+    React.useEffect(
+        () => (cfg.multiAccount ? installTabLinkDecorator(cfg.authOrigin) : undefined),
+        [cfg.authOrigin, cfg.multiAccount]
+    );
 
     const signOut = React.useCallback(
         async (opts?: { scope?: OcSignOutScope }) => {

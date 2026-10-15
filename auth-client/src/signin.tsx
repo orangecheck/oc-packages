@@ -54,7 +54,7 @@ import {
 
 /* --- props --- */
 
-export interface OcSignInProps {
+interface OcSignInBaseProps {
     /**
      * Consumer-site audience URL passed as `expectedAudience` on the
      * BIP-322 challenge. e.g. `'https://vault.ochk.io'`. Required —
@@ -155,6 +155,30 @@ export interface OcSignInProps {
     /** className for the outer container. */
     className?: string;
 }
+
+/**
+ * Where the ceremony's session goes.
+ *
+ * `family` (default): a `*.ochk.io` site. The auth host sets the shared
+ * `.ochk.io` cookie and the component navigates.
+ *
+ * `first-party`: orangecheck's own site on another domain (ochk.app). Every
+ * call to the auth host omits credentials, so the family cookie is neither
+ * sent nor set; the host answers with a token bound to `audience`, handed to
+ * `onSuccess` for the site to turn into its own cookie. No add-account or
+ * link prompts (there is no family session to add to), and provider buttons
+ * appear only when `providerHref` says where the site starts each one.
+ */
+export type OcSignInProps = OcSignInBaseProps &
+    (
+        | { mode?: 'family'; providerHref?: undefined }
+        | {
+              mode: 'first-party';
+              onSuccess: (account: OcAccount, token?: string) => void;
+              /** The site's own start URL for a provider (`google`, `github`). */
+              providerHref?: (providerId: string) => string;
+          }
+    );
 
 /* --- shared types --- */
 
@@ -346,16 +370,22 @@ export function OcSignIn({
     returnTo,
     onSuccess,
     resolveReturnTo,
-    linkPrompt = true,
+    linkPrompt: linkPromptProp = true,
     add: addProp,
     authOrigin = 'https://ochk.io',
     initialPath,
     providersFirst = true,
     paths,
     className,
+    mode,
+    providerHref,
 }: OcSignInProps): React.ReactElement {
     const walletEnabled = paths?.wallet ?? true;
     const emailEnabled = paths?.email ?? true;
+    const firstParty = mode === 'first-party';
+    // First-party: the family cookie must be neither sent nor set.
+    const credentials: RequestCredentials = firstParty ? 'omit' : 'include';
+    const linkPrompt = linkPromptProp && !firstParty;
 
     // Return target · prop wins; otherwise honor `?return_to=` / `?next=`
     // from the URL — the auth host's `/signin?add=1&return_to=…` entry
@@ -383,15 +413,19 @@ export function OcSignIn({
     // Multi-account · prop wins; otherwise honor `?add=1` from the URL
     // so the auth host's /signin?add=1 entry point doesn't need any
     // extra wiring on every consumer's sign-in page.
-    const [addMode, setAddMode] = React.useState<boolean>(Boolean(addProp));
+    const [addMode, setAddMode] = React.useState<boolean>(Boolean(addProp) && !firstParty);
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (firstParty) {
+            setAddMode(false);
+            return;
+        }
         if (addProp !== undefined) {
             setAddMode(Boolean(addProp));
             return;
         }
         setAddMode(new URLSearchParams(window.location.search).get('add') === '1');
-    }, [addProp]);
+    }, [addProp, firstParty]);
 
     // When providers lead the ceremony (ochk.io homepage), the email path
     // is the friendlier default tab; otherwise the canonical bitcoin-first
@@ -584,6 +618,9 @@ export function OcSignIn({
                     authOrigin={authOrigin}
                     returnTo={resolvedReturn}
                     add={addMode}
+                    credentials={credentials}
+                    firstParty={firstParty}
+                    providerHref={providerHref}
                     first
                 />
             )}
@@ -641,6 +678,7 @@ export function OcSignIn({
                         authOrigin={authOrigin}
                         audience={audience}
                         add={addMode}
+                        credentials={credentials}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'wallet')}
                     />
                 )}
@@ -648,13 +686,21 @@ export function OcSignIn({
                     <EmailFlow
                         authOrigin={authOrigin}
                         add={addMode}
+                        credentials={credentials}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
                     />
                 )}
             </div>
 
             {!providersFirst && (
-                <ProviderSignIn authOrigin={authOrigin} returnTo={resolvedReturn} add={addMode} />
+                <ProviderSignIn
+                    authOrigin={authOrigin}
+                    returnTo={resolvedReturn}
+                    add={addMode}
+                    credentials={credentials}
+                    firstParty={firstParty}
+                    providerHref={providerHref}
+                />
             )}
 
             {linkPrompt && (
@@ -775,11 +821,18 @@ function ProviderSignIn({
     authOrigin,
     returnTo,
     add,
+    credentials,
+    firstParty,
+    providerHref,
     first = false,
 }: {
     authOrigin: string;
     returnTo: string;
     add: boolean;
+    credentials: RequestCredentials;
+    /** See OcSignInProps.mode: buttons only where the site starts them. */
+    firstParty: boolean;
+    providerHref?: (providerId: string) => string;
     /**
      * Render this block at the TOP of the ceremony (above the wallet/email
      * panel) rather than the default bottom. The "or" divider then sits
@@ -796,11 +849,14 @@ function ProviderSignIn({
     // resolve against ochk.io and strand a subdomain user there. The
     // origin is only knowable client-side.
     const [origin, setOrigin] = React.useState('');
+    // A first-party site with no start route of its own has no provider path.
+    const hidden = firstParty && !providerHref;
 
     React.useEffect(() => {
         setOrigin(window.location.origin);
+        if (hidden) return;
         let cancelled = false;
-        fetch(`${authOrigin}/api/auth/providers`, { credentials: 'include' })
+        fetch(`${authOrigin}/api/auth/providers`, { credentials })
             .then((r) => (r.ok ? (r.json() as Promise<{ providers?: OAuthProviderEntry[] }>) : null))
             .then((body) => {
                 if (!cancelled) setProviders(body?.providers ?? []);
@@ -813,8 +869,9 @@ function ProviderSignIn({
         return () => {
             cancelled = true;
         };
-    }, [authOrigin]);
+    }, [authOrigin, credentials, hidden]);
 
+    if (hidden) return null;
     if (providers !== null && providers.length === 0) return null;
 
     // An absolute family URL (the add-another-account round trip back to
@@ -895,9 +952,13 @@ function ProviderSignIn({
     const buttons = providers.map((p, i) => (
         <a
             key={p.id}
-            href={`${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
-                providerReturnTo
-            )}${add ? '&add=1' : ''}`}
+            href={
+                providerHref
+                    ? providerHref(p.id)
+                    : `${authOrigin}/api/auth/${p.id}/start?return_to=${encodeURIComponent(
+                          providerReturnTo
+                      )}${add ? '&add=1' : ''}`
+            }
             data-oc-signin-provider={p.id}
             style={buttonStyle(i)}
         >
@@ -934,6 +995,8 @@ interface FlowProps {
     authOrigin: string;
     /** Multi-account add-mode · see OcSignIn.add. */
     add?: boolean;
+    /** `omit` in first-party mode · see OcSignInProps.mode. */
+    credentials: RequestCredentials;
     onSuccess: (account: OcAccount, token?: string) => void;
 }
 
@@ -964,7 +1027,13 @@ async function detectBrowserWallets(): Promise<DetectedWallet[]> {
         .map((w) => ({ id: w.id, name: w.name }));
 }
 
-function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): React.ReactElement {
+function WalletFlow({
+    authOrigin,
+    audience,
+    add,
+    credentials,
+    onSuccess,
+}: WalletFlowProps): React.ReactElement {
     const uid = React.useId();
     const ids = {
         address: `${uid}-address`,
@@ -1027,7 +1096,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
         // Family-CORS lets the .ochk.io session cookie land cross-origin.
         const res = await fetch(`${authOrigin}/api/auth/signin`, {
             method: 'POST',
-            credentials: 'include',
+            credentials,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message,
@@ -1248,7 +1317,7 @@ function WalletFlow({ authOrigin, audience, add, onSuccess }: WalletFlowProps): 
 
 type EmailStage = 'enter' | 'code';
 
-function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElement {
+function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): React.ReactElement {
     const uid = React.useId();
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
@@ -1264,7 +1333,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
         try {
             const res = await fetch(`${authOrigin}/api/auth/email-otp/start`, {
                 method: 'POST',
-                credentials: 'include',
+                credentials,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: address }),
             });
@@ -1319,7 +1388,7 @@ function EmailFlow({ authOrigin, add, onSuccess }: FlowProps): React.ReactElemen
         try {
             const res = await fetch(`${authOrigin}/api/auth/email-otp/verify`, {
                 method: 'POST',
-                credentials: 'include',
+                credentials,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email,

@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.28.0] — 2026-10-15
+
+### Added
+
+- **`OcSignIn mode="first-party"`** for orangecheck's own site on another
+  domain (ochk.app). The ceremony runs in place there instead of in a popup.
+  No call to the auth host carries credentials, so the `.ochk.io` cookie is
+  neither sent nor set; the host returns a token bound to `audience`, which
+  `onSuccess` (required in this mode) hands to the site to keep as its own
+  cookie. No add-account or link prompts. Provider buttons appear only when
+  `providerHref` names the site's own start route.
+- **`OcAuthConfig.multiAccount`** (default `true`). A site with one session
+  cookie of its own sets `false`: the provider pins no tab, stamps no links,
+  and fetches no roster from the host.
+
 ## [2.27.0] — 2026-10-15
 
 ### Added

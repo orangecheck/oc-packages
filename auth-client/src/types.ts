@@ -224,6 +224,13 @@ export interface OcAuthConfig {
      * so the `.ochk.io` cookie is sent along.
      */
     logoutPath?: string;
+    /**
+     * Multi-account and per-tab pinning against the auth host. Defaults to
+     * `true`. A site that holds its own single session cookie (ochk.app)
+     * sets `false`: no tab pins, no account hints or link stamping, and no
+     * roster fetched from the host.
+     */
+    multiAccount?: boolean;
 }
 
 export const DEFAULT_CONFIG: Required<OcAuthConfig> = {
@@ -231,6 +238,7 @@ export const DEFAULT_CONFIG: Required<OcAuthConfig> = {
     signInPath: '/signin',
     mePath: '/api/auth/me',
     logoutPath: '/api/auth/logout',
+    multiAccount: true,
 };
 
 export function resolveConfig(cfg: OcAuthConfig | undefined): Required<OcAuthConfig> {
