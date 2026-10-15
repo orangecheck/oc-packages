@@ -8,6 +8,7 @@
   "repositories": [
     "orangecheck/oc-agent-web",
     "orangecheck/oc-analytics-web",
+    "orangecheck/oc-app-web",
     "orangecheck/oc-attest-web",
     "orangecheck/oc-bot-web",
     "orangecheck/oc-btc-web",
