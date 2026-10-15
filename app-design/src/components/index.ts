@@ -6,6 +6,8 @@ export { StepGrid } from './steps';
 export type { StepGridProps, StepItem } from './steps';
 export { CodeBlock, PackageCard } from './code-card';
 export type { PackageItem } from './code-card';
+export { SplitBar } from './split-bar';
+export type { SplitSegment } from './split-bar';
 export { TruthTable } from './truth-table';
 export type { TruthRow, TruthStatus } from './truth-table';
 export { Sats, SatsFigure, satsText, UsdApprox } from './money';

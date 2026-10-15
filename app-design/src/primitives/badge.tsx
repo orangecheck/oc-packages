@@ -32,3 +32,30 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement>, VariantProp
 export function Badge({ className, tone, ...props }: BadgeProps) {
     return <span data-ui="badge" className={cn(badgeVariants({ tone }), className)} {...props} />;
 }
+
+/** A pill with a live dot: where something stands right now ("In testing · payouts start after"). */
+export function StatusPill({
+    className,
+    children,
+    pulse = true,
+    ...props
+}: HTMLAttributes<HTMLSpanElement> & { pulse?: boolean }) {
+    return (
+        <span
+            data-ui="status-pill"
+            className={cn(
+                'inline-flex min-h-8 w-fit items-center gap-2.5 rounded-full border border-border bg-card py-1 pl-3 pr-3.5 text-[0.875rem] leading-snug text-foreground',
+                className
+            )}
+            {...props}
+        >
+            <span aria-hidden className="relative flex size-2 shrink-0">
+                {pulse ? (
+                    <span className="absolute inset-0 rounded-full bg-oca-orange opacity-50 motion-safe:animate-ping" />
+                ) : null}
+                <span className="relative size-2 rounded-full bg-oca-orange" />
+            </span>
+            {children}
+        </span>
+    );
+}

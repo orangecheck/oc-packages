@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import portrait from '../assets/portrait-halftone-600.webp';
-import { AppIcon, HalftoneSphere, IsoCheck, Lockup, Mark } from './index';
+import { AppIcon, Crowd, HalftoneSphere, IsoCheck, Lockup, Mark } from './index';
 
 const meta: Meta = { title: 'Brand' };
 export default meta;
@@ -48,6 +48,18 @@ export const Sphere: StoryObj = {
         <div className="grid items-center gap-12 md:grid-cols-2">
             <HalftoneSphere src={portrait} alt="A person smiling, in halftone" stadium className="mx-auto max-w-sm" />
             <HalftoneSphere src={portrait} alt="" float className="mx-auto max-w-[12rem]" />
+        </div>
+    ),
+};
+
+export const CrowdStory: StoryObj = {
+    name: 'Crowd',
+    render: () => (
+        <div className="flex flex-col gap-8">
+            <div className="rounded-2xl bg-oca-ink p-8">
+                <Crowd />
+            </div>
+            <Crowd tone="canvas" cols={18} rows={6} real={4} className="max-w-xl" />
         </div>
     ),
 };

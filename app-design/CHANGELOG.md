@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0] — 2026-10-15
+
+- The hero sphere draws its stadium inside its own box, so the art can no longer
+  reach into the headline beside it. The ball is lit from the upper left with a
+  saturated rim, and the portrait is re-screened from the red channel: the
+  orange no longer turns into a field of faint dots.
+- `StatusPill`: one honest line with a live dot, for where something stands.
+- `Crowd`: identical figures in perspective with a few real ones, for the
+  bot-farm problem.
+- `SplitBar`: where a payment goes, as one bar.
+
 ## [0.1.2] — 2026-10-15
 
 - Sets `--oc-signin-*`, so the family sign-in ceremony (auth-client ≥ 2.27)

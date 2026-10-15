@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { Button } from '../primitives';
+import { Button, StatusPill } from '../primitives';
 import {
     ActivityList,
     DataTable,
@@ -13,6 +13,7 @@ import {
     ProgressSteps,
     Sats,
     SatsFigure,
+    SplitBar,
     StatCard,
     StatGrid,
     StepGrid,
@@ -162,6 +163,31 @@ export const Data: StoryObj = {
             <EmptyState title="No projects yet" action={<Button>Start a project</Button>}>
                 A project gets you keys, a signing secret and a place to watch events arrive.
             </EmptyState>
+        </div>
+    ),
+};
+
+export const Split: StoryObj = {
+    name: 'Split bar',
+    render: () => (
+        <div className="max-w-2xl rounded-2xl bg-brand p-8 text-brand-foreground">
+            <SplitBar
+                caption="Every sat an app pays for an event"
+                segments={[
+                    { pct: 80, label: 'Up to this much goes to the person', tone: 'card' },
+                    { pct: 20, label: 'orangecheck keeps this', tone: 'ink' },
+                ]}
+            />
+        </div>
+    ),
+};
+
+export const Status: StoryObj = {
+    name: 'Status pill',
+    render: () => (
+        <div className="flex flex-col gap-4">
+            <StatusPill>In testing · payouts start when testing ends</StatusPill>
+            <StatusPill pulse={false}>Sign-in is live</StatusPill>
         </div>
     ),
 };
