@@ -1,4 +1,6 @@
 {
+    "ignoreCommand": "git diff --quiet HEAD^ HEAD ./ ../app-design",
+    "installCommand": "yarn install --frozen-lockfile && yarn --cwd ../app-design install --frozen-lockfile",
     "headers": [
         {
             "source": "/(.*)",

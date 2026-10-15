@@ -5,7 +5,11 @@ import type { StorybookConfig } from '@storybook/react-vite';
 const here = path.resolve(process.cwd(), '.storybook');
 
 const config: StorybookConfig = {
-    stories: ['../src/**/*.stories.@(ts|tsx)'],
+    stories: [
+        '../src/**/*.stories.@(ts|tsx)',
+        // ochk.app's own design system, a sibling package, in its own section.
+        { directory: '../../app-design/src', files: '**/*.stories.@(ts|tsx)', titlePrefix: 'ochk.app' },
+    ],
     /**
      * No addons. @storybook/addon-essentials stopped at 8.6.14 — Storybook 9
      * folded docs, controls, actions, viewport and backgrounds into core, so
@@ -25,6 +29,8 @@ const config: StorybookConfig = {
         // Stub Next.js client deps so @orangecheck/ui composites render without
         // a Next runtime/router.
         viteConfig.resolve = viteConfig.resolve ?? {};
+        // app-design resolves its own node_modules; one React, one next-themes.
+        viteConfig.resolve.dedupe = ['react', 'react-dom', 'next-themes', 'lucide-react'];
         viteConfig.resolve.alias = {
             ...(viteConfig.resolve.alias ?? {}),
             'next/link': path.join(here, 'stubs/next-link.tsx'),

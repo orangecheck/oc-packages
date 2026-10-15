@@ -1,0 +1,14 @@
+/*
+ * @orangecheck/app-design — the whole system in one import.
+ *
+ *   @import 'tailwindcss';
+ *   @custom-variant dark (&:is(.dark *));
+ *   @source '../../node_modules/@orangecheck/app-design/dist';
+ *   @import '@orangecheck/app-design/styles.css';
+ *
+ * and <html data-oc-app="ochk">. Nothing here applies without the attribute.
+ */
+@import './styles/fonts.css';
+@import './styles/theme.css';
+@import './styles/tokens.css';
+@import './styles/motion.css';

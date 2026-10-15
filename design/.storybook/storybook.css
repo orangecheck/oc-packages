@@ -10,6 +10,7 @@
    scan, so the composite classes must be sourced explicitly — exactly what a
    consumer site does for @orangecheck/design + @orangecheck/ui). */
 @source '../src';
+@source '../../app-design/src';
 @source '../node_modules/@orangecheck/ui/dist';
 
 @custom-variant dark (&:is(.dark *));
@@ -20,6 +21,10 @@
 
 /* Tokens + bridge + utility system + all skins. */
 @import '../src/styles.css';
+
+/* ochk.app's design system, inert unless data-oc-app="ochk" is set (the preview
+   decorator sets it for stories under ochk.app/). */
+@import '../../app-design/src/styles.css';
 
 /* Fonts: in a real app next/font sets these; here we point them at the
    webfonts loaded above. */

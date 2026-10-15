@@ -1,0 +1,152 @@
+/*
+ * @orangecheck/app-design — tokens.css
+ *
+ * Token values for ochk.app, measured from Sou's partner deck (2026-10-15) and
+ * corrected where the deck fails contrast. Everything is scoped to
+ * [data-oc-app='ochk'], so a family site that never sets the attribute never
+ * sees a value from here. The :root form outranks a family skin's bare :root.
+ *
+ * The semantic names (--background, --primary, --muted-foreground…) match the
+ * family bridge on purpose: bg-background and text-foreground mean the same
+ * thing in either system, so a page needs no translation layer. Everything new
+ * to ochk.app is prefixed --oca-.
+ *
+ * Contrast is checked by scripts/check-contrast.mjs: every text pair ≥ 4.5:1,
+ * display accent ≥ 3:1 (large text only).
+ */
+
+:root[data-oc-app='ochk'],
+[data-oc-app='ochk'] {
+    color-scheme: light;
+
+    /* Surfaces */
+    --background: #fafafa;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --muted: #f2f2f2;
+    --muted-foreground: #54585e;
+    --secondary: #ffffff;
+    --secondary-foreground: #0a0a0a;
+    --accent: #f4f4f4;
+    --accent-foreground: #0a0a0a;
+
+    /* Actions: the black pill and the white outlined pill */
+    --primary: #0a0a0a;
+    --primary-foreground: #ffffff;
+    --brand: #f66d36;
+    --brand-foreground: #0a0a0a;
+
+    /* Lines */
+    --border: #ececec;
+    --input: #e2e2e2;
+    --ring: #f66d36;
+
+    /* Status */
+    --destructive: #c2262e;
+    --destructive-foreground: #ffffff;
+    --success: #15803d;
+    --success-foreground: #ffffff;
+    --warning: #a15c07;
+    --warning-foreground: #ffffff;
+    --info: #1d4ed8;
+    --info-foreground: #ffffff;
+
+    /* ochk.app only */
+    --oca-subtle-foreground: #686c72;
+    --oca-hairline-strong: #dadada;
+    --oca-table-head: #ededed;
+    /* #F66D36 as text is 2.81:1 on the canvas; these are the same hue, darker. */
+    --oca-accent-display: #f55819;
+    --oca-accent-ink: #c73f09;
+    --oca-peach: #fed8ab;
+    --oca-orange-light: #fb933c;
+    --oca-orange: #f66d36;
+    --oca-orange-deep: #ea580b;
+    --oca-sphere-from: #ff6f33;
+    --oca-sphere-to: #ffd9c4;
+    --oca-outline: #f2cfc3;
+
+    /* The dark surfaces (code card, dark bands) are dark in both modes. */
+    --oca-ink: #0a0a0a;
+    --oca-ink-card: #1e1e1e;
+    --oca-ink-line: #2a2a2a;
+    --oca-ink-foreground: #ffffff;
+    --oca-ink-muted: #d5d8dc;
+    --oca-ink-subtle: #909397;
+    --oca-ink-title: #fcb781;
+    --oca-ink-eyebrow: #f0835a;
+    --oca-code-package: #e99a8f;
+    --oca-code-tag: #e3a8c2;
+    --oca-code-link: #9db4ec;
+
+    --radius: 1rem;
+    --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+    --oc-font-mono:
+        'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
+    --oc-font-display: var(--oc-font-sans);
+
+    /* The deck has no shadows. Overlays get one, so a dialog still separates. */
+    --oc-shadow-2xs: none;
+    --oc-shadow-xs: none;
+    --oc-shadow-sm: 0 1px 2px rgb(10 10 10 / 0.04);
+    --oc-shadow-md: 0 4px 16px -4px rgb(10 10 10 / 0.08);
+    --oc-shadow-lg: 0 12px 32px -8px rgb(10 10 10 / 0.12);
+    --oc-shadow-xl: 0 24px 56px -12px rgb(10 10 10 / 0.18);
+}
+
+:root.dark[data-oc-app='ochk'],
+.dark[data-oc-app='ochk'],
+.dark [data-oc-app='ochk'] {
+    color-scheme: dark;
+
+    --background: #0a0a0a;
+    --foreground: #fafafa;
+    --card: #161616;
+    --card-foreground: #fafafa;
+    --popover: #1a1a1a;
+    --popover-foreground: #fafafa;
+    --muted: #1e1e1e;
+    --muted-foreground: #a3a6aa;
+    --secondary: #0a0a0a;
+    --secondary-foreground: #fafafa;
+    --accent: #1e1e1e;
+    --accent-foreground: #fafafa;
+
+    --primary: #fafafa;
+    --primary-foreground: #0a0a0a;
+    --brand: #f66d36;
+    --brand-foreground: #0a0a0a;
+
+    --border: #262626;
+    --input: #303030;
+    --ring: #f66d36;
+
+    --destructive: #f87171;
+    --destructive-foreground: #0a0a0a;
+    --success: #4ade80;
+    --success-foreground: #0a0a0a;
+    --warning: #fbbf24;
+    --warning-foreground: #0a0a0a;
+    --info: #93c5fd;
+    --info-foreground: #0a0a0a;
+
+    --oca-subtle-foreground: #8b8e93;
+    --oca-hairline-strong: #333333;
+    --oca-table-head: #1e1e1e;
+    --oca-accent-display: #f66d36;
+    --oca-accent-ink: #f0835a;
+    --oca-outline: #3a2a24;
+    /* In dark the ink band lifts off the canvas, so the deck's rhythm survives. */
+    --oca-ink: #141414;
+    --oca-ink-card: #1e1e1e;
+    --oca-icon-tile: #1e1e1e;
+    --oca-icon-ring: #333333;
+
+    --oc-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --oc-shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+    --oc-shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+    --oc-shadow-xl: 0 24px 56px -12px rgb(0 0 0 / 0.7);
+}

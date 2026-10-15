@@ -83,6 +83,7 @@ on:
             - 'auth-client-v*'
             - 'ui-v*'
             - 'design-v*'
+            - 'app-design-v*'
             - 'sdk-py-v*'
 
 jobs:
@@ -133,7 +134,7 @@ jobs:
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'design' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
+              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'design' && steps.parse.outputs.package != 'app-design' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
               working-directory: sdk
               run: |
                   yarn install --frozen-lockfile

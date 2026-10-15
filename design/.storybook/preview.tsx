@@ -19,8 +19,18 @@ const withTheme: Decorator = (Story, context) => {
     const mode = context.globals.mode as string;
     const skin = context.globals.skin as string;
 
+    // ochk.app stories run under their own system: the app attribute, no skin.
+    const app = context.title.startsWith('ochk.app');
+
     useEffect(() => {
         const root = document.documentElement;
+        if (app) {
+            root.removeAttribute('data-oc-theme');
+            root.setAttribute('data-oc-app', 'ochk');
+            root.classList.toggle('dark', mode === 'dark');
+            return;
+        }
+        root.removeAttribute('data-oc-app');
         if (disabled) {
             root.classList.remove('dark');
             root.setAttribute('data-oc-theme', DEFAULT_OC_THEME);
@@ -34,7 +44,16 @@ const withTheme: Decorator = (Story, context) => {
                 document.body.style.background = '';
             };
         }
-    }, [mode, skin, disabled, bare]);
+    }, [mode, skin, disabled, bare, app]);
+
+    if (app) {
+        const fullBleed = Boolean(context.parameters?.fullBleed);
+        return (
+            <div className={fullBleed ? 'bg-background text-foreground min-h-screen' : 'bg-background text-foreground min-h-screen p-8'}>
+                <Story />
+            </div>
+        );
+    }
 
     const className = disabled
         ? 'min-h-screen p-8'
@@ -55,7 +74,15 @@ const preview: Preview = {
         controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
         options: {
             storySort: {
-                order: ['Tokens', 'Primitives', 'Composites', 'Patterns'],
+                order: [
+                    'Tokens',
+                    'Primitives',
+                    'Composites',
+                    'Chrome',
+                    'Patterns',
+                    'ochk.app',
+                    ['Introduction', 'Tokens', 'Brand', 'Primitives', 'Components', 'Chrome', 'Pages'],
+                ],
             },
         },
     },
