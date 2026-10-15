@@ -42,6 +42,15 @@ import * as React from 'react';
 import { LinkPromptStep } from './linked-identities';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
+import {
+    SIGNIN_BUTTON_RADIUS,
+    SIGNIN_CASE,
+    SIGNIN_FONT,
+    SIGNIN_STRONG,
+    signinRadius,
+    signinSize,
+    signinTracking,
+} from './appearance';
 
 /* --- props --- */
 
@@ -482,8 +491,8 @@ export function OcSignIn({
                     padding: '1rem',
                     border: '1px solid var(--border, #27272a)',
                     color: 'var(--foreground, #fafafa)',
-                    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                    fontSize: 12,
+                    fontFamily: SIGNIN_FONT,
+                    fontSize: signinSize(12),
                 }}
             >
                 no signin paths enabled — set <code>paths.wallet</code> or{' '}
@@ -525,10 +534,10 @@ export function OcSignIn({
                         marginBottom: 14,
                         padding: '0.6rem 0.75rem',
                         border: '1px solid var(--destructive, #ef4444)',
-                        borderRadius: 6,
+                        borderRadius: signinRadius(6),
                         color: 'var(--destructive, #ef4444)',
-                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                        fontSize: 11,
+                        fontFamily: SIGNIN_FONT,
+                        fontSize: signinSize(11),
                     }}
                 >
                     That sign-in didn&apos;t finish. Try again, or use another way below.
@@ -542,20 +551,20 @@ export function OcSignIn({
                         padding: '0.6rem 0.75rem',
                         border: '1px solid var(--primary, #f97316)',
                         borderLeftWidth: 3,
-                        borderRadius: 4,
+                        borderRadius: signinRadius(4),
                         background: 'color-mix(in srgb, var(--primary, #f97316) 8%, transparent)',
                         color: 'var(--foreground, #fafafa)',
-                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                        fontSize: 11,
+                        fontFamily: SIGNIN_FONT,
+                        fontSize: signinSize(11),
                         lineHeight: 1.6,
                     }}
                 >
                     <strong
                         style={{
                             color: 'var(--primary, #f97316)',
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            fontSize: 10,
+                            letterSpacing: signinTracking('0.12em'),
+                            textTransform: SIGNIN_CASE,
+                            fontSize: signinSize(10),
                             display: 'block',
                             marginBottom: 3,
                         }}
@@ -696,10 +705,10 @@ function SigninTab({
                 color: active
                     ? 'var(--foreground, #fafafa)'
                     : 'var(--muted-foreground, #a1a1aa)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                fontSize: 11,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(11),
+                letterSpacing: signinTracking('0.12em'),
+                textTransform: SIGNIN_CASE,
                 cursor: 'pointer',
                 marginBottom: -1,
             }}
@@ -838,10 +847,10 @@ function ProviderSignIn({
                 // marginTop owns the gap above, so the divider only pads below.
                 margin: first ? `${BLOCK_GAP}px 0` : `0 0 ${BLOCK_GAP}px`,
                 color: 'var(--muted-foreground, #a1a1aa)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                fontSize: 10,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(10),
+                letterSpacing: signinTracking('0.16em'),
+                textTransform: SIGNIN_CASE,
             }}
         >
             <span style={line} />
@@ -860,11 +869,11 @@ function ProviderSignIn({
         marginTop: i === 0 ? 0 : BUTTON_GAP,
         padding: '0.6rem 0.875rem',
         border: '1px solid var(--border, #27272a)',
-        borderRadius: 6,
+        borderRadius: SIGNIN_BUTTON_RADIUS,
         background: 'transparent',
         color: 'var(--muted-foreground, #a1a1aa)',
-        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-        fontSize: 12,
+        fontFamily: SIGNIN_FONT,
+        fontSize: signinSize(12),
         textDecoration: 'none',
     });
     // While the list loads, hold the space two buttons will take. Rendering
@@ -1442,10 +1451,10 @@ function FlowHeader({
                 <div
                     style={{
                         color: 'var(--primary, #f97316)',
-                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                        fontSize: 10,
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
+                        fontFamily: SIGNIN_FONT,
+                        fontSize: signinSize(10),
+                        letterSpacing: signinTracking('0.18em'),
+                        textTransform: SIGNIN_CASE,
                         marginBottom: 6,
                     }}
                 >
@@ -1475,10 +1484,10 @@ const linkButtonStyle: React.CSSProperties = {
     background: 'transparent',
     border: 'none',
     color: 'var(--muted-foreground, #a1a1aa)',
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-    fontSize: 11,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
+    fontFamily: SIGNIN_FONT,
+    fontSize: signinSize(11),
+    letterSpacing: signinTracking('0.12em'),
+    textTransform: SIGNIN_CASE,
     cursor: 'pointer',
     padding: 0,
 };
@@ -1496,10 +1505,10 @@ function Label({
             style={{
                 display: 'block',
                 color: 'var(--foreground, #fafafa)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                fontSize: 11,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(11),
+                letterSpacing: signinTracking('0.12em'),
+                textTransform: SIGNIN_CASE,
                 marginBottom: 6,
             }}
         >
@@ -1514,8 +1523,8 @@ const inputStyle: React.CSSProperties = {
     background: 'var(--background, #0a0a0a)',
     color: 'var(--foreground, #fafafa)',
     border: '1px solid var(--input, #27272a)',
-    borderRadius: 6,
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+    borderRadius: signinRadius(6),
+    fontFamily: SIGNIN_FONT,
     // 16px — never below it. A sub-16px font-size makes iOS Safari
     // auto-zoom the viewport on focus; the family rule is >=16px on
     // every form field. Desktop reads fine at 16 too.
@@ -1533,8 +1542,8 @@ const linkAlsoStyle: React.CSSProperties = {
     paddingTop: 14,
     borderTop: '1px solid var(--border, #27272a)',
     color: 'var(--muted-foreground, #a1a1aa)',
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-    fontSize: 12,
+    fontFamily: SIGNIN_FONT,
+    fontSize: signinSize(12),
     lineHeight: 1.5,
     cursor: 'pointer',
 };
@@ -1546,12 +1555,12 @@ function submitStyle(disabled: boolean): React.CSSProperties {
         background: 'var(--primary, #f97316)',
         color: 'var(--primary-foreground, #0a0a0a)',
         border: 'none',
-        borderRadius: 6,
-        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-        fontSize: 11,
-        letterSpacing: '0.14em',
-        textTransform: 'uppercase',
-        fontWeight: 600,
+        borderRadius: SIGNIN_BUTTON_RADIUS,
+        fontFamily: SIGNIN_FONT,
+        fontSize: signinSize(11),
+        letterSpacing: signinTracking('0.14em'),
+        textTransform: SIGNIN_CASE,
+        fontWeight: SIGNIN_STRONG,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         width: '100%',
@@ -1566,8 +1575,8 @@ function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElem
                 marginTop: 6,
                 marginBottom: 0,
                 color: 'var(--destructive, #ef4444)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                fontSize: 11,
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(11),
                 letterSpacing: '0.04em',
             }}
         >
@@ -1583,7 +1592,7 @@ function Hint({ children }: { children: React.ReactNode }): React.ReactElement {
                 marginTop: 12,
                 marginBottom: 0,
                 color: 'var(--muted-foreground, #a1a1aa)',
-                fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                fontFamily: SIGNIN_FONT,
                 fontSize: 10.5,
                 lineHeight: 1.55,
             }}

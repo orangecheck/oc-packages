@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.2] — 2026-10-15
+
+- Sets `--oc-signin-*`, so the family sign-in ceremony (auth-client ≥ 2.27)
+  renders in the app's type: sentence case, pill buttons, rounded fields.
+
 ## [0.1.1] — 2026-10-15
 
 - The hero stadium is the deck's rounded square beside the sphere, not a tall

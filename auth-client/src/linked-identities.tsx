@@ -34,6 +34,14 @@ import {
     SUDO_ACCOUNT_MISMATCH_MESSAGE,
 } from './sudo';
 
+import {
+    SIGNIN_BUTTON_RADIUS,
+    SIGNIN_CASE,
+    SIGNIN_FONT,
+    signinRadius,
+    signinSize,
+    signinTracking,
+} from './appearance';
 import { tabSessionHeader } from './tab-session';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
@@ -353,8 +361,8 @@ function IdentityRow({
                     style={{
                         marginTop: 4,
                         color: V.foreground,
-                        fontFamily: MONO,
-                        fontSize: 12,
+                        fontFamily: SIGNIN_FONT,
+                        fontSize: signinSize(12),
                         wordBreak: 'break-all',
                     }}
                 >
@@ -435,8 +443,8 @@ function ConsolidationPanel({ entries }: { entries: MergedFromEntry[] }): React.
                             gap: 8,
                             padding: '8px 0',
                             borderTop: `1px solid ${V.border}`,
-                            fontFamily: MONO,
-                            fontSize: 11,
+                            fontFamily: SIGNIN_FONT,
+                            fontSize: signinSize(11),
                         }}
                     >
                         <code style={{ color: V.foreground, wordBreak: 'break-all' }}>
@@ -800,7 +808,7 @@ function BtcLinkForm({
                         placeholder="bc1q…"
                         autoCapitalize="none"
                         spellCheck={false}
-                        style={{ ...inputStyle, fontFamily: MONO }}
+                        style={{ ...inputStyle, fontFamily: SIGNIN_FONT }}
                     />
                     {err && <ErrorLine>{err}</ErrorLine>}
                     <FormButtons>
@@ -829,7 +837,7 @@ function BtcLinkForm({
                 <>
                     <p style={bodyStyle}>
                         Sign the challenge with the wallet that controls{' '}
-                        <span style={{ fontFamily: MONO, wordBreak: 'break-all' }}>{addr}</span>.
+                        <span style={{ fontFamily: SIGNIN_FONT, wordBreak: 'break-all' }}>{addr}</span>.
                     </p>
                     <LazyWalletButton
                         address={addr}
@@ -981,10 +989,10 @@ function SectionLabel({
         <div
             style={{
                 color,
-                fontFamily: MONO,
-                fontSize: 10,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(10),
+                letterSpacing: signinTracking('0.18em'),
+                textTransform: SIGNIN_CASE,
                 marginBottom: 8,
             }}
         >
@@ -1000,8 +1008,8 @@ function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElem
             style={{
                 margin: '8px 0 0',
                 color: V.destructive,
-                fontFamily: MONO,
-                fontSize: 11,
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(11),
             }}
         >
             {children}
@@ -1017,7 +1025,6 @@ function FormButtons({ children }: { children: React.ReactNode }): React.ReactEl
 
 /* --- style tokens (CSS-variable-themed, same approach as OcSignIn) --- */
 
-const MONO = 'ui-monospace, SFMono-Regular, monospace';
 
 const V = {
     primary: 'var(--primary, #f97316)',
@@ -1053,8 +1060,8 @@ const bodyStyle: React.CSSProperties = {
 
 const hintStyle: React.CSSProperties = {
     color: V.muted,
-    fontFamily: MONO,
-    fontSize: 10.5,
+    fontFamily: SIGNIN_FONT,
+    fontSize: signinSize(10.5),
     opacity: 0.8,
 };
 
@@ -1069,10 +1076,10 @@ const rowStyle: React.CSSProperties = {
 
 const rowLabelStyle: React.CSSProperties = {
     color: V.foreground,
-    fontFamily: MONO,
-    fontSize: 10.5,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
+    fontFamily: SIGNIN_FONT,
+    fontSize: signinSize(10.5),
+    letterSpacing: signinTracking('0.12em'),
+    textTransform: SIGNIN_CASE,
     opacity: 0.8,
 };
 
@@ -1082,8 +1089,8 @@ const inputStyle: React.CSSProperties = {
     background: V.background,
     color: V.foreground,
     border: `1px solid ${V.border}`,
-    borderRadius: 6,
-    fontFamily: MONO,
+    borderRadius: signinRadius(6),
+    fontFamily: SIGNIN_FONT,
     // 16px — never lower · suppresses iOS Safari focus auto-zoom.
     fontSize: 16,
     outline: 'none',
@@ -1093,11 +1100,11 @@ const inputStyle: React.CSSProperties = {
 function btnBase(disabled: boolean): React.CSSProperties {
     return {
         padding: '0.5rem 0.875rem',
-        borderRadius: 6,
-        fontFamily: MONO,
-        fontSize: 10.5,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
+        borderRadius: SIGNIN_BUTTON_RADIUS,
+        fontFamily: SIGNIN_FONT,
+        fontSize: signinSize(10.5),
+        letterSpacing: signinTracking('0.12em'),
+        textTransform: SIGNIN_CASE,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
     };

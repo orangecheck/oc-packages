@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.27.0] — 2026-10-15
+
+### Added
+
+- **The sign-in ceremony takes a site's own type.** `OcSignIn` and the
+  link-another-identity step read their font, letter case, tracking, label
+  scale, radii and button weight from `--oc-signin-*` CSS variables, each
+  falling back to the value it had before, so family sites render exactly as
+  they did. ochk.app sets them to draw the same ceremony in its own design
+  instead of forking it. A test keeps new literals out.
+
 ## [2.26.0] — 2026-10-08
 
 ### Fixed
