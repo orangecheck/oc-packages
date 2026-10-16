@@ -6,6 +6,32 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.8] — 2026-10-16
+
+### Changed — a wallet user's earnings are held by OrangeCheck too
+
+- **me.ochk.io terms, custody, was:** "If you sign in with BIP-322 … it
+  cannot move your funds", with nothing on what such a user earns. **Now:**
+  adds that cashback a user accrues is a balance OrangeCheck owes until it is
+  paid out, and that during bring-up OrangeCheck holds those sats for every
+  user, however they sign in. This is what /custody has computed all along.
+- **me.ochk.io terms, regulatory status, was:** OrangeCheck custodies "the
+  funds it pays to email-identity users"; "Self-custody (BIP-322) users are
+  unaffected: OrangeCheck never holds their keys or their funds." **Now:** it
+  custodies the cashback it pays to every user; BIP-322 users keep their
+  keys, and their accrued cashback is held by OrangeCheck until paid out.
+- **me.ochk.io terms, summary, was:** "if you sign in with your own bitcoin
+  wallet, orangecheck holds no keys and no funds." **Now:** a wallet user
+  keeps their keys; either way, during bring-up OrangeCheck holds what you
+  have earned until it is paid out or federations take it over.
+
+### Fixed
+
+- The two clauses set in capitals now name the entity in capitals too
+  ("IN NO EVENT SHALL ORANGECHECK"), via a new `ENTITY_UPPER` token.
+- Links read as words ("your settings", "the security page") instead of raw
+  paths. Same destinations.
+
 ## [0.7.7] — 2026-10-15
 
 ### Changed — wording only, no change to what is claimed

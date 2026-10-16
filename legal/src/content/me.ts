@@ -86,7 +86,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'stub',
-                    text: 'The economics of earning sats on me.ochk.io — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and OrangeCheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on /how and /earn. This section will be completed following review by counsel.',
+                    text: 'The economics of earning sats on me.ochk.io — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and OrangeCheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on [how it works](/how) and [the earn page](/earn). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -97,11 +97,11 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move your funds. That is true now and does not change.\n\n**If you sign in with email, OrangeCheck currently holds the key that pays you.** The design is that a Fedimint federation — run by independent guardian operators, not OrangeCheck — holds funds under a threshold scheme, and you may **graduate** to full self-custody at any time. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So for email users, during this period, OrangeCheck is a custodian and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published at [/custody](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
+                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, OrangeCheck currently holds the key that pays you.** The design is that a Fedimint federation — run by independent guardian operators, not OrangeCheck — holds funds under a threshold scheme, and you may **graduate** to full self-custody at any time. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So for email users, during this period, OrangeCheck is a custodian and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
                 },
                 {
                     kind: 'stub',
-                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or OrangeCheck ceases operations, the mechanics and timing of graduation, and the allocation of risk between you, the federation, and OrangeCheck — is being finalized for publication before general availability. The honest current-state engineering account is published at /security. This section will be completed following review by counsel.',
+                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or OrangeCheck ceases operations, the mechanics and timing of graduation, and the allocation of risk between you, the federation, and OrangeCheck — is being finalized for publication before general availability. The honest current-state engineering account is published on the [security page](/security). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -131,7 +131,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'me.ochk.io publishes its abuse limits openly so legitimate users can see they are well below them. The canonical, current values are on the [/security](/security) page. Activity that exceeds a review threshold may be held for human review; activity assessed as sybil farming, wash-trading, or collusion between an integrator and a user may have earnings withheld or reversed and the identity suspended.',
+                    text: 'me.ochk.io publishes its abuse limits openly so legitimate users can see they are well below them. The canonical, current values are on the [security page](/security). Activity that exceeds a review threshold may be held for human review; activity assessed as sybil farming, wash-trading, or collusion between an integrator and a user may have earnings withheld or reversed and the identity suspended.',
                 },
                 {
                     kind: 'bullets',
@@ -173,7 +173,7 @@ const terms: DocSpec = {
                 { kind: 'subhead', text: 'regulatory status' },
                 {
                     kind: 'stub',
-                    text: 'me.ochk.io is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies and transmits the funds it pays to email-identity users**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users are unaffected: OrangeCheck never holds their keys or their funds. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
+                    text: 'me.ochk.io is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies and transmits the cashback it pays to every user**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -185,7 +185,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity from `/me/settings`. **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },
@@ -194,7 +194,7 @@ const terms: DocSpec = {
         miscellaneous,
     ],
     summary:
-        'summary: an identity that pays you in sats. if you sign in with your own bitcoin wallet, orangecheck holds no keys and no funds. if you sign in with email, orangecheck holds the paying key during bring-up, until independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
+        'summary: an identity that pays you in sats. if you sign in with your own bitcoin wallet, you keep your keys; if you sign in with email, orangecheck holds the key that pays you. either way, during bring-up orangecheck holds what you have earned until it is paid out or independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
 };
 
 const privacy: DocSpec = {
@@ -241,7 +241,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'deletable',
-                            v: 'you can permanently revoke your identity from /me/settings',
+                            v: 'you can permanently revoke your identity in your settings',
                         },
                     ],
                 },
@@ -289,7 +289,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Each integrating site receives a deterministic **scoped subject** derived from your master identity and that site’s project key. Scoped subjects are stable per-site (the integrator recognizes a returning user) but unlinkable across sites (two integrators cannot collude to correlate you). An integrator only ever receives your master Bitcoin address, email, or attestation tier if you **explicitly grant that scope** for that site — each scope is opt-in, per-site, and revocable at any time from `/me/identity`.',
+                    text: 'Each integrating site receives a deterministic **scoped subject** derived from your master identity and that site’s project key. Scoped subjects are stable per-site (the integrator recognizes a returning user) but unlinkable across sites (two integrators cannot collude to correlate you). An integrator only ever receives your master Bitcoin address, email, or attestation tier if you **explicitly grant that scope** for that site — each scope is opt-in, per-site, and revocable at any time from your account.',
                 },
                 {
                     kind: 'para',
@@ -381,7 +381,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'From `/me/settings → advanced → delete` you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; hashes already anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by anyone; neither names you.',
+                    text: 'In [your settings](/me/settings), under advanced, you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; hashes already anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by anyone; neither names you.',
                 },
             ],
         },

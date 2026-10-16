@@ -37,6 +37,8 @@ export const ARBITRATION_SEAT = 'Wilmington, Delaware, United States';
 export const GLOBAL_TOKENS: Record<string, string> = {
     ENTITY: LEGAL_ENTITY,
     ENTITY_LONG: LEGAL_ENTITY_LONG,
+    // For the clauses set in capitals, so the name does not break their case.
+    ENTITY_UPPER: LEGAL_ENTITY.toUpperCase(),
     CONTACT: CONTACT_GENERAL,
     SECURITY_CONTACT: CONTACT_SECURITY,
     PRIVACY_CONTACT: CONTACT_PRIVACY,
