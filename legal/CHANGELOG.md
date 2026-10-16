@@ -6,6 +6,19 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.9] — 2026-10-16
+
+### Changed — the last two places that tied held earnings to email sign-in
+
+- **me.ochk.io terms, accounts, was:** email-OTP users hold no key, "so
+  OrangeCheck holds what you accrue during bring-up". **Now:** OrangeCheck
+  holds an email user's signing key, and either way, during bring-up, holds
+  the cashback every user accrues.
+- **me.ochk.io terms, custody, was:** "for email users, during this period,
+  OrangeCheck is a custodian". **Now:** a custodian of email users' signing
+  keys and of every user's accrued cashback. 0.7.8 corrected the same claim in
+  three other places.
+
 ## [0.7.8] — 2026-10-16
 
 ### Changed — a wallet user's earnings are held by OrangeCheck too
