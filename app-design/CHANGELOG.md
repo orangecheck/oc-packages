@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.7] — 2026-10-16
+
+- `UsdApprox` rounds to cents. An amount under half a cent reads "< $0.01"
+  instead of "≈ $0.0012", which read as false precision beside a sats figure.
+
 ## [0.5.6] — 2026-10-15
 
 - `Field` takes an `action`: a button set beside the control (below it on a

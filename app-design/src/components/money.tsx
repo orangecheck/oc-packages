@@ -65,11 +65,16 @@ export function UsdApprox({
 }) {
     if (sats == null || usdPerBtc == null || !Number.isFinite(sats) || !Number.isFinite(usdPerBtc)) return null;
     const usd = (sats / 1e8) * usdPerBtc;
-    const text = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: usd < 1 ? 4 : 2,
-    }).format(usd);
+    // Cents, never fractions of one: under half a cent says so instead of "$0.0012".
+    const text =
+        usd > 0 && usd < 0.005
+            ? '< $0.01'
+            : new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+              }).format(usd);
     return <span className={cn('oca-tabular text-muted-foreground', className)}>≈ {text}</span>;
 }
 
