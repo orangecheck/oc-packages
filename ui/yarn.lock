@@ -391,9 +391,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.17.0":
-  version "2.26.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.26.0.tgz#b6119db224f111a6d84bf73ed24b724e2bcd0ef8"
-  integrity sha512-N13f8rUYT2DMeCoNTERJ9RfQ1ARRGGqjR8ucd8l14zmT18PxRbwWbp5SBwuFtFI2WTZfVcI1Yj+FeBwI9DJpBg==
+  version "2.29.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.29.0.tgz#aa746fd0cbaaf6fc30acf7a1994cca4bcb4e2538"
+  integrity sha512-i2UzM/PWkp+lV0bkqhmayZ7+GJ5c5ggL7XYcl3fhZZ/KxvwvIHhLAhxOpcT4QNIieiHn/dy8Vjto+BUNVbQq4w==
   dependencies:
     "@orangecheck/wallet-adapter" "^0.4.2 || ^0.5.0"
     "@simplewebauthn/browser" "^13.3.0"
@@ -636,9 +636,9 @@ bip66@^1.1.5:
     safe-buffer "^5.0.1"
 
 bitcoinjs-lib@^6.1.7:
-  version "6.1.8"
-  resolved "https://registry.yarnpkg.com/bitcoinjs-lib/-/bitcoinjs-lib-6.1.8.tgz#42664ada7470ef8253823418f0dc3ccd90699cc7"
-  integrity sha512-A6o+yq7BvwlmLj4F0NC5f3XX109rRe5evxi368S9zil5voOtUfiqfiMCzZYKHk4k7iIJ3+NmcQW05Ar4CBlKyg==
+  version "6.1.9"
+  resolved "https://registry.yarnpkg.com/bitcoinjs-lib/-/bitcoinjs-lib-6.1.9.tgz#563036412f8ef66c25f826b95b041c4f5219cb3e"
+  integrity sha512-En4bd8fh45xWJwRIxSPaGjoydr45BIQ0haKZBcKPQIJBPyB/wB+FJH+57dcWg2KD+k5hAV9Ii2uJksyAsT4tCg==
   dependencies:
     "@noble/hashes" "^1.2.0"
     bech32 "^2.0.0"
