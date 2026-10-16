@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.11] — 2026-10-16
+
+- `ErrorBoundary` (components): one broken part of a page shows a sentence
+  with a retry and a reload instead of blanking the page. `resetKey` clears it
+  on navigation; `onError` reports it.
+- The header's home link is read as "orangecheck home", not "Home", so its
+  name starts with the word it shows.
+- A `ScrollFade` that hides content takes keyboard focus, so a table or code
+  block that scrolls sideways can be scrolled without a mouse.
+- `HalftoneSphere` with `alt=""` is hidden from screen readers instead of
+  being an image with no name.
+
 ## [0.5.10] — 2026-10-16
 
 - Running text (`p`, `li`, `dd`, `figcaption`, `blockquote`) wraps with
