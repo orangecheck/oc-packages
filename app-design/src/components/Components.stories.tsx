@@ -151,7 +151,7 @@ export const Data: StoryObj = {
             <ActivityList
                 items={[
                     { id: 'a', title: 'Payout sent', meta: 'to alice@getalby.com · 2 days ago', trailing: <Sats value={-5000} /> },
-                    { id: 'b', title: 'Earned on lumen notes', meta: 'account created · 5 days ago', trailing: <Sats value={210} signed /> },
+                    { id: 'b', title: 'Earned on lumen notes', meta: 'account created · 5 days ago', leading: <Monogram name="Lumen Notes" size="sm" />, trailing: <Sats value={210} signed /> },
                 ]}
             />
             <ProgressSteps

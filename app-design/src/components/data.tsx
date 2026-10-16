@@ -643,6 +643,8 @@ export interface ActivityItem {
     id: string;
     title: ReactNode;
     meta?: ReactNode;
+    /** A small mark before the text, such as a Monogram. */
+    leading?: ReactNode;
     trailing?: ReactNode;
     href?: string;
 }
@@ -654,9 +656,12 @@ export function ActivityList({ items, empty, className }: { items: ActivityItem[
             {items.map((it) => {
                 const body = (
                     <div className="flex items-center justify-between gap-4 px-5 py-4">
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                            <span className="truncate text-[0.9375rem]">{it.title}</span>
-                            {it.meta ? <span className="truncate text-[0.8125rem] text-muted-foreground">{it.meta}</span> : null}
+                        <div className="flex min-w-0 items-center gap-3">
+                            {it.leading ? <div className="shrink-0">{it.leading}</div> : null}
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                                <span className="truncate text-[0.9375rem]">{it.title}</span>
+                                {it.meta ? <span className="truncate text-[0.8125rem] text-muted-foreground">{it.meta}</span> : null}
+                            </div>
                         </div>
                         {it.trailing ? <div className="shrink-0 text-right">{it.trailing}</div> : null}
                     </div>
