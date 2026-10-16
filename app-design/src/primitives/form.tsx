@@ -92,6 +92,11 @@ export function Field({ label, hint, optional, error, children, className, hideL
               'aria-invalid': error ? true : undefined,
           })
         : children;
+    const hintNode = hint ? (
+        <p id={hintId} className="text-[0.8125rem] leading-snug text-muted-foreground">
+            {hint}
+        </p>
+    ) : null;
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'flex items-baseline gap-2'}>
@@ -99,18 +104,20 @@ export function Field({ label, hint, optional, error, children, className, hideL
                 {optional ? <span className="text-[0.8125rem] font-normal text-muted-foreground">Optional</span> : null}
             </Label>
             {action ? (
+                // The hint belongs to the input, so it sits under the input, not under the button.
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                    <div className="min-w-0 flex-1 [&>*]:w-full">{control}</div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 [&>input]:w-full">
+                        {control}
+                        {hintNode}
+                    </div>
                     <div className="shrink-0">{action}</div>
                 </div>
             ) : (
-                control
+                <>
+                    {control}
+                    {hintNode}
+                </>
             )}
-            {hint ? (
-                <p id={hintId} className="text-[0.8125rem] leading-snug text-muted-foreground">
-                    {hint}
-                </p>
-            ) : null}
             {error ? (
                 <p id={errorId} role="alert" className="text-[0.8125rem] leading-snug text-destructive">
                     {error}

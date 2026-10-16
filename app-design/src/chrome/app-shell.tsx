@@ -154,6 +154,7 @@ export function AppShell({
     nav,
     sections,
     activeSection,
+    page: pageOverride,
     persistent = [],
     home = '/',
     account,
@@ -166,6 +167,8 @@ export function AppShell({
     nav?: ShellNavGroup[];
     sections?: ShellSection[];
     activeSection?: string;
+    /** The page's name for the place strip, when it is not a nav item of its own. */
+    page?: string;
     /** Groups shown under every section, after its own. */
     persistent?: ShellNavGroup[];
     home?: string;
@@ -186,8 +189,11 @@ export function AppShell({
     warnDuplicateLabels(groups);
     const page = activeItem(groups);
     const place = useMemo(
-        () => ({ section: current ? (current.title ?? current.label) : undefined, page: page?.label }),
-        [current, page?.label]
+        () => ({
+            section: current ? (current.title ?? current.label) : undefined,
+            page: pageOverride ?? page?.label,
+        }),
+        [current, page?.label, pageOverride]
     );
     const switcher =
         sections && current && sections.length > 1 ? (

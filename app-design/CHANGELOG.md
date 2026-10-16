@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.9] — 2026-10-16
+
+- `Field` with an `action` puts the hint under the input, not under the row,
+  so on a phone it no longer lands beneath the button.
+- `AppShell` takes `page`, naming the page in the place strip when it is not a
+  nav item of its own; a page reached by URL no longer shows the item that
+  merely highlights for it.
+
 ## [0.5.8] — 2026-10-16
 
 - `SplitBar` sets every segment's figure at one size. Two sizes (0.4.2) left
