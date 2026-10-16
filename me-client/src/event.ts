@@ -359,7 +359,11 @@ export interface VerifyEventResult {
  *   import { oc } from '@orangecheck/me-client';
  *
  *   const env = await fetch(`https://me.ochk.io/api/envelope/${id}`).then(r => r.json());
- *   const cfg = await oc.config.fetch({ project_key: env.site.domain });
+ *   // Your project's config, by its key. A project can move domains, so
+ *   // `env.site.domain` names where it was, not which project it is.
+ *   const cfg = await fetch(
+ *     `https://me.ochk.io/api/integrator-config?project_key=${PROJECT_KEY}`
+ *   ).then(r => r.json());
  *   const result = oc.event.verify(env, cfg);
  *   if (!result.ok) reportDivergence(result.issues);
  */
