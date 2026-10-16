@@ -2,7 +2,7 @@ import { Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 
-import { Lockup } from '../brand/mark';
+import { Lockup, Mark } from '../brand/mark';
 import { cn } from '../lib/cn';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 
@@ -114,11 +114,14 @@ export function SiteFooter({
     columns = [],
     fineprint,
     meta,
+    signature = true,
     className,
 }: {
     columns?: FooterColumn[];
     fineprint?: ReactNode;
     meta?: ReactNode;
+    /** The mark and wordmark at display size, closing the page. */
+    signature?: boolean;
     className?: string;
 }) {
     return (
@@ -141,6 +144,16 @@ export function SiteFooter({
                     </div>
                 ))}
             </div>
+            {signature ? (
+                <div aria-hidden className="oca-container select-none overflow-hidden pb-6 md:pb-8">
+                    <div className="flex items-end gap-[0.18em] text-[clamp(3rem,11.5vw,10rem)] leading-[0.78] tracking-[-0.065em] [font-family:var(--oc-font-display)]">
+                        <span className="mb-[0.06em] inline-block w-[1.1em] shrink-0">
+                            <Mark className="block h-auto w-full" />
+                        </span>
+                        <span>orangecheck</span>
+                    </div>
+                </div>
+            ) : null}
             {meta ? (
                 <div className="oca-container border-t border-border py-6 text-[0.875rem] text-muted-foreground">{meta}</div>
             ) : null}

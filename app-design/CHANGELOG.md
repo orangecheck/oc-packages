@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0] — 2026-10-15
+
+- `SiteFooter` closes every page with the mark and the wordmark at display
+  size, sized to the viewport so it never overflows; `signature={false}`
+  leaves it out.
+
 ## [0.4.2] — 2026-10-15
 
 - `SplitBar`: a share under 30% sets its figure smaller, so it fits its segment
