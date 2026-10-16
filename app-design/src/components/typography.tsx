@@ -36,17 +36,21 @@ export function Footnote({ className, ...props }: HTMLAttributes<HTMLParagraphEl
     return <p className={cn('text-[0.9375rem] text-muted-foreground', className)} {...props} />;
 }
 
-/** Body copy for long-form pages: measured line length, calm rhythm. */
+/**
+ * Body copy for long-form pages: measured line length, calm rhythm. The
+ * spacing rules skip anything inside `.not-prose`, so a Notice or card set in
+ * the text keeps its own layout.
+ */
 export function Prose({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
     return (
         <div
             className={cn(
                 'max-w-[42rem] text-[1.0625rem] leading-[1.7] text-muted-foreground',
-                '[&_h2]:oca-display-3 [&_h2]:mb-4 [&_h2]:mt-14 [&_h2]:scroll-mt-24 [&_h2]:text-foreground',
-                '[&_h3]:oca-title [&_h3]:mb-3 [&_h3]:mt-10 [&_h3]:text-foreground',
-                '[&_p]:my-4 [&_strong]:font-medium [&_strong]:text-foreground',
+                '[&_h2:not(.not-prose_h2)]:oca-display-3 [&_h2:not(.not-prose_h2)]:mb-4 [&_h2:not(.not-prose_h2)]:mt-14 [&_h2]:scroll-mt-24 [&_h2]:text-foreground',
+                '[&_h3:not(.not-prose_h3)]:oca-title [&_h3:not(.not-prose_h3)]:mb-3 [&_h3:not(.not-prose_h3)]:mt-10 [&_h3]:text-foreground',
+                '[&_p:not(.not-prose_p)]:my-4 [&_strong]:font-medium [&_strong]:text-foreground',
                 '[&_a]:text-foreground [&_a]:underline [&_a]:decoration-foreground/35 [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground',
-                '[&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-1.5 [&_code]:text-foreground',
+                '[&_ul:not(.not-prose_ul)]:my-4 [&_ul:not(.not-prose_ul)]:list-disc [&_ul:not(.not-prose_ul)]:pl-5 [&_li:not(.not-prose_li)]:my-1.5 [&_code]:text-foreground',
                 className
             )}
             {...props}

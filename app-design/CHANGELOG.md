@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.5] — 2026-10-15
+
+- `Prose` spacing and list rules skip anything inside `.not-prose`, so a
+  `Notice` or card set in long-form text keeps its own layout. A notice title
+  no longer picks up a paragraph margin and drops below its dot.
+
 ## [0.5.0] — 2026-10-15
 
 - `SiteFooter` closes every page with the mark and the wordmark at display
