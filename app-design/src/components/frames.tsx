@@ -13,7 +13,8 @@ export function PhoneFrame({ className, style, children }: { className?: string;
     return (
         <div
             className={cn(
-                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] bg-[#0b0b0c] p-[0.6rem]',
+                // A lighter bezel in dark mode, or the phone dissolves into the page.
+                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
                 'shadow-[0_50px_100px_-40px_rgb(10_10_10/0.55),0_0_0_1px_rgb(255_255_255/0.06)_inset]',
                 className
             )}

@@ -45,7 +45,7 @@ export function Prose({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
                 '[&_h2]:oca-display-3 [&_h2]:mb-4 [&_h2]:mt-14 [&_h2]:scroll-mt-24 [&_h2]:text-foreground',
                 '[&_h3]:oca-title [&_h3]:mb-3 [&_h3]:mt-10 [&_h3]:text-foreground',
                 '[&_p]:my-4 [&_strong]:font-medium [&_strong]:text-foreground',
-                '[&_a]:text-foreground [&_a]:underline [&_a]:decoration-border [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground',
+                '[&_a]:text-foreground [&_a]:underline [&_a]:decoration-foreground/35 [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground',
                 '[&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-1.5 [&_code]:text-foreground',
                 className
             )}

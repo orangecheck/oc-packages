@@ -26,7 +26,8 @@ export const badgeVariants = cva(
                 // the brand accent, information is neutral.
                 warning: 'border-transparent bg-[color-mix(in_oklab,var(--oca-orange)_12%,var(--card))] text-oca-accent-ink',
                 info: 'border-border bg-card text-foreground',
-                ink: 'border-transparent bg-oca-ink text-oca-ink-foreground',
+                // Inverted in dark mode, where ink would sit on a card of nearly its own colour.
+                ink: 'border-transparent bg-oca-ink text-oca-ink-foreground dark:bg-foreground dark:text-background',
                 onInk: 'border-white/15 bg-white/5 text-white/90',
             },
         },

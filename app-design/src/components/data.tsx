@@ -86,7 +86,13 @@ export function StatCard({ label, value, hint, className }: StatCardProps) {
             )}
         >
             <span className="text-[0.875rem] leading-snug text-muted-foreground">{label}</span>
-            <span className="self-end break-words oca-tabular text-[1.5rem] leading-tight tracking-[-0.02em] md:text-[1.75rem]">
+            {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
+            <span
+                className={cn(
+                    'break-words oca-tabular text-[1.5rem] leading-tight tracking-[-0.02em] md:text-[1.75rem]',
+                    inGrid && 'self-end'
+                )}
+            >
                 {value}
             </span>
             {hint ? (
@@ -576,7 +582,7 @@ export function HashChip({
     return (
         <span className={cn('inline-flex max-w-full items-center gap-1', className)}>
             {href ? (
-                <a href={href} className="underline decoration-border underline-offset-4 hover:decoration-foreground">
+                <a href={href} className="underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground">
                     {text}
                 </a>
             ) : (

@@ -78,17 +78,27 @@ export function SatsFigure({
     label,
     value,
     hint,
+    size = 'md',
     className,
 }: {
     label: string;
     value: number | null | undefined;
     hint?: React.ReactNode;
+    /** lg: the figure a page leads with, well above the tiles beneath it. */
+    size?: 'md' | 'lg';
     className?: string;
 }) {
     return (
         <div className={cn('flex flex-col gap-1.5', className)}>
             <span className="text-[0.9375rem] text-muted-foreground">{label}</span>
-            <span className="oca-display-3 oca-tabular">
+            <span
+                className={cn(
+                    'oca-tabular',
+                    size === 'lg'
+                        ? 'text-[clamp(3rem,2.2rem+3vw,4.75rem)] leading-[0.95] tracking-[-0.045em] [font-family:var(--oc-font-display)]'
+                        : 'oca-display-3'
+                )}
+            >
                 <Sats value={value} unit="none" />
                 <span className="ml-2 text-[0.5em] tracking-normal text-muted-foreground">sats</span>
             </span>

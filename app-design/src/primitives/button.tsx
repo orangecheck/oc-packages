@@ -30,7 +30,7 @@ export const buttonVariants = cva(
                 brand: 'bg-brand text-brand-foreground hover:bg-oca-orange-deep',
                 ghost: 'text-foreground hover:bg-accent',
                 danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-                link: 'h-auto rounded-none px-0 text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground',
+                link: 'h-auto rounded-none px-0 text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground',
                 onInk: 'bg-white text-oca-ink hover:bg-white/90',
                 onInkOutline: 'border border-white/20 text-white hover:bg-white/10',
             },

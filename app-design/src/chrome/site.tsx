@@ -131,21 +131,31 @@ export function SiteFooter({
                     <Lockup size={26} />
                     {fineprint ? <p className="max-w-xs text-[0.9375rem] leading-relaxed text-muted-foreground">{fineprint}</p> : null}
                 </div>
-                {columns.map((col) => (
-                    <div key={col.heading} className="flex min-w-0 flex-col gap-1">
-                        <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
-                        {col.links.map((l) => (
-                            <NavLink
-                                key={l.href}
-                                item={l}
-                                className="-mx-3 py-2.5 text-[0.9375rem] md:py-1.5"
-                            />
-                        ))}
-                    </div>
-                ))}
+                {columns.map((col, i) => {
+                    // On a phone an odd last column takes the whole row, its links in two
+                    // columns, instead of sitting alone beside an empty half.
+                    const spans = columns.length % 2 === 1 && i === columns.length - 1;
+                    return (
+                        <div
+                            key={col.heading}
+                            className={cn('flex min-w-0 flex-col gap-1', spans && 'col-span-2 md:col-span-1')}
+                        >
+                            <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
+                            <div className={cn('flex flex-col gap-1', spans && 'grid grid-cols-2 gap-x-6 md:flex md:flex-col')}>
+                                {col.links.map((l) => (
+                                    <NavLink
+                                        key={l.href}
+                                        item={l}
+                                        className="-mx-3 py-2.5 text-[0.9375rem] md:py-1.5"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none overflow-hidden pb-6 md:pb-8">
+                <div aria-hidden className="oca-container select-none overflow-hidden pb-8 md:pb-12">
                     <div className="flex items-end gap-[0.18em] text-[clamp(3rem,11.5vw,10rem)] leading-[0.78] tracking-[-0.065em] [font-family:var(--oc-font-display)]">
                         <span className="mb-[0.06em] inline-block w-[1.1em] shrink-0">
                             <Mark className="block h-auto w-full" />
@@ -155,7 +165,10 @@ export function SiteFooter({
                 </div>
             ) : null}
             {meta ? (
-                <div className="oca-container border-t border-border py-6 text-[0.875rem] text-muted-foreground">{meta}</div>
+                <div className="oca-container">
+                    {/* The rule spans the content, not the gutters. */}
+                    <div className="border-t border-border py-6 text-[0.875rem] text-muted-foreground">{meta}</div>
+                </div>
             ) : null}
         </footer>
     );

@@ -105,7 +105,7 @@ export function CodeBlock({
                     style={folded ? { maxHeight: `calc(${maxLines} * 1.625em + 2.5rem)` } : undefined}
                 >
                     <ScrollFade fade="var(--oca-code-surface)">
-                        <pre className="w-max min-w-full p-5 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted">
+                        <pre className="w-max min-w-full p-5 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted [font-variant-ligatures:none]">
                             <code>{code}</code>
                         </pre>
                     </ScrollFade>
