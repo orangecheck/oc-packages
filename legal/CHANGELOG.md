@@ -6,6 +6,18 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.7] — 2026-10-15
+
+### Changed — wording only, no change to what is claimed
+
+- **All terms, entity of record, was:** 'operated as the unincorporated
+  project "OrangeCheck (OCHK), an unincorporated project"', which said it
+  twice. **Now:** 'the party of record is OrangeCheck (OCHK), an
+  unincorporated project'. The successor clause is unchanged.
+- **me.ochk.io terms and privacy, summary line, was:** named me.ochk.io.
+  **Now:** names me.ochk.io and ochk.app, as both documents' first callout
+  already did.
+
 ## [0.7.6] — 2026-10-15
 
 ### Changed — the Service has a second address

@@ -33,7 +33,7 @@ const terms: DocSpec = {
     eyebrow: 'terms',
     title: 'Terms of service',
     description:
-        'The terms governing your use of me.ochk.io — a Bitcoin-backed identity that pays you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
+        'The terms governing your use of me.ochk.io and ochk.app — a Bitcoin-backed identity that pays you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     metaTitle: 'Terms of Service — me.ochk.io',
     metaDescription:
         'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
@@ -202,7 +202,7 @@ const privacy: DocSpec = {
     eyebrow: 'privacy',
     title: 'Privacy policy',
     description:
-        'How me.ochk.io handles your data: no KYC, no PII required, a per-integrator scoped identity, and a documented, falsifiable account of every record OrangeCheck stores.',
+        'How me.ochk.io and ochk.app handle your data: no KYC, no PII required, a per-integrator scoped identity, and a documented, falsifiable account of every record OrangeCheck stores.',
     metaTitle: 'Privacy Policy — me.ochk.io',
     metaDescription:
         'me.ochk.io privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',

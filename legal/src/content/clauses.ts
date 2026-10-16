@@ -242,7 +242,7 @@ export const disputeResolution: Section = {
         { kind: 'subhead', text: 'entity of record' },
         {
             kind: 'callout',
-            text: 'OrangeCheck is, at the date of this document, operated as the unincorporated project "[[ENTITY_LONG]]". References to "[[ENTITY]]" mean that project and the operators acting on its behalf; upon formation of a formal legal entity, that entity becomes the party of record and these Terms — including the arbitration and governing-law provisions — bind it as successor without further notice.',
+            text: 'At the date of this document, the party of record is [[ENTITY_LONG]]. References to "[[ENTITY]]" mean that party and the operators acting on its behalf; upon formation of a formal legal entity, that entity becomes the party of record and these Terms — including the arbitration and governing-law provisions — bind it as successor without further notice.',
         },
     ],
 };
