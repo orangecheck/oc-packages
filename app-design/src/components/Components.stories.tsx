@@ -13,6 +13,7 @@ import {
     HashChip,
     KeyValueList,
     LoadingBlock,
+    Monogram,
     Notice,
     PackageCard,
     PageHeader,
@@ -186,6 +187,24 @@ export const Split: StoryObj = {
                     { pct: 20, label: 'orangecheck keeps this', tone: 'ink' },
                 ]}
             />
+        </div>
+    ),
+};
+
+export const Monograms: StoryObj = {
+    name: 'Monogram',
+    render: () => (
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center gap-3">
+                {['Lumen Notes', 'acme.dev', 'Halfway Books', 'nostr.band', '21 Futures', 'Pine & Co'].map((n) => (
+                    <Monogram key={n} name={n} />
+                ))}
+            </div>
+            <div className="flex items-center gap-3">
+                <Monogram name="Lumen Notes" size="sm" />
+                <Monogram name="Lumen Notes" size="md" />
+                <Monogram name="Lumen Notes" size="lg" />
+            </div>
         </div>
     ),
 };
