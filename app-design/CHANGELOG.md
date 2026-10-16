@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.8] — 2026-10-16
+
+- `SplitBar` sets every segment's figure at one size. Two sizes (0.4.2) left
+  the small share's figure about 3px lower than its neighbour's. The single
+  size still fits a segment at its minimum width.
+
 ## [0.5.7] — 2026-10-16
 
 - `UsdApprox` rounds to cents. An amount under half a cent reads "< $0.01"
