@@ -15,8 +15,9 @@ const GROUNDS = [
         dot: 'rgb(10 10 10 / 0.22)',
     },
     {
-        className: 'text-white ring-1 ring-inset ring-white/10',
-        background: 'linear-gradient(145deg, #2a2a2a, #0a0a0a)',
+        // Lifted at the top edge so the tile keeps its shape on a dark card.
+        className: 'text-white ring-1 ring-inset ring-white/15',
+        background: 'linear-gradient(145deg, #3d3d3d, #0d0d0d 70%)',
         dot: 'rgb(255 255 255 / 0.16)',
     },
     {
