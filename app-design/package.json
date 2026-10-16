@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",

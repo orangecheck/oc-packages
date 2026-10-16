@@ -59,8 +59,17 @@ export function SiteHeader({
                 className
             )}
         >
-            <div className="oca-container flex h-16 items-center justify-between gap-4 md:h-[4.5rem]">
-                <Link href={home} className="-ml-1 rounded-lg p-1">
+            <div
+                className={cn(
+                    'oca-container flex h-16 items-center justify-between gap-4 md:h-[4.5rem]',
+                    // Three columns, the outer two each at least their content: the
+                    // navigation stays centred whatever the actions hold, so it does
+                    // not shift when they change (signed out to signed in).
+                    nav.length > 0 &&
+                        'md:grid md:grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)]'
+                )}
+            >
+                <Link href={home} className="-ml-1 justify-self-start rounded-lg p-1">
                     {brand ?? <Lockup size={28} />}
                     {/* Read as "orangecheck home": the name starts with what the link shows. */}
                     <span className="sr-only"> home</span>
@@ -72,7 +81,7 @@ export function SiteHeader({
                         ))}
                     </nav>
                 ) : null}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-self-end">
                     {actions}
                     {nav.length > 0 ? (
                         <Sheet open={open} onOpenChange={setOpen}>
