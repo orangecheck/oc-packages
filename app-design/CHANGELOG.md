@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.6] — 2026-10-15
+
+- `Field` takes an `action`: a button set beside the control (below it on a
+  phone), so an input with its own button keeps its label, hint and error
+  wiring instead of being laid out by hand.
+
 ## [0.5.5] — 2026-10-15
 
 - `Prose` spacing and list rules skip anything inside `.not-prose`, so a

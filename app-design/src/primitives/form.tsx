@@ -75,10 +75,12 @@ export interface FieldProps {
     className?: string;
     /** Render the label visually hidden (it is still the accessible name). */
     hideLabel?: boolean;
+    /** A button that acts on the control, set beside it (below it on a phone). */
+    action?: ReactNode;
 }
 
 /** Label, hint, control and error, wired together by id. */
-export function Field({ label, hint, optional, error, children, className, hideLabel }: FieldProps) {
+export function Field({ label, hint, optional, error, children, className, hideLabel, action }: FieldProps) {
     const id = useId();
     const hintId = hint ? `${id}-hint` : undefined;
     const errorId = error ? `${id}-error` : undefined;
@@ -96,7 +98,14 @@ export function Field({ label, hint, optional, error, children, className, hideL
                 {label}
                 {optional ? <span className="text-[0.8125rem] font-normal text-muted-foreground">Optional</span> : null}
             </Label>
-            {control}
+            {action ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <div className="min-w-0 flex-1 [&>*]:w-full">{control}</div>
+                    <div className="shrink-0">{action}</div>
+                </div>
+            ) : (
+                control
+            )}
             {hint ? (
                 <p id={hintId} className="text-[0.8125rem] leading-snug text-muted-foreground">
                     {hint}

@@ -134,6 +134,13 @@ export const Forms: StoryObj = {
                 <Field label="Payout address" error="That isn't a Bitcoin or Lightning address.">
                     <Input defaultValue="not-an-address" />
                 </Field>
+                <Field
+                    label="Invite an operator"
+                    hint="Their orangecheck id. They can copy it from their Identity page."
+                    action={<Button variant="secondary">Invite</Button>}
+                >
+                    <Input placeholder="did:oc:…" />
+                </Field>
                 <Field label="Why you're asking">
                     <Textarea placeholder="One or two sentences." />
                 </Field>
