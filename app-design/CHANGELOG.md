@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.10] — 2026-10-16
+
+- Running text (`p`, `li`, `dd`, `figcaption`, `blockquote`) wraps with
+  `text-wrap: pretty` across the app, so a paragraph no longer ends on one
+  stranded word. Set once in the theme instead of per page.
+
 ## [0.5.9] — 2026-10-16
 
 - `Field` with an `action` puts the hint under the input, not under the row,

@@ -209,6 +209,11 @@
     [data-oc-app='ochk'] :where(code, kbd, samp, pre, .font-mono) {
         font-variant-ligatures: none;
     }
+
+    /* Running text never ends a paragraph on one stranded word. :where keeps it overridable. */
+    [data-oc-app='ochk'] :where(p, li, dd, figcaption, blockquote) {
+        text-wrap: pretty;
+    }
 }
 
 /* iOS Safari zooms into a focused field under 16px. Unlayered so no utility re-breaks it. */
