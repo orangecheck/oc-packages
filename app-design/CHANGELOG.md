@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.2] — 2026-10-15
+
+- `SplitBar`: a share under 30% sets its figure smaller, so it fits its segment
+  in a narrow card as well as a wide band.
+
 ## [0.4.1] — 2026-10-15
 
 - Every page's opening settles in once on load (`oca-enter`, staggered through

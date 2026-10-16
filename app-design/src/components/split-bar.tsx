@@ -34,7 +34,13 @@ export function SplitBar({
                         )}
                         style={{ flexBasis: `${s.pct}%` }}
                     >
-                        <span className="oca-tabular text-[1.25rem] leading-none tracking-[-0.02em] md:text-[1.875rem]">
+                        <span
+                            className={cn(
+                                'oca-tabular leading-none tracking-[-0.02em]',
+                                // A small share gets a smaller figure, so it fits its segment at any width.
+                                s.pct < 30 ? 'text-[1.125rem] md:text-[1.375rem]' : 'text-[1.25rem] md:text-[1.875rem]'
+                            )}
+                        >
                             {s.pct}%
                         </span>
                     </div>
