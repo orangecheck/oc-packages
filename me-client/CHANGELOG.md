@@ -8,6 +8,25 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.29.0] — 2026-10-16
+
+### Added — paying users is optional
+
+- `payingAt(periods, at)` and the `PayPeriod` type: whether a project pays its
+  users at a moment, from the `pay_periods` that `GET /api/integrator/config`
+  publishes. A project pays always, in promos, or never.
+- `oc.event.verify(envelope, config, amount, { payPeriods })` flags a receipt
+  billed outside every period (`outside_pay_period`).
+- `fireBatch` results can be `not_paying`, and the response carries
+  `next_pay_period` when the project isn't paying.
+
+### Changed
+
+- `oc.event.fire` resolves to what the server sends: `{ earned: true, event, … }`
+  or, outside a pay period, `{ earned: false, reason: 'not_paying',
+  next_pay_period }`. It was typed as a bare `BillableEvent`, which the response
+  never was: `res.id` was always undefined and `res.event.id` didn't compile.
+
 ## [0.28.0] — 2026-10-16
 
 ### Changed

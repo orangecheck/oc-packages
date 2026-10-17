@@ -43,7 +43,8 @@ this file tracks the package's TS / Node / runtime API surface.
   verifies signatures with `@orangecheck/bip322`. The old range let a site keep
   0.5.1, which verifies through bip322-js, while its lockfile picked up
   bitcoinjs-lib 6.1.9; every wallet signature then read as the wrong
-  account's. That is how attest.ochk.io broke on 2026-10-16.
+  account's. That is how wallet sign-in broke on ochk.app and five *.ochk.io
+  sites on 2026-10-16.
 
 ## [2.30.0] — 2026-10-16
 

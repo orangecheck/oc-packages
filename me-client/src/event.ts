@@ -7,12 +7,21 @@
  *
  *   import { oc } from '@orangecheck/me-client';
  *
- *   const env = await oc.event.fire({
+ *   const res = await oc.event.fire({
  *     project_key: 'pk_live_yourcompany',
  *     subtype: 'stamp_signing',
  *     action_label: 'review · march invoice',
  *   });
- *   // env.id, env.gross_fee_sats, env.user_earned_sats, env.verify_url
+ *   if (res.earned) {
+ *     // res.event.id, res.event.gross_fee_sats, res.event.user_earned_sats
+ *   } else {
+ *     // Not paying now (res.reason === 'not_paying'): nothing recorded or
+ *     // charged. res.next_pay_period says when paying starts, if scheduled.
+ *   }
+ *
+ * Paying users is optional: a project pays only inside its pay periods
+ * (always, in promos, or never), so firing from code that runs all the time
+ * is safe; outside them every call returns `earned: false`.
  *
  *   // For percent_of_amount-priced subtypes, include the underlying amount:
  *   const verify = await oc.event.fire({
@@ -33,6 +42,8 @@ import {
     type IntegratorEventConfig,
     type IntegratorPriceConfig,
 } from './types';
+import type { PayPeriod } from './pay-periods';
+import { payingAt } from './pay-periods';
 import { api } from './transport';
 
 export interface FireEventOptions {
@@ -96,6 +107,29 @@ export interface FireEventOptions {
     idempotencyKey?: string;
 }
 
+/** What `oc.event.fire` answers. */
+export type FireEventResult =
+    | {
+          ok: true;
+          /** The event earned the user their share and charged the project. */
+          earned: true;
+          event: BillableEvent;
+          webhooks_fired: number;
+          escrow_mode: 'simulation' | 'live';
+          /** Set when the same Idempotency-Key already landed: `event` is the prior one. */
+          idempotent_replay?: boolean;
+          simulation_mode_note?: string;
+      }
+    | {
+          ok: true;
+          /** The project isn't paying its users now. Nothing recorded or charged. */
+          earned: false;
+          reason: 'not_paying';
+          detail: string;
+          /** The next pay period, or null when none is scheduled. */
+          next_pay_period: PayPeriod | null;
+      };
+
 /** HMAC-SHA256 hex via Web Crypto — works in Node 20+ and the browser with no
  *  node:crypto import (keeps this package isomorphic). Signing only ever runs
  *  server-side because it needs the project secret. */
@@ -124,7 +158,7 @@ async function signBody(secret: string, serializedBody: string): Promise<string>
     return `t=${t},v1=${mac}`;
 }
 
-async function fire(options: FireEventOptions): Promise<BillableEvent> {
+async function fire(options: FireEventOptions): Promise<FireEventResult> {
     if (!options.project_key) {
         throw new Error('event.fire requires project_key');
     }
@@ -168,7 +202,7 @@ async function fire(options: FireEventOptions): Promise<BillableEvent> {
         );
     }
 
-    return api<BillableEvent>('/api/integrator/event', {
+    return api<FireEventResult>('/api/integrator/event', {
         method: 'POST',
         body: requestBody,
         headers,
@@ -204,7 +238,9 @@ export interface BatchEventInput {
  *  - `duplicate` · idempotency-key matched a prior event; `event` is
  *    the prior payload.
  *  - `rejected` · validation or site-cap failure; `reason` is human-
- *    readable. The other events in the batch are unaffected. */
+ *    readable. The other events in the batch are unaffected.
+ *  - `not_paying` · the project isn't paying its users now; nothing was
+ *    recorded or charged. */
 export type BatchEventResult =
     | {
           index: number;
@@ -220,6 +256,10 @@ export type BatchEventResult =
           index: number;
           status: 'rejected';
           reason: string;
+      }
+    | {
+          index: number;
+          status: 'not_paying';
       };
 
 export interface FireBatchOptions {
@@ -239,6 +279,8 @@ export interface FireBatchOptions {
 export interface FireBatchResponse {
     ok: boolean;
     results: BatchEventResult[];
+    /** Present when the project isn't paying now: the next period, or null. */
+    next_pay_period?: PayPeriod | null;
     escrow_mode: 'simulation' | 'live';
     simulation_mode_note?: string;
 }
@@ -265,6 +307,7 @@ export interface FireBatchResponse {
  *   for (const r of res.results) {
  *     if (r.status === 'recorded') console.log('+', r.event.id, r.event.gross_fee_sats);
  *     else if (r.status === 'duplicate') console.log('~ idempotent replay', r.event.id);
+ *     else if (r.status === 'not_paying') console.log('- not paying users now');
  *     else console.log('!', r.reason);
  *   }
  *
@@ -323,7 +366,8 @@ export interface VerifyEventResult {
             | 'site_rebate_sats'
             | 'subtype_disabled'
             | 'subtype_unconfigured'
-            | 'percent_amount_missing';
+            | 'percent_amount_missing'
+            | 'outside_pay_period';
         expected: number | null;
         actual: number | null;
         message: string;
@@ -359,20 +403,33 @@ export interface VerifyEventResult {
  *   import { oc } from '@orangecheck/me-client';
  *
  *   const env = await fetch(`https://me.ochk.io/api/envelope/${id}`).then(r => r.json());
- *   // Your project's config, by its key. A project can move domains, so
- *   // `env.site.domain` names where it was, not which project it is.
- *   const cfg = await fetch(
- *     `https://me.ochk.io/api/integrator-config?project_key=${PROJECT_KEY}`
+ *   // Your project's config and pay periods, by its key. A project can move
+ *   // domains, so `env.site.domain` names where it was, not which project it is.
+ *   const { config, pay_periods } = await fetch(
+ *     `https://me.ochk.io/api/integrator/config?project_key=${PROJECT_KEY}`
  *   ).then(r => r.json());
- *   const result = oc.event.verify(env, cfg);
+ *   const result = oc.event.verify(env, config, undefined, { payPeriods: pay_periods });
  *   if (!result.ok) reportDivergence(result.issues);
+ *
+ * With `payPeriods`, an event billed while the project wasn't paying its
+ * users is flagged `outside_pay_period`. Periods that have started never
+ * change, so the period that paid an event is always still there.
  */
 function verify(
     envelope: BillableEvent,
     config: IntegratorPriceConfig,
-    payment_amount_sats?: number
+    payment_amount_sats?: number,
+    opts: { payPeriods?: readonly PayPeriod[] } = {}
 ): VerifyEventResult {
     const issues: VerifyEventResult['issues'] = [];
+    if (opts.payPeriods && !payingAt(opts.payPeriods, new Date(envelope.occurred_at)).paying) {
+        issues.push({
+            field: 'outside_pay_period',
+            expected: null,
+            actual: null,
+            message: `billed at ${envelope.occurred_at}, when ${config.project_key} wasn't paying its users`,
+        });
+    }
 
     const eventCfg: IntegratorEventConfig | undefined = config.events[envelope.subtype];
     if (!eventCfg) {
@@ -380,6 +437,7 @@ function verify(
             ok: false,
             expected: null,
             issues: [
+                ...issues,
                 {
                     field: 'subtype_unconfigured',
                     expected: null,
@@ -394,6 +452,7 @@ function verify(
             ok: false,
             expected: null,
             issues: [
+                ...issues,
                 {
                     field: 'subtype_disabled',
                     expected: null,
@@ -408,6 +467,7 @@ function verify(
             ok: false,
             expected: null,
             issues: [
+                ...issues,
                 {
                     field: 'percent_amount_missing',
                     expected: null,

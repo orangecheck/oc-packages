@@ -6,7 +6,7 @@
 
 Client for [me.ochk.io](https://me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. `OcSignInButton` rides the family cookie, so it works only on orangecheck's own sites; anywhere else, sign people in with `signInWithOc()` from `/popup`.
 
-> You pay for sessions and actions, not for clicks.
+> Sign-in is free. Paying your users is optional: always, in promos you schedule, or never.
 
 ## Three entry points, three audiences
 
@@ -72,6 +72,24 @@ export default withOcAuth(handler, {
 ```
 
 Or set it in code with `requireBond: { minSats: 100_000, minDays: 30, maxAgeSecs: 3600 }`. ochk.io re-checks the coin when its last check is over ten minutes old; `maxAgeSecs` refuses a claim checked longer ago than you accept. From 0.28.0, an account below the floor gets `403 { ok: false, reason: 'bond_required', need: { min_sats, min_days }, have: { sats_floor, days_floor } | null, back_url }`: link the person to `back_url` to back their account. If the project's setting can't be read and never has been, the request gets `503 { reason: 'bond_policy_unavailable' }` rather than being let through unchecked. `readBondClaim(session)` and `bondMeets(session, { minSats, minDays, maxAgeSecs })` are exported for your own checks.
+
+## Pay your users, when you choose to
+
+Paying the people who use your app is optional. In your project's dashboard you turn it on, schedule promos ("Launch week", Oct 20 to 27), or leave it off. While a pay period runs, each event you send earns the person their share and takes its fee from your balance. Outside every period an event earns and costs nothing, and me.ochk.io records nothing, so you can fire events from code that runs all the time:
+
+```ts
+const res = await oc.event.fire({
+    project_key: 'pk_live_yourcompany',
+    subtype: 'account_creation',
+    signingSecret: process.env.OC_SIGNING_SECRET,
+    userAddress: didOc,
+});
+if (!res.earned) {
+    // res.reason === 'not_paying'; res.next_pay_period says when paying starts, if scheduled
+}
+```
+
+`fireBatch` answers `not_paying` per event. `GET /api/integrator/config` publishes the project's `pay_periods`, past ones included, and `payingAt(periods, date)` tells you whether a project pays at a moment. Pass them to `oc.event.verify(envelope, config, amount, { payPeriods })` to flag a receipt billed outside every period.
 
 ## Session lifecycle
 
