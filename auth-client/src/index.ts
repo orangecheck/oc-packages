@@ -31,6 +31,8 @@ export { familyReturnTarget, safeReturnTo } from './signin';
 export type { OcSignInProps } from './signin';
 export { OcLinkedIdentities, fetchOcLinkedIdentities } from './linked-identities';
 export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';
+export { OcBond, fetchOcBond, bondFloorsText } from './bond';
+export type { OcBondProps, OcBondView } from './bond';
 export type {
     OcAccount,
     OcAccountSummary,

@@ -923,7 +923,7 @@ interface WalletButtonProps {
     onError: (err: { message?: string }, walletId?: string) => void;
 }
 
-function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
+export function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
     const [Comp, setComp] = React.useState<React.ComponentType<WalletButtonProps> | null>(null);
     const [failed, setFailed] = React.useState(false);
 
@@ -975,9 +975,9 @@ function mask(value: string, kind: 'email' | 'btc'): string {
     return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
-/* --- presentational atoms --- */
+/* --- presentational atoms · also used by bond.tsx; not re-exported from index --- */
 
-function SectionLabel({
+export function SectionLabel({
     children,
     tone = 'primary',
 }: {
@@ -1001,7 +1001,7 @@ function SectionLabel({
     );
 }
 
-function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElement {
+export function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElement {
     return (
         <p
             role="alert"
@@ -1017,7 +1017,7 @@ function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElem
     );
 }
 
-function FormButtons({ children }: { children: React.ReactNode }): React.ReactElement {
+export function FormButtons({ children }: { children: React.ReactNode }): React.ReactElement {
     return (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>{children}</div>
     );
@@ -1026,7 +1026,7 @@ function FormButtons({ children }: { children: React.ReactNode }): React.ReactEl
 /* --- style tokens (CSS-variable-themed, same approach as OcSignIn) --- */
 
 
-const V = {
+export const V = {
     primary: 'var(--primary, #f97316)',
     foreground: 'var(--foreground, #fafafa)',
     muted: 'var(--muted-foreground, #a1a1aa)',
@@ -1038,7 +1038,7 @@ const V = {
     warn: 'var(--warning, #eab308)',
 } as const;
 
-function panelStyle(tone: 'plain' | 'accent' | 'success' | 'warn' | 'default' = 'default'): React.CSSProperties {
+export function panelStyle(tone: 'plain' | 'accent' | 'success' | 'warn' | 'default' = 'default'): React.CSSProperties {
     const base: React.CSSProperties = {
         background: V.card,
         border: `1px solid ${V.border}`,
@@ -1051,21 +1051,21 @@ function panelStyle(tone: 'plain' | 'accent' | 'success' | 'warn' | 'default' = 
     return base;
 }
 
-const bodyStyle: React.CSSProperties = {
+export const bodyStyle: React.CSSProperties = {
     color: V.muted,
     fontSize: 13,
     lineHeight: 1.55,
     margin: '0 0 12px',
 };
 
-const hintStyle: React.CSSProperties = {
+export const hintStyle: React.CSSProperties = {
     color: V.muted,
     fontFamily: SIGNIN_FONT,
     fontSize: signinSize(10.5),
     opacity: 0.8,
 };
 
-const rowStyle: React.CSSProperties = {
+export const rowStyle: React.CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -1074,7 +1074,7 @@ const rowStyle: React.CSSProperties = {
     padding: '1rem',
 };
 
-const rowLabelStyle: React.CSSProperties = {
+export const rowLabelStyle: React.CSSProperties = {
     color: V.foreground,
     fontFamily: SIGNIN_FONT,
     fontSize: signinSize(10.5),
@@ -1083,7 +1083,7 @@ const rowLabelStyle: React.CSSProperties = {
     opacity: 0.8,
 };
 
-const inputStyle: React.CSSProperties = {
+export const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '0.55rem 0.75rem',
     background: V.background,
@@ -1110,7 +1110,7 @@ function btnBase(disabled: boolean): React.CSSProperties {
     };
 }
 
-function primaryBtnStyle(disabled: boolean): React.CSSProperties {
+export function primaryBtnStyle(disabled: boolean): React.CSSProperties {
     return {
         ...btnBase(disabled),
         background: V.primary,
@@ -1120,7 +1120,7 @@ function primaryBtnStyle(disabled: boolean): React.CSSProperties {
     };
 }
 
-function ghostBtnStyle(disabled: boolean): React.CSSProperties {
+export function ghostBtnStyle(disabled: boolean): React.CSSProperties {
     return {
         ...btnBase(disabled),
         background: V.background,
@@ -1129,7 +1129,7 @@ function ghostBtnStyle(disabled: boolean): React.CSSProperties {
     };
 }
 
-function dangerBtnStyle(disabled: boolean): React.CSSProperties {
+export function dangerBtnStyle(disabled: boolean): React.CSSProperties {
     return {
         ...btnBase(disabled),
         background: 'transparent',

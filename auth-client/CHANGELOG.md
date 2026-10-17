@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.30.0] — 2026-10-16
+
+### Added — `OcBond`: back the account with bitcoin, on any family site
+
+- `<OcBond authOrigin onChange />` lets the signed-in account pledge one coin
+  it holds (oc-attest-protocol `BOND.md`): address, coin, wallet signature,
+  against the auth host's `/api/auth/bond` with the family cookie, the same way
+  `OcLinkedIdentities` works. The coin never moves; apps see floors and a
+  number unique to each of them. Optional: every account signs in without it.
+- `fetchOcBond()` and `bondFloorsText()` for sites that show the bond
+  elsewhere.
+
 ## [2.29.0] — 2026-10-15
 
 ### Changed
