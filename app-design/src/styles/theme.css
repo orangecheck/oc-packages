@@ -226,6 +226,13 @@
     }
 }
 
+/* A phone's tab bar (AppShell) sits where toasts land; they rise above it. */
+@media (width < 48rem) {
+    [data-oc-app='ochk']:has([data-oca-tabbar]) [data-sonner-toaster][data-y-position='bottom'] {
+        bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     [data-oc-app='ochk'] *,
     [data-oc-app='ochk'] *::before,

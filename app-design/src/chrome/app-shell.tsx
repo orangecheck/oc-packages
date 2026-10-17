@@ -119,6 +119,55 @@ function SectionSwitch({
     );
 }
 
+/** The phone's way around a small app: every page one tap away, under the thumb. */
+function TabBar({ items }: { items: ShellNavItem[] }) {
+    return (
+        <nav
+            aria-label="Pages"
+            data-oca-tabbar=""
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+        >
+            <div
+                className="mx-auto grid h-14 max-w-[32rem] px-1.5"
+                style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+            >
+                {items.map((it) => (
+                    <Link
+                        key={it.href}
+                        href={it.href}
+                        aria-current={it.active ? 'page' : undefined}
+                        className={cn(
+                            'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                            it.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                'relative flex h-7 w-12 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-200',
+                                '[&_svg]:size-[1.125rem] [&_svg]:shrink-0',
+                                it.active ? 'bg-card shadow-sm ring-1 ring-border [&_svg]:stroke-2' : '[&_svg]:stroke-[1.75]'
+                            )}
+                        >
+                            {it.icon}
+                            {it.badge ? (
+                                <span aria-hidden className="absolute right-2.5 top-0.5 size-2 rounded-full bg-oca-orange ring-2 ring-background" />
+                            ) : null}
+                        </span>
+                        <span className="max-w-full truncate px-0.5">{it.label}</span>
+                        {it.badge ? <span className="sr-only">{it.badge}</span> : null}
+                    </Link>
+                ))}
+            </div>
+        </nav>
+    );
+}
+
+/** Two to five pages, each with an icon, fit a tab bar. More, or sections, keep the drawer. */
+function tabsFor(groups: ShellNavGroup[]): ShellNavItem[] | null {
+    const items = groups.flatMap((g) => g.items);
+    return items.length >= 2 && items.length <= 5 && items.every((it) => it.icon) ? items : null;
+}
+
 const activeItem = (groups: ShellNavGroup[]) => groups.flatMap((g) => g.items).find((it) => it.active);
 
 // Bundlers replace process.env.NODE_ENV; the typeof guard covers one that doesn't.
@@ -147,8 +196,11 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * holding an active item, or `activeSection`. On phones a top bar carries the
  * wordmark and the account, a strip under it names the section and page, and
  * the sidebar opens as a sheet. `nav` (flat groups) still works for a simple
- * app. Pages get the section through context: PageHeader uses it as its
- * eyebrow. The account control and any banner are slots.
+ * app, and when it holds two to five pages, each with an icon, phones get a
+ * tab bar instead: the pages sit under the thumb, the strip and the menu
+ * button go (the sheet stays for a `footer`, without the pages), and tablets
+ * keep the sheet. Pages get the section through context: PageHeader uses it
+ * as its eyebrow. The account control and any banner are slots.
  */
 export function AppShell({
     nav,
@@ -187,6 +239,7 @@ export function AppShell({
             : undefined;
     const groups = current ? [...current.groups, ...persistent] : [...(nav ?? []), ...persistent];
     warnDuplicateLabels(groups);
+    const tabs = current ? null : tabsFor(groups);
     const page = activeItem(groups);
     const place = useMemo(
         () => ({
@@ -201,12 +254,22 @@ export function AppShell({
         ) : null;
     return (
         <ShellContext.Provider value={place}>
-            <div className={cn('min-h-dvh bg-background', className)}>
+            <div
+                className={cn(
+                    'min-h-dvh bg-background',
+                    tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]',
+                    className
+                )}
+            >
                 <div className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
                     <div className="flex h-14 items-center gap-2 px-3">
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
-                                className="inline-flex size-10 items-center justify-center rounded-full hover:bg-accent"
+                                className={cn(
+                                    'inline-flex size-10 items-center justify-center rounded-full hover:bg-accent',
+                                    // The tab bar holds every page; the sheet is left for a footer.
+                                    tabs && !footer && 'max-md:hidden'
+                                )}
                                 aria-label="Open navigation"
                             >
                                 <Menu className="size-5" />
@@ -214,7 +277,9 @@ export function AppShell({
                             <SheetContent side="left" className="flex flex-col gap-6 overflow-y-auto p-4 pt-16">
                                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                                 {switcher}
-                                <SideNav groups={groups} onNavigate={() => setOpen(false)} />
+                                <div className={tabs ? 'max-md:hidden' : undefined}>
+                                    <SideNav groups={groups} onNavigate={() => setOpen(false)} />
+                                </div>
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
@@ -224,7 +289,13 @@ export function AppShell({
                         <div className="ml-auto flex items-center">{account}</div>
                     </div>
                     {place.page ? (
-                        <div className="flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]">
+                        <div
+                            className={cn(
+                                'flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]',
+                                // The active tab already names the page.
+                                tabs && !pageOverride && 'max-md:hidden'
+                            )}
+                        >
                             {place.section ? (
                                 <>
                                     <span className="shrink-0 text-muted-foreground">{place.section}</span>
@@ -253,6 +324,7 @@ export function AppShell({
                         </main>
                     </div>
                 </div>
+                {tabs ? <TabBar items={tabs} /> : null}
             </div>
         </ShellContext.Provider>
     );

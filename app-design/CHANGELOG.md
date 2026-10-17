@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0] — 2026-10-17
+
+- `AppShell` gives phones a tab bar when `nav` holds two to five pages, each
+  with an icon: the pages sit under the thumb, fixed to the bottom, clear of
+  the home indicator. The active tab is named to screen readers, and a badge
+  shows as a dot. The page leaves room under its content, toasts rise above
+  the bar, and the menu button and place strip go, since the tabs hold every
+  page and the active one names it. A `footer` keeps the menu button, which
+  opens the sheet without the pages. Tablets keep the sheet; `sections`, or
+  more than five pages, keep today's frame everywhere.
+
 ## [0.5.11] — 2026-10-16
 
 - `ErrorBoundary` (components): one broken part of a page shows a sentence

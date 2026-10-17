@@ -1,5 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Activity, BadgeCheck, Boxes, Home, Link2, LogOut, Settings, ShieldCheck, Wallet } from 'lucide-react';
+import {
+    Activity,
+    BadgeCheck,
+    Boxes,
+    Home,
+    House,
+    LayoutGrid,
+    Link2,
+    LogOut,
+    Settings,
+    ShieldCheck,
+    UserRound,
+    Wallet,
+} from 'lucide-react';
 
 import { Badge, Button } from '../primitives';
 import { Notice, PageHeader, Sats, StatCard, StatGrid } from '../components';
@@ -81,6 +94,41 @@ export const SignedIn: StoryObj = {
                     <StatCard label="Sites" value="3" />
                     <StatCard label="Paid out" value={<Sats value={null} />} />
                 </StatGrid>
+            </div>
+        </AppShell>
+    ),
+};
+
+/** Five pages: on a phone they sit in a tab bar, with no menu button. Widen past 768px for the drawer. */
+export const Phone: StoryObj = {
+    name: 'Signed-in shell, on a phone',
+    globals: { viewport: { value: 'mobile2', isRotated: false } },
+    render: () => (
+        <AppShell
+            nav={[
+                {
+                    items: [
+                        { href: '/me', label: 'Home', icon: <House /> },
+                        { href: '/me/activity', label: 'Activity', icon: <Activity />, active: true },
+                        { href: '/me/balance', label: 'Balance', icon: <Wallet /> },
+                        { href: '/me/apps', label: 'Apps', icon: <LayoutGrid />, badge: <Badge tone="brand">2</Badge> },
+                        { href: '/me/account', label: 'Account', icon: <UserRound /> },
+                    ],
+                },
+            ]}
+            account={<AccountMenu name="ana@example.com" detail="did:oc:ed30…7fc8" items={[{ label: 'Settings', href: '/settings' }]} />}
+        >
+            <div className="flex flex-col gap-8">
+                <PageHeader title="Activity" description="Every paid event, with a receipt you can check against Bitcoin." />
+                <StatGrid>
+                    <StatCard label="Earned" value={<Sats value={217} />} raw={217} />
+                    <StatCard label="This week" value={<Sats value={42} />} raw={42} />
+                </StatGrid>
+                {Array.from({ length: 12 }, (_, i) => (
+                    <p key={i} className="oca-body">
+                        Row {i + 1}. The last one clears the tab bar when you scroll to the end.
+                    </p>
+                ))}
             </div>
         </AppShell>
     ),
