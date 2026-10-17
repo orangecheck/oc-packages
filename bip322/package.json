@@ -1,0 +1,64 @@
+{
+  "name": "@orangecheck/bip322",
+  "version": "1.0.0",
+  "description": "BIP-322 simple and legacy BIP-137 Bitcoin message-signature verification on audited primitives (@noble/curves, @noble/hashes, @scure/base). No bitcoinjs-lib, no PSBT library: one function, verifySignature.",
+  "keywords": [
+    "bitcoin",
+    "bip322",
+    "bip137",
+    "signmessage",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "bip322"
+  },
+  "homepage": "https://github.com/orangecheck/oc-packages/tree/main/bip322",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "@scure/base": "^1.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

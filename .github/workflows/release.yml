@@ -44,6 +44,7 @@ on:
     push:
         tags:
             - 'sdk-v*'
+            - 'bip322-v*'
             - 'gate-v*'
             - 'cli-v*'
             - 'react-v*'
@@ -134,7 +135,7 @@ jobs:
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'design' && steps.parse.outputs.package != 'app-design' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
+              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'bip322' && steps.parse.outputs.package != 'design' && steps.parse.outputs.package != 'app-design' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-')
               working-directory: sdk
               run: |
                   yarn install --frozen-lockfile
