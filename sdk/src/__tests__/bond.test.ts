@@ -6,6 +6,7 @@ import {
     bondNullifier,
     buildBondMessage,
     checkBondCoin,
+    esploraSource,
     issueBondMessage,
     parseBondMessage,
     verifyBond,
@@ -13,6 +14,9 @@ import {
     type BondChainSource,
     type BondCoin,
 } from '../index';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
+
 import fixtures from './fixtures/bond.json';
 
 // Signed by private key 1 (public, holds nothing) with bip322-js 3.0.0 on
@@ -53,7 +57,13 @@ describe('the bond message', () => {
             m.replace('orangecheck-bond', 'orangecheck-auth'),
             m.replace('subject: ', 'subject:  '),
             m.replace(':0\n', ':00\n'),
-            m.replace('ack: I pledge', 'ack: i pledge'),
+            m.replace('ack: I back', 'ack: i back'),
+            m.replace(
+                'I back this subject with this coin.',
+                'I pledge this coin to back this subject.'
+            ),
+            m.replace('expires_at: 2026-10-16T12:10:00Z', 'expires_at: 2026-10-16T24:00:00Z'),
+            m.replace('issued_at: 2026-10-16T12:00:00Z', 'issued_at: 2026-02-30T12:00:00Z'),
             m + 'extra: line\n',
         ]) {
             expect(parseBondMessage(bad)).toBeNull();
@@ -151,11 +161,77 @@ describe('the coin', () => {
     });
 });
 
+describe('esploraSource', () => {
+    const TXID = OUTPOINT.split(':')[0];
+    const TIP_HASH = '00000000000000000001'.padEnd(64, 'a');
+    function api(routes: Record<string, [number, string]>): typeof fetch {
+        return (async (url: string) => {
+            const path = String(url).replace('https://esplora.test', '');
+            const [status, body] = routes[path] ?? [404, 'Not Found'];
+            return new Response(body, { status });
+        }) as typeof fetch;
+    }
+    const healthy = {
+        '/blocks/tip/height': [200, '971800'],
+        '/blocks/tip/hash': [200, TIP_HASH],
+        [`/tx/${TXID}`]: [
+            200,
+            JSON.stringify({
+                vout: [{ value: 150_000, scriptpubkey: SPK }],
+                status: { confirmed: true, block_height: 920_000 },
+            }),
+        ],
+        [`/tx/${TXID}/outspend/0`]: [200, JSON.stringify({ spent: false })],
+    } satisfies Record<string, [number, string]>;
+    const check = (routes: Record<string, [number, string]>) =>
+        checkBondCoin({
+            address: p2wpkh.address,
+            outpoint: OUTPOINT,
+            source: esploraSource('https://esplora.test', { fetch: api(routes) }),
+        });
+
+    it('reads an unspent, confirmed coin', async () => {
+        expect(await check(healthy)).toMatchObject({ ok: true, sats: 150_000, confirmed_height: 920_000 });
+    });
+
+    it('calls an unknown transaction not found', async () => {
+        const { [`/tx/${TXID}`]: _gone, ...rest } = healthy;
+        expect(await check(rest)).toEqual({ ok: false, reason: 'coin_not_found' });
+    });
+
+    it('calls a missing or garbled tip an outage, never a coin verdict', async () => {
+        const { '/blocks/tip/height': _gone, ...noTip } = healthy;
+        expect(await check(noTip)).toEqual({ ok: false, reason: 'chain_unavailable' });
+        expect(await check({ ...healthy, '/blocks/tip/height': [200, '<html>'] })).toEqual({
+            ok: false,
+            reason: 'chain_unavailable',
+        });
+        expect(await check({ ...healthy, '/blocks/tip/hash': [503, 'busy'] })).toEqual({
+            ok: false,
+            reason: 'chain_unavailable',
+        });
+    });
+});
+
 describe('what an audience sees', () => {
+    const KEY = hexToBytes(fixtures.nullifier_key);
+
     it('is the same nullifier for the same coin at the same audience, and unrelated elsewhere', () => {
-        expect(bondNullifier('https://example.com', OUTPOINT)).toBe(fixtures.nullifiers.a);
-        expect(bondNullifier('https://ochk.app', OUTPOINT)).toBe(fixtures.nullifiers.b);
+        expect(bondNullifier(KEY, 'https://example.com', OUTPOINT)).toBe(fixtures.nullifiers.a);
+        expect(bondNullifier(KEY, 'https://ochk.app', OUTPOINT)).toBe(fixtures.nullifiers.b);
         expect(fixtures.nullifiers.a).not.toBe(fixtures.nullifiers.b);
+    });
+
+    it("can't be found by hashing outpoints without the registry's key", () => {
+        const unkeyed = bytesToHex(
+            sha256(utf8ToBytes(`orangecheck-bond-nullifier\nhttps://example.com\n${OUTPOINT}`))
+        );
+        expect(unkeyed).not.toBe(fixtures.nullifiers.a);
+        const otherRegistry = new Uint8Array(32).fill(7);
+        expect(bondNullifier(otherRegistry, 'https://example.com', OUTPOINT)).not.toBe(
+            fixtures.nullifiers.a
+        );
+        expect(() => bondNullifier(new Uint8Array(16), 'https://example.com', OUTPOINT)).toThrow();
     });
 
     it('carries floors, never amounts', () => {

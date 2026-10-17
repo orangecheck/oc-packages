@@ -156,7 +156,8 @@ def test_bond_nullifier(vector: dict) -> None:
     from orangecheck import bond_nullifier
 
     inp = vector["input"]
-    got = [bond_nullifier(a, inp["outpoint"]) for a in inp["audiences"]]
+    key = bytes.fromhex(inp["key"])
+    got = [bond_nullifier(key, a, inp["outpoint"]) for a in inp["audiences"]]
     assert got == vector["expected"]["nullifiers"]
 
 

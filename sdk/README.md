@@ -148,9 +148,12 @@ Now the gate doesn't have to trust the client — the address it sees has been c
 ## Bonds: one coin backing one account
 
 An attestation publishes an address. A bond keeps it private. The holder signs
-once to pledge one unspent coin to one subject, and whoever relies on the bond
+once to back one subject with one unspent coin, and whoever relies on the bond
 sees only floors (at least N sats, at least D days) and a nullifier that is the
-same for that coin at that site and unrelated anywhere else. Spec:
+same for that coin at that site and unrelated anywhere else. The registry keys
+the nullifier with its own secret, so nobody can find the coin by hashing
+outpoints. Not to be confused with an attestation's `bond:` line (an amount at
+a public address) or `@orangecheck/pledge-core`'s `verifyBond`. Spec:
 [`BOND.md`](https://github.com/orangecheck/oc-attest-protocol/blob/main/BOND.md).
 
 ```ts
@@ -164,7 +167,9 @@ const { message } = issueBondMessage({ address, outpoint: `${txid}:${vout}`, sub
 const r = await verifyBond({ message, signature, subject: didOc, source: esploraSource() });
 if (r.ok) {
     const age = r.bond.tip.height - r.bond.confirmed_height + 1;
-    const claim = { ...bondFloors(r.bond.sats, age), nullifier: bondNullifier(audience, r.bond.outpoint) };
+    // NULLIFIER_KEY: your registry's secret, 32+ bytes, kept for good.
+    const nullifier = bondNullifier(NULLIFIER_KEY, audience, r.bond.outpoint);
+    const claim = { ...bondFloors(r.bond.sats, age), nullifier };
 }
 ```
 
@@ -281,7 +286,7 @@ verifyChallenge(options): Promise<VerifyChallengeResult>
 issueBondMessage(options): { message, nonce, expiresAt }
 verifyBond(options): Promise<BondResult>
 checkBondCoin(options): Promise<...>
-bondNullifier(audience, outpoint): string
+bondNullifier(key, audience, outpoint): string
 bondFloors(sats, ageBlocks): { sats_floor, days_floor }
 
 // Building blocks.

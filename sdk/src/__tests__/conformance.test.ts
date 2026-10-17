@@ -16,6 +16,7 @@
  */
 
 import { sha256 } from '@noble/hashes/sha2.js';
+import { hexToBytes } from '@noble/hashes/utils.js';
 import { verifySignature } from '@orangecheck/bip322';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -195,8 +196,9 @@ describe('conformance: bonds (BOND.md)', () => {
 
     for (const v of of('bond_nullifier')) {
         it(`${v.id}: ${v.description}`, () => {
-            const input = v.input as { outpoint: string; audiences: string[] };
-            expect(input.audiences.map((a) => bondNullifier(a, input.outpoint))).toEqual(
+            const input = v.input as { key: string; outpoint: string; audiences: string[] };
+            const key = hexToBytes(input.key);
+            expect(input.audiences.map((a) => bondNullifier(key, a, input.outpoint))).toEqual(
                 (v.expected as { nullifiers: string[] }).nullifiers
             );
         });

@@ -7,6 +7,32 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.13.0] — 2026-10-16
+
+### Changed (security) — the nullifier is keyed
+
+- `bondNullifier(key, audience, outpoint)` takes the registry's secret key
+  first (at least 32 bytes) and returns HMAC-SHA256. 1.12.0's unkeyed hash
+  could be inverted: outpoints are public, so an audience could hash every
+  unspent output that met the claim's floors and find the coin in minutes.
+  A breaking change to a day-old function, made before any third party used it.
+- The signed acknowledgement reads "I back this subject with this coin. It
+  stays in my wallet." Messages with 1.12.0's wording no longer parse.
+
+### Added
+
+- `verifyBondSignature` refuses a signing window longer than an hour
+  (`bond_window_too_long`; `maxWindowSeconds` to tune it,
+  `BOND_MAX_WINDOW_SECONDS` exported), so a signature can't stand as a
+  standing re-pledge.
+
+### Fixed
+
+- Times that roll over, such as `T24:00:00Z` or February 30, are malformed
+  rather than read as the next day.
+- `esploraSource` treats a missing or garbled tip as an outage. A tip that
+  wasn't a number made every coin look confirmed.
+
 ## [1.12.0] — 2026-10-16
 
 ### Added — bonds (oc-attest-protocol `BOND.md`)

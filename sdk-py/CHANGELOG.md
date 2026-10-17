@@ -4,6 +4,29 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] — 2026-10-16
+
+Matches `@orangecheck/sdk` 1.13.0 and the spec's regenerated `tv24`–`tv27`.
+
+### Changed (security)
+
+- `bond_nullifier(key, audience, outpoint)` takes the registry's secret key
+  (at least 32 bytes) and returns HMAC-SHA256. 2.1.0's unkeyed hash could be
+  inverted by hashing every unspent output, which found the coin.
+- The signed acknowledgement reads "I back this subject with this coin. It
+  stays in my wallet."
+
+### Added
+
+- `verify_bond_signature` refuses a signing window longer than an hour
+  (`bond_window_too_long`; `max_window_seconds`, `BOND_MAX_WINDOW_SECONDS`).
+
+### Fixed
+
+- A bond's address is checked the way `@orangecheck/bip322` checks it,
+  checksum included, so a mistyped address is `bond_malformed` here as in
+  TypeScript rather than `sig_invalid`.
+
 ## [2.1.0] — 2026-10-16
 
 ### Added — bonds (oc-attest-protocol `BOND.md`)

@@ -1,20 +1,21 @@
 {
  "p2wpkh": {
   "address": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
-  "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I pledge this coin to back this subject. It stays in my wallet.\n",
-  "signature": "AkcwRAIgXiBjNIVrHtzLTpQCwhreuR7CM0bM3opiP1nxPKsOI3cCIDda/wa1FZTXelNEKSSTxulsMX8iSkTlFL33O26flLg1ASECeb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g=",
-  "bond_id": "25fdfb7dd6211e74329eb533c2760f41c6e477e04bea71d270a4a1feb3f1cd42",
+  "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+  "signature": "AkcwRAIgBtorUyg37InmZ8kY9+iWo7557g2YD5VsH0M+yHZke9wCIG0cnfgU0o+HXaTD1Tf7/uLi6+XWGpX32wMqIaHSNzxrASECeb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g=",
+  "bond_id": "c4a9465c3b161eccb18c479649ef93149ac38124def8c3b9c7552bb1915d129e",
   "ok": true
  },
  "p2tr": {
   "address": "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9",
-  "message": "orangecheck-bond\naddress: bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I pledge this coin to back this subject. It stays in my wallet.\n",
-  "signature": "AUEzVjEbyrc2uc/+2/fY8wq0b80qoiQomZHb93xrjurqCi6ZPAla20fXRTg4OWIccb77clZCCa/L4lhUlWuZeSiJAQ==",
-  "bond_id": "82fbacfc4e64f6a82e5b0efc67fa31a43b0e57f2d8d341080eec7c2594df9e0b",
+  "message": "orangecheck-bond\naddress: bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+  "signature": "AUHt6fHusZm0RTxT2rmOw/1lDkfxgzIANvN+V1K0/llB3JXApVUlzYZhC8Er3bQo6OKluAIvF/wDUKG43PvZZMnUAQ==",
+  "bond_id": "5f7e7b49acab0088da4ef49b9b95a69ea5970190bf63659e3728b821efaa72a5",
   "ok": true
  },
  "nullifiers": {
-  "a": "b95726767e6c00b97fd046bc612d7518c5987dd833cb69bf3cdb54a6268e8818",
-  "b": "d70c6f2037f30dd8579cf504aae625eb8794dffe69dcf4d92752def0c5ec4a20"
- }
+  "a": "f9f4ac1b66f2244dfd1ba70f2a8291bdf98e5aad5d7d828d79fbd7a4d188a755",
+  "b": "a927f6884c62e98fe5802588d026d0a041b6c8f30cea817126daae965780531e"
+ },
+ "nullifier_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 }

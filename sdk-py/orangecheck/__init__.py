@@ -43,6 +43,7 @@ except ImportError:  # pragma: no cover - optional-dep path
     verify_bip322_signature = None  # type: ignore[assignment]
 from .bond import (
     BOND_DAYS_FLOORS,
+    BOND_MAX_WINDOW_SECONDS,
     BOND_SATS_FLOORS,
     BondFields,
     bond_floors,
@@ -97,6 +98,7 @@ __all__ = [
     "verify_bond_signature",
     "BOND_SATS_FLOORS",
     "BOND_DAYS_FLOORS",
+    "BOND_MAX_WINDOW_SECONDS",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -111,7 +113,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

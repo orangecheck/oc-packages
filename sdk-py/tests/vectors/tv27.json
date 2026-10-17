@@ -1,8 +1,9 @@
 {
   "id": "tv27",
   "category": "bond_nullifier",
-  "description": "one coin, two audiences: same input gives the same nullifier, different audiences unrelated ones (BOND.md §6)",
+  "description": "one coin, two audiences, one registry key: the same input gives the same nullifier, different audiences unrelated ones (BOND.md §6). The key is a public test key; a registry keeps its own secret.",
   "input": {
+    "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
     "outpoint": "1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0",
     "audiences": [
       "https://example.com",
@@ -11,8 +12,8 @@
   },
   "expected": {
     "nullifiers": [
-      "b95726767e6c00b97fd046bc612d7518c5987dd833cb69bf3cdb54a6268e8818",
-      "d70c6f2037f30dd8579cf504aae625eb8794dffe69dcf4d92752def0c5ec4a20"
+      "f9f4ac1b66f2244dfd1ba70f2a8291bdf98e5aad5d7d828d79fbd7a4d188a755",
+      "a927f6884c62e98fe5802588d026d0a041b6c8f30cea817126daae965780531e"
     ]
   }
 }

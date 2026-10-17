@@ -127,12 +127,12 @@
   {
     "id": "tv26",
     "category": "bond_signature",
-    "description": "wrong signer and expired window — MUST NOT verify"
+    "description": "wrong signer, expired window, window over an hour, rolled-over time — MUST NOT verify"
   },
   {
     "id": "tv27",
     "category": "bond_nullifier",
-    "description": "one coin, two audiences (BOND.md §6)"
+    "description": "one coin, two audiences, one registry key (BOND.md §6)"
   },
   {
     "id": "tv28",

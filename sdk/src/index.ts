@@ -45,6 +45,7 @@ export type {
 // ─── Bonds: one unspent coin backing one subject (BOND.md) ─────────────────
 export {
     BOND_DAYS_FLOORS,
+    BOND_MAX_WINDOW_SECONDS,
     BOND_MIN_CONFIRMATIONS,
     BOND_SATS_FLOORS,
     bondFloors,

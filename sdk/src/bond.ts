@@ -1,15 +1,16 @@
 /**
- * OC Attest bonds (oc-attest-protocol BOND.md): one unspent coin, pledged by
- * its holder to back one subject. The coin never moves and nobody holds it;
- * spending it ends the bond. An audience sees only floors and a per-audience
- * nullifier, never the coin.
+ * OC Attest bonds (oc-attest-protocol BOND.md): one unspent coin backing one
+ * subject. The coin stays in its holder's wallet; spending it ends the bond.
+ * An audience sees only floors and a keyed per-audience nullifier, never the
+ * coin.
  */
+import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { decodeAddress, verifySignature } from '@orangecheck/bip322';
 
 const HEADER = 'orangecheck-bond';
-const ACK = 'I pledge this coin to back this subject. It stays in my wallet.';
+const ACK = 'I back this subject with this coin. It stays in my wallet.';
 const FIELDS = ['address', 'outpoint', 'subject', 'nonce', 'issued_at', 'expires_at'] as const;
 
 /** Value floors a bond claim reports, in sats (BOND.md §5). */
@@ -18,6 +19,8 @@ export const BOND_SATS_FLOORS = [1_000, 10_000, 100_000, 1_000_000, 10_000_000] 
 export const BOND_DAYS_FLOORS = [7, 30, 90, 365] as const;
 /** Confirmations a verifier requires by default (BOND.md §3.5). */
 export const BOND_MIN_CONFIRMATIONS = 6;
+/** The longest signing window a verifier accepts by default, in seconds (BOND.md §2). */
+export const BOND_MAX_WINDOW_SECONDS = 3600;
 
 export interface BondFields {
     address: string;
@@ -34,6 +37,7 @@ export type BondReason =
     | 'bond_subject_mismatch'
     | 'bond_expired'
     | 'bond_not_yet_valid'
+    | 'bond_window_too_long'
     | 'sig_invalid'
     | 'coin_not_found'
     | 'coin_address_mismatch'
@@ -85,6 +89,12 @@ function iso(d: Date): string {
     return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
+/** A real instant in §2's form; `T24:00:00Z` or `02-30` don't roll over. */
+function instant(s: string): boolean {
+    const t = Date.parse(s);
+    return TIME_RE.test(s) && Number.isFinite(t) && iso(new Date(t)) === s;
+}
+
 function randomNonce(): string {
     const b = new Uint8Array(16);
     globalThis.crypto.getRandomValues(b);
@@ -97,8 +107,8 @@ function wellFormed(f: BondFields): boolean {
         OUTPOINT_RE.test(f.outpoint) &&
         SUBJECT_RE.test(f.subject) &&
         NONCE_RE.test(f.nonce) &&
-        TIME_RE.test(f.issued_at) &&
-        TIME_RE.test(f.expires_at) &&
+        instant(f.issued_at) &&
+        instant(f.expires_at) &&
         Date.parse(f.expires_at) > Date.parse(f.issued_at)
     );
 }
@@ -154,9 +164,15 @@ export function bondId(message: string): string {
     return bytesToHex(sha256(utf8ToBytes(message)));
 }
 
-/** The per-audience nullifier for a coin (BOND.md §6). */
-export function bondNullifier(audience: string, outpoint: string): string {
-    return bytesToHex(sha256(utf8ToBytes(`orangecheck-bond-nullifier\n${audience}\n${outpoint}`)));
+/**
+ * The per-audience nullifier for a coin (BOND.md §6), keyed with a secret only
+ * the registry holds. Unkeyed, an audience could hash every unspent output and
+ * find the coin.
+ */
+export function bondNullifier(key: Uint8Array, audience: string, outpoint: string): string {
+    if (key.length < 32) throw new Error('bond nullifier key must be at least 32 bytes');
+    const message = utf8ToBytes(`orangecheck-bond-nullifier\n${audience}\n${outpoint}`);
+    return bytesToHex(hmac(sha256, key, message));
 }
 
 /** The largest floor each value meets, 0 when it meets none (BOND.md §5). */
@@ -178,11 +194,17 @@ export function verifyBondSignature(opts: {
     now?: Date;
     /** Tolerated clock skew in seconds. Default 60. */
     skewSeconds?: number;
+    /** Longest signing window accepted, in seconds. Default 3600. */
+    maxWindowSeconds?: number;
 }): { ok: true; fields: BondFields; bond_id: string } | { ok: false; reason: BondReason } {
     const fields = parseBondMessage(opts.message);
     if (!fields) return { ok: false, reason: 'bond_malformed' };
     if (opts.subject !== undefined && fields.subject !== opts.subject) {
         return { ok: false, reason: 'bond_subject_mismatch' };
+    }
+    const window = Date.parse(fields.expires_at) - Date.parse(fields.issued_at);
+    if (window > (opts.maxWindowSeconds ?? BOND_MAX_WINDOW_SECONDS) * 1000) {
+        return { ok: false, reason: 'bond_window_too_long' };
     }
     const now = (opts.now ?? new Date()).getTime();
     const skew = (opts.skewSeconds ?? 60) * 1000;
@@ -236,6 +258,7 @@ export async function verifyBond(opts: {
     source: BondChainSource;
     subject?: string;
     now?: Date;
+    maxWindowSeconds?: number;
     minConfirmations?: number;
 }): Promise<BondResult> {
     const sig = verifyBondSignature(opts);
@@ -269,22 +292,29 @@ export function esploraSource(
     base = 'https://mempool.space/api',
     opts: { timeoutMs?: number; fetch?: typeof fetch } = {}
 ): BondChainSource {
-    const get = async (path: string): Promise<Response> => {
+    // Only an unknown transaction may answer 404; anything else not ok is an outage.
+    const get = async (path: string, missingOk = false): Promise<Response> => {
         const r = await (opts.fetch ?? fetch)(`${base}${path}`, {
             signal: AbortSignal.timeout(opts.timeoutMs ?? 5000),
         });
-        if (!r.ok && r.status !== 404) throw new Error(`esplora ${path}: HTTP ${r.status}`);
+        if (!r.ok && !(missingOk && r.status === 404)) {
+            throw new Error(`esplora ${path}: HTTP ${r.status}`);
+        }
         return r;
     };
     return {
         async tip() {
             const [h, hash] = await Promise.all([get('/blocks/tip/height'), get('/blocks/tip/hash')]);
-            return { height: Number(await h.text()), hash: (await hash.text()).trim() };
+            const tip = { height: Number(await h.text()), hash: (await hash.text()).trim() };
+            if (!Number.isSafeInteger(tip.height) || !/^[0-9a-f]{64}$/.test(tip.hash)) {
+                throw new Error('esplora tip: malformed');
+            }
+            return tip;
         },
         async coin(outpoint) {
             const [txid, voutStr] = outpoint.split(':');
             const vout = Number(voutStr);
-            const txr = await get(`/tx/${txid}`);
+            const txr = await get(`/tx/${txid}`, true);
             if (txr.status === 404) return null;
             const tx = (await txr.json()) as {
                 vout: { value: number; scriptpubkey: string }[];
