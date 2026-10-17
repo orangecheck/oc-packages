@@ -26,7 +26,7 @@ beforeEach(async () => {
     jwks = { keys: [{ ...(await exportJWK(pair.publicKey)), kid: KID }] };
     configReads = 0;
     vi.stubGlobal('fetch', async (url: string) => {
-        if (String(url).includes('/api/integrator/config')) {
+        if (/\/api\/integrator\/[^/]+\/sign-in$/.test(String(url))) {
             configReads++;
             return new Response(JSON.stringify(config.body), { status: config.status });
         }
@@ -108,7 +108,7 @@ describe('withOcAuth · requireBond', () => {
 
 describe('withOcAuth · projectKey', () => {
     it('enforces the requirement set in the project settings, read once and cached', async () => {
-        config = { status: 200, body: { ok: true, config: { require_bond: { min_sats: 100_000, min_days: 90 } } } };
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 100_000, min_days: 90 } } };
         const opts = { audience: MINE, projectKey: 'pk_live_cached' };
         const r = await call(await token(BOND), opts);
         expect(r.status).toBe(403);
@@ -118,7 +118,7 @@ describe('withOcAuth · projectKey', () => {
     });
 
     it('lets every account in when the project asks for none', async () => {
-        config = { status: 200, body: { ok: true, config: { require_bond: null } } };
+        config = { status: 200, body: { ok: true, require_bond: null } };
         expect((await call(await token(), { audience: MINE, projectKey: 'pk_live_open' })).ran).toBe(true);
     });
 

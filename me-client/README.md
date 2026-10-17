@@ -59,7 +59,7 @@ export default withOcAuth(
 
 An account can pledge one coin it holds as backing (oc-attest-protocol `BOND.md`). The coin never moves and you never see it: the token carries only floors (`sats_floor`, `days_floor`) and a `nullifier` that is the same for that coin at your site and different everywhere else. Ban the nullifier and you've banned the coin until it moves, which restarts its age.
 
-Nobody needs a bond to sign in. To let in only backed accounts, set the floor in your project's settings ("who can sign in") and pass your project key:
+Nobody needs a bond to sign in. To let in only backed accounts, set the floor in your project's settings ("who can sign in") and pass your project key. A change there is enforced within a minute:
 
 ```ts
 export default withOcAuth(handler, {

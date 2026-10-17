@@ -8,6 +8,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.27.3] — 2026-10-16
+
+### Fixed — a tightened sign-in requirement took up to fifteen minutes to bite
+
+- `projectKey` read the requirement from the project's price config, which is
+  edge-cached for ten minutes, and held it five more. Live, an app that had
+  just turned on "backed accounts only" kept admitting unbacked accounts. It
+  now reads me.ochk.io's uncached `/api/integrator/<key>/sign-in` and holds it
+  one minute.
+
 ## [0.27.2] — 2026-10-16
 
 ### Added — ask for accounts backed by bitcoin

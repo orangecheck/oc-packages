@@ -155,9 +155,9 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
     requireBond?: { minSats?: number; minDays?: number; maxAgeSecs?: number };
     /**
      * Your project key. The requirement you set in the project's settings
-     * ("who can sign in") is read from its public config and enforced like
-     * `requireBond`, so you change it there, not in code. An explicit
-     * `requireBond` wins over it.
+     * ("who can sign in") is read from me.ochk.io within a minute of a change
+     * and enforced like `requireBond`, so you change it there, not in code.
+     * An explicit `requireBond` wins over it.
      */
     projectKey?: string;
     /** Where the project config is read. Default https://me.ochk.io. */
@@ -165,12 +165,14 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
 }
 
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
-const POLICY_TTL_MS = 5 * 60_000;
+const POLICY_TTL_MS = 60_000;
 const policies = new Map<string, { at: number; need: BondNeed | null }>();
 
 /**
- * The project's published requirement, cached five minutes. When the config
- * can't be read, the last one read stands; with none read yet it is
+ * The project's requirement, from its uncached sign-in endpoint, held a
+ * minute here. (The price config is edge-cached for ten minutes: reading the
+ * requirement there let a just-tightened app keep admitting unbacked accounts.)
+ * When it can't be read, the last one read stands; with none read yet it is
  * `undefined`, and the request is refused rather than let through unchecked.
  */
 async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
@@ -179,14 +181,14 @@ async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed 
     if (hit && Date.now() - hit.at < POLICY_TTL_MS) return hit.need;
     try {
         const base = options.meOrigin ?? 'https://me.ochk.io';
-        const r = await fetch(`${base}/api/integrator/config?project_key=${encodeURIComponent(key)}`, {
+        const r = await fetch(`${base}/api/integrator/${encodeURIComponent(key)}/sign-in`, {
             signal: AbortSignal.timeout(4000),
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = (await r.json()) as {
-            config?: { require_bond?: { min_sats: number; min_days: number } | null };
+            require_bond?: { min_sats: number; min_days: number } | null;
         };
-        const req = j.config?.require_bond ?? null;
+        const req = j.require_bond ?? null;
         const need = req ? { minSats: req.min_sats, minDays: req.min_days } : null;
         policies.set(key, { at: Date.now(), need });
         return need;
