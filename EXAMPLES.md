@@ -491,12 +491,12 @@ const action = await signAsAgent({
 
 ```ts
 import { verifyAction } from '@orangecheck/agent-core';
-import { Verifier as Bip322 } from 'bip322-js';
+import { verifySignature } from '@orangecheck/bip322';
 
 const r = await verifyAction({
     action,
     delegation,
-    verifyBip322: async (m, s, a) => Bip322.verifySignature(a, m, s),
+    verifyBip322: async (m, s, a) => verifySignature(a, m, s),
 });
 if (!r.ok) throw new Error(`${r.code}: ${r.message}`);
 console.log(`scope exercised: ${r.scopeExercised}`);

@@ -7,6 +7,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.11.0] — 2026-10-16
+
+### Changed — signatures verify through `@orangecheck/bip322`
+
+- `verify`, `check` and `verifyChallenge` verify BIP-322 and legacy signatures
+  with `@orangecheck/bip322` instead of `bip322-js` and `bitcoinjs-message`.
+  bitcoinjs-lib 6.1.9 (2026-10-13) made PSBT extraction throw on BIP-322's virtual
+  `to_spend` input, so bip322-js, and every check built on it, rejected every
+  signature. A fresh install of 1.10.0 reported `sig_invalid` for every
+  attestation.
+- A segwit signature must carry `SIGHASH_ALL` and a witness must parse exactly,
+  as BIP-322 requires. bip322-js accepted both.
+- A failure inside verification is no longer reported as `sig_invalid`; it
+  surfaces as `bad_request`, so a broken verifier can't call real attestations
+  forged.
+- Dropped dependencies: `bip322-js`, `bitcoinjs-message`,
+  `@bitcoinerlab/secp256k1`.
+
 ## [1.10.0] — 2026-10-08
 
 ### Changed — cached identity checks bind to the identity asked about

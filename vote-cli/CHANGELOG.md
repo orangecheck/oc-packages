@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.2] — 2026-10-16
+
+### Fixed — signatures verify again on a fresh install
+
+- BIP-322 checks use `@orangecheck/bip322` instead of `bip322-js`. bitcoinjs-lib 6.1.9 (2026-10-13) made PSBT extraction throw on BIP-322's virtual
+  `to_spend` input, so bip322-js, and every check built on it, rejected every
+  signature.
+
 ## [0.6.1] — 2026-10-08
 
 ### Changed

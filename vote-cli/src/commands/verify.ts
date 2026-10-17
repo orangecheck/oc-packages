@@ -1,5 +1,6 @@
 // oc-vote verify <poll_id> — fetch poll + ballots, verify every BIP-322 signature, report.
 
+import { verifySignature } from '@orangecheck/bip322';
 import { ballotId as computeBallotId, type Ballot } from '@orangecheck/vote-core';
 
 import { bip322Verify } from '../bip322.js';
@@ -26,15 +27,6 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
     const selected = await findPoll(pollFetch, pid, bip322Verify);
     const ballotEvents = requireComplete(ballotFetch, 'ballot');
 
-    const mod = (await import('bip322-js')) as unknown as {
-        Verifier?: { verifySignature(a: string, m: string, s: string): boolean };
-        default?: {
-            Verifier?: { verifySignature(a: string, m: string, s: string): boolean };
-        };
-    };
-    const Verifier = mod.Verifier ?? mod.default?.Verifier;
-    if (!Verifier) throw new Error('bip322 verifier unavailable');
-
     const pollSigOk = selected.signatureValid;
 
     const ballots: Ballot[] = [];
@@ -48,7 +40,7 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
             if (seen.has(bid)) continue;
             seen.add(bid);
             ballots.push(b);
-            const ok = Verifier.verifySignature(b.voter, bid, b.sig.value);
+            const ok = verifySignature(b.voter, bid, b.sig.value);
             ballotResults.push({ voter: b.voter, ballot_id: bid, ok });
         } catch {
             // skip

@@ -17,7 +17,7 @@ export default defineConfig({
     external: [
         '@orangecheck/agent-core',
         '@noble/hashes',
-        'bip322-js',
+        '@orangecheck/bip322',
         'commander',
     ],
 });

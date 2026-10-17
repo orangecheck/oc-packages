@@ -16,6 +16,7 @@
  */
 
 import { sha256 } from '@noble/hashes/sha2.js';
+import { verifySignature } from '@orangecheck/bip322';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -132,17 +133,9 @@ describe('conformance: reject', () => {
 });
 
 describe('conformance: bip322_signature', () => {
-    // Real BIP-322 verification via the same Verifier the production SDK
-    // uses. A passing tv21/tv22 proves our verifier accepts valid sigs
-    // produced by bip322-js's Signer; a passing tv23 proves we reject a
-    // tampered sig on an otherwise-valid payload (no false positives).
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Verifier } = require('bip322-js') as {
-        Verifier: {
-            verifySignature: (addr: string, msg: string, sig: string) => boolean;
-        };
-    };
-
+    // Real BIP-322 verification through the same verifier the SDK uses. A
+    // passing tv21/tv22 proves it accepts valid signatures produced by
+    // bip322-js's Signer; a passing tv23 proves it rejects a tampered one.
     for (const v of vectors.filter((x) => x.category === 'bip322_signature')) {
         it(`${v.id}: ${v.description}`, () => {
             const input = v.input as {
@@ -152,14 +145,9 @@ describe('conformance: bip322_signature', () => {
                 scheme: string;
             };
             const expected = v.expected as { valid: boolean };
-            let actual = false;
-            try {
-                actual = Verifier.verifySignature(input.address, input.message, input.signature);
-            } catch {
-                // Verifier throws on structurally-invalid sigs — counts as "not valid".
-                actual = false;
-            }
-            expect(actual).toBe(expected.valid);
+            expect(verifySignature(input.address, input.message, input.signature)).toBe(
+                expected.valid
+            );
         });
     }
 });

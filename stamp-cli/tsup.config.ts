@@ -17,7 +17,7 @@ export default defineConfig({
     external: [
         '@orangecheck/stamp-core',
         '@orangecheck/stamp-ots',
-        'bip322-js',
+        '@orangecheck/bip322',
         'commander',
     ],
 });

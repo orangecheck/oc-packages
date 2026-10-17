@@ -1,3 +1,5 @@
+import { verifySignature } from "@orangecheck/bip322";
+
 import type { SignFn, SignOptions, WalletId } from "./types";
 
 /**
@@ -40,14 +42,7 @@ export async function verifyBip322({
   message: string;
   signature: string;
 }): Promise<boolean> {
-  const { Verifier } = await import("bip322-js");
-  const check = (sig: string) => {
-    try {
-      return Verifier.verifySignature(address, message, sig);
-    } catch {
-      return false;
-    }
-  };
+  const check = (sig: string) => verifySignature(address, message, sig);
   const sig = signature.trim();
   if (check(sig)) return true;
   return HEX_RE.test(sig) && sig.length % 2 === 0 && check(hexToBase64(sig));

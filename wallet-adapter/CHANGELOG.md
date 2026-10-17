@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.2] — 2026-10-16
+
+### Fixed — every wallet signature read as the wrong account's
+
+- `verifyBip322` and `assertSignedBy` use `@orangecheck/bip322`. bitcoinjs-lib 6.1.9 (2026-10-13) made PSBT extraction throw on BIP-322's virtual
+  `to_spend` input, so bip322-js, and every check built on it, rejected every
+  signature.
+  Every signer ran that check before returning, so every signature became
+  `WrongAccountError`.
+
 ## [0.5.1] — 2026-10-08
 
 ### Added — `onManualSign` for the `manual` wallet

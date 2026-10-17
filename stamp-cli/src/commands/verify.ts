@@ -1,6 +1,7 @@
 // `stamp verify <stamp-path> [content-path]` — run the full SPEC §8
 // verification algorithm locally. Structured JSON output with `--json`.
 
+import { verifySignature } from '@orangecheck/bip322';
 import { verify, type StampEnvelope } from '@orangecheck/stamp-core';
 import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
@@ -34,23 +35,9 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         contentBytes = await readBytes(opts.contentPath);
     }
 
-    // Lazy-load bip322-js so it's only pulled in when needed (heavy dep).
-    let verifyBip322: ((msg: string, sig: string, addr: string) => Promise<boolean>) | undefined;
-    if (!opts.skipSignature) {
-        const mod = (await import('bip322-js')) as unknown as {
-            Verifier?: { verifySignature(a: string, m: string, s: string): boolean };
-            default?: { Verifier?: { verifySignature(a: string, m: string, s: string): boolean } };
-        };
-        const Verifier = mod.Verifier ?? mod.default?.Verifier;
-        if (!Verifier) die('bip322-js Verifier export not found');
-        verifyBip322 = async (m, s, a) => {
-            try {
-                return Verifier.verifySignature(a, m, s);
-            } catch {
-                return false;
-            }
-        };
-    }
+    const verifyBip322 = opts.skipSignature
+        ? undefined
+        : async (m: string, s: string, a: string) => verifySignature(a, m, s);
 
     const r = await verify({
         envelope,

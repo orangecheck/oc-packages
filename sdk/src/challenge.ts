@@ -28,8 +28,7 @@ import type { Scheme } from './types';
 
 import { Buffer } from 'buffer';
 
-import { Verifier } from 'bip322-js';
-import * as bitcoinMessage from 'bitcoinjs-message';
+import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
 const AUTH_HEADER = 'orangecheck-auth';
 const AUTH_ACK = 'I authorize this session under the OrangeCheck auth challenge.';
@@ -274,26 +273,21 @@ export async function verifyChallenge(
     }
 
     const scheme: Scheme = opts.scheme ?? 'bip322';
-    let sigValid = false;
-
-    try {
-        if (scheme === 'bip322') {
-            const sigBase64 =
-                /^[0-9a-fA-F]+$/.test(opts.signature) && opts.signature.length % 2 === 0
-                    ? Buffer.from(opts.signature, 'hex').toString('base64')
-                    : opts.signature;
-            sigValid = Verifier.verifySignature(address, opts.message, sigBase64);
-        } else if (scheme === 'legacy') {
-            // Legacy signmessage only works for P2PKH addresses.
-            if (!/^[1m][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
-                return { ok: false, reason: 'sig_unsupported_scheme' };
-            }
-            sigValid = bitcoinMessage.verify(opts.message, address, opts.signature);
-        } else {
+    let sigValid: boolean;
+    if (scheme === 'bip322') {
+        const sigBase64 =
+            /^[0-9a-fA-F]+$/.test(opts.signature) && opts.signature.length % 2 === 0
+                ? Buffer.from(opts.signature, 'hex').toString('base64')
+                : opts.signature;
+        sigValid = verifyBitcoinSignature(address, opts.message, sigBase64);
+    } else if (scheme === 'legacy') {
+        // Legacy signmessage only works for P2PKH addresses.
+        if (!/^[1m][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
             return { ok: false, reason: 'sig_unsupported_scheme' };
         }
-    } catch {
-        sigValid = false;
+        sigValid = verifyBitcoinSignature(address, opts.message, opts.signature);
+    } else {
+        return { ok: false, reason: 'sig_unsupported_scheme' };
     }
 
     if (!sigValid) return { ok: false, reason: 'sig_invalid' };

@@ -19,8 +19,7 @@ import type {
 
 import { Buffer } from 'buffer';
 
-import { Verifier } from 'bip322-js';
-import * as bitcoinMessage from 'bitcoinjs-message';
+import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
 import { generateAttestationId, parseIdentities } from './canonical';
 import { computeAllScores, computeScore } from './scoring';
@@ -111,101 +110,93 @@ async function verifySignature({
     sig,
     scheme,
 }: SignatureVerifyInput): Promise<StatusCode> {
-    try {
-        // Auto-detect scheme if not explicitly provided
-        const detectedScheme = scheme || detectSignatureScheme(addr, sig);
+    // Auto-detect scheme if not explicitly provided
+    const detectedScheme = scheme || detectSignatureScheme(addr, sig);
 
+    log.debug(
+        { addr, msgLength: msg.length, sigLength: sig.length, scheme: detectedScheme },
+        'Verifying signature'
+    );
+
+    if (detectedScheme === 'bip322') {
+        const sigBase64 = toBase64Maybe(sig);
         log.debug(
-            { addr, msgLength: msg.length, sigLength: sig.length, scheme: detectedScheme },
-            'Verifying signature'
+            { sigBase64: sigBase64.substring(0, 50) + '...' },
+            'Signature converted to base64'
         );
 
-        if (detectedScheme === 'bip322') {
-            const sigBase64 = toBase64Maybe(sig);
-            log.debug(
-                { sigBase64: sigBase64.substring(0, 50) + '...' },
-                'Signature converted to base64'
-            );
+        // Log the full message for debugging
+        log.debug(
+            {
+                msgFull: msg,
+                msgLines: msg.split('\n').length,
+                msgFirstLine: msg.split('\n')[0],
+                msgLastLine: msg.split('\n')[msg.split('\n').length - 1],
+            },
+            'Message being verified'
+        );
 
-            // Log the full message for debugging
-            log.debug(
-                {
-                    msgFull: msg,
-                    msgLines: msg.split('\n').length,
-                    msgFirstLine: msg.split('\n')[0],
-                    msgLastLine: msg.split('\n')[msg.split('\n').length - 1],
-                },
-                'Message being verified'
-            );
+        const ok = verifyBitcoinSignature(addr, msg, sigBase64);
+        log.info({ addr, ok }, 'BIP-322 verification result');
 
-            const ok = Verifier.verifySignature(addr, msg, sigBase64);
-            log.info({ addr, ok }, 'BIP-322 verification result');
-
-            if (!ok) {
-                // Check if this looks like an Electrum signature (88 chars, base64)
-                const isSegWit = addr.startsWith('bc1') || addr.startsWith('tb1');
-                if (isSegWit && sigBase64.length === 88) {
-                    log.warn(
-                        { addr, wallet: 'possibly Electrum', sigLength: sigBase64.length },
-                        'BIP-322 verification failed - likely Electrum wallet (does not support BIP-322 for SegWit)'
-                    );
-                } else {
-                    log.error(
-                        {
-                            addr,
-                            sigLength: sigBase64.length,
-                            msgLength: msg.length,
-                            msgPreview: msg.substring(0, 200),
-                        },
-                        'BIP-322 verification failed - signature does not match message'
-                    );
-                }
-            }
-
-            return ok ? 'sig_ok_bip322' : 'sig_invalid';
-        }
-
-        if (detectedScheme === 'legacy') {
-            const sigBase64 = toBase64Maybe(sig);
-
-            // Legacy policy: P2PKH only (address must start with '1' for mainnet or 'm'/'n' for testnet)
-            if (!addr.startsWith('1') && !addr.startsWith('m') && !addr.startsWith('n')) {
-                log.warn({ addr }, 'Legacy signature attempted on non-P2PKH address');
-                return 'sig_unsupported_script';
-            }
-
-            log.debug(
-                {
-                    addr,
-                    sigBase64: sigBase64.substring(0, 50) + '...',
-                    msgPreview: msg.substring(0, 100) + '...',
-                    msgLength: msg.length,
-                },
-                'Verifying legacy signature'
-            );
-            const ok = bitcoinMessage.verify(msg, addr, sigBase64);
-            log.info({ addr, ok, sigBase64Length: sigBase64.length }, 'Legacy verification result');
-            if (!ok) {
+        if (!ok) {
+            // Check if this looks like an Electrum signature (88 chars, base64)
+            const isSegWit = addr.startsWith('bc1') || addr.startsWith('tb1');
+            if (isSegWit && sigBase64.length === 88) {
+                log.warn(
+                    { addr, wallet: 'possibly Electrum', sigLength: sigBase64.length },
+                    'BIP-322 verification failed - likely Electrum wallet (does not support BIP-322 for SegWit)'
+                );
+            } else {
                 log.error(
                     {
                         addr,
-                        msgFirstLine: msg.split('\n')[0],
-                        sigFormat: sigBase64.substring(0, 10),
+                        sigLength: sigBase64.length,
+                        msgLength: msg.length,
+                        msgPreview: msg.substring(0, 200),
                     },
-                    'Legacy signature verification failed - check message format and signature'
+                    'BIP-322 verification failed - signature does not match message'
                 );
             }
-            return ok ? 'sig_ok_legacy' : 'sig_invalid';
         }
 
-        return 'invalid_scheme';
-    } catch (err) {
-        log.error(
-            { addr, error: err instanceof Error ? err.message : String(err) },
-            'Signature verification error'
-        );
-        return 'sig_invalid';
+        return ok ? 'sig_ok_bip322' : 'sig_invalid';
     }
+
+    if (detectedScheme === 'legacy') {
+        const sigBase64 = toBase64Maybe(sig);
+
+        // Legacy policy: P2PKH only (address must start with '1' for mainnet or 'm'/'n' for testnet)
+        if (!addr.startsWith('1') && !addr.startsWith('m') && !addr.startsWith('n')) {
+            log.warn({ addr }, 'Legacy signature attempted on non-P2PKH address');
+            return 'sig_unsupported_script';
+        }
+
+        log.debug(
+            {
+                addr,
+                sigBase64: sigBase64.substring(0, 50) + '...',
+                msgPreview: msg.substring(0, 100) + '...',
+                msgLength: msg.length,
+            },
+            'Verifying legacy signature'
+        );
+        const ok = verifyBitcoinSignature(addr, msg, sigBase64);
+        log.info({ addr, ok, sigBase64Length: sigBase64.length }, 'Legacy verification result');
+        if (!ok) {
+            log.error(
+                {
+                    addr,
+                    msgFirstLine: msg.split('\n')[0],
+                    sigFormat: sigBase64.substring(0, 10),
+                },
+                'Legacy signature verification failed - check message format and signature'
+            );
+        }
+        return ok ? 'sig_ok_legacy' : 'sig_invalid';
+    }
+
+    return 'invalid_scheme';
 }
 
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)

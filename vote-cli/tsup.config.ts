@@ -20,7 +20,7 @@ export default defineConfig({
         '@orangecheck/lock-crypto',
         '@noble/curves',
         '@noble/hashes',
-        'bip322-js',
+        '@orangecheck/bip322',
         'commander',
         'ws',
     ],

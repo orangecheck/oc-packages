@@ -26,7 +26,7 @@ import {
     type DelegationEnvelope,
     type RevocationEnvelope,
 } from '@orangecheck/agent-core';
-import { Verifier } from 'bip322-js';
+import { verifySignature } from '@orangecheck/bip322';
 import { Command } from 'commander';
 
 type AnyEnvelope = DelegationEnvelope | ActionEnvelope | RevocationEnvelope;
@@ -57,11 +57,7 @@ program
         const verifyBip322 = opts.skipSig
             ? undefined
             : async (msg: string, sig: string, addr: string) => {
-                  try {
-                      return Verifier.verifySignature(addr, msg, sig);
-                  } catch {
-                      return false;
-                  }
+                  return verifySignature(addr, msg, sig);
               };
 
         if (Array.isArray(parsed) && parsed.length === 2) {
