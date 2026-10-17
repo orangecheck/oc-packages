@@ -4,6 +4,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] — 2026-10-16
+
+### Added — bonds (oc-attest-protocol `BOND.md`)
+
+- `BondFields`, `build_bond_message`, `parse_bond_message`, `bond_id`,
+  `bond_nullifier`, `bond_floors`, `verify_bond_signature`: the same message,
+  id, nullifier and floors as `@orangecheck/sdk` 1.12, held to the spec's
+  vectors `tv24`–`tv28`. Bond signatures verify through the `[verify]` extra,
+  an implementation independent of the TypeScript one.
+
 ## [2.0.0] — 2026-10-08
 
 `orangecheck.pledge` now matches `@orangecheck/pledge-core` 3.1 on who may

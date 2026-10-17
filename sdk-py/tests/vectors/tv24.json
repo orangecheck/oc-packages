@@ -1,0 +1,17 @@
+{
+  "id": "tv24",
+  "category": "bond_message",
+  "description": "bond message and its id (BOND.md §2)",
+  "input": {
+    "address": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+    "outpoint": "1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0",
+    "subject": "did:oc:0123456789abcdef0123456789abcdef",
+    "nonce": "00112233445566778899aabbccddeeff",
+    "issued_at": "2026-10-16T12:00:00Z",
+    "expires_at": "2026-10-16T12:10:00Z"
+  },
+  "expected": {
+    "canonical": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I pledge this coin to back this subject. It stays in my wallet.\n",
+    "bond_id": "25fdfb7dd6211e74329eb533c2760f41c6e477e04bea71d270a4a1feb3f1cd42"
+  }
+}

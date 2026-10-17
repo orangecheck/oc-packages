@@ -41,6 +41,17 @@ try:
     from .verify_sig import verify_bip322_signature
 except ImportError:  # pragma: no cover - optional-dep path
     verify_bip322_signature = None  # type: ignore[assignment]
+from .bond import (
+    BOND_DAYS_FLOORS,
+    BOND_SATS_FLOORS,
+    BondFields,
+    bond_floors,
+    bond_id,
+    bond_nullifier,
+    build_bond_message,
+    parse_bond_message,
+    verify_bond_signature,
+)
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
@@ -76,6 +87,16 @@ __all__ = [
     # the name is re-exported as None when the extra isn't installed so callers
     # can check `if verify_bip322_signature is not None`).
     "verify_bip322_signature",
+    # Bonds (oc-attest-protocol BOND.md): one coin backing one subject
+    "BondFields",
+    "build_bond_message",
+    "parse_bond_message",
+    "bond_id",
+    "bond_nullifier",
+    "bond_floors",
+    "verify_bond_signature",
+    "BOND_SATS_FLOORS",
+    "BOND_DAYS_FLOORS",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -90,7 +111,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

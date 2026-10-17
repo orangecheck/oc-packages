@@ -113,5 +113,30 @@
     "id": "tv23",
     "category": "bip322_signature",
     "description": "tampered signature (1 byte flipped) on an otherwise-valid tv21 payload — MUST NOT verify"
+  },
+  {
+    "id": "tv24",
+    "category": "bond_message",
+    "description": "bond message and its id (BOND.md §2)"
+  },
+  {
+    "id": "tv25",
+    "category": "bond_signature",
+    "description": "P2WPKH and P2TR bond signatures by private key 1, inside the signing window"
+  },
+  {
+    "id": "tv26",
+    "category": "bond_signature",
+    "description": "wrong signer and expired window — MUST NOT verify"
+  },
+  {
+    "id": "tv27",
+    "category": "bond_nullifier",
+    "description": "one coin, two audiences (BOND.md §6)"
+  },
+  {
+    "id": "tv28",
+    "category": "bond_floors",
+    "description": "floors instead of amount and age (BOND.md §5)"
   }
 ]

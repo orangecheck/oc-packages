@@ -136,6 +136,62 @@ def test_bip322_signature(vector: dict) -> None:
     )
 
 
+# ─── bonds (BOND.md) ───────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("vector", vectors_of("bond_message"), ids=ids_for("bond_message"))
+def test_bond_message(vector: dict) -> None:
+    """The same eight lines and the same id as the TypeScript SDK."""
+    from orangecheck import BondFields, bond_id, build_bond_message, parse_bond_message
+
+    fields = BondFields(**vector["input"])
+    msg = build_bond_message(fields)
+    assert msg == vector["expected"]["canonical"]
+    assert bond_id(msg) == vector["expected"]["bond_id"]
+    assert parse_bond_message(msg) == fields
+
+
+@pytest.mark.parametrize("vector", vectors_of("bond_nullifier"), ids=ids_for("bond_nullifier"))
+def test_bond_nullifier(vector: dict) -> None:
+    from orangecheck import bond_nullifier
+
+    inp = vector["input"]
+    got = [bond_nullifier(a, inp["outpoint"]) for a in inp["audiences"]]
+    assert got == vector["expected"]["nullifiers"]
+
+
+@pytest.mark.parametrize("vector", vectors_of("bond_floors"), ids=ids_for("bond_floors"))
+def test_bond_floors(vector: dict) -> None:
+    from orangecheck import bond_floors
+
+    got = [bond_floors(c["sats"], c["age_blocks"]) for c in vector["input"]["cases"]]
+    assert got == vector["expected"]["floors"]
+
+
+@pytest.mark.parametrize("vector", vectors_of("bond_signature"), ids=ids_for("bond_signature"))
+def test_bond_signature(vector: dict) -> None:
+    from datetime import datetime
+
+    from orangecheck import verify_bip322_signature, verify_bond_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise bond signature vectors")
+
+    def at(s: str) -> datetime:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+    inp = vector["input"]
+    for i, b in enumerate(inp.get("bonds", [])):
+        ok, got = verify_bond_signature(b["message"], b["signature"], now=at(inp["now"]))
+        assert ok, got
+        assert got == vector["expected"]["bond_ids"][i]
+    for c in inp.get("cases", []):
+        assert verify_bond_signature(c["message"], c["signature"], now=at(c["now"])) == (
+            False,
+            c["reason"],
+        )
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -150,5 +206,9 @@ def test_vector_set_complete() -> None:
         "score_v0",
         "reject",
         "bip322_signature",
+        "bond_message",
+        "bond_signature",
+        "bond_nullifier",
+        "bond_floors",
     }
-    assert len(VECTORS) >= 23
+    assert len(VECTORS) >= 28

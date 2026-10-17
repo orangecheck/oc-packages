@@ -1,0 +1,53 @@
+{
+  "id": "tv28",
+  "category": "bond_floors",
+  "description": "floors an audience sees instead of amount and age (BOND.md §5); age in blocks, 144 per day",
+  "input": {
+    "cases": [
+      {
+        "sats": 999,
+        "age_blocks": 57600
+      },
+      {
+        "sats": 7397,
+        "age_blocks": 50256
+      },
+      {
+        "sats": 150000,
+        "age_blocks": 4320
+      },
+      {
+        "sats": 150000,
+        "age_blocks": 4319
+      },
+      {
+        "sats": 25000000,
+        "age_blocks": 6
+      }
+    ]
+  },
+  "expected": {
+    "floors": [
+      {
+        "sats_floor": 0,
+        "days_floor": 365
+      },
+      {
+        "sats_floor": 1000,
+        "days_floor": 90
+      },
+      {
+        "sats_floor": 100000,
+        "days_floor": 30
+      },
+      {
+        "sats_floor": 100000,
+        "days_floor": 7
+      },
+      {
+        "sats_floor": 10000000,
+        "days_floor": 0
+      }
+    ]
+  }
+}
