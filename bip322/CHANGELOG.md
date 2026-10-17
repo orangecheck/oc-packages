@@ -10,6 +10,15 @@ and [Semantic Versioning](https://semver.org/).
 
 - _(no pending changes)_
 
+## [1.0.1] — 2026-10-16
+
+### Fixed
+
+- `decodeAddress` and `verifySignature` no longer throw on a bech32 address
+  whose checksum is valid but whose padding isn't. They return null and false,
+  as documented; callers that dropped their try/catch on 1.0.0 answered such an
+  address with a 500.
+
 ## [1.0.0] — 2026-10-16
 
 ### Added

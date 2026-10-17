@@ -87,17 +87,20 @@ export function decodeAddress(address: string): DecodedAddress | null {
                 return null;
             }
         };
+        // fromWordsUnsafe: a checksum can be valid over words whose padding
+        // isn't, and fromWords throws on those.
         const v0 = segwit(bech32);
         if (v0 && v0[0] === 0) {
-            const program = bech32.fromWords(v0.slice(1));
+            const program = bech32.fromWordsUnsafe(v0.slice(1));
+            if (!program) return null;
             if (program.length === 20) return make('p2wpkh', program);
             if (program.length === 32) return make('p2wsh', program);
             return null;
         }
         const v1 = segwit(bech32m);
         if (v1 && v1[0] === 1) {
-            const program = bech32m.fromWords(v1.slice(1));
-            return program.length === 32 ? make('p2tr', program) : null;
+            const program = bech32m.fromWordsUnsafe(v1.slice(1));
+            return program && program.length === 32 ? make('p2tr', program) : null;
         }
         return null;
     }
@@ -321,6 +324,7 @@ export function verifySignature(address: string, message: string, signatureBase6
     if (!addr) return false;
     const sig = decodeBase64(signatureBase64);
     if (sig.length === 0) return false;
+    // No valid witness serializes to 65 bytes, so a 65-byte blob is BIP-137.
     if (addr.type === 'p2pkh' || sig.length === 65) return verifyBip137(addr, message, sig);
     return verifySimple(addr, message, sig);
 }

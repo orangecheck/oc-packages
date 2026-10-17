@@ -122,4 +122,15 @@ describe('decodeAddress', () => {
         expect(decodeAddress(bech32.encode('bc', [1, ...bech32.toWords(tr)]))).toBeNull();
         expect(decodeAddress(bech32m.encode('bc', [1, ...bech32m.toWords(tr)]))?.type).toBe('p2tr');
     });
+
+    it('refuses, never throws on, a valid checksum over bad padding', () => {
+        // 33 words of 5 bits leave 5 excess bits; all ones make them non-zero too.
+        const v0 = bech32.encode('bc', [0, ...new Array(33).fill(31)]);
+        const v1 = bech32m.encode('bc', [1, ...new Array(53).fill(31)]);
+        for (const address of [v0, v1]) {
+            expect(() => decodeAddress(address)).not.toThrow();
+            expect(decodeAddress(address)).toBeNull();
+            expect(verifySignature(address, 'Hello World', SIG_HELLO)).toBe(false);
+        }
+    });
 });
