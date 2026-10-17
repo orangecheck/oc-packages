@@ -3,9 +3,9 @@ import type { PaymentAuthorizeOptions, PaymentResult } from './types';
 import { api } from './transport';
 
 /**
- * Authorize a payment through the user's OC identity. Class B billable
- * event for the integrating site (sub-Stripe rate, percentage-based);
- * cashback flows to the user as Lightning credit on /me/earn.
+ * Authorize a payment through the person's orangecheck account. A Per action
+ * event for your app, priced as a share of the payment; what the person
+ * earns lands in their balance at ochk.app.
  *
  * The user is prompted by me.ochk.io to consent to the specific payment
  * before this resolves. If the user declines or cancels, the result has

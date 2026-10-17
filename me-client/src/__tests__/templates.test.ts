@@ -6,7 +6,7 @@ import {
     getArchetypeTemplate,
     type IntegratorArchetype,
 } from '../templates';
-import { validateIntegratorConfig } from '../types';
+import { computeFees, validateIntegratorConfig } from '../types';
 
 const IDENTITY = {
     project_key: 'pk_test_co',
@@ -122,6 +122,31 @@ describe('ARCHETYPE_TEMPLATES catalog', () => {
         for (const t of ARCHETYPE_TEMPLATES) {
             const enabled = Object.values(t.events).filter((e) => e?.enabled);
             expect(enabled.length).toBeGreaterThan(0);
+        }
+    });
+});
+
+describe('template prices', () => {
+    it('sit at the full user share, so no template pays the fee on its own money', () => {
+        for (const t of ARCHETYPE_TEMPLATES) {
+            for (const ev of Object.values(t.events)) expect(ev?.user_share_pct).toBe(0.8);
+        }
+        const off = fromTemplate('agent-only', IDENTITY).events.session_creation;
+        expect(off?.user_share_pct).toBe(0.8);
+    });
+
+    it('keep what each user earned at the old share', () => {
+        const earns = (id: IntegratorArchetype, sub: 'account_creation' | 'session_creation') =>
+            computeFees(fromTemplate(id, IDENTITY).events[sub]!).user_earned_sats;
+        expect(earns('saas-paywall', 'account_creation')).toBe(845);
+        expect(earns('saas-paywall', 'session_creation')).toBe(36);
+        expect(earns('gaming', 'account_creation')).toBe(910);
+    });
+
+    it('name no real company and no protocol subtype in what a developer reads', () => {
+        for (const t of ARCHETYPE_TEMPLATES) {
+            expect(t.summary).not.toMatch(/cashback|_authorization|_creation|_signing/);
+            for (const ex of t.examples) expect(ex).not.toMatch(/-like/);
         }
     });
 });

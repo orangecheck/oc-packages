@@ -8,6 +8,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.31.0] — 2026-10-17
+
+### Changed — templates price at the full user share
+
+- Every `ARCHETYPE_TEMPLATES` event, and the disabled default, sits at
+  `user_share_pct: 0.8`, the most a user can earn after the 20% platform
+  fee. Prices drop so each user earns exactly what they did at the old
+  0.65 or 0.7 share: account creation 1,300 → 1,056 sats, still 845 earned.
+  A smaller share only returned part of the fee to the developer's balance
+  after charging it, so it cost more for nothing.
+- Template summaries and examples are plain words with no real company
+  names. Doc comments say what the user earns, not "cashback".
+
 ## [0.30.1] — 2026-10-17
 
 ### Fixed

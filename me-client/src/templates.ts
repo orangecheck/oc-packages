@@ -17,10 +17,10 @@
  *
  * Templates differ on which subtypes are enabled (a content platform
  * doesn't need payment_authorization; a marketplace does) and on the
- * sat price + user_share_pct per subtype. Every template's prices
- * anchor at $1 ≈ 1052 sats. user_share_pct=0.65 means the user gets
- * 65% of gross — the platform fee is 20% (fixed), the integrator
- * rebate is the remainder (15% with 0.65 user share).
+ * price per subtype. Every price is at the full user share, 0.8: the
+ * user gets everything the 20% platform fee leaves. A smaller share only
+ * returned part of the fee to the developer's own balance after it was
+ * charged, so it cost more for nothing.
  *
  * To customize after picking a template:
  *
@@ -86,28 +86,28 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         id: 'saas-paywall',
         label: 'SaaS · paywall',
         summary:
-            'Subscription product · users sign up, sign in, sometimes pay for premium tiers. Default cashback to encourage signup + retention.',
-        examples: ['Notion-like notes app', 'Linear-like project tracker', 'Figma-like editor'],
+            'A subscription product: people sign up, sign in and sometimes pay for more. Pays them for signing up and coming back.',
+        examples: ['notes app', 'project tracker', 'design editor'],
         events: {
             account_creation: {
                 enabled: true,
-                site_pays: FIXED(1300),
-                user_share_pct: 0.65,
+                site_pays: FIXED(1056),
+                user_share_pct: 0.8,
             },
             session_creation: {
                 enabled: true,
-                site_pays: FIXED(55),
-                user_share_pct: 0.65,
+                site_pays: FIXED(45),
+                user_share_pct: 0.8,
             },
             payment_authorization: {
                 enabled: true,
-                site_pays: PCT(0.0075),
-                user_share_pct: 0.65,
+                site_pays: PCT(0.00609375),
+                user_share_pct: 0.8,
             },
             payment_method_connected: {
                 enabled: true,
-                site_pays: FIXED(320),
-                user_share_pct: 0.65,
+                site_pays: FIXED(260),
+                user_share_pct: 0.8,
             },
         },
     },
@@ -115,38 +115,38 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         id: 'marketplace',
         label: 'marketplace',
         summary:
-            'Two-sided marketplace · buyers + sellers transact. Heavy on payment_authorization and scoped_action_authorization for listings.',
-        examples: ['Stripe-like checkout', 'Etsy-like marketplace', 'Uber-like ride-hailing'],
+            'Buyers and sellers trade. Pays on payments, listings and new payment methods.',
+        examples: ['checkout', 'handmade-goods market', 'ride-hailing'],
         events: {
             account_creation: {
                 enabled: true,
-                site_pays: FIXED(1300),
-                user_share_pct: 0.65,
+                site_pays: FIXED(1056),
+                user_share_pct: 0.8,
             },
             session_creation: {
                 enabled: true,
-                site_pays: FIXED(55),
-                user_share_pct: 0.65,
+                site_pays: FIXED(45),
+                user_share_pct: 0.8,
             },
             payment_authorization: {
                 enabled: true,
-                site_pays: PCT(0.0075),
-                user_share_pct: 0.65,
+                site_pays: PCT(0.00609375),
+                user_share_pct: 0.8,
             },
             scoped_action_authorization: {
                 enabled: true,
-                site_pays: FIXED(100),
-                user_share_pct: 0.65,
+                site_pays: FIXED(81),
+                user_share_pct: 0.8,
             },
             payment_method_connected: {
                 enabled: true,
-                site_pays: FIXED(320),
-                user_share_pct: 0.65,
+                site_pays: FIXED(260),
+                user_share_pct: 0.8,
             },
             attest_verification_at_gate: {
                 enabled: true,
-                site_pays: FIXED(280),
-                user_share_pct: 0.65,
+                site_pays: FIXED(227),
+                user_share_pct: 0.8,
             },
         },
     },
@@ -154,28 +154,28 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         id: 'content-platform',
         label: 'content platform',
         summary:
-            'User-generated content · posts, reviews, votes, comments. Each meaningful action is scoped_action_authorization; stamp_signing for credentialed reviews.',
-        examples: ['Reddit-like forum', 'YouTube-like video host', 'Substack-like publishing'],
+            'Posts, reviews, votes and comments. Pays for each meaningful action, and for signed reviews.',
+        examples: ['forum', 'video host', 'newsletter'],
         events: {
             account_creation: {
                 enabled: true,
-                site_pays: FIXED(1300),
-                user_share_pct: 0.7,
+                site_pays: FIXED(1137),
+                user_share_pct: 0.8,
             },
             session_creation: {
                 enabled: true,
-                site_pays: FIXED(55),
-                user_share_pct: 0.7,
+                site_pays: FIXED(49),
+                user_share_pct: 0.8,
             },
             scoped_action_authorization: {
                 enabled: true,
-                site_pays: FIXED(100),
-                user_share_pct: 0.7,
+                site_pays: FIXED(87),
+                user_share_pct: 0.8,
             },
             stamp_signing: {
                 enabled: true,
-                site_pays: FIXED(55),
-                user_share_pct: 0.7,
+                site_pays: FIXED(49),
+                user_share_pct: 0.8,
             },
         },
     },
@@ -183,42 +183,42 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         id: 'gaming',
         label: 'gaming',
         summary:
-            'Game with monetized actions · pledges + scoped actions are core. Higher cashback ratios reward in-game engagement.',
+            'A game where actions carry value. Pays for playing, paying and settled pledges.',
         examples: [
             'on-chain prediction markets',
             'skill-staking tournaments',
-            'PvP wager games',
+            'multiplayer games',
         ],
         events: {
             account_creation: {
                 enabled: true,
-                site_pays: FIXED(1300),
-                user_share_pct: 0.7,
+                site_pays: FIXED(1137),
+                user_share_pct: 0.8,
             },
             session_creation: {
                 enabled: true,
-                site_pays: FIXED(55),
-                user_share_pct: 0.7,
+                site_pays: FIXED(49),
+                user_share_pct: 0.8,
             },
             scoped_action_authorization: {
                 enabled: true,
-                site_pays: FIXED(100),
-                user_share_pct: 0.7,
+                site_pays: FIXED(87),
+                user_share_pct: 0.8,
             },
             payment_authorization: {
                 enabled: true,
-                site_pays: PCT(0.005),
-                user_share_pct: 0.7,
+                site_pays: PCT(0.004375),
+                user_share_pct: 0.8,
             },
             pledge_resolution: {
                 enabled: true,
-                site_pays: PCT(0.01),
-                user_share_pct: 0.7,
+                site_pays: PCT(0.00875),
+                user_share_pct: 0.8,
             },
             attest_verification_at_gate: {
                 enabled: true,
-                site_pays: FIXED(280),
-                user_share_pct: 0.7,
+                site_pays: FIXED(245),
+                user_share_pct: 0.8,
             },
         },
     },
@@ -226,7 +226,7 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         id: 'agent-only',
         label: 'agent-only',
         summary:
-            'AI-agent surface · oc-agent delegations are the primary auth pattern. Session_creation off (delegations replace sessions); agent_delegation_issued + scoped_action_authorization carry the activity.',
+            'AI agents act for people under a delegation. Sessions are off; delegations and the actions they allow carry the activity.',
         examples: [
             'AI assistant calling APIs on user behalf',
             'autonomous trading bot',
@@ -235,18 +235,18 @@ export const ARCHETYPE_TEMPLATES: readonly ArchetypeTemplate[] = [
         events: {
             account_creation: {
                 enabled: true,
-                site_pays: FIXED(1300),
-                user_share_pct: 0.65,
+                site_pays: FIXED(1056),
+                user_share_pct: 0.8,
             },
             agent_delegation_issued: {
                 enabled: true,
-                site_pays: FIXED(320),
-                user_share_pct: 0.65,
+                site_pays: FIXED(260),
+                user_share_pct: 0.8,
             },
             scoped_action_authorization: {
                 enabled: true,
-                site_pays: FIXED(100),
-                user_share_pct: 0.65,
+                site_pays: FIXED(81),
+                user_share_pct: 0.8,
             },
         },
     },
@@ -276,7 +276,7 @@ const ALL_SUBTYPES: readonly EventSubtype[] = [
 const DEFAULT_DISABLED: IntegratorEventConfig = {
     enabled: false,
     site_pays: { kind: 'fixed_sats', sats: 100 },
-    user_share_pct: 0.65,
+    user_share_pct: 0.8,
 };
 
 /**

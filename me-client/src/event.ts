@@ -30,9 +30,9 @@
  *     payment_amount_sats: 50_000,
  *   });
  *
- * The class is determined by SUBTYPE_CLASS server-side; cashback is
- * computed via computeFees(); the envelope is recorded under the
- * project_key and shows up in /developer/projects/[id]/events.
+ * The class is determined by SUBTYPE_CLASS server-side; what the user
+ * earns is computed via computeFees(); the receipt is recorded under the
+ * project_key and shows on the project's Receipts tab at ochk.app.
  */
 
 import {
@@ -99,7 +99,7 @@ export interface FireEventOptions {
      *  never a Bitcoin address. */
     userAddress?: string;
     /** The forwarded user oc_session JWT (the `token` from the sign-in popup
-     *  result). Identifies which user earns the cashback when `accountId` is
+     *  result). Identifies which user earns when `accountId` is
      *  not given. Pass it per-call for stateless, concurrency-safe server-side
      *  firing — preferred over the process-global setBearerToken when your
      *  backend serves many users. A same-origin family integrator (*.ochk.io)
