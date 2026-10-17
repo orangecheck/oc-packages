@@ -55,6 +55,6 @@ if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
 - **OTS anchoring**: use [`@orangecheck/stamp-ots`](https://www.npmjs.com/package/@orangecheck/stamp-ots) to submit an envelope's `id` to OpenTimestamps calendars, parse returned proofs, and upgrade pending → confirmed.
 - **Stake context**: populate `input.stake` with an OrangeCheck attestation reference. Verifiers who care should re-resolve via [`@orangecheck/sdk`](https://www.npmjs.com/package/@orangecheck/sdk).
 - **BIP-322 signing**: plug in any wallet adapter — the SDK doesn't ship one. See [`@orangecheck/wallet-adapter`](https://www.npmjs.com/package/@orangecheck/wallet-adapter) for the cross-wallet reference adapter.
-- **BIP-322 verification**: plug in a verifier via `verify({ verifyBip322 })`. Node environments can use `bip322-js`; browser environments can use the same via a Buffer polyfill.
+- **BIP-322 verification**: plug in a verifier via `verify({ verifyBip322 })`. stamp-core calls it as `(message, signatureB64, address)` and expects a Promise; [`@orangecheck/bip322`](https://www.npmjs.com/package/@orangecheck/bip322) works in Node and the browser alike: `verifyBip322: async (msg, sig, addr) => verifySignature(addr, msg, sig)`.
 
 See [`SPEC.md`](https://github.com/orangecheck/oc-stamp-protocol/blob/main/SPEC.md) for the normative spec.

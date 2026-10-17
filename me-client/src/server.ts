@@ -165,20 +165,27 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
 }
 
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
+/** Where someone turned away for want of backing can back their account. */
+export const BACK_ACCOUNT_URL = 'https://ochk.app/me/settings#account';
 const POLICY_TTL_MS = 60_000;
-const policies = new Map<string, { at: number; need: BondNeed | null }>();
+/** After a failed read, how long before me.ochk.io is asked again. */
+const POLICY_RETRY_MS = 10_000;
+const policies = new Map<string, { at: number; need: BondNeed | null; failedAt?: number }>();
 
 /**
  * The project's requirement, from its uncached sign-in endpoint, held a
  * minute here. (The price config is edge-cached for ten minutes: reading the
  * requirement there let a just-tightened app keep admitting unbacked accounts.)
- * When it can't be read, the last one read stands; with none read yet it is
+ * When it can't be read, the last one read stands, and the next try waits ten
+ * seconds so an outage doesn't hold every request; with none read yet it is
  * `undefined`, and the request is refused rather than let through unchecked.
  */
 async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
     const key = options.projectKey!;
     const hit = policies.get(key);
-    if (hit && Date.now() - hit.at < POLICY_TTL_MS) return hit.need;
+    const now = Date.now();
+    if (hit && now - hit.at < POLICY_TTL_MS) return hit.need;
+    if (hit?.failedAt && now - hit.failedAt < POLICY_RETRY_MS) return hit.at ? hit.need : undefined;
     try {
         const base = options.meOrigin ?? 'https://me.ochk.io';
         const r = await fetch(`${base}/api/integrator/${encodeURIComponent(key)}/sign-in`, {
@@ -193,7 +200,8 @@ async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed 
         policies.set(key, { at: Date.now(), need });
         return need;
     } catch {
-        return hit?.need;
+        policies.set(key, { at: hit?.at ?? 0, need: hit?.need ?? null, failedAt: Date.now() });
+        return hit?.at ? hit.need : undefined;
     }
 }
 
@@ -210,13 +218,14 @@ async function refusal(
     options: WithOcAuthOptions
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
     const need = await bondNeed(options);
-    if (!session) {
-        return options.required || need !== null
-            ? { status: 401, body: { ok: false, reason: 'unauthenticated' } }
-            : null;
+    if (!session && options.required) {
+        return { status: 401, body: { ok: false, reason: 'unauthenticated' } };
     }
     if (need === undefined) {
         return { status: 503, body: { ok: false, reason: 'bond_policy_unavailable' } };
+    }
+    if (!session) {
+        return need ? { status: 401, body: { ok: false, reason: 'unauthenticated' } } : null;
     }
     if (need && !bondMeets(session, need)) {
         const have = readBondClaim(session);
@@ -225,8 +234,13 @@ async function refusal(
             body: {
                 ok: false,
                 reason: 'bond_required',
-                need,
+                need: {
+                    min_sats: need.minSats ?? 0,
+                    min_days: need.minDays ?? 0,
+                    ...(need.maxAgeSecs !== undefined ? { max_age_secs: need.maxAgeSecs } : {}),
+                },
                 have: have ? { sats_floor: have.sats_floor, days_floor: have.days_floor } : null,
+                back_url: BACK_ACCOUNT_URL,
             },
         };
     }

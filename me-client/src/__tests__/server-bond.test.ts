@@ -85,10 +85,12 @@ describe('withOcAuth · requireBond', () => {
         const low = await call(await token(BOND), { audience: MINE, requireBond: { minSats: 1_000_000 } });
         expect(low.ran).toBe(false);
         expect(low.status).toBe(403);
-        expect(low.body).toMatchObject({
+        expect(low.body).toEqual({
+            ok: false,
             reason: 'bond_required',
-            need: { minSats: 1_000_000 },
+            need: { min_sats: 1_000_000, min_days: 0 },
             have: { sats_floor: 100_000, days_floor: 30 },
+            back_url: 'https://ochk.app/me/settings#account',
         });
     });
 
@@ -112,9 +114,20 @@ describe('withOcAuth · projectKey', () => {
         const opts = { audience: MINE, projectKey: 'pk_live_cached' };
         const r = await call(await token(BOND), opts);
         expect(r.status).toBe(403);
-        expect(r.body).toMatchObject({ need: { minSats: 100_000, minDays: 90 } });
+        expect(r.body).toMatchObject({ need: { min_sats: 100_000, min_days: 90 } });
         await call(await token(BOND), opts);
         expect(configReads).toBe(1);
+    });
+
+    it('lets code win over the project setting', async () => {
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 10_000_000, min_days: 0 } } };
+        const r = await call(await token(BOND), {
+            audience: MINE,
+            projectKey: 'pk_live_code_wins',
+            requireBond: { minSats: 1_000 },
+        });
+        expect(r.ran).toBe(true);
+        expect(configReads).toBe(0);
     });
 
     it('lets every account in when the project asks for none', async () => {
@@ -128,5 +141,43 @@ describe('withOcAuth · projectKey', () => {
         expect(r.ran).toBe(false);
         expect(r.status).toBe(503);
         expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+        // A signed-out request on an optional route gets the same reason, not "sign in".
+        const anon = await call(null, { audience: MINE, projectKey: 'pk_live_down' });
+        expect(anon.status).toBe(503);
+        expect(anon.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+    });
+});
+
+describe('withOcAuth · projectKey over time', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('reads a tightened requirement again after a minute', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_tightened' };
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        expect((await call(await token(), opts)).ran).toBe(true);
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 1_000, min_days: 0 } } };
+        vi.setSystemTime(new Date('2026-10-16T12:00:59Z'));
+        expect((await call(await token(), opts)).ran).toBe(true);
+        vi.setSystemTime(new Date('2026-10-16T12:01:01Z'));
+        expect((await call(await token(), opts)).status).toBe(403);
+        expect(configReads).toBe(2);
+    });
+
+    it('keeps the last requirement through an outage, asking again every ten seconds', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_outage' };
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 1_000, min_days: 0 } } };
+        await call(await token(BOND), opts);
+        config = { status: 503, body: {} };
+        vi.setSystemTime(new Date('2026-10-16T12:01:01Z'));
+        expect((await call(await token(), opts)).status).toBe(403);
+        expect((await call(await token(BOND), opts)).ran).toBe(true);
+        expect(configReads).toBe(2);
+        vi.setSystemTime(new Date('2026-10-16T12:01:12Z'));
+        await call(await token(BOND), opts);
+        expect(configReads).toBe(3);
     });
 });

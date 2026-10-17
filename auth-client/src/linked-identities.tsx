@@ -1065,7 +1065,7 @@ export const hintStyle: React.CSSProperties = {
     opacity: 0.8,
 };
 
-export const rowStyle: React.CSSProperties = {
+const rowStyle: React.CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -1074,7 +1074,7 @@ export const rowStyle: React.CSSProperties = {
     padding: '1rem',
 };
 
-export const rowLabelStyle: React.CSSProperties = {
+const rowLabelStyle: React.CSSProperties = {
     color: V.foreground,
     fontFamily: SIGNIN_FONT,
     fontSize: signinSize(10.5),

@@ -31,6 +31,7 @@ The package ships vitest suite that loads the canonical fixtures from [`oc-vote-
 ### Tally an open poll from any transport
 
 ```ts
+import { verifySignature } from '@orangecheck/bip322';
 import { tally, pollId } from '@orangecheck/vote-core';
 
 const result = await tally({
@@ -38,10 +39,7 @@ const result = await tally({
   ballots,
   utxosAt: (addr, snapshotBlock) => fetchUtxos(addr, snapshotBlock),
   tipHeight, // optional: refuse a snapshot with < 6 confirmations (E_REORG)
-  verify: async ({ address, message, signature }) => {
-    const { Verifier } = await import('bip322-js');
-    return Verifier.verifySignature(address, message, signature);
-  },
+  verify: ({ address, message, signature }) => verifySignature(address, message, signature),
   // secret mode only, once the creator's reveal is verified:
   // unseal: (ballot) => openEnvelope(ballot.secret.envelope, reveal.reveal_sk),
 });

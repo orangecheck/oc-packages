@@ -69,7 +69,11 @@ export interface BondClaim {
   height: number;
   /** Unix seconds of that check. */
   checked_at: number;
-  /** Same for the same coin at your site, unrelated anywhere else. Ban it to ban the coin. */
+  /**
+   * Same for the same coin at your site, unrelated anywhere else, and keyed by the
+   * issuer so it doesn't reveal the coin. *.ochk.io sites share the family session,
+   * so they share one. Keep one account per nullifier; block it to block the coin.
+   */
   nullifier: string;
 }
 
@@ -204,8 +208,8 @@ export function readBondClaim(payload: SessionPayload): BondClaim | null {
 }
 
 /**
- * True when the account is backed by a coin worth at least `minSats`,
- * unspent at least `minDays` days, and the issuer checked it within
+ * True when the account is backed by a coin whose floors reach `minSats`
+ * and `minDays`, and the issuer checked it within
  * `maxAgeSecs` (default: no limit). Compare against the floor ladder: a
  * `minSats` of 50000 is met by a `sats_floor` of 100000, not 10000.
  */

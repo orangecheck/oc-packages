@@ -8,6 +8,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.28.0] — 2026-10-16
+
+### Changed
+
+- A `bond_required` refusal speaks the wire's case: `need` is
+  `{ min_sats, min_days }` (plus `max_age_secs` when set), as `have` and the
+  project's `require_bond` already were. It also carries `back_url`, where the
+  person can back their account; link them there.
+- A signed-out request on an optional route, while the project's requirement
+  has never been readable, gets `503 bond_policy_unavailable` rather than
+  `401 unauthenticated`: signing in wouldn't have helped.
+
+### Fixed
+
+- While me.ochk.io is unreachable, a failed read of the project's requirement
+  is retried at most every ten seconds instead of on every request, each of
+  which waited up to four seconds.
+- The README imported `useOcSession` from this package; it comes from
+  `@orangecheck/auth-client`. `oc.session.create` records no charge, and the
+  docs no longer say it does.
+
 ## [0.27.4] — 2026-10-16
 
 ### Fixed — two docstrings that misled integrators

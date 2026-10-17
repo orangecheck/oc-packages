@@ -4,15 +4,18 @@
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
-Drop-in client for [me.ochk.io](https://me.ochk.io). Sign-in-with-OC button, popup signin orchestrator, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types.
+Client for [me.ochk.io](https://me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. `OcSignInButton` rides the family cookie, so it works only on orangecheck's own sites; anywhere else, sign people in with `signInWithOc()` from `/popup`.
 
 > You pay for sessions and actions, not for clicks.
 
 ## Three entry points, three audiences
 
 ```ts
-// React surface (provider, hook, button, oc.session/payment/event/config/webhook)
-import { useOcSession, oc } from '@orangecheck/me-client';
+// oc.session/payment/event/config/webhook/scope/identity
+import { oc } from '@orangecheck/me-client';
+
+// The React provider and hook live in the companion package.
+import { OcSessionProvider, useOcSession } from '@orangecheck/auth-client';
 
 // Server-side verification — Next.js, Express, Hono. Zero env vars,
 // zero JWK handling. SDK lazy-fetches and caches the JWKS.
@@ -57,7 +60,7 @@ export default withOcAuth(
 
 ## Ask for accounts backed by bitcoin
 
-An account can pledge one coin it holds as backing (oc-attest-protocol `BOND.md`). The coin never moves and you never see it: the token carries only floors (`sats_floor`, `days_floor`) and a `nullifier` that is the same for that coin at your site and different everywhere else. Ban the nullifier and you've banned the coin until it moves, which restarts its age.
+A person can back their account with one coin they hold (oc-attest-protocol `BOND.md`). The coin stays in their wallet and you never see it: the token carries only floors (`sats_floor`, `days_floor`), when ochk.io last checked the coin (`checked_at`), and a `nullifier`. The nullifier is the same for that coin at your site and unrelated everywhere else, and only ochk.io holds the key that computes it, so it doesn't reveal the coin. Keep one account per nullifier: that is the real bot check at your site. Ban the nullifier and you've banned the coin until it moves, which restarts its age.
 
 Nobody needs a bond to sign in. To let in only backed accounts, set the floor in your project's settings ("who can sign in") and pass your project key. A change there is enforced within a minute:
 
@@ -68,16 +71,16 @@ export default withOcAuth(handler, {
 });
 ```
 
-Or set it in code with `requireBond: { minSats: 100_000, minDays: 30 }`. An account below the floor gets `403 { reason: 'bond_required', need, have }`. If the project's setting can't be read and never has been, the request gets `503 { reason: 'bond_policy_unavailable' }` rather than being let through unchecked. `readBondClaim(session)` and `bondMeets(session, need)` are exported for your own checks.
+Or set it in code with `requireBond: { minSats: 100_000, minDays: 30, maxAgeSecs: 3600 }`. ochk.io re-checks the coin when its last check is over ten minutes old; `maxAgeSecs` refuses a claim checked longer ago than you accept. From 0.28.0, an account below the floor gets `403 { ok: false, reason: 'bond_required', need: { min_sats, min_days }, have: { sats_floor, days_floor } | null, back_url }`: link the person to `back_url` to back their account. If the project's setting can't be read and never has been, the request gets `503 { reason: 'bond_policy_unavailable' }` rather than being let through unchecked. `readBondClaim(session)` and `bondMeets(session, { minSats, minDays, maxAgeSecs })` are exported for your own checks.
 
 ## Session lifecycle
 
-Sessions are the billable atom for me.ochk.io. A signin within a still-valid session is **free** — no Class C event, no charge. Site declares the policy at integration time; the OC verifier enforces it both client-side and server-side.
+Sessions are the billable atom for me.ochk.io: your server fires one `session_creation` event per real session with `oc.event.fire`. `oc.session.create` opens a session and records no charge, and a signin within a still-valid session is **free**. Site declares the policy at integration time; the OC verifier enforces it both client-side and server-side.
 
 ```ts
 import { oc } from '@orangecheck/me-client';
 
-// open a session — Class C billable event, once per real session
+// open a session — records no charge; bill it with oc.event.fire({ subtype: 'session_creation', … })
 const session = await oc.session.create({
     scope: ['identity', 'payment'],
     sessionPolicy: {

@@ -2,7 +2,7 @@
 
 > **Full reference:** [docs.ochk.io/sdk/bip322/README](https://docs.ochk.io/sdk/bip322/README) — generated from the TypeScript source on every release.
 
-Bitcoin message-signature verification: BIP-322 "simple" signatures from P2WPKH, P2SH-P2WPKH and single-key P2TR addresses, and legacy BIP-137 `signmessage` signatures. Every orangecheck verifier and wallet check uses it.
+Bitcoin message-signature verification: BIP-322 "simple" signatures from P2WPKH, P2SH-P2WPKH and single-key P2TR addresses, and legacy BIP-137 `signmessage` signatures. orangecheck's verifiers are moving to it: `@orangecheck/sdk` ≥ 1.12, `@orangecheck/wallet-adapter` ≥ 0.5.2, the vote, stamp and agent CLIs and ochk.io use it now; the other family sites follow as they take those releases.
 
 It is built only on audited primitives: `@noble/curves`, `@noble/hashes` and `@scure/base`. BIP-322's virtual `to_spend` and `to_sign` transactions have a fixed shape, so they are serialized directly. There is no bitcoinjs-lib and no PSBT library underneath. On 2026-10-13, bitcoinjs-lib 6.1.9 tightened PSBT extraction, and `bip322-js`, which built those transactions as PSBTs, started rejecting every signature.
 

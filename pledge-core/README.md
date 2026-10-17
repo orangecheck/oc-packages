@@ -36,6 +36,7 @@ Peer-free except for `@noble/hashes` (SHA-256).
 ## Quick start — create + verify a pledge
 
 ```ts
+import { verifySignature } from '@orangecheck/bip322';
 import { createPledge, verifyPledge } from '@orangecheck/pledge-core';
 
 const env = await createPledge({
@@ -58,8 +59,8 @@ const env = await createPledge({
         address: 'bc1qalice000000000000000000000000000000000',
         signMessage: async (msgHex) => {
             // The `msgHex` argument is the lowercase hex-encoded pledge id.
-            // Hand it to your wallet adapter of choice (e.g. bip322-js,
-            // sparrow, your own).
+            // Hand it to your wallet adapter of choice (e.g.
+            // @orangecheck/wallet-adapter, Sparrow, your own).
             return '<base64 BIP-322 sig>';
         },
     },
@@ -69,10 +70,8 @@ console.log(env.id);  // 64 lowercase hex chars
 
 const result = await verifyPledge({
     envelope: env,
-    verifyBip322: async (msg, sigB64, address) => {
-        // Wire your BIP-322 verifier of choice here.
-        return true;
-    },
+    // pledge-core passes (message, signature, address) and expects a Promise.
+    verifyBip322: async (msg, sigB64, address) => verifySignature(address, msg, sigB64),
 });
 
 if (result.ok) {

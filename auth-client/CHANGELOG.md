@@ -7,6 +7,34 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.31.0] — 2026-10-16
+
+### Changed — `OcBond` reads as what it is: backing, with a coin that stays in the wallet
+
+- Copy says "back your account", "backed by bitcoin" and "not backed". It no
+  longer claims the coin never moves: it stays in the person's wallet, and
+  spending it ends the backing.
+- "stop backing" asks first, inline, and "keep" is focused.
+- Coins under 1,000 sats are left out of the picker and counted in one line
+  below it. If every coin is that small, the form says so instead of offering
+  an empty choice. The first coin that can back the account is picked.
+- The address step is a real form with a visible label, so Enter submits.
+  Nothing is prefilled. The coin step and the signing step each have "back".
+- Small print is 12px or more and never dimmed. Radios take the primary
+  color.
+
+### Fixed
+
+- A tab pinned to one account re-pins with the token the auth host mints
+  after a change, so its session carries the new backing at once. The host
+  no longer touches the browser's shared cookie from such a tab.
+
+### Added
+
+- Refusals for every reason `/api/auth/bond` gives, including
+  `coin_too_small`, `coin_backed_another_recently`, `bond_window_too_long`
+  and `rate_limited`.
+
 ## [2.30.1] — 2026-10-16
 
 ### Fixed — a lockfile refresh could still break wallet sign-in

@@ -1,8 +1,9 @@
 /**
  * @orangecheck/me-client
  *
- * Drop-in client for me.ochk.io. Sign-in-with-OC. You pay for sessions
- * and actions, not for clicks.
+ * Client for me.ochk.io. Verify orangecheck sign-in on your server, let in
+ * only backed accounts if you choose, and, while you pay your users, report
+ * the events that earn them sats.
  *
  * Three entry points for three audiences:
  *

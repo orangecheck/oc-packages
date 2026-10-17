@@ -36,9 +36,10 @@ function emitTelemetry(code: TelemetryEvent['code'], session_id?: string): void 
 
 /**
  * Open a sign-in flow at me.ochk.io. Returns the resulting Session once
- * the user consents (Class C billable event for the integrating site,
- * cashback for the user). Internally this opens the OC consent UI in a
- * popup; v1 implementations may also redirect.
+ * the user consents. Opening a session charges nothing: a site that pays for
+ * sessions reports `session_creation` itself with `oc.event.fire`.
+ * Internally this opens the OC consent UI in a popup; v1 implementations may
+ * also redirect.
  */
 async function create(opts: SignInOptions): Promise<Session> {
     const policy: SessionPolicy = { ...DEFAULT_POLICY, ...(opts.sessionPolicy ?? {}) };
