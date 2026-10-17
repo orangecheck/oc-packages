@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] — 2026-10-17
+
+- The site header stays legible over dark bands: it was 70% opaque, so a
+  dark section scrolling under it turned it into a grey slab with grey text.
+  It is 90% opaque now (95% without backdrop blur).
+
 ## [0.6.0] — 2026-10-17
 
 - `AppShell` gives phones a tab bar when `nav` holds two to five pages, each
