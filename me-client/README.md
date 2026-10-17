@@ -30,32 +30,45 @@ yarn add @orangecheck/me-client @orangecheck/auth-client
 
 ## Quick start
 
-```tsx
-import { OcSignInButton, useOcSession } from '@orangecheck/me-client';
-import { OcSessionProvider } from '@orangecheck/auth-client';
+Sign people in with a popup, then verify the token on your server. Any orangecheck account works: email, Google, GitHub or a Bitcoin wallet.
 
-export function App() {
-    return (
-        <OcSessionProvider>
-            <SignIn />
-        </OcSessionProvider>
-    );
-}
+```ts
+// Browser · inside a click handler (browsers block popups outside one).
+import { signInWithOc } from '@orangecheck/me-client/popup';
 
-function SignIn() {
-    const { account, status } = useOcSession();
-    if (status === 'authenticated') {
-        return <p>signed in as {account.address.slice(0, 8)}…</p>;
-    }
-    return (
-        <OcSignInButton
-            scope={['identity', 'attest_tier']}
-            sessionPolicy={{ duration_seconds: 7 * 86_400, refresh: 'sliding' }}
-            onSignin={(session) => console.log('class C envelope:', session)}
-        />
-    );
+const result = await signInWithOc();
+if (result) {
+    // A token bound to your origin. Send it to your server as a Bearer.
+    await fetch('/api/me', { headers: { Authorization: `Bearer ${result.token}` } });
 }
 ```
+
+```ts
+// Server · pages/api/me.ts
+import { withOcAuth } from '@orangecheck/me-client/server';
+
+export default withOcAuth(
+    async (req, res) => {
+        res.status(200).json({ did_oc: req.ocSession!.did_oc });
+    },
+    { required: true, audience: 'https://your-site.example' }
+);
+```
+
+## Ask for accounts backed by bitcoin
+
+An account can pledge one coin it holds as backing (oc-attest-protocol `BOND.md`). The coin never moves and you never see it: the token carries only floors (`sats_floor`, `days_floor`) and a `nullifier` that is the same for that coin at your site and different everywhere else. Ban the nullifier and you've banned the coin until it moves, which restarts its age.
+
+Nobody needs a bond to sign in. To let in only backed accounts, set the floor in your project's settings ("who can sign in") and pass your project key:
+
+```ts
+export default withOcAuth(handler, {
+    audience: 'https://your-site.example',
+    projectKey: 'pk_live_yourapp', // reads the floor you set; change it there, not here
+});
+```
+
+Or set it in code with `requireBond: { minSats: 100_000, minDays: 30 }`. An account below the floor gets `403 { reason: 'bond_required', need, have }`. If the project's setting can't be read and never has been, the request gets `503 { reason: 'bond_policy_unavailable' }` rather than being let through unchecked. `readBondClaim(session)` and `bondMeets(session, need)` are exported for your own checks.
 
 ## Session lifecycle
 
@@ -153,14 +166,13 @@ export default withOcAuth(async (req, res) => {
     res.status(200).json({
         account: {
             id: req.ocSession.sub,
-            address: req.ocSession.addr,
-            display_name: req.ocSession.name ?? null,
+            did_oc: req.ocSession.did_oc,
         },
     });
 });
 ```
 
-Pass `{ required: true }` to short-circuit unauthenticated requests with a 401 before your handler runs.
+Pass `{ required: true }` to short-circuit unauthenticated requests with a 401 before your handler runs, and `audience` (your origin) to verify cross-domain tokens.
 
 ### Express
 
@@ -173,7 +185,7 @@ app.use(ocAuthExpress());
 
 app.get('/api/profile', (req, res) => {
     if (!req.ocSession) return res.status(401).json({ error: 'sign in' });
-    res.json({ address: req.ocSession.addr });
+    res.json({ did_oc: req.ocSession.did_oc });
 });
 ```
 
@@ -189,7 +201,7 @@ app.use('*', ocAuthHono());
 app.get('/api/me', (c) => {
     const session = c.get('ocSession');
     if (!session) return c.json({ ok: false }, 401);
-    return c.json({ address: session.addr });
+    return c.json({ did_oc: session.did_oc });
 });
 ```
 

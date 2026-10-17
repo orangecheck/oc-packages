@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.27.2] — 2026-10-16
+
+### Added — ask for accounts backed by bitcoin
+
+- `withOcAuth` / `ocAuthExpress` / `ocAuthHono` take `requireBond: { minSats,
+  minDays, maxAgeSecs }`, or `projectKey` to read the floor the integrator set
+  in the project's settings (public config, cached five minutes). An account
+  below it gets 403 `bond_required` with what was needed and what it has; a
+  requirement that has never been readable gives 503
+  `bond_policy_unavailable`, never a pass. Apps that set neither are unchanged.
+- Re-exports `readBondClaim`, `bondMeets` and `BondClaim` from auth-core 2.8.
+
+### Fixed
+
+- The README quick start used an export that doesn't exist (`useOcSession`)
+  and a claim tokens don't carry (`addr`). It now shows the popup and server
+  flow that works cross-domain.
+
 ## [0.27.1] — 2026-09-24
 
 ### Fixed

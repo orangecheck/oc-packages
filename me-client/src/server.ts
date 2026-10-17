@@ -39,15 +39,18 @@
  */
 
 import {
+    bondMeets,
     getOcSession as getOcSessionCore,
+    readBondClaim,
     verifyOcToken,
+    type BondClaim,
     type SessionPayload,
     type VerifyOcOptions,
     type SessionRequestHeaders,
 } from '@orangecheck/auth-core';
 
-export { verifyOcToken };
-export type { SessionPayload, VerifyOcOptions };
+export { bondMeets, readBondClaim, verifyOcToken };
+export type { BondClaim, SessionPayload, VerifyOcOptions };
 
 // Activity-attestation verifier · re-export from the identity module so
 // server-side integrators get the gating helper alongside session
@@ -142,6 +145,90 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
      *  receives `req.ocSession === null`, useful when the route serves both
      *  signed-in and anonymous users. */
     required?: boolean;
+    /**
+     * Refuse a signed-in account (403, `reason: 'bond_required'`) unless a
+     * bond backs it: one unspent coin of at least `minSats`, unspent at least
+     * `minDays` days, checked within `maxAgeSecs`. The app never learns the
+     * coin; `req.ocSession.oc_bond.nullifier` is the same for the same coin at
+     * your site, so ban that to ban the coin. Implies `required`.
+     */
+    requireBond?: { minSats?: number; minDays?: number; maxAgeSecs?: number };
+    /**
+     * Your project key. The requirement you set in the project's settings
+     * ("who can sign in") is read from its public config and enforced like
+     * `requireBond`, so you change it there, not in code. An explicit
+     * `requireBond` wins over it.
+     */
+    projectKey?: string;
+    /** Where the project config is read. Default https://me.ochk.io. */
+    meOrigin?: string;
+}
+
+type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
+const POLICY_TTL_MS = 5 * 60_000;
+const policies = new Map<string, { at: number; need: BondNeed | null }>();
+
+/**
+ * The project's published requirement, cached five minutes. When the config
+ * can't be read, the last one read stands; with none read yet it is
+ * `undefined`, and the request is refused rather than let through unchecked.
+ */
+async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
+    const key = options.projectKey!;
+    const hit = policies.get(key);
+    if (hit && Date.now() - hit.at < POLICY_TTL_MS) return hit.need;
+    try {
+        const base = options.meOrigin ?? 'https://me.ochk.io';
+        const r = await fetch(`${base}/api/integrator/config?project_key=${encodeURIComponent(key)}`, {
+            signal: AbortSignal.timeout(4000),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = (await r.json()) as {
+            config?: { require_bond?: { min_sats: number; min_days: number } | null };
+        };
+        const req = j.config?.require_bond ?? null;
+        const need = req ? { minSats: req.min_sats, minDays: req.min_days } : null;
+        policies.set(key, { at: Date.now(), need });
+        return need;
+    } catch {
+        return hit?.need;
+    }
+}
+
+/** The requirement in force: explicit, else the project's, else none. */
+async function bondNeed(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
+    if (options.requireBond) return options.requireBond;
+    if (options.projectKey) return projectRequirement(options);
+    return null;
+}
+
+/** Why a session can't pass, as a status and body, or null when it can. */
+async function refusal(
+    session: SessionPayload | null,
+    options: WithOcAuthOptions
+): Promise<{ status: number; body: Record<string, unknown> } | null> {
+    const need = await bondNeed(options);
+    if (!session) {
+        return options.required || need !== null
+            ? { status: 401, body: { ok: false, reason: 'unauthenticated' } }
+            : null;
+    }
+    if (need === undefined) {
+        return { status: 503, body: { ok: false, reason: 'bond_policy_unavailable' } };
+    }
+    if (need && !bondMeets(session, need)) {
+        const have = readBondClaim(session);
+        return {
+            status: 403,
+            body: {
+                ok: false,
+                reason: 'bond_required',
+                need,
+                have: have ? { sats_floor: have.sats_floor, days_floor: have.days_floor } : null,
+            },
+        };
+    }
+    return null;
 }
 
 /**
@@ -181,9 +268,8 @@ export function withOcAuth<T extends NextApiHandlerLike>(
             options
         );
         req.ocSession = session;
-        if (options.required && !session) {
-            return res.status(401).json({ ok: false, reason: 'unauthenticated' });
-        }
+        const refused = await refusal(session, options);
+        if (refused) return res.status(refused.status).json(refused.body);
         return handler(req, res);
     };
     return wrapped as unknown as T;
@@ -237,8 +323,9 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
                 options
             );
             req.ocSession = session;
-            if (options.required && !session) {
-                res.status(401).json({ ok: false, reason: 'unauthenticated' });
+            const refused = await refusal(session, options);
+            if (refused) {
+                res.status(refused.status).json(refused.body);
                 return;
             }
             next();
@@ -279,9 +366,8 @@ export function ocAuthHono(options: WithOcAuthOptions = {}) {
         c.header('Vary', 'Cookie, Authorization');
         const session = await getOcSession(c.req.raw.headers, options);
         c.set('ocSession', session);
-        if (options.required && !session) {
-            return c.json({ ok: false, reason: 'unauthenticated' }, 401);
-        }
+        const refused = await refusal(session, options);
+        if (refused) return c.json(refused.body, refused.status);
         await next();
     };
 }
