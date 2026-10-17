@@ -166,7 +166,7 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
 
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
 /** Where someone turned away for want of backing can back their account. */
-export const BACK_ACCOUNT_URL = 'https://ochk.app/me/settings#account';
+export const BACK_ACCOUNT_URL = 'https://ochk.app/me/account#backing';
 const POLICY_TTL_MS = 60_000;
 /** After a failed read, how long before me.ochk.io is asked again. */
 const POLICY_RETRY_MS = 10_000;

@@ -90,7 +90,7 @@ describe('withOcAuth · requireBond', () => {
             reason: 'bond_required',
             need: { min_sats: 1_000_000, min_days: 0 },
             have: { sats_floor: 100_000, days_floor: 30 },
-            back_url: 'https://ochk.app/me/settings#account',
+            back_url: 'https://ochk.app/me/account#backing',
         });
     });
 

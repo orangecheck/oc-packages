@@ -8,6 +8,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.30.1] — 2026-10-17
+
+### Fixed
+
+- `back_url` on a `403 bond_required` opens the Backing section of the
+  account page, `https://ochk.app/me/account#backing`. The old address
+  redirected to the top of the page.
+
 ## [0.30.0] — 2026-10-17
 
 ### Added — `accountId` names who earns
