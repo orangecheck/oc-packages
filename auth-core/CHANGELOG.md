@@ -11,6 +11,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.8.0] — 2026-10-16
+
+### Added — the bond claim
+
+- `SessionPayload.oc_bond` and `BondClaim`: when an account is backed by a
+  bond (oc-attest-protocol `BOND.md`), its tokens carry floors (sats, days),
+  when the coin was last checked, and a nullifier for the token's audience.
+  Never the coin.
+- `readBondClaim(payload)` and `bondMeets(payload, { minSats, minDays,
+  maxAgeSecs })` to read and require it.
+
 ## [2.7.0] — 2026-09-22
 
 ### Added

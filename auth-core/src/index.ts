@@ -53,6 +53,26 @@ export interface DisplayIdentity {
   value: string;
 }
 
+/**
+ * A bond (oc-attest-protocol BOND.md): one unspent coin the account pledged.
+ * The token carries floors, never the coin, so an app learns that a coin of
+ * at least `sats_floor` sats, unspent at least `days_floor` days, backs this
+ * account, and nothing about which coin it is.
+ */
+export interface BondClaim {
+  v: 1;
+  /** Largest of 1000, 10000, 100000, 1000000, 10000000 the coin meets; 0 for none. */
+  sats_floor: number;
+  /** Largest of 7, 30, 90, 365 days the coin has been unspent; 0 for none. */
+  days_floor: number;
+  /** Block height at which the issuer last found the coin unspent. */
+  height: number;
+  /** Unix seconds of that check. */
+  checked_at: number;
+  /** Same for the same coin at your site, unrelated anywhere else. Ban it to ban the coin. */
+  nullifier: string;
+}
+
 export interface SessionPayload extends JWTPayload {
   sub: string;
   /**
@@ -166,6 +186,42 @@ export interface SessionPayload extends JWTPayload {
    * `did_oc`. Read it safely with `resolveDisplayIdentity()`.
    */
   display_identity?: DisplayIdentity | null;
+  /**
+   * Present when the account is backed by a bond. Absent means no bond, not
+   * a failed check. Read it with `readBondClaim()` / `bondMeets()`.
+   */
+  oc_bond?: BondClaim;
+}
+
+/** The token's bond claim when it is well-formed, else null. */
+export function readBondClaim(payload: SessionPayload): BondClaim | null {
+  const b = payload.oc_bond as Partial<BondClaim> | undefined;
+  if (!b || typeof b !== "object" || b.v !== 1) return null;
+  const nums = [b.sats_floor, b.days_floor, b.height, b.checked_at];
+  if (!nums.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0)) return null;
+  if (typeof b.nullifier !== "string" || !/^[0-9a-f]{64}$/.test(b.nullifier)) return null;
+  return b as BondClaim;
+}
+
+/**
+ * True when the account is backed by a coin worth at least `minSats`,
+ * unspent at least `minDays` days, and the issuer checked it within
+ * `maxAgeSecs` (default: no limit). Compare against the floor ladder: a
+ * `minSats` of 50000 is met by a `sats_floor` of 100000, not 10000.
+ */
+export function bondMeets(
+  payload: SessionPayload,
+  need: { minSats?: number; minDays?: number; maxAgeSecs?: number },
+): boolean {
+  const b = readBondClaim(payload);
+  if (!b) return false;
+  if (b.sats_floor < (need.minSats ?? 0)) return false;
+  if (b.days_floor < (need.minDays ?? 0)) return false;
+  if (need.maxAgeSecs !== undefined) {
+    const age = Math.floor(Date.now() / 1000) - b.checked_at;
+    if (age < 0 || age > need.maxAgeSecs) return false;
+  }
+  return true;
 }
 
 /**
