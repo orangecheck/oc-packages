@@ -321,7 +321,7 @@ export function OcAccountChip({
 }
 
 export interface OcSignInButtonProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
-    /** Label shown when no user is signed in. Defaults to `sign in with bitcoin`. */
+    /** Label shown when no user is signed in. Defaults to `sign in`. */
     label?: string;
     /**
      * When `true`, render an `<a>` even while the session is loading, to
@@ -347,7 +347,7 @@ export interface OcSignInButtonProps extends React.AnchorHTMLAttributes<HTMLAnch
  * When the user is already authenticated it renders nothing.
  */
 export function OcSignInButton({
-    label = 'sign in with bitcoin',
+    label = 'sign in',
     eager = false,
     className,
     signInUrl: signInUrlOverride,

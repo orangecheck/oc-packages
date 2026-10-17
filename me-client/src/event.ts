@@ -81,8 +81,8 @@ export interface FireEventOptions {
      *  ONLY: never ship this secret to a browser. Find/rotate it on the project
      *  Keys tab (/me/projects/<id>/keys). */
     signingSecret?: string;
-    /** Who earns, as their `did:oc` — the value `/api/auth/me` returns as
-     *  `did_oc`.
+    /** Who earns: their account id, the `did:oc` that `/api/auth/me` returns
+     *  as `did_oc`.
      *
      *  This is the BACKEND path, and it is the one to prefer. Your server
      *  signs the request with `signingSecret`, the signature covers these
@@ -94,9 +94,12 @@ export interface FireEventOptions {
      *  REQUIRES `signingSecret`. A session alone may never name an earner: it
      *  proves a user, not a project, and that would let any signed-in caller
      *  credit anybody. */
+    accountId?: string;
+    /** @deprecated Use `accountId`. Same value: it was always an account id,
+     *  never a Bitcoin address. */
     userAddress?: string;
     /** The forwarded user oc_session JWT (the `token` from the sign-in popup
-     *  result). Identifies which user earns the cashback when `userAddress` is
+     *  result). Identifies which user earns the cashback when `accountId` is
      *  not given. Pass it per-call for stateless, concurrency-safe server-side
      *  firing — preferred over the process-global setBearerToken when your
      *  backend serves many users. A same-origin family integrator (*.ochk.io)
@@ -168,9 +171,17 @@ async function fire(options: FireEventOptions): Promise<FireEventResult> {
     // Fail here rather than letting the server 401 — the mistake is always the
     // same one (naming an earner from a browser or an unsigned backend call),
     // and the round-trip tells you less than this sentence does.
-    if (options.userAddress && !options.signingSecret) {
+    if (
+        options.accountId !== undefined &&
+        options.userAddress !== undefined &&
+        options.accountId !== options.userAddress
+    ) {
+        throw new Error('event.fire: accountId and userAddress name different earners');
+    }
+    const earner = options.accountId ?? options.userAddress;
+    if (earner && !options.signingSecret) {
         throw new Error(
-            'event.fire: userAddress names who earns, so it requires signingSecret — ' +
+            'event.fire: accountId names who earns, so it requires signingSecret — ' +
                 'the signature over the request body is what authorises that earner. ' +
                 'Without the secret, pass bearerToken (or rely on the oc_session cookie) ' +
                 'and the caller earns instead.'
@@ -188,8 +199,8 @@ async function fire(options: FireEventOptions): Promise<FireEventResult> {
     if (options.action_label !== undefined) requestBody.action_label = options.action_label;
     if (options.metadata !== undefined) requestBody.metadata = options.metadata;
     if (options.is_agent !== undefined) requestBody.is_agent = options.is_agent;
-    // Inside the signed bytes on purpose — see `userAddress` above.
-    if (options.userAddress !== undefined) requestBody.user_address = options.userAddress;
+    // Inside the signed bytes on purpose — see `accountId` above.
+    if (earner !== undefined) requestBody.user_address = earner;
 
     const headers: Record<string, string> = {};
     if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey;

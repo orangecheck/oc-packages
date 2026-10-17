@@ -1420,7 +1420,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             <form onSubmit={start} data-oc-signin-email="">
                 <FlowHeader>
                     We email you a 6-digit code. No password, and no wallet needed to start. Link a
-                    Bitcoin address any time — that is the identity you hold yourself.
+                    Bitcoin address any time: a way in that only you hold.
                 </FlowHeader>
                 <Label htmlFor={`${uid}-email`}>Email</Label>
                 <input

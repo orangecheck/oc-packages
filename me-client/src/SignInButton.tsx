@@ -17,6 +17,12 @@ export interface OcSignInButtonProps
 }
 
 /**
+ * @deprecated Sign people in with `signInWithOc()` from
+ * `@orangecheck/me-client/popup` on your own site, or `<OcSignIn>` from
+ * `@orangecheck/auth-client` on orangecheck's. Two components named
+ * `OcSignInButton` that do different things is one too many; this one goes in
+ * a later minor.
+ *
  * Opens (or refreshes) a me.ochk.io session for an account already signed
  * in on *.ochk.io, and calls onSignin(session). It rides the family cookie,
  * so it works only on orangecheck's own sites: a third-party site signs

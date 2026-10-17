@@ -8,6 +8,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.30.0] — 2026-10-17
+
+### Added — `accountId` names who earns
+
+- `oc.event.fire({ accountId })` takes the earner's account id, the `did:oc`
+  from `/api/auth/me`. It is what `userAddress` always held: an account id,
+  never a Bitcoin address.
+
+### Deprecated
+
+- `userAddress`. It still works and means the same thing. Passing both with
+  different values throws.
+- `OcSignInButton`. Use `signInWithOc()` from `/popup` on your own site, or
+  `<OcSignIn>` from `@orangecheck/auth-client` on orangecheck's. It shares a
+  name with auth-client's button, which does something else, and it goes in a
+  later minor.
+
 ## [0.29.0] — 2026-10-16
 
 ### Added — paying users is optional

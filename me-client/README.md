@@ -4,7 +4,7 @@
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
-Client for [me.ochk.io](https://me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. `OcSignInButton` rides the family cookie, so it works only on orangecheck's own sites; anywhere else, sign people in with `signInWithOc()` from `/popup`.
+Client for [me.ochk.io](https://me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. Sign people in with `signInWithOc()` from `/popup`; the deprecated `OcSignInButton` rides the family cookie and works only on orangecheck's own sites.
 
 > Sign-in is free. Paying your users is optional: always, in promos you schedule, or never.
 
@@ -82,7 +82,7 @@ const res = await oc.event.fire({
     project_key: 'pk_live_yourcompany',
     subtype: 'account_creation',
     signingSecret: process.env.OC_SIGNING_SECRET,
-    userAddress: didOc,
+    accountId: didOc,
 });
 if (!res.earned) {
     // res.reason === 'not_paying'; res.next_pay_period says when paying starts, if scheduled

@@ -86,7 +86,7 @@ describe('oc.event.fire · request signing', () => {
         await oc.event.fire({
             project_key: 'pk_test',
             subtype: 'session_creation',
-            // @ts-expect-error the option is `userAddress`, and it requires signingSecret.
+            // @ts-expect-error the option is `accountId`, and it requires signingSecret.
             user_address: 'did:oc:attacker',
         });
         const body = calls[0]!.init.body as string;
@@ -102,7 +102,7 @@ describe('oc.event.fire · request signing', () => {
             oc.event.fire({
                 project_key: 'pk_test',
                 subtype: 'session_creation',
-                userAddress: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                accountId: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             })
         ).rejects.toThrow(/requires signingSecret/);
     });
@@ -117,7 +117,7 @@ describe('oc.event.fire · request signing', () => {
         await oc.event.fire({
             project_key: 'pk_test',
             subtype: 'session_creation',
-            userAddress: earner,
+            accountId: earner,
             signingSecret: secret,
         });
 
@@ -138,5 +138,26 @@ describe('oc.event.fire · request signing', () => {
             user_address: 'did:oc:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         });
         expect(createHmac('sha256', secret).update(`${t}.${swapped}`).digest('hex')).not.toBe(v1);
+    });
+
+    it('still takes the deprecated userAddress, and refuses two different earners', async () => {
+        const calls = captureFetch();
+        const earner = 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        await oc.event.fire({
+            project_key: 'pk_test',
+            subtype: 'session_creation',
+            userAddress: earner,
+            signingSecret: 'whsec_earner',
+        });
+        expect(JSON.parse(calls[0]!.init.body as string).user_address).toBe(earner);
+        await expect(
+            oc.event.fire({
+                project_key: 'pk_test',
+                subtype: 'session_creation',
+                accountId: earner,
+                userAddress: 'did:oc:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                signingSecret: 'whsec_earner',
+            })
+        ).rejects.toThrow(/different earners/);
     });
 });

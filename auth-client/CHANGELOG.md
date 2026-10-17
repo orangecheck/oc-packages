@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.32.0] — 2026-10-17
+
+### Changed — sign-in doesn't sound Bitcoin-only
+
+- `OcSignInButton` says "sign in" by default, not "sign in with bitcoin":
+  most people sign in with email, Google or GitHub. Pass `label` to keep the
+  old text.
+- The email step ends "Link a Bitcoin address any time: a way in that only you
+  hold." A linked address is another way in, not a second identity.
+
 ## [2.31.0] — 2026-10-16
 
 ### Changed — `OcBond` reads as what it is: backing, with a coin that stays in the wallet
