@@ -7,6 +7,13 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.32.1] — 2026-10-17
+
+### Changed
+
+- The email step says "Add a Bitcoin address any time", the verb the account
+  page uses for every way to sign in.
+
 ## [2.32.0] — 2026-10-17
 
 ### Changed — sign-in doesn't sound Bitcoin-only
