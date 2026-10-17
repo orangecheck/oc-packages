@@ -8,6 +8,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.27.4] — 2026-10-16
+
+### Fixed — two docstrings that misled integrators
+
+- `OcPopupResult.account` said integrators get a per-project anonymous
+  identifier. They get `did_oc`, the same at every site.
+- `OcSignInButton` said it was a drop-in sign-in. It rides the family cookie,
+  so it works only on orangecheck's own sites; a third-party site uses
+  `signInWithOc()` and `withOcAuth`.
+
 ## [0.27.3] — 2026-10-16
 
 ### Fixed — a tightened sign-in requirement took up to fifteen minutes to bite

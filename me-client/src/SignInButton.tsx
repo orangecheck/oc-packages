@@ -17,10 +17,11 @@ export interface OcSignInButtonProps
 }
 
 /**
- * Drop-in Sign-in-with-OC button. Triggers the me.ochk.io consent flow
- * for the requested scope, opens (or refreshes) a session, and calls
- * onSignin(session) on success. Class C billable event for the
- * integrating site; cashback flows to the user.
+ * Opens (or refreshes) a me.ochk.io session for an account already signed
+ * in on *.ochk.io, and calls onSignin(session). It rides the family cookie,
+ * so it works only on orangecheck's own sites: a third-party site signs
+ * people in with `signInWithOc()` from `@orangecheck/me-client/popup` and
+ * verifies the token with `withOcAuth` from `/server`.
  *
  * Mounting requires <OcSessionProvider> from @orangecheck/auth-client
  * somewhere up the React tree so the resulting session can be read by

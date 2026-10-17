@@ -48,10 +48,10 @@ export interface OcPopupAccount {
 }
 
 export interface OcPopupResult {
-    /** Account payload from the auth host. `did_oc` is the canonical
-     *  opaque identifier post auth-refactor (Dec 2025). Underlying
-     *  email + BTC stay private; integrators get a per-project
-     *  anonymous identifier unless they explicitly request a scope. */
+    /** Account payload from the auth host, unsigned: trust only the
+     *  verified token. `did_oc` is the account's opaque identifier, the
+     *  same at every site; the email and Bitcoin address stay private
+     *  unless the user grants a scope. */
     account: OcPopupAccount;
     /** The session JWT. Cross-domain integrators store this and send
      *  it as `Authorization: Bearer <token>` on subsequent calls.
