@@ -8,6 +8,31 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.32.1] — 2026-10-17
+
+The first published 0.32. The `me-client-v0.32.0` tag was pushed on the
+wrong commit, where the version still read 0.31.0, so the release refused it
+and nothing was published under 0.32.0.
+
+### Removed
+
+- `OcSignInButton`, deprecated in 0.30. It was the only React code in the
+  main entry, so a Node backend that imported `oc` crashed with "Cannot find
+  package 'react'". The main entry has no React now, and `react`,
+  `react-dom` and `@orangecheck/auth-client` are no longer peer dependencies.
+  Sign in with `signInWithOc()` from `/popup`.
+
+### Changed
+
+- A `projectKey` that names no project answers `500 unknown_project_key` and
+  logs once which key is wrong. It used to read as an outage
+  (`503 bond_policy_unavailable`) on every request.
+- `req.ocSession` is typed on Express's own `Request`, and `OcHonoEnv` types
+  `c.get('ocSession')`: `new Hono<OcHonoEnv>()`.
+- `webhook.verify` accepts a missing signature or kid (as `req.header()`
+  returns them) and answers `ok: false`.
+- The npm homepage is the quickstart.
+
 ## [0.31.0] — 2026-10-17
 
 ### Changed — templates price at the full user share

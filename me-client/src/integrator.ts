@@ -12,9 +12,8 @@
  *     EVENT_SUBTYPES,
  *   } from '@orangecheck/me-client/integrator';
  *
- * Use this instead of the main entry point in any context where
- * pulling React via the SignInButton tree-shake is a problem (e.g.
- * shell scripts, CI lints, the @orangecheck/cli package).
+ * The smallest entry point, for shell scripts, CI lints and the
+ * @orangecheck/cli package.
  */
 
 export {

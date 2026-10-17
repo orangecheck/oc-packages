@@ -167,6 +167,9 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
 /** Where someone turned away for want of backing can back their account. */
 export const BACK_ACCOUNT_URL = 'https://ochk.app/me/account#backing';
+/** Keys me.ochk.io answered 404 for, and when; re-checked after a minute. */
+const unknownKeys = new Map<string, number>();
+const UNKNOWN_PROJECT = Symbol('unknown_project');
 const POLICY_TTL_MS = 60_000;
 /** After a failed read, how long before me.ochk.io is asked again. */
 const POLICY_RETRY_MS = 10_000;
@@ -180,10 +183,13 @@ const policies = new Map<string, { at: number; need: BondNeed | null; failedAt?:
  * seconds so an outage doesn't hold every request; with none read yet it is
  * `undefined`, and the request is refused rather than let through unchecked.
  */
-async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
+async function projectRequirement(
+    options: WithOcAuthOptions
+): Promise<BondNeed | null | undefined | typeof UNKNOWN_PROJECT> {
     const key = options.projectKey!;
     const hit = policies.get(key);
     const now = Date.now();
+    if (unknownKeys.has(key) && now - unknownKeys.get(key)! < POLICY_TTL_MS) return UNKNOWN_PROJECT;
     if (hit && now - hit.at < POLICY_TTL_MS) return hit.need;
     if (hit?.failedAt && now - hit.failedAt < POLICY_RETRY_MS) return hit.at ? hit.need : undefined;
     try {
@@ -191,6 +197,17 @@ async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed 
         const r = await fetch(`${base}/api/integrator/${encodeURIComponent(key)}/sign-in`, {
             signal: AbortSignal.timeout(4000),
         });
+        // A key that names no project is a setup mistake, not an outage: say so once.
+        if (r.status === 404) {
+            if (!unknownKeys.has(key)) {
+                console.error(
+                    `[@orangecheck/me-client] projectKey "${key}" is not a project. Copy yours from https://ochk.app/me/projects.`
+                );
+            }
+            unknownKeys.set(key, Date.now());
+            return UNKNOWN_PROJECT;
+        }
+        unknownKeys.delete(key);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = (await r.json()) as {
             require_bond?: { min_sats: number; min_days: number } | null;
@@ -206,7 +223,9 @@ async function projectRequirement(options: WithOcAuthOptions): Promise<BondNeed 
 }
 
 /** The requirement in force: explicit, else the project's, else none. */
-async function bondNeed(options: WithOcAuthOptions): Promise<BondNeed | null | undefined> {
+async function bondNeed(
+    options: WithOcAuthOptions
+): Promise<BondNeed | null | undefined | typeof UNKNOWN_PROJECT> {
     if (options.requireBond) return options.requireBond;
     if (options.projectKey) return projectRequirement(options);
     return null;
@@ -220,6 +239,9 @@ async function refusal(
     const need = await bondNeed(options);
     if (!session && options.required) {
         return { status: 401, body: { ok: false, reason: 'unauthenticated' } };
+    }
+    if (need === UNKNOWN_PROJECT) {
+        return { status: 500, body: { ok: false, reason: 'unknown_project_key' } };
     }
     if (need === undefined) {
         return { status: 503, body: { ok: false, reason: 'bond_policy_unavailable' } };
@@ -293,6 +315,20 @@ export function withOcAuth<T extends NextApiHandlerLike>(
 
 // ─── Express / Connect middleware ────────────────────────────────────────
 
+// `req.ocSession` on Express's own Request type, so `ocAuthExpress()` routes
+// type-check without a cast. Inert when @types/express is absent.
+declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace Express {
+        interface Request {
+            ocSession?: SessionPayload | null;
+        }
+    }
+}
+
+/** Hono env for `ocAuthHono()`: `new Hono<OcHonoEnv>()` types `c.get('ocSession')`. */
+export type OcHonoEnv = { Variables: { ocSession: SessionPayload | null } };
+
 interface ExpressRequestLike {
     headers: { cookie?: string; authorization?: string; [k: string]: unknown };
     ocSession?: SessionPayload | null;
@@ -365,9 +401,9 @@ type HonoNextLike = () => Promise<void>;
  * Hono middleware. Attaches the verified session at `c.get('ocSession')`.
  *
  *   import { Hono } from 'hono';
- *   import { ocAuthHono } from '@orangecheck/me-client/server';
+ *   import { ocAuthHono, type OcHonoEnv } from '@orangecheck/me-client/server';
  *
- *   const app = new Hono();
+ *   const app = new Hono<OcHonoEnv>();
  *   app.use('*', ocAuthHono());
  *
  *   app.get('/api/profile', (c) => {

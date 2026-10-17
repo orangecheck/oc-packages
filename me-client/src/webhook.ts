@@ -179,8 +179,8 @@ async function verifyEd25519(
  */
 export async function verify(
     rawBody: string | Uint8Array,
-    sigHex: string,
-    kid: string,
+    sigHex: string | null | undefined,
+    kid: string | null | undefined,
     options: VerifyOptions = {}
 ): Promise<VerifyResult> {
     if (!sigHex) return { ok: false, reason: 'missing signature' };

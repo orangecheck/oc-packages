@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.31.0",
+    "version": "0.32.1",
     "description": "Drop-in client for me.ochk.io. Three entry points: React surface (OcSignInButton, useOcSession), server-side verification (withOcAuth for Next.js, ocAuthExpress, ocAuthHono — zero env vars, zero JWK handling), and a browser-only popup orchestrator (signInWithOc). Plus session lifecycle hooks, payment authorization, and the canonical billable-event taxonomy as types.",
     "keywords": [
         "orangecheck",
@@ -13,7 +13,7 @@
     ],
     "author": "OrangeCheck",
     "license": "MIT",
-    "homepage": "https://me.ochk.io",
+    "homepage": "https://docs.ochk.io/me/quickstart",
     "repository": {
         "type": "git",
         "url": "https://github.com/orangecheck/oc-packages.git",
@@ -64,23 +64,14 @@
         "@orangecheck/auth-core": "^2.8.0"
     },
     "peerDependencies": {
-        "@orangecheck/auth-client": "^2.0.0",
         "express": "^4.0.0 || ^5.0.0",
-        "hono": "^3.0.0 || ^4.0.0",
-        "react": "^18.0.0 || ^19.0.0",
-        "react-dom": "^18.0.0 || ^19.0.0"
+        "hono": "^3.0.0 || ^4.0.0"
     },
     "peerDependenciesMeta": {
         "express": {
             "optional": true
         },
         "hono": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        },
-        "react-dom": {
             "optional": true
         }
     },

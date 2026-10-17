@@ -148,6 +148,23 @@ describe('withOcAuth · projectKey', () => {
     });
 });
 
+describe('withOcAuth · a projectKey that names no project', () => {
+    it('says the key is wrong, once, instead of reporting an outage', async () => {
+        const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+        config = { status: 404, body: { ok: false, error: 'project_not_found' } };
+        const opts = { audience: MINE, projectKey: 'pk_live_typo' };
+        const r = await call(await token(BOND), opts);
+        expect(r.ran).toBe(false);
+        expect(r.status).toBe(500);
+        expect(r.body).toMatchObject({ reason: 'unknown_project_key' });
+        const again = await call(null, opts);
+        expect(again.body).toMatchObject({ reason: 'unknown_project_key' });
+        expect(errors).toHaveBeenCalledTimes(1);
+        expect(String(errors.mock.calls[0]![0])).toContain('pk_live_typo');
+        errors.mockRestore();
+    });
+});
+
 describe('withOcAuth · projectKey over time', () => {
     beforeEach(() => {
         vi.useFakeTimers({ toFake: ['Date'] });

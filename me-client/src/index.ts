@@ -7,7 +7,8 @@
  *
  * Three entry points for three audiences:
  *
- *   import { ... } from '@orangecheck/me-client'         // React surface
+ *   import { ... } from '@orangecheck/me-client'         // events, config,
+ *                                                          webhooks (no React)
  *   import { ... } from '@orangecheck/me-client/server'  // server-side
  *                                                          verification
  *                                                          (Next.js, Express,
@@ -40,8 +41,6 @@
  *   });
  */
 
-export { OcSignInButton } from './SignInButton';
-export type { OcSignInButtonProps } from './SignInButton';
 
 export { session, onTelemetry } from './session';
 export { payment } from './payment';
