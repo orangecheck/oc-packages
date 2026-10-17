@@ -390,7 +390,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'account, sign-in identities, passkeys and sign-in log',
-                            v: 'kept until you ask us to delete them at [[PRIVACY_CONTACT]]; there is no automatic deletion yet',
+                            v: 'deleted when your account-deletion request completes; file one in your account settings, or ask at [[PRIVACY_CONTACT]]',
                         },
                         {
                             k: 'support emails',

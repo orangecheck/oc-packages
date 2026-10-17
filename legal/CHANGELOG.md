@@ -6,6 +6,33 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.10] — 2026-10-17
+
+### Changed — deleting an account deletes it
+
+Account deletion now completes across the family: erasing a person's data on
+me.ochk.io, vault, chat and cosign, then closing their sign-in on ochk.io.
+
+- **me.ochk.io, "deletable":** was "you can permanently revoke your identity
+  in your settings", while completing a request left the sign-in account in
+  place. Now: "you can delete your account in your settings: your data is
+  erased and your sign-in closes".
+- **me.ochk.io, retention of the account row:** was "deleted on request via
+  the account-deletion flow", which never touched it. Now: deleted, with
+  sign-in identities, passkeys and sessions, when the request completes;
+  anchored and published data cannot be deleted by anyone.
+- **me.ochk.io, "identity & account deletion":** now says a person reviews the
+  request within 48 hours; completing it erases data on ochk.io, me.ochk.io,
+  vault, chat and cosign and closes the sign-in; payment receipts are kept
+  for accounting under an id that no longer leads to the person; backups roll
+  off within 30 days; Nostr and Bitcoin records cannot be removed, and the
+  attestations, polls, pledges, stamps and chat listing a person published
+  carry their Bitcoin address. It no longer says "no federation is bound
+  during bring-up" or that published records name no one.
+- **ochk.io, account and sign-in records:** was "kept until you ask us to
+  delete them … there is no automatic deletion yet". Now: deleted when the
+  account-deletion request completes.
+
 ## [0.7.9] — 2026-10-16
 
 ### Changed — the last two places that tied held earnings to email sign-in

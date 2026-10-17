@@ -241,7 +241,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'deletable',
-                            v: 'you can permanently revoke your identity in your settings',
+                            v: 'you can delete your account in your settings: your data is erased and your sign-in closes',
                         },
                     ],
                 },
@@ -358,7 +358,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'account row',
-                            v: 'deleted on request via the account-deletion flow, subject to the immutability of anchored data',
+                            v: 'deleted, with your sign-in identities, passkeys and sessions, when your account-deletion request completes; anchored and published data cannot be deleted by anyone',
                         },
                     ],
                 },
@@ -381,7 +381,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'In [your settings](/me/settings), under advanced, you can permanently revoke your OrangeCheck identity. Deleting does not pay out sats OrangeCheck owes you, and there is no sweep to self-custody to run first: no federation is bound during bring-up. Settle a non-zero balance before you delete. OrangeCheck deletes the operational records it holds about you; hashes already anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by anyone; neither names you.',
+                    text: 'In [your settings](/me/settings) you can delete your account. A person reviews the request within 48 hours. Completing it erases your data on ochk.io, me.ochk.io, vault, chat and cosign and closes your sign-in, so signing in again starts a new account. Payment receipts are kept for accounting under an id that no longer leads to you, and backups roll off within 30 days. Deleting does not pay out sats OrangeCheck holds for you: settle a non-zero balance first. Hashes anchored to Bitcoin and records published to Nostr cannot be deleted by anyone. me.ochk.io\'s own anchors name no one, but attestations, polls, pledges, stamps and a chat listing you published carry your Bitcoin address.',
                 },
             ],
         },
