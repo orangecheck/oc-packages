@@ -145,6 +145,35 @@ Now the gate doesn't have to trust the client — the address it sees has been c
 
 ---
 
+## Bonds: one coin backing one account
+
+An attestation publishes an address. A bond keeps it private. The holder signs
+once to pledge one unspent coin to one subject, and whoever relies on the bond
+sees only floors (at least N sats, at least D days) and a nullifier that is the
+same for that coin at that site and unrelated anywhere else. Spec:
+[`BOND.md`](https://github.com/orangecheck/oc-attest-protocol/blob/main/BOND.md).
+
+```ts
+import { bondFloors, bondNullifier, esploraSource, issueBondMessage, verifyBond } from '@orangecheck/sdk';
+
+// Registry: hand the holder a message naming their coin and your subject.
+const { message } = issueBondMessage({ address, outpoint: `${txid}:${vout}`, subject: didOc });
+
+// The holder signs it with BIP-322 in their wallet, then you verify the
+// signature and the coin: unspent, confirmed, 6+ deep, at that address.
+const r = await verifyBond({ message, signature, subject: didOc, source: esploraSource() });
+if (r.ok) {
+    const age = r.bond.tip.height - r.bond.confirmed_height + 1;
+    const claim = { ...bondFloors(r.bond.sats, age), nullifier: bondNullifier(audience, r.bond.outpoint) };
+}
+```
+
+`checkBondCoin` re-checks a stored bond's coin later; a spent coin ends the
+bond. Ban a nullifier and you've banned the coin: the holder has to move it to
+get past the ban, and moving it restarts its age.
+
+---
+
 ## Creating an attestation (issuer side)
 
 If you're building a wallet, a Nostr client, or a settings page where users should be able to _create_ a proof, use:
@@ -247,6 +276,13 @@ createAttestation(options: CreateAttestationOptions): Promise<AttestationEnvelop
 // Signed-challenge auth (proving address control).
 issueChallenge(options): Challenge
 verifyChallenge(options): Promise<VerifyChallengeResult>
+
+// Bonds (BOND.md).
+issueBondMessage(options): { message, nonce, expiresAt }
+verifyBond(options): Promise<BondResult>
+checkBondCoin(options): Promise<...>
+bondNullifier(audience, outpoint): string
+bondFloors(sats, ageBlocks): { sats_floor, days_floor }
 
 // Building blocks.
 buildCanonicalMessage(...)

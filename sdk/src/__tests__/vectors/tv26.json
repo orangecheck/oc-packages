@@ -1,0 +1,24 @@
+{
+  "id": "tv26",
+  "category": "bond_signature",
+  "description": "the P2TR signature presented over the P2WPKH bond message MUST NOT verify; the P2WPKH bond after its window MUST be refused",
+  "input": {
+    "cases": [
+      {
+        "now": "2026-10-16T12:05:00Z",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I pledge this coin to back this subject. It stays in my wallet.\n",
+        "signature": "AUEzVjEbyrc2uc/+2/fY8wq0b80qoiQomZHb93xrjurqCi6ZPAla20fXRTg4OWIccb77clZCCa/L4lhUlWuZeSiJAQ==",
+        "reason": "sig_invalid"
+      },
+      {
+        "now": "2026-10-16T12:20:00Z",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I pledge this coin to back this subject. It stays in my wallet.\n",
+        "signature": "AkcwRAIgXiBjNIVrHtzLTpQCwhreuR7CM0bM3opiP1nxPKsOI3cCIDda/wa1FZTXelNEKSSTxulsMX8iSkTlFL33O26flLg1ASECeb5mfvncu6xVoGKVzocLBwKb/NstzijZWfKBWxb4F5g=",
+        "reason": "bond_expired"
+      }
+    ]
+  },
+  "expected": {
+    "valid": false
+  }
+}

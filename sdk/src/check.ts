@@ -108,7 +108,7 @@ export async function check(params: CheckParams): Promise<CheckResult> {
             sig: env.signature,
             scheme: env.scheme,
         },
-        verifyOptions
+        { ...verifyOptions, coverSats: minSats > 0 ? minSats : undefined }
     );
 
     const sats = outcome.metrics?.sats_bonded ?? 0;

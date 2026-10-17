@@ -67,6 +67,12 @@ export interface VerifyOptions {
     esploraSignetBase?: string;
     /** Override testnet base URL */
     esploraTestnetBase?: string;
+    /**
+     * Without a `bond:` line, age the oldest coins that cover this many sats
+     * instead of the single oldest coin, so old dust can't lend its age to a
+     * fresh deposit. `check()` sets it to `minSats`.
+     */
+    coverSats?: number;
 }
 
 /**

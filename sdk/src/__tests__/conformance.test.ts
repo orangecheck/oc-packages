@@ -22,10 +22,17 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+    bondFloors,
+    bondId,
+    bondNullifier,
+    buildBondMessage,
     buildCanonicalMessage,
     computeScore,
     formatIdentities,
     generateAttestationId,
+    parseBondMessage,
+    verifyBondSignature,
+    type BondFields,
 } from '../index';
 
 const VECTORS_DIR = join(__dirname, 'vectors');
@@ -152,9 +159,62 @@ describe('conformance: bip322_signature', () => {
     }
 });
 
+describe('conformance: bonds (BOND.md)', () => {
+    const of = (c: string) => vectors.filter((x) => x.category === c);
+
+    for (const v of of('bond_message')) {
+        it(`${v.id}: ${v.description}`, () => {
+            const expected = v.expected as { canonical: string; bond_id: string };
+            const message = buildBondMessage(v.input as unknown as BondFields);
+            expect(message).toBe(expected.canonical);
+            expect(bondId(message)).toBe(expected.bond_id);
+            expect(parseBondMessage(message)).toEqual(v.input);
+        });
+    }
+
+    for (const v of of('bond_signature')) {
+        it(`${v.id}: ${v.description}`, () => {
+            const input = v.input as {
+                now?: string;
+                bonds?: { message: string; signature: string }[];
+                cases?: { now: string; message: string; signature: string; reason: string }[];
+            };
+            for (const [i, b] of (input.bonds ?? []).entries()) {
+                const r = verifyBondSignature({ ...b, now: new Date(input.now!) });
+                expect(r).toMatchObject({
+                    ok: true,
+                    bond_id: (v.expected as { bond_ids: string[] }).bond_ids[i],
+                });
+            }
+            for (const c of input.cases ?? []) {
+                const r = verifyBondSignature({ ...c, now: new Date(c.now) });
+                expect(r).toEqual({ ok: false, reason: c.reason });
+            }
+        });
+    }
+
+    for (const v of of('bond_nullifier')) {
+        it(`${v.id}: ${v.description}`, () => {
+            const input = v.input as { outpoint: string; audiences: string[] };
+            expect(input.audiences.map((a) => bondNullifier(a, input.outpoint))).toEqual(
+                (v.expected as { nullifiers: string[] }).nullifiers
+            );
+        });
+    }
+
+    for (const v of of('bond_floors')) {
+        it(`${v.id}: ${v.description}`, () => {
+            const cases = (v.input as { cases: { sats: number; age_blocks: number }[] }).cases;
+            expect(cases.map((c) => bondFloors(c.sats, c.age_blocks))).toEqual(
+                (v.expected as { floors: unknown[] }).floors
+            );
+        });
+    }
+});
+
 describe('conformance: vector index loaded', () => {
-    it('found at least 23 vectors across every category', () => {
-        expect(vectors.length).toBeGreaterThanOrEqual(23);
+    it('found at least 28 vectors across every category', () => {
+        expect(vectors.length).toBeGreaterThanOrEqual(28);
         const categories = new Set(vectors.map((v) => v.category));
         expect(categories).toEqual(
             new Set([
@@ -164,6 +224,10 @@ describe('conformance: vector index loaded', () => {
                 'score_v0',
                 'reject',
                 'bip322_signature',
+                'bond_message',
+                'bond_signature',
+                'bond_nullifier',
+                'bond_floors',
             ])
         );
     });

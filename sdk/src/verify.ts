@@ -383,7 +383,8 @@ async function getAddressUtxos(
  */
 function computeMetrics(
     utxos: EsploraUtxo[],
-    bondAmount?: number
+    bondAmount?: number,
+    coverSats?: number
 ): {
     /** Bonded satoshis (confirmed balance or bond amount) */
     sats_bonded: number;
@@ -436,6 +437,26 @@ function computeMetrics(
 
     // Default behavior (no bond extension): sum all confirmed UTXOs
     const sats_bonded = confirmed_balance;
+
+    // A checker asking for an amount gets the age of the coins that make it
+    // up, oldest first, not the age of whichever coin is oldest.
+    if (coverSats !== undefined && coverSats > 0) {
+        const sorted = [...confirmedUtxos].sort(
+            (a, b) => (a.status.block_height ?? Infinity) - (b.status.block_height ?? Infinity)
+        );
+        let sum = 0;
+        let youngestTime = 0;
+        for (const utxo of sorted) {
+            sum += utxo.value;
+            youngestTime = Math.max(youngestTime, utxo.status.block_time || Date.now() / 1000);
+            if (sum >= coverSats) break;
+        }
+        const days_unspent = Math.max(
+            0,
+            Math.floor((Date.now() / 1000 - youngestTime) / (24 * 60 * 60))
+        );
+        return { sats_bonded, days_unspent, confirmed_balance };
+    }
 
     // Find the oldest confirmed UTXO for days_unspent
     const oldestTime = Math.min(
@@ -553,7 +574,8 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             // Compute metrics with bond extension support (SPEC.md §5.4)
             const { sats_bonded, days_unspent, confirmed_balance } = computeMetrics(
                 utxos,
-                parsed.bond
+                parsed.bond,
+                opts.coverSats
             );
 
             // If bond extension is present, enforce minimum balance (SPEC.md §5.4.c)

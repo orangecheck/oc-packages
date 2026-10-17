@@ -42,6 +42,32 @@ export type {
     VerifyChallengeResult,
 } from './challenge';
 
+// ─── Bonds: one unspent coin backing one subject (BOND.md) ─────────────────
+export {
+    BOND_DAYS_FLOORS,
+    BOND_MIN_CONFIRMATIONS,
+    BOND_SATS_FLOORS,
+    bondFloors,
+    bondId,
+    bondNullifier,
+    buildBondMessage,
+    checkBondCoin,
+    esploraSource,
+    issueBondMessage,
+    parseBondMessage,
+    verifyBond,
+    verifyBondSignature,
+} from './bond';
+export type {
+    BondChainSource,
+    BondCoin,
+    BondFields,
+    BondReason,
+    BondResult,
+    ChainTip,
+    VerifiedBond,
+} from './bond';
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 export * from './types';
 

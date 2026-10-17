@@ -1,0 +1,18 @@
+{
+  "id": "tv27",
+  "category": "bond_nullifier",
+  "description": "one coin, two audiences: same input gives the same nullifier, different audiences unrelated ones (BOND.md §6)",
+  "input": {
+    "outpoint": "1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0",
+    "audiences": [
+      "https://example.com",
+      "https://ochk.app"
+    ]
+  },
+  "expected": {
+    "nullifiers": [
+      "b95726767e6c00b97fd046bc612d7518c5987dd833cb69bf3cdb54a6268e8818",
+      "d70c6f2037f30dd8579cf504aae625eb8794dffe69dcf4d92752def0c5ec4a20"
+    ]
+  }
+}

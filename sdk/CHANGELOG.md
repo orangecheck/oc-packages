@@ -7,6 +7,28 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.12.0] — 2026-10-16
+
+### Added — bonds (oc-attest-protocol `BOND.md`)
+
+- `issueBondMessage`, `buildBondMessage`, `parseBondMessage`, `bondId`:
+  the eight-line `orangecheck-bond` message, content-addressed.
+- `verifyBondSignature` (shape, subject, signing window, BIP-322) and
+  `checkBondCoin` (the coin is an unspent, confirmed, 6+ deep output of the
+  signing address), composed by `verifyBond`.
+- `bondNullifier(audience, outpoint)` and `bondFloors(sats, ageBlocks)`: what an
+  audience sees instead of the coin.
+- `esploraSource(base)`: chain state from one named Esplora API, with no
+  silent fallback.
+
+### Fixed — old dust no longer lends its age to a fresh deposit
+
+- `check({ minSats, minDays })` compares `minDays` with the youngest of the
+  oldest coins that cover `minSats`, as `CheckResult.days` already documented.
+  It took the single oldest coin, so a year-old 546-sat output beside 100,000
+  sats deposited today passed `minDays: 365`. `verify()` takes the same rule as
+  `VerifyOptions.coverSats`; without it, its metrics are unchanged.
+
 ## [1.11.0] — 2026-10-16
 
 ### Changed — signatures verify through `@orangecheck/bip322`
