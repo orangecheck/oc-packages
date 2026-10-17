@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.30.1] — 2026-10-16
+
+### Fixed — a lockfile refresh could still break wallet sign-in
+
+- `@orangecheck/wallet-adapter` is now `^0.5.2`, the first version that
+  verifies signatures with `@orangecheck/bip322`. The old range let a site keep
+  0.5.1, which verifies through bip322-js, while its lockfile picked up
+  bitcoinjs-lib 6.1.9; every wallet signature then read as the wrong
+  account's. That is how attest.ochk.io broke on 2026-10-16.
+
 ## [2.30.0] — 2026-10-16
 
 ### Added — `OcBond`: back the account with bitcoin, on any family site
