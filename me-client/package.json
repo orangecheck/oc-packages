@@ -1,7 +1,7 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.32.1",
-    "description": "Drop-in client for me.ochk.io. Three entry points: React surface (OcSignInButton, useOcSession), server-side verification (withOcAuth for Next.js, ocAuthExpress, ocAuthHono — zero env vars, zero JWK handling), and a browser-only popup orchestrator (signInWithOc). Plus session lifecycle hooks, payment authorization, and the canonical billable-event taxonomy as types.",
+    "version": "0.32.2",
+    "description": "Server and browser client for orangecheck sign-in and paying your users: withOcAuth for Next.js, ocAuthExpress and ocAuthHono (no env vars, no JWK handling), signInWithOc() popup, events, webhooks and the price taxonomy. No React.",
     "keywords": [
         "orangecheck",
         "bitcoin",

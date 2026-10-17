@@ -485,7 +485,8 @@ export interface SignInOptions {
 }
 
 export interface PaymentAuthorizeOptions {
-    identity: string;
+    /** @deprecated Ignored: the server takes the account from the session. */
+    identity?: string;
     amount_sats?: number;
     usd_cents?: number;
     description: string;

@@ -100,11 +100,14 @@ let warnedAudience = false;
  */
 function warnIfAudienceMissing(headers: SessionRequestHeaders | Headers): void {
     if (warnedAudience) return;
-    const auth =
-        typeof Headers !== 'undefined' && headers instanceof Headers
-            ? headers.get('authorization')
-            : (headers as SessionRequestHeaders).authorization;
-    const m = typeof auth === 'string' ? /^Bearer\s+([^.]+)\.([^.]+)\./i.exec(auth) : null;
+    const web = typeof Headers !== 'undefined' && headers instanceof Headers;
+    const auth = web ? headers.get('authorization') : (headers as SessionRequestHeaders).authorization;
+    const cookie = web ? headers.get('cookie') : (headers as SessionRequestHeaders).cookie;
+    // The token arrives as a Bearer, or in the oc_session cookie your own route set.
+    const bearer = typeof auth === 'string' ? /^Bearer\s+(\S+)$/i.exec(auth.trim())?.[1] : undefined;
+    const fromCookie =
+        typeof cookie === 'string' ? /(?:^|;\s*)oc_session=([^;]+)/.exec(cookie)?.[1] : undefined;
+    const m = /^([^.]+)\.([^.]+)\./.exec(bearer ?? fromCookie ?? '');
     if (!m) return;
     try {
         const payload = JSON.parse(base64UrlToString(m[2]!)) as { aud?: unknown };
@@ -137,7 +140,8 @@ interface NextApiResponseLike {
     json(body: unknown): unknown;
     setHeader(name: string, value: string | number | readonly string[]): unknown;
 }
-type NextApiHandlerLike = (req: NextApiRequestLike, res: NextApiResponseLike) => unknown | Promise<unknown>;
+/** A request with the verified session attached: `WithOcSession<NextApiRequest>`. */
+export type WithOcSession<Req> = Req & { ocSession?: SessionPayload | null };
 
 export interface WithOcAuthOptions extends VerifyOcOptions {
     /** When true, unauthenticated requests get a 401 + `{ok:false}` response
@@ -288,11 +292,14 @@ async function refusal(
  * are set on every authenticated response — without them a cached 401
  * leaks anonymous to authenticated callers.
  */
-export function withOcAuth<T extends NextApiHandlerLike>(
-    handler: T,
+export function withOcAuth<
+    Req extends NextApiRequestLike = NextApiRequestLike,
+    Res extends NextApiResponseLike = NextApiResponseLike,
+>(
+    handler: (req: WithOcSession<Req>, res: Res) => unknown,
     options: WithOcAuthOptions = {}
-): T {
-    const wrapped = async (req: NextApiRequestLike, res: NextApiResponseLike) => {
+): (req: Req, res: Res) => Promise<unknown> {
+    return async (req: Req, res: Res) => {
         res.setHeader('Cache-Control', 'no-store, private');
         res.setHeader('Vary', 'Cookie, Authorization');
         const session = await getOcSession(
@@ -305,12 +312,12 @@ export function withOcAuth<T extends NextApiHandlerLike>(
             },
             options
         );
-        req.ocSession = session;
+        const withSession = req as WithOcSession<Req>;
+        withSession.ocSession = session;
         const refused = await refusal(session, options);
         if (refused) return res.status(refused.status).json(refused.body);
-        return handler(req, res);
+        return handler(withSession, res);
     };
-    return wrapped as unknown as T;
 }
 
 // ─── Express / Connect middleware ────────────────────────────────────────

@@ -8,6 +8,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.32.2] — 2026-10-17
+
+### Fixed
+
+- A handler typed with Next's own `NextApiRequest` / `NextApiResponse`
+  type-checks inside `withOcAuth`. Read the session with
+  `WithOcSession<NextApiRequest>`.
+- The missing-`audience` warning also fires for a token in your own
+  `oc_session` cookie, the flow the quickstart teaches; it used to stay
+  silent there and every sign-in 401ed with no clue.
+- `payment.authorize` no longer requires `identity`, which the server ignores;
+  it takes the account from the session.
+- The npm description no longer advertises the removed React button.
+
 ## [0.32.1] — 2026-10-17
 
 The first published 0.32. The `me-client-v0.32.0` tag was pushed on the
