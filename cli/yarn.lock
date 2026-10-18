@@ -198,10 +198,10 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/me-client@^0.28.0":
-  version "0.28.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.28.0.tgz#5c0a01405cdd4ded109661c13399221c21670579"
-  integrity sha512-XxDiZBRo+Hsl5y5ySHxIsmTC2NNwrPHnmowbXAGpl+e5zD64MA7o9O41pyCUl8diM6dZyL9Y2YV2gYKYjGX0Aw==
+"@orangecheck/me-client@^0.31.0":
+  version "0.31.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.31.0.tgz#bf26578c8d28de66c3c9e9e63ffa43fed738c210"
+  integrity sha512-ZG45nokPs3ic6kS/DlPzoj1XnH73NQKc+EcDa9DuaquEykV9D/TO8z4/CCCNr5Xb5HkTQe3PP9hIbUNeeRpchA==
   dependencies:
     "@orangecheck/auth-core" "^2.8.0"
 
