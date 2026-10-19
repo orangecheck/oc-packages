@@ -8,6 +8,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.32.3] — 2026-10-19
+
+### Changed
+
+- `oc.identity.verifyActivityAttestation` reads the attestation from the
+  signed bytes (`canonical_b64`) and returns those values. The bytes must be
+  an `oc-me-activity` attestation in canonical form, the expiry is the signed
+  one, and a bundle whose readable `attestation` differs from the signed
+  bytes fails. `attestation` in the input is now optional, and the result
+  carries `attestation` only when every check passes. Upgrade if you gate on
+  the result.
+
 ## [0.32.2] — 2026-10-17
 
 ### Fixed

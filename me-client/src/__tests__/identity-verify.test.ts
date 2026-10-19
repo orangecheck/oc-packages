@@ -109,24 +109,28 @@ describe('oc.identity.verifyActivityAttestation', () => {
         expect(result.checks.every((c) => c.ok)).toBe(true);
     });
 
-    it('rejects a bundle whose canonical_b64 has been tampered (id mismatch)', async () => {
+    it('rejects a bundle whose canonical_b64 has been tampered', async () => {
         const { bundle, jwk } = await makeAttestation();
+        const signed = Buffer.from(bundle.canonical_b64, 'base64').toString('utf8');
+        const edited = signed.replace('"lifetime_sats":12500', '"lifetime_sats":99999');
+        expect(edited).not.toBe(signed);
         const tampered: ActivityAttestationBundle = {
             ...bundle,
-            canonical_b64: Buffer.from(
-                Buffer.concat([
-                    Buffer.from(bundle.canonical_b64, 'base64'),
-                    Buffer.from([0]),
-                ])
-            ).toString('base64'),
+            canonical_b64: Buffer.from(edited).toString('base64'),
         };
         const result = await verifyActivityAttestation(tampered, { jwk });
         expect(result.ok).toBe(false);
-        expect(result.reason).toMatch(/id does not match/);
-        const idCheck = result.checks.find((c) =>
-            c.label.includes('sha256(canonical_bytes)')
-        );
+        expect(result.reason).toBe('attestation does not match the signed bytes');
+        const idCheck = result.checks.find((c) => c.label.includes('sha256(canonical_bytes)'));
         expect(idCheck?.ok).toBe(false);
+
+        const padded: ActivityAttestationBundle = {
+            ...bundle,
+            canonical_b64: Buffer.concat([Buffer.from(signed), Buffer.from([0])]).toString('base64'),
+        };
+        const again = await verifyActivityAttestation(padded, { jwk });
+        expect(again.ok).toBe(false);
+        expect(again.reason).toBe('canonical bytes are not an activity attestation');
     });
 
     it('rejects a bundle whose sig has been swapped from another attestation', async () => {
@@ -195,5 +199,84 @@ describe('oc.identity.verifyActivityAttestation', () => {
         });
         expect(after.ok).toBe(false);
         expect(after.reason).toMatch(/expired/);
+    });
+});
+
+/** Sign arbitrary bytes as an attestation would be, for bundles me.ochk.io never issues. */
+async function signBytes(bytes: Uint8Array) {
+    const { privateKey, publicKey } = (await generateKeyPair('EdDSA', {
+        crv: 'Ed25519',
+        extractable: true,
+    })) as { privateKey: KeyObject; publicKey: KeyObject };
+    const pubJwk = (await exportJWK(publicKey)) as { x: string };
+    const kid = 'raw-' + pubJwk.x.slice(0, 10);
+    const sig = await globalThis.crypto.subtle.sign(
+        'Ed25519',
+        privateKey as unknown as CryptoKey,
+        bytes as unknown as ArrayBuffer
+    );
+    return {
+        bundle: {
+            sig: bytesToHex(new Uint8Array(sig)),
+            kid,
+            canonical_b64: Buffer.from(bytes).toString('base64'),
+        },
+        jwk: { kty: 'OKP' as const, crv: 'Ed25519' as const, x: pubJwk.x, kid, alg: 'EdDSA' as const },
+    };
+}
+
+describe('the result is what the signature covers', () => {
+    it('refuses a readable copy that differs from the signed bytes, and returns no attestation', async () => {
+        const { bundle, jwk } = await makeAttestation();
+        const forged: ActivityAttestationBundle = {
+            ...bundle,
+            attestation: {
+                ...bundle.attestation!,
+                did_oc: 'did:oc:anyone',
+                lifetime_sats: 21_000_000,
+                expires_at: '2099-01-01T00:00:00.000Z',
+            },
+        };
+        const result = await verifyActivityAttestation(forged, { jwk });
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('attestation does not match the signed bytes');
+        expect(result.attestation).toBeUndefined();
+    });
+
+    it('returns the signed values, and needs no readable copy', async () => {
+        const { bundle, jwk } = await makeAttestation({ lifetime_sats: 777 });
+        const { attestation: copy, ...bare } = bundle;
+        const result = await verifyActivityAttestation(bare, { jwk });
+        expect(result.ok).toBe(true);
+        expect(result.attestation).toEqual(copy);
+        expect(result.attestation?.lifetime_sats).toBe(777);
+    });
+
+    it('takes the expiry from the signed bytes, not the copy', async () => {
+        const { bundle, jwk } = await makeAttestation({ expires_at: '2020-01-01T00:00:00.000Z' });
+        const { attestation: _copy, ...bare } = bundle;
+        const result = await verifyActivityAttestation(bare, { jwk });
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('attestation has expired');
+    });
+
+    it('refuses signed bytes that are not the canonical encoding', async () => {
+        const { bundle } = await makeAttestation();
+        const text = Buffer.from(bundle.canonical_b64, 'base64').toString('utf8');
+        const spaced = new TextEncoder().encode(JSON.stringify(JSON.parse(text), null, 1));
+        const { bundle: b, jwk } = await signBytes(spaced);
+        const result = await verifyActivityAttestation(b, { jwk });
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('canonical bytes are not an activity attestation');
+    });
+
+    it('refuses signed bytes of another kind', async () => {
+        const { bundle } = await makeAttestation();
+        const text = Buffer.from(bundle.canonical_b64, 'base64').toString('utf8');
+        const other = new TextEncoder().encode(text.replace('"oc-me-activity"', '"oc-me-trust"'));
+        const { bundle: b, jwk } = await signBytes(other);
+        const result = await verifyActivityAttestation(b, { jwk });
+        expect(result.ok).toBe(false);
+        expect(result.reason).toBe('canonical bytes are not an activity attestation');
     });
 });

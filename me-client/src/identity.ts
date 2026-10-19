@@ -40,7 +40,9 @@ export interface ActivityAttestation {
 }
 
 export interface ActivityAttestationBundle {
-    attestation: ActivityAttestation;
+    /** A readable copy. Never trusted: the result is read from the signed
+     *  bytes, and a copy that differs from them fails the check. */
+    attestation?: ActivityAttestation;
     sig: string;
     kid: string;
     canonical_b64: string;
@@ -204,14 +206,72 @@ async function verifyEd25519(
     }
 }
 
+/** The signed fields, in the order me.ochk.io encodes them. */
+const SIGNED_FIELDS = [
+    'v',
+    'kind',
+    'did_oc',
+    'event_count',
+    'human_event_count',
+    'lifetime_sats',
+    'distinct_integrator_count',
+    'oldest_event_at',
+    'active_days',
+    'computed_at',
+    'expires_at',
+] as const;
+const COUNTS = [
+    'event_count',
+    'human_event_count',
+    'lifetime_sats',
+    'distinct_integrator_count',
+    'active_days',
+] as const;
+
+/** The attestation the signature covers, read from the signed bytes, or
+ *  null when they are not one in canonical form. */
+function readSignedAttestation(canonical: Uint8Array, id: string): ActivityAttestation | null {
+    const text = new TextDecoder().decode(canonical);
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch {
+        return null;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const o = parsed as Record<string, unknown>;
+    if (o.v !== 1 || o.kind !== 'oc-me-activity' || typeof o.did_oc !== 'string') return null;
+    const countsOk = COUNTS.every((k) => {
+        const n = o[k];
+        return typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+    });
+    if (!countsOk) return null;
+    if (o.oldest_event_at !== null && typeof o.oldest_event_at !== 'string') return null;
+    if (typeof o.computed_at !== 'string' || typeof o.expires_at !== 'string') return null;
+    const ordered = Object.fromEntries(SIGNED_FIELDS.map((k) => [k, o[k]]));
+    // Only the canonical encoding counts: no extra keys, no reordering, no whitespace.
+    if (JSON.stringify(ordered) !== text) return null;
+    return { id, ...(ordered as Omit<ActivityAttestation, 'id'>) };
+}
+
+/** True when every field of the readable copy equals the signed value. */
+function sameAttestation(copy: ActivityAttestation, signed: ActivityAttestation): boolean {
+    const c = copy as unknown as Record<string, unknown>;
+    const v = signed as unknown as Record<string, unknown>;
+    return (['id', ...SIGNED_FIELDS] as const).every((k) => c[k] === v[k]);
+}
+
 /**
  * Verify a signed activity attestation bundle. Returns a typed
  * ActivityVerifyResult with per-check detail · never throws (network
  * + parse failures surface as ok=false rows in the checks array, so
  * the caller can log them without try/catch).
  *
- * Five checks, in order: bundle shape, canonical-bytes hash matches
- * id, JWK with matching kid present, ed25519 signature, freshness.
+ * Checks, in order: bundle shape, the signed bytes decode and are an
+ * attestation in canonical form, the readable copy (when given) equals
+ * them, JWK with matching kid present, ed25519 signature, freshness.
+ * `attestation` in the result is read from the signed bytes, and is set
+ * only when every check passes.
  */
 export async function verifyActivityAttestation(
     bundle: ActivityAttestationBundle,
@@ -226,18 +286,15 @@ export async function verifyActivityAttestation(
         typeof bundle.sig === 'string' &&
         typeof bundle.kid === 'string' &&
         typeof bundle.canonical_b64 === 'string' &&
-        !!bundle.attestation &&
-        typeof bundle.attestation.id === 'string' &&
-        typeof bundle.attestation.expires_at === 'string';
+        (bundle.attestation === undefined ||
+            (!!bundle.attestation && typeof bundle.attestation === 'object'));
     checks.push({
         ok: shapeOk,
-        label: 'bundle shape · sig / kid / canonical_b64 / attestation',
+        label: 'bundle shape · sig / kid / canonical_b64',
     });
     if (!shapeOk) {
         return { ok: false, reason: 'bundle shape invalid', checks };
     }
-
-    const a = bundle.attestation;
 
     // 2. canonical_b64 decodes
     const canonical = base64ToBytes(bundle.canonical_b64);
@@ -246,18 +303,25 @@ export async function verifyActivityAttestation(
         label: 'canonical_b64 decodes',
         detail: canonical ? `${canonical.length} bytes` : 'invalid base64',
     });
-    if (!canonical) return { ok: false, reason: 'canonical_b64 invalid base64', checks, attestation: a };
+    if (!canonical) return { ok: false, reason: 'canonical_b64 invalid base64', checks };
 
-    // 3. sha256 === id
-    const digest = await sha256(canonical);
-    const computedId = bytesToHex(digest);
-    const idOk = computedId === a.id;
+    // 3. The signed bytes are an attestation, and the readable copy says the same
+    const computedId = bytesToHex(await sha256(canonical));
+    const signed = readSignedAttestation(canonical, computedId);
     checks.push({
-        ok: idOk,
-        label: 'sha256(canonical_bytes) === id',
-        detail: idOk ? a.id : `expected ${a.id}, got ${computedId}`,
+        ok: signed !== null,
+        label: 'canonical_bytes are an oc-me-activity attestation in canonical form',
     });
-    if (!idOk) return { ok: false, reason: 'id does not match canonical-bytes hash', checks, attestation: a };
+    if (!signed) return { ok: false, reason: 'canonical bytes are not an activity attestation', checks };
+
+    const copy = bundle.attestation;
+    const copyOk = copy === undefined || sameAttestation(copy, signed);
+    checks.push({
+        ok: copyOk,
+        label: 'attestation === the signed bytes, id = sha256(canonical_bytes)',
+        detail: copyOk ? computedId : 'the readable copy differs from what was signed',
+    });
+    if (!copyOk) return { ok: false, reason: 'attestation does not match the signed bytes', checks };
 
     // 4. JWK lookup + ed25519 verify
     let key: AuthKey | null = null;
@@ -268,7 +332,7 @@ export async function verifyActivityAttestation(
                 label: 'JWK with matching kid present',
                 detail: `provided jwk.kid=${options.jwk.kid} but bundle.kid=${bundle.kid}`,
             });
-            return { ok: false, reason: 'kid mismatch with provided jwk', checks, attestation: a };
+            return { ok: false, reason: 'kid mismatch with provided jwk', checks };
         }
         try {
             key = (await importJWK(options.jwk, 'EdDSA')) as AuthKey;
@@ -279,7 +343,7 @@ export async function verifyActivityAttestation(
                 label: 'JWK with matching kid present',
                 detail: `provided jwk failed import: ${(err as Error).message}`,
             });
-            return { ok: false, reason: 'provided jwk failed import', checks, attestation: a };
+            return { ok: false, reason: 'provided jwk failed import', checks };
         }
     } else {
         const issuer = options.issuer ?? DEFAULT_ISSUER;
@@ -299,7 +363,7 @@ export async function verifyActivityAttestation(
                 detail: key ? `kid ${bundle.kid}` : `no JWK with kid ${bundle.kid} at ${issuer}${ENVELOPE_JWKS_PATH}`,
             });
             if (!key) {
-                return { ok: false, reason: `kid ${bundle.kid} not in envelope JWKS`, checks, attestation: a };
+                return { ok: false, reason: `kid ${bundle.kid} not in envelope JWKS`, checks };
             }
         } catch (err) {
             checks.push({
@@ -311,7 +375,6 @@ export async function verifyActivityAttestation(
                 ok: false,
                 reason: `envelope JWKS unavailable: ${(err as Error).message}`,
                 checks,
-                attestation: a,
             };
         }
     }
@@ -323,7 +386,7 @@ export async function verifyActivityAttestation(
             label: 'ed25519.verify(sig, canonical_bytes, jwk.public)',
             detail: 'malformed sig (expected hex)',
         });
-        return { ok: false, reason: 'malformed sig', checks, attestation: a };
+        return { ok: false, reason: 'malformed sig', checks };
     }
     const sigOk = await verifyEd25519(key, sigBytes, canonical);
     checks.push({
@@ -331,11 +394,11 @@ export async function verifyActivityAttestation(
         label: 'ed25519.verify(sig, canonical_bytes, jwk.public)',
         detail: sigOk ? 'signature valid' : 'signature does not match',
     });
-    if (!sigOk) return { ok: false, reason: 'signature does not match', checks, attestation: a };
+    if (!sigOk) return { ok: false, reason: 'signature does not match', checks };
 
-    // 5. Freshness
+    // 5. Freshness, from the signed expiry
     const now = options.now ?? new Date();
-    const expiresMs = Date.parse(a.expires_at);
+    const expiresMs = Date.parse(signed.expires_at);
     const freshOk = Number.isFinite(expiresMs) && expiresMs > now.getTime();
     checks.push({
         ok: freshOk,
@@ -344,9 +407,9 @@ export async function verifyActivityAttestation(
             ? `expires ${new Date(expiresMs).toISOString()}`
             : 'attestation has expired',
     });
-    if (!freshOk) return { ok: false, reason: 'attestation has expired', checks, attestation: a };
+    if (!freshOk) return { ok: false, reason: 'attestation has expired', checks };
 
-    return { ok: true, attestation: a, checks };
+    return { ok: true, attestation: signed, checks };
 }
 
 /** Force-refresh the envelope-JWKS cache · useful after a key rotation
