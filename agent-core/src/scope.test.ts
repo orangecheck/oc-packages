@@ -229,3 +229,31 @@ describe('pledge:create is a registered scope', () => {
         expect(isSubScope(parseScope('pledge:create(max_bond_sats=3000000)'), granted)).toBe(false);
     });
 });
+
+// SPEC §7.3 / §7.6 (1.4.0): the scopes the agent-stack adapters exercise.
+describe('the adapter scopes are registered', () => {
+    for (const s of [
+        'anthropic:tool(name=invoice.create)',
+        'openai:function(name=getWeather)',
+        'vercel:tool(verb=invoice.create)',
+        'langgraph:tool(verb=search)',
+        'anthropic:tool(name=*)',
+    ]) {
+        it(`strict mode accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+
+    it('strict mode rejects a key the adapter does not use', () => {
+        expect(() => validateScope(parseScope('vercel:tool(name=search)'), { mode: 'strict' })).toThrow(ScopeParseError);
+        expect(() => validateScope(parseScope('anthropic:tool(verb=search)'), { mode: 'strict' })).toThrow(ScopeParseError);
+    });
+
+    it('a tool grant admits only that tool, case included', () => {
+        const granted = parseScope('openai:function(name=getWeather)');
+        expect(isSubScope(parseScope('openai:function(name=getWeather)'), granted)).toBe(true);
+        expect(isSubScope(parseScope('openai:function(name=getweather)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('openai:function(name=deleteAll)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('anthropic:tool(name=getWeather)'), granted)).toBe(false);
+    });
+});

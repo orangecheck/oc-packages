@@ -36,6 +36,11 @@ export const REGISTERED_SCOPES: Record<string, { keys: string[] }> = {
     'mcp:invoke': { keys: ['server', 'tool', 'max_invocations'] },
     // oc-pledge-protocol SPEC §7.3.
     'pledge:create': { keys: ['max_bond_sats', 'mechanism', 'counterparty'] },
+    // The agent-stack adapters (agent-anthropic, -openai, -vercel, -langgraph).
+    'anthropic:tool': { keys: ['name'] },
+    'openai:function': { keys: ['name'] },
+    'vercel:tool': { keys: ['verb'] },
+    'langgraph:tool': { keys: ['verb'] },
 };
 
 /** Keys whose values are compared numerically for sub-scope ordering. */

@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.5.0] — 2026-10-19
+
+### Added — the adapter scopes are registered
+
+oc-agent-protocol 1.4.0 registers the scopes the agent-stack adapters
+exercise: `anthropic:tool(name=…)`, `openai:function(name=…)`,
+`vercel:tool(verb=…)` and `langgraph:tool(verb=…)`. Strict mode, the default,
+rejected them as unknown scopes, so their envelopes verified only with
+`scopeMode: 'permissive'`. Values stay case-sensitive.
+
 ## [2.4.0] — 2026-10-08
 
 ### Changed — `verifyFederationDelegation` checks revocation
