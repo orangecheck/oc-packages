@@ -179,7 +179,7 @@ export function OcLinkedIdentities({
     if (!resp) {
         return (
             <div className={className} data-oc-li="" style={panelStyle()}>
-                <span style={hintStyle}>{'> '}loading…</span>
+                <span style={hintStyle}>loading…</span>
             </div>
         );
     }
@@ -552,7 +552,7 @@ export function LinkPromptStep({
                     skip — I&apos;ll do this later
                 </button>
                 <p style={{ ...hintStyle, marginTop: 8 }}>
-                    {'> '}Changed your mind? Skipping continues you straight on — your sign-in is
+                    Changed your mind? Skipping continues you straight on — your sign-in is
                     unaffected. You can link {what} anytime later from your account page,{' '}
                     <a
                         href={ACCOUNT_WAYS_URL}
@@ -967,7 +967,7 @@ export function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
             </ErrorLine>
         );
     }
-    if (!Comp) return <span style={hintStyle}>{'> '}loading wallet options…</span>;
+    if (!Comp) return <span style={hintStyle}>loading wallet options…</span>;
     return <Comp {...props} />;
 }
 

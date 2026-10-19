@@ -1679,7 +1679,6 @@ function Hint({ children }: { children: React.ReactNode }): React.ReactElement {
                 lineHeight: 1.55,
             }}
         >
-            {'> '}
             {children}
         </p>
     );

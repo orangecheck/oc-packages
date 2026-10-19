@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.32.3] — 2026-10-19
+
+### Changed
+
+- Hints no longer open with a terminal `> ` prompt (the sign-in wallet hint,
+  the linked-identities loading and skip notes, and the backing notes). The
+  backing explainer is in sentence case. ochk.app and the SDK sign-in popup
+  render these in a product voice, where the prompt read as a stray character.
+
 ## [2.32.2] — 2026-10-19
 
 ### Changed

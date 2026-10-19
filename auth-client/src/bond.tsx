@@ -232,7 +232,7 @@ export function OcBond({
     if (bond === undefined) {
         return (
             <div className={className} data-oc-bond="" style={panelStyle()}>
-                <span style={hintStyle}>{'> '}reading your backing…</span>
+                <span style={hintStyle}>reading your backing…</span>
             </div>
         );
     }
@@ -331,9 +331,9 @@ export function OcBond({
                 />
             ) : null}
             <p style={explainerStyle}>
-                {'> '}apps see only rough floors, like “at least 100,000 sats, held 30 days or
-                more”, and a number unique to that app. never the coin, your address or your
-                balance. an app can block that number; only moving the coin gets past it, and a
+                Apps see only rough floors, like “at least 100,000 sats, held 30 days or
+                more”, and a number unique to that app. Never the coin, your address or your
+                balance. An app can block that number; only moving the coin gets past it, and a
                 moved coin starts its age again.
             </p>
         </div>
