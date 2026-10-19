@@ -5,9 +5,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 /**
  * `<OcDashboardShell>` — the canonical demo-app frame for protocol
- * sites. Mirrors the `MeShell` pattern from `me.ochk.io`: persistent
- * left-rail tools on desktop, off-canvas drawer on mobile, page
- * eyebrow + title + description above the children.
+ * sites: persistent left-rail tools on desktop, off-canvas drawer on
+ * mobile, page eyebrow + title + description above the children.
  *
  * Drives the unified "dashboard pattern" the family rolled out
  * 2026-05-14: every protocol site's `/dashboard` (and the demo pages

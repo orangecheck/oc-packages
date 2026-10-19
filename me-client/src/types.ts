@@ -50,9 +50,9 @@ export const MIN_INTEGRATOR_PRICE_SATS = 1;
  */
 export const MAX_INTEGRATOR_PRICE_SATS = 10_000_000;
 
-/** Platform ceiling on drop-period windows: no integrator schedule may
- *  hold a user's earned share open longer than this, regardless of
- *  cadence. Published in ABUSE_LIMITS on me.ochk.io /trust + /security. */
+/** Platform ceiling on a release window: no integrator schedule may
+ *  hold a user's earned sats longer than this, whatever its cadence.
+ *  Published as `max_drop_window_days` at https://me.ochk.io/api/abuse-limits. */
 export const MAX_DROP_WINDOW_DAYS = 92;
 
 // ── event taxonomy ────────────────────────────────────────────────────────
