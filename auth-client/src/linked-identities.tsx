@@ -496,6 +496,9 @@ function AttestationLink(): React.ReactElement {
 
 /* --- post-sign-in link prompt (used by OcSignIn) --- */
 
+/** Where the ways to sign in are managed: ochk.app, which replaces me.ochk.io's pages. */
+const ACCOUNT_WAYS_URL = 'https://ochk.app/me/account#ways';
+
 /**
  * Shown by `<OcSignIn>` after a successful sign-in *when the user ticked
  * the "also link my other identity" checkbox on the sign-in form*. It runs
@@ -550,8 +553,17 @@ export function LinkPromptStep({
                 </button>
                 <p style={{ ...hintStyle, marginTop: 8 }}>
                     {'> '}Changed your mind? Skipping continues you straight on — your sign-in is
-                    unaffected. You can link {what} anytime later from your identity page,{' '}
-                    me.ochk.io/me/identity.
+                    unaffected. You can link {what} anytime later from your account page,{' '}
+                    <a
+                        href={ACCOUNT_WAYS_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'inherit' }}
+                        data-oc-linkprompt-account=""
+                    >
+                        ochk.app/me/account
+                    </a>
+                    .
                 </p>
             </div>
         </div>

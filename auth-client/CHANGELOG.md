@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.32.2] — 2026-10-19
+
+### Changed
+
+- After sign-in, the "skip" note said you could link the other way in later at
+  "me.ochk.io/me/identity", as plain text. It now links to
+  ochk.app/me/account, at the section that lists the ways to sign in
+  (`#ways`), in a new tab. ochk.app replaces me.ochk.io's pages.
+
 ## [2.32.1] — 2026-10-17
 
 ### Changed
