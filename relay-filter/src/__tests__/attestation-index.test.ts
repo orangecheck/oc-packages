@@ -70,6 +70,8 @@ describe('AttestationIndex.decide', () => {
 
     it('accepts the hex pubkey of an npub-bound attestation once its bond is read', async () => {
         bond(500_000);
+        index = new AttestationIndex({ minSats: 100_000 });
+        index.markSynced();
         expect(index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]))).toBe(true);
         await flush();
         expect(index.decide(ev(HEX_A!), { minSats: 100_000, minDays: 30 })).toMatchObject({
@@ -125,6 +127,28 @@ describe('AttestationIndex.decide', () => {
         } as never);
         await (index as unknown as { refresh(a: string): Promise<void> }).refresh(ADDR);
         expect(index.decide(ev(HEX_A!), { minSats: 100_000 }).reason).toBe('ok');
+    });
+
+    it('reads bond ages for the minSats it is given, and re-reads them for a larger one', async () => {
+        // The age is that of the coins covering minSats (OC Attest SPEC §7 step 5.d).
+        vi.mocked(verify).mockImplementation(async (_input, opts) => {
+            const days = (opts?.coverSats ?? 0) > 546 ? 1 : 400;
+            return {
+                ok: true,
+                codes: ['sig_ok_bip322', 'bond_confirmed'],
+                network: 'mainnet',
+                metrics: { sats_bonded: 100_546, days_unspent: days, score: 1 },
+            } as never;
+        });
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(verify).toHaveBeenLastCalledWith(expect.anything(), { coverSats: undefined });
+
+        // Read for 0 sats, the age says nothing about 100,000: ask again rather than answer.
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000, minDays: 30 }).reason).toBe('lookup_error');
+        expect(verify).toHaveBeenLastCalledWith(expect.anything(), { coverSats: 100_000 });
+        await flush();
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000, minDays: 30 }).reason).toBe('below_threshold');
     });
 
     it('rejects below the thresholds', async () => {

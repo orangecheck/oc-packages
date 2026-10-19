@@ -133,12 +133,15 @@ Strfry plugin uses. `decide()` is synchronous:
 ```ts
 import { AttestationIndex } from '@orangecheck/relay-filter';
 
-const index = new AttestationIndex(); // { relays?, refreshMs? }
+const index = new AttestationIndex({ minSats: 100_000 }); // { relays?, refreshMs?, minSats? }
 index.start();
 
 // in the EVENT handler, after verifyEvent():
 const decision = index.decide(event, { minSats: 100_000, minDays: 30 });
 ```
+
+A bond's age is that of the coins covering `minSats`, so give the index the
+`minSats` you decide with; a larger one at `decide()` re-reads every bond first.
 
 `filterEvent` below looks each pubkey up over the network instead. It suits a
 serverless handler that cannot hold state, and costs seconds on a cache miss:

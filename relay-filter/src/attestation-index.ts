@@ -37,6 +37,8 @@ interface Bond {
     ok: boolean;
     sats: number;
     days: number;
+    /** The amount `days` was read for: the age of the coins covering it. */
+    cover: number;
 }
 
 export interface IndexOptions {
@@ -44,6 +46,12 @@ export interface IndexOptions {
     relays?: string[];
     /** How often each bond is re-read from the chain. Default 10 minutes. */
     refreshMs?: number;
+    /**
+     * The `minSats` you pass to `decide()`. A bond's age is that of the coins
+     * covering it (OC Attest SPEC §7 step 5.d); given here, every bond is read
+     * for it from the start. A larger `minSats` at `decide()` re-reads them.
+     */
+    minSats?: number;
 }
 
 function signedLine(message: string, key: string): string | undefined {
@@ -104,8 +112,11 @@ export class AttestationIndex {
     private lookupsInFlight = 0;
     private synced = false;
     private stopped = false;
+    private cover: number;
 
-    constructor(private readonly options: IndexOptions = {}) {}
+    constructor(private readonly options: IndexOptions = {}) {
+        this.cover = options.minSats ?? 0;
+    }
 
     start(): void {
         this.startedAt = Date.now();
@@ -150,6 +161,13 @@ export class AttestationIndex {
             return { action: 'accept', reason: 'allowed_pubkey', pubkey };
         }
 
+        const minSats = opts.minSats ?? 0;
+        const minDays = opts.minDays ?? 0;
+        if (minSats > this.cover) {
+            this.cover = minSats;
+            void this.refreshAll();
+        }
+
         const addresses = new Set<string>();
         for (const a of this.byId.values()) if (a.keys.includes(pubkey)) addresses.add(a.address);
 
@@ -174,7 +192,8 @@ export class AttestationIndex {
                 continue;
             }
             const bond = this.bonds.get(address);
-            if (!bond) {
+            // An age read for a smaller amount can overstate this one's.
+            if (!bond || (minDays > 0 && bond.cover < minSats)) {
                 if (this.chainDown.has(address)) unreadable = true;
                 else unverified = true;
                 continue;
@@ -182,8 +201,6 @@ export class AttestationIndex {
             if (bond.ok && (!best || bond.sats > best.sats)) best = bond;
         }
 
-        const minSats = opts.minSats ?? 0;
-        const minDays = opts.minDays ?? 0;
         if (best && best.sats >= minSats && best.days >= minDays) {
             return { action: 'accept', reason: 'ok', pubkey };
         }
@@ -264,23 +281,30 @@ export class AttestationIndex {
             if (a.address === address && (!latest || a.issuedAt > latest.issuedAt)) latest = a;
         }
         if (!latest) return;
+        const cover = this.cover;
         try {
-            const out = await verify({
-                addr: latest.address,
-                msg: latest.message,
-                sig: latest.signature,
-                scheme: latest.scheme,
-            });
+            const out = await verify(
+                {
+                    addr: latest.address,
+                    msg: latest.message,
+                    sig: latest.signature,
+                    scheme: latest.scheme,
+                },
+                { coverSats: cover > 0 ? cover : undefined }
+            );
             // A chain-API outage is not a verdict: keep the last known bond.
             if (chainUnreachable(out.codes)) {
                 if (!this.bonds.has(address)) this.chainDown.add(address);
                 return;
             }
             this.chainDown.delete(address);
+            // Never replace a bond read for a larger amount with a lagging one.
+            if (cover < (this.bonds.get(address)?.cover ?? 0)) return;
             this.bonds.set(address, {
                 ok: out.ok,
                 sats: out.metrics?.sats_bonded ?? 0,
                 days: out.metrics?.days_unspent ?? 0,
+                cover,
             });
         } catch {
             // Keep the last known bond; a chain-API blip must not flip every decision.

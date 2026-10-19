@@ -75,6 +75,7 @@ async function main(): Promise<void> {
     const index = new AttestationIndex({
         relays: parseList(process.env.OC_RELAYS),
         refreshMs: process.env.OC_REFRESH_MS ? Number(process.env.OC_REFRESH_MS) : undefined,
+        minSats: options.minSats,
     });
     index.start();
     const rl = createInterface({ input: process.stdin, terminal: false });

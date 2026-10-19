@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.1] — 2026-10-19
+
+### Fixed
+
+- **A bond's age is that of the coins covering `minSats`**, as in OC Attest
+  SPEC §7 step 5.d: the address's outputs oldest first until they reach
+  `minSats`, aged by the youngest of them. `AttestationIndex` now reads each
+  bond with `verify(…, { coverSats })`; it took the age of the oldest output.
+  New `IndexOptions.minSats` sets the amount from the start, and `oc-strfry`
+  passes `OC_MIN_SATS`. A larger `minSats` at `decide()` re-reads every bond,
+  and until then a key that needs the age gets `lookup_error`.
+- `@orangecheck/sdk` is required at `^1.12.0`, the first version with
+  `coverSats` and with `check()` applying the same rule to `filterEvent`.
+
 ## [0.5.0] — 2026-10-08
 
 ### Changed
