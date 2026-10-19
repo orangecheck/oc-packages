@@ -7,6 +7,37 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [0.35.0] — 2026-10-19
+
+### Changed — the family lists ochk.app, not me.ochk.io (visible)
+
+me.ochk.io's pages are retiring into ochk.app; me.ochk.io stays as the API.
+The `me` product in `FAMILY_PROPERTIES` now reads:
+
+| Field | Was | Now |
+| --- | --- | --- |
+| origin | `https://me.ochk.io` | `https://ochk.app` |
+| label | `oc·me` | `ochk.app` |
+| sub | `earn — consumer identity` | `account — bitcoin behind it` |
+
+The logo menu, `EcosystemSwitcher`, `OcFamilyFooter`'s products column and
+`OcAccountMenu` all show it. The slug stays `me`: it names the product, and
+sites already pass it. A site still on me.ochk.io now shows "ochk.app" as
+where you are, which is the product's name now.
+
+### Changed — the switcher reads the registry
+
+`EcosystemSwitcher` kept its own copy of the family list, so every change was
+made twice. It now reads `FAMILY_PROPERTIES`. Two lines change as a result:
+the hub reads `umbrella · sign-in` (was `umbrella`) and docs reads
+`unified reference` (was `unified docs`), matching the logo menu.
+
+### Added — `check-family`
+
+`yarn test` fails if a registry entry, or a link in the rendered family
+footer, points at me.ochk.io or fleet.ochk.io. Putting the old origin back
+fails it on four checks.
+
 ## [0.34.1] — 2026-10-08
 
 ### Fixed — phone footer: one rule, not two

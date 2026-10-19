@@ -2,6 +2,7 @@ import { Boxes, Check, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useMenu } from '../tokens/use-menu';
+import { FAMILY_PROPERTIES } from './family-properties';
 
 /**
  * EcosystemSwitcher — cross-product dropdown for jumping between every
@@ -35,142 +36,12 @@ export type EcosystemSlug =
     | 'bot'
     | 'forge';
 
-interface SwitcherEntry {
-    slug: EcosystemSlug;
-    href: string;
-    label: string;
-    sub: string;
-    docsHref: string;
-}
+// Read from the registry, so the switcher and the logo menu cannot disagree.
+const ENTRIES = FAMILY_PROPERTIES.filter((p) => p.category !== 'owner');
 
-const ENTRIES: SwitcherEntry[] = [
-    {
-        slug: 'home',
-        href: 'https://ochk.io',
-        label: 'orangecheck',
-        sub: 'umbrella',
-        docsHref: 'https://docs.ochk.io',
-    },
-    {
-        slug: 'docs',
-        href: 'https://docs.ochk.io',
-        label: 'oc·docs',
-        sub: 'unified docs',
-        docsHref: 'https://docs.ochk.io',
-    },
-    {
-        slug: 'me',
-        href: 'https://me.ochk.io',
-        label: 'oc·me',
-        sub: 'earn — consumer identity',
-        docsHref: 'https://docs.ochk.io/me',
-    },
-    {
-        slug: 'vault',
-        href: 'https://vault.ochk.io',
-        label: 'oc·vault',
-        sub: 'keep — encrypted secrets',
-        docsHref: 'https://docs.ochk.io/vault',
-    },
-    {
-        slug: 'chat',
-        href: 'https://chat.ochk.io',
-        label: 'oc·chat',
-        sub: 'message — encrypted chat',
-        docsHref: 'https://docs.ochk.io/chat',
-    },
-    {
-        slug: 'cosign',
-        href: 'https://cosign.ochk.io',
-        label: 'oc·cosign',
-        sub: 'cofound — get behind builders',
-        docsHref: 'https://docs.ochk.io/cosign',
-    },
-    {
-        slug: 'btc',
-        href: 'https://btc.ochk.io',
-        label: 'oc·btc',
-        sub: 'read — bitcoin desk',
-        docsHref: 'https://btc.ochk.io/data',
-    },
-    {
-        slug: 'globe',
-        href: 'https://globe.ochk.io',
-        label: 'oc·globe',
-        sub: 'watch — the network, live',
-        docsHref: 'https://globe.ochk.io/sources',
-    },
-    {
-        slug: 'attest',
-        href: 'https://attest.ochk.io',
-        label: 'oc·attest',
-        sub: 'am — sybil resistance',
-        docsHref: 'https://docs.ochk.io/attest',
-    },
-    {
-        slug: 'lock',
-        href: 'https://lock.ochk.io',
-        label: 'oc·lock',
-        sub: 'whisper — encryption',
-        docsHref: 'https://docs.ochk.io/lock',
-    },
-    {
-        slug: 'vote',
-        href: 'https://vote.ochk.io',
-        label: 'oc·vote',
-        sub: 'decide — polls',
-        docsHref: 'https://docs.ochk.io/vote',
-    },
-    {
-        slug: 'stamp',
-        href: 'https://stamp.ochk.io',
-        label: 'oc·stamp',
-        sub: 'declare — block-anchored',
-        docsHref: 'https://docs.ochk.io/stamp',
-    },
-    {
-        slug: 'agent',
-        href: 'https://agent.ochk.io',
-        label: 'oc·agent',
-        sub: 'delegate — scoped auth',
-        docsHref: 'https://docs.ochk.io/agent',
-    },
-    {
-        slug: 'pledge',
-        href: 'https://pledge.ochk.io',
-        label: 'oc·pledge',
-        sub: 'swear — bonded commitment',
-        docsHref: 'https://docs.ochk.io/pledge',
-    },
-];
-
-/** Entries gated behind `showOwnerEntries={true}`. Owner-only family
- *  properties (`oc·analytics` at analytics.ochk.io, `oc·bot` at
- *  bot.ochk.io) live here so they're invisible to everyone except
- *  verified owners — the JWT claim drives the gate. */
-const OWNER_ENTRIES: SwitcherEntry[] = [
-    {
-        slug: 'analytics',
-        href: 'https://analytics.ochk.io',
-        label: 'oc·analytics',
-        sub: 'owner cockpit',
-        docsHref: 'https://analytics.ochk.io',
-    },
-    {
-        slug: 'bot',
-        href: 'https://bot.ochk.io',
-        label: 'oc·bot',
-        sub: 'social bot',
-        docsHref: 'https://bot.ochk.io',
-    },
-    {
-        slug: 'forge',
-        href: 'https://forge.ochk.io',
-        label: 'oc·forge',
-        sub: 'agent ops',
-        docsHref: 'https://forge.ochk.io',
-    },
-];
+/** Entries gated behind `showOwnerEntries={true}`: the owner-only properties,
+ *  invisible to everyone except verified owners (the JWT claim drives it). */
+const OWNER_ENTRIES = FAMILY_PROPERTIES.filter((p) => p.category === 'owner');
 
 export interface EcosystemSwitcherProps {
     current: EcosystemSlug;
@@ -237,7 +108,7 @@ export function EcosystemSwitcher({
                             return (
                                 <li key={e.slug}>
                                     <Link
-                                        href={e.href}
+                                        href={e.origin}
                                         onClick={() => setOpen(false)}
                                         aria-current={isActive ? 'page' : undefined}
                                         className={

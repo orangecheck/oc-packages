@@ -1,9 +1,9 @@
 /**
  * Family-property registry — the single source of truth for every
- * orangecheck-family site. Both `<OcLogoDropdown>` (the global logo →
- * property switcher) and `<OcAccountMenu>` (the global signed-in
- * account chip) read from this table, so a one-line edit here ripples
- * to every consumer simultaneously.
+ * orangecheck-family site. `<OcLogoDropdown>` (the global logo →
+ * property switcher), `<EcosystemSwitcher>`, `<OcFamilyFooter>` and
+ * `<OcAccountMenu>` (the global signed-in account chip) read from this
+ * table, so a one-line edit here ripples to every consumer simultaneously.
  *
  * Adding a new family member means appending one entry below. Removing
  * one means deleting the entry. There are no other call sites to chase.
@@ -50,11 +50,12 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         category: 'hub',
     },
     {
+        // The slug stays `me`: it names the product, which ochk.app now serves.
         slug: 'me',
-        origin: 'https://me.ochk.io',
-        hostname: 'me.ochk.io',
-        label: 'oc·me',
-        sub: 'earn — consumer identity',
+        origin: 'https://ochk.app',
+        hostname: 'ochk.app',
+        label: 'ochk.app',
+        sub: 'account — bitcoin behind it',
         docsHref: 'https://docs.ochk.io/me',
         category: 'product',
     },
