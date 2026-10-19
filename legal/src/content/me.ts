@@ -1,7 +1,7 @@
 /**
  * @orangecheck/legal — `me` profile.
  *
- * me.ochk.io: a consumer Bitcoin-backed identity that pays users in sats.
+ * ochk.app (its API at me.ochk.io): a consumer Bitcoin-backed identity that pays users in sats.
  * Federation-custodied by default, self-custody graduation, no KYC. This is
  * the only profile where value flows TO the user, so the money, custody, and
  * regulated-activity sections are rendered as counsel-review stubs per the
@@ -26,24 +26,24 @@ import {
 } from './clauses';
 
 const COMMERCIAL_NOTE =
-    '**me.ochk.io is a commercial product operated by OrangeCheck.** It is distinct from the non-custodial OrangeCheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern me.ochk.io. These Terms do. The same Service is also served at ochk.app, in its own design, from the same accounts and records: these Terms govern it at either address, and “me.ochk.io” in them means both.';
+    '**ochk.app is a commercial product operated by OrangeCheck.** It is distinct from the non-custodial OrangeCheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern ochk.app. These Terms do. Its API is served at me.ochk.io, from the same accounts and records: these Terms govern the Service at either address, and “ochk.app” in them means both.';
 
 const terms: DocSpec = {
     kind: 'terms',
     eyebrow: 'terms',
     title: 'Terms of service',
     description:
-        'The terms governing your use of me.ochk.io and ochk.app — a Bitcoin-backed identity that pays you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
-    metaTitle: 'Terms of Service — me.ochk.io',
+        'The terms governing your use of ochk.app and its API at me.ochk.io — a Bitcoin-backed identity that pays you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
+    metaTitle: 'Terms of Service — ochk.app',
     metaDescription:
-        'Terms of service for me.ochk.io: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
+        'Terms of service for ochk.app: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-15',
+    updated: '2026-10-19',
     preamble: [
         {
             kind: 'callout',
             emphatic: true,
-            text: 'By accessing or using me.ochk.io, you agree to be bound by these Terms. If you do not agree, do not use the Service. These Terms contain a binding-arbitration, class-action, and jury-trial waiver and important limitations on liability.',
+            text: 'By accessing or using ochk.app or its API at me.ochk.io, you agree to be bound by these Terms. If you do not agree, do not use the Service. These Terms contain a binding-arbitration, class-action, and jury-trial waiver and important limitations on liability.',
         },
         { kind: 'callout', text: COMMERCIAL_NOTE },
     ],
@@ -51,15 +51,15 @@ const terms: DocSpec = {
         {
             id: 'overview',
             heading: 'overview',
-            hint: 'what me.ochk.io is',
+            hint: 'what ochk.app is',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'me.ochk.io is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee flows back to you in sats. Your identity is anchored in Bitcoin, verifiable offline, and portable across the OrangeCheck family.',
+                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee flows back to you in sats. Your identity is anchored in Bitcoin, verifiable offline, and portable across the OrangeCheck family.',
                 },
                 {
                     kind: 'para',
-                    text: 'me.ochk.io is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it pays you.** That is a stage, not the design — see the custody section below for what holds today and what replaces it.',
+                    text: 'ochk.app is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it pays you.** That is a stage, not the design — see the custody section below for what holds today and what replaces it.',
                 },
             ],
         },
@@ -86,7 +86,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'stub',
-                    text: 'The economics of earning sats on me.ochk.io — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and OrangeCheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on [how it works](/how) and [the earn page](/earn). This section will be completed following review by counsel.',
+                    text: 'The economics of earning sats on ochk.app — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and OrangeCheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on [how it works](/how) and [the earn page](/earn). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -121,7 +121,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'me.ochk.io **does not perform Know-Your-Customer checks** and does not require your legal name, government ID, or physical address. Sybil resistance is achieved through protocol composition — BIP-322 sat-bond attestation, paid-action history, and integrator-defined gates — not identity verification. You must not use me.ochk.io to evade a KYC, AML, or sanctions obligation that applies to you elsewhere.',
+                    text: 'ochk.app **does not perform Know-Your-Customer checks** and does not require your legal name, government ID, or physical address. Sybil resistance is achieved through protocol composition — BIP-322 sat-bond attestation, paid-action history, and integrator-defined gates — not identity verification. You must not use ochk.app to evade a KYC, AML, or sanctions obligation that applies to you elsewhere.',
                 },
             ],
         },
@@ -131,7 +131,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'me.ochk.io publishes its abuse limits openly so legitimate users can see they are well below them. The canonical, current values are on the [security page](/security). Activity that exceeds a review threshold may be held for human review; activity assessed as sybil farming, wash-trading, or collusion between an integrator and a user may have earnings withheld or reversed and the identity suspended.',
+                    text: 'ochk.app publishes its abuse limits openly so legitimate users can see they are well below them. The canonical, current values are on the [security page](/security). Activity that exceeds a review threshold may be held for human review; activity assessed as sybil farming, wash-trading, or collusion between an integrator and a user may have earnings withheld or reversed and the identity suspended.',
                 },
                 {
                     kind: 'bullets',
@@ -151,7 +151,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Sites that integrate me.ochk.io receive a **per-integrator scoped identifier** for you, not your master identity — they cannot correlate you across sites unless you explicitly grant a scope. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. OrangeCheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
+                    text: 'Sites that integrate ochk.app through its API at me.ochk.io receive a **per-integrator scoped identifier** for you, not your master identity — they cannot correlate you across sites unless you explicitly grant a scope. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. OrangeCheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
                 },
             ],
         },
@@ -168,12 +168,12 @@ const terms: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'Nothing me.ochk.io provides is financial, investment, legal, or tax advice. me.ochk.io does not guarantee any level of earnings; cashback depends on integrator activity outside OrangeCheck’s control.',
+                    text: 'Nothing ochk.app provides is financial, investment, legal, or tax advice. ochk.app does not guarantee any level of earnings; cashback depends on integrator activity outside OrangeCheck’s control.',
                 },
                 { kind: 'subhead', text: 'regulatory status' },
                 {
                     kind: 'stub',
-                    text: 'me.ochk.io is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies and transmits the cashback it pays to every user**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
+                    text: 'ochk.app is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies and transmits the cashback it pays to every user**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -185,7 +185,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using me.ochk.io at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using ochk.app at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },
@@ -202,16 +202,16 @@ const privacy: DocSpec = {
     eyebrow: 'privacy',
     title: 'Privacy policy',
     description:
-        'How me.ochk.io and ochk.app handle your data: no KYC, no PII required, a per-integrator scoped identity, and a documented, falsifiable account of every record OrangeCheck stores.',
-    metaTitle: 'Privacy Policy — me.ochk.io',
+        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, a per-integrator scoped identity, and a documented, falsifiable account of every record OrangeCheck stores.',
+    metaTitle: 'Privacy Policy — ochk.app',
     metaDescription:
-        'me.ochk.io privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
+        'ochk.app privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-15',
+    updated: '2026-10-19',
     preamble: [
         {
             kind: 'callout',
-            text: 'This policy covers the Service at both of its addresses, me.ochk.io and ochk.app: one account, one store of records, one operator; “me.ochk.io” below means both. Its product is identity that pays you; its privacy posture is what makes it distinct from Sign in with Google. For a side-by-side comparison you can falsify, see [the privacy comparison](/privacy-compare).',
+            text: 'This policy covers the Service at both of its addresses, ochk.app and its API at me.ochk.io: one account, one store of records, one operator; “ochk.app” below means both. Its product is identity that pays you; its privacy posture is what makes it distinct from Sign in with Google. For a side-by-side comparison you can falsify, see [the privacy comparison](/privacy-compare).',
         },
     ],
     sections: [
@@ -225,7 +225,7 @@ const privacy: DocSpec = {
                     items: [
                         {
                             k: 'no kyc',
-                            v: 'me.ochk.io never collects your legal name, government ID, or physical address',
+                            v: 'ochk.app never collects your legal name, government ID, or physical address',
                         },
                         {
                             k: 'little pii at signup',
@@ -314,11 +314,11 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'On me.ochk.io, four cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin` and `oc_motion` — your dark/light, appearance and reduced-motion preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                    text: 'On ochk.app, two cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
                 },
                 {
                     kind: 'para',
-                    text: 'On ochk.app, two cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
+                    text: 'On me.ochk.io, four cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin` and `oc_motion` — your dark/light, appearance and reduced-motion preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
                 },
             ],
         },

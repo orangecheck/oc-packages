@@ -44,6 +44,10 @@ const BANNED = [
     [/works offline with \[?@?(orangecheck\/)?vault-core/i, 'the plain export has no key; the encrypted backup does'],
     [/OC Vault for Chromium/i, 'no browser extension is released'],
     [/Nostr-published (envelopes|event roots)/i, 'me.ochk publishes a salted commitment, never the envelope'],
+    // The Service is ochk.app; me.ochk.io is its API, not the product.
+    [/\bme\.ochk\.io (is an?|is not|is designed|does|publishes|never collects|provides)\b/i, 'the Service is ochk.app; me.ochk.io is its API'],
+    [/(accessing or using|stop using|integrate|Nothing) me\.ochk\.io/i, 'the Service is ochk.app; me.ochk.io is its API'],
+    [/commercial products \*?\*?me\.ochk\.io/i, 'the commercial product is ochk.app'],
 ];
 
 test('every doc renders', () => {
@@ -76,12 +80,27 @@ test('vault privacy says the key is stored sealed', () => {
 
 test('me privacy names ochk.app and its own cookies', () => {
     const text = DOCS.find(([n]) => n === 'me/privacy')[1];
-    for (const rx of [/me\.ochk\.io and ochk\.app/i, /__Host-oc_session[^.]*bound to ochk\.app/i, /__Host-oc_oauth/i]) {
+    for (const rx of [/ochk\.app and its API at me\.ochk\.io/i, /__Host-oc_session[^.]*bound to ochk\.app/i, /__Host-oc_oauth/i]) {
         assert.match(text, rx);
     }
 });
 
 test('me terms govern the Service at both addresses', () => {
     const text = DOCS.find(([n]) => n === 'me/terms')[1];
-    assert.match(text, /also served at ochk\.app[^.]*govern it at either address/i);
+    assert.match(text, /API is served at me\.ochk\.io[^.]*govern the Service at either address/i);
+});
+
+test('me terms and privacy name ochk.app as the Service', () => {
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.match(terms, /ochk\.app is a commercial product operated by OrangeCheck/);
+    assert.match(terms, /By accessing or using ochk\.app or its API at me\.ochk\.io, you agree/);
+    for (const kind of ['terms', 'privacy']) {
+        assert.match(buildDoc('me', kind).metaTitle, /— ochk\.app$/);
+    }
+});
+
+test('ochk.io terms and privacy name ochk.app as the commercial product', () => {
+    for (const name of ['www/terms', 'www/privacy']) {
+        assert.match(DOCS.find(([n]) => n === name)[1], /commercial products ochk\.app and vault\.ochk\.io/);
+    }
 });

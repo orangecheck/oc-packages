@@ -6,6 +6,45 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [0.7.11] — 2026-10-19
+
+### Changed — the Service is ochk.app; me.ochk.io is its API
+
+me.ochk.io's pages are retiring into ochk.app. me.ochk.io stays, serving the
+API. No fact about custody, money, data or cookies changed; only which address
+the documents call the Service.
+
+- **me terms, who the Service is, was:** "me.ochk.io is a commercial product
+  operated by OrangeCheck … The same Service is also served at ochk.app … and
+  'me.ochk.io' in them means both." **Now:** "ochk.app is a commercial product
+  operated by OrangeCheck … Its API is served at me.ochk.io, from the same
+  accounts and records: these Terms govern the Service at either address, and
+  'ochk.app' in them means both."
+- **me terms, acceptance, was:** "By accessing or using me.ochk.io, you agree
+  …". **Now:** "By accessing or using ochk.app or its API at me.ochk.io, you
+  agree …".
+- **me terms, every sentence whose subject was the product** (overview, not a
+  bank, earning, no KYC, abuse limits, disclaimers, regulatory status,
+  termination) now says ochk.app where it said me.ochk.io. Integrators "integrate
+  ochk.app through its API at me.ochk.io".
+- **me privacy, scope, was:** "both of its addresses, me.ochk.io and ochk.app
+  … 'me.ochk.io' below means both". **Now:** "both of its addresses, ochk.app
+  and its API at me.ochk.io … 'ochk.app' below means both." "never collects
+  your legal name" now has ochk.app as its subject. The cookie paragraphs swap
+  order, so ochk.app's comes first; both say what they said before.
+- **me.ochk.io is still named** where the address itself is the fact: the
+  cross-site linkage sits in storage on me.ochk.io infrastructure, the cookies
+  set on me.ochk.io, the data a deletion erases there, and its own anchors.
+- **Titles:** "Terms of Service — ochk.app" and "Privacy Policy — ochk.app"
+  (were "— me.ochk.io"). The `me` site's `host`, `product` and
+  `productShort` are `ochk.app`; its slug stays `me`.
+- **ochk.io terms and privacy, was:** "the commercial products me.ochk.io and
+  vault.ochk.io" publish their own Terms, pricing and privacy policies.
+  **Now:** "ochk.app and vault.ochk.io".
+
+`test/claims.test.mjs` now fails if me.ochk.io is the subject of a claim about
+the Service, or is named as a commercial product.
+
 ## [0.7.10] — 2026-10-17
 
 ### Changed — deleting an account deletes it

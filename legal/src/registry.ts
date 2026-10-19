@@ -26,9 +26,9 @@ export const LEGAL_SITES: Record<string, SiteContext> = {
     me: {
         slug: 'me',
         profile: 'me',
-        host: 'me.ochk.io',
-        product: 'me.ochk.io',
-        productShort: 'me.ochk.io',
+        host: 'ochk.app',
+        product: 'ochk.app',
+        productShort: 'ochk.app',
         contact: CONTACT_GENERAL,
         securityContact: CONTACT_SECURITY,
         selfHosted: true,

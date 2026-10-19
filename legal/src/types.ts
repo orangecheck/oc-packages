@@ -80,7 +80,7 @@ export interface LegalDoc extends DocSpec {
 export interface SiteContext {
     slug: string;
     profile: LegalProfile;
-    /** Apex host, e.g. `me.ochk.io`. */
+    /** Apex host, e.g. `vault.ochk.io`. */
     host: string;
     /** Human product name — resolves `[[PRODUCT]]`. */
     product: string;
