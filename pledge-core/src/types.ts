@@ -503,7 +503,11 @@ export interface AttestationLookupResult {
      * Computed by the caller's chain accessor.
      */
     sats_bonded: number;
-    /** Days the named UTXOs have been unspent at the verifier's clock. */
+    /**
+     * Days unspent at the verifier's clock of the coins covering `coverSats`
+     * (SPEC §8, OC Attest SPEC §7 step 5.d): the address's confirmed outputs
+     * oldest first until they reach `coverSats`, aged by the youngest of them.
+     */
     days_unspent: number;
     /** True if the named UTXO has been spent at or before `now`. */
     utxo_spent_at_or_before_now: boolean;
@@ -520,6 +524,8 @@ export interface AttestationLookupResult {
 export type AttestationLookup = (
     attestationId: string,
     nowIso: string,
+    /** The pledge's `bond.min_sats`: the amount whose coins `days_unspent` ages. */
+    coverSats: number,
 ) => Promise<AttestationLookupResult | null>;
 
 export interface VerifyBondInput {

@@ -8,6 +8,18 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.1.2] — 2026-10-19
+
+### Fixed — a bond's age is that of the coins covering `min_sats`
+
+`verifyBond` passes `pledge.bond.min_sats` to the lookup as a third argument,
+`coverSats`, and `days_unspent` is the age of the coins that cover it: the
+address's confirmed outputs oldest first until they reach `coverSats`, aged by
+the youngest of them (SPEC §8, as in OC Attest SPEC §7 step 5.d). With
+`@orangecheck/sdk` that is `verify(…, { coverSats })` or
+`check({ minSats: coverSats })`. A lookup that ignores the argument still
+type-checks, so check yours. Conformance runs the spec's `v29` and `v30`.
+
 ## [3.1.1] — 2026-09-24
 
 ### Fixed — `counterparty=null` scope

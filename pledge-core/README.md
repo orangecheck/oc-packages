@@ -148,10 +148,12 @@ import { verifyBond } from '@orangecheck/pledge-core';
 const r = await verifyBond({
     pledge: env,
     now: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
-    lookup: async (attestationId, nowIso) => {
+    lookup: async (attestationId, nowIso, coverSats) => {
         // Resolve the OrangeCheck attestation against live chain state.
         // Return null if not found; otherwise the resolved bond record.
         // This is where you wire your preferred Bitcoin RPC / mempool API.
+        // days_unspent is the age of the coins covering coverSats (SPEC §8),
+        // e.g. @orangecheck/sdk verify(…, { coverSats }).
         return {
             address: 'bc1qalice…',
             sats_bonded: 1_500_000,

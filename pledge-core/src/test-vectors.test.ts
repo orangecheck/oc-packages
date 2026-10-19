@@ -33,6 +33,7 @@ import { verifyBond } from './bond.js';
 import {
     ENVELOPE_VERSION,
     type AbandonmentCanonicalInput,
+    type AttestationLookup,
     type AbandonmentEnvelope,
     type OutcomeCanonicalInput,
     type OutcomeEnvelope,
@@ -270,13 +271,16 @@ async function runBondVector(vec: AnyVector) {
         sig: { alg: 'bip322', pubkey: swearerAddress, value: 'AAAA' },
     };
 
-    const lookup = async () =>
+    // Vectors that list the address's coins are aged here, over the amount
+    // verifyBond asks the lookup for.
+    const utxos = i['utxos'] as VectorUtxo[] | undefined;
+    const lookup: AttestationLookup = async (_id, now, coverSats) =>
         attest === null
             ? null
             : {
                   address: attest.address,
                   sats_bonded: attest.sats_bonded,
-                  days_unspent: attest.days_unspent,
+                  days_unspent: utxos ? daysCovering(utxos, coverSats, now) : attest.days_unspent,
                   utxo_spent_at_or_before_now:
                       attest.spent_at_block !== undefined &&
                       attest.spent_at_block <= attest.valid_at_block,
@@ -284,7 +288,7 @@ async function runBondVector(vec: AnyVector) {
 
     const r = await verifyBond({
         pledge,
-        now: '2026-12-31T00:00:00Z',
+        now: (i['now'] as string | undefined) ?? '2026-12-31T00:00:00Z',
         lookup,
     });
 
@@ -295,6 +299,32 @@ async function runBondVector(vec: AnyVector) {
     if (!r.ok && expectedCode !== null) {
         expect(r.code).toBe(expectedCode);
     }
+    if (r.ok && expected['days_unspent'] !== undefined) {
+        expect(r.days_unspent).toBe(expected['days_unspent']);
+    }
+}
+
+interface VectorUtxo {
+    txid: string;
+    vout: number;
+    value: number;
+    block_height: number;
+    block_time: number;
+}
+
+// SPEC §8: oldest first until the sum reaches `cover`; the youngest taken sets the age.
+function daysCovering(utxos: VectorUtxo[], cover: number, nowIso: string): number {
+    const sorted = [...utxos].sort(
+        (a, b) => a.block_height - b.block_height || a.txid.localeCompare(b.txid) || a.vout - b.vout,
+    );
+    let sum = 0;
+    let youngest = 0;
+    for (const u of sorted) {
+        sum += u.value;
+        youngest = Math.max(youngest, u.block_time);
+        if (sum >= cover) break;
+    }
+    return Math.floor((Date.parse(nowIso) / 1000 - youngest) / 86_400);
 }
 
 // ─── Shape B — state-transition vectors ──────────────────────────────────────

@@ -24,6 +24,9 @@ import type {
  *     - E_BOND_INSUFFICIENT_SATS  sats_bonded < pledge.bond.min_sats
  *     - E_BOND_INSUFFICIENT_DAYS  days_unspent < pledge.bond.min_days
  *
+ * The lookup receives `pledge.bond.min_sats` and must return the age of the
+ * coins that cover it (SPEC §8), not the age of the oldest coin.
+ *
  * Note that bond verification is a *live* check — the result depends on
  * chain state at `now`, not at the moment the pledge was sworn. SPEC §8
  * mandates this for any consequential decision.
@@ -31,7 +34,7 @@ import type {
 export async function verifyBond(input: VerifyBondInput): Promise<VerifyBondResult> {
     const { pledge, now, lookup } = input;
 
-    const attestation = await lookup(pledge.bond.attestation_id, now);
+    const attestation = await lookup(pledge.bond.attestation_id, now, pledge.bond.min_sats);
     if (attestation === null) {
         return {
             ok: false,

@@ -127,6 +127,27 @@ describe('verifyBond', () => {
         if (!r.ok) expect(r.code).toBe('E_BOND_INSUFFICIENT_DAYS');
     });
 
+    it('asks for the age of the coins covering min_sats, so old dust cannot age a fresh deposit', async () => {
+        // 546 sats confirmed 400 days ago beside 600,000 sats confirmed yesterday (vector v29).
+        const covers: number[] = [];
+        const r = await verifyBond({
+            pledge: pledge({ min_sats: 500_000, min_days: 180 }),
+            now: '2026-10-19T00:00:00Z',
+            lookup: async (_id, _now, coverSats) => {
+                covers.push(coverSats);
+                return {
+                    address: 'bc1qalice',
+                    sats_bonded: 600_546,
+                    days_unspent: coverSats > 546 ? 1 : 400,
+                    utxo_spent_at_or_before_now: false,
+                };
+            },
+        });
+        expect(covers).toEqual([500_000]);
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe('E_BOND_INSUFFICIENT_DAYS');
+    });
+
     it('SPENT check fires before INSUFFICIENT_* (priority order from §8)', async () => {
         const r = await verifyBond({
             pledge: pledge({ min_sats: 1000000, min_days: 1000 }),
