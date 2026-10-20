@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { OcWalletButton } from '@orangecheck/wallet-adapter/react';
 import { Anchor, Code2, FileCheck2, UserX } from 'lucide-react';
 
 import { SiteFooter, SiteHeader } from '../chrome';
@@ -428,4 +429,41 @@ export const Sign: StoryObj = {
             </div>
         </Section>
     ),
+};
+
+/** A stand-in UniSat, so the story shows a detected wallet; the real one signs. */
+function useStandInWallet() {
+    if (typeof window !== 'undefined') {
+        (window as unknown as { unisat?: unknown }).unisat ??= {
+            signMessage: async () => 'AkcwRAIgW2…',
+            getAccounts: async () => [ADDRESS],
+        };
+    }
+}
+
+export const SignWithWallet: StoryObj = {
+    name: 'Sign a message, with a browser wallet',
+    render: function Render() {
+        useStandInWallet();
+        return (
+            <Section space="sm">
+                <div className="flex max-w-xl flex-col gap-10">
+                    {/* In SignMessage's slot the button's own heading stays out: the lead already says it. */}
+                    <div className="rounded-[1.25rem] border border-border bg-card p-6 md:p-8">
+                        <SignMessage
+                            lead="Sign the stamp with the address it names."
+                            address={ADDRESS}
+                            message={MESSAGE}
+                            wallets={<OcWalletButton address={ADDRESS} message={MESSAGE} showManual={false} hideUninstalled layout="row" onSigned={() => undefined} />}
+                            onSignature={() => undefined}
+                        />
+                    </div>
+                    {/* On its own it keeps its heading, in this design's type. */}
+                    <div className="rounded-[1.25rem] border border-border bg-card p-6 md:p-8">
+                        <OcWalletButton address={ADDRESS} message={MESSAGE} hideUninstalled layout="row" onSigned={() => undefined} />
+                    </div>
+                </div>
+            </Section>
+        );
+    },
 };

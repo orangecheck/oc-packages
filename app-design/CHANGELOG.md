@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [1.6.1] — 2026-10-20
+
 - `SignMessage` hides `OcWalletButton`'s own heading in its wallets slot
   (`--oc-wallet-heading: none`, read by wallet-adapter ≥ 0.6.4). Its lead
   already says what to do, so the heading was a second label in another
-  style. Elsewhere `--oc-wallet-heading` is `block`.
+  style. Elsewhere `--oc-wallet-heading` is `block`. A story shows both,
+  with the real OcWalletButton.
 
 ## [1.6.0] — 2026-10-20
 
