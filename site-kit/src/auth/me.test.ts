@@ -66,9 +66,18 @@ describe('createMeHandler', () => {
 
     it('a pinned tab whose account is deleted is a 401 too', async () => {
         const tab = await mint(keys, 'did:oc:gone');
-        const handler = createMeHandler({ reader: createSessionReader({ isRevoked: (d) => d === 'did:oc:gone' }) });
+        const handler = createMeHandler({ reader: createSessionReader({ isRevoked: (s) => s.did_oc === 'did:oc:gone' }) });
         const out = await call(handler, { 'x-oc-tab-session': tab });
         expect(out).toMatchObject({ status: 401, body: { ok: false, reason: 'revoked' } });
+    });
+
+    it('a signed-out cookie reads as signed out, not as the account', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const ended = { status: async () => 'revoked' as const, refuses: async () => true };
+        const out = await call(createMeHandler({ reader: createSessionReader({ revocation: ended }) }), {
+            cookie: `oc_session=${cookie}`,
+        });
+        expect(out).toMatchObject({ status: 200, body: { ok: true, account: null } });
     });
 
     it.each(['POST', 'PUT', 'DELETE', 'HEAD'])('%s is 405 with Allow: GET', async (method) => {

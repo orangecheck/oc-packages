@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+`createSessionReader` checks every verified session against the auth host's
+list of ended sessions (auth-core `familyRevocationCheck`, which reads
+`OC_REVOCATION_FEED_TOKEN`), so a signed-out, replaced or purged token stops
+working within a minute. A revoked session reads as signed out; while the list
+cannot be refreshed, a write answers the new reason `unverified` and reads
+pass. Pass `revocation` to supply another check, or `false` in a test.
+
+Breaking: `isRevoked` receives the whole verified payload, not the did. Needs
+`@orangecheck/auth-core` ^2.9.0.
+
 ## 0.1.1
 
 `FAMILY_ORIGINS` no longer lists https://docs.ochk.io: the docs are served at

@@ -1,4 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { RevocationCheck, RevocationStatus } from '@orangecheck/auth-core';
+
+import { _resetFamilyRevocationCheckForTests, revocationKey } from '@orangecheck/auth-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeKeys, mint, type Keys } from './fixtures';
 import { createSessionReader } from './session';
@@ -57,7 +60,7 @@ describe('createSessionReader', () => {
 
     it('signs out an account the site treats as deleted', async () => {
         const cookie = await mint(keys, 'did:oc:gone');
-        const reader = createSessionReader({ isRevoked: async (did) => did === 'did:oc:gone' });
+        const reader = createSessionReader({ isRevoked: async (s) => s.did_oc === 'did:oc:gone' });
         expect(await reader.resolve(get({ cookie: `oc_session=${cookie}` }))).toEqual({ ok: false, reason: 'revoked', tab: false });
     });
 
@@ -72,5 +75,54 @@ describe('createSessionReader', () => {
         process.env.OC_AUTH_ISSUER = 'https://elsewhere.example';
         const cookie = await mint(keys, 'did:oc:aa');
         expect((await createSessionReader().resolve(get({ cookie: `oc_session=${cookie}` }))).ok).toBe(false);
+    });
+});
+
+describe('createSessionReader · ended sessions', () => {
+    const decode = (t: string) => JSON.parse(Buffer.from(t.split('.')[1]!, 'base64url').toString());
+    const fixed = (status: RevocationStatus): RevocationCheck => ({
+        status: async () => status,
+        refuses: async () => status !== 'live',
+    });
+
+    beforeEach(() => _resetFamilyRevocationCheckForTests());
+    afterEach(() => {
+        _resetFamilyRevocationCheckForTests();
+        vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
+    });
+
+    it('by default refuses a token the auth host’s feed names', async () => {
+        const ended = await mint(keys, 'did:oc:aa');
+        const live = await mint(keys, 'did:oc:bb');
+        vi.stubEnv('OC_REVOCATION_FEED_TOKEN', 'site-token');
+        const feed = { v: 1, at: 0, tokens: [await revocationKey('jti', decode(ended).jti)], accounts: {} };
+        const fetch = vi.fn(async (_url: string, _init?: RequestInit) => Response.json(feed));
+        vi.stubGlobal('fetch', fetch);
+        const reader = createSessionReader();
+        expect(await reader.resolve(get({ cookie: `oc_session=${ended}` }))).toEqual({ ok: false, reason: 'revoked', tab: false });
+        expect(await reader.resolve(get({ 'x-oc-tab-session': ended }))).toEqual({ ok: false, reason: 'revoked', tab: true });
+        expect(await reader.read(get({ cookie: `oc_session=${live}` }))).toMatchObject({ did_oc: 'did:oc:bb' });
+        // One fetch for all of it, with this site's own token.
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch.mock.calls[0]![0]).toBe('https://ochk.io/api/auth/revocations');
+    });
+
+    it('refuses a write, not a read, while the feed cannot vouch for the token', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const reader = createSessionReader({ revocation: fixed('unverified') });
+        const same = { cookie: `oc_session=${cookie}`, 'sec-fetch-site': 'same-origin' };
+        expect(await reader.read(get(same))).toMatchObject({ did_oc: 'did:oc:aa' });
+        expect(await reader.resolve({ method: 'POST', headers: same })).toEqual({ ok: false, reason: 'unverified', tab: false });
+    });
+
+    it('asks the site’s own tombstones with the whole payload, after the family check', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const isRevoked = vi.fn(async () => false);
+        await createSessionReader({ revocation: fixed('live'), isRevoked }).read(get({ cookie: `oc_session=${cookie}` }));
+        expect(isRevoked).toHaveBeenCalledWith(expect.objectContaining({ did_oc: 'did:oc:aa', jti: decode(cookie).jti }));
+        isRevoked.mockClear();
+        await createSessionReader({ revocation: fixed('revoked'), isRevoked }).read(get({ cookie: `oc_session=${cookie}` }));
+        expect(isRevoked).not.toHaveBeenCalled();
     });
 });

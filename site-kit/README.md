@@ -47,14 +47,25 @@ export default createMeHandler({ reader: createSessionReader() });
 |---|---|
 | Signed in | `200 { ok: true, account }`, the shape `@orangecheck/auth-client` reads |
 | Signed out | `200 { ok: true, account: null }`, as ochk.app answers |
-| A per-tab token that does not verify, or a deleted account's | `401 { ok: false, reason }`; auth-client drops the tab's pin only on a 401, then retries on the cookie |
+| A per-tab token that does not verify, or an ended session's | `401 { ok: false, reason }`; auth-client drops the tab's pin only on a 401, then retries on the cookie |
+| A cookie for a session the auth host has ended | `200 { ok: true, account: null }`: signed out |
 | Any method but GET | `405`, `Allow: GET` |
 
 Always `Cache-Control: no-store, private` and `Vary: Cookie, X-OC-Tab-Session`.
 
+## Ended sessions
+
+The reader refuses a session the auth host has ended (signed out, replaced,
+cut off with every session of its account, or deleted). It asks
+`ochk.io/api/auth/revocations` at most once a minute, with the site's own
+`OC_REVOCATION_FEED_TOKEN` (set by `scripts/revocation_feed_tokens.py` in the
+workspace). If the list cannot be refreshed for 10 minutes, reads still pass
+and writes are refused with reason `unverified`. Without the token, a
+production site refuses every write on a session.
+
 ## Peers
 
-`next` 15 or 16, `react` 18 or 19. `@orangecheck/auth-core` ^2.5.0 for `./auth` only.
+`next` 15 or 16, `react` 18 or 19. `@orangecheck/auth-core` ^2.9.0 for `./auth` only.
 
 ## License
 
