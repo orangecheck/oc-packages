@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.2] — 2026-10-20
+
+### Fixed — the server-side verification example runs
+
+- It called `verifyAction` without `revocations`, which `@orangecheck/agent-core`
+  has refused with `E_MALFORMED` since 2.0.0, and with an undefined `bip322`.
+  It now passes `revocations` (fetched by `"#t": [delegation.id]`) and verifies
+  with `@orangecheck/bip322`.
+
 ## [0.1.0] — Initial published state
 
 Initial public release. Model Context Protocol bridge so LLM toolchains can produce agent-signed tool calls.

@@ -92,11 +92,16 @@ A server receiving a stamped invocation verifies it with `@orangecheck/agent-cor
 
 ```ts
 import { verifyAction } from '@orangecheck/agent-core';
+import { verifySignature } from '@orangecheck/bip322';
 
+// `revocations` is required: the kind-30085 envelopes you fetched with
+// "#t": [delegation.id] (see @orangecheck/agent-core's README), or
+// `skipRevocationCheck: true` to state that you are not checking.
 const r = await verifyAction({
     action,
     delegation,
-    verifyBip322: async (m, s, a) => bip322.verify(a, m, s),
+    revocations,
+    verifyBip322: async (m, s, a) => verifySignature(a, m, s),
 });
 if (!r.ok) throw new Error(`auth failed: ${r.code}`);
 
