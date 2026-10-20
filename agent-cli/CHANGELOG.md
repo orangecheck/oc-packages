@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.4] — 2026-10-20
+
+### Fixed — the offline note names a query relays answer
+
+- The "revocation not checked" note told users to query kind 30085 "by
+  #delegation". Relays do not index that tag and most reject the filter. It
+  now names `"#t": [delegation id]` (oc-agent-protocol 1.4.1, SPEC §9.4).
+
 ## [0.2.3] — 2026-10-16
 
 ### Fixed — signatures verify again on a fresh install

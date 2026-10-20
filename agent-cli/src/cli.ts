@@ -352,7 +352,7 @@ function report(
         // Revocation is NOT part of this verdict: the CLI has no relay. Saying
         // so is the difference between "this envelope is authentic" and "this
         // grant is still in force", which are not the same claim.
-        const revNote = 'revocation not checked (offline) — query kind-30085 by #delegation';
+        const revNote = 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id]';
         if (asJson) {
             console.log(
                 JSON.stringify({
