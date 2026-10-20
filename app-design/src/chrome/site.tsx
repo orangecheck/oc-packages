@@ -1,5 +1,5 @@
 import { ChevronDown, Menu } from 'lucide-react';
-import Link from 'next/link';
+import Link from 'next/link.js';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Lockup, Mark } from '../brand/mark';

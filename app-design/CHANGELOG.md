@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.2.2] — 2026-10-20
+
+The ESM build imports `next/link.js` instead of `next/link`. A bundler resolving an
+`.mjs` file requires fully specified paths, so any site that did not add app-design
+to `transpilePackages` failed to build. `scripts/check-esm.mjs` now fails the tests if
+a bare `next/*` import reaches `dist/*.mjs`.
+
 ## [1.2.1] — 2026-10-20
 
 - `SiteHeader`: between md and lg the row's gaps and the navigation's padding
