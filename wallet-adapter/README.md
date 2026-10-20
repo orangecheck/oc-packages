@@ -6,7 +6,7 @@
 
 **Normalize browser Bitcoin wallets behind a single `sign(message)` API.**
 
-UniSat, Xverse, Leather, Alby — every wallet exposes a different signing API. This package hides that behind one shape:
+UniSat, Xverse, Leather, OKX, Phantom — every wallet exposes a different signing API. This package hides that behind one shape:
 
 ```ts
 const sign = getSigner('unisat', { address });
@@ -40,7 +40,6 @@ detectWallets();
 //   { id: 'unisat',  name: 'UniSat',  detected: true,  installUrl: '...' },
 //   { id: 'xverse',  name: 'Xverse',  detected: false, installUrl: '...' },
 //   { id: 'leather', name: 'Leather', detected: false, installUrl: '...' },
-//   { id: 'alby',    name: 'Alby',    detected: true,  installUrl: '...' },
 //   { id: 'manual',  name: 'Paste signature (Sparrow / Core / hardware)',
 //     detected: true, isManual: true }
 // ]
@@ -165,12 +164,11 @@ export function SignIn({ address }: { address: string }) {
 | UniSat       | `window.unisat.signMessage(msg, 'bip322-simple')`                                         | Simple                                                           |
 | Xverse       | `window.BitcoinProvider.request('signMessage', { address, message, protocol: 'BIP322' })` | Full                                                             |
 | Leather      | `window.LeatherProvider.request('signMessage', { message, paymentType: 'p2tr' })`         | Full                                                             |
-| Alby / WebLN | `window.webln.signMessage(msg)`                                                           | Raw message (not BIP-322 on all addresses — works best for `1…`) |
 | Manual       | The caller's `onManualSign` (deprecated fallback: `window.prompt`)                        | Caller's wallet produces the signature out-of-band               |
 
 The shims are duck-typed — we check shape, not just presence of globals, so spoofing wrappers don't produce false positives.
 
-> **Heads up on Alby:** `webln.signMessage` signs raw bytes, not BIP-322. It tends to produce an OrangeCheck-compatible signature on legacy P2PKH addresses (starting with `1`), but not on segwit (`bc1q…`) or taproot (`bc1p…`). For the general case, prefer UniSat / Xverse / Leather, and offer the **paste** option as a fallback so users on hardware wallets (Sparrow, Bitcoin Core, Ledger) can still sign.
+> **Alby is not listed.** `webln.signMessage` signs with a Lightning node key, not a Bitcoin address, so no signature it makes verifies as BIP-322. `getSigner('alby')` refuses without prompting. Offer the **paste** option so people on hardware wallets (Sparrow, Bitcoin Core, Ledger) can still sign.
 
 > **Security note on detection:** `XverseProviders` used to pass if it was any truthy value. As of `0.1.1` we require a callable `BitcoinProvider.request` function so a bookmarklet or unrelated extension setting `window.XverseProviders = {}` won't register as Xverse.
 

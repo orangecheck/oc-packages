@@ -99,7 +99,12 @@ export function getSigner(wallet: WalletId, opts: SignOptions): SignFn {
       case "leather":
         return signWithLeather(opts);
       case "alby":
-        return signWithAlby();
+        // WebLN signs with a Lightning node key; nothing it returns verifies for an address.
+        return async () => {
+          throw new Error(
+            "Alby cannot sign for a Bitcoin address (WebLN signs with a Lightning key); use another wallet or paste a signature",
+          );
+        };
       case "okx":
         return signWithOkx(opts);
       case "phantom":
@@ -310,32 +315,6 @@ function signWithPhantom(opts: SignOptions): SignFn {
     const res = await phantom.signMessage(bytes, match.addressType);
     // Phantom returns Uint8Array; the family verifier wants base64.
     return btoa(String.fromCharCode(...res.signature));
-  };
-}
-
-function signWithAlby(): SignFn {
-  return async (message) => {
-    const w = (
-      globalThis as unknown as {
-        window?: {
-          webln?: {
-            enable?: () => Promise<unknown>;
-            signMessage?: (
-              m: string,
-            ) => Promise<string | { signature: string }>;
-          };
-        };
-      }
-    ).window;
-    if (!w?.webln?.signMessage)
-      throw new Error("Alby / WebLN not found on window.webln");
-    if (w.webln.enable) await w.webln.enable();
-    const r = await w.webln.signMessage(message);
-    // Alby variants return either the raw string or { signature }.
-    if (typeof r === "string") return r;
-    if (r && typeof r === "object" && typeof r.signature === "string")
-      return r.signature;
-    throw new Error("Alby signMessage returned an unexpected shape");
   };
 }
 

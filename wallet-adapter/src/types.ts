@@ -11,6 +11,7 @@ export type WalletId =
     | 'unisat'
     | 'xverse'
     | 'leather'
+    // Never listed: WebLN cannot sign for an address. Kept so code that names it compiles.
     | 'alby'
     | 'okx'
     | 'phantom'

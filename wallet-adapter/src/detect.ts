@@ -13,11 +13,6 @@ interface LeatherGlobal {
     request?: (method: string, params?: unknown) => Promise<unknown>;
 }
 
-interface WeblnGlobal {
-    signMessage?: (message: string) => Promise<string | { signature: string }>;
-    enable?: () => Promise<unknown>;
-}
-
 interface OkxBitcoinGlobal {
     connect?: () => Promise<{ address: string; publicKey: string }>;
     signMessage?: (msg: string, type?: string) => Promise<string>;
@@ -29,17 +24,23 @@ interface PhantomBitcoinGlobal {
 }
 
 /**
+ * The wallets that can sign BIP-322 for an address. Alby is not one: WebLN's
+ * signMessage signs with a Lightning node key, which never verifies for a
+ * Bitcoin address, so listing it offered a button that could only fail.
+ */
+type ListedWalletId = Exclude<WalletId, 'alby'>;
+
+/**
  * Duck-typed checks against `window.*`. Each wallet uses a different global
  * name — we check the shape, not trust the name, so spoofing wrappers don't
  * appear as false positives.
  */
-function detect(): Record<WalletId, boolean> {
+function detect(): Record<ListedWalletId, boolean> {
     if (typeof window === 'undefined') {
         return {
             unisat: false,
             xverse: false,
             leather: false,
-            alby: false,
             okx: false,
             phantom: false,
             manual: true,
@@ -51,7 +52,6 @@ function detect(): Record<WalletId, boolean> {
         BitcoinProvider?: XverseGlobal; // Xverse also exposes this in some injections.
         LeatherProvider?: LeatherGlobal;
         btc?: LeatherGlobal; // Leather / Stacks Connect alias.
-        webln?: WeblnGlobal;
         okxwallet?: { bitcoin?: OkxBitcoinGlobal };
         phantom?: { bitcoin?: PhantomBitcoinGlobal };
     };
@@ -71,14 +71,13 @@ function detect(): Record<WalletId, boolean> {
         leather:
             typeof w.LeatherProvider?.request === 'function' ||
             typeof w.btc?.request === 'function',
-        alby: typeof w.webln?.signMessage === 'function',
         okx: typeof w.okxwallet?.bitcoin?.signMessage === 'function',
         phantom: typeof w.phantom?.bitcoin?.signMessage === 'function',
         manual: true,
     };
 }
 
-const WALLETS: Record<WalletId, Omit<WalletInfo, 'detected'>> = {
+const WALLETS: Record<ListedWalletId, Omit<WalletInfo, 'detected'>> = {
     unisat: {
         id: 'unisat',
         name: 'UniSat',
@@ -93,11 +92,6 @@ const WALLETS: Record<WalletId, Omit<WalletInfo, 'detected'>> = {
         id: 'leather',
         name: 'Leather',
         installUrl: 'https://leather.io',
-    },
-    alby: {
-        id: 'alby',
-        name: 'Alby',
-        installUrl: 'https://getalby.com',
     },
     okx: {
         id: 'okx',
@@ -126,12 +120,12 @@ const WALLETS: Record<WalletId, Omit<WalletInfo, 'detected'>> = {
  */
 export function detectWallets(): WalletInfo[] {
     const flags = detect();
-    return (Object.keys(WALLETS) as WalletId[]).map((id) => ({
+    return (Object.keys(WALLETS) as ListedWalletId[]).map((id) => ({
         ...WALLETS[id],
         detected: flags[id],
     }));
 }
 
 export function isWalletDetected(id: WalletId): boolean {
-    return detect()[id];
+    return id !== 'alby' && detect()[id];
 }

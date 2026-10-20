@@ -81,10 +81,18 @@ describe('detectWallets enumeration', () => {
             'unisat',
             'xverse',
             'leather',
-            'alby',
             'okx',
             'phantom',
             'manual',
         ]);
+    });
+});
+
+describe('Alby', () => {
+    // WebLN signs with a Lightning node key: no signature it makes verifies for an address.
+    it('is not listed, even when WebLN can sign', () => {
+        setupWindow({ webln: { signMessage: () => Promise.resolve('x'), enable: () => Promise.resolve() } });
+        expect(detectWallets().some((w) => (w.id as string) === 'alby')).toBe(false);
+        expect(isWalletDetected('alby')).toBe(false);
     });
 });

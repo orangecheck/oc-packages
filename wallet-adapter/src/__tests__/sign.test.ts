@@ -18,7 +18,20 @@ afterEach(() => {
   const w = (globalThis as any).window;
   delete w.unisat;
   delete w.phantom;
+  delete w.webln;
   vi.restoreAllMocks();
+});
+
+describe("Alby", () => {
+  it("refuses without asking WebLN to sign", async () => {
+    const signMessage = vi.fn(() => Promise.resolve("x"));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).window.webln = { signMessage, enable: () => Promise.resolve() };
+    await expect(getSigner("alby", { address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2" })("hi")).rejects.toThrow(
+      /Alby cannot sign for a Bitcoin address/,
+    );
+    expect(signMessage).not.toHaveBeenCalled();
+  });
 });
 
 describe("signature-shape validation wrapper", () => {

@@ -563,7 +563,7 @@ export function OcWalletButton({
               <Mark>{"// "}</Mark>
               <span style={{ textTransform: walletCase("lowercase") }}>No</span>
               {" Bitcoin wallets detected — install UniSat, Xverse, Leather, " +
-                "Alby, OKX, or Phantom, or paste a signature."}
+                "OKX, or Phantom, or paste a signature."}
             </>
           )}
         </div>

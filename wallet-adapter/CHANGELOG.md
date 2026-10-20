@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.1] — 2026-10-20
+
+### Fixed
+
+- **Alby is no longer listed.** `detectWallets()`, `OcWalletPicker` and
+  `OcWalletButton` offered it whenever WebLN was present, but WebLN signs with
+  a Lightning node key, so since 0.5 every Alby signature failed the address
+  check. A person picked it and nothing they could do would work.
+  `isWalletDetected('alby')` is `false`, and `getSigner('alby')` refuses
+  without asking the wallet to sign. `'alby'` stays in `WalletId` so code that
+  names it still compiles.
+
 ## [0.6.0] — 2026-10-20
 
 ### Added — the wallet step takes a site's design
