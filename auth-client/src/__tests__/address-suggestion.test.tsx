@@ -15,6 +15,7 @@ import { OcAddressInput, useOcAddressSuggestion } from '../components';
 import { OcSessionProvider, useOcSession } from '../provider';
 
 const ADDR = 'bc1qvvrdxujyrh78jtnesw22cv2akfzwmvr89zkvnt';
+const PRIMARY = 'bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l';
 
 function account(over: Record<string, unknown>) {
     return { id: 'acc-a', did_oc: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', primary_btc: null, ...over };
@@ -85,6 +86,13 @@ describe.each([
     it('from primary_btc when the host sends one', async () => {
         serve(account({ primary_btc: ADDR, display_identity: { kind: 'email', value: 'a@example.com' } }));
         expect((await focusedOptions(Field)).join(' ')).toContain(ADDR.slice(0, 6));
+    });
+
+    it('primary_btc wins over a different wallet display identity (ochk.io, ochk.app)', async () => {
+        serve(account({ primary_btc: PRIMARY, display_identity: { kind: 'btc', value: ADDR } }));
+        await focusedOptions(Field);
+        fireEvent.click(screen.getByRole('option'));
+        expect((screen.getByLabelText('address') as HTMLInputElement).value).toBe(PRIMARY);
     });
 
     it('nothing when the account shows an email and has no primary address', async () => {
