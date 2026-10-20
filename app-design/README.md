@@ -29,7 +29,7 @@ family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the sha
 |---|---|
 | `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere` |
 | `/primitives` | `Button`, `Badge`, `Card`, form controls, `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster` |
-| `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps` … |
+| `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps`, `ErrorPage`, the public page blocks (`SectionHeading`, `FactBlock`, `ProofStrip`, `Closing`, `LegalDocument` …) and the protocol page blocks (`ProtocolGrid`, `AppGrid`, `ProtocolHero`, `SpecCard`, `VerifyBox`, `ComparisonTable`, `VerifyReport`, `SignMessage`) |
 | `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `AccountMenu`, `ThemeToggle` |
 | `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`); no React |
 | `/tokens` | the palette as data, for OG images and charts |

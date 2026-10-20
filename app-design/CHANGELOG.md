@@ -35,6 +35,41 @@
   `/api/` and `/.well-known/`, a new tab (announced) for another site.
 - `SectionHeading` (components): eyebrow, display title as an h2, one line.
 
+### Added: public page blocks
+
+Promoted from ochk.app, so ochk.io, the docs and vault draw the same pages:
+
+- `FactBlock` (a titled block of facts with its sources beside the title),
+  `FactRows` (one row per subject, each value under its label; stays
+  readable on a phone), `EndpointList` (public endpoints and what each
+  returns), `ProofStrip` (short claims between hairlines), `Closing` (the
+  last band: one large line, actions, the check), and `LegalDocument`,
+  which renders an `@orangecheck/legal` document as it is (the shape is
+  written out, so this package does not depend on that one).
+- `Home.stories.tsx` uses the package's `ProofStrip` and `Closing` instead
+  of its own copies.
+
+### Added: protocol page blocks
+
+Every block takes a protocol's slug and reads the rest from the registry,
+so the six protocol pages are one page with six sets of data:
+
+- `ProtocolGrid` (the six as cards in the fixed order, verb, line, Nostr
+  kinds; `link: 'page' | 'tool'`), `AppCard` / `AppGrid` (name, line, the
+  protocols it shows, status; `group: 'app' | 'public-good'`).
+- `ProtocolHero` ("Protocol · provenance", title, lead, actions, art),
+  `ProtocolNav` (the six as links, the current one underlined), `SpecCard`
+  (repository, version, licence, kinds, test vectors; `size="sm"` is one
+  line), `VerifyBox` (paste an id, envelope or link; a plain GET form to
+  the tool's verify page without script, or `onVerify`), and
+  `ComparisonTable` (systems side by side in words, one column tinted;
+  on a phone each property is a card with the tinted answer first).
+- `VerifyReport`: a statement (Good, Caution, Refused) with a title and a
+  line, each check with its result in words, the facts, and "What this did
+  not check". One shape for every verb's verify view.
+- `SignMessage`: the message in a code well with copy, the site's browser
+  wallet buttons, and a pasted signature for any other wallet.
+
 ### Accessibility
 
 - The focus ring is the deep orange (`#EA580B`) in light mode. The brand
@@ -43,6 +78,9 @@
 - A checked `Switch` fills with the deep orange in both modes, so the track
   that carries its state clears 3:1 on a card and the white thumb clears 3:1
   on the track.
+- `Badge tone="brand"` (and so "In testing") tints at 9%, not 12%: measured
+  as painted, the 12% tint put its orange text at 4.50:1 on a card, on the
+  line. It is 4.66:1 now.
 - `yarn test` checks both pairs, and a new `check-mirror` step fails when an
   `appColors` value drifts from `tokens.css`. It found one: dark `border` was
   `#262626` in the mirror and `#2A2A2A` in the CSS; the mirror now matches,

@@ -18,13 +18,13 @@ export const badgeVariants = cva(
             tone: {
                 neutral: 'border-border bg-card text-foreground',
                 muted: 'border-transparent bg-muted text-muted-foreground',
-                brand: 'border-transparent bg-[color-mix(in_oklab,var(--oca-orange)_12%,var(--card))] text-oca-accent-ink',
+                brand: 'border-transparent bg-[color-mix(in_oklab,var(--oca-orange)_9%,var(--card))] text-oca-accent-ink',
                 danger: 'border-transparent bg-[color-mix(in_oklab,var(--destructive)_12%,var(--card))] text-destructive',
                 // A good state is a neutral pill with a green dot, not a green pill.
                 success: GOOD_DOT,
                 // Aliases kept so older call sites keep compiling: attention is
                 // the brand accent, information is neutral.
-                warning: 'border-transparent bg-[color-mix(in_oklab,var(--oca-orange)_12%,var(--card))] text-oca-accent-ink',
+                warning: 'border-transparent bg-[color-mix(in_oklab,var(--oca-orange)_9%,var(--card))] text-oca-accent-ink',
                 info: 'border-border bg-card text-foreground',
                 // Inverted in dark mode, where ink would sit on a card of nearly its own colour.
                 ink: 'border-transparent bg-oca-ink text-oca-ink-foreground dark:bg-foreground dark:text-background',

@@ -3,15 +3,17 @@ import { BadgeCheck, Bitcoin, Check, Code2, Eye, Lock, Mail, ShieldCheck, Sparkl
 import type { CSSProperties, ReactNode } from 'react';
 
 import portrait from '../assets/portrait-halftone-600.webp';
-import { Crowd, HalftoneSphere, IsoCheck } from '../brand';
+import { Crowd, HalftoneSphere } from '../brand';
 import {
     Accent,
     BrowserFrame,
+    Closing,
     Display,
     Eyebrow,
     FloatChip,
     Lead,
     PhoneFrame,
+    ProofStrip,
     Reveal,
     ScrollStory,
     Section,
@@ -111,29 +113,6 @@ function MethodRow() {
                 </li>
             ))}
         </ul>
-    );
-}
-
-/* ── Proof strip ──────────────────────────────────────────────────────── */
-
-function ProofStrip() {
-    const items: [ReactNode, string][] = [
-        [<Code2 key="c" />, 'Open source, MIT'],
-        [<Sparkles key="t" />, 'No token'],
-        [<Eye key="k" />, 'No KYC'],
-        [<Lock key="o" />, 'Every receipt checks offline'],
-    ];
-    return (
-        <div className="border-y border-border">
-            <ul className="oca-container grid grid-cols-2 gap-x-6 gap-y-4 py-6 md:grid-cols-4">
-                {items.map(([icon, label]) => (
-                    <li key={label} className="flex items-center gap-3 text-[0.9375rem] [&_svg]:size-[1.1rem] [&_svg]:text-oca-accent-ink">
-                        {icon}
-                        {label}
-                    </li>
-                ))}
-            </ul>
-        </div>
     );
 }
 
@@ -499,29 +478,6 @@ function Costs({ feePct, maxUserSharePct, action }: { feePct: number; maxUserSha
     );
 }
 
-/* ── Closing ───────────────────────────────────────────────────────────── */
-
-function Closing({ primary, secondary }: { primary: ReactNode; secondary: ReactNode }) {
-    return (
-        <Section className="overflow-hidden">
-            <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
-                <Reveal className="flex flex-col items-start gap-8 md:col-span-7">
-                    <h2 className="oca-display-1 text-[clamp(2.5rem,1.5rem+4vw,5rem)] leading-[1]">
-                        Start with one <Accent>sign-in</Accent>.
-                    </h2>
-                    <div className="flex flex-wrap gap-3">
-                        {primary}
-                        {secondary}
-                    </div>
-                </Reveal>
-                <div className="flex justify-center md:col-span-5">
-                    <IsoCheck size={340} settle tilt className="max-w-full" />
-                </div>
-            </div>
-        </Section>
-    );
-}
-
 /* ── The page ──────────────────────────────────────────────────────────── */
 
 export const Home: StoryObj = {
@@ -535,7 +491,14 @@ export const Home: StoryObj = {
         return (
             <div className="bg-background text-foreground">
                 <HomeHero status={<StatusPill>In testing · sats accrue, payouts come later</StatusPill>} primary={primary} secondary={apps} />
-                <ProofStrip />
+                <ProofStrip
+                    items={[
+                        { icon: <Code2 />, label: 'Open source, MIT' },
+                        { icon: <Sparkles />, label: 'No token' },
+                        { icon: <Eye />, label: 'No ID to sign in' },
+                        { icon: <Lock />, label: 'Every receipt checks offline' },
+                    ]}
+                />
                 <ProblemStory />
                 <HowItWorks />
                 <ForYou
@@ -564,7 +527,21 @@ export const Home: StoryObj = {
                         </Reveal>
                     </div>
                 </Section>
-                <Closing primary={primary} secondary={<Button size="lg" variant="secondary">hello@ochk.io</Button>} />
+                <Closing
+                    title={
+                        <>
+                            Start with one <Accent>sign-in</Accent>.
+                        </>
+                    }
+                    actions={
+                        <>
+                            {primary}
+                            <Button size="lg" variant="secondary">
+                                hello@ochk.io
+                            </Button>
+                        </>
+                    }
+                />
             </div>
         );
     },
