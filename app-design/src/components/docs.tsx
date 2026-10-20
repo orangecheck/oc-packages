@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronRight } from 'lucide-react';
-import Link from 'next/link.js';
+import Link from 'next/link';
 import {
     Children,
     isValidElement,

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, PanelLeft } from 'lucide-react';
-import Link from 'next/link.js';
+import Link from 'next/link';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { OnThisPage, useHeadings } from '../components/docs';

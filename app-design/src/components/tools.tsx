@@ -1,5 +1,5 @@
 import { ArrowRight, Check, Download, FileText, Lock, Upload } from 'lucide-react';
-import Link from 'next/link.js';
+import Link from 'next/link';
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import {

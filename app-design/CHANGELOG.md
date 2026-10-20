@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.2.3] — 2026-10-20
+
+Reverts 1.2.2's import. `next/link.js` is a specifier Next's aliases do not know, so
+Next left it external at server render, where it loaded a second copy of the router
+context. Links rendered without the router: on a site with a `basePath` every link
+lost it (the docs at ochk.io/docs linked to `/attest`, not `/docs/attest`). The
+package imports `next/link` again, and a site **must** list it in `transpilePackages`,
+as every family site did before 1.2.2. `scripts/check-next.mjs` replaces the old
+check: it builds a pages-router site with a basePath and fails unless a router link
+in the server's HTML carries it. Run against 1.2.2's import it fails with
+`href="/x"`.
+
 ## [1.2.2] — 2026-10-20
 
 The ESM build imports `next/link.js` instead of `next/link`. A bundler resolving an

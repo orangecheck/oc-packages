@@ -22,7 +22,7 @@ export default defineConfig({
     treeshake: true,
     minify: false,
     // Peers stay external; CSS is copied by `copy:css` (tsup does not process it).
-    external: ['react', 'react-dom', 'next', 'next/link', 'next/link.js', 'next-themes', 'lucide-react', '@orangecheck/auth-client'],
+    external: ['react', 'react-dom', 'next', 'next/link', 'next-themes', 'lucide-react', '@orangecheck/auth-client'],
     // Every module is a client component: the package ships hooks and Radix.
     banner: { js: "'use client';" },
 });

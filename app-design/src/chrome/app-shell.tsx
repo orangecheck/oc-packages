@@ -1,5 +1,5 @@
 import { ChevronRight, Menu, Moon, Sun, SunMoon } from 'lucide-react';
-import Link from 'next/link.js';
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 

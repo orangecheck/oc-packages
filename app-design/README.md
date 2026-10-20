@@ -21,6 +21,12 @@ does nothing on a page without the attribute, and it never imports
 <Html lang="en" data-oc-app="ochk">
 ```
 
+```ts
+// next.config.ts: required. Next must compile the package so its links share the
+// app's router; left external, a link loses the base path and the build fails.
+transpilePackages: ['@orangecheck/app-design'],
+```
+
 Light and dark come from plain `next-themes` (`attribute="class"`). Do not mount the
 family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the shared
 `oc_skin` cookie.
