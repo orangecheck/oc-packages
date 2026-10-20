@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [1.6.2] — 2026-10-20
+
+What btc's and agent's moves found.
+
+- `Panel`: the actions stay top right beside a description of two lines or
+  more. The text now takes the room the actions leave, and wraps under them
+  only below 12rem. Before, a long line pushed the expand button onto a row
+  of its own, at the left: most half-width panels at 1440, nearly all at 390.
+- `Panel`, expanded: the body scrolls inside itself, so a tall body no longer
+  runs under the source at the foot. At 390×844 a chart panel's "Source:"
+  line drew over its stat cards.
+- `ToolShell variant="app"` and `AppShell variant="rail"` contain what is
+  positioned inside them (`relative`, `overflow-clip`). Absolutely positioned
+  text deep in a page's own scroller, such as FormSection's "Step N:" or
+  TextLink's "(opens in a new tab)", took the document as its frame and
+  stretched it past the window: 1936px against 900 on agent's compose page.
+  `overflow-clip` clips like `hidden` but is not a scroller, so a focus deep
+  in the page cannot shift the frame.
+- `ScrollFade`'s scroller is positioned too. The same text in the last
+  column of a wide table widened a phone's page to the table's width.
+- `scripts/check-layout.mjs` measures all four in Chrome at 390 and 1440.
+  It compiles the CSS with Tailwind, as a site does, and opens a Panel in
+  the browser. CI uses the runner's Chrome; locally it uses Playwright's.
+
 ## [1.6.1] — 2026-10-20
 
 - `SignMessage` hides `OcWalletButton`'s own heading in its wallets slot

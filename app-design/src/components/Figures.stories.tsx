@@ -71,7 +71,7 @@ export const Desk: StoryObj = {
                 )}
             </Panel>
             <div className="grid gap-6 md:grid-cols-2">
-                <Panel title="On-chain" actions={source}>
+                <Panel title="On-chain" description="Where the coins sit and who holds them, read from the chain each block." actions={source} expandable>
                     <KeyValueList
                         items={[
                             { label: 'MVRV', value: '1.8', note: 'Fair value', tone: 'good' },

@@ -480,7 +480,8 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
     return (
         <ShellContext.Provider value={place}>
             <TooltipProvider delayDuration={300}>
-                <div className={cn('flex h-dvh flex-col overflow-hidden bg-background', className)}>
+                {/* Contains what is positioned inside it, as ToolShell's app frame does, and clips without scrolling. */}
+                <div className={cn('relative flex h-dvh flex-col overflow-clip bg-background', className)}>
                     {header}
                     {banner}
                     <div className="flex min-h-0 flex-1">

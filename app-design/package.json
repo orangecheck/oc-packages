@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",
@@ -91,7 +91,7 @@
   "scripts": {
     "build": "node scripts/gen-palette.mjs && tsup && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-next.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-layout.mjs && node scripts/check-next.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -135,6 +135,7 @@
     "@orangecheck/auth-client": "^2.32.3",
     "@orangecheck/auth-core": "^2.5.0",
     "@orangecheck/wallet-adapter": "^0.6.4",
+    "@tailwindcss/cli": "^4.3.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -143,8 +144,10 @@
     "mermaid": "^11.14.0",
     "next": "^16.3.8",
     "next-themes": "^0.4.6",
+    "playwright-core": "~1.60.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "tailwindcss": "^4.3.0",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3"
   },

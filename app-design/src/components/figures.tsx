@@ -242,7 +242,8 @@ export function Panel({
     const body = (expanded: boolean) => (typeof children === 'function' ? children(expanded) : children);
     const head = (expanded: boolean) => (
         <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-            <div className="flex min-w-0 flex-col gap-1">
+            {/* The text takes the room the actions leave, so they stay top right; it wraps only below 12rem. */}
+            <div className="flex min-w-[min(100%,12rem)] flex-1 basis-0 flex-col gap-1">
                 {expanded ? (
                     <DialogTitle className="text-[1.0625rem] font-medium leading-snug">{title}</DialogTitle>
                 ) : (
@@ -283,7 +284,8 @@ export function Panel({
                         className="flex h-[min(92dvh,56rem)] w-[min(96vw,80rem)] max-w-none flex-col gap-4 overflow-y-auto"
                     >
                         {head(true)}
-                        <div className="min-h-0 min-w-0 flex-1">{open ? body(true) : null}</div>
+                        {/* The body scrolls inside itself, so the title stays at the top and the source at the foot. */}
+                        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{open ? body(true) : null}</div>
                         {source ? <div className="border-t border-border pt-3">{source}</div> : null}
                     </DialogContent>
                 </Dialog>

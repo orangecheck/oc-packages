@@ -43,7 +43,8 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
                 // While it hides something, a keyboard can reach it to scroll.
                 tabIndex={edges.left || edges.right ? 0 : undefined}
                 className={cn(
-                    'overflow-x-auto overscroll-x-contain rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    // Positioned, so sr-only text deep in a wide row scrolls and clips with the row.
+                    'relative overflow-x-auto overscroll-x-contain rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     innerClassName
                 )}
             >

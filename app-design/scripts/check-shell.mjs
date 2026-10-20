@@ -133,7 +133,8 @@ check(tabBar(render({ nav: [{ items: items(4) }], persistent: [{ items: [{ href:
         { href: '/app/contacts', label: 'Contacts', icon: h(UserRound) },
     ] }];
     const html = render({ variant: 'rail', nav, persistent: [{ items: [{ href: '/app/settings', label: 'Settings', icon: h(Settings) }] }], header: h('header', null, 'chat') });
-    check(root(html).includes('h-dvh') && root(html).includes('overflow-hidden'), 'rail: the frame is the window');
+    // It contains what is positioned inside it, and clips without becoming a scroller (check-layout measures it).
+    check(root(html).includes('h-dvh') && root(html).includes('relative') && root(html).includes('overflow-clip'), 'rail: the frame is not the window, or does not contain what is inside it');
     check(html.indexOf('<header>chat</header>') >= 0 && html.indexOf('<header>chat</header>') < html.indexOf('id="main-content"'), 'rail: the header sits above');
     const rail = html.match(/<nav aria-label="Pages" class="[^"]*w-14[^"]*md:flex[^"]*">[\s\S]*?<\/nav>/)?.[0] ?? '';
     check(rail.includes('<span class="sr-only">Messages, 3</span>') && rail.includes('>3</span>'), 'rail: a number shows as a count, read with the name');
