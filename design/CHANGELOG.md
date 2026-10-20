@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Token, skin and component
 changes that are visible to a user are called out explicitly — a design system
 bump that silently moves a colour is worse than a breaking one.
 
+## [Unreleased]
+
+### Changed — the footer names one license (visible)
+
+`OcFamilyFooter`'s default legal line read `© {year} orangecheck · mit +
+cc-by-4.0`. It now reads `© {year} orangecheck · mit`: every OrangeCheck
+specification is MIT since 2026-10-20, as are the code and the docs. Sites
+that pass `legalCopyright` are unaffected.
+
 ## [0.35.0] — 2026-10-19
 
 ### Changed — the family lists ochk.app, not me.ochk.io (visible)

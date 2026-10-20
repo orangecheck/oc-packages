@@ -214,7 +214,7 @@ export function OcFamilyFooter({
           )}
         >
           <span className="text-muted-foreground">
-            {legalCopyright ?? <>© {year} orangecheck · mit + cc-by-4.0</>}
+            {legalCopyright ?? <>© {year} orangecheck · mit</>}
           </span>
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 md:gap-y-1">
             {links.map((link) => (

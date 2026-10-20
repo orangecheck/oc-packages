@@ -95,7 +95,7 @@ function FooterBar() {
     return (
         <footer className="border-t">
             <div className="container flex flex-col items-start justify-between gap-3 py-8 font-mono text-[11px] sm:flex-row sm:items-center">
-                <span className="text-muted-foreground">© orangecheck · mit + cc-by-4.0</span>
+                <span className="text-muted-foreground">© orangecheck · mit</span>
                 <span className="inline-flex items-center gap-1.5">
                     <span className="text-primary">₿</span>
                     <span className="text-muted-foreground">built with bitcoin</span>
