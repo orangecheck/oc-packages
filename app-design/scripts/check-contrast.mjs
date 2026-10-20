@@ -185,8 +185,44 @@ for (const [mode, vars, behind] of [
     }
 }
 
+// Avatar: initials on a person's tint, at every hue the seed can pick, in both modes.
+{
+    const pct = (block, name) => Number(block.match(new RegExp(`--${name}:\\s*([\\d.]+)%`))?.[1]);
+    const lightBlock = css.slice(css.indexOf(":root[data-oc-app='ochk'],"), css.indexOf(":root.dark[data-oc-app='ochk'],"));
+    const darkBlock = css.slice(css.indexOf(":root.dark[data-oc-app='ochk'],"));
+    const hsl = (h, s, l) => {
+        const a = s * Math.min(l, 1 - l);
+        const f = (n) => {
+            const k = (n + h / 30) % 12;
+            return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+        };
+        return '#' + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, '0')).join('');
+    };
+    for (const [mode, block] of [
+        ['light', lightBlock],
+        ['dark', darkBlock],
+    ]) {
+        const bgL = pct(block, 'oca-avatar-bg-l');
+        const fgL = pct(block, 'oca-avatar-fg-l');
+        if (!(bgL >= 0 && fgL >= 0)) {
+            console.error(`✗ contrast: ${mode}: the avatar lightness tokens are missing`);
+            failed++;
+            continue;
+        }
+        let worst = { r: Infinity, h: 0 };
+        for (let h = 0; h < 360; h++) {
+            const r = ratio(hsl(h, 0.45, fgL / 100), hsl(h, 0.6, bgL / 100));
+            if (r < worst.r) worst = { r, h };
+        }
+        if (worst.r < 4.5) {
+            console.error(`✗ contrast: ${mode}: avatar initials at hue ${worst.h} are ${worst.r.toFixed(2)}:1, under 4.5`);
+            failed++;
+        }
+    }
+}
+
 if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; the chart series stay apart; HUD text over any scene`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);

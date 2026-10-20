@@ -201,7 +201,8 @@ export const DropdownMenuItem = forwardRef<
         <DropdownMenuPrimitive.Item
             ref={ref}
             className={cn(
-                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-xl px-3 text-[0.9375rem] outline-none',
+                // A thumb's 44px on a phone.
+                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-xl px-3 text-[0.9375rem] outline-none max-md:h-11',
                 'data-[highlighted]:bg-accent data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
                 destructive && 'text-destructive [&_svg]:text-destructive',
                 className

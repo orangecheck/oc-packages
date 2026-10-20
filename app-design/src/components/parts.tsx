@@ -1,9 +1,11 @@
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
+import Link from 'next/link';
 import { createContext, useContext, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { useDensity } from '../lib/density';
 
-/* Parts a signed-in page repeats: a block's title, a list in a card, a choice between cards. */
+/* Parts a signed-in page repeats: a block's title, a list in a card, its rows, a choice between cards. */
 
 /* ── SectionTitle ────────────────────────────────────────────────────── */
 
@@ -72,6 +74,123 @@ export function ListCard({
     ...props
 }: HTMLAttributes<HTMLElement> & { as?: 'ul' | 'ol' | 'div' }) {
     return <Tag className={cn('divide-y divide-border overflow-clip rounded-[1.25rem] border border-border bg-card', className)} {...props} />;
+}
+
+/* ── ListRow ─────────────────────────────────────────────────────────── */
+
+const ROW_LOOK = {
+    // In a ListCard: full width, the card's hairlines between rows.
+    card: { box: 'px-5', hover: 'hover:bg-accent/60', current: 'bg-accent' },
+    // In a pane's list (threads, contacts): rounded, lifted when current.
+    pane: { box: 'rounded-xl px-3', hover: 'hover:bg-accent', current: 'bg-card shadow-sm ring-1 ring-border' },
+} as const;
+
+/**
+ * One row of a list: a picture, a title with a time or count at its right, a
+ * line under it, and something at the end (an unread count, a state, an
+ * arrow). With `href` or `onSelect` the whole row is one link or button.
+ * `actions` (a DropdownMenu, a button) sits beside it, never inside it, so a
+ * row never nests one control in another. The classic DataRow's place.
+ */
+export function ListRow({
+    title,
+    meta,
+    description,
+    leading,
+    trailing,
+    actions,
+    revealActions = 'always',
+    href,
+    onSelect,
+    current = false,
+    unread = false,
+    variant = 'card',
+    as: Tag = 'li',
+    className,
+}: {
+    title: ReactNode;
+    /** At the title's right: a time, a count. */
+    meta?: ReactNode;
+    /** One line under the title, cut to fit. */
+    description?: ReactNode;
+    /** An Avatar, a Monogram, an icon. */
+    leading?: ReactNode;
+    /** At the row's end, inside it: an unread count, a StateBadge, an arrow. */
+    trailing?: ReactNode;
+    /** Beside the row, outside it: a DropdownMenu of what can be done to it. */
+    actions?: ReactNode;
+    /** `hover`: from md the actions show on hover, on focus and while open; a phone always shows them. */
+    revealActions?: 'always' | 'hover';
+    href?: string;
+    onSelect?: () => void;
+    /** The row that is open now: marked, and read as current. */
+    current?: boolean;
+    /** Something new in it: the title in bold, the line in full ink. */
+    unread?: boolean;
+    variant?: 'card' | 'pane';
+    as?: 'li' | 'div';
+    className?: string;
+}) {
+    const tight = useDensity() === 'compact';
+    const look = ROW_LOOK[variant];
+    const interactive = href !== undefined || onSelect !== undefined;
+    const cls = cn(
+        'flex min-h-11 w-full min-w-0 items-center gap-3 text-left outline-none transition-colors',
+        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        look.box,
+        variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
+        interactive && !current && look.hover,
+        current && look.current,
+        actions && 'pr-14'
+    );
+    const body = (
+        <>
+            {leading ? <span className="flex shrink-0">{leading}</span> : null}
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="flex min-w-0 items-baseline justify-between gap-3">
+                    <span className={cn('truncate text-[0.9375rem] text-foreground', unread ? 'font-semibold' : 'font-medium')}>{title}</span>
+                    {meta ? <span className="oca-tabular shrink-0 text-[0.8125rem] text-muted-foreground">{meta}</span> : null}
+                </span>
+                {description ? (
+                    <span className={cn('truncate text-[0.875rem]', unread ? 'text-foreground' : 'text-muted-foreground')}>{description}</span>
+                ) : null}
+            </span>
+            {trailing ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null}
+        </>
+    );
+    const aria = current ? { 'aria-current': 'true' as const } : {};
+    return (
+        <Tag className={cn('group/row relative', className)}>
+            {href !== undefined ? (
+                href.startsWith('/') ? (
+                    <Link href={href} className={cls} {...aria}>
+                        {body}
+                    </Link>
+                ) : (
+                    <a href={href} className={cls} {...aria}>
+                        {body}
+                    </a>
+                )
+            ) : onSelect ? (
+                <button type="button" onClick={onSelect} className={cls} {...aria}>
+                    {body}
+                </button>
+            ) : (
+                <div className={cls}>{body}</div>
+            )}
+            {actions ? (
+                <div
+                    className={cn(
+                        'absolute right-2 top-1/2 flex -translate-y-1/2 items-center',
+                        revealActions === 'hover' &&
+                            'transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/row:opacity-100 md:has-[[data-state=open]]:opacity-100'
+                    )}
+                >
+                    {actions}
+                </div>
+            ) : null}
+        </Tag>
+    );
 }
 
 /* ── ChoiceGroup ─────────────────────────────────────────────────────── */

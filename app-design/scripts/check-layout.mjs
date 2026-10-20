@@ -15,7 +15,8 @@
  * - Every tool page's title starts at one x: ToolShell's wide and narrow
  *   columns, an app page's ToolColumn, and an ErrorPage inside the shell.
  * - On a phone the small controls are a thumb's 44px: the compact footer's
- *   lockup, an artifact's Download, Copy and view switch, filter chips.
+ *   lockup, an artifact's Download, Copy and view switch, filter chips, a
+ *   menu's items, a row in a pane. A row's actions keep clear of its time.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -70,6 +71,7 @@ try {
             `@custom-variant dark (&:is(.dark *));\n` +
             `@source '${join(pkg, 'dist')}';\n` +
             `@source '${join(dir, 'client.js')}';\n` +
+            `@source '${join(dir, 'menu.js')}';\n` +
             `@import '${join(pkg, 'src/styles.css')}';\n`
     );
 
@@ -84,6 +86,25 @@ try {
             `  <div className="p-4"><Panel title="Hash rate" description="Seven-day average." expandable source={<p data-source="">Source: mempool.space · Updated 2 min ago</p>}>{() => tall}</Panel></div>\n` +
             `);\n`
     );
+    // A row's menu, open: Radix draws it only on the client.
+    writeFileSync(
+        join(dir, 'menu.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '${join(pkg, 'src/primitives/overlay.tsx')}';\n` +
+            `createRoot(document.getElementById('root')).render(\n` +
+            `  <DropdownMenu defaultOpen modal={false}><DropdownMenuTrigger>Actions</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>Rename</DropdownMenuItem><DropdownMenuItem destructive>Forget</DropdownMenuItem></DropdownMenuContent></DropdownMenu>\n` +
+            `);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'menu.jsx')],
+        outfile: join(dir, 'menu.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'client.jsx')],
         outfile: join(dir, 'client.js'),
@@ -147,6 +168,30 @@ try {
         )
     );
     const expanded = page('expanded', '<div id="root"></div>', '<script src="client.js"></script>');
+    const menu = page('menu', '<div id="root" class="p-4"></div>', '<script src="menu.js"></script>');
+    // Rows in a pane, each with a picture, a time and a menu button.
+    const paneRows = page(
+        'pane-rows',
+        renderToStaticMarkup(
+            h(
+                'ul',
+                { className: 'flex w-[22rem] max-w-full flex-col gap-1 p-2' },
+                // The third has no picture: a title alone must still be a thumb's height.
+                ...['Ada Lovelace', 'Satoshi Fan Club with a long name', 'Notes'].map((name, i) =>
+                    h(C.ListRow, {
+                        key: name,
+                        variant: 'pane',
+                        onSelect: () => {},
+                        current: i === 0,
+                        leading: i < 2 ? h(C.Avatar, { seed: name, name, size: 'md' }) : undefined,
+                        title: name,
+                        meta: 'Yesterday',
+                        actions: h('button', { type: 'button', 'data-act': '', className: 'size-11' }, '…'),
+                    })
+                )
+            )
+        )
+    );
 
     // One column: a title in each kind of tool page.
     const title = h(C.PageHeader, { title: 'Verify a stamp', description: 'Drop a .stamp file.' });
@@ -233,6 +278,26 @@ try {
                 if (box.foot !== undefined) check(Math.abs(box.foot - gutter) < 0.5, `[${width}] ${name}: the footer's lockup starts at ${Math.round(box.foot)}px, not the column's ${gutter}px`);
                 if (name === 'narrow') check(box.width <= 768.5, `[${width}] narrow: the page runs ${Math.round(box.width)}px wide, past 48rem`);
             }
+            // A menu's items and a pane's rows: 44px on a phone; the row's time clear of its actions.
+            await p.goto(menu);
+            await p.waitForSelector('[role="menuitem"]');
+            const items = await p.$$eval('[role="menuitem"]', (els) => els.map((e) => e.getBoundingClientRect().height));
+            check(items.length === 2 && items.every((x) => (width < 768 ? x >= 44 : x <= 40.5)), `[${width}] menu items are ${items.map(Math.round).join('/')}px tall`);
+            await p.goto(paneRows);
+            const rowBoxes = await p.$$eval('li', (lis) =>
+                lis.map((li) => {
+                    const row = li.querySelector('button:not([data-act])').getBoundingClientRect();
+                    const meta = li.querySelector('.oca-tabular').getBoundingClientRect();
+                    const act = li.querySelector('[data-act]').getBoundingClientRect();
+                    const pic = li.querySelector('[aria-hidden].rounded-full')?.getBoundingClientRect();
+                    return { h: row.height, gap: act.left - meta.right, pic: pic ? [pic.width, pic.height] : null };
+                })
+            );
+            for (const [i, r] of rowBoxes.entries()) {
+                check(r.h >= 44, `[${width}] pane row ${i + 1} is ${Math.round(r.h)}px tall`);
+                check(r.gap >= 4, `[${width}] pane row ${i + 1}: the time runs under the actions (gap ${Math.round(r.gap)}px)`);
+                if (r.pic) check(r.pic[0] === 44 && r.pic[1] === 44, `[${width}] pane row ${i + 1}: the avatar is ${r.pic.join('×')}, not 44×44`);
+            }
             // Targets: a press anywhere in the 44px around the control's middle lands on it.
             await p.goto(targets);
             const reach = await p.evaluate(() => {
@@ -275,4 +340,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows`);

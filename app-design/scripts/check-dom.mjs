@@ -230,8 +230,32 @@ for (const mode of ['dark', 'light']) {
     await act(async () => {
         radios()[1].focus();
         radios()[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        // Radix moves focus on a timer, then checks the radio it lands on.
+        await new Promise((r) => setTimeout(r, 30));
     });
     check(document.activeElement === radios()[2] && chosen.at(-1) === 'c', `ChoiceGroup: ArrowDown does not move the choice (${show(chosen)})`);
+    await unmount();
+}
+
+// Avatar: a picture that fails to load gives way to the initials.
+{
+    const { host, unmount } = await mount(h(C.Avatar, { seed: 'bc1q', name: 'Hal Finney', src: 'https://invalid.example/hal.png' }));
+    check(host.querySelector('img'), 'Avatar: the picture is not tried first');
+    await act(async () => host.querySelector('img').dispatchEvent(new window.Event('error')));
+    check(!host.querySelector('img') && host.textContent === 'HF', `Avatar: a failed picture does not fall back to the initials (${host.innerHTML.slice(0, 60)})`);
+    await unmount();
+}
+
+// ListRow: the row is the button; its actions are not part of it.
+{
+    let opened = 0;
+    let acted = 0;
+    const { host, unmount } = await mount(
+        h('ul', null, h(C.ListRow, { title: 'Ada', onSelect: () => opened++, actions: h('button', { type: 'button', 'data-act': '', onClick: () => acted++ }, 'More') }))
+    );
+    await act(async () => host.querySelector('li > button').click());
+    await act(async () => host.querySelector('[data-act]').click());
+    check(opened === 1 && acted === 1, `ListRow: a press on the row or its actions reached the wrong one (row ${opened}, actions ${acted})`);
     await unmount();
 }
 
@@ -252,5 +276,5 @@ if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions`);
 process.exit(0);

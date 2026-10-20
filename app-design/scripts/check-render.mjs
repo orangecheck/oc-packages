@@ -346,6 +346,29 @@ const html = (el) => renderToStaticMarkup(el);
     for (const [size, cls] of [['2xs', 'size-7'], ['xs', 'size-8']]) check(html(h(C.Monogram, { name: 'Ada', size })).includes(cls), `Monogram: ${size} is not ${cls}`);
 }
 
+// Rows, people, a pane's bar, a notice's icon.
+{
+    const row = html(
+        h(C.ListRow, { href: '/messages/1', title: 'Ada', meta: '2m', description: 'The keys are in the usual place.', current: true, unread: true, leading: h('i', { 'data-lead': '' }), trailing: h('b', null, '2'), actions: h('button', { type: 'button', 'data-act': '' }, 'More') })
+    );
+    const link = row.match(/^<li class="[^"]*group\/row[^"]*relative[^"]*"><a ([^>]*)>/)?.[1] ?? '';
+    check(link.includes('href="/messages/1"') && link.includes('aria-current="true"'), 'ListRow: not one link, marked current');
+    check(/<\/a><div[^>]*><button type="button" data-act="">/.test(row) && !/<a [^>]*>(?:(?!<\/a>)[\s\S])*data-act/.test(row), 'ListRow: the actions sit inside the link');
+    check(/font-semibold[^"]*">Ada<\/span><span[^>]*>2m<\/span>/.test(row) && row.includes('text-foreground">The keys'), 'ListRow: unread does not set the title bold and the line in ink, or the meta is not beside the title');
+    check(/<button type="button" class="[^"]*min-h-11/.test(html(h(C.ListRow, { title: 'x', onSelect: () => {}, variant: 'pane' }))), 'ListRow: a pane row is not a 44px button');
+    check(html(h(C.ListRow, { title: 'x', href: 'https://mempool.space' })).includes('<a href="https://mempool.space"'), 'ListRow: an outside link is not a plain anchor');
+    const fig = html(h(C.Avatar, { seed: 'bc1q', name: 'Satoshi Nakamoto', size: 'md' }));
+    check(/^<span aria-hidden="true" class="[^"]*rounded-full[^"]*size-11[^"]*" style="[^"]*--oca-avatar-h:\d+[^"]*">SN<\/span>$/.test(fig), 'Avatar: no initials on a round tint');
+    check(html(h(C.Avatar, { seed: 'a' })).includes('<svg') && html(h(C.Avatar, { seed: 'a', name: '  ' })).includes('<svg'), 'Avatar: no name does not draw the person glyph');
+    check(/^<img [^>]*src="data:image\/png;base64,AA"[^>]*aria-hidden="true"[^>]*rounded-full/.test(html(h(C.Avatar, { seed: 'a', name: 'Ada', src: 'data:image/png;base64,AA' }))), 'Avatar: a picture is not drawn round');
+    check(html(h(C.Avatar, { seed: 'a', name: 'Ada' })).match(/--oca-avatar-h:(\d+)/)?.[1] === html(h(C.Avatar, { seed: 'a', name: 'Bob' })).match(/--oca-avatar-h:(\d+)/)?.[1], 'Avatar: the tint follows the name, not the seed');
+    const bar = html(h(Ch.PaneHeader, null, h('span', null, 'Messages')));
+    check(/^<header class="[^"]*h-14[^"]*border-b[^"]*px-4[^"]*"><span>Messages<\/span><\/header>$/.test(bar), 'PaneHeader: not a 56px bar with a hairline');
+    const lock = html(h(C.Notice, { tone: 'warning', icon: h('svg', { 'data-icon': '' }), title: 'Set a passphrase' }));
+    check(/<span aria-hidden="true" class="[^"]*text-oca-accent-ink[^"]*"><svg data-icon=""><\/svg><\/span>/.test(lock) && !lock.includes('rounded-full'), 'Notice: the icon does not replace the dot in the notice\'s colour');
+    check(html(h(C.Notice, { tone: 'warning', title: 'x' })).includes('rounded-full bg-oca-orange'), 'Notice: without an icon the dot is gone');
+}
+
 // The account phrase and the sign-in page's word come from the registry.
 {
     const F = require(join(here, '../dist/family.js'));

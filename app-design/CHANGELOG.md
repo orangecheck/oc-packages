@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-10-20
+
+What chat's and cosign's re-chromes still drew by hand.
+
+- `ListRow`: one row of a list, the classic DataRow's place. A picture, a
+  title with a time or count at its right, a line under it, something at
+  the end. With `href` or `onSelect` the whole row is one link or button,
+  and `actions` sits beside it, never inside it. `variant="pane"` is a
+  rounded row for a thread or contact list, lifted when `current`;
+  `revealActions="hover"` shows the actions on hover from md, always on a
+  phone. A row is 44px tall at least.
+- `Avatar`: a person, round. Their picture when there is one, falling back
+  to their initials if it fails to load; else the initials on a tint picked
+  from the seed, so a contact keeps one colour everywhere; else a person
+  glyph. Sizes match Monogram's. `yarn test` holds the initials to AA at
+  every hue, light and dark.
+- `PaneHeader` in `./chrome`: a pane's 56px bar in an app frame, the same
+  gutter and hairline on every pane.
+- `Notice` takes an `icon`, in place of the dot, in the notice's colour.
+- A menu's items are 44px tall on a phone. An action list on a row is a
+  `DropdownMenu`: it gives the arrow keys, Escape and focus back to the
+  button, which a popover of buttons does not.
+
 ## [1.7.0] — 2026-10-20
 
 What the family UI audit and cosign's, vault's and chat's re-chromes found.

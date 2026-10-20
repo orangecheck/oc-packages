@@ -1,18 +1,49 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Copy, Globe, KeyRound, Lock, Plus, Rocket, Star, Users, Wallet } from 'lucide-react';
+import {
+    Archive,
+    ArrowLeft,
+    ChevronRight,
+    Copy,
+    Globe,
+    KeyRound,
+    Lock,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Rocket,
+    ShieldCheck,
+    Star,
+    Trash2,
+    Users,
+    Wallet,
+} from 'lucide-react';
 import { useState } from 'react';
 
-import { Button, DialogHost, prompt } from '../primitives';
+import { PaneHeader } from '../chrome';
 import {
+    Badge,
+    Button,
+    DialogHost,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+    prompt,
+} from '../primitives';
+import {
+    Avatar,
     ChoiceCard,
     ChoiceGroup,
     ComparisonTable,
     CommandDialog,
     CountdownRing,
     ListCard,
+    ListRow,
     LockedPreview,
     Meter,
     Monogram,
+    Notice,
     PlanCard,
     Sats,
     SectionTitle,
@@ -248,6 +279,150 @@ export const Sections: StoryObj = {
                     </ChoiceGroup>
                 </section>
                 <SectionTitle title="Delete this project" tone="danger" description="Its page and every cosign on it go. This cannot be undone." action={<Button variant="danger" size="sm">Delete</Button>} />
+            </div>
+        );
+    },
+};
+
+/* A picture for the avatar story: drawn here, so the story loads nothing. */
+const FACE =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb37a"/><stop offset="1" stop-color="#c2410c"/></linearGradient></defs><rect width="64" height="64" fill="url(#g)"/><circle cx="32" cy="26" r="11" fill="#fff4ea"/><path d="M12 60c3-12 11-18 20-18s17 6 20 18z" fill="#fff4ea"/></svg>'
+    );
+
+/** What can be done to a thread: a menu, so the arrow keys and Escape work, not a popover of buttons. */
+function ThreadActions({ name }: { name: string }) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label={`Actions for ${name}`} className="text-muted-foreground max-md:size-11">
+                    <MoreHorizontal />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuItem>
+                    <Pencil /> Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <Copy /> Copy address
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <Archive /> Archive
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem destructive>
+                    <Trash2 /> Forget
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+const THREADS = [
+    { id: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t', name: 'Ada Lovelace', last: 'The keys are in the usual place.', when: '2m', unread: 2, src: FACE },
+    { id: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', name: 'Satoshi Fan Club', last: 'You: see you at block 972,000', when: '1h', unread: 0 },
+    { id: 'did:oc:7f3a91de22c0', name: null, last: 'wants to reach you', when: 'Tue', unread: 0 },
+    { id: 'bc1qbroken', name: 'Hal', last: 'Running bitcoin', when: 'Mon', unread: 0, src: 'https://invalid.example/missing.png' },
+];
+
+/** Rows in a card and in a pane, their menus, people's avatars, a notice with an icon. */
+export const Rows: StoryObj = {
+    name: 'Rows, menus, people',
+    render: function Render() {
+        const [open, setOpen] = useState(THREADS[0]!.id);
+        return (
+            <div className="flex max-w-[60rem] flex-col gap-12">
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="Messages" meta="4 threads" />
+                    <ListCard>
+                        {THREADS.map((t) => (
+                            <ListRow
+                                key={t.id}
+                                href={`#${t.id}`}
+                                leading={<Avatar seed={t.id} name={t.name} src={t.src} />}
+                                title={t.name ?? 'Someone new'}
+                                meta={t.when}
+                                description={t.last}
+                                unread={t.unread > 0}
+                                trailing={
+                                    t.unread > 0 ? (
+                                        <Badge tone="brand">
+                                            {t.unread}
+                                            <span className="sr-only"> unread</span>
+                                        </Badge>
+                                    ) : (
+                                        <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
+                                    )
+                                }
+                            />
+                        ))}
+                    </ListCard>
+                </section>
+                <section className="flex flex-col gap-3">
+                    <SectionTitle title="In a pane" size="sm" as="h3" description="A thread list beside an open thread: the current row lifts, the menu shows on hover from md." />
+                    <div className="flex h-[26rem] overflow-hidden rounded-[1.25rem] border border-border bg-background">
+                        <div className="flex w-full max-w-[22rem] flex-col border-r border-border">
+                            <PaneHeader>
+                                <span className="oca-title-sm flex-1">Messages</span>
+                                <Button variant="ghost" size="icon" aria-label="New thread" className="max-md:size-11">
+                                    <Plus />
+                                </Button>
+                            </PaneHeader>
+                            <ul className="flex flex-col gap-1 overflow-y-auto p-2">
+                                {THREADS.map((t) => (
+                                    <ListRow
+                                        key={t.id}
+                                        variant="pane"
+                                        onSelect={() => setOpen(t.id)}
+                                        current={open === t.id}
+                                        leading={<Avatar seed={t.id} name={t.name} src={t.src} size="md" />}
+                                        title={t.name ?? 'Someone new'}
+                                        meta={t.when}
+                                        description={t.last}
+                                        unread={t.unread > 0}
+                                        actions={<ThreadActions name={t.name ?? 'this thread'} />}
+                                        revealActions="hover"
+                                    />
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="hidden min-w-0 flex-1 flex-col sm:flex">
+                            <PaneHeader>
+                                <Button variant="ghost" size="icon" aria-label="Back" className="md:hidden">
+                                    <ArrowLeft />
+                                </Button>
+                                <Avatar seed={open} name={THREADS.find((t) => t.id === open)?.name} src={THREADS.find((t) => t.id === open)?.src} size="xs" />
+                                <span className="truncate text-[0.9375rem] font-medium">{THREADS.find((t) => t.id === open)?.name ?? 'Someone new'}</span>
+                            </PaneHeader>
+                            <div className="flex flex-1 items-center justify-center p-6 text-center text-[0.9375rem] text-muted-foreground">The thread opens here.</div>
+                        </div>
+                    </div>
+                </section>
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="People" size="sm" as="h3" description="A picture when there is one; initials on their own tint; a person when there is no name. A picture that fails to load falls back." />
+                    <div className="flex flex-wrap items-end gap-4">
+                        {(['2xs', 'xs', 'sm', 'md', 'lg'] as const).map((size) => (
+                            <Avatar key={size} seed="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t" name="Ada Lovelace" size={size} />
+                        ))}
+                        <Avatar seed="x" src={FACE} size="lg" />
+                        <Avatar seed="did:oc:7f3a91de22c0" size="lg" />
+                        <Avatar seed="bc1qbroken" name="Hal" src="https://invalid.example/missing.png" size="lg" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {['Ada Lovelace', 'Satoshi N', 'Hal Finney', 'Nick Szabo', 'Wei Dai', 'Adam Back', 'Len Sassaman', 'Zooko'].map((n) => (
+                            <Avatar key={n} seed={n} name={n} size="md" />
+                        ))}
+                    </div>
+                </section>
+                <section className="flex flex-col gap-3">
+                    <Notice icon={<ShieldCheck />} title="End to end">
+                        Only you and Ada hold the keys to this thread. orangecheck cannot read it.
+                    </Notice>
+                    <Notice tone="warning" icon={<Lock />} title="Set a passphrase first">
+                        A passphrase you forget cannot be reset. Export a backup before you turn the lock on.
+                    </Notice>
+                </section>
             </div>
         );
     },

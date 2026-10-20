@@ -512,11 +512,14 @@ export function Notice({
     title,
     children,
     action,
+    icon,
     role,
     className,
 }: {
     tone?: NoticeTone;
     title?: ReactNode;
+    /** A lucide icon in place of the dot, in the notice's colour: a lock, a shield. */
+    icon?: ReactNode;
     children?: ReactNode;
     action?: ReactNode;
     /** Default: `alert` for danger and warning, which a screen reader announces. Text that is
@@ -536,7 +539,17 @@ export function Notice({
             )}
         >
             <div className="flex min-w-0 gap-3">
-                {kind !== 'neutral' ? (
+                {icon ? (
+                    <span
+                        aria-hidden
+                        className={cn(
+                            'mt-0.5 shrink-0 [&_svg]:size-[1.125rem]',
+                            kind === 'brand' ? 'text-oca-accent-ink' : kind === 'danger' ? 'text-destructive' : 'text-muted-foreground'
+                        )}
+                    >
+                        {icon}
+                    </span>
+                ) : kind !== 'neutral' ? (
                     <span
                         aria-hidden
                         className={cn(

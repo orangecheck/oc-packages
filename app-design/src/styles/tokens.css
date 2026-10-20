@@ -81,6 +81,10 @@
     --oca-chart-up: var(--success);
     --oca-chart-down: var(--destructive);
     --oca-chart-grid: var(--border);
+    /* Avatar: a person's tint, its hue from their seed, its lightness from the
+       mode. check-contrast holds the initials to AA at every hue. */
+    --oca-avatar-bg-l: 90%;
+    --oca-avatar-fg-l: 28%;
     --oca-sphere-from: #ff6f33;
     --oca-sphere-to: #ffd9c4;
     --oca-outline: #f2cfc3;
@@ -224,6 +228,8 @@
     --oca-chart-3: #f9a8d4;
     --oca-chart-4: #fde047;
     --oca-chart-neutral: #62676e;
+    --oca-avatar-bg-l: 22%;
+    --oca-avatar-fg-l: 82%;
     --oca-outline: #3a2a24;
     /* In dark the ink band lifts off the canvas, so the deck's rhythm survives. */
     --oca-ink: #171717;

@@ -521,6 +521,16 @@ export interface AccountMenuItem {
     destructive?: boolean;
 }
 
+/**
+ * A pane's top bar in an app frame: one 56px row, a hairline under it, the
+ * same gutter on every pane (a thread, a channel, a setting), so a back
+ * button, a title and the actions line up as you move between them, and with
+ * a 56px header beside them. It is not a page title: put PageHeader on pages.
+ */
+export function PaneHeader({ children, className }: { children: ReactNode; className?: string }) {
+    return <header className={cn('flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 md:px-5', className)}>{children}</header>;
+}
+
 /** The account button: initial + short id, a menu of items. */
 export function AccountMenu({
     name,
