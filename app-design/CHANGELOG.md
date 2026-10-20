@@ -65,6 +65,20 @@ What ochk.io/docs needs to move onto the system:
   excerpt markup goes in `excerptHtml`). `defaultQuery` opens it with `?q=`.
 - `ProtocolGrid link="docs"`. `Notice` takes a `role`.
 
+### Fixed
+
+- A context set in one entry now reaches a reader in another. Each entry is
+  bundled on its own, so `AppShell` (from `./chrome`) and `PageHeader` (from
+  `./components`) each had their own copy, and `PageHeader` never got the
+  section as its eyebrow. ochk.app passes an eyebrow on 24 of 25 pages; the
+  one that does not (`ProjectFrame`) shows its section after this update.
+- A `Select` inside a `Field` is named by the field's label and described by
+  its hint. `Field` hands its id to its child, and Select's root draws no
+  element, so no select in the package had a name.
+- `AccountMenu`'s button is read as its name ("you@example.com, account
+  menu"), and its initial is drawn rather than written, so what it says
+  matches what it shows.
+
 ## [1.0.0] — 2026-10-20
 
 The family design system. Every orangecheck site moves onto it; the classic

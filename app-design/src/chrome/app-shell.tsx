@@ -361,11 +361,14 @@ export function AccountMenu({
                     'inline-flex h-10 items-center gap-2.5 rounded-full border border-border bg-card pl-1 pr-1 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
                     nameFrom === 'lg' ? 'lg:pr-3.5' : 'sm:pr-3.5'
                 )}
-                aria-label={`Account: ${name}`}
+                aria-label={`${name}, account menu`}
             >
-                <span className="flex size-8 items-center justify-center rounded-full bg-foreground text-[0.8125rem] font-medium text-background">
-                    {initial}
-                </span>
+                {/* The initial is drawn, not written: the button's text is the name it is read by. */}
+                <span
+                    aria-hidden
+                    data-initial={initial}
+                    className="flex size-8 items-center justify-center rounded-full bg-foreground text-[0.8125rem] font-medium text-background before:content-[attr(data-initial)]"
+                />
                 <span className={cn('max-w-[10rem] truncate', nameFrom === 'lg' ? 'max-lg:hidden' : 'max-sm:hidden')}>
                     {name}
                 </span>

@@ -8,6 +8,7 @@ import {
     cloneElement,
     forwardRef,
     isValidElement,
+    useContext,
     useId,
     type ComponentPropsWithoutRef,
     type ElementRef,
@@ -18,6 +19,7 @@ import {
 } from 'react';
 
 import { cn } from '../lib/cn';
+import { sharedContext } from '../lib/shared-context';
 
 /* Fields: 44px tall, a hairline that darkens on focus with a soft orange halo,
    16px text on phones so iOS never zooms. */
@@ -129,7 +131,30 @@ export function Field({ label, hint, optional, error, children, className, hideL
 
 /* ── Select ───────────────────────────────────────────────────────────── */
 
-export const Select = SelectPrimitive.Root;
+/*
+ * Field wires its label to its child by id, and Select's root renders no
+ * element of its own. So Select takes the field's id, description and
+ * invalid state and hands them to its trigger, the element a label names.
+ */
+interface SelectWiring {
+    id?: string;
+    'aria-describedby'?: string;
+    'aria-invalid'?: boolean;
+}
+const SelectFieldContext = sharedContext<SelectWiring | null>('select-field', null);
+
+export function Select({
+    id,
+    'aria-describedby': describedBy,
+    'aria-invalid': invalid,
+    ...props
+}: ComponentPropsWithoutRef<typeof SelectPrimitive.Root> & SelectWiring) {
+    return (
+        <SelectFieldContext.Provider value={{ id, 'aria-describedby': describedBy, 'aria-invalid': invalid }}>
+            <SelectPrimitive.Root {...props} />
+        </SelectFieldContext.Provider>
+    );
+}
 export const SelectGroup = SelectPrimitive.Group;
 export const SelectValue = SelectPrimitive.Value;
 
@@ -137,9 +162,13 @@ export const SelectTrigger = forwardRef<
     ElementRef<typeof SelectPrimitive.Trigger>,
     ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(function SelectTrigger({ className, children, ...props }, ref) {
+    const field = useContext(SelectFieldContext);
     return (
         <SelectPrimitive.Trigger
             ref={ref}
+            id={field?.id}
+            aria-describedby={field?.['aria-describedby']}
+            aria-invalid={field?.['aria-invalid']}
             className={cn(fieldBase, 'flex h-11 items-center justify-between gap-2 px-3.5 text-left', className)}
             {...props}
         >

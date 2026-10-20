@@ -2,7 +2,7 @@
 /*
  * The docs components, rendered from the build to markup, doing what they
  * promise: code arrives highlighted in the server's HTML, the docs mark
- * where you are. Run after `yarn build`.
+ * where you are, and a context or a label reaches across entries. Run after `yarn build`.
  */
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -79,8 +79,26 @@ const html = (el) => renderToStaticMarkup(el);
     check(shell.includes('id="docs-content"') && shell.includes('id="main-content"'), 'DocsShell: the page has no content landmark');
 }
 
+// A context set in one entry reaches a reader in another (each entry is bundled on its own).
+{
+    const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];
+    const out = html(h(Ch.AppShell, { sections }, h(C.PageHeader, { title: 'Home' })));
+    check(/class="oca-eyebrow">You</.test(out), 'AppShell (chrome) does not reach PageHeader (components): the section eyebrow is missing');
+}
+
+// A Select inside a Field is named by the Field's label: the trigger carries the id the label points at.
+{
+    const out = html(
+        h(P.Field, { label: 'Network', hint: 'Mainnet anchors to Bitcoin.' },
+            h(P.Select, { defaultValue: 'mainnet' }, h(P.SelectTrigger, null, h(P.SelectValue)), h(P.SelectContent, null, h(P.SelectItem, { value: 'mainnet' }, 'Mainnet'))))
+    );
+    const labelFor = out.match(/<label[^>]*for="([^"]+)"/)?.[1];
+    check(!!labelFor && new RegExp(`<button[^>]*id="${labelFor}"`).test(out), 'Field + Select: the label does not name the trigger');
+    check(/<button[^>]*aria-describedby="[^"]+-hint"/.test(out), 'Field + Select: the hint does not describe the trigger');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);
 }
-console.log(`✓ render: ${checks} checks on the docs components`);
+console.log(`✓ render: ${checks} checks on the docs components and the shared parts`);
