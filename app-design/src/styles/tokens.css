@@ -43,7 +43,9 @@
     --border: #ececec;
     /* A field's edge is how you find it: 3:1 against the card it sits on. */
     --input: #8f8f8f;
-    --ring: #f66d36;
+    /* A focus ring is a graphic that must stand out 3:1 (WCAG 1.4.11): #F66D36
+       is 2.81:1 on the canvas, so light mode rings in the deep orange. */
+    --ring: #ea580b;
 
     /* Status */
     --destructive: #c2262e;

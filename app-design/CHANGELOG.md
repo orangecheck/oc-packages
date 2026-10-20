@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Accessibility
+
+- The focus ring is the deep orange (`#EA580B`) in light mode. The brand
+  orange it used was 2.81:1 on the canvas and 2.93:1 on a card, under the
+  3:1 a focus indicator needs. Dark mode keeps `#F66D36` (6.17:1).
+- A checked `Switch` fills with the deep orange in both modes, so the track
+  that carries its state clears 3:1 on a card and the white thumb clears 3:1
+  on the track.
+- `yarn test` checks both pairs, and a new `check-mirror` step fails when an
+  `appColors` value drifts from `tokens.css`. It found one: dark `border` was
+  `#262626` in the mirror and `#2A2A2A` in the CSS; the mirror now matches,
+  and gains `ring`.
+
+### Stories
+
+- No personal names: sample accounts are `you@example.com`.
+- The words people read are the canonical ones: Balance, Account, account
+  id, ways to sign in, Waiting, release schedule. No visible `did:oc:`.
+
 ## [0.6.1] — 2026-10-17
 
 - The site header stays legible over dark bands: it was 70% opaque, so a

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { ArrowRight, LogOut, Settings, Wallet } from 'lucide-react';
+import { ArrowRight, CircleUser, LogOut, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -136,10 +136,10 @@ export const Forms: StoryObj = {
                 </Field>
                 <Field
                     label="Invite an operator"
-                    hint="Their orangecheck id. They can copy it from their Identity page."
+                    hint="Their account id. They can copy it from their Account page."
                     action={<Button variant="secondary">Invite</Button>}
                 >
-                    <Input placeholder="did:oc:…" />
+                    <Input placeholder="Account id" />
                 </Field>
                 <Field label="Why you're asking">
                     <Textarea placeholder="One or two sentences." />
@@ -206,10 +206,10 @@ export const Overlays: StoryObj = {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem>
-                            <Wallet /> Wallet
+                            <Wallet /> Balance
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                            <Settings /> Settings
+                            <CircleUser /> Account
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem destructive>
@@ -285,7 +285,7 @@ export const States: StoryObj = {
             <div className="w-[22rem] max-w-full">
                 <Tabs defaultValue="overview" look="line">
                     <TabsList>
-                        {['Overview', 'Events', 'Billing', 'Keys', 'Trust', 'Webhooks', 'Drops'].map((t) => (
+                        {['Overview', 'Sign-in', 'Paying', 'Receipts', 'Keys & webhooks', 'Release schedule'].map((t) => (
                             <TabsTrigger key={t} value={t.toLowerCase()}>
                                 {t}
                             </TabsTrigger>

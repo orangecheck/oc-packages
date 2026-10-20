@@ -78,6 +78,13 @@ const PAIRS = [
     // Non-text: a field's border against the card it sits on (WCAG 1.4.11).
     ['input', 'card', 3],
     ['input', 'background', 3],
+    // The focus ring, wherever a focused control sits.
+    ['ring', 'background', 3],
+    ['ring', 'card', 3],
+    // A checked Switch: the track against the card, and the white thumb on the track.
+    ['oca-orange-deep', 'card', 3],
+    ['oca-orange-deep', 'background', 3],
+    ['oca-ink-foreground', 'oca-orange-deep', 3],
 ];
 
 let failed = 0;

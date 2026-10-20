@@ -1,7 +1,7 @@
 /*
- * The ochk.app palette as data, for places CSS variables cannot reach: OG
- * images, canvas, charts, email. Must match styles/tokens.css; the contrast
- * check reads both.
+ * The palette as data, for places CSS variables cannot reach: OG images,
+ * canvas, charts, email. Every value must equal its variable in
+ * styles/tokens.css; scripts/check-mirror.mjs fails the build when one drifts.
  */
 export const APP_ATTRIBUTE = 'data-oc-app';
 export const APP_ID = 'ochk';
@@ -18,6 +18,7 @@ export const appColors = {
         hairlineStrong: '#DADADA',
         accentDisplay: '#F55819',
         accentInk: '#C73F09',
+        ring: '#EA580B',
     },
     dark: {
         background: '#0A0A0A',
@@ -26,10 +27,11 @@ export const appColors = {
         muted: '#1E1E1E',
         mutedForeground: '#A3A6AA',
         subtleForeground: '#8B8E93',
-        border: '#262626',
+        border: '#2A2A2A',
         hairlineStrong: '#333333',
         accentDisplay: '#F66D36',
         accentInk: '#F0835A',
+        ring: '#F66D36',
     },
     brand: {
         orange: '#F66D36',

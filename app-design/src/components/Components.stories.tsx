@@ -116,21 +116,21 @@ export const Data: StoryObj = {
     render: () => (
         <div className="flex flex-col gap-10">
             <PageHeader
-                eyebrow="Wallet"
+                eyebrow="Balance"
                 title="Your balance"
                 description="What you've earned, where it's held, and how to take it out."
                 actions={<Button>Cash out</Button>}
             />
             <StatGrid>
                 <StatCard label="Balance" value={<Sats value={12840} />} />
-                <StatCard label="Earned this month" value={<Sats value={3120} />} hint="from 4 sites" />
-                <StatCard label="Maturing" value={<Sats value={900} />} hint="in an open drop" />
+                <StatCard label="Earned this month" value={<Sats value={3120} />} hint="from 4 apps" />
+                <StatCard label="Waiting" value={<Sats value={900} />} hint="on a release schedule" />
                 <StatCard label="Paid out" value={<Sats value={null} />} hint="nothing yet" />
             </StatGrid>
             <KeyValueList
                 items={[
-                    { label: 'Identity', value: <HashChip value="did:oc:ed30f1d9fc9acf7a88283069a2f97fc8" head={14} tail={6} /> },
-                    { label: 'Payout destination', value: 'alice@getalby.com' },
+                    { label: 'Account id', value: <HashChip value="ed30f1d9fc9acf7a88283069a2f97fc8" head={8} tail={6} /> },
+                    { label: 'Payout destination', value: 'you@example.com' },
                     { label: 'Network', value: 'signet (testing)' },
                 ]}
             />
@@ -150,7 +150,7 @@ export const Data: StoryObj = {
             />
             <ActivityList
                 items={[
-                    { id: 'a', title: 'Payout sent', meta: 'to alice@getalby.com · 2 days ago', trailing: <Sats value={-5000} /> },
+                    { id: 'a', title: 'Paid out', meta: 'to you@example.com · 2 days ago', trailing: <Sats value={-5000} /> },
                     { id: 'b', title: 'Earned on lumen notes', meta: 'account created · 5 days ago', leading: <Monogram name="Lumen Notes" size="sm" />, trailing: <Sats value={210} signed /> },
                 ]}
             />
@@ -276,9 +276,9 @@ export const StatsShapes: StoryObj = {
         <div className="flex max-w-5xl flex-col gap-8">
             <StatGrid>
                 <StatCard label="Balance" value={<Sats value={12840} />} raw={12840} />
-                <StatCard label="Earned this month, across every site you use" value={<Sats value={3120} />} raw={3120} />
-                <StatCard label="Maturing" value={<Sats value={900} />} raw={900} hint="in an open drop" />
-                <StatCard label="Sites" value="3" raw={3} />
+                <StatCard label="Earned this month, across every app you use" value={<Sats value={3120} />} raw={3120} />
+                <StatCard label="Waiting" value={<Sats value={900} />} raw={900} hint="on a release schedule" />
+                <StatCard label="Apps" value="3" raw={3} />
                 <StatCard label="Paid out" value={<Sats value={0} />} raw={0} />
             </StatGrid>
             <StatGrid empty="Nothing billed yet. Events you fire will show here.">
@@ -309,7 +309,7 @@ export const TablePhone: StoryObj = {
             ]}
             rows={[
                 { id: '1', when: '15 Oct, 16:32', action: 'Network set to signet', target: 'oc-me-federation-bootstrap-1', sats: 0 },
-                { id: '2', when: '15 Oct, 14:02', action: 'Escrow topped up', target: 'pk_test_VRBJTYIdV0i5zfuj', sats: 100000 },
+                { id: '2', when: '15 Oct, 14:02', action: 'Balance topped up', target: 'pk_test_VRBJTYIdV0i5zfuj', sats: 100000 },
             ]}
         />
     ),
@@ -332,7 +332,7 @@ export const CodeAndStates: StoryObj = {
                     '',
                     'await oc.event.fire({',
                     "  project_key: 'pk_test_VRBJTYIdV0i5zfuj', subtype: 'comment.posted', signingSecret: process.env.OC_SIGNING_SECRET!,",
-                    '  userAddress: user.did_oc,',
+                    '  accountId: session.accountId,',
                     '  idempotencyKey: crypto.randomUUID(),',
                     '});',
                     '',
@@ -341,7 +341,7 @@ export const CodeAndStates: StoryObj = {
                 ].join('\n')}
             />
             <Notice title="Payouts start when testing ends">Earning runs on test networks until then.</Notice>
-            <Notice tone="brand" title="Escrow is low" action={<Button size="sm" variant="secondary">Top up</Button>}>
+            <Notice tone="brand" title="Your balance is low" action={<Button size="sm" variant="secondary">Top up</Button>}>
                 Events stop billing when it runs out.
             </Notice>
             <Notice tone="danger" title="That key was rejected">The signature did not match the address.</Notice>

@@ -389,8 +389,8 @@ function PhoneHome() {
                 <span className="flex size-7 items-center justify-center rounded-full bg-oca-ink text-[0.75rem] text-white">Y</span>
             </div>
             <div className="rounded-2xl bg-oca-ink p-4 text-white">
-                <div className="text-white/70">Your identity</div>
-                <div className="mt-1 font-mono text-[0.75rem]">did:oc:ed30…f97fc8</div>
+                <div className="text-white/70">Your account</div>
+                <div className="mt-1 font-mono text-[0.75rem]">ed30f1d9…f97fc8</div>
                 <div className="mt-4 flex items-center gap-2">
                     <span className="size-1.5 rounded-full bg-oca-orange" />
                     Ready to be paid
@@ -557,7 +557,7 @@ export const Home: StoryObj = {
                                 rows={[
                                     { status: 'yes', what: 'Open source. Every receipt checks against Bitcoin, offline.' },
                                     { status: 'yes', what: 'No token. No ads. No KYC.' },
-                                    { status: 'testing', what: 'Earning in sats. The payout rail is in bring-up, so no sats move yet.' },
+                                    { status: 'testing', what: 'Earning in sats. Payouts are in testing, so no sats move yet.' },
                                     { status: 'not-yet', what: 'Moving sats to a wallet you hold.' },
                                 ]}
                             />

@@ -79,7 +79,7 @@ export const Type: StoryObj = {
             </div>
             <div className="flex flex-col gap-2">
                 <Eyebrow>mono</Eyebrow>
-                <code className="text-[0.9375rem]">did:oc:ed30f1d9fc9acf7a88283069a2f97fc8</code>
+                <code className="text-[0.9375rem]">sha256:3f9a0c5e…c21e · oc-stamp:v1</code>
             </div>
         </div>
     ),

@@ -230,7 +230,8 @@ export const Switch = forwardRef<
             className={cn(
                 'peer inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent bg-input p-0.5',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                'data-[state=checked]:bg-brand disabled:cursor-not-allowed disabled:opacity-50',
+                // The deep orange: the track is the state, so it must clear 3:1 on a card.
+                'data-[state=checked]:bg-oca-orange-deep disabled:cursor-not-allowed disabled:opacity-50',
                 className
             )}
             {...props}
