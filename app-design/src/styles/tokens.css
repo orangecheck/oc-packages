@@ -130,6 +130,8 @@
        OcWalletPicker and OcWalletButton) in this design, read the same way:
        each variable's fallback there is today's family look. */
     --oc-wallet-font: var(--oc-font-sans);
+    /* The message to sign and the pasted signature: exact strings, so mono. */
+    --oc-wallet-message-font: var(--oc-font-mono);
     --oc-wallet-case: none;
     --oc-wallet-tracking: 0;
     --oc-wallet-scale: 1.25;

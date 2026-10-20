@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-10-20
+
+What ochk.io/docs and ochk.io built locally, so both can drop the workarounds and
+the classic `@orangecheck/design`.
+
+- `styles/swagger.css`: Swagger UI in this system's dark mode, with 16px fields on
+  a phone and method badges that clear AA. Opt-in, imported after
+  `swagger-ui.css`. Links take the accent ink.
+- `ApiTable`: a row takes an `id`, and a link to `#id` lands on that row and
+  tints it. One set of rows now serves the desk and the phone, so the id is a
+  single anchor. A row's `source` (a link to the line) sits in a "Defined in"
+  column named once in the header, not on every row. A column no row fills,
+  Description included, is left out.
+- `TextLink`, and so markdown's `a`: a relative href (`../README`, `VerifyOk`)
+  resolves against the page and goes through the router, which keeps the base
+  path.
+- The MDX map: `h5` and `h6` (TypeDoc's "Returns"), and GitHub task lists: the
+  box replaces the bullet, a wrapped task starts under its text, and the box is
+  named "Done" or "To do".
+- `SpecCard repo="oc-chat-protocol" kind="security"`: one file in any spec repo,
+  named as the normative copy of the page, with the kind's sentence (`spec`,
+  `security`, `rationale`) or your own `note`. `SpecCard protocol` is unchanged.
+- `ProtocolGrid link="docs"` inside `DocsShell` links `/attest` through the
+  router instead of reloading at ochk.io/docs/attest. Outside the docs it still
+  links ochk.io/docs.
+- `DocsShell navCurrent`: the nav item to mark and open, apart from the page, so
+  a deep SDK page opens its package. Its default footer is now `OchkIoFooter`.
+- `CodeBlock` copies the code byte for byte, its final newline included, so a
+  hash printed beside a block matches a copy of it. `rehypeCode` marks a fence
+  that ends in a newline (`data-eol`), and the MDX map passes it on as
+  `trailingNewline`. A shell transcript still copies its commands only.
+- `OchkIoFooter`: ochk.io's footer as one export, with its column, the family,
+  the fine print, the OpenSats line, the theme switch and the legal row. Pass
+  `columns` to write ochk.io's own links relative.
+- `Diagram`: a diagram up to a third wider than the column scales to fit, its
+  14px labels staying at 10.5px or more. A wider one keeps its size and
+  scrolls.
+- `AppShell family`: the family menu beside the lockup, in the sidebar and the
+  phone's bar, as `SiteHeader family` has it.
+- `--oc-wallet-message-font` (mono): wallet-adapter 0.6.3 sets the message to
+  sign and the pasted signature in it, so exact strings stay mono under sans
+  labels.
+
 ## [1.3.0] — 2026-10-20
 
 What stamp built locally on the tool shell, so the other five tool sites do not

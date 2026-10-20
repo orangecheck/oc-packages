@@ -10,7 +10,7 @@ import { highlight, linesToHtml, parseCodeMeta, parseLineRanges, readDiff, type 
  *   ```bash showLineNumbers          numbered lines
  *
  * Each block becomes <pre data-oca-code data-html="…" data-lang data-title
- * data-diff data-line-numbers>, which mdxComponents' `pre` hands to
+ * data-diff data-line-numbers data-eol>, which mdxComponents' `pre` hands to
  * CodeBlock. The highlighted markup travels as one string per block rather
  * than as an element per token, so a page's JavaScript grows by the size of
  * its code, not by a call for every word in it. No dependencies: it walks
@@ -61,6 +61,7 @@ export function rehypeCode(options: RehypeCodeOptions = {}) {
                 if (lang && skip.has(lang)) continue;
                 const meta = parseCodeMeta(code.data?.meta);
                 let source = textOf(code);
+                const newline = /\n$/.test(source);
                 const diff = meta.diff || lang === 'diff' ? readDiff(source) : null;
                 if (diff) source = diff.code;
                 const lines = options.tokenize?.(source, lang) ?? highlight(source, lang === 'diff' ? undefined : lang);
@@ -72,6 +73,7 @@ export function rehypeCode(options: RehypeCodeOptions = {}) {
                     ...(meta.title ? { dataTitle: meta.title } : {}),
                     ...(diff ? { dataDiff: '' } : {}),
                     ...(meta.lineNumbers ? { dataLineNumbers: '' } : {}),
+                    ...(newline ? { dataEol: '' } : {}),
                 };
                 child.children = [];
                 continue;

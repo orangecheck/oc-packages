@@ -4,13 +4,14 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'rea
 
 import { OnThisPage, useHeadings } from '../components/docs';
 import type { TocItem } from '../components/hero';
-import { DOCS_HREF, OCHK_IO, OCHK_IO_FOOTER, OCHK_IO_NAV } from '../family';
+import { DOCS_HREF, OCHK_IO, OCHK_IO_NAV } from '../family';
 import { cn } from '../lib/cn';
+import { InDocsContext } from '../lib/docs-context';
 import type { NavItem } from '../lib/nav';
 import { Badge } from '../primitives/badge';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { StatusBadge, type Status } from '../primitives/status-badge';
-import { SiteFooter, SiteHeader, SkipLink } from './site';
+import { OchkIoFooter, SiteHeader, SkipLink } from './site';
 
 /* ── The docs' navigation ────────────────────────────────────────────── */
 
@@ -141,6 +142,12 @@ export interface DocsShellProps {
     nav: readonly DocsNavSection[];
     /** This page's path, as the nav's hrefs write it. */
     current: string;
+    /**
+     * The nav item to mark and open, when the page has none of its own: a
+     * deep SDK page (`/sdk/stamp-core/interfaces/X`) opens its package's
+     * item (`/sdk/stamp-core`). Default: `current`.
+     */
+    navCurrent?: string;
     /** Replace the header. Default: ochk.io's, with Docs marked. */
     header?: ReactNode;
     /** The default header's search control (a SearchDialog). */
@@ -156,7 +163,7 @@ export interface DocsShellProps {
     toc?: TocItem[];
     /** Under the page: DocsPager. */
     pager?: ReactNode;
-    /** Replace the footer. Default: ochk.io's, with the family and the legal row. */
+    /** Replace the footer. Default: ochk.io's (OchkIoFooter). */
     footer?: ReactNode;
     children: ReactNode;
 }
@@ -170,6 +177,7 @@ export interface DocsShellProps {
 export function DocsShell({
     nav,
     current,
+    navCurrent,
     header,
     search,
     actions,
@@ -184,7 +192,8 @@ export function DocsShell({
     const read = useHeadings('#docs-content', current);
     const items = toc ?? read.items;
     const activeId = toc ? undefined : read.activeId;
-    const here = pathOf(current);
+    const marked = navCurrent ?? current;
+    const here = pathOf(marked);
     const place = useMemo(() => {
         for (const s of nav) {
             const it = s.items.find((i) => pathOf(i.href) === here);
@@ -218,7 +227,7 @@ export function DocsShell({
                                 <SheetTitle className="text-[1.0625rem] font-medium">Docs</SheetTitle>
                             </div>
                             <div className="overflow-y-auto p-3">
-                                <DocsNav sections={nav} current={current} onNavigate={() => setMenu(false)} />
+                                <DocsNav sections={nav} current={marked} onNavigate={() => setMenu(false)} />
                             </div>
                         </SheetContent>
                     </Sheet>
@@ -227,7 +236,7 @@ export function DocsShell({
             <div className="oca-container flex-1">
                 <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
                     <div className="sticky top-[4.5rem] hidden max-h-[calc(100dvh-4.5rem)] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
-                        <DocsNav sections={nav} current={current} />
+                        <DocsNav sections={nav} current={marked} />
                     </div>
                     <main id="main-content" className="min-w-0 pb-16 pt-6 md:pt-8">
                         {/* Below lg the bar under the header already says where you are. */}
@@ -242,7 +251,7 @@ export function DocsShell({
                             </details>
                         ) : null}
                         <article id="docs-content" className="max-w-[46rem]">
-                            {children}
+                            <InDocsContext.Provider value={true}>{children}</InDocsContext.Provider>
                         </article>
                         {pager ? <div className="mt-16 max-w-[46rem]">{pager}</div> : null}
                     </main>
@@ -251,7 +260,7 @@ export function DocsShell({
                     </div>
                 </div>
             </div>
-            {footer ?? <SiteFooter columns={OCHK_IO_FOOTER} family legal signature={false} />}
+            {footer ?? <OchkIoFooter />}
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import {
@@ -12,6 +13,7 @@ import {
     type SiteStatus,
 } from '../family';
 import { cn } from '../lib/cn';
+import { useInDocs } from '../lib/docs-context';
 import { Badge } from '../primitives/badge';
 import { StatusBadge } from '../primitives/status-badge';
 
@@ -41,6 +43,8 @@ export function ProtocolGrid({
     link?: 'page' | 'tool' | 'docs';
     className?: string;
 }) {
+    // Inside the docs, their pages are this site's: through the router, under its base path.
+    const inDocs = useInDocs();
     return (
         <ul className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-5', className)}>
             {protocols.map((slug) => {
@@ -56,12 +60,18 @@ export function ProtocolGrid({
                                 {p.status !== 'live' ? <StatusBadge status={p.status} /> : null}
                             </div>
                             <h3 className="oca-display-3">
-                                <a
-                                    href={link === 'tool' ? p.toolHref : link === 'docs' ? `${DOCS_HREF}/${p.slug}` : p.pageHref}
-                                    className={STRETCH}
-                                >
-                                    {p.label}
-                                </a>
+                                {link === 'docs' && inDocs ? (
+                                    <Link href={`/${p.slug}`} className={STRETCH}>
+                                        {p.label}
+                                    </Link>
+                                ) : (
+                                    <a
+                                        href={link === 'tool' ? p.toolHref : link === 'docs' ? `${DOCS_HREF}/${p.slug}` : p.pageHref}
+                                        className={STRETCH}
+                                    >
+                                        {p.label}
+                                    </a>
+                                )}
                             </h3>
                             <p className="oca-body">{p.line}</p>
                             <div className="mt-auto flex items-center justify-between gap-3 pt-2 text-[0.875rem] text-muted-foreground">

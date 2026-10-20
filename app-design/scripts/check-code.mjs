@@ -138,6 +138,8 @@ check(pre.properties.dataOcaCode === '' && pre.properties.dataLang === 'ts' && p
 check(pre.properties.dataHtml.includes('class="oca-k"') && pre.properties.dataHtml.includes('data-mark'), 'rehype: not highlighted');
 check(pre.children.length === 0, 'rehype: the source is shipped twice');
 check(mermaid.properties.dataOcaCode === undefined && mermaid.children.length === 1, 'rehype: mermaid is not left alone');
+// A copy is the exact bytes: the fence's final newline is recorded, since the lines drop it.
+check(pre.properties.dataEol === '' && mermaid.properties.dataEol === undefined, 'rehype: a fence ending in a newline does not say so');
 
 // Every kind has its colour.
 const css = readFileSync(join(here, '../src/styles/code.css'), 'utf8');

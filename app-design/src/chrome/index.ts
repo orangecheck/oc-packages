@@ -1,4 +1,4 @@
-export { SiteBanner, SiteFooter, SiteHeader, SkipLink } from './site';
+export { OchkIoFooter, SiteBanner, SiteFooter, SiteHeader, SkipLink } from './site';
 export type { FooterColumn, NavItem, SiteFooterProps, SiteHeaderProps } from './site';
 export { FamilyMenu } from './family-menu';
 export { SignInFrame } from './sign-in-frame';

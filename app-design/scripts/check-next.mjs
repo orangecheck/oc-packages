@@ -47,6 +47,15 @@ try {
         "import { TextLink } from '@orangecheck/app-design/components';\n" +
             "export default function Home() { return <TextLink href=\"/x\">x</TextLink>; }\n"
     );
+    mkdirSync(join(site, 'pages', 'sdk', 'pkg'), { recursive: true });
+    writeFileSync(
+        join(site, 'pages', 'sdk', 'pkg', 'README.js'),
+        "import { DocsShell } from '@orangecheck/app-design/chrome';\n" +
+            "import { ProtocolGrid, TextLink } from '@orangecheck/app-design/components';\n" +
+            "export default function Readme() {\n" +
+            "    return <DocsShell nav={[]} current=\"/sdk/pkg/README\"><TextLink href=\"../other/Thing#x\">rel</TextLink><ProtocolGrid link=\"docs\" protocols={['vote']} /></DocsShell>;\n" +
+            "}\n"
+    );
     writeFileSync(
         join(site, 'pages', 'verify.js'),
         "import { SessionAccountView, ToolShell } from '@orangecheck/app-design/chrome';\n" +
@@ -82,7 +91,15 @@ try {
         console.error(`✗ next: the tool shell's home rendered href="${home}"; expected https://ochk.io/stamp`);
         process.exit(1);
     }
-    console.log('✓ next: a router link carries the base path, and sign-in returns to the route, in a real Next build');
+    // The docs: a relative link resolves against the page, and a docs card is a router link, both under the base path.
+    const readme = readFileSync(join(site, '.next', 'server', 'pages', 'sdk', 'pkg', 'README.html'), 'utf8');
+    const rel = readme.match(/<a [^>]*href="([^"]*)"[^>]*>rel</)?.[1];
+    const card = readme.match(/<a [^>]*href="([^"]*)"[^>]*>vote</)?.[1];
+    if (rel !== '/b/sdk/other/Thing#x' || card !== '/b/vote') {
+        console.error(`✗ next: in the docs, a relative link rendered ${rel} (want /b/sdk/other/Thing#x) and a docs card ${card} (want /b/vote)`);
+        process.exit(1);
+    }
+    console.log('✓ next: router links, relative links and docs cards carry the base path, and sign-in returns to the route, in a real Next build');
 } finally {
     rmSync(site, { recursive: true, force: true });
 }

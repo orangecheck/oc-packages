@@ -54,7 +54,7 @@ export type { LegalBlock, LegalSource } from './legal';
 export { AppCard, AppGrid, ProtocolGrid } from './family-grids';
 export type { AppCardProps } from './family-grids';
 export { ComparisonTable, ProtocolHero, ProtocolNav, SpecCard, VerifyBox } from './protocol';
-export type { ComparisonColumn, ComparisonRow } from './protocol';
+export type { ComparisonColumn, ComparisonRow, SpecCardProps, SpecFileKind } from './protocol';
 export { SignMessage, VerifyReport } from './verify';
 export type { CheckState, VerifyCheck } from './verify';
 export { TextLink } from './text-link';

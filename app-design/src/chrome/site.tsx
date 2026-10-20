@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Lockup, Mark } from '../brand/mark';
-import { familyByGroup, LEGAL_LINKS, OCHK_IO, PROTOCOLS, type FamilySlug } from '../family';
+import { familyByGroup, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import type { FooterColumn, NavItem } from '../lib/nav';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
+import { ThemeToggle } from './app-shell';
 import { FamilyList, FamilyMenu } from './family-menu';
 
 export type { FooterColumn, NavItem } from '../lib/nav';
@@ -497,5 +498,31 @@ export function SiteFooter({
                 </div>
             ) : null}
         </footer>
+    );
+}
+
+/**
+ * ochk.io's footer, word for word, for ochk.io and the docs it serves: its
+ * column and the family's, the fine print, who supports the open work, the
+ * theme switch and the legal row. Pass `columns` to write ochk.io's own links
+ * relative (oc-www, so they stay on the host that serves it).
+ */
+export function OchkIoFooter({ columns = OCHK_IO_FOOTER, className }: { columns?: readonly FooterColumn[]; className?: string }) {
+    return (
+        <SiteFooter
+            columns={columns}
+            family
+            legal
+            fineprint="Open protocols on Bitcoin. Anyone can check the result."
+            meta={
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <p>
+                        Open-source work on orangecheck is <span className="whitespace-nowrap">supported by OpenSats.</span>
+                    </p>
+                    <ThemeToggle className="-mx-3" />
+                </div>
+            }
+            className={className}
+        />
     );
 }

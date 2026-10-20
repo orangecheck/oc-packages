@@ -14,12 +14,13 @@ import {
     Wallet,
 } from 'lucide-react';
 
-import { OCHK_IO_FOOTER, OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
+import { OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
 import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
 import { Accent, ErrorPage, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
 import {
     AccountMenu,
     AppShell,
+    OchkIoFooter,
     SignInFrame,
     SiteBanner,
     SiteFooter,
@@ -69,6 +70,7 @@ export const SignedIn: StoryObj = {
     name: 'Signed-in shell',
     render: () => (
         <AppShell
+            family="me"
             nav={[
                 {
                     items: [
@@ -228,15 +230,6 @@ function SearchButton() {
     );
 }
 
-const SUPPORT = (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-        <p>
-            Open-source work on orangecheck is <span className="whitespace-nowrap">supported by OpenSats.</span>
-        </p>
-        <ThemeToggle className="-mx-3" />
-    </div>
-);
-
 /** ochk.io's frame: the family menu, Protocols with its six, search, and the family footer. */
 export const OchkIo: StoryObj = {
     name: 'ochk.io header and footer',
@@ -274,13 +267,8 @@ export const OchkIo: StoryObj = {
                     }
                 />
             </main>
-            <SiteFooter
-                columns={OCHK_IO_FOOTER}
-                family
-                legal
-                fineprint="Open protocols with Bitcoin behind them."
-                meta={SUPPORT}
-            />
+            {/* One export: the fine print, the OpenSats line and the theme switch with it. */}
+            <OchkIoFooter />
         </div>
     ),
 };

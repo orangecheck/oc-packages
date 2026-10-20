@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 
 import { CodeBlock, CodeTabs, InstallTabs } from '../components/code-block';
 import {
@@ -46,6 +46,7 @@ type PreProps = HTMLAttributes<HTMLPreElement> & {
     'data-title'?: string;
     'data-diff'?: string;
     'data-line-numbers'?: string;
+    'data-eol'?: string;
 };
 
 export function createMdxComponents({ mermaid }: MdxOptions = {}) {
@@ -59,6 +60,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
                     caption={props['data-title']}
                     diff={props['data-diff'] !== undefined}
                     lineNumbers={props['data-line-numbers'] !== undefined}
+                    trailingNewline={props['data-eol'] !== undefined}
                     className="my-6"
                 />
             );
@@ -93,6 +95,12 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
             return <DocsHeading as={as} {...props} />;
         };
 
+    // TypeDoc writes h5 for a method's "Returns": a label over what follows, not a section.
+    const minor = (Tag: 'h5' | 'h6') =>
+        function Minor({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
+            return <Tag className={cn('mb-2 mt-6 scroll-mt-28 text-[0.9375rem] font-medium leading-snug text-foreground', className)} {...props} />;
+        };
+
     return {
         h1: heading('h1'),
         h2: heading('h2'),
@@ -103,10 +111,14 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
         ),
         a: A,
         strong: (props: HTMLAttributes<HTMLElement>) => <strong className="font-medium text-foreground" {...props} />,
+        h5: minor('h5'),
+        h6: minor('h6'),
         ul: ({ className, ...props }: HTMLAttributes<HTMLUListElement>) => (
             <ul
                 className={cn(
                     'my-4 list-disc space-y-1.5 pl-5 text-[1rem] leading-[1.7] text-muted-foreground marker:text-oca-subtle md:text-[1.0625rem]',
+                    // A GitHub task list: the box replaces the bullet.
+                    className?.includes('contains-task-list') && 'list-none pl-0',
                     className
                 )}
                 {...props}
@@ -122,8 +134,26 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
             />
         ),
         li: ({ className, ...props }: HTMLAttributes<HTMLLIElement>) => (
-            <li className={cn('pl-1 [&>p]:my-1 [&>ul]:my-1.5 [&>ol]:my-1.5', className)} {...props} />
+            <li
+                className={cn(
+                    'pl-1 [&>p]:my-1 [&>ul]:my-1.5 [&>ol]:my-1.5',
+                    // A wrapped task starts under its text, not under the box.
+                    className?.includes('task-list-item') && 'pl-6 -indent-6',
+                    className
+                )}
+                {...props}
+            />
         ),
+        input: (props: InputHTMLAttributes<HTMLInputElement>) =>
+            props.type === 'checkbox' ? (
+                <input
+                    {...props}
+                    className={cn('mr-2 size-4 translate-y-[2px] align-baseline accent-foreground', props.className)}
+                    aria-label={props.checked ? 'Done' : 'To do'}
+                />
+            ) : (
+                <input {...props} />
+            ),
         blockquote: ({ children }: { children?: ReactNode }) => <Callout>{children}</Callout>,
         hr: () => <hr className="my-10 border-border" />,
         table: MdxTable,

@@ -10,6 +10,7 @@ import {
     type HTMLAttributes,
     type ReactElement,
     type ReactNode,
+    type RefObject,
     type TableHTMLAttributes,
 } from 'react';
 
@@ -351,19 +352,26 @@ export function MdxTable({ className, ...props }: TableHTMLAttributes<HTMLTableE
 
 export interface ApiRow {
     name: string;
+    /** The row's anchor: a link to `#id` lands on this row. */
+    id?: string;
     type?: ReactNode;
     required?: boolean;
     default?: ReactNode;
     description?: ReactNode;
+    /** Where it is defined: a link to the source line. Its column is named once, in the header. */
+    source?: ReactNode;
     deprecated?: boolean;
     /** Where the member stands, when it is not simply live. */
     status?: Exclude<Status, 'live' | 'good' | 'caution' | 'refused'>;
 }
 
+const said = (n: ReactNode) => n !== undefined && n !== null && n !== false && n !== '';
+
 /**
  * Parameters, props or fields: name and type in mono, required or default,
- * and what it does. A table from sm up; on a phone each row is a card with
- * the name and type on top.
+ * what it does and where it is defined. A table from sm up; on a phone each
+ * row is a card with the name and type on top. One set of rows serves both,
+ * so a row's `id` is a single anchor. A column nobody fills is left out.
  */
 export function ApiTable({
     rows,
@@ -377,68 +385,64 @@ export function ApiTable({
     className?: string;
 }) {
     const hasDefault = rows.some((r) => r.default !== undefined);
-    const marks = (r: ApiRow) => (
-        <>
-            {r.required ? <span className="text-[0.75rem] text-oca-accent-ink">Required</span> : null}
-            {r.deprecated ? <Badge tone="muted">Deprecated</Badge> : null}
-            {r.status ? <StatusBadge status={r.status} /> : null}
-        </>
-    );
+    const hasDescription = rows.some((r) => said(r.description));
+    const hasSource = rows.some((r) => said(r.source));
+    const cell = 'px-4 py-3 max-sm:p-0';
     return (
-        <div className={cn('not-prose my-6', className)}>
-            <div className="overflow-hidden rounded-2xl border border-border bg-card max-sm:hidden">
-                <ScrollFade fade="var(--card)">
-                    <table className="w-full border-collapse text-left text-[0.875rem]">
-                        {caption ? <caption className="sr-only">{caption}</caption> : null}
-                        <thead>
-                            <tr className="border-b border-oca-hairline-strong bg-oca-table-head text-[0.8125rem]">
-                                <th scope="col" className="px-4 py-2.5 font-medium">{nameHeader}</th>
-                                <th scope="col" className="px-4 py-2.5 font-medium">Type</th>
-                                {hasDefault ? <th scope="col" className="px-4 py-2.5 font-medium">Default</th> : null}
-                                <th scope="col" className="px-4 py-2.5 font-medium">Description</th>
+        <div className={cn('not-prose my-6 overflow-hidden rounded-2xl border border-border bg-card', className)}>
+            <ScrollFade fade="var(--card)">
+                <table className="w-full border-collapse text-left text-[0.875rem] max-sm:block">
+                    {caption ? <caption className="sr-only">{caption}</caption> : null}
+                    <thead className="max-sm:sr-only">
+                        <tr className="border-b border-oca-hairline-strong bg-oca-table-head text-[0.8125rem]">
+                            <th scope="col" className="px-4 py-2.5 font-medium">{nameHeader}</th>
+                            <th scope="col" className="px-4 py-2.5 font-medium">Type</th>
+                            {hasDefault ? <th scope="col" className="px-4 py-2.5 font-medium">Default</th> : null}
+                            {hasDescription ? <th scope="col" className="px-4 py-2.5 font-medium">Description</th> : null}
+                            {hasSource ? <th scope="col" className="px-4 py-2.5 font-medium">Defined in</th> : null}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border max-sm:block">
+                        {rows.map((r) => (
+                            <tr
+                                key={r.id ?? r.name}
+                                id={r.id}
+                                className="scroll-mt-28 align-top target:bg-muted max-sm:flex max-sm:flex-col max-sm:gap-1.5 max-sm:px-4 max-sm:py-3.5"
+                            >
+                                <th scope="row" className={cn(cell, 'text-left font-normal')}>
+                                    <span className="flex flex-col items-start gap-1 max-sm:flex-row max-sm:flex-wrap max-sm:items-baseline max-sm:gap-x-2">
+                                        <code className={cn('font-mono text-[0.8125rem] text-foreground max-sm:text-[0.875rem]', r.deprecated && 'line-through decoration-oca-subtle')}>
+                                            {r.name}
+                                        </code>
+                                        {r.required ? <span className="text-[0.75rem] text-oca-accent-ink">Required</span> : null}
+                                        {r.deprecated ? <Badge tone="muted">Deprecated</Badge> : null}
+                                        {r.status ? <StatusBadge status={r.status} /> : null}
+                                    </span>
+                                </th>
+                                <td className={cn(cell, 'font-mono text-[0.8125rem] text-muted-foreground max-sm:break-all', !said(r.type) && 'max-sm:hidden')}>
+                                    {r.type ?? '—'}
+                                </td>
+                                {hasDefault ? (
+                                    <td className={cn(cell, 'font-mono text-[0.8125rem] text-muted-foreground max-sm:order-last', r.default === undefined && 'max-sm:hidden')}>
+                                        <span className="font-sans sm:hidden">Default </span>
+                                        {r.default ?? '—'}
+                                    </td>
+                                ) : null}
+                                {hasDescription ? (
+                                    <td className={cn(cell, 'leading-relaxed text-muted-foreground', !said(r.description) && 'max-sm:hidden')}>
+                                        {r.description}
+                                    </td>
+                                ) : null}
+                                {hasSource ? (
+                                    <td className={cn(cell, 'text-[0.8125rem] text-muted-foreground max-sm:order-last max-sm:break-all', !said(r.source) && 'max-sm:hidden')}>
+                                        {r.source}
+                                    </td>
+                                ) : null}
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {rows.map((r) => (
-                                <tr key={r.name} className="align-top">
-                                    <th scope="row" className="px-4 py-3 text-left font-normal">
-                                        <span className="flex flex-col items-start gap-1">
-                                            <code className={cn('font-mono text-[0.8125rem] text-foreground', r.deprecated && 'line-through decoration-oca-subtle')}>
-                                                {r.name}
-                                            </code>
-                                            {marks(r)}
-                                        </span>
-                                    </th>
-                                    <td className="px-4 py-3 font-mono text-[0.8125rem] text-muted-foreground">{r.type ?? '—'}</td>
-                                    {hasDefault ? (
-                                        <td className="px-4 py-3 font-mono text-[0.8125rem] text-muted-foreground">{r.default ?? '—'}</td>
-                                    ) : null}
-                                    <td className="px-4 py-3 leading-relaxed text-muted-foreground">{r.description}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </ScrollFade>
-            </div>
-            <ul aria-label={caption} className="divide-y divide-border rounded-2xl border border-border bg-card sm:hidden">
-                {rows.map((r) => (
-                    <li key={r.name} className="flex flex-col gap-1.5 px-4 py-3.5">
-                        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                            <code className={cn('font-mono text-[0.875rem] text-foreground', r.deprecated && 'line-through decoration-oca-subtle')}>
-                                {r.name}
-                            </code>
-                            {r.type ? <code className="break-all font-mono text-[0.8125rem] text-muted-foreground">{r.type}</code> : null}
-                        </span>
-                        <span className="flex flex-wrap items-center gap-2 empty:hidden">{marks(r)}</span>
-                        {r.description ? <span className="text-[0.875rem] leading-relaxed text-muted-foreground">{r.description}</span> : null}
-                        {r.default !== undefined ? (
-                            <span className="text-[0.8125rem] text-muted-foreground">
-                                Default <code className="font-mono text-foreground">{r.default}</code>
-                            </span>
-                        ) : null}
-                    </li>
-                ))}
-            </ul>
+                        ))}
+                    </tbody>
+                </table>
+            </ScrollFade>
         </div>
     );
 }
@@ -519,12 +523,33 @@ function mermaidTheme(el: HTMLElement): Record<string, string> {
 /*
  * Mermaid draws at 100% width with its own size as a max-width, so a wide
  * diagram shrinks to fit and its labels with it. Give it its own width
- * instead: it keeps its type size and scrolls sideways when it is wider.
+ * instead, and read that width back: one up to a third wider than the
+ * column scales down to fit (its 14px labels stay at 10.5px or more); a
+ * wider one keeps its type size and scrolls sideways.
  */
-function naturalSize(svg: string): string {
+const FIT = 4 / 3;
+
+function naturalSize(svg: string): { svg: string; width: number | null } {
     const w = svg.match(/viewBox="[\d.-]+ [\d.-]+ ([\d.]+) [\d.]+"/)?.[1];
-    if (!w) return svg;
-    return svg.replace(/<svg([^>]*?)\swidth="100%"/, `<svg$1 width="${Math.ceil(Number(w))}"`).replace(/max-width:\s*[\d.]+px;?/, '');
+    if (!w) return { svg, width: null };
+    const width = Math.ceil(Number(w));
+    return {
+        svg: svg.replace(/<svg([^>]*?)\swidth="100%"/, `<svg$1 width="${width}"`).replace(/max-width:\s*[\d.]+px;?/, ''),
+        width,
+    };
+}
+
+/** The width a diagram has to fill: the figure, less the well's padding. */
+function useInnerWidth(ref: RefObject<HTMLElement | null>, padding: number): number | null {
+    const [width, setWidth] = useState<number | null>(null);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const ro = new ResizeObserver(() => setWidth(el.clientWidth - padding));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [ref, padding]);
+    return width;
 }
 
 /**
@@ -537,8 +562,10 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
     const ref = useRef<HTMLDivElement>(null);
     const dark = useDarkMode();
     const raw = useId();
-    const [svg, setSvg] = useState<string | null>(null);
+    const [drawn, setDrawn] = useState<{ svg: string; width: number | null } | null>(null);
     const [failed, setFailed] = useState(false);
+    const room = useInnerWidth(ref, 48);
+    const fits = drawn?.width != null && room != null && drawn.width <= room * FIT;
     useEffect(() => {
         let live = true;
         const el = ref.current;
@@ -548,9 +575,9 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
                 const mod = await load();
                 const mermaid = 'default' in mod ? mod.default : mod;
                 mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: mermaidTheme(el) });
-                const { svg: drawn } = await mermaid.render(`oca-diagram-${raw.replace(/[^a-zA-Z0-9]/g, '')}-${dark ? 'd' : 'l'}`, chart);
+                const { svg } = await mermaid.render(`oca-diagram-${raw.replace(/[^a-zA-Z0-9]/g, '')}-${dark ? 'd' : 'l'}`, chart);
                 if (live) {
-                    setSvg(naturalSize(drawn));
+                    setDrawn(naturalSize(svg));
                     setFailed(false);
                 }
             } catch {
@@ -564,13 +591,17 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
     if (failed) return <CodeBlock code={chart} caption="Diagram (shown as its source)" className={cn('my-6', className)} />;
     return (
         <figure ref={ref} className={cn('not-prose my-6 overflow-hidden rounded-[1.25rem] border border-border bg-card', className)}>
-            {svg ? (
+            {drawn ? (
                 <ScrollFade fade="var(--card)">
                     <div
-                        className="flex w-max min-w-full justify-center p-6 [&_svg]:h-auto [&_svg]:max-w-none"
+                        data-fit={fits ? '' : undefined}
+                        className={cn(
+                            'flex justify-center p-6 [&_svg]:h-auto',
+                            fits ? 'w-full [&_svg]:max-w-full' : 'w-max min-w-full [&_svg]:max-w-none'
+                        )}
                         role="img"
                         aria-label={typeof caption === 'string' ? caption : 'Diagram'}
-                        dangerouslySetInnerHTML={{ __html: svg }}
+                        dangerouslySetInnerHTML={{ __html: drawn.svg }}
                     />
                 </ScrollFade>
             ) : (

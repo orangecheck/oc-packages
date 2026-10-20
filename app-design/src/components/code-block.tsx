@@ -36,9 +36,9 @@ export function languageName(lang?: string): string | undefined {
 }
 
 /*
- * What a copy button puts on the clipboard: the code as written, without
- * removed lines and, for a shell transcript with `$ ` prompts, only the
- * commands, without their prompts.
+ * What a copy button puts on the clipboard: the code exactly as written,
+ * final newline included, without removed lines and, for a shell transcript
+ * with `$ ` prompts, only the commands, without their prompts.
  */
 function forClipboard(text: string, lang?: string): string {
     if (grammarOf(lang) !== 'shell') return text;
@@ -50,14 +50,15 @@ function forClipboard(text: string, lang?: string): string {
         .join('\n');
 }
 
-function linesFromDom(pre: HTMLElement | null): string | null {
+function linesFromDom(pre: HTMLElement | null, newline: boolean): string | null {
     if (!pre) return null;
     const lines = pre.querySelectorAll('[data-line]');
     if (lines.length === 0) return pre.textContent ?? '';
-    return Array.from(lines)
+    const text = Array.from(lines)
         .filter((l) => l.getAttribute('data-diff') !== 'remove')
         .map((l) => l.textContent ?? '')
         .join('\n');
+    return newline ? `${text}\n` : text;
 }
 
 interface Prepared {
@@ -75,7 +76,8 @@ function prepare(code: string, lang: string | undefined, marks: string | readonl
     const kept = d ? src.split('\n').filter((_, i) => d.diff.get(i + 1) !== 'remove') : null;
     return {
         html: linesToHtml(lines, { highlight: parseLineRanges(marks), diff: d?.diff }),
-        copy: kept ? kept.join('\n') : src,
+        // Byte for byte, the final newline too: a hash printed beside the code must match a copy of it.
+        copy: kept ? kept.join('\n') + (/\n$/.test(code) ? '\n' : '') : code,
         lines: lines.length,
         diff: !!d,
     };
@@ -164,6 +166,8 @@ export interface CodeBlockProps {
     html?: string;
     /** Highlighted nodes from another highlighter. */
     children?: ReactNode;
+    /** With `html`: the source ended in a newline, and a copy keeps it (rehypeCode sets this). */
+    trailingNewline?: boolean;
     /** The fence name: ts, tsx, json, bash, python, yaml, diff. */
     lang?: string;
     /** The file name or purpose. Defaults to the language's name, or "Code". */
@@ -195,6 +199,7 @@ export function CodeBlock({
     code,
     html,
     children,
+    trailingNewline = false,
     lang,
     caption,
     copy = true,
@@ -215,7 +220,7 @@ export function CodeBlock({
     );
     const markup = prepared?.html ?? html;
     const lines = prepared?.lines ?? (html !== undefined ? html.split('\n').length : (code?.split('\n').length ?? 0));
-    const read = () => forClipboard(prepared?.copy ?? linesFromDom(preRef.current) ?? code ?? '', lang);
+    const read = () => forClipboard(prepared?.copy ?? linesFromDom(preRef.current, trailingNewline) ?? code ?? '', lang);
     return (
         <figure className={cn(FRAME, className)}>
             <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">

@@ -16,7 +16,9 @@ import {
     InstallTabs,
     LinkCard,
     OnThisPage,
+    ProtocolGrid,
     SearchDialog,
+    SpecCard,
     Step,
     Steps,
     TextLink,
@@ -411,6 +413,83 @@ export const Blocks: StoryObj = {
                 ]}
             />
         </div>
+    ),
+};
+
+const CHARTER = '# Example charter v1 · canonical bytes\nversion: v1.0.0\nthreshold: 3-of-4\noc_is_a_guardian: false\n';
+
+export const Reference: StoryObj = {
+    name: 'SDK reference page',
+    render: () => (
+        // A deep page opens its package in the nav; the footer is ochk.io's, by default.
+        <DocsShell nav={NAV} current="/sdk/stamp-core/interfaces/StampEnvelope" navCurrent="/sdk/stamp-core/README">
+            <M.h1>Interface: StampEnvelope</M.h1>
+            <M.p>
+                Back to the <TextLink href="../README">package</TextLink>. A relative link resolves against this page.
+            </M.p>
+            <SpecCard repo="oc-stamp-protocol" kind="spec" version="v1" />
+            <M.h2 id="properties">Properties</M.h2>
+            <ApiTable
+                nameHeader="Property"
+                rows={[
+                    {
+                        name: 'id',
+                        id: 'property-id',
+                        type: 'string',
+                        description: 'SHA-256 of the canonical bytes, with sig.value empty.',
+                        source: <TextLink href="https://github.com/orangecheck/oc-packages/blob/main/stamp-core/src/types.ts#L18">types.ts:18</TextLink>,
+                    },
+                    {
+                        name: 'signed_at',
+                        id: 'property-signed_at',
+                        type: 'string',
+                        source: <TextLink href="https://github.com/orangecheck/oc-packages/blob/main/stamp-core/src/types.ts#L24">types.ts:24</TextLink>,
+                    },
+                    {
+                        name: 'ots',
+                        id: 'property-ots',
+                        type: 'OtsProof | null',
+                        default: 'null',
+                        source: <TextLink href="https://github.com/orangecheck/oc-packages/blob/main/stamp-core/src/types.ts#L31">types.ts:31</TextLink>,
+                    },
+                ]}
+            />
+            <M.p>
+                <TextLink href="#property-ots">Jump to ots</TextLink> lands on its row.
+            </M.p>
+            <M.h3 id="verify">verify()</M.h3>
+            <M.h5>Returns</M.h5>
+            <M.p>
+                <M.code>Promise&lt;VerifyResult&gt;</M.code>
+            </M.p>
+            <M.h2 id="bytes">Canonical bytes</M.h2>
+            <M.p>Copy takes the block byte for byte, its final newline too. Its SHA-256 is</M.p>
+            <M.p>
+                <M.code>d30be2349ad936445c8f77bb22c9658dca54c2d585e55058345634f2f2d6907e</M.code>
+            </M.p>
+            <CodeBlock code={CHARTER} caption="Canonical bytes" className="my-6" />
+            <M.h2 id="todo">Before 1.0</M.h2>
+            <M.ul className="contains-task-list">
+                <M.li className="task-list-item">
+                    <M.input type="checkbox" checked disabled /> Content-addressed ids
+                </M.li>
+                <M.li className="task-list-item">
+                    <M.input type="checkbox" disabled /> A second implementation that agrees on every test vector, so a wrapped line of this
+                    task starts under its text
+                </M.li>
+            </M.ul>
+            <M.h2 id="flow">How a stamp travels</M.h2>
+            <Diagram
+                load={() => import('mermaid')}
+                caption="A little wider than the column: it scales to fit"
+                chart={`flowchart LR
+  F[File] -->|SHA-256| H[Hash]
+  H -->|signed| E[Envelope]
+  E -->|anchored| B[Bitcoin block]`}
+            />
+            <M.h2 id="protocols">The other protocols</M.h2>
+            <ProtocolGrid link="docs" protocols={['attest', 'lock', 'vote']} />
+        </DocsShell>
     ),
 };
 

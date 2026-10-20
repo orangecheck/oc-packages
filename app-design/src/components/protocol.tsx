@@ -7,7 +7,9 @@ import { Button } from '../primitives/button';
 import { Field, Input, Textarea } from '../primitives/form';
 import { ScrollFade } from '../primitives/scroll-fade';
 import { StatusBadge } from '../primitives/status-badge';
+import { Callout } from './docs';
 import { PageHero } from './hero';
+import { TextLink } from './text-link';
 
 /*
  * The parts of a protocol's page on ochk.io. Each takes the protocol's slug
@@ -93,27 +95,77 @@ export function ProtocolNav({
     );
 }
 
+/** Which normative file a page summarises: its default file, title and sentence. */
+export type SpecFileKind = 'spec' | 'security' | 'rationale';
+
+const SPEC_FILE: Record<SpecFileKind, { file: string; title: string; note: string }> = {
+    spec: {
+        file: 'SPEC.md',
+        title: 'Normative source',
+        note: 'This page is a human-readable summary. The authoritative copy lives in the spec repo. If the two ever drift, the repo wins.',
+    },
+    security: {
+        file: 'SECURITY.md',
+        title: 'Normative threat model',
+        note: 'This page is the short form. The authoritative, numbered threat model lives in the spec repo.',
+    },
+    rationale: {
+        file: 'WHY.md',
+        title: 'Design rationale',
+        note: 'This page is the short version. The full rationale and the rejected-design log live in the spec repo.',
+    },
+};
+
+export type SpecCardProps =
+    | {
+          protocol: ProtocolSlug;
+          version: string;
+          license?: string;
+          /** How many test vectors ship with it. */
+          vectors?: number;
+          size?: 'md' | 'sm';
+          className?: string;
+          repo?: never;
+      }
+    | {
+          /** One file in any spec repo, `oc-chat-protocol` included: where a page's normative copy lives. */
+          repo: string;
+          /** Default: the kind's file (SPEC.md, SECURITY.md, WHY.md). */
+          file?: string;
+          kind?: SpecFileKind;
+          version?: string;
+          /** Replaces the kind's sentence. */
+          note?: ReactNode;
+          className?: string;
+          protocol?: never;
+      };
+
 /**
  * The spec, as a card: its repository, version, licence, kinds and test
  * vectors, and the way to read it. `sm` is one line, for a reference in
- * running text or a docs page.
+ * running text or a docs page. Given a `repo` instead of a protocol, it is
+ * a note naming one file in that repo as the normative copy of the page.
  */
-export function SpecCard({
-    protocol,
-    version,
-    license,
-    vectors,
-    size = 'md',
-    className,
-}: {
-    protocol: ProtocolSlug;
-    version: string;
-    license?: string;
-    /** How many test vectors ship with it. */
-    vectors?: number;
-    size?: 'md' | 'sm';
-    className?: string;
-}) {
+export function SpecCard(props: SpecCardProps) {
+    return props.repo !== undefined ? <SpecFileNote {...props} /> : <ProtocolSpecCard {...props} />;
+}
+
+function SpecFileNote({ repo, file, kind = 'spec', version, note, className }: Extract<SpecCardProps, { repo: string }>) {
+    const d = SPEC_FILE[kind];
+    const f = file ?? d.file;
+    return (
+        <Callout title={version ? `${d.title} · ${version}` : d.title} className={className}>
+            <p>{note ?? d.note}</p>
+            <p>
+                <TextLink href={`https://github.com/orangecheck/${repo}/blob/main/${f}`} className="break-all font-mono text-[0.875rem]">
+                    {`${repo}/${f}`}
+                </TextLink>
+            </p>
+        </Callout>
+    );
+}
+
+function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', className }: Extract<SpecCardProps, { protocol: ProtocolSlug }>) {
     const p = protocolSite(protocol);
     const repo = `oc-${p.slug}-protocol`;
     const facts: [string, ReactNode][] = [

@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { Lockup } from '../brand/mark';
+import type { FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import { ShellContext } from '../lib/shell-context';
 import {
@@ -18,6 +19,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '../primitives/overlay';
+import { FamilyMenu } from './family-menu';
 
 export interface ShellNavItem {
     href: string;
@@ -200,7 +202,8 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * tab bar instead: the pages sit under the thumb, the strip and the menu
  * button go (the sheet stays for a `footer`, without the pages), and tablets
  * keep the sheet. Pages get the section through context: PageHeader uses it
- * as its eyebrow. The account control and any banner are slots.
+ * as its eyebrow. `family` puts the family menu beside the lockup. The
+ * account control and any banner are slots.
  */
 export function AppShell({
     nav,
@@ -209,6 +212,7 @@ export function AppShell({
     page: pageOverride,
     persistent = [],
     home = '/',
+    family,
     account,
     banner,
     footer,
@@ -224,6 +228,8 @@ export function AppShell({
     /** Groups shown under every section, after its own. */
     persistent?: ShellNavGroup[];
     home?: string;
+    /** Mount the family menu beside the lockup, as SiteHeader does. Pass the site's slug to mark it. */
+    family?: boolean | FamilySlug;
     account?: ReactNode;
     banner?: ReactNode;
     footer?: ReactNode;
@@ -248,6 +254,7 @@ export function AppShell({
         }),
         [current, page?.label, pageOverride]
     );
+    const familyMenu = family ? <FamilyMenu current={typeof family === 'string' ? family : undefined} /> : null;
     const switcher =
         sections && current && sections.length > 1 ? (
             <SectionSwitch sections={sections} current={current} onNavigate={() => setOpen(false)} />
@@ -286,6 +293,7 @@ export function AppShell({
                         <Link href={home} aria-label="Home" className="rounded-lg p-1">
                             <Lockup size={22} />
                         </Link>
+                        {familyMenu}
                         <div className="ml-auto flex items-center">{account}</div>
                     </div>
                     {place.page ? (
@@ -308,9 +316,12 @@ export function AppShell({
                 </div>
                 <div className="mx-auto flex w-full max-w-[90rem]">
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
-                        <Link href={home} className="px-2" aria-label="Home">
-                            <Lockup size={26} />
-                        </Link>
+                        <div className="flex items-center gap-1">
+                            <Link href={home} className="px-2" aria-label="Home">
+                                <Lockup size={26} />
+                            </Link>
+                            {familyMenu}
+                        </div>
                         {switcher}
                         <SideNav groups={groups} />
                         <div className="mt-auto flex flex-col gap-3">{footer}</div>

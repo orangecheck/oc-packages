@@ -104,6 +104,67 @@ const html = (el) => renderToStaticMarkup(el);
     check(html(h(P.Input, { 'aria-label': 'x' })).includes('data-size="md"'), 'Input: default size is not md outside a tool');
 }
 
+// Docs, 1.4: an anchor per row, empty columns left out, the source column named once.
+{
+    const rows = [
+        { name: 'hash', id: 'property-hash', type: 'string', description: 'SHA-256 of the file.', source: h('a', { href: 'https://github.com/x/types.ts#L4' }, 'types.ts:4') },
+        { name: 'length', id: 'property-length', type: 'number', source: h('a', { href: 'https://github.com/x/types.ts#L6' }, 'types.ts:6') },
+    ];
+    const out = html(h(C.ApiTable, { rows }));
+    check((out.match(/id="property-hash"/g) ?? []).length === 1 && /<tr[^>]*id="property-hash"/.test(out), 'ApiTable: a row id is not one anchor on its row');
+    check((out.match(/>Defined in</g) ?? []).length === 1 && out.includes('types.ts:6'), 'ApiTable: the source column is not named once');
+    const bare = html(h(C.ApiTable, { rows: [{ name: 'a', type: 'string' }] }));
+    check(!bare.includes('>Description<') && !bare.includes('>Defined in<'), 'ApiTable: an empty column is drawn');
+    check(out.includes('>Description<'), 'ApiTable: a description column is dropped');
+}
+
+// SpecCard for one file in any spec repo: the normative copy, named.
+{
+    const out = html(h(C.SpecCard, { repo: 'oc-chat-protocol', kind: 'security', version: 'v1' }));
+    check(out.includes('href="https://github.com/orangecheck/oc-chat-protocol/blob/main/SECURITY.md"') && out.includes('Normative threat model · v1'), 'SpecCard repo: the file is not named');
+    check(html(h(C.SpecCard, { protocol: 'stamp', version: '1.0.0' })).includes('oc-stamp-protocol'), 'SpecCard protocol: broken');
+}
+
+// Inside the docs, a docs link is a page of this site; elsewhere, ochk.io/docs.
+{
+    const inDocs = html(h(Ch.DocsShell, { nav: [], current: '/' }, h(C.ProtocolGrid, { link: 'docs', protocols: ['attest'] })));
+    check(inDocs.includes('href="/attest"'), 'ProtocolGrid in DocsShell: docs links do not go through the router');
+    check(html(h(C.ProtocolGrid, { link: 'docs', protocols: ['attest'] })).includes('href="https://ochk.io/docs/attest"'), 'ProtocolGrid: docs link outside the docs is not absolute');
+}
+
+// DocsShell marks the nav item it is given, not only the page.
+{
+    const nav = [
+        { label: 'Start', items: [{ href: '/', label: 'Overview' }] },
+        { label: 'SDKs', items: [{ href: '/sdk', label: 'All' }, { href: '/sdk/stamp-core', label: 'stamp-core' }] },
+    ];
+    const out = html(h(Ch.DocsShell, { nav, current: '/sdk/stamp-core/interfaces/Stamp', navCurrent: '/sdk/stamp-core' }, h('p', null, 'x')));
+    check(/aria-current="page"[^>]*>(?:(?!<\/a>)[\s\S])*stamp-core/.test(out), 'DocsShell navCurrent: the SDK item is not marked');
+}
+
+// ochk.io's footer, one export: fine print, OpenSats, the theme, legal.
+{
+    const out = html(h(Ch.OchkIoFooter, {}));
+    check(out.includes('Open protocols on Bitcoin.') && out.includes('supported by OpenSats.') && out.includes('aria-label="Theme: ') && out.includes('aria-label="Legal"'), 'OchkIoFooter: a part is missing');
+}
+
+// AppShell carries the family menu beside the lockup when asked.
+{
+    const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];
+    check(html(h(Ch.AppShell, { sections, family: 'me' }, null)).includes('aria-label="All orangecheck sites"'), 'AppShell: no family menu');
+    check(!html(h(Ch.AppShell, { sections }, null)).includes('aria-label="All orangecheck sites"'), 'AppShell: a family menu nobody asked for');
+}
+
+// The MDX map: TypeDoc's h5 and h6, and GitHub task lists.
+{
+    check(html(h(mdxComponents.h5, null, 'Returns')).startsWith('<h5'), 'mdx: no h5');
+    check(html(h(mdxComponents.h6, null, 'x')).startsWith('<h6'), 'mdx: no h6');
+    const tasks = html(h(mdxComponents.ul, { className: 'contains-task-list' }, h(mdxComponents.li, { className: 'task-list-item' }, h(mdxComponents.input, { type: 'checkbox', checked: true, disabled: true }), 'Ship')));
+    check(/<ul class="[^"]*list-none/.test(tasks) && tasks.includes('aria-label="Done"'), 'mdx: a task list keeps its bullets or its box has no name');
+    // Outside a router a relative link is left as written.
+    check(html(h(C.TextLink, { href: '../README' }, 'up')).includes('href="../README"'), 'TextLink: a relative href is changed without a router');
+}
+
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];

@@ -1,0 +1,252 @@
+/*
+ * @orangecheck/app-design — swagger.css
+ *
+ * Swagger UI in this system's dark mode, with phone-safe fields and AA method
+ * badges. swagger-ui.css ships light-only, with body text hard-coded to
+ * #3b4151, so on a dark page the explorer reads at ~1.6:1 and the Servers
+ * band is a white slab. This maps those colours onto the tokens under
+ * `.dark` only, so light mode keeps Swagger's own. Links take the accent ink.
+ * Opt-in, not part of styles.css; import it after swagger-ui.css:
+ *
+ *     import 'swagger-ui-react/swagger-ui.css';
+ *     import '@orangecheck/app-design/styles/swagger.css';
+ *
+ * The first block mirrors every swagger-ui rule that sets #3b4151 / #000 /
+ * #333 (text), #6b6b6b / #606060 / #929292 (secondary text) or a white fill.
+ */
+[data-oc-app='ochk'].dark .swagger-ui,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-tag,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-tag small,
+[data-oc-app='ochk'].dark .swagger-ui .parameter__type,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-section-header>label,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-section-header h4,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-summary-operation-id,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-summary-path,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-summary-path__deprecated,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-summary-description,
+[data-oc-app='ochk'].dark .swagger-ui .tab li,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-description-wrapper,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-external-docs-wrapper,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-title_normal,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-description-wrapper h4,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-external-docs-wrapper h4,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-title_normal h4,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-description-wrapper p,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-external-docs-wrapper p,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-title_normal p,
+[data-oc-app='ochk'].dark .swagger-ui .responses-inner h4,
+[data-oc-app='ochk'].dark .swagger-ui .responses-inner h5,
+[data-oc-app='ochk'].dark .swagger-ui .response-col_status,
+[data-oc-app='ochk'].dark .swagger-ui .response-col_links,
+[data-oc-app='ochk'].dark .swagger-ui .scheme-container .schemes>.schemes-server-container>label,
+[data-oc-app='ochk'].dark .swagger-ui section h3,
+[data-oc-app='ochk'].dark .swagger-ui .btn,
+[data-oc-app='ochk'].dark .swagger-ui select,
+[data-oc-app='ochk'].dark .swagger-ui label,
+[data-oc-app='ochk'].dark .swagger-ui textarea,
+[data-oc-app='ochk'].dark .swagger-ui .checkbox p,
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux-content p,
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux-content h4,
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux-header h3,
+[data-oc-app='ochk'].dark .swagger-ui .model,
+[data-oc-app='ochk'].dark .swagger-ui .servers>label,
+[data-oc-app='ochk'].dark .swagger-ui table.headers td,
+[data-oc-app='ochk'].dark .swagger-ui table thead tr td,
+[data-oc-app='ochk'].dark .swagger-ui table thead tr th,
+[data-oc-app='ochk'].dark .swagger-ui .parameter__name,
+[data-oc-app='ochk'].dark .swagger-ui .info h1,
+[data-oc-app='ochk'].dark .swagger-ui .info h2,
+[data-oc-app='ochk'].dark .swagger-ui .info h3,
+[data-oc-app='ochk'].dark .swagger-ui .info h4,
+[data-oc-app='ochk'].dark .swagger-ui .info h5,
+[data-oc-app='ochk'].dark .swagger-ui .info li,
+[data-oc-app='ochk'].dark .swagger-ui .info p,
+[data-oc-app='ochk'].dark .swagger-ui .info table,
+[data-oc-app='ochk'].dark .swagger-ui .info .base-url,
+[data-oc-app='ochk'].dark .swagger-ui .info .title,
+[data-oc-app='ochk'].dark .swagger-ui .auth-container .errors,
+[data-oc-app='ochk'].dark .swagger-ui .scopes h2,
+[data-oc-app='ochk'].dark .swagger-ui .errors-wrapper .errors h4,
+[data-oc-app='ochk'].dark .swagger-ui .errors-wrapper hgroup h4,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--const .json-schema-2020-12-json-viewer__name,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--const .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12__constraint,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--default .json-schema-2020-12-json-viewer__name,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--default .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--enum .json-schema-2020-12-json-viewer__name,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--enum .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--examples .json-schema-2020-12-json-viewer__name,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--examples .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-property .json-schema-2020-12__title,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__name--primary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__value--primary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__value--warning,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12__attribute,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__name--primary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__value--primary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__value--warning {
+    color: var(--foreground);
+}
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-section-header,
+[data-oc-app='ochk'].dark .swagger-ui textarea {
+    background-color: color-mix(in oklab, var(--card) 80%, transparent);
+}
+[data-oc-app='ochk'].dark .swagger-ui .scheme-container,
+[data-oc-app='ochk'].dark .swagger-ui input[type=email],
+[data-oc-app='ochk'].dark .swagger-ui input[type=file],
+[data-oc-app='ochk'].dark .swagger-ui input[type=password],
+[data-oc-app='ochk'].dark .swagger-ui input[type=search],
+[data-oc-app='ochk'].dark .swagger-ui input[type=text],
+[data-oc-app='ochk'].dark .swagger-ui textarea,
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux {
+    background-color: var(--card);
+}
+[data-oc-app='ochk'].dark .swagger-ui input[disabled],
+[data-oc-app='ochk'].dark .swagger-ui select[disabled],
+[data-oc-app='ochk'].dark .swagger-ui textarea[disabled] {
+    background-color: var(--muted);
+}
+[data-oc-app='ochk'].dark .swagger-ui .model .property.primitive,
+[data-oc-app='ochk'].dark .swagger-ui section.models h4,
+[data-oc-app='ochk'].dark .swagger-ui .prop-format,
+[data-oc-app='ochk'].dark .swagger-ui .errors-wrapper .errors small,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword--description,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer-extension-keyword .json-schema-2020-12-json-viewer__name,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer-extension-keyword .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__name--secondary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__name--extension,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__value--secondary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-keyword__value--extension,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__name--secondary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__name--extension,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__value,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__value--secondary,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12-json-viewer__value--extension {
+    color: var(--muted-foreground);
+}
+[data-oc-app='ochk'].dark .swagger-ui .scheme-container {
+    box-shadow: none;
+    border-block: 1px solid var(--border);
+}
+[data-oc-app='ochk'].dark .swagger-ui .opblock-tag,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-section-header,
+[data-oc-app='ochk'].dark .swagger-ui section.models,
+[data-oc-app='ochk'].dark .swagger-ui section.models.is-open h4,
+[data-oc-app='ochk'].dark .swagger-ui table thead tr td,
+[data-oc-app='ochk'].dark .swagger-ui table thead tr th,
+[data-oc-app='ochk'].dark .swagger-ui .responses-inner,
+[data-oc-app='ochk'].dark .swagger-ui .opblock .opblock-summary {
+    border-color: var(--border);
+}
+[data-oc-app='ochk'].dark .swagger-ui input[type='email'],
+[data-oc-app='ochk'].dark .swagger-ui input[type='file'],
+[data-oc-app='ochk'].dark .swagger-ui input[type='password'],
+[data-oc-app='ochk'].dark .swagger-ui input[type='search'],
+[data-oc-app='ochk'].dark .swagger-ui input[type='text'],
+[data-oc-app='ochk'].dark .swagger-ui select,
+[data-oc-app='ochk'].dark .swagger-ui textarea {
+    border-color: var(--input);
+    color: var(--foreground);
+    background-color: var(--card);
+}
+[data-oc-app='ochk'].dark .swagger-ui select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23a1a1aa' d='M13.418 7.859a.695.695 0 0 1 .978 0 .68.68 0 0 1 0 .969l-3.908 3.83a.697.697 0 0 1-.979 0l-3.908-3.83a.68.68 0 0 1 0-.969.695.695 0 0 1 .978 0L10 11z'/%3E%3C/svg%3E");
+    box-shadow: none;
+}
+[data-oc-app='ochk'].dark .swagger-ui .arrow,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-control-arrow svg,
+[data-oc-app='ochk'].dark .swagger-ui .expand-operation svg,
+[data-oc-app='ochk'].dark .swagger-ui .models-control svg,
+[data-oc-app='ochk'].dark .swagger-ui .opblock-tag svg,
+[data-oc-app='ochk'].dark .swagger-ui .model-toggle::after {
+    fill: var(--muted-foreground);
+}
+[data-oc-app='ochk'].dark .swagger-ui .model-toggle::after {
+    filter: invert(1);
+}
+[data-oc-app='ochk'].dark .swagger-ui .markdown code,
+[data-oc-app='ochk'].dark .swagger-ui .renderedMarkdown code {
+    color: var(--foreground);
+    background: var(--muted);
+}
+[data-oc-app='ochk'].dark .swagger-ui .info a,
+[data-oc-app='ochk'].dark .swagger-ui .info .base-url a,
+[data-oc-app='ochk'].dark .swagger-ui .info .link {
+    color: var(--oca-accent-ink);
+}
+[data-oc-app='ochk'].dark .swagger-ui .model-box,
+[data-oc-app='ochk'].dark .swagger-ui section.models .model-container {
+    background: var(--muted);
+}
+[data-oc-app='ochk'].dark .swagger-ui .btn {
+    border-color: var(--border);
+}
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .backdrop-ux {
+    background: rgb(0 0 0 / 0.6);
+}
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux-header {
+    border-color: var(--border);
+}
+[data-oc-app='ochk'].dark .swagger-ui .dialog-ux .modal-ux-header .close-modal svg {
+    fill: var(--foreground);
+}
+[data-oc-app='ochk'].dark .swagger-ui .model-title,
+[data-oc-app='ochk'].dark .swagger-ui .json-schema-2020-12__title,
+[data-oc-app='ochk'].dark .swagger-ui span.token-string,
+[data-oc-app='ochk'].dark .swagger-ui span.token-not-formatted {
+    color: var(--foreground);
+}
+[data-oc-app='ochk'].dark .swagger-ui .model .property,
+[data-oc-app='ochk'].dark .swagger-ui .model .external-docs,
+[data-oc-app='ochk'].dark .swagger-ui table.model tr.description,
+[data-oc-app='ochk'].dark .swagger-ui table.model tr.extension,
+[data-oc-app='ochk'].dark .swagger-ui table.headers .header-example {
+    color: var(--muted-foreground);
+}
+
+/* Swagger UI sets its fields to 12-14px at a specificity that beats the system's
+   16px phone floor, so iOS zoomed on every focus. One class more wins here. */
+@media (width < 48rem) {
+    [data-oc-app='ochk'] .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
+        font-size: 16px;
+    }
+}
+
+/* Swagger's method badges put white text on light fills (GET 2.3:1, POST 2.0:1,
+   PATCH 1.6:1). Same hues, deepened to 5.2:1 or better, in both modes. The version
+   pills and the Authorize / info links had the same problem. */
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-get .opblock-summary-method {
+    background: #1d6fb8;
+}
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-post .opblock-summary-method {
+    background: #18794e;
+}
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-put .opblock-summary-method {
+    background: #a35200;
+}
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+    background: #c0262d;
+}
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-patch .opblock-summary-method {
+    background: #0f7a6c;
+}
+[data-oc-app='ochk'] .swagger-ui .opblock.opblock-head .opblock-summary-method {
+    background: #6f1fd1;
+}
+[data-oc-app='ochk'] .swagger-ui .info .title small {
+    background: #5b6270;
+}
+[data-oc-app='ochk'] .swagger-ui .info .title small.version-stamp {
+    background-color: #4a7a00;
+}
+[data-oc-app='ochk'] .swagger-ui .btn.authorize {
+    border-color: var(--oca-accent-ink);
+    color: var(--oca-accent-ink);
+}
+[data-oc-app='ochk'] .swagger-ui .btn.authorize svg {
+    fill: var(--oca-accent-ink);
+}
+[data-oc-app='ochk'] .swagger-ui .info a {
+    color: var(--oca-accent-ink);
+}
