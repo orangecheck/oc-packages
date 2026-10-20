@@ -9,7 +9,7 @@ describe('isFamilyOrigin', () => {
         for (const o of FAMILY_ORIGINS) expect(isFamilyOrigin(o, false)).toBe(true);
     });
 
-    it('matches oc-www FAMILY_ORIGINS as of 2026-10-20', () => {
+    it('matches oc-www FAMILY_ORIGINS as of a0e14a7 (2026-10-20)', () => {
         expect([...FAMILY_ORIGINS].sort()).toEqual(
             [
                 'https://ochk.io',
@@ -20,7 +20,6 @@ describe('isFamilyOrigin', () => {
                 'https://stamp.ochk.io',
                 'https://agent.ochk.io',
                 'https://pledge.ochk.io',
-                'https://docs.ochk.io',
                 'https://vault.ochk.io',
                 'https://chat.ochk.io',
                 'https://cosign.ochk.io',
