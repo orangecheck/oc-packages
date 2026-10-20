@@ -5,7 +5,7 @@ import { cn } from '../lib/cn';
 import { Button } from '../primitives/button';
 import { Field, Textarea } from '../primitives/form';
 import { StatusBadge, type Statement } from '../primitives/status-badge';
-import { CodeBlock } from './code-card';
+import { CodeBlock } from './code-block';
 import { KeyValueList, type KeyValueItem } from './data';
 
 export type CheckState = 'ok' | 'fail' | 'pending' | 'skipped' | 'unchecked';

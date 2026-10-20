@@ -18,6 +18,53 @@
   sign button can take this design the way auth-client's ceremony reads
   `--oc-signin-*`. Inert until wallet-adapter reads them.
 
+### Added: the docs
+
+What ochk.io/docs needs to move onto the system:
+
+- `./code`: `rehypeCode`, a rehype plugin that highlights every fence at build
+  time and reads its meta (`title="…"`, `{2,4-6}`, `diff`, `showLineNumbers`).
+  The highlighter is the package's own: no dependency, synchronous, so code
+  is coloured in the server's HTML. It reads TypeScript and JavaScript (with
+  JSX), JSON, shell, Python, YAML and diffs; anything else stays plain. It
+  never changes a character: every token joined back is the source, checked
+  on all 1,169 fences in the docs. Measured on the docs' 1,319 pages: compile
+  time within noise of no highlighting, compiled output +4.5%.
+  `@shikijs/rehype` cost +2.5 to 3.5 s and +56% output, because it emits an
+  element for every token; shiki's tokens through `rehypeCode` (its
+  `tokenize` option) cost +0.7 s and +6.6%. Each block travels as one
+  string, not a call per word.
+- `CodeBlock` takes `html` (from the build) or `children` (another
+  highlighter) as well as `code` and `lang`, and marks lines (`highlight`),
+  shows a diff (`diff`, or `lang="diff"`), numbers lines (`lineNumbers`) and
+  takes `actions`. Marks and signs are drawn, so copying takes the code as
+  written; a shell transcript copies its commands without the `$ `.
+- `CodeTabs` (`items`, `syncKey`: choose pnpm once and every set on the page,
+  and the next, follows) and `InstallTabs` (`pkg`, `dev`).
+- `DocsShell`: ochk.io's header with Docs marked (`DOCS_HEADER_NAV`) and
+  `search` and `actions` slots, `DocsNav` on the left, the page, "On this
+  page" on the right from xl; below lg the sections open from a bar under the
+  header. `DocsNav` (`sections`, `current`): sections fold, the current one
+  stays open, the page is marked with a bar, badges take status words.
+- `Breadcrumbs` (`items`, `action`), `DocsPager` (`prev`, `next`, each with an
+  optional section), `OnThisPage` and `useHeadings` (reads a page's h2s and
+  h3s again after each move), `TocItem.level`.
+- `./mdx`: `mdxComponents` and `createMdxComponents({ mermaid })`. Headings
+  carry a "#" link to themselves, tables become `MdxTable` (hairlines,
+  sideways scroll, code cells without pills), blockquotes become notes,
+  fences become `CodeBlock`s, and mermaid fences become `Diagram`s when a
+  loader is given. `Callout` (note, warning, danger; a note to a screen
+  reader, never an alert), `Steps`/`Step`, `LinkCard`/`CardGrid`, `ApiTable`
+  (name, type, required, default, description; cards on a phone).
+- `Diagram`: mermaid in the page's own colours, drawn again when the page
+  turns light or dark, at its own size (it scrolls rather than shrinking its
+  labels). The package does not depend on mermaid: pass `load`.
+- `SearchDialog` and `SearchButton`: a field, grouped results, ⌘K or / to
+  open, arrows and Enter, focus back where it was on close. It knows nothing
+  of the index: `onQuery(query, signal)` returns the results (Pagefind's
+  excerpt markup goes in `excerptHtml`). `defaultQuery` opens it with `?q=`.
+- `ProtocolGrid link="docs"`. `Notice` takes a `role`.
+
 ## [1.0.0] — 2026-10-20
 
 The family design system. Every orangecheck site moves onto it; the classic

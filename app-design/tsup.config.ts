@@ -9,6 +9,8 @@ export default defineConfig({
         components: 'src/components/index.ts',
         chrome: 'src/chrome/index.ts',
         family: 'src/family/index.ts',
+        code: 'src/code/index.ts',
+        mdx: 'src/mdx/index.tsx',
     },
     format: ['cjs', 'esm'],
     dts: true,

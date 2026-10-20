@@ -1,13 +1,15 @@
 export { Accent, Display, Eyebrow, Footnote, Lead, Prose } from './typography';
 export type { DisplayProps } from './typography';
 export { Container, Section, SectionIntro, sectionVariants } from './section';
-export { DocHeader, DocLayout, PageHero } from './hero';
+export { DocHeader, DocLayout, PageHero, useActiveHeading } from './hero';
 export type { PageHeroProps, TocItem } from './hero';
 export type { SectionProps } from './section';
 export { StepGrid } from './steps';
 export type { StepGridProps, StepItem } from './steps';
-export { CodeBlock, PackageCard } from './code-card';
+export { PackageCard } from './code-card';
 export type { PackageItem } from './code-card';
+export { CodeBlock, CodeTabs, InstallTabs, languageName } from './code-block';
+export type { CodeBlockProps, CodeTab } from './code-block';
 export { SplitBar } from './split-bar';
 export type { SplitSegment } from './split-bar';
 export { TruthTable } from './truth-table';
@@ -30,7 +32,16 @@ export {
     StatGrid,
     useCopy,
 } from './data';
-export type { ActivityItem, Column, KeyValueItem, ProgressStep, StatCardProps, StatGridProps, StepState } from './data';
+export type {
+    ActivityItem,
+    Column,
+    CopyButtonProps,
+    KeyValueItem,
+    ProgressStep,
+    StatCardProps,
+    StatGridProps,
+    StepState,
+} from './data';
 export { Reveal, ScrollStory, Ticker, useInView } from './motion';
 export { BrowserFrame, FloatChip, PhoneFrame } from './frames';
 export { Monogram, monogramGround, monogramLetter } from './monogram';
@@ -47,3 +58,20 @@ export type { ComparisonColumn, ComparisonRow } from './protocol';
 export { SignMessage, VerifyReport } from './verify';
 export type { CheckState, VerifyCheck } from './verify';
 export { TextLink } from './text-link';
+export {
+    ApiTable,
+    Breadcrumbs,
+    Callout,
+    CardGrid,
+    Diagram,
+    DocsHeading,
+    DocsPager,
+    LinkCard,
+    MdxTable,
+    OnThisPage,
+    Step,
+    Steps,
+    useHeadings,
+} from './docs';
+export type { ApiRow, Crumb, MermaidLike, MermaidLoader, PagerLink } from './docs';
+export { SearchButton, SearchDialog } from './search';

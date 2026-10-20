@@ -98,12 +98,17 @@ export function DocHeader({
 export interface TocItem {
     id: string;
     label: ReactNode;
+    /** 3 for a sub-heading, set in under its h2. */
+    level?: 2 | 3;
 }
 
-function useActiveHeading(ids: string[]): string | undefined {
+/** The id of the heading being read: the topmost one in the upper third of the screen. */
+export function useActiveHeading(ids: string[]): string | undefined {
     const [active, setActive] = useState<string | undefined>(ids[0]);
     const key = ids.join('|');
     useEffect(() => {
+        // A new page starts at its first heading, not wherever the last one was.
+        setActive(key.split('|')[0] || undefined);
         const els = key
             .split('|')
             .map((id) => document.getElementById(id))

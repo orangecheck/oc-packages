@@ -423,18 +423,22 @@ export function Notice({
     title,
     children,
     action,
+    role,
     className,
 }: {
     tone?: NoticeTone;
     title?: ReactNode;
     children?: ReactNode;
     action?: ReactNode;
+    /** Default: `alert` for danger and warning, which a screen reader announces. Text that is
+     *  simply part of the page (a docs callout) is a `note`. */
+    role?: 'alert' | 'status' | 'note';
     className?: string;
 }) {
     const kind = NOTICE_KIND[tone];
     return (
         <div
-            role={tone === 'danger' || tone === 'warning' ? 'alert' : 'note'}
+            role={role ?? (tone === 'danger' || tone === 'warning' ? 'alert' : 'note')}
             data-tone={kind}
             className={cn(
                 'flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-4 sm:flex-row sm:items-start sm:justify-between',
@@ -536,12 +540,19 @@ export function useCopy(timeoutMs = 1600) {
     return { copied, copy };
 }
 
-export function CopyButton({ value, label = 'Copy', className }: { value: string; label?: string; className?: string }) {
+export interface CopyButtonProps {
+    /** The text, or a function that reads it at the moment of copying. */
+    value: string | (() => string);
+    label?: string;
+    className?: string;
+}
+
+export function CopyButton({ value, label = 'Copy', className }: CopyButtonProps) {
     const { copied, copy } = useCopy();
     return (
         <button
             type="button"
-            onClick={() => void copy(value)}
+            onClick={() => void copy(typeof value === 'function' ? value() : value)}
             aria-label={copied ? 'Copied' : label}
             className={cn(
                 'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',

@@ -60,6 +60,16 @@
       "import": "./dist/family.mjs",
       "require": "./dist/family.js"
     },
+    "./code": {
+      "types": "./dist/code.d.ts",
+      "import": "./dist/code.mjs",
+      "require": "./dist/code.js"
+    },
+    "./mdx": {
+      "types": "./dist/mdx.d.ts",
+      "import": "./dist/mdx.mjs",
+      "require": "./dist/mdx.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
   },
@@ -71,7 +81,7 @@
   "scripts": {
     "build": "tsup && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-render.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -110,6 +120,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "lucide-react": "^0.544.0",
+    "mermaid": "^11.14.0",
     "next": "^16.3.8",
     "next-themes": "^0.4.6",
     "react": "19.1.0",

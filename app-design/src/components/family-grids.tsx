@@ -2,6 +2,7 @@ import { ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import {
+    DOCS_HREF,
     FAMILY,
     PROTOCOL_ORDER,
     protocolSite,
@@ -29,7 +30,7 @@ const pad = (n: number) => String(n + 1).padStart(2, '0');
 /**
  * The six protocols as cards, from the registry, in the family's order: the
  * verb's word, what it carries, one line, its Nostr kinds. `link` picks the
- * protocol's page on ochk.io or its tools.
+ * protocol's page on ochk.io, its tools, or its docs.
  */
 export function ProtocolGrid({
     protocols = PROTOCOL_ORDER,
@@ -37,7 +38,7 @@ export function ProtocolGrid({
     className,
 }: {
     protocols?: readonly ProtocolSlug[];
-    link?: 'page' | 'tool';
+    link?: 'page' | 'tool' | 'docs';
     className?: string;
 }) {
     return (
@@ -55,7 +56,10 @@ export function ProtocolGrid({
                                 {p.status !== 'live' ? <StatusBadge status={p.status} /> : null}
                             </div>
                             <h3 className="oca-display-3">
-                                <a href={link === 'tool' ? p.toolHref : p.pageHref} className={STRETCH}>
+                                <a
+                                    href={link === 'tool' ? p.toolHref : link === 'docs' ? `${DOCS_HREF}/${p.slug}` : p.pageHref}
+                                    className={STRETCH}
+                                >
                                     {p.label}
                                 </a>
                             </h3>
