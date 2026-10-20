@@ -40,6 +40,11 @@ for (const [entry, target] of Object.entries(pkg.exports)) {
         if (entry === './code' || entry === './format') check(!deps.has('react'), `${entry} loads React`);
     }
 }
+check(
+    pkg.peerDependenciesMeta?.['@orangecheck/auth-client']?.optional === true,
+    '@orangecheck/auth-client is not marked an optional peer'
+);
+check(imports(pkg.exports['./session'].require).has('@orangecheck/auth-client'), './session does not read auth-client');
 
 if (failures) {
     console.error(`\n${failures} entry failure(s)`);

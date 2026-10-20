@@ -11,10 +11,23 @@ import { FamilyList, FamilyMenu } from './family-menu';
 
 export type { FooterColumn, NavItem } from '../lib/nav';
 
-function NavLink({ item, className, onNavigate }: { item: NavItem; className?: string; onNavigate?: () => void }) {
+function NavLink({
+    item,
+    className,
+    onNavigate,
+    line = false,
+}: {
+    item: NavItem;
+    className?: string;
+    onNavigate?: () => void;
+    /** Mark the active item with a bar on the header's bottom edge (the tool header). */
+    line?: boolean;
+}) {
     const cls = cn(
         'rounded-full px-3 py-2 text-[0.9375rem] transition-colors',
         item.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+        line && 'relative after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5 after:rounded-full',
+        line && item.active && 'after:bg-foreground',
         className
     );
     if (item.external) {
@@ -111,6 +124,10 @@ export interface SiteHeaderProps {
      * full width, a hairline under it, the navigation after the lockup.
      */
     variant?: 'site' | 'tool';
+    /** Leave the navigation out of the phone's menu (a page whose tab bar already holds it). */
+    navOnPhone?: boolean;
+    /** At the top of the phone's menu: links the actions hold on a wider screen. */
+    menu?: ReactNode;
     className?: string;
 }
 
@@ -128,13 +145,16 @@ export function SiteHeader({
     search,
     actions,
     variant = 'site',
+    navOnPhone = true,
+    menu: menuExtra,
     className,
 }: SiteHeaderProps) {
     const [open, setOpen] = useState(false);
     const tool = variant === 'tool';
     const size = tool ? 24 : 28;
     const current = typeof family === 'string' ? family : undefined;
-    const menu = nav.length > 0 || Boolean(family);
+    const phoneNav = navOnPhone ? nav : [];
+    const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra);
     const brandNode = brand ?? (
         <span className="inline-flex items-center">
             <Lockup size={size} />
@@ -151,7 +171,9 @@ export function SiteHeader({
     const navigation =
         nav.length > 0 ? (
             <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-                {nav.map((n) => (n.children?.length ? <NavDropdown key={n.href} item={n} /> : <NavLink key={n.href} item={n} />))}
+                {nav.map((n) =>
+                    n.children?.length ? <NavDropdown key={n.href} item={n} /> : <NavLink key={n.href} item={n} line={tool} />
+                )}
             </nav>
         ) : null;
     return (
@@ -197,9 +219,14 @@ export function SiteHeader({
                             </SheetTrigger>
                             <SheetContent side="right" className="pt-16">
                                 <SheetTitle className="sr-only">Menu</SheetTitle>
-                                {nav.length > 0 ? (
+                                {menuExtra ? (
+                                    <div className={cn('flex flex-col', (phoneNav.length > 0 || family) && 'border-b border-border pb-3')}>
+                                        {menuExtra}
+                                    </div>
+                                ) : null}
+                                {phoneNav.length > 0 ? (
                                     <nav aria-label="Main" className="flex flex-col">
-                                        {nav.map((n) =>
+                                        {phoneNav.map((n) =>
                                             n.children?.length ? (
                                                 <div key={n.href} className="flex flex-col py-2">
                                                     <p className="px-3 pb-1 text-[0.8125rem] text-muted-foreground">{n.label}</p>
@@ -224,7 +251,7 @@ export function SiteHeader({
                                     </nav>
                                 ) : null}
                                 {family ? (
-                                    <details className={cn('group', nav.length > 0 && 'mt-2 border-t border-border pt-4')}>
+                                    <details className={cn('group', phoneNav.length > 0 && 'mt-2 border-t border-border pt-4')}>
                                         <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl px-3 py-2.5 text-[1.0625rem] [&::-webkit-details-marker]:hidden">
                                             All orangecheck sites
                                             <ChevronDown aria-hidden className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />

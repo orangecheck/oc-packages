@@ -65,10 +65,20 @@
       "import": "./dist/code.mjs",
       "require": "./dist/code.js"
     },
+    "./format": {
+      "types": "./dist/format.d.ts",
+      "import": "./dist/format.mjs",
+      "require": "./dist/format.js"
+    },
     "./mdx": {
       "types": "./dist/mdx.d.ts",
       "import": "./dist/mdx.mjs",
       "require": "./dist/mdx.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.mjs",
+      "require": "./dist/session.js"
     },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
@@ -109,13 +119,21 @@
     "tailwind-merge": "^3.3.1"
   },
   "peerDependencies": {
+    "@orangecheck/auth-client": "^2.32.0",
     "lucide-react": ">=0.400.0",
     "next": "^15.0.0 || ^16.0.0",
     "next-themes": "^0.4.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@orangecheck/auth-client": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@orangecheck/auth-client": "^2.32.3",
+    "@orangecheck/auth-core": "^2.5.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

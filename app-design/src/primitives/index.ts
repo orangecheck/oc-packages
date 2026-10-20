@@ -22,7 +22,9 @@ export {
     Switch,
     Textarea,
 } from './form';
-export type { FieldProps } from './form';
+export type { FieldProps, InputProps } from './form';
+export { DensityProvider, useDensity } from '../lib/density';
+export type { Density } from '../lib/density';
 export {
     Dialog,
     DialogClose,

@@ -169,6 +169,8 @@ export interface CodeBlockProps {
     /** The file name or purpose. Defaults to the language's name, or "Code". */
     caption?: ReactNode;
     copy?: boolean;
+    /** Wipe the clipboard this many milliseconds after a copy (a secret in code). */
+    clearAfter?: number;
     /** Fold past this many lines, with a button for the rest. */
     maxLines?: number;
     /** Lines to mark, 1-based: "2,4-6" or [2, 4, 5, 6]. With `code`. */
@@ -196,6 +198,7 @@ export function CodeBlock({
     lang,
     caption,
     copy = true,
+    clearAfter,
     maxLines,
     highlight: marks,
     diff,
@@ -219,7 +222,7 @@ export function CodeBlock({
                 <span className="truncate text-[0.8125rem] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
                 <span className="flex shrink-0 items-center gap-1">
                     {actions}
-                    {copy ? <CopyButton value={read} label="Copy code" className={COPY_ON_INK} /> : null}
+                    {copy ? <CopyButton value={read} label="Copy code" clearAfter={clearAfter} className={COPY_ON_INK} /> : null}
                 </span>
             </figcaption>
             <Well

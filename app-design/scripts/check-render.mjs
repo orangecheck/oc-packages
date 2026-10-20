@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /*
- * The docs components, rendered from the build to markup, doing what they
- * promise: code arrives highlighted in the server's HTML, the docs mark
- * where you are, and a context or a label reaches across entries. Run after `yarn build`.
+ * The docs and tool components, rendered from the build to markup, doing
+ * what they promise: code arrives highlighted in the server's HTML, the
+ * tool shell holds the tools and the protocol's links, density reaches the
+ * fields, the account control holds its place while it checks. Run after
+ * `yarn build`.
  */
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -20,6 +22,7 @@ for (const f of ['components', 'chrome', 'primitives', 'mdx']) {
 }
 const { createElement: h } = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
+const { CheckCircle, Plus, Terminal } = require('lucide-react');
 const C = require(join(here, '../dist/components.js'));
 const Ch = require(join(here, '../dist/chrome.js'));
 const P = require(join(here, '../dist/primitives.js'));
@@ -79,6 +82,24 @@ const html = (el) => renderToStaticMarkup(el);
     check(shell.includes('id="docs-content"') && shell.includes('id="main-content"'), 'DocsShell: the page has no content landmark');
 }
 
+// ToolShell: the protocol's word and page, tools in a tab bar on a phone, compact fields, the footer.
+{
+    const tools = [
+        { href: '/create', label: 'Create', icon: h(Plus), active: true },
+        { href: '/verify', label: 'Verify', icon: h(CheckCircle) },
+        { href: '/playground', label: 'Playground', icon: h(Terminal) },
+    ];
+    const out = html(h(Ch.ToolShell, { protocol: 'stamp', tools }, h(P.Input, { 'aria-label': 'Hash' })));
+    check(out.includes('>stamp<'), 'ToolShell: the protocol word is missing');
+    check(out.includes('href="https://ochk.io/stamp"') && out.includes('About stamp'), 'ToolShell: no way to the protocol page');
+    check(out.includes('data-oca-tabbar'), 'ToolShell: three tools with icons get no tab bar');
+    check(out.includes('data-size="sm"'), 'ToolShell: fields are not compact inside it');
+    check(out.includes('aria-label="Legal"'), 'ToolShell: the footer has no legal row');
+    const app = html(h(Ch.ToolShell, { protocol: 'lock', tools, variant: 'app' }, h('p', null, 'inbox')));
+    check(!app.includes('<footer') && !app.includes('data-oca-tabbar'), 'ToolShell app: a footer or tab bar is drawn');
+    check(html(h(P.Input, { 'aria-label': 'x' })).includes('data-size="md"'), 'Input: default size is not md outside a tool');
+}
+
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];
@@ -97,8 +118,44 @@ const html = (el) => renderToStaticMarkup(el);
     check(/<button[^>]*aria-describedby="[^"]+-hint"/.test(out), 'Field + Select: the hint does not describe the trigger');
 }
 
+// The account control.
+{
+    const checking = html(h(Ch.SessionAccountView, { state: 'checking', signInHref: '/signin' }));
+    check(checking.includes('invisible') && checking.includes('aria-hidden="true"'), 'Session: checking does not hold its place unseen');
+    const out = html(h(Ch.SessionAccountView, { state: 'out', signInHref: 'https://ochk.io/signin?return_to=x' }));
+    check(out.includes('href="https://ochk.io/signin?return_to=x"') && out.includes('Sign in'), 'Session: signed out has no sign-in');
+    const unknown = html(h(Ch.SessionAccountView, { state: 'unknown', signInHref: '/signin' }));
+    check(unknown.includes('https://ochk.app/me/account'), 'Session: a failed check does not offer the account page');
+}
+
+// Tool parts.
+{
+    const meter = html(h(C.Meter, { value: 62, max: 100, ghost: 20, label: 'Turnout' }));
+    check(meter.includes('role="meter"') && meter.includes('aria-valuenow="62"') && meter.includes('62%'), 'Meter: not a meter');
+    const pending = html(h(C.AnchorStatus, { state: 'pending', calendar: 'https://alice.btc.calendar.opentimestamps.org', submittedAt: 1760951400 }));
+    check(pending.includes('alice.btc.calendar.opentimestamps.org') && pending.includes('Waiting for a Bitcoin block'), 'AnchorStatus: pending does not say where');
+    const anchored = html(h(C.AnchorStatus, { state: 'anchored', blockHeight: 971632 }));
+    check(anchored.includes('https://mempool.space/block/971632') && anchored.includes('971,632'), 'AnchorStatus: the block is not linked');
+    const later = html(h(C.BlockCountdown, { target: 972000, tip: 971632 }));
+    check(later.includes('368') && later.includes('about 2 days 13 hours'), 'BlockCountdown: wrong wait');
+    check(html(h(C.BlockCountdown, { target: 972000, tip: 972001, reached: 'Revealed' })).includes('Revealed at'), 'BlockCountdown: reached not said');
+    const Badge = C.createStateBadge({ active: { label: 'Active', tone: 'good' }, revoked: { label: 'Revoked', tone: 'bad' } });
+    check(html(h(Badge, { state: 'revoked' })).includes('Revoked'), 'createStateBadge: wrong word');
+    const chips = html(h(C.FilterChips, { label: 'Status', options: [{ value: 'a', label: 'Active' }, { value: 'b', label: 'Revoked' }], value: 'a', onChange: () => {} }));
+    check(/aria-pressed="true"[^>]*>Active/.test(chips) && chips.includes('aria-pressed="false"'), 'FilterChips: pressed state wrong');
+    const chip = html(h(C.HashChip, { value: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t', explorer: 'address' }));
+    check(chip.includes('https://mempool.space/address/bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t'), 'HashChip: explorer link missing');
+    const art = html(h(C.ArtifactView, { content: '{"v":1,"kind":"stamp"}', filename: 'stamp.json' }));
+    check(art.includes('aria-pressed="true"') && art.includes('Formatted') && art.includes('Download stamp.json'), 'ArtifactView: controls missing');
+    check(art.includes('class="oca-p">&quot;kind&quot;<'), 'ArtifactView: JSON is not highlighted');
+    const drop = html(h(C.DropZone, { onFile: () => {}, onText: () => {} }));
+    check(drop.includes('Choose a file') && drop.includes('Paste text instead') && drop.includes('stays in your browser'), 'DropZone: a way in is missing');
+    const sec = html(h(C.FormSection, { n: 2, title: 'Who signs', status: 'current' }, h('p', null, 'x')));
+    check(sec.includes('aria-current="step"') && sec.includes('Step 2: '), 'FormSection: step not announced');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);
 }
-console.log(`✓ render: ${checks} checks on the docs components and the shared parts`);
+console.log(`✓ render: ${checks} checks on the docs and tool components`);

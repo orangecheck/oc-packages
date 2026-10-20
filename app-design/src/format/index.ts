@@ -1,0 +1,82 @@
+/*
+ * Formatting for the things the family shows over and over: Bitcoin
+ * explorer links, shortened ids, block heights, the time to a block. No
+ * React, so server code and OG renderers import it too.
+ */
+
+export type Network = 'mainnet' | 'testnet' | 'testnet4' | 'signet';
+export type ExplorerKind = 'address' | 'tx' | 'block';
+
+const EXPLORER = 'https://mempool.space';
+
+/** A mempool.space link for an address, a transaction, or a block (by height or hash). */
+export function explorerUrl(kind: ExplorerKind, value: string | number, network: Network = 'mainnet'): string {
+    const net = network === 'mainnet' ? '' : `/${network}`;
+    return `${EXPLORER}${net}/${kind}/${encodeURIComponent(String(value))}`;
+}
+
+/** head…tail, leaving short values whole. */
+export function shortenMiddle(value: string, head = 8, tail = 6): string {
+    return value.length <= head + tail + 1 ? value : `${value.slice(0, head)}…${value.slice(-tail)}`;
+}
+
+/** 971632 → "971,632". */
+export function formatBlockHeight(height: number): string {
+    return Math.trunc(height).toLocaleString('en-US');
+}
+
+/**
+ * How long a number of blocks takes at ten minutes each, in the largest two
+ * units: "about 40 minutes", "about 2 days 13 hours". Blocks come when they
+ * come, so it is always "about".
+ */
+export function blocksToDuration(blocks: number, minutesPerBlock = 10): string {
+    const minutes = Math.max(0, Math.round(blocks * minutesPerBlock));
+    if (minutes < 60) return `about ${minutes} minute${minutes === 1 ? '' : 's'}`;
+    const units: [number, string][] = [
+        [60 * 24 * 7, 'week'],
+        [60 * 24, 'day'],
+        [60, 'hour'],
+        [1, 'minute'],
+    ];
+    const parts: string[] = [];
+    let rest = minutes;
+    for (const [size, word] of units) {
+        const n = Math.floor(rest / size);
+        if (n > 0 && parts.length < 2) {
+            parts.push(`${n} ${word}${n === 1 ? '' : 's'}`);
+            rest -= n * size;
+        } else if (parts.length > 0) break;
+    }
+    return `about ${parts.join(' ')}`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * A moment in UTC, the same for every reader: "20 Oct 2026, 09:14 UTC".
+ * Takes a Date, an ISO string, or unix seconds. `date: true` drops the time.
+ */
+export function formatUtc(at: Date | string | number, opts: { date?: boolean } = {}): string {
+    const d = typeof at === 'number' ? new Date(at * 1000) : new Date(at);
+    if (Number.isNaN(d.getTime())) return '—';
+    const day = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    if (opts.date) return day;
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mm = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${day}, ${hh}:${mm} UTC`;
+}
+
+/** 482113 → "471 KB"; 1288490 → "1.2 MB". Binary steps, the way a file dialog counts. */
+export function formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes < 0) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let v = bytes / 1024;
+    let u = 0;
+    while (v >= 1024 && u < units.length - 1) {
+        v /= 1024;
+        u++;
+    }
+    return `${v < 10 ? v.toFixed(1).replace(/\.0$/, '') : Math.round(v)} ${units[u]}`;
+}

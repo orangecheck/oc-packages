@@ -79,6 +79,40 @@ What ochk.io/docs needs to move onto the system:
   menu"), and its initial is drawn rather than written, so what it says
   matches what it shows.
 
+### Added: the tools
+
+What the six protocol sites need to move onto the system:
+
+- Compact density: `Input size="sm"` and `SelectTrigger size="sm"` (36px, 16px
+  text on a phone still), `DataTable dense`, `StatCard size="sm"`,
+  `KeyValueList dense`. `DensityProvider` sets it for everything inside,
+  dialogs included; a prop on one component wins.
+- `ToolShell` (`protocol`, `tools`, `home`, `account`, `rail`, `railFooter`,
+  `variant: 'tool' | 'app'`, `banner`, `footer`): a slim header with
+  "orangecheck | stamp", the family menu, the tools as a line nav, "About
+  stamp" on ochk.io, the status when not live, the theme and the account;
+  compact density; the compact family footer. On a phone two to five tools
+  become a tab bar. `app` fills the window with no footer.
+- `SiteHeader` takes `navOnPhone` and `menu`, and marks the tool header's
+  active item with a bar on its bottom edge.
+- `SessionAccountView` (chrome) and `SessionAccount` (`./session`, reading
+  `@orangecheck/auth-client`, now an optional peer): the account menu, "Sign
+  in", or, while the session is checked, the button's place held unseen.
+- `ToolGrid`, `ArtifactView` (formatted or raw, copy, download the raw
+  bytes), `DropZone` (drop, choose or paste; says the file stays in the
+  browser; hashing progress), `FormSection` (numbered, done, current, upcoming,
+  blocked), `StateBadge` and `createStateBadge` (a protocol's lifecycle words
+  on fixed looks), `AnchorStatus`, `BlockHeight`, `BlockCountdown`, `Meter`
+  (with a hatched part for pledged, not settled), `FilterChips`.
+- `CopyButton` takes `clearAfter` (wipes the clipboard if it still holds the
+  copy), `onCopied`, and a `value` read at the moment of copying.
+  `HashChip` takes `explorer` and `network` for a mempool.space link.
+- `./format`: `explorerUrl`, `shortenMiddle`, `formatBlockHeight`,
+  `blocksToDuration`, `formatUtc`, `formatBytes`. No React.
+- `KeyValueList` lays its rows out by its own width, not the screen's, so a
+  list in a narrow card stacks. `VerifyReport` takes `as` (its title is an h2
+  by default, under a page's h1).
+
 ## [1.0.0] — 2026-10-20
 
 The family design system. Every orangecheck site moves onto it; the classic

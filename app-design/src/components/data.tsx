@@ -14,7 +14,9 @@ import {
     type ReactNode,
 } from 'react';
 
+import { explorerUrl, shortenMiddle, type ExplorerKind, type Network } from '../format';
 import { cn } from '../lib/cn';
+import { useDensity } from '../lib/density';
 import { useShellPlace } from '../lib/shell-context';
 import { Button } from '../primitives/button';
 import { Skeleton, useTimedOut } from '../primitives/feedback';
@@ -69,27 +71,33 @@ export interface StatCardProps {
      * whose every `raw` is 0 or null shows one empty line instead of zeros.
      */
     raw?: number | null;
+    /** `sm` for a tool page: tighter, a smaller figure. Defaults to the density around it. */
+    size?: 'md' | 'sm';
     className?: string;
 }
 
-export function StatCard({ label, value, hint, className }: StatCardProps) {
+export function StatCard({ label, value, hint, size, className }: StatCardProps) {
     const inGrid = useContext(InStatGrid);
+    const density = useDensity();
+    const sm = (size ?? (density === 'compact' ? 'sm' : 'md')) === 'sm';
     return (
         <div
             data-ui="stat"
             className={cn(
-                'rounded-[1.25rem] border border-border bg-card p-5 md:p-6',
+                'border border-border bg-card',
+                sm ? 'rounded-2xl p-4' : 'rounded-[1.25rem] p-5 md:p-6',
                 // In a grid, label, value and hint each share a row with their
                 // neighbours, so values line up whatever wraps above them.
                 inGrid ? 'row-span-3 grid grid-rows-subgrid gap-1.5' : 'flex flex-col gap-2',
                 className
             )}
         >
-            <span className="text-[0.875rem] leading-snug text-muted-foreground">{label}</span>
+            <span className={cn('leading-snug text-muted-foreground', sm ? 'text-[0.8125rem]' : 'text-[0.875rem]')}>{label}</span>
             {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
             <span
                 className={cn(
-                    'break-words oca-tabular text-[1.5rem] leading-tight tracking-[-0.02em] md:text-[1.75rem]',
+                    'break-words oca-tabular leading-tight tracking-[-0.02em]',
+                    sm ? 'text-[1.25rem]' : 'text-[1.5rem] md:text-[1.75rem]',
                     inGrid && 'self-end'
                 )}
             >
@@ -176,6 +184,7 @@ export function StatGrid({ columns, empty, isEmpty, className, children, ...prop
     const n = items.length;
     const allZero =
         n > 0 && items.every((el) => 'raw' in el.props && (el.props.raw === 0 || el.props.raw === null));
+    const compact = useDensity() === 'compact';
     if (isEmpty ?? allZero) return <EmptyLine className={className}>{empty ?? 'Nothing here yet.'}</EmptyLine>;
     const lg = columns ?? statColumns(n);
     // Five across is a desk-width row; a tablet gets three.
@@ -186,7 +195,8 @@ export function StatGrid({ columns, empty, isEmpty, className, children, ...prop
         <InStatGrid.Provider value>
             <div
                 className={cn(
-                    'grid gap-3 md:gap-4',
+                    'grid',
+                    compact ? 'gap-2.5 md:gap-3' : 'gap-3 md:gap-4',
                     n === 1 ? 'grid-cols-1' : 'grid-cols-2',
                     MD_COLS[md],
                     LG_COLS[lg],
@@ -216,13 +226,39 @@ export interface KeyValueItem {
     mono?: boolean;
 }
 
-export function KeyValueList({ items, className }: { items: KeyValueItem[]; className?: string }) {
+export function KeyValueList({
+    items,
+    dense,
+    className,
+}: {
+    items: KeyValueItem[];
+    /** Tighter rows and smaller text, for a tool page. Defaults to the density around it. */
+    dense?: boolean;
+    className?: string;
+}) {
+    const density = useDensity();
+    const tight = dense ?? density === 'compact';
     return (
-        <dl className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        // The rows go side by side when the list itself is wide enough, wherever it sits: a narrow card stacks them.
+        <dl className={cn('@container divide-y divide-border border border-border bg-card', tight ? 'rounded-2xl' : 'rounded-[1.25rem]', className)}>
             {items.map((it, i) => (
-                <div key={i} className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:items-baseline sm:gap-6">
-                    <dt className="shrink-0 text-[0.875rem] text-muted-foreground sm:w-48">{it.label}</dt>
-                    <dd className={cn('min-w-0 break-words text-[0.9375rem]', it.mono && 'font-mono text-[0.875rem]')}>
+                <div
+                    key={i}
+                    className={cn(
+                        'flex flex-col gap-1 @md:flex-row @md:items-baseline',
+                        tight ? 'px-4 py-2.5 @md:gap-5' : 'px-5 py-3.5 @md:gap-6'
+                    )}
+                >
+                    <dt className={cn('shrink-0 text-muted-foreground', tight ? 'text-[0.8125rem] @md:w-36' : 'text-[0.875rem] @md:w-48')}>
+                        {it.label}
+                    </dt>
+                    <dd
+                        className={cn(
+                            'min-w-0 break-words',
+                            tight ? 'text-[0.875rem]' : 'text-[0.9375rem]',
+                            it.mono && (tight ? 'font-mono text-[0.8125rem]' : 'font-mono text-[0.875rem]')
+                        )}
+                    >
                         {it.value}
                     </dd>
                 </div>
@@ -265,6 +301,7 @@ export function DataTable<T>({
     empty,
     caption,
     phone = 'cards',
+    dense,
     className,
 }: {
     columns: Column<T>[];
@@ -274,21 +311,26 @@ export function DataTable<T>({
     caption?: string;
     /** Under 640px: a card per row (default), or the same table scrolling. */
     phone?: 'cards' | 'scroll';
+    /** Tighter rows and 14px text, for a tool page. Defaults to the density around it. */
+    dense?: boolean;
     className?: string;
 }) {
+    const density = useDensity();
+    const tight = dense ?? density === 'compact';
     if (rows.length === 0 && empty) return <>{empty}</>;
     const primary = columns.find((c) => c.primary) ?? columns[0];
     const right = (c: Column<T>) => c.numeric || c.align === 'end';
     const table = (
         <div
             className={cn(
-                'overflow-hidden rounded-[1.25rem] border border-border bg-card',
+                'overflow-hidden border border-border bg-card',
+                tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
                 phone === 'cards' && 'max-sm:hidden',
                 className
             )}
         >
             <ScrollFade fade="var(--card)">
-                <table className="w-full border-collapse text-left text-[0.9375rem]">
+                <table className={cn('w-full border-collapse text-left', tight ? 'text-[0.875rem]' : 'text-[0.9375rem]')}>
                     {caption ? <caption className="sr-only">{caption}</caption> : null}
                     <thead>
                         <tr className="border-b border-border">
@@ -298,7 +340,8 @@ export function DataTable<T>({
                                     scope="col"
                                     style={{ width: c.width, minWidth: c.minWidth }}
                                     className={cn(
-                                        'whitespace-nowrap px-5 py-3 text-[0.8125rem] font-medium text-muted-foreground',
+                                        'whitespace-nowrap text-[0.8125rem] font-medium text-muted-foreground',
+                                        tight ? 'px-4 py-2.5' : 'px-5 py-3',
                                         right(c) && 'text-right',
                                         c.wide && 'hidden md:table-cell'
                                     )}
@@ -316,7 +359,8 @@ export function DataTable<T>({
                                         key={c.key}
                                         style={{ minWidth: c.minWidth }}
                                         className={cn(
-                                            'px-5 py-3.5 align-middle',
+                                            'align-middle',
+                                            tight ? 'px-4 py-2' : 'px-5 py-3.5',
                                             right(c) && 'text-right',
                                             c.numeric && 'whitespace-nowrap oca-tabular',
                                             c.wide && 'hidden md:table-cell'
@@ -345,10 +389,14 @@ export function DataTable<T>({
             {table}
             <ul
                 aria-label={caption}
-                className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card sm:hidden', className)}
+                className={cn(
+                    'divide-y divide-border border border-border bg-card sm:hidden',
+                    tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
+                    className
+                )}
             >
                 {rows.map((r, i) => (
-                    <li key={rowKey(r, i)} className="flex flex-col gap-2.5 px-4 py-4">
+                    <li key={rowKey(r, i)} className={cn('flex flex-col gap-2.5 px-4', tight ? 'py-3' : 'py-4')}>
                         <div className="min-w-0 break-words text-[0.9375rem] font-medium">{primary?.cell(r)}</div>
                         {rest.length > 0 ? (
                             <dl className="grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[0.875rem]">
@@ -514,25 +562,46 @@ export function LoadingBlock({
 
 /* ── Hashes, addresses, ids ──────────────────────────────────────────── */
 
-function middle(v: string, head: number, tail: number) {
-    return v.length <= head + tail + 1 ? v : `${v.slice(0, head)}…${v.slice(-tail)}`;
+/** Wipe the clipboard if it still holds `expected`, and only then. */
+async function wipeIfUnchanged(expected: string): Promise<void> {
+    try {
+        if ((await navigator.clipboard.readText()) !== expected) return;
+    } catch {
+        // Reading needs a permission most browsers withhold; wiping does not.
+    }
+    try {
+        await navigator.clipboard.writeText('');
+    } catch {
+        /* the clipboard is unavailable here */
+    }
 }
 
 export function useCopy(timeoutMs = 1600) {
     const [copied, setCopied] = useState(false);
     const t = useRef<ReturnType<typeof setTimeout> | null>(null);
-    useEffect(() => () => {
-        if (t.current) clearTimeout(t.current);
-    }, []);
+    const wipe = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(
+        () => () => {
+            if (t.current) clearTimeout(t.current);
+        },
+        []
+    );
     const copy = useCallback(
-        async (text: string) => {
+        async (text: string, opts: { clearAfter?: number } = {}): Promise<boolean> => {
             try {
                 await navigator.clipboard.writeText(text);
                 setCopied(true);
                 if (t.current) clearTimeout(t.current);
                 t.current = setTimeout(() => setCopied(false), timeoutMs);
+                if (opts.clearAfter && opts.clearAfter > 0) {
+                    // Outlives the component on purpose: the secret should go even if the page moves on.
+                    if (wipe.current) clearTimeout(wipe.current);
+                    wipe.current = setTimeout(() => void wipeIfUnchanged(text), opts.clearAfter);
+                }
+                return true;
             } catch {
                 setCopied(false);
+                return false;
             }
         },
         [timeoutMs]
@@ -544,16 +613,27 @@ export interface CopyButtonProps {
     /** The text, or a function that reads it at the moment of copying. */
     value: string | (() => string);
     label?: string;
+    /**
+     * Milliseconds after which the clipboard is wiped, if it still holds what
+     * was copied (a secret, a recovery code). Unset: never.
+     */
+    clearAfter?: number;
+    /** Called once the text is on the clipboard. */
+    onCopied?: () => void;
     className?: string;
 }
 
-export function CopyButton({ value, label = 'Copy', className }: CopyButtonProps) {
+export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, className }: CopyButtonProps) {
     const { copied, copy } = useCopy();
+    const done = copied ? (clearAfter ? `Copied. Cleared in ${Math.round(clearAfter / 1000)} seconds` : 'Copied') : '';
     return (
         <button
             type="button"
-            onClick={() => void copy(typeof value === 'function' ? value() : value)}
+            onClick={async () => {
+                if (await copy(typeof value === 'function' ? value() : value, { clearAfter })) onCopied?.();
+            }}
             aria-label={copied ? 'Copied' : label}
+            title={label}
             className={cn(
                 'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                 className
@@ -561,20 +641,25 @@ export function CopyButton({ value, label = 'Copy', className }: CopyButtonProps
         >
             {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
             <span aria-live="polite" className="sr-only">
-                {copied ? 'Copied' : ''}
+                {done}
             </span>
         </button>
     );
 }
 
-/** A long identifier shown as head…tail in mono, with copy. The full value is
- *  the title and the copied text, never lost to the truncation. */
+/**
+ * A long identifier shown as head…tail in mono, with copy. The full value is
+ * the title and the copied text, never lost to the truncation. `explorer`
+ * links an address, transaction or block to mempool.space.
+ */
 export function HashChip({
     value,
     head = 8,
     tail = 6,
     copy = true,
     href,
+    explorer,
+    network = 'mainnet',
     className,
 }: {
     value: string;
@@ -582,9 +667,14 @@ export function HashChip({
     tail?: number;
     copy?: boolean;
     href?: string;
+    /** What the value is, to link it on mempool.space. `href` wins when both are set. */
+    explorer?: ExplorerKind;
+    network?: Network;
     className?: string;
 }) {
-    const shown = middle(value, head, tail);
+    const shown = shortenMiddle(value, head, tail);
+    const link = href ?? (explorer ? explorerUrl(explorer, value, network) : undefined);
+    const offsite = !!link && /^https?:\/\//.test(link);
     const text = (
         <span title={value} className="font-mono text-[0.875rem]">
             {shown}
@@ -592,9 +682,14 @@ export function HashChip({
     );
     return (
         <span className={cn('inline-flex max-w-full items-center gap-1', className)}>
-            {href ? (
-                <a href={href} className="underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground">
+            {link ? (
+                <a
+                    href={link}
+                    {...(offsite ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    className="underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground"
+                >
                     {text}
+                    {offsite ? <span className="sr-only"> (opens in a new tab)</span> : null}
                 </a>
             ) : (
                 text

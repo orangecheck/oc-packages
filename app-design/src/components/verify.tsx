@@ -39,6 +39,7 @@ export function VerifyReport({
     facts,
     notChecked,
     actions,
+    as: Heading = 'h2',
     className,
 }: {
     verdict: Statement;
@@ -50,6 +51,8 @@ export function VerifyReport({
     /** "What this did not check": every verb has something it cannot see. */
     notChecked?: ReactNode[];
     actions?: ReactNode;
+    /** The title's level: h2 under the page's title (the default), h3 inside a section. */
+    as?: 'h2' | 'h3';
     className?: string;
 }) {
     return (
@@ -59,7 +62,7 @@ export function VerifyReport({
         >
             <header className="flex flex-col items-start gap-3 p-6 md:p-8">
                 <StatusBadge status={verdict} />
-                <h3 className="oca-display-3">{title}</h3>
+                <Heading className="oca-display-3">{title}</Heading>
                 {summary ? <p className="oca-body max-w-[40rem]">{summary}</p> : null}
             </header>
             <ul aria-label="Checks" className="divide-y divide-border border-t border-border">

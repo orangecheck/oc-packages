@@ -49,7 +49,7 @@ export interface ShellSection {
     groups: ShellNavGroup[];
 }
 
-function SideNav({ groups, onNavigate }: { groups: ShellNavGroup[]; onNavigate?: () => void }) {
+export function SideNav({ groups, onNavigate }: { groups: ShellNavGroup[]; onNavigate?: () => void }) {
     return (
         <nav aria-label="Pages" className="flex flex-col gap-5">
             {groups.map((g, gi) => (
@@ -120,7 +120,7 @@ function SectionSwitch({
 }
 
 /** The phone's way around a small app: every page one tap away, under the thumb. */
-function TabBar({ items }: { items: ShellNavItem[] }) {
+export function TabBar({ items }: { items: ShellNavItem[] }) {
     return (
         <nav
             aria-label="Pages"
@@ -163,7 +163,7 @@ function TabBar({ items }: { items: ShellNavItem[] }) {
 }
 
 /** Two to five pages, each with an icon, fit a tab bar. More, or sections, keep the drawer. */
-function tabsFor(groups: ShellNavGroup[]): ShellNavItem[] | null {
+export function tabsFor(groups: ShellNavGroup[]): ShellNavItem[] | null {
     const items = groups.flatMap((g) => g.items);
     return items.length >= 2 && items.length <= 5 && items.every((it) => it.icon) ? items : null;
 }

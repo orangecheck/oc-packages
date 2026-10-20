@@ -28,14 +28,30 @@ family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the sha
 | Entry | What |
 |---|---|
 | `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere` |
-| `/primitives` | `Button`, `Badge`, `Card`, form controls, `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster` |
-| `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps`, `ErrorPage`, the public page blocks (`SectionHeading`, `FactBlock`, `ProofStrip`, `Closing`, `LegalDocument` …) and the protocol page blocks (`ProtocolGrid`, `AppGrid`, `ProtocolHero`, `SpecCard`, `VerifyBox`, `ComparisonTable`, `VerifyReport`, `SignMessage`) |
-| `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `AccountMenu`, `ThemeToggle` |
+| `/primitives` | `Button`, `Badge`, `Card`, form controls (`Input size="sm"` for tools), `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster`, `DensityProvider` |
+| `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps`, `ErrorPage`, the public page blocks (`SectionHeading`, `FactBlock`, `ProofStrip`, `Closing`, `LegalDocument` …), the protocol page blocks (`ProtocolGrid`, `AppGrid`, `ProtocolHero`, `SpecCard`, `VerifyBox`, `ComparisonTable`, `VerifyReport`, `SignMessage`), code (`CodeBlock`, `CodeTabs`, `InstallTabs`), the docs blocks (`Breadcrumbs`, `DocsPager`, `OnThisPage`, `Callout`, `Steps`, `LinkCard`, `ApiTable`, `Diagram`, `SearchDialog`) and the tool parts (`ArtifactView`, `DropZone`, `FormSection`, `StateBadge`, `AnchorStatus`, `BlockHeight`, `BlockCountdown`, `Meter`, `FilterChips`, `ToolGrid`) |
+| `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `AccountMenu`, `ThemeToggle`, `DocsShell`, `DocsNav`, `ToolShell`, `SessionAccountView` |
+| `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
+| `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
+| `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`; no React |
+| `/session` | `SessionAccount`, read from `@orangecheck/auth-client` (an optional peer: install it to use this entry) |
 | `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`); no React |
 | `/tokens` | the palette as data, for OG images and charts |
 
-`yarn test` fails if any text token drops under WCAG AA in light or dark, or if a
-rule could match without the attribute. `scripts/halftone.py` turns any photo into
+Docs written in MDX get highlighted code from the build and the system's type:
+
+```ts
+// next.config.ts
+import { rehypeCode } from '@orangecheck/app-design/code';
+const withMDX = createMDX({ options: { rehypePlugins: [rehypeCode] } });
+
+// _app.tsx: <MDXProvider components={createMdxComponents({ mermaid: () => import('mermaid') })}>
+```
+
+`yarn test` fails if any text token (the syntax colours included) drops under WCAG
+AA in light or dark, if a rule could match without the attribute, if the
+highlighter changes a character of the code it colours, or if a component stops
+doing what its story shows. `scripts/halftone.py` turns any photo into
 the dot layer of a `HalftoneSphere`.
 
 MIT © OrangeCheck. Inter and JetBrains Mono are SIL OFL 1.1.

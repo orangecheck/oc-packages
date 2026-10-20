@@ -19,6 +19,7 @@ import {
 } from 'react';
 
 import { cn } from '../lib/cn';
+import { useDensity } from '../lib/density';
 import { sharedContext } from '../lib/shared-context';
 
 /* Fields: 44px tall, a hairline that darkens on focus with a soft orange halo,
@@ -31,11 +32,33 @@ const fieldBase = [
     'aria-[invalid=true]:border-destructive aria-[invalid=true]:focus:ring-[color-mix(in_oklab,var(--destructive)_14%,transparent)]',
 ];
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
-    { className, type = 'text', ...props },
+/* `sm` is 36px for a tool's dense forms; the text stays 16px on phones. */
+const FIELD_SIZE = {
+    md: 'h-11 px-3.5',
+    sm: 'h-9 rounded-[0.625rem] px-3 md:text-[0.875rem]',
+} as const;
+
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+    /** `sm` (36px) for a tool's dense forms. Defaults to the density around it. */
+    size?: 'md' | 'sm';
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+    { className, type = 'text', size, ...props },
     ref
 ) {
-    return <input ref={ref} type={type} data-ui="input" className={cn(fieldBase, 'h-11 px-3.5', className)} {...props} />;
+    const density = useDensity();
+    const s = size ?? (density === 'compact' ? 'sm' : 'md');
+    return (
+        <input
+            ref={ref}
+            type={type}
+            data-ui="input"
+            data-size={s}
+            className={cn(fieldBase, FIELD_SIZE[s], className)}
+            {...props}
+        />
+    );
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
@@ -160,16 +183,18 @@ export const SelectValue = SelectPrimitive.Value;
 
 export const SelectTrigger = forwardRef<
     ElementRef<typeof SelectPrimitive.Trigger>,
-    ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(function SelectTrigger({ className, children, ...props }, ref) {
+    ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & { size?: 'md' | 'sm' }
+>(function SelectTrigger({ className, children, size, ...props }, ref) {
+    const density = useDensity();
     const field = useContext(SelectFieldContext);
+    const s = size ?? (density === 'compact' ? 'sm' : 'md');
     return (
         <SelectPrimitive.Trigger
             ref={ref}
             id={field?.id}
             aria-describedby={field?.['aria-describedby']}
             aria-invalid={field?.['aria-invalid']}
-            className={cn(fieldBase, 'flex h-11 items-center justify-between gap-2 px-3.5 text-left', className)}
+            className={cn(fieldBase, FIELD_SIZE[s], 'flex items-center justify-between gap-2 text-left', className)}
             {...props}
         >
             <span className="truncate">{children}</span>
