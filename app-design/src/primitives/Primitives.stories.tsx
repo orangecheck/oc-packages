@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ArrowRight, CircleUser, LogOut, Wallet } from 'lucide-react';
+import { ThemeProvider } from 'next-themes';
 import { useState } from 'react';
 
 import {
@@ -50,6 +51,8 @@ import {
     TabsList,
     TabsTrigger,
     Textarea,
+    toast,
+    Toaster,
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -476,4 +479,18 @@ export const Disclosure: StoryObj = {
             </Accordion>
         </div>
     ),
+};
+
+/** Toasts take the page's mode from next-themes: the Toaster is passed nothing. */
+export const Toasts: StoryObj = {
+    render: (_, { globals }) => {
+        const mode = globals.mode === 'dark' ? 'dark' : 'light';
+        return (
+            // The site's ThemeProvider, set here from the toolbar's mode.
+            <ThemeProvider key={mode} attribute="data-oca-story-theme" defaultTheme={mode} enableSystem={false} storageKey="oca-story-theme">
+                <Button onClick={() => toast('Saved', { description: 'The stamp is on Nostr.' })}>Show a toast</Button>
+                <Toaster />
+            </ThemeProvider>
+        );
+    },
 };

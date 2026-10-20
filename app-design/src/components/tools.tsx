@@ -15,7 +15,6 @@ import { useDensity } from '../lib/density';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import { Textarea } from '../primitives/form';
-import { ScrollFade } from '../primitives/scroll-fade';
 import { CodeBlock } from './code-block';
 
 /*
@@ -383,7 +382,8 @@ export function FormSection({
             aria-current={status === 'current' ? 'step' : undefined}
             className={cn('scroll-mt-24 rounded-[1.25rem] border border-border bg-card', className)}
         >
-            <header className={cn('flex items-start gap-3.5', tight ? 'px-5 pt-5' : 'px-6 pt-6')}>
+            {/* Below sm the action takes its own row under the hint, so the hint keeps the width. */}
+            <header className={cn('flex flex-wrap items-start gap-x-3.5 gap-y-3', tight ? 'px-5 pt-5' : 'px-6 pt-6')}>
                 {n !== undefined ? (
                     <span
                         aria-hidden
@@ -406,7 +406,7 @@ export function FormSection({
                     </Heading>
                     {hint ? <p className="text-[0.875rem] leading-snug text-muted-foreground">{hint}</p> : null}
                 </div>
-                {action ? <div className="shrink-0">{action}</div> : null}
+                {action ? <div className={cn('shrink-0 max-sm:basis-full', n !== undefined && 'max-sm:pl-[2.625rem]')}>{action}</div> : null}
             </header>
             <div className={cn('flex flex-col', tight ? 'gap-4 p-5' : 'gap-5 p-6', n !== undefined && (tight ? 'sm:pl-[3.875rem]' : 'sm:pl-[4.125rem]'))}>
                 {children}
@@ -769,31 +769,30 @@ export function FilterChips<T extends string>({
         } else (onChange as (v: T) => void)(v);
     };
     return (
-        <ScrollFade fade="var(--background)" className={cn('w-full', className)}>
-            <div role="group" aria-label={label} className="flex w-max items-center gap-2 py-0.5">
-                {options.map((o) => {
-                    const on = isOn(o.value);
-                    return (
-                        <button
-                            key={o.value}
-                            type="button"
-                            aria-pressed={on}
-                            onClick={() => press(o.value)}
-                            className={cn(
-                                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] transition-colors',
-                                tight ? 'h-8' : 'h-9',
-                                on
-                                    ? 'border-foreground bg-foreground text-background'
-                                    : 'border-border bg-card text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
-                            )}
-                        >
-                            {o.label}
-                            {o.count !== undefined ? <span className="oca-tabular">{o.count.toLocaleString('en-US')}</span> : null}
-                        </button>
-                    );
-                })}
-            </div>
-        </ScrollFade>
+        // Wraps rather than scrolls: every filter stays in view on a phone.
+        <div role="group" aria-label={label} className={cn('flex flex-wrap items-center gap-2 py-0.5', className)}>
+            {options.map((o) => {
+                const on = isOn(o.value);
+                return (
+                    <button
+                        key={o.value}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => press(o.value)}
+                        className={cn(
+                            'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] transition-colors',
+                            tight ? 'h-8' : 'h-9',
+                            on
+                                ? 'border-foreground bg-foreground text-background'
+                                : 'border-border bg-card text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
+                        )}
+                    >
+                        {o.label}
+                        {o.count !== undefined ? <span className="oca-tabular">{o.count.toLocaleString('en-US')}</span> : null}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 

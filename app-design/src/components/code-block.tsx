@@ -93,6 +93,7 @@ function Well({
     maxLines,
     diff,
     lineNumbers,
+    wrap,
 }: {
     preRef?: RefObject<HTMLPreElement | null>;
     html?: string;
@@ -102,6 +103,7 @@ function Well({
     maxLines?: number;
     diff?: boolean;
     lineNumbers?: boolean;
+    wrap?: boolean;
 }) {
     const foldable = maxLines !== undefined && lines > maxLines + 2;
     const [open, setOpen] = useState(false);
@@ -120,7 +122,8 @@ function Well({
                         data-diff={diff ? '' : undefined}
                         data-line-numbers={lineNumbers ? '' : undefined}
                         className={cn(
-                            'oca-code w-max min-w-full py-4 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted [font-variant-ligatures:none]',
+                            'oca-code py-4 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted [font-variant-ligatures:none]',
+                            wrap ? 'whitespace-pre-wrap break-all' : 'w-max min-w-full',
                             !lined && 'px-5'
                         )}
                     >
@@ -183,6 +186,11 @@ export interface CodeBlockProps {
     diff?: boolean;
     /** Number the lines. */
     lineNumbers?: boolean;
+    /**
+     * Break long lines at any character instead of scrolling: a message to
+     * sign, a 64-character id. Copying still takes the exact bytes.
+     */
+    wrap?: boolean;
     /** Beside the copy button: a download, a raw/pretty switch. */
     actions?: ReactNode;
     className?: string;
@@ -208,6 +216,7 @@ export function CodeBlock({
     highlight: marks,
     diff,
     lineNumbers,
+    wrap,
     actions,
     className,
 }: CodeBlockProps) {
@@ -238,6 +247,7 @@ export function CodeBlock({
                 maxLines={maxLines}
                 diff={prepared ? prepared.diff : isDiff}
                 lineNumbers={lineNumbers}
+                wrap={wrap}
             >
                 {children}
             </Well>

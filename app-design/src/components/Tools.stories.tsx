@@ -94,7 +94,17 @@ export const Create: StoryObj = {
                     />
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
                         <div className="flex flex-col gap-4">
-                            <FormSection n={1} title="What you are stamping" status="done" hint="Its SHA-256 is what gets signed.">
+                            <FormSection
+                                n={1}
+                                title="What you are stamping"
+                                status="done"
+                                hint="Its SHA-256 is what gets signed."
+                                action={
+                                    <Button size="sm" variant="secondary">
+                                        Change file
+                                    </Button>
+                                }
+                            >
                                 <DropZone
                                     file={file}
                                     onFile={(f) => setFile({ name: f.name, size: f.size, type: f.type })}

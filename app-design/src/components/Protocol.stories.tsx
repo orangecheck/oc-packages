@@ -415,6 +415,17 @@ export const Sign: StoryObj = {
                     onSignature={() => undefined}
                 />
             </div>
+            {/* One 64-character id to sign: it wraps on a phone; Copy takes it exactly. A legacy signature is named. */}
+            <div className="mt-8 max-w-xl rounded-[1.25rem] border border-border bg-card p-6 md:p-8">
+                <SignMessage
+                    lead="Sign the stamp's id with a legacy signature: this address's wallet cannot make a BIP-322 one."
+                    address="1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
+                    message="86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c"
+                    scheme="legacy"
+                    submitLabel="Stamp it"
+                    onSignature={() => undefined}
+                />
+            </div>
         </Section>
     ),
 };

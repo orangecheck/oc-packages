@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-10-20
+
+What the tool sites found moving onto the shell.
+
+- `ErrorPage` and `SignInFrame` no longer send "home" to `/`, which every tool
+  site now redirects off-site. Inside a `ToolShell` an ErrorPage goes to the
+  protocol's page on ochk.io; elsewhere either takes `protocol`, and with
+  neither, home is ochk.io. `home` still overrides.
+- `Toaster` reads next-themes, so toasts are dark in dark mode with nothing
+  passed. A toast is now the popover in both modes: sonner's own white and
+  black outranked the classes.
+- `SignMessage`: the message wraps instead of running off a phone (a
+  64-character id is one word). Copy gives its exact bytes, a final newline
+  included, as 1.4.0's `CodeBlock` does. `scheme="legacy"` makes the hint
+  say "legacy, BIP-137" instead of "BIP-322". `CodeBlock wrap` is the same
+  for any block.
+- `FormSection`: on a phone the `action` takes its own row under the hint,
+  rather than squeezing the hint into a narrow column.
+- `FilterChips` wrap onto a second row instead of scrolling sideways.
+- `scripts/check-dom.mjs` clicks in jsdom: a copy of a message or a fence
+  ending in a newline is compared byte for byte, and the Toaster is checked
+  in both modes.
+
 ## [1.4.0] — 2026-10-20
 
 What ochk.io/docs and ochk.io built locally, so both can drop the workarounds and
@@ -73,6 +96,11 @@ each copy it.
   `aria-invalid`, so the control can sit in a box of its own: an input with a
   suggestion popover anchored under it, not under the hint. `id` sets the
   control's id.
+
+Released beside it: `@orangecheck/wallet-adapter` 0.6.1 no longer lists Alby.
+WebLN signs with a Lightning node key, so no Alby signature verifies for a
+Bitcoin address, and the picker offered a choice that could only fail. A
+`wallets` row you build for `SignMessage` from `detectWallets()` loses it too.
 
 ## [1.2.3] — 2026-10-20
 

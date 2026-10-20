@@ -7,6 +7,7 @@ import type { ToolItem } from '../components/tools';
 import { protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { DensityProvider } from '../lib/density';
+import { SiteHomeContext } from '../lib/site-home';
 import { Button } from '../primitives/button';
 import { StatusBadge } from '../primitives/status-badge';
 import { AccountMenu, SideNav, TabBar, tabsFor, ThemeToggle, type AccountMenuItem } from './app-shell';
@@ -169,6 +170,7 @@ export function ToolShell({
     children,
 }: ToolShellProps) {
     const p = protocolSite(protocol);
+    const homeHref = home ?? p.pageHref;
     const app = variant === 'app';
     const tabs = app ? null : tabsFor([{ items: [...tools] }]);
     const about = (
@@ -193,7 +195,7 @@ export function ToolShell({
                 {banner}
                 <SiteHeader
                     variant="tool"
-                    home={home ?? p.pageHref}
+                    home={homeHref}
                     product={p.label}
                     family={protocol}
                     nav={tools.map((t) => ({ href: t.href, label: t.label, active: t.active }))}
@@ -225,7 +227,10 @@ export function ToolShell({
                         id="main-content"
                         className={cn('min-w-0 flex-1', app ? 'flex min-h-0 flex-col' : 'px-4 pb-16 pt-8 md:px-8 md:pt-10')}
                     >
-                        {app ? children : <div className="mx-auto w-full max-w-[72rem]">{children}</div>}
+                        {/* An ErrorPage inside goes home to the protocol's page, as the lockup does. */}
+                        <SiteHomeContext.Provider value={homeHref}>
+                            {app ? children : <div className="mx-auto w-full max-w-[72rem]">{children}</div>}
+                        </SiteHomeContext.Provider>
                     </main>
                 </div>
                 {app || footer === false ? null : (footer ?? <SiteFooter compact family legal />)}

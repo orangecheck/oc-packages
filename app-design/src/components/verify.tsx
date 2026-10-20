@@ -132,6 +132,7 @@ export function SignMessage({
     error,
     submitLabel = 'Confirm',
     secondary,
+    scheme = 'bip322',
     onSignature,
     className,
 }: {
@@ -147,6 +148,8 @@ export function SignMessage({
     submitLabel?: string;
     /** Beside the submit button: Back, Cancel. */
     secondary?: ReactNode;
+    /** The signature the wallet is asked for: BIP-322, or a legacy (BIP-137) one. The hint names it. */
+    scheme?: 'bip322' | 'legacy';
     onSignature: (signature: string) => void;
     className?: string;
 }) {
@@ -164,7 +167,8 @@ export function SignMessage({
                     </div>
                 </>
             ) : null}
-            <CodeBlock code={message} caption="Message to sign" />
+            {/* A message is exact bytes and often one long id: it wraps here, and the copy keeps every byte. */}
+            <CodeBlock code={message} caption="Message to sign" wrap />
             <form
                 className="flex flex-col gap-4"
                 onSubmit={(e) => {
@@ -177,7 +181,7 @@ export function SignMessage({
                     error={error}
                     hint={
                         <>
-                            From your wallet&rsquo;s &ldquo;sign message&rdquo; (BIP-322), signed by{' '}
+                            From your wallet&rsquo;s &ldquo;sign message&rdquo; ({scheme === 'legacy' ? 'legacy, BIP-137' : 'BIP-322'}), signed by{' '}
                             <span className="break-all font-mono">{address}</span>.
                         </>
                     }

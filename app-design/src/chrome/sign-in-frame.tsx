@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { IsoCheck } from '../brand/iso-check';
 import { Lockup } from '../brand/mark';
+import { OCHK_IO, protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 
 /**
@@ -19,7 +20,8 @@ export function SignInFrame({
     error,
     fineprint,
     brand,
-    home = '/',
+    home,
+    protocol,
     back,
     art,
     caption,
@@ -36,7 +38,10 @@ export function SignInFrame({
     fineprint?: ReactNode;
     /** Replaces the lockup in the corner. */
     brand?: ReactNode;
+    /** Where the lockup and "Back to home" go. Default: the protocol's page on ochk.io, else ochk.io. */
     home?: string;
+    /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
+    protocol?: ProtocolSlug;
     /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. */
     back?: ReactNode;
     /** The picture in the ink column. Defaults to the check. */
@@ -45,6 +50,7 @@ export function SignInFrame({
     caption?: ReactNode;
     className?: string;
 }) {
+    const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : OCHK_IO);
     return (
         <main
             id="main-content"
@@ -52,13 +58,13 @@ export function SignInFrame({
         >
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
                 <header className="flex items-center justify-between gap-4">
-                    <Link href={home} className="w-fit rounded-lg">
+                    <Link href={homeHref} className="w-fit rounded-lg">
                         {brand ?? <Lockup size={28} />}
                         <span className="sr-only"> home</span>
                     </Link>
                     {back === undefined ? (
                         <Link
-                            href={home}
+                            href={homeHref}
                             className="text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                         >
                             Back to home

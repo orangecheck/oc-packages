@@ -2,7 +2,9 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { MarkOutline } from '../brand/mark';
+import { OCHK_IO, protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import { useSiteHome } from '../lib/site-home';
 import { Button } from '../primitives/button';
 import { Section } from './section';
 
@@ -30,7 +32,8 @@ export function ErrorPage({
     title,
     detail,
     actions,
-    home = '/',
+    home,
+    protocol,
     art,
     className,
 }: {
@@ -39,11 +42,16 @@ export function ErrorPage({
     detail?: ReactNode;
     /** Replaces the default ways on. */
     actions?: ReactNode;
+    /** Where "Go home" goes. Default: the protocol's page on ochk.io (inside a ToolShell, its protocol), else ochk.io. */
     home?: string;
+    /** The protocol this site serves, when it is not inside a ToolShell. */
+    protocol?: ProtocolSlug;
     /** Beside the words from md up. Defaults to the outlined check; `null` leaves it out. */
     art?: ReactNode;
     className?: string;
 }) {
+    const shellHome = useSiteHome();
+    const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : (shellHome ?? OCHK_IO));
     const words = WORDS[code] ?? (code >= 500 ? WORDS[500]! : WORDS[404]!);
     const server = code >= 500;
     return (
@@ -60,7 +68,7 @@ export function ErrorPage({
                             <>
                                 {server ? <Button onClick={() => window.location.reload()}>Try again</Button> : null}
                                 <Button asChild variant={server ? 'secondary' : 'primary'}>
-                                    <Link href={home}>Go home</Link>
+                                    <Link href={homeHref}>Go home</Link>
                                 </Button>
                             </>
                         )}

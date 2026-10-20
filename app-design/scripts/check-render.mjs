@@ -165,6 +165,27 @@ const html = (el) => renderToStaticMarkup(el);
     check(html(h(C.TextLink, { href: '../README' }, 'up')).includes('href="../README"'), 'TextLink: a relative href is changed without a router');
 }
 
+// 1.4.1: home off a tool site's own /, phones, and the signing scheme in words.
+{
+    const href = (o) => o.match(/<a [^>]*href="([^"]*)"[^>]*>Go home</)?.[1];
+    check(href(html(h(C.ErrorPage, {}))) === 'https://ochk.io', 'ErrorPage: home is not ochk.io by default');
+    check(href(html(h(C.ErrorPage, { protocol: 'vote' }))) === 'https://ochk.io/vote', 'ErrorPage: protocol does not set home');
+    const inShell = html(h(Ch.ToolShell, { protocol: 'lock', tools: [] }, h(C.ErrorPage, {})));
+    check(href(inShell) === 'https://ochk.io/lock', 'ErrorPage inside ToolShell: home is not the protocol page');
+    const frame = html(h(Ch.SignInFrame, { protocol: 'attest' }, h('p', null, 'x')));
+    check(/href="https:\/\/ochk.io\/attest"[^>]*>Back to home</.test(frame), 'SignInFrame: protocol does not set home');
+    check(html(h(Ch.SignInFrame, {}, null)).includes('href="https://ochk.io"'), 'SignInFrame: home is not ochk.io by default');
+    // On a phone the action takes its own row, so the hint keeps the width.
+    const sec = html(h(C.FormSection, { n: 1, title: 'Who signs', hint: 'The address that holds the coins.', action: h('button', null, 'Edit') }, null));
+    check(/<header class="[^"]*flex-wrap[^"]*">/.test(sec) && /<div class="[^"]*max-sm:basis-full[^"]*"><button>Edit/.test(sec), 'FormSection: the action does not stack under the hint on a phone');
+    const chips = html(h(C.FilterChips, { label: 'Show', options: [{ value: 'a', label: 'Active' }], value: 'a', onChange: () => {} }));
+    check(/role="group"[^>]*class="[^"]*flex-wrap/.test(chips) && !chips.includes('w-max'), 'FilterChips: chips scroll instead of wrapping');
+    const id = '86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c';
+    const sign = (scheme) => html(h(C.SignMessage, { address: 'bc1q', message: id, scheme, onSignature: () => {} }));
+    check(/<pre [^>]*class="[^"]*break-all[^"]*"/.test(sign()), 'SignMessage: a 64-character id runs off a phone');
+    check(sign().includes('(BIP-322)') && sign('legacy').includes('(legacy, BIP-137)') && !sign('legacy').includes('(BIP-322)'), 'SignMessage: the hint does not name the scheme');
+}
+
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];

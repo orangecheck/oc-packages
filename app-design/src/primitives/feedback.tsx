@@ -4,9 +4,11 @@ import {
     useEffect,
     useState,
     type ComponentPropsWithoutRef,
+    type CSSProperties,
     type ElementRef,
     type HTMLAttributes,
 } from 'react';
+import { useTheme } from 'next-themes';
 import { Toaster as SonnerToaster, type ToasterProps } from 'sonner';
 
 import { cn } from '../lib/cn';
@@ -112,9 +114,23 @@ export function StatusDot({
 }
 
 /** Toasts in the system's type and surfaces. Mount once. */
-export function Toaster(props: ToasterProps) {
+/*
+ * sonner paints a toast from its own variables (white, or black in dark), and
+ * they outrank a class. Set to the tokens, a toast is the popover in both modes.
+ */
+const TOAST_COLOURS = {
+    '--normal-bg': 'var(--popover)',
+    '--normal-text': 'var(--popover-foreground)',
+    '--normal-border': 'var(--border)',
+} as CSSProperties;
+
+/** Toasts in the page's mode: it reads next-themes, so a site passes nothing for dark. */
+export function Toaster({ style, ...props }: ToasterProps) {
+    const { resolvedTheme } = useTheme();
     return (
         <SonnerToaster
+            theme={resolvedTheme === 'dark' ? 'dark' : resolvedTheme === 'light' ? 'light' : 'system'}
+            style={{ ...TOAST_COLOURS, ...style }}
             position="bottom-right"
             toastOptions={{
                 classNames: {
