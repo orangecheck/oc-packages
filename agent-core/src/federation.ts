@@ -228,7 +228,7 @@ async function checkFederationQuorum(
 export interface VerifyFederationDelegationInput extends VerifyFederationBase {
     envelope: FederationDelegationEnvelope;
     /**
-     * Revocations to check (kind-30085 by `#delegation`): federation revocations,
+     * Revocations to check (kind-30085 by `#t` with the delegation id, SPEC §9.4): federation revocations,
      * and agent self-revocations when `revocation.holders` includes "agent".
      * Required unless `skipRevocationCheck` states that revocation is not checked.
      */
@@ -290,7 +290,7 @@ export async function verifyFederationDelegation(
     if (!input.skipRevocationCheck && !input.revocations) {
         return fail(
             'E_MALFORMED',
-            'verifyFederationDelegation requires `revocations` (fetch kind-30085 by #delegation) ' +
+            'verifyFederationDelegation requires `revocations` (query kind 30085 with "#t": [delegation id], SPEC §9.4) ' +
                 'or an explicit skipRevocationCheck:true to state that revocation is not being checked'
         );
     }

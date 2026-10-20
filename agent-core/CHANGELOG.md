@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.5.1] — 2026-10-20
+
+### Fixed — the revocation refusal names a query relays answer
+
+`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse
+without `revocations` or `skipRevocationCheck: true`, and the refusal told
+callers to fetch kind 30085 "by #delegation". Relays do not index that tag;
+most reject the filter outright. The message now names
+`"#t": [delegation id]`, per oc-agent-protocol 1.4.1 SPEC §9.4 and §10.4.
+The doc comments on `revocations` say the same, and that `[]` means a relay
+answered with EOSE and nothing matched.
+
+### Fixed — the README quickstart runs
+
+It called `verifyDelegation` without `revocations`, so it failed with
+`E_MALFORMED` on every version since 2.0.0. Its `as const` envelope did not
+type-check against `DelegationEnvelope`, and its fixed dates had expired. It
+now fetches revocations by `#t` with `@orangecheck/nostr-core`, verifies with
+`@orangecheck/bip322`, and dates the delegation from now. The install section
+no longer calls `stamp-core` a peer dependency; it is a dependency.
+
 ## [2.5.0] — 2026-10-19
 
 ### Added — the adapter scopes are registered

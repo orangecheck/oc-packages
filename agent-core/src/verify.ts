@@ -51,9 +51,9 @@ export interface VerifyBase {
     /**
      * Verify WITHOUT consulting revocation feeds. Required to be explicit.
      *
-     * SECURITY §7 item 7: "Query revocation feeds (Nostr kind-30085 by
-     * `#delegation`) for the cited delegation id before reporting OK, **unless
-     * the caller explicitly opts out**." The default was inverted — revocations
+     * SECURITY §5 item 7: "Query revocation feeds (Nostr kind-30085 by `#t`
+     * with the cited delegation id) before reporting OK, **unless the caller
+     * explicitly opts out**." The default was inverted — revocations
      * were checked only when supplied, and omitting them skipped the check
      * silently, so "checked, clean" was indistinguishable from "never checked".
      *
@@ -63,7 +63,9 @@ export interface VerifyBase {
     skipRevocationCheck?: boolean;
     /**
      * Revocations to evaluate against the delegation (or, for an action, every
-     * link in its chain). Fetch these from kind-30085 by `#delegation`.
+     * link in its chain). Fetch kind-30085 events with `"#t": [<delegation id>]`
+     * (SPEC §9.4); relays do not index the multi-letter `delegation` tag. Pass
+     * `[]` only when a relay answered with EOSE and none matched (SPEC §10.4).
      */
     revocations?: RevocationEnvelope[];
 }
@@ -222,15 +224,15 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
         if (!ok) return err('E_BAD_SIG', 'BIP-322 signature did not verify');
     }
 
-    // Revocation. SECURITY §7 item 7 — check unless the caller states otherwise.
+    // Revocation. SECURITY §5 item 7 — check unless the caller states otherwise.
     // Before this, verifyDelegation had NO revocations parameter at all: a
     // revoked delegation returned ok:true and a caller had no way to say
     // otherwise.
     if (!input.skipRevocationCheck && !input.revocations) {
         return err(
             'E_MALFORMED',
-            'verifyDelegation requires `revocations` (fetch kind-30085 by #delegation) or an ' +
-                'explicit skipRevocationCheck:true to state that revocation is not being checked',
+            'verifyDelegation requires `revocations` (query kind 30085 with "#t": [delegation id], ' +
+                'SPEC §9.4) or an explicit skipRevocationCheck:true to state that revocation is not being checked',
         );
     }
     if (input.revocations) {
@@ -452,8 +454,8 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
     if (!input.skipRevocationCheck && !input.revocations) {
         return err(
             'E_MALFORMED',
-            'verifyAction requires `revocations` (fetch kind-30085 by #delegation for every link ' +
-                'in the chain) or an explicit skipRevocationCheck:true',
+            'verifyAction requires `revocations` (query kind 30085 with "#t": [id of every link ' +
+                'in the chain], SPEC §9.4) or an explicit skipRevocationCheck:true',
         );
     }
     // Anchor heights only count once the proof is verified against the

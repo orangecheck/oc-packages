@@ -170,7 +170,7 @@ d('federation reject reasons (each invalid case fails for its named reason)', ()
     });
 });
 
-// FEDERATION.md §4 / SECURITY §7 item 7: a revoked federation delegation must
+// FEDERATION.md §4 / SECURITY §5 item 7: a revoked federation delegation must
 // not verify, and skipping the revocation check has to be stated.
 d('federation delegation revocation check', () => {
     const base = { skipSignatureVerification: true, skipTemporalCheck: true } as const;
@@ -180,6 +180,8 @@ d('federation delegation revocation check', () => {
         const r = await verifyFederationDelegation({ envelope: dv.expected.envelope, ...base });
         expect(r.ok).toBe(false);
         expect(r.ok === false && r.message).toMatch(/requires `revocations`/);
+        expect(r.ok === false && r.message).toMatch(/"#t": \[delegation id\]/);
+        expect(r.ok === false && r.message).not.toMatch(/#delegation/);
     });
 
     it('verifies with an empty revocation list', async () => {

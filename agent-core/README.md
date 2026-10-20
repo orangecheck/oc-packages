@@ -14,8 +14,8 @@ Canonical messages, envelope formats (delegation / action / revocation), scope g
 
 ```bash
 npm i @orangecheck/agent-core
-# peer dep:
-npm i @orangecheck/stamp-core
+# for the quickstart below: relay reads and a BIP-322 verifier
+npm i @orangecheck/nostr-core @orangecheck/bip322
 ```
 
 ## Quickstart
@@ -24,11 +24,16 @@ npm i @orangecheck/stamp-core
 import {
     canonicalizeScopes,
     computeDelegationId,
-    delegationCanonicalMessage,
     verifyDelegation,
+    type DelegationEnvelope,
+    type RevocationEnvelope,
 } from '@orangecheck/agent-core';
+import { verifySignature } from '@orangecheck/bip322';
+import { queryEvents } from '@orangecheck/nostr-core';
 
-// 1. Build a delegation canonical message.
+// 1. Build a delegation's canonical fields and id.
+const iso = (d: Date) => d.toISOString().replace(/\.\d+Z$/, 'Z');
+const issued = new Date();
 const scopes = canonicalizeScopes([
     'lock:seal(recipient=bc1qalice)',
     'stamp:sign(mime=text/markdown)',
@@ -38,19 +43,18 @@ const canon = {
     agent: 'bc1qagent…',
     scopes,
     bond_sats: 500_000,
-    bond_attestation: '22…22', // 64-hex OrangeCheck attestation id
-    issued_at: '2026-04-22T12:00:00Z',
-    expires_at: '2026-04-29T12:00:00Z',
-    nonce: '0123…cdef',
+    bond_attestation: '22…22', // 64-hex OrangeCheck attestation id, or 'none'
+    issued_at: iso(issued),
+    expires_at: iso(new Date(issued.getTime() + 7 * 86_400_000)), // one week
+    nonce: '0123…cdef', // 32-hex, random
 };
-const msg = delegationCanonicalMessage(canon);
 const id = computeDelegationId(canon);
 
-// 2. Have the wallet sign `id` (hex ASCII) via BIP-322.
+// 2. Have the principal's wallet sign `id` (hex ASCII) via BIP-322.
 const sigValue = await wallet.signMessage(id);
 
 // 3. Build the wire envelope.
-const envelope = {
+const envelope: DelegationEnvelope = {
     v: 1, kind: 'agent-delegation', id,
     principal: { address: canon.principal, alg: 'bip322' },
     agent: { address: canon.agent, alg: 'bip322' },
@@ -59,12 +63,28 @@ const envelope = {
     issued_at: canon.issued_at, expires_at: canon.expires_at, nonce: canon.nonce,
     revocation: { holders: ['principal'], ref: null },
     sig: { alg: 'bip322', pubkey: canon.principal, value: sigValue },
-} as const;
+};
 
-// 4. Verify.
+// 4. Fetch its revocations: kind 30085 by `#t` (SPEC §9.4). Relays do not
+//    index the multi-letter `delegation` tag. Only a relay that sent EOSE
+//    can show that none exists (SPEC §10.4).
+const feed = await queryEvents({ kinds: [30085], '#t': [id] });
+if (!feed.relayStatus.some((r) => r.eose)) throw new Error('no relay answered');
+const revocations = feed.events.flatMap((e): RevocationEnvelope[] => {
+    try {
+        const r = JSON.parse(e.content);
+        return r?.kind === 'agent-revocation' && r.delegation_id === id ? [r] : [];
+    } catch {
+        return [];
+    }
+});
+
+// 5. Verify. `revocations` is required: pass what you fetched, or state
+//    `skipRevocationCheck: true` if you are not checking.
 const result = await verifyDelegation({
     envelope,
-    verifyBip322: async (m, s, a) => bip322.verify(a, m, s),
+    revocations,
+    verifyBip322: async (msg, sig, addr) => verifySignature(addr, msg, sig),
 });
 if (!result.ok) throw new Error(result.code + ': ' + result.message);
 ```
@@ -93,11 +113,13 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 
 ### Verification (§SPEC 8)
 
-- `verifyDelegation({ envelope, verifyBip322, now?, skipTemporalCheck?, scopeMode? })`
-- `verifyAction({ action, delegation, revocations?, verifyBip322, verifyOtsAnchor?, content?, resolveAnchorBlockHeight?, scopeMode? })`
+- `verifyDelegation({ envelope, revocations | skipRevocationCheck, verifyBip322, now?, skipTemporalCheck?, scopeMode? })`
+- `verifyAction({ action, delegation, revocations | skipRevocationCheck, verifyBip322, verifyOtsAnchor?, content?, resolveAnchorBlockHeight?, scopeMode? })`
 - `verifyRevocation({ envelope, delegation, verifyBip322 })` — the principal may always revoke; `revocation.holders` can only add the agent
 - `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
 - `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`
+
+`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when a relay answered with EOSE and nothing matched.
 
 Each returns a discriminated union:
 

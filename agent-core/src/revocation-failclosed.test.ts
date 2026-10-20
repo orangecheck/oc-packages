@@ -1,6 +1,6 @@
-// SECURITY §7 item 7: "Query revocation feeds (Nostr kind-30085 by
-// `#delegation`) for the cited delegation id before reporting OK, **unless the
-// caller explicitly opts out** of revocation checking."
+// SECURITY §5 item 7: "Query revocation feeds (Nostr kind-30085 by `#t` with
+// the cited delegation id) before reporting OK, **unless the caller explicitly
+// opts out** of revocation checking."
 //
 // The default was inverted. verifyDelegation had NO revocations parameter at
 // all — a revoked delegation returned ok:true and a caller had no way to say
@@ -12,8 +12,9 @@
 // changed is that declining to is now a decision they have to state.
 import { describe, expect, it } from 'vitest';
 
-import { verifyDelegation } from './verify.js';
-import type { DelegationEnvelope } from './types.js';
+import { computeActionId } from './canonical.js';
+import { verifyAction, verifyDelegation } from './verify.js';
+import type { ActionEnvelope, DelegationEnvelope } from './types.js';
 
 // Inlined rather than read from oc-agent-protocol/test-vectors: this test is
 // about the revocation guard, not vector conformance, and a relative path into
@@ -68,11 +69,46 @@ describe('verifyDelegation fails closed on revocation', () => {
         });
         expect(r.ok).toBe(true);
     });
+});
 
-    // An empty list and a skip both verify — but they mean different things, and
-    // only one of them is a claim about the feed. That distinction is the point
-    // of the change.
-    it('the two are not the same statement', () => {
-        expect('revocations: []').not.toBe('skipRevocationCheck: true');
+// The refusal tells the caller how to fetch revocations. SPEC §9.4: relays index
+// single-letter tags only and reject a `#delegation` filter (SPEC §10.4), so the
+// message must name the `#t` query.
+describe('the refusal names a query relays answer', () => {
+    const action: ActionEnvelope = (() => {
+        const canon = {
+            address: delegation.agent.address,
+            content_hash: 'sha256:' + '00'.repeat(32),
+            content_length: 0,
+            content_mime: 'text/plain',
+            signed_at: '2026-04-23T12:00:00Z',
+            delegation_id: delegation.id,
+            scope_exercised: delegation.scopes![0]!,
+        };
+        return {
+            v: 1,
+            kind: 'agent-action',
+            id: computeActionId(canon),
+            content: { hash: canon.content_hash, length: 0, mime: 'text/plain', ref: null },
+            signer: { address: canon.address, alg: 'bip322' },
+            signed_at: canon.signed_at,
+            delegation_id: delegation.id,
+            scope_exercised: canon.scope_exercised,
+            ots: null,
+            sig: { alg: 'bip322', pubkey: canon.address, value: 'AAAA' },
+        } as ActionEnvelope;
+    })();
+
+    it('verifyDelegation', async () => {
+        const r = await verifyDelegation({ envelope: delegation, skipSignatureVerification: true, now: AT });
+        expect(r.ok === false && r.message).toMatch(/"#t": \[delegation id\]/);
+        expect(r.ok === false && r.message).not.toMatch(/#delegation/);
+    });
+
+    it('verifyAction', async () => {
+        const r = await verifyAction({ action, delegation, skipSignatureVerification: true });
+        expect(r.ok === false && r.code).toBe('E_MALFORMED');
+        expect(r.ok === false && r.message).toMatch(/"#t": \[id of every link in the chain\]/);
+        expect(r.ok === false && r.message).not.toMatch(/#delegation/);
     });
 });
