@@ -199,9 +199,9 @@
     "@scure/base" "^1.2.6"
 
 "@orangecheck/me-client@^0.32.0":
-  version "0.32.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.32.2.tgz#fb1940bbfcf2b6ea71a23dae46b25ab1ce5f27c7"
-  integrity sha512-6yzdVENbJwfsrsh+x19zVU6ekfXr5ZGMLOKlXNVQow25cU9+xz/tudofh1kHmO8oGODh6CZuzq9/1S1NfWwpaw==
+  version "0.32.3"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.32.3.tgz#6a51ddfdde0247e9f93c5ff7a455900410a49725"
+  integrity sha512-OAVXoJWL/5wVM/fDktjg2gqtlyq14ztP6ir2ElO0k4dQfhfvJzHJ73Y8TChbuMpFWGS3cEiA7T/VD2LeV2J0Qw==
   dependencies:
     "@orangecheck/auth-core" "^2.8.0"
 
@@ -684,9 +684,9 @@ ieee754@^1.2.1:
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
 
 jose@^6.2.2:
-  version "6.2.12"
-  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.12.tgz#65663e146edd010b98ece83f81737d3aa95fd0d7"
-  integrity sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==
+  version "6.2.13"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.13.tgz#4e16bf3cc81b5641ef5025cb2c9f61edfa92572f"
+  integrity sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==
 
 joycon@^3.1.1:
   version "3.1.1"
