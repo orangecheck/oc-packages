@@ -147,7 +147,8 @@ export const FAMILY: readonly FamilySite[] = [
         group: 'app',
         line: 'Builders find co-founders and backers.',
         status: 'testing',
-        protocols: ['attest'],
+        // Signs in with an orangecheck account and a wallet; uses none of the six directly.
+        protocols: [],
     },
     {
         slug: 'me-demo',

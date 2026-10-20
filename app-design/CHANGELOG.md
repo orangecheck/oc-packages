@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-10-20
+
+- `ProtocolGrid` shows a straight arrow when it links to a protocol's page or docs on
+  ochk.io, and the outward arrow only when it links to a tool on another host.
+- The registry no longer lists cosign as showing OC Attest: it signs in with an
+  orangecheck account and a wallet and uses none of the six directly.
+
 ## [1.1.0] — 2026-10-20
 
 The docs shell and the tool shell (steps 2 and 3 below). Also: contextual alternates are

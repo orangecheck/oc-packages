@@ -25,9 +25,9 @@ export const LEGAL_ENTITY_LONG = 'OrangeCheck (OCHK), an unincorporated project'
 /** True while no formal entity exists — gates a forward-looking note. */
 export const ENTITY_PENDING = true;
 
-export const CONTACT_GENERAL = 'hello@ochk.io';
+export const CONTACT_GENERAL = 'contact@ochk.io';
 export const CONTACT_SECURITY = 'security@ochk.io';
-export const CONTACT_PRIVACY = 'hello@ochk.io';
+export const CONTACT_PRIVACY = 'contact@ochk.io';
 
 /** Governing-law surface, referenced by the shared dispute-resolution clause. */
 export const GOVERNING_LAW_STATE = 'Delaware, United States';

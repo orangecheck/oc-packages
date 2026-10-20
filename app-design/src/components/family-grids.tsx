@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import {
@@ -66,10 +66,18 @@ export function ProtocolGrid({
                             <p className="oca-body">{p.line}</p>
                             <div className="mt-auto flex items-center justify-between gap-3 pt-2 text-[0.875rem] text-muted-foreground">
                                 <span className="oca-tabular">Nostr kind {p.kinds}</span>
-                                <ArrowUpRight
-                                    aria-hidden
-                                    className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
-                                />
+                                {/* A tool is another site; a page or the docs are on ochk.io. */}
+                                {link === 'tool' ? (
+                                    <ArrowUpRight
+                                        aria-hidden
+                                        className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
+                                    />
+                                ) : (
+                                    <ArrowRight
+                                        aria-hidden
+                                        className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground"
+                                    />
+                                )}
                             </div>
                         </div>
                     </li>
