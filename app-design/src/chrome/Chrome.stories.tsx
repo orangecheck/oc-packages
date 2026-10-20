@@ -1,22 +1,29 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import {
     Activity,
+    BookUser,
     Boxes,
     CircleUser,
+    Code,
     FileUp,
+    Hash,
     House,
     KeyRound,
     LayoutGrid,
     LogOut,
+    MessageCircle,
     Search,
+    Settings2,
     ShieldCheck,
+    Star,
+    Trash2,
     UserRound,
     Wallet,
 } from 'lucide-react';
 
 import { OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
 import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
-import { Accent, ErrorPage, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
+import { Accent, ErrorPage, Monogram, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
 import {
     AccountMenu,
     AppShell,
@@ -146,13 +153,81 @@ export const Phone: StoryObj = {
     ),
 };
 
+/** A messenger: the whole window, an icon rail with unread counts, panes full-bleed. On a phone, the tab bar. */
+export const Rail: StoryObj = {
+    name: 'Rail shell (a messenger)',
+    render: () => (
+        <AppShell
+            variant="rail"
+            header={<SiteHeader variant="tool" product="chat" family="chat" actions={<ThemeToggle />} />}
+            nav={[
+                {
+                    items: [
+                        { href: '/app', label: 'Messages', icon: <MessageCircle />, active: true, badge: 3 },
+                        { href: '/app?s=channels', label: 'Channels', icon: <Hash /> },
+                        { href: '/app?s=contacts', label: 'Contacts', icon: <BookUser />, badge: 'Requests waiting' },
+                    ],
+                },
+            ]}
+            persistent={[{ items: [{ href: '/app?s=settings', label: 'Settings', icon: <Settings2 /> }] }]}
+            account={
+                <a href="/app?s=settings" aria-label="Your account" className="mt-1 rounded-full">
+                    <Monogram name="Ada" size="sm" />
+                </a>
+            }
+        >
+            <div className="flex min-h-0 flex-1">
+                <div className="hidden w-80 shrink-0 flex-col overflow-y-auto border-r border-border md:flex">
+                    {['Satoshi · 2', 'bc1qxy2k…hx0wlh', 'Release keys'].map((t, i) => (
+                        <div key={t} className={i === 0 ? 'border-b border-border bg-accent px-5 py-4' : 'border-b border-border px-5 py-4'}>
+                            <p className="text-[0.9375rem] font-medium">{t}</p>
+                            <p className="text-[0.8125rem] text-muted-foreground">Sealed for you</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
+                    <p className="oca-title-sm">Satoshi</p>
+                    <p className="oca-body max-w-sm">The pane fills the window and scrolls inside. Nothing caps its width.</p>
+                </div>
+            </div>
+        </AppShell>
+    ),
+};
+
+/** Past five pages a phone gets four tabs and More, a sheet with the rest. */
+export const ManyPages: StoryObj = {
+    name: 'Signed-in shell, more than five pages, on a phone',
+    globals: { viewport: { value: 'mobile2', isRotated: false } },
+    render: () => (
+        <AppShell
+            nav={[
+                {
+                    items: [
+                        { href: '/vault', label: 'Vault', icon: <KeyRound />, active: true },
+                        { href: '/vault?view=favorites', label: 'Favorites', icon: <Star /> },
+                        { href: '/vault/share', label: 'Shares', icon: <FileUp /> },
+                        { href: '/vault/teams', label: 'Teams', icon: <UserRound /> },
+                        { href: '/vault/import', label: 'Import', icon: <Boxes /> },
+                        { href: '/vault?view=trash', label: 'Trash', icon: <Trash2 />, badge: 2 },
+                        { href: '/vault/developer', label: 'Developer', icon: <Code /> },
+                        { href: '/vault/settings', label: 'Settings', icon: <Settings2 /> },
+                    ],
+                },
+            ]}
+        >
+            <PageHeader title="Vault" description="The tab bar holds four pages and More; More holds the rest, and shows a dot for Trash." />
+        </AppShell>
+    ),
+};
+
 export const Sections: StoryObj = {
-    name: 'Signed-in shell, with sections',
+    name: 'Signed-in shell, with sections (tabs on a phone)',
     render: () => (
         <AppShell
             sections={[
                 {
                     id: 'you',
+                    icon: <House />,
                     label: 'You',
                     title: 'Your account',
                     href: '/me',
@@ -169,18 +244,21 @@ export const Sections: StoryObj = {
                 },
                 {
                     id: 'build',
+                    icon: <Boxes />,
                     label: 'Build',
                     href: '/me/developer',
                     groups: [{ items: [{ href: '/me/projects', label: 'Projects', icon: <Boxes /> }] }],
                 },
                 {
                     id: 'operate',
+                    icon: <Activity />,
                     label: 'Operate',
                     href: '/me/operator',
                     groups: [{ items: [{ href: '/me/operator', label: 'Federations', icon: <ShieldCheck /> }] }],
                 },
                 {
                     id: 'admin',
+                    icon: <ShieldCheck />,
                     label: 'Admin',
                     href: '/me/admin',
                     groups: [{ items: [{ href: '/me/admin', label: 'Queue', icon: <ShieldCheck /> }] }],

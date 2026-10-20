@@ -95,6 +95,10 @@ const PAIRS = [
     ['oca-orange-deep', 'card', 3],
     ['oca-orange-deep', 'background', 3],
     ['oca-ink-foreground', 'oca-orange-deep', 3],
+    // A Meter's fill with a verdict, against its track.
+    ['success', 'muted', 3],
+    ['warning', 'muted', 3],
+    ['destructive', 'muted', 3],
 ];
 
 let failed = 0;

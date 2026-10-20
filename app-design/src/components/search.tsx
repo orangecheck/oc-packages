@@ -14,7 +14,14 @@ import { Kbd, Spinner } from '../primitives/feedback';
 
 export interface SearchResult {
     id: string;
-    href: string;
+    /** Where it goes. A result with `run` instead is an action. */
+    href?: string;
+    /** An action (a command palette's "Lock the vault"): runs instead of following a link. */
+    run?: () => void;
+    /** Before the title: what kind of thing it is. */
+    icon?: ReactNode;
+    /** At the end of the row: a word ("Action", "Login"), a shortcut. */
+    meta?: ReactNode;
     title: ReactNode;
     /** Where it sits: "OC Stamp › Verify". */
     section?: ReactNode;
@@ -69,6 +76,27 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
     );
 });
 
+export interface SearchDialogProps {
+    onQuery: SearchQuery;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    onSelect?: (result: SearchResult) => void;
+    /** Render the SearchButton that opens it. */
+    button?: boolean;
+    /** ⌘K / Ctrl+K and / open it. */
+    hotkey?: boolean;
+    label?: string;
+    placeholder?: string;
+    /** Shown before anything is typed: popular pages, a hint. */
+    idle?: ReactNode;
+    /** The query it opens with: a `?q=` from the address. */
+    defaultQuery?: string;
+    debounceMs?: number;
+    className?: string;
+    /** List before anything is typed: `onQuery('')` gives what to show first (recent items, actions). */
+    browse?: boolean;
+}
+
 /**
  * Search the site. Uncontrolled it brings its own button (`button`), and
  * ⌘K or / opens it from anywhere on the page; pass `open` and
@@ -87,25 +115,9 @@ export function SearchDialog({
     idle,
     defaultQuery = '',
     debounceMs = 120,
+    browse = false,
     className,
-}: {
-    onQuery: SearchQuery;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-    onSelect?: (result: SearchResult) => void;
-    /** Render the SearchButton that opens it. */
-    button?: boolean;
-    /** ⌘K / Ctrl+K and / open it. */
-    hotkey?: boolean;
-    label?: string;
-    placeholder?: string;
-    /** Shown before anything is typed: popular pages, a hint. */
-    idle?: ReactNode;
-    /** The query it opens with: a `?q=` from the address. */
-    defaultQuery?: string;
-    debounceMs?: number;
-    className?: string;
-}) {
+}: SearchDialogProps) {
     const [own, setOwn] = useState(false);
     const open = openProp ?? own;
     const setOpen = (v: boolean) => {
@@ -144,7 +156,7 @@ export function SearchDialog({
 
     useEffect(() => {
         const q = query.trim();
-        if (!q) {
+        if (!q && !(browse && open)) {
             setGroups([]);
             setState('idle');
             return;
@@ -166,7 +178,7 @@ export function SearchDialog({
             clearTimeout(t);
             ctl.abort();
         };
-    }, [query, debounceMs]);
+    }, [query, debounceMs, browse, open]);
 
     useEffect(() => {
         listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
@@ -174,8 +186,9 @@ export function SearchDialog({
 
     const choose = (r: SearchResult) => {
         setOpen(false);
-        if (onSelect) onSelect(r);
-        else window.location.assign(r.href);
+        if (r.run) r.run();
+        else if (onSelect) onSelect(r);
+        else if (r.href) window.location.assign(r.href);
     };
     const optionId = (i: number) => `${listId}-o${i}`;
     const showList = state === 'done' && flat.length > 0;
@@ -256,25 +269,33 @@ export function SearchDialog({
                                             index++;
                                             const i = index;
                                             const on = i === active;
+                                            // A place is a link (it opens in a new tab with a modifier); an action is not.
+                                            const Option = r.href ? 'a' : 'div';
                                             return (
-                                                <a
+                                                <Option
                                                     key={r.id}
                                                     id={optionId(i)}
-                                                    href={r.href}
+                                                    {...(r.href ? { href: r.href } : {})}
                                                     role="option"
                                                     aria-selected={on}
                                                     tabIndex={-1}
                                                     onMouseMove={() => setActive(i)}
                                                     onClick={(e) => {
-                                                        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                                                        if (r.href && (e.metaKey || e.ctrlKey || e.shiftKey)) return;
                                                         e.preventDefault();
                                                         choose(r);
                                                     }}
                                                     className={cn(
                                                         'flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors',
-                                                        on ? 'bg-accent' : 'hover:bg-accent'
+                                                        on ? 'bg-accent' : 'hover:bg-accent',
+                                                        !r.href && 'cursor-pointer'
                                                     )}
                                                 >
+                                                    {r.icon ? (
+                                                        <span aria-hidden className="mt-0.5 flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-[1.0625rem]">
+                                                            {r.icon}
+                                                        </span>
+                                                    ) : null}
                                                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                                         <span className="truncate text-[0.9375rem] font-medium text-foreground">{r.title}</span>
                                                         {r.section ? <span className="truncate text-[0.8125rem] text-muted-foreground">{r.section}</span> : null}
@@ -287,8 +308,9 @@ export function SearchDialog({
                                                             <span className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground">{r.excerpt}</span>
                                                         ) : null}
                                                     </span>
+                                                    {r.meta ? <span className="mt-0.5 shrink-0 text-[0.8125rem] text-muted-foreground">{r.meta}</span> : null}
                                                     <CornerDownLeft aria-hidden className={cn('mt-1 size-4 shrink-0 text-muted-foreground', !on && 'invisible')} />
-                                                </a>
+                                                </Option>
                                             );
                                         })}
                                     </div>
@@ -301,7 +323,7 @@ export function SearchDialog({
                             ) : null}
                             {state === 'done' && flat.length === 0 ? (
                                 <p role="status" className="px-3 py-6 text-[0.9375rem] text-muted-foreground">
-                                    No results for &ldquo;{query.trim()}&rdquo;.
+                                    {query.trim() ? <>No results for &ldquo;{query.trim()}&rdquo;.</> : 'Nothing here yet.'}
                                 </p>
                             ) : null}
                             {state === 'error' ? (
@@ -330,4 +352,18 @@ export function SearchDialog({
             </DialogPrimitive.Root>
         </>
     );
+}
+
+/**
+ * A command palette (⌘K): SearchDialog with its list open before anything is
+ * typed, `onQuery('')` giving the recent items and common actions. A result
+ * with `run` is an action; one with `href` is a place to go. No button of its
+ * own: ⌘K opens it, or drive `open` from yours.
+ */
+export function CommandDialog({
+    label = 'Commands',
+    placeholder = 'Search, or run a command',
+    ...props
+}: Omit<SearchDialogProps, 'browse' | 'button'>) {
+    return <SearchDialog {...props} label={label} placeholder={placeholder} button={false} browse />;
 }

@@ -47,6 +47,7 @@ export { BrowserFrame, FloatChip, PhoneFrame } from './frames';
 export { Monogram, monogramGround, monogramLetter } from './monogram';
 export { ErrorBoundary } from './error-boundary';
 export { ErrorPage } from './error-page';
+export { CountdownRing, LockedPreview, PlanCard } from './apps';
 export { Closing, EndpointList, FactBlock, FactRows, Faq, ProofStrip, SectionHeading } from './blocks';
 export type { Endpoint, FactRow } from './blocks';
 export { LegalDocument } from './legal';
@@ -74,7 +75,7 @@ export {
     useHeadings,
 } from './docs';
 export type { ApiRow, Crumb, MermaidLike, MermaidLoader, PagerLink } from './docs';
-export { SearchButton, SearchDialog } from './search';
+export { CommandDialog, SearchButton, SearchDialog } from './search';
 export {
     AnchorStatus,
     ArtifactView,
@@ -89,4 +90,4 @@ export {
     ToolGrid,
 } from './tools';
 export type { AnchorState, ChosenFile, FilterOption, SectionStatus, StateDef, StateTone, ToolItem } from './tools';
-export type { SearchGroup, SearchQuery, SearchResult } from './search';
+export type { SearchDialogProps, SearchGroup, SearchQuery, SearchResult } from './search';

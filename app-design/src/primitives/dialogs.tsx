@@ -32,6 +32,8 @@ export interface PromptOptions extends ConfirmOptions {
     minLength?: number;
     /** Return a sentence to refuse the value, or nothing to take it. */
     validate?: (value: string) => string | null | undefined;
+    /** Ask for it twice (a passphrase): `true`, or the second field's label. Refuses until the two match. */
+    confirmField?: boolean | ReactNode;
 }
 
 type Ask =
@@ -87,7 +89,9 @@ const none = () => null;
 function PromptBody({ ask: a }: { ask: Extract<Ask, { kind: 'prompt' }> }) {
     const o = a.options;
     const [value, setValue] = useState(o.defaultValue ?? '');
+    const [again, setAgain] = useState('');
     const [error, setError] = useState<ReactNode>(null);
+    const [mismatch, setMismatch] = useState(false);
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (o.minLength && value.length < o.minLength) {
@@ -97,6 +101,10 @@ function PromptBody({ ask: a }: { ask: Extract<Ask, { kind: 'prompt' }> }) {
         const refused = o.validate?.(value);
         if (refused) {
             setError(refused);
+            return;
+        }
+        if (o.confirmField && again !== value) {
+            setMismatch(true);
             return;
         }
         a.settle(value);
@@ -114,9 +122,27 @@ function PromptBody({ ask: a }: { ask: Extract<Ask, { kind: 'prompt' }> }) {
                     onChange={(e) => {
                         setValue(e.target.value);
                         setError(null);
+                        setMismatch(false);
                     }}
                 />
             </Field>
+            {o.confirmField ? (
+                <Field
+                    label={o.confirmField === true ? 'Type it again' : o.confirmField}
+                    error={mismatch ? 'The two do not match.' : null}
+                    className="mt-4"
+                >
+                    <Input
+                        type={o.secret ? 'password' : 'text'}
+                        autoComplete={o.secret ? 'new-password' : 'off'}
+                        value={again}
+                        onChange={(e) => {
+                            setAgain(e.target.value);
+                            setMismatch(false);
+                        }}
+                    />
+                </Field>
+            ) : null}
             <DialogFooter>
                 <Button
                     variant="secondary"

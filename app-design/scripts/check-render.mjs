@@ -186,6 +186,16 @@ const html = (el) => renderToStaticMarkup(el);
     check(sign().includes('(BIP-322)') && sign('legacy').includes('(legacy, BIP-137)') && !sign('legacy').includes('(BIP-322)'), 'SignMessage: the hint does not name the scheme');
 }
 
+// 1.5: plan cards, a locked preview out of reach, a meter's verdict.
+{
+    const plan = html(h(C.PlanCard, { name: 'Annual', price: '210,000 sats', period: 'a year', badge: 'Recommended', highlight: true, features: ['Unlimited entries', 'Passkeys'], action: h('a', { href: '/pay' }, 'Pay with bitcoin') }));
+    check(plan.includes('ring-foreground') && plan.includes('Recommended') && (plan.match(/<li/g) ?? []).length === 2 && plan.includes('href="/pay"'), 'PlanCard: a part is missing');
+    const locked = html(h(C.LockedPreview, { title: 'Your watchlist', action: h('a', { href: '/signin' }, 'Sign in') }, h('a', { href: '/secret' }, 'a sample row')));
+    check(/<div[^>]*inert=""[^>]*aria-hidden="true"[^>]*>[\s\S]*a sample row/.test(locked) && locked.includes('href="/signin"'), 'LockedPreview: the sample is reachable, or no way in');
+    const strong = html(h(C.Meter, { value: 4, max: 4, label: 'Strength', figure: 'Very strong', tone: 'good' }));
+    check(strong.includes('bg-success') && strong.includes('aria-valuetext="Very strong"'), 'Meter: tone good is not the success fill');
+}
+
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];

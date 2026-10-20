@@ -7,6 +7,6 @@ export { OCHK_APP_ACCOUNT, SessionAccountView, ToolShell, useSignInHref } from '
 export type { SessionState, ToolShellProps } from './tool-shell';
 export type { DocsNavItem, DocsNavSection, DocsShellProps } from './docs-shell';
 export { AccountMenu, AppShell, ThemeToggle } from './app-shell';
-export type { AccountMenuItem, ShellNavGroup, ShellNavItem, ShellSection } from './app-shell';
+export type { AccountMenuItem, AppShellProps, ShellNavGroup, ShellNavItem, ShellSection } from './app-shell';
 export { ShellContext, useShellPlace } from '../lib/shell-context';
 export type { ShellPlace } from '../lib/shell-context';

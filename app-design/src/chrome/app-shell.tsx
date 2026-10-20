@@ -1,4 +1,4 @@
-import { ChevronRight, Menu, Moon, Sun, SunMoon } from 'lucide-react';
+import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -18,6 +18,10 @@ import {
     SheetContent,
     SheetTitle,
     SheetTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '../primitives/overlay';
 import { FamilyMenu } from './family-menu';
 
@@ -26,7 +30,7 @@ export interface ShellNavItem {
     label: string;
     icon?: ReactNode;
     active?: boolean;
-    /** A count or a dot beside the label (unread, needs attention). */
+    /** Beside the label: a number shows as a count on a tab or the rail (99+), anything else as a dot. */
     badge?: ReactNode;
 }
 
@@ -48,6 +52,8 @@ export interface ShellSection {
     title?: string;
     /** Where the switcher goes: the section's first page. */
     href: string;
+    /** With one on every section, phones get the sections as tabs. */
+    icon?: ReactNode;
     groups: ShellNavGroup[];
 }
 
@@ -121,8 +127,57 @@ function SectionSwitch({
     );
 }
 
-/** The phone's way around a small app: every page one tap away, under the thumb. */
+/** A count (99+) for a number, a dot for anything else; the badge is read with the label. */
+function NavBadge({ badge, className }: { badge: ReactNode; className: string }) {
+    if (typeof badge === 'number') {
+        return (
+            <span
+                aria-hidden
+                className={cn(
+                    'absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
+                    className
+                )}
+            >
+                {badge > 99 ? '99+' : badge}
+            </span>
+        );
+    }
+    // The deep orange: a dot is the whole signal, so it must clear 3:1 on the background.
+    return <span aria-hidden className={cn('absolute size-2 rounded-full bg-oca-orange-deep ring-2 ring-background', className)} />;
+}
+
+const TAB =
+    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+
+function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: string; badge?: ReactNode; active?: boolean }) {
+    return (
+        <>
+            <span
+                className={cn(
+                    'relative flex h-7 w-12 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-200',
+                    '[&_svg]:size-[1.125rem] [&_svg]:shrink-0',
+                    active ? 'bg-card shadow-sm ring-1 ring-border [&_svg]:stroke-2' : '[&_svg]:stroke-[1.75]'
+                )}
+            >
+                {icon}
+                {badge ? <NavBadge badge={badge} className={typeof badge === 'number' ? '-top-1 right-0.5' : 'right-2.5 top-0.5'} /> : null}
+            </span>
+            <span className="max-w-full truncate px-0.5">{label}</span>
+            {badge ? <span className="sr-only">{badge}</span> : null}
+        </>
+    );
+}
+
+/**
+ * The phone's way around: up to five pages under the thumb, each one tap
+ * away. Past five, four tabs and More, a sheet with the rest.
+ */
 export function TabBar({ items }: { items: ShellNavItem[] }) {
+    const [more, setMore] = useState(false);
+    const overflow = items.length > 5;
+    const shown = overflow ? items.slice(0, 4) : items;
+    const rest = overflow ? items.slice(4) : [];
+    const restBadge = rest.find((it) => it.badge)?.badge;
     return (
         <nav
             aria-label="Pages"
@@ -131,43 +186,67 @@ export function TabBar({ items }: { items: ShellNavItem[] }) {
         >
             <div
                 className="mx-auto grid h-14 max-w-[32rem] px-1.5"
-                style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+                style={{ gridTemplateColumns: `repeat(${shown.length + (overflow ? 1 : 0)}, minmax(0, 1fr))` }}
             >
-                {items.map((it) => (
+                {shown.map((it) => (
                     <Link
                         key={it.href}
                         href={it.href}
                         aria-current={it.active ? 'page' : undefined}
-                        className={cn(
-                            'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-                            it.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                        )}
+                        className={cn(TAB, it.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
                     >
-                        <span
-                            className={cn(
-                                'relative flex h-7 w-12 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-200',
-                                '[&_svg]:size-[1.125rem] [&_svg]:shrink-0',
-                                it.active ? 'bg-card shadow-sm ring-1 ring-border [&_svg]:stroke-2' : '[&_svg]:stroke-[1.75]'
-                            )}
-                        >
-                            {it.icon}
-                            {it.badge ? (
-                                <span aria-hidden className="absolute right-2.5 top-0.5 size-2 rounded-full bg-oca-orange ring-2 ring-background" />
-                            ) : null}
-                        </span>
-                        <span className="max-w-full truncate px-0.5">{it.label}</span>
-                        {it.badge ? <span className="sr-only">{it.badge}</span> : null}
+                        <TabFace icon={it.icon} label={it.label} badge={it.badge} active={it.active} />
                     </Link>
                 ))}
+                {overflow ? (
+                    <Sheet open={more} onOpenChange={setMore}>
+                        <SheetTrigger
+                            className={cn(TAB, rest.some((it) => it.active) ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
+                        >
+                            <TabFace icon={<Ellipsis />} label="More" badge={restBadge ? true : undefined} active={rest.some((it) => it.active)} />
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                            <SheetTitle className="px-1 text-[1.0625rem] font-medium">More</SheetTitle>
+                            <div className="mt-4 grid grid-cols-3 gap-2">
+                                {rest.map((it) => (
+                                    <Link
+                                        key={it.href}
+                                        href={it.href}
+                                        onClick={() => setMore(false)}
+                                        aria-current={it.active ? 'page' : undefined}
+                                        className={cn(
+                                            'flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border px-2 text-center text-[0.8125rem] transition-colors',
+                                            '[&_svg]:size-5',
+                                            it.active ? 'border-foreground bg-card text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+                                        )}
+                                    >
+                                        <span className="relative">
+                                            {it.icon}
+                                            {it.badge ? <NavBadge badge={it.badge} className={typeof it.badge === 'number' ? '-right-3 -top-2' : '-right-1 -top-0.5'} /> : null}
+                                        </span>
+                                        <span className="max-w-full truncate">{it.label}</span>
+                                        {it.badge ? <span className="sr-only">{it.badge}</span> : null}
+                                    </Link>
+                                ))}
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                ) : null}
             </div>
         </nav>
     );
 }
 
-/** Two to five pages, each with an icon, fit a tab bar. More, or sections, keep the drawer. */
+/** Two or more pages, each with an icon, take a tab bar (past five, with More). Without icons, the drawer. */
 export function tabsFor(groups: ShellNavGroup[]): ShellNavItem[] | null {
     const items = groups.flatMap((g) => g.items);
-    return items.length >= 2 && items.length <= 5 && items.every((it) => it.icon) ? items : null;
+    return items.length >= 2 && items.every((it) => it.icon) ? items : null;
+}
+
+/** Sections with an icon each are the phone's tabs; their pages stay in the menu. */
+function sectionTabs(sections: ShellSection[] | undefined, current: ShellSection | undefined): ShellNavItem[] | null {
+    if (!sections || !current || sections.length < 2 || !sections.every((sec) => sec.icon)) return null;
+    return sections.map((sec) => ({ href: sec.href, label: sec.label, icon: sec.icon, active: sec.id === current.id }));
 }
 
 const activeItem = (groups: ShellNavGroup[]) => groups.flatMap((g) => g.items).find((it) => it.active);
@@ -198,14 +277,49 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * holding an active item, or `activeSection`. On phones a top bar carries the
  * wordmark and the account, a strip under it names the section and page, and
  * the sidebar opens as a sheet. `nav` (flat groups) still works for a simple
- * app, and when it holds two to five pages, each with an icon, phones get a
- * tab bar instead: the pages sit under the thumb, the strip and the menu
- * button go (the sheet stays for a `footer`, without the pages), and tablets
- * keep the sheet. Pages get the section through context: PageHeader uses it
- * as its eyebrow. `family` puts the family menu beside the lockup. The
- * account control and any banner are slots.
+ * app, and when every page has an icon, phones get a tab bar instead (past
+ * five, four tabs and More): the pages sit under the thumb, the strip and the
+ * menu button go (the sheet stays for a `footer`, without the pages), and
+ * tablets keep the sheet. Sections with an icon each become the tabs, and
+ * their pages stay in the sheet. Pages get the section through context:
+ * PageHeader uses it as its eyebrow. `family` puts the family menu beside the
+ * lockup. The account control and any banner are slots. `variant="rail"` is
+ * the messenger's frame instead.
  */
-export function AppShell({
+export function AppShell(props: AppShellProps) {
+    return props.variant === 'rail' ? <RailShell {...props} /> : <SidebarShell {...props} />;
+}
+
+export interface AppShellProps {
+    /**
+     * `sidebar` (default): a sidebar of pages from lg, content up to 72rem.
+     * `rail`: a messenger's frame. The whole window, an icon rail from md
+     * with each page's name on hover, the content full-bleed and managing
+     * its own panes and scroll; `header` sits above it.
+     */
+    variant?: 'sidebar' | 'rail';
+    /** Flat groups, for an app without sections. */
+    nav?: ShellNavGroup[];
+    sections?: ShellSection[];
+    activeSection?: string;
+    /** The page's name for the place strip, when it is not a nav item of its own. */
+    page?: string;
+    /** Groups shown under every section, after its own. */
+    persistent?: ShellNavGroup[];
+    home?: string;
+    /** Mount the family menu beside the lockup, as SiteHeader does. Pass the site's slug to mark it. */
+    family?: boolean | FamilySlug;
+    /** The rail's: at its foot from md (an avatar linking to settings). The sidebar's: top right. */
+    account?: ReactNode;
+    banner?: ReactNode;
+    footer?: ReactNode;
+    /** `rail` only: the header above the rail and the content (a SiteHeader). */
+    header?: ReactNode;
+    children: ReactNode;
+    className?: string;
+}
+
+function SidebarShell({
     nav,
     sections,
     activeSection,
@@ -218,24 +332,7 @@ export function AppShell({
     footer,
     children,
     className,
-}: {
-    /** Flat groups, for an app without sections. */
-    nav?: ShellNavGroup[];
-    sections?: ShellSection[];
-    activeSection?: string;
-    /** The page's name for the place strip, when it is not a nav item of its own. */
-    page?: string;
-    /** Groups shown under every section, after its own. */
-    persistent?: ShellNavGroup[];
-    home?: string;
-    /** Mount the family menu beside the lockup, as SiteHeader does. Pass the site's slug to mark it. */
-    family?: boolean | FamilySlug;
-    account?: ReactNode;
-    banner?: ReactNode;
-    footer?: ReactNode;
-    children: ReactNode;
-    className?: string;
-}) {
+}: AppShellProps) {
     const [open, setOpen] = useState(false);
     const current =
         sections && sections.length > 0
@@ -245,7 +342,8 @@ export function AppShell({
             : undefined;
     const groups = current ? [...current.groups, ...persistent] : [...(nav ?? []), ...persistent];
     warnDuplicateLabels(groups);
-    const tabs = current ? null : tabsFor(groups);
+    const sectionTabsFor = sectionTabs(sections, current);
+    const tabs = current ? sectionTabsFor : tabsFor(groups);
     const page = activeItem(groups);
     const place = useMemo(
         () => ({
@@ -274,8 +372,8 @@ export function AppShell({
                             <SheetTrigger
                                 className={cn(
                                     'inline-flex size-10 items-center justify-center rounded-full hover:bg-accent',
-                                    // The tab bar holds every page; the sheet is left for a footer.
-                                    tabs && !footer && 'max-md:hidden'
+                                    // The tab bar holds every page; the sheet is left for a footer. Section tabs leave the pages here.
+                                    tabs && !sectionTabsFor && !footer && 'max-md:hidden'
                                 )}
                                 aria-label="Open navigation"
                             >
@@ -283,8 +381,9 @@ export function AppShell({
                             </SheetTrigger>
                             <SheetContent side="left" className="flex flex-col gap-6 overflow-y-auto p-4 pt-16">
                                 <SheetTitle className="sr-only">Navigation</SheetTitle>
-                                {switcher}
-                                <div className={tabs ? 'max-md:hidden' : undefined}>
+                                {/* On a phone the section tabs are the switcher. */}
+                                {switcher ? <div className={sectionTabsFor ? 'max-md:hidden' : undefined}>{switcher}</div> : null}
+                                <div className={tabs && !sectionTabsFor ? 'max-md:hidden' : undefined}>
                                     <SideNav groups={groups} onNavigate={() => setOpen(false)} />
                                 </div>
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
@@ -301,7 +400,7 @@ export function AppShell({
                             className={cn(
                                 'flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]',
                                 // The active tab already names the page.
-                                tabs && !pageOverride && 'max-md:hidden'
+                                tabs && !sectionTabsFor && !pageOverride && 'max-md:hidden'
                             )}
                         >
                             {place.section ? (
@@ -337,6 +436,75 @@ export function AppShell({
                 </div>
                 {tabs ? <TabBar items={tabs} /> : null}
             </div>
+        </ShellContext.Provider>
+    );
+}
+
+function RailItem({ item }: { item: ShellNavItem }) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Link
+                    href={item.href}
+                    aria-current={item.active ? 'page' : undefined}
+                    className={cn(
+                        'relative flex size-10 items-center justify-center rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        '[&_svg]:size-5 [&_svg]:shrink-0',
+                        item.active
+                            ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    )}
+                >
+                    {item.icon}
+                    {/* The page's name, and its badge, for a screen reader; the tooltip shows the name. */}
+                    <span className="sr-only">
+                        {item.label}
+                        {item.badge ? <>, {item.badge}</> : null}
+                    </span>
+                    {item.badge ? <NavBadge badge={item.badge} className={typeof item.badge === 'number' ? '-right-1 -top-1' : 'right-1 top-1'} /> : null}
+                </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">{item.label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/** The rail frame: header, an icon rail from md, the content full-bleed, the tab bar on a phone. */
+function RailShell({ nav = [], persistent = [], page: pageOverride, header, account, banner, children, className }: AppShellProps) {
+    const main = nav.flatMap((g) => g.items);
+    const foot = persistent.flatMap((g) => g.items);
+    warnDuplicateLabels([...nav, ...persistent]);
+    const tabs = tabsFor([{ items: [...main, ...foot] }]);
+    const active = activeItem([...nav, ...persistent]);
+    const place = useMemo(() => ({ page: pageOverride ?? active?.label }), [pageOverride, active?.label]);
+    return (
+        <ShellContext.Provider value={place}>
+            <TooltipProvider delayDuration={300}>
+                <div className={cn('flex h-dvh flex-col overflow-hidden bg-background', className)}>
+                    {header}
+                    {banner}
+                    <div className="flex min-h-0 flex-1">
+                        <nav aria-label="Pages" className="hidden w-14 shrink-0 flex-col items-center gap-1 border-r border-border py-3 md:flex">
+                            {main.map((it) => (
+                                <RailItem key={it.href} item={it} />
+                            ))}
+                            <div className="mt-auto flex flex-col items-center gap-1">
+                                {foot.map((it) => (
+                                    <RailItem key={it.href} item={it} />
+                                ))}
+                                {account}
+                            </div>
+                        </nav>
+                        <main
+                            id="main-content"
+                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col', tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]')}
+                        >
+                            {children}
+                        </main>
+                    </div>
+                    {tabs ? <TabBar items={tabs} /> : null}
+                </div>
+            </TooltipProvider>
         </ShellContext.Provider>
     );
 }

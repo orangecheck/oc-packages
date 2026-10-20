@@ -669,6 +669,14 @@ export function BlockCountdown({
  * hatched part after the value (pledged, not yet settled). For shares of a
  * whole, use SplitBar.
  */
+const METER_FILL = {
+    ink: 'bg-foreground',
+    brand: 'bg-oca-orange-deep',
+    good: 'bg-success',
+    caution: 'bg-warning',
+    bad: 'bg-destructive',
+} as const;
+
 export function Meter({
     value,
     max,
@@ -686,7 +694,8 @@ export function Meter({
     label: ReactNode;
     /** The figure on the right: "62%", "1.2M of 2M sats". Default: the percentage. */
     figure?: ReactNode;
-    tone?: 'ink' | 'brand';
+    /** `good`, `caution` and `bad` for a reading with a verdict: a password's strength. */
+    tone?: 'ink' | 'brand' | 'good' | 'caution' | 'bad';
     size?: 'md' | 'sm';
     className?: string;
 }) {
@@ -713,7 +722,7 @@ export function Meter({
                 className={cn('flex overflow-hidden rounded-full bg-muted', size === 'sm' ? 'h-1.5' : 'h-2.5')}
             >
                 <div
-                    className={cn('h-full shrink-0 rounded-full', tone === 'brand' ? 'bg-oca-orange-deep' : 'bg-foreground')}
+                    className={cn('h-full shrink-0 rounded-full', METER_FILL[tone])}
                     style={{ width: `${v * 100}%` }}
                 />
                 {g > 0 ? (

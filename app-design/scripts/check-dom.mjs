@@ -2,8 +2,10 @@
 /*
  * What only a click or an effect shows, in a DOM (jsdom): a copy button puts
  * the exact bytes on the clipboard, a message's final newline included (a
- * wallet signs the bytes, and lock's binding statement ends in LF), and
- * toasts take the page's mode from next-themes. Run after `yarn build`.
+ * wallet signs the bytes, and lock's binding statement ends in LF), toasts
+ * take the page's mode from next-themes, a command runs on Enter, a prompt
+ * asked twice refuses until the two match, a countdown says its seconds.
+ * Run after `yarn build`.
  */
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -27,12 +29,15 @@ Object.defineProperty(window.navigator, 'clipboard', {
     value: { writeText: async (t) => void copied.push(t), readText: async () => copied.at(-1) ?? '' },
 });
 window.matchMedia ??= () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+// jsdom does no layout: scrolling into view is a no-op.
+window.Element.prototype.scrollIntoView ??= function scrollIntoView() {};
 window.ResizeObserver ??= class {
     observe() {}
     unobserve() {}
     disconnect() {}
 };
-for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'Node', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
+// Node has its own Event and CustomEvent; a DOM node only takes jsdom's (Radix dispatches CustomEvents).
+for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'HTMLInputElement', 'Element', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FocusEvent', 'PointerEvent', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
     Object.defineProperty(globalThis, key, { value: key === 'window' ? window : window[key], configurable: true, writable: true });
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -120,9 +125,68 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// CommandDialog: a list before anything is typed, an action that runs on Enter, a place that is a link.
+{
+    let ran = 0;
+    const onQuery = (q) => [
+        { label: 'Recent', results: q ? [] : [{ id: 'e1', href: '/vault/e1', title: 'github.com', meta: 'Login' }] },
+        { label: 'Actions', results: [{ id: 'lock', title: 'Lock the vault', run: () => ran++ }].filter((r) => !q || /lock/i.test(q)) },
+    ];
+    const { unmount } = await mount(h(C.CommandDialog, { onQuery, open: true, onOpenChange: () => {}, debounceMs: 0 }));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    const options = [...document.querySelectorAll('[role="option"]')];
+    check(options.length === 2 && options[0].tagName === 'A' && options[1].tagName === 'DIV', `CommandDialog: browsing lists ${options.length} (want a link and an action)`);
+    const input = document.querySelector('input[role="combobox"]');
+    const key = (k) => act(async () => input.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true })));
+    await key('ArrowDown');
+    await key('Enter');
+    check(ran === 1, 'CommandDialog: Enter on an action does not run it');
+    await unmount();
+}
+
+// prompt with confirmField: refuses until the two match, then answers.
+{
+    const { unmount } = await mount(h(P.DialogHost));
+    let answer;
+    await act(async () => {
+        P.prompt({ title: 'Backup passphrase', label: 'Passphrase', secret: true, confirmField: true }).then((v) => (answer = v));
+    });
+    const fields = () => [...document.querySelectorAll('input[type="password"]')];
+    const type = (el, v) =>
+        act(async () => {
+            const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            set.call(el, v);
+            el.dispatchEvent(new window.Event('input', { bubbles: true }));
+        });
+    const submit = () => act(async () => document.querySelector('form').requestSubmit());
+    check(fields().length === 2, `prompt confirmField: ${fields().length} fields, not two`);
+    await type(fields()[0], 'correct horse');
+    await type(fields()[1], 'correct house');
+    await submit();
+    check(answer === undefined && document.body.textContent.includes('The two do not match.'), 'prompt confirmField: a mismatch is taken');
+    await type(fields()[1], 'correct horse');
+    await submit();
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    check(answer === 'correct horse', `prompt confirmField: answered ${show(answer)}`);
+    await unmount();
+}
+
+// CountdownRing: the seconds left, read as a timer, red for the last few.
+{
+    const { host, unmount } = await mount(h(C.CountdownRing, { period: 30, remaining: 4 }));
+    const t = host.querySelector('[role="timer"]');
+    check(t?.getAttribute('aria-label') === '4 seconds left' && t.className.includes('text-destructive'), 'CountdownRing: 4s left is not red, or not said');
+    await unmount();
+    const clock = await mount(h(C.CountdownRing, { period: 30 }));
+    const left = Number(clock.host.querySelector('[role="timer"]')?.getAttribute('aria-label')?.split(' ')[0]);
+    const expect = 30 - (Math.floor(Date.now() / 1000) % 30);
+    check(Math.abs(left - expect) <= 1, `CountdownRing: from the clock it says ${left}s, the TOTP window has ${expect}s`);
+    await clock.unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; copies are exact bytes, toasts follow the mode`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown`);
 process.exit(0);

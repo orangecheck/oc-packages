@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-10-20
+
+What vault, chat and cosign need to move onto the system. The public goods'
+parts (globe, btc) follow in 1.6.
+
+- `AppShell variant="rail"`: a messenger's frame. It takes the whole window,
+  with `header` above, an icon rail from md (each page's name in a tooltip,
+  `persistent` pages and `account` at its foot), the content full-bleed and
+  managing its own panes, and the tab bar on a phone.
+- Nav badges: a number shows as a count (99+) on the rail and the tab bar,
+  anything else as a dot, and both are read with the page's name. The dot is
+  the deep orange, which clears 3:1 on the background; the old one did not
+  in light mode.
+- Tab bar: past five pages, four tabs and More, a sheet with the rest. Six
+  pages with icons used to fall back to the drawer.
+- `ShellSection icon`: with one on every section, a phone's tabs are the
+  sections, and each section's pages stay in the menu.
+- `CommandDialog`: a command palette on SearchDialog's machinery. Its list
+  is open before anything is typed (`onQuery('')` gives recents and
+  actions). A result with `run` is an action, and one with `href` is a place.
+  Search results take an `icon` and a `meta` word too.
+- `prompt({ confirmField })` asks twice, for a passphrase, and refuses until
+  the two match.
+- `CountdownRing`: the seconds left in a cycle as an emptying ring, red at
+  the end. Given only `period` it follows the clock in windows aligned to
+  the epoch, as a TOTP code does. It is read as a timer.
+- `PlanCard`: a plan's name, line, price and period, footnote, features,
+  badge ("Your plan", "Recommended") and button. `highlight` marks the one
+  the page argues for. Compare plans in a `ComparisonTable`.
+- `LockedPreview`: a real sample of what a sign-in or a plan opens, faded
+  and out of reach of the pointer, keyboard and screen reader (`inert`),
+  with the way in over its foot.
+- `Meter tone`: `good`, `caution` and `bad` for a reading with a verdict,
+  such as a password's strength. Each fill clears 3:1 on the track, and
+  `yarn test` checks it.
+- `scripts/check-dom.mjs` also runs the palette, the twice-asked prompt and
+  the countdown.
+
+Already in the package and ready for these apps: `confirm`, `Pagination`
+(0-based), `QrCode`, `CopyButton clearAfter`, `Meter` with a ghost,
+`BlockCountdown`, `ComparisonTable`, `Sats`, `StatusDot`, `Tooltip`,
+`Monogram`, `FilterChips`, `Field`.
+
 ## [1.4.1] — 2026-10-20
 
 What the tool sites found moving onto the shell.
