@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.4] — 2026-10-20
+
+### Added
+
+- `--oc-wallet-heading`: the display of `OcWalletButton`'s heading ("Sign
+  with your wallet"). Fallback `block`. A frame that already says what to do
+  sets it to `none`: app-design ≥ 1.6.1 does inside `SignMessage`'s wallets
+  slot, where the heading was a second, differently styled label above the
+  buttons.
+
 ## [0.6.3] — 2026-10-20
 
 ### Added

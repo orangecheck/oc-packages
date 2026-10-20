@@ -20,6 +20,7 @@ import type { CSSProperties } from "react";
  *   --oc-wallet-ready          a detected wallet's dot  (#22c55e)
  *   --oc-wallet-field-size     the pasted signature     (12px; 16px below 768px wide)
  *   --oc-wallet-mark           display of "§ ", "// ", "← " (inline)
+ *   --oc-wallet-heading        display of OcWalletButton's heading (block; none where the page already says it)
  *
  * Copy is written in sentence case. The fallback case shows it as the family
  * look always did; a site that sets the case to `none` reads it as written.
@@ -52,3 +53,6 @@ export const WALLET_FIELD_SIZE =
   "var(--oc-wallet-field-size, clamp(12px, calc((768px - 100vw) * 1000), 16px))";
 export const WALLET_MARK =
   "var(--oc-wallet-mark, inline)" as CSSProperties["display"];
+// A frame with its own lead (app-design's SignMessage) sets it to none.
+export const WALLET_HEADING =
+  "var(--oc-wallet-heading, block)" as CSSProperties["display"];

@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   WALLET_FIELD_SIZE,
   WALLET_FONT,
+  WALLET_HEADING,
   WALLET_MESSAGE_FONT,
   WALLET_MARK,
   WALLET_MIN_HEIGHT,
@@ -394,6 +395,7 @@ export function OcWalletButton({
         <div
           data-oc-wallet-button-heading=""
           style={{
+            display: WALLET_HEADING,
             marginBottom: 10,
             fontSize: walletSize(10),
             fontWeight: walletStrong(700),

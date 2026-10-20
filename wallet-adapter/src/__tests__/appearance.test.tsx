@@ -103,6 +103,7 @@ describe("fallbacks: a site that sets nothing gets 0.5.2's look", () => {
     const heading = host.querySelector("[data-oc-wallet-button-heading]");
     expect(css(heading, "font-size")).toBe("10px");
     expect(css(heading, "font-weight")).toBe("700");
+    expect(css(heading, "display")).toBe("block");
     expect(css(heading, "letter-spacing")).toBe("0.18em");
     expect(css(heading, "text-transform")).toBe("uppercase");
     const mark = heading?.querySelector("[aria-hidden]");
@@ -207,6 +208,7 @@ describe("variables: app-design's values take over", () => {
         "--oc-wallet-case",
         "--oc-wallet-field-size",
         "--oc-wallet-font",
+        "--oc-wallet-heading",
         "--oc-wallet-mark",
         "--oc-wallet-message-font",
         "--oc-wallet-min-height",
@@ -249,6 +251,9 @@ describe("variables: app-design's values take over", () => {
     expect(css(heading?.querySelector("[aria-hidden]"), "display", vars)).toBe(
       "none",
     );
+    // Shown on its own; a frame with its own lead (SignMessage) hides it.
+    expect(css(heading, "display", vars)).toBe("block");
+    expect(css(heading, "display", { ...vars, "--oc-wallet-heading": "none" })).toBe("none");
     const row = option("UniSat");
     expect(css(row, "border-radius", vars)).toBe("0.875rem");
     expect(css(row, "min-height", vars)).toBe("2.25rem");
