@@ -297,4 +297,4 @@ The challenge message uses a distinct `orangecheck-auth` header and `ack` litera
 
 ## License
 
-MIT. The OrangeCheck protocol is CC-BY-4.0.
+MIT. The OrangeCheck protocol specifications are MIT too.

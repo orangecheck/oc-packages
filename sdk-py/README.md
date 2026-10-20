@@ -225,4 +225,4 @@ Exits `0` on pass, `2` on fail. Prefer the TypeScript `oc` CLI for richer output
 
 ## License
 
-MIT. The OrangeCheck protocol is CC-BY-4.0.
+MIT. The OrangeCheck protocol specifications are MIT too.

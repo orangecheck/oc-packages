@@ -199,4 +199,4 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 
 ## License
 
-MIT. The OrangeCheck protocol is CC-BY-4.0.
+MIT. The OrangeCheck protocol specifications are MIT too.

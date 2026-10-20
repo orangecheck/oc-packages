@@ -311,7 +311,7 @@ Full type definitions ship with the package.
 
 ## License
 
-MIT. The protocol is CC-BY-4.0.
+MIT. The protocol specifications are MIT too.
 
 ## Links
 

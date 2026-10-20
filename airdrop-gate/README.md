@@ -151,4 +151,4 @@ The free hosted `/api/check` tier allows 60 requests per minute per IP. That's 3
 
 ## License
 
-MIT. The OrangeCheck protocol is CC-BY-4.0.
+MIT. The OrangeCheck protocol specifications are MIT too.

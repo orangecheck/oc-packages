@@ -177,7 +177,7 @@ Required secrets:
 
 Each protocol's normative specification lives in its own `oc-*-protocol`
 repo under [github.com/orangecheck](https://github.com/orangecheck), licensed
-[CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Implementations
+MIT. Implementations
 in this monorepo MUST pass the spec's conformance vectors byte-identically.
 A bug report about divergence between a spec and an implementation belongs
 in the relevant `oc-*-protocol` issue tracker.
