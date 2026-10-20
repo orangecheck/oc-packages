@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.2] — 2026-10-20
+
+### Fixed
+
+- **Xverse signs wherever it was detected.** `detectWallets()` lists Xverse
+  when `window.XverseProviders.BitcoinProvider` has a `request`, but
+  `getSigner('xverse')` only looked at `window.BitcoinProvider`. A browser
+  with only the first offered Xverse, and picking it failed with "Xverse
+  wallet not found". The signer now reads both, as detection does. A new
+  test installs each global that detection reads, one at a time, and signs
+  through `getSigner` with a real key, so a wallet the picker lists can no
+  longer be one the signer cannot reach.
+
 ## [0.6.1] — 2026-10-20
 
 ### Fixed

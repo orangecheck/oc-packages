@@ -155,18 +155,23 @@ function signWithUnisat(opts: SignOptions): SignFn {
 
 function signWithXverse(opts: SignOptions): SignFn {
   return async (message) => {
+    type Provider = {
+      request?: (method: string, params: unknown) => Promise<unknown>;
+    };
     const w = (
       globalThis as unknown as {
         window?: {
-          BitcoinProvider?: {
-            request?: (method: string, params: unknown) => Promise<unknown>;
-          };
+          XverseProviders?: { BitcoinProvider?: Provider };
+          BitcoinProvider?: Provider;
         };
       }
     ).window;
-    const provider = w?.BitcoinProvider;
+    // Wherever detect() found it: the first of the two with a callable request.
+    const provider = [w?.XverseProviders?.BitcoinProvider, w?.BitcoinProvider].find(
+      (p) => typeof p?.request === "function",
+    );
     if (!provider?.request)
-      throw new Error("Xverse wallet not found on window.BitcoinProvider");
+      throw new Error("Xverse wallet not found on window.XverseProviders or window.BitcoinProvider");
     // Xverse's RPC returns { status, result: { signature, ... } }.
     const r = (await provider.request("signMessage", {
       address: opts.address,
