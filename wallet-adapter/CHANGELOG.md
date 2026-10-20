@@ -11,6 +11,40 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.0] — 2026-10-20
+
+### Added — the wallet step takes a site's design
+
+`OcWalletPicker` and `OcWalletButton` read `--oc-wallet-*` CSS variables for
+type and shape, the way auth-client's ceremony reads `--oc-signin-*`.
+`@orangecheck/app-design` ≥ 1.1.0 sets them; a site that sets none renders as
+before. Each fallback is the look 0.5.2 hard-coded:
+
+| Variable | Reads into | Fallback |
+| --- | --- | --- |
+| `--oc-wallet-font` | every label, button and field | `ui-monospace, SFMono-Regular, monospace` |
+| `--oc-wallet-case` | small labels and buttons | `uppercase`; `lowercase` for Back and the empty notes' first words |
+| `--oc-wallet-tracking` | small labels | `0.18em` headings, `0.06em` status words |
+| `--oc-wallet-scale` | multiplies every 8–12px size | `1` |
+| `--oc-wallet-strong` | wallet names, Use signature, heading | `600`; `700` for the heading |
+| `--oc-wallet-radius` | list rows, the message, the field | `6px` |
+| `--oc-wallet-button-radius` | buttons and row chips | `6px`; `4px` Copy; `9999px` chips |
+| `--oc-wallet-min-height` | wallet rows, the paste panel's buttons | `auto` |
+| `--oc-wallet-surface` | rows, the message, the field | `--muted` at 30% over transparent |
+| `--oc-wallet-ready` | a detected wallet's dot | `#22c55e` |
+| `--oc-wallet-field-size` | the pasted signature | `12px`; `16px` below 768px |
+| `--oc-wallet-mark` | display of "§ ", "// ", "← " | `inline` |
+
+Copy is now written in sentence case ("Ready", "Install", "Paste",
+"Signing…", "Back", "Copy"); the fallback case renders it as before. The
+decorative marks are hidden from screen readers.
+
+### Fixed
+
+- The paste field set 12px inline, which outranks a stylesheet's 16px phone
+  rule, so iOS zoomed into it on focus. Below 768px it is now 16px. This is
+  the one change a site that sets no variable can see.
+
 ## [0.5.2] — 2026-10-16
 
 ### Fixed — every wallet signature read as the wrong account's

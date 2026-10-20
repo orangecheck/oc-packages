@@ -106,6 +106,15 @@ Props:
 | `heading`            | `ReactNode`               | Header text. Default "Sign with your wallet".                    |
 | `className`, `style` |                           | Pass-through for the root container.                             |
 
+### Appearance
+
+`OcWalletPicker` and `OcWalletButton` read `--oc-wallet-*` CSS variables for
+font, case, tracking, scale, weight, radii, row height, surface, the ready dot,
+the paste field's size and the decorative marks. `@orangecheck/app-design`
+≥ 1.1.0 sets them; set none and the components keep the family's monospace
+look. Every variable and its fallback is listed in `src/appearance.ts` and the
+0.6.0 CHANGELOG entry.
+
 ---
 
 ## Full example — signed-challenge auth with wallet picker

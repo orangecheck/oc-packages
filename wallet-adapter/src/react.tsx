@@ -18,8 +18,31 @@ import type { WalletId, WalletInfo } from "./types";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  WALLET_FIELD_SIZE,
+  WALLET_FONT,
+  WALLET_MARK,
+  WALLET_MIN_HEIGHT,
+  WALLET_READY,
+  WALLET_SURFACE,
+  walletButtonRadius,
+  walletCase,
+  walletRadius,
+  walletSize,
+  walletStrong,
+  walletTracking,
+} from "./appearance";
 import { detectWallets } from "./detect";
 import { assertSignedBy, getSigner } from "./sign";
+
+/** A decorative glyph of the family look, which a site can hide (--oc-wallet-mark). */
+function Mark({ children }: { children: string }) {
+  return (
+    <span aria-hidden="true" style={{ display: WALLET_MARK }}>
+      {children}
+    </span>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // <OcWalletPicker /> — controlled radio-group of detected wallets
@@ -50,7 +73,8 @@ export interface OcWalletPickerProps {
  * to a manual-paste option for hardware/CLI wallets. Theme-aware via CSS
  * variables (`--background`, `--foreground`, `--border`, `--muted`,
  * `--muted-foreground`, `--primary`); reasonable dark-mode hex fallbacks
- * if a consumer hasn't defined the tokens.
+ * if a consumer hasn't defined the tokens. Type and shape read the
+ * `--oc-wallet-*` variables listed in `appearance.ts`.
  *
  *   const [wallet, setWallet] = useState<WalletId | null>(null);
  *   …
@@ -111,20 +135,21 @@ export function OcWalletPicker({
     <div
       className={className}
       data-oc-wallet-picker=""
-      style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace" }}
+      style={{ fontFamily: WALLET_FONT }}
     >
       {label ? (
         <div
           data-oc-wallet-picker-label=""
           style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
+            fontSize: walletSize(10),
+            letterSpacing: walletTracking("0.18em"),
+            textTransform: walletCase("uppercase"),
             color: "var(--primary, #f97316)",
             marginBottom: 8,
           }}
         >
-          § {label}
+          <Mark>{"§ "}</Mark>
+          {label}
         </div>
       ) : null}
       <div
@@ -141,10 +166,10 @@ export function OcWalletPicker({
           const selected = value === w.id;
           const isInstall = !w.detected && !w.isManual;
           const statusLabel = w.isManual
-            ? "paste"
+            ? "Paste"
             : w.detected
-              ? "ready"
-              : "install";
+              ? "Ready"
+              : "Install";
           return (
             <button
               key={w.id}
@@ -162,17 +187,18 @@ export function OcWalletPicker({
                 alignItems: "center",
                 gap: 8,
                 padding: isRow ? "6px 10px" : "8px 12px",
+                minHeight: WALLET_MIN_HEIGHT,
                 background: selected
                   ? "color-mix(in oklch, var(--primary, #f97316) 12%, transparent)"
-                  : "color-mix(in oklch, var(--muted, #27272a) 30%, transparent)",
+                  : WALLET_SURFACE,
                 color: "var(--foreground, #fafafa)",
                 border: selected
                   ? "1px solid var(--primary, #f97316)"
                   : "1px solid var(--border, #27272a)",
-                borderRadius: isRow ? 9999 : 6,
+                borderRadius: isRow ? walletButtonRadius(9999) : walletRadius(6),
                 fontFamily: "inherit",
-                fontSize: 12,
-                cursor: isInstall ? "pointer" : "pointer",
+                fontSize: walletSize(12),
+                cursor: "pointer",
                 opacity: isInstall ? 0.7 : 1,
                 width: isRow ? "auto" : "100%",
                 justifyContent: isRow ? "flex-start" : "space-between",
@@ -182,23 +208,21 @@ export function OcWalletPicker({
               <span
                 aria-hidden="true"
                 style={{
-                  fontSize: 8,
+                  fontSize: walletSize(8),
                   color: w.detected
-                    ? "#22c55e"
-                    : w.isManual
-                      ? "var(--muted-foreground, #a1a1aa)"
-                      : "var(--muted-foreground, #a1a1aa)",
+                    ? WALLET_READY
+                    : "var(--muted-foreground, #a1a1aa)",
                 }}
               >
                 {w.detected ? "●" : w.isManual ? "◌" : "○"}
               </span>
-              <span style={{ fontWeight: 600 }}>{w.name}</span>
+              <span style={{ fontWeight: walletStrong(600) }}>{w.name}</span>
               <span
                 style={{
                   color: "var(--muted-foreground, #a1a1aa)",
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
+                  fontSize: walletSize(10),
+                  letterSpacing: walletTracking("0.06em"),
+                  textTransform: walletCase("uppercase"),
                   marginLeft: isRow ? 4 : "auto",
                 }}
               >
@@ -213,11 +237,15 @@ export function OcWalletPicker({
           style={{
             marginTop: 8,
             color: "var(--muted-foreground, #a1a1aa)",
-            fontSize: 11,
+            fontSize: walletSize(11),
             lineHeight: 1.4,
           }}
         >
-          {"// "}no browser wallet detected — install one above, or use{" "}
+          <Mark>{"// "}</Mark>
+          <span style={{ textTransform: walletCase("lowercase") }}>
+            No browser wallet detected
+          </span>
+          {" — install one above, or use "}
           <em>paste signature</em> with Sparrow / Bitcoin Core / hardware.
         </p>
       )}
@@ -357,7 +385,7 @@ export function OcWalletButton({
       className={className}
       data-oc-wallet-button=""
       style={{
-        fontFamily: "ui-monospace, SFMono-Regular, monospace",
+        fontFamily: WALLET_FONT,
         ...style,
       }}
     >
@@ -366,14 +394,15 @@ export function OcWalletButton({
           data-oc-wallet-button-heading=""
           style={{
             marginBottom: 10,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
+            fontSize: walletSize(10),
+            fontWeight: walletStrong(700),
+            letterSpacing: walletTracking("0.18em"),
+            textTransform: walletCase("uppercase"),
             color: "var(--primary, #f97316)",
           }}
         >
-          § {heading}
+          <Mark>{"§ "}</Mark>
+          {heading}
         </div>
       )}
 
@@ -384,7 +413,7 @@ export function OcWalletButton({
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: walletSize(11),
               color: "var(--muted-foreground, #a1a1aa)",
               lineHeight: 1.4,
             }}
@@ -399,13 +428,12 @@ export function OcWalletButton({
                 padding: "8px 10px",
                 maxHeight: 96,
                 overflow: "auto",
-                background:
-                  "color-mix(in oklch, var(--muted, #27272a) 30%, transparent)",
+                background: WALLET_SURFACE,
                 border: "1px solid var(--border, #27272a)",
-                borderRadius: 6,
+                borderRadius: walletRadius(6),
                 color: "var(--foreground, #fafafa)",
                 fontFamily: "inherit",
-                fontSize: 11,
+                fontSize: walletSize(11),
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-all",
               }}
@@ -428,10 +456,10 @@ export function OcWalletButton({
                 top: 6,
                 right: 6,
                 padding: "2px 8px",
-                fontSize: 10,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                borderRadius: 4,
+                fontSize: walletSize(10),
+                letterSpacing: walletTracking("0.06em"),
+                textTransform: walletCase("uppercase"),
+                borderRadius: walletButtonRadius(4),
                 background: "var(--background, #09090b)",
                 color: "var(--muted-foreground, #a1a1aa)",
                 border: "1px solid var(--border, #27272a)",
@@ -439,7 +467,7 @@ export function OcWalletButton({
                 fontFamily: "inherit",
               }}
             >
-              {copied ? "copied" : "copy"}
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
           <textarea
@@ -458,13 +486,12 @@ export function OcWalletButton({
               boxSizing: "border-box",
               padding: "8px 10px",
               resize: "vertical",
-              background:
-                "color-mix(in oklch, var(--muted, #27272a) 30%, transparent)",
+              background: WALLET_SURFACE,
               border: "1px solid var(--border, #27272a)",
-              borderRadius: 6,
+              borderRadius: walletRadius(6),
               color: "var(--foreground, #fafafa)",
               fontFamily: "inherit",
-              fontSize: 12,
+              fontSize: WALLET_FIELD_SIZE,
             }}
           />
           <div style={{ display: "flex", gap: 8 }}>
@@ -488,10 +515,11 @@ export function OcWalletButton({
               style={{
                 flex: 1,
                 padding: "8px 12px",
-                borderRadius: 6,
+                minHeight: WALLET_MIN_HEIGHT,
+                borderRadius: walletButtonRadius(6),
                 fontFamily: "inherit",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: walletSize(12),
+                fontWeight: walletStrong(600),
                 cursor: manual.sig.trim() ? "pointer" : "not-allowed",
                 opacity: manual.sig.trim() ? 1 : 0.4,
                 background: "var(--primary, #f97316)",
@@ -506,29 +534,38 @@ export function OcWalletButton({
               onClick={() => setManual(null)}
               style={{
                 padding: "8px 12px",
-                borderRadius: 6,
+                minHeight: WALLET_MIN_HEIGHT,
+                borderRadius: walletButtonRadius(6),
                 fontFamily: "inherit",
-                fontSize: 12,
+                fontSize: walletSize(12),
+                textTransform: walletCase("lowercase"),
                 background: "transparent",
                 color: "var(--muted-foreground, #a1a1aa)",
                 border: "1px solid var(--border, #27272a)",
                 cursor: "pointer",
               }}
             >
-              ← back
+              <Mark>{"← "}</Mark>
+              Back
             </button>
           </div>
         </div>
       ) : visible.length === 0 ? (
         <div
           style={{
-            fontSize: 11,
+            fontSize: walletSize(11),
             color: "var(--muted-foreground, #a1a1aa)",
             lineHeight: 1.4,
           }}
         >
-          {emptyState ??
-            "// no Bitcoin wallets detected — install UniSat, Xverse, Leather, Alby, OKX, or Phantom, or paste a signature."}
+          {emptyState ?? (
+            <>
+              <Mark>{"// "}</Mark>
+              <span style={{ textTransform: walletCase("lowercase") }}>No</span>
+              {" Bitcoin wallets detected — install UniSat, Xverse, Leather, " +
+                "Alby, OKX, or Phantom, or paste a signature."}
+            </>
+          )}
         </div>
       ) : (
         <div
@@ -544,12 +581,12 @@ export function OcWalletButton({
             const disabled = Boolean(busyId) && !busy;
             const isInstall = !w.detected && !w.isManual;
             const statusLabel = busy
-              ? "signing…"
+              ? "Signing…"
               : w.isManual
-                ? "paste"
+                ? "Paste"
                 : w.detected
-                  ? "ready"
-                  : "install";
+                  ? "Ready"
+                  : "Install";
             return (
               <button
                 key={w.id}
@@ -566,13 +603,15 @@ export function OcWalletButton({
                   alignItems: "center",
                   gap: 8,
                   padding: isRow ? "6px 10px" : "8px 12px",
-                  background:
-                    "color-mix(in oklch, var(--muted, #27272a) 30%, transparent)",
+                  minHeight: WALLET_MIN_HEIGHT,
+                  background: WALLET_SURFACE,
                   color: "var(--foreground, #fafafa)",
                   border: "1px solid var(--border, #27272a)",
-                  borderRadius: isRow ? 9999 : 6,
+                  borderRadius: isRow
+                    ? walletButtonRadius(9999)
+                    : walletRadius(6),
                   fontFamily: "inherit",
-                  fontSize: 12,
+                  fontSize: walletSize(12),
                   cursor: disabled ? "not-allowed" : "pointer",
                   opacity: disabled ? 0.4 : isInstall ? 0.7 : 1,
                   width: isRow ? "auto" : "100%",
@@ -583,21 +622,21 @@ export function OcWalletButton({
                 <span
                   aria-hidden="true"
                   style={{
-                    fontSize: 8,
+                    fontSize: walletSize(8),
                     color: w.detected
-                      ? "#22c55e"
+                      ? WALLET_READY
                       : "var(--muted-foreground, #a1a1aa)",
                   }}
                 >
                   {w.detected ? "●" : w.isManual ? "◌" : "○"}
                 </span>
-                <span style={{ fontWeight: 600 }}>{w.name}</span>
+                <span style={{ fontWeight: walletStrong(600) }}>{w.name}</span>
                 <span
                   style={{
                     color: "var(--muted-foreground, #a1a1aa)",
-                    fontSize: 10,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
+                    fontSize: walletSize(10),
+                    letterSpacing: walletTracking("0.06em"),
+                    textTransform: walletCase("uppercase"),
                     marginLeft: isRow ? 4 : "auto",
                   }}
                 >
@@ -615,9 +654,9 @@ export function OcWalletButton({
           style={{
             marginTop: 8,
             padding: "4px 0",
-            fontSize: 10,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
+            fontSize: walletSize(10),
+            letterSpacing: walletTracking("0.06em"),
+            textTransform: walletCase("uppercase"),
             color: "var(--muted-foreground, #a1a1aa)",
             background: "transparent",
             border: "none",
@@ -626,7 +665,7 @@ export function OcWalletButton({
             fontFamily: "inherit",
           }}
         >
-          cancel pending sign
+          Cancel pending sign
         </button>
       )}
     </div>
