@@ -1,0 +1,97 @@
+/*
+ * @orangecheck/app-design — code.css
+ *
+ * Highlighted code: the token colours and the marked lines. Every rule sits
+ * inside .oca-code (a CodeBlock's dark well), because the syntax colours are
+ * measured against the well and would fail on a light surface.
+ */
+
+[data-oc-app='ochk'] .oca-code .oca-k,
+[data-oc-app='ochk'] .oca-code .oca-g {
+    color: var(--oca-code-keyword);
+}
+[data-oc-app='ochk'] .oca-code .oca-s {
+    color: var(--oca-code-string);
+}
+[data-oc-app='ochk'] .oca-code .oca-n {
+    color: var(--oca-code-number);
+}
+[data-oc-app='ochk'] .oca-code .oca-f,
+[data-oc-app='ochk'] .oca-code .oca-u {
+    color: var(--oca-code-function);
+}
+[data-oc-app='ochk'] .oca-code .oca-y {
+    color: var(--oca-code-type);
+}
+[data-oc-app='ochk'] .oca-code .oca-p {
+    color: var(--oca-code-property);
+}
+[data-oc-app='ochk'] .oca-code .oca-c {
+    color: var(--oca-code-comment);
+}
+
+/* One line per span, as wide as the widest line, so a mark runs edge to edge. */
+[data-oc-app='ochk'] .oca-code [data-line] {
+    position: relative;
+    display: inline-block;
+    min-width: 100%;
+    padding-inline: 1.25rem;
+}
+
+[data-oc-app='ochk'] .oca-code [data-mark] {
+    background: var(--oca-code-mark);
+    box-shadow: inset 2px 0 0 var(--oca-orange);
+}
+
+/* A diff: every line leaves room for its sign, so context stays aligned. */
+[data-oc-app='ochk'] .oca-code[data-diff] [data-line] {
+    padding-left: 2.25rem;
+}
+[data-oc-app='ochk'] .oca-code [data-diff='add'] {
+    background: var(--oca-code-added-line);
+}
+[data-oc-app='ochk'] .oca-code [data-diff='remove'] {
+    background: var(--oca-code-removed-line);
+}
+[data-oc-app='ochk'] .oca-code [data-diff]::after {
+    position: absolute;
+    left: 1rem;
+    user-select: none;
+}
+/* The sign is drawn, not written, so copying a line never picks it up.
+   Screen readers hear what it means. */
+[data-oc-app='ochk'] .oca-code [data-diff='add']::after {
+    content: '+';
+    content: '+' / 'Added: ';
+    color: var(--oca-code-added);
+}
+[data-oc-app='ochk'] .oca-code [data-diff='remove']::after {
+    content: '−';
+    content: '−' / 'Removed: ';
+    color: var(--oca-code-removed);
+}
+
+/* Line numbers: counted, drawn, never copied or read out. */
+[data-oc-app='ochk'] .oca-code[data-line-numbers] code {
+    counter-reset: oca-line;
+}
+[data-oc-app='ochk'] .oca-code[data-line-numbers] [data-line] {
+    padding-left: 3.25rem;
+}
+[data-oc-app='ochk'] .oca-code[data-line-numbers][data-diff] [data-line] {
+    padding-left: 4.5rem;
+}
+[data-oc-app='ochk'] .oca-code[data-line-numbers][data-diff] [data-diff]::after {
+    left: 3.25rem;
+}
+[data-oc-app='ochk'] .oca-code[data-line-numbers] [data-line]::before {
+    counter-increment: oca-line;
+    content: counter(oca-line);
+    content: counter(oca-line) / '';
+    position: absolute;
+    left: 0;
+    width: 2.25rem;
+    text-align: right;
+    color: var(--oca-code-comment);
+    user-select: none;
+}

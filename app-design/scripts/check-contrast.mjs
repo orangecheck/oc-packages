@@ -74,6 +74,16 @@ const PAIRS = [
     ['oca-code-package', 'oca-code-surface', 4.5],
     ['oca-code-tag', 'oca-code-surface', 4.5],
     ['oca-code-link', 'oca-code-surface', 4.5],
+    // Syntax: every token on the well, on the dark card, and on each marked line.
+    ...['keyword', 'string', 'number', 'function', 'type', 'property', 'comment', 'punctuation', 'added', 'removed'].flatMap(
+        (t) =>
+            ['oca-code-surface', 'oca-ink-card', 'oca-code-mark', 'oca-code-added-line', 'oca-code-removed-line'].map(
+                (bg) => [`oca-code-${t}`, bg, 4.5]
+            )
+    ),
+    ['oca-ink-muted', 'oca-code-mark', 4.5],
+    ['oca-ink-muted', 'oca-code-added-line', 4.5],
+    ['oca-ink-muted', 'oca-code-removed-line', 4.5],
     ['secondary-foreground', 'secondary', 4.5],
     // Non-text: a field's border against the card it sits on (WCAG 1.4.11).
     ['input', 'card', 3],

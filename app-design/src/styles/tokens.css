@@ -87,6 +87,23 @@
     /* Code is a dark well in both modes, darker than any card in dark. */
     --oca-code-surface: #161616;
     --oca-code-line: #2a2a2a;
+    /* Syntax, from the deck's code card: rose keywords and tags, salmon
+       strings, peach numbers and constants, blue functions and keys, teal
+       types. Every one clears 4.5:1 on the well and on every marked line. */
+    --oca-code-keyword: #e3a8c2;
+    --oca-code-string: #e99a8f;
+    --oca-code-number: #fcb781;
+    --oca-code-function: #9db4ec;
+    --oca-code-type: #8fd0c2;
+    --oca-code-property: #9db4ec;
+    --oca-code-comment: #909397;
+    --oca-code-punctuation: #d5d8dc;
+    --oca-code-added: #86d39b;
+    --oca-code-removed: #f19a9a;
+    /* Marked lines: a highlighted line, an added one, a removed one. */
+    --oca-code-mark: #232323;
+    --oca-code-added-line: #1a2c20;
+    --oca-code-removed-line: #2f1c1c;
     /* The hairline between bands; only dark needs one. */
     --oca-band-line: transparent;
     --oca-skeleton: #e8e8e8;
@@ -108,6 +125,22 @@
     --oc-signin-strong: 500;
     /* Sentence-case labels carry no trailing arrow (auth-client ≥ 2.29). */
     --oc-signin-arrow: none;
+
+    /* The wallet picker and sign button (@orangecheck/wallet-adapter's
+       OcWalletPicker and OcWalletButton) in this design, read the same way:
+       each variable's fallback there is today's family look. */
+    --oc-wallet-font: var(--oc-font-sans);
+    --oc-wallet-case: none;
+    --oc-wallet-tracking: 0;
+    --oc-wallet-scale: 1.25;
+    --oc-wallet-strong: 500;
+    --oc-wallet-radius: 0.875rem;
+    --oc-wallet-button-radius: 9999px;
+    --oc-wallet-min-height: 2.25rem;
+    --oc-wallet-surface: var(--card);
+    --oc-wallet-ready: var(--success);
+    /* The "§ " before a heading and the "// " before a note. */
+    --oc-wallet-mark: none;
 
     /* The deck has no shadows. Overlays get one, so a dialog still separates. */
     --oc-shadow-2xs: none;
@@ -168,6 +201,9 @@
     --oca-icon-ring: #333333;
     --oca-code-surface: #0e0e0e;
     --oca-code-line: #2a2a2a;
+    --oca-code-mark: #1b1b1b;
+    --oca-code-added-line: #132519;
+    --oca-code-removed-line: #271414;
     --oca-band-line: #262626;
     --oca-skeleton: #222222;
 

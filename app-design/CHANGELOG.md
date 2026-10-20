@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added: code colours and the wallet's look
+
+- Syntax tokens for code, which is a dark well in both modes:
+  `--oca-code-keyword` (and tags), `-string`, `-number` (and constants),
+  `-function` (and links), `-type`, `-property`, `-comment`, `-punctuation`,
+  `-added`, `-removed`, from the deck's code card. Marked lines get their own
+  surfaces: `--oca-code-mark`, `-added-line`, `-removed-line`. Each colour
+  clears 4.5:1 on the well, on the dark card and on every marked line, in
+  light and dark; `yarn test` checks all 53 new pairs.
+- `styles/code.css` draws the token classes and the marked lines, only inside
+  a CodeBlock's well, where the colours were measured.
+- `--oc-wallet-*`: font, case, tracking, scale, weight, radii, height,
+  surface, the ready dot and the "§ " mark, so wallet-adapter's picker and
+  sign button can take this design the way auth-client's ceremony reads
+  `--oc-signin-*`. Inert until wallet-adapter reads them.
+
 ## [1.0.0] — 2026-10-20
 
 The family design system. Every orangecheck site moves onto it; the classic

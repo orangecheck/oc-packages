@@ -84,3 +84,55 @@ export const Type: StoryObj = {
         </div>
     ),
 };
+
+const SYNTAX: [string, string, string][] = [
+    ['--oca-code-keyword', 'keyword, tag', 'const await import'],
+    ['--oca-code-string', 'string', "'@orangecheck/gate'"],
+    ['--oca-code-number', 'number, constant', '100_000 true null'],
+    ['--oca-code-function', 'function, url', 'verify() curl'],
+    ['--oca-code-type', 'type', 'StampEnvelope'],
+    ['--oca-code-property', 'property, key', '"block_height"'],
+    ['--oca-code-comment', 'comment', '// walk the proof'],
+    ['--oca-code-punctuation', 'text, punctuation', '{ } ( ) ;'],
+    ['--oca-code-added', 'added line', '+ minDays: 30'],
+    ['--oca-code-removed', 'removed line', '− minSats: 0'],
+];
+
+const LINES: [string, string][] = [
+    ['--oca-code-surface', 'code well'],
+    ['--oca-code-mark', 'marked line'],
+    ['--oca-code-added-line', 'added line'],
+    ['--oca-code-removed-line', 'removed line'],
+];
+
+/** Code is a dark well in both modes; every colour clears 4.5:1 on the well and on every marked line. */
+export const Syntax: StoryObj = {
+    render: () => (
+        <div className="flex max-w-5xl flex-col gap-8">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {SYNTAX.map(([v, label, sample]) => (
+                    <div key={v} className="overflow-hidden rounded-2xl border border-border bg-card">
+                        <div className="flex h-16 items-center bg-[var(--oca-code-surface)] px-4 font-mono text-[0.9375rem]" style={{ color: `var(${v})` }}>
+                            {sample}
+                        </div>
+                        <div className="flex flex-col gap-0.5 p-3">
+                            <span className="text-sm font-medium">{label}</span>
+                            <code className="text-xs text-muted-foreground">{v}</code>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {LINES.map(([v, label]) => (
+                    <div key={v} className="overflow-hidden rounded-2xl border border-border bg-card">
+                        <div className="h-12 border-b border-border" style={{ background: `var(${v})` }} />
+                        <div className="flex flex-col gap-0.5 p-3">
+                            <span className="text-sm font-medium">{label}</span>
+                            <code className="text-xs text-muted-foreground">{v}</code>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    ),
+};
