@@ -41,17 +41,8 @@ export function SecurityDisclosure({
                     className="text-primary underline decoration-dotted underline-offset-3"
                 >
                     {securityContact}
-                </a>{' '}
-                — use PGP for highly sensitive findings; the fingerprint and key are published at{' '}
-                <a
-                    href="https://github.com/orangecheck/.github/blob/main/SECURITY.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                >
-                    github.com/orangecheck/.github/SECURITY.md
                 </a>
-                . Alternatively, open a private GitHub security advisory on the most relevant{' '}
+                , or open a private GitHub security advisory on the most relevant{' '}
                 <code className="text-[0.95em]">orangecheck/*</code> repository.
             </p>
 

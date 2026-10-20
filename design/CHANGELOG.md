@@ -9,6 +9,11 @@ bump that silently moves a colour is worse than a breaking one.
 
 ## [Unreleased]
 
+## [0.35.1] — 2026-10-20
+
+The classic system is frozen; this is a fix. The family footer names one licence, MIT,
+for code and specifications (OC Pledge's specification moved from CC BY 4.0 to MIT).
+
 ### Changed — the footer names one license (visible)
 
 `OcFamilyFooter`'s default legal line read `© {year} orangecheck · mit +

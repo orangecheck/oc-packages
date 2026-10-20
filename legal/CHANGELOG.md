@@ -8,6 +8,13 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.12] — 2026-10-20
+
+### Changed — no PGP key is claimed
+
+The security block said a PGP fingerprint and key were published; none was. It now
+offers email or a private GitHub security advisory.
+
 ### Changed — one reply target for security reports
 
 - **`SecurityDisclosure`, was:** "acknowledgement within 72 hours of receipt"
