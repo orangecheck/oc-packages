@@ -131,13 +131,14 @@ action.ots = await stampCommit(action.id);
 
 ## Composing with Nostr
 
-Publish the action for public auditability (OC Agent reuses OC Stamp's kind-30084 transport, disambiguated by envelope `kind`):
+Publish the action for public auditability on kind 30084, OC Agent's action kind. The `t` tag carries the delegation id, so anyone can list a delegation's actions with `{ kinds: [30084], '#t': [delegation.id] }` (oc-agent-protocol SPEC §10.3). Tags sit on the Nostr event, outside the signed envelope, so they change no id:
 
 ```ts
 await nostr.publish({
     kind: 30084,
     tags: [
         ['d', 'oc-agent-act:' + action.id],
+        ['t', action.delegation_id],
         ['kind', 'agent-action'],
         ['delegation', action.delegation_id],
         ['agent', action.signer.address],

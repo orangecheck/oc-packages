@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.3] — 2026-10-20
+
+### Fixed — the publish example tags the delegation id
+
+- The "Composing with Nostr" example now adds `['t', action.delegation_id]`,
+  the tag oc-agent-protocol 1.5.0 asks publishers to set so a delegation's
+  actions can be listed by `#t`. It also stops calling kind 30084 a shared
+  OC Stamp transport: stamps are on 30083. README only; no code change.
+
 ## [0.4.2] — 2026-10-20
 
 ### Fixed — the server-side verification example runs
