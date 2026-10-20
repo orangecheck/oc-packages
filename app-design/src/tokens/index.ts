@@ -1,38 +1,20 @@
 /*
  * The palette as data, for places CSS variables cannot reach: OG images,
- * canvas, charts, email. Every value must equal its variable in
- * styles/tokens.css; scripts/check-mirror.mjs fails the build when one drifts.
+ * canvas and WebGL, charts, email. Light and dark are generated from
+ * styles/tokens.css; scripts/check-mirror.mjs fails the build when the
+ * generated file or a brand value drifts.
  */
+import { darkPalette, lightPalette } from './palette';
+
+export { darkPalette, lightPalette } from './palette';
+
 export const APP_ATTRIBUTE = 'data-oc-app';
 export const APP_ID = 'ochk';
 
 export const appColors = {
-    light: {
-        background: '#FAFAFA',
-        foreground: '#0A0A0A',
-        card: '#FFFFFF',
-        muted: '#F2F2F2',
-        mutedForeground: '#54585E',
-        subtleForeground: '#686C72',
-        border: '#ECECEC',
-        hairlineStrong: '#DADADA',
-        accentDisplay: '#F55819',
-        accentInk: '#C73F09',
-        ring: '#EA580B',
-    },
-    dark: {
-        background: '#0A0A0A',
-        foreground: '#FAFAFA',
-        card: '#161616',
-        muted: '#1E1E1E',
-        mutedForeground: '#A3A6AA',
-        subtleForeground: '#8B8E93',
-        border: '#2A2A2A',
-        hairlineStrong: '#333333',
-        accentDisplay: '#F66D36',
-        accentInk: '#F0835A',
-        ring: '#F66D36',
-    },
+    /** Every colour token, generated from tokens.css (palette.ts): the chart series, code, ink and status colours too. */
+    light: lightPalette,
+    dark: darkPalette,
     brand: {
         orange: '#F66D36',
         orangeLight: '#FB933C',

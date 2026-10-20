@@ -95,6 +95,11 @@ const PAIRS = [
     ['oca-orange-deep', 'card', 3],
     ['oca-orange-deep', 'background', 3],
     ['oca-ink-foreground', 'oca-orange-deep', 3],
+    // Chart series and their neutral: graphical objects on the card and the page (1.4.11).
+    ...['oca-chart-1', 'oca-chart-2', 'oca-chart-3', 'oca-chart-4', 'oca-chart-neutral'].flatMap((t) => [
+        [t, 'card', 3],
+        [t, 'background', 3],
+    ]),
     // A Meter's fill with a verdict, against its track.
     ['success', 'muted', 3],
     ['warning', 'muted', 3],
@@ -119,8 +124,65 @@ for (const [mode, vars] of [
         }
     }
 }
+// The chart series as a set: every pair must stay apart, in normal vision and
+// as deuteranopia and protanopia see them (Machado et al. 2009, severity 1), by
+// at least 0.1 in OKLab. One by one, two colours can each pass and still read
+// as the same line.
+const toLinear = (hex) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+const DEUTAN = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]];
+const PROTAN = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]];
+const seenAs = (rgb, m) => m.map((row) => Math.min(1, Math.max(0, row[0] * rgb[0] + row[1] * rgb[1] + row[2] * rgb[2])));
+function oklab([r, g, b]) {
+    const [l, m, s] = [
+        0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b,
+        0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b,
+        0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b,
+    ].map((x) => Math.cbrt(Math.max(0, x)));
+    return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+const SERIES = ['oca-chart-1', 'oca-chart-2', 'oca-chart-3', 'oca-chart-4', 'oca-chart-neutral'];
+for (const [mode, vars] of [
+    ['light', light],
+    ['dark', dark],
+]) {
+    const views = SERIES.map((t) => {
+        const rgb = toLinear(vars[t]);
+        return [oklab(rgb), oklab(seenAs(rgb, DEUTAN)), oklab(seenAs(rgb, PROTAN))];
+    });
+    for (let i = 0; i < SERIES.length; i++) {
+        for (let j = i + 1; j < SERIES.length; j++) {
+            const apart = Math.min(...[0, 1, 2].map((k) => Math.hypot(...views[i][k].map((v, n) => v - views[j][k][n]))));
+            if (apart < 0.1) {
+                console.error(`✗ ${mode}: --${SERIES[i]} and --${SERIES[j]} are ${apart.toFixed(3)} apart, needs 0.1 in every view`);
+                failed++;
+            }
+        }
+    }
+}
+
+// HudCard's text over a scene: the card is the background at 85%, so the worst
+// scene behind it is black in light mode and white in dark. Its text must
+// still clear 4.5:1 there. Keep HUD_ALPHA equal to the bg-background/85 class.
+const HUD_ALPHA = 0.85;
+for (const [mode, vars, behind] of [
+    ['light', light, '#000000'],
+    ['dark', dark, '#ffffff'],
+]) {
+    const mix = (a, b) =>
+        '#' + [1, 3, 5].map((i) => Math.round(HUD_ALPHA * parseInt(a.slice(i, i + 2), 16) + (1 - HUD_ALPHA) * parseInt(b.slice(i, i + 2), 16)).toString(16).padStart(2, '0')).join('');
+    const card = mix(vars.background, behind);
+    for (const t of ['foreground', 'muted-foreground']) {
+        const r = ratio(vars[t], card);
+        if (r < 4.5) {
+            console.error(`✗ ${mode}: HudCard --${t} over the worst scene is ${r.toFixed(2)}:1, needs 4.5:1`);
+            failed++;
+        }
+    }
+}
+
 if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; the chart series stay apart; HUD text over any scene`);

@@ -196,6 +196,29 @@ const html = (el) => renderToStaticMarkup(el);
     check(strong.includes('bg-success') && strong.includes('aria-valuetext="Very strong"'), 'Meter: tone good is not the success fill');
 }
 
+// 1.6: figures and where they come from.
+{
+    const up = html(h(C.Sparkline, { values: [3, 5, 4, 9], label: 'Sign-ups, 4 days, 3 to 9', tone: 'trend' }));
+    check(up.includes('role="img"') && up.includes('aria-label="Sign-ups, 4 days, 3 to 9"') && up.includes('var(--oca-chart-up)') && /<path d="M0\.00,/.test(up), 'Sparkline: not a named picture of its values, or not green going up');
+    check(html(h(C.Sparkline, { values: [9, 4], label: 'x', tone: 'trend' })).includes('var(--oca-chart-down)'), 'Sparkline: not red going down');
+    check(C.chartColor(0) === 'var(--oca-chart-1)' && C.chartColor(5) === 'var(--oca-chart-2)' && C.chartColor('neutral') === 'var(--oca-chart-neutral)', 'chartColor: series do not map to the tokens');
+    const frame = html(h(C.ChartFrame, { legend: [{ label: 'Price', color: 1 }, { label: '200-week mean', color: 'neutral', dashed: true }], caption: 'Daily close' }, h('svg', null)));
+    check(frame.includes('class="oca-chart') && frame.includes('--swatch:var(--oca-chart-1)') && frame.includes('data-swatch="dashed"'), 'ChartFrame: no legend in the series colours');
+    const line = html(h(C.SourceNote, { source: 'mempool.space', href: 'https://mempool.space/api', updated: 'Updated 2 min ago', variant: 'line' }));
+    check(line.includes('href="https://mempool.space/api"') && line.includes('Updated 2 min ago') && line.includes('Source: '), 'SourceNote line: the source is not named and linked');
+    check(/<button[^>]*>[\s\S]*Source<\/button>/.test(html(h(C.SourceNote, { source: 'Bitnodes' }))), 'SourceNote: no Source button');
+    const panel = html(h(C.Panel, { title: 'Price', description: 'Daily close, 5 years', expandable: true, source: h('p', null, 'src') }, (expanded) => h('p', null, expanded ? 'big' : 'small')));
+    check(panel.includes('>Price</h3>') && panel.includes('aria-label="Open full screen"') && panel.includes('<p>small</p>') && panel.includes('<p>src</p>'), 'Panel: a part is missing');
+    const hud = html(h(C.HudCard, { eyebrow: 'Next block', live: true, title: '~4 min' }, h('p', null, 'row')));
+    check(hud.includes('backdrop-blur-md') && hud.includes('animate-pulse') && hud.includes('~4 min'), 'HudCard: not a live card over the scene');
+    const kv = html(h(C.KeyValueList, { items: [{ label: 'MVRV', value: '1.8', note: 'Fair value', tone: 'good' }, { label: 'Funding', value: '0.04%', tone: 'bad' }] }));
+    check(/1\.8<span class="[^"]*text-success[^"]*">Fair value/.test(kv) && /<dd class="[^"]*text-destructive[^"]*">0\.04%/.test(kv), 'KeyValueList: tone does not colour the note, or the value without one');
+    const stat = (delta) => html(h(C.StatCard, { label: 'Price', value: '$68,200', delta }));
+    check(stat({ value: 2.4, suffix: '%' }).includes('text-success') && stat({ value: 2.4, suffix: '%' }).includes('+2.4%'), 'StatCard: a rise is not green and signed');
+    check(stat({ value: -1.2, suffix: '%' }).includes('text-destructive') && stat({ value: -1.2, suffix: '%' }).includes('−1.2%'), 'StatCard: a fall is not red and signed');
+    check(stat({ value: -3, good: 'down' }).includes('text-success'), 'StatCard: good: down does not make a fall green');
+}
+
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];

@@ -68,6 +68,19 @@
     --oca-orange-light: #fb933c;
     --oca-orange: #f66d36;
     --oca-orange-deep: #ea580b;
+
+    /* Chart series: four categorical colours and a neutral, orange first. Each
+       clears 3:1 on the card and the page, and every pair stays apart in
+       normal vision and with red-green colour blindness (check-contrast.mjs
+       tests the set). Up and down are the status colours. */
+    --oca-chart-1: #ea580b;
+    --oca-chart-2: #2563eb;
+    --oca-chart-3: #9d2b77;
+    --oca-chart-4: #92400e;
+    --oca-chart-neutral: #8a8f96;
+    --oca-chart-up: var(--success);
+    --oca-chart-down: var(--destructive);
+    --oca-chart-grid: var(--border);
     --oca-sphere-from: #ff6f33;
     --oca-sphere-to: #ffd9c4;
     --oca-outline: #f2cfc3;
@@ -199,6 +212,11 @@
     --oca-table-head: #1e1e1e;
     --oca-accent-display: #f66d36;
     --oca-accent-ink: #f0835a;
+    --oca-chart-1: #f66d36;
+    --oca-chart-2: #3b82f6;
+    --oca-chart-3: #f9a8d4;
+    --oca-chart-4: #fde047;
+    --oca-chart-neutral: #62676e;
     --oca-outline: #3a2a24;
     /* In dark the ink band lifts off the canvas, so the deck's rhythm survives. */
     --oca-ink: #171717;

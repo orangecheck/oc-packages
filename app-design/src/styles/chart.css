@@ -1,0 +1,76 @@
+/*
+ * @orangecheck/app-design — chart.css
+ *
+ * The chrome of a chart drawn by hand in SVG, by class, inside ChartFrame's
+ * .oca-chart: axis labels, gridlines, the zero line, a crosshair, markers,
+ * the legend and the hover card. The series colours are the --oca-chart-*
+ * tokens, which clear 3:1 on the card in both modes.
+ */
+
+[data-oc-app='ochk'] .oca-chart .oca-chart-tick {
+    fill: var(--muted-foreground);
+    font-family: var(--oc-font-mono);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+[data-oc-app='ochk'] .oca-chart .oca-chart-grid {
+    stroke: var(--oca-chart-grid);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+[data-oc-app='ochk'] .oca-chart .oca-chart-axis {
+    stroke: var(--oca-hairline-strong);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+[data-oc-app='ochk'] .oca-chart .oca-chart-zero {
+    stroke: var(--muted-foreground);
+    stroke-opacity: 0.6;
+    stroke-width: 1;
+}
+[data-oc-app='ochk'] .oca-chart .oca-chart-crosshair {
+    stroke: var(--foreground);
+    stroke-opacity: 0.3;
+    stroke-width: 1;
+    pointer-events: none;
+}
+[data-oc-app='ochk'] .oca-chart .oca-chart-marker {
+    stroke: var(--muted-foreground);
+    stroke-dasharray: 3 3;
+    stroke-width: 1;
+}
+
+/* The legend: a short line in each series' colour, then its name. */
+[data-oc-app='ochk'] .oca-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+}
+[data-oc-app='ochk'] .oca-chart-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+}
+[data-oc-app='ochk'] .oca-chart-legend [data-swatch] {
+    width: 0.875rem;
+    height: 0;
+    border-top: 2px solid var(--swatch);
+}
+[data-oc-app='ochk'] .oca-chart-legend [data-swatch='dashed'] {
+    border-top-style: dashed;
+}
+
+/* The card that follows the pointer. */
+[data-oc-app='ochk'] .oca-chart-tooltip {
+    pointer-events: none;
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    background: var(--popover);
+    color: var(--popover-foreground);
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    box-shadow: var(--oc-shadow-md, 0 4px 12px rgb(0 0 0 / 0.12));
+}

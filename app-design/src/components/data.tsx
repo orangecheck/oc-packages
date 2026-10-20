@@ -73,10 +73,30 @@ export interface StatCardProps {
     raw?: number | null;
     /** `sm` for a tool page: tighter, a smaller figure. Defaults to the density around it. */
     size?: 'md' | 'sm';
+    /**
+     * The change beside the figure: `{ value: -2.4, suffix: '%' }`. Green when
+     * it moves the good way (`good`, default up), red the other, quiet at 0.
+     */
+    delta?: { value: number; suffix?: string; good?: 'up' | 'down'; label?: string };
     className?: string;
 }
 
-export function StatCard({ label, value, hint, size, className }: StatCardProps) {
+function Delta({ value, suffix = '', good = 'up', label }: NonNullable<StatCardProps['delta']>) {
+    const dir = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
+    const tone = dir === 'flat' ? 'text-muted-foreground' : dir === good ? 'text-success' : 'text-destructive';
+    const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+    return (
+        <span className={cn('inline-flex items-baseline gap-1 text-[0.8125rem] font-normal tracking-normal oca-tabular', tone)}>
+            <span aria-hidden>{dir === 'up' ? '↑' : dir === 'down' ? '↓' : '·'}</span>
+            {sign}
+            {Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+            {suffix}
+            {label ? <span className="text-muted-foreground"> {label}</span> : null}
+        </span>
+    );
+}
+
+export function StatCard({ label, value, hint, size, delta, className }: StatCardProps) {
     const inGrid = useContext(InStatGrid);
     const density = useDensity();
     const sm = (size ?? (density === 'compact' ? 'sm' : 'md')) === 'sm';
@@ -98,10 +118,12 @@ export function StatCard({ label, value, hint, size, className }: StatCardProps)
                 className={cn(
                     'break-words oca-tabular leading-tight tracking-[-0.02em]',
                     sm ? 'text-[1.25rem]' : 'text-[1.5rem] md:text-[1.75rem]',
-                    inGrid && 'self-end'
+                    inGrid && 'self-end',
+                    delta && 'flex flex-wrap items-baseline gap-x-2'
                 )}
             >
                 {value}
+                {delta ? <Delta {...delta} /> : null}
             </span>
             {hint ? (
                 <span className="text-[0.8125rem] leading-snug text-muted-foreground">{hint}</span>
@@ -224,7 +246,22 @@ export interface KeyValueItem {
     label: ReactNode;
     value: ReactNode;
     mono?: boolean;
+    /** After the value: what it means ("Undervalued", "Above the 200-week mean"). */
+    note?: ReactNode;
+    /** Colours the note, or the value when there is none. */
+    tone?: ValueTone;
 }
+
+/** A reading's verdict, in words and colour: good, caution, bad, the accent, or quiet. */
+export type ValueTone = 'good' | 'caution' | 'bad' | 'brand' | 'muted';
+
+const TONE_TEXT: Record<ValueTone, string> = {
+    good: 'text-success',
+    caution: 'text-warning',
+    bad: 'text-destructive',
+    brand: 'text-oca-accent-ink',
+    muted: 'text-muted-foreground',
+};
 
 export function KeyValueList({
     items,
@@ -256,10 +293,14 @@ export function KeyValueList({
                         className={cn(
                             'min-w-0 break-words',
                             tight ? 'text-[0.875rem]' : 'text-[0.9375rem]',
-                            it.mono && (tight ? 'font-mono text-[0.8125rem]' : 'font-mono text-[0.875rem]')
+                            it.mono && (tight ? 'font-mono text-[0.8125rem]' : 'font-mono text-[0.875rem]'),
+                            it.tone && !it.note && TONE_TEXT[it.tone]
                         )}
                     >
                         {it.value}
+                        {it.note ? (
+                            <span className={cn('ml-2 font-sans text-[0.8125rem]', TONE_TEXT[it.tone ?? 'muted'])}>{it.note}</span>
+                        ) : null}
                     </dd>
                 </div>
             ))}

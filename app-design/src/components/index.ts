@@ -41,6 +41,7 @@ export type {
     StatCardProps,
     StatGridProps,
     StepState,
+    ValueTone,
 } from './data';
 export { Reveal, ScrollStory, Ticker, useInView } from './motion';
 export { BrowserFrame, FloatChip, PhoneFrame } from './frames';
@@ -48,6 +49,8 @@ export { Monogram, monogramGround, monogramLetter } from './monogram';
 export { ErrorBoundary } from './error-boundary';
 export { ErrorPage } from './error-page';
 export { CountdownRing, LockedPreview, PlanCard } from './apps';
+export { ChartFrame, chartColor, HudCard, Panel, SourceNote, Sparkline } from './figures';
+export type { ChartTone, LegendItem, SourceNoteProps } from './figures';
 export { Closing, EndpointList, FactBlock, FactRows, Faq, ProofStrip, SectionHeading } from './blocks';
 export type { Endpoint, FactRow } from './blocks';
 export { LegalDocument } from './legal';

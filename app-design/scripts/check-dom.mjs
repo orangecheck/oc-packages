@@ -37,7 +37,7 @@ window.ResizeObserver ??= class {
     disconnect() {}
 };
 // Node has its own Event and CustomEvent; a DOM node only takes jsdom's (Radix dispatches CustomEvents).
-for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'HTMLInputElement', 'Element', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FocusEvent', 'PointerEvent', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
+for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'HTMLInputElement', 'Element', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FocusEvent', 'PointerEvent', 'NodeFilter', 'DocumentFragment', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
     Object.defineProperty(globalThis, key, { value: key === 'window' ? window : window[key], configurable: true, writable: true });
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -184,9 +184,36 @@ for (const mode of ['dark', 'light']) {
     await clock.unmount();
 }
 
+// Panel: full screen draws the body again, bigger; Escape brings it back.
+{
+    const { host, unmount } = await mount(
+        h(C.Panel, { title: 'Price', expandable: true }, (expanded) => h('p', { 'data-size': expanded ? 'big' : 'small' }, 'chart'))
+    );
+    await act(async () => host.querySelector('button[aria-label="Open full screen"]').click());
+    const dialog = document.querySelector('[role="dialog"]');
+    check(dialog?.querySelector('[data-size="big"]') && dialog.textContent.includes('Price'), 'Panel: full screen does not draw the body expanded');
+    await act(async () => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    check(!document.querySelector('[role="dialog"]'), 'Panel: Escape does not close full screen');
+    await unmount();
+}
+
+// SourceNote: the button opens the source, named and linked.
+{
+    const { host, unmount } = await mount(h(C.SourceNote, { source: 'Bitnodes', href: 'https://bitnodes.io', detail: 'GET /api/v1/snapshots/latest/' }));
+    await act(async () => {
+        const b = host.querySelector('button');
+        b.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+        b.click();
+    });
+    const pop = document.querySelector('[role="dialog"]');
+    check(pop?.querySelector('a[href="https://bitnodes.io"]') && pop.textContent.includes('/api/v1/snapshots/latest/'), 'SourceNote: the popover does not name and link the source');
+    await unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source`);
 process.exit(0);

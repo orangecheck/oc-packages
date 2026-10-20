@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 /*
  * appColors (src/tokens) is the palette for places CSS cannot reach: OG
- * images, canvas, charts, email. Each value must equal its variable in
- * tokens.css, or an OG card and the page it links to disagree. Reads the
- * built module, so run it after `yarn build`.
+ * images, canvas and WebGL, charts, email. Light and dark are generated from
+ * tokens.css into src/tokens/palette.ts, so the committed file must be what
+ * the generator writes today, and the built module must carry every colour.
+ * The hand-written brand values must equal their variables. Run after
+ * `yarn build`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { buildPalette, PALETTE_FILE, renderPalette } from './gen-palette.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, '../dist/tokens.js');
@@ -17,39 +21,35 @@ if (!existsSync(dist)) {
     process.exit(1);
 }
 const { appColors } = createRequire(import.meta.url)(dist);
-const css = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8');
-
-function block(selectorStart) {
-    const open = css.indexOf('{', css.indexOf(selectorStart));
-    const vars = {};
-    for (const m of css.slice(open + 1, css.indexOf('}', open)).matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\b/gi)) {
-        vars[m[1]] = m[2].toLowerCase();
-    }
-    return vars;
-}
-const light = block(":root[data-oc-app='ochk'],");
-const modes = { light, dark: { ...light, ...block(":root.dark[data-oc-app='ochk'],") }, brand: light };
+const palette = buildPalette();
 
 let failures = 0;
 let checked = 0;
-for (const [mode, colors] of Object.entries(appColors)) {
-    for (const [key, value] of Object.entries(colors)) {
-        // mutedForeground → --muted-foreground; accentInk → --oca-accent-ink.
-        const kebab = key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-        const vars = modes[mode];
-        const want = vars[kebab] ?? vars[`oca-${kebab}`];
+const fail = (msg) => {
+    console.error(`✗ mirror: ${msg}`);
+    failures++;
+};
+
+if (readFileSync(PALETTE_FILE, 'utf8') !== renderPalette(palette)) {
+    fail('src/tokens/palette.ts disagrees with tokens.css; run node scripts/gen-palette.mjs');
+}
+for (const mode of ['light', 'dark']) {
+    for (const [key, hex] of Object.entries(palette[mode])) {
         checked++;
-        if (!want) {
-            console.error(`✗ mirror: appColors.${mode}.${key} has no variable in tokens.css`);
-            failures++;
-        } else if (want !== String(value).toLowerCase()) {
-            console.error(`✗ mirror: appColors.${mode}.${key} is ${value}, tokens.css says ${want}`);
-            failures++;
-        }
+        if (appColors[mode][key] !== hex) fail(`appColors.${mode}.${key} is ${appColors[mode][key]}, tokens.css says ${hex}`);
     }
 }
+for (const [key, value] of Object.entries(appColors.brand)) {
+    checked++;
+    // orangeDeep → --oca-orange-deep, in light mode.
+    const want = palette.light[key];
+    if (!want) fail(`appColors.brand.${key} has no variable in tokens.css`);
+    else if (want !== String(value).toLowerCase()) fail(`appColors.brand.${key} is ${value}, tokens.css says ${want}`);
+}
+if (checked < 150) fail(`only ${checked} colours mirrored; the palette lost tokens`);
+
 if (failures) {
     console.error(`\n${failures} mirror failure(s)`);
     process.exit(1);
 }
-console.log(`✓ mirror: ${checked} appColors values match tokens.css`);
+console.log(`✓ mirror: ${checked} colours, every token in light and dark, match tokens.css`);

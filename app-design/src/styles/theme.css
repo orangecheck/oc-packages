@@ -45,6 +45,13 @@
     --color-oca-orange-light: var(--oca-orange-light);
     --color-oca-orange: var(--oca-orange);
     --color-oca-orange-deep: var(--oca-orange-deep);
+    --color-oca-chart-1: var(--oca-chart-1);
+    --color-oca-chart-2: var(--oca-chart-2);
+    --color-oca-chart-3: var(--oca-chart-3);
+    --color-oca-chart-4: var(--oca-chart-4);
+    --color-oca-chart-neutral: var(--oca-chart-neutral);
+    --color-oca-chart-up: var(--oca-chart-up);
+    --color-oca-chart-down: var(--oca-chart-down);
     --color-oca-outline: var(--oca-outline);
     --color-oca-ink: var(--oca-ink);
     --color-oca-ink-card: var(--oca-ink-card);

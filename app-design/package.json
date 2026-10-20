@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",
@@ -89,7 +89,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup && yarn copy:css",
+    "build": "node scripts/gen-palette.mjs && tsup && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
     "test": "node scripts/check-contrast.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-next.mjs",
     "dev": "tsup --watch",

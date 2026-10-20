@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-10-20
+
+What globe and btc need: figures, their charts, and where each number comes
+from. A chart library is still not part of the system; btc keeps its own
+LineChart and draws it in these tokens and classes.
+
+- Chart tokens: `--oca-chart-1` to `-4` and `-neutral`, orange first, plus
+  `-up`, `-down` (the status colours) and `-grid`. Each series clears 3:1 on
+  the card and the page in both modes, and `yarn test` checks them as a set:
+  every pair stays apart in normal vision and as deuteranopia and protanopia
+  see them. Tailwind names them `oca-chart-*`, and `chartColor(i)` gives the
+  CSS colour for series i.
+- `ChartFrame` with a legend in the series' colours (dashed for a dashed
+  line) and a caption. Inside it a hand-drawn SVG takes the chrome by class:
+  `oca-chart-tick`, `-grid`, `-axis`, `-zero`, `-crosshair`, `-marker`, and
+  `oca-chart-tooltip` for the hover card.
+- `Sparkline`: a named picture of a trend, stretching to its box. `tone`
+  takes ink, muted, a series, or `trend` (up or down by its first and last
+  values).
+- `Panel`: title, line, actions, body, and a source at its foot.
+  `expandable` opens the body over the full window, and Escape closes it.
+  Pass `children` as a function to draw it bigger there.
+- `SourceNote`: "where this number comes from", with the source named and
+  linked, how it is read, and when. It is a Source button with a popover,
+  or `variant="line"`, one line of fine print for a canvas in full screen or
+  a footer.
+- `HudCard`: a translucent card over a canvas, with an eyebrow, a live dot,
+  a headline figure, rows and a footnote. Its text clears 4.5:1 over any
+  scene, and the contrast check works that out for the worst one.
+- `KeyValueList` items take `note` (a verdict) and `tone` (good, caution,
+  bad, brand, muted).
+- `StatCard delta`: the change beside the figure, signed, with an arrow. It
+  is green when it moves the good way (`good: 'up' | 'down'`), red when it
+  moves the other way, and quiet at zero.
+- `appColors` (./tokens) now has every colour token in both modes, the chart
+  series included, generated from tokens.css into `palette.ts` at build. It
+  is also exported as `lightPalette` and `darkPalette`. Values are
+  lowercase. check-mirror fails if the file falls behind tokens.css.
+
 ## [1.5.0] — 2026-10-20
 
 What vault, chat and cosign need to move onto the system. The public goods'
