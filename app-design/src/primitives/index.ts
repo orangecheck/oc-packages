@@ -2,6 +2,8 @@ export { Button, buttonVariants } from './button';
 export type { ButtonProps } from './button';
 export { Badge, badgeVariants, StatusPill } from './badge';
 export type { BadgeProps } from './badge';
+export { StatusBadge, statusWord } from './status-badge';
+export type { Statement, Status, StatusBadgeProps } from './status-badge';
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardNumeral, CardTitle, cardVariants } from './card';
 export type { CardProps } from './card';
 export {

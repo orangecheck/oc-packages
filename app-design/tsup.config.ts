@@ -8,6 +8,7 @@ export default defineConfig({
         brand: 'src/brand/index.ts',
         components: 'src/components/index.ts',
         chrome: 'src/chrome/index.ts',
+        family: 'src/family/index.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,

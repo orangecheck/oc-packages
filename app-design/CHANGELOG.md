@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+### Added: the family's chrome
+
+- `./family` entry: every public site as data, no React. `FAMILY` (slug,
+  label, href, group, one line, status, and for an app the protocols it
+  shows), `PROTOCOLS` in the fixed order Attest · Lock · Vote · Stamp ·
+  Agent · Pledge (each with `verb`, `pageHref` on ochk.io, `toolHref`,
+  `specHref`, `kinds`), `FAMILY_GROUPS` (orangecheck, Protocols, Apps,
+  Public goods), `familySite`, `protocolSite`, `familyByGroup`,
+  `LEGAL_LINKS`, and `OCHK_IO_NAV` / `OCHK_IO_FOOTER` so ochk.io and its
+  docs draw one header. Slugs match the classic system's.
+- `FamilyMenu`: a chevron beside the lockup (the lockup stays a link home)
+  opens every site in its group, one line each, a status only where a site
+  is not live, the current site marked.
+- `SiteHeader` takes `product` (the site's word beside the lockup),
+  `family` (`true` or the site's slug), `search` (a slot before the
+  actions), `variant: 'tool'` (56px, full width, a hairline under it) and
+  `NavItem.children` (one dropdown level, each child with a `description`).
+  On a phone the navigation and the family share one sheet.
+- `SiteFooter` takes `family` (the registry's columns), `legal` (Privacy,
+  Terms, Security, Trademarks, Contact on ochk.io, and the copyright line)
+  and `compact` (one row for tools). Any number of columns lays out without
+  overrides: the lockup shares their row up to five.
+- `SkipLink`, `SiteBanner` (one strip above the header in the three notice
+  tones; each site keeps the rule that shows it) and `SignInFrame` (the
+  split sign-in page: form column, ink art column from lg).
+- `ErrorPage` (components): code, one sentence, a way on; a server error
+  adds a retry. The check drawn in hairlines sits beside it on a wide screen.
+- `StatusBadge` (primitives): Live, In testing, Not yet, Paused for a site;
+  Good, Caution, Refused for a check. Fixed words, no free text.
+- `TextLink` (components): router for this site's pages, a plain anchor for
+  `/api/` and `/.well-known/`, a new tab (announced) for another site.
+- `SectionHeading` (components): eyebrow, display title as an h2, one line.
+
 ### Accessibility
 
 - The focus ring is the deep orange (`#EA580B`) in light mode. The brand

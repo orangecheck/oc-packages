@@ -81,7 +81,7 @@ const preview: Preview = {
                     'Chrome',
                     'Patterns',
                     'ochk.app',
-                    ['Introduction', 'Tokens', 'Brand', 'Primitives', 'Components', 'Chrome', 'Pages'],
+                    ['Introduction', 'Tokens', 'Brand', 'Primitives', 'Components', 'Blocks', 'Protocol', 'Family', 'Chrome', 'Pages'],
                 ],
             },
         },

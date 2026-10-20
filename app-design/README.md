@@ -30,7 +30,8 @@ family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the sha
 | `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere` |
 | `/primitives` | `Button`, `Badge`, `Card`, form controls, `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster` |
 | `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps` … |
-| `/chrome` | `SiteHeader`, `SiteFooter`, `AppShell`, `AccountMenu`, `ThemeToggle` |
+| `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `AccountMenu`, `ThemeToggle` |
+| `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`); no React |
 | `/tokens` | the palette as data, for OG images and charts |
 
 `yarn test` fails if any text token drops under WCAG AA in light or dark, or if a

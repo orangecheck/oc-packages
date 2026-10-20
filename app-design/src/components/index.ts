@@ -35,3 +35,6 @@ export { Reveal, ScrollStory, Ticker, useInView } from './motion';
 export { BrowserFrame, FloatChip, PhoneFrame } from './frames';
 export { Monogram, monogramGround, monogramLetter } from './monogram';
 export { ErrorBoundary } from './error-boundary';
+export { ErrorPage } from './error-page';
+export { SectionHeading } from './blocks';
+export { TextLink } from './text-link';

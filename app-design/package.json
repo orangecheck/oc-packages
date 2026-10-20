@@ -55,6 +55,11 @@
       "import": "./dist/chrome.mjs",
       "require": "./dist/chrome.js"
     },
+    "./family": {
+      "types": "./dist/family.d.ts",
+      "import": "./dist/family.mjs",
+      "require": "./dist/family.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
   },

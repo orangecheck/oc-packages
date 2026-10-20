@@ -40,6 +40,28 @@ export function Mark({ title, size, className, ...rest }: MarkProps) {
     );
 }
 
+/**
+ * The mark drawn in hairlines only: the check where a check is missing (an
+ * error page). Decoration; the stroke stays the same width at any size.
+ */
+export function MarkOutline({ className }: { className?: string }) {
+    return (
+        <svg viewBox="-0.2 -0.2 16.4 8.4" aria-hidden className={cn('shrink-0 overflow-visible', className)}>
+            {[TOP, LEFT, RIGHT].map((points) => (
+                <polygon
+                    key={points}
+                    points={points}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                />
+            ))}
+        </svg>
+    );
+}
+
 export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
     title?: string;
     size?: number;

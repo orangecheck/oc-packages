@@ -3,18 +3,30 @@ import {
     Activity,
     Boxes,
     CircleUser,
+    FileUp,
     House,
     KeyRound,
     LayoutGrid,
     LogOut,
+    Search,
     ShieldCheck,
     UserRound,
     Wallet,
 } from 'lucide-react';
 
-import { Badge, Button } from '../primitives';
-import { Notice, PageHeader, Sats, StatCard, StatGrid } from '../components';
-import { AccountMenu, AppShell, SiteFooter, SiteHeader, ThemeToggle } from './index';
+import { OCHK_IO_FOOTER, OCHK_IO_NAV } from '../family';
+import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
+import { Accent, ErrorPage, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
+import {
+    AccountMenu,
+    AppShell,
+    SignInFrame,
+    SiteBanner,
+    SiteFooter,
+    SiteHeader,
+    SkipLink,
+    ThemeToggle,
+} from './index';
 
 const meta: Meta = { title: 'Chrome', parameters: { fullBleed: true } };
 export default meta;
@@ -193,5 +205,234 @@ export const Sections: StoryObj = {
                 </StatGrid>
             </div>
         </AppShell>
+    ),
+};
+
+/* ── The family's chrome ─────────────────────────────────────────────── */
+
+function SearchButton() {
+    return (
+        <>
+            <button
+                type="button"
+                className="hidden h-10 items-center gap-2 rounded-full border border-border bg-card pl-3.5 pr-2 text-[0.9375rem] text-muted-foreground transition-colors hover:border-oca-hairline-strong hover:text-foreground lg:inline-flex"
+            >
+                <Search aria-hidden className="size-4" />
+                Search
+                <Kbd className="ml-4">⌘K</Kbd>
+            </button>
+            <Button variant="ghost" size="icon" aria-label="Search" className="lg:hidden">
+                <Search />
+            </Button>
+        </>
+    );
+}
+
+const SUPPORT = (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+        <p>
+            Open-source work on orangecheck is <span className="whitespace-nowrap">supported by OpenSats.</span>
+        </p>
+        <ThemeToggle className="-mx-3" />
+    </div>
+);
+
+/** ochk.io's frame: the family menu, Protocols with its six, search, and the family footer. */
+export const OchkIo: StoryObj = {
+    name: 'ochk.io header and footer',
+    render: () => (
+        <div className="min-h-screen">
+            <SkipLink />
+            <SiteHeader
+                family="home"
+                nav={OCHK_IO_NAV.map((n) =>
+                    n.label === 'Protocols'
+                        ? { ...n, active: true, children: n.children?.map((c) => ({ ...c, active: c.label === 'stamp' })) }
+                        : n
+                )}
+                search={<SearchButton />}
+                actions={
+                    <Button asChild size="sm">
+                        <a href="https://ochk.app/signin">Sign in</a>
+                    </Button>
+                }
+            />
+            <main id="main-content">
+                <PageHero
+                    eyebrow="Protocol · provenance"
+                    title={
+                        <>
+                            Prove who signed it, and <Accent>when</Accent>.
+                        </>
+                    }
+                    lead="OC Stamp signs any file's hash with a Bitcoin address and anchors it to a block. Anyone can check it, offline."
+                    actions={
+                        <>
+                            <Button>Make a stamp</Button>
+                            <Button variant="secondary">Read the spec</Button>
+                        </>
+                    }
+                />
+            </main>
+            <SiteFooter
+                columns={OCHK_IO_FOOTER}
+                family
+                legal
+                fineprint="Open protocols with Bitcoin behind them."
+                meta={SUPPORT}
+            />
+        </div>
+    ),
+};
+
+/** A tool: 56px, full width, the site's word beside the lockup, and the one-row footer. */
+export const Tool: StoryObj = {
+    name: 'Tool header and compact footer',
+    render: () => (
+        <div className="flex min-h-screen flex-col">
+            <SiteBanner tone="brand" action={<TextLink href="https://ochk.io/status">Status</TextLink>}>
+                Anchoring is slower than usual: two OpenTimestamps calendars are not answering.
+            </SiteBanner>
+            <SiteHeader
+                variant="tool"
+                product="stamp"
+                family="stamp"
+                home="/dashboard"
+                nav={[
+                    { href: '/create', label: 'Create', active: true },
+                    { href: '/verify', label: 'Verify' },
+                    { href: '/playground', label: 'Playground' },
+                    { href: '/dashboard', label: 'Dashboard' },
+                ]}
+                actions={
+                    <>
+                        <ThemeToggle className="max-sm:hidden" />
+                        <Button size="sm" variant="secondary">
+                            Sign in
+                        </Button>
+                    </>
+                }
+            />
+            <main id="main-content" className="flex-1">
+                <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-8 px-4 py-10 md:px-6 md:py-14">
+                    <PageHeader
+                        eyebrow="Create"
+                        title="Stamp a file"
+                        description="Its hash is signed with your Bitcoin address and anchored to a block. The file never leaves your browser."
+                    />
+                    <Card className="flex flex-col items-center gap-3 border-dashed py-14 text-center">
+                        <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                            <FileUp className="size-5" />
+                        </span>
+                        <p className="oca-title-sm">Drop a file, or choose one</p>
+                        <p className="oca-body text-[0.9375rem]">Only its SHA-256 is signed. Nothing is uploaded.</p>
+                    </Card>
+                </div>
+            </main>
+            <SiteFooter compact family legal />
+        </div>
+    ),
+};
+
+export const Banners: StoryObj = {
+    name: 'Banners and skip link',
+    render: () => (
+        <div className="flex min-h-screen flex-col gap-10 pb-16">
+            <SkipLink href="#banners" />
+            <div className="flex flex-col">
+                <SiteBanner action={<TextLink href="https://ochk.io/changelog">What changed</TextLink>}>
+                    The docs now live at ochk.io/docs. Old links still work.
+                </SiteBanner>
+                <SiteBanner tone="brand" action={<TextLink href="https://ochk.io/status">Status</TextLink>}>
+                    Not fully working: Bitcoin anchoring. Stamps still sign; anchors will follow.
+                </SiteBanner>
+                <SiteBanner tone="danger" action={<TextLink href="https://ochk.io/status">Status</TextLink>}>
+                    Down right now: sign-in. Some pages may not load.
+                </SiteBanner>
+            </div>
+            <div id="banners" className="oca-container flex max-w-3xl flex-col gap-3">
+                <p className="oca-title-sm">One strip above the header</p>
+                <p className="oca-body">
+                    Three tones, as a notice has. The rule that shows a banner stays in each site; the package owns
+                    how it looks. Press Tab to see the skip link.
+                </p>
+            </div>
+        </div>
+    ),
+};
+
+function MockCeremony() {
+    return (
+        <div className="flex flex-col gap-4">
+            <Button variant="secondary" className="w-full">
+                Continue with Google
+            </Button>
+            <Button variant="secondary" className="w-full">
+                Continue with GitHub
+            </Button>
+            <div className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
+                <Separator className="flex-1" />
+                or
+                <Separator className="flex-1" />
+            </div>
+            <Field label="Email">
+                <Input type="email" placeholder="you@example.com" />
+            </Field>
+            <Button className="w-full">Send a code</Button>
+        </div>
+    );
+}
+
+export const SignIn: StoryObj = {
+    name: 'Sign-in frame',
+    render: () => (
+        <SignInFrame
+            lead="New here? Signing in creates your account."
+            fineprint="Your code goes straight to orangecheck's sign-in server, ochk.io."
+            caption={
+                <>
+                    <p className="oca-display-3">
+                        One account, with <Accent>Bitcoin</Accent> behind it.
+                    </p>
+                    <p className="text-[0.9375rem] text-oca-ink-muted">Sign in. Back it. Get paid. Own it.</p>
+                </>
+            }
+        >
+            <MockCeremony />
+        </SignInFrame>
+    ),
+};
+
+export const NotFound: StoryObj = {
+    name: 'Error page, 404',
+    render: () => (
+        <div className="flex min-h-screen flex-col">
+            <SiteHeader family="home" nav={OCHK_IO_NAV} />
+            <main id="main-content" className="flex-1">
+                <ErrorPage
+                    code={404}
+                    actions={
+                        <>
+                            <Button>Go home</Button>
+                            <Button variant="secondary">See the protocols</Button>
+                        </>
+                    }
+                />
+            </main>
+            <SiteFooter compact legal />
+        </div>
+    ),
+};
+
+export const ServerError: StoryObj = {
+    name: 'Error page, 500',
+    render: () => (
+        <div className="flex min-h-screen flex-col">
+            <SiteHeader variant="tool" product="stamp" family="stamp" />
+            <main id="main-content" className="flex-1">
+                <ErrorPage code={500} />
+            </main>
+            <SiteFooter compact family legal />
+        </div>
     ),
 };

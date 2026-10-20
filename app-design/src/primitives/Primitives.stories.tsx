@@ -35,6 +35,7 @@ import {
     SelectValue,
     Skeleton,
     Spinner,
+    StatusBadge,
     StatusDot,
     Switch,
     Tabs,
@@ -300,6 +301,32 @@ export const States: StoryObj = {
                 <Field label="Name" optional hint="How the reply should address you.">
                     <Input />
                 </Field>
+            </div>
+        </div>
+    ),
+};
+
+/** Status words for a site or feature, and for a check on an artifact. Nothing else. */
+export const Statuses: StoryObj = {
+    name: 'Status badges',
+    render: () => (
+        <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-3">
+                <p className="text-[0.875rem] text-muted-foreground">A site or a feature</p>
+                <div className="flex flex-wrap gap-2">
+                    <StatusBadge status="live" />
+                    <StatusBadge status="testing" />
+                    <StatusBadge status="not-yet" />
+                    <StatusBadge status="paused" />
+                </div>
+            </div>
+            <div className="flex flex-col gap-3">
+                <p className="text-[0.875rem] text-muted-foreground">A check on a stamp, a ballot, a delegation</p>
+                <div className="flex flex-wrap gap-2">
+                    <StatusBadge status="good" />
+                    <StatusBadge status="caution" />
+                    <StatusBadge status="refused" />
+                </div>
             </div>
         </div>
     ),
