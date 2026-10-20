@@ -14,7 +14,8 @@
 - `styles/code.css` draws the token classes and the marked lines, only inside
   a CodeBlock's well, where the colours were measured.
 - `--oc-wallet-*`: font, case, tracking, scale, weight, radii, height,
-  surface, the ready dot and the "§ " mark, so wallet-adapter's picker and
+  surface, the ready dot, the signature field's size (16px, so iOS does not
+  zoom) and the decorative marks, so wallet-adapter's picker and
   sign button can take this design the way auth-client's ceremony reads
   `--oc-signin-*`. Inert until wallet-adapter reads them.
 

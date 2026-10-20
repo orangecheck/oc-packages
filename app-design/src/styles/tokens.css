@@ -139,7 +139,11 @@
     --oc-wallet-min-height: 2.25rem;
     --oc-wallet-surface: var(--card);
     --oc-wallet-ready: var(--success);
-    /* The "§ " before a heading and the "// " before a note. */
+    /* A pasted signature's field: 16px, or iOS zooms into it (an inline size
+       outranks the package's phone rule). */
+    --oc-wallet-field-size: 1rem;
+    /* The glyphs the family look writes as decoration: "§ " before a heading,
+       "// " before a note, "← " before Back. */
     --oc-wallet-mark: none;
 
     /* The deck has no shadows. Overlays get one, so a dialog still separates. */
