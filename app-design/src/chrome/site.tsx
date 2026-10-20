@@ -80,7 +80,7 @@ function NavDropdown({ item }: { item: NavItem }) {
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger
                 className={cn(
-                    'group inline-flex items-center gap-1 rounded-full py-2 pl-3 pr-2.5 text-[0.9375rem] transition-colors',
+                    'group inline-flex items-center gap-1 rounded-full py-2 pl-3 pr-2.5 text-[0.9375rem] transition-colors md:max-lg:pl-2.5 md:max-lg:pr-2',
                     active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground data-[state=open]:text-foreground'
                 )}
             >
@@ -172,7 +172,12 @@ export function SiteHeader({
         nav.length > 0 ? (
             <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
                 {nav.map((n) =>
-                    n.children?.length ? <NavDropdown key={n.href} item={n} /> : <NavLink key={n.href} item={n} line={tool} />
+                    n.children?.length ? (
+                        <NavDropdown key={n.href} item={n} />
+                    ) : (
+                        // Between md and lg the family menu and the actions share the row: tighter.
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'md:max-lg:px-2.5'} />
+                    )
                 )}
             </nav>
         ) : null;
@@ -187,7 +192,7 @@ export function SiteHeader({
             <div
                 className={cn(
                     'flex items-center justify-between gap-4',
-                    tool ? 'h-14 px-4 md:px-6' : 'oca-container h-16 md:h-[4.5rem]',
+                    tool ? 'h-14 px-4 md:px-6' : 'oca-container h-16 md:h-[4.5rem] md:max-lg:gap-2',
                     // Three columns, the outer two each at least their content: the
                     // navigation stays centred whatever the actions hold, so it does
                     // not shift when they change (signed out to signed in).

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-10-20
+
+- `SiteHeader`: between md and lg the row's gaps and the navigation's padding
+  are tighter. With the family menu beside the lockup, ochk.app's four links
+  and its account control needed 730px of a 715px row at 768px, so "How it
+  works" broke onto two lines. They now take 698px.
+
 ## [1.2.0] — 2026-10-20
 
 - `SiteFooter legal` takes a list of links as well as `true`. `true` still links
