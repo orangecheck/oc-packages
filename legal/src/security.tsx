@@ -58,11 +58,8 @@ export function SecurityDisclosure({
             <ul className="divide-y border text-xs">
                 {(
                     [
-                        ['acknowledgement', 'within 72 hours of receipt'],
-                        [
-                            'triage',
-                            'within 7 days — whether we agree it is a vulnerability, the severity assigned, and a target fix date',
-                        ],
+                        ['reply', 'we aim to reply to every report within 30 days'],
+                        ['fix', "we can't promise a time to a fix yet"],
                         [
                             'coordinated disclosure',
                             'we credit you (unless you prefer anonymity) and publish an advisory once the fix ships',

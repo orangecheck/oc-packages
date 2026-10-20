@@ -6,6 +6,16 @@ These documents are the published, binding terms for the products that render
 them. A change here changes what a customer has agreed to, so every entry says
 plainly what was claimed before and what is claimed now.
 
+## [Unreleased]
+
+### Changed — one reply target for security reports
+
+- **`SecurityDisclosure`, was:** "acknowledgement within 72 hours of receipt"
+  and "triage within 7 days — whether we agree it is a vulnerability, the
+  severity assigned, and a target fix date". **Now:** "we aim to reply to every
+  report within 30 days" and "we can't promise a time to a fix yet". Every
+  OrangeCheck repository and page now states the same target.
+
 ## [0.7.11] — 2026-10-19
 
 ### Changed — the Service is ochk.app; me.ochk.io is its API
