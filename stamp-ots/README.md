@@ -1,6 +1,6 @@
 # @orangecheck/stamp-ots
 
-> **Full reference:** [docs.ochk.io/sdk/stamp-ots](https://docs.ochk.io/sdk/stamp-ots) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/stamp-ots](https://ochk.io/docs/sdk/stamp-ots) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

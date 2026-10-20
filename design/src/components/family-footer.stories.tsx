@@ -37,12 +37,12 @@ export const Stamp: Story = {
           label: "§ docs",
           links: [
             {
-              href: "https://docs.ochk.io/stamp",
+              href: "https://ochk.io/docs/stamp",
               label: "overview",
               external: true,
             },
             {
-              href: "https://docs.ochk.io/stamp/spec",
+              href: "https://ochk.io/docs/stamp/spec",
               label: "spec",
               external: true,
             },
@@ -81,9 +81,9 @@ export const Hub: Story = {
         {
           label: "§ docs",
           links: [
-            { href: "https://docs.ochk.io", label: "overview", external: true },
+            { href: "https://ochk.io/docs", label: "overview", external: true },
             {
-              href: "https://docs.ochk.io/sdks",
+              href: "https://ochk.io/docs/sdk",
               label: "sdks",
               external: true,
             },

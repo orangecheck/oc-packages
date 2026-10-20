@@ -1,6 +1,6 @@
 # @orangecheck/agent-signer
 
-> **Full reference:** [docs.ochk.io/sdk/agent-signer](https://docs.ochk.io/sdk/agent-signer) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/agent-signer](https://ochk.io/docs/sdk/agent-signer) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

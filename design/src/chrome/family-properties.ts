@@ -24,7 +24,7 @@ export interface FamilyProperty {
     label: string;
     /** Short tagline (verb — what-it-does), shown under the wordmark in the menu. */
     sub: string;
-    /** Docs deep-link (e.g. `'https://docs.ochk.io/vault'`). */
+    /** Docs deep-link (e.g. `'https://ochk.io/docs/vault'`). */
     docsHref: string;
     /** Family-level category that shapes the visual chip + menu sectioning. */
     category: FamilyCategory;
@@ -37,16 +37,16 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'ochk.io',
         label: 'orangecheck',
         sub: 'umbrella · sign-in',
-        docsHref: 'https://docs.ochk.io',
+        docsHref: 'https://ochk.io/docs',
         category: 'hub',
     },
     {
         slug: 'docs',
-        origin: 'https://docs.ochk.io',
-        hostname: 'docs.ochk.io',
+        origin: 'https://ochk.io/docs',
+        hostname: 'ochk.io/docs',
         label: 'oc·docs',
         sub: 'unified reference',
-        docsHref: 'https://docs.ochk.io',
+        docsHref: 'https://ochk.io/docs',
         category: 'hub',
     },
     {
@@ -56,7 +56,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'ochk.app',
         label: 'ochk.app',
         sub: 'account — bitcoin behind it',
-        docsHref: 'https://docs.ochk.io/me',
+        docsHref: 'https://ochk.io/docs/me',
         category: 'product',
     },
     {
@@ -65,7 +65,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'vault.ochk.io',
         label: 'oc·vault',
         sub: 'keep — encrypted secrets',
-        docsHref: 'https://docs.ochk.io/vault',
+        docsHref: 'https://ochk.io/docs/vault',
         category: 'product',
     },
     {
@@ -74,7 +74,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'chat.ochk.io',
         label: 'oc·chat',
         sub: 'message — encrypted chat',
-        docsHref: 'https://docs.ochk.io/chat',
+        docsHref: 'https://ochk.io/docs/chat',
         category: 'product',
     },
     {
@@ -83,7 +83,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'cosign.ochk.io',
         label: 'oc·cosign',
         sub: 'cofound — get behind builders',
-        docsHref: 'https://docs.ochk.io/cosign',
+        docsHref: 'https://ochk.io/docs/cosign',
         category: 'product',
     },
     {
@@ -110,7 +110,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'attest.ochk.io',
         label: 'oc·attest',
         sub: 'am — sybil resistance',
-        docsHref: 'https://docs.ochk.io/attest',
+        docsHref: 'https://ochk.io/docs/attest',
         category: 'protocol',
     },
     {
@@ -119,7 +119,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'lock.ochk.io',
         label: 'oc·lock',
         sub: 'whisper — encryption',
-        docsHref: 'https://docs.ochk.io/lock',
+        docsHref: 'https://ochk.io/docs/lock',
         category: 'protocol',
     },
     {
@@ -128,7 +128,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'vote.ochk.io',
         label: 'oc·vote',
         sub: 'decide — polls',
-        docsHref: 'https://docs.ochk.io/vote',
+        docsHref: 'https://ochk.io/docs/vote',
         category: 'protocol',
     },
     {
@@ -137,7 +137,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'stamp.ochk.io',
         label: 'oc·stamp',
         sub: 'declare — block-anchored',
-        docsHref: 'https://docs.ochk.io/stamp',
+        docsHref: 'https://ochk.io/docs/stamp',
         category: 'protocol',
     },
     {
@@ -146,7 +146,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'agent.ochk.io',
         label: 'oc·agent',
         sub: 'delegate — scoped auth',
-        docsHref: 'https://docs.ochk.io/agent',
+        docsHref: 'https://ochk.io/docs/agent',
         category: 'protocol',
     },
     {
@@ -155,7 +155,7 @@ export const FAMILY_PROPERTIES: ReadonlyArray<FamilyProperty> = [
         hostname: 'pledge.ochk.io',
         label: 'oc·pledge',
         sub: 'swear — bonded commitment',
-        docsHref: 'https://docs.ochk.io/pledge',
+        docsHref: 'https://ochk.io/docs/pledge',
         category: 'protocol',
     },
     {

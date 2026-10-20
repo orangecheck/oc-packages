@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Add a "Full reference: docs.ochk.io/sdk/<pkg>" banner to the top of
+ * Add a "Full reference: ochk.io/docs/sdk/<pkg>" banner to the top of
  * every per-package README — right after the H1 title.
  *
  * Why a banner not a full slim: the existing READMEs vary widely
@@ -65,7 +65,7 @@ for (const entry of readdirSync(REPO_ROOT).sort()) {
 
     const banner = [
         '',
-        `> **Full reference:** [docs.ochk.io/sdk/${slug}](https://docs.ochk.io/sdk/${slug}) — auto-generated from the TypeScript source on every release.`,
+        `> **Full reference:** [ochk.io/docs/sdk/${slug}](https://ochk.io/docs/sdk/${slug}) — auto-generated from the TypeScript source on every release.`,
         '> Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.',
         '',
     ];

@@ -8,6 +8,15 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.14] — 2026-10-20
+
+### Changed — the docs address
+
+The protocol Terms and Privacy policy named `docs.ochk.io` as a covered site. The
+docs now live at `ochk.io/docs` and the old host redirects there, so both
+documents say "ochk.io, including its documentation at ochk.io/docs". What is
+covered is unchanged.
+
 ## [0.7.13] — 2026-10-20
 
 ### Changed — one contact address

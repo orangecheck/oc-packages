@@ -13,7 +13,7 @@
     ],
     "author": "OrangeCheck",
     "license": "MIT",
-    "homepage": "https://docs.ochk.io/me/quickstart",
+    "homepage": "https://ochk.io/docs/me/quickstart",
     "repository": {
         "type": "git",
         "url": "https://github.com/orangecheck/oc-packages.git",

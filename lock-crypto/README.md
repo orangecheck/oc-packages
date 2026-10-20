@@ -1,6 +1,6 @@
 # @orangecheck/lock-crypto
 
-> **Full reference:** [docs.ochk.io/sdk/lock-crypto](https://docs.ochk.io/sdk/lock-crypto) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/lock-crypto](https://ochk.io/docs/sdk/lock-crypto) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

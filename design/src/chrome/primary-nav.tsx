@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
  *       activePath={router.pathname}
  *       links={[
  *           { href: '/dashboard', label: 'dashboard' },
- *           { href: 'https://docs.ochk.io/attest', label: 'docs', external: true },
+ *           { href: 'https://ochk.io/docs/attest', label: 'docs', external: true },
  *       ]}
  *   />
  */

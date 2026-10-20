@@ -19,7 +19,7 @@ export const Default: Story = {
                     { href: '/dashboard', label: 'dashboard' },
                     { href: '/create', label: 'create' },
                     { href: '/verify', label: 'verify' },
-                    { href: 'https://docs.ochk.io/stamp', label: 'docs', external: true },
+                    { href: 'https://ochk.io/docs/stamp', label: 'docs', external: true },
                     { href: 'https://github.com/orangecheck', label: 'spec', external: true },
                 ]}
             />

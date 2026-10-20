@@ -230,8 +230,8 @@ describe('installTabLinkDecorator', () => {
 
         expect(fireLink({ href: 'mailto:hi@ochk.io' })).toBe('mailto:hi@ochk.io');
         expect(fireLink({ href: FAMILY, download: true })).toBe(FAMILY);
-        expect(fireLink({ href: 'https://docs.ochk.io/x#section' })).toBe(
-            'https://docs.ochk.io/x#section'
+        expect(fireLink({ href: 'https://vote.ochk.io/x#section' })).toBe(
+            'https://vote.ochk.io/x#section'
         );
         // idempotent: an already-stamped link is not double-stamped
         expect(fireLink({ href: `${FAMILY}#oc-as=${DID_B}` })).toBe(`${FAMILY}#oc-as=${DID_B}`);

@@ -2,7 +2,7 @@
  * @orangecheck/legal — `protocol` profile.
  *
  * The non-custodial family: the ochk.io umbrella, the six verb sites
- * (attest, lock, vote, stamp, agent, pledge), docs.ochk.io, and
+ * (attest, lock, vote, stamp, agent, pledge), the docs at ochk.io/docs, and
  * analytics.ochk.io. Free, no money movement, no custody. This is a refresh
  * of the long-standing ochk.io documents — narrowed so it no longer purports
  * to govern the commercial products, which now carry their own Terms.
@@ -26,7 +26,7 @@ import {
 } from './clauses';
 
 const COMMERCIAL_SCOPE_NOTE =
-    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge — and [docs.ochk.io](https://docs.ochk.io). The commercial products **ochk.app** and **vault.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
+    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), and the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge. The commercial products **ochk.app** and **vault.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
 
 const terms: DocSpec = {
     kind: 'terms',
@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'The terms and conditions for using OrangeCheck. Non-custodial service provided as-is. You are responsible for your wallet and private keys.',
     effective: '2025-09-30',
-    updated: '2026-10-19',
+    updated: '2026-10-20',
     preamble: [
         {
             kind: 'callout',
@@ -227,11 +227,11 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-19',
+    updated: '2026-10-20',
     preamble: [
         {
             kind: 'callout',
-            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), the six verb sites, and [docs.ochk.io](https://docs.ochk.io). The commercial products ochk.app and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
+            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), and the six verb sites. The commercial products ochk.app and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
         },
     ],
     sections: [

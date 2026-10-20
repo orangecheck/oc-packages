@@ -1,7 +1,7 @@
 {
     "name": "oc-packages-tooling",
     "private": true,
-    "description": "Shared dev tooling for the oc-packages monorepo. Not published. Hosts the TypeDoc-based docs generator that publishes API reference for every @orangecheck/* package to docs.ochk.io/sdk/<pkg>/.",
+    "description": "Shared dev tooling for the oc-packages monorepo. Not published. Hosts the TypeDoc-based docs generator that publishes API reference for every @orangecheck/* package to ochk.io/docs/sdk/<pkg>/.",
     "scripts": {
         "docs:gen": "node scripts/gen-docs.mjs",
         "docs:gen:all": "node scripts/gen-docs.mjs --all",

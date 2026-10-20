@@ -16,7 +16,7 @@ export const Info: Story = {
             <EmptyState
                 label="no stamps yet"
                 cta={{ label: 'create a stamp', href: '/create' }}
-                secondary={{ label: 'read the docs', href: 'https://docs.ochk.io/stamp', external: true }}
+                secondary={{ label: 'read the docs', href: 'https://ochk.io/docs/stamp', external: true }}
             >
                 stamps you mint will appear here, each anchored to Bitcoin and verifiable forever.
             </EmptyState>

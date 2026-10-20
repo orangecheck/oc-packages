@@ -1,6 +1,6 @@
 # `@orangecheck/auth-core`
 
-> **Full reference:** [docs.ochk.io/sdk/auth-core](https://docs.ochk.io/sdk/auth-core) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/auth-core](https://ochk.io/docs/sdk/auth-core) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
@@ -18,7 +18,7 @@ No React, no DB, no framework. Usable from Node, Edge, or browser.
 
 There is **one auth host** (by convention `https://ochk.io`) that holds the
 private JWK and issues tokens. Every **consumer subdomain** (`attest.ochk.io`,
-`lock.ochk.io`, `docs.ochk.io`, …) only holds the public JWK and verifies
+`lock.ochk.io`, `stamp.ochk.io`, …) only holds the public JWK and verifies
 locally — no network round-trip.
 
 The session cookie is set with `Domain=.ochk.io`, so once a user signs in on

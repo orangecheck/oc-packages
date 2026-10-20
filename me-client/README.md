@@ -1,6 +1,6 @@
 # @orangecheck/me-client
 
-> **Full reference:** [docs.ochk.io/sdk/me-client](https://docs.ochk.io/sdk/me-client) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/me-client](https://ochk.io/docs/sdk/me-client) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

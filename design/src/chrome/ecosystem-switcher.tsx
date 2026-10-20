@@ -141,11 +141,11 @@ export function EcosystemSwitcher({
                     </ul>
                     <div className="border-t px-4 py-2 font-mono text-[10px] tracking-widest uppercase">
                         <Link
-                            href="https://docs.ochk.io"
+                            href="https://ochk.io/docs"
                             onClick={() => setOpen(false)}
                             className="text-muted-foreground hover:text-foreground inline-block transition-colors"
                         >
-                            docs.ochk.io →
+                            ochk.io/docs →
                         </Link>
                     </div>
                 </div>

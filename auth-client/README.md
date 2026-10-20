@@ -1,6 +1,6 @@
 # `@orangecheck/auth-client`
 
-> **Full reference:** [docs.ochk.io/sdk/auth-client](https://docs.ochk.io/sdk/auth-client) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/auth-client](https://ochk.io/docs/sdk/auth-client) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
@@ -16,8 +16,8 @@ Pairs with [`@orangecheck/auth-core`](../auth-core) on the server side.
 > OrangeCheck *be* your sign-in. If you already run your own login
 > (Google, Auth0, Clerk, NextAuth, …) and just want to add a `did:oc`
 > to your users, you don't need this package — see
-> [OrangeCheck Connect](https://docs.ochk.io/connect). Both pathways are
-> compared at [docs.ochk.io/integration](https://docs.ochk.io/integration).
+> [OrangeCheck Connect](https://ochk.io/docs/connect). Both pathways are
+> compared at [ochk.io/docs/integration](https://ochk.io/docs/integration).
 
 ## Install
 

@@ -5,7 +5,7 @@
 > nothing else in the family delivers webhooks in this format.
 > Published versions keep working; no further releases are planned.
 
-> **Full reference:** [docs.ochk.io/sdk/webhook-verify](https://docs.ochk.io/sdk/webhook-verify) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/webhook-verify](https://ochk.io/docs/sdk/webhook-verify) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

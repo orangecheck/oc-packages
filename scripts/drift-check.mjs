@@ -12,7 +12,7 @@
  *   3. Exits 1 if the tree would differ. Prints the diff.
  *
  * Why two repos: oc-packages owns the source-of-truth (TS + JSDoc) +
- * the generator. oc-docs owns the static MDX served to docs.ochk.io.
+ * the generator. oc-docs owns the static MDX served to ochk.io/docs.
  * Drift between them is a human-discipline problem this gate solves
  * mechanically.
  *

@@ -1,6 +1,6 @@
 # @orangecheck/agent-langgraph
 
-> **Full reference:** [docs.ochk.io/sdk/agent-langgraph](https://docs.ochk.io/sdk/agent-langgraph) — auto-generated from the TypeScript source on every release.
+> **Full reference:** [ochk.io/docs/sdk/agent-langgraph](https://ochk.io/docs/sdk/agent-langgraph) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 

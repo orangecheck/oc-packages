@@ -9,6 +9,13 @@ bump that silently moves a colour is worse than a breaking one.
 
 ## [Unreleased]
 
+## [0.35.2] — 2026-10-20
+
+The classic system is frozen; this is a fix. Every docs link, including the
+`docs.ochk.io →` row in the ecosystem switcher and logo dropdown, now points at
+`ochk.io/docs`, where the docs live. The old host redirects, so nothing was broken,
+but the menus showed an address that no longer exists.
+
 ## [0.35.1] — 2026-10-20
 
 The classic system is frozen; this is a fix. The family footer names one licence, MIT,

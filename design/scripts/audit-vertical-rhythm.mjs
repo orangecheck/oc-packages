@@ -57,7 +57,7 @@ const DEFAULT_SITES = [
     'https://btc.ochk.io/',
     'https://cosign.ochk.io/',
     'https://globe.ochk.io/',
-    'https://docs.ochk.io/',
+    'https://ochk.io/docs/',
 ];
 
 const fromEnv = (process.env.SITES || '')

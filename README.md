@@ -23,7 +23,7 @@ public subdomains and consume these packages from npm.
 | commitment      | [`oc-pledge-protocol`](https://github.com/orangecheck/oc-pledge-protocol) | [pledge.ochk.io](https://pledge.ochk.io)                  |
 
 The umbrella site at [ochk.io](https://ochk.io) hosts the unified docs at
-[docs.ochk.io](https://docs.ochk.io), the auth host, the dashboard, and the
+[ochk.io/docs](https://ochk.io/docs), the auth host, the dashboard, and the
 contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 
 ---
@@ -32,27 +32,27 @@ contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 
 **31 published packages** across the family — 30 TypeScript packages on npm and one Python SDK on PyPI.
 
-> **Full API reference for every package:** [docs.ochk.io/sdk](https://docs.ochk.io/sdk) — auto-generated from the TypeScript source via TypeDoc on every release tag. The READMEs below are short marketing cards; the docs site is the source of truth for every export, type, and signature.
+> **Full API reference for every package:** [ochk.io/docs/sdk](https://ochk.io/docs/sdk) — auto-generated from the TypeScript source via TypeDoc on every release tag. The READMEs below are short marketing cards; the docs site is the source of truth for every export, type, and signature.
 
 ### Per-protocol cores
 
 | Path                               | Package                       | Protocol  | Reference                                                                       |
 | ---------------------------------- | ----------------------------- | --------- | ------------------------------------------------------------------------------- |
-| [`sdk/`](sdk/)                     | `@orangecheck/sdk`            | Attest    | [docs.ochk.io/sdk/sdk](https://docs.ochk.io/sdk/sdk)                            |
+| [`sdk/`](sdk/)                     | `@orangecheck/sdk`            | Attest    | [ochk.io/docs/sdk/sdk](https://ochk.io/docs/sdk/sdk)                            |
 | [`sdk-py/`](sdk-py/)               | `orangecheck` (PyPI)          | Attest    | Same conformance vectors as `@orangecheck/sdk`. Python ref docs deferred.       |
-| [`auth-core/`](auth-core/)         | `@orangecheck/auth-core`      | Auth      | [docs.ochk.io/sdk/auth-core](https://docs.ochk.io/sdk/auth-core)                |
-| [`auth-client/`](auth-client/)     | `@orangecheck/auth-client`    | Auth      | [docs.ochk.io/sdk/auth-client](https://docs.ochk.io/sdk/auth-client)            |
-| [`nostr-core/`](nostr-core/)       | `@orangecheck/nostr-core`     | Family    | [docs.ochk.io/sdk/nostr-core](https://docs.ochk.io/sdk/nostr-core)              |
-| [`lock-crypto/`](lock-crypto/)     | `@orangecheck/lock-crypto`    | Lock      | [docs.ochk.io/sdk/lock-crypto](https://docs.ochk.io/sdk/lock-crypto)            |
-| [`lock-core/`](lock-core/)         | `@orangecheck/lock-core`      | Lock      | [docs.ochk.io/sdk/lock-core](https://docs.ochk.io/sdk/lock-core)                |
-| [`lock-device/`](lock-device/)     | `@orangecheck/lock-device`    | Lock      | [docs.ochk.io/sdk/lock-device](https://docs.ochk.io/sdk/lock-device)            |
-| [`vote-core/`](vote-core/)         | `@orangecheck/vote-core`      | Vote      | [docs.ochk.io/sdk/vote-core](https://docs.ochk.io/sdk/vote-core)                |
-| [`stamp-core/`](stamp-core/)       | `@orangecheck/stamp-core`     | Stamp     | [docs.ochk.io/sdk/stamp-core](https://docs.ochk.io/sdk/stamp-core)              |
-| [`stamp-ots/`](stamp-ots/)         | `@orangecheck/stamp-ots`      | Stamp     | [docs.ochk.io/sdk/stamp-ots](https://docs.ochk.io/sdk/stamp-ots)                |
-| [`agent-core/`](agent-core/)       | `@orangecheck/agent-core`     | Agent     | [docs.ochk.io/sdk/agent-core](https://docs.ochk.io/sdk/agent-core)              |
-| [`agent-signer/`](agent-signer/)   | `@orangecheck/agent-signer`   | Agent     | [docs.ochk.io/sdk/agent-signer](https://docs.ochk.io/sdk/agent-signer)          |
-| [`pledge-core/`](pledge-core/)     | `@orangecheck/pledge-core`    | Pledge    | [docs.ochk.io/sdk/pledge-core](https://docs.ochk.io/sdk/pledge-core)            |
-| [`me-client/`](me-client/)         | `@orangecheck/me-client`      | me.ochk.io| [docs.ochk.io/sdk/me-client](https://docs.ochk.io/sdk/me-client)                |
+| [`auth-core/`](auth-core/)         | `@orangecheck/auth-core`      | Auth      | [ochk.io/docs/sdk/auth-core](https://ochk.io/docs/sdk/auth-core)                |
+| [`auth-client/`](auth-client/)     | `@orangecheck/auth-client`    | Auth      | [ochk.io/docs/sdk/auth-client](https://ochk.io/docs/sdk/auth-client)            |
+| [`nostr-core/`](nostr-core/)       | `@orangecheck/nostr-core`     | Family    | [ochk.io/docs/sdk/nostr-core](https://ochk.io/docs/sdk/nostr-core)              |
+| [`lock-crypto/`](lock-crypto/)     | `@orangecheck/lock-crypto`    | Lock      | [ochk.io/docs/sdk/lock-crypto](https://ochk.io/docs/sdk/lock-crypto)            |
+| [`lock-core/`](lock-core/)         | `@orangecheck/lock-core`      | Lock      | [ochk.io/docs/sdk/lock-core](https://ochk.io/docs/sdk/lock-core)                |
+| [`lock-device/`](lock-device/)     | `@orangecheck/lock-device`    | Lock      | [ochk.io/docs/sdk/lock-device](https://ochk.io/docs/sdk/lock-device)            |
+| [`vote-core/`](vote-core/)         | `@orangecheck/vote-core`      | Vote      | [ochk.io/docs/sdk/vote-core](https://ochk.io/docs/sdk/vote-core)                |
+| [`stamp-core/`](stamp-core/)       | `@orangecheck/stamp-core`     | Stamp     | [ochk.io/docs/sdk/stamp-core](https://ochk.io/docs/sdk/stamp-core)              |
+| [`stamp-ots/`](stamp-ots/)         | `@orangecheck/stamp-ots`      | Stamp     | [ochk.io/docs/sdk/stamp-ots](https://ochk.io/docs/sdk/stamp-ots)                |
+| [`agent-core/`](agent-core/)       | `@orangecheck/agent-core`     | Agent     | [ochk.io/docs/sdk/agent-core](https://ochk.io/docs/sdk/agent-core)              |
+| [`agent-signer/`](agent-signer/)   | `@orangecheck/agent-signer`   | Agent     | [ochk.io/docs/sdk/agent-signer](https://ochk.io/docs/sdk/agent-signer)          |
+| [`pledge-core/`](pledge-core/)     | `@orangecheck/pledge-core`    | Pledge    | [ochk.io/docs/sdk/pledge-core](https://ochk.io/docs/sdk/pledge-core)            |
+| [`me-client/`](me-client/)         | `@orangecheck/me-client`      | me.ochk.io| [ochk.io/docs/sdk/me-client](https://ochk.io/docs/sdk/me-client)                |
 
 ### Integrations + middleware
 
@@ -89,12 +89,12 @@ contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 
 ## Documentation strategy
 
-Per-package READMEs are intentionally short. Full API reference (every export, type, and signature) is auto-generated from the TypeScript source via [TypeDoc](https://typedoc.org/) on every release and published to [docs.ochk.io/sdk](https://docs.ochk.io/sdk).
+Per-package READMEs are intentionally short. Full API reference (every export, type, and signature) is auto-generated from the TypeScript source via [TypeDoc](https://typedoc.org/) on every release and published to [ochk.io/docs/sdk](https://ochk.io/docs/sdk).
 
 Discipline:
 
 - **TSDoc comments in `src/*.ts` are the source of truth.** Anyone updating documentation edits the `.ts` file. The docs site updates on the next release.
-- **Per-package READMEs are short.** Tagline + install + 30-second example + a banner pointing to `docs.ochk.io/sdk/<pkg>`. Detailed API surface lives only on the docs site.
+- **Per-package READMEs are short.** Tagline + install + 30-second example + a banner pointing to `ochk.io/docs/sdk/<pkg>`. Detailed API surface lives only on the docs site.
 - **Hand-written narrative is in [`oc-docs`](https://github.com/orangecheck/oc-docs).** Conceptual pages, quickstarts, "why this protocol" prose. The auto-generated `/sdk/*` reference complements that hand-written `/<verb>/*` content.
 - **CI gates drift.** A drift-check workflow regenerates docs in CI on every PR and uploads the diff as an artifact (advisory). The release workflow opens an auto-PR in `oc-docs` on every `<pkg>-v*` tag, so the docs site stays in lock-step with published versions automatically.
 
