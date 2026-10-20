@@ -14,6 +14,7 @@ import {
     type OcSessionState,
     type OcSignOutScope,
 } from './types';
+import { keepFragmentOnReturnLinks, restoreReturnFragment } from './return-to';
 import {
     clearTabSession,
     consumeTabAccountHint,
@@ -180,7 +181,8 @@ export interface OcSessionProviderProps {
     config?: OcAuthConfig;
     /**
      * Optional return URL passed to the sign-in page. Defaults to the
-     * current `window.location.href` at click-time.
+     * current page. Its fragment is never sent: it is kept in this tab and
+     * restored on return (./return-to).
      */
     defaultReturnTo?: string;
 }
@@ -195,6 +197,18 @@ export function OcSessionProvider({
     defaultReturnTo,
 }: OcSessionProviderProps): React.ReactElement {
     const cfg = React.useMemo(() => resolveConfig(config), [config]);
+    // Back from a sign-in or a check: put back the fragment its return
+    // address left in this tab, before any page below reads the address.
+    // The adoption marker the auth host appends goes first, so the fragment
+    // takes its place. Children's effects run before this provider's, so
+    // this happens during the first render, once; both calls are idempotent.
+    React.useState(() => {
+        if (typeof window !== 'undefined') {
+            consumeTabAdoptMarker();
+            restoreReturnFragment();
+        }
+        return null;
+    });
     const [account, setAccount] = React.useState<OcAccount | null>(null);
     const [roster, setRoster] = React.useState<OcAccountSummary[]>([]);
     const [status, setStatus] = React.useState<OcSessionState['status']>('loading');
@@ -344,6 +358,10 @@ export function OcSessionProvider({
             cancelled = true;
         };
     }, [refresh, cfg.authOrigin, cfg.multiAccount]);
+
+    // A link that brings the browser back here keeps this page's fragment
+    // in the tab, since its return_to cannot carry it.
+    React.useEffect(() => keepFragmentOnReturnLinks(), []);
 
     // Per-tab · attach the pin to every same-site fetch so app-level data
     // calls execute as the account this tab displays. Scoped + reversible;

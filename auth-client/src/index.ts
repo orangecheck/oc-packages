@@ -45,6 +45,14 @@ export type {
 } from './types';
 export { buildAddAccountUrl, buildSignInUrl, DISPLAY_IDENTITY_KINDS } from './types';
 export {
+    FRAGMENT_TTL_MS,
+    keepFragmentOnReturnLinks,
+    restoreReturnFragment,
+    returnToHere,
+    stripFragment,
+    withoutFragment,
+} from './return-to';
+export {
     TAB_SESSION_HEADER,
     TAB_SESSION_STORAGE_KEY,
     TAB_ADOPT_HASH,

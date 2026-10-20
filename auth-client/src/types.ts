@@ -1,3 +1,5 @@
+import { stripFragment } from './return-to';
+
 /**
  * The kinds of identity a user can surface as their account-badge
  * label. `did` is the canonical `did:oc` identifier — always available
@@ -245,11 +247,15 @@ export function resolveConfig(cfg: OcAuthConfig | undefined): Required<OcAuthCon
     return { ...DEFAULT_CONFIG, ...(cfg ?? {}) };
 }
 
+/**
+ * The sign-in URL on the auth host. `returnTo` goes without its fragment;
+ * OcSessionProvider keeps the fragment when the link is followed.
+ */
 export function buildSignInUrl(cfg: Required<OcAuthConfig>, returnTo?: string): string {
     const base = `${cfg.authOrigin}${cfg.signInPath}`;
     if (!returnTo) return base;
     const u = new URL(base);
-    u.searchParams.set('return_to', returnTo);
+    u.searchParams.set('return_to', stripFragment(returnTo));
     return u.toString();
 }
 

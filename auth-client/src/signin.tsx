@@ -40,6 +40,7 @@
 import * as React from 'react';
 
 import { LinkPromptStep } from './linked-identities';
+import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
 import {
@@ -878,11 +879,10 @@ function ProviderSignIn({
     // An absolute family URL (the add-another-account round trip back to
     // a consumer subdomain) is carried verbatim through the OAuth hop;
     // a relative path is anchored to THIS page's origin.
-    const providerReturnTo = returnTo.startsWith('/')
-        ? origin
-            ? `${origin}${returnTo}`
-            : returnTo
-        : returnTo;
+    // It rides in the provider's start URL, so never with its fragment.
+    const providerReturnTo = stripFragment(
+        returnTo.startsWith('/') ? (origin ? `${origin}${returnTo}` : returnTo) : returnTo
+    );
     const line = { flex: 1, height: 1, background: 'var(--border, #27272a)' } as const;
     // Vertical rhythm. The "or" divider is a horizontal rule between two
     // blocks, so it must sit EQUIDISTANT from both — otherwise it reads as

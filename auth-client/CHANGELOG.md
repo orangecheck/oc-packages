@@ -7,6 +7,35 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.33.2] — 2026-10-20
+
+### Fixed
+
+- **A return address never puts the page's fragment in a URL.**
+  `redirectToSudo()` defaulted `return_to` to `window.location.href`, and
+  `buildSignInUrl`, `buildAddAccountUrl`, the session's `signInUrl` and
+  `addAccountUrl()` passed a given address through whole, so a fragment (a
+  share link's envelope, a team invite's key) rode in `/sudo?return_to=` or
+  `/signin?return_to=`, where the auth host's logs and analytics see it.
+  Every one of them now leaves the fragment off, as do OcSignIn's provider
+  start links.
+- The fragment is not lost. It is kept in this tab's sessionStorage under
+  the path it belongs to at the moment of leaving: when `redirectToSudo()`
+  or `returnToHere()` is called, or when a link that names this page as its
+  `return_to` is followed (OcSessionProvider listens). Rendering a link keeps
+  nothing. On return, OcSessionProvider puts the fragment back with
+  `history.replaceState` before the page renders, in place of the auth
+  host's `#oc-adopt` marker (whose adoption still runs), then deletes it. It
+  is used once, never overwrites a fragment the address brought, and lapses
+  after 15 minutes. A return to another origin loses it rather than carry it.
+
+### Added
+
+- `returnToHere()`: this page as a return address, path and query only, for
+  a site that builds `/signin?return_to=` itself. Also exported:
+  `withoutFragment`, `stripFragment`, `keepFragmentOnReturnLinks`,
+  `restoreReturnFragment`, `FRAGMENT_TTL_MS`.
+
 ## [2.33.1] — 2026-10-20
 
 ### Fixed

@@ -19,13 +19,15 @@
  * @orangecheck/auth-core@^2.2.0.
  */
 
+import { withoutFragment } from './return-to';
 import { resolveConfig, type OcAuthConfig } from './types';
 
 export interface RedirectToSudoArgs {
     /** Where to send the browser after the user finishes the sudo
-     *  ceremony. Defaults to `window.location.href` at call-time.
-     *  Must be a family origin (`*.ochk.io`) or a relative path; the
-     *  /sudo page coerces unsafe values to /dashboard. */
+     *  ceremony. Defaults to this page at call-time. Its fragment is
+     *  never sent: it is kept in this tab and restored on return (see
+     *  ./return-to). Must be a family origin (`*.ochk.io`) or a relative
+     *  path; the /sudo page coerces unsafe values to /dashboard. */
     returnTo?: string;
     /** Free-form tag echoed in the /sudo page UI — e.g. `"register a
      *  hardware key"`. The user sees "To <purpose>, confirm with the
@@ -54,7 +56,7 @@ export function redirectToSudo(args: RedirectToSudoArgs = {}): void {
     }
     const cfg = resolveConfig(args.config);
     const url = new URL('/sudo', cfg.authOrigin);
-    const returnTo = args.returnTo ?? window.location.href;
+    const returnTo = withoutFragment(args.returnTo ?? window.location.href);
     if (returnTo) url.searchParams.set('return_to', returnTo);
     if (args.purpose) url.searchParams.set('purpose', args.purpose);
     window.location.assign(url.toString());
