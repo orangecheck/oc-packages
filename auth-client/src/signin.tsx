@@ -50,6 +50,7 @@ import {
     SIGNIN_FONT,
     SIGNIN_STRONG,
     signinRadius,
+    signinRoleSize,
     signinSize,
     signinTracking,
 } from './appearance';
@@ -573,7 +574,7 @@ export function OcSignIn({
                         borderRadius: signinRadius(6),
                         color: 'var(--destructive, #ef4444)',
                         fontFamily: SIGNIN_FONT,
-                        fontSize: signinSize(11),
+                        fontSize: signinRoleSize('text', signinSize(11)),
                     }}
                 >
                     That sign-in didn&apos;t finish. Try again, or use another way below.
@@ -591,7 +592,7 @@ export function OcSignIn({
                         background: 'color-mix(in srgb, var(--primary, #f97316) 8%, transparent)',
                         color: 'var(--foreground, #fafafa)',
                         fontFamily: SIGNIN_FONT,
-                        fontSize: signinSize(11),
+                        fontSize: signinRoleSize('text', signinSize(11)),
                         lineHeight: 1.6,
                     }}
                 >
@@ -754,7 +755,7 @@ function SigninTab({
                     ? 'var(--foreground, #fafafa)'
                     : 'var(--muted-foreground, #a1a1aa)',
                 fontFamily: SIGNIN_FONT,
-                fontSize: signinSize(11),
+                fontSize: signinRoleSize('label', signinSize(11)),
                 letterSpacing: signinTracking('0.12em'),
                 textTransform: SIGNIN_CASE,
                 cursor: 'pointer',
@@ -906,7 +907,7 @@ function ProviderSignIn({
                 margin: first ? `${BLOCK_GAP}px 0` : `0 0 ${BLOCK_GAP}px`,
                 color: 'var(--muted-foreground, #a1a1aa)',
                 fontFamily: SIGNIN_FONT,
-                fontSize: signinSize(10),
+                fontSize: signinRoleSize('hint', signinSize(10)),
                 letterSpacing: signinTracking('0.16em'),
                 textTransform: SIGNIN_CASE,
             }}
@@ -1546,7 +1547,7 @@ function FlowHeader({
             <p
                 style={{
                     color: 'var(--muted-foreground, #a1a1aa)',
-                    fontSize: 13,
+                    fontSize: signinRoleSize('text', '13px'),
                     lineHeight: 1.55,
                     margin: 0,
                 }}
@@ -1567,7 +1568,7 @@ const linkButtonStyle: React.CSSProperties = {
     border: 'none',
     color: 'var(--muted-foreground, #a1a1aa)',
     fontFamily: SIGNIN_FONT,
-    fontSize: signinSize(11),
+    fontSize: signinRoleSize('button', signinSize(11)),
     letterSpacing: signinTracking('0.12em'),
     textTransform: SIGNIN_CASE,
     cursor: 'pointer',
@@ -1588,7 +1589,7 @@ function Label({
                 display: 'block',
                 color: 'var(--foreground, #fafafa)',
                 fontFamily: SIGNIN_FONT,
-                fontSize: signinSize(11),
+                fontSize: signinRoleSize('label', signinSize(11)),
                 letterSpacing: signinTracking('0.12em'),
                 textTransform: SIGNIN_CASE,
                 marginBottom: 6,
@@ -1625,7 +1626,7 @@ const linkAlsoStyle: React.CSSProperties = {
     borderTop: '1px solid var(--border, #27272a)',
     color: 'var(--muted-foreground, #a1a1aa)',
     fontFamily: SIGNIN_FONT,
-    fontSize: signinSize(12),
+    fontSize: signinRoleSize('text', signinSize(12)),
     lineHeight: 1.5,
     cursor: 'pointer',
 };
@@ -1639,7 +1640,7 @@ function submitStyle(disabled: boolean): React.CSSProperties {
         border: 'none',
         borderRadius: SIGNIN_BUTTON_RADIUS,
         fontFamily: SIGNIN_FONT,
-        fontSize: signinSize(11),
+        fontSize: signinRoleSize('button', signinSize(11)),
         letterSpacing: signinTracking('0.14em'),
         textTransform: SIGNIN_CASE,
         fontWeight: SIGNIN_STRONG,
@@ -1658,7 +1659,7 @@ function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElem
                 marginBottom: 0,
                 color: 'var(--destructive, #ef4444)',
                 fontFamily: SIGNIN_FONT,
-                fontSize: signinSize(11),
+                fontSize: signinRoleSize('hint', signinSize(11)),
                 letterSpacing: '0.04em',
             }}
         >
@@ -1675,7 +1676,7 @@ function Hint({ children }: { children: React.ReactNode }): React.ReactElement {
                 marginBottom: 0,
                 color: 'var(--muted-foreground, #a1a1aa)',
                 fontFamily: SIGNIN_FONT,
-                fontSize: 10.5,
+                fontSize: signinRoleSize('hint', '10.5px'),
                 lineHeight: 1.55,
             }}
         >

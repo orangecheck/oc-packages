@@ -3,7 +3,14 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { SIGNIN_CASE, SIGNIN_FONT, signinRadius, signinSize, signinTracking } from './appearance';
+import {
+    SIGNIN_CASE,
+    SIGNIN_FONT,
+    signinRadius,
+    signinRoleSize,
+    signinSize,
+    signinTracking,
+} from './appearance';
 
 describe('sign-in appearance', () => {
     it('falls back to the family look when a site sets nothing', () => {
@@ -12,6 +19,18 @@ describe('sign-in appearance', () => {
         expect(signinTracking('0.12em')).toBe('var(--oc-signin-tracking, 0.12em)');
         expect(signinSize(11)).toBe('calc(11px * var(--oc-signin-scale, 1))');
         expect(signinRadius(6)).toBe('var(--oc-signin-radius, 6px)');
+        // A role size falls back to the element's own family size, so a classic site is unchanged.
+        expect(signinRoleSize('hint', '10.5px')).toBe('var(--oc-signin-hint-size, 10.5px)');
+        expect(signinRoleSize('button', signinSize(11))).toBe(
+            'var(--oc-signin-button-size, calc(11px * var(--oc-signin-scale, 1)))'
+        );
+    });
+
+    // The ceremony's text takes a site's sizes: only the 16px of a field, which
+    // keeps iOS from zooming, is fixed.
+    it('signin.tsx has no fixed text size a site cannot reach', () => {
+        const src = readFileSync(join(__dirname, 'signin.tsx'), 'utf8');
+        expect(src.match(/fontSize: (?!16\b)\d[\d.]*/g) ?? []).toEqual([]);
     });
 
     // A literal here is a style ochk.app cannot reach; it renders in the

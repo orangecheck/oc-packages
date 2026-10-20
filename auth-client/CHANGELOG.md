@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.33.4] — 2026-10-20
+
+### Changed
+
+- **The ceremony's text takes a site's sizes by role.** On ochk.app `/signin`
+  the lead under a tab, the field labels, the tabs and the submit label
+  rendered at 13 to 13.75px against the app's 15px body and buttons:
+  `--oc-signin-scale` multiplies 10 to 11px family sizes, and the lead (13px)
+  and the hints (10.5px) were fixed and took no setting at all. Four
+  variables now size the roles, each falling back to the element's family
+  size, so a site that sets none (analytics, bot, forge) renders exactly as
+  before:
+  - `--oc-signin-text-size`: the lead under a tab, notices, the link-also row
+  - `--oc-signin-hint-size`: hints, errors, the "or" between blocks
+  - `--oc-signin-label-size`: field labels and the method tabs
+  - `--oc-signin-button-size`: the submit button and the text buttons beside it
+
+  `@orangecheck/app-design` sets them to its body, hint, label and button
+  sizes. A test fails if signin.tsx gains a fixed text size other than a
+  field's 16px.
+
 ## [2.33.3] — 2026-10-20
 
 ### Fixed

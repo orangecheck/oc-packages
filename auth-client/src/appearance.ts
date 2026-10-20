@@ -15,6 +15,14 @@ import type * as React from 'react';
  *   --oc-signin-strong         weight of the submit text (600)
  *   --oc-signin-arrow          display of the → after a submit label (inline)
  *
+ * Sizes by role. Each falls back to the family size, so a site that sets none
+ * renders as before; app-design sets its own body, hint, label and button sizes.
+ *
+ *   --oc-signin-text-size      the lead under a tab, notices, the link-also row
+ *   --oc-signin-hint-size      hints, errors, the "or" between blocks
+ *   --oc-signin-label-size     field labels and the method tabs
+ *   --oc-signin-button-size    the submit button and the text buttons beside it
+ *
  * Copy is written in sentence case. The family's uppercase transform shows it
  * as before; a site that sets the case to `none` reads it as written.
  */
@@ -26,3 +34,8 @@ export const signinRadius = (px: number): string => `var(--oc-signin-radius, ${p
 export const SIGNIN_BUTTON_RADIUS = 'var(--oc-signin-button-radius, 6px)';
 export const SIGNIN_STRONG = 'var(--oc-signin-strong, 600)' as React.CSSProperties['fontWeight'];
 export const SIGNIN_ARROW = 'var(--oc-signin-arrow, inline)' as React.CSSProperties['display'];
+
+export type SigninRole = 'text' | 'hint' | 'label' | 'button';
+/** A role's size: the site's, else `fallback`, the family size for that element. */
+export const signinRoleSize = (role: SigninRole, fallback: string): string =>
+    `var(--oc-signin-${role}-size, ${fallback})`;
