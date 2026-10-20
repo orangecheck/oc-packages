@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-10-20
+
+The family design system. Every orangecheck site moves onto it; the classic
+`@orangecheck/design` is frozen (fixes only).
+
 ### Added: the family's chrome
 
 - `./family` entry: every public site as data, no React. `FAMILY` (slug,
