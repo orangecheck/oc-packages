@@ -80,15 +80,28 @@ if (!payload) return res.status(401).end();
 // payload.did_oc is the opaque user identifier (did:oc:<32-hex>).
 ```
 
+A signed-out token still verifies. Family sites also ask the auth host's list
+of ended sessions, cached for a minute per process:
+
+```ts
+import { familyRevocationCheck } from '@orangecheck/auth-core';
+
+// Reads OC_REVOCATION_FEED_TOKEN. Refuses a revoked session, and refuses
+// writes (not reads) while the list cannot be refreshed for 10 minutes.
+if (await familyRevocationCheck().refuses(payload, req.method)) {
+    return res.status(401).end();
+}
+```
+
 ## Guarantees
 
 - **No shared secret.** Consumer apps cannot forge sessions — only the auth
   host can, because only it holds the private key.
 - **Offline-verifiable.** Given the public JWK, any process can verify a
   token — no database, no auth server round-trip.
-- **Stateless.** Revocation is the caller's problem. This package does
-  crypto only; if you need immediate-revoke semantics, layer a DB check
-  on the auth host.
+- **No call per request.** Verification is crypto only. The revocation
+  check fetches the auth host's list at most once per minute per process
+  and answers from memory.
 
 ## License
 

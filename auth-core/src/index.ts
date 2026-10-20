@@ -415,8 +415,8 @@ export function parsePublicJwk(publicJwk: string): Record<string, unknown> {
  * Mint a fresh oc_session JWT. Only called on the auth host (the only
  * place that holds the private key).
  *
- * The caller owns persisting `jti` to a revocation list if they want
- * revocation semantics — auth-core is deliberately stateless.
+ * The caller owns recording an ended token's `jti` for the revocation
+ * feed that {@link createRevocationCheck} reads.
  */
 export async function signSession(
   claims: {
@@ -456,8 +456,9 @@ export async function signSession(
  * Crypto-only JWT verify. Returns the payload on success, `null` on
  * any failure (bad signature, expired, wrong issuer, malformed).
  *
- * Safe for consumer subdomains — they only need the public JWK.
- * Revocation-aware checks live on the auth host.
+ * Safe for consumer subdomains — they only need the public JWK. A signed-out
+ * token still verifies here; pass the payload to
+ * {@link familyRevocationCheck} to refuse it.
  */
 export async function verifySessionToken(
   token: string,
@@ -606,8 +607,9 @@ function headerValue(
  *      Clients clear their pin on 401 and re-resolve.
  *   2. Every `oc_session` cookie in the jar, first one that verifies.
  *
- * Crypto-only (signature + exp + iss via {@link verifySessionToken});
- * revocation-aware checks remain the auth host's job. Never throws.
+ * Crypto-only (signature + exp + iss via {@link verifySessionToken}); a
+ * signed-out token still resolves, so pass the payload to
+ * {@link familyRevocationCheck}. Never throws.
  */
 export async function resolveSessionFromRequest(
   headers: IncomingRequestHeaders,
@@ -870,3 +872,5 @@ export function _resetJwksCachesForTests(): void {
   inflight.clear();
   lastForcedRefresh.clear();
 }
+
+export * from "./revocation";

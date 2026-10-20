@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.9.0] — 2026-10-20
+
+### Added — session revocation
+
+- `createRevocationCheck(opts)` and the process-wide `familyRevocationCheck()`:
+  check a verified session against the auth host's list of ended sessions
+  (`<issuer>/api/auth/revocations`, authenticated with the site's
+  `OC_REVOCATION_FEED_TOKEN`). The list is fetched at most once per `ttlMs`
+  (60 s) per process. `status(payload)` answers `live`, `revoked` or
+  `unverified`; `refuses(payload, method)` refuses a revoked session always,
+  and an unverified one only for an unsafe method, so reads keep working when
+  the host cannot be reached and writes stop once the copy is 10 minutes old.
+- `revocationKey(kind, value)`: the hashed key the list is written under.
+  Entries name a token by `jti`, or an account by `sub` with a cutoff (every
+  token issued before it is ended); neither appears in the clear.
+
 ## [2.8.0] — 2026-10-16
 
 ### Added — the bond claim
