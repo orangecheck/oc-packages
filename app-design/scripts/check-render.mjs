@@ -154,6 +154,17 @@ const html = (el) => renderToStaticMarkup(el);
     check(sec.includes('aria-current="step"') && sec.includes('Step 2: '), 'FormSection: step not announced');
 }
 
+// The legal row: ochk.io's documents, or a self-hosting product's own.
+{
+    const F = require(join(here, '../dist/family.js'));
+    const io = html(h(Ch.SiteFooter, { legal: true }));
+    check(io.includes('href="https://ochk.io/terms"') && io.includes('aria-label="Legal"'), 'SiteFooter legal: ochk.io terms missing');
+    const own = html(h(Ch.SiteFooter, { legal: F.SELF_HOSTED_LEGAL_LINKS, compact: true }));
+    check(own.includes('href="/terms"') && own.includes('href="/privacy"') && !own.includes('https://ochk.io/terms'), 'SiteFooter legal: a self-hosting site does not link its own terms');
+    check(own.includes('href="https://ochk.io/trademark"'), 'SiteFooter legal: trademarks are not on ochk.io');
+    check(!html(h(Ch.SiteFooter, {})).includes('aria-label="Legal"'), 'SiteFooter: a legal row without legal');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

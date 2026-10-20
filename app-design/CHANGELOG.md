@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-10-20
+
+- `SiteFooter legal` takes a list of links as well as `true`. `true` still links
+  ochk.io's documents, which cover the free protocols. A product that holds
+  money hosts its own (ochk.app, vault: `@orangecheck/legal` builds theirs from
+  their own profile), so its row must link those: pass
+  `SELF_HOSTED_LEGAL_LINKS` (`./family`), its own Privacy, Terms, Security and
+  Contact, with Trademarks on ochk.io. A link to the site's own page goes
+  through the router.
+
 ## [1.1.1] — 2026-10-20
 
 - `ProtocolGrid` shows a straight arrow when it links to a protocol's page or docs on

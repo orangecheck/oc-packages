@@ -209,6 +209,20 @@ export const LEGAL_LINKS: readonly NavItem[] = [
 ];
 
 /**
+ * The same row for a product that hosts its own documents (ochk.app, vault):
+ * ochk.io's cover the free protocols, not a product that holds money, so its
+ * privacy, terms, security and contact pages are its own. The trademarks are
+ * the company's, on ochk.io.
+ */
+export const SELF_HOSTED_LEGAL_LINKS: readonly NavItem[] = [
+    { href: '/privacy', label: 'Privacy' },
+    { href: '/terms', label: 'Terms' },
+    { href: '/security', label: 'Security' },
+    { href: `${OCHK_IO}/trademark`, label: 'Trademarks' },
+    { href: '/contact', label: 'Contact' },
+];
+
+/**
  * ochk.io's header navigation. oc-www and the docs (served under ochk.io/docs)
  * both draw it from here, so the two cannot drift. Absolute links work from
  * either; mark the active item where it is rendered.

@@ -328,16 +328,22 @@ export function SiteBanner({
 /** A link in the footer's lists: 44px tall on phones. */
 const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:text-foreground md:min-h-0';
 
-function LegalRow() {
+function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
         <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between">
             <nav aria-label="Legal">
                 <ul className="flex flex-wrap gap-x-5">
-                    {LEGAL_LINKS.map((l) => (
+                    {links.map((l) => (
                         <li key={l.href}>
-                            <a href={l.href} className={FOOT_LINK}>
-                                {l.label}
-                            </a>
+                            {l.href.startsWith('/') ? (
+                                <Link href={l.href} className={FOOT_LINK}>
+                                    {l.label}
+                                </Link>
+                            ) : (
+                                <a href={l.href} className={FOOT_LINK}>
+                                    {l.label}
+                                </a>
+                            )}
                         </li>
                     ))}
                 </ul>
@@ -351,8 +357,12 @@ export interface SiteFooterProps {
     columns?: readonly FooterColumn[];
     /** Add the family's columns from the registry: orangecheck, Protocols, Apps, Public goods. */
     family?: boolean;
-    /** The fixed legal row, all on ochk.io: Privacy, Terms, Security, Trademarks, Contact. */
-    legal?: boolean;
+    /**
+     * The legal row: Privacy, Terms, Security, Trademarks, Contact. `true` links
+     * ochk.io's documents; a product that hosts its own passes its links
+     * (`SELF_HOSTED_LEGAL_LINKS`).
+     */
+    legal?: boolean | readonly NavItem[];
     /** One row, for tools: the lockup, the protocols when `family`, legal and meta. */
     compact?: boolean;
     fineprint?: ReactNode;
@@ -378,6 +388,7 @@ export function SiteFooter({
     signature = true,
     className,
 }: SiteFooterProps) {
+    const legalLinks = legal === true ? LEGAL_LINKS : legal || null;
     if (compact) {
         return (
             <footer className={cn('border-t border-border bg-background text-[0.875rem] text-muted-foreground', className)}>
@@ -400,9 +411,9 @@ export function SiteFooter({
                             </nav>
                         ) : null}
                     </div>
-                    {legal || meta ? (
+                    {legalLinks || meta ? (
                         <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
-                            {legal ? <LegalRow /> : null}
+                            {legalLinks ? <LegalRow links={legalLinks} /> : null}
                             {meta}
                         </div>
                     ) : null}
@@ -471,11 +482,11 @@ export function SiteFooter({
                     </div>
                 </div>
             ) : null}
-            {legal || meta ? (
+            {legalLinks || meta ? (
                 <div className="oca-container">
                     {/* The rule spans the content, not the gutters. */}
                     <div className="flex flex-col gap-3 border-t border-border py-6 text-[0.875rem] text-muted-foreground">
-                        {legal ? <LegalRow /> : null}
+                        {legalLinks ? <LegalRow links={legalLinks} /> : null}
                         {meta}
                     </div>
                 </div>

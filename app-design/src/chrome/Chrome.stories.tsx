@@ -14,7 +14,7 @@ import {
     Wallet,
 } from 'lucide-react';
 
-import { OCHK_IO_FOOTER, OCHK_IO_NAV } from '../family';
+import { OCHK_IO_FOOTER, OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
 import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
 import { Accent, ErrorPage, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
 import {
@@ -330,6 +330,37 @@ export const Tool: StoryObj = {
                 </div>
             </main>
             <SiteFooter compact family legal />
+        </div>
+    ),
+};
+
+/** A product that holds money hosts its own terms: the family footer with its own legal row. */
+export const ProductFooter: StoryObj = {
+    name: 'Product footer with its own legal row',
+    render: () => (
+        <div className="flex min-h-screen flex-col">
+            <SiteHeader
+                family="me"
+                nav={[
+                    { href: '/how', label: 'How it works' },
+                    { href: '/earn', label: 'Earn' },
+                    { href: '/apps', label: 'For apps' },
+                    { href: '/trust', label: 'Trust' },
+                ]}
+                actions={<Button size="sm">Get started</Button>}
+            />
+            <main id="main-content" className="oca-container flex-1 py-32 text-center oca-body">
+                Page content
+            </main>
+            <SiteFooter
+                columns={[
+                    { heading: 'ochk.app', links: [{ href: '/how', label: 'How it works' }, { href: '/earn', label: 'Earn' }, { href: '/apps', label: 'For apps' }] },
+                    { heading: 'Trust', links: [{ href: '/trust', label: 'Trust' }, { href: '/custody', label: 'Custody' }, { href: '/status', label: 'Status' }] },
+                ]}
+                family
+                legal={SELF_HOSTED_LEGAL_LINKS}
+                fineprint="Sign in. Back it. Get paid. Own it."
+            />
         </div>
     ),
 };
