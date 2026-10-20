@@ -206,11 +206,34 @@
 }
 
 /* Swagger UI sets its fields to 12-14px at a specificity that beats the system's
-   16px phone floor, so iOS zoomed on every focus. One class more wins here. */
+   16px phone floor, so iOS zoomed on every focus. One class more wins here.
+   Its collapse arrows, the operation lock and the models toggle are 20-30px
+   targets; on a phone each reaches 44px, the glyphs unchanged. */
 @media (width < 48rem) {
     [data-oc-app='ochk'] .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
         font-size: 16px;
     }
+    [data-oc-app='ochk'] .swagger-ui :is(.expand-operation, .expand-methods, .opblock-control-arrow, .authorization__btn, .models-control) {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* The operation lock drew at 40% black when open: 2.8:1 on a tinted row in
+   light, 1.1:1 in dark. It takes the muted ink in both modes, open or shut;
+   the glyph says which. A parameter's place ("path") was grey at 3.5:1 and
+   "required" a 60% red; both take the system's inks. */
+[data-oc-app='ochk'] .swagger-ui .authorization__btn svg {
+    fill: var(--muted-foreground);
+    opacity: 1;
+}
+[data-oc-app='ochk'] .swagger-ui .parameter__in,
+[data-oc-app='ochk'] .swagger-ui .parameter__extension {
+    color: var(--muted-foreground);
+}
+[data-oc-app='ochk'] .swagger-ui .parameter__name.required span,
+[data-oc-app='ochk'] .swagger-ui .parameter__name.required::after {
+    color: var(--destructive);
 }
 
 /* Swagger's method badges put white text on light fills (GET 2.3:1, POST 2.0:1,

@@ -157,7 +157,8 @@ function Well({
 }
 
 const FRAME = 'overflow-hidden rounded-[1.25rem] border border-[var(--oca-code-line)] bg-[var(--oca-code-surface)]';
-const COPY_ON_INK = 'text-oca-ink-subtle hover:bg-white/10 hover:text-white';
+// The bar is 44px tall: on a phone the copy fills it, a thumb's target.
+const COPY_ON_INK = 'text-oca-ink-subtle hover:bg-white/10 hover:text-white max-md:size-11';
 
 export interface CodeBlockProps {
     /** The source. Highlighted here, on the server too, when `lang` is one the package reads. */

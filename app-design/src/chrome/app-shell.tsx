@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Lockup } from '../brand/mark';
 import type { FamilySlug } from '../family';
 import { cn } from '../lib/cn';
+import { InColumnContext } from '../lib/column';
 import { ShellContext } from '../lib/shell-context';
 import {
     DropdownMenu,
@@ -430,7 +431,9 @@ function SidebarShell({
                         {banner ? <div className="px-4 pb-2 pt-4 md:px-8 lg:pt-0">{banner}</div> : null}
                         <main id="main-content" className="flex-1 px-4 pb-16 pt-6 md:px-8 lg:pt-2">
                             {/* One width for every signed-in page. */}
-                            <div className="mx-auto w-full max-w-[72rem]">{children}</div>
+                            <div className="mx-auto w-full max-w-[72rem]">
+                                <InColumnContext.Provider value={true}>{children}</InColumnContext.Provider>
+                            </div>
                         </main>
                     </div>
                 </div>

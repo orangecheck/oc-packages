@@ -47,7 +47,7 @@ function download(content: string, filename: string, mime: string) {
 }
 
 const BAR_BUTTON =
-    'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white';
+    'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white max-md:h-11 max-md:min-w-11 max-md:justify-center max-md:px-3';
 
 /**
  * An artifact as it is: an envelope, a ballot, a delegation. JSON shows
@@ -97,7 +97,8 @@ export function ArtifactView({
                                     aria-pressed={view === v}
                                     onClick={() => setView(v)}
                                     className={cn(
-                                        'h-7 rounded-full px-2.5 text-[0.75rem] transition-colors',
+                                        // The pill stays 28px; its target reaches the bar's 44.
+                                        'relative h-7 rounded-full px-2.5 text-[0.75rem] transition-colors before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2',
                                         view === v ? 'bg-white/[0.12] text-white' : 'text-oca-ink-subtle hover:text-white'
                                     )}
                                 >
@@ -742,7 +743,7 @@ export function Meter({
 
 /* ── FilterChips ─────────────────────────────────────────────────────── */
 
-export interface FilterOption<T extends string> {
+export interface FilterOption<T extends string | number> {
     value: T;
     label: ReactNode;
     count?: number;
@@ -751,9 +752,9 @@ export interface FilterOption<T extends string> {
 /**
  * Filters above a list, as chips: one at a time, or several with
  * `multiple`. Each chip is a toggle button a screen reader hears as pressed
- * or not. They scroll sideways on a phone rather than wrap.
+ * or not. They wrap on a phone, every filter in view.
  */
-export function FilterChips<T extends string>({
+export function FilterChips<T extends string | number>({
     options,
     value,
     onChange,
@@ -790,7 +791,8 @@ export function FilterChips<T extends string>({
                         onClick={() => press(o.value)}
                         className={cn(
                             'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] transition-colors',
-                            tight ? 'h-8' : 'h-9',
+                            // A thumb's 44px on a phone.
+                            tight ? 'h-11 md:h-8' : 'h-11 md:h-9',
                             on
                                 ? 'border-foreground bg-foreground text-background'
                                 : 'border-border bg-card text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'

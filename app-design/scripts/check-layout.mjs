@@ -12,6 +12,10 @@
  *   what is positioned inside them: an sr-only line deep in a page's own
  *   scroller does not stretch the document past the window. Nor does one in
  *   the last column of a wide table in a ScrollFade widen a phone.
+ * - Every tool page's title starts at one x: ToolShell's wide and narrow
+ *   columns, an app page's ToolColumn, and an ErrorPage inside the shell.
+ * - On a phone the small controls are a thumb's 44px: the compact footer's
+ *   lockup, an artifact's Download, Copy and view switch, filter chips.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -144,6 +148,29 @@ try {
     );
     const expanded = page('expanded', '<div id="root"></div>', '<script src="client.js"></script>');
 
+    // One column: a title in each kind of tool page.
+    const title = h(C.PageHeader, { title: 'Verify a stamp', description: 'Drop a .stamp file.' });
+    const shell = (props, child) => renderToStaticMarkup(h(Ch.ToolShell, { protocol: 'stamp', tools: [], ...props }, child));
+    const columns = [
+        ['wide', page('col-wide', shell({}, title))],
+        ['narrow', page('col-narrow', shell({ measure: 'narrow' }, title))],
+        ['app + ToolColumn', page('col-app', shell({ variant: 'app' }, h('div', { className: 'min-h-0 flex-1 overflow-y-auto' }, h(Ch.ToolColumn, null, title))))],
+        ['ErrorPage', page('col-error', shell({}, h(C.ErrorPage, { code: 404 })))],
+    ];
+    // The small controls, on a phone.
+    const targets = page(
+        'targets',
+        shell(
+            {},
+            h(
+                'div',
+                { className: 'flex flex-col gap-6' },
+                h(C.FilterChips, { label: 'State', value: 'all', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'kept', label: 'Kept', count: 3 }] }),
+                h(C.ArtifactView, { content: '{"v":1,"kind":"stamp"}', title: 'Stamp envelope', filename: 'a.stamp' })
+            )
+        )
+    );
+
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
     try {
@@ -193,6 +220,48 @@ try {
             await p.goto(wide);
             const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
+            // One column: every title at the gutter of one centred 72rem column.
+            const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
+            for (const [name, url] of columns) {
+                await p.goto(url);
+                const box = await p.evaluate(() => ({
+                    left: document.querySelector('main h1').getBoundingClientRect().left,
+                    width: document.querySelector('main header')?.getBoundingClientRect().width,
+                    foot: document.querySelector('footer a[href="https://ochk.io"]')?.getBoundingClientRect().left,
+                }));
+                check(Math.abs(box.left - gutter) < 0.5, `[${width}] ${name}: the title starts at ${Math.round(box.left)}px, not the column's ${gutter}px`);
+                if (box.foot !== undefined) check(Math.abs(box.foot - gutter) < 0.5, `[${width}] ${name}: the footer's lockup starts at ${Math.round(box.foot)}px, not the column's ${gutter}px`);
+                if (name === 'narrow') check(box.width <= 768.5, `[${width}] narrow: the page runs ${Math.round(box.width)}px wide, past 48rem`);
+            }
+            // Targets: a press anywhere in the 44px around the control's middle lands on it.
+            await p.goto(targets);
+            const reach = await p.evaluate(() => {
+                const probe = (el) => {
+                    el.scrollIntoView({ block: 'center' });
+                    const r = el.getBoundingClientRect();
+                    const cx = r.left + r.width / 2;
+                    const cy = r.top + r.height / 2;
+                    const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                    return { tall: lands(cx, cy - 21.5) && lands(cx, cy + 21.5), wide: lands(cx - 21.5, cy) && lands(cx + 21.5, cy), height: r.height };
+                };
+                const footer = document.querySelector('footer a[href="https://ochk.io"]');
+                return {
+                    lockup: probe(footer),
+                    lockupHeight: footer.querySelector('svg, span').getBoundingClientRect().height,
+                    download: probe(document.querySelector('button[aria-label="Download a.stamp"]')),
+                    copy: probe(document.querySelector('button[aria-label="Copy code"]')),
+                    view: probe(document.querySelector('[aria-label="View"] button')),
+                    chip: probe(document.querySelector('[role="group"][aria-label="State"] button')),
+                };
+            });
+            if (width < 768) {
+                for (const k of ['lockup', 'download', 'copy', 'view', 'chip']) check(reach[k].tall, `[${width}] ${k}: a press 22px above or below its middle misses it`);
+                for (const k of ['download', 'copy']) check(reach[k].wide, `[${width}] ${k}: a press 22px beside its middle misses it`);
+                check(reach.lockup.height < 40, `[${width}] lockup: the link grew to ${Math.round(reach.lockup.height)}px; its look should not change`);
+            } else {
+                // A desk keeps the compact sizes.
+                check(reach.download.height <= 28.5 && reach.chip.height <= 36.5, `[${width}] the bar and chips grew on a desk (download ${reach.download.height}, chip ${reach.chip.height})`);
+            }
             await p.close();
         }
     } finally {
@@ -206,4 +275,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets`);

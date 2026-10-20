@@ -138,6 +138,11 @@
     --oc-signin-strong: 500;
     /* Sentence-case labels carry no trailing arrow (auth-client ≥ 2.29). */
     --oc-signin-arrow: none;
+    /* Role sizes for the ceremony (auth-client ≥ 2.33.4): app-design's body, hint, label and button sizes. */
+    --oc-signin-text-size: 0.9375rem;
+    --oc-signin-hint-size: 0.8125rem;
+    --oc-signin-label-size: 0.875rem;
+    --oc-signin-button-size: 0.9375rem;
 
     /* The wallet picker and sign button (@orangecheck/wallet-adapter's
        OcWalletPicker and OcWalletButton) in this design, read the same way:

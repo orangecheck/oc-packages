@@ -2,6 +2,47 @@
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-10-20
+
+What the family UI audit and cosign's, vault's and chat's re-chromes found.
+
+- `ToolShell` owns the column. Every tool page's title starts at one x:
+  144px at 1440, 16px at 390. `measure="narrow"` keeps a form or a result
+  to 48rem from that same left edge; a page no longer centres its own
+  narrower box. `ToolColumn` is the same column for an app page that
+  scrolls itself. The compact footer lines up with it too. Before, the six
+  tool sites' titles started at 144, 176, 272 and 335px under one header.
+- `ErrorPage` inside `ToolShell` or `AppShell` sits on the shell's gutter.
+  It drew a second one: 33px in at 390.
+- On a phone the small controls are 44px targets: the compact footer's
+  lockup (its look unchanged), an artifact's Download and Copy, its
+  Formatted / Raw switch, every code block's Copy, and `FilterChips`.
+  `FilterChips` also takes number values.
+- `GET_AN_ACCOUNT` in `./family` is the one account phrase: "Get an
+  account", linking ochk.app. `AccountCta` draws it in a header. ochk.io and
+  the docs show it; ochk.app shows it signed out, pointed at its own
+  sign-in. A tool site keeps "Sign in" (`SIGN_IN_LABEL`).
+- `SignInFrame` takes `product`, the site's word beside the lockup, as the
+  header has it. It defaults to the protocol's word, so a tool site's
+  sign-in reads "orangecheck | stamp".
+- `SectionTitle`: a block's title on a signed-in page, with a count after
+  it, a line under it and an action at the right. `ListCard`: rows in one
+  card, a hairline between each. `ChoiceGroup` and `ChoiceCard`: one choice
+  from a few cards, a radio group underneath, `sm` for rows in a dialog.
+  cosign, vault and chat each drew these by hand, 20 to 37 times.
+- `Monogram` sizes `xs` (32px) and `2xs` (28px), for a list row and a
+  facepile.
+- `SiteFooter` keys its links by place and label. Two links to one address
+  clashed.
+- `styles/swagger.css`: on a phone the collapse arrows, the operation lock
+  and the models toggle are 44px targets. The lock takes the muted ink:
+  open, it was 40% black, 2.8:1 on a tinted row in light and 1.1:1 in dark.
+  A parameter's place ("path") and "required" take the system's inks too.
+  `scripts/check-swagger.mjs` checks every one of these.
+- `--oc-signin-text-size`, `-hint-size`, `-label-size`, `-button-size`: the
+  sign-in ceremony in the system's body, hint, label and button sizes
+  (auth-client ≥ 2.33.4).
+
 ## [1.6.2] — 2026-10-20
 
 What btc's and agent's moves found.

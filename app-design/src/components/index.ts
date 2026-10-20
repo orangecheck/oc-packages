@@ -62,6 +62,7 @@ export type { ComparisonColumn, ComparisonRow, SpecCardProps, SpecFileKind } fro
 export { SignMessage, VerifyReport } from './verify';
 export type { CheckState, VerifyCheck } from './verify';
 export { TextLink } from './text-link';
+export { ChoiceCard, ChoiceGroup, ListCard, SectionTitle } from './parts';
 export {
     ApiTable,
     Breadcrumbs,

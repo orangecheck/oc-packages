@@ -25,6 +25,7 @@ import { OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
 import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
 import { Accent, ErrorPage, Monogram, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
 import {
+    AccountCta,
     AccountMenu,
     AppShell,
     OchkIoFooter,
@@ -322,11 +323,7 @@ export const OchkIo: StoryObj = {
                         : n
                 )}
                 search={<SearchButton />}
-                actions={
-                    <Button asChild size="sm">
-                        <a href="https://ochk.app/signin">Sign in</a>
-                    </Button>
-                }
+                actions={<AccountCta />}
             />
             <main id="main-content">
                 <PageHero
@@ -495,6 +492,16 @@ export const SignIn: StoryObj = {
                 </>
             }
         >
+            <MockCeremony />
+        </SignInFrame>
+    ),
+};
+
+/** A tool site's own sign-in: the site's word beside the lockup, home on its protocol's page. */
+export const ToolSignIn: StoryObj = {
+    name: 'Sign-in frame, tool site',
+    render: () => (
+        <SignInFrame protocol="stamp" lead="Sign in to keep your stamps in one place." fineprint="Signing in is free. Stamping never needs an account.">
             <MockCeremony />
         </SignInFrame>
     ),

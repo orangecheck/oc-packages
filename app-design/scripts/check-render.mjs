@@ -328,6 +328,36 @@ const html = (el) => renderToStaticMarkup(el);
     check(!html(h(Ch.SiteFooter, {})).includes('aria-label="Legal"'), 'SiteFooter: a legal row without legal');
 }
 
+// The parts a signed-in page repeats.
+{
+    const title = html(h(C.SectionTitle, { title: 'Backers', meta: '12 of 40', description: 'Who stands behind it.', action: h('a', { href: '/all' }, 'View all') }));
+    check(/<h2[^>]*>Backers<span[^>]*>12 of 40<\/span><\/h2>/.test(title), 'SectionTitle: the count is not read with the title');
+    check(title.includes('Who stands behind it.') && title.includes('href="/all"'), 'SectionTitle: the line or the action is missing');
+    check(html(h(C.SectionTitle, { title: 'Delete', as: 'h3', size: 'sm', tone: 'danger' })).match(/<h3 class="[^"]*oca-title-sm[^"]*text-destructive/), 'SectionTitle: as, size or tone ignored');
+    const list = html(h(C.ListCard, null, h('li', null, 'a'), h('li', null, 'b')));
+    check(/^<ul class="[^"]*divide-y[^"]*rounded-\[1\.25rem\][^"]*"><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card');
+    const choice = html(
+        h(C.ChoiceGroup, { label: 'Who can post', value: 'b', onValueChange: () => {} }, h(C.ChoiceCard, { value: 'a', title: 'Anyone' }), h(C.ChoiceCard, { value: 'b', title: 'Holders', description: 'A bound address.' }))
+    );
+    check(choice.includes('role="radiogroup"') && choice.includes('aria-label="Who can post"'), 'ChoiceGroup: not a named radio group');
+    check(/role="radio" aria-checked="false"[^>]*>[\s\S]*?Anyone/.test(choice) && /role="radio" aria-checked="true"[^>]*>[\s\S]*?Holders/.test(choice), 'ChoiceCard: the chosen card is not checked');
+    const nums = html(h(C.FilterChips, { label: 'Window', options: [{ value: 7, label: '7 days' }, { value: 30, label: '30 days' }], value: 30, onChange: () => {} }));
+    check(/aria-pressed="true"[^>]*>30 days/.test(nums), 'FilterChips: a number value is not pressed');
+    for (const [size, cls] of [['2xs', 'size-7'], ['xs', 'size-8']]) check(html(h(C.Monogram, { name: 'Ada', size })).includes(cls), `Monogram: ${size} is not ${cls}`);
+}
+
+// The account phrase and the sign-in page's word come from the registry.
+{
+    const F = require(join(here, '../dist/family.js'));
+    const cta = html(h(Ch.AccountCta));
+    check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.app', 'AccountCta: not the registry\'s phrase to ochk.app');
+    check(html(h(Ch.AccountCta, { href: '/signin' })).includes('href="/signin"'), 'AccountCta: ochk.app cannot point it at its own sign-in');
+    const frame = html(h(Ch.SignInFrame, { protocol: 'stamp' }, h('p', null, 'ceremony')));
+    check(/h-5 w-px[^>]*><\/span><span[^>]*>stamp<\/span>/.test(frame), 'SignInFrame: a tool site\'s sign-in does not carry its word');
+    check(html(h(Ch.SignInFrame, { product: 'ochk.app' }, 'x')).includes('>ochk.app</span>'), 'SignInFrame: product is ignored');
+    check(!/h-5 w-px/.test(html(h(Ch.SignInFrame, {}, 'x'))), 'SignInFrame: ochk.io\'s sign-in grew a word');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

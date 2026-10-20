@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 
 const here = dirname(fileURLToPath(import.meta.url));
-for (const f of ['components', 'primitives', 'mdx', 'code']) {
+for (const f of ['components', 'primitives', 'chrome', 'mdx', 'code']) {
     if (!existsSync(join(here, `../dist/${f}.js`))) {
         console.error(`✗ dom: dist/${f}.js is missing; run yarn build first`);
         process.exit(1);
@@ -37,8 +37,8 @@ window.ResizeObserver ??= class {
     disconnect() {}
 };
 // Node has its own Event and CustomEvent; a DOM node only takes jsdom's (Radix dispatches CustomEvents).
-for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'HTMLInputElement', 'Element', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FocusEvent', 'PointerEvent', 'NodeFilter', 'DocumentFragment', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
-    Object.defineProperty(globalThis, key, { value: key === 'window' ? window : window[key], configurable: true, writable: true });
+for (const key of ['window', 'self', 'document', 'navigator', 'HTMLElement', 'HTMLInputElement', 'HTMLFormElement', 'Element', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FocusEvent', 'PointerEvent', 'NodeFilter', 'DocumentFragment', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'localStorage', 'matchMedia']) {
+    Object.defineProperty(globalThis, key, { value: key === 'window' || key === 'self' ? window : window[key], configurable: true, writable: true });
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -49,6 +49,7 @@ const { ThemeProvider } = require('next-themes');
 const { toast } = require('sonner');
 const C = require(join(here, '../dist/components.js'));
 const P = require(join(here, '../dist/primitives.js'));
+const Ch = require(join(here, '../dist/chrome.js'));
 const { mdxComponents } = require(join(here, '../dist/mdx.js'));
 const { rehypeCode } = require(join(here, '../dist/code.js'));
 
@@ -211,9 +212,45 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// ChoiceGroup: a press chooses a card; the arrow keys move the choice, as radios do.
+{
+    const chosen = [];
+    function Pick() {
+        const [v, setV] = require('react').useState('a');
+        return h(
+            C.ChoiceGroup,
+            { label: 'Who can post', value: v, onValueChange: (x) => (chosen.push(x), setV(x)) },
+            ...['a', 'b', 'c'].map((x) => h(C.ChoiceCard, { key: x, value: x, title: x.toUpperCase() }))
+        );
+    }
+    const { host, unmount } = await mount(h(Pick));
+    const radios = () => [...host.querySelectorAll('[role="radio"]')];
+    await act(async () => radios()[1].click());
+    check(chosen.at(-1) === 'b' && radios()[1].getAttribute('aria-checked') === 'true' && radios()[0].getAttribute('aria-checked') === 'false', `ChoiceGroup: a press does not choose (${show(chosen)})`);
+    await act(async () => {
+        radios()[1].focus();
+        radios()[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    check(document.activeElement === radios()[2] && chosen.at(-1) === 'c', `ChoiceGroup: ArrowDown does not move the choice (${show(chosen)})`);
+    await unmount();
+}
+
+// SiteFooter: two links to one address are two links, not a clash React drops.
+{
+    const said = [];
+    const error = console.error;
+    console.error = (...a) => said.push(a.join(' '));
+    const twice = [{ heading: 'Use it', links: [{ href: '/signin', label: 'Sign in' }, { href: '/signin', label: 'Get an account' }] }];
+    const { host, unmount } = await mount(h(Ch.SiteFooter, { columns: twice, legal: [{ href: '/terms', label: 'Terms' }, { href: '/terms', label: 'Terms of use' }] }));
+    console.error = error;
+    check(!said.some((m) => /same key/.test(m)), `SiteFooter: links keyed by address clash (${said.find((m) => /same key/.test(m))?.slice(0, 80)})`);
+    check(host.querySelectorAll('a[href="/signin"]').length === 2 && host.querySelectorAll('a[href="/terms"]').length === 2, 'SiteFooter: a link to a shared address went missing');
+    await unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address`);
 process.exit(0);

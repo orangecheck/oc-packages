@@ -201,6 +201,8 @@ export const Monograms: StoryObj = {
                 ))}
             </div>
             <div className="flex items-center gap-3">
+                <Monogram name="Lumen Notes" size="2xs" />
+                <Monogram name="Lumen Notes" size="xs" />
                 <Monogram name="Lumen Notes" size="sm" />
                 <Monogram name="Lumen Notes" size="md" />
                 <Monogram name="Lumen Notes" size="lg" />

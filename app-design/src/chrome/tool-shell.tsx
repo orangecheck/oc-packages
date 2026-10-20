@@ -4,8 +4,9 @@ import type { NextRouter } from 'next/router';
 import { useSyncExternalStore, type ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
-import { protocolSite, type ProtocolSlug } from '../family';
+import { protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
 import { SiteHomeContext } from '../lib/site-home';
 import { Button } from '../primitives/button';
@@ -66,7 +67,7 @@ export function SessionAccountView({
     items = [],
     signInHref,
     signInPath,
-    signInLabel = 'Sign in',
+    signInLabel = SIGN_IN_LABEL,
     accountHref = OCHK_APP_ACCOUNT,
     onSignOut,
     nameFrom = 'lg',
@@ -122,6 +123,35 @@ export function SessionAccountView({
     );
 }
 
+/* ── The column ──────────────────────────────────────────────────────── */
+
+/**
+ * The tools' one column: 72rem, centred, with a 16px gutter on a phone and
+ * 32px from md, so every tool page's title starts at one x. `narrow` keeps a
+ * form to 48rem from that same left edge rather than centring a narrower box.
+ * ToolShell draws it for its pages; an app page that scrolls itself puts it
+ * inside its own scroller.
+ */
+export function ToolColumn({
+    measure = 'wide',
+    className,
+    children,
+}: {
+    measure?: 'wide' | 'narrow';
+    className?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className={cn('px-4 pb-16 pt-8 md:px-8 md:pt-10', className)}>
+            <div className="mx-auto w-full max-w-[72rem]">
+                <InColumnContext.Provider value={true}>
+                    {measure === 'narrow' ? <div className="max-w-[48rem]">{children}</div> : children}
+                </InColumnContext.Provider>
+            </div>
+        </div>
+    );
+}
+
 /* ── The shell ───────────────────────────────────────────────────────── */
 
 export interface ToolShellProps {
@@ -142,6 +172,12 @@ export interface ToolShellProps {
      * footer, the page managing its own scroll (an inbox, a workspace).
      */
     variant?: 'tool' | 'app';
+    /**
+     * `wide` (default): the 72rem column. `narrow`: a form or a result, 48rem
+     * from the same left edge, so the page's title starts where every other
+     * tool page's does.
+     */
+    measure?: 'wide' | 'narrow';
     /** A SiteBanner above the header. */
     banner?: ReactNode;
     /** Replace the footer, or `false` for none. Default: the compact family footer. */
@@ -165,6 +201,7 @@ export function ToolShell({
     rail = false,
     railFooter,
     variant = 'tool',
+    measure = 'wide',
     banner,
     footer,
     children,
@@ -225,13 +262,10 @@ export function ToolShell({
                             ) : null}
                         </aside>
                     ) : null}
-                    <main
-                        id="main-content"
-                        className={cn('min-w-0 flex-1', app ? 'flex min-h-0 flex-col' : 'px-4 pb-16 pt-8 md:px-8 md:pt-10')}
-                    >
+                    <main id="main-content" className={cn('min-w-0 flex-1', app && 'flex min-h-0 flex-col')}>
                         {/* An ErrorPage inside goes home to the protocol's page, as the lockup does. */}
                         <SiteHomeContext.Provider value={homeHref}>
-                            {app ? children : <div className="mx-auto w-full max-w-[72rem]">{children}</div>}
+                            {app ? children : <ToolColumn measure={measure}>{children}</ToolColumn>}
                         </SiteHomeContext.Provider>
                     </main>
                 </div>

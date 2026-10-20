@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { MarkOutline } from '../brand/mark';
 import { OCHK_IO, protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import { useInColumn } from '../lib/column';
 import { useSiteHome } from '../lib/site-home';
 import { Button } from '../primitives/button';
 import { Section } from './section';
@@ -51,11 +52,13 @@ export function ErrorPage({
     className?: string;
 }) {
     const shellHome = useSiteHome();
+    // Inside a shell's column the gutter is drawn already: a second one indented it 33px.
+    const inColumn = useInColumn();
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : (shellHome ?? OCHK_IO));
     const words = WORDS[code] ?? (code >= 500 ? WORDS[500]! : WORDS[404]!);
     const server = code >= 500;
     return (
-        <Section space="none" className={cn('flex min-h-[min(40rem,72dvh)] items-center py-16 md:py-24', className)}>
+        <Section space="none" contained={!inColumn} className={cn('flex min-h-[min(40rem,72dvh)] items-center py-16 md:py-24', className)}>
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <div className="flex max-w-[40rem] flex-col items-start gap-6 md:col-span-7">
                     <p className="oca-eyebrow oca-enter">

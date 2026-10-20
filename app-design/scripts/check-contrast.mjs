@@ -44,6 +44,10 @@ const PAIRS = [
     ['muted-foreground', 'background', 4.5],
     ['muted-foreground', 'card', 4.5],
     ['muted-foreground', 'muted', 4.5],
+    // A chosen ChoiceCard: its title, its line, its icon (a glyph, 3:1).
+    ['foreground', 'accent', 4.5],
+    ['muted-foreground', 'accent', 4.5],
+    ['oca-accent-ink', 'accent', 3],
     ['oca-subtle-foreground', 'background', 4.5],
     ['oca-subtle-foreground', 'card', 4.5],
     ['card-foreground', 'card', 4.5],

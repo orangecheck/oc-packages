@@ -28,6 +28,9 @@ const GROUNDS = [
 ] as const;
 
 const SIZES = {
+    // A list row's avatar, a facepile.
+    '2xs': 'size-7 rounded-[0.55rem] text-[0.75rem]',
+    xs: 'size-8 rounded-[0.6rem] text-[0.875rem]',
     sm: 'size-9 rounded-[0.7rem] text-[0.9375rem]',
     md: 'size-11 rounded-[0.85rem] text-[1.125rem]',
     lg: 'size-14 rounded-[1.05rem] text-[1.5rem]',

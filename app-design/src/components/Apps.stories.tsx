@@ -1,9 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Copy, KeyRound, Lock, Plus, Star } from 'lucide-react';
+import { Copy, Globe, KeyRound, Lock, Plus, Rocket, Star, Users, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button, DialogHost, prompt } from '../primitives';
-import { ComparisonTable, CommandDialog, CountdownRing, LockedPreview, Meter, PlanCard, Sats, type SearchGroup } from './index';
+import {
+    ChoiceCard,
+    ChoiceGroup,
+    ComparisonTable,
+    CommandDialog,
+    CountdownRing,
+    ListCard,
+    LockedPreview,
+    Meter,
+    Monogram,
+    PlanCard,
+    Sats,
+    SectionTitle,
+    type SearchGroup,
+} from './index';
 
 /* vault and btc are the samples: a code, plans, commands, what a sign-in opens. */
 const meta: Meta = { title: 'App parts' };
@@ -176,6 +190,64 @@ export const AskTwice: StoryObj = {
                 </Button>
                 {got ? <p className="oca-body">Answer: {got}.</p> : null}
                 <DialogHost />
+            </div>
+        );
+    },
+};
+
+/** A block's title, rows in one card, and a choice between cards: the parts signed-in pages kept drawing by hand. */
+export const Sections: StoryObj = {
+    name: 'Sections, lists, choices',
+    render: function Render() {
+        const [who, setWho] = useState<'builder' | 'backer' | 'both'>('builder');
+        const [post, setPost] = useState('holders');
+        return (
+            <div className="flex max-w-[48rem] flex-col gap-12">
+                <section className="flex flex-col gap-4">
+                    <SectionTitle
+                        title="Backers"
+                        meta="3 of 40"
+                        description="People who put their address behind this project."
+                        action={
+                            <Button size="sm" variant="secondary">
+                                View all
+                            </Button>
+                        }
+                    />
+                    <ListCard>
+                        {[
+                            { name: 'Ada Lovelace', when: 'Backed 2 days ago', amount: '250,000 sats' },
+                            { name: 'Satoshi Fan Club', when: 'Backed last week', amount: '1,000,000 sats' },
+                            { name: 'bc1q9h7…e3w7t', when: 'Backed in July', amount: '50,000 sats' },
+                        ].map(({ name, when, amount }) => (
+                            <li key={name} className="flex items-center gap-3 px-5 py-4">
+                                <Monogram name={name} size="xs" />
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[0.9375rem] font-medium">{name}</p>
+                                    <p className="text-[0.8125rem] text-muted-foreground">{when}</p>
+                                </div>
+                                <span className="oca-tabular text-[0.9375rem]">{amount}</span>
+                            </li>
+                        ))}
+                    </ListCard>
+                </section>
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="Start as" description="You can change it later." />
+                    <ChoiceGroup label="Start as" value={who} onValueChange={setWho} columns={3}>
+                        <ChoiceCard value="builder" icon={<Rocket />} title="A builder" description="Post what you bring and what you need." />
+                        <ChoiceCard value="backer" icon={<Wallet />} title="A backer" description="Put sats behind people building." />
+                        <ChoiceCard value="both" icon={<Users />} title="Both" description="Build, and back others." />
+                    </ChoiceGroup>
+                </section>
+                <section className="flex max-w-[28rem] flex-col gap-3">
+                    <SectionTitle title="Who can post" size="sm" as="h3" />
+                    <ChoiceGroup label="Who can post" value={post} onValueChange={setPost} size="sm">
+                        <ChoiceCard value="anyone" icon={<Globe />} title="Anyone" description="Any signed-in address." />
+                        <ChoiceCard value="holders" icon={<KeyRound />} title="Holders" description="An address holding at least 100,000 sats." />
+                        <ChoiceCard value="me" icon={<Lock />} title="Only me" />
+                    </ChoiceGroup>
+                </section>
+                <SectionTitle title="Delete this project" tone="danger" description="Its page and every cosign on it go. This cannot be undone." action={<Button variant="danger" size="sm">Delete</Button>} />
             </div>
         );
     },

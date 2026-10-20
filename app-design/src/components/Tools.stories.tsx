@@ -17,6 +17,7 @@ import {
 import {
     AnchorStatus,
     ArtifactView,
+    ErrorPage,
     BlockCountdown,
     BlockHeight,
     CopyButton,
@@ -237,8 +238,14 @@ export const Dashboard: StoryObj = {
 export const Verify: StoryObj = {
     name: 'Tool shell: verify',
     render: () => (
-        <ToolShell protocol="stamp" tools={stampTools('verify')} account={<SessionAccountView state="checking" signInHref="https://ochk.io/signin" />}>
-            <div className="mx-auto flex max-w-[48rem] flex-col gap-6">
+        <ToolShell
+            protocol="stamp"
+            tools={stampTools('verify')}
+            measure="narrow"
+            account={<SessionAccountView state="checking" signInHref="https://ochk.io/signin" />}
+        >
+            {/* Narrow keeps the form to 48rem from the column's left edge: the title starts where the dashboard's does. */}
+            <div className="flex flex-col gap-6">
                 <PageHeader eyebrow="OC Stamp" title="Verify a stamp" description="Drop a .stamp file, paste an envelope, or open a share link." />
                 <VerifyReport
                     verdict="good"
@@ -268,6 +275,16 @@ export const Verify: StoryObj = {
     ),
 };
 
+/** A missing page inside the shell: the error sits on the column's gutter, and home is the protocol's page. */
+export const NotFound: StoryObj = {
+    name: 'Tool shell: not found',
+    render: () => (
+        <ToolShell protocol="stamp" tools={stampTools('')} account={signedIn}>
+            <ErrorPage code={404} />
+        </ToolShell>
+    ),
+};
+
 const PledgeState = createStateBadge({
     open: { label: 'Open', tone: 'neutral' },
     kept: { label: 'Kept', tone: 'good' },
@@ -275,6 +292,19 @@ const PledgeState = createStateBadge({
     lapsed: { label: 'Lapsed', tone: 'quiet' },
     disputed: { label: 'Disputed', tone: 'attention' },
 });
+
+/** Filters on numbers: a window in days. */
+function WindowChips() {
+    const [days, setDays] = useState(30);
+    return (
+        <FilterChips
+            label="Window"
+            value={days}
+            onChange={setDays}
+            options={[7, 30, 90].map((d) => ({ value: d, label: `${d} days` }))}
+        />
+    );
+}
 
 export const Parts: StoryObj = {
     name: 'Tool parts',
@@ -322,6 +352,7 @@ export const Parts: StoryObj = {
                         { value: 'disputed', label: 'Disputed', count: 1 },
                     ]}
                 />
+                <WindowChips />
                 <div className="flex flex-col gap-2 text-[0.9375rem]">
                     <span className="flex items-center gap-2">
                         Address <HashChip value={ADDRESS} explorer="address" />

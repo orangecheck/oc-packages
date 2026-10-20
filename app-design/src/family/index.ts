@@ -62,6 +62,17 @@ export interface ProtocolSite extends FamilySite {
 export const OCHK_IO = 'https://ochk.io';
 /** The docs live under ochk.io; docs.ochk.io 308s here. */
 export const DOCS_HREF = `${OCHK_IO}/docs`;
+/** The account: one home for it, whichever site a person starts on. */
+export const OCHK_APP = 'https://ochk.app';
+
+/**
+ * The family's one account phrase. ochk.io and its docs offer it in the
+ * header and link ochk.app; ochk.app offers it signed out and links its own
+ * sign-in. A tool site signs a person in where they are, so it says
+ * SIGN_IN_LABEL instead.
+ */
+export const GET_AN_ACCOUNT: NavItem = { href: OCHK_APP, label: 'Get an account' };
+export const SIGN_IN_LABEL = 'Sign in';
 
 function protocol(
     slug: ProtocolSlug,
@@ -108,7 +119,7 @@ export const FAMILY: readonly FamilySite[] = [
     {
         slug: 'me',
         label: 'ochk.app',
-        href: 'https://ochk.app',
+        href: OCHK_APP,
         group: 'orangecheck',
         line: 'One account, with Bitcoin behind it.',
         status: 'testing',

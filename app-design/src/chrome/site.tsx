@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Lockup, Mark } from '../brand/mark';
-import { familyByGroup, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
+import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import type { FooterColumn, NavItem } from '../lib/nav';
+import { Button } from '../primitives/button';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { ThemeToggle } from './app-shell';
 import { FamilyList, FamilyMenu } from './family-menu';
@@ -133,6 +134,35 @@ export interface SiteHeaderProps {
 }
 
 /**
+ * The header's "Get an account", in the registry's words. On ochk.io and its
+ * docs it links ochk.app; ochk.app passes its own sign-in as `href`.
+ */
+export function AccountCta({ href = GET_AN_ACCOUNT.href, className }: { href?: string; className?: string }) {
+    return (
+        <Button asChild size="sm" className={className}>
+            <a href={href}>{GET_AN_ACCOUNT.label}</a>
+        </Button>
+    );
+}
+
+/** The lockup and, after a hairline, the site's own word: "orangecheck | stamp". */
+export function ProductLockup({ size, product }: { size: number; product?: string }) {
+    return (
+        <span className="inline-flex items-center">
+            <Lockup size={size} />
+            {product ? (
+                <>
+                    <span aria-hidden className="mx-3 h-5 w-px bg-oca-hairline-strong" />
+                    <span className="font-medium tracking-[-0.01em]" style={{ fontSize: size * 0.56 }}>
+                        {product}
+                    </span>
+                </>
+            ) : null}
+        </span>
+    );
+}
+
+/**
  * The header: lockup (and the site's word), navigation, search and actions.
  * Below md the navigation, and the family when it is on, move into one sheet;
  * the actions stay.
@@ -156,19 +186,7 @@ export function SiteHeader({
     const current = typeof family === 'string' ? family : undefined;
     const phoneNav = navOnPhone ? nav : [];
     const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra);
-    const brandNode = brand ?? (
-        <span className="inline-flex items-center">
-            <Lockup size={size} />
-            {product ? (
-                <>
-                    <span aria-hidden className="mx-3 h-5 w-px bg-oca-hairline-strong" />
-                    <span className="font-medium tracking-[-0.01em]" style={{ fontSize: size * 0.56 }}>
-                        {product}
-                    </span>
-                </>
-            ) : null}
-        </span>
-    );
+    const brandNode = brand ?? <ProductLockup size={size} product={product} />;
     const navigation =
         nav.length > 0 ? (
             <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
@@ -339,8 +357,9 @@ function LegalRow({ links }: { links: readonly NavItem[] }) {
         <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between">
             <nav aria-label="Legal">
                 <ul className="flex flex-wrap gap-x-5">
-                    {links.map((l) => (
-                        <li key={l.href}>
+                    {/* Two links may share an address; the label and place keep them apart. */}
+                    {links.map((l, i) => (
+                        <li key={`${i}:${l.label}`}>
                             {l.href.startsWith('/') ? (
                                 <Link href={l.href} className={FOOT_LINK}>
                                     {l.label}
@@ -397,10 +416,15 @@ export function SiteFooter({
     const legalLinks = legal === true ? LEGAL_LINKS : legal || null;
     if (compact) {
         return (
-            <footer className={cn('border-t border-border bg-background text-[0.875rem] text-muted-foreground', className)}>
-                <div className="oca-container flex flex-col gap-x-8 gap-y-3 py-5 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-                        <a href={OCHK_IO} className="rounded-lg text-foreground">
+            // The tools' column (ToolColumn): the lockup lines up with the page's title.
+            <footer className={cn('border-t border-border bg-background px-4 text-[0.875rem] text-muted-foreground md:px-8', className)}>
+                <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-x-8 gap-y-3 py-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                        {/* The lockup keeps its size; its target is 44px tall, clear of the links under it. */}
+                        <a
+                            href={OCHK_IO}
+                            className="relative rounded-lg text-foreground before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2"
+                        >
                             <Lockup size={22} />
                         </a>
                         {family ? (
@@ -461,14 +485,14 @@ export function SiteFooter({
                     const spans = n % 2 === 1 && i === n - 1;
                     return (
                         <div
-                            key={col.heading}
+                            key={`${i}:${col.heading}`}
                             className={cn('flex min-w-0 flex-col gap-1', spans && 'col-span-2 md:col-span-1')}
                         >
                             <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
                             <div className={cn('flex flex-col gap-1', spans && 'grid grid-cols-2 gap-x-6 md:flex md:flex-col')}>
-                                {col.links.map((l) => (
+                                {col.links.map((l, j) => (
                                     <NavLink
-                                        key={l.href}
+                                        key={`${j}:${l.label}`}
                                         item={l}
                                         className="-mx-3 py-2.5 text-[0.9375rem] md:py-1.5"
                                     />
