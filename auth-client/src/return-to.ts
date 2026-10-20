@@ -18,7 +18,12 @@
  * rather than carry it: sessionStorage belongs to one origin.
  */
 
+import { TAB_ADOPT_HASH } from './tab-session';
+
 const PREFIX = 'oc:return-fragment:';
+
+/** How long a restored fragment is held against a router that resets the address after hydrating. */
+const HOLD_MS = 10_000;
 
 /** Long enough for an email code or a wallet signature; short enough not to linger. */
 export const FRAGMENT_TTL_MS = 15 * 60 * 1000;
@@ -135,9 +140,38 @@ export function restoreReturnFragment(): boolean {
         const kept = JSON.parse(raw) as { hash?: unknown; at?: unknown };
         if (typeof kept.hash !== 'string' || !kept.hash.startsWith('#')) return false;
         if (typeof kept.at !== 'number' || Date.now() - kept.at > FRAGMENT_TTL_MS) return false;
-        window.history.replaceState(window.history.state, '', pathname + search + kept.hash);
+        const restored = pathname + search + kept.hash;
+        window.history.replaceState(window.history.state, '', restored);
+        holdFragment(pathname + search, kept.hash, restored);
         return true;
     } catch {
         return false;
     }
+}
+
+/**
+ * Next's pages router captures the address before the app runs, and on a
+ * page with a query or a dynamic route it replaces the address with that
+ * capture once it has hydrated, which takes the restored fragment off again.
+ * Put it back if that happens, once, while the browser stays on the page and
+ * nothing else has set a fragment.
+ */
+function holdFragment(pathAndQuery: string, hash: string, restored: string): void {
+    const until = Date.now() + HOLD_MS;
+    const check = () => {
+        const l = window.location;
+        if (l.pathname + l.search !== pathAndQuery || l.hash === hash) {
+            if (l.pathname + l.search === pathAndQuery && Date.now() < until) {
+                window.setTimeout(check, 50);
+            }
+            return;
+        }
+        if (l.hash && l.hash !== TAB_ADOPT_HASH) return;
+        try {
+            window.history.replaceState(window.history.state, '', restored);
+        } catch {
+            // The page keeps what it read on mount; only the address bar differs.
+        }
+    };
+    window.setTimeout(check, 0);
 }

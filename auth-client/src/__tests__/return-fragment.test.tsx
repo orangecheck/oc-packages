@@ -166,6 +166,34 @@ describe('putting it back', () => {
         expect(window.sessionStorage.getItem(TAB_SESSION_STORAGE_KEY)).toBeNull();
     });
 
+    it("survives a router that resets the address once it has hydrated (Next's pages router)", async () => {
+        at(PAGE + SECRET);
+        returnToHere();
+        expect(returnTo(`${PAGE}#oc-adopt`)).toEqual([SECRET]);
+        // What Next does on a page with a query: put back the address it captured before the app ran.
+        window.history.replaceState(null, '', `${PAGE}#oc-adopt`);
+        await new Promise((r) => setTimeout(r, 120));
+        expect(window.location.hash).toBe(SECRET);
+    });
+
+    it('leaves a fragment the page sets itself, and stops when the page changes', async () => {
+        at(PAGE + SECRET);
+        returnToHere();
+        returnTo(PAGE);
+        window.history.replaceState(null, '', `${PAGE}#tab=settings`);
+        await new Promise((r) => setTimeout(r, 120));
+        expect(window.location.hash).toBe('#tab=settings');
+
+        at(PAGE + SECRET);
+        returnToHere();
+        cleanup();
+        returnTo(PAGE);
+        at('/elsewhere');
+        await new Promise((r) => setTimeout(r, 120));
+        expect(window.location.pathname).toBe('/elsewhere');
+        expect(window.location.hash).toBe('');
+    });
+
     it('is used once', () => {
         at(PAGE + SECRET);
         returnToHere();

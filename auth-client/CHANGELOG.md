@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.33.3] — 2026-10-20
+
+### Fixed
+
+- **The restored fragment stays restored on a Next pages-router page.** Next
+  captures the address before the app runs, and on a page with a query or a
+  dynamic route it replaces the address with that capture once it has
+  hydrated. That took 2.33.2's restored fragment off again (seen live on
+  ochk.app `/pricing?x=1`, where it came back as `#oc-adopt`). A page that
+  read the fragment on mount still had it; the address bar and a reload did
+  not. OcSessionProvider now holds the restored fragment for ten seconds and
+  puts it back once if the address is reset to the same path with no
+  fragment or only `#oc-adopt`. A fragment the page sets itself, or a move
+  to another page, ends the hold.
+
 ## [2.33.2] — 2026-10-20
 
 ### Fixed
