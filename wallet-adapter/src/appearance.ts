@@ -8,6 +8,7 @@ import type { CSSProperties } from "react";
  * none render as before.
  *
  *   --oc-wallet-font           labels, buttons, fields  (ui-monospace, SFMono-Regular, monospace)
+ *   --oc-wallet-message-font   the message, the signature (--oc-wallet-font)
  *   --oc-wallet-case           small labels and buttons (uppercase; lowercase where the look is lowercase)
  *   --oc-wallet-tracking       small labels' spacing    (0.18em headings, 0.06em status words)
  *   --oc-wallet-scale          multiplies each size     (1; sizes are 8–12px)
@@ -25,6 +26,8 @@ import type { CSSProperties } from "react";
  */
 export const WALLET_FONT =
   "var(--oc-wallet-font, ui-monospace, SFMono-Regular, monospace)";
+/** The message to sign and the pasted signature: exact strings, mono even when the labels are not. */
+export const WALLET_MESSAGE_FONT = `var(--oc-wallet-message-font, ${WALLET_FONT})`;
 export const walletCase = (
   fallback: "uppercase" | "lowercase",
 ): CSSProperties["textTransform"] =>

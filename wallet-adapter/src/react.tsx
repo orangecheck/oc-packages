@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   WALLET_FIELD_SIZE,
   WALLET_FONT,
+  WALLET_MESSAGE_FONT,
   WALLET_MARK,
   WALLET_MIN_HEIGHT,
   WALLET_READY,
@@ -432,7 +433,7 @@ export function OcWalletButton({
                 border: "1px solid var(--border, #27272a)",
                 borderRadius: walletRadius(6),
                 color: "var(--foreground, #fafafa)",
-                fontFamily: "inherit",
+                fontFamily: WALLET_MESSAGE_FONT,
                 fontSize: walletSize(11),
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-all",
@@ -490,7 +491,7 @@ export function OcWalletButton({
               border: "1px solid var(--border, #27272a)",
               borderRadius: walletRadius(6),
               color: "var(--foreground, #fafafa)",
-              fontFamily: "inherit",
+              fontFamily: WALLET_MESSAGE_FONT,
               fontSize: WALLET_FIELD_SIZE,
             }}
           />

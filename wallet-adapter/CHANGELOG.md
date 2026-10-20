@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.3] — 2026-10-20
+
+### Added
+
+- `--oc-wallet-message-font`: the message to sign and the pasted signature in
+  `OcWalletButton`'s paste panel read it. Both are exact strings, so a design
+  with sans labels (app-design ≥ 1.4.0 sets it to its mono) keeps them mono.
+  The fallback is `--oc-wallet-font`, the font they inherited before.
+
 ## [0.6.2] — 2026-10-20
 
 ### Fixed

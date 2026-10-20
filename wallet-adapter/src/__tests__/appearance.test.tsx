@@ -147,6 +147,11 @@ describe("fallbacks: a site that sets nothing gets 0.5.2's look", () => {
       "clamp(12px, calc((768px - 100vw) * 1000), 16px)",
     );
     expect(css(field, "border-radius")).toBe("6px");
+    // The message and signature in the wallet font, as they inherited it before.
+    expect(css(field, "font-family")).toBe("ui-monospace, SFMono-Regular, monospace");
+    expect(css(host.querySelector("pre"), "font-family")).toBe(
+      "ui-monospace, SFMono-Regular, monospace",
+    );
 
     const copy = option("Copy");
     expect(css(copy, "border-radius")).toBe("4px");
@@ -203,6 +208,7 @@ describe("variables: app-design's values take over", () => {
         "--oc-wallet-field-size",
         "--oc-wallet-font",
         "--oc-wallet-mark",
+        "--oc-wallet-message-font",
         "--oc-wallet-min-height",
         "--oc-wallet-radius",
         "--oc-wallet-ready",
@@ -253,6 +259,13 @@ describe("variables: app-design's values take over", () => {
     expect(css(host.querySelector("textarea"), "font-size", vars)).toBe(
       "1rem",
     );
+    // The message and the signature are exact strings: mono, though the labels are sans.
+    expect(css(host.querySelector("pre"), "font-family", vars)).toBe(
+      "var(--oc-font-mono)",
+    );
+    expect(css(host.querySelector("textarea"), "font-family", vars)).toBe(
+      "var(--oc-font-mono)",
+    );
     expect(css(option("Back"), "border-radius", vars)).toBe("9999px");
     expect(css(option("Back"), "text-transform", vars)).toBe("none");
   });
@@ -298,7 +311,7 @@ describe("no style escapes the variables", () => {
         if (v) expect(v, `${prop} on ${el.outerHTML.slice(0, 80)}`).toMatch(/--oc-wallet-/);
       }
       const family = el.style.getPropertyValue("font-family");
-      if (family) expect(family).toMatch(/^(inherit|var\(--oc-wallet-font,)/);
+      if (family) expect(family).toMatch(/^(inherit|var\(--oc-wallet-(message-)?font,)/);
       // jsdom writes a bare #22c55e as rgb(34, 197, 94).
       expect(el.style.getPropertyValue("color")).not.toMatch(
         /^(#22c55e|rgb\(34, 197, 94\))$/,
