@@ -22,8 +22,8 @@
 /* Tokens + bridge + utility system + all skins. */
 @import '../src/styles.css';
 
-/* ochk.app's design system, inert unless data-oc-app="ochk" is set (the preview
-   decorator sets it for stories under ochk.app/). */
+/* The family's design system, inert unless data-oc-app="ochk" is set (the
+   preview decorator sets it for every story outside Classic (frozen)). */
 @import '../../app-design/src/styles.css';
 
 /* Fonts: in a real app next/font sets these; here we point them at the

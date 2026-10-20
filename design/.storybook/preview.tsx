@@ -19,8 +19,8 @@ const withTheme: Decorator = (Story, context) => {
     const mode = context.globals.mode as string;
     const skin = context.globals.skin as string;
 
-    // ochk.app stories run under their own system: the app attribute, no skin.
-    const app = context.title.startsWith('ochk.app');
+    // The family's system runs under its attribute, with no skin; only the classic stories take one.
+    const app = !context.title.startsWith('Classic (frozen)');
 
     useEffect(() => {
         const root = document.documentElement;
@@ -75,27 +75,43 @@ const preview: Preview = {
         options: {
             storySort: {
                 order: [
-                    'Tokens',
-                    'Primitives',
-                    'Composites',
-                    'Chrome',
-                    'Patterns',
-                    'ochk.app',
-                    ['Introduction', 'Tokens', 'Brand', 'Primitives', 'Components', 'Blocks', 'Protocol', 'Family', 'Chrome', 'Pages'],
+                    'orangecheck',
+                    [
+                        'Introduction',
+                        'Tokens',
+                        'Brand',
+                        'Primitives',
+                        'Components',
+                        'Blocks',
+                        'Protocol',
+                        'Family',
+                        'Chrome',
+                        'Tools',
+                        'Docs',
+                        'App parts',
+                        'Figures',
+                        'Pages',
+                    ],
+                    'Classic (frozen)',
+                    ['Tokens', 'Primitives', 'Composites', 'Chrome', 'Patterns'],
                 ],
             },
         },
     },
-    // Open on what a visitor with no oc_skin cookie sees.
-    initialGlobals: { mode: 'light', skin: DEFAULT_OC_THEME },
+    // Open in the visitor's own mode, as every family site does; classic opens on its default skin.
+    initialGlobals: {
+        mode: typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        skin: DEFAULT_OC_THEME,
+    },
     globalTypes: {
         skin: {
-            description: 'Theme skin (data-oc-theme)',
+            // Only the classic system has skins; the family's stories ignore it.
+            description: 'Classic system skin (data-oc-theme); Classic (frozen) stories only',
             toolbar: {
-                title: 'Skin',
+                title: 'Classic skin',
                 icon: 'paintbrush',
                 dynamicTitle: true,
-                items: OC_THEMES.map((t) => ({ value: t.id, title: t.label })),
+                items: OC_THEMES.map((t) => ({ value: t.id, title: `Classic · ${t.label}` })),
             },
         },
         mode: {

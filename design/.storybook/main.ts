@@ -6,9 +6,10 @@ const here = path.resolve(process.cwd(), '.storybook');
 
 const config: StorybookConfig = {
     stories: [
-        '../src/**/*.stories.@(ts|tsx)',
-        // ochk.app's own design system, a sibling package, in its own section.
-        { directory: '../../app-design/src', files: '**/*.stories.@(ts|tsx)', titlePrefix: 'ochk.app' },
+        // The family's one system (@orangecheck/app-design), first: what a visitor opens on.
+        { directory: '../../app-design/src', files: '**/*.stories.@(ts|tsx)', titlePrefix: 'orangecheck' },
+        // The classic system (@orangecheck/design), frozen: browsable for the owner tools still on it.
+        { directory: '../src', files: '**/*.stories.@(ts|tsx)', titlePrefix: 'Classic (frozen)' },
     ],
     /**
      * No addons. @storybook/addon-essentials stopped at 8.6.14 — Storybook 9

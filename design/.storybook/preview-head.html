@@ -1,0 +1,22 @@
+<script>
+    /*
+     * Story addresses from before the family system led: ochk.app's stories
+     * now sit under orangecheck, the classic system's under Classic (frozen).
+     * An old link is rewritten in place before Storybook reads it.
+     */
+    (function () {
+        var moved = function (id) {
+            // A story id only: the preview opens on id=* (the first story), which stays.
+            if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id) || /^(orangecheck|classic-frozen)-/.test(id)) return null;
+            return id.indexOf('ochk-app-') === 0 ? 'orangecheck-' + id.slice(9) : 'classic-frozen-' + id;
+        };
+        var url = new URL(window.location.href);
+        var KEY = 'id';
+        var next = moved(url.searchParams.get('id'));
+        if (next) {
+            url.searchParams.set(KEY, next);
+            // Storybook writes its paths with plain slashes; keep them that way.
+            window.history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString().replace(/%2F/g, '/') + url.hash);
+        }
+    })();
+</script>

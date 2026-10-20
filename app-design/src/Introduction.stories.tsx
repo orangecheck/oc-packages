@@ -15,11 +15,12 @@ export const Overview: StoryObj = {
                 <div className="flex flex-col gap-6">
                     <Lockup size={32} />
                     <Display level={1}>
-                        A design system for <Accent>ochk.app</Accent>.
+                        One design system for <Accent>orangecheck</Accent>.
                     </Display>
                     <Lead>
-                        Built from the ochk.app design (iteration 2). Its own tokens, type, mark and photography, scoped under
-                        <code className="mx-1">data-oc-app="ochk"</code> so nothing here reaches a family site.
+                        ochk.app, ochk.io and its docs, the six protocol tools and the apps draw from it: the tokens, type,
+                        mark and photography, the family's chrome and the parts each site needs. It applies only under
+                        <code className="mx-1">data-oc-app="ochk"</code>, so a site moves over whole.
                     </Lead>
                     <div className="flex flex-wrap gap-2">
                         <Badge>@orangecheck/app-design</Badge>
@@ -48,8 +49,15 @@ export const Overview: StoryObj = {
                 <h2>Using it</h2>
                 <p>
                     Import <code>@orangecheck/app-design/styles.css</code> after Tailwind, put{' '}
-                    <code>data-oc-app="ochk"</code> on <code>&lt;html&gt;</code>, and use plain next-themes for light
-                    and dark. Never mount the family's skin provider on the same page.
+                    <code>data-oc-app="ochk"</code> on <code>&lt;html&gt;</code>, list the package in{' '}
+                    <code>transpilePackages</code>, and use plain next-themes for light and dark. Never mount the
+                    classic system's skin provider on the same page.
+                </p>
+                <h2>The classic system</h2>
+                <p>
+                    <code>@orangecheck/design</code>, with its skins, is frozen: fixes only, no new components, no new
+                    site on it. Its stories stay under Classic (frozen) for the owner tools still on it, until they
+                    move.
                 </p>
             </Prose>
         </div>
