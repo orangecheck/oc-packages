@@ -14,14 +14,21 @@
   docs draw one header. Slugs match the classic system's.
 - `FamilyMenu`: a chevron beside the lockup (the lockup stays a link home)
   opens every site in its group, one line each, a status only where a site
-  is not live, the current site marked.
+  is not live, the current site marked. On a desk it is three columns
+  (orangecheck, Protocols, Apps with Public goods below), so the whole panel
+  fits a 1280×800 screen without scrolling inside it.
+- The docs link everywhere (registry, `OCHK_IO_NAV`) is ochk.io/docs, where
+  the docs now live. The integrator demo is listed as "demo", so nobody takes
+  Lumen Notes for an orangecheck product.
 - `SiteHeader` takes `product` (the site's word beside the lockup),
   `family` (`true` or the site's slug), `search` (a slot before the
   actions), `variant: 'tool'` (56px, full width, a hairline under it) and
   `NavItem.children` (one dropdown level, each child with a `description`).
   On a phone the navigation and the family share one sheet.
 - `SiteFooter` takes `family` (the registry's columns), `legal` (Privacy,
-  Terms, Security, Trademarks, Contact on ochk.io, and the copyright line)
+  Terms, Security, Trademarks, Contact on ochk.io, and the copyright line;
+  the family column of ochk.io, ochk.app and docs is titled "Start here", as
+  the lockup above it already says orangecheck)
   and `compact` (one row for tools). Any number of columns lays out without
   overrides: the lockup shares their row up to five.
 - `SkipLink`, `SiteBanner` (one strip above the header in the three notice
@@ -106,6 +113,9 @@ so the six protocol pages are one page with six sets of data:
   and gains `ring`.
 
 ### Stories
+
+- The package names no person: it is built from the ochk.app design
+  (iteration 2). Crediting the designer waits for their consent.
 
 - No personal names: sample accounts are `you@example.com`.
 - The words people read are the canonical ones: Balance, Account, account
@@ -304,7 +314,7 @@ once here. Additive: every 0.2 call site still compiles.
 
 ## [0.1.0] — 2026-10-15
 
-First release: the ochk.app design system from Souheila's partner deck.
+First release: the ochk.app design system, from the ochk.app design (iteration 2).
 
 - Tokens for light and dark, scoped to `data-oc-app="ochk"`. The deck's orange as
   text (2.81:1) is replaced by two darker shades of the same hue for display and

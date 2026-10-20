@@ -34,7 +34,7 @@ export function PackageCard({ items, className }: { items: PackageItem[]; classN
             )}
         >
             {items.map((it, i) => {
-                // Sou sets identifiers in the text face, not mono: they read as names here.
+                // The design sets identifiers in the text face, not mono: they read as names here.
                 const code = <span className={cn('text-[0.9375rem]', KIND[it.kind ?? 'package'])}>{it.code}</span>;
                 return (
                     <div key={i} className="flex min-w-0 flex-col gap-1.5">

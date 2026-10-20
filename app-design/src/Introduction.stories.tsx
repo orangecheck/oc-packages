@@ -18,7 +18,7 @@ export const Overview: StoryObj = {
                         A design system for <Accent>ochk.app</Accent>.
                     </Display>
                     <Lead>
-                        Built from Souheila's partner deck. Its own tokens, type, mark and photography, scoped under
+                        Built from the ochk.app design (iteration 2). Its own tokens, type, mark and photography, scoped under
                         <code className="mx-1">data-oc-app="ochk"</code> so nothing here reaches a family site.
                     </Lead>
                     <div className="flex flex-wrap gap-2">
@@ -36,7 +36,7 @@ export const Overview: StoryObj = {
                     The deck's orange, <code>#F66D36</code>, is 2.81:1 as text on the canvas. That fails AA for body
                     text and for display text. Fills keep it. Headlines use <code>#F55819</code> (3.2:1, display sizes
                     only) and small accent text uses <code>#C73F09</code> (4.9:1). On the orange band, text is ink, as
-                    Sou drew it.
+                    the design draws it.
                 </p>
                 <h2>What stays the deck's</h2>
                 <p>

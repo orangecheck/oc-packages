@@ -60,8 +60,8 @@ export interface ProtocolSite extends FamilySite {
 }
 
 export const OCHK_IO = 'https://ochk.io';
-/** Docs move to ochk.io/docs; docs.ochk.io then 308s there, so this link keeps working. */
-export const DOCS_HREF = 'https://docs.ochk.io';
+/** The docs live under ochk.io; docs.ochk.io 308s here. */
+export const DOCS_HREF = `${OCHK_IO}/docs`;
 
 function protocol(
     slug: ProtocolSlug,
@@ -151,10 +151,11 @@ export const FAMILY: readonly FamilySite[] = [
     },
     {
         slug: 'me-demo',
-        label: 'lumen notes',
+        // "demo", not the made-up app's own name, so nobody takes it for ours.
+        label: 'demo',
         href: 'https://me-demo.ochk.io',
         group: 'app',
-        line: 'A made-up app that signs in with orangecheck.',
+        line: 'Lumen Notes, a made-up app that signs in with orangecheck.',
         status: 'live',
     },
     {

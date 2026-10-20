@@ -1,6 +1,6 @@
 # @orangecheck/app-design
 
-The design system for **ochk.app**, built from Souheila's partner deck: Inter at
+The design system for **ochk.app**, built from the ochk.app design (iteration 2): Inter at
 regular weight, a light canvas, one orange used sparingly, halftone photography and
 the isometric check.
 

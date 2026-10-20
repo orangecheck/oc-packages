@@ -3,7 +3,7 @@ import type { SVGProps } from 'react';
 import { cn } from '../lib/cn';
 
 /*
- * The isometric check, measured from Sou's deck (slide 9) onto a 16×8 grid:
+ * The isometric check, measured from the ochk.app design (iteration 2, slide 9) onto a 16×8 grid:
  * a chevron with a 3-unit short arm and a 5-unit long arm, one unit thick,
  * extruded two units. Three faces, three oranges.
  */

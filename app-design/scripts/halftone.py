@@ -6,7 +6,7 @@
 
 The output is black dots on transparent, already masked to a circle, ready to sit
 on <HalftoneSphere>'s orange gradient. Tone comes from the photo's luminance after a
-blur of about one pitch, so an image that is already halftoned (as Sou's deck
+blur of about one pitch, so an image that is already halftoned (as the design's
 portrait is) re-screens cleanly at any size. The screen is rotated 45 degrees, the
 classic angle for black. Only Pillow is needed.
 

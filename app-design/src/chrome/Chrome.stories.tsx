@@ -57,7 +57,7 @@ export const PublicFrame: StoryObj = {
                 columns={[
                     { heading: 'Product', links: [{ href: '/how', label: 'How it works' }, { href: '/apps', label: 'For apps' }] },
                     { heading: 'Trust', links: [{ href: '/today', label: "What's true today" }, { href: '/custody', label: 'Who holds what' }] },
-                    { heading: 'Open', links: [{ href: 'https://docs.ochk.io', label: 'Docs', external: true }, { href: 'https://github.com/orangecheck', label: 'GitHub', external: true }] },
+                    { heading: 'Open', links: [{ href: 'https://ochk.io/docs', label: 'Docs', external: true }, { href: 'https://github.com/orangecheck', label: 'GitHub', external: true }] },
                 ]}
                 meta="The open layer is supported by an OpenSats grant · ochk.io · github.com/orangecheck"
             />

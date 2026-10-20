@@ -65,7 +65,7 @@ export const Buttons: StoryObj = {
             <div className="flex flex-wrap items-center gap-3">
                 <Button size="lg">hello@ochk.io</Button>
                 <Button size="lg" variant="secondary">
-                    docs.ochk.io
+                    ochk.io/docs
                 </Button>
                 <Button>Create account</Button>
                 <Button variant="secondary">See how it works</Button>

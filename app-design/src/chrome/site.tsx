@@ -387,7 +387,8 @@ export function SiteFooter({
         ...columns,
         ...(family
             ? familyByGroup().map((g) => ({
-                  heading: g.label,
+                  // The lockup above already says orangecheck.
+                  heading: g.id === 'orangecheck' ? 'Start here' : g.label,
                   links: g.sites.map((s) => ({ href: s.href, label: s.label, external: true })),
               }))
             : []),

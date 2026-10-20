@@ -1,7 +1,7 @@
 /*
  * @orangecheck/app-design — tokens.css
  *
- * Token values for ochk.app, measured from Sou's partner deck (2026-10-15) and
+ * Token values for ochk.app, measured from the ochk.app design (iteration 2, 2026-10-15) and
  * corrected where the deck fails contrast. Everything is scoped to
  * [data-oc-app='ochk'], so a family site that never sets the attribute never
  * sees a value from here. The :root form outranks a family skin's bare :root.

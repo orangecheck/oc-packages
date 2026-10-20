@@ -17,10 +17,10 @@ import {
 import { Button } from '../primitives';
 
 /*
- * Souheila's partner deck (2026-10-15), slide for slide, as one web page. It is
- * the reference the system is checked against, and the template for a partner
- * page. The fee line on slide 5 is hers, flagged in her own notes to confirm before
- * it goes out; it is true of the open layer and not of me.ochk, which takes a fee.
+ * The ochk.app design (iteration 2, 2026-10-15), slide for slide, as one web
+ * page. It is the reference the system is checked against, and the template for
+ * a partner page. The fee line on slide 5 was flagged in the design's own notes to
+ * confirm before it goes out; it is true of the open layer and not of me.ochk, which takes a fee.
  */
 const meta: Meta = { title: 'Pages/Partner deck', parameters: { fullBleed: true } };
 export default meta;
@@ -158,7 +158,7 @@ export const Deck: StoryObj = {
                                 <a href="mailto:hello@ochk.io">hello@ochk.io</a>
                             </Button>
                             <Button size="lg" variant="secondary" asChild>
-                                <a href="https://docs.ochk.io">docs.ochk.io</a>
+                                <a href="https://ochk.io/docs">ochk.io/docs</a>
                             </Button>
                         </div>
                     </div>

@@ -29,14 +29,16 @@ function SiteRow({ site, here, onNavigate }: { site: FamilySite; here: boolean; 
     );
 }
 
-/* Where each group sits: two columns on a tablet, three on a desk, with the
-   short groups stacked so no column runs far past the others. Reading order
-   stays orangecheck, Protocols, Apps, Public goods. */
+/* Where each group sits. On a tablet, two columns: orangecheck over the
+   protocols, the apps over the public goods. On a desk, three: orangecheck,
+   the protocols, then the apps with the public goods below them, so the panel
+   fits a 1280×800 screen without scrolling. Reading order stays orangecheck,
+   Protocols, Apps, Public goods. */
 const PLACE: Record<string, string> = {
-    orangecheck: 'sm:col-start-1 sm:row-start-1 lg:col-start-1 lg:row-start-1',
+    orangecheck: 'sm:col-start-1 sm:row-start-1 lg:row-span-2',
     protocol: 'sm:col-start-1 sm:row-start-2 lg:col-start-2 lg:row-start-1 lg:row-span-2',
-    app: 'sm:col-start-2 sm:row-start-1 lg:col-start-3 lg:row-start-1 lg:row-span-2',
-    'public-good': 'sm:col-start-2 sm:row-start-2 lg:col-start-1 lg:row-start-2',
+    app: 'sm:col-start-2 sm:row-start-1 lg:col-start-3',
+    'public-good': 'sm:col-start-2 sm:row-start-2 lg:col-start-3',
 };
 
 /**
@@ -56,7 +58,14 @@ export function FamilyList({
 }) {
     const id = useId();
     return (
-        <div className={cn('grid grid-cols-1 gap-x-2 gap-y-4', !stack && 'sm:grid-cols-2 lg:grid-cols-3', className)}>
+        <div
+            className={cn(
+                'grid grid-cols-1 gap-x-2 gap-y-4',
+                // The second desk row takes the slack, so the public goods sit right under the apps.
+                !stack && 'sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-[auto_1fr]',
+                className
+            )}
+        >
             {familyByGroup().map((g) => (
                 <div key={g.id} className={cn('flex flex-col gap-1', !stack && PLACE[g.id])}>
                     <p id={`${id}-${g.id}`} className="px-3 pt-1 text-[0.8125rem] text-muted-foreground">

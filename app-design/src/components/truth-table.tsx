@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 /*
- * "What's true today." A two-column table: a status and what it covers. Sou's
- * note on the slide is the brief for this component: say it plainly; being
+ * "What's true today." A two-column table: a status and what it covers. The
+ * design's note on the slide is the brief for this component: say it plainly; being
  * clear about what isn't done yet is part of the pitch. So the statuses are
  * fixed words, never icons, and a row cannot be written without one.
  */
