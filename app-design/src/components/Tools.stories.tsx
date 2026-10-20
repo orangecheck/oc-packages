@@ -247,7 +247,7 @@ export const Verify: StoryObj = {
                         },
                         { label: 'The file matches the hash', state: 'ok', note: 'annual-report-2026.pdf, 471 KB' },
                         { label: 'Anchored in a Bitcoin block', state: 'ok', note: 'Block 971,632 · 20 Oct 2026, 10:02 UTC' },
-                        { label: 'Stake behind the signer', state: 'unchecked', note: 'No OC Attest is bound to this stamp.' },
+                        { label: 'Stake behind the signer', state: 'none', note: 'No OC Attest is bound to this stamp.' },
                     ]}
                     notChecked={['Whether the signer is who they say they are off-chain.', 'What the file means. A stamp proves who and when, not that it is true.']}
                 />
@@ -395,7 +395,8 @@ export const Session: StoryObj = {
                         actions={
                             <>
                                 <span className="text-[0.8125rem] text-muted-foreground max-sm:hidden">{state}</span>
-                                <SessionAccountView state={state} name="you@example.com" signInHref="https://ochk.io/signin" />
+                                {/* In place: this site's /signin, returning to the page it was opened from. */}
+                                <SessionAccountView state={state} name="you@example.com" signInPath="/signin" />
                             </>
                         }
                     />

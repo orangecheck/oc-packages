@@ -91,6 +91,10 @@ const html = (el) => renderToStaticMarkup(el);
     ];
     const out = html(h(Ch.ToolShell, { protocol: 'stamp', tools }, h(P.Input, { 'aria-label': 'Hash' })));
     check(out.includes('>stamp<'), 'ToolShell: the protocol word is missing');
+    // The lockup goes to the protocol's page: a tool site's own / sends people off-site.
+    const home = (o) => o.match(/<a [^>]*href="([^"]*)"[^>]*>(?:(?!<\/a>)[\s\S])*<span class="sr-only"> home<\/span>/)?.[1];
+    check(home(out) === 'https://ochk.io/stamp', `ToolShell: home is ${home(out)}, not the protocol's page`);
+    check(home(html(h(Ch.ToolShell, { protocol: 'stamp', tools, home: '/dashboard' }, null))) === '/dashboard', 'ToolShell: home cannot be overridden');
     check(out.includes('href="https://ochk.io/stamp"') && out.includes('About stamp'), 'ToolShell: no way to the protocol page');
     check(out.includes('data-oca-tabbar'), 'ToolShell: three tools with icons get no tab bar');
     check(out.includes('data-size="sm"'), 'ToolShell: fields are not compact inside it');
@@ -124,8 +128,49 @@ const html = (el) => renderToStaticMarkup(el);
     check(checking.includes('invisible') && checking.includes('aria-hidden="true"'), 'Session: checking does not hold its place unseen');
     const out = html(h(Ch.SessionAccountView, { state: 'out', signInHref: 'https://ochk.io/signin?return_to=x' }));
     check(out.includes('href="https://ochk.io/signin?return_to=x"') && out.includes('Sign in'), 'Session: signed out has no sign-in');
+    // In place: the route on the server (the address is read in the browser); outside a router, the bare page.
+    const inPlace = html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin' }));
+    check(inPlace.includes('href="/signin"'), 'Session: signInPath does not reach the sign-in link');
+    const given = html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin', signInHref: 'https://ochk.io/signin' }));
+    check(given.includes('href="https://ochk.io/signin"'), 'Session: signInHref does not win over signInPath');
     const unknown = html(h(Ch.SessionAccountView, { state: 'unknown', signInHref: '/signin' }));
     check(unknown.includes('https://ochk.app/me/account'), 'Session: a failed check does not offer the account page');
+}
+
+// A Field labels a control inside a box of its own (an input with a popover under it) without taking the box.
+{
+    const out = html(
+        h(P.Field, { label: 'Your Bitcoin address', hint: 'You sign in your own wallet.', error: 'Not an address.' }, (c) =>
+            h('div', { className: 'relative' }, h(P.Input, c), h('div', { role: 'listbox', style: { position: 'absolute', top: '100%' } }))
+        )
+    );
+    const labelFor = out.match(/<label[^>]*for="([^"]+)"/)?.[1];
+    const input = out.match(/<input[^>]*>/)?.[0] ?? '';
+    check(!!labelFor && input.includes(`id="${labelFor}"`), 'Field: the label does not name a control inside its own box');
+    check(/aria-describedby="[^"]+-hint [^"]+-error"/.test(input) && input.includes('aria-invalid="true"'), 'Field: the hint and error do not describe that control');
+    check(/<div class="relative"><input/.test(out), 'Field: the control\'s own box is not kept');
+    const fixed = html(h(P.Field, { label: 'Address', id: 'addr' }, h(P.Input)));
+    check(fixed.includes('for="addr"') && fixed.includes('id="addr"'), 'Field: a given id is not used');
+}
+
+// VerifyReport: items-start sizes a line to its longest word, so an address in the title or summary must be free to break.
+{
+    const addr = 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297';
+    const out = html(
+        h(C.VerifyReport, {
+            verdict: 'caution',
+            title: `Signed by ${addr}`,
+            summary: `Signed by ${addr}, with no timestamp yet.`,
+            checks: [
+                { label: 'Bitcoin timestamp', state: 'none' },
+                { label: 'Stake behind the signer', state: 'unchecked' },
+            ],
+        })
+    );
+    const holders = [...out.matchAll(/<(h2|p) class="([^"]*)"[^>]*>Signed by bc1p/g)];
+    check(holders.length === 2 && holders.every((m) => m[2].includes('[overflow-wrap:anywhere]')), 'VerifyReport: an address in the title or summary cannot break, so it overflows a phone');
+    check(/>Bitcoin timestamp<[\s\S]*?>None</.test(out), 'VerifyReport: an absent check does not read None');
+    check(/>Stake behind the signer<[\s\S]*?>Not checked</.test(out), 'VerifyReport: an unchecked check does not read Not checked');
 }
 
 // Tool parts.

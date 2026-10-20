@@ -23,6 +23,7 @@ export function accountName(account: Pick<OcAccount, 'displayName' | 'displayIde
 
 export function SessionAccount({
     signInHref,
+    signInPath,
     signInLabel,
     accountHref = OCHK_APP_ACCOUNT,
     items,
@@ -30,6 +31,8 @@ export function SessionAccount({
 }: {
     /** Default: the session's sign-in URL on the auth host. */
     signInHref?: string;
+    /** This site's own sign-in page (`/signin`): sign in here, in place, and return to the page the viewer is on. */
+    signInPath?: string;
     signInLabel?: string;
     /** Where "Your account" goes. */
     accountHref?: string;
@@ -51,7 +54,8 @@ export function SessionAccount({
             name={name}
             detail={detail}
             items={items}
-            signInHref={signInHref ?? session?.signInUrl ?? 'https://ochk.io/signin'}
+            signInHref={signInHref ?? (signInPath ? undefined : (session?.signInUrl ?? 'https://ochk.io/signin'))}
+            signInPath={signInPath}
             signInLabel={signInLabel}
             accountHref={accountHref}
             onSignOut={() => void session?.signOut()}

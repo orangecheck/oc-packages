@@ -134,6 +134,7 @@ export const Cards: StoryObj = {
 export const Forms: StoryObj = {
     render: function FormsStory() {
         const [on, setOn] = useState(true);
+        const [suggest, setSuggest] = useState(false);
         return (
             <Card className="flex max-w-xl flex-col gap-6">
                 <Field label="Project name" hint="What your users will see.">
@@ -148,6 +149,30 @@ export const Forms: StoryObj = {
                     action={<Button variant="secondary">Invite</Button>}
                 >
                     <Input placeholder="Account id" />
+                </Field>
+                <Field label="Your Bitcoin address" hint="Focus it: the suggestion anchors under the input, not under this hint.">
+                    {(control) => (
+                        <div className="relative">
+                            <Input
+                                {...control}
+                                defaultValue="bc1q9h"
+                                className="font-mono"
+                                autoComplete="off"
+                                onFocus={() => setSuggest(true)}
+                                onBlur={() => setSuggest(false)}
+                            />
+                            <div
+                                hidden={!suggest}
+                                role="listbox"
+                                aria-label="Suggestions"
+                                className="absolute inset-x-0 top-[calc(100%+4px)] z-10 rounded-xl border border-border bg-popover p-1 shadow-md"
+                            >
+                                <div role="option" aria-selected className="flex justify-between rounded-lg bg-accent px-3 py-2 text-[0.8125rem]">
+                                    use your address <span className="font-mono">bc1q9h7g…z5e3w7t</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </Field>
                 <Field label="Why you're asking">
                     <Textarea placeholder="One or two sentences." />

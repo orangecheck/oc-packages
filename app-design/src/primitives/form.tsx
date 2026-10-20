@@ -87,6 +87,13 @@ export const Label = forwardRef<
     );
 });
 
+/** What Field hands its control: the id its label names, its hint and error, whether it is invalid. */
+export interface FieldControlProps {
+    id: string;
+    'aria-describedby'?: string;
+    'aria-invalid'?: true;
+}
+
 export interface FieldProps {
     label: ReactNode;
     /** Help under the control. It sits below, so paired fields stay level. */
@@ -95,8 +102,14 @@ export interface FieldProps {
     optional?: boolean;
     /** Shown in place of nothing; marks the control invalid. */
     error?: ReactNode;
-    /** The control. Receives id, aria-describedby and aria-invalid. */
-    children: ReactElement;
+    /**
+     * The control, which receives id, aria-describedby and aria-invalid. Or a
+     * function given them, for a control inside a box of its own: an input
+     * with a popover anchored under it, `(c) => <div className="relative"><Input {...c} />{popover}</div>`.
+     */
+    children: ReactElement | ((control: FieldControlProps) => ReactNode);
+    /** The control's id, when something else must know it. Default: a generated one. */
+    id?: string;
     className?: string;
     /** Render the label visually hidden (it is still the accessible name). */
     hideLabel?: boolean;
@@ -105,18 +118,22 @@ export interface FieldProps {
 }
 
 /** Label, hint, control and error, wired together by id. */
-export function Field({ label, hint, optional, error, children, className, hideLabel, action }: FieldProps) {
-    const id = useId();
+export function Field({ label, hint, optional, error, children, id: fixedId, className, hideLabel, action }: FieldProps) {
+    const generated = useId();
+    const id = fixedId ?? generated;
     const hintId = hint ? `${id}-hint` : undefined;
     const errorId = error ? `${id}-error` : undefined;
-    const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
-    const control = isValidElement(children)
-        ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-              id,
-              'aria-describedby': describedBy,
-              'aria-invalid': error ? true : undefined,
-          })
-        : children;
+    const wiring: FieldControlProps = {
+        id,
+        'aria-describedby': [hintId, errorId].filter(Boolean).join(' ') || undefined,
+        'aria-invalid': error ? true : undefined,
+    };
+    const control =
+        typeof children === 'function'
+            ? children(wiring)
+            : isValidElement(children)
+              ? cloneElement(children as ReactElement<Record<string, unknown>>, { ...wiring })
+              : children;
     const hintNode = hint ? (
         <p id={hintId} className="text-[0.8125rem] leading-snug text-muted-foreground">
             {hint}

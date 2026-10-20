@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-10-20
+
+What stamp built locally on the tool shell, so the other five tool sites do not
+each copy it.
+
+- `ToolShell`: the lockup and the protocol's word go to the protocol's page on
+  ochk.io (`https://ochk.io/stamp`), not `/`, which every tool site now
+  redirects off-site. `home` still overrides it.
+- Sign-in in place. `SessionAccount signInPath="/signin"` (and
+  `SessionAccountView`) links the site's own sign-in page with `return_to` set
+  to the page the viewer is on: its path and query, never the fragment, so a
+  share link's secret stays in the browser. The server renders the route with
+  any base path, so hydration matches; a dynamic route renders the bare page
+  until the browser reads the address. A path the URL parser would read as
+  another host (`//evil.example`) returns to `/`. `useSignInHref(path)` builds
+  the same link for a site with its own session source. `signInHref` still wins
+  when both are given.
+- `VerifyReport`: a Bitcoin address in the title or summary wraps on a phone
+  instead of running off the card. The header sizes each line to its longest
+  word, and an address is one long word. `check-render` renders one.
+- `VerifyReport`: a check can be `none`, read "None" beside a slashed circle,
+  for something that is legitimately absent: no timestamp yet, no stake bound.
+  "Not checked" stays for a check that did not look. It uses the muted colours
+  the report already does, so it adds no contrast pair.
+- `Field` takes a function as its child, given the id, `aria-describedby` and
+  `aria-invalid`, so the control can sit in a box of its own: an input with a
+  suggestion popover anchored under it, not under the hint. `id` sets the
+  control's id.
+
 ## [1.2.3] — 2026-10-20
 
 Reverts 1.2.2's import. `next/link.js` is a specifier Next's aliases do not know, so

@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, CircleMinus, CircleX, Clock } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleMinus, CircleSlash, CircleX, Clock } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
@@ -8,7 +8,11 @@ import { StatusBadge, type Statement } from '../primitives/status-badge';
 import { CodeBlock } from './code-block';
 import { KeyValueList, type KeyValueItem } from './data';
 
-export type CheckState = 'ok' | 'fail' | 'pending' | 'skipped' | 'unchecked';
+/**
+ * `none`: there is nothing to check, and that is a fact (no timestamp yet, no
+ * stake bound). `unchecked`: there may be, but this check did not look.
+ */
+export type CheckState = 'ok' | 'fail' | 'pending' | 'none' | 'skipped' | 'unchecked';
 
 export interface VerifyCheck {
     label: ReactNode;
@@ -21,6 +25,7 @@ const CHECK: Record<CheckState, { word: string; icon: ReactNode; tone: string }>
     ok: { word: 'Passed', icon: <CircleCheck />, tone: 'text-success' },
     fail: { word: 'Failed', icon: <CircleX />, tone: 'text-destructive' },
     pending: { word: 'Pending', icon: <Clock />, tone: 'text-oca-accent-ink' },
+    none: { word: 'None', icon: <CircleSlash />, tone: 'text-muted-foreground' },
     skipped: { word: 'Skipped', icon: <CircleMinus />, tone: 'text-muted-foreground' },
     unchecked: { word: 'Not checked', icon: <CircleDashed />, tone: 'text-oca-subtle' },
 };
@@ -60,10 +65,11 @@ export function VerifyReport({
             aria-label="Verification result"
             className={cn('overflow-hidden rounded-[1.25rem] border border-border bg-card', className)}
         >
+            {/* items-start sizes each line to its longest word: a Bitcoin address must be free to break. */}
             <header className="flex flex-col items-start gap-3 p-6 md:p-8">
                 <StatusBadge status={verdict} />
-                <Heading className="oca-display-3">{title}</Heading>
-                {summary ? <p className="oca-body max-w-[40rem]">{summary}</p> : null}
+                <Heading className="oca-display-3 [overflow-wrap:anywhere]">{title}</Heading>
+                {summary ? <p className="oca-body max-w-[40rem] [overflow-wrap:anywhere]">{summary}</p> : null}
             </header>
             <ul aria-label="Checks" className="divide-y divide-border border-t border-border">
                 {checks.map((c, i) => {

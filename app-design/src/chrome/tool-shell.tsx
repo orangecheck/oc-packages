@@ -1,5 +1,7 @@
 import { ArrowUpRight, CircleUser, LogOut } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useRouter } from 'next/compat/router';
+import type { NextRouter } from 'next/router';
+import { useSyncExternalStore, type ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
 import { protocolSite, type ProtocolSlug } from '../family';
@@ -17,6 +19,38 @@ export type SessionState = 'checking' | 'in' | 'out' | 'unknown';
 
 export const OCHK_APP_ACCOUNT = 'https://ochk.app/me/account';
 
+/** Back and forward; a router move re-renders the page, which reads the address again. */
+function onHistory(change: () => void) {
+    window.addEventListener('popstate', change);
+    return () => window.removeEventListener('popstate', change);
+}
+
+/** The page's path and query, never the fragment. Anything the URL parser would read as another host returns home. */
+function herePath(): string {
+    const { href, origin, pathname, search } = window.location;
+    const path = pathname + search;
+    return new URL(path, href).origin === origin ? path : '/';
+}
+
+/** The route the server renders, with the base path; none for a dynamic route, whose template is no address. */
+function routePath(router: NextRouter | null): string | null {
+    if (!router || router.pathname.includes('[')) return null;
+    return router.basePath && router.pathname === '/' ? router.basePath : router.basePath + router.pathname;
+}
+
+/**
+ * This site's sign-in page, set to return to the page the viewer is on:
+ * `/signin?return_to=%2Fverify%3Fid%3D…`. The server renders the route
+ * without its query, so hydration matches; the fragment is never read, so a
+ * share link's secret stays off servers. Pass no path for none.
+ */
+export function useSignInHref(path?: string): string | undefined {
+    const router = useRouter();
+    const here = useSyncExternalStore(onHistory, herePath, () => routePath(router));
+    if (!path) return undefined;
+    return here ? `${path}?return_to=${encodeURIComponent(here)}` : path;
+}
+
 /**
  * The header's account control, for any session source: the account menu
  * when signed in, "Sign in" when not. While the check runs, the button holds
@@ -30,6 +64,7 @@ export function SessionAccountView({
     detail,
     items = [],
     signInHref,
+    signInPath,
     signInLabel = 'Sign in',
     accountHref = OCHK_APP_ACCOUNT,
     onSignOut,
@@ -42,13 +77,17 @@ export function SessionAccountView({
     detail?: string;
     /** This site's own items, above "Your account". */
     items?: (AccountMenuItem | 'separator')[];
-    signInHref: string;
+    /** Where "Sign in" goes, as given. */
+    signInHref?: string;
+    /** This site's sign-in page (`/signin`): "Sign in" returns to the page the viewer is on. */
+    signInPath?: string;
     signInLabel?: string;
     /** Where "Your account" goes: ochk.app. */
     accountHref?: string;
     onSignOut?: () => void;
     nameFrom?: 'sm' | 'lg';
 }) {
+    const inPlace = useSignInHref(signInPath);
     if (state === 'in') {
         return (
             <AccountMenu
@@ -76,7 +115,7 @@ export function SessionAccountView({
         // No box of its own: it sits exactly where the signed-in chip will. While checking it is only unseen.
         <span className={state === 'checking' ? 'contents invisible' : 'contents'} aria-hidden={state === 'checking' || undefined}>
             <Button asChild size="sm" variant="secondary" tabIndex={state === 'checking' ? -1 : undefined}>
-                <a href={signInHref}>{signInLabel}</a>
+                <a href={signInHref ?? inPlace ?? 'https://ochk.io/signin'}>{signInLabel}</a>
             </Button>
         </span>
     );
@@ -89,7 +128,7 @@ export interface ToolShellProps {
     protocol: ProtocolSlug;
     /** create · verify · discover · playground, in the family's words; give each an icon for the phone's tab bar. */
     tools: readonly ToolItem[];
-    /** Where the lockup and the protocol's word go: the tools' dashboard. */
+    /** Where the lockup and the protocol's word go. Default: the protocol's page on ochk.io. */
     home?: string;
     /** The account control: SessionAccount, or SessionAccountView. */
     account?: ReactNode;
@@ -111,16 +150,16 @@ export interface ToolShellProps {
 
 /**
  * The frame for a protocol's tools: a slim full-width header (orangecheck ·
- * stamp, the family menu, the tools, "About stamp" on ochk.io, the status
- * when it is not live, the account, the theme), the page, and the compact
- * family footer. Everything inside is set at compact density. On a phone the
+ * stamp, linking the protocol's page on ochk.io; the family menu, the tools,
+ * "About stamp", the status when it is not live, the account, the theme), the
+ * page, and the compact family footer. Everything inside is set at compact density. On a phone the
  * tools move to a tab bar under the thumb when there are two to five, each
  * with an icon.
  */
 export function ToolShell({
     protocol,
     tools,
-    home = '/',
+    home,
     account,
     rail = false,
     railFooter,
@@ -154,7 +193,7 @@ export function ToolShell({
                 {banner}
                 <SiteHeader
                     variant="tool"
-                    home={home}
+                    home={home ?? p.pageHref}
                     product={p.label}
                     family={protocol}
                     nav={tools.map((t) => ({ href: t.href, label: t.label, active: t.active }))}

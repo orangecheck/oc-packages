@@ -2,7 +2,8 @@
 /*
  * Builds a Next site that uses the package the way the family does (pages
  * router, a basePath, app-design in transpilePackages) and reads the server's
- * HTML: a router link must carry the base path. 1.2.2 imported `next/link.js`,
+ * HTML: a router link must carry the base path, and the tool shell's sign-in
+ * must return to the route it is on. 1.2.2 imported `next/link.js`,
  * which Next left external at SSR, so links lost the router and every link on
  * the docs dropped /docs. Rendering the dist outside Next cannot see that.
  * Run after `yarn build`.
@@ -46,6 +47,13 @@ try {
         "import { TextLink } from '@orangecheck/app-design/components';\n" +
             "export default function Home() { return <TextLink href=\"/x\">x</TextLink>; }\n"
     );
+    writeFileSync(
+        join(site, 'pages', 'verify.js'),
+        "import { SessionAccountView, ToolShell } from '@orangecheck/app-design/chrome';\n" +
+            "export default function Verify() {\n" +
+            "    return <ToolShell protocol=\"stamp\" tools={[]} account={<SessionAccountView state=\"out\" signInPath=\"/signin\" />}>v</ToolShell>;\n" +
+            "}\n"
+    );
     const next = join(pkg, 'node_modules', 'next', 'dist', 'bin', 'next');
     const run = spawnSync(process.execPath, [next, 'build', '--webpack'], {
         cwd: site,
@@ -62,7 +70,19 @@ try {
         console.error(`✗ next: a router link rendered href="${href}" under basePath /b; expected /b/x`);
         process.exit(1);
     }
-    console.log('✓ next: a router link carries the base path in a real Next build');
+    // The tool shell: home on the protocol's page, and sign-in returning to this route, base path and all.
+    const tool = readFileSync(join(site, '.next', 'server', 'pages', 'verify.html'), 'utf8');
+    const signIn = tool.match(/<a [^>]*href="([^"]*)"[^>]*>Sign in</)?.[1];
+    if (signIn !== '/signin?return_to=%2Fb%2Fverify') {
+        console.error(`✗ next: sign-in rendered href="${signIn}" on /b/verify; expected /signin?return_to=%2Fb%2Fverify`);
+        process.exit(1);
+    }
+    const home = tool.match(/<a [^>]*href="([^"]*)"[^>]*>(?:(?!<\/a>)[\s\S])*<span class="sr-only"> home<\/span>/)?.[1];
+    if (home !== 'https://ochk.io/stamp') {
+        console.error(`✗ next: the tool shell's home rendered href="${home}"; expected https://ochk.io/stamp`);
+        process.exit(1);
+    }
+    console.log('✓ next: a router link carries the base path, and sign-in returns to the route, in a real Next build');
 } finally {
     rmSync(site, { recursive: true, force: true });
 }

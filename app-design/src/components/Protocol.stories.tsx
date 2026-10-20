@@ -370,6 +370,17 @@ export const Report: StoryObj = {
                     ]}
                 />
                 <VerifyReport
+                    verdict="caution"
+                    title="Signed, with no timestamp yet."
+                    summary="Signed by bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297. Nothing has been sent to a calendar, so nothing anchors it to a block."
+                    checks={[
+                        { label: 'Envelope is well formed', state: 'ok' },
+                        { label: 'Signed by the address', state: 'ok', note: 'BIP-322, taproot' },
+                        { label: 'Anchored to Bitcoin', state: 'none', note: 'This stamp carries no timestamp.' },
+                        { label: 'Bitcoin behind the signer', state: 'none', note: 'No attestation is bound to it.' },
+                    ]}
+                />
+                <VerifyReport
                     verdict="refused"
                     title="This stamp does not check out."
                     summary="The signature does not match the address in the envelope."
