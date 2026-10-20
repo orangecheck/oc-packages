@@ -177,6 +177,8 @@
 @layer base {
     [data-oc-app='ochk'] {
         font-family: var(--oc-font-sans);
+        /* Inter's contextual alternates turn "5x7" into "5×7", which rewrites addresses in prose. */
+        font-variant-ligatures: no-contextual;
         font-optical-sizing: auto;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-10-20
+
+The docs shell and the tool shell (steps 2 and 3 below). Also: contextual alternates are
+off family-wide, because Inter drew "5x7" as "5×7" and so changed Bitcoin addresses shown
+in running text.
+
 ### Added: code colours and the wallet's look
 
 - Syntax tokens for code, which is a dark well in both modes:
