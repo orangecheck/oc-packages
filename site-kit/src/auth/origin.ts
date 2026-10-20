@@ -24,7 +24,6 @@ export const FAMILY_ORIGINS: ReadonlySet<string> = new Set([
     'https://stamp.ochk.io',
     'https://agent.ochk.io',
     'https://pledge.ochk.io',
-    'https://docs.ochk.io',
     'https://vault.ochk.io',
     'https://chat.ochk.io',
     'https://cosign.ochk.io',

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+`FAMILY_ORIGINS` no longer lists https://docs.ochk.io: the docs are served at
+ochk.io/docs and docs.ochk.io only redirects (matches oc-www a0e14a7).
+
 ## 0.1.0
 
 First release: `./seo`, `./headers`, `./auth`, `./og`, `./sitemap` and the
