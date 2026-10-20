@@ -8,6 +8,14 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.13] — 2026-10-20
+
+### Changed — one contact address
+
+General and privacy questions went to hello@ochk.io while the sites' contact pages
+said contact@ochk.io. Both now say contact@ochk.io. Security reports still go to
+security@ochk.io.
+
 ## [0.7.12] — 2026-10-20
 
 ### Changed — no PGP key is claimed
