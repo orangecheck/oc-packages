@@ -72,6 +72,7 @@ contact form. Sites consume the packages from npm at fixed `^x.y.z` ranges.
 | [`agent-vercel/`](agent-vercel/)     | `@orangecheck/agent-vercel`   | Adapter for Vercel AI SDK tool-call canonicalization.                     |
 | [`ui/`](ui/)                         | `@orangecheck/ui`             | Family-internal React UI (the cross-product `EcosystemSwitcher`).         |
 | [`legal/`](legal/)                   | `@orangecheck/legal`          | Family-internal Terms / Privacy document engine for the `.ochk.io` sites. |
+| [`site-kit/`](site-kit/)             | `@orangecheck/site-kit`       | Family-internal site scaffolding: SEO, headers and CSP, `/api/auth/me`, OG, sitemap. |
 
 ### Shells (CLIs — not on the docs site)
 

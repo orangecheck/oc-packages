@@ -1,0 +1,103 @@
+{
+  "name": "@orangecheck/site-kit",
+  "version": "0.1.0",
+  "description": "OrangeCheck family-internal site scaffolding for the .ochk.io Next.js sites: SEO and JSON-LD, security headers and CSP, the local /api/auth/me and session gate, the OG card route, and the build-time sitemap. Not for third-party use.",
+  "keywords": [
+    "orangecheck",
+    "nextjs",
+    "seo",
+    "csp",
+    "internal"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "homepage": "https://ochk.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "site-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "exports": {
+    "./seo": {
+      "types": "./dist/seo.d.ts",
+      "import": "./dist/seo.mjs",
+      "require": "./dist/seo.js"
+    },
+    "./headers": {
+      "types": "./dist/headers.d.ts",
+      "import": "./dist/headers.mjs",
+      "require": "./dist/headers.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "import": "./dist/auth.mjs",
+      "require": "./dist/auth.js"
+    },
+    "./og": {
+      "types": "./dist/og.d.ts",
+      "import": "./dist/og.mjs",
+      "require": "./dist/og.js"
+    },
+    "./sitemap": {
+      "types": "./dist/sitemap.d.ts",
+      "import": "./dist/sitemap.mjs",
+      "require": "./dist/sitemap.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "oc-site-kit": "./dist/cli.js"
+  },
+  "sideEffects": [
+    "./dist/cli.js",
+    "./dist/cli.mjs"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "@orangecheck/auth-core": "^2.5.0",
+    "next": "^15.0.0 || ^16.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@orangecheck/auth-core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@orangecheck/auth-client": "^2.32.3",
+    "@orangecheck/auth-core": "^2.8.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^29.0.2",
+    "next": "16.3.8",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
