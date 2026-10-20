@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.33.0] — 2026-10-20
+
+### Changed
+
+- Takes `@orangecheck/wallet-adapter` ^0.6.0, whose wallet list reads the design
+  system's `--oc-wallet-*` variables. On the family design (app-design ≥ 1.1) the
+  wallet step in `OcSignIn` now matches the page; on the classic design it looks as
+  before, except that the pasted-signature field is 16px on phones so iOS no longer
+  zooms.
+
 ## [2.32.3] — 2026-10-19
 
 ### Changed

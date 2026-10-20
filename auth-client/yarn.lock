@@ -287,10 +287,10 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/wallet-adapter@^0.5.2":
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.5.2.tgz#880f715d96ec8963386aaabf793779ee0eb83ea8"
-  integrity sha512-N5utXDkfWv0cjYZSSWltLDnUvfYdXiqU1YNYCwyNKTB97EHjr2J2eXU6NSdqx0YgE30HhVW2zzvF8g8lzK8TSg==
+"@orangecheck/wallet-adapter@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.6.0.tgz#8de824d6f4f840bac93950ba67480a49a8551865"
+  integrity sha512-7nahIxpflohVvfuJ1iC9VKyHhIcyX+onzzvTM4gr1o97Au6Fo7Vv7/HJR6QvCV7nqW+yfCOiIaxhmjcGdWo6oA==
   dependencies:
     "@orangecheck/bip322" "^1.0.0"
 
