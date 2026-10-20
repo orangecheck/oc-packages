@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useOcSession } from './provider';
+import type { OcAccount } from './types';
 
 function shortenAddress(addr: string): string {
     if (addr.length <= 12) return addr;
@@ -535,6 +536,16 @@ export interface UseOcAddressSuggestionReturn {
  * );
  * ```
  */
+/**
+ * The address to offer: the account's primary one, else the Bitcoin address it
+ * shows. Consumer sites verify the session locally and have no primary address
+ * (`primary_btc` is null), but a wallet sign-in shows its address.
+ */
+function accountAddress(account: OcAccount | null | undefined): string | null {
+    if (account?.primaryBtc) return account.primaryBtc;
+    return account?.displayIdentity?.kind === 'btc' ? account.displayIdentity.value : null;
+}
+
 export function useOcAddressSuggestion(
     options: UseOcAddressSuggestionOptions
 ): UseOcAddressSuggestionReturn {
@@ -547,7 +558,7 @@ export function useOcAddressSuggestion(
     } = options;
 
     const { status, account } = useOcSession();
-    const sessionAddress = status === 'authenticated' ? (account?.primaryBtc ?? null) : null;
+    const sessionAddress = status === 'authenticated' ? accountAddress(account) : null;
 
     const [open, setOpen] = React.useState(false);
     const [highlighted, setHighlighted] = React.useState(false);
@@ -690,7 +701,7 @@ export const OcAddressInput = React.forwardRef<HTMLInputElement, OcAddressInputP
         forwardedRef
     ): React.ReactElement {
         const { status, account } = useOcSession();
-        const sessionAddress = status === 'authenticated' ? (account?.primaryBtc ?? null) : null;
+        const sessionAddress = status === 'authenticated' ? accountAddress(account) : null;
 
         const [open, setOpen] = React.useState(false);
         const [highlighted, setHighlighted] = React.useState(false);

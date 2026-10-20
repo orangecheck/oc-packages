@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.33.1] — 2026-10-20
+
+### Fixed
+
+- `useOcAddressSuggestion` and `OcAddressInput` offer a signed-in account's
+  address on consumer sites. They read only `primaryBtc`, which a site that
+  verifies the session locally answers as null, so the suggestion never
+  appeared outside the auth host. They now fall back to the display identity
+  when it is a Bitcoin address, as it is after a wallet sign-in. An account
+  that shows an email and has no primary address is still offered nothing.
+
 ## [2.33.0] — 2026-10-20
 
 ### Changed
