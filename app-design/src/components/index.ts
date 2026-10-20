@@ -36,7 +36,7 @@ export { BrowserFrame, FloatChip, PhoneFrame } from './frames';
 export { Monogram, monogramGround, monogramLetter } from './monogram';
 export { ErrorBoundary } from './error-boundary';
 export { ErrorPage } from './error-page';
-export { Closing, EndpointList, FactBlock, FactRows, ProofStrip, SectionHeading } from './blocks';
+export { Closing, EndpointList, FactBlock, FactRows, Faq, ProofStrip, SectionHeading } from './blocks';
 export type { Endpoint, FactRow } from './blocks';
 export { LegalDocument } from './legal';
 export type { LegalBlock, LegalSource } from './legal';

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { IsoCheck } from '../brand/iso-check';
 import { cn } from '../lib/cn';
+import { Accordion, AccordionItem } from '../primitives/accordion';
 import { Reveal } from './motion';
 import { Section, SectionIntro } from './section';
 import { Display, Eyebrow } from './typography';
@@ -221,5 +222,24 @@ export function Closing({
                 ) : null}
             </div>
         </Section>
+    );
+}
+
+/** Questions and their answers, one open at a time. One sentence an answer, where it can be. */
+export function Faq({
+    items,
+    className,
+}: {
+    items: { q: ReactNode; a: ReactNode; id?: string }[];
+    className?: string;
+}) {
+    return (
+        <Accordion single className={className}>
+            {items.map((it, i) => (
+                <AccordionItem key={it.id ?? i} id={it.id} title={it.q}>
+                    {it.a}
+                </AccordionItem>
+            ))}
+        </Accordion>
     );
 }

@@ -57,5 +57,10 @@ export {
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export { Kbd, Separator, Skeleton, Spinner, StatusDot, toast, Toaster, useTimedOut } from './feedback';
 export { ScrollFade } from './scroll-fade';
+export { Accordion, AccordionItem } from './accordion';
+export { confirm, DialogHost, prompt } from './dialogs';
+export type { ConfirmOptions, PromptOptions } from './dialogs';
+export { Pagination } from './pagination';
+export { QrCode } from './qr-code';
 export type { ScrollFadeProps } from './scroll-fade';
 export { cn } from '../lib/cn';

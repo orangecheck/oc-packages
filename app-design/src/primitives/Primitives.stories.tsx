@@ -3,6 +3,8 @@ import { ArrowRight, CircleUser, LogOut, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+    Accordion,
+    AccordionItem,
     Badge,
     Button,
     Card,
@@ -10,11 +12,13 @@ import {
     CardNumeral,
     CardTitle,
     Checkbox,
+    confirm,
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
+    DialogHost,
     DialogTitle,
     DialogTrigger,
     DropdownMenu,
@@ -26,6 +30,9 @@ import {
     Input,
     Kbd,
     Label,
+    Pagination,
+    prompt,
+    QrCode,
     RadioGroup,
     RadioGroupItem,
     Select,
@@ -328,6 +335,120 @@ export const Statuses: StoryObj = {
                     <StatusBadge status="refused" />
                 </div>
             </div>
+        </div>
+    ),
+};
+
+export const Paging: StoryObj = {
+    name: 'Pagination',
+    render: function PagingStory() {
+        // From 0: page one is 0.
+        const [page, setPage] = useState(1);
+        const stamps = Array.from({ length: 54 }, (_, i) => `Stamp ${String(54 - i).padStart(2, '0')}`);
+        return (
+            <div className="flex max-w-2xl flex-col gap-4">
+                <ul className="divide-y divide-border rounded-[1.25rem] border border-border bg-card">
+                    {stamps.slice(page * 10, (page + 1) * 10).map((s) => (
+                        <li key={s} className="px-5 py-3 text-[0.9375rem]">
+                            {s}
+                        </li>
+                    ))}
+                </ul>
+                <Pagination label="Stamps, pages" pageIndex={page} pageSize={10} total={stamps.length} onPage={setPage} />
+            </div>
+        );
+    },
+};
+
+export const Qr: StoryObj = {
+    name: 'QR code',
+    render: () => (
+        <div className="flex flex-wrap items-end gap-8">
+            <div className="flex flex-col items-center gap-3">
+                <QrCode value="bitcoin:bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t?amount=0.0005" label="Pay 50,000 sats to vault" />
+                <span className="text-[0.875rem] text-muted-foreground">50,000 sats, on-chain</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+                <QrCode value="https://stamp.ochk.io/v?id=86020d78db788237fd13be8af76563f53ea0d0b2a81d188baacaa4d1a85eeb1c" size={140} label="Link to this stamp" />
+                <span className="text-[0.875rem] text-muted-foreground">This stamp</span>
+            </div>
+        </div>
+    ),
+};
+
+export const Asking: StoryObj = {
+    name: 'Confirm and prompt',
+    render: function AskingStory() {
+        const [answer, setAnswer] = useState('Nothing asked yet.');
+        return (
+            <div className="flex flex-col gap-6">
+                <DialogHost />
+                <div className="flex flex-wrap gap-3">
+                    <Button
+                        variant="danger"
+                        onClick={async () => {
+                            const yes = await confirm({
+                                title: 'Revoke this delegation?',
+                                message: 'The agent stops being able to act for you at once. A revocation cannot be undone.',
+                                confirmLabel: 'Revoke',
+                                destructive: true,
+                            });
+                            setAnswer(yes ? 'Revoked.' : 'Kept.');
+                        }}
+                    >
+                        Revoke delegation
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={async () => {
+                            const name = await prompt({
+                                title: 'Name this key',
+                                label: 'Name',
+                                placeholder: 'Build server',
+                                hint: 'Only you see it.',
+                                minLength: 2,
+                                confirmLabel: 'Save',
+                            });
+                            setAnswer(name === null ? 'Cancelled.' : `Named “${name}”.`);
+                        }}
+                    >
+                        Name a key
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={async () => {
+                            const pass = await prompt({
+                                title: 'Unlock the vault',
+                                label: 'Passphrase',
+                                secret: true,
+                                validate: (v) => (v.length < 8 ? 'That is shorter than any passphrase vault accepts.' : null),
+                                confirmLabel: 'Unlock',
+                            });
+                            setAnswer(pass === null ? 'Still locked.' : 'Unlocked.');
+                        }}
+                    >
+                        Unlock
+                    </Button>
+                </div>
+                <p className="oca-body" aria-live="polite">
+                    {answer}
+                </p>
+            </div>
+        );
+    },
+};
+
+export const Disclosure: StoryObj = {
+    name: 'Accordion',
+    render: () => (
+        <div className="max-w-2xl">
+            <Accordion single>
+                <AccordionItem title="What does a stamp prove?" defaultOpen>
+                    That a Bitcoin address signed these exact bytes, and that they existed before a given block.
+                </AccordionItem>
+                <AccordionItem title="Does the file leave my browser?">No. Only its SHA-256 hash is signed and anchored.</AccordionItem>
+                <AccordionItem title="Can a stamp be revoked?">No. A stamp is a fact about the past; it stays true.</AccordionItem>
+            </Accordion>
         </div>
     ),
 };

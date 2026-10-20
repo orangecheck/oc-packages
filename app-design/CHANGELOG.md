@@ -70,6 +70,25 @@ so the six protocol pages are one page with six sets of data:
 - `SignMessage`: the message in a code well with copy, the site's browser
   wallet buttons, and a pasted signature for any other wallet.
 
+### Added: dialogs, paging, codes, questions
+
+- `confirm()` and `prompt()` (primitives): ask and wait. `confirm` takes
+  `title`, `message`, `confirmLabel`, `cancelLabel`, `destructive` and is
+  true only on the confirm button; `prompt` adds `label`, `placeholder`,
+  `defaultValue`, `hint`, `secret`, `minLength` and `validate` and is the
+  text or null. Mount `<DialogHost />` once; asks queue and open one at a
+  time. With no host nothing is asked and the answer is no.
+- `Pagination` (primitives): `pageIndex` counts from 0 (the name says so;
+  four family callers once passed 1-based state to the classic one), with
+  `pageSize`, `total`, `onPage`; "11–20 of 54" and Previous / Next. One page
+  shows nothing; an index out of range warns in development.
+- `QrCode` (primitives): `value`, `size`, `label`. Ink on a white tile in
+  both modes, drawn as one SVG path at render, so it is in the server's HTML.
+  Adds `qrcode` as a dependency.
+- `Accordion` / `AccordionItem` (primitives) on `<details>`: works before
+  script, find-in-page opens the matching item, `single` keeps one open.
+  `Faq` (components) is questions and answers on it.
+
 ### Accessibility
 
 - The focus ring is the deep orange (`#EA580B`) in light mode. The brand

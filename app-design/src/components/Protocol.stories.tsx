@@ -11,6 +11,7 @@ import {
     CodeBlock,
     ComparisonTable,
     EndpointList,
+    Faq,
     ProofStrip,
     ProtocolGrid,
     ProtocolHero,
@@ -230,6 +231,22 @@ export const Page: StoryObj = {
                             items={[
                                 { href: 'https://ochk.io/api/verify', label: '/api/verify', description: 'An artifact’s signature and backing, checked.' },
                                 { href: 'https://ochk.io/api/discover', label: '/api/discover', description: 'What has been published for an address.' },
+                            ]}
+                        />
+                    </div>
+                </Section>
+                <Section space="sm">
+                    <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+                        <div className="lg:col-span-4">
+                            <SectionHeading eyebrow="Questions" title="Asked often." level={3} />
+                        </div>
+                        <Faq
+                            className="lg:col-span-8"
+                            items={[
+                                { q: 'Does the file leave my browser?', a: 'No. Only its SHA-256 hash is signed and anchored.' },
+                                { q: 'How long until it is anchored?', a: 'Usually a few hours: the calendars batch hashes into a Bitcoin transaction.' },
+                                { q: 'Can a stamp be revoked?', a: 'No. A stamp is a fact about the past, and it stays true.' },
+                                { q: 'Do I need an account?', a: 'No. A Bitcoin wallet signs it; anyone can check it without one.' },
                             ]}
                         />
                     </div>
