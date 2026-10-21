@@ -154,7 +154,7 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
 /** Build the X-OC-Signature header for a request body, byte-matching the
  *  server's event-signature.ts contract: `t=<unix>,v1=hmac_sha256(secret,
  *  `${t}.${body}`)`. The `body` MUST be the exact JSON string the transport
- *  transmits (the server re-derives it as JSON.stringify(req.body)). */
+ *  transmits: the server verifies the raw bytes it received. */
 async function signBody(secret: string, serializedBody: string): Promise<string> {
     const t = Math.floor(Date.now() / 1000);
     const mac = await hmacSha256Hex(secret, `${t}.${serializedBody}`);

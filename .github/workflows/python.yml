@@ -7,11 +7,13 @@ on:
         branches: [main, develop]
         paths:
             - 'sdk-py/**'
+            - 'me-client/test-vectors/**'
             - '.github/workflows/python.yml'
     pull_request:
         branches: [main, develop]
         paths:
             - 'sdk-py/**'
+            - 'me-client/test-vectors/**'
             - '.github/workflows/python.yml'
 
 concurrency:

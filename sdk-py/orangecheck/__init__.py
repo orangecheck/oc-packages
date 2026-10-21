@@ -23,6 +23,11 @@ a custom API base URL, timeouts, or a shared httpx session:
     from orangecheck import AsyncClient
     async with AsyncClient() as oc:
         result = await oc.check(addr="bc1q...", min_sats=100_000)
+
+A site that signs people in with ochk.app verifies the sign-in token, signs
+billable events and checks webhooks with three more:
+
+    from orangecheck import verify_session, sign_event, verify_webhook
 """
 
 from .canonical import (
@@ -55,6 +60,14 @@ from .bond import (
 )
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
+from .integrator import (
+    InvalidSession,
+    InvalidWebhook,
+    Session,
+    sign_event,
+    verify_session,
+    verify_webhook,
+)
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
 from .types import (
     AttestationSummary,
@@ -99,6 +112,13 @@ __all__ = [
     "BOND_SATS_FLOORS",
     "BOND_DAYS_FLOORS",
     "BOND_MAX_WINDOW_SECONDS",
+    # ochk.app sign-in, billable events and webhooks, for an integrator's backend
+    "verify_session",
+    "sign_event",
+    "verify_webhook",
+    "Session",
+    "InvalidSession",
+    "InvalidWebhook",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -113,7 +133,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

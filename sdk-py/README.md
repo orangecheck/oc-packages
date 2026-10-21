@@ -162,6 +162,34 @@ asyncio.run(main())
 
 ---
 
+## ochk.app sign-in, for your backend
+
+A site whose people sign in with ochk.app verifies the token the popup hands
+back, signs billable events and checks webhooks with three functions. They
+speak the same wire formats as `@orangecheck/me-client`.
+
+```python
+import json, httpx
+from orangecheck import verify_session, sign_event, verify_webhook, InvalidSession
+
+# The origin of the page that opened the popup, exactly.
+session = verify_session(token, audience="https://your-site.example")
+session.did_oc  # who signed in
+
+body = json.dumps({"project_key": PROJECT_KEY, "subtype": "account_created",
+                   "user_address": session.did_oc})
+httpx.post("https://me.ochk.io/api/integrator/event", content=body, headers={
+    "Content-Type": "application/json",
+    "X-OC-Signature": sign_event(SIGNING_SECRET, body),
+})
+
+event = verify_webhook(request.headers, raw_body)  # raises InvalidWebhook
+```
+
+The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
+
+---
+
 ## Configuration
 
 ```python

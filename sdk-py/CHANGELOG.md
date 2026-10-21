@@ -4,6 +4,31 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-10-20
+
+For a site that signs people in with ochk.app and runs a Python backend.
+
+### Added
+
+- `verify_session(token, audience)` verifies a token from the sign-in popup
+  against `https://ochk.io/.well-known/jwks.json` (cached for an hour, kept
+  through an outage) and returns a `Session` with `did_oc`, `sub`, `jti`,
+  `exp` and any `oc_bond`. The audience is the exact origin of the page that
+  opened the popup; a token for any other origin, or with no `aud`, raises
+  `InvalidSession` with a one-word `reason`.
+- `sign_event(secret, body)` builds the `X-OC-Signature` header for
+  `/api/integrator/event`: HMAC-SHA256 keyed by the secret's text over
+  `f"{t}.{body}"`.
+- `verify_webhook(headers, body)` checks a delivery's Ed25519 signature
+  against `https://me.ochk.io/api/dev-jwks` and returns the parsed event, or
+  raises `InvalidWebhook`.
+- These are held to `me-client/test-vectors/integrator.json`, the same vectors
+  `@orangecheck/me-client` is tested against.
+
+### Changed
+
+- `cryptography` (41 or later) is now a dependency, for Ed25519.
+
 ## [2.2.0] — 2026-10-16
 
 Matches `@orangecheck/sdk` 1.13.0 and the spec's regenerated `tv24`–`tv27`.

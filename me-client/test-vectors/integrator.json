@@ -1,0 +1,223 @@
+{
+    "description": "Integrator wire formats: sign-in tokens, X-OC-Signature event signatures and webhook signatures. Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). Regenerate with node scripts/gen-integrator-vectors.mjs.",
+    "now": 1800000000,
+    "session": {
+        "issuer": "https://ochk.io",
+        "jwks": {
+            "keys": [
+                {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "alg": "EdDSA",
+                    "use": "sig",
+                    "kid": "tv-session-1",
+                    "x": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc"
+                }
+            ]
+        },
+        "valid": [
+            {
+                "name": "bound to this site",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-1",
+                    "iat": 1799999940,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example"
+                }
+            },
+            {
+                "name": "carries a coin backing claim",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMiIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzB9LCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.I6NaGdHl7c9lMBQYIMC1qJFeGfGrKtoBxjT_Uq77FhEd8KFuoTkBxKNdIJOzTScQeJBdsLyzS2wBE_UkY3sNCg",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-2",
+                    "iat": 1799999940,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example",
+                    "oc_bond": {
+                        "v": 1,
+                        "sats_floor": 100000,
+                        "days_floor": 30
+                    }
+                }
+            }
+        ],
+        "invalid": [
+            {
+                "name": "bound to another site",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "audience": "https://other.example",
+                "reason": "audience"
+            },
+            {
+                "name": "a family session with no aud",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwfQ.SfTj29hU5G483WZ_f1tkbksVQzv_cBH91Xjsr7_HpbS0irb3u3kNjr1rbr9wutItvtA71vQQFSr3GMfBZIkiBw",
+                "audience": "https://soniq.example",
+                "reason": "audience"
+            },
+            {
+                "name": "expired",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxNzk5OTk5OTk5LCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.oxpEs82Elv0YN_IqO_m30OrvtHXWPhyQ3tiMGSXddOmBWxx6hbDwxeGy86vGQ4ehzrxoZeGG2htwLXU2K9ABAg",
+                "audience": "https://soniq.example",
+                "reason": "expired"
+            },
+            {
+                "name": "not yet valid",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJuYmYiOjE4MDAwMDA2MDAsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.ctQlsm67PRQr7pbqjAf8nhWjiWkRsGF3hDfOby8HWBPMC3PjZ6CfHFj1vUeILoR7KbFd-hxonQRbkHPRLPNcBQ",
+                "audience": "https://soniq.example",
+                "reason": "not_yet_valid"
+            },
+            {
+                "name": "another issuer",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vZXZpbC5leGFtcGxlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.lQyEs3pAvC8GNFHuW1pGX9MNOpP250mkyqg0VnziEzCO2KaHh-LNUOVZ6RVmKIBuKLpK-zEtGddoVckKasg6Dw",
+                "audience": "https://soniq.example",
+                "reason": "issuer"
+            },
+            {
+                "name": "no did_oc",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.unrH7OIY07DqFAnPVG0IppPraO4pt1KlH2HKSWmVLp0IP5IozoBunlUTp5HCl5JiPNtBheVDWrOPFfsDh3q3Bg",
+                "audience": "https://soniq.example",
+                "reason": "claims"
+            },
+            {
+                "name": "no jti",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.D8CB78WRCb3QGSTbqwHF9byKRlwuoJAZ2woZqHqSi7MoTfx2i5y4A1DGSglRwhZXDA6VKsP7npyIy2q_V81fBw",
+                "audience": "https://soniq.example",
+                "reason": "claims"
+            },
+            {
+                "name": "payload changed after signing",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "audience": "https://soniq.example",
+                "reason": "signature"
+            },
+            {
+                "name": "signed by a key not in the set",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.6sRPmC2KezIwpbj9k_tkYlK_heoSPXQFXyzhVCzV9nzXdKqHHG60GriHHunqzcjTGpjf4Q6hREBGb3TQdohuCQ",
+                "audience": "https://soniq.example",
+                "reason": "signature"
+            },
+            {
+                "name": "kid not in the set",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXVua25vd24ifQ.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.SLzv1E4JBaEBNFD_e46NfrAU6JjS7MVVncrbj8pM_O7LmZ3pi7iBY9IoOxiejwrRzk3IDyKCJUGQBK_p3G3PAQ",
+                "audience": "https://soniq.example",
+                "reason": "unknown_key"
+            },
+            {
+                "name": "alg none",
+                "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIiwia2lkIjoidHYtc2Vzc2lvbi0xIn0.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.",
+                "audience": "https://soniq.example",
+                "reason": "algorithm"
+            },
+            {
+                "name": "not a JWT",
+                "token": "not-a-jwt",
+                "audience": "https://soniq.example",
+                "reason": "malformed"
+            }
+        ]
+    },
+    "event": [
+        {
+            "name": "signed for an earner",
+            "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
+            "timestamp": 1800000000,
+            "fields": {
+                "project_key": "pk_test_tv",
+                "subtype": "account_created",
+                "user_address": "did:oc:0123456789abcdef0123456789abcdef"
+            },
+            "body": "{\"project_key\":\"pk_test_tv\",\"subtype\":\"account_created\",\"user_address\":\"did:oc:0123456789abcdef0123456789abcdef\"}",
+            "header": "t=1800000000,v1=80a7f61431ba91dfaee3d426f7a63e5a515632a44097648addb61c3d70634245"
+        },
+        {
+            "name": "amount and a non-ASCII label",
+            "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
+            "timestamp": 1800000001,
+            "fields": {
+                "project_key": "pk_test_tv",
+                "subtype": "purchase",
+                "payment_amount_sats": 21000,
+                "action_label": "café ☕",
+                "user_address": "did:oc:0123456789abcdef0123456789abcdef"
+            },
+            "body": "{\"project_key\":\"pk_test_tv\",\"subtype\":\"purchase\",\"payment_amount_sats\":21000,\"action_label\":\"café ☕\",\"user_address\":\"did:oc:0123456789abcdef0123456789abcdef\"}",
+            "header": "t=1800000001,v1=6341be9bf7ecc79a57c387dcd5a11baa09dcc22a00dc97fb62c2f2b7abc6a48a"
+        }
+    ],
+    "webhook": {
+        "jwks": {
+            "keys": [
+                {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "alg": "EdDSA",
+                    "use": "sig",
+                    "kid": "tv-webhook-1",
+                    "x": "F8t5-ytBIPKx7GXkGY1uCLKOgT_rAeSkAIObheGAgM4"
+                }
+            ]
+        },
+        "valid": [
+            {
+                "name": "a delivery as sent",
+                "headers": {
+                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}"
+            }
+        ],
+        "invalid": [
+            {
+                "name": "body changed",
+                "headers": {
+                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"B\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "reason": "signature"
+            },
+            {
+                "name": "kid not in the set",
+                "headers": {
+                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Key-Id": "tv-unknown",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "reason": "unknown_key"
+            },
+            {
+                "name": "signature not hex",
+                "headers": {
+                    "OC-Signature": "zz5d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "reason": "malformed"
+            },
+            {
+                "name": "no signature header",
+                "headers": {
+                    "OC-Key-Id": "tv-webhook-1"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "reason": "missing"
+            }
+        ]
+    }
+}

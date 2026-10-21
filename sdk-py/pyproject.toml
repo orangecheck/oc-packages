@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "orangecheck"
-version = "2.2.0"
-description = "Python SDK for OrangeCheck — proof of Bitcoin stake + the OC Pledge primitive (commitments) for the open web."
+version = "2.3.0"
+description = "Python SDK for OrangeCheck — proof of Bitcoin stake, the OC Pledge primitive, and ochk.app sign-in for your backend."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "OrangeCheck" }]
@@ -34,6 +34,8 @@ classifiers = [
 ]
 dependencies = [
     "httpx>=0.25",
+    # Ed25519 for ochk.app sign-in tokens and webhook signatures (integrator.py).
+    "cryptography>=41",
 ]
 
 [project.urls]
