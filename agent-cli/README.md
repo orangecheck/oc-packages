@@ -1,6 +1,6 @@
 # @orangecheck/agent-cli
 
-Command-line tool for [OC Agent](https://github.com/orangecheck/oc-agent-protocol). Verify, inspect, canonicalize, and reason about delegation / action / revocation envelopes from your shell. Exits 0 on success, 1 on any error. Every command supports `--json` for script-friendly output.
+Command-line tool for [OC Agent](https://github.com/orangecheck/oc-agent-protocol). Verify, inspect, canonicalize, and reason about delegation / action / revocation envelopes from your shell. Exits 0 on success, 1 on any error. `verify`, `inspect`, `scope` and `subscope` support `--json` for script-friendly output.
 
 ## Install
 
@@ -14,20 +14,27 @@ npx @orangecheck/agent-cli verify delegation.json
 
 ### `oc-agent verify <file>`
 
-Verify an envelope. Accepts a single envelope, or an array `[delegation, action|revocation]` for full authority verification. Runs the §SPEC 8 algorithm including BIP-322 signature check.
+Verify an envelope. Takes a file holding a single envelope, or an array `[delegation, action]` or `[delegation, revocation]`. Runs the §SPEC 8 algorithm including BIP-322 signature check.
 
 ```bash
 oc-agent verify delegation.json
 # → OK · delegation verified
 #     id: 36d79600…
 
-oc-agent verify '[delegation.json-contents, action.json-contents]'
+oc-agent verify pair.json            # [delegation, action]
 # → OK · action + delegation verified
+#     checked at 2026-10-21T12:00:00.000Z
 ```
 
+An action is checked live, as of now (SPEC §8): the delegation in force now and `signed_at` within 120 seconds of your clock, or `E_STALE`. To audit a past action as of its own `signed_at`, add `--as-of-signed-at`; the output says that time is the agent's claim unless a verified anchor fixes it.
+
+The CLI has no relay access. Pass the revocations you fetched (`{ kinds: [30085], "#t": [<delegation id>] }`) as a JSON array with `--revocations`; without it, the output says revocation was not checked.
+
 Flags:
+- `--revocations <file>` — the revocations fetched for the delegation, as a JSON array
+- `--as-of-signed-at` — audit a past action as of its own `signed_at`
 - `--skip-sig` — skip BIP-322 signature verification (useful for test vectors with placeholder sigs)
-- `--skip-temporal` — skip `issued_at` / `expires_at` checks (for inspecting historical envelopes)
+- `--skip-temporal` — skip `issued_at` / `expires_at` checks on a delegation alone (for inspecting historical envelopes)
 - `--json` — emit machine-readable JSON
 
 Exits `1` with an error code on rejection:

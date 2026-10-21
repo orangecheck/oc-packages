@@ -11,6 +11,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-10-21
+
+### Changed — an action is checked live
+
+- `verify` on `[delegation, action]` uses agent-core 2.7's `verifyAction`, as
+  of now (oc-agent-protocol 1.7.0): the delegation in force now, a revocation
+  in effect refuses, and `signed_at` within 120 seconds of the clock
+  (`E_STALE` otherwise, with a hint to audit instead). The output says when
+  it was checked.
+
+### Added
+
+- `--as-of-signed-at` audits a past action as of its own `signed_at`, and says
+  whether that time is the agent's claim or fixed by a verified anchor.
+- `--revocations <file>`: a JSON array of the revocations fetched for the
+  delegation. Without it, the output says revocation was not checked.
+
+### Fixed
+
+- `--version` prints the package's version.
+- The header and README say which commands take `--json`; `canonical` does not.
+
 ## [0.2.4] — 2026-10-20
 
 ### Fixed — the offline note names a query relays answer

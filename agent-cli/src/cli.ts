@@ -2,10 +2,11 @@
 //
 // Verify, inspect, canonicalize, and check scope containment against the
 // same @orangecheck/agent-core the reference web client uses. Exits 0 on
-// success, 1 on any verification/parse error; every command supports --json
-// for script-friendly output.
+// success, 1 on any verification/parse error; verify, inspect, scope and
+// subscope support --json for script-friendly output.
 
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 
 import {
     actionCanonicalMessage,
@@ -20,6 +21,7 @@ import {
     revocationCanonicalMessage,
     validateScope,
     verifyAction,
+    verifyActionAsOfSignedAt,
     verifyDelegation,
     verifyRevocation,
     type ActionEnvelope,
@@ -36,7 +38,7 @@ const program = new Command();
 program
     .name('oc-agent')
     .description('command-line verifier for OC Agent envelopes')
-    .version('0.1.0');
+    .version((createRequire(import.meta.url)('../package.json') as { version: string }).version);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // verify
@@ -51,8 +53,34 @@ program
     .option('--json', 'machine-readable JSON output', false)
     .option('--skip-sig', 'skip BIP-322 signature verification', false)
     .option('--skip-temporal', 'skip issued_at / expires_at checks', false)
-    .action(async (file: string, opts: { json: boolean; skipSig: boolean; skipTemporal: boolean }) => {
+    .option(
+        '--revocations <file>',
+        'a JSON array of the revocations fetched for the delegation; without it, revocation is not checked'
+    )
+    .option(
+        '--as-of-signed-at',
+        "audit a past action as of its own signed_at instead of now; that time is the agent's claim unless anchored",
+        false
+    )
+    .action(
+        async (
+            file: string,
+            opts: {
+                json: boolean;
+                skipSig: boolean;
+                skipTemporal: boolean;
+                revocations?: string;
+                asOfSignedAt: boolean;
+            }
+        ) => {
         const parsed = JSON.parse(await read(file));
+        const revocations = opts.revocations
+            ? (JSON.parse(await read(opts.revocations)) as RevocationEnvelope[])
+            : undefined;
+        // This CLI has no relay access by design, so it cannot query the
+        // kind-30085 feed itself: the caller passes what they fetched, or the
+        // verdict says revocation was not checked.
+        const revocationInput = revocations ? { revocations } : { skipRevocationCheck: true };
 
         const verifyBip322 = opts.skipSig
             ? undefined
@@ -63,19 +91,22 @@ program
         if (Array.isArray(parsed) && parsed.length === 2) {
             const [d, a] = parsed as [DelegationEnvelope, ActionEnvelope | RevocationEnvelope];
             if (a.kind === 'agent-action') {
-                const r = await verifyAction({
+                const input = {
                     action: a,
                     delegation: d,
                     verifyBip322,
                     skipSignatureVerification: opts.skipSig,
-                    // This CLI reads envelopes from files and stdin and has no
-                    // relay access by design, so it genuinely cannot query the
-                    // kind-30085 feed. agent-core 2.0.0 makes that a statement
-                    // rather than an omission — and report() discloses it, so
-                    // "OK" never silently means "possibly revoked".
-                    skipRevocationCheck: true,
-                });
-                report(r, opts.json, 'action + delegation', !opts.skipSig);
+                    ...revocationInput,
+                };
+                // Live by default: the delegation must be in force now and the
+                // action recent. An audit of a past action asks for it by name.
+                const r = opts.asOfSignedAt
+                    ? await verifyActionAsOfSignedAt(input)
+                    : await verifyAction(input);
+                if (!r.ok && r.code === 'E_STALE') {
+                    die(opts.json, r.code, `${r.message}. To audit a past action, add --as-of-signed-at.`);
+                }
+                report(r, opts.json, 'action + delegation', !opts.skipSig, !!revocations, r.ok ? r.asOf : undefined);
                 return;
             }
             if (a.kind === 'agent-revocation') {
@@ -85,7 +116,7 @@ program
                     verifyBip322,
                     skipSignatureVerification: opts.skipSig,
                 });
-                report(r, opts.json, 'revocation + delegation', !opts.skipSig);
+                report(r, opts.json, 'revocation + delegation', !opts.skipSig, true);
                 return;
             }
             die(opts.json, 'UNKNOWN_PAIR', `unknown second envelope kind: ${(a as AnyEnvelope).kind}`);
@@ -98,9 +129,9 @@ program
                 verifyBip322,
                 skipSignatureVerification: opts.skipSig,
                 skipTemporalCheck: opts.skipTemporal,
-                skipRevocationCheck: true, // offline verifier — see the note above
+                ...revocationInput,
             });
-            report(r, opts.json, 'delegation', !opts.skipSig);
+            report(r, opts.json, 'delegation', !opts.skipSig, !!revocations);
             return;
         }
         if (env.kind === 'agent-action') {
@@ -118,7 +149,8 @@ program
             );
         }
         die(opts.json, 'UNKNOWN_KIND', `unknown envelope kind: ${(env as AnyEnvelope).kind}`);
-    });
+        }
+    );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // inspect
@@ -342,17 +374,33 @@ function canonicalMessageFor(env: AnyEnvelope): string {
     });
 }
 
+type AsOf = { basis: 'now'; now: string } | { basis: 'signed_at'; signedAt: string; anchored: boolean };
+
 function report(
     result: { ok: true; id: string } | { ok: false; code: string; message: string },
     asJson: boolean,
     what: string,
-    signatureChecked: boolean
+    signatureChecked: boolean,
+    revocationChecked: boolean,
+    asOf?: AsOf
 ): void {
     if (result.ok) {
-        // Revocation is NOT part of this verdict: the CLI has no relay. Saying
-        // so is the difference between "this envelope is authentic" and "this
-        // grant is still in force", which are not the same claim.
-        const revNote = 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id]';
+        // Unless the caller passed what they fetched, revocation is NOT part
+        // of this verdict: the CLI has no relay. "This envelope is authentic"
+        // and "this grant is still in force" are not the same claim.
+        const notes: string[] = [];
+        if (!revocationChecked) {
+            notes.push(
+                'revocation not checked (offline) — query kind 30085 with "#t": [delegation id] and pass --revocations'
+            );
+        }
+        if (asOf?.basis === 'signed_at') {
+            notes.push(
+                asOf.anchored
+                    ? `checked as of signed_at ${asOf.signedAt}, fixed by a verified anchor`
+                    : `checked as of signed_at ${asOf.signedAt}, which is the agent's own claim (no verified anchor)`
+            );
+        }
         if (asJson) {
             console.log(
                 JSON.stringify({
@@ -360,8 +408,9 @@ function report(
                     verified: what,
                     id: result.id,
                     signature_checked: signatureChecked,
-                    revocation_checked: false,
-                    note: revNote,
+                    revocation_checked: revocationChecked,
+                    ...(asOf ? { as_of: asOf } : {}),
+                    notes,
                 }),
             );
         } else {
@@ -371,7 +420,8 @@ function report(
                     : `OK · ${what} well-formed — signature NOT checked (--skip-sig)`,
             );
             console.log(`  id: ${result.id}`);
-            console.log(`  ! ${revNote}`);
+            if (asOf?.basis === 'now') console.log(`  checked at ${asOf.now}`);
+            for (const n of notes) console.log(`  ! ${n}`);
         }
         return;
     }
