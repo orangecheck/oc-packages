@@ -9,8 +9,11 @@
  * site. The sender is a small inline script, so `window.plausible` works
  * before React loads; `useFamilyPageviews()` reports each route. oc-pulse
  * (insights.ochk.io) sends origin and path too.
+ *
+ * Nothing here imports Next. Next loads this package outside its bundle on
+ * the server, where a bare `next/router` does not resolve and `next/router.js`
+ * is a second copy of the router's module; the hook needs neither.
  */
-import { useRouter } from 'next/router.js';
 import { useEffect } from 'react';
 
 declare global {
@@ -160,9 +163,13 @@ export function FamilyAnalytics({
     );
 }
 
-/** In `_app`: one pageview per page, reported as origin and path. */
+/**
+ * In `_app`: one pageview per page, reported as origin and path. A client-side
+ * route change moves the address with `history.pushState` (Next's router
+ * among them) or back and forward with `popstate`; the hook listens to those
+ * rather than to a router, so it needs no router of its own.
+ */
 export function useFamilyPageviews(): void {
-    const router = useRouter();
     useEffect(() => {
         let last = '';
         const report = () => {
@@ -172,7 +179,26 @@ export function useFamilyPageviews(): void {
             window.plausible?.('pageview');
         };
         report();
-        router.events.on('routeChangeComplete', report);
-        return () => router.events.off('routeChangeComplete', report);
-    }, [router.events]);
+        const history = window.history;
+        const push = history.pushState;
+        const replace = history.replaceState;
+        // A replace that changes the path is a new page too (a redirect in the client).
+        const pushed: typeof push = function (this: History, ...args) {
+            push.apply(this, args);
+            report();
+        };
+        const replaced: typeof replace = function (this: History, ...args) {
+            replace.apply(this, args);
+            report();
+        };
+        history.pushState = pushed;
+        history.replaceState = replaced;
+        window.addEventListener('popstate', report);
+        return () => {
+            // Put back only what is still ours: another script may have wrapped it since.
+            if (history.pushState === pushed) history.pushState = push;
+            if (history.replaceState === replaced) history.replaceState = replace;
+            window.removeEventListener('popstate', report);
+        };
+    }, []);
 }

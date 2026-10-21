@@ -3,10 +3,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const events = { on: vi.fn(), off: vi.fn() };
-vi.mock('next/router.js', () => ({ useRouter: () => ({ events }) }));
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
     familyPageUrl,
@@ -146,7 +143,7 @@ describe('FamilyAnalytics', () => {
 });
 
 describe('useFamilyPageviews', () => {
-    it('reports the page once, then each new path', async () => {
+    it('reports the page once, then each new path as the address moves', async () => {
         const calls: string[] = [];
         window.plausible = (name: string) => void calls.push(`${name} ${window.location.pathname}`);
         function App() {
@@ -156,12 +153,24 @@ describe('useFamilyPageviews', () => {
         const root = createRoot(document.createElement('div'));
         await act(async () => root.render(<App />));
         expect(calls).toEqual(['pageview /share/abc123']);
-        const report = events.on.mock.calls[0]![1] as () => void;
-        report(); // the same page again: not counted twice
-        window.history.replaceState(null, '', '/pricing#plans');
-        report();
-        expect(calls).toEqual(['pageview /share/abc123', 'pageview /pricing']);
+        // The same page again (a shallow query change, a restored fragment): not counted twice.
+        window.history.replaceState(null, '', '/share/abc123?utm_source=nostr&view=x#k=again');
+        // A client-side route change, as Next's router makes it.
+        window.history.pushState(null, '', '/pricing#plans');
+        // Back.
+        window.history.replaceState(null, '', '/share/abc123');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        expect(calls).toEqual(['pageview /share/abc123', 'pageview /pricing', 'pageview /share/abc123']);
         await act(async () => root.unmount());
-        expect(events.off).toHaveBeenCalled();
+        // Unmounted, history is its own again.
+        window.history.pushState(null, '', '/elsewhere');
+        expect(calls).toHaveLength(3);
+    });
+
+    it('imports nothing from Next', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { join } = await import('node:path');
+        const src = readFileSync(join(__dirname, 'index.tsx'), 'utf8');
+        expect(src).not.toMatch(/from ['"]next(\/|['"])/);
     });
 });

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+`useFamilyPageviews` follows the address (`history.pushState`, `replaceState`
+and `popstate`) instead of Next's router, so `./analytics` imports nothing from
+Next. 0.3.0 imported `next/router.js`: Next loads site-kit outside its bundle
+on the server, where that is a second copy of the router's module, and a bare
+`next/router` does not resolve under Node's ESM loader. `yarn test` now builds
+and starts a Next site whose `_app` uses the hook and asks a static page and a
+`getServerSideProps` page for a 200, and refuses any Next import in the built
+entry.
+
 ## 0.3.0
 
 `./analytics`: `FamilyAnalytics` (the `_document` scripts), `useFamilyPageviews`
