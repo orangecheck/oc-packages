@@ -5,7 +5,7 @@ import type { ComponentProps } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { recorder } from '../auth/fixtures';
-import { createOgHandler, ogTitle, type OgCardOptions } from './index';
+import { createOgHandler, ogEyebrow, ogTitle, type OgCardOptions } from './index';
 
 const STAMP: OgCardOptions = {
     wordmark: 'oc·stamp',
@@ -44,6 +44,17 @@ async function card(props: ComponentProps<typeof OgCard>) {
     return Buffer.from(await new ImageResponse(<OgCard {...props} />, { ...OG_SIZE, fonts: ogFonts() }).arrayBuffer());
 }
 
+describe('ogEyebrow', () => {
+    it('reads ?eyebrow=, trims it, and cuts a long one', () => {
+        expect(ogEyebrow('/api/og?eyebrow=OC%20Vote')).toBe('OC Vote');
+        expect(ogEyebrow('/api/og?eyebrow=%20%20')).toBeUndefined();
+        expect(ogEyebrow('/api/og')).toBeUndefined();
+        const long = ogEyebrow(`/api/og?eyebrow=${'a'.repeat(500)}`)!;
+        expect(long).toHaveLength(80);
+        expect(long.endsWith('…')).toBe(true);
+    });
+});
+
 describe('createOgHandler', () => {
     it('renders a 1200×630 PNG on the node handler contract', async () => {
         const out = await handled(STAMP, '/api/og?title=hi');
@@ -61,6 +72,14 @@ describe('createOgHandler', () => {
         expect((out.body as Buffer).equals(want)).toBe(true);
         const plain = await handled(STAMP, '/api/og');
         expect((plain.body as Buffer).equals(await card({ title: STAMP.defaultTitle, product: 'stamp', eyebrow: 'OC Stamp', host: 'stamp.ochk.io' }))).toBe(true);
+    }, 30_000);
+
+    it('?eyebrow= names the line above the title, over the site default', async () => {
+        const site: OgCardOptions = { defaultTitle: 'x', host: 'ochk.io', eyebrow: 'Six verbs, one Bitcoin address' };
+        const asked = await handled(site, '/api/og?title=prove%20who%20signed%20a%20file&eyebrow=OC%20Stamp');
+        expect((asked.body as Buffer).equals(await card({ title: 'prove who signed a file', eyebrow: 'OC Stamp', host: 'ochk.io' }))).toBe(true);
+        const plain = await handled(site, '/api/og?title=Trust&eyebrow=');
+        expect((plain.body as Buffer).equals(await card({ title: 'Trust', eyebrow: 'Six verbs, one Bitcoin address', host: 'ochk.io' }))).toBe(true);
     }, 30_000);
 
     it('takes the card fields when a site names them', async () => {

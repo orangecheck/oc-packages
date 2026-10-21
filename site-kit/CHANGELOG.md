@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2
+
+`createOgHandler` takes `?eyebrow=`, the line above the title, cut to 80
+characters, over the site's own `eyebrow`. A page can name its section
+explicitly (ochk.io's protocol pages put the verb there) rather than have it
+guessed from the title.
+
 ## 0.5.1
 
 `cardTitle` takes anything with a `name`, so a site that keeps its own Seo can

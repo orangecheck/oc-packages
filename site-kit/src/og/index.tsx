@@ -39,12 +39,21 @@ export function ogTitle(url: string | undefined, opts: Pick<OgCardOptions, 'defa
     return title.length > max ? `${title.slice(0, max - 1)}…` : title;
 }
 
+/** The eyebrow a request names (`?eyebrow=`), cut to 80 characters; otherwise the site's. */
+export function ogEyebrow(url: string | undefined): string | undefined {
+    const eyebrow = new URL(url ?? '/', 'http://og.invalid').searchParams.get('eyebrow')?.trim();
+    if (!eyebrow) return undefined;
+    return eyebrow.length > 80 ? `${eyebrow.slice(0, 79)}…` : eyebrow;
+}
+
 /** What app-design's `OgCard` is given for these options: `oc·stamp` reads as `stamp` under `OC Stamp`. */
-function ogCardProps(opts: OgCardOptions, title: string) {
+function ogCardProps(opts: OgCardOptions, title: string, asked?: string) {
     const word = opts.wordmark?.replace(/^oc\s*[·.\-\s]\s*/i, '');
     const product = opts.product ?? word;
     const eyebrow =
-        opts.eyebrow ?? (word && word !== opts.wordmark ? `OC ${word.charAt(0).toUpperCase()}${word.slice(1)}` : undefined);
+        asked ??
+        opts.eyebrow ??
+        (word && word !== opts.wordmark ? `OC ${word.charAt(0).toUpperCase()}${word.slice(1)}` : undefined);
     return { title, product, eyebrow, host: opts.host.toLowerCase(), tone: opts.tone ?? 'ink' } as const;
 }
 
@@ -57,10 +66,8 @@ function ogCardProps(opts: OgCardOptions, title: string) {
  */
 export function createOgHandler(opts: OgCardOptions) {
     return async function ogHandler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-        const image = new ImageResponse(<OgCard {...ogCardProps(opts, ogTitle(req.url, opts))} />, {
-            ...OG_SIZE,
-            fonts: ogFonts(),
-        });
+        const card = ogCardProps(opts, ogTitle(req.url, opts), ogEyebrow(req.url));
+        const image = new ImageResponse(<OgCard {...card} />, { ...OG_SIZE, fonts: ogFonts() });
         const body = Buffer.from(await image.arrayBuffer());
         image.headers.forEach((value, key) => res.setHeader(key, value));
         res.status(image.status).send(body);
