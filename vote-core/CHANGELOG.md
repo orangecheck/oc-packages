@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.1] — 2026-10-21
+
+### Fixed — the README's tally sample runs
+
+The published README verified signatures with `bip322-js`, which throws on a
+fresh install since bitcoinjs-lib 6.1.9 (2026-10-13), and left out the snapshot
+height a `"deadline"` poll needs, so `tally` threw either way. It now verifies
+with `@orangecheck/bip322` and resolves the snapshot with
+`resolvePollSnapshot`. No code change.
+
 ## [1.5.0] — 2026-09-24
 
 ### Added — `verifyBallot`

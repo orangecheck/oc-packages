@@ -7,7 +7,7 @@
 Reference implementation of [oc-vote-protocol v0](https://github.com/orangecheck/oc-vote-protocol) — stake-weighted, sybil-resistant, offline-tallyable polls on Bitcoin.
 
 ```bash
-npm i @orangecheck/vote-core
+npm i @orangecheck/vote-core @orangecheck/bip322
 ```
 
 ## What it gives you
@@ -17,7 +17,7 @@ npm i @orangecheck/vote-core
 - `commit(pollId, voter, option)` — secret-mode commitment per SPEC §4.4.
 - `voterWeight({ utxos, snapshot, minSats, minDays, mode, params })` — three canonical weight modes: `one_per_address`, `sats`, `sats_days`.
 - `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot.
-- `verifyPoll(poll, verify)` / `verifyReveal(reveal, poll, verify)` — SPEC §3.3 structure plus the creator's BIP-322 signature (§10.1, §6.4, §10.3).
+- `verifyPoll(poll, verify)` / `verifyBallot(ballot, verify)` / `verifyReveal(reveal, poll, verify)` — SPEC §3.3 / §4.3 structure plus the creator's or voter's BIP-322 signature (§10.1, §6.4, §10.3).
 - `isMainnetAddress(addr)` — network check by address prefix (§3.3, §4.3).
 - `resolvePollSnapshot(poll, source)` / `resolveDeadlineSnapshot(deadline, source)` — the §3 snapshot block (greatest `median_time_past` ≤ deadline, ≥ 6 confirmations); `mempoolBlockTimeSource()` supplies chain data from mempool.space or your own instance.
 - Full TypeScript types for `Poll`, `Ballot`, `Reveal`, `TallyResult`.
@@ -32,11 +32,16 @@ The package ships vitest suite that loads the canonical fixtures from [`oc-vote-
 
 ```ts
 import { verifySignature } from '@orangecheck/bip322';
-import { tally, pollId } from '@orangecheck/vote-core';
+import { mempoolBlockTimeSource, resolvePollSnapshot, tally } from '@orangecheck/vote-core';
+
+// A "deadline" poll needs its snapshot height resolved first.
+const snap = await resolvePollSnapshot(poll, mempoolBlockTimeSource());
+if (!snap.ok) throw new Error(`${snap.code}: ${snap.reason}`);
 
 const result = await tally({
   poll,
   ballots,
+  snapshotBlock: snap.height,
   utxosAt: (addr, snapshotBlock) => fetchUtxos(addr, snapshotBlock),
   tipHeight, // optional: refuse a snapshot with < 6 confirmations (E_REORG)
   verify: ({ address, message, signature }) => verifySignature(address, message, signature),
