@@ -748,6 +748,8 @@ export interface FilterOption<T extends string | number> {
     value: T;
     label: ReactNode;
     count?: number;
+    /** Shown but not choosable now (a filter with nothing in it): heard as unavailable, still reached by Tab. */
+    disabled?: boolean;
 }
 
 /**
@@ -789,14 +791,17 @@ export function FilterChips<T extends string | number>({
                         key={o.value}
                         type="button"
                         aria-pressed={on}
-                        onClick={() => press(o.value)}
+                        aria-disabled={o.disabled || undefined}
+                        onClick={() => (o.disabled ? undefined : press(o.value))}
                         className={cn(
                             'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] transition-colors',
                             // A thumb's 44px on a phone.
                             tight ? 'h-11 md:h-8' : 'h-11 md:h-9',
                             on
                                 ? 'border-foreground bg-foreground text-background'
-                                : 'border-border bg-card text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
+                                : o.disabled
+                                  ? 'cursor-not-allowed border-dashed border-border bg-transparent text-oca-subtle'
+                                  : 'border-border bg-card text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
                         )}
                     >
                         {o.label}

@@ -359,6 +359,36 @@ export const Rows: StoryObj = {
                         ))}
                     </ListCard>
                 </section>
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="Signed for you" description="A line over the title, two under it, and a text action: beside them from sm, under them on a phone." />
+                    <ListCard>
+                        <ListRow
+                            href="#lumen"
+                            leading={<Avatar seed="lumen" name="Lumen Notes" />}
+                            eyebrow="Signed · 21 Oct"
+                            title="Lumen Notes"
+                            meta="2 min ago"
+                            description="Asked to read your identity"
+                            detail="From notes.example, key 86020d78"
+                            action={
+                                <Button size="sm" variant="secondary">
+                                    Revoke
+                                </Button>
+                            }
+                        />
+                        <ListRow
+                            leading={<Avatar seed="guardian-2" name="Guardian two" />}
+                            eyebrow="Guardian 2 of 4"
+                            title="Did not answer the last round"
+                            description="Last seen 14 minutes ago"
+                            action={
+                                <Button size="sm" variant="secondary">
+                                    Retry this guardian
+                                </Button>
+                            }
+                        />
+                    </ListCard>
+                </section>
                 <section className="flex flex-col gap-3">
                     <SectionTitle title="In a pane" size="sm" as="h3" description="A thread list beside an open thread: the current row lifts, the menu shows on hover from md." />
                     <div className="flex h-[26rem] overflow-hidden rounded-[1.25rem] border border-border bg-background">

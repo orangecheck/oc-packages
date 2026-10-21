@@ -300,9 +300,33 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// FilterChips: a press on a disabled chip chooses nothing.
+{
+    const chosen = [];
+    const { host, unmount } = await mount(
+        h(C.FilterChips, { label: 'State', value: 'all', onChange: (v) => chosen.push(v), options: [{ value: 'all', label: 'All' }, { value: 'held', label: 'Held', disabled: true }, { value: 'kept', label: 'Kept' }] })
+    );
+    const [, held, kept] = host.querySelectorAll('button');
+    await act(async () => held.click());
+    await act(async () => kept.click());
+    check(chosen.join() === 'kept', `FilterChips: a disabled chip was chosen (${show(chosen)})`);
+    await unmount();
+}
+
+// CopyButton showLabel: the words on the button, then "Copied", the exact text on the clipboard.
+{
+    const { host, unmount } = await mount(h(C.CopyButton, { value: '{"v":1}', label: 'Copy signed JSON', showLabel: true }));
+    const b = host.querySelector('button');
+    const before = b.textContent;
+    copied.length = 0;
+    await act(async () => b.click());
+    check(before.includes('Copy signed JSON') && b.textContent.includes('Copied') && copied[0] === '{"v":1}', `CopyButton showLabel: read ${show(before)} then ${show(b.textContent)}, copied ${show(copied[0])}`);
+    await unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy`);
 process.exit(0);

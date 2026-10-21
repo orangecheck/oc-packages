@@ -555,6 +555,8 @@ export interface CodeMeta {
     highlight?: string;
     diff?: boolean;
     lineNumbers?: boolean;
+    /** A diagram's drawn size, `size=834x623`. */
+    size?: string;
 }
 
 export function parseCodeMeta(meta?: string | null): CodeMeta {
@@ -567,6 +569,8 @@ export function parseCodeMeta(meta?: string | null): CodeMeta {
     const rest = meta.replace(/(?:title|filename)=(?:"[^"]*"|'[^']*'|\S+)/, '');
     if (/\bdiff\b/.test(rest)) out.diff = true;
     if (/\b(?:showLineNumbers|lineNumbers|numbers)\b/.test(rest)) out.lineNumbers = true;
+    const size = meta.match(/\bsize=(\d+x\d+)\b/);
+    if (size) out.size = size[1];
     return out;
 }
 

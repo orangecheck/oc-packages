@@ -8,6 +8,7 @@ import { highlight, linesToHtml, parseCodeMeta, parseLineRanges, readDiff, type 
  *   ```ts title="gate.ts" {2,4}      a caption and two marked lines
  *   ```diff                          + and - lines (or `diff` in the meta)
  *   ```bash showLineNumbers          numbered lines
+ *   ```mermaid size=834x623          a diagram's drawn size, so its page holds still
  *
  * Each block becomes <pre data-oca-code data-html="…" data-lang data-title
  * data-diff data-line-numbers data-eol>, which mdxComponents' `pre` hands to
@@ -58,8 +59,12 @@ export function rehypeCode(options: RehypeCodeOptions = {}) {
             const code = child.type === 'element' && child.tagName === 'pre' ? child.children?.[0] : undefined;
             if (code && code.type === 'element' && code.tagName === 'code' && child.children?.length === 1) {
                 const lang = langOf(code);
-                if (lang && skip.has(lang)) continue;
                 const meta = parseCodeMeta(code.data?.meta);
+                if (lang && skip.has(lang)) {
+                    // A diagram's size rides on the pre, for the page to hold its height.
+                    if (meta.size) child.properties = { ...child.properties, dataSize: meta.size };
+                    continue;
+                }
                 let source = textOf(code);
                 const newline = /\n$/.test(source);
                 const diff = meta.diff || lang === 'diff' ? readDiff(source) : null;

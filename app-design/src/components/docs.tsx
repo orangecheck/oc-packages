@@ -537,14 +537,103 @@ function mermaidTheme(el: HTMLElement): Record<string, string> {
  */
 const FIT = 4 / 3;
 
-function naturalSize(svg: string): { svg: string; width: number | null } {
-    const w = svg.match(/viewBox="[\d.-]+ [\d.-]+ ([\d.]+) [\d.]+"/)?.[1];
-    if (!w) return { svg, width: null };
-    const width = Math.ceil(Number(w));
+function naturalSize(svg: string): { svg: string; width: number | null; height: number | null } {
+    const box = svg.match(/viewBox="[\d.-]+ [\d.-]+ ([\d.]+) ([\d.]+)"/);
+    if (!box) return { svg, width: null, height: null };
+    const width = Math.ceil(Number(box[1]));
     return {
         svg: svg.replace(/<svg([^>]*?)\swidth="100%"/, `<svg$1 width="${width}"`).replace(/max-width:\s*[\d.]+px;?/, ''),
         width,
+        height: Math.round(Number(box[2])),
     };
+}
+
+/** A diagram's drawn size, `[width, height]` in px: its viewBox, as a drawn figure's `data-size` reads. */
+export type DiagramSize = readonly [width: number, height: number];
+
+const labelLines = (label: string) => (label.match(/<br\s*\/?>/gi)?.length ?? 0) + 1;
+
+/*
+ * Before mermaid loads, a guess at the height it will draw, from the source:
+ * a sequence by its messages, a flowchart by its ranks. Measured against the
+ * docs' twelve diagrams it lands within a tenth for most; give `size` to be exact.
+ */
+function estimateHeight(chart: string): number {
+    const rows = chart.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('%%'));
+    const head = rows[0] ?? '';
+    if (/^sequenceDiagram/.test(head)) {
+        let actor = 1;
+        let messages = 0;
+        let extra = 0;
+        for (const r of rows.slice(1)) {
+            const p = r.match(/^(?:participant|actor)\s+\S+(?:\s+as\s+(.*))?$/);
+            if (p) actor = Math.max(actor, labelLines(p[1] ?? ''));
+            else if (/^note\b/i.test(r) || (/-[->x)]/.test(r) && r.includes(':'))) {
+                messages++;
+                extra += labelLines(r) - 1;
+            }
+        }
+        return 2 * (32 + 22 * actor) + 60 + 52 * messages + 20 * extra;
+    }
+    if (/^stateDiagram/.test(head)) {
+        // States as a top-down flow; a state is a single line and sits closer than a flowchart's box.
+        const flow = rows.slice(1).flatMap((r) => {
+            const m = r.match(/^(\S+)\s*-->\s*(\S+?)\s*(?::\s*(.*))?$/);
+            if (!m) return [];
+            const end = (x: string, side: string) => (x === '[*]' ? side : x);
+            return [`${end(m[1]!, 'START')} -->${m[3] ? `|${m[3]}|` : ''} ${end(m[2]!, 'END')}`];
+        });
+        return Math.round(estimateHeight(['flowchart TB', ...flow].join('\n')) * 0.72);
+    }
+    const flow = head.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?/);
+    if (!flow) return 320;
+    const across = /LR|RL/.test(flow[1] ?? '');
+    const nodes = new Map<string, number>(); // a node's height
+    const edges: [string, string, string][] = [];
+    const node = /([A-Za-z_][\w-]*)\s*(\[\(|\(\[|\[\[|\[|\(\(|\(|\{\{|\{|>)?\s*("[^"]*"|[^\])}"]*?)?\s*(\)\]|\]\)|\]\]|\]|\)\)|\)|\}\}|\})?(?=\s*(?:-|=|\.|&|$|;))/;
+    const arrow = /\s*(?:-->|---|==>|-\.->|--\s*"[^"]*"\s*-->|--\s*[^-"]+\s*-->|-\.[^-]*\.->)\s*(?:\|[^|]*\|)?\s*/;
+    for (const r of rows.slice(1)) {
+        if (/^(classDef|class|style|linkStyle|subgraph|end|direction)\b/.test(r)) continue;
+        let prev: string | null = null;
+        for (const part of r.split(arrow)) {
+            const m = part.match(node);
+            if (!m) continue;
+            const id = m[1]!;
+            const label = m[3] ?? id;
+            // A decision's diamond grows with its text both ways.
+            const h = m[2]?.startsWith('{') ? 100 + 60 * labelLines(label) : 34 + 22 * labelLines(label);
+            nodes.set(id, Math.max(nodes.get(id) ?? 0, h));
+            if (prev) edges.push([prev, id, r.match(/\|([^|]*)\|/)?.[1] ?? r.match(/--\s*"([^"]*)"/)?.[1] ?? '']);
+            prev = id;
+        }
+    }
+    if (nodes.size === 0) return 320;
+    // Each node's rank is its longest path from a source.
+    const rank = new Map([...nodes.keys()].map((k) => [k, 0]));
+    for (let i = 0; i < nodes.size; i++) for (const [a, b] of edges) rank.set(b, Math.max(rank.get(b)!, rank.get(a)! + 1));
+    const ranks: string[][] = [];
+    for (const [id, r] of rank) (ranks[r] ??= []).push(id);
+    const tall = (ids: string[] = []) => Math.max(0, ...ids.map((id) => nodes.get(id)!));
+    if (across) return 16 + Math.max(...ranks.map((ids = []) => ids.reduce((sum, id) => sum + nodes.get(id)!, 0) + 40 * (ids.length - 1)));
+    const gap = 50 + 20 * Math.max(0, ...edges.map((e) => (e[2] ? labelLines(e[2]) : 0)));
+    return 16 + ranks.reduce((sum, ids) => sum + tall(ids), 0) + gap * (ranks.length - 1);
+}
+
+/*
+ * The placeholder holds the drawn height, so nothing below moves when mermaid
+ * draws. Given the size, it follows Diagram's own rule in CSS, against the
+ * figure's width (a container): natural height when the diagram scrolls or
+ * fits as it is, scaled with the column when it is shrunk to fit.
+ */
+function reserve(cls: string, size: DiagramSize | undefined, chart: string): string {
+    const pad = 48;
+    if (!size) return `.${cls}{height:${Math.min(1200, Math.max(120, estimateHeight(chart)))}px}`;
+    const [w, h] = size;
+    return (
+        `.${cls}{height:${h}px}` +
+        `@container (min-width:${w / FIT + pad}px){.${cls}{height:calc((100cqw - ${pad}px) * ${h / w})}}` +
+        `@container (min-width:${w + pad}px){.${cls}{height:${h}px}}`
+    );
 }
 
 /** The width a diagram has to fill: the figure, less the well's padding. */
@@ -567,14 +656,28 @@ function useInnerWidth(ref: RefObject<HTMLElement | null>, padding: number): num
  * diagram is within a screen of view. If it cannot be drawn, the source
  * shows instead.
  */
-export function Diagram({ chart, caption, load, className }: { chart: string; caption?: ReactNode; load: MermaidLoader; className?: string }) {
+export function Diagram({
+    chart,
+    caption,
+    load,
+    size,
+    className,
+}: {
+    chart: string;
+    caption?: ReactNode;
+    load: MermaidLoader;
+    /** The drawn size, as a drawn figure's `data-size` reads: the placeholder holds exactly that. Without it, a guess from the source. */
+    size?: DiagramSize;
+    className?: string;
+}) {
     const [ref, near] = useInView<HTMLElement>('100% 0px');
     const dark = useDarkMode();
     const raw = useId();
-    const [drawn, setDrawn] = useState<{ svg: string; width: number | null } | null>(null);
+    const [drawn, setDrawn] = useState<{ svg: string; width: number | null; height: number | null } | null>(null);
     const [failed, setFailed] = useState(false);
     const room = useInnerWidth(ref, 48);
     const fits = drawn?.width != null && room != null && drawn.width <= room * FIT;
+    const hold = `oca-dg-${raw.replace(/[^a-zA-Z0-9]/g, '')}`;
     useEffect(() => {
         let live = true;
         const el = ref.current;
@@ -597,9 +700,20 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
             live = false;
         };
     }, [chart, dark, load, raw, near, ref]);
+    // A size that no longer matches the drawing (the source changed) moves the page again: say so while developing.
+    const said = size?.join('x');
+    useEffect(() => {
+        if (!drawn?.width || !drawn.height || !said || process.env.NODE_ENV === 'production') return;
+        const got = `${drawn.width}x${drawn.height}`;
+        if (got !== said) console.warn(`Diagram: it draws at ${got} but its size says ${said}. Set size to ${got} so the page holds still.`);
+    }, [drawn, said]);
     if (failed) return <CodeBlock code={chart} caption="Diagram (shown as its source)" className={cn('my-6', className)} />;
     return (
-        <figure ref={ref} className={cn('not-prose my-6 overflow-hidden rounded-[1.25rem] border border-border bg-card', className)}>
+        <figure
+            ref={ref}
+            data-size={drawn?.width && drawn.height ? `${drawn.width}x${drawn.height}` : undefined}
+            className={cn('not-prose my-6 overflow-hidden rounded-[1.25rem] border border-border bg-card [container-type:inline-size]', className)}
+        >
             {drawn ? (
                 <ScrollFade fade="var(--card)">
                     <div
@@ -615,7 +729,8 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
                 </ScrollFade>
             ) : (
                 <div role="status" aria-label="Drawing the diagram" className="p-6">
-                    <Skeleton className="h-40 w-full rounded-xl" />
+                    <style>{reserve(hold, size, chart)}</style>
+                    <Skeleton className={cn('w-full rounded-xl', hold)} />
                 </div>
             )}
             {caption ? <figcaption className="border-t border-border px-5 py-3 text-[0.8125rem] text-muted-foreground">{caption}</figcaption> : null}

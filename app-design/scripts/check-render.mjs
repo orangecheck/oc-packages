@@ -174,10 +174,10 @@ const html = (el) => renderToStaticMarkup(el);
     // DataTable: a row that opens a page is one link, its target stretched over the row.
     const cols = [{ key: 'name', header: 'Name', cell: (r) => r.name, primary: true }, { key: 'id', header: 'Id', cell: (r) => h('button', { type: 'button' }, r.id) }];
     const linked = html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, rowHref: (r) => `/people/${r.id}` }));
-    check(/<tr class="[^"]*relative[^"]*"><td[^>]*><a class="[^"]*after:absolute after:inset-0[^"]*" href="\/people\/a1">Ada<\/a><\/td>/.test(linked), 'DataTable rowHref: the primary cell is not the row\'s link');
+    check(/<tr class="[^"]*relative[^"]*"><td[^>]*><a (?=[^>]*class="[^"]*after:absolute after:inset-0)(?=[^>]*href="\/people\/a1")[^>]*>Ada<\/a><\/td>/.test(linked), 'DataTable rowHref: the primary cell is not the row\'s link');
     check(/<td class="[^"]*\[&amp;_button\]:z-10[^"]*"><button/.test(linked), 'DataTable rowHref: a control in another cell would sit under the row link');
     check((linked.match(/href="\/people\/a1"/g) ?? []).length === 2, 'DataTable rowHref: the phone card has no link');
-    check(/<button type="button" class="[^"]*after:inset-0[^"]*">Ada<\/button>/.test(html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, onRowSelect: () => {} }))), 'DataTable onRowSelect: no row button');
+    check(/<button type="button"(?=[^>]*class="[^"]*after:inset-0)[^>]*>Ada<\/button>/.test(html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, onRowSelect: () => {} }))), 'DataTable onRowSelect: no row button');
     check(!html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id })).includes('after:inset-0'), 'DataTable: a plain table grew row links');
     // ComparisonTable: a last row of actions; Closing: small print.
     const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
@@ -495,6 +495,45 @@ const html = (el) => renderToStaticMarkup(el);
     check(/h-5 w-px[^>]*><\/span><span[^>]*>stamp<\/span>/.test(frame), 'SignInFrame: a tool site\'s sign-in does not carry its word');
     check(html(h(Ch.SignInFrame, { product: 'ochk.app' }, 'x')).includes('>ochk.app</span>'), 'SignInFrame: product is ignored');
     check(!/h-5 w-px/.test(html(h(Ch.SignInFrame, {}, 'x'))), 'SignInFrame: ochk.io\'s sign-in grew a word');
+}
+
+// 1.14.0: the parts ochk.app's lists and tables needed.
+{
+    // DataTable: the row's link named by a chosen column, in the table and the phone card.
+    const events = [{ id: 'e1', when: '2 min ago', event: 'Stamp 86020d78 verified' }];
+    const cols = [
+        { key: 'when', header: 'When', cell: (r) => r.when },
+        { key: 'event', header: 'Event', cell: (r) => r.event },
+    ];
+    const t = html(h(C.DataTable, { columns: cols, rows: events, rowKey: (r) => r.id, rowHref: (r) => `/events/${r.id}`, linkColumn: 'event' }));
+    const links = [...t.matchAll(/<a [^>]*href="\/events\/e1"[^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
+    check(links.length === 2 && links.every((x) => x === 'Stamp 86020d78 verified'), `DataTable linkColumn: the row's link reads ${JSON.stringify(links)}, not the event`);
+    const plain = html(h(C.DataTable, { columns: cols, rows: events, rowKey: (r) => r.id, rowHref: (r) => `/events/${r.id}` }));
+    check(/<a [^>]*href="\/events\/e1"[^>]*>2 min ago<\/a>/.test(plain), 'DataTable: without linkColumn the primary cell no longer names the link');
+
+    // CopyButton: the label said on the button, still the button's name.
+    const copy = html(h(C.CopyButton, { value: '{}', label: 'Copy signed JSON', showLabel: true }));
+    check(/<button[^>]*>.*Copy signed JSON.*<\/button>/.test(copy) && !/aria-label="Copy signed JSON"/.test(copy), `CopyButton showLabel: the label is not on the button (${copy.slice(0, 90)})`);
+    check(/aria-label="Copy signed JSON"/.test(html(h(C.CopyButton, { value: '{}', label: 'Copy signed JSON' }))), 'CopyButton: the icon button lost its name');
+
+    // FilterChips: a chip that cannot be chosen now, heard as such and still in the Tab order.
+    const chips = html(h(C.FilterChips, { label: 'State', value: 'all', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'held', label: 'Held', count: 0, disabled: true }] }));
+    const held = chips.match(/<button[^>]*>Held/)?.[0] ?? '';
+    check(/aria-disabled="true"/.test(held) && !/\sdisabled=""/.test(held) && !/tabindex="-1"/.test(held), `FilterChips: a disabled chip is not heard as unavailable, or leaves the Tab order (${held})`);
+
+    // ListRow: a line over the title and two under it, all in the row.
+    const row = html(h('ul', null, h(C.ListRow, { eyebrow: 'Signed · 21 Oct', title: 'Lumen Notes', description: 'Asked to read your identity', detail: 'From notes.example', onSelect: () => {} })));
+    const order = ['Signed · 21 Oct', 'Lumen Notes', 'Asked to read your identity', 'From notes.example'].map((x) => row.indexOf(x));
+    check(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])) && /<button[^>]*>[\s\S]*From notes\.example[\s\S]*<\/button>/.test(row), `ListRow: the eyebrow, title, line and detail are not in order inside the row (${order})`);
+    // A text action sits outside the row's button, never inside it.
+    const act = html(h('ul', null, h(C.ListRow, { title: 'bc1q…e3w7t', onSelect: () => {}, action: h('button', { type: 'button', 'data-remove': '' }, 'Remove') })));
+    check(act.includes('data-remove') && !/<button[^>]*type="button"[^>]*class="[^"]*min-h-11[^"]*"[^>]*>(?:(?!<\/button>)[\s\S])*data-remove/.test(act), 'ListRow action: the text action is missing, or nested in the row');
+
+    // A mermaid fence's size meta rides through rehypeCode to the Diagram.
+    const { rehypeCode } = require(join(here, '../dist/code.js'));
+    const tree = { type: 'root', children: [{ type: 'element', tagName: 'pre', properties: {}, children: [{ type: 'element', tagName: 'code', properties: { className: ['language-mermaid'] }, data: { meta: 'size=834x623' }, children: [{ type: 'text', value: 'sequenceDiagram\n' }] }] }] };
+    rehypeCode()(tree);
+    check(tree.children[0].properties.dataSize === '834x623' && tree.children[0].children.length === 1, `rehypeCode: a mermaid fence's size is not carried (${JSON.stringify(tree.children[0].properties)})`);
 }
 
 if (failures) {

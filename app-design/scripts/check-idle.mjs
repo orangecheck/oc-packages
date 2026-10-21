@@ -6,7 +6,9 @@
  *   moves over it, and nothing again once the pointer rests or leaves; its
  *   breath is a CSS animation. Under reduced motion it draws once. Offscreen
  *   it stops, and draws when it comes into view.
- * - A Diagram fetches mermaid only once it comes within a screen of view.
+ * - A Diagram fetches mermaid only once it comes within a screen of view,
+ *   and its placeholder holds the height it will draw: exactly with a
+ *   `size`, from a guess at the source without one.
  *
  * Run after `yarn build`.
  */
@@ -38,6 +40,20 @@ const check = (ok, msg) => {
     }
 };
 
+// The docs' sign-in guide's sequence, drawn at 834×623 by mermaid.
+const ATTEST = `sequenceDiagram
+    autonumber
+    participant C as Client
+    participant W as Wallet<br/>(BIP-322)
+    participant S as Server
+    C->>S: GET /api/challenge?addr=bc1q…
+    S-->>C: { message, nonce, expiresAt }
+    C->>W: user signs canonical message
+    W-->>C: signature
+    C->>S: POST /api/auth/signin<br/>{ message, signature, expectedNonce }
+    S->>S: verify BIP-322 · upsert account · mint cookie
+    S-->>C: 200 { ok, account }<br/>Set-Cookie: oc_session=…`;
+
 const dir = mkdtempSync(join(tmpdir(), 'app-design-idle-'));
 try {
     const src = (f) => join(pkg, 'src', f);
@@ -54,14 +70,27 @@ try {
             `const mermaid = { initialize() {}, render: async () => ({ svg: '<svg width="200" height="100" viewBox="0 0 200 100"><rect width="200" height="100" /></svg>' }) };\n` +
             `const load = () => { window.__loads++; return Promise.resolve(mermaid); };\n` +
             `createRoot(document.getElementById('root')).render(<div className="p-6"><div style={{ height: 3000 }} /><Diagram chart="graph LR; a-->b" caption="Flow" load={load} /></div>);\n`,
+        // Diagrams that draw at a known size, held back until the check has read the placeholder.
+        hold:
+            `import { createRoot } from 'react-dom/client';\n` +
+            `import { Diagram } from '${src('components/docs.tsx')}';\n` +
+            `const ATTEST = ${JSON.stringify(ATTEST)};\n` +
+            `const drawn = { wide: [1512, 645], scaled: [834, 623], narrow: [229, 496], guessed: [834, 623] };\n` +
+            `let go; const gate = new Promise((r) => (go = r)); window.__go = () => go();\n` +
+            `const mermaid = { initialize() {}, render: async (id, chart) => { await gate; const [w, h] = drawn[chart.startsWith('sequenceDiagram') ? 'guessed' : chart.split(' ')[1]]; return { svg: '<svg width="100%" viewBox="0 0 ' + w + ' ' + h + '" style="max-width: ' + w + 'px;"><rect width="' + w + '" height="' + h + '" /></svg>' }; } };\n` +
+            `const load = () => Promise.resolve(mermaid);\n` +
+            `createRoot(document.getElementById('root')).render(<div className="mx-auto max-w-[46rem] px-4">` +
+            `{['wide', 'scaled', 'narrow'].map((k) => <div key={k} data-k={k}><Diagram chart={'graph ' + k} load={load} size={drawn[k]} /></div>)}` +
+            `<div data-k="guessed"><Diagram chart={ATTEST} load={load} /></div></div>);\n`,
     });
-    compileCss(dir, ['halftone', 'diagram']);
+    compileCss(dir, ['halftone', 'diagram', 'hold']);
     // Every draw starts with a clear: count them. And count the page's frames, so a quiet canvas is told from a stalled page.
     const counter =
         `<script>window.__draws = 0; const clear = CanvasRenderingContext2D.prototype.clearRect; CanvasRenderingContext2D.prototype.clearRect = function (...a) { window.__draws++; return clear.apply(this, a); };` +
         `window.__ticks = 0; (function tick() { window.__ticks++; requestAnimationFrame(tick); })();</script>`;
     const halftone = writePage(dir, 'halftone', '<div id="root"></div>', { head: counter, script: '<script src="halftone.js"></script>' });
     const diagram = writePage(dir, 'diagram', '<div id="root"></div>', { script: '<script src="diagram.js"></script>' });
+    const hold = writePage(dir, 'hold', '<div id="root"></div>', { script: '<script src="hold.js"></script>' });
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -137,6 +166,29 @@ try {
             check(after.loads === 1 && after.drawn, `Diagram: within a screen of view, fetched ${after.loads} time(s), drawn ${after.drawn}`);
             await p.close();
         }
+        // The placeholder holds the drawn height: given a size, exactly, at a phone's width and a desk's.
+        for (const [width, height] of [
+            [390, 844],
+            [1440, 900],
+        ]) {
+            const p = await browser.newPage({ viewport: { width, height: 4000 } });
+            await p.goto(hold);
+            await p.waitForSelector('[data-k="guessed"] [role="status"]');
+            const heights = () => p.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-k]')].map((d) => [d.dataset.k, d.getBoundingClientRect().height])));
+            const before = await heights();
+            await p.evaluate(() => window.__go());
+            await p.waitForFunction(() => document.querySelectorAll('figure svg').length === 4);
+            const after = await heights();
+            for (const k of ['wide', 'scaled', 'narrow']) {
+                check(Math.abs(before[k] - after[k]) <= 1, `[${width}] Diagram size: the placeholder held ${Math.round(before[k])}px, the drawing took ${Math.round(after[k])}px (${k})`);
+            }
+            // Without a size, a guess from the source: within a tenth for the sign-in guide's sequence, drawn at its own size on a phone.
+            if (width < 640) {
+                const off = Math.abs(before.guessed - after.guessed) / after.guessed;
+                check(off <= 0.1, `[${width}] Diagram guess: ${Math.round(before.guessed)}px held for a ${Math.round(after.guessed)}px drawing`);
+            }
+            await p.close();
+        }
     } finally {
         await browser.close();
     }
@@ -148,4 +200,4 @@ if (failures) {
     console.error(`\n${failures} idle failure(s)`);
     process.exit(1);
 }
-console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view`);
+console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view, a diagram's height held`);

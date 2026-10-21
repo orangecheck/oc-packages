@@ -66,7 +66,14 @@ type PreProps = HTMLAttributes<HTMLPreElement> & {
     'data-diff'?: string;
     'data-line-numbers'?: string;
     'data-eol'?: string;
+    /** A mermaid fence's `size=834x623`, carried by rehypeCode. */
+    'data-size'?: string;
 };
+
+function sizeOf(meta: string | undefined): readonly [number, number] | undefined {
+    const m = meta?.match(/^(\d+)x(\d+)$/);
+    return m ? [Number(m[1]), Number(m[2])] : undefined;
+}
 
 export function createMdxComponents({ mermaid }: MdxOptions = {}) {
     function Pre(props: PreProps) {
@@ -86,7 +93,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
         }
         const lang = codeLang(props.children);
         const code = codeText(props.children);
-        if (lang === 'mermaid' && mermaid) return <Diagram chart={code} load={mermaid} />;
+        if (lang === 'mermaid' && mermaid) return <Diagram chart={code} load={mermaid} size={sizeOf(props['data-size'])} />;
         return (
             <CodeBlock
                 code={code}

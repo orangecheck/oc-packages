@@ -137,11 +137,12 @@ export const Data: StoryObj = {
             <DataTable
                 caption="Recent events"
                 rowKey={(r) => r.id}
-                // Each row opens its event: the whole row is the link.
+                // Each row opens its event: the whole row is the link, named by what happened.
                 rowHref={(r) => `#event-${r.id}`}
+                linkColumn="what"
                 columns={[
                     { key: 'site', header: 'Site', cell: (r) => r.site },
-                    { key: 'what', header: 'What', cell: (r) => r.what, wide: true },
+                    { key: 'what', header: 'What', cell: (r) => r.what },
                     { key: 'sats', header: 'You earned', align: 'end', cell: (r) => <Sats value={r.sats} signed /> },
                 ]}
                 rows={[

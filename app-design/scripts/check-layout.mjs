@@ -24,6 +24,9 @@
  *   product's footer with seven groups fits too.
  * - A block title keeps one button beside it on a phone, level with the
  *   title; a group of three wraps under it.
+ * - A ListRow holds a line over its title and two under it; a text action
+ *   sits beside them on a desk and under them on a phone, lined up with the
+ *   text, never over it.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -313,6 +316,26 @@ try {
             )
         )
     );
+    // ListRow's slots: a line over the title, two under it, a text action (ochk.app's Signed inbox, a binding to remove).
+    const rowSlots = page(
+        'row-slots',
+        renderToStaticMarkup(
+            h(
+                'ul',
+                { className: 'mx-auto max-w-[40rem] divide-y divide-border rounded-2xl border border-border bg-card' },
+                h(C.ListRow, {
+                    leading: h(C.Avatar, { seed: 'notes', name: 'Lumen Notes', size: 'md' }),
+                    eyebrow: h('span', { 'data-s': 'eyebrow' }, 'Signed · 21 Oct'),
+                    title: h('span', { 'data-s': 'title' }, 'Lumen Notes'),
+                    meta: '2 min ago',
+                    description: h('span', { 'data-s': 'desc' }, 'Asked to read your identity'),
+                    detail: h('span', { 'data-s': 'detail' }, 'From notes.example, key 86020d78'),
+                    onSelect: () => {},
+                    action: h(P.Button, { size: 'sm', variant: 'secondary', 'data-s': 'action' }, 'Retry this guardian'),
+                })
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -499,6 +522,26 @@ try {
             } else {
                 check(ft.groupsShown === 0 && ft.deskShown >= ft.phoneLinks.length, `[${width}] a desk sees ${ft.groupsShown} folded groups and ${ft.deskShown} of ${ft.phoneLinks.length} links`);
             }
+            // ListRow slots: the line over the title, two under it, a text action beside them or, on a phone, under them.
+            await p.goto(rowSlots);
+            const rs = await p.evaluate(() => {
+                const box = (s) => document.querySelector(`[data-s="${s}"]`)?.getBoundingClientRect() ?? null;
+                const [eyebrow, title, desc, detail, action] = ['eyebrow', 'title', 'desc', 'detail', 'action'].map(box);
+                const li = document.querySelector('li').getBoundingClientRect();
+                const hits = (a, b) => a && b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+                return {
+                    shown: [eyebrow, title, desc, detail, action].every(Boolean),
+                    order: eyebrow && title && desc && detail ? eyebrow.bottom <= title.top + 1 && title.bottom <= desc.top + 1 && desc.bottom <= detail.top + 1 : false,
+                    clear: action ? ![eyebrow, title, desc, detail].some((t) => hits(t, action)) : false,
+                    under: action && detail ? action.top >= detail.bottom : false,
+                    indent: action && title ? Math.round(action.left - title.left) : null,
+                    inside: action ? action.right <= li.right + 0.5 && action.left >= li.left : false,
+                };
+            });
+            check(rs.shown && rs.order, `[${width}] ListRow: the line over the title, the title and the two lines under it are missing or out of order (${JSON.stringify(rs)})`);
+            check(rs.clear && rs.inside, `[${width}] ListRow action: the text action covers the row's text or leaves the row (${JSON.stringify(rs)})`);
+            if (width < 640) check(rs.under && Math.abs(rs.indent) <= 2, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
+            else check(!rs.under, `[${width}] ListRow action: on a desk it falls under the text (${JSON.stringify(rs)})`);
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
             const pf = await p.evaluate(async () => {

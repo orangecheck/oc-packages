@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-10-21
+
+What ochk.app's lists and tables needed to stop drawing their own, and a
+diagram that holds its place.
+
+- `ListRow`:
+  - `eyebrow`, a short line over the title: its kind, a state, a date.
+  - `detail`, a second line under the title, quieter than `description`.
+  - `action`, a button with words ("Remove", "Retry this guardian"). It sits
+    beside the row's text from sm and under it on a phone, lined up with the
+    text, outside the row's link or button and never over it. `actions` stays
+    for a menu or an icon.
+- `Diagram` holds the height it will draw, so the text below it no longer
+  jumps when mermaid finishes (the docs' sign-in guide moved 0.059).
+  - With `size={[width, height]}`, exactly: the placeholder follows Diagram's
+    own fit-or-scroll rule in CSS against the figure's width.
+  - A drawn figure says its size in `data-size`. In MDX, a fence takes it as
+    meta, ```` ```mermaid size=834x623 ````, which rehypeCode carries through.
+  - While developing, a size that no longer matches the drawing is said in
+    the console.
+  - Without a size it guesses from the source: a sequence by its messages, a
+    flowchart by its ranks. That lands within a tenth on most of the docs'
+    twelve diagrams.
+- `FilterChips`: an option can be `disabled`. It is drawn dashed and quiet,
+  heard as unavailable, still reached by Tab, and a press chooses nothing.
+- `CopyButton`: `showLabel` says the label on the button, a small pill
+  (`variant` secondary or primary) that reads "Copied" while it holds, for a
+  copy that is the row's main action.
+- `DataTable`: `linkColumn` names the row's link or button by another column
+  ("Stamp 86020d78 verified", not "2 min ago"), in the table and the phone
+  card.
+- Each item has a check that fails on 1.13.2: check-render, check-dom,
+  check-layout (ListRow's slots at 390 and 1440) and check-idle (a diagram's
+  placeholder against its drawing, at both widths).
+
 ## [1.13.2] — 2026-10-21
 
 - A composite field wears the field focus edge: put `data-oca-field-group`

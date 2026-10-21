@@ -214,6 +214,7 @@ export const Dashboard: StoryObj = {
                                 { value: 'active', label: 'Active', count: 2 },
                                 { value: 'moved', label: 'Coins moved', count: 1 },
                                 { value: 'expired', label: 'Expired', count: 1 },
+                                { value: 'revoked', label: 'Revoked', count: 0, disabled: true },
                             ]}
                         />
                         <DataTable
@@ -363,6 +364,10 @@ export const Parts: StoryObj = {
                     <span className="flex items-center gap-2">
                         Recovery code, cleared from the clipboard after 30 seconds
                         <CopyButton value="ochk-rc-7f3a-91de-22c0" label="Copy recovery code" clearAfter={30_000} />
+                    </span>
+                    <span className="flex items-center gap-2">
+                        When the copy is the row's main action, its words show
+                        <CopyButton value={'{"v":1,"kind":"stamp"}'} label="Copy signed JSON" showLabel />
                     </span>
                 </div>
             </section>

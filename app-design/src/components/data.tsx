@@ -348,6 +348,7 @@ export function DataTable<T>({
     dense,
     rowHref,
     onRowSelect,
+    linkColumn,
     className,
 }: {
     columns: Column<T>[];
@@ -355,6 +356,12 @@ export function DataTable<T>({
     rowKey: (row: T, i: number) => string;
     /** Each row opens a page: the whole row is the link, its primary cell the link's name. */
     rowHref?: (row: T) => string | undefined;
+    /**
+     * The key of the column whose cell names the row's link or button, when
+     * the primary cell would name it badly (a time: "2 min ago"). It must
+     * show at every width (not `wide`). Default: the primary column.
+     */
+    linkColumn?: string;
     /** Each row opens something in place: the whole row is one button. `rowHref` wins for a row that has one. */
     onRowSelect?: (row: T) => void;
     empty?: ReactNode;
@@ -369,6 +376,8 @@ export function DataTable<T>({
     const tight = dense ?? density === 'compact';
     if (rows.length === 0 && empty) return <>{empty}</>;
     const primary = columns.find((c) => c.primary) ?? columns[0];
+    // A column the table hides below md cannot hold the row's link.
+    const named = columns.find((c) => c.key === linkColumn && !c.wide) ?? primary;
     const right = (c: Column<T>) => c.numeric || c.align === 'end';
     const clickable = Boolean(rowHref || onRowSelect);
     // The primary cell holds the row's one link or button; a pseudo-element stretches its target over the row.
@@ -379,18 +388,18 @@ export function DataTable<T>({
         const href = rowHref?.(r);
         if (href !== undefined) {
             return href.startsWith('/') ? (
-                <Link href={href} className={STRETCH}>
+                <Link href={href} data-row-link="" className={STRETCH}>
                     {children}
                 </Link>
             ) : (
-                <a href={href} className={STRETCH}>
+                <a href={href} data-row-link="" className={STRETCH}>
                     {children}
                 </a>
             );
         }
         if (onRowSelect) {
             return (
-                <button type="button" onClick={() => onRowSelect(r)} className={cn('text-left', STRETCH)}>
+                <button type="button" data-row-link="" onClick={() => onRowSelect(r)} className={cn('text-left', STRETCH)}>
                     {children}
                 </button>
             );
@@ -452,10 +461,10 @@ export function DataTable<T>({
                                                 right(c) && 'text-right',
                                                 c.numeric && 'whitespace-nowrap oca-tabular',
                                                 c.wide && 'hidden md:table-cell',
-                                                clickable && c !== primary && '[&_a]:relative [&_a]:z-10 [&_button]:relative [&_button]:z-10'
+                                                clickable && c !== named && '[&_a]:relative [&_a]:z-10 [&_button]:relative [&_button]:z-10'
                                             )}
                                         >
-                                            {clickable && c === primary ? opener(r, body) : body}
+                                            {clickable && c === named ? opener(r, body) : body}
                                         </td>
                                     );
                                 })}
@@ -468,6 +477,8 @@ export function DataTable<T>({
     );
     if (phone !== 'cards') return table;
     const rest = columns.filter((c) => c !== primary && !c.hideOnPhone);
+    // A card that leaves the naming column out names its link by the title.
+    const cardNamed = named?.hideOnPhone ? primary : named;
     return (
         <>
             {table}
@@ -485,19 +496,21 @@ export function DataTable<T>({
                         className={cn('flex flex-col gap-2.5 px-4', tight ? 'py-3' : 'py-4', clickable && 'relative transition-colors hover:bg-accent/60')}
                     >
                         <div className="min-w-0 break-words text-[0.9375rem] font-medium">
-                            {primary ? (clickable ? opener(r, primary.cell(r)) : primary.cell(r)) : null}
+                            {primary ? (clickable && cardNamed === primary ? opener(r, primary.cell(r)) : primary.cell(r)) : null}
                         </div>
                         {rest.length > 0 ? (
                             <dl
                                 className={cn(
                                     'grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[0.875rem]',
-                                    clickable && '[&_a]:relative [&_a]:z-10 [&_button]:relative [&_button]:z-10'
+                                    clickable && '[&_a:not([data-row-link])]:relative [&_a:not([data-row-link])]:z-10 [&_button:not([data-row-link])]:relative [&_button:not([data-row-link])]:z-10'
                                 )}
                             >
                                 {rest.map((c) => (
                                     <div key={c.key} className="contents">
                                         <dt className="text-muted-foreground">{c.header}</dt>
-                                        <dd className={cn('min-w-0 break-words', c.numeric && 'oca-tabular')}>{c.cell(r)}</dd>
+                                        <dd className={cn('min-w-0 break-words', c.numeric && 'oca-tabular')}>
+                                            {clickable && c === cardNamed ? opener(r, c.cell(r)) : c.cell(r)}
+                                        </dd>
                                     </div>
                                 ))}
                             </dl>
@@ -723,7 +736,15 @@ export function useCopy(timeoutMs = 1600) {
 export interface CopyButtonProps {
     /** The text, or a function that reads it at the moment of copying. */
     value: string | (() => string);
+    /** What it copies, in words: "Copy signed JSON". The accessible name, and the button's text with `showLabel`. */
     label?: string;
+    /**
+     * Say the label on the button, not only to a screen reader: for a copy
+     * that is the row's main action. Then it is a small pill, `secondary` or
+     * `primary`, and "Copied" while it holds.
+     */
+    showLabel?: boolean;
+    variant?: 'secondary' | 'primary';
     /**
      * Milliseconds after which the clipboard is wiped, if it still holds what
      * was copied (a secret, a recovery code). Unset: never.
@@ -736,7 +757,7 @@ export interface CopyButtonProps {
     className?: string;
 }
 
-export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, onError, className }: CopyButtonProps) {
+export function CopyButton({ value, label = 'Copy', showLabel = false, variant = 'secondary', clearAfter, onCopied, onError, className }: CopyButtonProps) {
     const { copied, copy } = useCopy();
     const [failed, setFailed] = useState(false);
     const done = copied
@@ -746,20 +767,32 @@ export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, onErro
         : failed
           ? 'Could not copy'
           : '';
+    const onClick = async () => {
+        setFailed(false);
+        const ok = await copy(typeof value === 'function' ? value() : value, {
+            clearAfter,
+            onError: (e) => {
+                setFailed(true);
+                onError?.(e);
+            },
+        });
+        if (ok) onCopied?.();
+    };
+    if (showLabel) {
+        return (
+            <Button type="button" size="sm" variant={variant} onClick={onClick} className={className}>
+                {copied ? <Check /> : <Copy />}
+                {copied ? 'Copied' : failed ? 'Could not copy' : label}
+                <span aria-live="polite" className="sr-only">
+                    {done}
+                </span>
+            </Button>
+        );
+    }
     return (
         <button
             type="button"
-            onClick={async () => {
-                setFailed(false);
-                const ok = await copy(typeof value === 'function' ? value() : value, {
-                    clearAfter,
-                    onError: (e) => {
-                        setFailed(true);
-                        onError?.(e);
-                    },
-                });
-                if (ok) onCopied?.();
-            }}
+            onClick={onClick}
             aria-label={copied ? 'Copied' : label}
             title={label}
             className={cn(

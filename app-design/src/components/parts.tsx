@@ -88,19 +88,23 @@ const ROW_LOOK = {
 } as const;
 
 /**
- * One row of a list: a picture, a title with a time or count at its right, a
- * line under it, and something at the end (an unread count, a state, an
- * arrow). With `href` or `onSelect` the whole row is one link or button.
- * `actions` (a DropdownMenu, a button) sits beside it, never inside it, so a
- * row never nests one control in another. The classic DataRow's place.
+ * One row of a list: a picture, a short line over the title, the title with a
+ * time or count at its right, up to two lines under it, and something at the
+ * end (an unread count, a state, an arrow). With `href` or `onSelect` the
+ * whole row is one link or button. `actions` (a DropdownMenu, an icon) and
+ * `action` (a text button) sit beside it, never inside it, so a row never
+ * nests one control in another. The classic DataRow's place.
  */
 export function ListRow({
     title,
+    eyebrow,
     meta,
     description,
+    detail,
     leading,
     trailing,
     actions,
+    action,
     revealActions = 'always',
     href,
     onSelect,
@@ -112,16 +116,25 @@ export function ListRow({
     className,
 }: {
     title: ReactNode;
+    /** A short line over the title: its kind, a state, a date. */
+    eyebrow?: ReactNode;
     /** At the title's right: a time, a count. */
     meta?: ReactNode;
     /** One line under the title, cut to fit. */
     description?: ReactNode;
+    /** A second line under the title, quieter: where it came from, what it is bound to. */
+    detail?: ReactNode;
     /** An Avatar, a Monogram, an icon. */
     leading?: ReactNode;
     /** At the row's end, inside it: an unread count, a StateBadge, an arrow. */
     trailing?: ReactNode;
-    /** Beside the row, outside it: a DropdownMenu of what can be done to it. */
+    /** Beside the row, outside it, over its end: a DropdownMenu or an icon button. Keep it 44px wide. */
     actions?: ReactNode;
+    /**
+     * A button with words ("Remove", "Retry this guardian"), outside the row:
+     * beside its text from sm, under it on a phone, never over it.
+     */
+    action?: ReactNode;
     /** `hover`: from md the actions show on hover, on focus and while open; a phone always shows them. */
     revealActions?: 'always' | 'hover';
     href?: string;
@@ -157,6 +170,9 @@ export function ListRow({
         <>
             {leading ? <span className="flex shrink-0">{leading}</span> : null}
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                {eyebrow ? (
+                    <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>{eyebrow}</span>
+                ) : null}
                 <span className="flex min-w-0 items-baseline justify-between gap-3">
                     <span
                         className={cn(
@@ -180,14 +196,24 @@ export function ListRow({
                         {description}
                     </span>
                 ) : null}
+                {detail ? (
+                    <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate')}>
+                        {detail}
+                    </span>
+                ) : null}
             </span>
-            {/* Level with the title's first line when the row wraps. */}
-            {trailing ? <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]')}>{trailing}</span> : null}
+            {/* Level with the title's first line when the row wraps, past the line over it. */}
+            {trailing ? (
+                <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]', lines === 'all' && eyebrow && 'mt-[1.34375rem]')}>
+                    {trailing}
+                </span>
+            ) : null}
         </>
     );
     const aria = current ? { 'aria-current': 'true' as const } : {};
-    return (
-        <Tag className={cn('group/row relative', className)}>
+    // With a text action the item is a row of two: the row, and the action beside it (under it on a phone).
+    const row = (
+        <>
             {href !== undefined ? (
                 href.startsWith('/') ? (
                     <Link href={href} className={cls} {...aria}>
@@ -205,6 +231,23 @@ export function ListRow({
             ) : (
                 <div className={cls}>{body}</div>
             )}
+        </>
+    );
+    return (
+        <Tag className={cn('group/row relative', action && 'flex flex-wrap items-center', className)}>
+            {action ? <div className="min-w-0 flex-1 max-sm:basis-full [&>*]:w-full">{row}</div> : row}
+            {action ? (
+                <div
+                    className={cn(
+                        'flex shrink-0 items-center gap-2 max-sm:-mt-2 max-sm:w-full',
+                        variant === 'pane' ? 'pr-3 max-sm:pb-2 max-sm:pl-3' : 'pr-5 max-sm:pb-4 max-sm:pl-5',
+                        // Under the text, past the picture: the row's padding, a 44px Avatar and the gap after it.
+                        leading && (variant === 'pane' ? 'max-sm:pl-[4.25rem]' : 'max-sm:pl-[4.75rem]')
+                    )}
+                >
+                    {action}
+                </div>
+            ) : null}
             {actions ? (
                 <div
                     className={cn(
