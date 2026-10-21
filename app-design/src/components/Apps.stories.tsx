@@ -24,6 +24,7 @@ import { PaneHeader } from '../chrome';
 import {
     Badge,
     Button,
+    Card,
     DialogHost,
     DropdownMenu,
     DropdownMenuContent,
@@ -359,6 +360,51 @@ export const Rows: StoryObj = {
                             />
                         ))}
                     </ListCard>
+                </section>
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="Your steps" description='size="lg": a step to read, not a row to scan. The value at 1.125rem, room around it, hairlines inset to the text.' />
+                    <ListCard>
+                        {(
+                            [
+                                ['Sign in', 'Next', '1 · Bitcoin address', 'A second way in is also your way back.', 'Add a second way in'],
+                                ['Back it', null, 'Not yet', null, 'Back your account'],
+                                ['Get paid', 'In testing', 'No app pays you yet.', 'When one does, each event lands in Activity with a receipt anyone can check.', 'See an example receipt'],
+                                ['Own it', null, 'orangecheck holds what you earn, for now', null, 'Who holds it'],
+                            ] as const
+                        ).map(([label, badge, value, note, act], i) => (
+                            <ListRow
+                                key={label}
+                                size="lg"
+                                lines="all"
+                                eyebrow={
+                                    <span className="flex flex-wrap items-center gap-2">
+                                        {label}
+                                        {badge ? <Badge tone={i === 0 ? 'brand' : 'muted'}>{badge}</Badge> : null}
+                                    </span>
+                                }
+                                title={value}
+                                description={note ?? undefined}
+                                action={
+                                    <Button size="sm" variant={i === 0 ? 'primary' : 'secondary'}>
+                                        {act}
+                                    </Button>
+                                }
+                            />
+                        ))}
+                    </ListCard>
+                </section>
+                <section className="flex flex-col gap-4">
+                    <SectionTitle title="A list in a card" description="Card flush: the list runs to the card's edges, its rows lined up with the card's text, not a card inside a card." />
+                    <Card flush className="flex flex-col gap-4">
+                        <h3 className="oca-title-sm">System health</h3>
+                        <p className="text-[0.875rem] text-muted-foreground">What each part said a minute ago.</p>
+                        <ListCard>
+                            {['Relay', 'Executor', 'Mint'].map((t) => (
+                                <ListRow key={t} title={t} description="Answering in 120 ms" trailing={<Badge tone="success">up</Badge>} />
+                            ))}
+                        </ListCard>
+                        <p className="text-[0.8125rem] text-muted-foreground">Checked every minute.</p>
+                    </Card>
                 </section>
                 <section className="flex flex-col gap-4">
                     <SectionTitle title="Signed for you" description="A line over the title, two under it, and a text action: beside them from sm, under them on a phone." />

@@ -427,7 +427,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(title.includes('Who stands behind it.') && title.includes('href="/all"'), 'SectionTitle: the line or the action is missing');
     check(html(h(C.SectionTitle, { title: 'Delete', as: 'h3', size: 'sm', tone: 'danger' })).match(/<h3 class="[^"]*oca-title-sm[^"]*text-destructive/), 'SectionTitle: as, size or tone ignored');
     const list = html(h(C.ListCard, null, h('li', null, 'a'), h('li', null, 'b')));
-    check(/^<ul class="[^"]*divide-y[^"]*rounded-\[1\.25rem\][^"]*"><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card');
+    check(/^<ul (?=[^>]*data-oca-list="")(?=[^>]*class="[^"]*divide-y[^"]*rounded-\[1\.25rem\])[^>]*><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card, marked for a flush card');
     const choice = html(
         h(C.ChoiceGroup, { label: 'Who can post', value: 'b', onValueChange: () => {} }, h(C.ChoiceCard, { value: 'a', title: 'Anyone' }), h(C.ChoiceCard, { value: 'b', title: 'Holders', description: 'A bound address.' }))
     );

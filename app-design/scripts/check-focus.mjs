@@ -9,7 +9,10 @@
  *   keeps an outline.
  * - On the orange closing band the focus ring is ink, not orange on orange.
  * - The sign-in page's first stop skips to the ceremony; every shell's skip
- *   link puts focus on its main, and so does a site's own plain <main>.
+ *   link (AppShell's too) puts focus on its main, and so does a site's own
+ *   plain <main>, even on a page that handles its own hash.
+ * - A code block's scroll area and a tab's panel ring when reached; a
+ *   focused control never sits under a sticky bar.
  * - The docs sidebar's open section closes from its own button.
  * - A dialog opened without a Trigger (confirm(), a dialog or sheet opened
  *   from state) hands focus back to what opened it.
@@ -108,6 +111,19 @@ try {
             `<div className="flex gap-4 p-6"><SearchDialog onQuery={() => []} /><DropdownMenu modal={false}><DropdownMenuTrigger id="sites">All orangecheck sites</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>stamp</DropdownMenuItem><DropdownMenuItem>vote</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>`
         ),
         ownmain: mount(`import { SkipLink } from '${src('chrome/site.tsx')}';`, `<><SkipLink /><header><a href="/">Home</a></header><main id="main-content"><p>The page</p><a href="/next">Next</a></main></>`),
+        // A page that handles its own hash, as Swagger UI does: the browser never moves focus for the link.
+        hashpage: mount(
+            `import { SkipLink } from '${src('chrome/site.tsx')}';\n` +
+                `document.addEventListener('click', (e) => { const a = e.target.closest && e.target.closest('a[href^="#"]'); if (a) e.preventDefault(); }, true);`,
+            `<><SkipLink /><header><a href="/">Home</a></header><main id="main-content"><p>The API</p><a href="/next">Next</a></main></>`
+        ),
+        // A code block wider than its well, and tabs whose panel takes focus.
+        panes: mount(
+            `import { CodeBlock } from '${src('components/code-block.tsx')}';\n` +
+                `import { Tabs, TabsList, TabsTrigger, TabsContent } from '${src('primitives/tabs.tsx')}';`,
+            `<div className="flex max-w-md flex-col gap-6 p-6"><CodeBlock lang="bash" code={'curl -s https://stamp.ochk.io/api/v1/stamps/86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c | jq .envelope.signature'} />` +
+                `<Tabs defaultValue="a"><TabsList><TabsTrigger value="a" id="ta">Envelope</TabsTrigger><TabsTrigger value="b">Proof</TabsTrigger></TabsList><TabsContent value="a" id="pa"><p>The envelope, as published.</p></TabsContent><TabsContent value="b"><p>The proof.</p></TabsContent></Tabs></div>`
+        ),
     };
     bundle(dir, clients);
     compileCss(dir, Object.keys(clients));
@@ -145,10 +161,16 @@ try {
         h(C.Section, { tone: 'brand' }, h('p', null, h('a', { href: '/docs', 'data-b': 'link' }, 'Read the docs')), h(P.Button, { 'data-b': 'button' }, 'Get an account'))
     );
     const signin = ssr('signin', h(Ch.SignInFrame, { title: 'Sign in', protocol: 'stamp' }, h('input', { 'data-ceremony': '', 'aria-label': 'Email' })));
+    const appNav = [{ items: [{ href: '/me', label: 'Home', active: true }, { href: '/me/activity', label: 'Activity' }, { href: '/me/balance', label: 'Balance' }] }];
     const shells = [
         ['ToolShell', ssr('tool', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('p', null, 'page')))],
         ['DocsShell', ssr('docs', h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }], current: '/docs', toc: [] }, h('p', null, 'page')))],
+        ['AppShell', ssr('appshell', h(Ch.AppShell, { product: 'ochk.app', nav: appNav }, h('p', null, 'page')))],
+        ['AppShell rail', ssr('apprail', h(Ch.AppShell, { variant: 'rail', header: h('header', null, h('a', { href: '/' }, 'chat')), nav: appNav }, h('p', null, 'page')))],
     ];
+    // A long tool page: every control further down than the window, under a sticky bar.
+    const tall = ssr('tall', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
+    const tallDocs = ssr('tall-docs', h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }], current: '/docs', toc: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -259,14 +281,84 @@ try {
         check(first.href === '#signin' && landed === 'signin' && next, `SignInFrame: Tab 1 is ${show(first)}, Enter lands on ${show(landed)}, the next Tab reaches the ceremony ${next}`);
 
         // The shells' skip link puts focus on main; a site's own plain main too.
-        for (const [name, url] of [...shells, ['a site’s own main', client('ownmain')]]) {
+        for (const [name, url] of [...shells, ['a site’s own main', client('ownmain')], ['a page that handles its own hash', client('hashpage')]]) {
             await p.goto(url);
-            await p.waitForSelector('a[href="#main-content"]', { state: 'attached' });
+            await p.waitForSelector('main', { state: 'attached' });
+            await p.waitForTimeout(100);
+            if (!(await p.$('a[href="#main-content"]'))) {
+                check(false, `${name}: no skip link to the page`);
+                continue;
+            }
             await p.keyboard.press('Tab');
             const skip = await p.evaluate(() => document.activeElement.getAttribute('href'));
             await p.keyboard.press('Enter');
             const got = await p.evaluate(() => ({ main: document.activeElement?.tagName === 'MAIN', ring: getComputedStyle(document.activeElement).outlineStyle }));
             check(skip === '#main-content' && got.main && got.ring === 'none', `${name}: the skip link (${skip}) leaves focus ${got.main ? 'on main' : 'off main'}, outline ${got.ring}`);
+        }
+
+        // A code block's scroll area and a tab's panel: each draws a ring when the keyboard reaches it, inside its own edge.
+        await p.goto(client('panes'));
+        await p.waitForSelector('#ta');
+        const ringOf = (sel) =>
+            p.evaluate((sel) => {
+                const el = document.activeElement;
+                if (!el || !el.matches(sel)) return { reached: false, who: el?.tagName };
+                const cs = getComputedStyle(el);
+                const drawn = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2;
+                // An outside ring is cut away when a rounded frame around it clips.
+                let clip = el.parentElement;
+                while (clip && getComputedStyle(clip).overflow === 'visible') clip = clip.parentElement;
+                const r = el.getBoundingClientRect();
+                const c = clip ? clip.getBoundingClientRect() : { left: -1e9, top: -1e9, right: 1e9, bottom: 1e9 };
+                const off = parseFloat(cs.outlineOffset) || 0;
+                const w = parseFloat(cs.outlineWidth) || 0;
+                const outer = { left: r.left - off - w, top: r.top - off - w, right: r.right + off + w, bottom: r.bottom + off + w };
+                const inside = outer.left >= c.left - 0.5 && outer.top >= c.top - 0.5 && outer.right <= c.right + 0.5 && outer.bottom <= c.bottom + 0.5;
+                return { reached: true, drawn, inside, style: cs.outlineStyle, offset: cs.outlineOffset, shadow: cs.boxShadow.slice(0, 40) };
+            }, sel);
+        await p.keyboard.press('Tab');
+        await p.keyboard.press('Tab');
+        await p.waitForTimeout(150);
+        const code = await ringOf('[tabindex="0"]');
+        check(code.reached && code.drawn && code.inside, `CodeBlock: its scroll area, reached by Tab, draws no ring a reader can see (${JSON.stringify(code)})`);
+        await p.focus('#ta');
+        await p.keyboard.press('Tab');
+        await p.waitForTimeout(150);
+        const panel = await ringOf('[role="tabpanel"]');
+        check(panel.reached && panel.drawn, `TabsContent: the panel, reached by Tab, has no focus ring (${JSON.stringify(panel)})`);
+
+        // A control the keyboard reaches is never left under a sticky bar: a tool page at a desk, the docs on a phone.
+        for (const [name, url, vw] of [
+            ['ToolShell', tall, 1280],
+            ['DocsShell', tallDocs, 390],
+        ]) {
+            const q = await browser.newPage({ viewport: { width: vw, height: 800 } });
+            await q.goto(url);
+            await q.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+            await q.focus('[data-n="23"]');
+            const hidden = [];
+            let scrolled = 0;
+            // Far enough up that every step past the window's top must scroll.
+            for (let i = 0; i < 16; i++) {
+                await q.keyboard.press('Shift+Tab');
+                await q.waitForTimeout(80);
+                const r = await q.evaluate(() => {
+                    const el = document.activeElement;
+                    // Any bar stuck across the top, whatever it is called: a sticky element as wide as half the window.
+                    const bars = [...document.querySelectorAll('body *')].filter((b) => {
+                        if (getComputedStyle(b).position !== 'sticky') return false;
+                        const r = b.getBoundingClientRect();
+                        return r.width > innerWidth / 2 && r.top < 200 && r.height > 0;
+                    });
+                    const under = Math.max(0, ...bars.map((b) => b.getBoundingClientRect().bottom));
+                    return { n: el.getAttribute('data-n'), top: Math.round(el.getBoundingClientRect().top), under: Math.round(under), y: scrollY };
+                });
+                if (r.n !== null && r.top < r.under) hidden.push(r);
+                scrolled = Math.max(scrolled, r.y);
+            }
+            const moved = await q.evaluate(() => scrollY);
+            check(hidden.length === 0 && moved < scrolled, `${name} at ${vw}: a focused control scrolled in under the sticky bar (${JSON.stringify(hidden.slice(0, 2))}; the page scrolled from ${scrolled} to ${moved})`);
+            await q.close();
         }
 
         // DocsNav: the open section's button closes it, and opens it again.

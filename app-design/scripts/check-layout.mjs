@@ -27,7 +27,9 @@
  * - A ListRow holds a line over its title and two under it; a text action
  *   sits beside them on a desk and under them on a phone, lined up with the
  *   text, never over it. A wide end, in trailing or actions, drops under the
- *   text on a phone rather than squeeze it.
+ *   text on a phone rather than squeeze it. A large row (size="lg") has an
+ *   18px title, a padded card's air and hairlines inset to its text; a list
+ *   in a flush Card runs to the card's edges, lined up with its text.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -358,6 +360,53 @@ try {
             )
         )
     );
+    // ListRow size="lg": ochk.app's home steps, as they looked before they were rows.
+    const lgRows = page(
+        'lg-rows',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'mx-auto max-w-[44rem] p-4' },
+                h(
+                    C.ListCard,
+                    null,
+                    ...[
+                        ['Sign in', '1 · Bitcoin address', 'A second way in is also your way back.', 'Add a second way in'],
+                        ['Back it', 'Not yet', null, 'Back your account'],
+                        ['Own it', 'orangecheck holds what you earn, for now', null, 'Who holds it'],
+                    ].map(([eyebrow, title, note, act], i) =>
+                        h(C.ListRow, {
+                            key: i,
+                            size: 'lg',
+                            lines: 'all',
+                            eyebrow: h('span', { 'data-lg': `e${i}` }, eyebrow),
+                            title: h('span', { 'data-lg': `t${i}` }, title),
+                            description: note ?? undefined,
+                            action: h(P.Button, { size: 'sm', variant: 'secondary', 'data-lg': `a${i}` }, act),
+                        })
+                    )
+                )
+            )
+        )
+    );
+    // A list in a flush card: its rows run to the card's edges, lined up with the card's own text.
+    const flushCards = page(
+        'flush',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'mx-auto flex max-w-[44rem] flex-col gap-6 p-4' },
+                h(
+                    P.Card,
+                    { flush: true, className: 'flex flex-col gap-4', 'data-f': 'mid' },
+                    h('h3', { 'data-f': 'head', className: 'oca-title-sm' }, 'System health'),
+                    h(C.ListCard, null, ...['Relay', 'Executor', 'Mint'].map((t) => h(C.ListRow, { key: t, title: h('span', { 'data-f': 'row' }, t), description: 'Answering', trailing: h(P.Badge, null, 'up') }))),
+                    h('p', { className: 'text-[0.8125rem]' }, 'Checked every minute.')
+                ),
+                h(P.Card, { flush: true, className: 'flex flex-col gap-4', 'data-f': 'end' }, h('h3', { className: 'oca-title-sm' }, 'Ledger'), h(C.ListCard, null, h(C.ListRow, { title: 'Settled', meta: '2 min ago' })))
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -590,6 +639,52 @@ try {
                 if (width < 640) check(r.under && r.aligned && r.textW >= 144, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end squeezes the text to ${r.textW}px rather than dropping under it (${JSON.stringify(r)})`);
                 else check(!r.under, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end left the text's side on a desk (${JSON.stringify(r)})`);
             }
+            // ListRow lg: the value at 1.125rem, the before's air, hairlines inset to the text.
+            await p.goto(lgRows);
+            const lgm = await p.evaluate(() => {
+                const ulEl = document.querySelector('ul');
+                // From the list's inner edge, past its 1px border.
+                const ul = { left: ulEl.getBoundingClientRect().left + ulEl.clientLeft, top: ulEl.getBoundingClientRect().top + ulEl.clientTop };
+                const lis = [...document.querySelectorAll('ul > li')];
+                const r = (s) => document.querySelector(`[data-lg="${s}"]`).getBoundingClientRect();
+                const title = document.querySelector('[data-lg="t0"]').parentElement;
+                return {
+                    size: parseFloat(getComputedStyle(title).fontSize),
+                    weight: getComputedStyle(title).fontWeight,
+                    inset: Math.round(lis[1].getBoundingClientRect().left - ul.left),
+                    line: getComputedStyle(lis[0]).borderBottomWidth,
+                    textAt: Math.round(r('e1').left - lis[1].getBoundingClientRect().left),
+                    top: Math.round(document.querySelector('[data-lg="e0"]').parentElement.getBoundingClientRect().top - ul.top),
+                    aUnder: r('a0').top >= r('t0').bottom,
+                    gap: Math.round(r('a0').top - document.querySelector('[data-lg="t0"]').closest('.flex-col').getBoundingClientRect().bottom),
+                    centred: Math.abs((r('a1').top + r('a1').bottom) / 2 - (r('e1').top + r('t1').bottom) / 2),
+                };
+            });
+            const pad = width < 768 ? 24 : 32;
+            check(lgm.size === 18 && lgm.weight === '400', `[${width}] ListRow lg: the title is ${lgm.size}px at ${lgm.weight}, not 18px regular`);
+            check(lgm.inset === pad && lgm.line === '1px' && lgm.textAt === 0 && Math.abs(lgm.top - pad) <= 1, `[${width}] ListRow lg: hairlines inset ${lgm.inset}px (want ${pad}), text ${lgm.textAt}px from them, first row ${lgm.top}px down`);
+            if (width < 640) check(lgm.aUnder && lgm.gap >= 16, `[${width}] ListRow lg: the action is not under the text with room (${JSON.stringify(lgm)})`);
+            else check(!lgm.aUnder && lgm.centred <= 2, `[${width}] ListRow lg: the action is not beside the text, centred on it (${JSON.stringify(lgm)})`);
+            // Card flush: the list spans the card, its rows lined up with the card's text; last, it takes the card's foot.
+            await p.goto(flushCards);
+            const fl = await p.evaluate(() => {
+                const card = (k) => document.querySelector(`[data-f="${k}"]`);
+                const mid = card('mid').getBoundingClientRect();
+                const list = card('mid').querySelector('ul');
+                const lr = list.getBoundingClientRect();
+                const head = card('head').getBoundingClientRect();
+                const row = card('mid').querySelector('[data-f="row"]').getBoundingClientRect();
+                const end = card('end').getBoundingClientRect();
+                const endList = card('end').querySelector('ul').getBoundingClientRect();
+                return {
+                    edges: [Math.round(lr.left - mid.left), Math.round(mid.right - lr.right)],
+                    sides: getComputedStyle(list).borderLeftWidth,
+                    rowAt: Math.round(row.left - head.left),
+                    foot: Math.round(end.bottom - endList.bottom),
+                };
+            });
+            check(fl.edges[0] === 1 && fl.edges[1] === 1 && fl.sides === '0px', `[${width}] Card flush: the list sits ${fl.edges.join('/')}px inside the card's edges with ${fl.sides} side borders, a card in a card`);
+            check(fl.rowAt === 0 && fl.foot === 1, `[${width}] Card flush: rows start ${fl.rowAt}px off the card's text, and a last list stops ${fl.foot}px above its foot`);
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
             const pf = await p.evaluate(async () => {

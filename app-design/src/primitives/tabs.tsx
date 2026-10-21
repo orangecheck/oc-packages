@@ -109,7 +109,12 @@ export const TabsContent = forwardRef<
         <TabsPrimitive.Content
             ref={ref}
             forceMount={keepMounted || undefined}
-            className={cn('mt-6 outline-none', keepMounted && 'data-[state=inactive]:hidden', className)}
+            // Radix puts the panel in the Tab order; it says so when reached.
+            className={cn(
+                'mt-6 rounded-lg outline-none focus-visible:[outline:2px_solid_var(--ring)] focus-visible:[outline-offset:4px]',
+                keepMounted && 'data-[state=inactive]:hidden',
+                className
+            )}
             {...props}
         />
     );

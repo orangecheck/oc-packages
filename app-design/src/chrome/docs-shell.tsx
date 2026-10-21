@@ -208,7 +208,10 @@ export function DocsShell({
             <SkipLink />
             {header ?? <SiteHeader home={OCHK_IO} family="docs" nav={DOCS_HEADER_NAV} search={search} actions={actions} />}
             {/* Below lg: the sections behind one button, and where you are beside it. */}
-            <div className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 md:top-[4.5rem] lg:hidden">
+            <div
+                data-oca-sticky="docs-bar"
+                className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 md:top-[4.5rem] lg:hidden"
+            >
                 <div className="oca-container flex h-12 items-center gap-2">
                     <Sheet open={menu} onOpenChange={setMenu}>
                         <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-full px-2.5 text-[0.875rem] hover:bg-accent">

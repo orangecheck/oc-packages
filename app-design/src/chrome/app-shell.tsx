@@ -25,6 +25,7 @@ import {
     TooltipTrigger,
 } from '../primitives/overlay';
 import { FamilyMenu } from './family-menu';
+import { SkipLink } from './site';
 
 export interface ShellNavItem {
     href: string;
@@ -370,7 +371,9 @@ function SidebarShell({
                     className
                 )}
             >
-                <div className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
+                {/* Past the bar, the sidebar and the account: 8 to 11 stops before the page without it. */}
+                <SkipLink />
+                <div data-oca-sticky="app-bar" className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
                     <div className="flex h-14 items-center gap-2 px-3">
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
@@ -488,6 +491,7 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
             <TooltipProvider delayDuration={300}>
                 {/* Contains what is positioned inside it, as ToolShell's app frame does, and clips without scrolling. */}
                 <div className={cn('relative flex h-dvh flex-col overflow-clip bg-background', className)}>
+                    <SkipLink />
                     {header}
                     {banner}
                     <div className="flex min-h-0 flex-1">

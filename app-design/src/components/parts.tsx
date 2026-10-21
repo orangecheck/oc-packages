@@ -75,7 +75,7 @@ export function ListCard({
     className,
     ...props
 }: HTMLAttributes<HTMLElement> & { as?: 'ul' | 'ol' | 'div' }) {
-    return <Tag className={cn('divide-y divide-border overflow-clip rounded-[1.25rem] border border-border bg-card', className)} {...props} />;
+    return <Tag data-oca-list="" className={cn('divide-y divide-border overflow-clip rounded-[1.25rem] border border-border bg-card', className)} {...props} />;
 }
 
 /* ── ListRow ─────────────────────────────────────────────────────────── */
@@ -112,6 +112,7 @@ export function ListRow({
     unread = false,
     lines = 1,
     variant = 'card',
+    size = 'md',
     as: Tag = 'li',
     className,
 }: {
@@ -158,10 +159,17 @@ export function ListRow({
      */
     lines?: 1 | 'all';
     variant?: 'card' | 'pane';
+    /**
+     * `lg`: a step or a state to read, not a row to scan (ochk.app's home).
+     * The title at 1.125rem, more air around each row, and the hairlines
+     * inset to the text as a padded card's would be.
+     */
+    size?: 'md' | 'lg';
     as?: 'li' | 'div';
     className?: string;
 }) {
     const tight = useDensity() === 'compact';
+    const lg = size === 'lg';
     const look = ROW_LOOK[variant];
     const interactive = href !== undefined || onSelect !== undefined;
     const aria = current ? { 'aria-current': 'true' as const } : {};
@@ -171,8 +179,8 @@ export function ListRow({
         'flex min-h-11 w-full min-w-0 gap-3 text-left outline-none transition-colors',
         lines === 'all' ? 'items-start' : 'items-center',
         !split && 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        look.box,
-        variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
+        lg ? 'py-5' : look.box,
+        lg ? null : variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
         interactive && !current && look.hover,
         current && look.current
     );
@@ -206,17 +214,26 @@ export function ListRow({
              * 9rem, under it and lined up with it when not, so a wide end
              * (a badge and two buttons) never squeezes a title to a word.
              */}
-            <span className={cn('flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-2', lines === 'all' ? 'items-start' : 'items-center')}>
-                <span className="flex min-w-0 flex-[1_1_9rem] flex-col gap-0.5">
+            <span
+                className={cn(
+                    'flex min-w-0 flex-1 flex-wrap',
+                    lg ? 'gap-x-8 gap-y-4 sm:items-center' : 'gap-x-3 gap-y-2',
+                    lines === 'all' ? 'items-start' : 'items-center'
+                )}
+            >
+                <span className={cn('flex min-w-0 flex-[1_1_9rem] flex-col', lg ? 'gap-1' : 'gap-0.5')}>
                     {eyebrow ? (
-                        <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>{eyebrow}</span>
+                        <span className={cn(lg ? 'text-[0.875rem]' : 'text-[0.8125rem]', 'text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>
+                            {eyebrow}
+                        </span>
                     ) : null}
                     <span className="flex min-w-0 items-baseline justify-between gap-3">
                         <span
                             className={cn(
-                                'text-[0.9375rem] text-foreground',
+                                'text-foreground',
+                                lg ? 'text-[1.125rem] leading-snug tracking-[-0.01em]' : 'text-[0.9375rem]',
                                 lines === 'all' ? 'min-w-0 [overflow-wrap:anywhere]' : 'truncate',
-                                unread ? 'font-semibold' : 'font-medium'
+                                unread ? 'font-semibold' : lg ? 'font-normal' : 'font-medium'
                             )}
                         >
                             {split && interactive ? open(title, stretch) : title}
@@ -226,7 +243,7 @@ export function ListRow({
                     {description ? (
                         <span
                             className={cn(
-                                'text-[0.875rem]',
+                                lg ? 'max-w-[36rem] text-[0.9375rem] leading-relaxed' : 'text-[0.875rem]',
                                 lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate',
                                 unread ? 'text-foreground' : 'text-muted-foreground'
                             )}
@@ -262,7 +279,19 @@ export function ListRow({
             </span>
         </>
     );
-    return <Tag className={cn('group/row relative', className)}>{split ? <div className={box}>{body}</div> : open(body, box)}</Tag>;
+    return (
+        <Tag
+            data-size={lg ? 'lg' : undefined}
+            className={cn(
+                'group/row relative',
+                // Inset hairlines: the row sits inside the card's padding, its first and last taking the card's own.
+                lg && 'mx-6 first:pt-1 last:pb-1 md:mx-8 md:first:pt-3 md:last:pb-3',
+                className
+            )}
+        >
+            {split ? <div className={box}>{body}</div> : open(body, box)}
+        </Tag>
+    );
 }
 
 /* ── ChoiceGroup ─────────────────────────────────────────────────────── */

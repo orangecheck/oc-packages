@@ -44,7 +44,8 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
                 tabIndex={edges.left || edges.right ? 0 : undefined}
                 className={cn(
                     // Positioned, so sr-only text deep in a wide row scrolls and clips with the row.
-                    'relative overflow-x-auto overscroll-x-contain rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    // The ring is drawn inside the edge: a rounded, clipped frame (a code block's) would cut an outside one away.
+                    'relative overflow-x-auto overscroll-x-contain rounded-[inherit] outline-none focus-visible:[outline:2px_solid_var(--ring)] focus-visible:[outline-offset:-2px]',
                     innerClassName
                 )}
             >

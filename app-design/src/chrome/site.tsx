@@ -186,6 +186,8 @@ export function SiteHeader({
         ) : null;
     return (
         <header
+            // theme.css keeps a focused control clear of it (scroll-padding-top).
+            data-oca-sticky={tool ? 'tool' : 'site'}
             className={cn(
                 'sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
                 tool ? 'border-border' : 'border-transparent',
@@ -281,10 +283,12 @@ export function SkipLink({ href = '#main-content', children = 'Skip to content' 
     return (
         <a
             href={href}
-            // Focus lands on the target itself, so a reader starts there: a plain <main> takes focus only with a tabindex.
+            // Focus moves to the target itself, by hand: a page that handles its own hash (Swagger UI) never lets the browser do it.
             onClick={() => {
                 const to = href.startsWith('#') ? document.getElementById(href.slice(1)) : null;
-                if (to && !to.hasAttribute('tabindex')) to.setAttribute('tabindex', '-1');
+                if (!to) return;
+                if (!to.hasAttribute('tabindex')) to.setAttribute('tabindex', '-1');
+                to.focus({ preventScroll: true });
             }}
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-full focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:text-[0.9375rem] focus:font-medium focus:text-foreground focus:shadow-md"
         >

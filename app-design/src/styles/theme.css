@@ -241,6 +241,47 @@
     }
 }
 
+/* A focused control is never left under a sticky bar: the page scrolls it into view below the
+   bar, with a little room. The bars say what they are (data-oca-sticky); their heights are the
+   shells' own: a tool's bar 3.5rem, the site's 4rem (4.5rem from md), an app's phone bar 3.5rem,
+   the docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the
+   page's root itself or an element under it, so each rule names both. */
+:root[data-oc-app='ochk']:has([data-oca-sticky='tool']),
+:root:has([data-oc-app='ochk'] [data-oca-sticky='tool']),
+:root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
+:root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
+    scroll-padding-top: calc(3.5rem + 1px + 0.75rem);
+}
+:root[data-oc-app='ochk']:has([data-oca-sticky='site']),
+:root:has([data-oc-app='ochk'] [data-oca-sticky='site']) {
+    scroll-padding-top: calc(4rem + 1px + 0.75rem);
+}
+@media (width >= 48rem) {
+    :root[data-oc-app='ochk']:has([data-oca-sticky='site']),
+    :root:has([data-oc-app='ochk'] [data-oca-sticky='site']) {
+        scroll-padding-top: calc(4.5rem + 1px + 0.75rem);
+    }
+}
+@media (width < 48rem) {
+    :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
+    :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
+        scroll-padding-top: calc(4rem + 3rem + 2px + 0.75rem);
+    }
+}
+@media (48rem <= width < 64rem) {
+    :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
+    :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
+        scroll-padding-top: calc(4.5rem + 3rem + 2px + 0.75rem);
+    }
+}
+@media (width >= 64rem) {
+    /* An app's phone bar is gone from lg; its sidebar does not cover the page. */
+    :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
+    :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
+        scroll-padding-top: 0;
+    }
+}
+
 /* A field in focus: a 2px edge in the ring colour (3.56:1 on the light card, 6.17:1 on the
    dark) and the soft halo outside it. Keyed on [data-oca-field], so a field styled inline
    (the sign-in ceremony) wears the same look; important, so its inline border cannot hide it.

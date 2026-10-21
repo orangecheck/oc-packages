@@ -16,28 +16,45 @@ export const cardVariants = cva('relative rounded-[1.25rem] border', {
             ink: 'border-oca-ink-line bg-oca-ink-card text-oca-ink-foreground',
             outline: 'border-border bg-transparent text-foreground',
         },
+        // The padding is also a variable, so a flush list can run back out to the edges.
         padding: {
-            none: '',
-            sm: 'p-5',
-            md: 'p-6 md:p-8',
-            lg: 'p-8 md:p-10',
+            none: '[--oca-card-pad:0rem]',
+            sm: 'p-5 [--oca-card-pad:1.25rem]',
+            md: 'p-6 [--oca-card-pad:1.5rem] md:p-8 md:[--oca-card-pad:2rem]',
+            lg: 'p-8 [--oca-card-pad:2rem] md:p-10 md:[--oca-card-pad:2.5rem]',
+        },
+        /*
+         * A list inside the card (a ListCard) runs to its edges rather than
+         * sitting in it as a card in a card: its hairlines span the card, its
+         * rows line up with the card's own text, and as the first or last part
+         * it takes the card's padding there.
+         */
+        flush: {
+            true: [
+                'overflow-clip',
+                '[&>[data-oca-list]]:-mx-[var(--oca-card-pad)] [&>[data-oca-list]]:rounded-none [&>[data-oca-list]]:border-x-0 [&>[data-oca-list]]:bg-transparent',
+                '[&>[data-oca-list]:first-child]:-mt-[var(--oca-card-pad)] [&>[data-oca-list]:first-child]:border-t-0',
+                '[&>[data-oca-list]:last-child]:-mb-[var(--oca-card-pad)] [&>[data-oca-list]:last-child]:border-b-0',
+                '[&>[data-oca-list]>li:not([data-size=lg])>*]:px-[var(--oca-card-pad)]',
+            ].join(' '),
+            false: '',
         },
         interactive: {
             true: 'transition-colors hover:border-oca-hairline-strong focus-within:border-oca-hairline-strong',
             false: '',
         },
     },
-    defaultVariants: { tone: 'default', padding: 'md', interactive: false },
+    defaultVariants: { tone: 'default', padding: 'md', interactive: false, flush: false },
 });
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {}
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-    { className, tone, padding, interactive, ...props },
+    { className, tone, padding, interactive, flush, ...props },
     ref
 ) {
     return (
-        <div ref={ref} data-ui="card" className={cn(cardVariants({ tone, padding, interactive }), className)} {...props} />
+        <div ref={ref} data-ui="card" className={cn(cardVariants({ tone, padding, interactive, flush }), className)} {...props} />
     );
 });
 

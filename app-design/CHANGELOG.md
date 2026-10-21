@@ -2,6 +2,40 @@
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-10-21
+
+The family UI audit's third run, and two looks ochk.app lost when its home and
+admin cards became package parts.
+
+- A code block's scroll area draws its focus ring inside its own edge. The
+  ring was outside it, and the block's rounded, clipped frame cut it away
+  (stamp /playground, ochk.io /lock). Any ScrollFade gets the same.
+- A tab's panel, which Radix puts in the Tab order, draws a ring when reached.
+- `AppShell` opens with "Skip to content", as ToolShell does. ochk.app /me and
+  vault /vault took 8 to 11 stops to reach the page. A site that passes its
+  own header with a SkipLink in it (chat's) drops that one.
+- `SkipLink` moves focus to its target itself. A page that handles its own
+  hash (the Swagger pages) left focus on the link.
+- A focused control is never left under a sticky bar: the page keeps
+  `scroll-padding-top` the height of the shell's bars (a tool's, the site's,
+  an app's phone bar, the docs' section bar on a phone). The bars carry
+  `data-oca-sticky`.
+- `ListRow size="lg"`: a step to read rather than a row to scan, as ochk.app's
+  home had it. The value at 1.125rem, the line over it at 0.875rem, 20px of
+  room above and below with a padded card's at the ends, the action beside
+  the text and centred on it from sm (under it on a phone), and hairlines
+  inset to the text.
+- `Card flush`: a ListCard inside runs to the card's edges, its rows lined up
+  with the card's own text, and as the first or last part it takes the card's
+  padding there. No card inside a card (ochk.app's admin health and ledger
+  cards lost 24px a side to it at 390). Card's padding is also a variable,
+  `--oca-card-pad`, and ListCard carries `data-oca-list`.
+- Checks that fail on 1.14.2: check-focus (a code block's ring inside its
+  frame, a panel's ring, AppShell's and a hash-handling page's skip link, a
+  control reached by Shift+Tab never under the bar, at a desk and on a
+  phone) and check-layout (ListRow lg's type, room, inset hairlines and
+  action at 390 and 1440; a flush card's list at its edges).
+
 ## [1.14.2] — 2026-10-21
 
 - `failureText` reads a code chunk that would not load (webpack's
