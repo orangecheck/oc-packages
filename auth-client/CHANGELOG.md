@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.35.1] — 2026-10-21
+
+### Fixed
+
+- **A session check that never answers no longer leaves the page loading.**
+  `refresh()` fetched `/api/auth/me` with no time limit, so a request that
+  hung kept `status` at `'loading'` for good: ochk.app's account pages spun
+  past 50 seconds, and OC Agent's inspect page showed an empty report. Each
+  `/me` request now gives up after 10 seconds (`AbortSignal.timeout`, or a
+  timer where a browser lacks it). `status` becomes `'error'` with a message
+  that says so, which every site already handles. It does not retry.
+
 ## [2.35.0] — 2026-10-21
 
 ### Changed

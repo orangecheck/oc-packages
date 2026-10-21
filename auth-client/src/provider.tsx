@@ -136,6 +136,22 @@ function normalizeRosterEntry(raw: RawRosterEntry): OcAccountSummary | null {
  * Best-effort by construction: any failure resolves to `[]`, so a roster
  * fetch can never change the authenticated state derived from the local /me.
  */
+/** How long a session check may take before the page stops waiting on it. */
+export const ME_TIMEOUT_MS = 10_000;
+
+/** `AbortSignal.timeout` where the browser has it, a timer where it does not. */
+function timeoutSignal(ms: number): AbortSignal {
+    if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), ms);
+    return controller.signal;
+}
+
+function isTimeout(err: unknown): boolean {
+    const name = (err as { name?: unknown } | null)?.name;
+    return name === 'TimeoutError' || name === 'AbortError';
+}
+
 async function fetchHostRoster(cfg: Required<OcAuthConfig>): Promise<OcAccountSummary[]> {
     try {
         // Per-tab · carry the pin so the host computes "peers" relative
@@ -144,6 +160,7 @@ async function fetchHostRoster(cfg: Required<OcAuthConfig>): Promise<OcAccountSu
             method: 'GET',
             credentials: 'include',
             headers: { Accept: 'application/json', ...tabSessionHeader() },
+            signal: timeoutSignal(ME_TIMEOUT_MS),
         });
         if (!res.ok) return [];
         const body = (await res.json()) as MeResponse;
@@ -262,10 +279,13 @@ export function OcSessionProvider({
         if (typeof window === 'undefined') return;
         try {
             let pin = readTabSession();
+            // A check that never answers would leave the page loading for good;
+            // past the timeout it is an error, which every site already shows.
             let res = await fetch(cfg.mePath, {
                 method: 'GET',
                 credentials: 'include',
                 headers: { Accept: 'application/json', ...tabSessionHeader() },
+                signal: timeoutSignal(ME_TIMEOUT_MS),
             });
             // Per-tab · 401 with a pin present means the pinned token is
             // dead (expired, or revoked and rejected by the host). Drop
@@ -278,6 +298,7 @@ export function OcSessionProvider({
                     method: 'GET',
                     credentials: 'include',
                     headers: { Accept: 'application/json' },
+                    signal: timeoutSignal(ME_TIMEOUT_MS),
                 });
             }
             if (res.status === 401) {
@@ -336,7 +357,13 @@ export function OcSessionProvider({
             }
         } catch (err) {
             setStatus('error');
-            setError(err instanceof Error ? err : new Error(String(err)));
+            setError(
+                isTimeout(err)
+                    ? new Error(`me endpoint did not answer within ${ME_TIMEOUT_MS / 1000}s`)
+                    : err instanceof Error
+                      ? err
+                      : new Error(String(err))
+            );
         }
     }, [cfg, pinThisTab]);
 
