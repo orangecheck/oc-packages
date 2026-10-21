@@ -1105,7 +1105,6 @@ export const inputStyle: React.CSSProperties = {
     fontFamily: SIGNIN_FONT,
     // 16px — never lower · suppresses iOS Safari focus auto-zoom.
     fontSize: 16,
-    outline: 'none',
     boxSizing: 'border-box',
 };
 

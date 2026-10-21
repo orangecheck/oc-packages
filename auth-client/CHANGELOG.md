@@ -7,6 +7,26 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.35.0] — 2026-10-21
+
+### Changed
+
+- **The two sign-in methods are one tablist for the keyboard.** Email and
+  Bitcoin wallet were both Tab stops and arrows did nothing. Now only the
+  selected tab is in the Tab order. The arrows, Home and End move between the
+  two and select as they go, with focus following. Each tab names its panel,
+  and the panel is named by its tab. A click works as before, and both
+  methods are always offered. The tablist is labelled "Sign-in method".
+- **Every field shows the page's focus ring.** The inputs and textareas of
+  the ceremony and the link forms set `outline: none` inline, so focusing one
+  changed nothing on screen. They no longer do. On an `@orangecheck/app-design`
+  page the family ring draws (2px in `--ring`, 3:1 or more in both themes),
+  and elsewhere the browser's own ring.
+- **An unreachable auth host is named.** A failed request read "We couldn't
+  reach the server." It now reads "We couldn't reach the orangecheck sign-in
+  service at <host>. Check your connection, then try again." `<host>` comes
+  from `authOrigin`, so a staging host names itself.
+
 ## [2.34.0] — 2026-10-20
 
 ### Changed

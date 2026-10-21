@@ -57,9 +57,9 @@ afterEach(() => {
 });
 
 async function signInByEmail(): Promise<void> {
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
     await act(async () => {
-        fireEvent.submit(screen.getByLabelText('Email').closest('form')!);
+        fireEvent.submit(screen.getByRole('textbox', { name: 'Email' }).closest('form')!);
     });
     const code = await screen.findByLabelText('One-time code');
     fireEvent.change(code, { target: { value: '123456' } });

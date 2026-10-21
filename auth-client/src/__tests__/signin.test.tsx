@@ -6,6 +6,7 @@
  * code, and a way to finish on a device with no wallet extension.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@orangecheck/wallet-adapter', () => ({
@@ -13,6 +14,7 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
     getSigner: () => async () => 'unused',
 }));
 
+import { inputStyle as linkedInputStyle } from '../linked-identities';
 import { humanSigninError, looksLikeBitcoinAddress, OcSignIn } from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
@@ -148,7 +150,7 @@ describe('OcSignIn · email path', () => {
             return undefined;
         });
         render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.change(screen.getByLabelText('Email'), {
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
             target: { value: 'a@example.com' },
         });
         await act(async () => {
@@ -167,19 +169,115 @@ describe('OcSignIn · email path', () => {
 });
 
 describe('OcSignIn · network failure', () => {
-    it('says the server was unreachable instead of printing "Failed to fetch"', async () => {
+    function unreachable() {
         globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
             if (String(url).endsWith('/api/auth/providers')) {
                 return new Response(JSON.stringify({ providers: [] }));
             }
             throw new TypeError('Failed to fetch');
         }) as unknown as typeof fetch;
-        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
-        fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@example.com' } });
+    }
+
+    async function sendCode() {
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
         });
-        expect(screen.getByRole('alert').textContent).toMatch(/couldn't reach the server/);
+    }
+
+    it('names the sign-in service it could not reach instead of printing "Failed to fetch"', async () => {
+        unreachable();
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        await sendCode();
+        expect(screen.getByRole('alert').textContent).toBe(
+            "We couldn't reach the orangecheck sign-in service at ochk.io. Check your connection, then try again."
+        );
         expect(screen.queryByText(/Failed to fetch/)).toBeNull();
+    });
+
+    it('takes the host from the auth origin it was given', async () => {
+        unreachable();
+        render(
+            <OcSignIn
+                audience="https://ochk.io"
+                authOrigin="https://auth.staging.example:8443"
+                linkPrompt={false}
+            />
+        );
+        await sendCode();
+        expect(screen.getByRole('alert').textContent).toMatch(
+            /sign-in service at auth\.staging\.example:8443\./
+        );
+    });
+});
+
+describe('OcSignIn · method tabs by keyboard', () => {
+    function renderTabs(props: Partial<React.ComponentProps<typeof OcSignIn>> = {}) {
+        stubFetch((url) => (url.endsWith('/api/auth/providers') ? { body: { providers: [] } } : undefined));
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} {...props} />);
+        const list = screen.getByRole('tablist', { name: 'Sign-in method' });
+        const tab = (name: string) => screen.getByRole('tab', { name });
+        return { list, tab };
+    }
+
+    it('is one Tab stop: only the selected tab is in the Tab order', () => {
+        const { tab } = renderTabs();
+        expect(tab('Email').tabIndex).toBe(0);
+        expect(tab('Bitcoin wallet').tabIndex).toBe(-1);
+    });
+
+    it('arrows move to the other method, select it and keep focus on it, wrapping at the ends', () => {
+        const { tab } = renderTabs();
+        tab('Email').focus();
+        fireEvent.keyDown(tab('Email'), { key: 'ArrowRight' });
+        expect(tab('Bitcoin wallet').getAttribute('aria-selected')).toBe('true');
+        expect(document.activeElement).toBe(tab('Bitcoin wallet'));
+        expect(tab('Bitcoin wallet').tabIndex).toBe(0);
+        expect(screen.getByLabelText('Bitcoin address')).toBeTruthy();
+
+        fireEvent.keyDown(tab('Bitcoin wallet'), { key: 'ArrowRight' });
+        expect(document.activeElement).toBe(tab('Email'));
+        expect(screen.getByRole('textbox', { name: 'Email' })).toBeTruthy();
+
+        fireEvent.keyDown(tab('Email'), { key: 'ArrowLeft' });
+        expect(document.activeElement).toBe(tab('Bitcoin wallet'));
+    });
+
+    it('Home and End go to the first and last method', () => {
+        const { tab } = renderTabs({ providersFirst: false });
+        tab('Bitcoin wallet').focus();
+        fireEvent.keyDown(tab('Bitcoin wallet'), { key: 'End' });
+        expect(document.activeElement).toBe(tab('Email'));
+        expect(tab('Email').getAttribute('aria-selected')).toBe('true');
+        fireEvent.keyDown(tab('Email'), { key: 'Home' });
+        expect(document.activeElement).toBe(tab('Bitcoin wallet'));
+    });
+
+    it('a click still switches method, and the panel is named by the selected tab', () => {
+        const { tab } = renderTabs();
+        fireEvent.click(tab('Bitcoin wallet'));
+        const panel = screen.getByRole('tabpanel');
+        expect(tab('Bitcoin wallet').getAttribute('aria-controls')).toBe(panel.id);
+        expect(panel.getAttribute('aria-labelledby')).toBe(tab('Bitcoin wallet').id);
+    });
+});
+
+describe('OcSignIn · fields show the page focus ring', () => {
+    it('no field turns the outline off inline', () => {
+        stubFetch((url) => (url.endsWith('/api/auth/providers') ? { body: { providers: [] } } : undefined));
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        const fields = () => [...document.querySelectorAll<HTMLElement>('[data-oc-signin] input, [data-oc-signin] textarea')];
+        const email = fields();
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        const wallet = fields();
+        expect(email.length + wallet.length).toBeGreaterThan(1);
+        for (const f of [...email, ...wallet]) {
+            expect(f.getAttribute('style') ?? '').not.toMatch(/outline\s*:\s*none/);
+        }
+    });
+
+    it('the shared field style used by linked identities does not either', () => {
+        expect(linkedInputStyle.outline).toBeUndefined();
+        expect(linkedInputStyle.outlineStyle).toBeUndefined();
     });
 });

@@ -324,7 +324,16 @@ const SUBMIT_ERRORS: Record<string, string> = {
     bad_request: "That signature couldn't be read. Copy it again, whole.",
 };
 
-const NETWORK_ERROR = "We couldn't reach the server. Check your connection and try again.";
+/** The auth host by name, so an outage reads as theirs and not the page's. */
+export function networkError(authOrigin: string): string {
+    let host = authOrigin;
+    try {
+        host = new URL(authOrigin).host;
+    } catch {
+        // not a URL: name it as given
+    }
+    return `We couldn't reach the orangecheck sign-in service at ${host}. Check your connection, then try again.`;
+}
 
 export function humanSigninError(
     reason: string,
@@ -348,8 +357,13 @@ export function humanSigninError(
  * (a SyntaxError) is not prose meant for a person; everything else thrown
  * here carries a host reason code or a wallet's own message.
  */
-function failureMessage(err: unknown, path: 'wallet' | 'email', step: 'challenge' | 'submit'): string {
-    if (err instanceof TypeError || err instanceof SyntaxError) return NETWORK_ERROR;
+function failureMessage(
+    err: unknown,
+    path: 'wallet' | 'email',
+    step: 'challenge' | 'submit',
+    authOrigin: string
+): string {
+    if (err instanceof TypeError || err instanceof SyntaxError) return networkError(authOrigin);
     return humanSigninError(err instanceof Error ? err.message : 'failed', path, step);
 }
 
@@ -436,6 +450,28 @@ export function OcSignIn({
     const [path, setPath] = React.useState<'wallet' | 'email'>(
         initialPath ?? (providersFirst ? 'email' : 'wallet')
     );
+    // The two methods are one tablist: one Tab stop, arrows and Home/End move
+    // between them, and moving selects (both are always offered).
+    const tabsId = React.useId();
+    const tabOrder: Array<'wallet' | 'email'> = providersFirst
+        ? ['email', 'wallet']
+        : ['wallet', 'email'];
+    const tabRefs = React.useRef<Partial<Record<'wallet' | 'email', HTMLButtonElement | null>>>({});
+    const onTabKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+        const i = tabOrder.indexOf(path);
+        const last = tabOrder.length - 1;
+        const to =
+            e.key === 'ArrowRight' ? (i + 1) % tabOrder.length
+            : e.key === 'ArrowLeft' ? (i + last) % tabOrder.length
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? last
+            : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        const next = tabOrder[to]!;
+        setPath(next);
+        tabRefs.current[next]?.focus();
+    };
     // Set once sign-in succeeds and the account is missing its
     // complementary identity — the component then renders the focused
     // link step (LinkPromptStep) before running `proceed`.
@@ -630,7 +666,7 @@ export function OcSignIn({
             {bothEnabled && (
                 <div
                     role="tablist"
-                    aria-label="signin method"
+                    aria-label="Sign-in method"
                     data-oc-signin-tabs=""
                     style={{
                         display: 'flex',
@@ -641,41 +677,34 @@ export function OcSignIn({
                 >
                     {/* When providers lead, the easy email path reads first
                         and the wallet path sits beside it as the upgrade. */}
-                    {providersFirst ? (
-                        <>
-                            <SigninTab
-                                active={path === 'email'}
-                                onClick={() => setPath('email')}
-                            >
-                                Email
-                            </SigninTab>
-                            <SigninTab
-                                active={path === 'wallet'}
-                                onClick={() => setPath('wallet')}
-                            >
-                                Bitcoin wallet
-                            </SigninTab>
-                        </>
-                    ) : (
-                        <>
-                            <SigninTab
-                                active={path === 'wallet'}
-                                onClick={() => setPath('wallet')}
-                            >
-                                Bitcoin wallet
-                            </SigninTab>
-                            <SigninTab
-                                active={path === 'email'}
-                                onClick={() => setPath('email')}
-                            >
-                                Email
-                            </SigninTab>
-                        </>
-                    )}
+                    {tabOrder.map((p) => (
+                        <SigninTab
+                            key={p}
+                            id={`${tabsId}-${p}`}
+                            controls={`${tabsId}-panel`}
+                            active={path === p}
+                            onClick={() => setPath(p)}
+                            onKeyDown={onTabKey}
+                            ref={(el) => {
+                                tabRefs.current[p] = el;
+                            }}
+                        >
+                            {p === 'email' ? 'Email' : 'Bitcoin wallet'}
+                        </SigninTab>
+                    ))}
                 </div>
             )}
 
-            <div data-oc-signin-panel="" role="tabpanel">
+            <div
+                data-oc-signin-panel=""
+                {...(bothEnabled
+                    ? {
+                          id: `${tabsId}-panel`,
+                          role: 'tabpanel',
+                          'aria-labelledby': `${tabsId}-${path}`,
+                      }
+                    : {})}
+            >
                 {showWallet && (
                     <WalletFlow
                         authOrigin={authOrigin}
@@ -727,21 +756,28 @@ export function OcSignIn({
 
 /* --- tab --- */
 
-function SigninTab({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}): React.ReactElement {
+const SigninTab = React.forwardRef<
+    HTMLButtonElement,
+    {
+        id: string;
+        controls: string;
+        active: boolean;
+        onClick: () => void;
+        onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+        children: React.ReactNode;
+    }
+>(function SigninTab({ id, controls, active, onClick, onKeyDown, children }, ref) {
     return (
         <button
+            ref={ref}
             type="button"
             role="tab"
+            id={id}
             aria-selected={active}
+            aria-controls={controls}
+            tabIndex={active ? 0 : -1}
             onClick={onClick}
+            onKeyDown={onKeyDown}
             data-oc-signin-tab={active ? 'active' : 'inactive'}
             style={{
                 minHeight: 44,
@@ -765,7 +801,7 @@ function SigninTab({
             {children}
         </button>
     );
-}
+});
 
 /* --- third-party provider sign-in --- */
 
@@ -1158,7 +1194,7 @@ function WalletFlow({
             step = 'submit';
             await submitSignature(challenge.message, challenge.nonce, signature, 'bip322');
         } catch (err) {
-            setError(failureMessage(err, 'wallet', step));
+            setError(failureMessage(err, 'wallet', step, authOrigin));
             setSubmitting(false);
         }
     }
@@ -1176,7 +1212,7 @@ function WalletFlow({
         try {
             await submitSignature(manual.message, manual.nonce, sig, undefined);
         } catch (err) {
-            setError(failureMessage(err, 'wallet', 'submit'));
+            setError(failureMessage(err, 'wallet', 'submit', authOrigin));
             setSubmitting(false);
         }
     }
@@ -1344,7 +1380,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             setToken(json.token);
             return null;
         } catch {
-            return NETWORK_ERROR;
+            return networkError(authOrigin);
         }
     }
 
@@ -1410,7 +1446,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             }
             onSuccess(json.account, json.token);
         } catch (err) {
-            setCodeError(failureMessage(err, 'email', 'submit'));
+            setCodeError(failureMessage(err, 'email', 'submit', authOrigin));
         } finally {
             setSubmitting(false);
         }
@@ -1612,7 +1648,6 @@ const inputStyle: React.CSSProperties = {
     // auto-zoom the viewport on focus; the family rule is >=16px on
     // every form field. Desktop reads fine at 16 too.
     fontSize: 16,
-    outline: 'none',
 };
 
 const linkAlsoStyle: React.CSSProperties = {
