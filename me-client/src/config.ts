@@ -28,7 +28,7 @@
  *   // → submit cfg via the project upsert API
  *
  * Per-project read/write of the config is owner-gated and lives at
- * /api/me/projects/[id] (POST to update). See me.ochk.io/me/projects/
+ * /api/me/projects/[id] (POST to update). See ochk.app/me/projects
  * for the dashboard UI.
  */
 

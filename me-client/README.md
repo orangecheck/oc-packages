@@ -153,7 +153,7 @@ const unsubscribe = onTelemetry((event) => {
 });
 ```
 
-See [me.ochk.io/integrate](https://me.ochk.io/integrate) for the full price-band table, the "what you do not pay for" panel, and the live SDK reference.
+See [ochk.app/pricing](https://ochk.app/pricing) for what each kind of event pays and what you never pay for, and [ochk.io/docs/me/sdk](https://ochk.io/docs/me/sdk) for the full SDK reference.
 
 ## Types
 
@@ -170,7 +170,7 @@ import type {
 } from '@orangecheck/me-client';
 ```
 
-The canonical source of truth lives at [oc-me-web/src/lib/events/types.ts](https://github.com/orangecheck/oc-me-web/blob/main/src/lib/events/types.ts). This package mirrors that shape — any change there ships here in the next minor.
+These mirror what the me.ochk.io API accepts and returns. A change to the API ships here in the next minor.
 
 ## Server-side verification
 

@@ -8,6 +8,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.32.4] — 2026-10-21
+
+### Fixed
+
+- `oc.scope.request` sends the user straight to ochk.app's consent page.
+  It went to me.ochk.io, whose pages moved to ochk.app on 2026-10-19, so
+  every request took an extra redirect. `setOrigin()` no longer moves the
+  consent page, since it sets the API origin and the API keeps no pages.
+  Pass `origin` to point it somewhere else.
+- Comments and the README no longer point at me.ochk.io pages that moved,
+  or at a private repo.
+
 ## [0.32.3] — 2026-10-19
 
 ### Changed

@@ -9,7 +9,7 @@
  *   bitcoin address, display name), you must explicitly request the
  *   matching scope and the user must explicitly consent.
  *
- *   Full architecture: https://github.com/orangecheck/oc-me-web/blob/main/PRIVACY-ARCHITECTURE.md
+ *   Guide: https://ochk.io/docs/me/sdk
  *
  * Two functions:
  *
@@ -21,8 +21,8 @@
  *     console.log(sub);            // "sub_3K7xQ2mN1pYwB8tRvE…"
  *     console.log(scopes.email);   // "user@example.com" or undefined
  *
- *   oc.scope.request(scopes, opts) — redirect the user to me.ochk.io's
- *   consent prompt. After they grant or deny, browser returns to
+ *   oc.scope.request(scopes, opts) — send the user to ochk.app's
+ *   consent page. After they grant or deny, browser returns to
  *   return_to. Subsequent oc.scope.granted() calls reflect their
  *   decisions.
  *
@@ -32,7 +32,11 @@
  *     });
  */
 
-import { api, getOrigin } from './transport';
+import { api } from './transport';
+
+/** Where people decide what to share. The API stays on me.ochk.io; its
+ *  pages moved to ochk.app, so setOrigin() does not move this. */
+const CONSENT_ORIGIN = 'https://ochk.app';
 
 /** Catalog of valid scopes · keep in sync with SCOPE_IDS in
  *  oc-me-web/src/lib/privacy/scopes.ts.
@@ -132,15 +136,16 @@ export interface RequestOptions {
     /** Your project_key. Required. */
     project_key: string;
     /** Where to bounce the user after they decide. Required.
-     *  Same-origin only — me.ochk.io rejects cross-origin redirects to
-     *  prevent the consent prompt from being weaponized in phishing. */
+     *  An https URL on your project's domain, or a subdomain of it once
+     *  the domain is verified. Anything else lands the user on ochk.app,
+     *  so the consent page cannot send people somewhere you don't own. */
     return_to: string;
-    /** Override the OC origin (only useful for staging deployments;
-     *  defaults to https://me.ochk.io via getOrigin()). */
+    /** Override the consent page's origin (staging only). Defaults to
+     *  https://ochk.app. */
     origin?: string;
 }
 
-/** Redirect the user to me.ochk.io's consent prompt. After they decide,
+/** Redirect the user to ochk.app's consent page. After they decide,
  *  browser returns to `return_to`. The scope grants are persisted
  *  server-side; subsequent calls to oc.scope.granted() reflect their
  *  decisions.
@@ -151,7 +156,7 @@ export interface RequestOptions {
  *
  *  Consent flow:
  *    1. Your code: oc.scope.request(['email'], { ... })
- *    2. Browser navigates to me.ochk.io/me/scope-grant?…
+ *    2. Browser navigates to ochk.app/me/scope-grant?…
  *    3. User decides per-scope (grant once / always / deny)
  *    4. Browser redirects back to return_to
  *    5. Your code re-runs oc.scope.granted(...) on mount
@@ -178,7 +183,7 @@ export function request(scopes: Scope[], options: RequestOptions): never {
     if (typeof window === 'undefined') {
         throw new Error('oc.scope.request: must be called in a browser environment');
     }
-    const origin = options.origin ?? getOrigin();
+    const origin = options.origin ?? CONSENT_ORIGIN;
     const url = new URL('/me/scope-grant', origin);
     url.searchParams.set('project_key', options.project_key);
     url.searchParams.set('scopes', scopes.join(','));

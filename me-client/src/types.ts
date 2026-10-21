@@ -303,7 +303,7 @@ export interface BillableEvent {
      *  boundary can only ever move earlier. */
     drop?: {
         /** Deterministic window id · the window's signed manifest is
-         *  verifiable at me.ochk.io/verify/<manifest_id> after close. */
+         *  verifiable at ochk.app/verify/<manifest_id> after close. */
         window_id: string;
         /** Block-denominated vesting boundary; null when no chain tip
          *  was observable at window open (wallclock + the published
