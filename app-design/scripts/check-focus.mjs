@@ -144,6 +144,8 @@ try {
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
+    // A slow runner can still be mid-transition after any fixed wait: let every running transition finish.
+    const settled = (p) => p.evaluate(() => Promise.all(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished.catch(() => {}))));
     const active = (p) =>
         p.evaluate(() => {
             const e = document.activeElement;
@@ -161,6 +163,7 @@ try {
                 await p.keyboard.press('Tab');
                 // Read the edge after its transition, not halfway.
                 await p.waitForTimeout(300);
+                await settled(p);
                 const got = await p.evaluate((f) => {
                     const focused = document.activeElement;
                     if (focused?.getAttribute('data-f') !== f) return { focused: focused?.getAttribute('data-f') ?? focused?.tagName };
@@ -219,6 +222,7 @@ try {
             for (const b of ['link', 'button']) {
                 await p.keyboard.press('Tab');
                 await p.waitForTimeout(300);
+                await settled(p);
                 const got = await p.evaluate(() => {
                     const el = document.activeElement;
                     const section = el.closest('section');
@@ -312,6 +316,7 @@ try {
                 await p.keyboard.press('ArrowDown');
                 await p.waitForSelector('[data-highlighted]');
                 await p.waitForTimeout(300);
+                await settled(p);
                 const got = await p.evaluate(() => {
                     const el = document.querySelector('[data-highlighted]');
                     const pop = __rgb(getComputedStyle(el.closest('[role="menu"], [role="listbox"]')).backgroundColor);
@@ -332,14 +337,17 @@ try {
         const box = await p.locator('#t-b').boundingBox();
         await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
         await p.waitForTimeout(300);
+        await settled(p);
         const pressed = { focused: await active(p), ring: await ringOn('t-b') };
         await p.keyboard.press('ArrowRight');
         // Radix moves focus on a timer.
         await p.waitForTimeout(300);
+        await settled(p);
         const keyed = { focused: await active(p), ring: await ringOn('t-c') };
         const box2 = await p.locator('#t-a').boundingBox();
         await p.mouse.click(box2.x + box2.width / 2, box2.y + box2.height / 2);
         await p.waitForTimeout(300);
+        await settled(p);
         const again = { focused: await active(p), ring: await ringOn('t-a') };
         check(pressed.focused === 't-b' && !pressed.ring, `Tabs: a first press shows the ring (${show(pressed)})`);
         check(keyed.focused === 't-c' && keyed.ring, `Tabs: ArrowRight reaches a tab with no ring (${show(keyed)})`);
