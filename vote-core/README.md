@@ -24,7 +24,7 @@ npm i @orangecheck/vote-core @orangecheck/bip322
 
 ## Conformance
 
-The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for all five vectors (v01 minimal public, v02 sats-weighted, v03 sats_days with cap, v04 vote-change, v05 secret-ballot).
+The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for all six vectors (v01 minimal public, v02 sats-weighted, v03 sats_days with cap, v04 vote-change, v05 secret-ballot, v06 tiebreak first).
 
 ## Usage
 
