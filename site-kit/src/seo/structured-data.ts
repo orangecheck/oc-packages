@@ -52,8 +52,8 @@ export function organization(opts: OrganizationOptions): JsonLdNode {
 export interface SoftwareApplicationOptions {
     name?: string;
     description?: string;
-    /** Path on this site or absolute https URL. Default: the site root. */
-    url?: string;
+    /** Path on this site or absolute https URL. Required: a tool site's root redirects. */
+    url: string;
     applicationCategory: string;
     operatingSystem: string;
     /** Default: free (`price: '0'`, USD). */
@@ -75,7 +75,7 @@ export function softwareApplication(site: SiteSeo, opts: SoftwareApplicationOpti
 
 export function techArticle(
     site: SiteSeo,
-    opts: { headline?: string; description?: string; url?: string; author?: string } = {}
+    opts: { headline?: string; description?: string; url: string; author?: string }
 ): JsonLdNode {
     return {
         '@context': CONTEXT,
@@ -88,7 +88,7 @@ export function techArticle(
 }
 
 /** One page. `url` is resolved against the site, so it is always absolute. */
-export function webPage(site: SiteSeo, opts: { name?: string; description?: string; url?: string } = {}): JsonLdNode {
+export function webPage(site: SiteSeo, opts: { name?: string; description?: string; url: string }): JsonLdNode {
     return {
         '@context': CONTEXT,
         '@type': 'WebPage',

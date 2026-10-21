@@ -98,9 +98,16 @@ describe('generateMetaTags', () => {
         expect(m.robots).toEqual({ index: true, follow: true });
     });
 
-    it('defaults to the site root and the site title', () => {
-        const m = generateMetaTags(STAMP);
-        expect(m.canonical).toBe('https://stamp.ochk.io');
+    it('refuses a page without a canonical: a tool site root redirects, so it is no fallback', () => {
+        // @ts-expect-error a page must name its canonical
+        expect(() => generateMetaTags(STAMP)).toThrow(TypeError);
+        // @ts-expect-error a page must name its canonical
+        expect(() => generateMetaTags(STAMP, { title: 'Pricing' })).toThrow(TypeError);
+    });
+
+    it('defaults to the site title', () => {
+        const m = generateMetaTags(STAMP, { canonical: '/' });
+        expect(m.canonical).toBe('https://stamp.ochk.io/');
         expect(m.title).toBe(STAMP.defaultTitle);
         expect(m.keywords).toBeUndefined();
     });
@@ -113,7 +120,7 @@ describe('generateMetaTags', () => {
     });
 
     it('noindex means noindex,nofollow', () => {
-        expect(generateMetaTags(STAMP, { noindex: true }).robots).toEqual({ index: false, follow: false });
+        expect(generateMetaTags(STAMP, { canonical: '/x', noindex: true }).robots).toEqual({ index: false, follow: false });
     });
 });
 
@@ -167,23 +174,74 @@ describe('<Seo>', () => {
 
     it('escapes structured data inside the script tag', () => {
         const html = renderToStaticMarkup(
-            <Seo site={STAMP} structuredData={{ '@type': 'Thing', name: '</script><script>alert(1)</script>' }} />
+            <Seo site={STAMP} canonical="/" structuredData={{ '@type': 'Thing', name: '</script><script>alert(1)</script>' }} />
         );
         expect(html).not.toContain('<script>alert(1)');
         expect(html).toContain('\\u003c/script\\u003e');
     });
 
     it('emits og:image:type only when the site sets one', () => {
-        expect(renderToStaticMarkup(<Seo site={STAMP} />)).not.toContain('og:image:type');
-        const html = renderToStaticMarkup(<Seo site={{ ...STAMP, ogImageType: 'image/png' }} />);
+        expect(renderToStaticMarkup(<Seo site={STAMP} canonical="/" />)).not.toContain('og:image:type');
+        const html = renderToStaticMarkup(<Seo site={{ ...STAMP, ogImageType: 'image/png' }} canonical="/" />);
         expect(html).toContain('property="og:image:type" content="image/png"');
     });
 
     it('createSeo binds the site so pages pass only their own values', () => {
         const seo = createSeo(STAMP);
-        const html = renderToStaticMarkup(<seo.Seo title="Pricing" noindex />);
+        const html = renderToStaticMarkup(<seo.Seo title="Pricing" canonical="/pricing" noindex />);
         expect(html).toContain('<title>Pricing | OC Stamp</title>');
         expect(html).toContain('content="noindex,nofollow"');
+    });
+});
+
+describe('share image', () => {
+    const ROUTED = defineSite({ ...STAMP, ogRoute: '/api/og' });
+    const image = (site: typeof STAMP, page: Parameters<typeof generateMetaTags>[1]) => {
+        const m = generateMetaTags(site, page);
+        expect(m.twitter.images).toEqual([m.openGraph.images[0]!.url]);
+        return m.openGraph.images[0]!.url;
+    };
+
+    it("with an og route, each page shares the card with its own title, the site's name cut", () => {
+        expect(image(ROUTED, { title: 'Create a stamp · OC Stamp', canonical: '/create' })).toBe(
+            'https://stamp.ochk.io/api/og?title=Create%20a%20stamp'
+        );
+        expect(image(ROUTED, { title: 'Verify a stamp', canonical: '/verify' })).toBe(
+            'https://stamp.ochk.io/api/og?title=Verify%20a%20stamp'
+        );
+        // The home page's default title names the site first.
+        expect(image(ROUTED, { canonical: '/' })).toBe(
+            `https://stamp.ochk.io/api/og?title=${encodeURIComponent('sign anything with your Bitcoin address, anchor the moment to Bitcoin')}`
+        );
+        // A title that is only the name stays whole, and the query is encoded.
+        expect(image(ROUTED, { title: 'OC Stamp', canonical: '/' })).toBe('https://stamp.ochk.io/api/og?title=OC%20Stamp');
+        expect(image(ROUTED, { title: 'a&b #1?', canonical: '/x' })).toBe('https://stamp.ochk.io/api/og?title=a%26b%20%231%3F');
+    });
+
+    it('without one, the static image; a page or a site image wins over the route', () => {
+        expect(image(STAMP, { title: 'Verify', canonical: '/verify' })).toBe('https://stamp.ochk.io/og.png');
+        expect(image(ROUTED, { canonical: '/p/1', ogImage: 'https://stamp.ochk.io/api/og?title=Pledge%201' })).toBe(
+            'https://stamp.ochk.io/api/og?title=Pledge%201'
+        );
+        expect(image(defineSite({ ...ROUTED, ogImage: 'https://cdn.example/x.png' }), { canonical: '/' })).toBe('https://cdn.example/x.png');
+    });
+
+    it('ogImage(title) gets the page title and must give an absolute URL', () => {
+        const seen: string[] = [];
+        const site = defineSite({ ...STAMP, ogImage: (t: string) => (seen.push(t), `https://img.example/${encodeURIComponent(t)}.png`) });
+        expect(image(site, { title: 'Verify a stamp · OC Stamp', canonical: '/verify' })).toBe('https://img.example/Verify%20a%20stamp%20%C2%B7%20OC%20Stamp.png');
+        expect(seen).toEqual(['Verify a stamp · OC Stamp']);
+        expect(() => generateMetaTags(defineSite({ ...STAMP, ogImage: () => '/og.png' }), { canonical: '/' })).toThrow(TypeError);
+    });
+
+    it.each(['api/og', '/api/og?x=1', 'https://stamp.ochk.io/api/og', '/api/og#x'])('defineSite refuses ogRoute %s', (ogRoute) => {
+        expect(() => defineSite({ ...STAMP, ogRoute })).toThrow(TypeError);
+    });
+
+    it('<Seo> writes the card to og:image and twitter:image', () => {
+        const html = renderToStaticMarkup(<Seo site={ROUTED} title="Create a stamp · OC Stamp" canonical="/create" />);
+        expect(html).toContain('property="og:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"');
+        expect(html).toContain('name="twitter:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"');
     });
 });
 
@@ -257,6 +315,11 @@ describe('structured data', () => {
             description: 'd',
             url: 'https://stamp.ochk.io/create',
         });
+    });
+
+    it('a page node needs its url: no fallback to a root that may redirect', () => {
+        // @ts-expect-error url is required
+        expect(() => webPage(STAMP, { name: 'x' })).toThrow(TypeError);
     });
 
     it('a search template must carry the placeholder', () => {

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0
+
+A page's link preview is the family card with its own title. A site that
+serves `createOgHandler` sets `ogRoute: '/api/og'`, and every page's
+`og:image` and `twitter:image` become `${url}/api/og?title=<title>`, the
+site's name cut from the title since the card shows it. `ogImage` also takes
+a function of the title. A page's own `ogImage` still wins.
+
+Breaking: `canonical` is required on every page, and `url` on
+`webPage`, `techArticle` and `softwareApplication`. They fell back to the
+site root, which now redirects on every tool site; a page without one throws.
+`absoluteUrl` no longer takes `undefined`.
+
 ## 0.4.0
 
 `createOgHandler` draws app-design's share card (`@orangecheck/app-design/og`:

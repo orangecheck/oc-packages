@@ -77,7 +77,9 @@ try {
     writeFileSync(join(site, 'pages', 'index.js'), 'export default function Home() { return <p>static</p>; }\n');
     writeFileSync(
         join(site, 'pages', 'ssr.js'),
-        'export default function Ssr({ at }) { return <p>ssr {at}</p>; }\n' +
+        "import { createSeo, defineSite } from '@orangecheck/site-kit/seo';\n" +
+            "const { Seo } = createSeo(defineSite({ url: 'https://stamp.ochk.io', name: 'OC Stamp', defaultTitle: 'OC Stamp', defaultDescription: 'd', ogRoute: '/api/og' }));\n" +
+            'export default function Ssr({ at }) { return <><Seo title="Create a stamp · OC Stamp" canonical="/ssr" /><p>ssr {at}</p></>; }\n' +
             'export async function getServerSideProps() { return { props: { at: Date.now() } }; }\n'
     );
     const next = join(pkg, 'node_modules', 'next', 'dist', 'bin', 'next');
@@ -105,6 +107,9 @@ try {
         const html = await res.text();
         if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
         if (!html.includes('data-oc-analytics="plausible"')) fail(`${path} has no analytics script`);
+        if (path === '/ssr' && !html.includes('property="og:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"')) {
+            fail('/ssr does not share its own card in og:image');
+        }
     }
     for (const path of ['/api/og', '/api/og?title=hello']) {
         const res = await fetch(base + path);
@@ -113,7 +118,7 @@ try {
         if (res.headers.get('content-type') !== 'image/png') fail(`${path} answered ${res.headers.get('content-type')}`);
         if (png.readUInt32BE(16) !== 1200 || png.readUInt32BE(20) !== 630) fail(`${path} is not 1200×630`);
     }
-    console.log('✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, and /api/og a 1200×630 PNG');
+    console.log('✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, og:image naming the page card, and /api/og a 1200×630 PNG');
 } finally {
     server?.kill();
     rmSync(site, { recursive: true, force: true });

@@ -16,10 +16,12 @@ import {
 export { jsonLd } from './json-ld';
 export {
     absoluteUrl,
+    cardTitle,
     defineSite,
     generateMetaTags,
     namesBrand,
     pageTitle,
+    siteOgImage,
     type MetaTags,
     type PageSeo,
     type SiteSeo,
@@ -98,12 +100,12 @@ export function createSeo(site: SiteSeo) {
     return {
         site,
         Seo: BoundSeo,
-        generateMetaTags: (page?: PageSeo) => generateMetaTags(site, page),
+        generateMetaTags: (page: PageSeo) => generateMetaTags(site, page),
         webSite: (opts?: { search?: string }): JsonLdNode => webSite(site, opts),
         organization,
         softwareApplication: (opts: Parameters<typeof softwareApplication>[1]): JsonLdNode =>
             softwareApplication(site, opts),
-        techArticle: (opts?: Parameters<typeof techArticle>[1]): JsonLdNode => techArticle(site, opts),
-        webPage: (opts?: Parameters<typeof webPage>[1]): JsonLdNode => webPage(site, opts),
+        techArticle: (opts: Parameters<typeof techArticle>[1]): JsonLdNode => techArticle(site, opts),
+        webPage: (opts: Parameters<typeof webPage>[1]): JsonLdNode => webPage(site, opts),
     };
 }
