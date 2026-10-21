@@ -7,6 +7,31 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.6.0] — 2026-10-21
+
+### Changed — a delegation longer than 365 days is malformed
+
+oc-agent-protocol 1.6.1 (errata) says where SPEC §4.4's window is checked:
+§8.1 step 2, the shape check, with `E_MALFORMED`. `verifyDelegation` and
+`verifyFederationDelegation` now reject `expires_at - issued_at` over 365 days
+(31,536,000 seconds), `expires_at` not after `issued_at`, and a timestamp that
+is shaped right but is no real time. The check runs whatever the clock says,
+so it also holds when `skipTemporalCheck` is set, which is how `verifyAction`
+checks its delegation. The message is
+`expires_at is more than 365 days after issued_at (SPEC §4.4)`.
+
+Before this, a strict verifier and this one disagreed on the same bytes.
+`@orangecheck/agent-signer` never creates such a delegation, so only an
+envelope made elsewhere is affected. Spec vectors v15–v17, which broke the
+rule, are fixed in 1.6.1; v27 (366 days) is rejected and v28 (365 days)
+accepted.
+
+### Added — tests for scope values keeping their case
+
+oc-agent-protocol 1.6.2 rewords SPEC §7.2 to what this package has always
+done: values are kept exactly as written. New tests fail if canonicalization
+ever folds case.
+
 ## [2.5.1] — 2026-10-20
 
 ### Fixed — the revocation refusal names a query relays answer

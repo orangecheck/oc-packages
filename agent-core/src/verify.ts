@@ -254,7 +254,6 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
         const now = input.now ?? new Date();
         const issued = new Date(env.issued_at);
         const expires = new Date(env.expires_at);
-        if (expires <= issued) return err('E_MALFORMED', 'expires_at <= issued_at');
         if (now < issued) return err('E_NOT_YET_VALID', `delegation not valid until ${env.issued_at}`);
         if (now >= expires) return err('E_EXPIRED', `delegation expired at ${env.expires_at}`);
     }
@@ -672,9 +671,23 @@ function checkDelegationShape(env: DelegationEnvelope): VerifyDelegationResult |
     }
     if (!isIsoUtc(env.issued_at)) return err('E_MALFORMED', 'issued_at must be ISO 8601 UTC');
     if (!isIsoUtc(env.expires_at)) return err('E_MALFORMED', 'expires_at must be ISO 8601 UTC');
+    const windowError = delegationWindowError(env.issued_at, env.expires_at);
+    if (windowError) return err('E_MALFORMED', windowError);
     if (!/^[0-9a-f]{32}$/.test(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
     if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
     if (env.sig.pubkey !== env.principal.address) return err('E_MALFORMED', 'sig.pubkey must equal principal.address');
+    return null;
+}
+
+const MAX_DELEGATION_MS = 365 * 86_400_000;
+
+/** SPEC §4.4 window, checked at §8.1 step 2 whatever the clock says: issued < expires, at most 365 days. */
+export function delegationWindowError(issuedAt: string, expiresAt: string): string | null {
+    const issued = Date.parse(issuedAt);
+    const expires = Date.parse(expiresAt);
+    if (Number.isNaN(issued) || Number.isNaN(expires)) return 'issued_at / expires_at must be real UTC times';
+    if (expires <= issued) return 'expires_at must be after issued_at';
+    if (expires - issued > MAX_DELEGATION_MS) return 'expires_at is more than 365 days after issued_at (SPEC §4.4)';
     return null;
 }
 

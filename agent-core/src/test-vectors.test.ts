@@ -155,6 +155,12 @@ interface NegativeDelegationVector extends NegativeVectorBase {
         scope: string;
         why: string;
     }[];
+    // Present when the fault is in a well-formed, honestly-id'd envelope (v27).
+    expected: NegativeVectorBase['expected'] & {
+        canonical_message?: string;
+        id?: string;
+        envelope?: DelegationEnvelope;
+    };
 }
 
 interface NegativeSubdelegationVector extends NegativeVectorBase {
@@ -504,6 +510,21 @@ describe('oc-agent-protocol negative test vectors', () => {
                     envelope: revocation,
                     delegation,
                     skipSignatureVerification: true,
+                });
+                expect(r.ok).toBe(false);
+                if (!r.ok) expect(r.code).toBe(v.expected.error_code);
+            } else if (data.kind === 'delegation' && (data as NegativeDelegationVector).expected.envelope) {
+                // The envelope is honest (its id reconstructs from inputs), so the
+                // verifier's rejection is the declared fault and nothing else.
+                const v = data as NegativeDelegationVector;
+                const asPositive = { kind: 'delegation', inputs: v.inputs } as unknown as PositiveVector;
+                expect(reconstructCanonical(asPositive)).toBe(v.expected.canonical_message);
+                expect(reconstructId(asPositive)).toBe(v.expected.id);
+                const r = await verifyDelegation({
+                    envelope: v.expected.envelope!,
+                    skipSignatureVerification: true,
+                    skipRevocationCheck: true,
+                    skipTemporalCheck: true,
                 });
                 expect(r.ok).toBe(false);
                 if (!r.ok) expect(r.code).toBe(v.expected.error_code);

@@ -189,8 +189,10 @@ async function buildPrivateEnvelopeWithKey(
         ],
     });
 
-    const issued_at = '2026-04-22T12:00:00Z';
-    const expires_at = '2099-04-22T12:00:00Z';
+    // Current window, inside SPEC §4.4's 365-day limit, so the temporal check passes.
+    const isoSeconds = (ms: number) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const issued_at = isoSeconds(Date.now() - 86_400_000);
+    const expires_at = isoSeconds(Date.now() + 30 * 86_400_000);
     const nonce = hexEncode(randomBytesN(16));
 
     const canonInput = {

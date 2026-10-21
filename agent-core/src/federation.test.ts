@@ -16,7 +16,7 @@ import {
     type FederationDelegationEnvelope,
     type FederationRevocationEnvelope,
 } from './federation.js';
-import { computeRevocationId } from './canonical.js';
+import { computeDelegationId, computeRevocationId } from './canonical.js';
 import { verifyDelegation } from './verify.js';
 import type { DelegationEnvelope } from './types.js';
 
@@ -167,6 +167,26 @@ d('federation reject reasons (each invalid case fails for its named reason)', ()
         const r = await verifyFederationDelegation({ envelope: v.expected.envelope, ...opts });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe('E_THRESHOLD_MISMATCH');
+    });
+    it('366-day window → E_MALFORMED (FEDERATION.md §5 bounds it as SPEC §4.4 does)', async () => {
+        const v = await load('v19-federation-delegation-3of5-valid.json');
+        const env = { ...v.expected.envelope } as FederationDelegationEnvelope;
+        env.expires_at = new Date(Date.parse(env.issued_at) + 366 * 86_400_000)
+            .toISOString()
+            .replace(/\.\d{3}Z$/, 'Z');
+        // Honest id for the longer window, so the window is the only fault.
+        env.id = computeDelegationId({
+            principal: `federation:${env.principal.descriptor_id}`,
+            agent: env.agent.address,
+            scopes: env.scopes,
+            bond_sats: env.bond?.sats ?? 0,
+            bond_attestation: env.bond?.attestation_id ?? 'none',
+            issued_at: env.issued_at,
+            expires_at: env.expires_at,
+            nonce: env.nonce,
+        });
+        const r = await verifyFederationDelegation({ envelope: env, ...opts });
+        expect(r).toMatchObject({ ok: false, code: 'E_MALFORMED' });
     });
 });
 

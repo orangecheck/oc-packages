@@ -32,6 +32,7 @@ import type {
     DelegationRevocationRef,
     RevocationEnvelope,
 } from './types.js';
+import { delegationWindowError } from './verify.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (FEDERATION.md §2 / §3.2)
@@ -251,6 +252,8 @@ export async function verifyFederationDelegation(
     if (!ISO_UTC.test(env.issued_at) || !ISO_UTC.test(env.expires_at)) {
         return fail('E_MALFORMED', 'issued_at / expires_at must be ISO 8601 UTC');
     }
+    const windowError = delegationWindowError(env.issued_at, env.expires_at);
+    if (windowError) return fail('E_MALFORMED', windowError);
     if (!/^[0-9a-f]{32}$/.test(env.nonce)) return fail('E_MALFORMED', 'nonce must be 32 hex chars');
 
     // Canonical scopes (identical rules to v1) must be sorted on the envelope.
@@ -305,7 +308,6 @@ export async function verifyFederationDelegation(
         const now = input.now ?? new Date();
         const issued = new Date(env.issued_at);
         const expires = new Date(env.expires_at);
-        if (expires <= issued) return fail('E_MALFORMED', 'expires_at <= issued_at');
         if (now < issued) return fail('E_NOT_YET_VALID', `delegation not valid until ${env.issued_at}`);
         if (now >= expires) return fail('E_EXPIRED', `delegation expired at ${env.expires_at}`);
     }

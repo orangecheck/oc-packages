@@ -257,3 +257,23 @@ describe('the adapter scopes are registered', () => {
         expect(isSubScope(parseScope('anthropic:tool(name=getWeather)'), granted)).toBe(false);
     });
 });
+
+// SPEC §7.2 rule 2 (errata 1.6.2): values keep their case on every key, not only the
+// four marked case-sensitive. Folding would break base58 addresses and widen grants.
+describe('scope values keep their case (SPEC §7.2)', () => {
+    for (const s of [
+        'lock:seal(recipient=1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2)',
+        'mcp:invoke(server=https://mcp.example.com/Tools,tool=getWeather)',
+        'http:request(method=GET,origin=https://api.example.com)',
+    ]) {
+        it(`canonical form of ${s} is unchanged`, () => {
+            expect(canonicalizeScopeString(s)).toBe(s);
+        });
+    }
+
+    it('a grant on a key not marked case-sensitive still matches case exactly', () => {
+        const granted = parseScope('mcp:invoke(tool=getWeather)');
+        expect(isSubScope(parseScope('mcp:invoke(tool=getWeather)'), granted)).toBe(true);
+        expect(isSubScope(parseScope('mcp:invoke(tool=GetWeather)'), granted)).toBe(false);
+    });
+});
