@@ -114,7 +114,9 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 ### Verification (§SPEC 8)
 
 - `verifyDelegation({ envelope, revocations | skipRevocationCheck, verifyBip322, now?, skipTemporalCheck?, scopeMode? })`
-- `verifyAction({ action, delegation, revocations | skipRevocationCheck, verifyBip322, verifyOtsAnchor?, content?, resolveAnchorBlockHeight?, scopeMode? })`
+- `verifyAction({ action, delegation, revocations | skipRevocationCheck, verifyBip322, now?, maxSkewMs?, verifyOtsAnchor?, content?, resolveAnchorBlockHeight?, scopeMode? })` — the live check, as of `now` (default: the current time). Every link of the chain must be in force at `now`, a revocation in effect at or before `now` refuses the action (`E_REVOKED`), and `signed_at` must lie within `maxSkewMs` of `now` (default 120 s; else `E_STALE`). The result's `asOf` is `{ basis: 'now', now }`.
+- `verifyActionAsOfSignedAt({ … })` — an audit of a past action, as of its own `signed_at`. The agent chooses that time, so `asOf.anchored` says whether a verified OTS anchor fixes it. Never use it to decide whether to act now.
+- `createReplayGuard(maxSkewMs?)` — `firstUse(action, now?)` is true once per action id. It keeps each id until `signed_at + maxSkewMs`, as long as the action could pass `verifyAction`. One process only; across instances keep the same record in a shared store. Replay is the caller's to stop: `verifyAction` keeps no state.
 - `verifyRevocation({ envelope, delegation, verifyBip322 })` — the principal may always revoke; `revocation.holders` can only add the agent
 - `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
 - `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`

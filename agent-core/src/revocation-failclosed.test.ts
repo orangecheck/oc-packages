@@ -106,7 +106,7 @@ describe('the refusal names a query relays answer', () => {
     });
 
     it('verifyAction', async () => {
-        const r = await verifyAction({ action, delegation, skipSignatureVerification: true });
+        const r = await verifyAction({ action, delegation, skipSignatureVerification: true, now: AT });
         expect(r.ok === false && r.code).toBe('E_MALFORMED');
         expect(r.ok === false && r.message).toMatch(/"#t": \[id of every link in the chain\]/);
         expect(r.ok === false && r.message).not.toMatch(/#delegation/);

@@ -37,15 +37,19 @@ export type { Scope, ScopeConstraint, ScopeOp, ValidationOptions } from './scope
 export {
     verifyDelegation,
     verifyAction,
+    verifyActionAsOfSignedAt,
+    createReplayGuard,
     verifyRevocation,
     verifySubdelegation,
     AgentError,
     DEFAULT_MAX_CHAIN_DEPTH,
+    DEFAULT_MAX_SKEW_MS,
 } from './verify.js';
 export type {
     VerifyBase,
     VerifyDelegationInput,
     VerifyActionInput,
+    VerifyActionAsOfSignedAtInput,
     VerifyRevocationInput,
     VerifySubdelegationInput,
 } from './verify.js';

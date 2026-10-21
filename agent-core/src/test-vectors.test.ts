@@ -18,7 +18,13 @@ import {
     subdelegationCanonicalMessage,
 } from './canonical.js';
 import { parseScope, ScopeParseError } from './scope.js';
-import { verifyAction, verifyDelegation, verifyRevocation, verifySubdelegation } from './verify.js';
+import {
+    verifyAction,
+    verifyActionAsOfSignedAt,
+    verifyDelegation,
+    verifyRevocation,
+    verifySubdelegation,
+} from './verify.js';
 import type {
     ActionEnvelope,
     AgentErrorCode,
@@ -127,6 +133,12 @@ interface NegativeActionVector extends NegativeVectorBase {
         scope_exercised: string;
         content_ref?: string | null;
         ots?: unknown;
+        /** Present on a live vector (§8.1 steps 6–7, §8.3 step 11a): the time of verification. */
+        verified_at?: string;
+        /** The freshness bound a live vector assumes, in seconds. */
+        max_skew_seconds?: number;
+        /** Revocations of the cited delegation, as the inputs of each envelope. */
+        revocations?: { address: string; reason: string; signed_at: string }[];
     };
 }
 
@@ -279,7 +291,8 @@ describe('oc-agent-protocol test vectors', () => {
                 if (!delegation) {
                     throw new Error(`action vector ${name} references missing delegation ${data.inputs.delegation_id}`);
                 }
-                const r = await verifyAction({
+                // A positive vector is the envelope as of its own signed_at.
+                const r = await verifyActionAsOfSignedAt({
                     skipRevocationCheck: true,
                     action: data.expected.envelope,
                     delegation,
@@ -461,12 +474,34 @@ describe('oc-agent-protocol negative test vectors', () => {
                     ots: null,
                     sig: { alg: 'bip322', pubkey: v.inputs.address, value: 'AAAA' },
                 };
-                const r = await verifyAction({
-                    skipRevocationCheck: true,
-                    action,
-                    delegation,
-                    skipSignatureVerification: true,
-                });
+                const revocations: RevocationEnvelope[] = (v.inputs.revocations ?? []).map((rv) => ({
+                    v: 1,
+                    kind: 'agent-revocation',
+                    id: computeRevocationId({ ...rv, delegation_id: v.inputs.delegation_id }),
+                    delegation_id: v.inputs.delegation_id,
+                    signer: { address: rv.address, alg: 'bip322' },
+                    reason: rv.reason,
+                    signed_at: rv.signed_at,
+                    ots: null,
+                    sig: { alg: 'bip322', pubkey: rv.address, value: 'AAAA' },
+                }));
+                // A vector with verified_at is checked live at that time; one
+                // without is an audit of the envelope as of its signed_at.
+                const r = v.inputs.verified_at
+                    ? await verifyAction({
+                          action,
+                          delegation,
+                          skipSignatureVerification: true,
+                          revocations,
+                          now: new Date(v.inputs.verified_at),
+                          maxSkewMs: (v.inputs.max_skew_seconds ?? 120) * 1000,
+                      })
+                    : await verifyActionAsOfSignedAt({
+                          skipRevocationCheck: true,
+                          action,
+                          delegation,
+                          skipSignatureVerification: true,
+                      });
                 expect(r.ok).toBe(false);
                 if (!r.ok) {
                     // v07 specifically allows either E_OUT_OF_WINDOW or E_EXPIRED

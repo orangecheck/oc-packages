@@ -237,6 +237,7 @@ export type AgentErrorCode =
     | 'E_NOT_YET_VALID'
     | 'E_EXPIRED'
     | 'E_REVOKED'
+    | 'E_STALE'
     | 'E_DELEGATION_MISMATCH'
     | 'E_AGENT_MISMATCH'
     | 'E_OUT_OF_WINDOW'
@@ -298,6 +299,14 @@ export interface VerifyActionOkExtra {
         | { status: 'pending' }
         | { status: 'claimed'; blockHeight: number; blockHash: string; verified: false }
         | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: true };
+    /**
+     * The time the verdict holds for. `now`: verifyAction, checked live.
+     * `signed_at`: verifyActionAsOfSignedAt, checked as of the time the agent
+     * claims; `anchored` is false when only the agent says so.
+     */
+    asOf:
+        | { basis: 'now'; now: string }
+        | { basis: 'signed_at'; signedAt: string; anchored: boolean };
 }
 
 export type VerifyActionResult =

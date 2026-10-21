@@ -7,6 +7,44 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.7.0] — 2026-10-21
+
+### Changed — `verifyAction` checks as of the time of verification
+
+oc-agent-protocol 1.7.0, SPEC §8.1 steps 6–7 and §8.3 step 11a.
+
+- `verifyAction` takes `now` (default: the current time). Every link of the
+  chain, root and sub-delegations, must be in force at `now`
+  (`E_NOT_YET_VALID`, `E_EXPIRED`).
+- A valid revocation of any link that is in effect at or before `now` refuses
+  the action with `E_REVOKED`, whatever `signed_at` the action carries. One
+  in effect only after the action's `signed_at` (SPEC §9.3) still refuses it.
+- `signed_at` must lie within `maxSkewMs` of `now`, either way (default
+  `DEFAULT_MAX_SKEW_MS`, 120 s). Otherwise the result is the new code
+  `E_STALE`.
+- The ok result carries `asOf: { basis: 'now', now }`.
+
+### Added
+
+- `verifyActionAsOfSignedAt(input)` audits a past action as of its own
+  `signed_at`, with no freshness bound. Its result carries
+  `asOf: { basis: 'signed_at', signedAt, anchored }`; `anchored` is false
+  unless a verified OTS anchor fixes that time.
+- `createReplayGuard(maxSkewMs?)` remembers accepted action ids for as long as
+  they could pass `verifyAction`.
+- `DEFAULT_MAX_SKEW_MS`, the `E_STALE` error code, and the
+  `VerifyActionAsOfSignedAtInput` type.
+
+### Migrating
+
+- A server deciding whether to act on an action keeps calling `verifyAction`,
+  and adds a replay check: `createReplayGuard`, or the same record in its own
+  store.
+- A tool that shows past actions (an inspector, an audit log) calls
+  `verifyActionAsOfSignedAt` and shows `asOf.anchored`.
+- The conformance harness runs a vector with `verified_at` live at that time,
+  and every other action vector as an audit.
+
 ## [2.6.0] — 2026-10-21
 
 ### Changed — a delegation longer than 365 days is malformed

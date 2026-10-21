@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeActionId, computeDelegationId, computeRevocationId } from './canonical.js';
-import { verifyAction, verifyDelegation, verifyRevocation } from './verify.js';
+import { verifyActionAsOfSignedAt, verifyDelegation, verifyRevocation } from './verify.js';
 import type { ActionEnvelope, ActionOts, DelegationEnvelope, RevocationEnvelope } from './types.js';
 
 const PRINCIPAL = 'bc1qprincipal000000000000000000000000000000';
@@ -91,6 +91,8 @@ function confirmed(height: number): ActionOts {
 
 const AT = new Date('2026-04-23T12:00:00Z');
 
+// Priority between an action and a revocation (SPEC §9.3) is a question about
+// the action's own time, so these run as audits, as of signed_at.
 describe('revocation authority always includes the principal', () => {
     for (const holders of [['agent'], [], ['principal'], undefined, 'agent']) {
         it(`principal revocation is honoured with holders=${JSON.stringify(holders)}`, async () => {
@@ -105,7 +107,7 @@ describe('revocation authority always includes the principal', () => {
                 now: AT,
             });
             expect(dr.ok === false && dr.code).toBe('E_REVOKED');
-            const ar = await verifyAction({
+            const ar = await verifyActionAsOfSignedAt({
                 action: action(d, '2026-04-23T06:00:00Z'),
                 delegation: d,
                 revocations: [rev],
@@ -150,7 +152,7 @@ describe('revocation priority uses only verified anchors', () => {
     const later = '2026-04-23T06:00:00Z';
 
     it('an action anchor with no anchor verifier does not outrank a revocation', async () => {
-        const r = await verifyAction({
+        const r = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [rev],
@@ -160,7 +162,7 @@ describe('revocation priority uses only verified anchors', () => {
     });
 
     it('an action anchor the verifier rejects does not outrank a revocation', async () => {
-        const r = await verifyAction({
+        const r = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [rev],
@@ -168,7 +170,7 @@ describe('revocation priority uses only verified anchors', () => {
             verifyOtsAnchor: async () => false,
         });
         expect(r.ok === false && r.code).toBe('E_REVOKED');
-        const clean = await verifyAction({
+        const clean = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [],
@@ -185,14 +187,14 @@ describe('revocation priority uses only verified anchors', () => {
 
     // The ots block is outside the signature: its block is a claim until walked.
     it('reports an unwalked anchor as claimed, and a walked one as confirmed', async () => {
-        const unwalked = await verifyAction({
+        const unwalked = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [],
             skipSignatureVerification: true,
         });
         expect(unwalked.ok && unwalked.anchor.status).toBe('claimed');
-        const walked = await verifyAction({
+        const walked = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [],
@@ -211,7 +213,7 @@ describe('revocation priority uses only verified anchors', () => {
         const a = action(d, later, confirmed(100));
         const revAnchored = revocation(d, PRINCIPAL, '2026-04-23T00:00:00Z', confirmed(200));
         const seen: string[] = [];
-        const r = await verifyAction({
+        const r = await verifyActionAsOfSignedAt({
             action: a,
             delegation: d,
             revocations: [revAnchored],
@@ -227,7 +229,7 @@ describe('revocation priority uses only verified anchors', () => {
     });
 
     it('a verified action anchor against an unanchored revocation falls back to signed times', async () => {
-        const r = await verifyAction({
+        const r = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),
             delegation: d,
             revocations: [rev],
@@ -235,7 +237,7 @@ describe('revocation priority uses only verified anchors', () => {
             verifyOtsAnchor: async () => true,
         });
         expect(r.ok === false && r.code).toBe('E_REVOKED');
-        const before = await verifyAction({
+        const before = await verifyActionAsOfSignedAt({
             action: action(d, '2026-04-22T18:00:00Z', confirmed(1)),
             delegation: d,
             revocations: [rev],
@@ -248,7 +250,7 @@ describe('revocation priority uses only verified anchors', () => {
     it('a revocation anchor that does not verify cannot move the revocation later', async () => {
         const revFarFuture = revocation(d, PRINCIPAL, '2026-04-23T00:00:00Z', confirmed(10_000_000));
         const a = action(d, later, confirmed(100));
-        const r = await verifyAction({
+        const r = await verifyActionAsOfSignedAt({
             action: a,
             delegation: d,
             revocations: [revFarFuture],
@@ -262,7 +264,7 @@ describe('revocation priority uses only verified anchors', () => {
         const a = action(d, later, confirmed(300));
         const revAt = (h: number) => revocation(d, PRINCIPAL, '2026-04-23T00:00:00Z', confirmed(h));
         const verifyOtsAnchor = async () => true;
-        const earlierRev = await verifyAction({
+        const earlierRev = await verifyActionAsOfSignedAt({
             action: a,
             delegation: d,
             revocations: [revAt(300)],
@@ -270,7 +272,7 @@ describe('revocation priority uses only verified anchors', () => {
             verifyOtsAnchor,
         });
         expect(earlierRev.ok === false && earlierRev.code).toBe('E_REVOKED');
-        const laterRev = await verifyAction({
+        const laterRev = await verifyActionAsOfSignedAt({
             action: a,
             delegation: d,
             revocations: [revAt(301)],

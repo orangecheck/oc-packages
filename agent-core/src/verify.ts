@@ -40,6 +40,9 @@ import {
 /** Default maximum chain depth, per SUB-DELEGATION.md §2.1. */
 export const DEFAULT_MAX_CHAIN_DEPTH = 5;
 
+/** How far a live action's `signed_at` may lie from the verifier's clock, either way (SPEC §8.3 step 11a). */
+export const DEFAULT_MAX_SKEW_MS = 120_000;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared options
 // ─────────────────────────────────────────────────────────────────────────────
@@ -324,9 +327,51 @@ export interface VerifyActionInput extends VerifyBase {
         device_id: string;
         secretKey: Uint8Array;
     };
+    /**
+     * The time of verification; defaults to new Date(). Every link of the
+     * chain must be in force at `now`, and a revocation in effect at or
+     * before `now` refuses the action, whatever `signed_at` it claims
+     * (SPEC §8.1 steps 6–7).
+     */
+    now?: Date;
+    /**
+     * How far `signed_at` may lie from `now`, either way, before the action
+     * is refused with E_STALE. Default DEFAULT_MAX_SKEW_MS (120 s). The agent
+     * chooses `signed_at`, so this bound is what makes it mean "just now".
+     */
+    maxSkewMs?: number;
 }
 
+/** An audit of a past action: no `now`, no freshness bound. See verifyActionAsOfSignedAt. */
+export type VerifyActionAsOfSignedAtInput = Omit<VerifyActionInput, 'now' | 'maxSkewMs'>;
+
+/**
+ * Verify an action live, as of `now` (SPEC §8). This is the check for a
+ * server deciding whether to act on it. Replay is the caller's to stop: keep
+ * the ids of accepted actions (createReplayGuard) for as long as they could
+ * pass the freshness bound.
+ */
 export async function verifyAction(input: VerifyActionInput): Promise<VerifyActionResult> {
+    return verifyActionAt(input, input.now ?? new Date());
+}
+
+/**
+ * Verify a past action as of its own `signed_at`, for an audit (SPEC §8.6).
+ * The agent chose that time, so the verdict holds only if the claim is true:
+ * `asOf.anchored` is false unless a verified OTS anchor fixes it. Never use
+ * this to decide whether to act on an action now.
+ */
+export async function verifyActionAsOfSignedAt(
+    input: VerifyActionAsOfSignedAtInput
+): Promise<VerifyActionResult> {
+    return verifyActionAt(input, null);
+}
+
+/** `now` null: the audit form, checked as of the action's own signed_at. */
+async function verifyActionAt(
+    input: VerifyActionInput,
+    now: Date | null
+): Promise<VerifyActionResult> {
     const a = input.action;
     const d = input.delegation;
 
@@ -427,6 +472,19 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         return err('E_OUT_OF_WINDOW', `action.signed_at ${a.signed_at} is outside leaf window [${leaf.issued_at}, ${leaf.expires_at})`);
     }
 
+    // 4b. Live: every link is in force now, not only at the claimed signed_at.
+    if (now) {
+        const t = now.getTime();
+        for (const link of [rootHydrated, ...hydratedChain]) {
+            if (t < new Date(link.issued_at).getTime()) {
+                return err('E_NOT_YET_VALID', `${link.id} is not valid until ${link.issued_at}`);
+            }
+            if (t >= new Date(link.expires_at).getTime()) {
+                return err('E_EXPIRED', `${link.id} expired at ${link.expires_at}`);
+            }
+        }
+    }
+
     // 5. Scope containment — against the leaf's granted set.
     //    Leaf is post-hydration, so `scopes` is guaranteed populated. The
     //    runtime guard satisfies the type checker and would only fire if a
@@ -489,7 +547,24 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
                 if (revocationPrecedes(rev, revAnchor, a, actionAnchor)) {
                     return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id} before action was signed`);
                 }
+                // Live: a revocation already in effect refuses the action, however
+                // early its signed_at claims to be.
+                if (now && (revAnchor !== null || new Date(rev.signed_at).getTime() <= now.getTime())) {
+                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id}`);
+                }
             }
+        }
+    }
+
+    // 6b. Live: signed_at is the agent's claim; only a bound on it makes the
+    //     action recent.
+    if (now) {
+        const maxSkew = input.maxSkewMs ?? DEFAULT_MAX_SKEW_MS;
+        if (Math.abs(now.getTime() - signed) > maxSkew) {
+            return err(
+                'E_STALE',
+                `action.signed_at ${a.signed_at} is more than ${maxSkew} ms from the time of verification ${now.toISOString()}`
+            );
         }
     }
 
@@ -529,6 +604,31 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
         chain: hydratedChain,
         scopeExercised: exercised,
         anchor,
+        asOf: now
+            ? { basis: 'now', now: now.toISOString() }
+            : { basis: 'signed_at', signedAt: a.signed_at, anchored: actionAnchor !== null },
+    };
+}
+
+/**
+ * Remembers the ids of accepted actions, so one signed action is acted on
+ * once. An action passes the freshness bound for `maxSkewMs` either side of
+ * its signed_at, so its id is kept until signed_at + maxSkewMs. In-memory and
+ * per process: a server on several instances keeps the same record in a
+ * shared store. Two identical calls signed in the same second share an id.
+ */
+export function createReplayGuard(maxSkewMs: number = DEFAULT_MAX_SKEW_MS): {
+    firstUse(action: Pick<ActionEnvelope, 'id' | 'signed_at'>, now?: Date): boolean;
+} {
+    const keepUntil = new Map<string, number>();
+    return {
+        firstUse(action, now = new Date()) {
+            const t = now.getTime();
+            for (const [id, until] of keepUntil) if (until <= t) keepUntil.delete(id);
+            if (keepUntil.has(action.id)) return false;
+            keepUntil.set(action.id, new Date(action.signed_at).getTime() + maxSkewMs);
+            return true;
+        },
     };
 }
 
