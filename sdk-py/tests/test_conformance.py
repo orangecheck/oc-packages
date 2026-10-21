@@ -213,3 +213,19 @@ def test_vector_set_complete() -> None:
         "bond_floors",
     }
     assert len(VECTORS) >= 28
+
+
+def test_build_accepts_the_exported_identity_binding() -> None:
+    # orangecheck.IdentityBinding (types) and the canonical module's class are
+    # separate; the docs build messages with the exported one.
+    from orangecheck import IdentityBinding
+
+    kw = dict(address="bc1qalice", nonce="a3f5b8c2d1e4f6a7b8c9d0e1f2a3b4c5",
+              issued_at="2026-04-24T06:47:29.977Z")
+    exported = build_canonical_message(
+        identities=[IdentityBinding(protocol="github", identifier="alice")], **kw
+    )
+    as_dict = build_canonical_message(
+        identities=[{"protocol": "github", "identifier": "alice"}], **kw
+    )
+    assert exported == as_dict

@@ -25,7 +25,9 @@ import re
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, Union
+
+from . import types as _types
 
 # ─── Identity safety rules ─────────────────────────────────────────────────
 
@@ -48,6 +50,11 @@ class IdentityBinding:
     identifier: str
 
 
+#: Either binding class (``orangecheck.IdentityBinding`` is the one in types),
+#: or a plain dict with ``protocol`` / ``identifier`` keys.
+IdentityLike = Union[IdentityBinding, _types.IdentityBinding, Mapping[str, str]]
+
+
 def _assert_safe_identity(id: IdentityBinding) -> None:
     if not _IDENTITY_PROTOCOL_RE.fullmatch(id.protocol):
         raise ValueError(
@@ -60,24 +67,26 @@ def _assert_safe_identity(id: IdentityBinding) -> None:
         )
 
 
-def format_identities(identities: Sequence[IdentityBinding | Mapping[str, str]]) -> str:
+def format_identities(identities: Sequence[IdentityLike]) -> str:
     """
     Format identities as comma-separated ``protocol:identifier`` pairs, sorted
     lexicographically. Rejects unsafe characters at the boundary (see
     ``_assert_safe_identity``).
 
-    Accepts either ``IdentityBinding`` instances or plain dicts with
-    ``protocol`` / ``identifier`` keys (for JSON interop).
+    Accepts ``IdentityBinding`` instances, including the one exported as
+    ``orangecheck.IdentityBinding``, or plain dicts with ``protocol`` /
+    ``identifier`` keys (for JSON interop).
     """
     if not identities:
         return ""
     normalized: list[IdentityBinding] = []
     for item in identities:
-        b = (
-            item
-            if isinstance(item, IdentityBinding)
-            else IdentityBinding(protocol=item["protocol"], identifier=item["identifier"])
-        )
+        if isinstance(item, IdentityBinding):
+            b = item
+        elif isinstance(item, _types.IdentityBinding):
+            b = IdentityBinding(protocol=item.protocol, identifier=item.identifier)
+        else:
+            b = IdentityBinding(protocol=item["protocol"], identifier=item["identifier"])
         _assert_safe_identity(b)
         normalized.append(b)
     return ",".join(sorted(f"{b.protocol}:{b.identifier}" for b in normalized))
@@ -129,7 +138,7 @@ def _now_rfc3339_utc() -> str:
 def build_canonical_message(
     *,
     address: str,
-    identities: Sequence[IdentityBinding | Mapping[str, str]] = (),
+    identities: Sequence[IdentityLike] = (),
     extensions: Mapping[str, str | int | None] | None = None,
     nonce: str | None = None,
     issued_at: str | None = None,

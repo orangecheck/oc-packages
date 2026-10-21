@@ -29,6 +29,13 @@ For a site that signs people in with ochk.app and runs a Python backend.
 
 - `cryptography` (41 or later) is now a dependency, for Ed25519.
 
+### Fixed
+
+- `build_canonical_message` and `format_identities` accept the
+  `IdentityBinding` exported as `orangecheck.IdentityBinding`. They took only
+  the canonical module's own class or a dict, so the documented example raised
+  `TypeError`.
+
 ## [2.2.0] — 2026-10-16
 
 Matches `@orangecheck/sdk` 1.13.0 and the spec's regenerated `tv24`–`tv27`.
