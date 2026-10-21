@@ -11,6 +11,10 @@ convention.
 when ``signature`` is a valid BIP-322 simple signature over ``message``
 for ``address``, ``False`` otherwise. Never raises for cryptographic
 failures — only for a missing optional dependency (at import time).
+
+The finalized BIP-322 prefixes a simple signature with ``smp``; it is
+accepted with or without the prefix, as ``@orangecheck/bip322`` 1.1 does.
+A ``ful`` or ``pof`` signature is not supported and returns ``False``.
 """
 
 from __future__ import annotations
@@ -38,14 +42,19 @@ def verify_bip322_signature(address: str, message: str, signature: str) -> bool:
         attestations this is the canonical message produced by
         ``build_canonical_message``.
     signature:
-        Base64-encoded BIP-322 "simple" signature. Hex is NOT accepted —
-        normalize to base64 before calling.
+        Base64-encoded BIP-322 "simple" signature, with or without the
+        finalized BIP's ``smp`` prefix. Hex is NOT accepted — normalize to
+        base64 before calling.
 
     Returns
     -------
     True if the signature verifies; False otherwise. Never raises for
     invalid / malformed signatures.
     """
+    if signature.startswith(("ful", "pof")):
+        return False
+    if signature.startswith("smp"):
+        signature = signature[3:]
     try:
         _bip322.verify_simple_encoded(address, message, signature)
     except _bip322.VerificationError:

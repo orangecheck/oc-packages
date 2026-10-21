@@ -4,6 +4,17 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] — 2026-10-21
+
+### Fixed — signatures from wallets that follow the finalized BIP-322
+
+- `verify_bip322_signature` accepts a simple signature with the `smp` prefix
+  the finalized BIP-322 requires of signers, as well as without it. Before,
+  every prefixed signature returned `False`. A `ful` or `pof` signature is not
+  supported and returns `False`, as in `@orangecheck/bip322` 1.1.
+- Tests run the BIP's official vectors (bitcoin/bips `d77863fb9e9b`), the same
+  files the TypeScript package uses.
+
 ## [2.3.0] — 2026-10-20
 
 For a site that signs people in with ochk.app and runs a Python backend.
