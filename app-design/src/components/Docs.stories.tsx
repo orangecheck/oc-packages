@@ -388,7 +388,7 @@ export const Blocks: StoryObj = {
                     load={() => import('mermaid')}
                     caption="A stamp, from file to block"
                     // The drawn size (a drawn figure's data-size): the placeholder holds it, so nothing below moves.
-                    size={[1036, 168]}
+                    size={[1047, 168]}
                     chart={`flowchart LR
   F[File] -->|SHA-256| H[Hash]
   H --> E[Envelope]
