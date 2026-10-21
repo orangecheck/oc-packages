@@ -36,7 +36,7 @@
  * after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -132,6 +132,8 @@ try {
 
     const tw = spawnSync(process.execPath, [join(pkg, 'node_modules/@tailwindcss/cli/dist/index.mjs'), '-i', join(dir, 'input.css'), '-o', join(dir, 'out.css')], { encoding: 'utf8' });
     if (tw.status !== 0) throw new Error(`tailwind: ${tw.stderr}`);
+    // The fonts beside the CSS, as a site serves them: measured in Inter, not in whatever the machine falls back to.
+    cpSync(join(pkg, 'src/styles/fonts'), join(dir, 'fonts'), { recursive: true });
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -382,6 +384,11 @@ try {
                 };
             });
             if (width < 768) {
+                const inter = await p.evaluate(async () => {
+                    await document.fonts.ready;
+                    return [...document.fonts].filter((f) => /OCA Inter/.test(f.family)).map((f) => f.status);
+                });
+                check(inter.includes('loaded'), `[${width}] the page measured without Inter loaded (${inter.join()})`);
                 check(ft.h <= 600, `[${width}] the family footer runs ${Math.round(ft.h)}px, past 600`);
                 check(ft.groupsShown > 0 && ft.closed && ft.summaries.every((x) => x >= 44), `[${width}] footer groups: ${ft.groupsShown} shown, closed ${ft.closed}, summaries ${ft.summaries.map(Math.round).join('/')}px`);
                 if (ft.groupsShown > 0) await p.click('footer details summary');
