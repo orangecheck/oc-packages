@@ -281,6 +281,11 @@ export function SkipLink({ href = '#main-content', children = 'Skip to content' 
     return (
         <a
             href={href}
+            // Focus lands on the target itself, so a reader starts there: a plain <main> takes focus only with a tabindex.
+            onClick={() => {
+                const to = href.startsWith('#') ? document.getElementById(href.slice(1)) : null;
+                if (to && !to.hasAttribute('tabindex')) to.setAttribute('tabindex', '-1');
+            }}
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-full focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:text-[0.9375rem] focus:font-medium focus:text-foreground focus:shadow-md"
         >
             {children}

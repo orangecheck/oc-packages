@@ -49,6 +49,17 @@
     }
 }
 
+/* The halftone's breath: the whole screen swells a little, on the compositor. */
+@keyframes oca-breathe {
+    0%,
+    100% {
+        transform: none;
+    }
+    50% {
+        transform: scale(1.018);
+    }
+}
+
 @keyframes oca-pulse-dot {
     0%,
     100% {
@@ -73,6 +84,10 @@
 
 @utility oca-animate-float {
     animation: oca-float 6s ease-in-out infinite;
+}
+
+@utility oca-animate-breathe {
+    animation: oca-breathe 7s ease-in-out infinite;
 }
 
 @utility oca-animate-pulse-dot {

@@ -285,7 +285,8 @@ export function ToolShell({
                             ) : null}
                         </aside>
                     ) : null}
-                    <main id="main-content" className={cn('min-w-0 flex-1', app && 'flex min-h-0 flex-col')}>
+                    {/* Focusable from script, so "Skip to content" puts focus on the page, not only the next Tab. */}
+                    <main id="main-content" tabIndex={-1} className={cn('min-w-0 flex-1 outline-none', app && 'flex min-h-0 flex-col')}>
                         {/* An ErrorPage inside goes home to the protocol's page, as the lockup does. */}
                         <SiteHomeContext.Provider value={homeHref}>
                             {app ? children : <ToolColumn measure={measure}>{children}</ToolColumn>}

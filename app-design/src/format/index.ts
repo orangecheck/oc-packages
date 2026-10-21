@@ -80,3 +80,36 @@ export function formatBytes(bytes: number): string {
     }
     return `${v < 10 ? v.toFixed(1).replace(/\.0$/, '') : Math.round(v)} ${units[u]}`;
 }
+
+/** What a person reads when a request got no answer: offline, a dropped connection, a blocked request. */
+export const OFFLINE_TEXT = 'Check your connection, then try again.';
+
+export interface FailureTextOptions {
+    /** Who did not answer, by the name a person knows it by: "mempool.space". */
+    source?: string;
+    /** The sentence for every other failure. "Something went wrong. Try again." by default. */
+    fallback?: string;
+    /** Show an Error's own message. Only for one this site's code wrote as a sentence. */
+    keepMessage?: boolean;
+}
+
+// fetch's TypeError for "no answer", in Chrome, Firefox, Safari and Node; any other TypeError is a bug.
+const NO_ANSWER = /fetch|load failed|network|connection/i;
+
+/**
+ * A failed request as one sentence a person can act on. The browser's own
+ * words ("Failed to fetch"), a library's ("seed lookup failed: …") and a
+ * code ("E_SNAPSHOT_UNRESOLVED") never reach the screen.
+ */
+export function failureText(
+    e: unknown,
+    { source, fallback = 'Something went wrong. Try again.', keepMessage = false }: FailureTextOptions = {}
+): string {
+    const name = typeof e === 'object' && e !== null && 'name' in e ? String(e.name) : '';
+    const message = typeof e === 'object' && e !== null && 'message' in e ? String(e.message) : '';
+    const unanswered = name === 'AbortError' || name === 'TimeoutError' || (e instanceof TypeError && NO_ANSWER.test(message));
+    if (unanswered) return source ? `${source} did not answer. ${OFFLINE_TEXT}` : `We couldn't reach the server. ${OFFLINE_TEXT}`;
+    if (!keepMessage || !(e instanceof Error) || e instanceof TypeError || e instanceof SyntaxError) return fallback;
+    // A sentence has a space in it; a bare token is a code.
+    return /\s/.test(message.trim()) ? message.trim() : fallback;
+}

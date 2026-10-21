@@ -5,6 +5,7 @@ import { IsoCheck } from '../brand/iso-check';
 import { OCHK_IO, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { ProductLockup } from './product-lockup';
+import { SkipLink } from './site';
 
 /**
  * The page a sign-in happens on: a form column with the lockup, a display
@@ -63,6 +64,8 @@ export function SignInFrame({
             id="main-content"
             className={cn('grid min-h-dvh grid-cols-1 bg-background text-foreground lg:grid-cols-2', className)}
         >
+            {/* Past the lockup and "Back to home", straight to the sign-in. */}
+            <SkipLink href="#signin">Skip to sign in</SkipLink>
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
                 <header className="flex items-center justify-between gap-4">
                     <Link href={homeHref} className="w-fit rounded-lg">
@@ -80,7 +83,7 @@ export function SignInFrame({
                         back
                     )}
                 </header>
-                <div className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col justify-center gap-9 py-12">
+                <div id="signin" tabIndex={-1} className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col justify-center gap-9 py-12 outline-none">
                     <div className="flex flex-col gap-3">
                         <h1 className="oca-display-2">{title}</h1>
                         {lead ? <p className="oca-lead">{lead}</p> : null}

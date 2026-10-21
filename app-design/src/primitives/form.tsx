@@ -27,9 +27,9 @@ import { sharedContext } from '../lib/shared-context';
 const fieldBase = [
     'w-full rounded-xl border border-input bg-card text-foreground placeholder:text-oca-subtle',
     'text-base md:text-[0.9375rem] outline-none transition-[border-color,box-shadow]',
-    'focus:border-foreground/35 focus:ring-4 focus:ring-[color-mix(in_oklab,var(--oca-orange)_16%,transparent)]',
+    // The focus look is theme.css's [data-oca-field] rule, so a field styled inline can wear it too.
     'disabled:cursor-not-allowed disabled:opacity-55',
-    'aria-[invalid=true]:border-destructive aria-[invalid=true]:focus:ring-[color-mix(in_oklab,var(--destructive)_14%,transparent)]',
+    'aria-[invalid=true]:border-destructive',
 ];
 
 /* `sm` is 36px for a tool's dense forms; the text stays 16px on phones. */
@@ -54,6 +54,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             ref={ref}
             type={type}
             data-ui="input"
+            data-oca-field=""
             data-size={s}
             className={cn(fieldBase, FIELD_SIZE[s], className)}
             {...props}
@@ -67,6 +68,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
             <textarea
                 ref={ref}
                 data-ui="textarea"
+                data-oca-field=""
                 className={cn(fieldBase, 'min-h-28 px-3.5 py-3 leading-relaxed', className)}
                 {...props}
             />
@@ -211,6 +213,7 @@ export const SelectTrigger = forwardRef<
             id={field?.id}
             aria-describedby={field?.['aria-describedby']}
             aria-invalid={field?.['aria-invalid']}
+            data-oca-field=""
             className={cn(fieldBase, FIELD_SIZE[s], 'flex items-center justify-between gap-2 text-left', className)}
             {...props}
         >
@@ -253,7 +256,8 @@ export const SelectItem = forwardRef<
             ref={ref}
             className={cn(
                 'relative flex h-10 cursor-default select-none items-center rounded-lg pl-3 pr-9 text-[0.9375rem] outline-none',
-                'data-[highlighted]:bg-accent data-[disabled]:opacity-50',
+                // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
+                'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50',
                 className
             )}
             {...props}

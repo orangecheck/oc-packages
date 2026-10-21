@@ -68,8 +68,17 @@ const title = long.find((e) => e.props.style?.lineClamp !== undefined);
 check(title?.props.style.lineClamp === 3 && title.props.style.display === 'block', 'a long title is not held to three lines');
 check(String(title?.props.children ?? '').length <= 120, 'a long title is not cut');
 
+// The large mark is on unless the caller leaves it out (a badge whose owner chose no mark).
+{
+    const art = (props) => walk(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', ...props })).filter((e) => e.type === 'svg' && e.props.width === 640).length;
+    check(art({}) === 1, 'the large mark is not on by default');
+    check(art({ mark: false }) === 0, 'mark: false still draws the large mark');
+    const res = new ImageResponse(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', mark: false }), { ...og.OG_SIZE, fonts });
+    check(res.headers.get('content-type') === 'image/png' && (await res.arrayBuffer()).byteLength > 1000, 'mark: false does not draw');
+}
+
 if (failures) {
     console.error(`\n${failures} og failure(s)`);
     process.exit(1);
 }
-console.log(`✓ og: ${checks} checks; Inter inline, the card in tokens.css's colours, a 1200×630 PNG per tone, three lines at most`);
+console.log(`✓ og: ${checks} checks; Inter inline, the card in tokens.css's colours, a 1200×630 PNG per tone, three lines at most, the mark left out on request`);

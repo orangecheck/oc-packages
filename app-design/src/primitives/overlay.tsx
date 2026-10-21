@@ -3,7 +3,7 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { X } from 'lucide-react';
-import { forwardRef, type ComponentPropsWithoutRef, type ElementRef, type HTMLAttributes } from 'react';
+import { forwardRef, useRef, type ComponentPropsWithoutRef, type ElementRef, type HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
 
@@ -12,6 +12,28 @@ import { cn } from '../lib/cn';
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
+
+type AutoFocus = Pick<ComponentPropsWithoutRef<typeof DialogPrimitive.Content>, 'onOpenAutoFocus' | 'onCloseAutoFocus'>;
+
+/** Radix returns focus to a Trigger; opened without one (confirm(), a dialog from state) it fell to <body>. */
+function useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus }: AutoFocus): AutoFocus {
+    const opener = useRef<HTMLElement | null>(null);
+    return {
+        onOpenAutoFocus: (e) => {
+            const a = document.activeElement;
+            opener.current = a instanceof HTMLElement && a !== document.body ? a : null;
+            onOpenAutoFocus?.(e);
+        },
+        onCloseAutoFocus: (e) => {
+            onCloseAutoFocus?.(e);
+            const o = opener.current;
+            opener.current = null;
+            if (e.defaultPrevented || !o?.isConnected) return;
+            e.preventDefault();
+            o.focus();
+        },
+    };
+}
 
 const overlayClass =
     'oca-animate-fade fixed inset-0 z-50 bg-[rgb(10_10_10/0.38)] backdrop-blur-[2px] data-[state=closed]:opacity-0';
@@ -23,7 +45,8 @@ export const DialogContent = forwardRef<
         /** The dimmed layer under it: a z-index for a page with its own layers (a fullscreen canvas). */
         overlayClassName?: string;
     }
->(function DialogContent({ className, children, hideClose, overlayClassName, ...props }, ref) {
+>(function DialogContent({ className, children, hideClose, overlayClassName, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) {
+    const focus = useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus });
     return (
         <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className={cn(overlayClass, overlayClassName)} />
@@ -36,6 +59,7 @@ export const DialogContent = forwardRef<
                     className
                 )}
                 {...props}
+                {...focus}
             >
                 {children}
                 {hideClose ? null : (
@@ -100,7 +124,8 @@ export const SheetContent = forwardRef<
         /** The dimmed layer under it: a z-index for a page with its own layers (a fullscreen canvas). */
         overlayClassName?: string;
     }
->(function SheetContent({ className, children, side = 'right', overlayClassName, ...props }, ref) {
+>(function SheetContent({ className, children, side = 'right', overlayClassName, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) {
+    const focus = useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus });
     return (
         <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className={cn(overlayClass, overlayClassName)} />
@@ -112,6 +137,7 @@ export const SheetContent = forwardRef<
                     className
                 )}
                 {...props}
+                {...focus}
             >
                 {children}
                 <DialogPrimitive.Close
@@ -211,7 +237,8 @@ export const DropdownMenuItem = forwardRef<
             className={cn(
                 // A thumb's 44px on a phone.
                 'flex h-10 cursor-default select-none items-center gap-2.5 rounded-xl px-3 text-[0.9375rem] outline-none max-md:h-11',
-                'data-[highlighted]:bg-accent data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
+                // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
+                'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
                 destructive && 'text-destructive [&_svg]:text-destructive',
                 className
             )}

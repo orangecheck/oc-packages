@@ -287,7 +287,7 @@ export function SearchDialog({
                                                     }}
                                                     className={cn(
                                                         'flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors',
-                                                        on ? 'bg-accent' : 'hover:bg-accent',
+                                                        on ? 'bg-accent shadow-[inset_0_0_0_2px_var(--ring)]' : 'hover:bg-accent',
                                                         !r.href && 'cursor-pointer'
                                                     )}
                                                 >

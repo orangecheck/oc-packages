@@ -44,6 +44,8 @@ export interface OgCardProps {
     /** At the foot: "stamp.ochk.io". */
     host?: string;
     tone?: keyof typeof TONES;
+    /** The large mark at the lower right. On by default; off, the title takes the card's width. */
+    mark?: boolean;
 }
 
 function MarkSvg({ width, x = 0, y = 0 }: { width: number; x?: number; y?: number }) {
@@ -57,7 +59,7 @@ function MarkSvg({ width, x = 0, y = 0 }: { width: number; x?: number; y?: numbe
 }
 
 /** The 1200×630 card. Satori-safe: every box is flex, every style inline. */
-export function OgCard({ title, eyebrow, product, host, tone = 'ink' }: OgCardProps): ReactElement {
+export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true }: OgCardProps): ReactElement {
     const t = TONES[tone];
     // Long titles step down a size before they would run past three lines.
     const size = title.length > 70 ? 58 : title.length > 40 ? 68 : 80;
@@ -80,9 +82,11 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink' }: OgCardPr
             }}
         >
             {/* The mark, large and cut by the edge: the closing band's art, in two colours of light. */}
-            <div style={{ position: 'absolute', right: -150, bottom: -140, width: 640, height: 320, display: 'flex', opacity: tone === 'ink' ? 0.9 : 1 }}>
-                <MarkSvg width={640} />
-            </div>
+            {mark ? (
+                <div style={{ position: 'absolute', right: -150, bottom: -140, width: 640, height: 320, display: 'flex', opacity: tone === 'ink' ? 0.9 : 1 }}>
+                    <MarkSvg width={640} />
+                </div>
+            ) : null}
             <div style={{ display: 'flex', alignItems: 'center', fontSize: 34, fontWeight: 500, letterSpacing: -0.4 }}>
                 <svg width={56} height={56} viewBox="0 0 24 24">
                     <rect width="24" height="24" rx="6.25" fill={t.tile} stroke={t.ring} strokeWidth="0.5" />
@@ -100,7 +104,7 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink' }: OgCardPr
                     </div>
                 ) : null}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 860 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: mark ? 860 : 1056 }}>
                 {eyebrow ? <div style={{ fontSize: 28, fontWeight: 500, color: t.accent, marginBottom: 22 }}>{eyebrow}</div> : null}
                 {/* Three lines at most, whatever the words: the art keeps the lower right. */}
                 <div style={{ display: 'block', lineClamp: 3, fontSize: size, fontWeight: 600, lineHeight: 1.04, letterSpacing: -size * 0.03 }}>

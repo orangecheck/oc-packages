@@ -64,14 +64,30 @@ export const TabsList = forwardRef<
 export const TabsTrigger = forwardRef<
     ElementRef<typeof TabsPrimitive.Trigger>,
     ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(function TabsTrigger({ className, ...props }, ref) {
+>(function TabsTrigger({ className, onPointerDown, onKeyDown, onBlur, ...props }, ref) {
     const look = useContext(LookContext);
     return (
         <TabsPrimitive.Trigger
             ref={ref}
+            /*
+             * Radix focuses the tab from script on mousedown, which Chrome can
+             * take for keyboard focus and ring. A press marks the tab; a key clears it.
+             */
+            onPointerDown={(e) => {
+                e.currentTarget.dataset.pressed = '';
+                onPointerDown?.(e);
+            }}
+            onKeyDown={(e) => {
+                delete e.currentTarget.dataset.pressed;
+                onKeyDown?.(e);
+            }}
+            onBlur={(e) => {
+                delete e.currentTarget.dataset.pressed;
+                onBlur?.(e);
+            }}
             className={cn(
                 'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-[0.9375rem] outline-none transition-colors',
-                'focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+                '[&:focus-visible:not([data-pressed])]:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
                 look === 'pill'
                     ? 'h-9 rounded-full px-4 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
                     : '-mb-px h-11 border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',

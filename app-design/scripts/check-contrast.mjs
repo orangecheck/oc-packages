@@ -95,6 +95,9 @@ const PAIRS = [
     // The focus ring, wherever a focused control sits.
     ['ring', 'background', 3],
     ['ring', 'card', 3],
+    // A highlighted menu item's inset ring. On the orange band the ring is brand-foreground (above).
+    ['ring', 'popover', 3],
+    ['ring', 'accent', 3],
     // A checked Switch: the track against the card, and the white thumb on the track.
     ['oca-orange-deep', 'card', 3],
     ['oca-orange-deep', 'background', 3],

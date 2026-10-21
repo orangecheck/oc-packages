@@ -5,9 +5,10 @@ import { PORTRAIT_TONE_B64, PORTRAIT_TONE_SIZE } from './portrait-tone';
 
 /*
  * The deck's halftone, screened live. The portrait's ink is a small tone grid;
- * this draws it as dots on a 45° screen that grow in from the centre, breathe,
- * and part under the pointer like a lens. One path fill per frame; it sleeps
- * when offscreen or hidden, and draws once, still, under reduced motion.
+ * this draws it as dots on a 45° screen that grow in from the centre and part
+ * under the pointer like a lens; the breath is CSS, on the compositor. It draws
+ * only while something moves, sleeps offscreen and in a hidden tab, and draws
+ * one still frame under reduced motion.
  */
 
 export interface Tone {
@@ -36,7 +37,7 @@ export interface HalftoneCanvasProps {
     lens?: boolean;
     /** Grow the dots in from the centre on first view. */
     intro?: boolean;
-    /** A slow wave through the dots. */
+    /** A slow swell of the whole screen, in CSS: it costs no redraws. */
     breathe?: boolean;
     /** Dot colour. */
     ink?: string;
@@ -95,11 +96,15 @@ export function HalftoneCanvas({
         let start = 0;
         let raf = 0;
         let visible = true;
+        // What the canvas shows is out of date (first draw, a resize), or a frame is mid-motion.
+        let stale = true;
+        let busy = true;
 
         function layout() {
             const s = el!.clientWidth;
             if (!s || s === size) return;
             size = s;
+            stale = true;
             const dpr = Math.min(2, window.devicePixelRatio || 1);
             cv!.width = Math.round(s * dpr);
             cv!.height = Math.round(s * dpr);
@@ -137,8 +142,6 @@ export function HalftoneCanvas({
             ctx!.clearRect(0, 0, size, size);
             ctx!.fillStyle = ink;
             ctx!.beginPath();
-            const wave = breathe && !still;
-            const sec = now / 1000;
             for (let n = 0; n < count; n++) {
                 let x = dots[n * 4]!;
                 let y = dots[n * 4 + 1]!;
@@ -148,7 +151,6 @@ export function HalftoneCanvas({
                     if (k <= 0) continue;
                     r *= easeOut(k);
                 }
-                if (wave) r *= 1 + 0.05 * Math.sin(sec * 1.1 + ((x + y) / size) * 6);
                 if (pointer.k > 0.01) {
                     const dx = x - pointer.x;
                     const dy = y - pointer.y;
@@ -170,12 +172,15 @@ export function HalftoneCanvas({
             }
             ctx!.fill();
             const introDone = !intro || still || el2 > 1900;
-            const busy = wave || pointer.k > 0.01 || !introDone;
+            // A pointer that has stopped, or gone, leaves nothing to draw.
+            const settled = Math.abs(pointer.tx - pointer.x) < 0.2 && Math.abs(pointer.ty - pointer.y) < 0.2 && Math.abs((pointer.on ? 1 : 0) - pointer.k) < 0.01;
+            stale = false;
+            busy = !introDone || !settled;
             raf = busy && visible && !document.hidden ? requestAnimationFrame(frame) : 0;
         }
 
         const kick = () => {
-            if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame);
+            if (!raf && (stale || busy) && visible && !document.hidden) raf = requestAnimationFrame(frame);
         };
 
         layout();
@@ -204,10 +209,12 @@ export function HalftoneCanvas({
                 pointer.y = pointer.ty;
             }
             pointer.on = true;
+            busy = true;
             kick();
         };
         const leave = () => {
             pointer.on = false;
+            busy = true;
             kick();
         };
         if (lens && !still) {
@@ -222,7 +229,7 @@ export function HalftoneCanvas({
             el.removeEventListener('pointermove', move);
             el.removeEventListener('pointerleave', leave);
         };
-    }, [tone, density, lens, intro, breathe, ink]);
+    }, [tone, density, lens, intro, ink]);
 
     return (
         <div ref={wrap} className={cn('relative aspect-square w-full', className)} style={style} data-live={live || undefined}>
@@ -240,7 +247,7 @@ export function HalftoneCanvas({
             <canvas
                 ref={canvas}
                 {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })}
-                className="absolute inset-0 size-full"
+                className={cn('absolute inset-0 size-full', breathe && 'oca-animate-breathe')}
             />
         </div>
     );

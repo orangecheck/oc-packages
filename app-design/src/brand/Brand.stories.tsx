@@ -47,7 +47,8 @@ export const Sphere: StoryObj = {
     name: 'Halftone sphere',
     render: () => (
         <div className="grid items-center gap-12 md:grid-cols-2">
-            <HalftoneSphere src={portrait} alt="A person smiling, in halftone" stadium className="mx-auto max-w-sm" />
+            {/* Live: it draws its intro and then only under the pointer; the breath is CSS. */}
+            <HalftoneSphere src={portrait} alt="A person smiling, in halftone" stadium live className="mx-auto max-w-sm" />
             <HalftoneSphere src={portrait} alt="" float className="mx-auto max-w-[12rem]" />
         </div>
     ),
@@ -77,9 +78,11 @@ export const ShareCard: StoryObj = {
                 [
                     { tone: 'ink', product: 'stamp', eyebrow: 'OC Stamp', title: 'Prove who signed it, and when.', host: 'stamp.ochk.io' },
                     { tone: 'paper', product: 'vault', eyebrow: 'Vault', title: 'Secrets your heirs can open, sealed to Bitcoin keys.', host: 'vault.ochk.io' },
+                    // A badge whose owner left the mark out: the title takes the width.
+                    { tone: 'ink', eyebrow: 'Verified on orangecheck', title: 'bc1q9h7g…5e3w7t holds 0.5 BTC, unspent for 412 days', host: 'ochk.io', mark: false },
                 ] as const
-            ).map((card) => (
-                <div key={card.tone} className="max-w-full overflow-hidden rounded-2xl border border-border" style={{ width: 600, height: 315 }}>
+            ).map((card, i) => (
+                <div key={i} className="max-w-full overflow-hidden rounded-2xl border border-border" style={{ width: 600, height: 315 }}>
                     <div style={{ width: 1200, height: 630, transform: 'scale(0.5)', transformOrigin: '0 0', display: 'flex' }}>
                         <OgCard {...card} />
                     </div>

@@ -2,10 +2,12 @@ import * as SeparatorPrimitive from '@radix-ui/react-separator';
 import {
     forwardRef,
     useEffect,
+    useRef,
     useState,
     type ComponentPropsWithoutRef,
     type CSSProperties,
     type ElementRef,
+    type FocusEvent,
     type HTMLAttributes,
 } from 'react';
 import { useTheme } from 'next-themes';
@@ -124,25 +126,56 @@ const TOAST_COLOURS = {
     '--normal-border': 'var(--border)',
 } as CSSProperties;
 
+const noFocus = () => {};
+
+/*
+ * sonner sends focus back to where it came from whenever it leaves a toast, so
+ * Tab past the last toast lands on the toast again. Keep that for its hotkey
+ * (alt+T focuses the list itself); a Tab out goes where it was going.
+ */
+function useTabPastToasts() {
+    const hotkey = useRef(false);
+    const from = useRef<HTMLElement | null>(null);
+    return {
+        onFocusCapture: (e: FocusEvent<HTMLDivElement>) => {
+            if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+            hotkey.current = e.target instanceof HTMLElement && e.target.hasAttribute('data-sonner-toaster');
+            from.current = e.relatedTarget instanceof HTMLElement ? e.relatedTarget : null;
+        },
+        onBlurCapture: (e: FocusEvent<HTMLDivElement>) => {
+            const to = e.relatedTarget;
+            if (hotkey.current || !from.current || !(to instanceof HTMLElement) || e.currentTarget.contains(to)) return;
+            // sonner's own blur handler runs next and calls from.focus(); it finds a no-op, once.
+            from.current.focus = noFocus;
+        },
+        onBlur: () => {
+            if (from.current?.focus === noFocus) Reflect.deleteProperty(from.current, 'focus');
+        },
+    };
+}
+
 /** Toasts in the page's mode: it reads next-themes, so a site passes nothing for dark. */
 export function Toaster({ style, ...props }: ToasterProps) {
     const { resolvedTheme } = useTheme();
+    const tab = useTabPastToasts();
     return (
-        <SonnerToaster
-            theme={resolvedTheme === 'dark' ? 'dark' : resolvedTheme === 'light' ? 'light' : 'system'}
-            style={{ ...TOAST_COLOURS, ...style }}
-            position="bottom-right"
-            toastOptions={{
-                classNames: {
-                    toast: 'oca-toast rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg font-sans',
-                    title: 'text-[0.9375rem] font-medium',
-                    description: 'text-sm text-muted-foreground',
-                    actionButton: 'rounded-full bg-primary text-primary-foreground',
-                    cancelButton: 'rounded-full bg-muted text-foreground',
-                },
-            }}
-            {...props}
-        />
+        <div style={{ display: 'contents' }} {...tab}>
+            <SonnerToaster
+                theme={resolvedTheme === 'dark' ? 'dark' : resolvedTheme === 'light' ? 'light' : 'system'}
+                style={{ ...TOAST_COLOURS, ...style }}
+                position="bottom-right"
+                toastOptions={{
+                    classNames: {
+                        toast: 'oca-toast rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg font-sans',
+                        title: 'text-[0.9375rem] font-medium',
+                        description: 'text-sm text-muted-foreground',
+                        actionButton: 'rounded-full bg-primary text-primary-foreground',
+                        cancelButton: 'rounded-full bg-muted text-foreground',
+                    },
+                }}
+                {...props}
+            />
+        </div>
     );
 }
 

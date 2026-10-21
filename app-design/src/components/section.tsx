@@ -19,7 +19,8 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             // The band line is transparent in light; in dark it keeps the ink
             // band from melting into the canvas.
             ink: 'border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground',
-            brand: 'bg-brand text-brand-foreground',
+            // Focus is drawn in the band's own ink: orange on orange was 1.2:1.
+            brand: 'bg-brand text-brand-foreground [--ring:var(--brand-foreground)]',
         },
         space: {
             none: '',

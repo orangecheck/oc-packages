@@ -432,7 +432,7 @@ function SidebarShell({
                     <div className="flex min-w-0 flex-1 flex-col">
                         <div className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:flex">{account}</div>
                         {banner ? <div className="px-4 pb-2 pt-4 md:px-8 lg:pt-0">{banner}</div> : null}
-                        <main id="main-content" className="flex-1 px-4 pb-16 pt-6 md:px-8 lg:pt-2">
+                        <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-16 pt-6 outline-none md:px-8 lg:pt-2">
                             {/* One width for every signed-in page. */}
                             <div className="mx-auto w-full max-w-[72rem]">
                                 <InColumnContext.Provider value={true}>{children}</InColumnContext.Provider>
@@ -504,7 +504,8 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
                         </nav>
                         <main
                             id="main-content"
-                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col', tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]')}
+                            tabIndex={-1}
+                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col outline-none', tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]')}
                         >
                             {children}
                         </main>

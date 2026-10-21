@@ -218,6 +218,11 @@
         outline-offset: 2px;
     }
 
+    /* A skip link's landing: focus moves to the page, which needs no ring around all of it. */
+    [data-oc-app='ochk'] main[tabindex='-1']:focus-visible {
+        outline: none;
+    }
+
     [data-oc-app='ochk'] code,
     [data-oc-app='ochk'] kbd,
     [data-oc-app='ochk'] samp {
@@ -234,6 +239,25 @@
     [data-oc-app='ochk'] :where(p, li, dd, figcaption, blockquote) {
         text-wrap: pretty;
     }
+}
+
+/* A field in focus: a 2px edge in the ring colour (3.56:1 on the light card, 6.17:1 on the
+   dark) and the soft halo outside it. Keyed on [data-oca-field], so a field styled inline
+   (the sign-in ceremony) wears the same look; important, so its inline border cannot hide it. */
+[data-oc-app='ochk'] [data-oca-field]:focus,
+[data-oc-app='ochk'] [data-oca-field]:focus-visible {
+    outline: none;
+    border-color: var(--ring) !important;
+    box-shadow:
+        0 0 0 1px var(--ring),
+        0 0 0 4px color-mix(in oklab, var(--oca-orange) 16%, transparent) !important;
+}
+[data-oc-app='ochk'] [data-oca-field][aria-invalid='true']:focus,
+[data-oc-app='ochk'] [data-oca-field][aria-invalid='true']:focus-visible {
+    border-color: var(--destructive) !important;
+    box-shadow:
+        0 0 0 1px var(--destructive),
+        0 0 0 4px color-mix(in oklab, var(--destructive) 14%, transparent) !important;
 }
 
 /* iOS Safari zooms into a focused field under 16px. Unlayered so no utility re-breaks it. */

@@ -55,8 +55,9 @@ export function DocsNav({
         () => sections.findIndex((s) => s.items.some((i) => pathOf(i.href) === here)),
         [sections, here]
     );
-    const [peeked, setPeeked] = useState<Set<number>>(() => new Set());
-    useEffect(() => setPeeked(new Set()), [activeSection]);
+    // Sections the reader opened or closed by hand; the current one starts open and closes too.
+    const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
+    useEffect(() => setFlipped(new Set()), [activeSection]);
     const activeRef = useRef<HTMLAnchorElement>(null);
     useEffect(() => {
         const id = requestAnimationFrame(() => activeRef.current?.scrollIntoView({ block: 'nearest' }));
@@ -67,7 +68,7 @@ export function DocsNav({
         <nav aria-label="Docs" className={cn('flex flex-col gap-0.5', className)}>
             {sections.map((section, si) => {
                 const isActive = si === activeSection;
-                const open = isActive || peeked.has(si);
+                const open = isActive !== flipped.has(si);
                 const panel = `${base}-s${si}`;
                 return (
                     <div key={section.label}>
@@ -76,8 +77,7 @@ export function DocsNav({
                             aria-expanded={open}
                             aria-controls={panel}
                             onClick={() => {
-                                if (isActive) return;
-                                setPeeked((p) => {
+                                setFlipped((p) => {
                                     const n = new Set(p);
                                     if (n.has(si)) n.delete(si);
                                     else n.add(si);
@@ -86,8 +86,7 @@ export function DocsNav({
                             }}
                             className={cn(
                                 'flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.875rem] transition-colors',
-                                isActive ? 'font-medium text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                                isActive && 'cursor-default'
+                                isActive ? 'font-medium text-foreground hover:bg-accent' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >
                             {section.label}
@@ -241,7 +240,7 @@ export function DocsShell({
                     <div className="sticky top-[4.5rem] hidden max-h-[calc(100dvh-4.5rem)] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
                         <DocsNav sections={nav} current={marked} />
                     </div>
-                    <main id="main-content" className="min-w-0 pb-16 pt-6 md:pt-8">
+                    <main id="main-content" tabIndex={-1} className="min-w-0 pb-16 pt-6 outline-none md:pt-8">
                         {/* Below lg the bar under the header already says where you are. */}
                         {breadcrumbs ? <div className="mb-6 max-lg:hidden">{breadcrumbs}</div> : null}
                         {items.length > 1 ? (

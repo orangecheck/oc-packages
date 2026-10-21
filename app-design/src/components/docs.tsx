@@ -5,7 +5,6 @@ import {
     isValidElement,
     useEffect,
     useId,
-    useRef,
     useState,
     type HTMLAttributes,
     type ReactElement,
@@ -24,6 +23,7 @@ import { StatusBadge, type Status } from '../primitives/status-badge';
 import { CodeBlock } from './code-block';
 import { Notice } from './data';
 import { useActiveHeading, type TocItem } from './hero';
+import { useInView } from './motion';
 
 /*
  * The parts of a docs page: where you are (Breadcrumbs), where to go next
@@ -563,11 +563,12 @@ function useInnerWidth(ref: RefObject<HTMLElement | null>, padding: number): num
 /**
  * A mermaid diagram drawn in the page's own colours, again whenever the
  * page turns light or dark. Pass `load` (`() => import('mermaid')`) so
- * mermaid is fetched only on a page that draws one. If it cannot be drawn,
- * the source shows instead.
+ * mermaid is fetched only on a page that draws one, and only once the
+ * diagram is within a screen of view. If it cannot be drawn, the source
+ * shows instead.
  */
 export function Diagram({ chart, caption, load, className }: { chart: string; caption?: ReactNode; load: MermaidLoader; className?: string }) {
-    const ref = useRef<HTMLDivElement>(null);
+    const [ref, near] = useInView<HTMLElement>('100% 0px');
     const dark = useDarkMode();
     const raw = useId();
     const [drawn, setDrawn] = useState<{ svg: string; width: number | null } | null>(null);
@@ -577,7 +578,7 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
     useEffect(() => {
         let live = true;
         const el = ref.current;
-        if (!el) return;
+        if (!el || !near) return;
         (async () => {
             try {
                 const mod = await load();
@@ -595,7 +596,7 @@ export function Diagram({ chart, caption, load, className }: { chart: string; ca
         return () => {
             live = false;
         };
-    }, [chart, dark, load, raw]);
+    }, [chart, dark, load, raw, near, ref]);
     if (failed) return <CodeBlock code={chart} caption="Diagram (shown as its source)" className={cn('my-6', className)} />;
     return (
         <figure ref={ref} className={cn('not-prose my-6 overflow-hidden rounded-[1.25rem] border border-border bg-card', className)}>

@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-10-21
+
+The keyboard pass, a failure sentence, and two pages that sat busy doing nothing.
+
+- A field in focus has a 2px edge in the ring colour: 3.56:1 on the light
+  card, 6.17:1 on the dark. It was 2.35:1 in light. The look is keyed on
+  `[data-oca-field]` (Input, Textarea, SelectTrigger carry it), so a field
+  styled inline, like the sign-in ceremony's, can wear it too. An invalid
+  field keeps its red edge in focus.
+- On the orange closing band (`Section tone="brand"`) the focus ring is ink.
+  It was orange on orange, 1.00:1 in dark.
+- `SignInFrame` opens with "Skip to sign in", which lands on the ceremony.
+- Every shell's `<main>` takes focus from "Skip to content" (`tabIndex={-1}`),
+  and `SkipLink` gives a site's own plain `<main>` the same, with no ring
+  drawn around the whole page.
+- `DocsNav`: the open section's button closes it. It announced a collapsible
+  section that never collapsed.
+- A dialog or sheet opened without a Trigger (every `confirm()` and
+  `prompt()`, one opened from state) hands focus back to what opened it. It
+  fell to the page's body.
+- Tab past a toast goes on to the page. sonner sent focus back to where it
+  came from, so Tab looped through the toast. alt+T still returns there.
+- A highlighted menu, select or search item has a 2px ring inside it, 3:1 or
+  more against the menu. The tint alone was 1.10:1.
+- A tab pressed with the mouse shows no ring; one reached by the keyboard
+  still does. Radix focuses a tab from script on mousedown, which Chrome
+  took for keyboard focus.
+- `failureText(e, { source, fallback, keepMessage })` and `OFFLINE_TEXT` in
+  `./format`: a failed request as one sentence a person can act on. No
+  answer (every browser's words for it, a timeout, an abort) reads "mempool.space
+  did not answer. Check your connection, then try again." with a source, or
+  "We couldn't reach the server. …" without. Anything else is the fallback,
+  "Something went wrong. Try again.", unless `keepMessage` keeps a sentence
+  the site wrote. Library text, codes and status numbers never come through.
+- `OgCard` takes `mark` (on by default). Off, the large mark is left out and
+  the title takes the card's width, for a badge whose owner chose no mark.
+- `Diagram` fetches mermaid only once the diagram is within a screen of
+  view. About 180 kB, and most of the docs index's blocking time.
+- The halftone portrait (`HalftoneCanvas`, `HalftoneSphere live`) draws its
+  intro, then only while the pointer moves over it. Its breath is a CSS
+  swell on the compositor; every dot used to be redrawn on every frame,
+  ochk.app's biggest cost on the main thread. It still sleeps offscreen and
+  in a hidden tab, and draws one still frame under reduced motion.
+- `yarn test` gains three checks, each failing on 1.12.2: check-focus (real
+  key presses in Chrome, light and dark), check-idle (draws counted while
+  nothing happens; mermaid fetched only near view) and check-format. check-og
+  covers `mark`.
+
 ## [1.12.2] — 2026-10-21
 
 - `FontPreloads` named Inter without the `?dpl=` query Vercel's skew
