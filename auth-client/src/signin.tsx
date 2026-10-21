@@ -1236,6 +1236,7 @@ function WalletFlow({
                 </FlowHeader>
                 <Label htmlFor={ids.message}>Message to sign</Label>
                 <textarea
+                    data-oca-field=""
                     id={ids.message}
                     readOnly
                     value={manual.message}
@@ -1252,6 +1253,7 @@ function WalletFlow({
                 <div style={{ marginTop: 14 }}>
                     <Label htmlFor={ids.signature}>Signature</Label>
                     <textarea
+                        data-oca-field=""
                         id={ids.signature}
                         value={pasted}
                         onChange={(e) => {
@@ -1300,6 +1302,7 @@ function WalletFlow({
             </FlowHeader>
             <Label htmlFor={ids.address}>Bitcoin address</Label>
             <input
+                data-oca-field=""
                 id={ids.address}
                 type="text"
                 value={address}
@@ -1461,6 +1464,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 </FlowHeader>
                 <Label htmlFor={`${uid}-email`}>Email</Label>
                 <input
+                    data-oca-field=""
                     id={`${uid}-email`}
                     type="email"
                     autoComplete="email"
@@ -1491,6 +1495,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             </FlowHeader>
             <Label htmlFor={`${uid}-code`}>One-time code</Label>
             <input
+                data-oca-field=""
                 id={`${uid}-code`}
                 type="text"
                 inputMode="numeric"

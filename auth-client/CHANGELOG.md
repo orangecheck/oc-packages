@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.35.2] — 2026-10-21
+
+### Changed
+
+- **The fields wear app-design's field focus.** Every text field of the
+  ceremony carries `data-oca-field`: the email, the code, the address, the
+  message to sign and the signature. So do the link step's fields and the
+  bond address field. On a page with `@orangecheck/app-design` 1.13.0 or
+  later, focus draws the same 2px `--ring` edge and soft halo as the family's
+  own inputs (3.41:1 light, 6.75:1 dark on ochk.io and ochk.app), in place of
+  the outline. Elsewhere the attribute does nothing and the browser's ring
+  shows, as in 2.35.0.
+
 ## [2.35.1] — 2026-10-21
 
 ### Fixed

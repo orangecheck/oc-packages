@@ -14,7 +14,7 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
     getSigner: () => async () => 'unused',
 }));
 
-import { inputStyle as linkedInputStyle } from '../linked-identities';
+import { inputStyle as linkedInputStyle, LinkPromptStep } from '../linked-identities';
 import { humanSigninError, looksLikeBitcoinAddress, OcSignIn } from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
@@ -273,6 +273,57 @@ describe('OcSignIn · fields show the page focus ring', () => {
         expect(email.length + wallet.length).toBeGreaterThan(1);
         for (const f of [...email, ...wallet]) {
             expect(f.getAttribute('style') ?? '').not.toMatch(/outline\s*:\s*none/);
+        }
+    });
+
+    it('every text field wears the family field focus (data-oca-field), through each step', async () => {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.includes('/api/challenge')) return { body: { message: 'sign this', nonce: 'n1' } };
+            if (url.endsWith('/api/auth/email-otp/start')) return { body: { ok: true, token: 't'.repeat(48) } };
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        const seen = new Set<string>();
+        const check = () => {
+            const fields = [
+                ...document.querySelectorAll<HTMLElement>(
+                    '[data-oc-signin] input:not([type=checkbox]):not([type=radio]), [data-oc-signin] textarea'
+                ),
+            ];
+            for (const f of fields) {
+                seen.add(f.id);
+                expect(f.hasAttribute('data-oca-field'), `${f.tagName} #${f.id}`).toBe(true);
+            }
+        };
+        check();
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        check();
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} initialPath="wallet" />);
+        await act(async () => {});
+        check();
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        check();
+        // Email, the code, the address, the message to sign and the signature.
+        expect(seen.size).toBeGreaterThanOrEqual(5);
+    });
+
+    it('the link step that follows sign-in wears it too', () => {
+        stubFetch(() => undefined);
+        for (const method of ['email', 'btc'] as const) {
+            const { unmount } = render(
+                <LinkPromptStep method={method} didOc="did:oc:x" authOrigin="https://ochk.io" onResolved={() => {}} />
+            );
+            const fields = [...document.querySelectorAll<HTMLElement>('[data-oc-linkprompt] input, [data-oc-linkprompt] textarea')];
+            expect(fields.length).toBeGreaterThan(0);
+            for (const f of fields) expect(f.hasAttribute('data-oca-field')).toBe(true);
+            unmount();
         }
     });
 

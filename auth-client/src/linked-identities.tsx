@@ -653,6 +653,7 @@ function EmailLinkForm({
             {step === 'email' ? (
                 <>
                     <input
+                        data-oca-field=""
                         type="email"
                         autoComplete="email"
                         value={email}
@@ -687,6 +688,7 @@ function EmailLinkForm({
                 <>
                     <p style={bodyStyle}>Enter the 6-digit code sent to {email}.</p>
                     <input
+                        data-oca-field=""
                         type="text"
                         inputMode="numeric"
                         autoComplete="one-time-code"
@@ -814,6 +816,7 @@ function BtcLinkForm({
                         wallet signs it (BIP-322).
                     </p>
                     <input
+                        data-oca-field=""
                         type="text"
                         value={addr}
                         onChange={(e) => setAddr(e.target.value.trim())}
