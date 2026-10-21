@@ -91,9 +91,11 @@ export async function seal(input: SealInput): Promise<LockEnvelope> {
     // Build recipients with wrapped keys.
     const recipients: EnvelopeRecipient[] = [];
     for (const r of input.recipients) {
-        // SPEC §3.5: revocation is publishing a record with `device_pk` set to
-        // the literal "revoked", and "conforming senders MUST refuse to encrypt
-        // to a revoked device record."
+        // SPEC §3.5 (2.1.0): a revocation is a record with `device_pk` set to
+        // the literal "revoked", and "conforming senders MUST seal only to live
+        // binds"; with none live for an address, the sender reports E_REVOKED.
+        // Which binds are live is the caller's job (lock-device liveDevices);
+        // this refuses a recipient that is itself the revocation record.
         //
         // This already failed, but only by accident: "revoked" is not valid hex,
         // so hexDecode below threw `hex string must have even length` — a plain
