@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+`cardTitle` takes anything with a `name`, so a site that keeps its own Seo can
+cut its name from a page title the same way when it points og:image at its card.
+
 ## 0.5.0
 
 A page's link preview is the family card with its own title. A site that

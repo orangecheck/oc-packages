@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/head.js', () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
 
 import {
+    cardTitle,
     createSeo,
     defineSite,
     generateMetaTags,
@@ -232,6 +233,11 @@ describe('share image', () => {
         expect(image(site, { title: 'Verify a stamp · OC Stamp', canonical: '/verify' })).toBe('https://img.example/Verify%20a%20stamp%20%C2%B7%20OC%20Stamp.png');
         expect(seen).toEqual(['Verify a stamp · OC Stamp']);
         expect(() => generateMetaTags(defineSite({ ...STAMP, ogImage: () => '/og.png' }), { canonical: '/' })).toThrow(TypeError);
+    });
+
+    it('cardTitle needs only the name, for a site that keeps its own Seo', () => {
+        expect(cardTitle({ name: 'OC Chat' }, 'Pricing · OC Chat')).toBe('Pricing');
+        expect(cardTitle({ name: 'orangecheck docs' }, 'orangecheck docs — Vault')).toBe('Vault');
     });
 
     it.each(['api/og', '/api/og?x=1', 'https://stamp.ochk.io/api/og', '/api/og#x'])('defineSite refuses ogRoute %s', (ogRoute) => {

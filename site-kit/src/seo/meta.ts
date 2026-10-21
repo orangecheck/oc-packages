@@ -115,7 +115,7 @@ export function absoluteUrl(site: SiteSeo, pathOrUrl: string): string {
 }
 
 /** A page title as its share card shows it: the site's name, at either end, is already on the card. */
-export function cardTitle(site: SiteSeo, title: string): string {
+export function cardTitle(site: Pick<SiteSeo, 'name'>, title: string): string {
     const name = escapeRegExp(site.name);
     const sep = '\\s*(?:[·|:–—-])\\s*';
     const cut = title.replace(new RegExp(`${sep}${name}$`), '').replace(new RegExp(`^${name}${sep}`), '').trim();
