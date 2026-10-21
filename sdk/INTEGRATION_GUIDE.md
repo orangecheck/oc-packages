@@ -184,7 +184,7 @@ async function createAndPublishAttestation(
         signature,
         address,
         identities,
-        relays: ['wss://relay.damus.io', 'wss://relay.nostr.band', 'wss://nos.lol'],
+        relays: ['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.ochk.io'],
     });
 
     console.log('Attestation ID:', result.attestation_id);

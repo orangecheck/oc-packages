@@ -40,10 +40,10 @@ console.log(`${events.length} unique events from ${relayStatus.filter(r => r.ok)
 
 Five relays, in order:
 
-1. `wss://relay.nostr.band`
-2. `wss://nos.lol`
-3. `wss://relay.primal.net`
-4. `wss://offchain.pub`
+1. `wss://nos.lol`
+2. `wss://relay.primal.net`
+3. `wss://offchain.pub`
+4. `wss://relay.snort.social`
 5. `wss://relay.ochk.io` — the OC family's first-party kind-allowlisted relay (see [`oc-relay-infra`](https://github.com/orangecheck/oc-relay-infra))
 
 **`DEFAULT_RELAYS` is enforced at the type level to never collapse to `relay.ochk.io` alone or to fewer than two entries.** See the `_ValidRelaySet` invariant in `src/index.ts`. A future change that violates the invariant fails `tsc` at build time.
