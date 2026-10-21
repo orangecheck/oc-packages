@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.15.3] — 2026-10-21
+
+- A docs heading's "#" anchor is 24px to press: a target drawn around it, so
+  the heading's line does not grow. It was 23px (ochk.io/docs, 1 to 14 a page).
+- Breadcrumbs' links are 24px tall from sm too (44px on a phone, as before).
+  They were 21px at 1440.
+- check-layout holds both on an SDK-shaped page at 390 and 1440, failing on
+  1.15.2.
+
 ## [1.15.2] — 2026-10-21
 
 - A link in 13px text (an ApiTable's description) was 23px to press: 1.15.1's

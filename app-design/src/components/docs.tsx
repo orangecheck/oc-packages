@@ -66,7 +66,7 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                         return (
                             <li key={i} className={cn('flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0')}>
                                 {c.href && !last ? (
-                                    <DocLink href={c.href} className="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-0">
+                                    <DocLink href={c.href} className="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-6">
                                         {c.label}
                                     </DocLink>
                                 ) : (
@@ -765,7 +765,8 @@ export function DocsHeading({
             {id && Tag !== 'h1' ? (
                 <a
                     href={`#${id}`}
-                    className="ml-2 inline-block rounded-md px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    // A 24px target drawn around it (before:), so the heading's line does not grow.
+                    className="relative ml-2 inline-block rounded-md px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
                 >
                     <span aria-hidden>#</span>
                     <span className="sr-only">Link to this section</span>

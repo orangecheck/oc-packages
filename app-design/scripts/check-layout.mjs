@@ -417,6 +417,7 @@ try {
             h(
                 'div',
                 { className: 'mx-auto max-w-[48rem] px-4 py-6', 'data-sdk': '' },
+                h(C.Breadcrumbs, { items: [{ href: '/docs', label: 'Docs' }, { href: '/docs/sdk', label: 'SDKs' }, { label: 'agent-core' }] }),
                 h(M.h1, { id: 'fn' }, 'Function: federationDescriptorCanonicalMessage()'),
                 h(M.h2, { id: 'p' }, 'canonicalAbandonmentMessageBytes()'),
                 h(M.h3, { id: 'r' }, 'resetFamilyRevocationCheckForTests'),
@@ -715,6 +716,21 @@ try {
             }));
             check(sd.over <= 0 && sd.wide.length === 0, `[${width}] docs headings: a long identifier widens the page by ${sd.over}px (${sd.wide.join(', ')})`);
             check(Object.values(sd.links).length >= 3 && Object.values(sd.links).every((x) => x >= 24), `[${width}] TextLink: a link is shorter than 24px to press (${JSON.stringify(sd.links)})`);
+            // A heading's "#" anchor and the breadcrumbs: 24px to press too, the anchor's line unchanged.
+            const tg = await p.evaluate(() => {
+                const anchors = [...document.querySelectorAll('[data-sdk] h2 a[href^="#"], [data-sdk] h3 a[href^="#"]')].map((a) => {
+                    a.scrollIntoView({ block: 'center' });
+                    const r = a.getBoundingClientRect();
+                    const cx = r.left + r.width / 2;
+                    const cy = r.top + r.height / 2;
+                    const lands = (y) => a.contains(document.elementFromPoint(cx, y));
+                    return lands(cy - 11.5) && lands(cy + 11.5);
+                });
+                const crumbs = [...document.querySelectorAll('[data-sdk] nav[aria-label="Breadcrumb"] a')].map((a) => Math.round(a.getBoundingClientRect().height));
+                return { anchors, crumbs };
+            });
+            check(tg.anchors.length >= 2 && tg.anchors.every(Boolean), `[${width}] a docs heading's "#" anchor is not 24px to press (${JSON.stringify(tg.anchors)})`);
+            check(tg.crumbs.length === 2 && tg.crumbs.every((x) => x >= 24), `[${width}] Breadcrumbs: a link is ${JSON.stringify(tg.crumbs)}px tall, under 24`);
             // The fallback face matches Inter's widths, so the swap does not move a line (tool headers moved 3-5px).
             if (width >= 1024) {
                 const fb = await p.evaluate(async () => {
