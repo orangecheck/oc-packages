@@ -81,17 +81,19 @@ function colourKit() {
         x.fillRect(0, 0, 1, 1);
         return [...x.getImageData(0, 0, 1, 1).data.slice(0, 3)];
     };
-    // Of the layers that draw, the widest spread; null when none draws.
-    window.__ring = (shadow) => {
-        if (!shadow || shadow === 'none') return null;
+    // A box-shadow's layers that draw (a colour and a spread), widest first.
+    window.__layers = (shadow) => {
+        if (!shadow || shadow === 'none') return [];
         const layers = shadow.split(/,(?![^(]*\))/).map((l) => {
             const t = l.trim();
             const colour = t.match(/^(rgba?|oklch|oklab|color|lab|lch|hsla?)\([^)]*\)|^#[\da-f]+/i)?.[0] ?? '';
             const px = (t.slice(colour.length).match(/-?[\d.]+px/g) ?? []).map(parseFloat);
             return { colour, spread: px[3] ?? 0, clear: /^rgba\([^)]*,\s*0\)$/.test(colour) || /\/\s*0\)$/.test(colour) };
         });
-        return layers.filter((l) => !l.clear && l.spread > 0).sort((a, b) => b.spread - a.spread)[0]?.colour ?? null;
+        return layers.filter((l) => !l.clear && l.spread > 0).sort((a, b) => b.spread - a.spread);
     };
+    // The ring: of the layers that draw, the widest; null when none draws.
+    window.__ring = (shadow) => window.__layers(shadow)[0]?.colour ?? null;
     window.__contrast = (a, b) => {
         const lum = (rgb) => {
             const [r, g, bl] = rgb.map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));

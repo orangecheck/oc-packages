@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.13.2] — 2026-10-21
+
+- A composite field wears the field focus edge: put `data-oca-field-group`
+  on the bordered box around chips and a bare input (vault's tags). While
+  focus is anywhere inside, the box draws the same 2px ring-colour edge and
+  halo as an Input, red when a control inside is `aria-invalid`, with the
+  transparent outline forced colours paint. The bare input inside keeps
+  `outline-none` and no `data-oca-field`.
+- check-focus now requires a drawn focus ring at 3:1, not only a border that
+  passes at rest (the field's resting border already did), and holds a
+  chips-and-input fixture to it. It fails on 1.13.1. The Forms story shows
+  the composite field.
+
 ## [1.13.1] — 2026-10-21
 
 - A product's footer fits a phone with seven link groups: 585px at 390,

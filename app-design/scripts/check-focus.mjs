@@ -3,8 +3,10 @@
  * The keyboard, in Chrome, with real key presses:
  *
  * - A field in focus has an edge of 3:1 or more against the card and the
- *   page, in light and dark, one styled inline too, and no second ring; an
- *   invalid one keeps its red. Under forced colours it keeps an outline.
+ *   page, in light and dark, one styled inline too, and no second ring; so
+ *   does a composite field's box (chips and a bare input) while focus is
+ *   inside it. An invalid one keeps its red. Under forced colours a field
+ *   keeps an outline.
  * - On the orange closing band the focus ring is ink, not orange on orange.
  * - The sign-in page's first stop skips to the ceremony; every shell's skip
  *   link puts focus on its main, and so does a site's own plain <main>.
@@ -120,6 +122,13 @@ try {
             h(P.Select, null, h(P.SelectTrigger, { 'data-f': 'select' }, h(P.SelectValue, { placeholder: 'Network' }))),
             // A field styled inline, as the sign-in ceremony styles its own: the focus look still wins.
             h('input', { 'data-f': 'inline', 'data-oca-field': '', placeholder: 'you@example.com', style: { border: '1px solid var(--input)', borderRadius: 12, padding: '10px 14px', background: 'var(--card)' } }),
+            // A composite field, as vault's tags are: chips and a bare input in one bordered box.
+            h(
+                'div',
+                { 'data-oca-field-group': '', className: 'flex flex-wrap items-center gap-2 rounded-xl border border-input bg-card px-3 py-2' },
+                h('span', { className: 'inline-flex items-center gap-1 rounded-full bg-muted px-2' }, 'bitcoin', h('button', { type: 'button', 'data-f': 'group', 'aria-label': 'Remove bitcoin' }, '×')),
+                h('input', { 'data-f': 'group-input', 'aria-label': 'Tags', className: 'min-w-0 flex-1 bg-transparent outline-none' })
+            ),
             h(P.Input, { 'data-f': 'invalid', 'aria-invalid': true, defaultValue: 'not an address' })
         )
     );
@@ -148,13 +157,15 @@ try {
         for (const dark of [false, true]) {
             await p.goto(fields);
             await p.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark);
-            for (const f of ['input', 'textarea', 'select', 'inline', 'invalid']) {
+            for (const f of ['input', 'textarea', 'select', 'inline', 'group', 'group-input', 'invalid']) {
                 await p.keyboard.press('Tab');
                 // Read the edge after its transition, not halfway.
                 await p.waitForTimeout(300);
                 const got = await p.evaluate((f) => {
-                    const el = document.activeElement;
-                    if (el?.getAttribute('data-f') !== f) return { focused: el?.getAttribute('data-f') ?? el?.tagName };
+                    const focused = document.activeElement;
+                    if (focused?.getAttribute('data-f') !== f) return { focused: focused?.getAttribute('data-f') ?? focused?.tagName };
+                    // In a composite field the edge is the box's, wherever inside it focus is.
+                    const el = focused.closest('[data-oca-field-group]') ?? focused;
                     const page = __rgb(getComputedStyle(el.closest('.bg-background')).backgroundColor);
                     const ground = __rgb(getComputedStyle(el).backgroundColor, `rgb(${page.join()})`);
                     const edge = getComputedStyle(el).borderTopColor;
@@ -162,7 +173,9 @@ try {
                     // The page's own focus outline would ring it a second time.
                     const cs = getComputedStyle(el);
                     const second = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 && __rgb(cs.outlineColor, 'rgb(1, 2, 3)').join() !== '1,2,3';
-                    return { focused: f, card: __contrast(drawn, ground), page: __contrast(drawn, page), edge, second };
+                    // The focus look itself, not a resting border that happens to pass: a shadow ring at 3:1 on the field.
+                    const ringed = Math.max(0, ...__layers(cs.boxShadow).map((l) => __contrast(__rgb(l.colour, `rgb(${ground.join()})`), ground)));
+                    return { focused: f, card: __contrast(drawn, ground), page: __contrast(drawn, page), edge, second, ringed };
                 }, f);
                 const mode = dark ? 'dark' : 'light';
                 if (got.focused !== f) {
@@ -171,6 +184,7 @@ try {
                 }
                 check(got.card >= 3 && got.page >= 3, `[${mode}] ${f} in focus: its edge is ${got.card.toFixed(2)}:1 on the field, ${got.page.toFixed(2)}:1 on the page (${got.edge})`);
                 check(!got.second, `[${mode}] ${f} in focus: the page's outline rings it a second time`);
+                check(got.ringed >= 3, `[${mode}] ${f} in focus: no ring of 3:1 drawn round it (strongest ${got.ringed.toFixed(2)}:1)`);
             }
             // The invalid field keeps the destructive edge in focus.
             const red = await p.evaluate(() => {

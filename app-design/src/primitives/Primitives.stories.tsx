@@ -146,6 +146,21 @@ export const Forms: StoryObj = {
                 <Field label="Payout address" error="That isn't a Bitcoin or Lightning address.">
                     <Input defaultValue="not-an-address" />
                 </Field>
+                <Field label="Tags" hint="A composite field: the box wears the focus edge while focus is anywhere inside it.">
+                    {(control) => (
+                        <div data-oca-field-group="" className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-input bg-card px-2.5 py-1.5">
+                            {['savings', 'cold storage'].map((t) => (
+                                <span key={t} className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-[0.8125rem]">
+                                    {t}
+                                    <button type="button" aria-label={`Remove ${t}`} className="inline-flex size-5 items-center justify-center rounded-full hover:bg-accent">
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                            <input {...control} placeholder="Add a tag" className="min-w-24 flex-1 bg-transparent py-1 text-base outline-none md:text-[0.9375rem]" />
+                        </div>
+                    )}
+                </Field>
                 <Field
                     label="Invite an operator"
                     hint="Their account id. They can copy it from their Account page."
