@@ -1,6 +1,6 @@
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import Link from 'next/link';
-import { createContext, useContext, type HTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
@@ -166,7 +166,8 @@ export function ListRow({
         current && look.current,
         actions && 'pr-14'
     );
-    const body = (
+    const aria = current ? { 'aria-current': 'true' as const } : {};
+    const parts = (titleNode: ReactNode) => (
         <>
             {leading ? <span className="flex shrink-0">{leading}</span> : null}
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -181,7 +182,7 @@ export function ListRow({
                             unread ? 'font-semibold' : 'font-medium'
                         )}
                     >
-                        {title}
+                        {titleNode}
                     </span>
                     {meta ? <span className="oca-tabular shrink-0 text-[0.8125rem] text-muted-foreground">{meta}</span> : null}
                 </span>
@@ -210,10 +211,81 @@ export function ListRow({
             ) : null}
         </>
     );
-    const aria = current ? { 'aria-current': 'true' as const } : {};
-    // With a text action the item is a row of two: the row, and the action beside it (under it on a phone).
-    const row = (
-        <>
+    const menu = actions ? (
+        <div
+            className={cn(
+                'absolute right-2 top-1/2 flex -translate-y-1/2 items-center',
+                revealActions === 'hover' &&
+                    'transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/row:opacity-100 md:has-[[data-state=open]]:opacity-100'
+            )}
+        >
+            {actions}
+        </div>
+    ) : null;
+
+    if (action) {
+        /*
+         * A text action cannot sit inside the row's link, nor over it. The row
+         * becomes a grid whose title is the link, its target stretched over
+         * the row; the action is a column of its own from sm and, on a phone,
+         * a line in the text's column, so it lines up with the text whatever
+         * the picture's size.
+         */
+        const stretch = cn(
+            'outline-none after:absolute after:inset-0 after:content-[""] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring',
+            variant === 'pane' && 'after:rounded-xl'
+        );
+        const opener =
+            href !== undefined ? (
+                href.startsWith('/') ? (
+                    <Link href={href} className={stretch} {...aria}>
+                        {title}
+                    </Link>
+                ) : (
+                    <a href={href} className={stretch} {...aria}>
+                        {title}
+                    </a>
+                )
+            ) : onSelect ? (
+                <button type="button" onClick={onSelect} className={cn('text-left', stretch)} {...aria}>
+                    {title}
+                </button>
+            ) : (
+                title
+            );
+        const tracks = `${leading ? 'auto ' : ''}minmax(0,1fr)${trailing ? ' auto' : ''}`;
+        return (
+            <Tag className={cn('group/row relative', className)}>
+                <div
+                    style={{ '--oca-row-phone': tracks, '--oca-row-desk': `${tracks} auto` } as CSSProperties}
+                    className={cn(
+                        'grid min-h-11 w-full grid-cols-[var(--oca-row-phone)] gap-x-3 text-left transition-colors sm:grid-cols-[var(--oca-row-desk)]',
+                        lines === 'all' ? 'items-start' : 'items-center',
+                        look.box,
+                        variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
+                        interactive && !current && look.hover,
+                        current && look.current,
+                        actions && 'pr-14'
+                    )}
+                >
+                    {parts(opener)}
+                    <div
+                        className={cn(
+                            'relative z-10 flex items-center gap-2 max-sm:row-start-2 max-sm:mt-2 max-sm:justify-self-start',
+                            leading ? 'max-sm:col-start-2' : 'max-sm:col-start-1'
+                        )}
+                    >
+                        {action}
+                    </div>
+                </div>
+                {menu}
+            </Tag>
+        );
+    }
+
+    const body = parts(title);
+    return (
+        <Tag className={cn('group/row relative', className)}>
             {href !== undefined ? (
                 href.startsWith('/') ? (
                     <Link href={href} className={cls} {...aria}>
@@ -231,34 +303,7 @@ export function ListRow({
             ) : (
                 <div className={cls}>{body}</div>
             )}
-        </>
-    );
-    return (
-        <Tag className={cn('group/row relative', action && 'flex flex-wrap items-center', className)}>
-            {action ? <div className="min-w-0 flex-1 max-sm:basis-full [&>*]:w-full">{row}</div> : row}
-            {action ? (
-                <div
-                    className={cn(
-                        'flex shrink-0 items-center gap-2 max-sm:-mt-2 max-sm:w-full',
-                        variant === 'pane' ? 'pr-3 max-sm:pb-2 max-sm:pl-3' : 'pr-5 max-sm:pb-4 max-sm:pl-5',
-                        // Under the text, past the picture: the row's padding, a 44px Avatar and the gap after it.
-                        leading && (variant === 'pane' ? 'max-sm:pl-[4.25rem]' : 'max-sm:pl-[4.75rem]')
-                    )}
-                >
-                    {action}
-                </div>
-            ) : null}
-            {actions ? (
-                <div
-                    className={cn(
-                        'absolute right-2 top-1/2 flex -translate-y-1/2 items-center',
-                        revealActions === 'hover' &&
-                            'transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/row:opacity-100 md:has-[[data-state=open]]:opacity-100'
-                    )}
-                >
-                    {actions}
-                </div>
-            ) : null}
+            {menu}
         </Tag>
     );
 }

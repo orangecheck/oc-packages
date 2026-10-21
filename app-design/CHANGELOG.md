@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.14.1] — 2026-10-21
+
+- `ListRow`'s text `action` lines up with the row's text on a phone whatever
+  the picture's size. 1.14.0 indented it past a 44px Avatar, so a 36px one
+  left it 8px off (design.ochk.io's Rows story). A row with an action is now
+  a grid whose title is the link, its target stretched over the row, and the
+  action is a line in the text's own column on a phone, a column of its own
+  from sm. The row still opens from anywhere in it but the action.
+- check-layout holds a row with a smaller picture and the stretched link; it
+  fails on 1.14.0.
+
 ## [1.14.0] — 2026-10-21
 
 What ochk.app's lists and tables needed to stop drawing their own, and a

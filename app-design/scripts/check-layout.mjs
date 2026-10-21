@@ -332,6 +332,14 @@ try {
                     detail: h('span', { 'data-s': 'detail' }, 'From notes.example, key 86020d78'),
                     onSelect: () => {},
                     action: h(P.Button, { size: 'sm', variant: 'secondary', 'data-s': 'action' }, 'Retry this guardian'),
+                }),
+                // A smaller picture: the action still lines up with the text, not with a guess at the picture.
+                h(C.ListRow, {
+                    leading: h(C.Avatar, { seed: 'g2', name: 'Guardian two', size: 'sm' }),
+                    title: h('span', { 'data-s': 'title2' }, 'Guardian 2 of 4'),
+                    description: 'Did not answer the last round',
+                    href: '/guardians/2',
+                    action: h(P.Button, { size: 'sm', variant: 'secondary', 'data-s': 'action2' }, 'Remove'),
                 })
             )
         )
@@ -536,11 +544,21 @@ try {
                     under: action && detail ? action.top >= detail.bottom : false,
                     indent: action && title ? Math.round(action.left - title.left) : null,
                     inside: action ? action.right <= li.right + 0.5 && action.left >= li.left : false,
+                    indent2: Math.round(box('action2').left - box('title2').left),
+                    // The row still opens from its line under the title, and the action stays its own.
+                    opens: (() => {
+                        const row2 = document.querySelectorAll('li')[1];
+                        const link = row2.querySelector('a[href="/guardians/2"]');
+                        const line = [...row2.querySelectorAll('span')].find((x) => x.textContent === 'Did not answer the last round').getBoundingClientRect();
+                        const a2 = box('action2');
+                        return Boolean(link) && link.contains(document.elementFromPoint(line.left + 10, line.top + line.height / 2)) && document.querySelector('[data-s="action2"]').contains(document.elementFromPoint(a2.left + a2.width / 2, a2.top + a2.height / 2));
+                    })(),
                 };
             });
             check(rs.shown && rs.order, `[${width}] ListRow: the line over the title, the title and the two lines under it are missing or out of order (${JSON.stringify(rs)})`);
             check(rs.clear && rs.inside, `[${width}] ListRow action: the text action covers the row's text or leaves the row (${JSON.stringify(rs)})`);
-            if (width < 640) check(rs.under && Math.abs(rs.indent) <= 2, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
+            check(rs.opens, `[${width}] ListRow action: the row no longer opens from its text, or the action lost its press (${JSON.stringify(rs)})`);
+            if (width < 640) check(rs.under && Math.abs(rs.indent) <= 1 && Math.abs(rs.indent2) <= 1, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
             else check(!rs.under, `[${width}] ListRow action: on a desk it falls under the text (${JSON.stringify(rs)})`);
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
