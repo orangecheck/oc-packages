@@ -227,6 +227,8 @@ export function ToolShell({
             <ArrowUpRight aria-hidden className="size-3.5" />
         </a>
     );
+    // The way from a tool to its docs: in the header's line from md, in the phone's menu when the tools are tabs.
+    const docs = { href: p.docsHref, label: 'Docs', external: true };
     return (
         <DensityProvider density="compact">
             <div
@@ -245,9 +247,22 @@ export function ToolShell({
                     home={homeHref}
                     product={p.label}
                     family={protocol}
-                    nav={tools.map((t) => ({ href: t.href, label: t.label, active: t.active }))}
+                    nav={[...tools.map((t) => ({ href: t.href, label: t.label, active: t.active })), docs]}
                     navOnPhone={!tabs}
-                    menu={<div className="[&>a]:px-3 [&>a]:py-3 [&>a]:text-[1.0625rem]">{about}</div>}
+                    menu={
+                        <div className="[&>a]:px-3 [&>a]:py-3 [&>a]:text-[1.0625rem]">
+                            {about}
+                            {tabs ? (
+                                <a
+                                    href={docs.href}
+                                    className="inline-flex items-center gap-1 rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                    Docs
+                                    <ArrowUpRight aria-hidden className="size-3.5" />
+                                </a>
+                            ) : null}
+                        </div>
+                    }
                     // With a rail, the tools leave the header from lg.
                     className={cn(rail && 'lg:[&_nav[aria-label=Main]]:hidden')}
                     actions={

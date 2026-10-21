@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { OnThisPage, useHeadings } from '../components/docs';
+import { useActiveHeading } from '../components/hero';
 import type { TocItem } from '../components/hero';
 import { DOCS_HREF, OCHK_IO, OCHK_IO_NAV } from '../family';
 import { cn } from '../lib/cn';
@@ -191,7 +192,9 @@ export function DocsShell({
     useEffect(() => setMenu(false), [current]);
     const read = useHeadings('#docs-content', current);
     const items = toc ?? read.items;
-    const activeId = toc ? undefined : read.activeId;
+    // A build-time toc (no layout shift) still marks the section being read.
+    const tracked = useActiveHeading(toc ? toc.map((i) => i.id) : []);
+    const activeId = toc ? tracked : read.activeId;
     const marked = navCurrent ?? current;
     const here = pathOf(marked);
     const place = useMemo(() => {

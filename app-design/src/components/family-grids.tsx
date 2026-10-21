@@ -3,7 +3,6 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import {
-    DOCS_HREF,
     FAMILY,
     PROTOCOL_ORDER,
     protocolSite,
@@ -70,7 +69,7 @@ export function ProtocolGrid({
                                     </Link>
                                 ) : (
                                     <a
-                                        href={link === 'tool' ? p.toolHref : link === 'docs' ? `${DOCS_HREF}/${p.slug}` : p.pageHref}
+                                        href={link === 'tool' ? p.toolHref : link === 'docs' ? p.docsHref : p.pageHref}
                                         className={STRETCH}
                                     >
                                         {p.label}

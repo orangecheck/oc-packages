@@ -51,8 +51,13 @@ export interface ProtocolSite extends FamilySite {
     verb: string;
     /** The protocol's page on ochk.io. */
     pageHref: string;
-    /** The tools, on the protocol's own host. */
+    /**
+     * The tools, on the protocol's own host: a working page, never the root,
+     * which 308s back to the protocol's page on ochk.io.
+     */
     toolHref: string;
+    /** The protocol's docs, under ochk.io/docs. */
+    docsHref: string;
     /** The normative spec. */
     specHref: string;
     /** The Nostr event kinds it publishes. */
@@ -80,7 +85,9 @@ function protocol(
     slug: ProtocolSlug,
     verb: string,
     line: string,
-    kinds: string
+    kinds: string,
+    /** Where the tools start: the make-one page. */
+    toolPath = '/create'
 ): ProtocolSite {
     return {
         slug,
@@ -91,7 +98,8 @@ function protocol(
         status: 'live',
         verb,
         pageHref: `${OCHK_IO}/${slug}`,
-        toolHref: `https://${slug}.ochk.io`,
+        toolHref: `https://${slug}.ochk.io${toolPath}`,
+        docsHref: `${DOCS_HREF}/${slug}`,
         specHref: `https://github.com/orangecheck/oc-${slug}-protocol`,
         kinds,
     };
@@ -100,10 +108,10 @@ function protocol(
 /** Attest · Lock · Vote · Stamp · Agent · Pledge, everywhere. */
 export const PROTOCOLS: readonly ProtocolSite[] = [
     protocol('attest', 'identity', 'Show that an address holds bitcoin, and for how long.', '30078'),
-    protocol('lock', 'confidentiality', 'Encrypt to a Bitcoin address, so only its holder can open it.', '30078'),
+    protocol('lock', 'confidentiality', 'Encrypt to a Bitcoin address, so only its holder can open it.', '30078', '/app'),
     protocol('vote', 'legitimacy', 'Polls weighed in sats, that anyone can tally.', '30080–30082'),
     protocol('stamp', 'provenance', 'Prove who signed something, and when.', '30083'),
-    protocol('agent', 'authority', 'Give software scoped, revocable permission to act for you.', '30083–30086'),
+    protocol('agent', 'authority', 'Give software scoped, revocable permission to act for you.', '30083–30086', '/app/compose'),
     protocol('pledge', 'commitment', 'Make a promise with bitcoin behind it, on a public record.', '30078'),
 ];
 

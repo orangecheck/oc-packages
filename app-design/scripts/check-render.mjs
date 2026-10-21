@@ -238,6 +238,15 @@ const html = (el) => renderToStaticMarkup(el);
     }
 }
 
+// A tool site's way to its docs, and the docs' build-time contents still marking the section read.
+{
+    const tool = html(h(Ch.ToolShell, { protocol: 'stamp', tools: [{ href: '/create', label: 'Create' }] }, h('p', null, 'x')));
+    check(/<nav aria-label="Main"[^>]*>(?:(?!<\/nav>)[\s\S])*href="https:\/\/ochk\.io\/docs\/stamp"[^>]*>Docs</.test(tool), 'ToolShell: no Docs link in the header');
+    const toc = [{ id: 'install', label: 'Install', level: 2 }, { id: 'use', label: 'Use', level: 2 }];
+    const docs = html(h(Ch.DocsShell, { nav: [], current: '/x', toc }, h('h2', { id: 'install' }, 'Install')));
+    check(/aria-current="(?:true|location)"[^>]*>(?:<[^>]+>)*Install/.test(docs) || /href="#install"[^>]*aria-current/.test(docs), 'DocsShell: with a build-time toc no section is marked as the one being read');
+}
+
 // The MDX map: TypeDoc's h5 and h6, and GitHub task lists.
 {
     check(html(h(mdxComponents.h5, null, 'Returns')).startsWith('<h5'), 'mdx: no h5');

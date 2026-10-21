@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [1.12.1] — 2026-10-21
+
+- The registry's `toolHref` goes to a working page: stamp, attest, vote and
+  pledge at `/create`, lock at `/app`, agent at `/app/compose`. Each tool
+  site's root now 308s back to ochk.io/<verb>, so "stamp.ochk.io" on
+  ochk.io/protocols opened the page its row already linked. New `docsHref`
+  (ochk.io/docs/<verb>). `yarn test` asks each one on the live sites and
+  fails on anything but a 200 with no redirect (`OCA_OFFLINE=1` skips it).
+- `ToolShell` has a way to the protocol's docs: "Docs" in the header's line,
+  and in the phone's menu when the tools are the tab bar, a 44px target.
+- `DocsShell` with a build-time `toc` still marks the section being read.
+  It stopped tracking when `toc` was given, which held back the docs'
+  layout-shift fix.
+- design.ochk.io's served page is titled "orangecheck design system", with a
+  description, a canonical address and a share card, written into the built
+  HTML rather than by script after load.
+
 ## [1.12.0] — 2026-10-20
 
 Less JavaScript on every page, and text that paints sooner.

@@ -24,6 +24,8 @@
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
+ * - A tool site's Docs link is in its phone menu, a 44px target, when the
+ *   tools are the tab bar.
  * - A ListRow with lines="all" wraps its title and line in full, stays
  *   44px at least, and keeps its picture and its end level with the title.
  * - A bare border, border-b or divide-y draws in the hairline, not in the
@@ -89,6 +91,7 @@ try {
             `@source '${join(pkg, 'dist')}';\n` +
             `@source '${join(dir, 'client.js')}';\n` +
             `@source '${join(dir, 'menu.js')}';\n` +
+            `@source '${join(dir, 'toolmenu.js')}';\n` +
             `@import '${join(pkg, 'src/styles.css')}';\n`
     );
 
@@ -112,6 +115,27 @@ try {
             `  <DropdownMenu defaultOpen modal={false}><DropdownMenuTrigger>Actions</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>Rename</DropdownMenuItem><DropdownMenuItem destructive>Forget</DropdownMenuItem></DropdownMenuContent></DropdownMenu>\n` +
             `);\n`
     );
+    // A tool site's phone menu, opened in the browser: the Sheet renders only on the client.
+    writeFileSync(
+        join(dir, 'toolmenu.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ToolShell } from '${join(pkg, 'src/chrome/tool-shell.tsx')}';\n` +
+            `const tools = ['Create', 'Verify', 'Playground'].map((label) => ({ href: '/' + label.toLowerCase(), label, icon: <i /> }));\n` +
+            `createRoot(document.getElementById('root')).render(<ToolShell protocol="stamp" tools={tools}><p>page</p></ToolShell>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'toolmenu.jsx')],
+        outfile: join(dir, 'toolmenu.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        // next/link reads process.env outside its bundler.
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'menu.jsx')],
         outfile: join(dir, 'menu.js'),
@@ -268,6 +292,7 @@ try {
             '<div class="divide-y"><p class="p-2">c</p><p data-b="divide" class="p-2">d</p></div><div data-b="utility" class="border border-foreground p-2">e</div></div>'
     );
     const menu = page('menu', '<div id="root" class="p-4"></div>', '<script src="menu.js"></script>');
+    const toolMenu = page('toolmenu', '<div id="root"></div>', '<script src="toolmenu.js"></script>');
     // Rows in a pane, each with a picture, a time and a menu button.
     const paneRows = page(
         'pane-rows',
@@ -336,6 +361,17 @@ try {
             );
             check(!tb.fits.scrolls && tb.fits.spills === 0, `[${width}] a three-column error table scrolls (${tb.fits.scrolls}) or spills from ${tb.fits.spills} cell(s)`);
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
+            // A tool site's phone menu holds Docs, a 44px target, beside About.
+            if (width < 768) {
+                await p.goto(toolMenu);
+                await p.click('header button[aria-label="Open menu"]');
+                await p.waitForSelector('[role="dialog"]');
+                const docs = await p.evaluate(() => {
+                    const a = [...document.querySelectorAll('[role="dialog"] a')].find((x) => x.textContent.trim().startsWith('Docs'));
+                    return a ? { href: a.getAttribute('href'), h: a.getBoundingClientRect().height } : null;
+                });
+                check(docs?.href === 'https://ochk.io/docs/stamp' && docs.h >= 44, `[${width}] the tool site's phone menu has no 44px Docs link (${JSON.stringify(docs)})`);
+            }
             // ListRow lines="all": wrapped in full, its picture and end level with the title.
             await p.goto(wrapRows);
             const wr = await p.evaluate(() => {
