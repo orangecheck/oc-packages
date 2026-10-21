@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+`./analytics`: `FamilyAnalytics` (the `_document` scripts), `useFamilyPageviews`
+(`_app`) and `familyPageUrl`. Plausible events leave as origin and path with
+campaign tags, and a referrer as its origin from another site only, never a
+page's query or fragment. Custom events and outbound-link clicks go through
+the same path. Plausible's engagement events are no longer sent.
+
 ## 0.2.0
 
 `createSessionReader` checks every verified session against the auth host's

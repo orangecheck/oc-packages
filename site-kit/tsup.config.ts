@@ -7,6 +7,7 @@ export default defineConfig({
         auth: 'src/auth/index.ts',
         og: 'src/og/index.tsx',
         sitemap: 'src/sitemap/index.ts',
+        analytics: 'src/analytics/index.tsx',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],
@@ -16,5 +17,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', '@orangecheck/auth-core'],
+    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', 'next/router.js', '@orangecheck/auth-core'],
 });
