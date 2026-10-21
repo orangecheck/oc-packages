@@ -3,6 +3,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { base64Decode, hexDecode } from './base64.js';
+import { parseProof, pendingCommitments } from './ots.js';
 import { submitToCalendars } from './submit.js';
 import { upgradeProof } from './upgrade.js';
 import type { CalendarClient, OtsProof } from './types.js';
@@ -32,22 +34,57 @@ function fakeCalendar(opts: {
     };
 }
 
+// A calendar's answer to POST /digest: append a nonce, sha256, pending attestation for its URL.
+function pendingReceipt(url: string, nonceByte: number): Uint8Array {
+    const uri = new TextEncoder().encode(url);
+    const nonce = new Uint8Array(16).fill(nonceByte);
+    const pendingTag = [0x83, 0xdf, 0xe3, 0x0d, 0x2e, 0xf9, 0x0c, 0x8e];
+    return new Uint8Array([0xf0, 0x10, ...nonce, 0x08, 0x00, ...pendingTag, uri.length + 1, uri.length, ...uri]);
+}
+
+const pendingUris = (p: OtsProof) =>
+    pendingCommitments(parseProof(base64Decode(p.proof), hexDecode(FIXED_ID))).map((c) => c.uri);
+
 describe('submitToCalendars', () => {
-    it('returns a pending proof with all successful calendars listed', async () => {
-        const cal1 = fakeCalendar({ url: 'https://a.example', submitResult: new Uint8Array([1, 2, 3]) });
-        const cal2 = fakeCalendar({ url: 'https://b.example', submitResult: new Uint8Array([4, 5, 6, 7]) });
+    it('keeps every calendar receipt in the proof and lists each calendar', async () => {
+        const cal1 = fakeCalendar({ url: 'https://a.example', submitResult: pendingReceipt('https://a.example', 1) });
+        const cal2 = fakeCalendar({ url: 'https://b.example', submitResult: pendingReceipt('https://b.example', 2) });
         const out = await submitToCalendars(FIXED_ID, { calendars: [cal1, cal2] });
         expect(out.status).toBe('pending');
         expect(out.calendars).toEqual(['https://a.example', 'https://b.example']);
         expect(out.blockHeight).toBeNull();
-        expect(out.proof.length).toBeGreaterThan(0);
+        expect(pendingUris(out).sort()).toEqual(['https://a.example', 'https://b.example']);
+    });
+
+    it('lets a second calendar upgrade the proof when the first is gone', async () => {
+        const cal1 = fakeCalendar({ url: 'https://a.example', submitResult: pendingReceipt('https://a.example', 1) });
+        const cal2 = fakeCalendar({ url: 'https://b.example', submitResult: pendingReceipt('https://b.example', 2) });
+        const out = await submitToCalendars(FIXED_ID, { calendars: [cal1, cal2] });
+        const asked: string[] = [];
+        await upgradeProof(out, FIXED_ID, {
+            parseAnchor: async () => null,
+            fetch: (async (url: string) => {
+                asked.push(new URL(url).origin);
+                return new Response(null, { status: 404 });
+            }) as unknown as typeof fetch,
+        });
+        expect(asked.sort()).toEqual(['https://a.example', 'https://b.example']);
     });
 
     it('tolerates one calendar failure when minSuccesses defaults to 1', async () => {
         const bad = fakeCalendar({ url: 'https://bad.example', submitShouldFail: true });
-        const good = fakeCalendar({ url: 'https://good.example', submitResult: new Uint8Array([9]) });
+        const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
         const out = await submitToCalendars(FIXED_ID, { calendars: [bad, good] });
         expect(out.calendars).toEqual(['https://good.example']);
+        expect(pendingUris(out)).toEqual(['https://good.example']);
+    });
+
+    it('counts an unreadable receipt as a failure', async () => {
+        const junk = fakeCalendar({ url: 'https://junk.example', submitResult: new Uint8Array([1, 2, 3]) });
+        const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
+        const out = await submitToCalendars(FIXED_ID, { calendars: [junk, good] });
+        expect(out.calendars).toEqual(['https://good.example']);
+        await expect(submitToCalendars(FIXED_ID, { calendars: [junk] })).rejects.toThrow(/unreadable proof/);
     });
 
     it('throws when minSuccesses is not met', async () => {

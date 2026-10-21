@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.1] — 2026-10-21
+
+### Fixed — the proof keeps every calendar's receipt
+
+`submitToCalendars` listed every calendar that answered in `calendars`, but put
+only the first one's receipt in `proof`. `upgradeProof` asks only calendars
+whose pending attestation is in the proof, so the others could never upgrade it,
+and a stamp submitted to three calendars depended on one. SPEC §6.1 asks for at
+least two because one is a single point of failure. The receipts are now merged
+into one proof, so any calendar that answered can upgrade it. A receipt that
+does not parse counts as that calendar failing.
+
 ## [0.3.0]
 
 ### Changed

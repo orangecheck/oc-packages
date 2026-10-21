@@ -8,6 +8,7 @@
 
 import { base64Encode, hexDecode } from './base64.js';
 import { createCalendarClient, DEFAULT_CALENDARS } from './calendar.js';
+import { mergeAt, parseTimestamp, serializeTimestamp, type OtsTimestamp } from './ots.js';
 import type { CalendarClient, OtsProof } from './types.js';
 
 export interface SubmitOptions {
@@ -33,12 +34,9 @@ export interface SubmitOptions {
  * Submit the envelope `id` (64-hex) to OTS calendars and return an OtsProof in
  * pending state. The caller merges this into the envelope's `ots` field.
  *
- * Implementation note: the raw proof bytes returned by OTS calendars are not
- * a superset of the digest alone — they encode the calendar's commitment.
- * Because different calendars return different pending-proof bytes for the
- * same digest, we carry the FIRST successful calendar's bytes in the
- * envelope. Upgrade (see upgrade.ts) can fetch richer proofs from any of the
- * submitted-to calendars later.
+ * Each calendar answers with its own pending timestamp for the digest. They are
+ * merged into one proof, so upgrade (see upgrade.ts) can ask any calendar that
+ * answered. A calendar whose answer does not parse counts as a failure.
  */
 export async function submitToCalendars(idHex: string, opts: SubmitOptions = {}): Promise<OtsProof> {
     const digest = hexDecode(idHex);
@@ -77,11 +75,31 @@ export async function submitToCalendars(idHex: string, opts: SubmitOptions = {})
         throw err;
     }
 
-    const first = successes[0]!;
+    // Keep every calendar's receipt in one proof, so any of them can upgrade it.
+    let tree: OtsTimestamp | null = null;
+    const merged: string[] = [];
+    for (const s of successes) {
+        let receipt: OtsTimestamp;
+        try {
+            receipt = parseTimestamp(s.proof, digest);
+        } catch (e) {
+            failures.push(`${s.url}: unreadable proof (${e instanceof Error ? e.message : String(e)})`);
+            continue;
+        }
+        if (tree) mergeAt(tree, receipt);
+        else tree = receipt;
+        merged.push(s.url);
+    }
+    if (!tree || merged.length < minSuccesses) {
+        const msg = `OTS submission did not reach ${minSuccesses} calendar(s). Errors: ${failures.join('; ')}`;
+        const err = new Error(msg) as Error & { errors: string[] };
+        err.errors = failures;
+        throw err;
+    }
     return {
         status: 'pending',
-        proof: base64Encode(first.proof),
-        calendars: successes.map((s) => s.url),
+        proof: base64Encode(serializeTimestamp(tree)),
+        calendars: merged,
         blockHeight: null,
         blockHash: null,
         upgradedAt: null,
