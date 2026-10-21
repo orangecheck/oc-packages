@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.34.0] — 2026-10-20
+
+### Changed
+
+- **A page loads only the parts it uses.** The ES module build was one file,
+  so a site's bundler kept every export any page used and put all of it in
+  `_app`, because `_app` imports the provider: the sign-in ceremony, the link
+  forms and the passkey code reached every page of every site, about 35 kB
+  of script before compression. The ES module build is now one file per
+  source file, and the package declares `"sideEffects": false`. On OC Stamp
+  that takes 10 kB (gzip) off every page's first load. The exports, the
+  CommonJS build and the types are unchanged. A test fails if the provider's
+  files reach the sign-in or `@simplewebauthn/browser`.
+
 ## [2.33.4] — 2026-10-20
 
 ### Changed
