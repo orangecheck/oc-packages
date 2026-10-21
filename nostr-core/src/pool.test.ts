@@ -16,7 +16,9 @@ import {
   getEventHash,
   publishEvent,
   queryEvents,
+  subscribe,
   type NostrEvent,
+  type SubscriptionState,
 } from "./index";
 
 const SK = new Uint8Array(32).fill(7);
@@ -298,3 +300,69 @@ describe("pooled relay sockets", () => {
     expect(r.connections).toBe(2);
   });
 });
+
+describe("pooled subscribe()", () => {
+  it("rides the same socket as the page's queries", async () => {
+    const r = relay("wss://r");
+    const got: string[] = [];
+    const sub = subscribe({ kinds: [30078] }, { relays: ["wss://r"], onEvent: (e) => got.push(e.id) });
+    await queryEvents({ kinds: [30078] }, ["wss://r"], 1000);
+    await tick(10);
+    expect(r.connections).toBe(1);
+    expect(got).toEqual([EV.id]);
+    expect(sub.getHealth()).toEqual({ connected: 1, total: 1 });
+    sub.stop();
+  });
+
+  it("re-sends its REQ on the new socket after a drop", async () => {
+    const r = relay("wss://r", { hold: true });
+    const states: SubscriptionState[] = [];
+    const sub = subscribe(
+      { kinds: [30078] },
+      { relays: ["wss://r"], onEvent: () => {}, onStatus: (s) => states.push(s.state), initialBackoffMs: 5 },
+    );
+    const pending = queryEvents({ kinds: [30078] }, ["wss://r"], 2000);
+    await tick(10);
+    expect(r.connections).toBe(1); // the subscription and the query share it
+    r.hold = false;
+    r.sockets[0]!.drop();
+    await pending;
+    await tick(40);
+    expect(r.connections).toBe(2);
+    expect(r.reqs.length).toBeGreaterThanOrEqual(3); // sub, query, sub again
+    expect(states).toEqual(expect.arrayContaining(["open", "closed"]));
+    expect(states.filter((s) => s === "open")).toHaveLength(2);
+    sub.stop();
+  });
+
+  it("holds a subscription slot until stop(), which sends CLOSE and frees it", async () => {
+    const r = relay("wss://r", { hold: true });
+    configureRelayPool({ maxSubscriptions: 1 });
+    const sub = subscribe({ kinds: [30078] }, { relays: ["wss://r"], onEvent: () => {} });
+    await tick(10);
+    r.hold = false;
+    const queued = queryEvents({ kinds: [30078] }, ["wss://r"], 2000);
+    await tick(20);
+    expect(r.reqs).toHaveLength(1); // the query waits for the slot
+    const subReq = r.reqs[0]!;
+    sub.stop();
+    const res = await queued;
+    expect(r.closes).toContain(subReq);
+    expect(res.relayStatus[0]!.eose).toBe(true);
+  });
+
+  it("reports a backing-off relay as unavailable without dialling it", async () => {
+    const r = relay("wss://busy", { refuse: true });
+    const states: SubscriptionState[] = [];
+    const sub = subscribe(
+      { kinds: [30078] },
+      { relays: ["wss://busy"], onEvent: () => {}, onStatus: (s) => states.push(s.state), initialBackoffMs: 5, maxBackoffMs: 5 },
+    );
+    await tick(60);
+    sub.stop();
+    expect(states[0]).toBe("error");
+    expect(states).toContain("unavailable");
+    expect(r.connections).toBe(1);
+  });
+});
+

@@ -876,3 +876,152 @@ export async function queryEvents(
     relayStatus: status,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Subscribe — a long-lived REQ on every relay, kept open and re-sent on reconnect.
+// ─────────────────────────────────────────────────────────────────────────
+
+export type SubscriptionState = "open" | "eose" | "closed" | "error" | "unavailable";
+
+export interface SubscribeOptions {
+  /** Default `DEFAULT_RELAYS`. */
+  relays?: readonly string[];
+  /** Each verified, filter-matching event once, whichever relay sends it first. */
+  onEvent: (event: NostrEvent, relay: string) => void;
+  onStatus?: (status: { relay: string; state: SubscriptionState; reason?: string }) => void;
+  /** Reconnect delay, with full jitter, doubling per failure. Default 1000. */
+  initialBackoffMs?: number;
+  /** Default 30000. */
+  maxBackoffMs?: number;
+}
+
+export interface Subscription {
+  /** CLOSE the subscription on every relay and stop reconnecting. */
+  stop(): void;
+  /** Relays whose subscription is currently open. */
+  getHealth(): { connected: number; total: number };
+}
+
+/**
+ * Keep `filter` subscribed on every relay until `stop()`. Each relay's REQ is
+ * re-sent whenever its socket comes back, so a `since` filter backfills what
+ * was missed. Events are verified and filter-matched like `queryEvents`, and
+ * delivered once per id across all relays.
+ *
+ * In a browser the subscription rides the page's pooled socket to each relay
+ * and holds one of its subscription slots while open.
+ */
+export function subscribe(filter: Filter, opts: SubscribeOptions): Subscription {
+  const relays = opts.relays ?? DEFAULT_RELAYS;
+  const initialBackoff = opts.initialBackoffMs ?? 1000;
+  const maxBackoff = opts.maxBackoffMs ?? 30_000;
+  const subId = "ocns-" + Math.random().toString(36).slice(2, 10);
+  const seen = new Set<string>();
+  let stopped = false;
+
+  interface Link {
+    url: string;
+    channel: Channel | null;
+    open: boolean;
+    sent: boolean;
+    backoff: number;
+    retry: ReturnType<typeof setTimeout> | null;
+  }
+
+  const links: Link[] = relays.map((url) => ({
+    url,
+    channel: null,
+    open: false,
+    sent: false,
+    backoff: initialBackoff,
+    retry: null,
+  }));
+
+  const status = (link: Link, state: SubscriptionState, reason?: string) =>
+    opts.onStatus?.({ relay: link.url, state, ...(reason ? { reason } : {}) });
+
+  // Full jitter over the current window, so relays that failed together do
+  // not all come back at the same instant.
+  function later(link: Link): void {
+    if (stopped || link.retry) return;
+    const wait = Math.random() * link.backoff;
+    link.backoff = Math.min(link.backoff * 2, maxBackoff);
+    link.retry = setTimeout(() => {
+      link.retry = null;
+      connect(link);
+    }, wait);
+  }
+
+  function lost(link: Link, state: SubscriptionState, reason?: string): void {
+    const channel = link.channel;
+    link.channel = null;
+    link.open = false;
+    link.sent = false;
+    channel?.end();
+    status(link, state, reason);
+    later(link);
+  }
+
+  function connect(link: Link): void {
+    if (stopped) return;
+    const channel = openChannel(
+      link.url,
+      {
+        open: () => {
+          if (link.channel !== channel) return;
+          link.open = true;
+          link.sent = true;
+          link.backoff = initialBackoff;
+          channel?.send(["REQ", subId, filter]);
+          status(link, "open");
+        },
+        frame: (frame) => {
+          if (link.channel !== channel || frame.payload[0] !== subId) return;
+          if (frame.type === "EVENT") {
+            const event = frame.payload[1];
+            if (!verifyEvent(event) || !matchFilter(event, filter)) return;
+            if (seen.has(event.id)) return;
+            seen.add(event.id);
+            opts.onEvent(event, link.url);
+          } else if (frame.type === "EOSE") {
+            status(link, "eose");
+          } else if (frame.type === "CLOSED") {
+            // The relay ended it; ask again after the back-off.
+            link.sent = false;
+            lost(link, "closed", String(frame.payload[1] ?? "closed"));
+          }
+        },
+        down: (kind, detail) => {
+          if (link.channel !== channel) return;
+          lost(link, kind === "error" ? "error" : "closed", detail);
+        },
+      },
+      { subscription: true },
+    );
+    link.channel = channel;
+    if (!channel) {
+      status(link, "unavailable", "relay_unavailable");
+      later(link);
+    }
+  }
+
+  for (const link of links) connect(link);
+
+  return {
+    stop() {
+      if (stopped) return;
+      stopped = true;
+      for (const link of links) {
+        if (link.retry) clearTimeout(link.retry);
+        link.retry = null;
+        if (link.sent) link.channel?.send(["CLOSE", subId]);
+        link.channel?.end();
+        link.channel = null;
+        link.open = false;
+      }
+    },
+    getHealth() {
+      return { connected: links.filter((l) => l.open).length, total: links.length };
+    },
+  };
+}

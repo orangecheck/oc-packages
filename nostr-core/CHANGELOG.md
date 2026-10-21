@@ -12,6 +12,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.0] — 2026-10-21
+
+### Added
+
+- **`subscribe(filter, { relays, onEvent, onStatus, initialBackoffMs, maxBackoffMs })`**:
+  a long-lived subscription on every relay, kept until `stop()`. Its REQ is
+  re-sent whenever a relay's socket comes back (full-jitter back-off, 1s
+  doubling to 30s), so a `since` filter backfills what was missed. Events are
+  verified and filter-matched like `queryEvents` and delivered once per id
+  across relays. `onStatus` reports `open`, `eose`, `closed`, `error` and
+  `unavailable` (a relay in its handshake back-off) per relay; `getHealth()`
+  counts open relays. In a browser it rides the page's pooled socket and holds
+  one of that relay's subscription slots while open. OC Chat and OC Lock each
+  kept their own copy of this, with a socket per subscription per relay.
+
 ## [0.5.0] — 2026-10-21
 
 ### Changed

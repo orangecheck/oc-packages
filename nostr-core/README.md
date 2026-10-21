@@ -46,6 +46,20 @@ and `relayStatus` says so with `reason: "relay_unavailable"`. A call that
 passes an `auth` signer gets its own socket. Outside a browser each call opens
 its own socket, as before.
 
+A long-lived subscription shares the same socket and holds one of the slots
+while open:
+
+```ts
+import { subscribe } from '@orangecheck/nostr-core';
+
+const sub = subscribe({ kinds: [1059], '#p': [myPubkey], since }, {
+  onEvent: (event, relay) => handle(event),
+  onStatus: ({ relay, state }) => console.log(relay, state), // open, eose, closed, error, unavailable
+});
+// later
+sub.stop();
+```
+
 ```ts
 import { configureRelayPool, closeRelayPool } from '@orangecheck/nostr-core';
 

@@ -23,6 +23,7 @@ import {
   matchFilter,
   publishEvent,
   queryEvents,
+  subscribe,
   verifyEvent,
   type Filter,
   type NostrEvent,
@@ -371,6 +372,25 @@ describe("queryEvents returns only verified, filter-matching events", () => {
     const result = await queryEvents({ kinds: [30078] }, ["wss://c"], 2000);
     expect(result.relayStatus[0]!.ok).toBe(false);
     expect(result.relayStatus[0]!.rejected).toBe(1);
+  });
+});
+
+describe("subscribe", () => {
+  it("delivers verified, filter-matching events once and reports EOSE", async () => {
+    const good = signed({ content: "live" });
+    const altered = { ...signed({ content: "x" }), content: "y" };
+    const other = signed({ kind: 1 });
+    mockNextQuery([good, altered, other, good]);
+    const got: string[] = [];
+    const states: string[] = [];
+    const sub = subscribe(
+      { kinds: [30078] },
+      { relays: ["wss://s"], onEvent: (e) => got.push(e.id), onStatus: (s) => states.push(s.state) },
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    sub.stop();
+    expect(got).toEqual([good.id]);
+    expect(states).toEqual(["open", "eose"]);
   });
 });
 
