@@ -279,9 +279,9 @@
     jose "^6.2.2"
 
 "@orangecheck/bip322@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.0.0.tgz#89767ac565e810c99f13f0ccb560bb8639b7e4c8"
-  integrity sha512-ff9D9KqqXWahXdSCKwcfARjFk9DrLq2Ua6i305jqf5d43aeTQkif0NqbBMLg89BrSCdRVRNY61lDnVgwyi6LLg==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.0.tgz#2884e42042661e8d9cb8b1c3becc3649635721b1"
+  integrity sha512-Q175HQIqRQe3KPpeFCtNxnxbgZ6GVJ5TGk3P4YVOGa9fblfAhvtPuBNBDVqO/cfEXV2d54d4iZ4xXMhRCy9Mfg==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
