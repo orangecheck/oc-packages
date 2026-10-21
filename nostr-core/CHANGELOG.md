@@ -12,6 +12,33 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-10-21
+
+### Changed
+
+- **In a browser, calls share one socket per relay.** `queryEvents` and
+  `publishEvent` used to open a new WebSocket per call per relay. A page that
+  ran several queries at once opened as many sockets: chat's channels view
+  opened 9 per relay, 7 at once. offchain.pub refuses a fifth simultaneous
+  socket from one address, nos.lol answers 429 at 16, and relay.damus.io's 503s
+  rise with concurrency. The handshake was also 60–79% of each query's time.
+  Now each relay gets one socket per page:
+  - each query is its own subscription on it, closed at EOSE, CLOSED or the
+    deadline; at most 10 are open at once per relay, and the rest wait, with
+    the wait counted against their own deadline;
+  - a relay that refuses the handshake settles every waiting call at once and
+    is skipped for 10s, reported as `reason: "relay_unavailable"` in
+    `relayStatus` (and in `publishEvent` results, without a retry);
+  - publishes match each OK by event id; retry on timeout is unchanged;
+  - a call that passes an `auth` signer still gets its own socket;
+  - an idle socket closes after 30s.
+  Outside a browser nothing changes: each call has its own socket.
+
+### Added
+
+- `configureRelayPool({ enabled, maxSubscriptions, backoffMs, idleMs })` and
+  `closeRelayPool()`.
+
 ## [0.4.0] — 2026-09-24
 
 ### Added

@@ -9,6 +9,7 @@
  *
  * Uses the platform `WebSocket` global. Works in any runtime that ships a
  * WHATWG WebSocket (browser, Node 22+, Deno, Bun, Cloudflare Workers).
+ * In a browser, calls share one socket per relay (see `configureRelayPool`).
  * `queryEvents` returns only events whose id and BIP-340 signature verify
  * and which match the filter (`@noble/curves` + `@noble/hashes`).
  *
@@ -353,6 +354,266 @@ function delay(ms: number): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Transport — one socket per call, or one pooled socket per relay per page.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** What a call sees of its relay connection: when it may send, the frames, and the end. */
+interface ChannelHandlers {
+  open(): void;
+  frame(frame: RelayFrame): void;
+  /** The socket failed (`error`) or closed (`close`) before the call finished. */
+  down(kind: "error" | "close", detail?: string): void;
+}
+
+interface Channel {
+  send(frame: unknown[]): void;
+  /** The call is done with the relay: a direct socket closes, a pooled one is released. */
+  end(): void;
+}
+
+export interface RelayPoolOptions {
+  /**
+   * Share one socket per relay among every call on the page. Defaults to on in
+   * a browser and off elsewhere, where a module-level socket would outlive a
+   * serverless request.
+   */
+  enabled: boolean;
+  /** Subscriptions open at once on one relay; further queries wait their turn. */
+  maxSubscriptions: number;
+  /** After a relay refuses the handshake, calls skip it this long ("relay_unavailable"). */
+  backoffMs: number;
+  /** A pooled socket with nothing on it closes after this long. */
+  idleMs: number;
+}
+
+const poolOptions: RelayPoolOptions = {
+  enabled: typeof window !== "undefined" && typeof document !== "undefined",
+  // The smallest max_subscriptions in the family's relays is 20 (relay.ochk.io,
+  // primal); 10 leaves room for long-lived subscriptions on the same socket.
+  maxSubscriptions: 10,
+  backoffMs: 10_000,
+  idleMs: 30_000,
+};
+
+/** Change how calls share relay sockets. See {@link RelayPoolOptions}. */
+export function configureRelayPool(options: Partial<RelayPoolOptions>): void {
+  Object.assign(poolOptions, options);
+}
+
+/** Close every pooled socket and forget which relays are backing off. */
+export function closeRelayPool(): void {
+  for (const relay of [...pool.values()]) relay.shutdown();
+  pool.clear();
+  unavailableUntil.clear();
+}
+
+function directChannel(url: string, h: ChannelHandlers): Channel {
+  let ws: WebSocket | null = null;
+  try {
+    ws = new WebSocket(url);
+    ws.onopen = () => h.open();
+    ws.onmessage = (msg) => {
+      const frame = parseFrame(msg.data as string);
+      if (frame) h.frame(frame);
+    };
+    ws.onerror = () => h.down("error");
+    ws.onclose = () => h.down("close");
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "unknown";
+    queueMicrotask(() => h.down("error", detail));
+  }
+  return {
+    send: (frame) => {
+      try {
+        ws?.send(JSON.stringify(frame));
+      } catch {}
+    },
+    end: () => {
+      try {
+        ws?.close();
+      } catch {}
+    },
+  };
+}
+
+interface Member {
+  h: ChannelHandlers;
+  /** Holds a subscription slot while open (queries), or needs none (publishes). */
+  subscription: boolean;
+  slot: boolean;
+  started: boolean;
+  done: boolean;
+}
+
+const pool = new Map<string, PooledRelay>();
+const unavailableUntil = new Map<string, number>();
+
+/** One socket to one relay, shared by every call on the page. */
+class PooledRelay {
+  private ws: WebSocket | null = null;
+  private opened = false;
+  private readonly members = new Set<Member>();
+  private queue: Member[] = [];
+  private slots = 0;
+  private idle: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(readonly url: string) {}
+
+  join(h: ChannelHandlers, subscription: boolean): Channel {
+    const m: Member = { h, subscription, slot: false, started: false, done: false };
+    this.members.add(m);
+    if (this.idle) clearTimeout(this.idle);
+    this.idle = null;
+    if (subscription) {
+      if (this.slots < poolOptions.maxSubscriptions) {
+        this.slots++;
+        m.slot = true;
+      } else {
+        this.queue.push(m);
+      }
+    }
+    this.dial();
+    if (this.opened) this.startLater(m);
+    return {
+      send: (frame) => {
+        if (!this.ws || !this.opened) return;
+        try {
+          this.ws.send(JSON.stringify(frame));
+        } catch {}
+      },
+      end: () => this.leave(m),
+    };
+  }
+
+  shutdown(): void {
+    if (this.idle) clearTimeout(this.idle);
+    this.idle = null;
+    this.drop();
+    this.members.clear();
+    this.queue = [];
+    this.slots = 0;
+  }
+
+  private ready(m: Member): boolean {
+    return !m.done && !m.started && (!m.subscription || m.slot);
+  }
+
+  private startLater(m: Member): void {
+    if (!this.ready(m)) return;
+    m.started = true;
+    queueMicrotask(() => {
+      if (!m.done) m.h.open();
+    });
+  }
+
+  private dial(): void {
+    if (this.ws) return;
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(this.url);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "unknown";
+      queueMicrotask(() => this.fail("error", detail));
+      return;
+    }
+    this.ws = ws;
+    ws.onopen = () => {
+      this.opened = true;
+      for (const m of [...this.members]) {
+        if (!this.ready(m)) continue;
+        m.started = true;
+        m.h.open();
+      }
+    };
+    ws.onmessage = (msg) => {
+      const frame = parseFrame(msg.data as string);
+      if (!frame) return;
+      // Each call keeps only frames for its own sub id or event id.
+      for (const m of [...this.members]) if (m.started && !m.done) m.h.frame(frame);
+    };
+    ws.onerror = () => this.fail("error");
+    ws.onclose = () => this.fail("close");
+  }
+
+  /** The socket is gone: every call on it settles, and a refused handshake backs the relay off. */
+  private fail(kind: "error" | "close", detail?: string): void {
+    if (!this.opened) {
+      unavailableUntil.set(this.url, Date.now() + poolOptions.backoffMs);
+    }
+    this.drop();
+    const members = [...this.members];
+    this.members.clear();
+    this.queue = [];
+    this.slots = 0;
+    for (const m of members) {
+      if (m.done) continue;
+      m.done = true;
+      m.h.down(kind, detail);
+    }
+  }
+
+  private drop(): void {
+    const ws = this.ws;
+    this.ws = null;
+    this.opened = false;
+    if (pool.get(this.url) === this) pool.delete(this.url);
+    if (!ws) return;
+    ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+    try {
+      ws.close();
+    } catch {}
+  }
+
+  private leave(m: Member): void {
+    if (!this.members.has(m)) return;
+    m.done = true;
+    this.members.delete(m);
+    const queued = this.queue.indexOf(m);
+    if (queued >= 0) this.queue.splice(queued, 1);
+    if (m.slot) {
+      m.slot = false;
+      this.slots--;
+      while (this.slots < poolOptions.maxSubscriptions && this.queue.length > 0) {
+        const next = this.queue.shift()!;
+        next.slot = true;
+        this.slots++;
+        if (this.opened) this.startLater(next);
+      }
+    }
+    if (this.members.size === 0) {
+      this.idle = setTimeout(() => {
+        if (this.members.size === 0) this.shutdown();
+      }, poolOptions.idleMs);
+      (this.idle as { unref?: () => void }).unref?.();
+    }
+  }
+}
+
+/**
+ * A channel to `url` for one call, or null while the relay is backing off.
+ * A call with an AUTH signer gets its own socket: one identity's AUTH is never
+ * shared with other calls.
+ */
+function openChannel(
+  url: string,
+  h: ChannelHandlers,
+  opts: { subscription: boolean; auth?: AuthSigner },
+): Channel | null {
+  if (!poolOptions.enabled || opts.auth) return directChannel(url, h);
+  const until = unavailableUntil.get(url);
+  if (until !== undefined) {
+    if (Date.now() < until) return null;
+    unavailableUntil.delete(url);
+  }
+  let relay = pool.get(url);
+  if (!relay) {
+    relay = new PooledRelay(url);
+    pool.set(url, relay);
+  }
+  return relay.join(h, opts.subscription);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Publish — write an event to one or more relays in parallel, with retry.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -402,75 +663,60 @@ function attemptPublish(
   return new Promise((resolve) => {
     let settled = false;
     let authed = false; // a NIP-42 AUTH handshake is attempted at most once
-    let ws: WebSocket | null = null;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      try {
-        ws?.close();
-      } catch {}
-      resolve({ ok: false, reason: "timeout", retryable: true });
-    }, timeoutMs);
-    try {
-      ws = new WebSocket(url);
-      ws.onopen = () => ws?.send(JSON.stringify(["EVENT", event]));
-      ws.onmessage = (msg) => {
-        const frame = parseFrame(msg.data as string);
-        if (!frame) return;
-        // NIP-42: an auth-required relay challenges before it accepts the
-        // EVENT. Sign the challenge with the caller's signer, send AUTH,
-        // then re-send the EVENT. Without an `auth` signer this is ignored.
-        if (frame.type === "AUTH" && auth && !authed) {
-          authed = true;
-          const challenge = String(frame.payload[0] ?? "");
-          void Promise.resolve(auth(challenge, url))
-            .then((authEvent) => {
-              ws?.send(JSON.stringify(["AUTH", authEvent]));
-              ws?.send(JSON.stringify(["EVENT", event]));
-            })
-            .catch(() => {
-              /* signer failed → let the attempt time out / fail */
-            });
-          return;
-        }
-        if (frame.type === "OK" && frame.payload[0] === event.id) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          try {
-            ws?.close();
-          } catch {}
-          const ok = frame.payload[1] === true;
-          const reason = frame.payload[2] as string | undefined;
-          resolve({
-            ok,
-            ...(reason ? { reason } : {}),
-            retryable: false,
-          });
-        }
-      };
-      ws.onerror = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        resolve({ ok: false, reason: "websocket_error", retryable: true });
-      };
-      ws.onclose = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        resolve({ ok: false, reason: "closed_early", retryable: true });
-      };
-    } catch (err) {
+    let channel: Channel | null = null;
+    const finish = (r: { ok: boolean; reason?: string; retryable: boolean }) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve({
-        ok: false,
-        reason: err instanceof Error ? err.message : "unknown",
-        retryable: true,
-      });
-    }
+      channel?.end();
+      resolve(r);
+    };
+    const timer = setTimeout(
+      () => finish({ ok: false, reason: "timeout", retryable: true }),
+      timeoutMs,
+    );
+    channel = openChannel(
+      url,
+      {
+        open: () => channel?.send(["EVENT", event]),
+        frame: (frame) => {
+          // NIP-42: an auth-required relay challenges before it accepts the
+          // EVENT. Sign the challenge with the caller's signer, send AUTH,
+          // then re-send the EVENT. Without an `auth` signer this is ignored.
+          if (frame.type === "AUTH" && auth && !authed) {
+            authed = true;
+            const challenge = String(frame.payload[0] ?? "");
+            void Promise.resolve(auth(challenge, url))
+              .then((authEvent) => {
+                channel?.send(["AUTH", authEvent]);
+                channel?.send(["EVENT", event]);
+              })
+              .catch(() => {
+                /* signer failed → let the attempt time out / fail */
+              });
+            return;
+          }
+          if (frame.type === "OK" && frame.payload[0] === event.id) {
+            const reason = frame.payload[2] as string | undefined;
+            finish({
+              ok: frame.payload[1] === true,
+              ...(reason ? { reason } : {}),
+              retryable: false,
+            });
+          }
+        },
+        down: (kind, detail) =>
+          finish({
+            ok: false,
+            reason: detail ?? (kind === "error" ? "websocket_error" : "closed_early"),
+            retryable: true,
+          }),
+      },
+      { subscription: false, auth },
+    );
+    // The relay refused a handshake moments ago; retrying inside the back-off
+    // would only dial into the same refusal.
+    if (!channel) finish({ ok: false, reason: "relay_unavailable", retryable: false });
   });
 }
 
@@ -522,146 +768,103 @@ export async function queryEvents(
         new Promise<void>((resolve) => {
           let settled = false;
           let authed = false; // NIP-42 handshake attempted at most once
+          let sent = false;
           let count = 0;
           let rejected = 0;
           let reason: string | undefined;
-          let ws: WebSocket | null = null;
-          const timer = setTimeout(() => {
-            if (settled) return;
-            settled = true;
-            try {
-              ws?.close();
-            } catch {}
-            status.push({
-              relay: url,
-              ok: count > 0,
-              eose: false,
-              reason: reason ?? "timeout",
-              events: count,
-              rejected,
-            });
-            resolve();
-          }, timeoutMs);
-          try {
-            ws = new WebSocket(url);
-            ws.onopen = () => ws?.send(JSON.stringify(["REQ", subId, filter]));
-            ws.onmessage = (msg) => {
-              const frame = parseFrame(msg.data as string);
-              if (!frame) return;
-              // NIP-42: auth-required relay challenges before serving the
-              // REQ — sign, send AUTH, then re-send the REQ. Ignored absent
-              // an `auth` signer (today's behavior).
-              if (frame.type === "AUTH" && auth && !authed) {
-                authed = true;
-                const challenge = String(frame.payload[0] ?? "");
-                void Promise.resolve(auth(challenge, url))
-                  .then((authEvent) => {
-                    ws?.send(JSON.stringify(["AUTH", authEvent]));
-                    ws?.send(JSON.stringify(["REQ", subId, filter]));
-                  })
-                  .catch(() => {
-                    /* signer failed → let the query time out */
-                  });
-                return;
-              }
-              if (frame.type === "EVENT" && frame.payload[0] === subId) {
-                const event = frame.payload[1];
-                if (verifyEvent(event) && matchFilter(event, filter)) {
-                  if (!byId.has(event.id)) byId.set(event.id, event);
-                  count++;
-                } else {
-                  rejected++;
-                }
-              } else if (frame.type === "EOSE" && frame.payload[0] === subId) {
-                if (settled) return;
-                settled = true;
-                clearTimeout(timer);
-                try {
-                  ws?.send(JSON.stringify(["CLOSE", subId]));
-                  ws?.close();
-                } catch {}
-                status.push({ relay: url, ok: true, eose: true, events: count, rejected });
-                resolve();
-              } else if (
-                frame.type === "CLOSED" &&
-                frame.payload[0] === subId
-              ) {
-                // The relay ENDED the subscription — it will send
-                // nothing further. Without this branch the client
-                // waited out the whole timeout for an answer that
-                // had already arrived, and then reported 'timeout'
-                // while discarding the relay's own explanation.
-                //
-                // Not theoretical: strfry CLOSEs a sub whose filter
-                // uses an unindexed multi-letter tag, and
-                // relay.snort.social is in DEFAULT_RELAYS. One such
-                // relay added the full timeout to every query —
-                // 8s on chat's device lookup, which is on the
-                // deliverability path.
-                //
-                // `ok` still keys off whether events actually
-                // arrived: a relay may stream some and then close.
-                if (settled) return;
-                settled = true;
-                clearTimeout(timer);
-                try {
-                  ws?.close();
-                } catch {}
-                status.push({
-                  relay: url,
-                  ok: count > 0,
-                  eose: false,
-                  reason: String(frame.payload[1] ?? "closed"),
-                  events: count,
-              rejected,
-                });
-                resolve();
-              } else if (frame.type === "NOTICE") {
-                reason = String(frame.payload[0] ?? "notice");
-              }
-            };
-            ws.onerror = () => {
-              if (settled) return;
-              settled = true;
-              clearTimeout(timer);
-              status.push({
-                relay: url,
-                ok: false,
-                eose: false,
-                reason: "ws_error",
-                events: count,
-              rejected,
-              });
-              resolve();
-            };
-            ws.onclose = () => {
-              if (settled) return;
-              settled = true;
-              clearTimeout(timer);
-              status.push({
-                relay: url,
-                ok: count > 0,
-                eose: false,
-                reason: reason ?? "closed_early",
-                events: count,
-              rejected,
-              });
-              resolve();
-            };
-          } catch (err) {
+          let channel: Channel | null = null;
+          const finish = (
+            ok: boolean,
+            eose: boolean,
+            why: string | undefined,
+            closeSub: boolean,
+          ) => {
             if (settled) return;
             settled = true;
             clearTimeout(timer);
+            if (closeSub && sent) channel?.send(["CLOSE", subId]);
+            channel?.end();
             status.push({
               relay: url,
-              ok: false,
-              eose: false,
-              reason: err instanceof Error ? err.message : "unknown",
+              ok,
+              eose,
+              ...(why ? { reason: why } : {}),
               events: count,
               rejected,
             });
             resolve();
-          }
+          };
+          // Started before the channel, so time spent waiting for a pooled
+          // relay's subscription slot counts against this call's deadline.
+          const timer = setTimeout(
+            () => finish(count > 0, false, reason ?? "timeout", true),
+            timeoutMs,
+          );
+          channel = openChannel(
+            url,
+            {
+              open: () => {
+                sent = true;
+                channel?.send(["REQ", subId, filter]);
+              },
+              frame: (frame) => {
+                // NIP-42: auth-required relay challenges before serving the
+                // REQ — sign, send AUTH, then re-send the REQ. Ignored absent
+                // an `auth` signer (today's behavior).
+                if (frame.type === "AUTH" && auth && !authed) {
+                  authed = true;
+                  const challenge = String(frame.payload[0] ?? "");
+                  void Promise.resolve(auth(challenge, url))
+                    .then((authEvent) => {
+                      channel?.send(["AUTH", authEvent]);
+                      channel?.send(["REQ", subId, filter]);
+                    })
+                    .catch(() => {
+                      /* signer failed → let the query time out */
+                    });
+                  return;
+                }
+                if (frame.type === "EVENT" && frame.payload[0] === subId) {
+                  const event = frame.payload[1];
+                  if (verifyEvent(event) && matchFilter(event, filter)) {
+                    if (!byId.has(event.id)) byId.set(event.id, event);
+                    count++;
+                  } else {
+                    rejected++;
+                  }
+                } else if (frame.type === "EOSE" && frame.payload[0] === subId) {
+                  finish(true, true, undefined, true);
+                } else if (
+                  frame.type === "CLOSED" &&
+                  frame.payload[0] === subId
+                ) {
+                  // The relay ENDED the subscription — it will send
+                  // nothing further. Without this branch the client
+                  // waited out the whole timeout for an answer that
+                  // had already arrived, and then reported 'timeout'
+                  // while discarding the relay's own explanation.
+                  //
+                  // Not theoretical: strfry CLOSEs a sub whose filter
+                  // uses an unindexed multi-letter tag. One such relay
+                  // added the full timeout to every query — 8s on
+                  // chat's device lookup, which is on the
+                  // deliverability path.
+                  //
+                  // `ok` still keys off whether events actually
+                  // arrived: a relay may stream some and then close.
+                  finish(count > 0, false, String(frame.payload[1] ?? "closed"), false);
+                } else if (frame.type === "NOTICE") {
+                  reason = String(frame.payload[0] ?? "notice");
+                }
+              },
+              down: (kind, detail) =>
+                kind === "error"
+                  ? finish(false, false, detail ?? "ws_error", false)
+                  : finish(count > 0, false, reason ?? "closed_early", false),
+            },
+            { subscription: true, auth },
+          );
+          if (!channel) finish(false, false, "relay_unavailable", false);
         }),
     ),
   );

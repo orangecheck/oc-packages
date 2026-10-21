@@ -17,6 +17,8 @@ import { schnorr } from "@noble/curves/secp256k1.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   DEFAULT_RELAYS,
+  closeRelayPool,
+  configureRelayPool,
   getEventHash,
   matchFilter,
   publishEvent,
@@ -99,11 +101,17 @@ function signed(
   return { ...base, id, sig: bytesToHex(schnorr.sign(id, sk)) };
 }
 
+// The package test script runs this file twice: once with a socket per call,
+// and once with NOSTR_CORE_POOL=1, where calls share a pooled socket per relay.
+const POOLED = process.env.NOSTR_CORE_POOL === "1";
+
 beforeEach(() => {
   installMockWebSocket();
+  configureRelayPool({ enabled: POOLED });
 });
 
 afterEach(() => {
+  closeRelayPool();
   restoreWebSocket();
 });
 
@@ -502,6 +510,7 @@ function installMockWebSocket() {
 
     private outcome: Outcome | undefined;
     private authChallenged = false; // NIP-42: challenge fired once per connection
+    private authReceived = false; // the client answered it on this connection
 
     constructor(public url: string) {
       this.outcome = outcomes.shift();
@@ -513,8 +522,9 @@ function installMockWebSocket() {
       const frame = JSON.parse(raw) as unknown[];
       const type = frame[0];
       if (type === "AUTH") {
-        // The client answered our NIP-42 challenge; nothing to do — the
-        // re-sent EVENT/REQ that follows is what we accept.
+        // The client answered our NIP-42 challenge; the re-sent EVENT/REQ
+        // that follows is what we accept.
+        this.authReceived = true;
         return;
       }
       if (type === "EVENT") {
@@ -522,14 +532,19 @@ function installMockWebSocket() {
         queueMicrotask(() => {
           if (!this.outcome) return;
           if (this.outcome.kind === "auth_then_ok") {
-            if (!this.authChallenged) {
+            if (this.authReceived) {
+              this.onmessage?.({
+                data: JSON.stringify(["OK", event.id, true, ""]),
+              });
+            } else if (!this.authChallenged) {
               this.authChallenged = true;
               this.onmessage?.({
                 data: JSON.stringify(["AUTH", this.outcome.challenge]),
               });
             } else {
+              // A real relay challenges once per connection, then refuses.
               this.onmessage?.({
-                data: JSON.stringify(["OK", event.id, true, ""]),
+                data: JSON.stringify(["OK", event.id, false, "auth-required: answer the challenge"]),
               });
             }
           } else if (this.outcome.kind === "publish_ok") {
@@ -550,7 +565,7 @@ function installMockWebSocket() {
         queueMicrotask(() => {
           if (!this.outcome) return;
           if (this.outcome.kind === "auth_then_query") {
-            if (!this.authChallenged) {
+            if (!this.authReceived) {
               this.authChallenged = true;
               this.onmessage?.({
                 data: JSON.stringify(["AUTH", this.outcome.challenge]),

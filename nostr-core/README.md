@@ -36,6 +36,23 @@ const { events, relayStatus } = await queryEvents(filter);
 console.log(`${events.length} unique events from ${relayStatus.filter(r => r.ok).length} relays`);
 ```
 
+## One socket per relay
+
+In a browser, every call on the page shares one WebSocket per relay. Each
+query is a subscription on it, at most 10 open at once per relay; the rest
+wait, and the wait counts against their own `timeoutMs`. A relay that refuses
+the handshake (a 503, a 429, a refused connection) is skipped for 10 seconds,
+and `relayStatus` says so with `reason: "relay_unavailable"`. A call that
+passes an `auth` signer gets its own socket. Outside a browser each call opens
+its own socket, as before.
+
+```ts
+import { configureRelayPool, closeRelayPool } from '@orangecheck/nostr-core';
+
+configureRelayPool({ maxSubscriptions: 10, backoffMs: 10_000, idleMs: 30_000 });
+closeRelayPool(); // close every pooled socket, e.g. on sign-out
+```
+
 ## What's in `DEFAULT_RELAYS`
 
 Five relays, in order:
