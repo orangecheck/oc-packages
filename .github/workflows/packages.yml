@@ -38,6 +38,18 @@ jobs:
                   node-version: '24'
             - run: node scripts/check-release-triggers.mjs
 
+    home-paths:
+        # A /Users/<name>/ fallback sat in six test files of this public repo,
+        # naming a person and working on one laptop only. Fail on any.
+        name: No absolute home-directory paths
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node scripts/check-home-paths.mjs
+
     id-coverage:
         # Family invariant 4 as an executable check: every field in a canonical
         # message must be inside the id, because the signature commits to the

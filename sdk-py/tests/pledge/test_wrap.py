@@ -109,9 +109,13 @@ def test_wrap_pledge_envelope_matches_pledge_input_from_dict_round_trip():
     """Loading a v01-shaped vector via pledge_input_from_dict and wrapping
     with a placeholder sig produces the same id as the spec-pinned one."""
     import json
+    import os
     from pathlib import Path
 
-    vector_path = Path("/Users/wilneeley/Projects/ochk/oc-pledge-protocol/test-vectors/v01-pledge-minimal-chain-state.json")
+    vectors_dir = os.environ.get("OC_PLEDGE_VECTORS_DIR") or (
+        Path(__file__).resolve().parents[4] / "oc-pledge-protocol" / "test-vectors"
+    )
+    vector_path = Path(vectors_dir) / "v01-pledge-minimal-chain-state.json"
     if not vector_path.is_file():
         pytest.skip("oc-pledge-protocol vectors not available locally")
     vec = json.loads(vector_path.read_text())

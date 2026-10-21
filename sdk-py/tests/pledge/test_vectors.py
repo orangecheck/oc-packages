@@ -47,13 +47,10 @@ def locate_vectors_dir() -> Path | None:
     env = os.environ.get("OC_PLEDGE_VECTORS_DIR")
     if env and Path(env).is_dir():
         return Path(env)
-    # Sibling-clone preferred for monorepo dev.
-    sibling = Path(__file__).resolve().parents[3] / "oc-pledge-protocol" / "test-vectors"
+    # A clone of oc-pledge-protocol next to oc-packages.
+    sibling = Path(__file__).resolve().parents[4] / "oc-pledge-protocol" / "test-vectors"
     if sibling.is_dir():
         return sibling
-    user_home = Path("/Users/wilneeley/Projects/ochk/oc-pledge-protocol/test-vectors")
-    if user_home.is_dir():
-        return user_home
     return None
 
 
