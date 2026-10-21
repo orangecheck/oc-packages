@@ -13,6 +13,7 @@ import {
     type SiteStatus,
 } from '../family';
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { useInDocs } from '../lib/docs-context';
 import { Badge } from '../primitives/badge';
 import { StatusBadge } from '../primitives/status-badge';
@@ -37,10 +38,13 @@ const pad = (n: number) => String(n + 1).padStart(2, '0');
 export function ProtocolGrid({
     protocols = PROTOCOL_ORDER,
     link = 'page',
+    as: Tag = 'h3',
     className,
 }: {
     protocols?: readonly ProtocolSlug[];
     link?: 'page' | 'tool' | 'docs';
+    /** Each protocol's heading level, where the page puts the grid. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }) {
     // Inside the docs, their pages are this site's: through the router, under its base path.
@@ -59,7 +63,7 @@ export function ProtocolGrid({
                                 </span>
                                 {p.status !== 'live' ? <StatusBadge status={p.status} /> : null}
                             </div>
-                            <h3 className="oca-display-3">
+                            <Tag className="oca-display-3">
                                 {link === 'docs' && inDocs ? (
                                     <Link href={`/${p.slug}`} className={STRETCH}>
                                         {p.label}
@@ -72,7 +76,7 @@ export function ProtocolGrid({
                                         {p.label}
                                     </a>
                                 )}
-                            </h3>
+                            </Tag>
                             <p className="oca-body">{p.line}</p>
                             <div className="mt-auto flex items-center justify-between gap-3 pt-2 text-[0.875rem] text-muted-foreground">
                                 <span className="oca-tabular">Nostr kind {p.kinds}</span>
@@ -104,19 +108,21 @@ export interface AppCardProps {
     /** The protocols it shows, as chips. */
     protocols?: readonly ProtocolSlug[];
     status?: SiteStatus;
+    /** The name's heading level, where the page puts the card. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }
 
 /** One app: its name, one line, the protocols it shows, and where it is. The card is the link. */
-export function AppCard({ name, line, href, protocols = [], status = 'live', className }: AppCardProps) {
+export function AppCard({ name, line, href, protocols = [], status = 'live', as: Tag = 'h3', className }: AppCardProps) {
     return (
         <div className={cn(CARD, 'gap-3', className)}>
             <div className="flex items-start justify-between gap-3">
-                <h3 className="oca-title">
+                <Tag className="oca-title">
                     <a href={href} className={STRETCH}>
                         {name}
                     </a>
-                </h3>
+                </Tag>
                 {status !== 'live' ? <StatusBadge status={status} /> : null}
             </div>
             <p className="oca-body text-[0.9375rem]">{line}</p>
@@ -146,11 +152,14 @@ export function AppCard({ name, line, href, protocols = [], status = 'live', cla
 export function AppGrid({
     group = 'app',
     sites,
+    as,
     className,
 }: {
     group?: Extract<FamilyGroup, 'app' | 'public-good'>;
     /** Pick and order the apps yourself instead. */
     sites?: readonly FamilySlug[];
+    /** Each app's heading level, where the page puts the grid. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }) {
     const list = sites
@@ -160,7 +169,7 @@ export function AppGrid({
         <ul className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5', className)}>
             {list.map((s) => (
                 <li key={s.slug}>
-                    <AppCard name={s.label} line={s.line} href={s.href} protocols={s.protocols} status={s.status} />
+                    <AppCard name={s.label} line={s.line} href={s.href} protocols={s.protocols} status={s.status} as={as} />
                 </li>
             ))}
         </ul>

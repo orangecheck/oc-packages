@@ -400,6 +400,19 @@ export const Rows: StoryObj = {
                     </div>
                 </section>
                 <section className="flex flex-col gap-4">
+                    <SectionTitle title="Read in full" size="sm" as="h3" description='lines="all": a query and its note wrap whole; the picture and the end stay level with the title.' />
+                    <ListCard>
+                        <ListRow
+                            onSelect={() => {}}
+                            lines="all"
+                            title="Open pledges from one address"
+                            meta="3"
+                            description={'pledge.query(address="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t", status="open")\nEvery open pledge from this address, newest first.'}
+                            trailing={<ChevronRight aria-hidden className="size-4 text-muted-foreground" />}
+                        />
+                    </ListCard>
+                </section>
+                <section className="flex flex-col gap-4">
                     <SectionTitle title="People" size="sm" as="h3" description="A picture when there is one; initials on their own tint; a person when there is no name. A picture that fails to load falls back." />
                     <div className="flex flex-wrap items-end gap-4">
                         {(['2xs', 'xs', 'sm', 'md', 'lg'] as const).map((size) => (

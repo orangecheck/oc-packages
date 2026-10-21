@@ -2,6 +2,7 @@ import { Check, Lock } from 'lucide-react';
 import { useSyncExternalStore, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { Badge } from '../primitives/badge';
 
 /*
@@ -96,6 +97,7 @@ export function PlanCard({
     badge,
     badgeTone = 'neutral',
     highlight = false,
+    as: Tag = 'h3',
     className,
 }: {
     name: ReactNode;
@@ -113,6 +115,8 @@ export function PlanCard({
     badge?: ReactNode;
     badgeTone?: 'neutral' | 'brand' | 'success' | 'muted';
     highlight?: boolean;
+    /** The plan's heading level, where the page puts the card. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
@@ -125,7 +129,7 @@ export function PlanCard({
         >
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-[1.0625rem] font-medium leading-snug">{name}</h3>
+                    <Tag className="text-[1.0625rem] font-medium leading-snug">{name}</Tag>
                     {badge ? <Badge tone={badgeTone}>{badge}</Badge> : null}
                 </div>
                 {subtitle ? <p className="text-[0.875rem] leading-snug text-muted-foreground">{subtitle}</p> : null}
@@ -164,6 +168,7 @@ export function LockedPreview({
     description,
     action,
     children,
+    as: Tag = 'h2',
     className,
 }: {
     /** What opens: "Your watchlist". */
@@ -174,6 +179,11 @@ export function LockedPreview({
     action: ReactNode;
     /** The sample, drawn as it would be. */
     children?: ReactNode;
+    /**
+     * The title's heading level. Default h2: a gate is often the whole page
+     * under its header, and a page needs a heading.
+     */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
@@ -193,7 +203,7 @@ export function LockedPreview({
                     <Lock className="size-[1.125rem]" />
                 </span>
                 <div className="flex flex-col gap-1.5">
-                    <p className="text-[1.0625rem] font-medium leading-snug">{title}</p>
+                    <Tag className="text-[1.0625rem] font-medium leading-snug">{title}</Tag>
                     {description ? <p className="text-[0.9375rem] leading-snug text-muted-foreground">{description}</p> : null}
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">{action}</div>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { IsoCheck } from '../brand/iso-check';
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { Accordion, AccordionItem } from '../primitives/accordion';
 import { Reveal } from './motion';
 import { Section, SectionIntro } from './section';
@@ -59,6 +60,7 @@ export function FactBlock({
     description,
     aside,
     children,
+    as: Tag = 'h2',
     className,
 }: {
     id?: string;
@@ -67,13 +69,15 @@ export function FactBlock({
     /** Links beside the title: the source, the raw data. */
     aside?: ReactNode;
     children?: ReactNode;
+    /** The title's heading level, where the page puts it. Default h2. */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
         <section id={id} className={cn('flex scroll-mt-24 flex-col gap-6', className)}>
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-8">
                 <div className="flex max-w-[44rem] flex-col gap-3">
-                    <h2 className="oca-display-3">{title}</h2>
+                    <Tag className="oca-display-3">{title}</Tag>
                     {description ? <div className="oca-body text-[1.0625rem]">{description}</div> : null}
                 </div>
                 {aside ? <div className="flex shrink-0 flex-wrap gap-x-5 gap-y-2 text-[0.9375rem]">{aside}</div> : null}
@@ -99,6 +103,7 @@ export function FactRows({
     rows,
     columns = 1,
     label,
+    as: Tag = 'h3',
     className,
 }: {
     rows: FactRow[];
@@ -106,6 +111,8 @@ export function FactRows({
     columns?: 1 | 2;
     /** The list's name for a screen reader. */
     label: string;
+    /** Each row's heading level, where the page puts the list. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
@@ -114,7 +121,7 @@ export function FactRows({
                 <li key={r.key} className="flex flex-col gap-5 px-5 py-6 md:px-8 md:py-7">
                     {/* The figure keeps its own line end; a long title wraps beside it. */}
                     <div className="flex items-baseline justify-between gap-x-6">
-                        <h3 className="oca-title min-w-0 text-pretty">{r.title}</h3>
+                        <Tag className="oca-title min-w-0 text-pretty">{r.title}</Tag>
                         {r.figure ? (
                             <span className="oca-tabular shrink-0 whitespace-nowrap text-[1.75rem] leading-none tracking-[-0.02em]">
                                 {r.figure}
@@ -196,6 +203,7 @@ export function Closing({
     actions,
     fineprint,
     art,
+    as: Tag = 'h2',
     className,
 }: {
     title: ReactNode;
@@ -205,6 +213,8 @@ export function Closing({
     fineprint?: ReactNode;
     /** Beside the words from md up. Defaults to the check; `null` leaves it out. */
     art?: ReactNode;
+    /** The title's heading level, where the page puts it. Default h2. */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
@@ -212,7 +222,7 @@ export function Closing({
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <Reveal className="flex flex-col items-start gap-8 md:col-span-7">
                     <div className="flex flex-col gap-5">
-                        <h2 className="oca-display-1 text-[clamp(2.5rem,1.5rem+4vw,5rem)] leading-[1]">{title}</h2>
+                        <Tag className="oca-display-1 text-[clamp(2.5rem,1.5rem+4vw,5rem)] leading-[1]">{title}</Tag>
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
                     {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}

@@ -17,6 +17,7 @@ import {
 
 import { explorerUrl, shortenMiddle, type ExplorerKind, type Network } from '../format';
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { useDensity } from '../lib/density';
 import { HIT_32 } from '../lib/hit';
 import { useShellPlace } from '../lib/shell-context';
@@ -515,6 +516,7 @@ export function EmptyState({
     children,
     action,
     icon,
+    as: Tag = 'h3',
     className,
 }: {
     title: ReactNode;
@@ -522,6 +524,8 @@ export function EmptyState({
     action?: ReactNode;
     /** An icon that says what is missing. None by default: the words carry it. */
     icon?: ReactNode;
+    /** The title's heading level, where the page puts it. Default h3. */
+    as?: HeadingTag;
     className?: string;
 }) {
     return (
@@ -536,7 +540,7 @@ export function EmptyState({
                     {icon}
                 </span>
             ) : null}
-            <h3 className="oca-title-sm">{title}</h3>
+            <Tag className="oca-title-sm">{title}</Tag>
             {children ? <div className="oca-body max-w-md text-[0.9375rem]">{children}</div> : null}
             {action ? <div className="mt-2 flex flex-wrap justify-center gap-3">{action}</div> : null}
         </div>

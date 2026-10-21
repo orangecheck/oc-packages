@@ -22,7 +22,10 @@
  * - The family footer fits a phone in 600px, each link group a disclosure
  *   with a 44px summary, every link still there; a desk sees the columns.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
- *   screen) is a 44px target; a mouse sees it unchanged.
+ *   screen), a 36px small button and a 40px icon button are 44px targets; a
+ *   mouse sees them unchanged.
+ * - A ListRow with lines="all" wraps its title and line in full, stays
+ *   44px at least, and keeps its picture and its end level with the title.
  * - A bare border, border-b or divide-y draws in the hairline, not in the
  *   text colour (Tailwind 4's default), in light and dark; a colour utility
  *   still wins.
@@ -240,8 +243,22 @@ try {
                 // Apart, so each target is its own: two closer than 12px share the overlap.
                 { className: 'flex items-center gap-4 p-6' },
                 h(P.Button, { size: 'icon-sm', variant: 'ghost', 'aria-label': 'Generate another', 'data-t': 'icon-sm' }, 'G'),
+                h(P.Button, { size: 'sm', 'data-t': 'sm' }, 'Get an account'),
+                h(P.Button, { size: 'icon', variant: 'ghost', 'aria-label': 'Menu', 'data-t': 'icon' }, 'M'),
                 h(C.CopyButton, { value: 'x', label: 'Copy passphrase' }),
                 h(C.Panel, { title: 'Hash rate', expandable: true }, h('p', null, 'chart'))
+            )
+        )
+    );
+    const LONG = 'pledge.query(address="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t", status="open", window_blocks=4320) — every open pledge from this address in the last month, newest first';
+    const wrapRows = page(
+        'wrap-rows',
+        renderToStaticMarkup(
+            h(
+                'ul',
+                { className: 'flex w-[20rem] flex-col gap-1 p-2' },
+                h(C.ListRow, { variant: 'pane', onSelect: () => {}, lines: 'all', leading: h(C.Avatar, { seed: 'a', name: 'Query', size: 'md' }), title: 'Open pledges from one address', meta: '3', description: LONG, trailing: h('span', { 'data-end': '', style: { display: 'inline-block', width: 16, height: 16, background: 'currentColor' } }) }),
+                h(C.ListRow, { variant: 'pane', onSelect: () => {}, title: 'Open pledges from one address', description: LONG, 'data-one': '' })
             )
         )
     );
@@ -319,6 +336,28 @@ try {
             );
             check(!tb.fits.scrolls && tb.fits.spills === 0, `[${width}] a three-column error table scrolls (${tb.fits.scrolls}) or spills from ${tb.fits.spills} cell(s)`);
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
+            // ListRow lines="all": wrapped in full, its picture and end level with the title.
+            await p.goto(wrapRows);
+            const wr = await p.evaluate(() => {
+                const [all, one] = [...document.querySelectorAll('li')];
+                const row = all.querySelector('button').getBoundingClientRect();
+                const title = all.querySelector('button span.flex-col span span').getBoundingClientRect();
+                const lineH = parseFloat(getComputedStyle(all.querySelector('button span.flex-col span span')).lineHeight) || 22.5;
+                const end = all.querySelector('[data-end]').getBoundingClientRect();
+                const pic = all.querySelector('[aria-hidden].rounded-full').getBoundingClientRect();
+                const desc = all.querySelectorAll('button span.flex-col > span')[1];
+                const oneDesc = one.querySelectorAll('button span.flex-col > span')[1];
+                return {
+                    h: row.height,
+                    endOff: end.top + end.height / 2 - (title.top + lineH / 2),
+                    picOff: pic.top - title.top,
+                    wraps: desc.getBoundingClientRect().height > 40 && desc.scrollWidth <= desc.clientWidth + 1,
+                    oneCut: oneDesc.scrollWidth > oneDesc.clientWidth + 1 && oneDesc.getBoundingClientRect().height < 30,
+                };
+            });
+            check(wr.h >= 44 && wr.wraps, `[${width}] ListRow lines="all": ${Math.round(wr.h)}px tall, the line wraps in full ${wr.wraps}`);
+            check(Math.abs(wr.endOff) <= 3 && wr.picOff <= 6 && wr.picOff >= -12, `[${width}] ListRow lines="all": the end is ${wr.endOff.toFixed(1)}px off the title's line, the picture ${wr.picOff.toFixed(1)}px`);
+            check(wr.oneCut, `[${width}] ListRow: the default no longer cuts the line to one`);
             // 1.9.0 parts.
             await p.goto(parts190);
             const b190 = await p.evaluate((phone) => {
@@ -405,18 +444,22 @@ try {
                 const t = await ctx.newPage();
                 await t.goto(icons);
                 const reach = await t.evaluate(() =>
-                    ['[data-t="icon-sm"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]'].map((sel) => {
+                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]'].map((sel) => {
                         const el = document.querySelector(sel);
                         const r = el.getBoundingClientRect();
                         const cx = r.left + r.width / 2;
                         const cy = r.top + r.height / 2;
                         const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
-                        return { sel, size: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && lands(cx - 21.5, cy) && lands(cx + 21.5, cy) };
+                        // A wide button needs only the height; a square one both ways.
+                        const wide = r.width > 44;
+                        return { sel, size: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="icon"]': 40 };
                 for (const r of reach) {
-                    if (width < 768) check(r.reach && r.size === 32, `[${width} touch] ${r.sel}: drawn ${r.size}px, 44px target ${r.reach}`);
-                    else check(!r.reach && r.size === 32, `[${width} mouse] ${r.sel}: the target grew past the button (${r.reach})`);
+                    const drawn = DRAWN[r.sel] ?? 32;
+                    if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.size}px, 44px target ${r.reach}`);
+                    else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
                 }
                 await ctx.close();
             }
@@ -553,4 +596,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows`);

@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef, type HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 
 /*
  * White on the canvas with one hairline and a generous radius; no shadow. The
@@ -49,8 +50,8 @@ export function CardNumeral({ className, ...props }: HTMLAttributes<HTMLSpanElem
     return <span className={cn('oca-numeral block', className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-    return <h3 className={cn('oca-title flex flex-wrap items-center gap-2.5', className)} {...props} />;
+export function CardTitle({ className, as: Tag = 'h3', ...props }: HTMLAttributes<HTMLHeadingElement> & { as?: HeadingTag }) {
+    return <Tag className={cn('oca-title flex flex-wrap items-center gap-2.5', className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {

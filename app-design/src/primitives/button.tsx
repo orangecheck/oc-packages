@@ -35,10 +35,11 @@ export const buttonVariants = cva(
                 onInkOutline: 'border border-white/20 text-white hover:bg-white/10',
             },
             size: {
-                sm: 'h-9 px-4 text-sm',
+                // 36px drawn, 44px to a thumb.
+                sm: 'relative h-9 px-4 text-sm pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-1',
                 md: 'h-11 px-5 text-[0.9375rem]',
                 lg: 'h-14 px-7 text-[1.0625rem]',
-                icon: 'size-10',
+                icon: 'relative size-10 pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
                 // 32px drawn, 44px to a thumb (HIT_32).
                 'icon-sm': 'relative size-8 pointer-coarse:before:absolute pointer-coarse:before:-inset-1.5',
             },

@@ -195,6 +195,49 @@ const html = (el) => renderToStaticMarkup(el);
     check(/href="https:\/\/bramk\.substack\.com\/"/.test(html(h(A.Acknowledgement))), 'Acknowledgement: no link to the credit');
 }
 
+// Every titled part takes its heading level from the page: rendered with as="h2" (h3 where h2 is the
+// default), its title comes back at that level. LockedPreview's title is a heading, h2 by default.
+{
+    const level = (out, text) => out.match(new RegExp(`<(h[1-6])\\b[^>]*>(?:<[^>]+>)*${text}`))?.[1] ?? null;
+    const parts = [
+        ['CardTitle', () => html(h(P.CardTitle, { as: 'h2' }, 'Plan')), 'Plan', 'h2'],
+        ['PackageCard', () => html(h(C.PackageCard, { as: 'h2', items: [{ title: 'Verify', code: 'x' }] })), 'Verify', 'h2'],
+        ['ProtocolGrid', () => html(h(C.ProtocolGrid, { as: 'h2', protocols: ['stamp'] })), 'stamp', 'h2'],
+        ['AppCard', () => html(h(C.AppCard, { as: 'h2', name: 'Vault', line: 'x', href: '/' })), 'Vault', 'h2'],
+        ['AppGrid', () => html(h(C.AppGrid, { as: 'h2', sites: ['vault'] })), 'vault', 'h2'],
+        ['PlanCard', () => html(h(C.PlanCard, { as: 'h2', name: 'Annual', price: '1' })), 'Annual', 'h2'],
+        ['LockedPreview', () => html(h(C.LockedPreview, { title: 'Your watchlist', action: 'x' })), 'Your watchlist', 'h2'],
+        ['LockedPreview as', () => html(h(C.LockedPreview, { as: 'h3', title: 'Your watchlist', action: 'x' })), 'Your watchlist', 'h3'],
+        ['EmptyState', () => html(h(C.EmptyState, { as: 'h2', title: 'No pledges yet' })), 'No pledges yet', 'h2'],
+        ['Step', () => html(h(C.Steps, null, h(C.Step, { as: 'h2', title: 'Install' }))), 'Install', 'h2'],
+        ['FactBlock', () => html(h(C.FactBlock, { as: 'h3', title: 'Reserves' })), 'Reserves', 'h3'],
+        ['FactRows', () => html(h(C.FactRows, { as: 'h2', label: 'x', rows: [{ key: 'a', title: 'Fees', fields: [] }] })), 'Fees', 'h2'],
+        ['Closing', () => html(h(C.Closing, { as: 'h3', title: 'Stamp a file', art: null })), 'Stamp a file', 'h3'],
+        ['SpecCard', () => html(h(C.SpecCard, { as: 'h2', protocol: 'stamp', version: '1.0' })), 'oc-stamp-protocol', 'h2'],
+        ['VerifyBox', () => html(h(C.VerifyBox, { as: 'h2', action: '/verify', title: 'Check a stamp' })), 'Check a stamp', 'h2'],
+        ['Panel', () => html(h(C.Panel, { as: 'h2', title: 'Hash rate' }, h('p', null, 'x'))), 'Hash rate', 'h2'],
+    ];
+    for (const [name, render, text, want] of parts) {
+        let got;
+        try {
+            got = level(render(), text);
+        } catch (e) {
+            got = `threw ${String(e.message).slice(0, 40)}`;
+        }
+        check(got === want, `${name}: the title came back as ${got}, not ${want}`);
+    }
+    // No titled part keeps a fixed level of its own: only a page's h1 is fixed (and the legal document's own outline).
+    const { readdirSync, readFileSync } = require('node:fs');
+    const FIXED_OK = new Set(['legal.tsx']);
+    for (const dir of ['components', 'chrome', 'primitives']) {
+        for (const f of readdirSync(join(here, '../src', dir)).filter((x) => x.endsWith('.tsx') && !x.includes('.stories.'))) {
+            if (FIXED_OK.has(f)) continue;
+            const fixed = readFileSync(join(here, '../src', dir, f), 'utf8').match(/<h[2-6][\s>]/g);
+            check(!fixed, `${dir}/${f} draws a fixed heading level (${fixed?.join(' ')}); give it \`as\``);
+        }
+    }
+}
+
 // The MDX map: TypeDoc's h5 and h6, and GitHub task lists.
 {
     check(html(h(mdxComponents.h5, null, 'Returns')).startsWith('<h5'), 'mdx: no h5');

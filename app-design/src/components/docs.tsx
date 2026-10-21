@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { InTableContext } from '../lib/in-table';
 import { Badge } from '../primitives/badge';
 import { ScrollFade } from '../primitives/scroll-fade';
@@ -239,7 +240,7 @@ export function Callout({
 }
 
 /** One step of a guide: a title and whatever it takes (text, code). */
-export function Step({ title, id, children }: { title: ReactNode; id?: string; children?: ReactNode }) {
+export function Step({ title, id, as: Tag = 'h3', children }: { title: ReactNode; id?: string; as?: HeadingTag; children?: ReactNode }) {
     return (
         <li className="relative pb-8 pl-11 last:pb-0 [counter-increment:oca-step]">
             {/* The number, and the line down to the next one. */}
@@ -248,9 +249,9 @@ export function Step({ title, id, children }: { title: ReactNode; id?: string; c
                 className="absolute left-0 top-0 flex size-7 items-center justify-center rounded-full border border-oca-hairline-strong bg-card text-[0.8125rem] oca-tabular text-foreground before:content-[counter(oca-step)]"
             />
             <span aria-hidden className="absolute bottom-1 left-[0.8125rem] top-9 w-px bg-border" />
-            <h3 id={id} className="scroll-mt-28 pt-0.5 text-[1.0625rem] font-medium leading-snug tracking-[-0.008em] text-foreground">
+            <Tag id={id} className="scroll-mt-28 pt-0.5 text-[1.0625rem] font-medium leading-snug tracking-[-0.008em] text-foreground">
                 {title}
-            </h3>
+            </Tag>
             <div className="mt-2 text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{children}</div>
         </li>
     );

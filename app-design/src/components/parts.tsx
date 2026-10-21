@@ -104,6 +104,7 @@ export function ListRow({
     onSelect,
     current = false,
     unread = false,
+    lines = 1,
     variant = 'card',
     as: Tag = 'li',
     className,
@@ -127,6 +128,12 @@ export function ListRow({
     current?: boolean;
     /** Something new in it: the title in bold, the line in full ink. */
     unread?: boolean;
+    /**
+     * `1`: the title and the line under it are cut to fit. `all`: both wrap
+     * in full (a query, a note to read whole); the picture and the end stay
+     * level with the title.
+     */
+    lines?: 1 | 'all';
     variant?: 'card' | 'pane';
     as?: 'li' | 'div';
     className?: string;
@@ -135,7 +142,8 @@ export function ListRow({
     const look = ROW_LOOK[variant];
     const interactive = href !== undefined || onSelect !== undefined;
     const cls = cn(
-        'flex min-h-11 w-full min-w-0 items-center gap-3 text-left outline-none transition-colors',
+        'flex min-h-11 w-full min-w-0 gap-3 text-left outline-none transition-colors',
+        lines === 'all' ? 'items-start' : 'items-center',
         'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         look.box,
         variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
@@ -148,14 +156,31 @@ export function ListRow({
             {leading ? <span className="flex shrink-0">{leading}</span> : null}
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex min-w-0 items-baseline justify-between gap-3">
-                    <span className={cn('truncate text-[0.9375rem] text-foreground', unread ? 'font-semibold' : 'font-medium')}>{title}</span>
+                    <span
+                        className={cn(
+                            'text-[0.9375rem] text-foreground',
+                            lines === 'all' ? 'min-w-0 [overflow-wrap:anywhere]' : 'truncate',
+                            unread ? 'font-semibold' : 'font-medium'
+                        )}
+                    >
+                        {title}
+                    </span>
                     {meta ? <span className="oca-tabular shrink-0 text-[0.8125rem] text-muted-foreground">{meta}</span> : null}
                 </span>
                 {description ? (
-                    <span className={cn('truncate text-[0.875rem]', unread ? 'text-foreground' : 'text-muted-foreground')}>{description}</span>
+                    <span
+                        className={cn(
+                            'text-[0.875rem]',
+                            lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate',
+                            unread ? 'text-foreground' : 'text-muted-foreground'
+                        )}
+                    >
+                        {description}
+                    </span>
                 ) : null}
             </span>
-            {trailing ? <span className="flex shrink-0 items-center gap-2">{trailing}</span> : null}
+            {/* Level with the title's first line when the row wraps. */}
+            {trailing ? <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]')}>{trailing}</span> : null}
         </>
     );
     const aria = current ? { 'aria-current': 'true' as const } : {};

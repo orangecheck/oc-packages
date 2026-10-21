@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.11.0] — 2026-10-20
+
+Heading levels, from the second UI audit and pledge.
+
+- Every titled part takes `as`, its heading level, so a page's outline
+  runs h1, h2, h3 with no jump: `EmptyState`, `PlanCard`, `Panel`,
+  `CardTitle`, `PackageCard`, `ProtocolGrid`, `AppCard` and `AppGrid`,
+  `FactBlock`, `FactRows`, `Closing`, `SpecCard`, `VerifyBox` and `Step`.
+  Each keeps its old level by default. A check renders each at a level it
+  was asked for and reads it back, and fails if a part draws a fixed h2 to
+  h6 again.
+- `LockedPreview`'s title is a heading, h2 by default. A gate page made
+  only of it had no heading at all (vault's eleven signed-out pages).
+- `ListRow lines="all"`: the title and the line under it wrap in full (a
+  query and its note), and the picture and the end stay level with the
+  title. The row stays 44px at least. The default still cuts to one line.
+- On a touch screen a small button (36px) and an icon button (40px) are
+  44px targets too, as `icon-sm` became in 1.10.2: the header's "Get an
+  account" was 36px on a phone.
+
 ## [1.10.2] — 2026-10-20
 
 What the second UI audit measured on live pages.

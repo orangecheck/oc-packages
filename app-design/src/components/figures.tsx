@@ -2,6 +2,7 @@ import { Info, Maximize2 } from 'lucide-react';
 import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { HIT_32 } from '../lib/hit';
 import {
     Dialog,
@@ -227,10 +228,13 @@ export function Panel({
     source,
     expandable = false,
     children,
+    as: Tag = 'h3',
     className,
 }: {
     title: ReactNode;
     description?: ReactNode;
+    /** The title's heading level, where the page puts the panel. Default h3. */
+    as?: HeadingTag;
     /** Beside the title: a range switch, a menu. */
     actions?: ReactNode;
     /** At the foot: a SourceNote. */
@@ -248,7 +252,7 @@ export function Panel({
                 {expanded ? (
                     <DialogTitle className="text-[1.0625rem] font-medium leading-snug">{title}</DialogTitle>
                 ) : (
-                    <h3 className="text-[1rem] font-medium leading-snug">{title}</h3>
+                    <Tag className="text-[1rem] font-medium leading-snug">{title}</Tag>
                 )}
                 {description ? (
                     expanded ? (

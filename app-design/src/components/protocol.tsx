@@ -3,6 +3,7 @@ import { useState, type CSSProperties, type FormEvent, type ReactNode } from 're
 
 import { PROTOCOLS, protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 import { Button } from '../primitives/button';
 import { Field, Input, Textarea } from '../primitives/form';
 import { ScrollFade } from '../primitives/scroll-fade';
@@ -124,6 +125,8 @@ export type SpecCardProps =
           /** How many test vectors ship with it. */
           vectors?: number;
           size?: 'md' | 'sm';
+          /** The repo's heading level on the full card, where the page puts it. Default h3. */
+          as?: HeadingTag;
           className?: string;
           repo?: never;
       }
@@ -165,7 +168,7 @@ function SpecFileNote({ repo, file, kind = 'spec', version, note, className }: E
     );
 }
 
-function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', className }: Extract<SpecCardProps, { protocol: ProtocolSlug }>) {
+function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', as: Tag = 'h3', className }: Extract<SpecCardProps, { protocol: ProtocolSlug }>) {
     const p = protocolSite(protocol);
     const repo = `oc-${p.slug}-protocol`;
     const facts: [string, ReactNode][] = [
@@ -198,7 +201,7 @@ function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', cl
             <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-1.5">
                     <p className="text-[0.875rem] text-muted-foreground">The spec</p>
-                    <h3 className="oca-title break-all font-mono text-[1.0625rem] tracking-normal">{repo}</h3>
+                    <Tag className="oca-title break-all font-mono text-[1.0625rem] tracking-normal">{repo}</Tag>
                 </div>
                 {p.status !== 'live' ? <StatusBadge status={p.status} /> : null}
             </div>
@@ -237,8 +240,11 @@ export function VerifyBox({
     submitLabel = 'Verify',
     multiline = false,
     onVerify,
+    as: Tag = 'h3',
     className,
 }: {
+    /** The title's heading level, where the page puts it. Default h3. */
+    as?: HeadingTag;
     /** Where the form goes: the tool's verify page. */
     action: string;
     /** The query parameter that carries what was pasted. */
@@ -275,7 +281,7 @@ export function VerifyBox({
         >
             {title || description ? (
                 <div className="flex flex-col gap-2">
-                    {title ? <h3 className="oca-title">{title}</h3> : null}
+                    {title ? <Tag className="oca-title">{title}</Tag> : null}
                     {description ? <p className="oca-body text-[0.9375rem]">{description}</p> : null}
                 </div>
             ) : null}

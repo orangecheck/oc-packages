@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 
 /*
  * The deck's "What you get" panel: a dark card of packages, each a peach title,
@@ -23,7 +24,7 @@ const KIND = {
     link: 'text-oca-code-link',
 } as const;
 
-export function PackageCard({ items, className }: { items: PackageItem[]; className?: string }) {
+export function PackageCard({ items, as: Tag = 'h3', className }: { items: PackageItem[]; as?: HeadingTag; className?: string }) {
     return (
         <div
             className={cn(
@@ -36,7 +37,7 @@ export function PackageCard({ items, className }: { items: PackageItem[]; classN
                 const code = <span className={cn('text-[0.9375rem]', KIND[it.kind ?? 'package'])}>{it.code}</span>;
                 return (
                     <div key={i} className="flex min-w-0 flex-col gap-1.5">
-                        <h3 className="text-[1.125rem] font-semibold tracking-[-0.01em] text-oca-ink-title">{it.title}</h3>
+                        <Tag className="text-[1.125rem] font-semibold tracking-[-0.01em] text-oca-ink-title">{it.title}</Tag>
                         {it.href ? (
                             <a href={it.href} className="w-fit underline decoration-transparent underline-offset-4 hover:decoration-current">
                                 {code}
