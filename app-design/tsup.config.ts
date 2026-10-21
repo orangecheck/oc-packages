@@ -15,7 +15,10 @@ export default defineConfig({
         session: 'src/session/index.tsx',
         acknowledgement: 'src/acknowledgement/index.tsx',
         vitest: 'src/vitest/index.ts',
+        og: 'src/og/index.tsx',
     },
+    // ./og carries its fonts inline, so a share-card route reads no file.
+    loader: { '.woff': 'base64' },
     format: ['cjs', 'esm'],
     dts: true,
     splitting: false,

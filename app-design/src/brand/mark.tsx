@@ -13,6 +13,8 @@ const LEFT = '0,3 6,6 6,8 0,5';
 const RIGHT = '6,6 16,1 16,3 6,8';
 
 export const MARK_FACES = { top: '#FED8AB', left: '#FB933C', right: '#EA580B' } as const;
+/** The mark's three faces as SVG points, in a 16×8 box: for a renderer that draws its own SVG (an OG card). */
+export const MARK_POINTS = { top: TOP, left: LEFT, right: RIGHT } as const;
 
 export interface MarkProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
     /** Accessible name. Omit to render the mark as decoration. */

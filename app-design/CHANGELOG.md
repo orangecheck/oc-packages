@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.10.0] — 2026-10-20
+
+- `@orangecheck/app-design/og`: the family's share card for next/og.
+  `OgCard` sets the lockup and the site's word, an eyebrow, the title at
+  display size (three lines at most) and the host, in `ink` or `paper`, in
+  tokens.css's colours, with the mark large at the lower right.
+  `ogFonts()` gives Inter at 500 and 600, Latin and Latin Extended, carried
+  inline so the route reads no file. The twelve family sites with an
+  `/api/og` all draw the classic card today; the route stays the site's
+  (or site-kit's), as the design spec splits it. `yarn test` renders the
+  card through next/og in both tones.
+
 ## [1.9.0] — 2026-10-20
 
 What sites kept local copies of.

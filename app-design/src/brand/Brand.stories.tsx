@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import portrait from '../assets/portrait-halftone-600.webp';
+import { OgCard } from '../og';
 import { AppIcon, Crowd, HalftoneSphere, IsoCheck, Lockup, Mark } from './index';
 
 const meta: Meta = { title: 'Brand' };
@@ -60,6 +61,30 @@ export const CrowdStory: StoryObj = {
                 <Crowd />
             </div>
             <Crowd tone="canvas" cols={18} rows={6} real={4} className="max-w-xl" />
+        </div>
+    ),
+};
+
+/**
+ * The share card, as next/og draws it (@orangecheck/app-design/og), shown here
+ * at half size in the browser's own Inter. The route renders it with ogFonts().
+ */
+export const ShareCard: StoryObj = {
+    name: 'Share card',
+    render: () => (
+        <div className="flex flex-col gap-6">
+            {(
+                [
+                    { tone: 'ink', product: 'stamp', eyebrow: 'OC Stamp', title: 'Prove who signed it, and when.', host: 'stamp.ochk.io' },
+                    { tone: 'paper', product: 'vault', eyebrow: 'Vault', title: 'Secrets your heirs can open, sealed to Bitcoin keys.', host: 'vault.ochk.io' },
+                ] as const
+            ).map((card) => (
+                <div key={card.tone} className="max-w-full overflow-hidden rounded-2xl border border-border" style={{ width: 600, height: 315 }}>
+                    <div style={{ width: 1200, height: 630, transform: 'scale(0.5)', transformOrigin: '0 0', display: 'flex' }}>
+                        <OgCard {...card} />
+                    </div>
+                </div>
+            ))}
         </div>
     ),
 };
