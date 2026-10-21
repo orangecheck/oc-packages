@@ -28,31 +28,38 @@ npm i @orangecheck/agent-core @orangecheck/agent-signer
 ## Quickstart
 
 ```ts
-import { invokeWithStamp } from '@orangecheck/agent-mcp';
+import { ACTION_META_KEY, invokeWithStamp } from '@orangecheck/agent-mcp';
 
 // You already have an agent SignerRef and a DelegationEnvelope from
 // @orangecheck/agent-signer. The delegation grants something like
-//   mcp:invoke(server=https://mcp.example.com,tool=search)
+//   mcp:invoke(server=https://mcp.example.com/mcp,tool=search)
 
 const { result, action } = await invokeWithStamp({
     agent,
     delegation,
     invocation: {
-        server: 'https://mcp.example.com',
+        server: 'https://mcp.example.com/mcp',
         tool: 'search',
         arguments: { query: 'bitcoin identity', limit: 10 },
     },
-    call: async (inv) => myMcpClient.invoke(inv.server, inv.tool, inv.arguments),
+    // The action rides in the request, so the server verifies it first.
+    call: async (inv, action) =>
+        myMcpClient.request('tools/call', {
+            name: inv.tool,
+            arguments: inv.arguments,
+            _meta: { [ACTION_META_KEY]: action },
+        }),
 });
-
-// `result` is whatever the MCP server returned.
-// `action` is the signed envelope; ship it alongside the result, publish to
-// Nostr kind-30084, anchor to OpenTimestamps, etc.
 ```
+
+`ACTION_META_KEY` is `io.ochk/agent-action`. MCP reserves `_meta` for metadata
+and allows prefixed keys, so a server that does not check actions ignores it.
+`server` is the endpoint URL exactly as the delegation's scope names it: case,
+path and a trailing slash all count.
 
 ## What gets stamped
 
-The stamp's `content.hash` is a SHA-256 of the RFC-8785-canonicalized JSON:
+The stamp's `content.hash` is a SHA-256 of the RFC-8785-canonicalized JSON, followed by one LF (0x0A):
 
 ```json
 {
@@ -82,51 +89,52 @@ Produces a signed `agent-action` without calling the tool. Useful for pre-author
 
 ### `invokeWithStamp(input) -> Promise<{ result, action }>`
 
-Stamps the invocation first, then calls the tool. The stamp is returned alongside the tool's result — ship them together.
-
-Rationale for stamping-before-calling: if the downstream call hangs or fails, there is still an on-record commitment that this agent attempted this specific invocation. The server-side verifier sees a stamped intent plus the server's own transcript.
+Stamps the invocation first, then calls `call(invocation, action)`, so the request can carry the action. The action is also returned with the result for your own record.
 
 ## Server-side verification
 
-A server receiving a stamped invocation verifies it with `@orangecheck/agent-core`:
+A server checks the action before it runs the tool, with `@orangecheck/agent-core` 2.7 or later:
 
 ```ts
-import { verifyAction } from '@orangecheck/agent-core';
+import { createReplayGuard, isSubScope, parseScope, verifyAction } from '@orangecheck/agent-core';
+import { ACTION_META_KEY, canonicalizeInvocation } from '@orangecheck/agent-mcp';
 import { verifySignature } from '@orangecheck/bip322';
 
-// `revocations` is required: the kind-30085 envelopes you fetched with
-// "#t": [delegation.id] (see @orangecheck/agent-core's README), or
-// `skipRevocationCheck: true` to state that you are not checking.
+const seen = createReplayGuard(); // one process; across instances, the same record in a shared store
+
+const action = params._meta?.[ACTION_META_KEY];
+// `revocations`: the kind-30085 envelopes you fetched with "#t": [delegation.id].
+// If no relay answered, you have not checked: refuse the call.
 const r = await verifyAction({
     action,
     delegation,
     revocations,
     verifyBip322: async (m, s, a) => verifySignature(a, m, s),
+    // Binds the action to this exact request.
+    content: canonicalizeInvocation({ server: MY_ENDPOINT, tool: params.name, arguments: params.arguments }),
 });
-if (!r.ok) throw new Error(`auth failed: ${r.code}`);
+if (!r.ok) throw new Error(`refused: ${r.code}`);
 
-// Also re-hash the incoming (server, tool, arguments) to confirm the stamp
-// covers exactly this request:
-import { invocationHash } from '@orangecheck/agent-mcp';
-const expectedHash = invocationHash({
-    server: myUrl,
-    tool: req.tool,
-    arguments: req.arguments,
-});
-if (expectedHash !== action.content.hash) {
-    throw new Error('stamp does not cover this request');
-}
+// The exercised scope must name this server and this tool, not just some grant.
+const here = parseScope(`mcp:invoke(server=${MY_ENDPOINT},tool=${params.name})`);
+if (!isSubScope(parseScope(action.scope_exercised), here)) throw new Error('refused: E_SCOPE_DENIED');
+
+// One signed action runs once.
+if (!seen.firstUse(action)) throw new Error('refused: already used');
 ```
+
+`verifyAction` checks as of now: the delegation in force now, any revocation already in effect, and `signed_at` within 120 s of your clock (`E_STALE` otherwise).
 
 ## Composing with OpenTimestamps
 
 For invocations where priority-against-revocation matters:
 
 ```ts
-import { stampCommit } from '@orangecheck/stamp-ots';
+import { submitToCalendars, toStampOts } from '@orangecheck/stamp-ots';
 
 const { action } = await invokeWithStamp({ /* … */ });
-action.ots = await stampCommit(action.id);
+// Pending until a Bitcoin block confirms it.
+action.ots = toStampOts(await submitToCalendars(action.id));
 ```
 
 ## Composing with Nostr

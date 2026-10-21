@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { verifyAction } from '@orangecheck/agent-core';
 import { createDelegation } from '@orangecheck/agent-signer';
 
-import { canonicalizeInvocation, invocationHash, invokeWithStamp, stampInvocation } from './index.js';
+import {
+    ACTION_META_KEY,
+    canonicalizeInvocation,
+    invocationHash,
+    invokeWithStamp,
+    stampInvocation,
+} from './index.js';
 
 const PRINCIPAL = 'bc1qprincipal000000000000000000000000000000';
 const AGENT = 'bc1qagent0000000000000000000000000000000000';
@@ -108,5 +114,27 @@ describe('invokeWithStamp', () => {
         expect(result).toEqual({ hits: 42 });
         expect(action.kind).toBe('agent-action');
         expect(action.delegation_id).toBe(delegation.id);
+    });
+
+    it('hands the action to the call, so the request can carry it', async () => {
+        const delegation = await createDelegation({
+            principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+            agentAddress: AGENT,
+            scopes: ['mcp:invoke(server=https://mcp.example.com,tool=search)'],
+            ttlMs: 60 * 60 * 1000,
+        });
+        const sent: unknown[] = [];
+        const { action } = await invokeWithStamp({
+            agent: { address: AGENT, signMessage: fakeSign(AGENT) },
+            delegation,
+            invocation: { server: 'https://mcp.example.com', tool: 'search', arguments: { q: 'bitcoin' } },
+            call: async (inv, signed) => {
+                sent.push({ name: inv.tool, arguments: inv.arguments, _meta: { [ACTION_META_KEY]: signed } });
+                return null;
+            },
+        });
+        expect(sent).toEqual([
+            { name: 'search', arguments: { q: 'bitcoin' }, _meta: { 'io.ochk/agent-action': action } },
+        ]);
     });
 });

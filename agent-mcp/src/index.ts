@@ -7,7 +7,8 @@
 // — verifies the action before trusting the call.
 //
 // The wrapper is transport-agnostic. Wire it into whatever MCP client you use
-// by calling `invokeWithStamp()` around the raw call.
+// by calling `invokeWithStamp()` around the raw call, and send the action with
+// the request under `params._meta[ACTION_META_KEY]`.
 
 import { sha256 } from '@noble/hashes/sha256';
 import {
@@ -23,12 +24,23 @@ import {
     type SignerRef,
 } from '@orangecheck/agent-signer';
 
+/**
+ * Where an MCP request carries its action: `params._meta[ACTION_META_KEY]` on
+ * the `tools/call` request. MCP reserves `_meta` for metadata and allows
+ * prefixed keys there, so a server that does not check actions ignores it.
+ */
+export const ACTION_META_KEY = 'io.ochk/agent-action';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Canonicalization of an MCP invocation
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface McpInvocation {
-    /** Origin URL of the MCP server. Trimmed and lowercased for canonicalization. */
+    /**
+     * The MCP server's endpoint URL, exactly as the delegation's
+     * `mcp:invoke(server=…)` scope names it. Only surrounding whitespace is
+     * trimmed: case, path and a trailing slash all count.
+     */
     server: string;
     /** Tool name (method) being invoked. */
     tool: string;
@@ -38,7 +50,8 @@ export interface McpInvocation {
 
 /**
  * Produce the canonical bytes for an MCP invocation. The bytes are what the
- * action envelope's `content.hash` is a SHA-256 of.
+ * action envelope's `content.hash` is a SHA-256 of: RFC 8785 JSON of the
+ * object below, followed by one LF (0x0A).
  *
  * Shape:
  *   {
@@ -123,8 +136,12 @@ export async function stampInvocation(input: StampInvocationInput): Promise<Acti
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface InvokeWithStampInput<T> extends StampInvocationInput {
-    /** The underlying transport call. Returns whatever the MCP server returns. */
-    call: (inv: McpInvocation) => Promise<T>;
+    /**
+     * The underlying transport call. It gets the signed action: send it with
+     * the request, under `params._meta[ACTION_META_KEY]`, so the server can
+     * verify it before it runs the tool.
+     */
+    call: (inv: McpInvocation, action: ActionEnvelope) => Promise<T>;
 }
 
 export interface InvokeWithStampResult<T> {
@@ -133,16 +150,15 @@ export interface InvokeWithStampResult<T> {
 }
 
 /**
- * Stamp the invocation *first*, then execute the call. The stamped envelope
- * is returned alongside the result so the caller can ship them together.
+ * Stamp the invocation *first*, then make the call with the action in hand,
+ * so the request carries it and the server verifies before it acts. The
+ * action is also returned with the result for the caller's own record.
  *
- * Rationale for stamping first: if the downstream call hangs or fails, we
- * still have an on-record commitment that this agent attempted this specific
- * invocation. The server-side verifier sees a stamped intent plus the server's
- * own transcript.
+ * A server checks it live (agent-core `verifyAction`): the delegation in force
+ * now, the action signed just now, and an id it has not seen before.
  */
 export async function invokeWithStamp<T>(input: InvokeWithStampInput<T>): Promise<InvokeWithStampResult<T>> {
     const action = await stampInvocation(input);
-    const result = await input.call(input.invocation);
+    const result = await input.call(input.invocation, action);
     return { result, action };
 }

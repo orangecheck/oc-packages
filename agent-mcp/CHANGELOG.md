@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-10-21
+
+### Changed — `invokeWithStamp` hands the action to the call
+
+- `call` is now `(invocation, action) => Promise<T>`, called after the stamp,
+  so the request can carry the action and the server can verify it before it
+  runs the tool. A `call` that takes one argument works as before.
+
+### Added
+
+- `ACTION_META_KEY` (`io.ochk/agent-action`): where a `tools/call` request
+  carries its action, under `params._meta`.
+
+### Docs
+
+- `McpInvocation.server` is the endpoint URL exactly as the delegation's scope
+  names it. Only surrounding whitespace is trimmed; nothing is lowercased.
+- The canonical invocation bytes end in one LF.
+- The README's server example checks with agent-core 2.7's live `verifyAction`,
+  binds `content`, pins the scope to this server and tool, and refuses a
+  repeated action. The anchoring example uses `submitToCalendars` and
+  `toStampOts`, which stamp-ots exports.
+
 ## [0.4.3] — 2026-10-20
 
 ### Fixed — the publish example tags the delegation id
