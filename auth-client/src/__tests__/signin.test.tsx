@@ -51,10 +51,8 @@ describe('humanSigninError', () => {
         expect(humanSigninError('verify_failed_401', 'wallet')).not.toMatch(/_/);
     });
 
-    it('passes a wallet extension message through', () => {
-        expect(humanSigninError('User rejected the request', 'wallet')).toBe(
-            'User rejected the request'
-        );
+    it('passes a sentence through', () => {
+        expect(humanSigninError('Your session ended.', 'wallet')).toBe('Your session ended.');
     });
 });
 

@@ -340,7 +340,7 @@ export function humanSigninError(
     path: 'wallet' | 'email',
     step: 'challenge' | 'submit' = 'challenge'
 ): string {
-    // A wallet extension's own message ("User rejected the request") is prose already.
+    // A reason that is not a code is already a sentence.
     if (!/^[a-z0-9_]+$/.test(reason)) return reason;
     if (path === 'wallet' && step === 'submit' && SUBMIT_ERRORS[reason]) return SUBMIT_ERRORS[reason];
     if (path === 'email' && EMAIL_ERRORS[reason]) return EMAIL_ERRORS[reason];
@@ -355,7 +355,7 @@ export function humanSigninError(
 /**
  * A failed fetch ("Failed to fetch") or an HTML error page parsed as JSON
  * (a SyntaxError) is not prose meant for a person; everything else thrown
- * here carries a host reason code or a wallet's own message.
+ * here carries a host reason code. A wallet's failure never comes here.
  */
 function failureMessage(
     err: unknown,
@@ -1045,6 +1045,7 @@ interface WalletFlowProps extends FlowProps {
 type AdapterShape = {
     detectWallets: () => Array<{ id: string; name: string; detected: boolean }>;
     getSigner: (id: string, opts: { address: string }) => (message: string) => Promise<string>;
+    walletFailureText: (err: unknown, opts?: { paste?: boolean }) => string;
 };
 
 async function loadAdapter(): Promise<AdapterShape> {
@@ -1189,8 +1190,16 @@ function WalletFlow({
                 setSubmitting(false);
                 return;
             }
-            const signer = (await loadAdapter()).getSigner(id, { address: addr });
-            const signature = await signer(challenge.message);
+            const adapter = await loadAdapter();
+            let signature: string;
+            try {
+                signature = await adapter.getSigner(id, { address: addr })(challenge.message);
+            } catch (err) {
+                // The wallet's own words never reach a person; the adapter names the cause.
+                setError(adapter.walletFailureText(err));
+                setSubmitting(false);
+                return;
+            }
             step = 'submit';
             await submitSignature(challenge.message, challenge.nonce, signature, 'bip322');
         } catch (err) {

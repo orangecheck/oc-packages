@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.36.0] — 2026-10-21
+
+### Changed
+
+- **A wallet that does not sign is named in the family's words.** Sign-in
+  showed the wallet's own text: "User rejected the request", "That didn't
+  work" for a bare `{ code: 4001 }`, or the adapter's lowercase "wallet
+  signed with bc1…, switch to bc1… and sign again". The wallet step now has
+  its own catch and shows `walletFailureText` from
+  `@orangecheck/wallet-adapter`, one sentence for a decline, a wrong account,
+  a missing wallet and no answer, the same as every family site.
+- Requires `@orangecheck/wallet-adapter` ^0.7.0.
+
 ## [2.35.2] — 2026-10-21
 
 ### Changed
