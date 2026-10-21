@@ -384,26 +384,26 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.17.0":
-  version "2.32.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.32.3.tgz#3768bf0b13c4903db2510df0e58fb52c51057583"
-  integrity sha512-sJ8dXGqb2Pxf0AyE3j7wJ5cTAFIiwygGfpncSedfOpRZOXaFPN0AlRFKcRsKvHrsrmgf14vOaVwxLzzCFp/90Q==
+  version "2.36.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.36.0.tgz#1a974d17df52d31a7d9abb0677c6d3657b85ac86"
+  integrity sha512-8tJMjo11eR9xgSZVSWpkXOhtXi/zjWbi2+1Ec41N2EoMIV1yD/UF8EkjacftdmsZYBK/t7Ea4gns7FsKpS7aCw==
   dependencies:
-    "@orangecheck/wallet-adapter" "^0.5.2"
+    "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/bip322@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.0.1.tgz#9d01f5a0288ffef566c50954ca9c5569e42d1702"
-  integrity sha512-/4b/sEc6lIpkCapHBEb9up72whUF/Z5IE62hYeFFK+7BRLv8R/RzQqn5xcbSNL+pPyYGncLbOeSIo776GN6usw==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.0.tgz#2884e42042661e8d9cb8b1c3becc3649635721b1"
+  integrity sha512-Q175HQIqRQe3KPpeFCtNxnxbgZ6GVJ5TGk3P4YVOGa9fblfAhvtPuBNBDVqO/cfEXV2d54d4iZ4xXMhRCy9Mfg==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/wallet-adapter@^0.5.2":
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.5.2.tgz#880f715d96ec8963386aaabf793779ee0eb83ea8"
-  integrity sha512-N5utXDkfWv0cjYZSSWltLDnUvfYdXiqU1YNYCwyNKTB97EHjr2J2eXU6NSdqx0YgE30HhVW2zzvF8g8lzK8TSg==
+"@orangecheck/wallet-adapter@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.0.tgz#9231f5faceff155b500b80c51bbdd40220a9576f"
+  integrity sha512-JF54bW+vfXoldLSQqFC3FOxsLCoHEITM9m8nwdN3XDVcDFDUDleUqdUqgBFroZzROROSlqsXlRbar0GDfY4xcA==
   dependencies:
     "@orangecheck/bip322" "^1.0.0"
 
