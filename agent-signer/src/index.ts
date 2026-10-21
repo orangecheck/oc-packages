@@ -342,6 +342,9 @@ export {
     computeDelegationId,
     computeRevocationId,
     verifyAction,
+    verifyActionAsOfSignedAt,
+    createReplayGuard,
+    DEFAULT_MAX_SKEW_MS,
     verifyDelegation,
     verifyRevocation,
     parseScope,
@@ -358,6 +361,8 @@ export type {
     Scope,
     ScopeConstraint,
     AgentErrorCode,
+    VerifyActionInput,
+    VerifyActionAsOfSignedAtInput,
 } from '@orangecheck/agent-core';
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -128,7 +128,7 @@ Returns a `RevocationEnvelope`. The function throws if the signer isn't authoriz
 
 ## Verification
 
-Re-exports `verifyDelegation`, `verifyAction`, and `verifyRevocation` from `@orangecheck/agent-core` for convenience. See that package's README for full details.
+Re-exports `verifyDelegation`, `verifyAction`, `verifyActionAsOfSignedAt`, `verifyRevocation`, `createReplayGuard` and `DEFAULT_MAX_SKEW_MS` from `@orangecheck/agent-core` for convenience. `verifyAction` decides whether to accept an action now; `verifyActionAsOfSignedAt` audits one that was already acted on. See that package's README for full details.
 
 ## Companion packages
 

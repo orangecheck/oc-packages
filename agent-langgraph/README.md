@@ -81,7 +81,7 @@ To verify an action against a persisted graph snapshot:
 
 1. Decode the action envelope's content hash.
 2. Recompute `graphStateHash(persisted_state)` and check it equals the `graph_state_hash` declared in the canonicalized content.
-3. Run the standard `verifyAction()` from `@orangecheck/agent-core` against the action + delegation + Bitcoin headers.
+3. Run `verifyActionAsOfSignedAt()` from `@orangecheck/agent-core` against the action + delegation + revocations + Bitcoin headers. It answers for the time the action was signed, which is what a replay asks. A server deciding whether to run a call now uses `verifyAction()`, which checks as of now, and a replay guard.
 
 The replay verifier picks up forks automatically: if the persisted snapshot doesn't match the state at execution time, the `graph_state_hash` differs and the action's content hash won't reproduce.
 

@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-10-21
+
+- Requires `@orangecheck/agent-core` ^2.7.0, whose `verifyAction` checks an
+  action as of the time of verification.
+- Re-exports `verifyActionAsOfSignedAt`, `createReplayGuard`,
+  `DEFAULT_MAX_SKEW_MS` and the `VerifyActionInput` /
+  `VerifyActionAsOfSignedAtInput` types beside the verifiers it already
+  re-exported.
+
 ## [0.1.0] — Initial published state
 
 Initial public release. Helpers for signing delegations (principal) and actions (agent).

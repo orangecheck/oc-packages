@@ -487,19 +487,38 @@ const action = await signAsAgent({
 });
 ```
 
-### Verify an action against its delegation
+### Accept an action now
 
 ```ts
-import { verifyAction } from '@orangecheck/agent-core';
+import { createReplayGuard, verifyAction } from '@orangecheck/agent-core';
 import { verifySignature } from '@orangecheck/bip322';
+
+// `revocations`: the kind-30085 envelopes a relay returned for
+// `"#t": [delegation.id]` before EOSE (see agent-core's README).
+const used = createReplayGuard(); // one per process; share it across instances
 
 const r = await verifyAction({
     action,
     delegation,
+    revocations,
     verifyBip322: async (m, s, a) => verifySignature(a, m, s),
 });
 if (!r.ok) throw new Error(`${r.code}: ${r.message}`);
+if (!used.firstUse(action)) throw new Error('E_ALREADY_USED');
 console.log(`scope exercised: ${r.scopeExercised}`);
+```
+
+`verifyAction` answers as of now: every link must be in force, no revocation
+may be in effect, and `signed_at` must be within two minutes of the clock.
+
+### Audit an action that was already acted on
+
+```ts
+import { verifyActionAsOfSignedAt } from '@orangecheck/agent-core';
+
+const r = await verifyActionAsOfSignedAt({ action, delegation, revocations, verifyBip322 });
+// r.asOf.basis === 'signed_at': valid when signed, by the agent's own clock
+// unless an OTS anchor fixes the time (r.asOf.anchored).
 ```
 
 ### Revoke ahead of expiry
