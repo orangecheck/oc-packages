@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /*
- * Builds and starts a Next site that uses ./analytics the way the family does
- * (pages router, site-kit left out of transpilePackages, so Next loads it
- * outside its bundle on the server), and asks a static page and a
- * getServerSideProps page for a 200 with the analytics scripts in the HTML.
+ * Builds and starts a Next site that uses ./analytics and ./og the way the
+ * family does (pages router, site-kit left out of transpilePackages, so Next
+ * loads it outside its bundle on the server), and asks a static page and a
+ * getServerSideProps page for a 200 with the analytics scripts in the HTML,
+ * and the og route for a 1200×630 PNG.
  * Also refuses any Next import in the built analytics entry: 0.3.0 imported
  * `next/router.js`, a second copy of the router's module, and a bare
  * `next/router` does not resolve under Node's ESM loader. Run after `yarn build`.
@@ -43,6 +44,9 @@ try {
         if (dep === '@orangecheck' || dep.startsWith('.')) continue;
         symlinkSync(join(pkg, 'node_modules', dep), join(site, 'node_modules', dep));
     }
+    for (const dep of readdirSync(join(pkg, 'node_modules', '@orangecheck'))) {
+        symlinkSync(join(pkg, 'node_modules', '@orangecheck', dep), join(site, 'node_modules', '@orangecheck', dep));
+    }
     symlinkSync(pkg, join(site, 'node_modules', '@orangecheck', 'site-kit'));
     mkdirSync(join(site, 'pages'));
     writeFileSync(join(site, 'package.json'), '{"private":true}\n');
@@ -62,6 +66,13 @@ try {
             'export default function Document() {\n' +
             '    return <Html><Head><FamilyAnalytics /></Head><body><Main /><NextScript /></body></Html>;\n' +
             '}\n'
+    );
+    mkdirSync(join(site, 'pages', 'api'));
+    // As stamp and pledge write it, the 0.3 options included.
+    writeFileSync(
+        join(site, 'pages', 'api', 'og.js'),
+        "import { createOgHandler } from '@orangecheck/site-kit/og';\n" +
+            "export default createOgHandler({ wordmark: 'oc·stamp', badge: 'V1 · PREVIEW', defaultTitle: 'sign anything.', host: 'STAMP.OCHK.IO', footer: '§', mark: <svg width=\"20\" height=\"20\" /> });\n"
     );
     writeFileSync(join(site, 'pages', 'index.js'), 'export default function Home() { return <p>static</p>; }\n');
     writeFileSync(
@@ -95,7 +106,14 @@ try {
         if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
         if (!html.includes('data-oc-analytics="plausible"')) fail(`${path} has no analytics script`);
     }
-    console.log('✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts');
+    for (const path of ['/api/og', '/api/og?title=hello']) {
+        const res = await fetch(base + path);
+        const png = Buffer.from(await res.arrayBuffer());
+        if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
+        if (res.headers.get('content-type') !== 'image/png') fail(`${path} answered ${res.headers.get('content-type')}`);
+        if (png.readUInt32BE(16) !== 1200 || png.readUInt32BE(20) !== 630) fail(`${path} is not 1200×630`);
+    }
+    console.log('✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, and /api/og a 1200×630 PNG');
 } finally {
     server?.kill();
     rmSync(site, { recursive: true, force: true });

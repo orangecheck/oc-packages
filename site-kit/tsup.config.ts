@@ -17,5 +17,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', '@orangecheck/auth-core'],
+    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', '@orangecheck/auth-core', '@orangecheck/app-design/og'],
 });

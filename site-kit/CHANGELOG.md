@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+`createOgHandler` draws app-design's share card (`@orangecheck/app-design/og`:
+`OgCard`, `ogFonts()`, `OG_SIZE`), so the route stays here and the frame and
+fonts come from the design system. Same handler, same `?title=`, same cache
+headers. New options `product`, `eyebrow` and `tone`; a 0.3 `wordmark` such as
+`oc·stamp` still gives the word `stamp` and the eyebrow `OC Stamp`, and `host`
+is shown in lower case. `mark`, `badge`, `footer`, `markTop` and
+`wordmarkLeft` are ignored. Needs `@orangecheck/app-design` ^1.10.1 in the
+site. site-kit's own `OgCard` export is gone.
+
 ## 0.3.2
 
 `useFamilyPageviews` counts a page the way oc-pulse and Plausible's own script
