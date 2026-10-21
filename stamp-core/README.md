@@ -15,6 +15,7 @@ npm i @orangecheck/stamp-core
 ## Usage
 
 ```ts
+import { verifySignature } from '@orangecheck/bip322';
 import { stamp, verify } from '@orangecheck/stamp-core';
 
 // Produce a signed stamp envelope.
@@ -23,7 +24,7 @@ const env = await stamp({
     mime: 'text/plain',
     signer: {
         address: 'bc1qalice…',
-        signMessage: async (msg) => walletSignBIP322(msg),
+        signMessage: async (msg) => walletSignBIP322(msg), // msg is the 64-hex id
     },
 });
 
@@ -35,7 +36,7 @@ const env = await stamp({
 const result = await verify({
     envelope: env,
     content: new TextEncoder().encode('hello world'),
-    verifyBip322: async (msg, sig, addr) => { /* your verifier */ },
+    verifyBip322: async (msg, sig, addr) => verifySignature(addr, msg, sig),
 });
 if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
 ```
@@ -44,8 +45,9 @@ if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
 
 - `stamp(input)` → `StampEnvelope` — build a signed envelope. Leaves `ots: null`; anchoring is a later step.
 - `verify(input)` → `VerifyResult` — full verification algorithm per SPEC §8. Returns a discriminated `{ok: true, ...} | {ok: false, code, message}`.
-- `canonicalMessage(input)` → `string` — the exact bytes the signer signs via BIP-322.
-- `computeEnvelopeId(input)` → `string` — lowercase hex of `sha256(canonical_message)`.
+- `canonicalMessage(input)` → `string` — the six lines hashed into the id. The wallet signs the id, not these lines.
+- `computeEnvelopeId(input)` → `string` — lowercase hex of `sha256(canonical_message)`; this hex string is what BIP-322 signs.
+- `checkStake(envelope, attestation, policy)` → `{ ok } | { ok: false, code: 'E_STAKE_UNMET', message }` — SPEC §8.1 step 7 against an attestation you resolved now.
 - `canonicalize(value)` / `canonicalizeEnvelope(env)` — RFC 8785 JSON canonicalization.
 - `StampError` — typed error with protocol-defined `code`.
 - Full type definitions: `StampEnvelope`, `StampInput`, `VerifyInput`, `StampStake`, etc.
@@ -53,7 +55,13 @@ if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
 ## Composition
 
 - **OTS anchoring**: use [`@orangecheck/stamp-ots`](https://www.npmjs.com/package/@orangecheck/stamp-ots) to submit an envelope's `id` to OpenTimestamps calendars, parse returned proofs, and upgrade pending → confirmed.
-- **Stake context**: populate `input.stake` with an OrangeCheck attestation reference. Verifiers who care should re-resolve via [`@orangecheck/sdk`](https://www.npmjs.com/package/@orangecheck/sdk).
+- **Stake context**: populate `input.stake` with an OrangeCheck attestation reference. It is outside the id and the signature, so anyone can strip or swap it. A verifier re-resolves it and passes the result to `checkStake`, which accepts only an attestation signed by `signer.address` whose current bond meets the policy:
+
+  ```ts
+  const id = env.stake!.attestation_id;
+  const att = await fetch(`https://attest.ochk.io/api/check?id=${id}`).then((r) => r.json());
+  const stake = checkStake(env, att.ok ? att : null, { minSats: 100_000, minDays: 30 });
+  ```
 - **BIP-322 signing**: plug in any wallet adapter — the SDK doesn't ship one. See [`@orangecheck/wallet-adapter`](https://www.npmjs.com/package/@orangecheck/wallet-adapter) for the cross-wallet reference adapter.
 - **BIP-322 verification**: plug in a verifier via `verify({ verifyBip322 })`. stamp-core calls it as `(message, signatureB64, address)` and expects a Promise; [`@orangecheck/bip322`](https://www.npmjs.com/package/@orangecheck/bip322) works in Node and the browser alike: `verifyBip322: async (msg, sig, addr) => verifySignature(addr, msg, sig)`.
 

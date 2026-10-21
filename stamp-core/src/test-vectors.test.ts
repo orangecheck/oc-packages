@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { canonicalMessage, computeEnvelopeId } from './canonical.js';
+import { checkStake, type ResolvedAttestation } from './stake.js';
 import { verify } from './stamp.js';
 import type { StampEnvelope } from './types.js';
 
@@ -59,6 +60,12 @@ interface Vector {
         canonical_message_bytes_len: number;
         id: string;
         envelope: StampEnvelope;
+    };
+    // v06–v08 (errata 1.0.3): SPEC §8.1 step 7 against an attestation resolved now.
+    stake_check?: {
+        resolved_attestation: ResolvedAttestation | null;
+        policy: { min_sats: number; min_days: number };
+        expected: { outcome: 'ACCEPT' } | { outcome: 'REJECT'; error_code: 'E_STAKE_UNMET' };
     };
 }
 
@@ -122,6 +129,18 @@ describe('oc-stamp-protocol test vectors', () => {
             });
             expect(r.ok).toBe(true);
         });
+
+        if (data.stake_check) {
+            const sc = data.stake_check;
+            it(`${name} — stake check ${sc.expected.outcome === 'ACCEPT' ? 'accepts' : 'rejects'}`, () => {
+                const r = checkStake(data.expected.envelope, sc.resolved_attestation, {
+                    minSats: sc.policy.min_sats,
+                    minDays: sc.policy.min_days,
+                });
+                if (sc.expected.outcome === 'ACCEPT') expect(r).toEqual({ ok: true });
+                else expect(r).toMatchObject({ ok: false, code: sc.expected.error_code });
+            });
+        }
 
         it(`${name} — ${data.description}`, () => {
             // Sanity: expected sig value lines up with input.

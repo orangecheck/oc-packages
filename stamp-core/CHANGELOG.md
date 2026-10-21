@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.2.0] — 2026-10-21
+
+### Added — `checkStake`, for a stake reference nobody signed
+
+`stake` is outside the canonical message, so it is outside the id and the
+signature, and anyone who relays an envelope can strip it, add one or swap in
+another address's attestation. oc-stamp-protocol errata 1.0.3 says so and makes
+SPEC §8.1 step 7 require the attestation's address to equal `signer.address`.
+`checkStake(envelope, attestation, policy)` runs that step against an
+attestation you resolved now (attest.ochk.io `/api/check?id=` JSON fits as is)
+and ignores the declared `sats_bonded` / `days_unspent`. The vector harness runs
+the spec's new strip, swap and own vectors (v06–v08) through it.
+
 ## [1.1.0] — 2026-10-08
 
 ### Changed — an unwalked anchor is `claimed`, not `confirmed`
