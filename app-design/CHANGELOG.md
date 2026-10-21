@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [1.15.1] — 2026-10-21
+
+- A docs heading that is one long identifier breaks rather than widen a
+  phone. Five SDK pages (/sdk/agent-core/functions/
+  federationDescriptorCanonicalMessage and four more) ran 15 to 55px past the
+  screen at 390. Every level, h1 to h4, since member names sit in h2 and h3
+  too.
+- `TextLink`, and the MDX in-page anchor, are 24px or more to press: padding
+  above and below the inline link grows its hit area without moving its line.
+  "Defined in" links and list links were 20px, table-cell links 17px.
+- The Inter and JetBrains Mono fallback faces also find Liberation and
+  Arimo / Cousine, Arial's and Courier New's metric twins. A machine with no
+  Arial (most Linux) fell to a wider face, and a tool site's header moved
+  3-5px when Inter arrived.
+- check-layout holds all three, failing on 1.15.0: the headings and links on
+  an SDK-shaped page at 390 and 1440, and the fallback's width within 2% of
+  Inter's on a machine that has Arial or a twin.
+
 ## [1.15.0] — 2026-10-21
 
 The family UI audit's third run, and two looks ochk.app lost when its home and

@@ -30,6 +30,9 @@
  *   text on a phone rather than squeeze it. A large row (size="lg") has an
  *   18px title, a padded card's air and hairlines inset to its text; a list
  *   in a flush Card runs to the card's edges, lined up with its text.
+ * - A docs heading that is one long identifier breaks rather than widen a
+ *   phone; a link in prose, a list or a table cell is 24px to press; the
+ *   Inter fallback face sets text at Inter's width.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -407,6 +410,22 @@ try {
             )
         )
     );
+    // Docs headings that are one long identifier, and links a finger has to press: an SDK page at 390.
+    const sdk = page(
+        'sdk',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'mx-auto max-w-[48rem] px-4 py-6', 'data-sdk': '' },
+                h(M.h1, { id: 'fn' }, 'Function: federationDescriptorCanonicalMessage()'),
+                h(M.h2, { id: 'p' }, 'canonicalAbandonmentMessageBytes()'),
+                h(M.h3, { id: 'r' }, 'resetFamilyRevocationCheckForTests'),
+                h(M.p ?? 'p', null, 'Defined in: ', h(C.TextLink, { href: 'https://github.com/orangecheck/oc-packages/blob/main/agent-core/src/federation.ts#L42', 'data-link': 'prose' }, 'federation.ts:42')),
+                h(M.ul ?? 'ul', null, h(M.li ?? 'li', null, h(C.TextLink, { href: '/sdk/agent-core/README', 'data-link': 'li' }, 'agent-core'))),
+                mdTable(['Member', 'Type'], [[h(C.TextLink, { href: '/sdk/agent-core/functions/verify', 'data-link': 'cell' }, 'verify'), 'function']])
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -685,6 +704,36 @@ try {
             });
             check(fl.edges[0] === 1 && fl.edges[1] === 1 && fl.sides === '0px', `[${width}] Card flush: the list sits ${fl.edges.join('/')}px inside the card's edges with ${fl.sides} side borders, a card in a card`);
             check(fl.rowAt === 0 && fl.foot === 1, `[${width}] Card flush: rows start ${fl.rowAt}px off the card's text, and a last list stops ${fl.foot}px above its foot`);
+            // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
+            await p.goto(sdk);
+            const sd = await p.evaluate(() => ({
+                over: document.documentElement.scrollWidth - innerWidth,
+                wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
+                links: Object.fromEntries([...document.querySelectorAll('[data-sdk] a[href]:not([href^="#"])')].map((a, i) => [a.textContent + i, Math.round(a.getBoundingClientRect().height)])),
+            }));
+            check(sd.over <= 0 && sd.wide.length === 0, `[${width}] docs headings: a long identifier widens the page by ${sd.over}px (${sd.wide.join(', ')})`);
+            check(Object.values(sd.links).length >= 3 && Object.values(sd.links).every((x) => x >= 24), `[${width}] TextLink: a link is shorter than 24px to press (${JSON.stringify(sd.links)})`);
+            // The fallback face matches Inter's widths, so the swap does not move a line (tool headers moved 3-5px).
+            if (width >= 1024) {
+                const fb = await p.evaluate(async () => {
+                    await document.fonts.ready;
+                    const probe = (family) => {
+                        const s = document.createElement('span');
+                        s.style.cssText = `font: 500 16px ${family}; white-space: nowrap; position: absolute`;
+                        s.textContent = 'orangecheck stamp lock vote agent pledge Docs About Create Verify';
+                        document.body.append(s);
+                        const w = s.getBoundingClientRect().width;
+                        s.remove();
+                        return w;
+                    };
+                    const mono = probe('monospace');
+                    // Does this machine have Arial or one of its metric twins at all?
+                    const twin = ['Arial', "'Liberation Sans'", 'Arimo'].some((f) => Math.abs(probe(`${f}, monospace`) - mono) >= 0.5);
+                    return { inter: probe("'OCA Inter'"), fallback: probe("'OCA Inter Fallback', monospace"), mono, twin };
+                });
+                if (!fb.twin) console.log(`  · layout: no Arial or metric twin on this machine; the fallback face's widths are not measured here`);
+                else check(Math.abs(fb.fallback - fb.mono) >= 0.5 && Math.abs(fb.fallback - fb.inter) / fb.inter <= 0.02, `[${width}] the Inter fallback is ${Math.round(fb.fallback)}px against Inter's ${Math.round(fb.inter)}px (or it found no face on a machine with one): the swap moves the line`);
+            }
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
             const pf = await p.evaluate(async () => {

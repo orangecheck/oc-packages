@@ -740,11 +740,12 @@ export function Diagram({
 
 /* ── Headings with anchors ───────────────────────────────────────────── */
 
+// A heading may be one long identifier (an SDK page's "Function: federationDescriptorCanonicalMessage()"): it breaks rather than widen a phone.
 const HEADING = {
-    h1: 'oca-display-3 mb-4 text-foreground',
-    h2: 'mb-3 mt-12 text-[1.375rem] font-medium leading-tight tracking-[-0.015em] text-foreground md:text-[1.5rem]',
-    h3: 'mb-2 mt-9 text-[1.125rem] font-medium leading-snug tracking-[-0.01em] text-foreground',
-    h4: 'mb-2 mt-7 text-[1rem] font-medium leading-snug text-foreground',
+    h1: 'oca-display-3 mb-4 text-foreground [overflow-wrap:anywhere]',
+    h2: 'mb-3 mt-12 text-[1.375rem] font-medium leading-tight tracking-[-0.015em] text-foreground [overflow-wrap:anywhere] md:text-[1.5rem]',
+    h3: 'mb-2 mt-9 text-[1.125rem] font-medium leading-snug tracking-[-0.01em] text-foreground [overflow-wrap:anywhere]',
+    h4: 'mb-2 mt-7 text-[1rem] font-medium leading-snug text-foreground [overflow-wrap:anywhere]',
 } as const;
 
 /**

@@ -54,10 +54,13 @@
 }
 
 /* Metric-matched fallbacks, so the swap from Arial / Courier to the webfont
-   does not move a line. Values are next/font's for Inter and JetBrains Mono. */
+   does not move a line. Values are next/font's for Inter and JetBrains Mono.
+   Liberation and Arimo / Cousine are Arial's and Courier New's metric twins:
+   a machine with neither Arial nor them (most Linux) fell to a wider face, and
+   a tool site's header moved 3-5px at the swap. */
 @font-face {
     font-family: 'OCA Inter Fallback';
-    src: local('Arial');
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
     ascent-override: 90.44%;
     descent-override: 22.52%;
     line-gap-override: 0%;
@@ -66,7 +69,7 @@
 
 @font-face {
     font-family: 'OCA JetBrains Mono Fallback';
-    src: local('Courier New');
+    src: local('Courier New'), local('CourierNewPSMT'), local('Liberation Mono'), local('LiberationMono'), local('Cousine');
     ascent-override: 75.79%;
     descent-override: 22.29%;
     line-gap-override: 0%;

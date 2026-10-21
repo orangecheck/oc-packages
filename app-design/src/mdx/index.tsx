@@ -108,7 +108,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
         // In-page anchors and footnote links stay plain.
         if (!href || href.startsWith('#')) {
             return (
-                <a href={href} {...rest} className="text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground">
+                <a href={href} {...rest} className="py-[0.25em] text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground">
                     {children}
                 </a>
             );
