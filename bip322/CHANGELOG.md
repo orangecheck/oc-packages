@@ -10,6 +10,27 @@ and [Semantic Versioning](https://semver.org/).
 
 - _(no pending changes)_
 
+## [1.1.0] — 2026-10-21
+
+### Added — signing
+
+- `signMessage(address, message, privateKey, opts?)` produces a BIP-322
+  simple signature for a P2WPKH or single-key P2TR (BIP-86) address from its
+  private key (bytes, hex or WIF). It refuses any other address, and any key
+  that is not the address's own. P2WPKH signatures are RFC 6979 and match the
+  BIP's official vectors byte for byte; P2TR signatures verify, and take
+  `auxRand` to be reproducible. No new dependency.
+- `addressFromPrivateKey(privateKey, 'p2wpkh' | 'p2tr', network?)`.
+
+### Changed — the `smp` prefix
+
+- The finalized BIP-322 prefixes a simple signature with `smp`, and its
+  vectors do. `verifySignature` now accepts the prefix; a `ful` or `pof`
+  signature is not supported and returns false. `signMessage` leaves the prefix
+  off by default, because verifiers deployed before this release reject it.
+- The tests carry the BIP's official vectors (bitcoin/bips `d77863fb9e9b`): every
+  P2WPKH and P2TR simple signature verifies, every error vector fails.
+
 ## [1.0.1] — 2026-10-16
 
 ### Fixed

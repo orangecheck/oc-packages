@@ -1,6 +1,7 @@
 /**
- * BIP-322 "simple" and legacy BIP-137 message-signature verification, on
- * audited primitives only (@noble/curves, @noble/hashes, @scure/base).
+ * BIP-322 "simple" and legacy BIP-137 message-signature verification, and
+ * BIP-322 "simple" signing for P2WPKH and P2TR, on audited primitives only
+ * (@noble/curves, @noble/hashes, @scure/base).
  *
  * BIP-322's to_spend and to_sign transactions are fixed-shape, so they are
  * serialized here directly rather than through a PSBT library: bip322-js did
@@ -23,6 +24,9 @@ export interface DecodedAddress {
 
 const base58check = createBase58check(sha256);
 const utf8 = new TextEncoder();
+
+/** The finalized BIP-322 prefixes a signature with its variant. */
+const SIMPLE_PREFIX = 'smp';
 
 const BASE58_VERSIONS: Record<number, AddressType> = {
     0x00: 'p2pkh',
@@ -315,17 +319,129 @@ function verifyBip137(addr: DecodedAddress, message: string, sig: Uint8Array): b
 
 /**
  * Whether `signatureBase64` signs `message` for `address`: a BIP-322 simple
- * signature from a P2WPKH, P2SH-P2WPKH or single-key P2TR address, or a
- * legacy BIP-137 signature (always, for a P2PKH address). Never throws;
- * anything malformed is simply not a valid signature.
+ * signature from a P2WPKH, P2SH-P2WPKH or single-key P2TR address, with or
+ * without the finalized BIP's `smp` prefix, or a legacy BIP-137 signature
+ * (always, for a P2PKH address). Never throws; anything malformed is simply
+ * not a valid signature.
  */
 export function verifySignature(address: string, message: string, signatureBase64: string): boolean {
     const addr = decodeAddress(address);
     if (!addr) return false;
-    const sig = decodeBase64(signatureBase64);
+    // A "full" or proof-of-funds signature ("ful", "pof") is not supported.
+    if (/^(ful|pof)/.test(signatureBase64)) return false;
+    const prefixed = signatureBase64.startsWith(SIMPLE_PREFIX);
+    const sig = decodeBase64(prefixed ? signatureBase64.slice(SIMPLE_PREFIX.length) : signatureBase64);
+    if (prefixed) return sig.length > 0 && verifySimple(addr, message, sig);
     if (sig.length === 0) return false;
     // No valid witness serializes to 65 bytes, so a 65-byte blob is BIP-137.
     if (addr.type === 'p2pkh' || sig.length === 65) return verifyBip137(addr, message, sig);
     return verifySimple(addr, message, sig);
 }
 
+
+/** A private key: 32 bytes, 64 hex characters, or WIF. */
+export type PrivateKeyInput = Uint8Array | string;
+
+const BECH32_HRP = { mainnet: 'bc', testnet: 'tb', regtest: 'bcrt' } as const;
+export type Network = keyof typeof BECH32_HRP;
+
+function privateKeyBytes(key: PrivateKeyInput): Uint8Array {
+    let bytes: Uint8Array;
+    if (key instanceof Uint8Array) {
+        bytes = key;
+    } else if (/^[0-9a-fA-F]{64}$/.test(key)) {
+        bytes = Uint8Array.from(key.match(/../g)!, (h) => parseInt(h, 16));
+    } else {
+        let payload: Uint8Array;
+        try {
+            payload = base58check.decode(key);
+        } catch {
+            throw new Error('bip322: private key must be 32 bytes, 64 hex characters or WIF');
+        }
+        // 0x80 mainnet, 0xef testnet; a trailing 0x01 marks a compressed key.
+        const compressed = payload.length === 34 && payload[33] === 0x01;
+        if ((payload[0] !== 0x80 && payload[0] !== 0xef) || !(payload.length === 33 || compressed)) {
+            throw new Error('bip322: not a WIF private key');
+        }
+        bytes = payload.slice(1, 33);
+    }
+    if (bytes.length !== 32 || !secp256k1.utils.isValidSecretKey(bytes)) {
+        throw new Error('bip322: invalid private key');
+    }
+    return bytes;
+}
+
+/** BIP-86 key-path tweak: the output key and the private key that signs for it. */
+function taprootKeys(secret: Uint8Array): { outputKey: Uint8Array; tweakedSecret: Uint8Array } {
+    const n = secp256k1.Point.CURVE().n;
+    const P = secp256k1.Point.BASE.multiply(schnorr.utils.bytesToNumberBE(secret));
+    let d = schnorr.utils.bytesToNumberBE(secret);
+    if (P.y % 2n === 1n) d = n - d;
+    const x = P.toBytes(true).subarray(1);
+    const t = schnorr.utils.bytesToNumberBE(taggedHash('TapTweak', x));
+    const tweaked = (d + t) % n;
+    const outputKey = secp256k1.Point.BASE.multiply(tweaked).toBytes(true).subarray(1);
+    return { outputKey, tweakedSecret: schnorr.utils.numberToBytesBE(tweaked, 32) };
+}
+
+/**
+ * The P2WPKH or single-key P2TR (BIP-86) address of `privateKey`, the address
+ * `signMessage` signs for.
+ */
+export function addressFromPrivateKey(
+    privateKey: PrivateKeyInput,
+    type: 'p2wpkh' | 'p2tr',
+    network: Network = 'mainnet'
+): string {
+    const secret = privateKeyBytes(privateKey);
+    const hrp = BECH32_HRP[network];
+    if (type === 'p2wpkh') {
+        const program = hash160(secp256k1.getPublicKey(secret, true));
+        return bech32.encode(hrp, [0, ...bech32.toWords(program)]);
+    }
+    return bech32m.encode(hrp, [1, ...bech32m.toWords(taprootKeys(secret).outputKey)]);
+}
+
+function serializeWitness(stack: Uint8Array[]): Uint8Array {
+    return concat(compactSize(stack.length), ...stack.flatMap((item) => [compactSize(item.length), item]));
+}
+
+/**
+ * Sign `message` for `address` with a BIP-322 simple signature, base64.
+ *
+ * `address` must be the P2WPKH or single-key P2TR (BIP-86) address of
+ * `privateKey`; anything else throws. P2WPKH signatures are deterministic
+ * (RFC 6979). P2TR signatures use fresh randomness unless `auxRand` is given.
+ *
+ * By default the signature carries no `smp` prefix, the form every deployed
+ * BIP-322 verifier reads; pass `prefixed: true` for the finalized BIP's form.
+ * `verifySignature` accepts both.
+ */
+export function signMessage(
+    address: string,
+    message: string,
+    privateKey: PrivateKeyInput,
+    opts: { prefixed?: boolean; auxRand?: Uint8Array } = {}
+): string {
+    const addr = decodeAddress(address);
+    if (!addr || (addr.type !== 'p2wpkh' && addr.type !== 'p2tr')) {
+        throw new Error('bip322: signMessage signs for P2WPKH and P2TR addresses only');
+    }
+    const secret = privateKeyBytes(privateKey);
+    const outpoint = concat(toSpendTxid(message, addr.scriptPubKey), ZERO4);
+    let witness: Uint8Array[];
+    if (addr.type === 'p2wpkh') {
+        const pubkey = secp256k1.getPublicKey(secret, true);
+        const pkh = hash160(pubkey);
+        if (!equal(pkh, addr.program)) throw new Error('bip322: the private key is not the key of this address');
+        const sig = secp256k1.sign(segwitV0Sighash(outpoint, pkh), secret, { prehash: false, lowS: true });
+        witness = [concat(sig.toBytes('der'), Uint8Array.of(0x01)), pubkey];
+    } else {
+        const { outputKey, tweakedSecret } = taprootKeys(secret);
+        if (!equal(outputKey, addr.program)) throw new Error('bip322: the private key is not the key of this address');
+        // SIGHASH_DEFAULT: a 64-byte signature with no hash-type byte.
+        witness = [schnorr.sign(taprootSighash(outpoint, addr.scriptPubKey, 0x00), tweakedSecret, opts.auxRand)];
+    }
+    const encoded = btoa(String.fromCharCode(...serializeWitness(witness)));
+    return opts.prefixed ? SIMPLE_PREFIX + encoded : encoded;
+}
