@@ -40,6 +40,7 @@ family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the sha
 | `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
 | `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`; no React |
+| `/fonts` | `FontPreloads`, `FONT_FILES`: preload the fonts the first screen paints in, at the stylesheet's own address |
 | `/og` | `OgCard`, `ogFonts()`, `OG_SIZE`: the family share card for next/og's ImageResponse, Inter inline |
 | `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
 | `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |

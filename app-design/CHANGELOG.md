@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-10-20
+
+Less JavaScript on every page, and text that paints sooner.
+
+- The ESM build is split per module, with Radix and the small helpers
+  (class-variance-authority, clsx, tailwind-merge) inside the package. Each
+  entry was one module, so a site's `_app`, which imports a boundary and the
+  toaster, carried every part any page used. Measured on stamp: shared
+  first-load JS 252 → 172 kB gzip, `_app`'s chunk 354 → 99 kB, /signin 275 →
+  188 kB, /404 267 → 214 kB. Because Radix ships inside, the 404 function
+  Vercel runs, which carries only what `_app`, `_document` and the page
+  trace, needs nothing from node_modules but the peers and sonner; stamp's
+  error-page trace check passes with no site change. sonner stays the
+  site's own copy, so `toast()` from sonner and app-design's `Toaster` are
+  one toaster. CommonJS and the types are unchanged.
+- `@orangecheck/app-design/fonts`: `<FontPreloads />` in `_document` preloads
+  Inter (`mono` adds JetBrains Mono). Its address is the very file the
+  stylesheet loads, hash and base path, so the browser fetches it once and
+  the first text paints without waiting for the CSS to name it.
+- `yarn test` builds a Next site to hold all three: `_app` with only a
+  boundary and the toaster stays under 120 kB (78 kB now; 284 kB unsplit),
+  the 404 page imports nothing its function does not ship (it failed on
+  Radix when Radix stayed external), and the preload equals the
+  stylesheet's font URL. The entries check now follows each entry through
+  its chunks.
+
 ## [1.11.0] — 2026-10-20
 
 Heading levels, from the second UI audit and pledge.

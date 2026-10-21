@@ -26,10 +26,29 @@ const check = (ok, msg) => {
     }
 };
 
-const imports = (file) => {
-    const src = readFileSync(join(root, file), 'utf8');
-    return new Set([...src.matchAll(/(?:require\(|from\s+)["']([^"']+)["']/g)].map((m) => m[1]));
-};
+/**
+ * An entry's whole module graph inside dist: the ESM build is split into
+ * shared chunks, so what an entry loads is what its chunks load. Returns the
+ * bare specifiers it reaches and the text of every file it reaches.
+ */
+function graph(file) {
+    const seen = new Set();
+    const bare = new Set();
+    let text = '';
+    const walk = (rel) => {
+        const path = join(root, rel);
+        if (seen.has(path)) return;
+        seen.add(path);
+        const src = readFileSync(path, 'utf8');
+        text += src;
+        for (const [, spec] of src.matchAll(/(?:require\(|from\s+|import\s*\(?)["']([^"']+)["']/g)) {
+            if (spec.startsWith('.')) walk(join(dirname(rel), spec));
+            else bare.add(spec);
+        }
+    };
+    walk(file);
+    return { bare, text };
+}
 
 for (const [entry, target] of Object.entries(pkg.exports)) {
     if (typeof target === 'string') {
@@ -38,13 +57,20 @@ for (const [entry, target] of Object.entries(pkg.exports)) {
     }
     for (const [cond, file] of Object.entries(target)) check(existsSync(join(root, file)), `${entry} (${cond}) → ${file} is not built`);
     for (const file of [target.import, target.require]) {
-        const deps = imports(file);
+        const { bare: deps, text } = graph(file);
         if (entry !== './session') check(!deps.has('@orangecheck/auth-client'), `${entry} loads the optional peer @orangecheck/auth-client`);
         if (entry === './code' || entry === './format' || entry === './vitest') check(!deps.has('react'), `${entry} loads React`);
-        if (entry !== './acknowledgement') check(!/kanstein|bramk\.substack/i.test(readFileSync(join(root, file), 'utf8')), `${entry} carries the credit's name`);
+        if (entry !== './acknowledgement') check(!/kanstein|bramk\.substack/i.test(text), `${entry} carries the credit's name`);
+        if (file === target.import) {
+            // The ESM build carries Radix and the small helpers itself: a page's function needs only peers and sonner.
+            const loose = [...deps].filter((d) => /^@radix-ui\/|^(class-variance-authority|clsx|tailwind-merge)$/.test(d));
+            check(loose.length === 0, `${entry} (import) loads ${loose.join(', ')} from node_modules`);
+        }
     }
 }
-check(/Kanstein/.test(readFileSync(join(root, pkg.exports['./acknowledgement'].import), 'utf8')), './acknowledgement does not carry the credit');
+check(/Kanstein/.test(graph(pkg.exports['./acknowledgement'].import).text), './acknowledgement does not carry the credit');
+// One sonner: sites call its toast() themselves, so the package must use the same copy, never one of its own.
+check(!/function toast|toasts?\s*=\s*\[\]/.test(graph(pkg.exports['./primitives'].import).text.replace(/\/\/#.*$/gm, '')) && graph(pkg.exports['./primitives'].import).bare.has('sonner'), './primitives bundles its own sonner instead of importing the site\'s');
 
 // ./vitest: run as a vitest config would, from this package's directory, which has next installed.
 {
@@ -63,7 +89,7 @@ check(
     pkg.peerDependenciesMeta?.['@orangecheck/auth-client']?.optional === true,
     '@orangecheck/auth-client is not marked an optional peer'
 );
-check(imports(pkg.exports['./session'].require).has('@orangecheck/auth-client'), './session does not read auth-client');
+check(graph(pkg.exports['./session'].require).bare.has('@orangecheck/auth-client') && graph(pkg.exports['./session'].import).bare.has('@orangecheck/auth-client'), './session does not read auth-client');
 
 if (failures) {
     console.error(`\n${failures} entry failure(s)`);

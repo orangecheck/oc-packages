@@ -6,13 +6,20 @@
  * must return to the route it is on. 1.2.2 imported `next/link.js`,
  * which Next left external at SSR, so links lost the router and every link on
  * the docs dropped /docs. Rendering the dist outside Next cannot see that.
- * Run after `yarn build`.
+ *
+ * Since 1.12.0 it also holds the split ESM build to what it is for: an _app
+ * that mounts only ErrorBoundary and Toaster stays small; the 404 page, which
+ * Vercel runs as a function shipping only what _app, _document and the page
+ * trace (and a static page's trace leaves out node_modules), imports nothing
+ * from node_modules that those traces do not carry; and FontPreloads names
+ * the very file the stylesheet does, base path and hash. Run after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { builtinModules, createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,7 +47,8 @@ try {
     writeFileSync(join(site, 'package.json'), '{"private":true}\n');
     writeFileSync(
         join(site, 'next.config.mjs'),
-        "export default { basePath: '/b', transpilePackages: ['@orangecheck/app-design'] };\n"
+        // The trace may reach this package's node_modules, which the fixture's are links into.
+        "export default { basePath: '/b', transpilePackages: ['@orangecheck/app-design'], outputFileTracingRoot: '/' };\n"
     );
     writeFileSync(
         join(site, 'pages', 'index.js'),
@@ -62,6 +70,28 @@ try {
             "export default function Verify() {\n" +
             "    return <ToolShell protocol=\"stamp\" tools={[]} account={<SessionAccountView state=\"out\" signInPath=\"/signin\" />}>v</ToolShell>;\n" +
             "}\n"
+    );
+    // The shell every page shares: a boundary, the toaster, the family's styles and fonts.
+    writeFileSync(
+        join(site, 'pages', '_app.js'),
+        "import '@orangecheck/app-design/styles.css';\n" +
+            "import { ErrorBoundary } from '@orangecheck/app-design/components';\n" +
+            "import { Toaster } from '@orangecheck/app-design/primitives';\n" +
+            "export default function App({ Component, pageProps }) { return <ErrorBoundary><Component {...pageProps} /><Toaster /></ErrorBoundary>; }\n"
+    );
+    writeFileSync(
+        join(site, 'pages', '_document.js'),
+        "import { Head, Html, Main, NextScript } from 'next/document';\n" +
+            "import { FontPreloads } from '@orangecheck/app-design/fonts';\n" +
+            "export default function Document() { return <Html data-oc-app=\"ochk\"><Head><FontPreloads /></Head><body><Main /><NextScript /></body></Html>; }\n"
+    );
+    // A 404 the way a site draws one: the family header and the error page.
+    writeFileSync(
+        join(site, 'pages', '404.js'),
+        "import { SiteHeader } from '@orangecheck/app-design/chrome';\n" +
+            "import { OCHK_IO_NAV } from '@orangecheck/app-design/family';\n" +
+            "import { ErrorPage } from '@orangecheck/app-design/components';\n" +
+            "export default function NotFound() { return <><SiteHeader family=\"home\" nav={OCHK_IO_NAV} /><ErrorPage code={404} /></>; }\n"
     );
     const next = join(pkg, 'node_modules', 'next', 'dist', 'bin', 'next');
     const run = spawnSync(process.execPath, [next, 'build', '--webpack'], {
@@ -99,7 +129,49 @@ try {
         console.error(`✗ next: in the docs, a relative link rendered ${rel} (want /b/sdk/other/Thing#x) and a docs card ${card} (want /b/vote)`);
         process.exit(1);
     }
-    console.log('✓ next: router links, relative links and docs cards carry the base path, and sign-in returns to the route, in a real Next build');
+    // The split build: an _app with only a boundary and the toaster carries little of the package.
+    const manifest = JSON.parse(readFileSync(join(site, '.next', 'build-manifest.json'), 'utf8'));
+    const appChunk = manifest.pages['/_app'].find((f) => /pages\/_app-/.test(f));
+    const appKb = statSync(join(site, '.next', appChunk)).size / 1024;
+    if (appKb > 120) {
+        console.error(`✗ next: _app's own chunk is ${appKb.toFixed(0)} kB for a boundary and a toaster; the package is not splitting`);
+        process.exit(1);
+    }
+    // The 404 function: every package the 404 page imports at run time is in what the function ships.
+    const pagesDir = join(site, '.next', 'server', 'pages');
+    const trace = (page) => JSON.parse(readFileSync(join(pagesDir, `${page}.js.nft.json`), 'utf8')).files;
+    // Real paths on both sides: the fixture's node_modules are links into this package's.
+    const shipped = new Set(['_app', '_document', '404'].flatMap(trace).map((f) => resolve(pagesDir, f)).filter(existsSync).map((f) => realpathSync(f)));
+    const siteRequire = createRequire(pathToFileURL(join(site, 'package.json')));
+    const builtin = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
+    const missing = new Set();
+    for (const file of [join(pagesDir, '404.js'), ...trace('404').filter((f) => f.startsWith('../chunks/')).map((f) => join(pagesDir, f))]) {
+        if (!existsSync(file)) continue;
+        for (const [, how, spec] of readFileSync(file, 'utf8').matchAll(/(import|require)\("([^".][^"]*)"\)/g)) {
+            if (builtin.has(spec) || spec.startsWith('next/') || spec === '@builder.io/partytown/integration') continue;
+            let target = null;
+            try {
+                target = how === 'import' ? fileURLToPath(import.meta.resolve(spec, pathToFileURL(join(site, 'package.json')))) : siteRequire.resolve(spec);
+            } catch {}
+            if (!target || !shipped.has(realpathSync(target))) missing.add(spec);
+        }
+    }
+    if (missing.size) {
+        console.error(`✗ next: the 404 page imports ${[...missing].join(', ')} at run time, which the 404 function does not ship`);
+        process.exit(1);
+    }
+    // FontPreloads names the file the stylesheet does: same hash, under the base path.
+    const page = readFileSync(join(site, '.next', 'server', 'pages', 'index.html'), 'utf8');
+    const preload = page.match(/<link rel="preload" as="font"[^>]*href="([^"]+)"/)?.[1];
+    const css = readdirSync(join(site, '.next', 'static', 'css')).map((f) => readFileSync(join(site, '.next', 'static', 'css', f), 'utf8')).join('');
+    const sheetFont = css.match(/url\(([^)]*inter-latin\.[0-9a-f]+\.woff2)\)/)?.[1]?.replace(/["']/g, '');
+    if (!preload || !sheetFont || preload !== sheetFont || !preload.startsWith('/b/_next/static/media/')) {
+        console.error(`✗ next: FontPreloads named ${preload}; the stylesheet loads ${sheetFont}`);
+        process.exit(1);
+    }
+    console.log(
+        `✓ next: router links, relative links and docs cards carry the base path, and sign-in returns to the route; _app ${appKb.toFixed(0)} kB, the 404 function has what the page imports, the font preload is the stylesheet's file, in a real Next build`
+    );
 } finally {
     rmSync(site, { recursive: true, force: true });
 }
