@@ -352,3 +352,4 @@ function parseBindingStatement(
 }
 
 export { authorizedDevices } from './authorize.js';
+export { liveDevices, signedTime } from './live.js';

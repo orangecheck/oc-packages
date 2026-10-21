@@ -8,6 +8,23 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.4.0] — 2026-10-21
+
+### Added — `liveDevices`: a wallet-signed revocation retires a device anywhere
+
+- `liveDevices(records)` returns the bind records still live for an address.
+  Pass BIP-322-verified records, binds and revocations together. A revocation
+  retires every bind of its `(address, device_id)` whose signed `created_at` is
+  not later than its signed `revoked_at`, whichever Nostr key carried either
+  record and whichever relay served it. A bind signed after it stays live.
+- `signedTime(statement, 'created_at' | 'revoked_at')` reads a timestamp line
+  from a signed statement.
+
+A reader that relied on relay replacement alone kept sealing to a revoked
+device whenever a relay still served the old bind, and could not honour a
+revocation published from another device or the wallet. OC Chat already read
+records this way; this is that rule, shared.
+
 ## [0.3.0] — 2026-09-24
 
 ### Added — v3 bind statement signs the device's Nostr pubkey
