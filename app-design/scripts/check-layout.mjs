@@ -20,7 +20,10 @@
  *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
  *   lockup and product word fit its sidebar.
  * - The family footer fits a phone in 600px, each link group a disclosure
- *   with a 44px summary, every link still there; a desk sees the columns.
+ *   with a 44px summary, every link still there; a desk sees the columns. A
+ *   product's footer with seven groups fits too.
+ * - A block title keeps one button beside it on a phone, level with the
+ *   title; a group of three wraps under it.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -259,6 +262,30 @@ try {
         renderToStaticMarkup(h(Ch.AppShell, { product: 'vault', family: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')))
     );
     const footer = page('footer', renderToStaticMarkup(h(Ch.OchkIoFooter)));
+    // A product's footer as vault draws it: three columns of its own, the family's four, the legal row.
+    const productFooter = page(
+        'product-footer',
+        renderToStaticMarkup(
+            h(Ch.SiteFooter, {
+                columns: ['Vault', 'Docs', 'Source'].map((heading) => ({ heading, links: [1, 2, 3].map((i) => ({ href: `/${heading.toLowerCase()}/${i}`, label: `${heading} ${i}` })) })),
+                family: true,
+                legal: ['Privacy', 'Terms', 'Security', 'Trademarks', 'Contact'].map((label) => ({ href: `/${label.toLowerCase()}`, label })),
+                fineprint: 'A password manager, encrypted in your browser. We store only what we cannot read.',
+            })
+        )
+    );
+    // Block titles in a phone's column: a button stays beside its title; a wide group wraps under.
+    const titles = page(
+        'titles',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-10 px-4 py-6' },
+                h('div', { 'data-t': 'one' }, h(C.SectionTitle, { title: 'Payout addresses', description: 'Where your earnings go, and when they last moved.', action: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Add address') })),
+                h('div', { 'data-t': 'many' }, h(C.SectionTitle, { title: 'Keys', action: h('div', { className: 'flex gap-2' }, ...['Import', 'Generate', 'Export all'].map((l) => h(P.Button, { key: l, size: 'sm', variant: 'secondary' }, l))) }))
+            )
+        )
+    );
     const icons = page(
         'icons',
         renderToStaticMarkup(
@@ -471,6 +498,39 @@ try {
                 check(opened > 0, `[${width}] an opened footer group shows no 44px link`);
             } else {
                 check(ft.groupsShown === 0 && ft.deskShown >= ft.phoneLinks.length, `[${width}] a desk sees ${ft.groupsShown} folded groups and ${ft.deskShown} of ${ft.phoneLinks.length} links`);
+            }
+            // A product's footer with seven groups still fits a phone, every link kept.
+            await p.goto(productFooter);
+            const pf = await p.evaluate(async () => {
+                await document.fonts.ready;
+                const f = document.querySelector('footer');
+                return {
+                    h: f.getBoundingClientRect().height,
+                    groups: f.querySelectorAll('details').length,
+                    links: f.querySelectorAll('details a').length,
+                    deskLinks: f.querySelectorAll('[class~="md:flex"] a').length,
+                    summaries: [...f.querySelectorAll('details summary')].filter((x) => x.getClientRects().length).map((x) => x.getBoundingClientRect().height),
+                    legal: [...f.querySelectorAll('[aria-label="Legal"] a')].map((a) => a.getBoundingClientRect().height),
+                };
+            });
+            if (width < 768) {
+                check(pf.groups === 7 && pf.h <= 600, `[${width}] a product footer with ${pf.groups} groups runs ${Math.round(pf.h)}px, past 600`);
+                check(pf.links > 9 && pf.links === pf.deskLinks && pf.summaries.every((x) => x >= 44) && pf.legal.every((x) => x >= 44), `[${width}] the product footer lost a link (${pf.links}) or a 44px target`);
+            }
+            // SectionTitle: one button beside its title; three wrap under it, inside the column.
+            if (width < 640) {
+                await p.goto(titles);
+                const st = await p.evaluate(() =>
+                    Object.fromEntries(
+                        [...document.querySelectorAll('[data-t]')].map((el) => {
+                            const heading = el.querySelector('h2').getBoundingClientRect();
+                            const action = el.firstElementChild.lastElementChild.getBoundingClientRect();
+                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= innerWidth - 16 + 0.5 }];
+                        })
+                    )
+                );
+                check(st.one.beside && Math.abs(st.one.top) <= 6, `[${width}] SectionTitle: one button left its title's row (${JSON.stringify(st.one)})`);
+                check(st.many.under && st.many.right, `[${width}] SectionTitle: three buttons crowd the title or run off the column (${JSON.stringify(st.many)})`);
             }
             // Every link a desk shows, a phone reaches through its groups.
             check(ft.groups > 0 && ft.phoneLinks.length > 0 && ft.phoneLinks.join() === ft.deskLinks.join(), `[${width}] the phone's groups hold ${ft.phoneLinks.length} links, the desk's columns ${ft.deskLinks.length}`);

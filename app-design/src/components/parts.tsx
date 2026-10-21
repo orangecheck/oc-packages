@@ -11,8 +11,10 @@ import { useDensity } from '../lib/density';
 
 /**
  * A block's title on a signed-in page or a tool: the name, a count or state
- * after it, one line under it, and an action at the right that wraps under
- * the text on a phone. Public pages use SectionHeading, at display size.
+ * after it, one line under it, and an action at the right. On a phone a
+ * button or a link stays beside the title, level with it; only a group too
+ * wide to share the row wraps under the text. Public pages use
+ * SectionHeading, at display size.
  */
 export function SectionTitle({
     title,
@@ -41,8 +43,8 @@ export function SectionTitle({
     className?: string;
 }) {
     return (
-        <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-3', className)}>
-            <div className="flex min-w-0 max-w-[40rem] flex-[1_1_16rem] flex-col gap-1">
+        <div className={cn('flex flex-wrap items-start justify-between gap-x-4 gap-y-3 sm:items-end', className)}>
+            <div className="flex min-w-0 max-w-[40rem] flex-[1_1_10rem] flex-col gap-1">
                 <Tag
                     id={id}
                     className={cn(

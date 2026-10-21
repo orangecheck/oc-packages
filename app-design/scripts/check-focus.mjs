@@ -3,7 +3,8 @@
  * The keyboard, in Chrome, with real key presses:
  *
  * - A field in focus has an edge of 3:1 or more against the card and the
- *   page, in light and dark; an invalid one keeps its red.
+ *   page, in light and dark, one styled inline too, and no second ring; an
+ *   invalid one keeps its red. Under forced colours it keeps an outline.
  * - On the orange closing band the focus ring is ink, not orange on orange.
  * - The sign-in page's first stop skips to the ceremony; every shell's skip
  *   link puts focus on its main, and so does a site's own plain <main>.
@@ -117,6 +118,8 @@ try {
             h(P.Input, { 'data-f': 'input', placeholder: 'bc1q…' }),
             h(P.Textarea, { 'data-f': 'textarea', placeholder: 'A note' }),
             h(P.Select, null, h(P.SelectTrigger, { 'data-f': 'select' }, h(P.SelectValue, { placeholder: 'Network' }))),
+            // A field styled inline, as the sign-in ceremony styles its own: the focus look still wins.
+            h('input', { 'data-f': 'inline', 'data-oca-field': '', placeholder: 'you@example.com', style: { border: '1px solid var(--input)', borderRadius: 12, padding: '10px 14px', background: 'var(--card)' } }),
             h(P.Input, { 'data-f': 'invalid', 'aria-invalid': true, defaultValue: 'not an address' })
         )
     );
@@ -145,7 +148,7 @@ try {
         for (const dark of [false, true]) {
             await p.goto(fields);
             await p.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark);
-            for (const f of ['input', 'textarea', 'select', 'invalid']) {
+            for (const f of ['input', 'textarea', 'select', 'inline', 'invalid']) {
                 await p.keyboard.press('Tab');
                 // Read the edge after its transition, not halfway.
                 await p.waitForTimeout(300);
@@ -156,7 +159,10 @@ try {
                     const ground = __rgb(getComputedStyle(el).backgroundColor, `rgb(${page.join()})`);
                     const edge = getComputedStyle(el).borderTopColor;
                     const drawn = __rgb(edge, `rgb(${ground.join()})`);
-                    return { focused: f, card: __contrast(drawn, ground), page: __contrast(drawn, page), edge };
+                    // The page's own focus outline would ring it a second time.
+                    const cs = getComputedStyle(el);
+                    const second = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 && __rgb(cs.outlineColor, 'rgb(1, 2, 3)').join() !== '1,2,3';
+                    return { focused: f, card: __contrast(drawn, ground), page: __contrast(drawn, page), edge, second };
                 }, f);
                 const mode = dark ? 'dark' : 'light';
                 if (got.focused !== f) {
@@ -164,6 +170,7 @@ try {
                     continue;
                 }
                 check(got.card >= 3 && got.page >= 3, `[${mode}] ${f} in focus: its edge is ${got.card.toFixed(2)}:1 on the field, ${got.page.toFixed(2)}:1 on the page (${got.edge})`);
+                check(!got.second, `[${mode}] ${f} in focus: the page's outline rings it a second time`);
             }
             // The invalid field keeps the destructive edge in focus.
             const red = await p.evaluate(() => {
@@ -174,6 +181,21 @@ try {
                 return { edge: getComputedStyle(el).borderTopColor, token: getComputedStyle(probe).color };
             });
             check(red.edge === red.token, `[${dark ? 'dark' : 'light'}] an invalid field in focus lost its red edge (${red.edge}, want ${red.token})`);
+        }
+
+        // Forced colours drop the shadow: a field in focus keeps an outline the system can paint.
+        {
+            const fc = await browser.newContext({ viewport: { width: 1280, height: 900 }, forcedColors: 'active' });
+            const q = await fc.newPage();
+            await q.goto(fields);
+            await q.keyboard.press('Tab');
+            await q.waitForTimeout(300);
+            const o = await q.evaluate(() => {
+                const cs = getComputedStyle(document.activeElement);
+                return { f: document.activeElement.getAttribute('data-f'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+            });
+            check(o.f === 'input' && o.style !== 'none' && o.width >= 2, `forced colours: a field in focus has no outline to paint (${show(o)})`);
+            await fc.close();
         }
 
         // The orange band: a focused link and button draw their ring in ink.

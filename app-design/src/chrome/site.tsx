@@ -343,7 +343,8 @@ const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:tex
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
-        <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between">
+        // Below md each link is a 44px target with room under its text: the year needs no gap of its own.
+        <div className="flex flex-col gap-x-6 gap-y-0 sm:flex-row sm:items-center sm:justify-between md:gap-y-2">
             <nav aria-label="Legal">
                 <ul className="flex flex-wrap gap-x-5">
                     {/* Two links may share an address; the label and place keep them apart. */}
@@ -462,7 +463,7 @@ export function SiteFooter({
         <footer className={cn('border-t border-border bg-background', className)}>
             <div
                 style={grid}
-                className="oca-container grid grid-cols-1 gap-y-6 pb-6 pt-8 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
+                className="oca-container grid grid-cols-1 gap-y-6 pb-6 pt-6 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}
@@ -497,7 +498,7 @@ export function SiteFooter({
                 ))}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none overflow-hidden pb-5 md:pb-12">
+                <div aria-hidden className="oca-container select-none overflow-hidden pb-3 md:pb-12">
                     <div className="flex items-end gap-[0.18em] text-[clamp(3rem,11.5vw,10rem)] leading-[0.78] tracking-[-0.065em] [font-family:var(--oc-font-display)]">
                         <span className="mb-[0.06em] inline-block w-[1.1em] shrink-0">
                             <Mark className="block h-auto w-full" />
@@ -509,7 +510,7 @@ export function SiteFooter({
             {legalLinks || meta ? (
                 <div className="oca-container">
                     {/* The rule spans the content, not the gutters. */}
-                    <div className="flex flex-col gap-3 border-t border-border py-6 text-[0.875rem] text-muted-foreground">
+                    <div className="flex flex-col gap-3 border-t border-border py-4 text-[0.875rem] text-muted-foreground md:py-6">
                         {legalLinks ? <LegalRow links={legalLinks} /> : null}
                         {meta}
                     </div>

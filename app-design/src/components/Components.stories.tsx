@@ -198,7 +198,7 @@ export const Monograms: StoryObj = {
     render: () => (
         <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center gap-3">
-                {['Lumen Notes', 'acme.dev', 'Halfway Books', 'nostr.band', '21 Futures', 'Pine & Co'].map((n) => (
+                {['Lumen Notes', 'Acme Labs', 'Halfway Books', 'Kestrel Labs', '21 Futures', 'Pine & Co'].map((n) => (
                     <Monogram key={n} name={n} />
                 ))}
             </div>

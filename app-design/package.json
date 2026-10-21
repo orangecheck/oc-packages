@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",
@@ -111,7 +111,7 @@
   "scripts": {
     "build": "node scripts/gen-palette.mjs && rm -rf dist && tsup && rm -rf dist/m && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-next.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-next.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"

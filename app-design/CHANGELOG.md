@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-10-21
+
+- A product's footer fits a phone with seven link groups: 585px at 390,
+  under the 600 target, every link and 44px target kept. vault's ran 625px.
+  Below md the padding above the groups, under the wordmark and around the
+  legal row is tighter, and the year sits in the legal links' own 44px.
+- `SectionTitle` keeps a button or a link beside its title on a phone,
+  level with the title, as ochk.app's sections do; only a group too wide to
+  share the row wraps under. The title's share of the row is 10rem, not 16.
+- A field in focus keeps a transparent outline in place of none, so forced
+  colours, which drop the shadow, still draw it. The check also holds a
+  field styled inline (the sign-in ceremony's): its border turns to the ring
+  colour and the page's outline does not ring it twice.
+- Story fixtures name no real service as a customer: the monogram row's
+  "nostr.band" and "acme.dev" are Kestrel Labs and Acme Labs. check-fixtures
+  fails on a relay, wallet or explorer anywhere in a story except as the
+  source of a number or a wallet the tools sign with.
+
 ## [1.13.0] — 2026-10-21
 
 The keyboard pass, a failure sentence, and two pages that sat busy doing nothing.
