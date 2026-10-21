@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/wallet-adapter",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Normalize browser Bitcoin wallets (UniSat, Xverse, Leather, OKX, Phantom) behind a single sign(message) API. Drop-in React UI: OcWalletPicker (picker only) + OcWalletButton (pick + sign).",
   "keywords": [
     "orangecheck",

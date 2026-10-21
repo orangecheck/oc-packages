@@ -25,4 +25,12 @@ export {
     verifyBip322,
     WrongAccountError,
 } from './sign';
+export {
+    toWalletError,
+    WalletNotFoundError,
+    WalletRejectedError,
+    walletFailure,
+    walletFailureText,
+} from './failure';
+export type { WalletFailure } from './failure';
 export type { SignFn, SignOptions, WalletId, WalletInfo } from './types';

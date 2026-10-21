@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.0] — 2026-10-21
+
+### Added
+
+- `walletFailureText(err, { paste? })`: one sentence for a person for each way
+  a sign request fails, declined, wrong account, no wallet, no answer, or
+  anything else, so every family site words them the same and none shows a
+  wallet's own text. `walletFailure(err)` gives the cause.
+- `WalletRejectedError` (`E_USER_REJECTED`) and `WalletNotFoundError`
+  (`E_WALLET_NOT_FOUND`).
+
+### Changed
+
+- `getSigner` always throws an `Error` that keeps the wallet's code. A decline
+  (UniSat, OKX, Leather and Phantom's 4001, Xverse's -32000) is a
+  `WalletRejectedError`, where a bare object used to reach `OcWalletButton`'s
+  `onError` as "[object Object]". A missing wallet is a `WalletNotFoundError`
+  with the same message as before.
+- Phantom without the requested account carries `code: "E_WRONG_ACCOUNT"`.
+
 ## [0.6.5] — 2026-10-20
 
 ### Fixed

@@ -1,5 +1,6 @@
 import { verifySignature } from "@orangecheck/bip322";
 
+import { toWalletError, WalletNotFoundError } from "./failure";
 import type { SignFn, SignOptions, WalletId } from "./types";
 
 /**
@@ -114,9 +115,15 @@ export function getSigner(wallet: WalletId, opts: SignOptions): SignFn {
     }
   })();
   // Nothing leaves this package unless it is well-formed and verifies for the
-  // requested address.
+  // requested address; a wallet's own failure leaves as an Error with its code.
   return async (message) => {
-    const sig = assertPlausibleSignature(await inner(message));
+    let raw: string;
+    try {
+      raw = await inner(message);
+    } catch (err) {
+      throw toWalletError(err);
+    }
+    const sig = assertPlausibleSignature(raw);
     await assertSignedBy({ address: opts.address, message, signature: sig });
     return sig;
   };
@@ -135,7 +142,7 @@ function signWithUnisat(opts: SignOptions): SignFn {
       }
     ).window;
     if (!w?.unisat?.signMessage)
-      throw new Error("UniSat wallet not found on window.unisat");
+      throw new WalletNotFoundError("UniSat wallet not found on window.unisat");
     // UniSat signs with its active account and takes no address.
     if (w.unisat.getAccounts) {
       const [active] = await w.unisat.getAccounts();
@@ -171,15 +178,18 @@ function signWithXverse(opts: SignOptions): SignFn {
       (p) => typeof p?.request === "function",
     );
     if (!provider?.request)
-      throw new Error("Xverse wallet not found on window.XverseProviders or window.BitcoinProvider");
+      throw new WalletNotFoundError("Xverse wallet not found on window.XverseProviders or window.BitcoinProvider");
     // Xverse's RPC returns { status, result: { signature, ... } }.
     const r = (await provider.request("signMessage", {
       address: opts.address,
       message,
       protocol: "BIP322",
-    })) as { status?: string; result?: { signature?: string } };
+    })) as { status?: string; result?: { signature?: string }; error?: { code?: unknown } };
     if (r.status !== "success" || !r.result?.signature) {
-      throw new Error(`Xverse signMessage failed: ${r.status ?? "unknown"}`);
+      // Keep the wallet's code: -32000 is a declined request.
+      throw Object.assign(new Error(`Xverse signMessage failed: ${r.status ?? "unknown"}`), {
+        code: r.error?.code,
+      });
     }
     return r.result.signature;
   };
@@ -201,7 +211,7 @@ function signWithLeather(opts: SignOptions): SignFn {
     ).window;
     const provider = w?.LeatherProvider ?? w?.btc;
     if (!provider?.request)
-      throw new Error("Leather wallet not found on window.LeatherProvider");
+      throw new WalletNotFoundError("Leather wallet not found on window.LeatherProvider");
     // Leather signs with the active account's key of the given paymentType
     // and takes no address, so confirm the account holds the requested one.
     const accounts = await leatherAddresses(provider.request);
@@ -263,7 +273,7 @@ function signWithOkx(opts: SignOptions): SignFn {
     ).window;
     const okx = w?.okxwallet?.bitcoin;
     if (!okx?.signMessage)
-      throw new Error("OKX wallet not found on window.okxwallet.bitcoin");
+      throw new WalletNotFoundError("OKX wallet not found on window.okxwallet.bitcoin");
     if (okx.connect) {
       const { address } = await okx.connect();
       if (opts.address && address !== opts.address) {
@@ -295,7 +305,7 @@ function signWithPhantom(opts: SignOptions): SignFn {
     ).window;
     const phantom = w?.phantom?.bitcoin;
     if (!phantom?.signMessage)
-      throw new Error("Phantom wallet not found on window.phantom.bitcoin");
+      throw new WalletNotFoundError("Phantom wallet not found on window.phantom.bitcoin");
     if (!phantom.requestAccounts)
       throw new Error("Phantom: requestAccounts unavailable");
     const accounts = await phantom.requestAccounts();
@@ -311,9 +321,12 @@ function signWithPhantom(opts: SignOptions): SignFn {
       : accounts[0];
     if (!match) {
       const available = accounts.map((a) => a.address).join(", ");
-      throw new Error(
-        `Phantom has no account for ${opts.address} — available: ${available}. ` +
-          `Switch to it in the wallet to sign.`,
+      throw Object.assign(
+        new Error(
+          `Phantom has no account for ${opts.address} — available: ${available}. ` +
+            `Switch to it in the wallet to sign.`,
+        ),
+        { code: "E_WRONG_ACCOUNT" as const },
       );
     }
     const bytes = new TextEncoder().encode(message);

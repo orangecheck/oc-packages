@@ -73,6 +73,25 @@ Without `onManualSign`, `manual` falls back to `window.prompt` with a one-time c
 
 `SignFn` is `(message: string) => Promise<string>`. Throws when the wallet isn't available or the user cancels, and throws `WrongAccountError` (`code: 'E_WRONG_ACCOUNT'`) when the signature is not by `address` — some wallets sign with their active account whatever address is asked for. `verifyBip322({ address, message, signature })` resolves to whether a signature obtained elsewhere passes the same check (BIP-322 or legacy BIP-137, base64 or hex); `assertSignedBy({ address, message, signature })` throws `WrongAccountError` instead.
 
+### Telling a person what failed
+
+A wallet's own error text is not for people ("User rejected the request", a bare `{ code: 4001 }`). `walletFailureText(err)` gives one sentence for each cause, the same on every site:
+
+| `walletFailure(err)` | Thrown as | `walletFailureText(err)` |
+| --- | --- | --- |
+| `rejected` | `WalletRejectedError` (`E_USER_REJECTED`) | The request was declined in your wallet. Sign again when you are ready. |
+| `wrong-account` | `WrongAccountError` (`E_WRONG_ACCOUNT`) | That signature is not from the address shown. Switch your wallet to that address, then sign again. |
+| `not-found` | `WalletNotFoundError` (`E_WALLET_NOT_FOUND`) | That wallet is not in this browser. Install it, or choose another wallet. |
+| `timed-out` | a `TimeoutError` | Your wallet did not answer. Open it to finish the request, then try again. |
+| `other` | anything else | Your wallet did not sign. Try again. |
+
+Pass `{ paste: true }` where the page also offers to paste a signature, and the sentence offers it too. `getSigner` always throws an `Error`, keeping the wallet's code, so `OcWalletButton`'s `onError` can be handed straight to it:
+
+```tsx
+<OcWalletButton address={address} message={message} onSigned={finish}
+  onError={(err) => setError(walletFailureText(err, { paste: true }))} />
+```
+
 ---
 
 ## `<OcWalletButton />` (React)
