@@ -422,6 +422,8 @@ try {
                 h(M.h3, { id: 'r' }, 'resetFamilyRevocationCheckForTests'),
                 h(M.p ?? 'p', null, 'Defined in: ', h(C.TextLink, { href: 'https://github.com/orangecheck/oc-packages/blob/main/agent-core/src/federation.ts#L42', 'data-link': 'prose' }, 'federation.ts:42')),
                 h(M.ul ?? 'ul', null, h(M.li ?? 'li', null, h(C.TextLink, { href: '/sdk/agent-core/README', 'data-link': 'li' }, 'agent-core'))),
+                // An ApiTable's 13px description text.
+                h('p', { className: 'text-[0.8125rem]' }, 'See ', h(C.TextLink, { href: '/sdk/agent-core/interfaces/Delegation' }, 'Delegation')),
                 mdTable(['Member', 'Type'], [[h(C.TextLink, { href: '/sdk/agent-core/functions/verify', 'data-link': 'cell' }, 'verify'), 'function']])
             )
         )

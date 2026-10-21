@@ -4,8 +4,9 @@ import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 
-// Padding above and below an inline link grows what a finger can press (24px at 14px text) without moving its line.
-const LINK = 'py-[0.25em] text-foreground underline decoration-foreground/35 underline-offset-4 transition-colors hover:decoration-foreground';
+// Padding above and below an inline link grows what a finger can press without moving its line: 24px or more
+// at any size, the text's own 1.21em (Inter's ascent and descent) plus what it lacks, and never under 0.25em.
+const LINK = 'py-[max(0.25em,calc((24.5px_-_1.21em)/2))] text-foreground underline decoration-foreground/35 underline-offset-4 transition-colors hover:decoration-foreground';
 
 const SCHEME = /^[a-z][a-z\d+.-]*:/i;
 

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.15.2] — 2026-10-21
+
+- A link in 13px text (an ApiTable's description) was 23px to press: 1.15.1's
+  0.25em of padding is short of 24px below 14px. The padding is now what the
+  text's own 1.21em lacks of 24px, and never under 0.25em. check-layout holds
+  a 13px link and fails on 1.15.1.
+
 ## [1.15.1] — 2026-10-21
 
 - A docs heading that is one long identifier breaks rather than widen a
