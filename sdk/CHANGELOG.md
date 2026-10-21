@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.14.1] — 2026-10-21
+
+### Fixed
+
+- **`discoverAttestations` returns each attestation once.** It merges every
+  relay's events, and a publish reaches all of them, so an attestation came
+  back once per relay holding it: attest.ochk.io's discovery listed 32 rows for
+  8 attestations on four relays. An attestation's id is the hash of its message,
+  so the first valid copy of each is kept; a broken copy never displaces a valid
+  one.
+
 ## [1.14.0] — 2026-10-21
 
 ### Changed

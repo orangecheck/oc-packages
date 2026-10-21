@@ -235,16 +235,20 @@ export async function discoverAttestations(
         throw new Error('Must provide attestationId, address, or identity');
     }
 
-    // Parse and verify envelopes
+    // Parse and verify envelopes. Every relay holding an attestation returns it,
+    // and its id is the hash of its message, so keep the first valid copy of each.
     const envelopes: AttestationEnvelope[] = [];
+    const kept = new Set<string>();
     for (const event of events) {
         const envelope = parseAttestationFromEvent(event);
+        if (envelope && kept.has(envelope.attestation_id)) continue;
         if (envelope && !eventIndexesEnvelope(event, envelope)) {
             log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
         } else if (envelope) {
             // Verify envelope integrity
             const isValid = await verifyAttestationEnvelope(envelope);
             if (isValid) {
+                kept.add(envelope.attestation_id);
                 envelopes.push(envelope);
             } else {
                 log.warn(
