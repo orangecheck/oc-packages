@@ -73,6 +73,22 @@ describe('resolveDeadlineSnapshot (SPEC §3)', () => {
         ).toMatchObject({ ok: true, height: 1000, confirmations: MIN_SNAPSHOT_CONFIRMATIONS });
     });
 
+    it('asks no chain source about a deadline still to come', async () => {
+        const untouched: BlockTimeSource = {
+            blockHeightAtTimestamp: async () => {
+                throw new Error('asked for a block at a future time');
+            },
+            medianTimePast: async () => 0,
+            tipHeight: async () => 0,
+        };
+        const future = new Date(Date.now() + 7 * 86_400_000).toISOString();
+        expect(await resolveDeadlineSnapshot(future, untouched)).toEqual({
+            ok: false,
+            code: 'E_SNAPSHOT_UNRESOLVED',
+            reason: `deadline ${future} has not passed`,
+        });
+    });
+
     it('fails closed on an unparseable deadline', async () => {
         expect(await resolveDeadlineSnapshot('not-a-date', chain(1100))).toMatchObject({
             ok: false,

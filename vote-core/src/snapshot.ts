@@ -49,6 +49,8 @@ export async function resolveDeadlineSnapshot(
     const deadlineMs = Date.parse(deadlineIso);
     if (!Number.isFinite(deadlineMs)) return unresolved(`unparseable deadline: ${deadlineIso}`);
     const deadline = Math.floor(deadlineMs / 1000);
+    // No block exists at a time still to come; a chain source asked for one fails or guesses.
+    if (deadlineMs > Date.now()) return unresolved(`deadline ${deadlineIso} has not passed`);
 
     let height: number;
     try {

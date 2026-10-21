@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.2] — 2026-10-21
+
+### Fixed — an open poll no longer asks for a block that does not exist yet
+
+`resolveDeadlineSnapshot` (and `resolvePollSnapshot` for a `"deadline"` poll)
+asked the chain source for the block at the deadline even while the deadline
+was still to come. mempool.space answers that with HTTP 500, so every open poll
+reported "seed lookup failed" and vote.ochk.io told voters mempool.space had not
+answered. It now returns `E_SNAPSHOT_UNRESOLVED` with the reason
+`deadline <iso> has not passed`, without asking.
+
 ## [1.5.1] — 2026-10-21
 
 ### Fixed — the README's tally sample runs
