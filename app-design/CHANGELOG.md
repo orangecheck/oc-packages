@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [1.10.2] — 2026-10-20
+
+What the second UI audit measured on live pages.
+
+- The family footer on a phone folds each link group into a disclosure: a
+  native `<details>`, closed, its summary 44px, its links 44px, no script
+  needed. The lockup sits once (the signature says the name), and the
+  theme switch sits beside the OpenSats line. ochk.io's footer at 390 goes
+  from 1,177px to 589px, a product's from 1,182px to 556px, with every link
+  still there. A desk sees the columns exactly as before.
+- On a touch screen a 32px icon button is a 44px target: `Button
+  size="icon-sm"`, `CopyButton`, a Panel's "Open full screen" and the
+  family menu's button. A pseudo-element draws the target, so the look and
+  the spacing do not change; two buttons closer than 12px share the
+  overlap.
+- `GET_AN_ACCOUNT` goes to `https://ochk.app/signin`: making an account is
+  signing in there. Its label is typed as the string it is, so no site
+  casts it. `SessionAccountView` draws the account phrase signed out as
+  primary, as `AccountCta` does; "Sign in" stays secondary, and
+  `signInVariant` sets either.
+
 ## [1.10.1] — 2026-10-20
 
 - `OgCard` shown in a page (its story on design.ochk.io) fell back to a

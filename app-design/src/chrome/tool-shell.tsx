@@ -4,7 +4,7 @@ import type { NextRouter } from 'next/router';
 import { useSyncExternalStore, type ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
-import { protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
+import { GET_AN_ACCOUNT, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
@@ -68,6 +68,7 @@ export function SessionAccountView({
     signInHref,
     signInPath,
     signInLabel = SIGN_IN_LABEL,
+    signInVariant,
     accountHref = OCHK_APP_ACCOUNT,
     onSignOut,
     nameFrom = 'lg',
@@ -84,6 +85,8 @@ export function SessionAccountView({
     /** This site's sign-in page (`/signin`): "Sign in" returns to the page the viewer is on. */
     signInPath?: string;
     signInLabel?: string;
+    /** The signed-out button's look. Default: primary for the account phrase (GET_AN_ACCOUNT), as AccountCta draws it; secondary for "Sign in". */
+    signInVariant?: 'primary' | 'secondary';
     /** Where "Your account" goes: ochk.app. */
     accountHref?: string;
     onSignOut?: () => void;
@@ -116,7 +119,12 @@ export function SessionAccountView({
     return (
         // No box of its own: it sits exactly where the signed-in chip will. While checking it is only unseen.
         <span className={state === 'checking' ? 'contents invisible' : 'contents'} aria-hidden={state === 'checking' || undefined}>
-            <Button asChild size="sm" variant="secondary" tabIndex={state === 'checking' ? -1 : undefined}>
+            <Button
+                asChild
+                size="sm"
+                variant={signInVariant ?? (signInLabel === GET_AN_ACCOUNT.label ? 'primary' : 'secondary')}
+                tabIndex={state === 'checking' ? -1 : undefined}
+            >
                 <a href={signInHref ?? inPlace ?? 'https://ochk.io/signin'}>{signInLabel}</a>
             </Button>
         </span>

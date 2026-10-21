@@ -19,6 +19,10 @@
  *   in another cell stays its own; a compact HashChip sits in a line under
  *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
  *   lockup and product word fit its sidebar.
+ * - The family footer fits a phone in 600px, each link group a disclosure
+ *   with a 44px summary, every link still there; a desk sees the columns.
+ * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
+ *   screen) is a 44px target; a mouse sees it unchanged.
  * - A bare border, border-b or divide-y draws in the hairline, not in the
  *   text colour (Tailwind 4's default), in light and dark; a colour utility
  *   still wins.
@@ -225,6 +229,20 @@ try {
         'product-shell',
         renderToStaticMarkup(h(Ch.AppShell, { product: 'vault', family: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')))
     );
+    const footer = page('footer', renderToStaticMarkup(h(Ch.OchkIoFooter)));
+    const icons = page(
+        'icons',
+        renderToStaticMarkup(
+            h(
+                'div',
+                // Apart, so each target is its own: two closer than 12px share the overlap.
+                { className: 'flex items-center gap-4 p-6' },
+                h(P.Button, { size: 'icon-sm', variant: 'ghost', 'aria-label': 'Generate another', 'data-t': 'icon-sm' }, 'G'),
+                h(C.CopyButton, { value: 'x', label: 'Copy passphrase' }),
+                h(C.Panel, { title: 'Hash rate', expandable: true }, h('p', null, 'chart'))
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -344,6 +362,56 @@ try {
                     return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
                 });
                 check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);
+            }
+            // The family footer: a phone gets folded groups in 600px; a desk the columns.
+            await p.goto(footer);
+            const ft = await p.evaluate(() => {
+                const f = document.querySelector('footer');
+                const groups = [...f.querySelectorAll('details')];
+                const shown = (el) => el.getClientRects().length > 0;
+                const deskLinks = [...f.querySelectorAll('details ~ div a, div.col-span-full ~ div.hidden a')].map((a) => a.getAttribute('href'));
+                return {
+                    h: f.getBoundingClientRect().height,
+                    groups: groups.length,
+                    groupsShown: groups.filter(shown).length,
+                    closed: groups.every((g) => !g.open),
+                    summaries: groups.filter(shown).map((g) => g.querySelector('summary').getBoundingClientRect().height),
+                    phoneLinks: groups.flatMap((g) => [...g.querySelectorAll('a')].map((a) => a.getAttribute('href'))),
+                    deskShown: [...f.querySelectorAll('a')].filter((a) => shown(a) && !a.closest('details') && !a.closest('[aria-label="Legal"]')).length,
+                    deskLinks,
+                };
+            });
+            if (width < 768) {
+                check(ft.h <= 600, `[${width}] the family footer runs ${Math.round(ft.h)}px, past 600`);
+                check(ft.groupsShown > 0 && ft.closed && ft.summaries.every((x) => x >= 44), `[${width}] footer groups: ${ft.groupsShown} shown, closed ${ft.closed}, summaries ${ft.summaries.map(Math.round).join('/')}px`);
+                if (ft.groupsShown > 0) await p.click('footer details summary');
+                const opened = await p.evaluate(() => [...(document.querySelector('footer details')?.querySelectorAll('a') ?? [])].filter((a) => a.getClientRects().length > 0 && a.getBoundingClientRect().height >= 43.5).length);
+                check(opened > 0, `[${width}] an opened footer group shows no 44px link`);
+            } else {
+                check(ft.groupsShown === 0 && ft.deskShown >= ft.phoneLinks.length, `[${width}] a desk sees ${ft.groupsShown} folded groups and ${ft.deskShown} of ${ft.phoneLinks.length} links`);
+            }
+            // Every link a desk shows, a phone reaches through its groups.
+            check(ft.groups > 0 && ft.phoneLinks.length > 0 && ft.phoneLinks.join() === ft.deskLinks.join(), `[${width}] the phone's groups hold ${ft.phoneLinks.length} links, the desk's columns ${ft.deskLinks.length}`);
+            // 32px icon buttons: 44px to a thumb, unchanged to a mouse.
+            {
+                const ctx = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 768, isMobile: width < 768 });
+                const t = await ctx.newPage();
+                await t.goto(icons);
+                const reach = await t.evaluate(() =>
+                    ['[data-t="icon-sm"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]'].map((sel) => {
+                        const el = document.querySelector(sel);
+                        const r = el.getBoundingClientRect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                        return { sel, size: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && lands(cx - 21.5, cy) && lands(cx + 21.5, cy) };
+                    })
+                );
+                for (const r of reach) {
+                    if (width < 768) check(r.reach && r.size === 32, `[${width} touch] ${r.sel}: drawn ${r.size}px, 44px target ${r.reach}`);
+                    else check(!r.reach && r.size === 32, `[${width} mouse] ${r.sel}: the target grew past the button (${r.reach})`);
+                }
+                await ctx.close();
             }
             // Bare borders take the hairline token, in both modes; a colour utility still wins.
             for (const dark of [false, true]) {
@@ -478,4 +546,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets`);

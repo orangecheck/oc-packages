@@ -67,11 +67,13 @@ export const OCHK_APP = 'https://ochk.app';
 
 /**
  * The family's one account phrase. ochk.io and its docs offer it in the
- * header and link ochk.app; ochk.app offers it signed out and links its own
- * sign-in. A tool site signs a person in where they are, so it says
- * SIGN_IN_LABEL instead.
+ * header and link ochk.app's sign-in, since making an account is signing in
+ * there; ochk.app offers it signed out and links its own sign-in, with its
+ * return. A tool site signs a person in where they are, so it says
+ * SIGN_IN_LABEL instead. The label is a string, so it passes anywhere one is
+ * asked for.
  */
-export const GET_AN_ACCOUNT: NavItem = { href: OCHK_APP, label: 'Get an account' };
+export const GET_AN_ACCOUNT = { href: `${OCHK_APP}/signin`, label: 'Get an account' } as const satisfies NavItem;
 export const SIGN_IN_LABEL = 'Sign in';
 
 function protocol(

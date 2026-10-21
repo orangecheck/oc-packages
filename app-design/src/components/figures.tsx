@@ -2,6 +2,7 @@ import { Info, Maximize2 } from 'lucide-react';
 import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_32 } from '../lib/hit';
 import {
     Dialog,
     DialogContent,
@@ -264,7 +265,10 @@ export function Panel({
                         type="button"
                         onClick={() => setOpen(true)}
                         aria-label="Open full screen"
-                        className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className={cn(
+                            'inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                            HIT_32
+                        )}
                     >
                         <Maximize2 aria-hidden className="size-4" />
                     </button>

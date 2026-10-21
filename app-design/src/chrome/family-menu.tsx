@@ -3,6 +3,7 @@ import { useId, useState } from 'react';
 
 import { familyByGroup, type FamilySite, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
+import { HIT_32 } from '../lib/hit';
 import { Popover, PopoverContent, PopoverTrigger } from '../primitives/overlay';
 import { StatusBadge } from '../primitives/status-badge';
 
@@ -95,6 +96,7 @@ export function FamilyMenu({ current, className }: { current?: FamilySlug; class
                 aria-label="All orangecheck sites"
                 className={cn(
                     'group inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors',
+                    HIT_32,
                     'hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground',
                     className
                 )}

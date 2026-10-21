@@ -18,6 +18,7 @@ import {
 import { explorerUrl, shortenMiddle, type ExplorerKind, type Network } from '../format';
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
+import { HIT_32 } from '../lib/hit';
 import { useShellPlace } from '../lib/shell-context';
 import { Button } from '../primitives/button';
 import { Skeleton, useTimedOut } from '../primitives/feedback';
@@ -759,6 +760,7 @@ export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, onErro
             title={label}
             className={cn(
                 'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                HIT_32,
                 className
             )}
         >
@@ -823,7 +825,7 @@ export function HashChip({
                     value={value}
                     label="Copy full value"
                     // Compact sits in a line of text: a 24px button, its target still 44px.
-                    className={tight ? 'relative size-6 before:absolute before:-inset-2.5 [&_svg]:size-3.5' : undefined}
+                    className={tight ? 'size-6 before:absolute before:-inset-2.5 pointer-coarse:before:-inset-2.5 [&_svg]:size-3.5' : undefined}
                 />
             ) : null}
         </span>

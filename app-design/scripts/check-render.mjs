@@ -429,7 +429,15 @@ const html = (el) => renderToStaticMarkup(el);
 {
     const F = require(join(here, '../dist/family.js'));
     const cta = html(h(Ch.AccountCta));
-    check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.app', 'AccountCta: not the registry\'s phrase to ochk.app');
+    check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.app/signin', 'AccountCta: not the registry\'s phrase to ochk.app\'s sign-in');
+    // The account phrase looks the same wherever it shows: primary, as AccountCta draws it. "Sign in" stays secondary.
+    const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
+    const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
+    check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
+    check(/\bbg-secondary\b/.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
+    check(/\bbg-secondary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
+    // Typed as a string, so it passes where a string label is asked for.
+    check(/label: "Get an account"/.test(require('node:fs').readFileSync(join(here, '../dist/family.d.ts'), 'utf8') + require('node:fs').readdirSync(join(here, '../dist')).filter((f) => /^index-.*\.d\.ts$/.test(f)).map((f) => require('node:fs').readFileSync(join(here, '../dist', f), 'utf8')).join('')), 'GET_AN_ACCOUNT: its label is not typed as the string it is');
     check(html(h(Ch.AccountCta, { href: '/signin' })).includes('href="/signin"'), 'AccountCta: ochk.app cannot point it at its own sign-in');
     const frame = html(h(Ch.SignInFrame, { protocol: 'stamp' }, h('p', null, 'ceremony')));
     check(/h-5 w-px[^>]*><\/span><span[^>]*>stamp<\/span>/.test(frame), 'SignInFrame: a tool site\'s sign-in does not carry its word');

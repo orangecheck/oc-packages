@@ -295,7 +295,8 @@ for (const mode of ['dark', 'light']) {
     const { host, unmount } = await mount(h(Ch.SiteFooter, { columns: twice, legal: [{ href: '/terms', label: 'Terms' }, { href: '/terms', label: 'Terms of use' }] }));
     console.error = error;
     check(!said.some((m) => /same key/.test(m)), `SiteFooter: links keyed by address clash (${said.find((m) => /same key/.test(m))?.slice(0, 80)})`);
-    check(host.querySelectorAll('a[href="/signin"]').length === 2 && host.querySelectorAll('a[href="/terms"]').length === 2, 'SiteFooter: a link to a shared address went missing');
+    // The phone's folded groups and the desk's columns each hold both.
+    check(host.querySelectorAll('details a[href="/signin"]').length === 2 && host.querySelectorAll('a[href="/signin"]').length === 4 && host.querySelectorAll('a[href="/terms"]').length === 2, 'SiteFooter: a link to a shared address went missing');
     await unmount();
 }
 

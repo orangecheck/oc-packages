@@ -39,7 +39,8 @@ export const buttonVariants = cva(
                 md: 'h-11 px-5 text-[0.9375rem]',
                 lg: 'h-14 px-7 text-[1.0625rem]',
                 icon: 'size-10',
-                'icon-sm': 'size-8',
+                // 32px drawn, 44px to a thumb (HIT_32).
+                'icon-sm': 'relative size-8 pointer-coarse:before:absolute pointer-coarse:before:-inset-1.5',
             },
         },
         compoundVariants: [{ variant: 'link', className: 'h-auto px-0' }],

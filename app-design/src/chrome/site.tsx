@@ -457,37 +457,42 @@ export function SiteFooter({
         <footer className={cn('border-t border-border bg-background', className)}>
             <div
                 style={grid}
-                className="oca-container grid grid-cols-2 gap-x-6 gap-y-10 py-14 md:grid-cols-[var(--oca-footer-md)] md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
+                className="oca-container grid grid-cols-1 gap-y-6 pb-6 pt-8 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
-                    <Lockup size={26} />
+                    {/* On a phone the signature below says the name; the lockup would say it twice. */}
+                    <Lockup size={26} className={signature ? 'max-md:hidden' : undefined} />
                     {fineprint ? <p className="max-w-xs text-[0.9375rem] leading-relaxed text-muted-foreground">{fineprint}</p> : null}
                 </div>
-                {cols.map((col, i) => {
-                    // On a phone an odd last column takes the whole row, its links in two
-                    // columns, instead of sitting alone beside an empty half.
-                    const spans = n % 2 === 1 && i === n - 1;
-                    return (
-                        <div
-                            key={`${i}:${col.heading}`}
-                            className={cn('flex min-w-0 flex-col gap-1', spans && 'col-span-2 md:col-span-1')}
-                        >
-                            <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
-                            <div className={cn('flex flex-col gap-1', spans && 'grid grid-cols-2 gap-x-6 md:flex md:flex-col')}>
+                {/* On a phone each group folds shut, a native disclosure that needs no script: the footer is a screen, not two. */}
+                <div className="col-span-full divide-y divide-border border-y border-border md:hidden">
+                    {cols.map((col, i) => (
+                        <details key={`${i}:${col.heading}`} className="group">
+                            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-[0.9375rem] font-medium [&::-webkit-details-marker]:hidden">
+                                {col.heading}
+                                <ChevronDown aria-hidden className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="grid grid-cols-2 gap-x-6 pb-3">
                                 {col.links.map((l, j) => (
-                                    <NavLink
-                                        key={`${j}:${l.label}`}
-                                        item={l}
-                                        className="-mx-3 py-2.5 text-[0.9375rem] md:py-1.5"
-                                    />
+                                    <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 flex min-h-11 items-center text-[0.9375rem]" />
                                 ))}
                             </div>
+                        </details>
+                    ))}
+                </div>
+                {cols.map((col, i) => (
+                    <div key={`${i}:${col.heading}`} className="hidden min-w-0 flex-col gap-1 md:flex">
+                        <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
+                        <div className="flex flex-col gap-1">
+                            {col.links.map((l, j) => (
+                                <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 py-1.5 text-[0.9375rem]" />
+                            ))}
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none overflow-hidden pb-8 md:pb-12">
+                <div aria-hidden className="oca-container select-none overflow-hidden pb-5 md:pb-12">
                     <div className="flex items-end gap-[0.18em] text-[clamp(3rem,11.5vw,10rem)] leading-[0.78] tracking-[-0.065em] [font-family:var(--oc-font-display)]">
                         <span className="mb-[0.06em] inline-block w-[1.1em] shrink-0">
                             <Mark className="block h-auto w-full" />
@@ -523,11 +528,12 @@ export function OchkIoFooter({ columns = OCHK_IO_FOOTER, className }: { columns?
             legal
             fineprint="Open protocols on Bitcoin. Anyone can check the result."
             meta={
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                // The switch sits beside the line, not under it, so a phone spends no row on it.
+                <div className="flex items-center justify-between gap-4">
                     <p>
                         Open-source work on orangecheck is <span className="whitespace-nowrap">supported by OpenSats.</span>
                     </p>
-                    <ThemeToggle className="-mx-3" />
+                    <ThemeToggle className="-mx-3 shrink-0" />
                 </div>
             }
             className={className}
