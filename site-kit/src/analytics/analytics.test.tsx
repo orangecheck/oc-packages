@@ -143,7 +143,7 @@ describe('FamilyAnalytics', () => {
 });
 
 describe('useFamilyPageviews', () => {
-    it('reports the page once, then each new path as the address moves', async () => {
+    it('counts a new path once, as oc-pulse and Plausible do', async () => {
         const calls: string[] = [];
         window.plausible = (name: string) => void calls.push(`${name} ${window.location.pathname}`);
         function App() {
@@ -153,14 +153,19 @@ describe('useFamilyPageviews', () => {
         const root = createRoot(document.createElement('div'));
         await act(async () => root.render(<App />));
         expect(calls).toEqual(['pageview /share/abc123']);
-        // The same page again (a shallow query change, a restored fragment): not counted twice.
-        window.history.replaceState(null, '', '/share/abc123?utm_source=nostr&view=x#k=again');
+        // The same path with another query, by replace or push (a shallow route, a campaign tag): not a new page.
+        window.history.replaceState(null, '', '/share/abc123?view=x&utm_source=other#k=again');
+        window.history.pushState(null, '', '/share/abc123?view=y');
+        expect(calls).toHaveLength(1);
         // A client-side route change, as Next's router makes it.
         window.history.pushState(null, '', '/pricing#plans');
-        // Back.
+        // Back: the browser moves the address, then fires popstate.
         window.history.replaceState(null, '', '/share/abc123');
         window.dispatchEvent(new PopStateEvent('popstate'));
         expect(calls).toEqual(['pageview /share/abc123', 'pageview /pricing', 'pageview /share/abc123']);
+        // A replace to another path is not counted, by either lane.
+        window.history.replaceState(null, '', '/signin');
+        expect(calls).toHaveLength(3);
         await act(async () => root.unmount());
         // Unmounted, history is its own again.
         window.history.pushState(null, '', '/elsewhere');

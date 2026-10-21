@@ -164,40 +164,32 @@ export function FamilyAnalytics({
 }
 
 /**
- * In `_app`: one pageview per page, reported as origin and path. A client-side
- * route change moves the address with `history.pushState` (Next's router
- * among them) or back and forward with `popstate`; the hook listens to those
- * rather than to a router, so it needs no router of its own.
+ * In `_app`: one pageview per page, reported as origin and path. It counts
+ * the way oc-pulse and Plausible's own script do, so the lanes agree: a new
+ * path reached with `history.pushState` (Next's router among them) or
+ * `popstate`. A query change or a `replaceState` is not a new page. It listens
+ * to history rather than to a router, so it needs no router of its own.
  */
 export function useFamilyPageviews(): void {
     useEffect(() => {
         let last = '';
         const report = () => {
-            const u = familyPageUrl(window.location.href);
-            if (u === last) return;
-            last = u;
+            if (window.location.pathname === last) return;
+            last = window.location.pathname;
             window.plausible?.('pageview');
         };
         report();
         const history = window.history;
         const push = history.pushState;
-        const replace = history.replaceState;
-        // A replace that changes the path is a new page too (a redirect in the client).
         const pushed: typeof push = function (this: History, ...args) {
             push.apply(this, args);
             report();
         };
-        const replaced: typeof replace = function (this: History, ...args) {
-            replace.apply(this, args);
-            report();
-        };
         history.pushState = pushed;
-        history.replaceState = replaced;
         window.addEventListener('popstate', report);
         return () => {
             // Put back only what is still ours: another script may have wrapped it since.
             if (history.pushState === pushed) history.pushState = push;
-            if (history.replaceState === replaced) history.replaceState = replace;
             window.removeEventListener('popstate', report);
         };
     }, []);

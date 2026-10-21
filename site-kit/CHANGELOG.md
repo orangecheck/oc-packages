@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+`useFamilyPageviews` counts a page the way oc-pulse and Plausible's own script
+do: a new path reached with `pushState` or `popstate`. 0.3.1 also counted a
+`replaceState` to another path and a change of campaign tag on the same path,
+which oc-pulse does not, so the two lanes drifted apart on those navigations.
+
 ## 0.3.1
 
 `useFamilyPageviews` follows the address (`history.pushState`, `replaceState`
