@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.12.2] — 2026-10-21
+
+- `FontPreloads` named Inter without the `?dpl=` query Vercel's skew
+  protection adds to every asset the stylesheet names, so the browser
+  fetched the font twice and warned that the preload went unused (stamp.ochk.io
+  and ochk.io, live). It now adds the query whenever Next defines the
+  deployment. check-next builds with a `deploymentId` and fails unless the
+  preload is the stylesheet's URL, query and all.
+
 ## [1.12.1] — 2026-10-21
 
 - The registry's `toolHref` goes to a working page: stamp, attest, vote and

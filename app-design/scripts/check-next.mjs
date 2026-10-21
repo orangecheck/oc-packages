@@ -48,7 +48,8 @@ try {
     writeFileSync(
         join(site, 'next.config.mjs'),
         // The trace may reach this package's node_modules, which the fixture's are links into.
-        "export default { basePath: '/b', transpilePackages: ['@orangecheck/app-design'], outputFileTracingRoot: '/' };\n"
+        // deploymentId as Vercel's skew protection sets it: every asset URL gains ?dpl=.
+        "export default { basePath: '/b', deploymentId: 'dpl_check', transpilePackages: ['@orangecheck/app-design'], outputFileTracingRoot: '/' };\n"
     );
     writeFileSync(
         join(site, 'pages', 'index.js'),
@@ -164,8 +165,8 @@ try {
     const page = readFileSync(join(site, '.next', 'server', 'pages', 'index.html'), 'utf8');
     const preload = page.match(/<link rel="preload" as="font"[^>]*href="([^"]+)"/)?.[1];
     const css = readdirSync(join(site, '.next', 'static', 'css')).map((f) => readFileSync(join(site, '.next', 'static', 'css', f), 'utf8')).join('');
-    const sheetFont = css.match(/url\(([^)]*inter-latin\.[0-9a-f]+\.woff2)\)/)?.[1]?.replace(/["']/g, '');
-    if (!preload || !sheetFont || preload !== sheetFont || !preload.startsWith('/b/_next/static/media/')) {
+    const sheetFont = css.match(/url\(([^)]*inter-latin\.[0-9a-f]+\.woff2[^)]*)\)/)?.[1]?.replace(/["']/g, '');
+    if (!preload || !sheetFont || preload !== sheetFont || !preload.startsWith('/b/_next/static/media/') || !preload.endsWith('?dpl=dpl_check')) {
         console.error(`✗ next: FontPreloads named ${preload}; the stylesheet loads ${sheetFont}`);
         process.exit(1);
     }
