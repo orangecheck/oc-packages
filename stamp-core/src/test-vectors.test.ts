@@ -23,11 +23,10 @@ import type { StampEnvelope } from './types.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Three resolution paths in priority order:
+ * Resolution paths in priority order:
  *   1. OC_STAMP_VECTORS_DIR env (CI conformance job).
  *   2. Sibling-clone of oc-stamp-protocol (monorepo-shaped local dev).
- *   3. User-home fallback for one-off local checkouts.
- *   4. null — graceful skip; the describe-block below emits an it.skip().
+ *   3. null — graceful skip; the describe-block below emits an it.skip().
  */
 function locateVectorsDir(): string | null {
     if (process.env.OC_STAMP_VECTORS_DIR && existsSync(process.env.OC_STAMP_VECTORS_DIR)) {
@@ -35,8 +34,6 @@ function locateVectorsDir(): string | null {
     }
     const sibling = resolve(__dirname, '..', '..', '..', 'oc-stamp-protocol', 'test-vectors');
     if (existsSync(sibling)) return sibling;
-    const userHome = '/Users/wilneeley/Projects/ochk/oc-stamp-protocol/test-vectors';
-    if (existsSync(userHome)) return userHome;
     return null;
 }
 

@@ -25,9 +25,6 @@ function locateVectorsDir(): string {
     // Sibling checkout preferred for monorepo dev.
     const sibling = resolve(__dirname, '..', '..', '..', 'oc-vote-protocol', 'test-vectors');
     if (existsSync(sibling)) return sibling;
-    // User-home fallback for dev environments.
-    const user = '/Users/wilneeley/Projects/oc-vote-protocol/test-vectors';
-    if (existsSync(user)) return user;
     throw new Error(
         'oc-vote-protocol/test-vectors not found — set OC_VOTE_VECTORS_DIR or clone the repo as a sibling'
     );

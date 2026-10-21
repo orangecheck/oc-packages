@@ -51,8 +51,6 @@ function locateVectorsDir(): string | null {
     }
     const sibling = resolve(__dirname, '..', '..', '..', 'oc-pledge-protocol', 'test-vectors');
     if (existsSync(sibling)) return sibling;
-    const userHome = '/Users/wilneeley/Projects/ochk/oc-pledge-protocol/test-vectors';
-    if (existsSync(userHome)) return userHome;
     return null;
 }
 
