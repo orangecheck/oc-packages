@@ -198,6 +198,17 @@
         color: var(--foreground);
     }
 
+    /* Tailwind 4 draws a bare border, border-b or divide-y in currentColor, where v3
+       drew it grey: here it is the hairline. In the base layer, so any border colour
+       utility still wins. */
+    [data-oc-app='ochk'] *,
+    [data-oc-app='ochk'] ::after,
+    [data-oc-app='ochk'] ::before,
+    [data-oc-app='ochk'] ::backdrop,
+    [data-oc-app='ochk'] ::file-selector-button {
+        border-color: var(--border);
+    }
+
     [data-oc-app='ochk'] ::selection {
         background-color: color-mix(in oklab, var(--oca-orange) 28%, transparent);
     }

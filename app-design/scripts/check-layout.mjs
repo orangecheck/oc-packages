@@ -12,6 +12,12 @@
  *   what is positioned inside them: an sr-only line deep in a page's own
  *   scroller does not stretch the document past the window. Nor does one in
  *   the last column of a wide table in a ScrollFade widen a phone.
+ * - A markdown table fits a phone when its words do: an error-code table
+ *   at 390 does not scroll, and no cell spills; one that cannot fit still
+ *   scrolls, with the fade.
+ * - A bare border, border-b or divide-y draws in the hairline, not in the
+ *   text colour (Tailwind 4's default), in light and dark; a colour utility
+ *   still wins.
  * - Every tool page's title starts at one x: ToolShell's wide and narrow
  *   columns, an app page's ToolColumn, and an ErrorPage inside the shell.
  * - On a phone the small controls are a thumb's 44px: the compact footer's
@@ -168,6 +174,32 @@ try {
         )
     );
     const expanded = page('expanded', '<div id="root"></div>', '<script src="client.js"></script>');
+    // Markdown tables as the docs write them: one that fits a phone, one that cannot.
+    const { mdxComponents: M } = require(join(pkg, 'dist/mdx.js'));
+    const mdTable = (head, rows) =>
+        h(M.table, null, h('thead', null, h('tr', null, ...head.map((x) => h(M.th ?? 'th', { key: x }, x)))), h('tbody', null, ...rows.map((r, i) => h('tr', { key: i }, ...r.map((c, j) => h(M.td ?? 'td', { key: j }, c))))));
+    const tables = page(
+        'tables',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'p-4' },
+                h('div', { 'data-t': 'fits' }, mdTable(['Code', 'Status', 'What it means'], [
+                    [h(M.code, null, 'oc_session_expired_or_revoked'), '401', 'The session ended. Sign in again.'],
+                    [h(M.code, null, 'oc.vault.entitlement_missing'), '402', 'No plan covers this. See /pricing.'],
+                    [h(M.code, null, 'https://ochk.io/api/auth/revocations'), '200', 'The feed of ended sessions.'],
+                ])),
+                h('div', { 'data-t': 'wide' }, mdTable(['A', 'B', 'C', 'D', 'E', 'F'], [
+                    ['first_column_value', 'second_column_value', 'third_column_value', 'fourth_column_value', 'fifth_column_value', 'sixth_column_value'].map((x) => h(M.code, null, x.replace(/_/g, ''))),
+                ]))
+            )
+        )
+    );
+    const borders = page(
+        'borders',
+        '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
+            '<div class="divide-y"><p class="p-2">c</p><p data-b="divide" class="p-2">d</p></div><div data-b="utility" class="border border-foreground p-2">e</div></div>'
+    );
     const menu = page('menu', '<div id="root" class="p-4"></div>', '<script src="menu.js"></script>');
     // Rows in a pane, each with a picture, a time and a menu button.
     const paneRows = page(
@@ -224,6 +256,36 @@ try {
             [1440, 900],
         ]) {
             const p = await browser.newPage({ viewport: { width, height } });
+            // Markdown tables: the one that fits does not scroll and no cell spills; the wide one scrolls.
+            await p.goto(tables);
+            const tb = await p.evaluate(() =>
+                Object.fromEntries(
+                    [...document.querySelectorAll('[data-t]')].map((w) => {
+                        const scroller = w.querySelector('table').parentElement;
+                        const spills = [...w.querySelectorAll('td, th')].filter((c) => c.scrollWidth > c.clientWidth + 1).length;
+                        return [w.dataset.t, { scrolls: scroller.scrollWidth > scroller.clientWidth + 1, spills }];
+                    })
+                )
+            );
+            check(!tb.fits.scrolls && tb.fits.spills === 0, `[${width}] a three-column error table scrolls (${tb.fits.scrolls}) or spills from ${tb.fits.spills} cell(s)`);
+            if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
+            // Bare borders take the hairline token, in both modes; a colour utility still wins.
+            for (const dark of [false, true]) {
+                await p.goto(borders);
+                const seen = await p.evaluate((dark) => {
+                    document.documentElement.classList.toggle('dark', dark);
+                    const probe = document.createElement('i');
+                    probe.style.color = 'var(--border)';
+                    document.body.append(probe);
+                    const token = getComputedStyle(probe).color;
+                    const fg = getComputedStyle(document.body).color;
+                    const side = { bare: 'borderTopColor', bottom: 'borderBottomColor', divide: 'borderTopColor', utility: 'borderTopColor' };
+                    return { token, fg, ...Object.fromEntries(Object.entries(side).map(([k, s]) => [k, getComputedStyle(document.querySelector(`[data-b="${k}"]`))[s]])) };
+                }, dark);
+                const mode = dark ? 'dark' : 'light';
+                for (const k of ['bare', 'bottom', 'divide']) check(seen[k] === seen.token, `[${width} ${mode}] a bare ${k === 'bare' ? 'border' : k === 'bottom' ? 'border-b' : 'divide-y'} is ${seen[k]}, not the hairline ${seen.token}`);
+                check(seen.utility === seen.fg, `[${width} ${mode}] border-foreground lost to the base rule (${seen.utility})`);
+            }
             // Panel header: the actions on the first row, at the right, beside two lines of description.
             await p.goto(header);
             const rows = await p.$$eval('section', (secs) =>
@@ -340,4 +402,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders`);

@@ -627,9 +627,10 @@ export function BlockCountdown({
     return (
         <div className={cn('flex flex-col gap-2', className)}>
             <p className="text-[0.9375rem] leading-snug">
+                {/* A height links to its block only once it is mined: mempool.space has no page for one ahead. */}
                 {!known ? (
                     <>
-                        At <BlockHeight height={target} label network={network} />
+                        At <BlockHeight height={target} label link={false} network={network} />
                     </>
                 ) : done ? (
                     <>
@@ -656,7 +657,7 @@ export function BlockCountdown({
             ) : null}
             {known && !done ? (
                 <p className="text-[0.8125rem] text-muted-foreground">
-                    Target <BlockHeight height={target} network={network} /> · tip <span className="oca-tabular">{formatBlockHeight(tip)}</span>
+                    Target <BlockHeight height={target} link={false} network={network} /> · tip <BlockHeight height={tip} network={network} />
                 </p>
             ) : null}
         </div>

@@ -16,7 +16,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { WalletId, WalletInfo } from "./types";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   WALLET_FIELD_SIZE,
@@ -97,6 +97,7 @@ export function OcWalletPicker({
 }: OcWalletPickerProps) {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const uid = useId();
 
   // Wallets are browser-globals; detect after mount only to avoid SSR mismatch.
   useEffect(() => {
@@ -178,6 +179,9 @@ export function OcWalletPicker({
               type="button"
               role="radio"
               aria-checked={selected}
+              // Named by the wallet alone; its state ("Ready") is read after, not as part of the name.
+              aria-label={w.name}
+              aria-describedby={`${uid}-${w.id}`}
               onClick={() => handlePick(w)}
               data-oc-wallet-picker-option=""
               data-selected={selected ? "" : undefined}
@@ -227,6 +231,7 @@ export function OcWalletPicker({
                   textTransform: walletCase("uppercase"),
                   marginLeft: isRow ? 4 : "auto",
                 }}
+                id={`${uid}-${w.id}`}
               >
                 {statusLabel}
               </span>
@@ -304,6 +309,7 @@ export function OcWalletButton({
 }: OcWalletButtonProps) {
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [busyId, setBusyId] = useState<WalletId | null>(null);
+  const uid = useId();
   // The manual / paste wallet opens an INLINE panel (message + copy + textarea),
   // NOT a native window.prompt() — `manual` is the open panel's state.
   const [manual, setManual] = useState<{
@@ -597,6 +603,15 @@ export function OcWalletButton({
                 onClick={() => handleSign(w)}
                 disabled={disabled}
                 aria-busy={busy}
+                // Named by what a press does ("Sign with UniSat"); its state is read after it.
+                aria-label={
+                  w.isManual
+                    ? w.name
+                    : w.detected
+                      ? `Sign with ${w.name}`
+                      : `Install ${w.name}`
+                }
+                aria-describedby={`${uid}-${w.id}`}
                 data-oc-wallet-button-option=""
                 data-status={
                   w.detected ? "ready" : w.isManual ? "manual" : "install"
@@ -642,6 +657,7 @@ export function OcWalletButton({
                     textTransform: walletCase("uppercase"),
                     marginLeft: isRow ? 4 : "auto",
                   }}
+                  id={`${uid}-${w.id}`}
                 >
                   {statusLabel}
                 </span>

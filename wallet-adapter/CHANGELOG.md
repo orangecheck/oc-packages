@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.5] — 2026-10-20
+
+### Fixed
+
+- A screen reader heard `OcWalletButton`'s wallets as "UniSat Ready": the
+  dot, the name and the state ran together into one name. Each button is now
+  named by what a press does ("Sign with UniSat", "Install Xverse"), and its
+  state ("Ready", "Signing…") is a description read after it.
+  `OcWalletPicker`'s radios are named by the wallet alone, their state the
+  same way. A test finds each one by role and name, computed as a browser
+  computes it.
+
 ## [0.6.4] — 2026-10-20
 
 ### Added

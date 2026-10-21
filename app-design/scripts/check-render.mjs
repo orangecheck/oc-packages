@@ -346,6 +346,22 @@ const html = (el) => renderToStaticMarkup(el);
     for (const [size, cls] of [['2xs', 'size-7'], ['xs', 'size-8']]) check(html(h(C.Monogram, { name: 'Ada', size })).includes(cls), `Monogram: ${size} is not ${cls}`);
 }
 
+// A table's inline code breaks after punctuation; prose code does not change.
+{
+    const inTable = html(h(mdxComponents.table, null, h('tbody', null, h('tr', null, h('td', null, h(mdxComponents.code, null, 'oc_session.expired'))))));
+    check(inTable.includes('oc_<wbr/>session.<wbr/>expired'), 'MdxTable: inline code has no break after its punctuation');
+    check(!inTable.includes('min-w-[9rem]'), 'MdxTable: a cell keeps a minimum width');
+    check(html(h(mdxComponents.code, null, 'oc_session.expired')).includes('>oc_session.expired</code>'), 'mdx code: prose code outside a table changed');
+}
+
+// A block height links to mempool.space only once it is mined.
+{
+    const mined = /href="https:\/\/mempool\.space\/block\/972000"/;
+    check(!mined.test(html(h(C.BlockCountdown, { target: 972000, tip: 971632 }))), 'BlockCountdown: an unmined target links to a page mempool.space does not have');
+    check(!mined.test(html(h(C.BlockCountdown, { target: 972000 }))), 'BlockCountdown: a target with no known tip links');
+    check(mined.test(html(h(C.BlockCountdown, { target: 972000, tip: 972004 }))), 'BlockCountdown: a reached target does not link its block');
+}
+
 // Rows, people, a pane's bar, a notice's icon.
 {
     const row = html(

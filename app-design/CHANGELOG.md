@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [1.8.1] — 2026-10-20
+
+Defects sites measured on live pages.
+
+- `MdxTable` no longer gives every cell a 9rem minimum on a phone. A
+  three-column table needed 432px and was cut mid-word in a 355px box: 89
+  tables on 56 docs pages. Cells wrap at word boundaries, and inline code in
+  a cell breaks after its punctuation (`oc_session_expired` at an
+  underscore), never mid-word. A table scrolls, with the fade, only when its
+  words cannot fit. Headers wrap on a phone too.
+- A bare `border`, `border-b` or `divide-y` draws in the hairline token.
+  Tailwind 4 draws it in currentColor, so every one ported from v3 turned
+  into a black line in light mode and a white one in dark. A colour utility
+  still wins.
+- `BlockCountdown` links a height to mempool.space only once it is mined.
+  A height ahead of the tip linked to a page that does not exist.
+
 ## [1.8.0] — 2026-10-20
 
 What chat's and cosign's re-chromes still drew by hand.

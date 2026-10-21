@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, HTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import { Children, type AnchorHTMLAttributes, type HTMLAttributes, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 
 import { CodeBlock, CodeTabs, InstallTabs } from '../components/code-block';
 import {
@@ -19,7 +19,26 @@ import { ProtocolGrid } from '../components/family-grids';
 import { SpecCard } from '../components/protocol';
 import { TextLink } from '../components/text-link';
 import { cn } from '../lib/cn';
+import { useInTable } from '../lib/in-table';
 import { StatusBadge } from '../primitives/status-badge';
+
+/** A break opportunity after each punctuation mark in a token, so it wraps there rather than mid-word. */
+function breakAfterPunctuation(children: ReactNode): ReactNode {
+    return Children.map(children, (c) => {
+        if (typeof c !== 'string') return c;
+        const parts = c.split(/(?<=[_./:?&=#,@-])(?=\S)/);
+        return parts.length < 2 ? c : parts.flatMap((p, i) => (i === 0 ? [p] : [<wbr key={i} />, p]));
+    });
+}
+
+function InlineCode({ className, children, ...props }: HTMLAttributes<HTMLElement>) {
+    const inTable = useInTable();
+    return (
+        <code className={cn('break-words rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground', className)} {...props}>
+            {inTable ? breakAfterPunctuation(children) : children}
+        </code>
+    );
+}
 
 /*
  * Markdown in the system's type: hand the map to MDX (useMDXComponents or
@@ -157,12 +176,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
         blockquote: ({ children }: { children?: ReactNode }) => <Callout>{children}</Callout>,
         hr: () => <hr className="my-10 border-border" />,
         table: MdxTable,
-        code: ({ className, ...props }: HTMLAttributes<HTMLElement>) => (
-            <code
-                className={cn('break-words rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground', className)}
-                {...props}
-            />
-        ),
+        code: InlineCode,
         pre: Pre,
         img: ({ className, alt = '', ...props }: ImgHTMLAttributes<HTMLImageElement>) => (
             <img alt={alt} loading="lazy" className={cn('my-6 h-auto max-w-full rounded-2xl border border-border', className)} {...props} />

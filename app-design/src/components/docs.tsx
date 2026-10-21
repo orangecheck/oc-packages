@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { cn } from '../lib/cn';
+import { InTableContext } from '../lib/in-table';
 import { Badge } from '../primitives/badge';
 import { ScrollFade } from '../primitives/scroll-fade';
 import { Skeleton } from '../primitives/feedback';
@@ -328,23 +329,29 @@ export function CardGrid({ columns = 2, children, className }: { columns?: 2 | 3
  * with an edge that says so when it is wider than the column. Code in a
  * cell drops its pill, so an API table reads as a list of names.
  */
+/**
+ * A markdown table. Cells wrap at word boundaries, and inline code in them
+ * breaks after its punctuation (`oc_session_expired` at an underscore), so a
+ * table scrolls, with the fade, only when its words cannot fit: never
+ * because a cell kept a minimum width.
+ */
 export function MdxTable({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
     return (
         <div className="not-prose my-6 overflow-hidden rounded-2xl border border-border bg-card">
             <ScrollFade fade="var(--card)">
-                <table
-                    className={cn(
-                        'w-full border-collapse text-left text-[0.875rem] leading-relaxed',
-                        '[&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-oca-hairline-strong [&_th]:bg-oca-table-head [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-[0.8125rem] [&_th]:font-medium [&_th]:text-foreground',
-                        '[&_td]:border-t [&_td]:border-border [&_td]:px-4 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-muted-foreground [&_tbody_tr:first-child_td]:border-t-0',
-                        '[&_td_code]:bg-transparent [&_td_code]:p-0 [&_td_code]:text-foreground [&_td:first-child]:text-foreground',
-                        '[&_[align=center]]:text-center [&_[align=right]]:text-right',
-                        // On a phone a cell keeps a readable width; the table scrolls instead of crushing it.
-                        'max-sm:[&_td]:min-w-[9rem]',
-                        className
-                    )}
-                    {...props}
-                />
+                <InTableContext.Provider value={true}>
+                    <table
+                        className={cn(
+                            'w-full border-collapse text-left text-[0.875rem] leading-relaxed',
+                            '[&_th]:border-b [&_th]:border-oca-hairline-strong [&_th]:bg-oca-table-head [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-[0.8125rem] [&_th]:font-medium [&_th]:text-foreground sm:[&_th]:whitespace-nowrap sm:[&_th]:px-4',
+                            '[&_td]:border-t [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-muted-foreground [&_tbody_tr:first-child_td]:border-t-0 sm:[&_td]:px-4',
+                            '[&_td_code]:bg-transparent [&_td_code]:p-0 [&_td_code]:text-foreground [&_td:first-child]:text-foreground',
+                            '[&_[align=center]]:text-center [&_[align=right]]:text-right',
+                            className
+                        )}
+                        {...props}
+                    />
+                </InTableContext.Provider>
             </ScrollFade>
         </div>
     );
