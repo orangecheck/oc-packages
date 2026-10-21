@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.10.1] — 2026-10-20
+
+- `OgCard` shown in a page (its story on design.ochk.io) fell back to a
+  serif: it named only `Inter`, which is what `ogFonts()` registers for
+  next/og. It names the page's `OCA Inter` after it; next/og draws the same
+  card, byte for byte.
+
 ## [1.10.0] — 2026-10-20
 
 - `@orangecheck/app-design/og`: the family's share card for next/og.

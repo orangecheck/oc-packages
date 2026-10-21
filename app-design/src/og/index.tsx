@@ -74,7 +74,8 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink' }: OgCardPr
                 overflow: 'hidden',
                 background: t.bg,
                 color: t.fg,
-                fontFamily: 'Inter',
+                // Inter as ogFonts() names it; 'OCA Inter' where the card is shown in a page (a story).
+                fontFamily: "Inter, 'OCA Inter', sans-serif",
                 padding: '64px 72px 56px',
             }}
         >
