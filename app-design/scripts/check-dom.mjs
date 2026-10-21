@@ -253,7 +253,7 @@ for (const mode of ['dark', 'light']) {
     const { host, unmount } = await mount(
         h('ul', null, h(C.ListRow, { title: 'Ada', onSelect: () => opened++, actions: h('button', { type: 'button', 'data-act': '', onClick: () => acted++ }, 'More') }))
     );
-    await act(async () => host.querySelector('li > button').click());
+    await act(async () => host.querySelector('li button:not([data-act])').click());
     await act(async () => host.querySelector('[data-act]').click());
     check(opened === 1 && acted === 1, `ListRow: a press on the row or its actions reached the wrong one (row ${opened}, actions ${acted})`);
     await unmount();
@@ -324,9 +324,84 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// hotkeyBlocked: a page shortcut stays out of fields, open layers and other modifiers; a mod shortcut does not.
+{
+    const host = document.createElement('div');
+    host.innerHTML =
+        '<button data-k="plain">x</button><input data-k="text"><input type="checkbox" data-k="box"><textarea data-k="area"></textarea>' +
+        '<div role="textbox" tabindex="0" data-k="role"></div><div role="menu"><button data-k="menu">m</button></div>' +
+        '<div role="dialog"><button data-k="dialog">d</button></div><div data-radix-popper-content-wrapper=""><button data-k="popper">p</button></div>' +
+        '<button data-k="handled">h</button>';
+    document.body.append(host);
+    host.querySelector('[data-k="handled"]').addEventListener('keydown', (e) => e.preventDefault());
+    const blocked = (k, init = {}, opts = {}) => {
+        let out;
+        const read = (e) => (out = P.hotkeyBlocked(e, opts));
+        window.addEventListener('keydown', read);
+        const el = k === 'body' ? document.body : host.querySelector(`[data-k="${k}"]`);
+        el.dispatchEvent(new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true, ...init }));
+        window.removeEventListener('keydown', read);
+        return out;
+    };
+    const cases = [
+        ['a plain button', 'plain', {}, {}, false],
+        ['a text field', 'text', {}, {}, true],
+        ['a checkbox', 'box', {}, {}, false],
+        ['a textarea', 'area', {}, {}, true],
+        ['a role=textbox', 'role', {}, {}, true],
+        ['an open menu', 'menu', {}, {}, true],
+        ['an open dialog', 'dialog', {}, {}, true],
+        ['a popover', 'popper', {}, {}, true],
+        ['a handled key', 'handled', {}, {}, true],
+        ['composing', 'plain', { isComposing: true }, {}, true],
+        ['Ctrl held', 'plain', { ctrlKey: true }, {}, true],
+        ['Shift held ("?")', 'plain', { shiftKey: true }, {}, false],
+        ['⌘K in a field', 'text', { metaKey: true }, { mod: true }, false],
+        ['⌘K in a dialog', 'dialog', { ctrlKey: true }, { mod: true }, false],
+        ['a mod shortcut without ⌘ or Ctrl', 'plain', {}, { mod: true }, true],
+        ['a mod shortcut with Alt', 'plain', { ctrlKey: true, altKey: true }, { mod: true }, true],
+        ['the page, nothing open', 'body', {}, {}, false],
+    ];
+    for (const [what, k, init, opts, want] of cases) check(blocked(k, init, opts) === want, `hotkeyBlocked: ${what} gives ${!want}`);
+    const modal = document.createElement('div');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    document.body.append(modal);
+    check(blocked('body') === true, 'hotkeyBlocked: focus on the page under an open modal still runs the shortcut');
+    modal.remove();
+    host.remove();
+}
+
+// useHotkey: runs on its key from the page, prevents the default, not from a menu; SearchDialog's "/" waits for an open menu.
+{
+    let ran = 0;
+    function Keys() {
+        P.useHotkey('/', () => ran++);
+        return h('div', null, h('button', { 'data-k': 'page' }, 'page'), h('div', { role: 'menu' }, h('button', { 'data-k': 'item' }, 'item')));
+    }
+    const { host, unmount } = await mount(h(Keys));
+    const press = (k) => {
+        const e = new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true });
+        host.querySelector(`[data-k="${k}"]`).dispatchEvent(e);
+        return e.defaultPrevented;
+    };
+    const prevented = press('page');
+    press('item');
+    check(ran === 1 && prevented, `useHotkey: "/" ran ${ran} time(s) (want once, from the page only), default prevented ${prevented}`);
+    await unmount();
+
+    const search = await mount(h('div', null, h(C.SearchDialog, { onQuery: () => [] }), h('div', { role: 'menu' }, h('button', { 'data-k': 'item' }, 'item')), h('button', { 'data-k': 'page' }, 'page')));
+    const open = () => Boolean(document.querySelector('[role="dialog"] input'));
+    await act(async () => search.host.querySelector('[data-k="item"]').dispatchEvent(new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })));
+    const overMenu = open();
+    await act(async () => search.host.querySelector('[data-k="page"]').dispatchEvent(new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true })));
+    check(!overMenu && open(), `SearchDialog: "/" opened search over an open menu (${overMenu}), or not from the page (${open()})`);
+    await search.unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers`);
 process.exit(0);

@@ -3,6 +3,7 @@ import { CornerDownLeft, Search } from 'lucide-react';
 import { forwardRef, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { useHotkey } from '../lib/hotkey';
 import { Kbd, Spinner } from '../primitives/feedback';
 
 /*
@@ -44,9 +45,6 @@ function useMacKeys(): boolean {
     }, []);
     return mac;
 }
-
-const typing = (el: EventTarget | null) =>
-    el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 
 /** The header's way into search: a field-shaped button with its shortcut; an icon on a phone. */
 export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onClick?: () => void; className?: string }>(function SearchButton(
@@ -138,21 +136,9 @@ export function SearchDialog({
     const latest = useRef({ open, setOpen, onQuery });
     latest.current = { open, setOpen, onQuery };
 
-    useEffect(() => {
-        if (!hotkey) return;
-        const onKey = (e: KeyboardEvent) => {
-            const { open: isOpen, setOpen: set } = latest.current;
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-                e.preventDefault();
-                set(!isOpen);
-            } else if (e.key === '/' && !isOpen && !typing(e.target)) {
-                e.preventDefault();
-                set(true);
-            }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [hotkey]);
+    // ⌘K toggles from anywhere, a field or the dialog itself; "/" only when nothing else holds the keys.
+    useHotkey(['k', 'K'], () => latest.current.setOpen(!latest.current.open), { enabled: hotkey, mod: true });
+    useHotkey('/', () => latest.current.setOpen(true), { enabled: hotkey && !open });
 
     useEffect(() => {
         const q = query.trim();

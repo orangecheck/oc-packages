@@ -42,6 +42,10 @@ const cases = [
     ['Node', new TypeError('fetch failed'), {}, UNANSWERED],
     ['a timeout', dom('TimeoutError'), {}, UNANSWERED],
     ['an abort', dom('AbortError'), {}, UNANSWERED],
+    // A code chunk that would not load: webpack's error, and Next's message for it.
+    ['a chunk', named('ChunkLoadError', 'Loading chunk 2414 failed.\n(error: https://agent.ochk.io/_next/static/chunks/2414.js)'), {}, UNANSWERED],
+    ['a chunk, by its words', new Error('Loading chunk 731 failed.'), { fallback: 'That is not valid JSON.' }, UNANSWERED],
+    ['a stylesheet chunk', new Error('Loading CSS chunk 88 failed.'), {}, UNANSWERED],
     ['a named source', new TypeError('Failed to fetch'), { source: 'mempool.space' }, 'mempool.space did not answer. ' + OFFLINE_TEXT],
     // An answer that was not JSON, a bug, a library, a code: the fallback.
     ['a proxy page', new SyntaxError('Unexpected token < in JSON at position 0'), {}, FALLBACK],

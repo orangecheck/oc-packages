@@ -459,10 +459,14 @@ const html = (el) => renderToStaticMarkup(el);
     const row = html(
         h(C.ListRow, { href: '/messages/1', title: 'Ada', meta: '2m', description: 'The keys are in the usual place.', current: true, unread: true, leading: h('i', { 'data-lead': '' }), trailing: h('b', null, '2'), actions: h('button', { type: 'button', 'data-act': '' }, 'More') })
     );
-    const link = row.match(/^<li class="[^"]*group\/row[^"]*relative[^"]*"><a ([^>]*)>/)?.[1] ?? '';
-    check(link.includes('href="/messages/1"') && link.includes('aria-current="true"'), 'ListRow: not one link, marked current');
-    check(/<\/a><div[^>]*><button type="button" data-act="">/.test(row) && !/<a [^>]*>(?:(?!<\/a>)[\s\S])*data-act/.test(row), 'ListRow: the actions sit inside the link');
-    check(/font-semibold[^"]*">Ada<\/span><span[^>]*>2m<\/span>/.test(row) && row.includes('text-foreground">The keys'), 'ListRow: unread does not set the title bold and the line in ink, or the meta is not beside the title');
+    // With actions of its own the title is the row's one link, its target stretched over the row (the li).
+    const links = [...row.matchAll(/<a ([^>]*)>/g)].map((m) => m[1]);
+    check(/^<li class="[^"]*group\/row[^"]*relative/.test(row) && links.length === 1 && links[0].includes('href="/messages/1"') && links[0].includes('aria-current="true"') && links[0].includes('after:inset-0'), 'ListRow: not one link, marked current, stretched over the row');
+    check(row.includes('data-act=""') && !/<a [^>]*>(?:(?!<\/a>)[\s\S])*data-act/.test(row), 'ListRow: the actions sit inside the link');
+    check(/font-semibold[^"]*"><a [^>]*>Ada<\/a><\/span><span[^>]*>2m<\/span>/.test(row) && row.includes('text-foreground">The keys'), 'ListRow: unread does not set the title bold and the line in ink, or the meta is not beside the title');
+    // Without controls of its own the whole row is still the one link.
+    const whole = html(h(C.ListRow, { href: '/messages/2', title: 'Hal', trailing: h('b', null, '1') }));
+    check(/^<li class="[^"]*"><a [^>]*href="\/messages\/2"[^>]*>[\s\S]*Hal[\s\S]*<b>1<\/b>[\s\S]*<\/a><\/li>$/.test(whole), 'ListRow: a row with no controls of its own is not one link around its content');
     check(/<button type="button" class="[^"]*min-h-11/.test(html(h(C.ListRow, { title: 'x', onSelect: () => {}, variant: 'pane' }))), 'ListRow: a pane row is not a 44px button');
     check(html(h(C.ListRow, { title: 'x', href: 'https://mempool.space' })).includes('<a href="https://mempool.space"'), 'ListRow: an outside link is not a plain anchor');
     const fig = html(h(C.Avatar, { seed: 'bc1q', name: 'Satoshi Nakamoto', size: 'md' }));

@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [1.14.2] — 2026-10-21
+
+- `failureText` reads a code chunk that would not load (webpack's
+  `ChunkLoadError`, Next's "Loading chunk … failed", a CSS chunk) as a
+  request with no answer: offline, or an old tab after a deploy. agent's
+  inspector showed the caller's fallback, "not valid JSON", for it.
+- `hotkeyBlocked(e, { mod })` and `useHotkey(keys, handler, { enabled, mod })`
+  in `./primitives`, as site-lock specified. A page shortcut does not run when
+  the key was handled or is composing text; when Ctrl, ⌘ or Alt is held
+  (Shift is fine, "?" needs it); in a text field, a select, an editable or a
+  textbox-like role; or inside an open dialog, menu, listbox or popover, or
+  with focus on the page under an open modal. A `mod` shortcut (⌘K) needs ⌘
+  or Ctrl without Alt, and runs from fields and layers. `useHotkey` matches
+  `e.key` exactly, prevents the default of a key it handles, and keeps the
+  newest handler without re-listening. vault and agent can drop their own.
+- `SearchDialog` uses them: "/" no longer opens search over an open menu or
+  popover (ochk.io/docs' sites menu), and ⌘K still toggles it from its field.
+- `ListRow`: a wide end no longer squeezes the text. The text and what follows
+  it (`trailing`, `actions`, `action`) share a wrapping line: the end stays
+  beside the text while the text keeps 9rem and drops under it, lined up with
+  it, when not. At 390 a 210px end left attest's title 70px; it now has the
+  row. `actions` are part of that line rather than laid over the row's end,
+  so a wide group no longer covers the text either. A row with controls of
+  its own makes its title the link, stretched over the row; a row without
+  stays one link around everything.
+- check-focus asserts a dialog's opener has focus within a frame of the
+  dialog leaving (it does; chat's lag is not the package's).
+- Checks that fail on 1.14.1: check-format (chunks), check-dom (17 cases of
+  hotkeyBlocked, useHotkey, SearchDialog's "/"), check-focus ("/" over a real
+  open menu), check-layout (a 210px end in trailing and in actions at 390).
+
 ## [1.14.1] — 2026-10-21
 
 - `ListRow`'s text `action` lines up with the row's text on a phone whatever

@@ -1,6 +1,6 @@
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import Link from 'next/link';
-import { createContext, useContext, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
@@ -126,13 +126,21 @@ export function ListRow({
     detail?: ReactNode;
     /** An Avatar, a Monogram, an icon. */
     leading?: ReactNode;
-    /** At the row's end, inside it: an unread count, a StateBadge, an arrow. */
+    /**
+     * At the row's end, inside it: an unread count, a StateBadge, an arrow.
+     * When beside the text it would leave the text less than 9rem (a phone,
+     * a wide end), it drops under the text instead.
+     */
     trailing?: ReactNode;
-    /** Beside the row, outside it, over its end: a DropdownMenu or an icon button. Keep it 44px wide. */
+    /**
+     * At the row's end, outside its link: a DropdownMenu, icon buttons. Like
+     * `trailing`, it drops under the text when beside it the text would keep
+     * less than 9rem.
+     */
     actions?: ReactNode;
     /**
-     * A button with words ("Remove", "Retry this guardian"), outside the row:
-     * beside its text from sm, under it on a phone, never over it.
+     * A button with words ("Remove", "Retry this guardian"), outside the row's
+     * link: beside its text from sm, under it on a phone, lined up with it.
      */
     action?: ReactNode;
     /** `hover`: from md the actions show on hover, on focus and while open; a phone always shows them. */
@@ -156,156 +164,105 @@ export function ListRow({
     const tight = useDensity() === 'compact';
     const look = ROW_LOOK[variant];
     const interactive = href !== undefined || onSelect !== undefined;
-    const cls = cn(
+    const aria = current ? { 'aria-current': 'true' as const } : {};
+    // Controls of its own (a menu, a text button) cannot sit inside the row's link: then the title is the link, its target stretched over the row.
+    const split = Boolean(actions || action);
+    const box = cn(
         'flex min-h-11 w-full min-w-0 gap-3 text-left outline-none transition-colors',
         lines === 'all' ? 'items-start' : 'items-center',
-        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        !split && 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         look.box,
         variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
         interactive && !current && look.hover,
-        current && look.current,
-        actions && 'pr-14'
+        current && look.current
     );
-    const aria = current ? { 'aria-current': 'true' as const } : {};
-    const parts = (titleNode: ReactNode) => (
+    const stretch = cn(
+        'outline-none after:absolute after:inset-0 after:content-[""] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring',
+        variant === 'pane' && 'after:rounded-xl'
+    );
+    const open = (children: ReactNode, className?: string) =>
+        href !== undefined ? (
+            href.startsWith('/') ? (
+                <Link href={href} className={className} {...aria}>
+                    {children}
+                </Link>
+            ) : (
+                <a href={href} className={className} {...aria}>
+                    {children}
+                </a>
+            )
+        ) : onSelect ? (
+            <button type="button" onClick={onSelect} className={cn('text-left', className)} {...aria}>
+                {children}
+            </button>
+        ) : (
+            <div className={className}>{children}</div>
+        );
+    const body = (
         <>
             {leading ? <span className="flex shrink-0">{leading}</span> : null}
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                {eyebrow ? (
-                    <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>{eyebrow}</span>
-                ) : null}
-                <span className="flex min-w-0 items-baseline justify-between gap-3">
-                    <span
-                        className={cn(
-                            'text-[0.9375rem] text-foreground',
-                            lines === 'all' ? 'min-w-0 [overflow-wrap:anywhere]' : 'truncate',
-                            unread ? 'font-semibold' : 'font-medium'
-                        )}
-                    >
-                        {titleNode}
+            {/*
+             * The text, and what follows it: beside it while the text keeps
+             * 9rem, under it and lined up with it when not, so a wide end
+             * (a badge and two buttons) never squeezes a title to a word.
+             */}
+            <span className={cn('flex min-w-0 flex-1 flex-wrap gap-x-3 gap-y-2', lines === 'all' ? 'items-start' : 'items-center')}>
+                <span className="flex min-w-0 flex-[1_1_9rem] flex-col gap-0.5">
+                    {eyebrow ? (
+                        <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>{eyebrow}</span>
+                    ) : null}
+                    <span className="flex min-w-0 items-baseline justify-between gap-3">
+                        <span
+                            className={cn(
+                                'text-[0.9375rem] text-foreground',
+                                lines === 'all' ? 'min-w-0 [overflow-wrap:anywhere]' : 'truncate',
+                                unread ? 'font-semibold' : 'font-medium'
+                            )}
+                        >
+                            {split && interactive ? open(title, stretch) : title}
+                        </span>
+                        {meta ? <span className="oca-tabular shrink-0 text-[0.8125rem] text-muted-foreground">{meta}</span> : null}
                     </span>
-                    {meta ? <span className="oca-tabular shrink-0 text-[0.8125rem] text-muted-foreground">{meta}</span> : null}
+                    {description ? (
+                        <span
+                            className={cn(
+                                'text-[0.875rem]',
+                                lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate',
+                                unread ? 'text-foreground' : 'text-muted-foreground'
+                            )}
+                        >
+                            {description}
+                        </span>
+                    ) : null}
+                    {detail ? (
+                        <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate')}>
+                            {detail}
+                        </span>
+                    ) : null}
                 </span>
-                {description ? (
+                {/* Level with the title's first line when the row wraps, past the line over it. */}
+                {trailing ? (
+                    <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]', lines === 'all' && eyebrow && 'mt-[1.34375rem]')}>
+                        {trailing}
+                    </span>
+                ) : null}
+                {actions ? (
                     <span
                         className={cn(
-                            'text-[0.875rem]',
-                            lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate',
-                            unread ? 'text-foreground' : 'text-muted-foreground'
+                            'relative z-10 flex shrink-0 items-center',
+                            revealActions === 'hover' &&
+                                'transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/row:opacity-100 md:has-[[data-state=open]]:opacity-100'
                         )}
                     >
-                        {description}
+                        {actions}
                     </span>
                 ) : null}
-                {detail ? (
-                    <span className={cn('text-[0.8125rem] text-muted-foreground', lines === 'all' ? 'whitespace-pre-line [overflow-wrap:anywhere]' : 'truncate')}>
-                        {detail}
-                    </span>
-                ) : null}
+                {/* A text action takes a line of its own on a phone. */}
+                {action ? <span className="relative z-10 flex shrink-0 items-center gap-2 max-sm:basis-full">{action}</span> : null}
             </span>
-            {/* Level with the title's first line when the row wraps, past the line over it. */}
-            {trailing ? (
-                <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]', lines === 'all' && eyebrow && 'mt-[1.34375rem]')}>
-                    {trailing}
-                </span>
-            ) : null}
         </>
     );
-    const menu = actions ? (
-        <div
-            className={cn(
-                'absolute right-2 top-1/2 flex -translate-y-1/2 items-center',
-                revealActions === 'hover' &&
-                    'transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/row:opacity-100 md:has-[[data-state=open]]:opacity-100'
-            )}
-        >
-            {actions}
-        </div>
-    ) : null;
-
-    if (action) {
-        /*
-         * A text action cannot sit inside the row's link, nor over it. The row
-         * becomes a grid whose title is the link, its target stretched over
-         * the row; the action is a column of its own from sm and, on a phone,
-         * a line in the text's column, so it lines up with the text whatever
-         * the picture's size.
-         */
-        const stretch = cn(
-            'outline-none after:absolute after:inset-0 after:content-[""] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring',
-            variant === 'pane' && 'after:rounded-xl'
-        );
-        const opener =
-            href !== undefined ? (
-                href.startsWith('/') ? (
-                    <Link href={href} className={stretch} {...aria}>
-                        {title}
-                    </Link>
-                ) : (
-                    <a href={href} className={stretch} {...aria}>
-                        {title}
-                    </a>
-                )
-            ) : onSelect ? (
-                <button type="button" onClick={onSelect} className={cn('text-left', stretch)} {...aria}>
-                    {title}
-                </button>
-            ) : (
-                title
-            );
-        const tracks = `${leading ? 'auto ' : ''}minmax(0,1fr)${trailing ? ' auto' : ''}`;
-        return (
-            <Tag className={cn('group/row relative', className)}>
-                <div
-                    style={{ '--oca-row-phone': tracks, '--oca-row-desk': `${tracks} auto` } as CSSProperties}
-                    className={cn(
-                        'grid min-h-11 w-full grid-cols-[var(--oca-row-phone)] gap-x-3 text-left transition-colors sm:grid-cols-[var(--oca-row-desk)]',
-                        lines === 'all' ? 'items-start' : 'items-center',
-                        look.box,
-                        variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
-                        interactive && !current && look.hover,
-                        current && look.current,
-                        actions && 'pr-14'
-                    )}
-                >
-                    {parts(opener)}
-                    <div
-                        className={cn(
-                            'relative z-10 flex items-center gap-2 max-sm:row-start-2 max-sm:mt-2 max-sm:justify-self-start',
-                            leading ? 'max-sm:col-start-2' : 'max-sm:col-start-1'
-                        )}
-                    >
-                        {action}
-                    </div>
-                </div>
-                {menu}
-            </Tag>
-        );
-    }
-
-    const body = parts(title);
-    return (
-        <Tag className={cn('group/row relative', className)}>
-            {href !== undefined ? (
-                href.startsWith('/') ? (
-                    <Link href={href} className={cls} {...aria}>
-                        {body}
-                    </Link>
-                ) : (
-                    <a href={href} className={cls} {...aria}>
-                        {body}
-                    </a>
-                )
-            ) : onSelect ? (
-                <button type="button" onClick={onSelect} className={cls} {...aria}>
-                    {body}
-                </button>
-            ) : (
-                <div className={cls}>{body}</div>
-            )}
-            {menu}
-        </Tag>
-    );
+    return <Tag className={cn('group/row relative', className)}>{split ? <div className={box}>{body}</div> : open(body, box)}</Tag>;
 }
 
 /* ── ChoiceGroup ─────────────────────────────────────────────────────── */

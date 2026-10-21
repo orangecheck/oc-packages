@@ -4,6 +4,7 @@ import {
     ArrowLeft,
     ChevronRight,
     Copy,
+    ExternalLink,
     Globe,
     KeyRound,
     Lock,
@@ -385,6 +386,23 @@ export const Rows: StoryObj = {
                                 <Button size="sm" variant="secondary">
                                     Retry this guardian
                                 </Button>
+                            }
+                        />
+                        {/* A wide end: beside the text on a desk, under it on a phone, never squeezing the title to a word. */}
+                        <ListRow
+                            leading={<Avatar seed="xaxis" name="xaxis" />}
+                            title="xaxis"
+                            description="Holds 0.5 BTC, unspent since block 814,210; signed with the address it names"
+                            trailing={
+                                <>
+                                    <Badge tone="success">Confirmed</Badge>
+                                    <Button size="icon-sm" variant="ghost" aria-label="Copy the proof">
+                                        <Copy />
+                                    </Button>
+                                    <Button size="icon-sm" variant="ghost" aria-label="Open the proof">
+                                        <ExternalLink />
+                                    </Button>
+                                </>
                             }
                         />
                     </ListCard>

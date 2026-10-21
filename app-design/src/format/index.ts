@@ -107,7 +107,9 @@ export function failureText(
 ): string {
     const name = typeof e === 'object' && e !== null && 'name' in e ? String(e.name) : '';
     const message = typeof e === 'object' && e !== null && 'message' in e ? String(e.message) : '';
-    const unanswered = name === 'AbortError' || name === 'TimeoutError' || (e instanceof TypeError && NO_ANSWER.test(message));
+    // A code chunk that would not load (offline, or an old tab after a deploy) is a request with no answer too.
+    const chunk = name === 'ChunkLoadError' || /^Loading (?:CSS )?chunk \S+ failed/.test(message);
+    const unanswered = chunk || name === 'AbortError' || name === 'TimeoutError' || (e instanceof TypeError && NO_ANSWER.test(message));
     if (unanswered) return source ? `${source} did not answer. ${OFFLINE_TEXT}` : `We couldn't reach the server. ${OFFLINE_TEXT}`;
     if (!keepMessage || !(e instanceof Error) || e instanceof TypeError || e instanceof SyntaxError) return fallback;
     // A sentence has a space in it; a bare token is a code.

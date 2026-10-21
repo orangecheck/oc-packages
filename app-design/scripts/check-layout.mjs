@@ -26,7 +26,8 @@
  *   title; a group of three wraps under it.
  * - A ListRow holds a line over its title and two under it; a text action
  *   sits beside them on a desk and under them on a phone, lined up with the
- *   text, never over it.
+ *   text, never over it. A wide end, in trailing or actions, drops under the
+ *   text on a phone rather than squeeze it.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -344,6 +345,19 @@ try {
             )
         )
     );
+    // A wide end (a badge and two buttons, about 210px), in trailing and in actions: on a phone it drops under the text.
+    const wideEnd = (tag) => h('span', { 'data-s': tag, style: { display: 'inline-flex', width: 210, height: 32, background: 'var(--muted)' } });
+    const rowWide = page(
+        'row-wide',
+        renderToStaticMarkup(
+            h(
+                'ul',
+                { className: 'mx-auto max-w-[40rem] divide-y divide-border rounded-2xl border border-border bg-card' },
+                h(C.ListRow, { leading: h(C.Avatar, { seed: 'x', name: 'xaxis', size: 'md' }), title: h('span', { 'data-s': 't-a' }, 'xaxis'), description: 'Holds 0.5 BTC unspent since block 814,210, the reason in full', trailing: wideEnd('end-a') }),
+                h(C.ListRow, { leading: h(C.Avatar, { seed: 'y', name: 'proof', size: 'md' }), title: h('span', { 'data-s': 't-b' }, 'Proof 86020d78'), description: 'Signed by bc1q9h7g…5e3w7t', href: '/proofs/1', actions: wideEnd('end-b') })
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -560,6 +574,22 @@ try {
             check(rs.opens, `[${width}] ListRow action: the row no longer opens from its text, or the action lost its press (${JSON.stringify(rs)})`);
             if (width < 640) check(rs.under && Math.abs(rs.indent) <= 1 && Math.abs(rs.indent2) <= 1, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
             else check(!rs.under, `[${width}] ListRow action: on a desk it falls under the text (${JSON.stringify(rs)})`);
+            // A wide end beside the text on a desk; on a phone under it, lined up with it, the text kept whole.
+            await p.goto(rowWide);
+            const rw = await p.evaluate(() =>
+                ['a', 'b'].map((k) => {
+                    const t = document.querySelector(`[data-s="t-${k}"]`);
+                    const text = t.closest('.flex-col').getBoundingClientRect();
+                    const end = document.querySelector(`[data-s="end-${k}"]`).getBoundingClientRect();
+                    const hit = end.left < text.right && text.left < end.right && end.top < text.bottom && text.top < end.bottom;
+                    return { k, textW: Math.round(text.width), under: end.top >= text.bottom - 1, aligned: Math.abs(end.left - text.left) <= 1, hit };
+                })
+            );
+            for (const r of rw) {
+                check(!r.hit, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end covers the text (${JSON.stringify(r)})`);
+                if (width < 640) check(r.under && r.aligned && r.textW >= 144, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end squeezes the text to ${r.textW}px rather than dropping under it (${JSON.stringify(r)})`);
+                else check(!r.under, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end left the text's side on a desk (${JSON.stringify(r)})`);
+            }
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
             const pf = await p.evaluate(async () => {
@@ -699,7 +729,7 @@ try {
             await p.goto(paneRows);
             const rowBoxes = await p.$$eval('li', (lis) =>
                 lis.map((li) => {
-                    const row = li.querySelector('button:not([data-act])').getBoundingClientRect();
+                    const row = li.firstElementChild.getBoundingClientRect();
                     const meta = li.querySelector('.oca-tabular').getBoundingClientRect();
                     const act = li.querySelector('[data-act]').getBoundingClientRect();
                     const pic = li.querySelector('[aria-hidden].rounded-full')?.getBoundingClientRect();

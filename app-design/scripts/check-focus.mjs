@@ -13,6 +13,9 @@
  * - The docs sidebar's open section closes from its own button.
  * - A dialog opened without a Trigger (confirm(), a dialog or sheet opened
  *   from state) hands focus back to what opened it.
+ * - A page shortcut ("/") waits while a menu is open; ⌘K/Ctrl-K still toggles
+ *   search from its own field. Focus is back on a dialog's opener within a
+ *   frame of it closing.
  * - Tab past a toast goes on to the page, not back to where it came from;
  *   sonner's alt+T still returns there.
  * - A highlighted menu or select item stands out from its neighbours at 3:1.
@@ -98,6 +101,11 @@ try {
             `import { DocsNav } from '${src('chrome/docs-shell.tsx')}';\n` +
                 `const sections = [{ label: 'Getting started', items: [{ href: '/docs', label: 'Overview' }, { href: '/docs/quickstart', label: 'Quickstart' }] }, { label: 'Reference', items: [{ href: '/docs/api', label: 'API' }] }];`,
             `<div className="w-64 p-6"><DocsNav sections={sections} current="/docs/quickstart" /></div>`
+        ),
+        hotkeys: mount(
+            `import { SearchDialog } from '${src('components/search.tsx')}';\n` +
+                `import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '${src('primitives/overlay.tsx')}';`,
+            `<div className="flex gap-4 p-6"><SearchDialog onQuery={() => []} /><DropdownMenu modal={false}><DropdownMenuTrigger id="sites">All orangecheck sites</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>stamp</DropdownMenuItem><DropdownMenuItem>vote</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>`
         ),
         ownmain: mount(`import { SkipLink } from '${src('chrome/site.tsx')}';`, `<><SkipLink /><header><a href="/">Home</a></header><main id="main-content"><p>The page</p><a href="/next">Next</a></main></>`),
     };
@@ -281,10 +289,43 @@ try {
             await p.keyboard.press('Enter');
             await p.waitForSelector('[role="dialog"], [role="alertdialog"]');
             await p.keyboard.press('Escape');
-            await p.waitForSelector('[role="dialog"], [role="alertdialog"]', { state: 'detached' });
-            await p.waitForTimeout(50);
-            check((await active(p)) === opener, `${opener}: closing the dialog leaves focus on ${show(await active(p))}, not its opener`);
+            // Focus is back within a frame of the dialog leaving, not after an exit animation.
+            const back = await p.evaluate(
+                () =>
+                    new Promise((done) => {
+                        const gone = () => !document.querySelector('[role="dialog"], [role="alertdialog"]');
+                        const t0 = performance.now();
+                        const tick = () => {
+                            if (gone()) requestAnimationFrame(() => setTimeout(() => done({ id: document.activeElement?.id || document.activeElement?.tagName, ms: Math.round(performance.now() - t0) }), 0));
+                            else if (performance.now() - t0 > 3000) done({ id: 'still open', ms: 3000 });
+                            else requestAnimationFrame(tick);
+                        };
+                        tick();
+                    })
+            );
+            check(back.id === opener && back.ms < 500, `${opener}: a frame after the dialog left, focus is on ${show(back.id)} (${back.ms}ms after Escape), not its opener`);
         }
+
+        // A page shortcut waits for an open menu: "/" over ochk.io/docs' sites menu opened search on top of it.
+        await p.goto(client('hotkeys'));
+        await p.waitForSelector('#sites');
+        const searching = () => p.evaluate(() => Boolean(document.querySelector('[role="dialog"] input')));
+        await p.focus('#sites');
+        await p.keyboard.press('Enter');
+        await p.waitForSelector('[role="menu"]');
+        await p.keyboard.press('/');
+        await p.waitForTimeout(150);
+        const overMenu = await searching();
+        await p.keyboard.press('Escape');
+        await p.waitForSelector('[role="menu"]', { state: 'detached' });
+        await p.keyboard.press('/');
+        await p.waitForTimeout(150);
+        const fromPage = await searching();
+        // ⌘K/Ctrl-K closes it again from its own field.
+        await p.keyboard.press('Control+KeyK');
+        await p.waitForTimeout(250);
+        const toggled = !(await searching());
+        check(!overMenu && fromPage && toggled, `SearchDialog: "/" over an open menu opened search (${overMenu}); from the page ${fromPage}; Ctrl-K from its field closed it ${toggled}`);
 
         // Toasts: Tab goes on past them; alt+T and a Tab out still go back.
         await p.goto(client('toasts'));

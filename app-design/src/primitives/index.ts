@@ -66,3 +66,4 @@ export { Pagination } from './pagination';
 export { QrCode } from './qr-code';
 export type { ScrollFadeProps } from './scroll-fade';
 export { cn } from '../lib/cn';
+export { hotkeyBlocked, useHotkey } from '../lib/hotkey';
