@@ -4,7 +4,7 @@
  *   stamp file <path>              — sign a file, optionally anchor
  *   stamp verify <stamp> [content] — full SPEC §8 verification
  *   stamp anchor <stamp>           — submit to OTS calendars, or upgrade a pending proof
- *   stamp canonical <path>         — print the canonical message (dry run)
+ *   stamp canonical <path>         — print the canonical message, or its id with --id
  *
  * Git aliases (same binary, invoked as `git-stamp`):
  *
@@ -25,7 +25,7 @@ import { runGitTag, runGitVerify } from './commands/git-tag.js';
 import { runStampFile } from './commands/stamp-file.js';
 import { runVerify } from './commands/verify.js';
 
-import { canonicalMessage } from '@orangecheck/stamp-core';
+import { canonicalMessage, computeEnvelopeId } from '@orangecheck/stamp-core';
 import { hashFile, mimeFromPath } from './util.js';
 
 const invoked = basename(process.argv[1] ?? 'stamp');
@@ -37,13 +37,14 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('git-stamp')
         .description('Stamp git tags with your Bitcoin address, anchored to Bitcoin.')
-        .version('0.2.0');
+        .version('0.2.2');
 
     program
         .command('tag <tagname>')
         .description('Sign and (optionally) anchor a stamp over <tagname>^{tree}')
         .requiredOption('--addr <address>', 'Bitcoin address')
-        .option('--sig <signature>', 'BIP-322 signature (non-interactive mode)')
+        .option('--sig <signature>', 'BIP-322 signature over the id (non-interactive mode)')
+        .option('--signed-at <iso>', 'signed_at the signed id commits to (needed with --sig)')
         .option('--no-anchor', 'Skip OTS calendar submission')
         .option('--json', 'Emit JSON')
         .action(async (tag, opts) => {
@@ -51,6 +52,7 @@ if (invoked.startsWith('git-stamp')) {
                 tag,
                 address: opts.addr,
                 sig: opts.sig,
+                signedAt: opts.signedAt,
                 anchor: Boolean(opts.anchor),
                 json: Boolean(opts.json),
             });
@@ -72,7 +74,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('stamp')
         .description('OC Stamp — sign anything with your Bitcoin address, anchor to Bitcoin.')
-        .version('0.2.0');
+        .version('0.2.2');
 
     program
         .command('file <path>')
@@ -80,7 +82,7 @@ if (invoked.startsWith('git-stamp')) {
         .requiredOption('--addr <address>', 'Bitcoin address')
         .option('--mime <type>', 'Override the MIME type (default: inferred from extension)')
         .option('--signed-at <iso>', 'Override signed_at (default: now)')
-        .option('--sig <signature>', 'BIP-322 signature (non-interactive mode)')
+        .option('--sig <signature>', 'BIP-322 signature over the id (non-interactive mode)')
         .option('--no-anchor', 'Skip OTS calendar submission')
         .option('--out <path>', 'Output path (default: <path>.stamp)')
         .option('--json', 'Emit JSON')
@@ -126,22 +128,26 @@ if (invoked.startsWith('git-stamp')) {
 
     program
         .command('canonical <path>')
-        .description('Print the canonical message a stamp over <path> would sign (dry run)')
+        .description('Print the canonical message a stamp over <path> commits to (dry run)')
         .requiredOption('--addr <address>', 'Bitcoin address')
         .option('--mime <type>', 'Override the MIME type')
         .option('--signed-at <iso>', 'Override signed_at (default: now)')
+        .option('--id', 'Print the id the wallet signs instead of the message')
         .action(async (path, opts) => {
             const { hash, length } = await hashFile(path);
-            const msg = canonicalMessage({
+            const input = {
                 address: opts.addr,
                 content_hash: hash,
                 content_length: length,
                 content_mime: opts.mime ?? mimeFromPath(path),
                 signed_at: opts.signedAt ?? new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
-            });
-            process.stdout.write(msg);
-            // No trailing newline — the canonical message itself has no trailing
-            // LF after signed_at, and users pipe this directly into signing tools.
+            };
+            if (opts.id) {
+                process.stdout.write(computeEnvelopeId(input) + '\n');
+                return;
+            }
+            // No trailing newline: the canonical message has no LF after signed_at.
+            process.stdout.write(canonicalMessage(input));
         });
 }
 

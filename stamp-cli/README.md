@@ -14,12 +14,15 @@ npm i -g @orangecheck/stamp-cli
 ## `stamp` — file stamping
 
 ```sh
-# Sign a file. Prints the canonical message, prompts for a BIP-322 signature
-# from your wallet, writes <path>.stamp alongside, submits to OTS calendars.
+# Sign a file. Shows the canonical message and the id, prompts for a BIP-322
+# signature of the id from your wallet, writes <path>.stamp alongside, and
+# submits to OTS calendars.
 $ stamp file blogpost.md --addr bc1qalice...
 
-# Non-interactive (sig pre-computed elsewhere):
-$ stamp file blogpost.md --addr bc1qalice... --sig '...'
+# Non-interactive: print the id, sign it elsewhere, then pass the signature
+# with the same signed-at time.
+$ stamp canonical blogpost.md --addr bc1qalice... --signed-at 2026-04-24T18:30:00Z --id
+$ stamp file blogpost.md --addr bc1qalice... --signed-at 2026-04-24T18:30:00Z --sig '...'
 
 # Skip anchoring (sign only):
 $ stamp file blogpost.md --addr bc1qalice... --no-anchor
@@ -90,12 +93,12 @@ All commands accept `--json` for machine-readable output. Exit codes: `0` succes
 
 ## How the signing flow works
 
-BIP-322 signing in a CLI can't drive every wallet the way the browser can. `stamp-cli` takes the explicit approach: print the canonical message, let you sign it with whatever wallet you have (UniSat, Xverse, Leather, Sparrow, Electrum, `bitcoind signmessage`, etc.), paste the signature back.
+BIP-322 signing in a CLI can't drive every wallet the way the browser can. `stamp-cli` takes the explicit approach: show what the stamp commits to and its id, let you sign the id with whatever BIP-322 wallet you have, paste the signature back. The wallet signs the 64-character id, never the message (SPEC §4.5), and the CLI checks the signature over the id before it writes anything.
 
 ```
 $ stamp file blogpost.md --addr bc1qalice...
 
-Sign this message with your Bitcoin wallet (BIP-322):
+This stamp commits to:
 
 ────────────────────────────────────────────────────────────
 oc-stamp:v1
@@ -106,10 +109,14 @@ content_mime: text/markdown
 signed_at: 2026-04-24T18:30:00Z
 ────────────────────────────────────────────────────────────
 
+Sign this id with bc1qalice... (BIP-322):
+
+f0dd79a528ab2c756c1ba1aa5f350c4fdd1073e90ae447bd9438f6a7794e1485
+
 paste signature (base64): _
 ```
 
-For automation, pass `--sig <base64>` to skip the prompt entirely.
+For automation, pass `--sig <base64>` (and `--signed-at`) to skip the prompt; `stamp canonical --id` prints the id to sign.
 
 ## Spec
 

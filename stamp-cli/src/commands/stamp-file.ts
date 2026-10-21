@@ -1,17 +1,22 @@
 // `stamp file <path>` — sign a file with a BIP-322 signature from the user's
 // wallet, submit to OTS calendars, write <path>.stamp alongside.
 //
-// The signing step is done out-of-band: we print the canonical message and
-// wait for the user to paste the signature. Wallet CLIs vary too much to
-// automate reliably, so we keep the coupling loose and well-explained.
+// The signing step is done out-of-band: we print the canonical message and its
+// id, and wait for the user to paste a signature over the id. Wallet CLIs vary
+// too much to automate reliably, so we keep the coupling loose and well-explained.
 
 import { appendFile, writeFile } from 'node:fs/promises';
-import { createInterface } from 'node:readline/promises';
 
-import { canonicalMessage, stamp, type StampEnvelope, type StampStake } from '@orangecheck/stamp-core';
+import {
+    canonicalMessage,
+    computeEnvelopeId,
+    stamp,
+    type StampEnvelope,
+    type StampStake,
+} from '@orangecheck/stamp-core';
 import { submitToCalendars, toStampOts } from '@orangecheck/stamp-ots';
 
-import { die, emit, hashFile, mimeFromPath, pathExists } from '../util.js';
+import { die, emit, hashFile, mimeFromPath, pathExists, signatureForId } from '../util.js';
 
 export interface StampFileOptions {
     path: string;
@@ -33,32 +38,19 @@ export async function runStampFile(opts: StampFileOptions): Promise<void> {
     const mime = opts.mime ?? mimeFromPath(opts.path);
     const signedAt = opts.signedAt ?? new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 
-    const msg = canonicalMessage({
+    const input = {
         address: opts.address,
         content_hash: hash,
         content_length: length,
         content_mime: mime,
         signed_at: signedAt,
+    };
+    const signature = await signatureForId({
+        msg: canonicalMessage(input),
+        id: computeEnvelopeId(input),
+        address: opts.address,
+        sig: opts.sig,
     });
-
-    let signature: string;
-    if (opts.sig) {
-        signature = opts.sig;
-    } else {
-        // Interactive: print the message, ask for the BIP-322 signature.
-        console.error('\nSign this message with your Bitcoin wallet (BIP-322):\n');
-        console.error('─'.repeat(60));
-        console.error(msg);
-        console.error('─'.repeat(60));
-        console.error();
-        const rl = createInterface({ input: process.stdin, output: process.stderr });
-        try {
-            signature = (await rl.question('paste signature (base64): ')).trim();
-        } finally {
-            rl.close();
-        }
-        if (!signature) die('no signature provided');
-    }
 
     const envelope: StampEnvelope = await stamp({
         content: { hash, length },

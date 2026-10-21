@@ -11,11 +11,10 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import { createHash } from 'node:crypto';
-import { canonicalMessage, stamp, type StampEnvelope } from '@orangecheck/stamp-core';
+import { canonicalMessage, computeEnvelopeId, stamp, type StampEnvelope } from '@orangecheck/stamp-core';
 import { submitToCalendars, toStampOts } from '@orangecheck/stamp-ots';
 
-import { die, emit } from '../util.js';
-import { createInterface } from 'node:readline/promises';
+import { die, emit, signatureForId } from '../util.js';
 
 const exec = promisify(execFile);
 
@@ -23,6 +22,8 @@ export interface GitTagOptions {
     tag: string;
     address: string;
     sig?: string;
+    /** Required with --sig: the id you signed commits to this time. */
+    signedAt?: string;
     anchor: boolean;
     json: boolean;
 }
@@ -58,33 +59,21 @@ export async function runGitTag(opts: GitTagOptions): Promise<void> {
     const contentHash = 'sha256:' + createHash('sha256').update(contentBytes).digest('hex');
     const contentLength = contentBytes.byteLength;
     const mime = 'application/x-git-tag';
-    const signedAt = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    const signedAt = opts.signedAt ?? new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 
-    const msg = canonicalMessage({
+    const input = {
         address: opts.address,
         content_hash: contentHash,
         content_length: contentLength,
         content_mime: mime,
         signed_at: signedAt,
+    };
+    const signature = await signatureForId({
+        msg: canonicalMessage(input),
+        id: computeEnvelopeId(input),
+        address: opts.address,
+        sig: opts.sig,
     });
-
-    let signature: string;
-    if (opts.sig) {
-        signature = opts.sig;
-    } else {
-        console.error('\nSign this message with your Bitcoin wallet (BIP-322):\n');
-        console.error('─'.repeat(60));
-        console.error(msg);
-        console.error('─'.repeat(60));
-        console.error();
-        const rl = createInterface({ input: process.stdin, output: process.stderr });
-        try {
-            signature = (await rl.question('paste signature (base64): ')).trim();
-        } finally {
-            rl.close();
-        }
-        if (!signature) die('no signature provided');
-    }
 
     const envelope: StampEnvelope = await stamp({
         content: { hash: contentHash, length: contentLength },

@@ -3,6 +3,9 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
+import { createInterface } from 'node:readline/promises';
+
+import { verifySignature } from '@orangecheck/bip322';
 
 /** Read a path into bytes. */
 export async function readBytes(path: string): Promise<Uint8Array> {
@@ -111,4 +114,44 @@ export function emit(json: boolean, result: Record<string, unknown>): void {
 export function die(msg: string, code = 1): never {
     console.error(`error: ${msg}`);
     process.exit(code);
+}
+
+/**
+ * The wallet signs the 64-hex envelope id (SPEC §4.5), not the canonical message.
+ * Show both, take the signature, and refuse one that does not verify over the id.
+ */
+export async function signatureForId(input: {
+    msg: string;
+    id: string;
+    address: string;
+    sig?: string;
+}): Promise<string> {
+    let signature = input.sig?.trim() ?? '';
+    if (!signature) {
+        console.error('\nThis stamp commits to:\n');
+        console.error('─'.repeat(60));
+        console.error(input.msg);
+        console.error('─'.repeat(60));
+        console.error(`\nSign this id with ${input.address} (BIP-322):\n\n${input.id}\n`);
+        const rl = createInterface({ input: process.stdin, output: process.stderr });
+        try {
+            signature = (await rl.question('paste signature (base64): ')).trim();
+        } finally {
+            rl.close();
+        }
+        if (!signature) die('no signature provided');
+    }
+    let ok = false;
+    try {
+        ok = verifySignature(input.address, input.id, signature);
+    } catch {
+        ok = false;
+    }
+    if (!ok) {
+        die(
+            `the signature does not verify for ${input.address} over the id ${input.id}. ` +
+                'Sign the 64-character id, not the message above.'
+        );
+    }
+    return signature;
 }

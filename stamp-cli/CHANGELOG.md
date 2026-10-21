@@ -11,6 +11,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.2] — 2026-10-21
+
+### Fixed — the CLI asked you to sign the wrong thing
+
+`stamp file` and `git-stamp tag` showed the canonical message and said "Sign
+this message". A wallet signs the 64-character hex id (SPEC §4.5), and that is
+what `verify` checks, so a stamp made by following the prompt failed with
+`E_BAD_SIG`, while `stamp file` reported `ok: true`. Both commands now show the
+message for review and the id to sign, check the pasted signature over the id
+with `@orangecheck/bip322`, and refuse to write a stamp that would not verify.
+
+### Added
+
+- `stamp canonical --id` prints the id a wallet signs.
+- `git-stamp tag --signed-at`: with `--sig`, the signed id commits to a time
+  that has to be known in advance. Without it, `--sig` could never verify.
+
 ## [0.2.1] — 2026-10-16
 
 ### Fixed — signatures verify again on a fresh install

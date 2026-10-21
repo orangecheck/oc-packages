@@ -2,9 +2,9 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { hashFile, mimeFromPath, pathExists, readBytes, readJson } from './util';
+import { hashFile, mimeFromPath, pathExists, readBytes, readJson, signatureForId } from './util';
 
 function tmpFile(name: string, contents: string | Uint8Array): string {
     const dir = mkdtempSync(join(tmpdir(), 'stamp-cli-test-'));
@@ -104,5 +104,37 @@ describe('readJson', () => {
     it('throws on malformed JSON', async () => {
         const path = tmpFile('bad.json', '{ not valid json');
         await expect(readJson(path)).rejects.toThrow();
+    });
+});
+
+// A throwaway key's real BIP-322 signatures, one over the id and one over the message.
+const SIGNED = {
+    address: 'bc1q50rtrmj2f8vl9tem8qpfw36ylw5jg9j29e5za5',
+    msg: "oc-stamp:v1\naddress: bc1q50rtrmj2f8vl9tem8qpfw36ylw5jg9j29e5za5\ncontent_hash: sha256:abababababababababababababababababababababababababababababababab\ncontent_length: 3\ncontent_mime: text/plain\nsigned_at: 2026-10-21T08:00:00Z",
+    id: '7d6200bc6bb8840e5e8d046ea03697012e17c10a8ddf23cc562a1b8a83be524c',
+    sigOverId: 'AkgwRQIhAMSbe2WgHm/1lckPnH8N5zUk24iEqrRap/uFNAZbdasqAiB2GZD/KUdtxj88uapzC5xn5lgNj5t0tccCCoWGpWs67wEhApicC3bLVjlx/cm+8x7AbDVg8ySdbunl2DxXYlWW4F9v',
+    sigOverMsg: 'AkgwRQIhAPDBOOWRc3aaTPAQCufY9k9HXlOScEq9UZVmyohFgNPsAiAEpxHWrKyt1EfPOZb6CVIymAeGSbLQ27a28pANLpSf3AEhApicC3bLVjlx/cm+8x7AbDVg8ySdbunl2DxXYlWW4F9v',
+};
+
+describe('signatureForId', () => {
+    it('accepts a signature over the id', async () => {
+        const sig = await signatureForId({ msg: SIGNED.msg, id: SIGNED.id, address: SIGNED.address, sig: SIGNED.sigOverId });
+        expect(sig).toBe(SIGNED.sigOverId);
+    });
+
+    it('refuses a signature over the message, which every verifier rejects (E_BAD_SIG)', async () => {
+        const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+            throw new Error(`exit ${code}`);
+        }) as never);
+        const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            await expect(
+                signatureForId({ msg: SIGNED.msg, id: SIGNED.id, address: SIGNED.address, sig: SIGNED.sigOverMsg })
+            ).rejects.toThrow('exit 1');
+            expect(err.mock.calls.flat().join(' ')).toMatch(/Sign the 64-character id/);
+        } finally {
+            exit.mockRestore();
+            err.mockRestore();
+        }
     });
 });
