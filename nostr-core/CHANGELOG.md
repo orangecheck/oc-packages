@@ -12,6 +12,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.0] — 2026-10-21
+
+### Changed
+
+- **`DEFAULT_RELAYS` is nos.lol, relay.primal.net, relay.damus.io,
+  nostr.oxtr.dev and relay.ochk.io.** A relay now stays only if it answers OK
+  true to the family's kinds from a fresh key and still serves the event an
+  hour later. relay.snort.social runs in memory and answered OK true to 16
+  rebroadcast family events, then served none of them. offchain.pub's web of
+  trust refused fresh keys, and it held none of the 59 family events on
+  relay.ochk.io. nostr.oxtr.dev kept 37 of 37 an hour later; relay.damus.io
+  holds the most family events of any public relay.
+
 ## [0.6.0] — 2026-10-21
 
 ### Added

@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.14.0] — 2026-10-21
+
+### Changed
+
+- **`DEFAULT_RELAYS` swaps relay.snort.social for nostr.oxtr.dev**: relay.damus.io,
+  nos.lol, nostr.oxtr.dev, relay.ochk.io. relay.snort.social now runs in
+  memory; on 2026-10-21 it answered OK true to 16 rebroadcast family events and
+  served none of them back. nostr.oxtr.dev kept all 37 it was sent an hour
+  later.
+
 ## [1.13.0] — 2026-10-16
 
 ### Changed (security) — the nullifier is keyed

@@ -51,6 +51,12 @@ describe('DEFAULT_RELAYS', () => {
         expect(new Set(DEFAULT_RELAYS).size).toBe(DEFAULT_RELAYS.length);
     });
 
+    it('lists no relay that keeps nothing we send it', () => {
+        // relay.snort.social runs in memory: on 2026-10-21 it answered OK true
+        // to family events and served none of them back, then or an hour on.
+        expect(DEFAULT_RELAYS).not.toContain('wss://relay.snort.social');
+    });
+
     it('includes our own relay without depending on it', () => {
         expect(DEFAULT_RELAYS).toContain('wss://relay.ochk.io');
         const others = DEFAULT_RELAYS.filter((r) => r !== 'wss://relay.ochk.io');

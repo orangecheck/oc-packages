@@ -51,23 +51,21 @@ const _RELAYS: ValidRelaySet<
   readonly [
     "wss://nos.lol",
     "wss://relay.primal.net",
-    "wss://offchain.pub",
-    "wss://relay.snort.social",
+    "wss://relay.damus.io",
+    "wss://nostr.oxtr.dev",
     "wss://relay.ochk.io",
   ]
 > = [
+  // A relay is here only if it answers OK true to the family's kinds from a
+  // fresh key and still serves the event an hour later
+  // (research/RELAY-COVERAGE-DECISIONS.md, scripts/relay_coverage_check.mjs).
+  // relay.snort.social (in memory since 2026-10: OK true, then nothing) and
+  // offchain.pub (web of trust refuses fresh keys) left on 2026-10-21;
+  // relay.nostr.band left on 2026-09-03 when it stopped answering at all.
   "wss://nos.lol",
   "wss://relay.primal.net",
-  "wss://offchain.pub",
-  // relay.nostr.band sat here until 2026-09-03, when it stopped accepting
-  // TCP connections altogether (DNS resolves, port 443 never handshakes, and
-  // the apex nostr.band is down too — from two independent networks).
-  // relay.snort.social replaces it to keep the breadth this set exists for;
-  // it answered every probe. Note it ACCEPTS unindexed tag filters by
-  // ignoring them rather than rejecting, so it will happily return a flood of
-  // unrelated events for a multi-letter filter — which the Filter type in
-  // this file now makes impossible to express.
-  "wss://relay.snort.social",
+  "wss://relay.damus.io",
+  "wss://nostr.oxtr.dev",
   // First-party family relay — kind allowlist 30078-30087 + 30110-30114 + canonical
   // OC d-tag prefixes. Always co-published with public relays; never
   // the only copy. See https://github.com/orangecheck/oc-relay-infra.

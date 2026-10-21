@@ -54,7 +54,9 @@ export const ATTESTATION_EVENT_KIND = 30078;
 export const DEFAULT_RELAYS: string[] = [
     'wss://relay.damus.io',
     'wss://nos.lol',
-    'wss://relay.snort.social',
+    // relay.snort.social sat here until 2026-10-21. It now runs in memory: it
+    // answered OK true to family events and served none of them back.
+    'wss://nostr.oxtr.dev',
     'wss://relay.ochk.io',
 ];
 

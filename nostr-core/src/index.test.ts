@@ -49,6 +49,14 @@ describe("DEFAULT_RELAYS", () => {
     expect(DEFAULT_RELAYS).not.toContain("wss://relay.nostr.band");
   });
 
+  it("lists no relay that failed the publish rule", () => {
+    // OK true and then nothing an hour later (relay.snort.social, in memory),
+    // or a web of trust that refuses the fresh keys family apps sign with
+    // (offchain.pub). Measured 2026-10-21; see RELAY-COVERAGE-DECISIONS.md.
+    expect(DEFAULT_RELAYS).not.toContain("wss://relay.snort.social");
+    expect(DEFAULT_RELAYS).not.toContain("wss://offchain.pub");
+  });
+
   it("includes the family first-party relay", () => {
     expect(DEFAULT_RELAYS).toContain("wss://relay.ochk.io");
   });
@@ -205,8 +213,7 @@ describe("queryEvents", () => {
     // The regression: CLOSED was a recognised frame type with no branch in
     // the query loop, so a relay that ended the subscription still cost the
     // full timeout — 8s on chat's device lookup, which is on the
-    // deliverability path. strfry does this for unindexed tag filters and
-    // relay.snort.social is in DEFAULT_RELAYS.
+    // deliverability path. strfry does this for unindexed tag filters.
     mockNextQueryClosed("error: filter has unindexed tag");
     const start = Date.now();
     const result = await queryEvents(
