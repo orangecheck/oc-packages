@@ -56,18 +56,29 @@ try {
             `createRoot(document.getElementById('root')).render(<div className="p-6"><div style={{ height: 3000 }} /><Diagram chart="graph LR; a-->b" caption="Flow" load={load} /></div>);\n`,
     });
     compileCss(dir, ['halftone', 'diagram']);
-    // Every draw starts with a clear: count them.
-    const counter = `<script>window.__draws = 0; const clear = CanvasRenderingContext2D.prototype.clearRect; CanvasRenderingContext2D.prototype.clearRect = function (...a) { window.__draws++; return clear.apply(this, a); };</script>`;
+    // Every draw starts with a clear: count them. And count the page's frames, so a quiet canvas is told from a stalled page.
+    const counter =
+        `<script>window.__draws = 0; const clear = CanvasRenderingContext2D.prototype.clearRect; CanvasRenderingContext2D.prototype.clearRect = function (...a) { window.__draws++; return clear.apply(this, a); };` +
+        `window.__ticks = 0; (function tick() { window.__ticks++; requestAnimationFrame(tick); })();</script>`;
     const halftone = writePage(dir, 'halftone', '<div id="root"></div>', { head: counter, script: '<script src="halftone.js"></script>' });
     const diagram = writePage(dir, 'diagram', '<div id="root"></div>', { script: '<script src="diagram.js"></script>' });
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
     const draws = (p) => p.evaluate(() => window.__draws);
+    const ticks = (p) => p.evaluate(() => window.__ticks);
+    // Draws over a stretch in which the page itself ran 10 frames or more: a stalled page proves nothing.
     const over = async (p, ms) => {
-        const a = await draws(p);
+        const [a, t] = [await draws(p), await ticks(p)];
         await p.waitForTimeout(ms);
+        while ((await ticks(p)) - t < 10) await p.waitForTimeout(100);
         return (await draws(p)) - a;
+    };
+    // Frames, not seconds, end the motion, and a CI runner draws slowly: wait for a quiet stretch.
+    const settle = async (p, maxMs = 15000) => {
+        const start = Date.now();
+        while (Date.now() - start < maxMs) if ((await over(p, 600)) === 0) return true;
+        return false;
     };
     try {
         // In view, motion allowed.
@@ -75,23 +86,21 @@ try {
             const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
             await p.goto(halftone);
             await p.waitForTimeout(2600);
+            const idle = await settle(p);
             const intro = await draws(p);
-            const idle = await over(p, 1200);
             const breath = await p.evaluate(() => getComputedStyle(document.querySelector('#art canvas')).animationName);
             check(intro > 10, `halftone: the intro drew ${intro} frames`);
-            check(idle === 0, `halftone: idle, it drew ${idle} frames in 1.2s`);
+            check(idle, `halftone: after its intro it never stops drawing (${intro} frames and counting)`);
             check(breath === 'oca-breathe', `halftone: the breath is not the CSS animation (${breath})`);
             const art = await p.locator('#art').boundingBox();
+            const before = await draws(p);
             for (let i = 0; i <= 12; i++) await p.mouse.move(art.x + 60 + i * 20, art.y + 180, { steps: 2 });
-            const lens = await over(p, 300);
+            const resting = await settle(p);
+            const lens = (await draws(p)) - before;
             check(lens > 5, `halftone: the pointer moving over it drew ${lens} frames`);
-            await p.waitForTimeout(1500);
-            const resting = await over(p, 800);
-            check(resting === 0, `halftone: with the pointer at rest it drew ${resting} frames in 0.8s`);
+            check(resting, 'halftone: with the pointer at rest it never stops drawing');
             await p.mouse.move(art.x + art.width + 300, art.y + 180, { steps: 4 });
-            await p.waitForTimeout(1500);
-            const gone = await over(p, 800);
-            check(gone === 0, `halftone: after the pointer left it drew ${gone} frames in 0.8s`);
+            check(await settle(p), 'halftone: after the pointer left it never stops drawing');
             await p.close();
         }
         // Reduced motion: one still frame.
