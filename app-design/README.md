@@ -40,6 +40,8 @@ family `OcThemeProvider` on the same page: it writes `data-oc-theme` and the sha
 | `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
 | `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`; no React |
+| `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
+| `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |
 | `/session` | `SessionAccount`, read from `@orangecheck/auth-client` (an optional peer: install it to use this entry) |
 | `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`) and the account phrase (`GET_AN_ACCOUNT`, `SIGN_IN_LABEL`); no React |
 | `/tokens` | the palette as data, for OG images and charts |

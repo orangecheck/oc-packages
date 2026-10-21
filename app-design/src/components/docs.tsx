@@ -343,8 +343,8 @@ export function MdxTable({ className, ...props }: TableHTMLAttributes<HTMLTableE
                     <table
                         className={cn(
                             'w-full border-collapse text-left text-[0.875rem] leading-relaxed',
-                            '[&_th]:border-b [&_th]:border-oca-hairline-strong [&_th]:bg-oca-table-head [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-[0.8125rem] [&_th]:font-medium [&_th]:text-foreground sm:[&_th]:whitespace-nowrap sm:[&_th]:px-4',
-                            '[&_td]:border-t [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-muted-foreground [&_tbody_tr:first-child_td]:border-t-0 sm:[&_td]:px-4',
+                            '[&_th]:border-b [&_th]:border-oca-hairline-strong [&_th]:bg-oca-table-head [&_th]:px-2.5 [&_th]:py-2.5 [&_th]:text-[0.8125rem] [&_th]:font-medium [&_th]:text-foreground sm:[&_th]:whitespace-nowrap sm:[&_th]:px-4',
+                            '[&_td]:border-t [&_td]:border-border [&_td]:px-2.5 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-muted-foreground [&_tbody_tr:first-child_td]:border-t-0 sm:[&_td]:px-4',
                             '[&_td_code]:bg-transparent [&_td_code]:p-0 [&_td_code]:text-foreground [&_td:first-child]:text-foreground',
                             '[&_[align=center]]:text-center [&_[align=right]]:text-right',
                             className

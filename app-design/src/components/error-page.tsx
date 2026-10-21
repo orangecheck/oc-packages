@@ -43,7 +43,12 @@ export function ErrorPage({
     detail?: ReactNode;
     /** Replaces the default ways on. */
     actions?: ReactNode;
-    /** Where "Go home" goes. Default: the protocol's page on ochk.io (inside a ToolShell, its protocol), else ochk.io. */
+    /**
+     * Where "Go home" goes. Default: inside a ToolShell its protocol's page on
+     * ochk.io, else ochk.io. An app on its own host whose `/` is its home
+     * (ochk.app, vault, chat, cosign) passes `home="/"`; a tool site never
+     * does, since its `/` redirects off-site.
+     */
     home?: string;
     /** The protocol this site serves, when it is not inside a ToolShell. */
     protocol?: ProtocolSlug;

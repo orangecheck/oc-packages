@@ -15,6 +15,10 @@
  * - A markdown table fits a phone when its words do: an error-code table
  *   at 390 does not scroll, and no cell spills; one that cannot fit still
  *   scrolls, with the fade.
+ * - A DataTable row with a link opens from any of its cells, and a control
+ *   in another cell stays its own; a compact HashChip sits in a line under
+ *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
+ *   lockup and product word fit its sidebar.
  * - A bare border, border-b or divide-y draws in the hairline, not in the
  *   text colour (Tailwind 4's default), in light and dark; a colour utility
  *   still wins.
@@ -195,6 +199,32 @@ try {
             )
         )
     );
+    // 1.9.0: a clickable table, a compact chip in a line, six wrapping tabs, a product word in the sidebar.
+    const parts190 = page(
+        'parts190',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6 p-4' },
+                h(C.DataTable, {
+                    columns: [
+                        { key: 'name', header: 'Name', cell: (r) => r.name, primary: true },
+                        { key: 'id', header: 'Id', cell: (r) => h('button', { type: 'button', 'data-copy': '' }, r.id) },
+                        { key: 'when', header: 'When', cell: () => '2 days ago' },
+                    ],
+                    rows: [{ name: 'Ada', id: 'a1' }],
+                    rowKey: (r) => r.id,
+                    rowHref: (r) => `/people/${r.id}`,
+                }),
+                h(P.DensityProvider, { density: 'compact' }, h('p', { 'data-line': '', className: 'text-[0.875rem]' }, 'Signed by ', h(C.HashChip, { value: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t' }))),
+                h(P.Tabs, { defaultValue: 'nodes' }, h(P.TabsList, { wrap: true, 'data-wrap': '' }, ...['Nodes', 'Blocks', 'Mempool', 'Lightning', 'Mining', 'Fees'].map((t) => h(P.TabsTrigger, { key: t, value: t.toLowerCase() }, t))))
+            )
+        )
+    );
+    const productShell = page(
+        'product-shell',
+        renderToStaticMarkup(h(Ch.AppShell, { product: 'vault', family: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')))
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -269,6 +299,52 @@ try {
             );
             check(!tb.fits.scrolls && tb.fits.spills === 0, `[${width}] a three-column error table scrolls (${tb.fits.scrolls}) or spills from ${tb.fits.spills} cell(s)`);
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
+            // 1.9.0 parts.
+            await p.goto(parts190);
+            const b190 = await p.evaluate((phone) => {
+                const lands = (el, x, y) => el.contains(document.elementFromPoint(x, y));
+                const out = {};
+                if (phone) {
+                    const li = [...document.querySelectorAll('ul > li')].find((x) => x.querySelector('a[href="/people/a1"]'));
+                    if (!li) return { rowOpens: false, copyOwn: false, line: 99, chipTarget: false, tabsIn: false, over: 0 };
+                    li.scrollIntoView({ block: 'center' });
+                    const r = li.getBoundingClientRect();
+                    out.rowOpens = lands(li.querySelector('a'), r.left + r.width - 20, r.bottom - 8);
+                    const copy = li.querySelector('[data-copy]').getBoundingClientRect();
+                    out.copyOwn = lands(li.querySelector('[data-copy]'), copy.left + copy.width / 2, copy.top + copy.height / 2);
+                } else {
+                    const tr = document.querySelector('tbody tr');
+                    const when = tr.cells[2].getBoundingClientRect();
+                    const link = tr.querySelector('a');
+                    out.rowOpens = Boolean(link) && lands(link, when.left + when.width / 2, when.top + when.height / 2);
+                    const copy = tr.querySelector('[data-copy]').getBoundingClientRect();
+                    out.copyOwn = lands(tr.querySelector('[data-copy]'), copy.left + copy.width / 2, copy.top + copy.height / 2);
+                }
+                const line = document.querySelector('[data-line]');
+                const btn = line.querySelector('button');
+                line.scrollIntoView({ block: 'center' });
+                const b = btn.getBoundingClientRect();
+                out.line = line.getBoundingClientRect().height;
+                out.chipTarget = lands(btn, b.left + b.width / 2, b.top + b.height / 2 - 21.5) && lands(btn, b.left + b.width / 2, b.top + b.height / 2 + 21.5);
+                const list = document.querySelector('[data-wrap]');
+                const tabs = [...list.querySelectorAll('[role="tab"]')].map((t) => t.getBoundingClientRect());
+                out.tabsIn = tabs.every((t) => t.right <= innerWidth && t.left >= 0);
+                out.over = document.documentElement.scrollWidth - innerWidth;
+                return out;
+            }, width < 640);
+            check(b190.rowOpens, `[${width}] DataTable: a press elsewhere in a linked row does not open it`);
+            check(b190.copyOwn, `[${width}] DataTable: a control in a linked row lost its press to the row`);
+            check(b190.line < 32 && b190.chipTarget, `[${width}] HashChip compact: the line is ${Math.round(b190.line)}px, or its copy is not a 44px target`);
+            check(b190.tabsIn && b190.over <= 0, `[${width}] TabsList wrap: a tab sits off the screen (overflow ${b190.over})`);
+            if (width >= 1024) {
+                await p.goto(productShell);
+                const side = await p.evaluate(() => {
+                    const aside = document.querySelector('aside');
+                    const home = aside.querySelector('a[aria-label="Home"]');
+                    return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
+                });
+                check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);
+            }
             // Bare borders take the hairline token, in both modes; a colour utility still wins.
             for (const dark of [false, true]) {
                 await p.goto(borders);
@@ -402,4 +478,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts`);

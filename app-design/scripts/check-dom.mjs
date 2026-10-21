@@ -259,6 +259,33 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// CopyButton: a refused clipboard is said, and handed to the page.
+{
+    const write = navigator.clipboard.writeText;
+    navigator.clipboard.writeText = async () => {
+        throw new window.DOMException('Write permission denied.', 'NotAllowedError');
+    };
+    const errors = [];
+    const { host, unmount } = await mount(h(C.CopyButton, { value: 'x', onError: (e) => errors.push(e?.name) }));
+    await act(async () => host.querySelector('button').click());
+    navigator.clipboard.writeText = write;
+    check(errors.join() === 'NotAllowedError' && host.textContent.includes('Could not copy'), `CopyButton: a refused copy is not reported (${errors.join()}, "${host.textContent}")`);
+    await unmount();
+}
+
+// A dialog's and a sheet's dimmed layer take a class: a page with its own layers can set its z-index.
+{
+    for (const [Root, Content] of [
+        [P.Dialog, P.DialogContent],
+        [P.Sheet, P.SheetContent],
+    ]) {
+        const { unmount } = await mount(h(Root, { open: true }, h(Content, { overlayClassName: 'z-[60]', 'aria-describedby': undefined }, h(P.DialogTitle, null, 'Layers'))));
+        const overlay = [...document.querySelectorAll('[data-state="open"]')].find((el) => el.getAttribute('role') !== 'dialog' && /fixed/.test(el.className));
+        check(overlay?.className.includes('z-[60]'), `${Content.displayName ?? 'Content'}: overlayClassName did not reach the overlay`);
+        await unmount();
+    }
+}
+
 // SiteFooter: two links to one address are two links, not a clash React drops.
 {
     const said = [];
@@ -276,5 +303,5 @@ if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class`);
 process.exit(0);

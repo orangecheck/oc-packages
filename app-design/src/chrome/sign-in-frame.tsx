@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { IsoCheck } from '../brand/iso-check';
 import { OCHK_IO, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
-import { ProductLockup } from './site';
+import { ProductLockup } from './product-lockup';
 
 /**
  * The page a sign-in happens on: a form column with the lockup, a display
@@ -41,7 +41,11 @@ export function SignInFrame({
     brand?: ReactNode;
     /** The site's word beside the lockup, as its header has it. Default: the protocol's word. */
     product?: string;
-    /** Where the lockup and "Back to home" go. Default: the protocol's page on ochk.io, else ochk.io. */
+    /**
+     * Where the lockup and "Back to home" go. Default: the protocol's page on
+     * ochk.io, else ochk.io. An app on its own host whose `/` is its home
+     * (ochk.app, vault, chat, cosign) passes `home="/"`.
+     */
     home?: string;
     /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
     protocol?: ProtocolSlug;

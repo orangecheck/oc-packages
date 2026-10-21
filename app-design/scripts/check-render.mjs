@@ -155,6 +155,46 @@ const html = (el) => renderToStaticMarkup(el);
     check(!html(h(Ch.AppShell, { sections }, null)).includes('aria-label="All orangecheck sites"'), 'AppShell: a family menu nobody asked for');
 }
 
+// What sites kept local copies of (1.9.0).
+{
+    const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];
+    check((html(h(Ch.AppShell, { sections, product: 'vault' }, null)).match(/h-5 w-px[^>]*><\/span><span[^>]*>vault<\/span>/g) ?? []).length === 2, 'AppShell: the product word is not beside both lockups');
+    // Tabs: a list that wraps rather than scrolls; a panel that stays mounted, hidden.
+    const tabs = (listProps, contentProps) =>
+        html(
+            h(P.Tabs, { defaultValue: 'a' }, h(P.TabsList, listProps, h(P.TabsTrigger, { value: 'a' }, 'A'), h(P.TabsTrigger, { value: 'b' }, 'B')),
+                h(P.TabsContent, { value: 'a' }, 'first'), h(P.TabsContent, { value: 'b', ...contentProps }, h('canvas', { 'data-kept': '' })))
+        );
+    const wrapped = tabs({ wrap: true }, {});
+    check(/role="tablist"[^>]*class="[^"]*flex-wrap/.test(wrapped) && !wrapped.includes('overflow-x-auto'), 'TabsList wrap: the list scrolls rather than wraps');
+    check(tabs({}, {}).includes('overflow-x-auto'), 'TabsList: the default stopped scrolling');
+    const kept = tabs({}, { keepMounted: true });
+    check(/data-state="inactive"[^>]*class="[^"]*data-\[state=inactive\]:hidden[^"]*"[^>]*><canvas data-kept="">/.test(kept) || /class="[^"]*data-\[state=inactive\]:hidden[^"]*"[^>]*data-state="inactive"[^>]*><canvas data-kept="">/.test(kept), 'TabsContent keepMounted: the inactive panel is not mounted and hidden');
+    check(!tabs({}, {}).includes('data-kept'), 'TabsContent: an inactive panel mounted without keepMounted');
+    // DataTable: a row that opens a page is one link, its target stretched over the row.
+    const cols = [{ key: 'name', header: 'Name', cell: (r) => r.name, primary: true }, { key: 'id', header: 'Id', cell: (r) => h('button', { type: 'button' }, r.id) }];
+    const linked = html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, rowHref: (r) => `/people/${r.id}` }));
+    check(/<tr class="[^"]*relative[^"]*"><td[^>]*><a class="[^"]*after:absolute after:inset-0[^"]*" href="\/people\/a1">Ada<\/a><\/td>/.test(linked), 'DataTable rowHref: the primary cell is not the row\'s link');
+    check(/<td class="[^"]*\[&amp;_button\]:z-10[^"]*"><button/.test(linked), 'DataTable rowHref: a control in another cell would sit under the row link');
+    check((linked.match(/href="\/people\/a1"/g) ?? []).length === 2, 'DataTable rowHref: the phone card has no link');
+    check(/<button type="button" class="[^"]*after:inset-0[^"]*">Ada<\/button>/.test(html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, onRowSelect: () => {} }))), 'DataTable onRowSelect: no row button');
+    check(!html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id })).includes('after:inset-0'), 'DataTable: a plain table grew row links');
+    // ComparisonTable: a last row of actions; Closing: small print.
+    const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
+    check(cmp.includes('>Use OC Stamp</a>') && (cmp.match(/<li/g) ?? []).length === 3, 'ComparisonTable: no action row');
+    check(html(h(C.Closing, { title: 't', fineprint: h('span', { 'data-fine': '' }, 'credit') })).includes('data-fine'), 'Closing: no fineprint');
+    // A product without a page of its own links ochk.io's, and keeps all five.
+    const F = require(join(here, '../dist/family.js'));
+    const vault = F.selfHostedLegalLinks({ contact: false });
+    check(vault.length === 5 && vault.find((l) => l.label === 'Contact')?.href === 'https://ochk.io/contact' && vault.find((l) => l.label === 'Privacy')?.href === '/privacy', `selfHostedLegalLinks: ${JSON.stringify(vault.map((l) => l.href))}`);
+    // HashChip in a compact line: smaller type, a 24px copy whose target stays 44.
+    const chip = html(h(P.DensityProvider, { density: 'compact' }, h(C.HashChip, { value: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t' })));
+    check(chip.includes('text-[0.8125rem]') && /class="[^"]*size-6[^"]*before:-inset-2\.5/.test(chip), 'HashChip: compact does not shrink to a line');
+    // The credit lives in its own entry.
+    const A = require(join(here, '../dist/acknowledgement.js'));
+    check(/href="https:\/\/bramk\.substack\.com\/"/.test(html(h(A.Acknowledgement))), 'Acknowledgement: no link to the credit');
+}
+
 // The MDX map: TypeDoc's h5 and h6, and GitHub task lists.
 {
     check(html(h(mdxComponents.h5, null, 'Returns')).startsWith('<h5'), 'mdx: no h5');

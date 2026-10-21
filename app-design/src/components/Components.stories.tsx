@@ -137,6 +137,8 @@ export const Data: StoryObj = {
             <DataTable
                 caption="Recent events"
                 rowKey={(r) => r.id}
+                // Each row opens its event: the whole row is the link.
+                rowHref={(r) => `#event-${r.id}`}
                 columns={[
                     { key: 'site', header: 'Site', cell: (r) => r.site },
                     { key: 'what', header: 'What', cell: (r) => r.what, wide: true },

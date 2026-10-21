@@ -317,6 +317,8 @@ export interface ComparisonColumn {
     label: ReactNode;
     /** The one column the page argues for: tinted, read first on a phone. At most one. */
     highlight?: boolean;
+    /** A last row's button for this column: "Use OC Stamp", "Read its spec". Say the column's name in it. */
+    action?: ReactNode;
 }
 
 export interface ComparisonRow {
@@ -426,6 +428,21 @@ export function ComparisonTable({
                     </div>
                 </li>
             ))}
+            {columns.some((c) => c.action) ? (
+                // Under each column its way in; on a phone the tinted one first, then the rest.
+                <li className={cn('flex flex-col gap-2 px-5 py-5', wide ? 'lg:items-center lg:gap-5 lg:px-8' : 'md:items-center md:gap-5 md:px-8', grid)}>
+                    <span aria-hidden className={cn('hidden', desk === 'lg' ? 'lg:block' : 'md:block')} />
+                    {columns.map((c) => (
+                        <div
+                            key={c.key}
+                            style={{ '--oca-order': ordered.indexOf(c) } as CSSProperties}
+                            className={cn('order-[var(--oca-order)] flex min-w-0', desk === 'lg' ? 'lg:order-none' : 'md:order-none')}
+                        >
+                            {c.action ?? null}
+                        </div>
+                    ))}
+                </li>
+            ) : null}
         </ul>
     );
 }

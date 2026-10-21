@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-10-20
+
+What sites kept local copies of.
+
+- `@orangecheck/app-design/vitest`: `appDesignVitest()` returns the aliases
+  for `next/link`, `next/router` and `next/compat/router` and inlines the
+  package, so a site's tests render it. Merge it into the site's config.
+  cosign, chat, vault and oc-www each wrote this by hand. Proved on cosign's
+  suite: 276 of 276 pass with the preset; without it three files cannot
+  load `next/link`. The package's own imports stay bare.
+- `TabsContent keepMounted`: the panel stays mounted, hidden, while another
+  shows. `TabsList wrap`: the tabs wrap onto a second row rather than
+  scroll (globe's six layers at 390).
+- `SheetContent` and `DialogContent` take `overlayClassName`, for a page
+  with its own layers.
+- `DataTable` rows open: `rowHref` makes each row one link, `onRowSelect`
+  one button. The primary cell names it and its target covers the row; a
+  control in another cell keeps its own press. The phone cards open too.
+- `CopyButton onError`: the browser refused the clipboard. The button says
+  "Could not copy" to a screen reader either way.
+- `ComparisonTable`: a column's `action` adds a last row with a way in under
+  each column. `Closing` takes `fineprint`.
+- `AppShell product`: the app's word beside the lockup, as SiteHeader and
+  SignInFrame have it.
+- `selfHostedLegalLinks({ contact: false })`: a product without one of the
+  pages links ochk.io's, so the legal row keeps its five links.
+- `HashChip` at compact density sits in a line of text: 13px type and a
+  24px copy button whose target is still 44px. The line is under 32px.
+- `ErrorPage` and `SignInFrame` say when to pass `home="/"`: an app on its
+  own host whose `/` is its home.
+- `@orangecheck/app-design/acknowledgement`: the family's credit line, opt
+  in. It lives in its own entry, and a check fails if any other entry
+  carries the name, so a site that never imports it (ochk.app) ships it
+  nowhere. Pass it to Closing's `fineprint`.
+- `MdxTable` on a phone: 10px cell padding, and inline code also breaks
+  after an opening bracket. After 1.8.1 the docs' tables that still scroll
+  at 390 are 29 of 1,178, each wider than the screen word for word.
+- `DropZone` already takes `privacy` (`null` leaves the line out).
+
 ## [1.8.1] — 2026-10-20
 
 Defects sites measured on live pages.

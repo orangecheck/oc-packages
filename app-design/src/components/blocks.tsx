@@ -194,12 +194,15 @@ export function Closing({
     title,
     lead,
     actions,
+    fineprint,
     art,
     className,
 }: {
     title: ReactNode;
     lead?: ReactNode;
     actions?: ReactNode;
+    /** Small print under the actions: a credit (Acknowledgement), what a button commits you to. */
+    fineprint?: ReactNode;
     /** Beside the words from md up. Defaults to the check; `null` leaves it out. */
     art?: ReactNode;
     className?: string;
@@ -213,6 +216,7 @@ export function Closing({
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
                     {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+                    {fineprint ? <div className="max-w-[52ch] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
                 </Reveal>
                 {art !== null ? (
                     // Room under the check on a phone, so its glow fades before the band ends.

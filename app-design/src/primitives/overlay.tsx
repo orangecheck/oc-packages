@@ -18,11 +18,15 @@ const overlayClass =
 
 export const DialogContent = forwardRef<
     ElementRef<typeof DialogPrimitive.Content>,
-    ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
->(function DialogContent({ className, children, hideClose, ...props }, ref) {
+    ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+        hideClose?: boolean;
+        /** The dimmed layer under it: a z-index for a page with its own layers (a fullscreen canvas). */
+        overlayClassName?: string;
+    }
+>(function DialogContent({ className, children, hideClose, overlayClassName, ...props }, ref) {
     return (
         <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className={overlayClass} />
+            <DialogPrimitive.Overlay className={cn(overlayClass, overlayClassName)} />
             <DialogPrimitive.Content
                 ref={ref}
                 className={cn(
@@ -91,11 +95,15 @@ const sheetSide = {
 
 export const SheetContent = forwardRef<
     ElementRef<typeof DialogPrimitive.Content>,
-    ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { side?: keyof typeof sheetSide }
->(function SheetContent({ className, children, side = 'right', ...props }, ref) {
+    ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+        side?: keyof typeof sheetSide;
+        /** The dimmed layer under it: a z-index for a page with its own layers (a fullscreen canvas). */
+        overlayClassName?: string;
+    }
+>(function SheetContent({ className, children, side = 'right', overlayClassName, ...props }, ref) {
     return (
         <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className={overlayClass} />
+            <DialogPrimitive.Overlay className={cn(overlayClass, overlayClassName)} />
             <DialogPrimitive.Content
                 ref={ref}
                 className={cn(

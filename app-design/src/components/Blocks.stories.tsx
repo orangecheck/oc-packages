@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Anchor, Code2, FileCheck2, UserX } from 'lucide-react';
 
+import { Acknowledgement } from '../acknowledgement';
 import { Button } from '../primitives';
 import {
     Accent,
@@ -155,6 +156,8 @@ export const ProofAndClosing: StoryObj = {
                         </Button>
                     </>
                 }
+                // The credit is opt-in: its own entry, @orangecheck/app-design/acknowledgement.
+                fineprint={<Acknowledgement />}
             />
         </div>
     ),

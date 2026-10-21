@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { Lockup } from '../brand/mark';
+import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
@@ -308,6 +308,8 @@ export interface AppShellProps {
     /** Groups shown under every section, after its own. */
     persistent?: ShellNavGroup[];
     home?: string;
+    /** The app's word beside the lockup, as SiteHeader and SignInFrame have it: "orangecheck | vault". */
+    product?: string;
     /** Mount the family menu beside the lockup, as SiteHeader does. Pass the site's slug to mark it. */
     family?: boolean | FamilySlug;
     /** The rail's: at its foot from md (an avatar linking to settings). The sidebar's: top right. */
@@ -327,6 +329,7 @@ function SidebarShell({
     page: pageOverride,
     persistent = [],
     home = '/',
+    product,
     family,
     account,
     banner,
@@ -391,7 +394,7 @@ function SidebarShell({
                             </SheetContent>
                         </Sheet>
                         <Link href={home} aria-label="Home" className="rounded-lg p-1">
-                            <Lockup size={22} />
+                            <ProductLockup size={22} product={product} />
                         </Link>
                         {familyMenu}
                         <div className="ml-auto flex items-center">{account}</div>
@@ -417,8 +420,8 @@ function SidebarShell({
                 <div className="mx-auto flex w-full max-w-[90rem]">
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                         <div className="flex items-center gap-1">
-                            <Link href={home} className="px-2" aria-label="Home">
-                                <Lockup size={26} />
+                            <Link href={home} className="min-w-0 px-2" aria-label="Home">
+                                <ProductLockup size={product ? 24 : 26} product={product} />
                             </Link>
                             {familyMenu}
                         </div>

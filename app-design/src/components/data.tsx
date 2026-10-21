@@ -1,4 +1,5 @@
 import { Check, Copy } from 'lucide-react';
+import Link from 'next/link';
 import {
     Children,
     cloneElement,
@@ -343,11 +344,17 @@ export function DataTable<T>({
     caption,
     phone = 'cards',
     dense,
+    rowHref,
+    onRowSelect,
     className,
 }: {
     columns: Column<T>[];
     rows: T[];
     rowKey: (row: T, i: number) => string;
+    /** Each row opens a page: the whole row is the link, its primary cell the link's name. */
+    rowHref?: (row: T) => string | undefined;
+    /** Each row opens something in place: the whole row is one button. `rowHref` wins for a row that has one. */
+    onRowSelect?: (row: T) => void;
     empty?: ReactNode;
     caption?: string;
     /** Under 640px: a card per row (default), or the same table scrolling. */
@@ -361,6 +368,33 @@ export function DataTable<T>({
     if (rows.length === 0 && empty) return <>{empty}</>;
     const primary = columns.find((c) => c.primary) ?? columns[0];
     const right = (c: Column<T>) => c.numeric || c.align === 'end';
+    const clickable = Boolean(rowHref || onRowSelect);
+    // The primary cell holds the row's one link or button; a pseudo-element stretches its target over the row.
+    // Any other control in the row sits above it.
+    const STRETCH =
+        'outline-none after:absolute after:inset-0 after:content-[""] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring';
+    const opener = (r: T, children: ReactNode) => {
+        const href = rowHref?.(r);
+        if (href !== undefined) {
+            return href.startsWith('/') ? (
+                <Link href={href} className={STRETCH}>
+                    {children}
+                </Link>
+            ) : (
+                <a href={href} className={STRETCH}>
+                    {children}
+                </a>
+            );
+        }
+        if (onRowSelect) {
+            return (
+                <button type="button" onClick={() => onRowSelect(r)} className={cn('text-left', STRETCH)}>
+                    {children}
+                </button>
+            );
+        }
+        return children;
+    };
     const table = (
         <div
             className={cn(
@@ -394,28 +428,35 @@ export function DataTable<T>({
                     </thead>
                     <tbody className="divide-y divide-border">
                         {rows.map((r, i) => (
-                            <tr key={rowKey(r, i)} className="transition-colors hover:bg-accent/60">
-                                {columns.map((c) => (
-                                    <td
-                                        key={c.key}
-                                        style={{ minWidth: c.minWidth }}
-                                        className={cn(
-                                            'align-middle',
-                                            tight ? 'px-4 py-2' : 'px-5 py-3.5',
-                                            right(c) && 'text-right',
-                                            c.numeric && 'whitespace-nowrap oca-tabular',
-                                            c.wide && 'hidden md:table-cell'
-                                        )}
-                                    >
-                                        {c.truncate ? (
-                                            <div className="truncate" style={{ maxWidth: c.width ?? '16rem' }}>
-                                                {c.cell(r)}
-                                            </div>
-                                        ) : (
-                                            c.cell(r)
-                                        )}
-                                    </td>
-                                ))}
+                            <tr
+                                key={rowKey(r, i)}
+                                className={cn('transition-colors hover:bg-accent/60', clickable && 'relative cursor-pointer')}
+                            >
+                                {columns.map((c) => {
+                                    const body = c.truncate ? (
+                                        <div className="truncate" style={{ maxWidth: c.width ?? '16rem' }}>
+                                            {c.cell(r)}
+                                        </div>
+                                    ) : (
+                                        c.cell(r)
+                                    );
+                                    return (
+                                        <td
+                                            key={c.key}
+                                            style={{ minWidth: c.minWidth }}
+                                            className={cn(
+                                                'align-middle',
+                                                tight ? 'px-4 py-2' : 'px-5 py-3.5',
+                                                right(c) && 'text-right',
+                                                c.numeric && 'whitespace-nowrap oca-tabular',
+                                                c.wide && 'hidden md:table-cell',
+                                                clickable && c !== primary && '[&_a]:relative [&_a]:z-10 [&_button]:relative [&_button]:z-10'
+                                            )}
+                                        >
+                                            {clickable && c === primary ? opener(r, body) : body}
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         ))}
                     </tbody>
@@ -437,10 +478,20 @@ export function DataTable<T>({
                 )}
             >
                 {rows.map((r, i) => (
-                    <li key={rowKey(r, i)} className={cn('flex flex-col gap-2.5 px-4', tight ? 'py-3' : 'py-4')}>
-                        <div className="min-w-0 break-words text-[0.9375rem] font-medium">{primary?.cell(r)}</div>
+                    <li
+                        key={rowKey(r, i)}
+                        className={cn('flex flex-col gap-2.5 px-4', tight ? 'py-3' : 'py-4', clickable && 'relative transition-colors hover:bg-accent/60')}
+                    >
+                        <div className="min-w-0 break-words text-[0.9375rem] font-medium">
+                            {primary ? (clickable ? opener(r, primary.cell(r)) : primary.cell(r)) : null}
+                        </div>
                         {rest.length > 0 ? (
-                            <dl className="grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[0.875rem]">
+                            <dl
+                                className={cn(
+                                    'grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-[0.875rem]',
+                                    clickable && '[&_a]:relative [&_a]:z-10 [&_button]:relative [&_button]:z-10'
+                                )}
+                            >
                                 {rest.map((c) => (
                                     <div key={c.key} className="contents">
                                         <dt className="text-muted-foreground">{c.header}</dt>
@@ -641,7 +692,7 @@ export function useCopy(timeoutMs = 1600) {
         []
     );
     const copy = useCallback(
-        async (text: string, opts: { clearAfter?: number } = {}): Promise<boolean> => {
+        async (text: string, opts: { clearAfter?: number; onError?: (error: unknown) => void } = {}): Promise<boolean> => {
             try {
                 await navigator.clipboard.writeText(text);
                 setCopied(true);
@@ -653,8 +704,9 @@ export function useCopy(timeoutMs = 1600) {
                     wipe.current = setTimeout(() => void wipeIfUnchanged(text), opts.clearAfter);
                 }
                 return true;
-            } catch {
+            } catch (error) {
                 setCopied(false);
+                opts.onError?.(error);
                 return false;
             }
         },
@@ -674,17 +726,34 @@ export interface CopyButtonProps {
     clearAfter?: number;
     /** Called once the text is on the clipboard. */
     onCopied?: () => void;
+    /** Called when the browser refused the clipboard (no permission, an insecure page): show the value another way. */
+    onError?: (error: unknown) => void;
     className?: string;
 }
 
-export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, className }: CopyButtonProps) {
+export function CopyButton({ value, label = 'Copy', clearAfter, onCopied, onError, className }: CopyButtonProps) {
     const { copied, copy } = useCopy();
-    const done = copied ? (clearAfter ? `Copied. Cleared in ${Math.round(clearAfter / 1000)} seconds` : 'Copied') : '';
+    const [failed, setFailed] = useState(false);
+    const done = copied
+        ? clearAfter
+            ? `Copied. Cleared in ${Math.round(clearAfter / 1000)} seconds`
+            : 'Copied'
+        : failed
+          ? 'Could not copy'
+          : '';
     return (
         <button
             type="button"
             onClick={async () => {
-                if (await copy(typeof value === 'function' ? value() : value, { clearAfter })) onCopied?.();
+                setFailed(false);
+                const ok = await copy(typeof value === 'function' ? value() : value, {
+                    clearAfter,
+                    onError: (e) => {
+                        setFailed(true);
+                        onError?.(e);
+                    },
+                });
+                if (ok) onCopied?.();
             }}
             aria-label={copied ? 'Copied' : label}
             title={label}
@@ -726,11 +795,12 @@ export function HashChip({
     network?: Network;
     className?: string;
 }) {
+    const tight = useDensity() === 'compact';
     const shown = shortenMiddle(value, head, tail);
     const link = href ?? (explorer ? explorerUrl(explorer, value, network) : undefined);
     const offsite = !!link && /^https?:\/\//.test(link);
     const text = (
-        <span title={value} className="font-mono text-[0.875rem]">
+        <span title={value} className={cn('font-mono', tight ? 'text-[0.8125rem]' : 'text-[0.875rem]')}>
             {shown}
         </span>
     );
@@ -748,7 +818,14 @@ export function HashChip({
             ) : (
                 text
             )}
-            {copy ? <CopyButton value={value} label="Copy full value" /> : null}
+            {copy ? (
+                <CopyButton
+                    value={value}
+                    label="Copy full value"
+                    // Compact sits in a line of text: a 24px button, its target still 44px.
+                    className={tight ? 'relative size-6 before:absolute before:-inset-2.5 [&_svg]:size-3.5' : undefined}
+                />
+            ) : null}
         </span>
     );
 }

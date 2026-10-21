@@ -286,6 +286,21 @@ export const TabsAndFeedback: StoryObj = {
                     <TabsTrigger value="billing">Billing</TabsTrigger>
                 </TabsList>
             </Tabs>
+            {/* Six layers wrap on a phone rather than scroll; each panel stays mounted, as a canvas must. */}
+            <Tabs defaultValue="nodes">
+                <TabsList wrap>
+                    {['Nodes', 'Blocks', 'Mempool', 'Lightning', 'Mining', 'Fees'].map((t) => (
+                        <TabsTrigger key={t} value={t.toLowerCase()}>
+                            {t}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+                {['nodes', 'blocks', 'mempool', 'lightning', 'mining', 'fees'].map((t) => (
+                    <TabsContent key={t} value={t} keepMounted className="oca-body">
+                        The {t} layer. It stays mounted while another shows.
+                    </TabsContent>
+                ))}
+            </Tabs>
             <div className="flex flex-wrap items-center gap-6">
                 <Spinner label="Loading" />
                 <Skeleton className="h-6 w-40" />

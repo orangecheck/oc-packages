@@ -10,6 +10,7 @@ import { Button } from '../primitives/button';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { ThemeToggle } from './app-shell';
 import { FamilyList, FamilyMenu } from './family-menu';
+import { ProductLockup } from './product-lockup';
 
 export type { FooterColumn, NavItem } from '../lib/nav';
 
@@ -142,23 +143,6 @@ export function AccountCta({ href = GET_AN_ACCOUNT.href, className }: { href?: s
         <Button asChild size="sm" className={className}>
             <a href={href}>{GET_AN_ACCOUNT.label}</a>
         </Button>
-    );
-}
-
-/** The lockup and, after a hairline, the site's own word: "orangecheck | stamp". */
-export function ProductLockup({ size, product }: { size: number; product?: string }) {
-    return (
-        <span className="inline-flex items-center">
-            <Lockup size={size} />
-            {product ? (
-                <>
-                    <span aria-hidden className="mx-3 h-5 w-px bg-oca-hairline-strong" />
-                    <span className="font-medium tracking-[-0.01em]" style={{ fontSize: size * 0.56 }}>
-                        {product}
-                    </span>
-                </>
-            ) : null}
-        </span>
     );
 }
 

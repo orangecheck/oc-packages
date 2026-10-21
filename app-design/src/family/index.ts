@@ -234,6 +234,19 @@ export const SELF_HOSTED_LEGAL_LINKS: readonly NavItem[] = [
 ];
 
 /**
+ * The legal row for a product hosting its own documents, saying which of its
+ * own pages it has. One it does not have links ochk.io's (vault has no
+ * contact page of its own, so its Contact is ochk.io/contact): the row keeps
+ * its five links everywhere.
+ */
+export function selfHostedLegalLinks(own: { privacy?: boolean; terms?: boolean; security?: boolean; contact?: boolean } = {}): NavItem[] {
+    return SELF_HOSTED_LEGAL_LINKS.map((l) => {
+        const page = l.href.slice(1) as keyof typeof own;
+        return l.href.startsWith('/') && own[page] === false ? { ...l, href: `${OCHK_IO}${l.href}` } : l;
+    });
+}
+
+/**
  * ochk.io's header navigation. oc-www and the docs (served under ochk.io/docs)
  * both draw it from here, so the two cannot drift. Absolute links work from
  * either; mark the active item where it is rendered.

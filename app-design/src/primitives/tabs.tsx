@@ -24,9 +24,26 @@ export const Tabs = forwardRef<
 
 export const TabsList = forwardRef<
     ElementRef<typeof TabsPrimitive.List>,
-    ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(function TabsList({ className, ...props }, ref) {
+    ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+        /** Wrap onto a second row rather than scroll sideways: every tab in view (globe's six layers at 390). */
+        wrap?: boolean;
+    }
+>(function TabsList({ className, wrap = false, ...props }, ref) {
     const look = useContext(LookContext);
+    if (wrap) {
+        return (
+            <TabsPrimitive.List
+                ref={ref}
+                className={cn(
+                    look === 'pill'
+                        ? 'inline-flex max-w-full flex-wrap items-center gap-1 rounded-[1.375rem] bg-muted p-1'
+                        : 'flex flex-wrap items-center gap-x-6 border-b border-border',
+                    className
+                )}
+                {...props}
+            />
+        );
+    }
     // More tabs than fit a phone scroll sideways, with an edge that says so.
     return (
         <ScrollFade fade="var(--background)" className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
@@ -67,7 +84,17 @@ export const TabsTrigger = forwardRef<
 
 export const TabsContent = forwardRef<
     ElementRef<typeof TabsPrimitive.Content>,
-    ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(function TabsContent({ className, ...props }, ref) {
-    return <TabsPrimitive.Content ref={ref} className={cn('mt-6 outline-none', className)} {...props} />;
+    ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+        /** Stay mounted while another tab shows: a chart, a form or a canvas keeps its state. */
+        keepMounted?: boolean;
+    }
+>(function TabsContent({ className, keepMounted = false, ...props }, ref) {
+    return (
+        <TabsPrimitive.Content
+            ref={ref}
+            forceMount={keepMounted || undefined}
+            className={cn('mt-6 outline-none', keepMounted && 'data-[state=inactive]:hidden', className)}
+            {...props}
+        />
+    );
 });

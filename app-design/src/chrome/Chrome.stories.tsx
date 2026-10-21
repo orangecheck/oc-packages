@@ -74,6 +74,28 @@ export const PublicFrame: StoryObj = {
     ),
 };
 
+/** A product on its own host says its word beside the lockup, as its header and sign-in page do. */
+export const ProductShell: StoryObj = {
+    name: 'Signed-in shell, a product',
+    render: () => (
+        <AppShell
+            family="vault"
+            product="vault"
+            nav={[
+                {
+                    items: [
+                        { href: '/entries', label: 'Entries', icon: <House />, active: true },
+                        { href: '/shares', label: 'Shares', icon: <Activity /> },
+                        { href: '/settings', label: 'Settings', icon: <CircleUser /> },
+                    ],
+                },
+            ]}
+        >
+            <PageHeader title="Entries" description="What you keep here, sealed to your keys." />
+        </AppShell>
+    ),
+};
+
 export const SignedIn: StoryObj = {
     name: 'Signed-in shell',
     render: () => (

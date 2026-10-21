@@ -26,7 +26,7 @@ import { StatusBadge } from '../primitives/status-badge';
 function breakAfterPunctuation(children: ReactNode): ReactNode {
     return Children.map(children, (c) => {
         if (typeof c !== 'string') return c;
-        const parts = c.split(/(?<=[_./:?&=#,@-])(?=\S)/);
+        const parts = c.split(/(?<=[_./:?&=#,@(-])(?=\S)/);
         return parts.length < 2 ? c : parts.flatMap((p, i) => (i === 0 ? [p] : [<wbr key={i} />, p]));
     });
 }

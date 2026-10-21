@@ -13,6 +13,8 @@ export default defineConfig({
         format: 'src/format/index.ts',
         mdx: 'src/mdx/index.tsx',
         session: 'src/session/index.tsx',
+        acknowledgement: 'src/acknowledgement/index.tsx',
+        vitest: 'src/vitest/index.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,

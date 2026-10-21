@@ -320,6 +320,24 @@ export const Compare: StoryObj = {
     ),
 };
 
+/** A last row with a way in under each column. */
+export const CompareActions: StoryObj = {
+    name: 'Comparison table, with actions',
+    render: () => (
+        <Section space="sm">
+            <ComparisonTable
+                label="Ways to prove a file"
+                columns={[
+                    { key: 'stamp', label: 'OC Stamp', highlight: true, action: <Button size="sm">Use OC Stamp</Button> },
+                    { key: 'pgp', label: 'PGP', action: <Button size="sm" variant="secondary">Read about PGP</Button> },
+                    { key: 'ots', label: 'OpenTimestamps alone', action: <Button size="sm" variant="secondary">Read about OpenTimestamps</Button> },
+                ]}
+                rows={PROPERTIES.slice(0, 3)}
+            />
+        </Section>
+    ),
+};
+
 export const Report: StoryObj = {
     name: 'Verify report',
     render: () => (

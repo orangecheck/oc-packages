@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",
@@ -79,6 +79,16 @@
       "types": "./dist/session.d.ts",
       "import": "./dist/session.mjs",
       "require": "./dist/session.js"
+    },
+    "./acknowledgement": {
+      "types": "./dist/acknowledgement.d.ts",
+      "import": "./dist/acknowledgement.mjs",
+      "require": "./dist/acknowledgement.js"
+    },
+    "./vitest": {
+      "types": "./dist/vitest.d.ts",
+      "import": "./dist/vitest.mjs",
+      "require": "./dist/vitest.js"
     },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
