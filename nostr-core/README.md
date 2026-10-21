@@ -41,7 +41,9 @@ console.log(`${events.length} unique events from ${relayStatus.filter(r => r.ok)
 In a browser, every call on the page shares one WebSocket per relay. Each
 query is a subscription on it, at most 10 open at once per relay; the rest
 wait, and the wait counts against their own `timeoutMs`. A relay that refuses
-the handshake (a 503, a 429, a refused connection) is skipped for 10 seconds,
+the handshake (a 503, a 429, a refused connection) is dialled once more after
+half a second when every waiting call can wait that long, then skipped for 10
+seconds,
 and `relayStatus` says so with `reason: "relay_unavailable"`. A call that
 passes an `auth` signer gets its own socket. Outside a browser each call opens
 its own socket, as before.

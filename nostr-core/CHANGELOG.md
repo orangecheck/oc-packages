@@ -12,6 +12,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.8.0] — 2026-10-21
+
+### Added
+
+- **`publishOutcome(results)`** → `{ kind: 'none' | 'partial' | 'all', accepted,
+  total, relays }`. Each relay counts once, as accepted if any attempt at it
+  was. A revocation or record is in effect for a reader only once some relay
+  holds it; OC Lock and OC Agent each kept a copy of this.
+- **`latestByCoordinate(events)`**: the latest version of each replaceable
+  event, per (kind, pubkey, d) for kinds 30000–39999 and per (kind, pubkey) for
+  0, 3 and 10000–19999; highest `created_at`, ties to the lowest id.
+  `queryEvents` de-duplicates by id only, so relays that disagree return the old
+  and the new version side by side.
+
+### Changed
+
+- **A refused handshake gets one redial** about 500ms later
+  (`redialMs`), but only when the earliest waiting call's deadline leaves room
+  for it; then the 10s back-off as before. Against relay.damus.io, eight
+  pooled queries over eight rounds were answered 48 of 64 times with the
+  redial and 32 of 64 without, for two extra handshakes.
+
 ## [0.7.0] — 2026-10-21
 
 ### Changed

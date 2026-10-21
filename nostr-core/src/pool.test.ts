@@ -1,10 +1,12 @@
 /**
  * Pooled transport: one socket per relay per page.
  *
- * Every test here fails with pooling off (`NOSTR_CORE_POOL_OFF=1 vitest run
- * src/pool.test.ts`): each one asserts something only a shared socket does,
- * such as one connection for many calls, a subscription cap, or a back-off
- * that stops re-dialling a relay that refused.
+ * Every test in the first two blocks fails with pooling off
+ * (`NOSTR_CORE_POOL_OFF=1 vitest run src/pool.test.ts`): each one asserts
+ * something only a shared socket does, such as one connection for many calls,
+ * a subscription cap, or a back-off that stops re-dialling a relay that
+ * refused. The redial block's first test fails with the redial off
+ * (`NOSTR_CORE_REDIAL_OFF=1`).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,6 +45,8 @@ const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 interface Relay {
   events: NostrEvent[];
   refuse: boolean;
+  /** Refuse this many handshakes first, then accept. */
+  refuseFirst: number;
   hold: boolean; // keep subscriptions open until release()
   okReversed: boolean;
   connections: number;
@@ -59,6 +63,7 @@ function relay(url: string, cfg: Partial<Relay> = {}): Relay {
   const r: Relay = {
     events: [EV],
     refuse: false,
+    refuseFirst: 0,
     hold: false,
     okReversed: false,
     connections: 0,
@@ -87,7 +92,7 @@ class FakeSocket {
     this.r.connections++;
     this.r.sockets.push(this);
     queueMicrotask(() => {
-      if (this.r.refuse) {
+      if (this.r.refuse || this.r.connections <= this.r.refuseFirst) {
         // A 503 or 429 at the handshake: error, then close, never open.
         this.onerror?.({});
         this.onclose?.();
@@ -156,6 +161,8 @@ beforeEach(() => {
   configureRelayPool({
     enabled: ENABLED,
     maxSubscriptions: 10,
+    // Off for the blocks that test the back-off itself; the redial block turns it on.
+    redialMs: 0,
     backoffMs: 10_000,
     idleMs: 30_000,
   });
@@ -363,6 +370,48 @@ describe("pooled subscribe()", () => {
     expect(states[0]).toBe("error");
     expect(states).toContain("unavailable");
     expect(r.connections).toBe(1);
+  });
+});
+
+describe("one bounded redial after a refused handshake", () => {
+  const REDIAL = process.env.NOSTR_CORE_REDIAL_OFF === "1" ? 0 : 50;
+
+  it("dials once more and answers when the deadline has room", async () => {
+    // A relay that refuses one handshake (damus's occasional 503), then accepts.
+    const r = relay("wss://r", { refuseFirst: 1 });
+    configureRelayPool({ redialMs: REDIAL });
+    const res = await queryEvents({ kinds: [30078] }, ["wss://r"], 1000);
+    expect(res.relayStatus[0]!.eose).toBe(true);
+    expect(res.events.map((e) => e.id)).toEqual([EV.id]);
+    expect(r.connections).toBe(2);
+  });
+
+  it("never redials when the earliest waiting call would expire first", async () => {
+    const r = relay("wss://r", { refuseFirst: 1 });
+    configureRelayPool({ redialMs: 50 });
+    const start = Date.now();
+    const [short, long] = await Promise.all([
+      queryEvents({ kinds: [30078] }, ["wss://r"], 40), // shorter than the redial
+      queryEvents({ kinds: [30078] }, ["wss://r"], 1000),
+    ]);
+    expect(Date.now() - start).toBeLessThan(40);
+    expect(r.connections).toBe(1);
+    expect(short.relayStatus[0]!.reason).toBe("ws_error");
+    expect(long.relayStatus[0]!.reason).toBe("ws_error");
+    // And the relay is backing off, not redialled later.
+    await tick(80);
+    expect(r.connections).toBe(1);
+  });
+
+  it("redials at most once, then backs off", async () => {
+    const r = relay("wss://r", { refuse: true });
+    configureRelayPool({ redialMs: 20 });
+    const res = await queryEvents({ kinds: [30078] }, ["wss://r"], 1000);
+    expect(res.relayStatus[0]!.reason).toBe("ws_error");
+    expect(r.connections).toBe(2);
+    const skipped = await queryEvents({ kinds: [30078] }, ["wss://r"], 1000);
+    expect(skipped.relayStatus[0]!.reason).toBe("relay_unavailable");
+    expect(r.connections).toBe(2);
   });
 });
 

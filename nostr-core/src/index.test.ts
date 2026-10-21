@@ -20,7 +20,9 @@ import {
   closeRelayPool,
   configureRelayPool,
   getEventHash,
+  latestByCoordinate,
   matchFilter,
+  publishOutcome,
   publishEvent,
   queryEvents,
   subscribe,
@@ -398,6 +400,87 @@ describe("subscribe", () => {
     sub.stop();
     expect(got).toEqual([good.id]);
     expect(states).toEqual(["open", "eose"]);
+  });
+});
+
+describe("publishOutcome", () => {
+  const R = (relay: string, ok: boolean) => ({ relay, ok });
+
+  it("is none when no relay accepted, and when nothing was tried", () => {
+    expect(publishOutcome([R("wss://a", false), R("wss://b", false)])).toEqual({
+      kind: "none",
+      accepted: 0,
+      total: 2,
+      relays: [],
+    });
+    expect(publishOutcome([]).kind).toBe("none");
+  });
+
+  it("is partial, naming the relays that accepted", () => {
+    expect(publishOutcome([R("wss://a", true), R("wss://b", false), R("wss://c", true)])).toEqual({
+      kind: "partial",
+      accepted: 2,
+      total: 3,
+      relays: ["wss://a", "wss://c"],
+    });
+  });
+
+  it("is all when every relay accepted", () => {
+    expect(publishOutcome([R("wss://a", true), R("wss://b", true)]).kind).toBe("all");
+  });
+
+  it("counts a relay once, accepted if any attempt at it was", () => {
+    expect(publishOutcome([R("wss://a", false), R("wss://a", true), R("wss://b", false)])).toEqual({
+      kind: "partial",
+      accepted: 1,
+      total: 2,
+      relays: ["wss://a"],
+    });
+  });
+});
+
+describe("latestByCoordinate", () => {
+  const SK3 = new Uint8Array(32).fill(3);
+  const at = (created_at: number, d = "oc-test:abc", kind = 30078, sk = SK) =>
+    signed({ created_at, kind, tags: [["d", d]] }, sk);
+
+  it("keeps the newest version of each addressable record", () => {
+    const old = at(100);
+    const now = at(200);
+    expect(latestByCoordinate([old, now]).map((e) => e.id)).toEqual([now.id]);
+    expect(latestByCoordinate([now, old]).map((e) => e.id)).toEqual([now.id]);
+  });
+
+  it("keeps records apart by d tag, author and kind", () => {
+    const a = at(100, "oc-test:a");
+    const b = at(100, "oc-test:b");
+    const other = at(100, "oc-test:a", 30078, SK3);
+    const kind = at(100, "oc-test:a", 30087);
+    expect(latestByCoordinate([a, b, other, kind])).toHaveLength(4);
+  });
+
+  it("breaks a created_at tie by the lowest id", () => {
+    const x = at(100, "oc-test:t");
+    const y = signed({ created_at: 100, kind: 30078, tags: [["d", "oc-test:t"]], content: "other" });
+    const low = x.id < y.id ? x : y;
+    expect(latestByCoordinate([x, y]).map((e) => e.id)).toEqual([low.id]);
+  });
+
+  it("collapses replaceable kinds by author and passes other kinds through", () => {
+    const p1 = signed({ kind: 0, created_at: 100, tags: [] });
+    const p2 = signed({ kind: 0, created_at: 200, tags: [], content: "newer" });
+    const n1 = signed({ kind: 1, created_at: 100, tags: [] });
+    const n2 = signed({ kind: 1, created_at: 200, tags: [], content: "second note" });
+    expect(latestByCoordinate([p1, p2, n1, n2]).map((e) => e.id).sort()).toEqual(
+      [p2.id, n1.id, n2.id].sort(),
+    );
+  });
+
+  it("returns newest first", () => {
+    const a = at(100, "oc-test:a");
+    const b = at(300, "oc-test:b");
+    const c = signed({ kind: 1, created_at: 200, tags: [] });
+    expect(latestByCoordinate([a, c, b]).map((e) => e.created_at)).toEqual([300, 200, 100]);
   });
 });
 

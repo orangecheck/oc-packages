@@ -378,6 +378,11 @@ export interface RelayPoolOptions {
   enabled: boolean;
   /** Subscriptions open at once on one relay; further queries wait their turn. */
   maxSubscriptions: number;
+  /**
+   * After a refused handshake, dial once more after this long, but only when
+   * the earliest waiting call's deadline leaves room for it. 0 turns it off.
+   */
+  redialMs: number;
   /** After a relay refuses the handshake, calls skip it this long ("relay_unavailable"). */
   backoffMs: number;
   /** A pooled socket with nothing on it closes after this long. */
@@ -389,6 +394,9 @@ const poolOptions: RelayPoolOptions = {
   // The smallest max_subscriptions in the family's relays is 20 (relay.ochk.io,
   // primal); 10 leaves room for long-lived subscriptions on the same socket.
   maxSubscriptions: 10,
+  // relay.damus.io refuses about one handshake in seven with a 503, unrelated
+  // to load from us; a second try half a second later usually gets through.
+  redialMs: 500,
   backoffMs: 10_000,
   idleMs: 30_000,
 };
@@ -441,6 +449,8 @@ interface Member {
   slot: boolean;
   started: boolean;
   done: boolean;
+  /** When the call gives up (ms since epoch); Infinity for a subscription. */
+  deadline: number;
 }
 
 const pool = new Map<string, PooledRelay>();
@@ -454,11 +464,13 @@ class PooledRelay {
   private queue: Member[] = [];
   private slots = 0;
   private idle: ReturnType<typeof setTimeout> | null = null;
+  private redial: ReturnType<typeof setTimeout> | null = null;
+  private redialed = false;
 
   constructor(readonly url: string) {}
 
-  join(h: ChannelHandlers, subscription: boolean): Channel {
-    const m: Member = { h, subscription, slot: false, started: false, done: false };
+  join(h: ChannelHandlers, subscription: boolean, deadline: number): Channel {
+    const m: Member = { h, subscription, slot: false, started: false, done: false, deadline };
     this.members.add(m);
     if (this.idle) clearTimeout(this.idle);
     this.idle = null;
@@ -486,6 +498,8 @@ class PooledRelay {
   shutdown(): void {
     if (this.idle) clearTimeout(this.idle);
     this.idle = null;
+    if (this.redial) clearTimeout(this.redial);
+    this.redial = null;
     this.drop();
     this.members.clear();
     this.queue = [];
@@ -505,7 +519,7 @@ class PooledRelay {
   }
 
   private dial(): void {
-    if (this.ws) return;
+    if (this.ws || this.redial) return;
     let ws: WebSocket;
     try {
       ws = new WebSocket(this.url);
@@ -533,9 +547,23 @@ class PooledRelay {
     ws.onclose = () => this.fail("close");
   }
 
-  /** The socket is gone: every call on it settles, and a refused handshake backs the relay off. */
+  /**
+   * The socket is gone: every call on it settles, and a refused handshake
+   * backs the relay off. The first refusal gets one redial instead, if every
+   * waiting call can still wait for it.
+   */
   private fail(kind: "error" | "close", detail?: string): void {
     if (!this.opened) {
+      if (this.redialAllowed()) {
+        this.redialed = true;
+        this.detach();
+        this.redial = setTimeout(() => {
+          this.redial = null;
+          if ([...this.members].some((m) => !m.done)) this.dial();
+          else this.shutdown();
+        }, poolOptions.redialMs);
+        return;
+      }
       unavailableUntil.set(this.url, Date.now() + poolOptions.backoffMs);
     }
     this.drop();
@@ -548,6 +576,26 @@ class PooledRelay {
       m.done = true;
       m.h.down(kind, detail);
     }
+  }
+
+  private redialAllowed(): boolean {
+    if (this.redialed || poolOptions.redialMs <= 0) return false;
+    const waiting = [...this.members].filter((m) => !m.done);
+    if (waiting.length === 0) return false;
+    const earliest = Math.min(...waiting.map((m) => m.deadline));
+    return earliest - Date.now() > poolOptions.redialMs;
+  }
+
+  /** Let go of the socket but keep this relay's calls and pool entry. */
+  private detach(): void {
+    const ws = this.ws;
+    this.ws = null;
+    this.opened = false;
+    if (!ws) return;
+    ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+    try {
+      ws.close();
+    } catch {}
   }
 
   private drop(): void {
@@ -595,7 +643,7 @@ class PooledRelay {
 function openChannel(
   url: string,
   h: ChannelHandlers,
-  opts: { subscription: boolean; auth?: AuthSigner },
+  opts: { subscription: boolean; auth?: AuthSigner; deadline?: number },
 ): Channel | null {
   if (!poolOptions.enabled || opts.auth) return directChannel(url, h);
   const until = unavailableUntil.get(url);
@@ -608,7 +656,7 @@ function openChannel(
     relay = new PooledRelay(url);
     pool.set(url, relay);
   }
-  return relay.join(h, opts.subscription);
+  return relay.join(h, opts.subscription, opts.deadline ?? Infinity);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -710,7 +758,7 @@ function attemptPublish(
             retryable: true,
           }),
       },
-      { subscription: false, auth },
+      { subscription: false, auth, deadline: Date.now() + timeoutMs },
     );
     // The relay refused a handshake moments ago; retrying inside the back-off
     // would only dial into the same refusal.
@@ -730,6 +778,68 @@ export async function publishEvent(
 ): Promise<PublishResult[]> {
   const retry: RetryOptions = { ...DEFAULT_RETRY, timeoutMs };
   return Promise.all(relays.map((r) => publishOne(r, event, retry, auth)));
+}
+
+/**
+ * What a publish achieved, across relays. A reader learns of an event only
+ * from a relay that holds it, so a revocation or record is in effect for
+ * anyone once at least one relay has accepted it, and not before. Each relay
+ * counts once, as accepted if any attempt at it was.
+ */
+export interface PublishOutcome {
+  kind: "none" | "partial" | "all";
+  accepted: number;
+  total: number;
+  /** The relays that accepted it. */
+  relays: string[];
+}
+
+export function publishOutcome(
+  results: readonly Pick<PublishResult, "relay" | "ok">[],
+): PublishOutcome {
+  const byRelay = new Map<string, boolean>();
+  for (const r of results) byRelay.set(r.relay, (byRelay.get(r.relay) ?? false) || r.ok);
+  const relays = [...byRelay].filter(([, ok]) => ok).map(([relay]) => relay);
+  const total = byRelay.size;
+  return {
+    kind: relays.length === 0 ? "none" : relays.length === total ? "all" : "partial",
+    accepted: relays.length,
+    total,
+    relays,
+  };
+}
+
+/**
+ * Keep only the latest version of each replaceable event, as NIP-01 says a
+ * relay should: per (kind, pubkey, d tag) for addressable kinds 30000–39999,
+ * per (kind, pubkey) for kinds 0, 3 and 10000–19999. The highest `created_at`
+ * wins; a tie goes to the lowest id. Other events pass through.
+ *
+ * `queryEvents` de-duplicates by id only, so when relays disagree an old and a
+ * new version of the same record arrive side by side. Use this wherever a
+ * reader wants the current version.
+ */
+export function latestByCoordinate<T extends NostrEvent>(events: readonly T[]): T[] {
+  const latest = new Map<string, T>();
+  const rest: T[] = [];
+  for (const e of events) {
+    const addressable = e.kind >= 30000 && e.kind < 40000;
+    const replaceable = e.kind === 0 || e.kind === 3 || (e.kind >= 10000 && e.kind < 20000);
+    if (!addressable && !replaceable) {
+      rest.push(e);
+      continue;
+    }
+    const d = addressable ? ((e.tags.find((t) => t[0] === "d") ?? [])[1] ?? "") : "";
+    const key = `${e.kind}:${e.pubkey}:${d}`;
+    const prev = latest.get(key);
+    if (
+      !prev ||
+      e.created_at > prev.created_at ||
+      (e.created_at === prev.created_at && e.id < prev.id)
+    )
+      latest.set(key, e);
+  }
+  return [...rest, ...latest.values()].sort((a, b) => b.created_at - a.created_at);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -860,7 +970,7 @@ export async function queryEvents(
                   ? finish(false, false, detail ?? "ws_error", false)
                   : finish(count > 0, false, reason ?? "closed_early", false),
             },
-            { subscription: true, auth },
+            { subscription: true, auth, deadline: Date.now() + timeoutMs },
           );
           if (!channel) finish(false, false, "relay_unavailable", false);
         }),
