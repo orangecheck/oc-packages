@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.0] — 2026-10-22
+
+### Added
+
+- `verifiedAnchor(proofB64, idHex, headerSource)`: the lowest block a proof
+  anchors `idHex` in, each attestation checked against the header at its
+  height. It reads nothing the stamp declares (`status`, `block_height`), is
+  null when no attestation checks out, and throws when headers cannot be read.
+  OC Vote's anchored tally (SPEC §4.6) takes a ballot's anchor height from it.
+
 ## [0.4.0] — 2026-10-21
 
 ### Changed — two calendars by default

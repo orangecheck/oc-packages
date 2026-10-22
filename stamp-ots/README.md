@@ -20,6 +20,7 @@ OC Stamp envelopes carry an optional `ots` field that anchors the envelope `id` 
 - **`upgradeProof(proof, id, { headerSource })`** — ask each calendar for the continuation of its pending attestation (calendars index upgrades by that commitment) and graft it on. `headerSource` is required: the result is `confirmed` only once the proof reaches a Bitcoin block whose header has the proof's Merkle root, and stays `pending` until then.
 - **`createCalendarClient(url)`** — low-level HTTP client implementing the minimal OTS calendar API (`POST /digest` with no Content-Type, so a browser sends no preflight; `GET /timestamp/<hex(commitment)>`).
 - **`DEFAULT_CALENDARS`** — `alice.btc.calendar.opentimestamps.org`, `bob.btc.calendar.opentimestamps.org` and `finney.calendar.eternitywall.com`, the set SPEC §6.1 names.
+- **`verifiedAnchor(proof, id, headerSource)`** — the lowest block the proof anchors `id` in, each Bitcoin attestation checked against the header at its height; ignores whatever height or status the stamp declares. `null` when none checks out; throws when headers cannot be read, so a failed lookup is never read as "no anchor".
 - **`makeAnchorVerifier({ headerSource })`** — the `verifyOtsAnchor` hook for `verify()` from `@orangecheck/stamp-core`. It walks the proof with the built-in OTS parser and requires that the proof commits to the envelope id, attests at the declared height, and that the header at that height has the proof's Merkle root and hashes to the declared block hash.
 - **`mempoolHeaderSource(opts)`** — block headers from an Esplora-compatible API (default `https://mempool.space/api`). Each header is checked against the declared block hash, so this source is trusted only to say which block sits at a height. Supply your own node or headers snapshot to remove that trust.
 - **`parseProof` / `parseDetached` / `serializeTimestamp` / `bitcoinAnchors` / `pendingCommitments`** — the OTS proof format, accepting both the bare timestamp carried in `ots.proof` and detached `.ots` files.
@@ -66,7 +67,7 @@ const envUpgraded = { ...envWithOts, ots: toStampOts(upgraded) };
 
 ## Exports
 
-- `submitToCalendars(id, opts)` / `upgradeProof(proof, id, opts)`
+- `submitToCalendars(id, opts)` / `upgradeProof(proof, id, opts)` / `verifiedAnchor(proof, id, headerSource)`
 - `createCalendarClient(url, opts)` / `DEFAULT_CALENDARS`
 - `makeAnchorVerifier(config)` / `makeDefaultAnchorVerifier(config)` / `mempoolHeaderSource(opts)` / `walkOtsProof(input)` / `blockHashOf(header)`
 - `parseProof` / `parseDetached` / `parseTimestamp` / `serializeTimestamp` / `bitcoinAnchors` / `pendingCommitments` / `mergeAt` / `attestations`

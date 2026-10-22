@@ -11,7 +11,7 @@ import {
     HELLO_OTS_FILE,
 } from './ots-fixture.test-helper.js';
 import type { BlockHeaderSource, OtsProof } from './types.js';
-import { upgradeProof } from './upgrade.js';
+import { upgradeProof, verifiedAnchor } from './upgrade.js';
 
 const CAL = 'https://cal.test';
 const chain: BlockHeaderSource = {
@@ -106,5 +106,36 @@ describe('upgradeProof', () => {
             fetch: (async () => new Response(null, { status: 404 })) as unknown as typeof fetch,
         });
         expect(out).toEqual(current);
+    });
+});
+
+describe('verifiedAnchor', () => {
+    const full = base64Encode(serializeTimestamp(parseDetached(HELLO_OTS_FILE).timestamp));
+
+    it('returns the block whose header has the proof Merkle root', async () => {
+        expect(await verifiedAnchor(full, HELLO_DIGEST, chain)).toEqual({
+            blockHeight: BLOCK_HEIGHT,
+            blockHash: BLOCK_HASH,
+        });
+    });
+
+    it('is null for a proof walked from another id, or a header that does not match', async () => {
+        expect(await verifiedAnchor(full, 'ab'.repeat(32), chain)).toBeNull();
+        const wrongHeader: BlockHeaderSource = {
+            async getHeaderAt() {
+                return hexDecode('00'.repeat(80));
+            },
+        };
+        expect(await verifiedAnchor(full, HELLO_DIGEST, wrongHeader)).toBeNull();
+        expect(await verifiedAnchor('not base64 at all', HELLO_DIGEST, chain)).toBeNull();
+    });
+
+    it('throws when headers cannot be read, so a failed lookup is never read as no anchor', async () => {
+        const down: BlockHeaderSource = {
+            async getHeaderAt() {
+                throw new Error('header source down');
+            },
+        };
+        await expect(verifiedAnchor(full, HELLO_DIGEST, down)).rejects.toThrow(/down/);
     });
 });

@@ -4,7 +4,7 @@ export { createCalendarClient, DEFAULT_CALENDARS } from './calendar.js';
 export type { HttpCalendarOptions } from './calendar.js';
 export { submitToCalendars } from './submit.js';
 export type { SubmitOptions } from './submit.js';
-export { upgradeProof } from './upgrade.js';
+export { upgradeProof, verifiedAnchor } from './upgrade.js';
 export type { UpgradeOptions } from './upgrade.js';
 export {
     blockHashOf,

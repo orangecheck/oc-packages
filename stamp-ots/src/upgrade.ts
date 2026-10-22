@@ -89,6 +89,27 @@ export async function upgradeProof(
     return current;
 }
 
+/**
+ * The lowest Bitcoin block a proof anchors `idHex` in, checked against
+ * `headerSource`: the proof is walked from `idHex`, and an attestation counts
+ * only if the header at its height has the proof's Merkle root. Whatever
+ * height or status the stamp declares is not read. Null when no attestation
+ * checks out, or the proof does not parse from `idHex`.
+ */
+export async function verifiedAnchor(
+    proofB64: string,
+    idHex: string,
+    headerSource: BlockHeaderSource
+): Promise<{ blockHeight: number; blockHash: string } | null> {
+    let tree: ReturnType<typeof parseTimestamp>;
+    try {
+        tree = parseProof(base64Decode(proofB64), hexDecode(idHex));
+    } catch {
+        return null;
+    }
+    return resolveAnchor(tree, headerSource);
+}
+
 async function resolveAnchor(
     tree: ReturnType<typeof parseTimestamp>,
     headers: BlockHeaderSource
