@@ -135,6 +135,33 @@ describe('classifyState', () => {
         expect(r).toBe('kept');
     });
 
+    it('a signed outcome dated at or after expires_at comes too late', () => {
+        const late = outcome({
+            outcome: 'broken',
+            resolved_at: '2026-12-31T00:00:00Z',
+            resolved_by: 'bc1qcounterparty',
+            sig: { alg: 'bip322', pubkey: 'bc1qcounterparty', value: 'AAAA' },
+        });
+        const r = classifyState({
+            pledge: pledge(),
+            outcome: late,
+            abandonment: null,
+            now: '2027-01-01T00:00:00Z',
+        });
+        expect(r).toBe('expired_unresolved');
+    });
+
+    it('a deterministic outcome computed after expires_at still classifies', () => {
+        const computedLate = outcome({ outcome: 'broken', resolved_at: '2027-01-01T00:00:00Z' });
+        const r = classifyState({
+            pledge: pledge(),
+            outcome: computedLate,
+            abandonment: null,
+            now: '2027-01-02T00:00:00Z',
+        });
+        expect(r).toBe('broken');
+    });
+
     it('abandonment trumps everything → broken (no honorable exit)', () => {
         const r = classifyState({
             pledge: pledge(),

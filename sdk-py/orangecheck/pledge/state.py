@@ -60,8 +60,16 @@ def classify_state(
     swearer = (pledge.get("swearer") or {}).get("address")
     # An outcome dated after `now` describes a resolution that has not happened
     # yet, so it does not classify the pledge until then.
+    # A signed outcome dated at or after expires_at comes too late (§3.4.2);
+    # anyone can still compute a deterministic one after it.
+    expires_at_ms = _parse_utc(pledge["expires_at"])
+
     def in_force(o: dict[str, Any]) -> bool:
-        return o.get("pledge_id") == pledge_id and not _dated_after(o.get("resolved_at"), now_ms)
+        return (
+            o.get("pledge_id") == pledge_id
+            and not _dated_after(o.get("resolved_at"), now_ms)
+            and (o.get("resolved_by") == "deterministic" or _dated_before(o.get("resolved_at"), expires_at_ms))
+        )
 
     if outcome is not None and not in_force(outcome):
         outcome = None
@@ -84,7 +92,6 @@ def classify_state(
     if outcome is not None:
         return outcome.get("outcome")  # type: ignore[return-value]
 
-    expires_at_ms = _parse_utc(pledge["expires_at"])
     if now_ms >= expires_at_ms:
         return "expired_unresolved"
 
@@ -112,6 +119,14 @@ def _normalize_resolves_at(
             return _parse_utc(chain.tip_time)
         return None  # not yet mined
     return None
+
+
+def _dated_before(iso: Any, ms: int) -> bool:
+    """True when ``iso`` is a timestamp earlier than ``ms``."""
+    try:
+        return _parse_utc(iso) < ms
+    except (TypeError, ValueError):
+        return False
 
 
 def _dated_after(iso: Any, now_ms: int) -> bool:

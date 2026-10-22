@@ -326,6 +326,31 @@ def test_state_ignores_a_future_dated_contradiction() -> None:
     assert s == "kept"
 
 
+def test_outcome_refuses_a_counterparty_outcome_dated_at_or_after_expiry() -> None:
+    for resolved_at in ("2026-06-15T00:00:00Z", "2026-10-21T00:00:00Z"):
+        env = _outcome(BILATERAL, outcome="broken", resolved_by=COUNTERPARTY, resolved_at=resolved_at)
+        r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BILATERAL))
+        assert not r.ok and r.code == "E_OUTCOME_MALFORMED"
+
+
+def test_outcome_still_accepts_a_deterministic_one_computed_after_expiry() -> None:
+    env = _outcome(BASE, outcome="broken", resolved_at="2026-10-21T00:00:00Z")
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BASE))
+    assert r.ok
+
+
+def test_state_leaves_out_a_signed_outcome_dated_after_expiry() -> None:
+    late = _outcome(BILATERAL, outcome="broken", resolved_by=COUNTERPARTY, resolved_at="2026-07-01T00:00:00Z")
+    s = classify_state(pledge=_envelope(BILATERAL), outcome=late, abandonment=None, now="2026-08-01T00:00:00Z")
+    assert s == "expired_unresolved"
+
+
+def test_state_counts_a_deterministic_outcome_computed_after_expiry() -> None:
+    late = _outcome(BASE, outcome="broken", resolved_at="2026-07-01T00:00:00Z")
+    s = classify_state(pledge=_envelope(BASE), outcome=late, abandonment=None, now="2026-08-01T00:00:00Z")
+    assert s == "broken"
+
+
 # ─── verify_pledge: an agent pledge needs its delegation (SPEC §7.3) ─────
 
 

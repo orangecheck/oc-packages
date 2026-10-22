@@ -40,11 +40,12 @@ function outcome(
     pledge: PledgeCanonicalInput,
     resolved_by: string,
     sig: OutcomeEnvelope['sig'],
+    resolved_at = '2026-06-02T00:00:00Z',
 ): OutcomeEnvelope {
     const inputs = {
         pledge_id: computePledgeId(pledge),
         outcome: 'broken' as const,
-        resolved_at: '2026-06-02T00:00:00Z',
+        resolved_at,
         resolved_by,
         evidence: {
             mechanism: pledge.resolution.mechanism,
@@ -134,6 +135,37 @@ describe('verifyOutcome refuses a resolver the pledge did not name', () => {
 
     it('still ACCEPTS a deterministic outcome on a deterministic pledge', async () => {
         const env = outcome(deterministic, 'deterministic', null);
+        const r = await verifyOutcome({
+            envelope: env,
+            pledge: deterministic,
+            skipSignatureVerification: true,
+        });
+        expect(r.ok).toBe(true);
+    });
+});
+
+describe('verifyOutcome holds a signed outcome to the pledge window (§3.4.2)', () => {
+    const counterpartySig = {
+        alg: 'bip322',
+        pubkey: COUNTERPARTY,
+        value: 'AkcwRAIg',
+    } as OutcomeEnvelope['sig'];
+
+    it('refuses a counterparty outcome dated at or after expires_at', async () => {
+        for (const resolvedAt of ['2026-06-15T00:00:00Z', '2026-10-21T00:00:00Z']) {
+            const env = outcome(bilateral, COUNTERPARTY, counterpartySig, resolvedAt);
+            const r = await verifyOutcome({
+                envelope: env,
+                pledge: bilateral,
+                skipSignatureVerification: true,
+            });
+            expect(r.ok).toBe(false);
+            if (!r.ok) expect(r.code).toBe('E_OUTCOME_MALFORMED');
+        }
+    });
+
+    it('still accepts a deterministic outcome computed after expires_at', async () => {
+        const env = outcome(deterministic, 'deterministic', null, '2026-10-21T00:00:00Z');
         const r = await verifyOutcome({
             envelope: env,
             pledge: deterministic,

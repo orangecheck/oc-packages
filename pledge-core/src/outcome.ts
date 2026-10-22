@@ -303,6 +303,15 @@ function checkResolverAuthorized(
                 `resolved_by (${env.resolved_by}) is not the pledge's counterparty (${pledge.counterparty})`,
             );
         }
+        // A signed outcome comes within the pledge's window (§3.4.2, §11.10).
+        // resolved_at is the counterparty's own claim, so this catches only an
+        // honestly dated late one.
+        if (!(Date.parse(env.resolved_at) < Date.parse(pledge.expires_at))) {
+            return err(
+                'E_OUTCOME_MALFORMED',
+                `resolved_at (${env.resolved_at}) is not before the pledge's expires_at (${pledge.expires_at})`,
+            );
+        }
         return null;
     }
 

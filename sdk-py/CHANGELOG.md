@@ -4,6 +4,14 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.5.1] — 2026-10-22
+
+### Fixed — a signed outcome dated after expires_at comes too late
+
+As `@orangecheck/pledge-core` 3.2.1 (SPEC §3.4.2, §4.4). `verify_outcome`, given
+the pledge, refuses a signed outcome dated at or after `expires_at`, and
+`classify_state` leaves it out. Deterministic outcomes are exempt.
+
 ## [2.5.0] — 2026-10-22
 
 ### Fixed — legacy signatures, as @orangecheck/bip322 verifies them

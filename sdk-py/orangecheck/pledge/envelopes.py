@@ -752,6 +752,18 @@ def _check_resolver_authorized(
                 "E_OUTCOME_RESOLVER_UNAUTHORIZED",
                 f"resolved_by ({resolved_by}) is not the pledge's counterparty ({pledge.counterparty})",
             )
+        # A signed outcome comes within the pledge's window (§3.4.2, §11.10).
+        # resolved_at is the counterparty's own claim, so this catches only an
+        # honestly dated late one.
+        try:
+            late = _parse_utc(env.get("resolved_at")) >= _parse_utc(pledge.expires_at)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return _err("E_OUTCOME_MALFORMED", f"resolved_at ({env.get('resolved_at')}) is not ISO 8601 UTC")
+        if late:
+            return _err(
+                "E_OUTCOME_MALFORMED",
+                f"resolved_at ({env['resolved_at']}) is not before the pledge's expires_at ({pledge.expires_at})",
+            )
         return None
 
     # Every other mechanism resolves from public state, so the only legitimate

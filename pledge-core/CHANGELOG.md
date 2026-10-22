@@ -8,6 +8,18 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.2.1] — 2026-10-22
+
+### Fixed — a signed outcome dated after expires_at comes too late
+
+SPEC §3.4.2, §4.4, §11.10. A counterparty that signs after `expires_at` has let
+the pledge expire unresolved. `verifyOutcome`, given the pledge, refuses a signed
+outcome whose `resolved_at` is at or after `expires_at` (`E_OUTCOME_MALFORMED`),
+and `classifyState` leaves it out, so the pledge stays `expired_unresolved`.
+Deterministic outcomes are exempt: anyone can compute one after expiry.
+`resolved_at` is the counterparty's own claim, so this catches only an honestly
+dated late outcome. Vector `v32`.
+
 ## [3.2.0] — 2026-10-22
 
 ### Changed — an agent pledge is checked as of the time of verification

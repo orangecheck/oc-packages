@@ -31,9 +31,14 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
     // swearer can abandon (SPEC §5.3). Signatures are the caller's job via
     // verifyAbandonment()/verifyOutcome() with the pledge supplied.
     // An outcome dated after `now` describes a resolution that has not happened
-    // yet, so it does not classify the pledge until then.
+    // yet, so it does not classify the pledge until then. A signed outcome dated
+    // at or after expires_at comes too late (§3.4.2); anyone can still compute a
+    // deterministic one after it.
+    const expiresAtMs = parseUtc(pledge.expires_at);
     const inForce = (o: OutcomeEnvelope) =>
-        o.pledge_id === pledge.id && !datedAfter(o.resolved_at, nowMs);
+        o.pledge_id === pledge.id &&
+        !datedAfter(o.resolved_at, nowMs) &&
+        (o.resolved_by === 'deterministic' || datedBefore(o.resolved_at, expiresAtMs));
     const outcome = input.outcome && inForce(input.outcome) ? input.outcome : null;
     const abandonment =
         input.abandonment &&
@@ -65,7 +70,6 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         return outcome.outcome;
     }
 
-    const expiresAtMs = parseUtc(pledge.expires_at);
     if (nowMs >= expiresAtMs) {
         return 'expired_unresolved';
     }
@@ -117,6 +121,15 @@ function parseUtc(s: string): number {
         Number(mi),
         Number(se),
     );
+}
+
+/** True when `iso` is a timestamp earlier than `ms`. */
+function datedBefore(iso: string, ms: number): boolean {
+    try {
+        return parseUtc(iso) < ms;
+    } catch {
+        return false;
+    }
 }
 
 /** True when `iso` is later than `nowMs`, or not a timestamp at all. */
