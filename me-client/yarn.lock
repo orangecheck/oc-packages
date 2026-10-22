@@ -266,9 +266,9 @@
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.8.0":
-  version "2.8.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.8.0.tgz#42a618538bcfd3d75276d4b3258bd92e71f5aef7"
-  integrity sha512-SURiCqABxbv9exWfzbUrNPGGDGgfl8XHjmX9Hy3ApUYKCRFSOsXwXc21fKT7Uz+o6OGYg/++7UcgFP+5m6b6Jg==
+  version "2.9.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.9.0.tgz#124fe0105dde4c9c6bf64252bad4c941fe56a431"
+  integrity sha512-29c0sU+kDUoZlrNv7uyGphqNmFx2ZpugotnTb7fG6IVXjrW8VSqI52d8qpOavtitTYa4WIORGtLDVMGygAQddA==
   dependencies:
     jose "^6.2.2"
 
@@ -818,9 +818,9 @@ is-potential-custom-element-name@^1.0.1:
   integrity sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==
 
 jose@^6.2.2:
-  version "6.2.3"
-  resolved "https://registry.npmjs.org/jose/-/jose-6.2.3.tgz#0975197ad973251221c658a3cddc4b951a250c2d"
-  integrity sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==
+  version "6.2.13"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.13.tgz#4e16bf3cc81b5641ef5025cb2c9f61edfa92572f"
+  integrity sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==
 
 joycon@^3.1.1:
   version "3.1.1"
