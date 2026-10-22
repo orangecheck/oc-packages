@@ -203,6 +203,18 @@ describe('caching', () => {
         // an outage doesn't all pile onto the upstream.
         expect(vi.mocked(check)).toHaveBeenCalledOnce();
     });
+
+    it('looks again after ten minutes, whatever cacheTtlMs asks for', async () => {
+        vi.mocked(check).mockResolvedValue({ ok: true, sats: 1, days: 1, score: 1 } as never);
+        const options: FilterOptions = { minSats: 100_000, cacheTtlMs: 24 * 60 * 60_000 };
+        const t0 = Date.now();
+
+        await filterEvent(evt(), options);
+        vi.spyOn(Date, 'now').mockReturnValue(t0 + 10 * 60_000 + 1_000);
+        await filterEvent(evt(), options);
+
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+    });
 });
 
 describe('TtlLru (real LRU on access, not FIFO)', () => {

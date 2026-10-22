@@ -185,7 +185,7 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 - **Fail closed by default.** If the verifier is unreachable, we reject. `failOpen: true` opts into degraded mode, and it covers only that: the lookup throws, or the signature verified and no Esplora endpoint answered. A key whose signature has not been checked yet, including in the first seconds after the plugin starts, is never let through.
 - **One bond, one key.** An address that backs more than one Nostr key admits none of them through that bond (`stake_shared`), as SECURITY.md §3 of the protocol requires. A holder who wants two keys gated uses two addresses.
 - **Only the signed message counts.** Event tags are indexes. A key is admitted only if the attestation's signed `identities:` line binds it, in npub or hex form.
-- **Freshness is bounded, not live.** The index re-reads bonds every `OC_REFRESH_MS`. `filterEvent` caches per pubkey for `cacheTtlMs`. Either way, pick the window your relay can tolerate a spent bond passing for.
+- **Freshness is bounded, not live.** The index re-reads bonds every `OC_REFRESH_MS`. `filterEvent` caches per pubkey for `cacheTtlMs`, at most ten minutes. Either way, pick the window your relay can tolerate a spent bond passing for.
 
 ---
 

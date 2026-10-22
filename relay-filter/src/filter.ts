@@ -11,6 +11,13 @@ const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
 // don't thundering-herd /api/check when upstream is flapping.
 const LOOKUP_ERROR_TTL_MS = 5_000;
 
+// A cached allow outlives a moved or revoked bond by at most this long.
+const MAX_CACHE_TTL_MS = 10 * 60_000;
+
+function cacheTtl(opts: FilterOptions): number {
+    return Math.min(opts.cacheTtlMs ?? 60_000, MAX_CACHE_TTL_MS);
+}
+
 /**
  * Process-wide cache. The old WeakMap<FilterOptions, …> design meant callers
  * who constructed a fresh options object per event (very common) never
@@ -27,7 +34,7 @@ function configSignature(opts: FilterOptions): string {
         (opts.allowPubkeys ?? []).slice().sort(),
         (opts.relays ?? []).slice().sort(),
         opts.cacheMax ?? 1_000,
-        opts.cacheTtlMs ?? 60_000,
+        cacheTtl(opts),
     ]);
 }
 
@@ -35,7 +42,7 @@ function cacheFor(opts: FilterOptions): TtlLru {
     const sig = configSignature(opts);
     let c = caches.get(sig);
     if (!c) {
-        c = new TtlLru(opts.cacheMax ?? 1_000, opts.cacheTtlMs ?? 60_000);
+        c = new TtlLru(opts.cacheMax ?? 1_000, cacheTtl(opts));
         caches.set(sig, c);
     }
     return c;

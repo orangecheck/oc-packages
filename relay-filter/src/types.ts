@@ -34,7 +34,7 @@ export interface FilterOptions {
 
     /**
      * How long the filter caches a per-pubkey decision. Default 60_000 ms
-     * (matches /api/check's cache).
+     * (matches /api/check's cache); capped at 10 minutes.
      */
     cacheTtlMs?: number;
     /** Max cache entries. Default 1_000. */

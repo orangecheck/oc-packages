@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.3] — 2026-10-22
+
+### Changed
+
+- `cacheTtlMs` is capped at 10 minutes, so a cached decision for a key is
+  looked up again within 10 minutes of a bond moving, whatever the option
+  asks for. The default stays 60 seconds.
+
 ## [0.5.2] — 2026-10-21
 
 ### Changed
