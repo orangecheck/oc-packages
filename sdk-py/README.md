@@ -188,7 +188,7 @@ event = verify_webhook(request.headers, raw_body)  # raises InvalidWebhook
 
 A token verifies until it expires, up to 30 days. To refuse one the person
 ended everywhere (signed out everywhere, removed a passkey, deleted the
-account), keep one `RevocationList` per process and pass it with the request's
+account), keep one `RevocationList` (2.8.0 or later) per process and pass it with the request's
 method. It reads those account cutoffs from me.ochk.io at most once a minute,
 signed with your secret:
 
@@ -201,6 +201,8 @@ session = verify_session(token, audience="https://your-site.example",
                          revocations=REVOCATIONS, method=request.method)
 # SessionEnded (an InvalidSession) when the person ended it. While the list
 # can't be read, reads go on and writes raise reason "revocations_unavailable".
+# If your own session replaces the token, keep its rh, aud and iat with that
+# session and ask REVOCATIONS.status(rh, aud, iat): "revoked" ends it.
 ```
 
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).

@@ -4,6 +4,27 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.8.0] — 2026-10-22
+
+### Changed — revocation by per-audience handle
+
+As `@orangecheck/auth-core` 2.12.0. A sign-in token carries `rh`, its revocation
+handle for its own audience; `RevocationList` looks it up in me.ochk.io's list of
+ended handles for that audience, one list per audience, fetched at most once a
+minute with a request signed over method, path and audience
+(`<t>.GET /api/integrator/revocations?project_key=…&aud=…`). The handles name
+nobody, and two sites' handles for one person never match.
+- `RevocationList.status(rh, aud, iat)` replaces `status(sub, iat)`. A token
+  without `rh` is `"live"`: checked by its signature alone.
+- A list's age is measured from its own `at`; one older than ten minutes, or dated
+  more than 60 s ahead, cannot vouch for a write.
+- The first failed fetch logs one warning (`orangecheck` logger).
+
+### Deprecated
+
+- 2.7.0. me.ochk.io answers its request with an empty list, which it reads as
+  "nothing ended". Use 2.8.0 or later.
+
 ## [2.7.0] — 2026-10-22
 
 ### Added — refuse a session the person ended everywhere

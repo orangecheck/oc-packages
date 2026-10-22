@@ -25,6 +25,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import logging
 import threading
 import time
 from collections.abc import Mapping
@@ -165,41 +166,36 @@ def _import_jwks(doc: Any) -> dict[str, Ed25519PublicKey]:
     return keys
 
 
-# ─── account cutoffs ─────────────────────────────────────────────────────
+# ─── revocation handles ──────────────────────────────────────────────────
 
 REVOCATIONS_URL = "https://me.ochk.io/api/integrator/revocations"
 _REVOCATIONS_TTL_SECONDS = 60
 _REVOCATIONS_MAX_STALE_SECONDS = 600
+_REVOCATIONS_SKEW_SECONDS = 60
 _REVOCATIONS_RETRY_SECONDS = 10
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+_log = logging.getLogger("orangecheck")
 
 
 def revocation_key(kind: str, value: str) -> str:
-    """The list's key for a token (``"jti"``) or an account (``"sub"``), as auth-core derives it."""
+    """The revocation store's key for a token (``"jti"``) or an account (``"sub"``), as auth-core derives it."""
     digest = hashlib.sha256(f"ocrev1:{kind}:{value}".encode("utf-8")).digest()[:16]
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-class RevocationList:
-    """
-    The account cutoffs (sign out everywhere, a passkey removed, an account
-    deleted) from me.ochk.io, fetched at most once a minute with a request
-    signed by your project secret, as ``@orangecheck/auth-core``'s
-    ``integratorRevocationCheck`` does. Make one per process and pass it to
-    :func:`verify_session`.
+class _AudienceList:
+    """me.ochk.io's ended handles for one audience, fetched at most once a minute."""
 
-    ``status`` is ``"revoked"``, ``"live"``, or ``"unverified"`` when no copy
-    younger than ten minutes could be read: then reads may go on, but a write
-    should not.
-    """
-
-    def __init__(self, project_key: str, signing_secret: str, *, url: str = REVOCATIONS_URL):
-        query = "project_key=" + quote(project_key, safe="-_.!~*'()")
-        self._url = f"{url}?{query}"
-        self._query = query
-        self._secret = signing_secret
-        self._tokens: set[str] = set()
-        self._accounts: dict[str, float] = {}
+    def __init__(self, owner: "RevocationList", aud: str):
+        self._owner = owner
+        self._path = (
+            "/api/integrator/revocations?project_key="
+            + quote(owner._project_key, safe="-_.!~*'()")
+            + "&aud="
+            + quote(aud, safe="-_.!~*'()")
+        )
+        self._handles: dict[str, float] = {}
+        self._at: Optional[float] = None
         self._fetched_at: Optional[float] = None
         self._failed_at = float("-inf")
         self._lock = threading.Lock()
@@ -207,34 +203,31 @@ class RevocationList:
     def _fetch(self) -> None:
         try:
             r = httpx.get(
-                self._url,
+                self._owner._base + self._path,
                 headers={
                     "Accept": "application/json",
-                    "X-OC-Signature": sign_event(self._secret, self._query),
+                    "X-OC-Signature": sign_event(self._owner._secret, f"GET {self._path}"),
                 },
                 timeout=3.0,
             )
             r.raise_for_status()
             doc = r.json()
-            if (
-                not isinstance(doc, dict)
-                or doc.get("v") != 1
-                or not isinstance(doc.get("tokens"), list)
-                or not isinstance(doc.get("accounts"), dict)
-            ):
+            if not isinstance(doc, dict) or doc.get("v") != 1:
                 raise ValueError("revocations: unexpected body")
-            self._tokens = {t for t in doc["tokens"] if isinstance(t, str)}
-            self._accounts = {
-                k: float(v)
-                for k, v in doc["accounts"].items()
-                if isinstance(v, (int, float)) and not isinstance(v, bool)
+            raw = doc.get("handles")
+            handles: dict[str, Any] = raw if isinstance(raw, dict) else {}
+            self._handles = {
+                k: float(v) for k, v in handles.items() if isinstance(v, (int, float)) and not isinstance(v, bool)
             }
+            at = doc.get("at")
+            self._at = float(at) if isinstance(at, (int, float)) and not isinstance(at, bool) else None
             self._fetched_at = time.time()
-        except (httpx.HTTPError, ValueError):
+        except (httpx.HTTPError, ValueError) as err:
             # Keep the last copy; try again after a short wait.
             self._failed_at = time.time()
+            self._owner._warn_once(err)
 
-    def status(self, sub: str, iat: Optional[float], jti: Optional[str] = None) -> str:
+    def status(self, rh: str, iat: Optional[float]) -> str:
         with self._lock:
             now = time.time()
             fresh = self._fetched_at is not None and now - self._fetched_at < _REVOCATIONS_TTL_SECONDS
@@ -242,12 +235,53 @@ class RevocationList:
                 self._fetch()
             if self._fetched_at is None:
                 return "unverified"
-            if jti is not None and revocation_key("jti", jti) in self._tokens:
-                return "revoked"
-            cutoff = self._accounts.get(revocation_key("sub", sub))
+            cutoff = self._handles.get(rh)
             if cutoff is not None and not (iat is not None and iat >= cutoff):
                 return "revoked"
-            return "unverified" if now - self._fetched_at > _REVOCATIONS_MAX_STALE_SECONDS else "live"
+            # The list's age is its own: an old copy served fresh is still old.
+            if self._at is None or self._at > now + _REVOCATIONS_SKEW_SECONDS:
+                return "unverified"
+            return "unverified" if now - self._at > _REVOCATIONS_MAX_STALE_SECONDS else "live"
+
+
+class RevocationList:
+    """
+    Sessions the person ended everywhere (sign out everywhere, a passkey removed,
+    an account deleted), as ``@orangecheck/auth-core``'s ``integratorRevocationCheck``
+    sees them. A sign-in token carries ``rh``, its revocation handle for its own
+    audience; this looks it up in me.ochk.io's list of ended handles for that
+    audience, fetched at most once a minute per audience with a request signed by
+    your project secret over method, path and audience. Make one per process and
+    pass it to :func:`verify_session`.
+
+    ``status(rh, aud, iat)`` is ``"revoked"``, ``"live"``, or ``"unverified"`` when
+    no list younger than ten minutes (by its own ``at``) could be read: then reads
+    may go on, but a write should not. A token without ``rh`` is ``"live"``: it is
+    checked by its signature alone.
+    """
+
+    def __init__(self, project_key: str, signing_secret: str, *, url: str = REVOCATIONS_URL):
+        self._project_key = project_key
+        self._secret = signing_secret
+        self._base = url[: -len("/api/integrator/revocations")] if url.endswith("/api/integrator/revocations") else url
+        self._lists: dict[str, _AudienceList] = {}
+        self._lists_lock = threading.Lock()
+        self._warned = False
+
+    def _warn_once(self, err: Exception) -> None:
+        if self._warned:
+            return
+        self._warned = True
+        _log.warning("orangecheck: the revocation list could not be read (%s); reads go on, writes are refused until it can", err)
+
+    def status(self, rh: Optional[str], aud: Optional[str], iat: Optional[float]) -> str:
+        if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
+            return "live"
+        with self._lists_lock:
+            lst = self._lists.get(aud)
+            if lst is None:
+                lst = self._lists[aud] = _AudienceList(self, aud)
+        return lst.status(rh, iat)
 
 
 # ─── sign-in tokens ──────────────────────────────────────────────────────
@@ -346,7 +380,8 @@ def verify_session(
         raise InvalidSession("audience")
 
     if revocations is not None:
-        state = revocations.status(payload["sub"], iat, payload["jti"])
+        token_aud = aud if isinstance(aud, str) else None
+        state = revocations.status(payload.get("rh"), token_aud, iat)
         if state == "revoked":
             raise SessionEnded()
         if state == "unverified" and (method or "").upper() not in _SAFE_METHODS:

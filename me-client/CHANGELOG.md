@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.35.0] — 2026-10-22
+
+Requires `@orangecheck/auth-core` `^2.12.0`.
+
+### Changed — revocation by per-audience handle
+
+- The server helpers look up a token's `rh` (its revocation handle for its own
+  audience) in me.ochk.io's list of ended handles for that audience, one list per
+  audience the site's tokens carry, so a site served from both `www` and the apex
+  is covered with one configuration. A token without `rh` is checked by its
+  signature alone. The list names nobody, and two sites' handles for one person
+  never match.
+
+### Deprecated
+
+- 0.34.0. me.ochk.io answers its request with an empty list, which it reads as
+  "nothing ended". Use 0.35.0 or later.
+
 ## [0.34.0] — 2026-10-22
 
 Requires `@orangecheck/auth-core` `^2.11.0`.

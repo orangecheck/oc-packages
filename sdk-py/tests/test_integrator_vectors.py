@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from urllib.parse import quote
 import pytest
 import respx
 
@@ -180,7 +181,7 @@ def test_webhook_fetches_me_ochk_io_dev_jwks(fresh_key_sets: None) -> None:
     assert route.call_count == 1
 
 
-# ─── account cutoffs ─────────────────────────────────────────────────────
+# ─── revocation handles ──────────────────────────────────────────────────
 
 R = V["revocation"]
 
@@ -189,10 +190,16 @@ def _revocations() -> RevocationList:
     return RevocationList(R["request"]["project_key"], R["request"]["secret"])
 
 
+def _serve_lists() -> None:
+    for aud, body in R["lists"].items():
+        url = f"https://me.ochk.io/api/integrator/revocations?project_key={R['request']['project_key']}&aud={quote(aud, safe='')}"
+        respx.get(url).mock(return_value=httpx.Response(200, json=body))
+
+
 @respx.mock
 def test_revocations_request_is_signed_as_the_node_sdk_signs_it() -> None:
-    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
-    _revocations().status("someone", 0)
+    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["lists"][R["request"]["aud"]]))
+    _revocations().status("any", R["request"]["aud"], 0)
     assert route.call_count == 1
     sent = route.calls[0].request
     assert str(sent.url) == R["request"]["url"]
@@ -207,29 +214,54 @@ def test_revocation_key_matches_the_node_sdk(v: dict[str, Any]) -> None:
 @respx.mock
 @pytest.mark.parametrize("v", R["sessions"], ids=lambda v: v["name"])
 def test_revocations_decide_as_the_node_sdk_does(v: dict[str, Any]) -> None:
-    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
-    assert _revocations().status(v["sub"], v["iat"]) == v["status"]
+    _serve_lists()
+    assert _revocations().status(v["rh"], v["aud"], v["iat"]) == v["status"]
 
 
 @respx.mock
-def test_revocations_are_fetched_at_most_once_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
-    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
+def test_a_token_with_no_handle_is_never_looked_up() -> None:
+    route = respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    assert _revocations().status(None, R["request"]["aud"], 0) == "live"
+    assert route.call_count == 0
+
+
+@respx.mock
+def test_revocations_are_fetched_at_most_once_a_minute_per_audience(monkeypatch: pytest.MonkeyPatch) -> None:
+    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["lists"][R["request"]["aud"]]))
     rl = _revocations()
-    rl.status("someone", 0)
-    rl.status("someone", 0)
+    rl.status("x", R["request"]["aud"], 0)
+    rl.status("x", R["request"]["aud"], 0)
     assert route.call_count == 1
     monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
-    rl.status("someone", 0)
+    rl.status("x", R["request"]["aud"], 0)
     assert route.call_count == 2
 
 
 @respx.mock
-def test_verify_session_refuses_a_session_its_account_cutoff_ends() -> None:
-    v = V["session"]["valid"][0]
-    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
-    assert s.iat is not None
-    feed = {"v": 1, "at": V["now"], "tokens": [], "accounts": {revocation_key("sub", s.sub): s.iat + 1}}
-    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=feed))
+def test_a_list_dated_too_old_or_too_far_ahead_cannot_vouch(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = dict(R["lists"][R["request"]["aud"]])
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=body))
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11 * 60))
+    assert _revocations().status("x", R["request"]["aud"], 0) == "unverified"
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] - 5 * 60))
+    assert _revocations().status("x", R["request"]["aud"], 0) == "unverified"
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] - 30))
+    assert _revocations().status("x", R["request"]["aud"], 0) == "live"
+
+
+def _rh_vector() -> dict[str, Any]:
+    return next(v for v in V["session"]["valid"] if v["claims"].get("rh"))
+
+
+@respx.mock
+def test_verify_session_refuses_a_session_whose_handle_is_ended() -> None:
+    v = _rh_vector()
+    url = f"https://me.ochk.io/api/integrator/revocations?project_key={R['request']['project_key']}&aud={quote(v['audience'], safe='')}"
+    respx.get(url).mock(return_value=httpx.Response(200, json={
+        "v": 1, "at": V["now"], "tokens": [], "accounts": {}, "handles": {v["claims"]["rh"]: v["claims"]["iat"] + 1},
+    }))
     with pytest.raises(SessionEnded) as err:
         verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=_revocations())
     assert isinstance(err.value, InvalidSession)
@@ -237,12 +269,17 @@ def test_verify_session_refuses_a_session_its_account_cutoff_ends() -> None:
 
 
 @respx.mock
-def test_verify_session_keeps_reads_and_refuses_writes_while_cutoffs_cannot_be_read() -> None:
-    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(503))
-    v = V["session"]["valid"][0]
+def test_verify_session_keeps_reads_refuses_writes_and_warns_once_while_the_list_cannot_be_read(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(return_value=httpx.Response(503))
+    v = _rh_vector()
     rl = _revocations()
-    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="GET")
-    assert s.sub == v["claims"]["sub"]
-    with pytest.raises(InvalidSession) as err:
-        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="POST")
-    assert err.value.reason == "revocations_unavailable"
+    with caplog.at_level("WARNING", logger="orangecheck"):
+        s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="GET")
+        assert s.sub == v["claims"]["sub"]
+        with pytest.raises(InvalidSession) as err:
+            verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="POST")
+        assert err.value.reason == "revocations_unavailable"
+    warnings = [r for r in caplog.records if r.name == "orangecheck" and r.levelname == "WARNING"]
+    assert len(warnings) == 1

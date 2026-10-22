@@ -249,7 +249,7 @@ app.get('/api/me', (c) => {
 
 ### Sessions ended everywhere
 
-Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a session the person ended everywhere: sign out everywhere, a passkey removed, the account deleted. They read those account cutoffs from me.ochk.io once a minute, with a request signed by your secret, so a refusal lands within about two minutes. If me.ochk.io can't be reached, reads go on and writes are refused until it can. Without the two variables, a token is checked by its signature alone and stays valid until it expires.
+Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a session the person ended everywhere: sign out everywhere, a passkey removed, the account deleted. A sign-in token carries `rh`, its revocation handle for your origin; they look it up in me.ochk.io's list of ended handles for that origin, read once a minute per origin with a request signed by your secret, so a refusal lands within about two minutes. The handles name nobody, and another site's handles for the same person never match yours. If the list can't be read, or is more than ten minutes old by its own clock, reads go on and writes are refused until it can. A token without `rh`, and every token while the two variables are unset, is checked by its signature alone and stays valid until it expires. Needs 0.35.0 or later.
 
 ## Browser popup signin
 

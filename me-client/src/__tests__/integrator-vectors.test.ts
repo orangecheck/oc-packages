@@ -132,14 +132,14 @@ describe('webhook signatures · oc.webhook.verify', () => {
 
 const R = (V as unknown as {
     revocation: {
-        request: { project_key: string; secret: string; timestamp: number; url: string; header: string };
+        request: { project_key: string; secret: string; timestamp: number; aud: string; url: string; signed: string; header: string };
         keys: { sub: string; key: string }[];
-        feed: { v: 1; at: number; tokens: string[]; accounts: Record<string, number> };
-        sessions: { name: string; sub: string; iat: number | null; status: string }[];
+        lists: Record<string, { v: 1; at: number; tokens: string[]; accounts: Record<string, number>; handles: Record<string, number> }>;
+        sessions: { name: string; aud: string; rh: string | null; iat: number | null; status: string }[];
     };
 }).revocation;
 
-describe('vectors · account cutoffs', () => {
+describe('vectors · revocation handles', () => {
     const seen: { url: string; signature: string | null }[] = [];
     const check = () =>
         integratorRevocationCheck({
@@ -148,21 +148,24 @@ describe('vectors · account cutoffs', () => {
             now: () => R.request.timestamp * 1000,
             fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
                 seen.push({ url: String(url), signature: new Headers(init?.headers).get('x-oc-signature') });
-                return Response.json(R.feed);
+                const aud = new URL(String(url)).searchParams.get('aud') ?? '';
+                return Response.json(R.lists[aud]);
             }) as typeof fetch,
         })!;
 
     it('signs the request as the vector does', async () => {
-        await check().status({ sub: 'x', iat: 0 });
+        await check().status({ sub: 'x', iat: 0, aud: R.request.aud, rh: 'any' });
         expect(seen.at(-1)).toEqual({ url: R.request.url, signature: R.request.header });
     });
 
-    it.each(R.keys)('derives the key for $sub', async (v) => {
+    it.each(R.keys)('derives the account key for $sub', async (v) => {
         expect(await revocationKey('sub', v.sub)).toBe(v.key);
     });
 
     it.each(R.sessions)('decides: $name', async (v) => {
         const c = check();
-        expect(await c.status({ sub: v.sub, iat: v.iat ?? undefined, jti: 'j' })).toBe(v.status);
+        expect(
+            await c.status({ sub: 'x', jti: 'j', aud: v.aud, rh: v.rh ?? undefined, iat: v.iat ?? undefined })
+        ).toBe(v.status);
     });
 });

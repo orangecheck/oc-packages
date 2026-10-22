@@ -1,5 +1,5 @@
 {
-    "description": "Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and account cutoffs. Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). Regenerate with node scripts/gen-integrator-vectors.mjs.",
+    "description": "Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and revocation handles. Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). Regenerate with node scripts/gen-integrator-vectors.mjs.",
     "now": 1800000000,
     "session": {
         "issuer": "https://ochk.io",
@@ -37,6 +37,20 @@
                     "iat": 1799999940,
                     "exp": 1800003600,
                     "aud": "https://soniq.example"
+                }
+            },
+            {
+                "name": "carries a revocation handle",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktcmgiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJ0di1yaC0wMDAxIiwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.FJILjGMfYrqR-NCJZB9WVt_rbgIwGgmlWdes6dLJ9Kwb-hD0v0fE3KVQrHcu_qrGVjNvmTaMpqAop_-nWZE-BA",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-rh",
+                    "iat": 1799999940,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001"
                 }
             },
             {
@@ -260,8 +274,10 @@
             "project_key": "pk_test_tv",
             "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
             "timestamp": 1800000000,
-            "url": "https://me.ochk.io/api/integrator/revocations?project_key=pk_test_tv",
-            "header": "t=1800000000,v1=c1a481e4f19882e00e02974b750e4abb45fa420f639febb26845649d959aeb9d"
+            "aud": "https://site.example",
+            "url": "https://me.ochk.io/api/integrator/revocations?project_key=pk_test_tv&aud=https%3A%2F%2Fsite.example",
+            "signed": "GET /api/integrator/revocations?project_key=pk_test_tv&aud=https%3A%2F%2Fsite.example",
+            "header": "t=1800000000,v1=89c45672a958e70745c2225db639aa4a78a5d059676f69055a28f99c065110e8"
         },
         "keys": [
             {
@@ -269,38 +285,111 @@
                 "key": "5MfG_Ix0iWsGOA3OmCNGSA"
             }
         ],
-        "feed": {
-            "v": 1,
-            "at": 1800000000,
-            "tokens": [],
-            "accounts": {
-                "5MfG_Ix0iWsGOA3OmCNGSA": 1799999900
+        "handles": [
+            {
+                "key": "rh-vector-key-0123456789abcdef0123456789",
+                "account_key": "5MfG_Ix0iWsGOA3OmCNGSA",
+                "aud": "https://site.example",
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw"
+            },
+            {
+                "key": "rh-vector-key-0123456789abcdef0123456789",
+                "account_key": "5MfG_Ix0iWsGOA3OmCNGSA",
+                "aud": "https://www.site.example",
+                "rh": "k3HSXlckePufx5kraPQhpQ"
+            }
+        ],
+        "lists": {
+            "https://site.example": {
+                "v": 1,
+                "at": 1800000000,
+                "tokens": [],
+                "accounts": {},
+                "handles": {
+                    "mkMrKS_qd0aD4ZZYbwxamw": 1799999900
+                }
+            },
+            "https://www.site.example": {
+                "v": 1,
+                "at": 1800000000,
+                "tokens": [],
+                "accounts": {},
+                "handles": {
+                    "k3HSXlckePufx5kraPQhpQ": 1799999900
+                }
             }
         },
         "sessions": [
             {
                 "name": "issued before the cutoff",
-                "sub": "acct-tv-0001",
+                "aud": "https://site.example",
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
                 "iat": 1799996400,
                 "status": "revoked"
             },
             {
                 "name": "issued in the cutoff second",
-                "sub": "acct-tv-0001",
+                "aud": "https://site.example",
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
                 "iat": 1799999900,
                 "status": "live"
             },
             {
                 "name": "no iat",
-                "sub": "acct-tv-0001",
+                "aud": "https://site.example",
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
                 "iat": null,
                 "status": "revoked"
             },
             {
+                "name": "the www origin of the same site",
+                "aud": "https://www.site.example",
+                "rh": "k3HSXlckePufx5kraPQhpQ",
+                "iat": 1799996400,
+                "status": "revoked"
+            },
+            {
                 "name": "another account",
-                "sub": "acct-tv-0002",
+                "aud": "https://site.example",
+                "rh": "IS1tCNG0yy2VD4FiainCIg",
                 "iat": 1799996400,
                 "status": "live"
+            },
+            {
+                "name": "a handle for another audience",
+                "aud": "https://site.example",
+                "rh": "k3HSXlckePufx5kraPQhpQ",
+                "iat": 1799996400,
+                "status": "live"
+            },
+            {
+                "name": "no handle: signature only",
+                "aud": "https://site.example",
+                "rh": null,
+                "iat": 1799996400,
+                "status": "live"
+            }
+        ],
+        "audiences": [
+            {
+                "aud": "https://site.example",
+                "canonical": true
+            },
+            {
+                "aud": "https://www.site.example",
+                "canonical": true
+            },
+            {
+                "aud": "https://Site.example",
+                "canonical": false
+            },
+            {
+                "aud": "https://site.example:443",
+                "canonical": false
+            },
+            {
+                "aud": "https://site.example/",
+                "canonical": false
             }
         ]
     }

@@ -68,6 +68,12 @@ const sessionVectors = {
     valid: [
         { name: 'bound to this site', token: good, audience: SITE, claims: drop(base, 'iss') },
         {
+            name: 'carries a revocation handle',
+            token: await jwt({ ...base, jti: 'tv-jti-rh', rh: 'tv-rh-0001' }),
+            audience: SITE,
+            claims: { ...drop(base, 'iss'), jti: 'tv-jti-rh', rh: 'tv-rh-0001' },
+        },
+        {
             name: 'carries a coin backing claim',
             token: await jwt({ ...base, jti: 'tv-jti-2', oc_bond: { v: 1, sats_floor: 100000, days_floor: 30 } }),
             audience: SITE,
@@ -157,33 +163,60 @@ const webhookVectors = {
     ],
 };
 
-// The account cutoffs an integrator reads (auth-core integratorRevocationCheck,
-// sdk-py RevocationList): the signed request, a feed, and what it decides.
+// The ended sessions an integrator reads (auth-core integratorRevocationCheck,
+// sdk-py RevocationList): a token carries rh, its handle for its own audience,
+// HMAC(key, "ocrev-rh:" + account feed key + "|" + aud) under a key only ochk.io
+// and me.ochk.io hold; me.ochk.io serves the ended handles for one audience.
 const revKey = (sub) =>
     createHash('sha256').update(`ocrev1:sub:${sub}`).digest().subarray(0, 16).toString('base64url');
+const RH_KEY = 'rh-vector-key-0123456789abcdef0123456789';
+const rh = (accountKey, aud) =>
+    createHmac('sha256', RH_KEY).update(`ocrev-rh:${accountKey}|${aud}`).digest().subarray(0, 16).toString('base64url');
 const REV_SUB = 'acct-tv-0001';
-const revQuery = `project_key=${encodeURIComponent('pk_test_tv')}`;
+const AK = revKey(REV_SUB);
+const REV_SITE = 'https://site.example';
+const REV_WWW = 'https://www.site.example';
+const listPath = (aud) =>
+    `/api/integrator/revocations?project_key=${encodeURIComponent('pk_test_tv')}&aud=${encodeURIComponent(aud)}`;
+const list = (aud) => ({ v: 1, at: NOW, tokens: [], accounts: {}, handles: { [rh(AK, aud)]: NOW - 100 } });
 const revocationVectors = {
     request: {
         project_key: 'pk_test_tv',
         secret: SECRET,
         timestamp: NOW,
-        url: `https://me.ochk.io/api/integrator/revocations?${revQuery}`,
-        header: `t=${NOW},v1=${createHmac('sha256', SECRET).update(`${NOW}.${revQuery}`).digest('hex')}`,
+        aud: REV_SITE,
+        url: `https://me.ochk.io${listPath(REV_SITE)}`,
+        signed: `GET ${listPath(REV_SITE)}`,
+        header: `t=${NOW},v1=${createHmac('sha256', SECRET).update(`${NOW}.GET ${listPath(REV_SITE)}`).digest('hex')}`,
     },
-    keys: [{ sub: REV_SUB, key: revKey(REV_SUB) }],
-    feed: { v: 1, at: NOW, tokens: [], accounts: { [revKey(REV_SUB)]: NOW - 100 } },
+    keys: [{ sub: REV_SUB, key: AK }],
+    handles: [
+        { key: RH_KEY, account_key: AK, aud: REV_SITE, rh: rh(AK, REV_SITE) },
+        { key: RH_KEY, account_key: AK, aud: REV_WWW, rh: rh(AK, REV_WWW) },
+    ],
+    lists: { [REV_SITE]: list(REV_SITE), [REV_WWW]: list(REV_WWW) },
     sessions: [
-        { name: 'issued before the cutoff', sub: REV_SUB, iat: NOW - 3600, status: 'revoked' },
-        { name: 'issued in the cutoff second', sub: REV_SUB, iat: NOW - 100, status: 'live' },
-        { name: 'no iat', sub: REV_SUB, iat: null, status: 'revoked' },
-        { name: 'another account', sub: 'acct-tv-0002', iat: NOW - 3600, status: 'live' },
+        { name: 'issued before the cutoff', aud: REV_SITE, rh: rh(AK, REV_SITE), iat: NOW - 3600, status: 'revoked' },
+        { name: 'issued in the cutoff second', aud: REV_SITE, rh: rh(AK, REV_SITE), iat: NOW - 100, status: 'live' },
+        { name: 'no iat', aud: REV_SITE, rh: rh(AK, REV_SITE), iat: null, status: 'revoked' },
+        { name: 'the www origin of the same site', aud: REV_WWW, rh: rh(AK, REV_WWW), iat: NOW - 3600, status: 'revoked' },
+        { name: 'another account', aud: REV_SITE, rh: rh(revKey('acct-tv-0002'), REV_SITE), iat: NOW - 3600, status: 'live' },
+        { name: 'a handle for another audience', aud: REV_SITE, rh: rh(AK, REV_WWW), iat: NOW - 3600, status: 'live' },
+        { name: 'no handle: signature only', aud: REV_SITE, rh: null, iat: NOW - 3600, status: 'live' },
+    ],
+    // What me.ochk.io accepts as aud: exactly the origin ochk.io mints. An SDK sends the token's aud as it is.
+    audiences: [
+        { aud: 'https://site.example', canonical: true },
+        { aud: 'https://www.site.example', canonical: true },
+        { aud: 'https://Site.example', canonical: false },
+        { aud: 'https://site.example:443', canonical: false },
+        { aud: 'https://site.example/', canonical: false },
     ],
 };
 
 const doc = {
     description:
-        'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and account cutoffs. ' +
+        'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and revocation handles. ' +
         'Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). ' +
         'Regenerate with node scripts/gen-integrator-vectors.mjs.',
     now: NOW,
