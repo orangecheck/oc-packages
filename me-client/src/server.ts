@@ -275,7 +275,6 @@ export interface WithOcAuthOptions extends OcSessionOptions {
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
 /** Where someone turned away for want of backing can back their account. */
 export const BACK_ACCOUNT_URL = 'https://ochk.app/me/account#backing';
-/** Keys me.ochk.io answered 404 for, and when; re-checked after a minute. */
 /** A moment on both clocks: performance.now() and the wall clock. */
 type Stamp = { mono: number; wall: number };
 const stamp = (): Stamp => ({ mono: performance.now(), wall: Date.now() });
@@ -285,6 +284,7 @@ const stamp = (): Stamp => ({ mono: performance.now(), wall: Date.now() });
  * stretch a minute, a ten-second wait or the ten-minute standing.
  */
 const since = (s: Stamp) => Math.max(performance.now() - s.mono, Date.now() - s.wall);
+/** Keys me.ochk.io answered 404 for, and when; re-checked after a minute. */
 const unknownKeys = new Map<string, Stamp>();
 const UNKNOWN_PROJECT = Symbol('unknown_project');
 const POLICY_TTL_MS = 60_000;
