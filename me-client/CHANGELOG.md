@@ -31,9 +31,10 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - `projectKey`: a request with no session is not held to the project's sign-in
   rule and never waits on reading it, so pages that serve signed-out people keep
-  working while me.ochk.io can't be reached. Pass `required: true` to answer such
-  a request 401, as before. A signed-in request is held to the rule as in 0.36.1.
-  An explicit `requireBond` still implies `required`.
+  working while me.ochk.io can't be reached. **A project rule no longer refuses
+  signed-out requests by itself: set `required: true` if a route must refuse
+  them.** A signed-in request is held to the rule as in 0.36.1. An explicit
+  `requireBond` still implies `required`.
 
 ## [0.36.1] — 2026-10-22
 
