@@ -49,6 +49,21 @@ describe('makeAnchorVerifier with the built-in OTS parser', () => {
         expect(await v(BARE_B64, BLOCK_HEIGHT, blockHashOf(hexDecode(altered)), HELLO_DIGEST)).toBe(false);
     });
 
+    it('answers no for a proof or id that is not even encoded right', async () => {
+        expect(await verify('not base64!', BLOCK_HEIGHT, BLOCK_HASH, HELLO_DIGEST)).toBe(false);
+        expect(await verify(BARE_B64, BLOCK_HEIGHT, BLOCK_HASH, 'xyz')).toBe(false);
+    });
+
+    it('throws, rather than answering no, when the header source does not answer', async () => {
+        // mempoolHeaderSource on a 503: the check could not be made, so stamp-core
+        // reports the anchor as unchecked, never as E_BAD_ANCHOR.
+        const down = mempoolHeaderSource({
+            fetch: (async () => new Response('down', { status: 503 })) as unknown as typeof fetch,
+        });
+        const v = makeAnchorVerifier({ headerSource: down });
+        await expect(v(BARE_B64, BLOCK_HEIGHT, BLOCK_HASH, HELLO_DIGEST)).rejects.toThrow(/HTTP 503/);
+    });
+
     it('rejects the placeholder proof in the protocol test vectors', async () => {
         const placeholder = 'AE9wZW5UaW1lc3RhbXBzAABDb25maXJtZWQtRml4dHVyZS1ibG9jay04OTAxMjMtbm90LWEtcmVhbC1wcm9vZg==';
         expect(await verify(placeholder, 890123, BLOCK_HASH, HELLO_DIGEST)).toBe(false);

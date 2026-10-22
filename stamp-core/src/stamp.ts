@@ -180,14 +180,22 @@ export async function verify(input: VerifyInput): Promise<VerifyResult> {
             return err('E_BAD_ANCHOR', 'confirmed OTS proof missing block_height or block_hash');
         }
         if (input.verifyOtsAnchor) {
-            let verified: boolean;
+            let verified: boolean | null;
+            let reason = '';
             try {
                 verified = await input.verifyOtsAnchor(env.ots.proof, h, hash, env.id);
             } catch (e) {
-                return err('E_BAD_ANCHOR', `anchor verifier threw: ${(e as Error).message}`);
+                // A check that could not be made is not a failed one: no header was read.
+                verified = null;
+                reason = e instanceof Error ? e.message : String(e);
             }
-            if (!verified) return err('E_BAD_ANCHOR', 'OTS proof did not chain to declared Bitcoin block header');
-            anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified: true };
+            if (verified === null) {
+                anchor = { status: 'unchecked', blockHeight: h, blockHash: hash, verified: false, reason };
+            } else if (!verified) {
+                return err('E_BAD_ANCHOR', 'OTS proof did not chain to declared Bitcoin block header');
+            } else {
+                anchor = { status: 'confirmed', blockHeight: h, blockHash: hash, verified: true };
+            }
         } else {
             // The ots block is outside the signature: without a walk, the block is a claim.
             anchor = { status: 'claimed', blockHeight: h, blockHash: hash, verified: false };

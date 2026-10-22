@@ -128,6 +128,11 @@ export interface VerifyInput {
      * Without this hook a confirmed proof is reported as `claimed`: the `ots` block is
      * not covered by the signature, so its block is the envelope's say-so until a
      * verifier walks the proof (SPEC §6.3). Only a passing hook yields `confirmed`.
+     *
+     * Resolve `false` only for a decided no: the header was read and the proof does
+     * not lead to it (`E_BAD_ANCHOR`). Throw when the check could not be made, for
+     * example when the header source did not answer: the anchor is then reported as
+     * `unchecked`, with the reason, never as `E_BAD_ANCHOR` (SPEC §8.1 step 5).
      */
     verifyOtsAnchor?: (
         proofB64: string,
@@ -162,6 +167,8 @@ export interface VerifyOk {
         | { status: 'none' }
         | { status: 'pending' }
         | { status: 'claimed'; blockHeight: number; blockHash: string; verified: false }
+        /** `verifyOtsAnchor` could not make the check (headers unreachable); try again. */
+        | { status: 'unchecked'; blockHeight: number; blockHash: string; verified: false; reason: string }
         | { status: 'confirmed'; blockHeight: number; blockHash: string; verified: true };
 }
 

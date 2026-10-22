@@ -95,13 +95,18 @@ export function makeAnchorVerifier(
         return { ok: true, merkleRoot: hexEncode(headerMerkle) };
     };
 
+    // Resolves false for a decided no. Throws only when the check could not be made
+    // (the header source did not answer), which stamp-core reports as unchecked.
     return async (proofB64, blockHeight, blockHash, envelopeId) => {
-        const r = await verifier({
-            proofBytes: base64Decode(proofB64),
-            digest: hexDecode(envelopeId),
-            blockHeight,
-            blockHash,
-        });
+        let proofBytes: Uint8Array;
+        let digest: Uint8Array;
+        try {
+            proofBytes = base64Decode(proofB64);
+            digest = hexDecode(envelopeId);
+        } catch {
+            return false;
+        }
+        const r = await verifier({ proofBytes, digest, blockHeight, blockHash });
         return r.ok;
     };
 }

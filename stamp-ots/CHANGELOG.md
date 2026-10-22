@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.1] — 2026-10-22
+
+### Fixed
+
+- `makeAnchorVerifier`'s function resolves `false` for a proof or envelope id
+  that does not decode, and throws only when the header source cannot be read.
+  With stamp-core 1.4.0 that throw is an `unchecked` anchor, not `E_BAD_ANCHOR`.
+
 ## [0.6.0] — 2026-10-22
 
 ### Changed

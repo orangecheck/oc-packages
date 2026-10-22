@@ -53,7 +53,7 @@ anything else rather than rounding it.
 ## Exports
 
 - `stamp(input)` → `StampEnvelope` — build a signed envelope. Leaves `ots: null`; anchoring is a later step.
-- `verify(input)` → `VerifyResult` — full verification algorithm per SPEC §8. Returns a discriminated `{ok: true, ...} | {ok: false, code, message}`. Without `verifyBip322` (and without `skipSignatureVerification`) it fails closed with `E_BAD_SIG`.
+- `verify(input)` → `VerifyResult` — full verification algorithm per SPEC §8. Returns a discriminated `{ok: true, ...} | {ok: false, code, message}`. Without `verifyBip322` (and without `skipSignatureVerification`) it fails closed with `E_BAD_SIG`. With `verifyOtsAnchor`, an anchor whose block header could not be read is `anchor.status: 'unchecked'` with a `reason`, never `E_BAD_ANCHOR`: check it again later.
 - `parseStamp(textOrValue)` → `StampEnvelope` — checks an untrusted envelope's shape and types (SPEC §4.1, §4.2) and returns it typed, or throws `StampError` (`E_UNSUPPORTED_VERSION` for a `v` other than 1, else `E_MALFORMED`). Shape only; verify() checks the id, signature and anchor.
 - `isSignedAt(value)` → `boolean` — the SPEC §0 timestamp rule stamp(), verify() and parseStamp() share.
 - `canonicalMessage(input)` → `string` — the six lines hashed into the id. The wallet signs the id, not these lines.

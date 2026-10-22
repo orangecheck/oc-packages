@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.4.0] — 2026-10-22
+
+### Changed — a check that could not be made is `unchecked`
+
+- `verifyOtsAnchor` resolves `false` for a decided no, the header read and the
+  proof not leading to it, which is `E_BAD_ANCHOR`. It throws when the check
+  could not be made, for example when the header source does not answer.
+- `verify()` reports a throwing `verifyOtsAnchor` as
+  `anchor: { status: 'unchecked', blockHeight, blockHash, verified: false, reason }`,
+  never as `E_BAD_ANCHOR` (SPEC §8.1 step 5, errata 1.0.6). The signature and id
+  results stand; check the anchor again later.
+- `VerifyOk['anchor']` gains the `unchecked` variant. Code that switches on
+  `anchor.status` exhaustively handles it alongside `claimed`.
+
 ## [1.3.0] — 2026-10-21
 
 ### Added — `parseStamp`, the edge for an envelope from outside

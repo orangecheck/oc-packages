@@ -260,6 +260,37 @@ describe('verify()', () => {
         if (!r.ok) expect(r.code).toBe('E_BAD_ANCHOR');
     });
 
+    it('reports an anchor it could not check as unchecked, never E_BAD_ANCHOR', async () => {
+        const env = await freshEnv({
+            ots: {
+                status: 'confirmed',
+                proof: 'xxx',
+                calendars: ['x'],
+                block_height: 1,
+                block_hash: '0'.repeat(64),
+                upgraded_at: '2026-04-24T19:00:00Z',
+            },
+        });
+        // What makeAnchorVerifier does when mempoolHeaderSource gets a 503: it throws.
+        const r = await verify({
+            envelope: env,
+            skipSignatureVerification: true,
+            verifyOtsAnchor: async () => {
+                throw new Error('header lookup failed: HTTP 503 from https://mempool.space/api/block-height/1');
+            },
+        });
+        expect(r.ok).toBe(true);
+        if (r.ok) {
+            expect(r.anchor).toMatchObject({
+                status: 'unchecked',
+                blockHeight: 1,
+                blockHash: '0'.repeat(64),
+                verified: false,
+            });
+            expect(r.anchor.status === 'unchecked' && r.anchor.reason).toMatch(/HTTP 503/);
+        }
+    });
+
     it('returns E_BAD_SIG when no verifier supplied and skipSignatureVerification is false', async () => {
         const env = await freshEnv();
         const r = await verify({ envelope: env });
