@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.6.1] — 2026-10-22
+
+### Added
+
+- `distinctBallotCopies(ballots)`: collapses byte-identical copies of the
+  ballots read from relays, signature included, and keeps every copy that
+  differs. `tally` takes every copy and verifies each one before it picks one
+  ballot per voter; `ballot_id` leaves out `sig.value`, so a caller must not
+  keep one copy per `ballot_id` before calling it.
+
 ## [1.6.0] — 2026-10-22
 
 As oc-vote-protocol's errata of 2026-10-22 (SPEC §0, §3.3, §4.3, §6.4, §8, §10.3).

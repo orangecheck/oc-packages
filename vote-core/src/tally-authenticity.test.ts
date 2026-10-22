@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { commit } from './commit.js';
 import { ballotId, pollId, revealId } from './ids.js';
-import { tally } from './tally.js';
+import { distinctBallotCopies, tally } from './tally.js';
 import type { Ballot, Poll, Reveal } from './types.js';
 import { isMainnetAddress, parseUtc, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 
@@ -222,6 +222,28 @@ describe('poll signature (SPEC §10.1)', () => {
     ])('verifyPoll rejects: %s', async (_name, over, code) => {
         const r = await verifyPoll(mkPoll(over as Partial<Poll>), verify);
         expect(r).toMatchObject({ ok: false, code });
+    });
+});
+
+describe('copies of one ballot (ballot_id leaves out sig.value)', () => {
+    const poll = mkPoll();
+    const yes = mkBallot(poll, ALICE, { option: 'yes' });
+    const no = mkBallot(poll, BOB, { option: 'no' });
+    const badCopy = { ...no, sig: { ...no.sig, value: 'bad' } };
+
+    it('a copy whose signature fails does not take the ballot\'s place, in either order', async () => {
+        for (const ballots of [
+            [yes, badCopy, no],
+            [yes, no, badCopy],
+        ]) {
+            const r = await tally({ poll, ballots: distinctBallotCopies(ballots), utxosAt: oneUtxo, verify });
+            expect(r).toMatchObject({ tallies: { yes: 1, no: 1 }, turnout: { voters: 2 } });
+        }
+    });
+
+    it('distinctBallotCopies collapses byte-identical copies and keeps every copy that differs', () => {
+        const same = { ...no, sig: { ...no.sig } };
+        expect(distinctBallotCopies([no, same, badCopy, no])).toEqual([no, badCopy]);
     });
 });
 

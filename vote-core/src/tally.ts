@@ -8,6 +8,7 @@
 // to skip with `skipSignatures: true` (the test-vector harness, whose fixtures
 // carry deliberately fake signatures).
 
+import { canonicalBytes } from './canonical.js';
 import { commit as computeCommit } from './commit.js';
 import { ballotId, pollId } from './ids.js';
 import { POLL_VERSION } from './types.js';
@@ -25,6 +26,12 @@ import { isSupportedMode, voterWeight } from './weight.js';
 
 export interface TallyOptions {
     poll: Poll;
+    /**
+     * Every copy of every ballot read, not one per `ballot_id`. `ballot_id`
+     * leaves out `sig.value`, so copies with one id can carry different
+     * signatures; tally verifies each copy before it picks one ballot per
+     * voter. Collapse only byte-identical copies, with `distinctBallotCopies`.
+     */
     ballots: Ballot[];
     utxosAt: UtxoLookup;
     /**
@@ -298,6 +305,28 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         turnout: { voters: turnoutVoters, weight: turnoutWeight },
         tallies,
     };
+}
+
+/**
+ * The ballots read from relays with byte-identical copies (signature included)
+ * collapsed, in first-seen order. Copies that differ in anything, `sig.value`
+ * included, are all kept: pass them all to `tally`, which verifies each.
+ */
+export function distinctBallotCopies(ballots: Ballot[]): Ballot[] {
+    const seen = new Set<string>();
+    const out: Ballot[] = [];
+    for (const b of ballots) {
+        let key: string;
+        try {
+            key = canonicalBytes(b);
+        } catch {
+            continue;
+        }
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(b);
+    }
+    return out;
 }
 
 function hasOwn(obj: object, key: string): boolean {

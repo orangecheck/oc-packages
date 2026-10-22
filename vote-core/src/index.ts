@@ -16,7 +16,7 @@ export {
     totalQualifyingSats,
     voterWeight,
 } from './weight.js';
-export { tally } from './tally.js';
+export { distinctBallotCopies, tally } from './tally.js';
 export type { TallyOptions } from './tally.js';
 export { isMainnetAddress, parseUtc, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 export {
