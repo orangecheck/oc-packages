@@ -654,6 +654,10 @@ class _Clocks:
         self.wall += seconds
         self.mono += seconds
 
+    def pause(self, seconds: float) -> None:
+        """A suspended host: the wall clock moves on, the monotonic one does not."""
+        self.wall += seconds
+
 
 @respx.mock
 def test_a_wall_clock_set_back_does_not_let_the_last_rule_stand_past_ten_minutes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -756,3 +760,94 @@ def test_a_wall_clock_set_back_does_not_extend_the_wait_before_fetching_the_key_
     clocks.run(10.001)
     keys.get(kid)
     assert route.call_count == 3
+
+
+# ─── a pause the monotonic clock slept through ───────────────────────────
+
+
+@respx.mock
+def test_after_a_pause_the_list_is_read_again_and_a_session_ended_during_it_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    ended: dict[str, float] = {}
+    route = respx.get(R["request"]["url"]).mock(side_effect=lambda request: httpx.Response(200, json={
+        "v": 1, "at": clocks.wall, "tokens": [], "accounts": {}, "handles": dict(ended),
+    }))
+    rl = _revocations()
+    assert rl.status("rh-1", R["request"]["aud"], V["now"] - 60) == "live"
+    ended["rh-1"] = V["now"]
+    clocks.pause(3 * 3600)
+    assert rl.status("rh-1", R["request"]["aud"], V["now"] - 60) == "revoked"
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_after_a_pause_a_list_from_before_it_cannot_vouch(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    respx.get(R["request"]["url"]).mock(side_effect=[
+        httpx.Response(200, json={"v": 1, "at": V["now"], "tokens": [], "accounts": {}, "handles": {}}),
+    ] + [httpx.Response(503)] * 3)
+    rl = _revocations()
+    assert rl.status("x", R["request"]["aud"], 0) == "live"
+    clocks.pause(3 * 3600)
+    assert rl.status("x", R["request"]["aud"], 0) == "unverified"
+
+
+@respx.mock
+def test_after_a_pause_the_rule_is_read_again_or_stops_standing(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    respx.get(SIGN_IN).mock(side_effect=[
+        httpx.Response(200, json={"ok": True, "require_bond": None}),
+        httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 100000, "min_days": 0}}),
+        httpx.Response(503),
+        httpx.Response(503),
+    ])
+    policy = SignInPolicy("pk_test_tv")
+    assert policy.requirement() is None
+    clocks.pause(3 * 3600)
+    assert policy.requirement() == {"min_sats": 100000, "min_days": 0}
+    clocks.pause(3 * 3600)
+    with pytest.raises(InvalidSession) as err:
+        policy.requirement()
+    assert err.value.reason == "bond_policy_unavailable"
+
+
+@respx.mock
+def test_a_pause_does_not_stretch_the_wait_before_reading_the_rule_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(503))
+    policy = SignInPolicy("pk_test_tv")
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    clocks.pause(11)
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_after_a_pause_the_key_set_is_fetched_again_and_a_dropped_key_is_gone(
+    fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clocks = _Clocks(monkeypatch)
+    route = respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(200, json={"keys": []})] * 2
+    )
+    kid = V["session"]["jwks"]["keys"][0]["kid"]
+    assert integrator._session_keys.get(kid) is not None
+    clocks.pause(2 * 3600)
+    assert integrator._session_keys.get(kid) is None
+    assert route.call_count == 3  # the hourly read, then the read for a key it no longer has
+
+
+@respx.mock
+def test_a_list_dated_ahead_vouches_once_a_lagging_clock_catches_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json={
+        "v": 1, "at": V["now"] + 90, "tokens": [], "accounts": {}, "handles": {},
+    }))
+    rl = _revocations()
+    assert rl.status("x", R["request"]["aud"], 0) == "unverified"
+    # NTP steps the wall clock forward 31 s; the copy is still inside its minute.
+    clocks.wall += 31
+    clocks.mono += 1
+    assert rl.status("x", R["request"]["aud"], 0) == "live"

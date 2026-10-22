@@ -276,7 +276,16 @@ type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
 /** Where someone turned away for want of backing can back their account. */
 export const BACK_ACCOUNT_URL = 'https://ochk.app/me/account#backing';
 /** Keys me.ochk.io answered 404 for, and when; re-checked after a minute. */
-const unknownKeys = new Map<string, number>();
+/** A moment on both clocks: performance.now() and the wall clock. */
+type Stamp = { mono: number; wall: number };
+const stamp = (): Stamp => ({ mono: performance.now(), wall: Date.now() });
+/**
+ * Time since a stamp: the longer of the two readings, so neither a wall clock
+ * set back nor a pause performance.now() slept through (a suspended host) can
+ * stretch a minute, a ten-second wait or the ten-minute standing.
+ */
+const since = (s: Stamp) => Math.max(performance.now() - s.mono, Date.now() - s.wall);
+const unknownKeys = new Map<string, Stamp>();
 const UNKNOWN_PROJECT = Symbol('unknown_project');
 const POLICY_TTL_MS = 60_000;
 /** After a failed read, how long before me.ochk.io is asked again. */
@@ -284,11 +293,9 @@ const POLICY_RETRY_MS = 10_000;
 /** How long the last rule read stands while it can't be read again. */
 const POLICY_MAX_STALE_MS = 600_000;
 type ProjectRule = BondNeed | null | undefined | typeof UNKNOWN_PROJECT;
-/** Read times are on the monotonic clock, so a wall clock set back can't extend them. */
-const policies = new Map<string, { at: number | null; need: BondNeed | null; failedAt?: number }>();
+const policies = new Map<string, { at: Stamp | null; need: BondNeed | null; failedAt?: Stamp }>();
 /** The read in flight for each project: requests that arrive together share it. */
 const policyReads = new Map<string, Promise<ProjectRule>>();
-const monotonic = () => performance.now();
 
 const isFloor = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
 
@@ -303,9 +310,9 @@ function readRequirement(body: unknown): BondNeed | null | undefined {
 }
 
 /** The last rule read, while it is younger than ten minutes; undefined after. */
-function standing(slot: string, now: number): BondNeed | null | undefined {
+function standing(slot: string): BondNeed | null | undefined {
     const hit = policies.get(slot);
-    return hit?.at != null && now - hit.at < POLICY_MAX_STALE_MS ? hit.need : undefined;
+    return hit?.at && since(hit.at) < POLICY_MAX_STALE_MS ? hit.need : undefined;
 }
 
 /**
@@ -321,12 +328,11 @@ async function projectRequirement(options: WithOcAuthOptions): Promise<ProjectRu
     const base = (options.meOrigin ?? 'https://me.ochk.io').replace(/\/$/, '');
     const key = options.projectKey!;
     const slot = `${base} ${key}`;
-    const now = monotonic();
     const unknownAt = unknownKeys.get(slot);
-    if (unknownAt !== undefined && now - unknownAt < POLICY_TTL_MS) return UNKNOWN_PROJECT;
+    if (unknownAt && since(unknownAt) < POLICY_TTL_MS) return UNKNOWN_PROJECT;
     const hit = policies.get(slot);
-    if (hit?.at != null && now - hit.at < POLICY_TTL_MS) return hit.need;
-    if (hit?.failedAt !== undefined && now - hit.failedAt < POLICY_RETRY_MS) return standing(slot, now);
+    if (hit?.at && since(hit.at) < POLICY_TTL_MS) return hit.need;
+    if (hit?.failedAt && since(hit.failedAt) < POLICY_RETRY_MS) return standing(slot);
     let read = policyReads.get(slot);
     if (!read) {
         read = readProjectRule(base, key, slot).finally(() => policyReads.delete(slot));
@@ -347,21 +353,20 @@ async function readProjectRule(base: string, key: string, slot: string): Promise
                     `[@orangecheck/me-client] projectKey "${key}" is not a project. Copy yours from https://ochk.app/me/projects.`
                 );
             }
-            unknownKeys.set(slot, monotonic());
+            unknownKeys.set(slot, stamp());
             return UNKNOWN_PROJECT;
         }
         unknownKeys.delete(slot);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const need = readRequirement(await r.json());
         if (need === undefined) throw new Error('unexpected body');
-        policies.set(slot, { at: monotonic(), need });
+        policies.set(slot, { at: stamp(), need });
         return need;
     } catch {
         // The wait counts from the failure, not from when the read began.
-        const failedAt = monotonic();
         const hit = policies.get(slot);
-        policies.set(slot, { at: hit?.at ?? null, need: hit?.need ?? null, failedAt });
-        return standing(slot, failedAt);
+        policies.set(slot, { at: hit?.at ?? null, need: hit?.need ?? null, failedAt: stamp() });
+        return standing(slot);
     }
 }
 

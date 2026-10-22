@@ -257,6 +257,82 @@ describe("createRevocationCheck · a wall clock that steps back", () => {
   });
 });
 
+describe("createRevocationCheck · a host paused, its monotonic clock stopped", () => {
+  // A suspended machine or a restored snapshot: the wall clock moves on, the monotonic one does not.
+  let mono = 0;
+  const paused = (extra: Parameters<typeof createRevocationCheck>[0] = {}) =>
+    check({ clock: () => mono, ...extra });
+  const SITE = "https://site.example";
+  let list: { v: 1; at: number; tokens: string[]; accounts: Record<string, number>; handles: Record<string, number> };
+  let up = true;
+  let reads = 0;
+  const integrator = () =>
+    integratorRevocationCheck({
+      projectKey: "pk_live_abc123",
+      signingSecret: "f".repeat(64),
+      fetch: vi.fn(async () => {
+        reads++;
+        if (!up) throw new TypeError("fetch failed");
+        return Response.json({ ...list, at: nowSec() });
+      }) as unknown as typeof fetch,
+      now,
+      clock: () => mono,
+    })!;
+  const tok = () => ({ ...session(), aud: SITE, rh: "rh-site" });
+
+  beforeEach(() => {
+    mono = 5_000_000;
+    list = { v: 1, at: nowSec(), tokens: [], accounts: {}, handles: {} };
+    up = true;
+    reads = 0;
+  });
+
+  it("reads the list again after a pause, and refuses a session ended during it", async () => {
+    const c = integrator();
+    const t = tok();
+    expect(await c.refuses(t, "POST")).toBe(false);
+    list.handles = { "rh-site": t.iat + 1 };
+    clock += 3 * 3600_000;
+    expect(await c.refuses(t, "POST")).toBe(true);
+    expect(reads).toBe(2);
+  });
+
+  it("does not let a copy from before the pause vouch for a write", async () => {
+    const c = paused();
+    await c.status(session());
+    reachable = false;
+    clock += 3 * 3600_000;
+    expect(await c.refuses(session(), "POST")).toBe(true);
+    expect(await c.refuses(session(), "GET")).toBe(false);
+  });
+
+  it("does not stretch the wait before asking a failing host again", async () => {
+    reachable = false;
+    const c = paused();
+    await c.status(session());
+    clock += 10_001;
+    await c.status(session());
+    expect(fetches).toHaveLength(2);
+  });
+
+  it("stops refusing writes once a lagging wall clock catches up with the list's own time", async () => {
+    // The list says it was made 90 s from now: this clock lags past the 60 s allowed.
+    list.at = nowSec() + 90;
+    const lagging = integratorRevocationCheck({
+      projectKey: "pk_live_abc123",
+      signingSecret: "f".repeat(64),
+      fetch: vi.fn(async () => Response.json(list)) as unknown as typeof fetch,
+      now,
+      clock: () => mono,
+    })!;
+    expect(await lagging.refuses(tok(), "POST")).toBe(true);
+    // NTP steps the wall clock forward 31 s; the copy is still inside its minute.
+    clock += 31_000;
+    mono += 1_000;
+    expect(await lagging.refuses(tok(), "POST")).toBe(false);
+  });
+});
+
 describe("familyRevocationCheck", () => {
   it("is one check per process, read from the environment", async () => {
     vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "env-token");

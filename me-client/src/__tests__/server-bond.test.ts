@@ -348,3 +348,42 @@ describe('withOcAuth · requests that arrive together', () => {
         expect(configReads).toBe(1);
     });
 });
+
+describe('withOcAuth · the rule after a pause the monotonic clock slept through', () => {
+    // A suspended host: the wall clock moves on, performance.now() does not.
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+        vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('reads the rule again, and holds the account to a floor set during the pause', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_pause_floor' };
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        expect((await call(await token(), opts)).ran).toBe(true);
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 100_000, min_days: 0 } } };
+        vi.setSystemTime(new Date('2026-10-16T15:00:00Z'));
+        expect((await call(await token(), opts)).status).toBe(403);
+        expect(configReads).toBe(2);
+    });
+
+    it('does not let the last rule stand past ten minutes of wall time', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_pause_outage' };
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        expect((await call(await token(), opts)).ran).toBe(true);
+        config = { status: 503, body: {} };
+        vi.setSystemTime(new Date('2026-10-16T15:00:00Z'));
+        const r = await call(await token(), opts);
+        expect(r.ran).toBe(false);
+        expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+    });
+
+    it('does not stretch the wait before asking again', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_pause_retry' };
+        config = { status: 503, body: {} };
+        await call(await token(), opts);
+        vi.setSystemTime(new Date('2026-10-16T12:00:11Z'));
+        await call(await token(), opts);
+        expect(configReads).toBe(2);
+    });
+});

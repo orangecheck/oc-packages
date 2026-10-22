@@ -76,9 +76,11 @@ export interface RevocationCheckOptions {
   /** The wall clock, ms: what the list's own `at` is read against. Default `Date.now`. */
   now?: () => number;
   /**
-   * A clock that never steps back, ms, on which a copy's age and the wait
-   * after a failed fetch are measured, so a wall clock set back cannot extend
-   * either. Default `performance.now()`; when only `now` is given, `now`.
+   * A clock that never steps back, ms. A copy's age and the wait after a
+   * failed fetch are the longer of the time on it and on the wall clock, so
+   * neither a wall clock set back nor a pause this clock slept through (a
+   * suspended host) can extend them. Default `performance.now()`; when only
+   * `now` is given, `now`.
    */
   clock?: () => number;
 }
@@ -91,6 +93,8 @@ interface Snapshot {
   at: number | null;
   /** When this process fetched it, on the monotonic clock. */
   fetchedAt: number;
+  /** When this process fetched it, on the wall clock. */
+  wallAtFetch: number;
   /** How old the list already was when fetched, by the wall clock, ms. */
   ageAtFetch: number;
 }
@@ -143,7 +147,8 @@ function parseFeed(body: unknown, fetchedAt: number, wallAtFetch: number): Snaps
     }
   }
   const at = typeof b.at === "number" && Number.isFinite(b.at) ? b.at : null;
-  return { tokens, accounts, handles, at, fetchedAt, ageAtFetch: at === null ? Infinity : wallAtFetch - at * 1000 };
+  const ageAtFetch = at === null ? Infinity : wallAtFetch - at * 1000;
+  return { tokens, accounts, handles, at, fetchedAt, wallAtFetch, ageAtFetch };
 }
 
 /**
@@ -170,6 +175,10 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   let snapshot: Snapshot | null = null;
   let inflight: Promise<void> | null = null;
   let failedAt = -Infinity;
+  let failedWall = -Infinity;
+  // Time since a moment stamped on both clocks: the longer reading, so neither a
+  // wall clock set back nor a pause the monotonic clock slept through shortens it.
+  const since = (mono: number, wall: number) => Math.max(clock() - mono, now() - wall);
   let warned = false;
   const warn = (msg: string) => {
     if (warned) return;
@@ -195,12 +204,12 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   }
 
   async function current(): Promise<Snapshot | null> {
-    const t = clock();
-    if (snapshot && t - snapshot.fetchedAt < ttlMs) return snapshot;
-    if (t - failedAt < retryMs) return snapshot;
+    if (snapshot && since(snapshot.fetchedAt, snapshot.wallAtFetch) < ttlMs) return snapshot;
+    if (since(failedAt, failedWall) < retryMs) return snapshot;
     inflight ??= load()
       .catch((err: unknown) => {
         failedAt = clock();
+        failedWall = now();
         warn(`${err instanceof Error ? err.message : String(err)}; using the last copy`);
       })
       .finally(() => {
@@ -238,13 +247,14 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   }
 
   function tooOld(snap: Snapshot): boolean {
-    const held = clock() - snap.fetchedAt;
-    if (staleFrom === "fetch") return held > maxStaleMs;
+    if (staleFrom === "fetch") return since(snap.fetchedAt, snap.wallAtFetch) > maxStaleMs;
     if (snap.at === null) return true;
-    // The list's age by its own time, read against the wall clock once, when
-    // fetched, and grown on the monotonic clock since.
-    if (snap.ageAtFetch < -skewMs) return true;
-    return snap.ageAtFetch + held > maxStaleMs;
+    const at = snap.at * 1000;
+    // Dated ahead of this clock: judged on each call, so it ends once the clock catches up.
+    if (at > now() + skewMs) return true;
+    // The list's age by its own time: its age when fetched grown on the monotonic
+    // clock, or read against the wall clock now, whichever is longer.
+    return Math.max(snap.ageAtFetch + (clock() - snap.fetchedAt), now() - at) > maxStaleMs;
   }
 
   return {

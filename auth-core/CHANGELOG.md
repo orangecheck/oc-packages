@@ -13,14 +13,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [2.13.0] — 2026-10-22
 
-### Changed — a wall clock set back no longer extends a revocation list
+### Changed — neither a clock set back nor a paused host stretches a revocation list
 
 - A server whose wall clock stepped back kept a copy of the list past its minute,
   waited longer before asking a failing host again, and held an old list as if it
   were younger. How long a copy has been held and how long since a failed fetch
-  are now measured on a monotonic clock (`performance.now()`), and a list's age by
-  its own `at` is read against the wall clock once, when fetched, then grown on
-  the monotonic clock.
+  are now the longer of the time on a monotonic clock (`performance.now()`) and on
+  the wall clock, so a pause the monotonic clock sleeps through (a suspended host,
+  a restored snapshot) can't stretch them either. A list's age by its own `at` is
+  the longer of its age at fetch grown on the monotonic clock and its age by the
+  wall clock now, and a list dated ahead of this clock is judged on every check, so
+  it can vouch again once the clock catches up.
 
 ### Added
 

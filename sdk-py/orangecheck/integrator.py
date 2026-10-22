@@ -99,10 +99,16 @@ class Session:
 
 
 def _clock() -> float:
-    """Seconds on a clock that never steps back: every cache here measures how long
-    it has held a copy, and how long since a failed read, on it. A wall clock set
-    back must not extend either."""
+    """Seconds on a clock that never steps back."""
     return time.monotonic()
+
+
+def _since(mono: float, wall: float) -> float:
+    """Seconds since a moment stamped on both clocks: the longer reading. Every cache
+    here measures how long it has held a copy, and how long since a failed read, this
+    way, so neither a wall clock set back nor a pause the monotonic clock slept
+    through (a suspended host) can stretch a minute, a wait or a stand-in."""
+    return max(_clock() - mono, time.time() - wall)
 
 
 def _finite(v: Any) -> bool:
@@ -186,8 +192,9 @@ class _KeySet:
         self._keys: dict[str, Ed25519PublicKey] = {}
         self._retired: dict[str, float] = {}
         self._fetched_at: Optional[float] = None
-        self._forced_at = float("-inf")
-        self._failed_at = float("-inf")
+        self._fetched_wall = float("-inf")
+        self._forced_at = self._forced_wall = float("-inf")
+        self._failed_at = self._failed_wall = float("-inf")
         self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
@@ -202,10 +209,10 @@ class _KeySet:
             doc = r.json()
             self._keys = _import_jwks(doc)
             self._retired = _retired_at(doc)
-            self._fetched_at = _clock()
+            self._fetched_at, self._fetched_wall = _clock(), time.time()
             self._error = None
         except (httpx.HTTPError, ValueError) as err:
-            self._failed_at = _clock()
+            self._failed_at, self._failed_wall = _clock(), time.time()
             self._error = _failure_reason(err)
             # Stale on error: a key set seen before keeps working through an outage, for a while.
             if not self._keys or self._held() >= _JWKS_MAX_STALE_SECONDS:
@@ -213,13 +220,13 @@ class _KeySet:
 
     def _held(self) -> float:
         """How long the copy has been held; forever when there is none."""
-        return float("inf") if self._fetched_at is None else _clock() - self._fetched_at
+        return float("inf") if self._fetched_at is None else _since(self._fetched_at, self._fetched_wall)
 
     def _refresh(self) -> None:
         """Fetch once the copy is an hour old; while fetches fail, try again at most every ten seconds."""
         if self._held() < _JWKS_TTL_SECONDS:
             return
-        if _clock() - self._failed_at >= _JWKS_RETRY_SECONDS:
+        if _since(self._failed_at, self._failed_wall) >= _JWKS_RETRY_SECONDS:
             self._fetch()
         elif not self._keys or self._held() >= _JWKS_MAX_STALE_SECONDS:
             raise ValueError("key set unavailable")
@@ -243,8 +250,8 @@ class _KeySet:
             self._refresh()
             key = self._keys.get(kid)
             # A key that rotated in since the last fetch: refetch, at most once a minute.
-            if key is None and _clock() - self._forced_at >= _FORCED_REFRESH_MIN_SECONDS:
-                self._forced_at = _clock()
+            if key is None and _since(self._forced_at, self._forced_wall) >= _FORCED_REFRESH_MIN_SECONDS:
+                self._forced_at, self._forced_wall = _clock(), time.time()
                 self._fetch()
                 key = self._keys.get(kid)
             return key
@@ -317,7 +324,8 @@ class _AudienceList:
         # How old the list already was when fetched, by the wall clock.
         self._age_at_fetch = float("inf")
         self._fetched_at: Optional[float] = None
-        self._failed_at = float("-inf")
+        self._fetched_wall = float("-inf")
+        self._failed_at = self._failed_wall = float("-inf")
         self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
@@ -352,52 +360,53 @@ class _AudienceList:
             at: Any = doc.get("at")
             self._at = float(at) if _finite(at) else None
             self._age_at_fetch = float("inf") if self._at is None else time.time() - self._at
-            self._fetched_at = _clock()
+            self._fetched_at, self._fetched_wall = _clock(), time.time()
             self._error = None
         except (httpx.HTTPError, ValueError) as err:
             # Keep the last copy; try again after a short wait.
-            self._failed_at = _clock()
+            self._failed_at, self._failed_wall = _clock(), time.time()
             self._error = _failure_reason(err)
             self._owner._warn_once(err)
 
-    def _refresh(self, now: float) -> None:
-        fresh = self._fetched_at is not None and now - self._fetched_at < _REVOCATIONS_TTL_SECONDS
-        if not fresh and now - self._failed_at >= _REVOCATIONS_RETRY_SECONDS:
+    def _refresh(self) -> None:
+        fresh = self._fetched_at is not None and _since(self._fetched_at, self._fetched_wall) < _REVOCATIONS_TTL_SECONDS
+        if not fresh and _since(self._failed_at, self._failed_wall) >= _REVOCATIONS_RETRY_SECONDS:
             self._fetch()
 
-    def _cannot_vouch(self, now: float) -> Optional[str]:
+    def _cannot_vouch(self) -> Optional[str]:
         """Why the copy held can't say a session is live, or None when it can."""
         if self._fetched_at is None:
             return self._error or "no list read yet"
-        # The list's age is its own, read against the wall clock once, when it was
-        # fetched, and grown on the monotonic clock since: an old copy served fresh is
-        # still old, and a wall clock set back does not make it younger.
-        if self._at is None or self._age_at_fetch < -_REVOCATIONS_SKEW_SECONDS:
+        wall = time.time()
+        # Dated ahead of this clock: judged on each call, so it ends once the clock catches up.
+        if self._at is None or self._at > wall + _REVOCATIONS_SKEW_SECONDS:
             return "the list's own time is missing or ahead of this clock"
-        if self._age_at_fetch + (now - self._fetched_at) > _REVOCATIONS_MAX_STALE_SECONDS:
+        # The list's age is its own: its age when fetched grown on the monotonic clock,
+        # or read against the wall clock now, whichever is longer. An old copy served
+        # fresh is still old; neither a clock set back nor a pause makes it younger.
+        age = max(self._age_at_fetch + (_clock() - self._fetched_at), wall - self._at)
+        if age > _REVOCATIONS_MAX_STALE_SECONDS:
             return "the list is older than ten minutes by its own clock"
         return None
 
     def warm(self) -> WarmPart:
         with self._lock:
-            now = _clock()
             before = self._fetched_at
-            self._refresh(now)
-            problem = self._error or self._cannot_vouch(now)
+            self._refresh()
+            problem = self._error or self._cannot_vouch()
             if problem:
                 return WarmPart("failed", problem)
             return _FETCHED if self._fetched_at != before else _KEPT
 
     def status(self, rh: str, iat: Optional[float]) -> str:
         with self._lock:
-            now = _clock()
-            self._refresh(now)
+            self._refresh()
             if self._fetched_at is None:
                 return "unverified"
             cutoff = self._handles.get(rh)
             if cutoff is not None and not (iat is not None and iat >= cutoff):
                 return "revoked"
-            return "unverified" if self._cannot_vouch(now) else "live"
+            return "unverified" if self._cannot_vouch() else "live"
 
 
 class RevocationList:
@@ -523,8 +532,9 @@ class SignInPolicy:
         self._url = me_origin.rstrip("/") + "/api/integrator/" + quote(project_key, safe="") + "/sign-in"
         self._need: Optional[dict[str, int]] = None
         self._read_at: Optional[float] = None
-        self._failed_at = float("-inf")
-        self._unknown_at = float("-inf")
+        self._read_wall = float("-inf")
+        self._failed_at = self._failed_wall = float("-inf")
+        self._unknown_at = self._unknown_wall = float("-inf")
         self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
@@ -535,45 +545,44 @@ class SignInPolicy:
     def requirement(self) -> Optional[dict[str, int]]:
         """``{"min_sats", "min_days"}``, or None for no requirement. Raises :class:`InvalidSession` as described above."""
         with self._lock:
-            return self._requirement(_clock())
+            return self._requirement()
 
-    def _requirement(self, now: float) -> Optional[dict[str, int]]:
-        if now - self._unknown_at < _POLICY_TTL_SECONDS:
+    def _requirement(self) -> Optional[dict[str, int]]:
+        if _since(self._unknown_at, self._unknown_wall) < _POLICY_TTL_SECONDS:
             raise InvalidSession("unknown_project_key")
-        if self._read_at is not None and now - self._read_at < _POLICY_TTL_SECONDS:
+        if self._read_at is not None and _since(self._read_at, self._read_wall) < _POLICY_TTL_SECONDS:
             return self._need
-        if now - self._failed_at < _POLICY_RETRY_SECONDS:
-            return self._stand_in(now)
+        if _since(self._failed_at, self._failed_wall) < _POLICY_RETRY_SECONDS:
+            return self._stand_in()
         try:
             r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
             if r.status_code == 404:
-                self._unknown_at = _clock()
+                self._unknown_at, self._unknown_wall = _clock(), time.time()
                 raise InvalidSession("unknown_project_key")
             r.raise_for_status()
             self._need = _read_requirement(r.json())
-            self._read_at = _clock()
+            self._read_at, self._read_wall = _clock(), time.time()
             self._error = None
             return self._need
         except (httpx.HTTPError, ValueError) as err:
             # The wait counts from the failure, not from when the read began.
-            self._failed_at = _clock()
+            self._failed_at, self._failed_wall = _clock(), time.time()
             self._error = _failure_reason(err)
-            return self._stand_in(self._failed_at)
+            return self._stand_in()
 
     def _warm(self) -> WarmPart:
         with self._lock:
             before = self._read_at
             try:
-                self._requirement(_clock())
+                self._requirement()
             except InvalidSession as err:
                 return WarmPart("failed", self._error if err.reason == "bond_policy_unavailable" and self._error else err.reason)
             if self._read_at != before:
                 return _FETCHED
             return WarmPart("failed", self._error) if self._error else _KEPT
 
-    def _stand_in(self, now: Optional[float] = None) -> Optional[dict[str, int]]:
-        now = _clock() if now is None else now
-        if self._read_at is None or now - self._read_at >= _POLICY_MAX_STALE_SECONDS:
+    def _stand_in(self) -> Optional[dict[str, int]]:
+        if self._read_at is None or _since(self._read_at, self._read_wall) >= _POLICY_MAX_STALE_SECONDS:
             raise InvalidSession("bond_policy_unavailable")
         return self._need
 

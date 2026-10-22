@@ -15,9 +15,10 @@ Requires `@orangecheck/auth-core` `^2.13.0`.
 ### Fixed
 
 - A server whose wall clock stepped back let the last sign-in rule stand past ten
-  minutes and waited longer before asking me.ochk.io again. Both are measured on a
-  monotonic clock now (`performance.now()`), as auth-core 2.13.0 measures the list
-  of ended sessions.
+  minutes and waited longer before asking me.ochk.io again. Both are the longer of
+  the time on `performance.now()` and on the wall clock now, so neither a clock set
+  back nor a paused host stretches them, as auth-core 2.13.0 measures the list of
+  ended sessions.
 - Requests that arrive together while the rule is being read share that one read
   instead of each asking me.ochk.io.
 - `checkOcSession` reads the list of ended sessions once per request and decides
