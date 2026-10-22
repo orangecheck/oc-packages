@@ -50,24 +50,16 @@ export interface OcAccount {
     displayName?: string | null;
     nostrNpub?: string | null;
     /**
-     * Slug of the federation this user is bound to (their "home"
-     * federation). Multi-federation routing reads this; null/undefined
-     * means "not yet bound — fall back to the directory default at
-     * /api/federations". v1 has one live federation, so this is set on
-     * first signin and rarely changes.
+     * @deprecated Always null: the auth host no longer sets it. Where a
+     * person's sats sit is me.ochk.io's to say (`/api/me/balance`).
      */
     homeFederation?: string | null;
     /**
-     * Where this user is on the custody-state graph:
-     *
-     *   - 'fedimint_threshold' — federation custody (OC-introduced)
-     *   - 'fedimint_client'    — federation custody (user-picked)
-     *   - 'bip322'             — full self-custody
-     *
-     * Graduation is the product thesis. Treat undefined as
-     * 'fedimint_threshold' for `did:email:` addresses and 'bip322' for
-     * Bitcoin addresses (the default-by-construction mapping for
-     * tokens minted before this field shipped).
+     * Whether the account signs with its own Bitcoin key, derived by the
+     * auth host from its verified linked identities; no one can set it.
+     * 'bip322' when a BIP-322-verified address is linked, otherwise
+     * 'fedimint_threshold'. 'fedimint_client' is reserved and never set.
+     * It says who holds the signing key, never who holds the sats.
      */
     signingMethod?: 'fedimint_threshold' | 'fedimint_client' | 'bip322' | null;
     /**

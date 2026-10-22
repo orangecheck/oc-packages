@@ -96,34 +96,20 @@ export interface SessionPayload extends JWTPayload {
   /** Optional Nostr npub set by the user. Same lifecycle as `name`. */
   npub?: string | null;
   /**
-   * Slug of the federation this user is bound to (their "home"
-   * federation). Multi-federation routing reads this; v1 has one live
-   * federation so it's set on first signin and rarely changes. Absent
-   * on tokens minted before this field shipped, and on accounts that
-   * have never bound to a federation. Consumers fall back to the
-   * directory default at /api/federations when absent.
+   * @deprecated No longer minted. Where a person's sats sit is me.ochk.io's
+   * to say, per federation, from its own ledger (`/api/me/balance`).
    */
   home_federation?: string | null;
   /**
-   * Discriminator recording where this user is on the custody-state
-   * graph. Three legitimate states:
+   * Whether the account signs with its own Bitcoin key. The auth host
+   * derives it at every mint from the account's verified linked
+   * identities; no one can set it.
    *
-   *   - 'fedimint_threshold' — federation custody via the OC-introduced
-   *     federation (default for email-OTP signups; OC's threshold
-   *     guardians hold key shares).
-   *   - 'fedimint_client'    — user moved their balance to a Fedimint
-   *     federation they picked themselves (still federation custody,
-   *     but on a federation OC didn't introduce).
-   *   - 'bip322'             — full self-custody. The user signs with
-   *     their own Bitcoin key. OC has zero authority over their funds.
+   *   - 'bip322'             — a BIP-322-verified Bitcoin address is linked.
+   *   - 'fedimint_threshold' — none is, so the account holds no key here.
+   *   - 'fedimint_client'    — reserved; never minted.
    *
-   * Graduation is the product thesis. This field is the structural
-   * primitive that records progress along the custody-state graph;
-   * transitions are recorded as anchored "rebind" envelopes. Absent
-   * on tokens minted before the field shipped — consumers should
-   * treat undefined as 'fedimint_threshold' for email-OTP identities
-   * and 'bip322' for BIP-322 identities (the default-by-construction
-   * mapping).
+   * It says who holds the signing key, never who holds the sats.
    */
   signing_method?: "fedimint_threshold" | "fedimint_client" | "bip322" | null;
   /**

@@ -9,7 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Deprecated
+
+- `SessionPayload.home_federation`. The auth host no longer sets it, so it is always
+  null. Where a person's sats sit is me.ochk.io's to say, per federation
+  (`/api/me/balance`).
+
+### Changed
+
+- `SessionPayload.signing_method` is documented as what it now is: derived by the auth
+  host from the account's verified linked identities, and only about who holds
+  the signing key. No one can set it.
 
 ## [2.9.0] — 2026-10-20
 
