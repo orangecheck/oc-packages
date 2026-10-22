@@ -4,6 +4,14 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.5.2] — 2026-10-22
+
+### Fixed — an agent pledge's agent is never its swearer
+
+As `@orangecheck/pledge-core` 3.2.2 (SPEC §7.3). `verify_pledge` refuses an
+envelope whose `agent_address` equals `swearer.address` (`E_PLEDGE_MALFORMED`).
+Vector `v33`.
+
 ## [2.5.1] — 2026-10-22
 
 ### Fixed — a signed outcome dated after expires_at comes too late

@@ -356,12 +356,23 @@ def _outcome_stub(pledge_id: str, outcome: str, resolved_at: str) -> dict[str, A
     }
 
 
-# ─── Shape C — malformed-input (v28) ──────────────────────────────────────
+# ─── Shape C — malformed-input (v28, v33) ──────────────────────────────────
 
 
 def _run_malformed(vec: dict[str, Any]) -> None:
     inputs = vec["inputs"]
     expected_error = vec["expected"]["error"]
+
+    # v33: a whole envelope that verification MUST refuse.
+    if "envelope" in inputs:
+        r = verify_pledge(
+            inputs["envelope"],
+            skip_signature_verification=True,
+            skip_delegation_verification=True,
+        )
+        assert not r.ok
+        assert r.code == expected_error
+        return
 
     class _NoopSigner:
         def __init__(self, address: str) -> None:

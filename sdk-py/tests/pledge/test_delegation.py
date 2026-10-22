@@ -183,6 +183,30 @@ def test_verify_passes_with_delegation():
     assert r.ok
 
 
+def test_verify_refuses_agent_address_equal_to_swearer():
+    # via_delegation and agent_address are outside the id, so anyone can add
+    # them to a copy of a pledge the swearer signed directly (SPEC §7.3).
+    copy = dict(_pledge(), agent_address="bc1qprincipal")
+    copy["sig"] = dict(copy["sig"], pubkey="bc1qprincipal")
+    self_delegation = _delegation({"agent": "bc1qprincipal"})
+    for kwargs in (
+        {"skip_delegation_verification": True},
+        {"delegation_lookup": lambda _id, _now: self_delegation},
+    ):
+        r = verify_pledge(copy, skip_signature_verification=True, **kwargs)
+        assert not r.ok
+        assert (r.code, r.message) == (
+            "E_PLEDGE_MALFORMED",
+            "envelope.agent_address must differ from swearer.address (§7.3)",
+        )
+    audit = verify_pledge_as_of_sworn_at(
+        copy,
+        skip_signature_verification=True,
+        delegation_lookup=lambda _id, _now: self_delegation,
+    )
+    assert not audit.ok
+
+
 def test_verify_e_delegation_not_found_when_lookup_returns_none():
     r = verify_pledge(
         _pledge(),

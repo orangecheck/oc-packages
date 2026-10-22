@@ -228,6 +228,33 @@ describe('checkPledgeCreateScope', () => {
 });
 
 describe('verifyPledge — delegationLookup integration', () => {
+    // via_delegation and agent_address are outside the id, so anyone can add
+    // them to a copy of a pledge the swearer signed directly (§7.3).
+    it('refuses agent_address equal to the swearer, whatever the lookup says', async () => {
+        const copy = pledge({
+            agent_address: 'bc1qprincipal',
+            sig: { alg: 'bip322', pubkey: 'bc1qprincipal', value: 'AAAA' },
+        });
+        const self = delegation({ agent: 'bc1qprincipal' });
+        for (const input of [
+            { skipDelegationVerification: true },
+            { delegationLookup: async () => self },
+        ]) {
+            const r = await verifyPledge({ envelope: copy, skipSignatureVerification: true, ...input });
+            expect(r.ok).toBe(false);
+            if (!r.ok) expect([r.code, r.message]).toEqual([
+                'E_PLEDGE_MALFORMED',
+                'envelope.agent_address must differ from swearer.address (§7.3)',
+            ]);
+        }
+        const audit = await verifyPledgeAsOfSwornAt({
+            envelope: copy,
+            skipSignatureVerification: true,
+            delegationLookup: async () => self,
+        });
+        expect(audit.ok).toBe(false);
+    });
+
     it('passes when delegation resolves cleanly with pledge:create scope', async () => {
         const r = await verifyPledge({
             envelope: pledge(),

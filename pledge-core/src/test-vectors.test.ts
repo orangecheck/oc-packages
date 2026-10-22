@@ -498,9 +498,21 @@ async function runMalformedVector(vec: AnyVector) {
     const expected = vec.expected;
     const expectedError = expected['error'] as string;
 
-    // v28 (the only Shape C vector currently): empty-nonce pledge. Build the
-    // canonical input from the vector's fields and assert createPledge()
-    // throws PledgeError with the SPEC error code (E_PLEDGE_MALFORMED).
+    // v33: a whole envelope that verification MUST refuse.
+    if (i['envelope']) {
+        const r = await verifyPledge({
+            envelope: i['envelope'] as PledgeEnvelope,
+            skipSignatureVerification: true,
+            skipDelegationVerification: true,
+        });
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe(expectedError);
+        return;
+    }
+
+    // v28: empty-nonce pledge. Build the canonical input from the vector's
+    // fields and assert createPledge() throws PledgeError with the SPEC error
+    // code (E_PLEDGE_MALFORMED).
     const canon = pledgeCanonFromInputs(i);
 
     let thrown: PledgeError | null = null;

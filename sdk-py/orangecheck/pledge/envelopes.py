@@ -511,6 +511,12 @@ def _check_pledge_shape(env: dict[str, Any]) -> Optional[VerifyErr]:
                 "E_PLEDGE_MALFORMED",
                 "envelope.agent_address required when via_delegation present",
             )
+        # SPEC §7.3: the agent is never the swearer. Neither field is in the id.
+        if env.get("agent_address") == swearer.get("address"):
+            return _err(
+                "E_PLEDGE_MALFORMED",
+                "envelope.agent_address must differ from swearer.address (§7.3)",
+            )
         # SPEC §3.6 vs §7.3 contradiction documented in pledge-core: under
         # §7.3 the sig.pubkey is informational; the verifier uses
         # agent_address as the BIP-322 key. We accept either reading.

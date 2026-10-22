@@ -399,6 +399,13 @@ function checkPledgeShape(env: PledgeEnvelope): VerifyErr | null {
                 'envelope.agent_address required when via_delegation present',
             );
         }
+        // SPEC §7.3: the agent is never the swearer. Neither field is in the id.
+        if (env.agent_address === env.swearer.address) {
+            return err(
+                'E_PLEDGE_MALFORMED',
+                'envelope.agent_address must differ from swearer.address (§7.3)',
+            );
+        }
         // SPEC §3.6 says sig.pubkey MUST equal agent_address; SPEC §7.3 step 6
         // says "verify sig.value under agent_address" which treats sig.pubkey
         // as informational. The test-vector authors followed §7.3 and set

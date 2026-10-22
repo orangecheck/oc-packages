@@ -8,6 +8,15 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.2.2] — 2026-10-22
+
+### Fixed — an agent pledge's agent is never its swearer
+
+SPEC §7.3, §11.12. `via_delegation` and `agent_address` are not in the pledge
+id. `verifyPledge` refuses an envelope whose `agent_address` equals
+`swearer.address` (`E_PLEDGE_MALFORMED`), before any delegation lookup, as
+`createPledge` already did. Vector `v33`.
+
 ## [3.2.1] — 2026-10-22
 
 ### Fixed — a signed outcome dated after expires_at comes too late
