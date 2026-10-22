@@ -434,6 +434,14 @@ export const Rows: StoryObj = {
                                 </Button>
                             }
                         />
+                        {/* A title that is one long token: stackBelow="sm" gives it the whole row on a phone, the badge under it. */}
+                        <ListRow
+                            lines="all"
+                            stackBelow="sm"
+                            title="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7tqzs2x9fhd5n6y8ue0cle"
+                            description="Eligible: 0.5 BTC held since block 814,210"
+                            trailing={<Badge tone="success">Eligible</Badge>}
+                        />
                         {/* A wide end: beside the text on a desk, under it on a phone, never squeezing the title to a word. */}
                         <ListRow
                             leading={<Avatar seed="xaxis" name="xaxis" />}

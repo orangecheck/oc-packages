@@ -33,6 +33,8 @@
  * - A docs heading that is one long identifier breaks rather than widen a
  *   phone; a link in prose, a list or a table cell is 24px to press; the
  *   Inter fallback face sets text at Inter's width.
+ * - ListRow stackBelow="sm" gives a phone's long-token title (a bc1q
+ *   address) the whole row, the badge under it; a desk's row is unchanged.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
  *   mouse sees them unchanged.
@@ -429,6 +431,20 @@ try {
             )
         )
     );
+    // A title that is one long token, a badge beside it: stackBelow="sm" gives a phone's title the whole row.
+    const BC1Q = 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7tqzs2x9fhd5n6y8ue0cle';
+    const badge = (k) => h('span', { 'data-st': k, style: { display: 'inline-flex', width: 110, height: 24, background: 'var(--muted)', borderRadius: 999 } });
+    const stacked = page(
+        'stacked',
+        renderToStaticMarkup(
+            h(
+                'ul',
+                { className: 'mx-auto max-w-[40rem] divide-y divide-border rounded-2xl border border-border bg-card' },
+                h(C.ListRow, { lines: 'all', stackBelow: 'sm', title: h('span', { 'data-st': 'title' }, BC1Q), description: 'Eligible: 0.5 BTC held since block 814,210', trailing: badge('badge') }),
+                h(C.ListRow, { lines: 'all', title: h('span', { 'data-st': 'title-plain' }, BC1Q), description: 'Eligible: 0.5 BTC held since block 814,210', trailing: badge('badge-plain') })
+            )
+        )
+    );
     const borders = page(
         'borders',
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
@@ -752,6 +768,25 @@ try {
                 if (!fb.twin) console.log(`  · layout: no Arial or metric twin on this machine; the fallback face's widths are not measured here`);
                 else check(Math.abs(fb.fallback - fb.mono) >= 0.5 && Math.abs(fb.fallback - fb.inter) / fb.inter <= 0.02, `[${width}] the Inter fallback is ${Math.round(fb.fallback)}px against Inter's ${Math.round(fb.inter)}px (or it found no face on a machine with one): the swap moves the line`);
             }
+            // stackBelow="sm": on a phone a long-token title takes the row and the badge goes under it; from sm, as without it.
+            await p.goto(stacked);
+            const st = await p.evaluate(() => {
+                const r = (k) => document.querySelector(`[data-st="${k}"]`).getBoundingClientRect();
+                const title = document.querySelector('[data-st="title"]');
+                const lh = parseFloat(getComputedStyle(title.parentElement).lineHeight) || 22.5;
+                const col = title.closest('.flex-col').getBoundingClientRect();
+                const row = title.closest('li').getBoundingClientRect();
+                return {
+                    lines: Math.round(r('title').height / lh),
+                    colW: Math.round(col.width),
+                    rowW: Math.round(row.width - 40),
+                    under: r('badge').top >= r('title').bottom,
+                    aligned: Math.abs(r('badge').left - col.left) <= 1,
+                    same: Math.abs(r('title').width - r('title-plain').width) <= 1 && Math.abs(r('badge').top - r('title').top - (r('badge-plain').top - r('title-plain').top)) <= 1,
+                };
+            });
+            if (width < 640) check(st.lines <= 2 && st.colW >= st.rowW - 1 && st.under && st.aligned, `[${width}] ListRow stackBelow="sm": the long title keeps ${st.colW}px of ${st.rowW} and wraps to ${st.lines} lines, the badge ${st.under ? 'under' : 'beside'} it`);
+            else check(st.same && !st.under, `[${width}] ListRow stackBelow="sm": a desk's row changed (${JSON.stringify(st)})`);
             // A product's footer with seven groups still fits a phone, every link kept.
             await p.goto(productFooter);
             const pf = await p.evaluate(async () => {

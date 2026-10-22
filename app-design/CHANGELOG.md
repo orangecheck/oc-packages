@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-10-21
+
+- `ListRow stackBelow="sm"` (or `"md"`): below that width the row's end
+  (`trailing`, `actions`, `action`) always sits under the title, which keeps
+  the row's whole width. For a title that is one long token: a bc1q address,
+  an npub, an id. On attest /airdrop at 390 a 62-character address wrapped to
+  three lines in about 145px beside its badge, because 9rem of text and a
+  badge fit; now it takes two lines across the row and the badge sits under
+  it. From that width up the row is as before.
+  - A status badge belongs in `trailing`, not `leading`. `leading` is the
+    row's picture and stays beside the title.
+- check-layout sets a 62-character bc1q title with a 110px badge at 390 (two
+  lines at most, the full width, the badge under it, lined up) and at 1440
+  (no change against the same row without the option). It fails on 1.15.3.
+
 ## [1.15.3] — 2026-10-21
 
 - A docs heading's "#" anchor is 24px to press: a target drawn around it, so

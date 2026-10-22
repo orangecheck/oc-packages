@@ -113,6 +113,7 @@ export function ListRow({
     lines = 1,
     variant = 'card',
     size = 'md',
+    stackBelow,
     as: Tag = 'li',
     className,
 }: {
@@ -165,6 +166,15 @@ export function ListRow({
      * inset to the text as a padded card's would be.
      */
     size?: 'md' | 'lg';
+    /**
+     * Below this width the end (`trailing`, `actions`, `action`) always sits
+     * under the title, which keeps the whole row's width. For a title that is
+     * one long token (a bc1q address, an npub, an id) that would otherwise
+     * wrap three times beside a badge. A status badge goes in `trailing`, not
+     * `leading`: `leading` is the row's picture and stays beside the title.
+     * From this width up the row is as without it.
+     */
+    stackBelow?: 'sm' | 'md';
     as?: 'li' | 'div';
     className?: string;
 }) {
@@ -221,7 +231,14 @@ export function ListRow({
                     lines === 'all' ? 'items-start' : 'items-center'
                 )}
             >
-                <span className={cn('flex min-w-0 flex-[1_1_9rem] flex-col', lg ? 'gap-1' : 'gap-0.5')}>
+                <span
+                    className={cn(
+                        'flex min-w-0 flex-[1_1_9rem] flex-col',
+                        lg ? 'gap-1' : 'gap-0.5',
+                        stackBelow === 'sm' && 'max-sm:basis-full',
+                        stackBelow === 'md' && 'max-md:basis-full'
+                    )}
+                >
                     {eyebrow ? (
                         <span className={cn(lg ? 'text-[0.875rem]' : 'text-[0.8125rem]', 'text-muted-foreground', lines === 'all' ? '[overflow-wrap:anywhere]' : 'truncate')}>
                             {eyebrow}
@@ -259,7 +276,16 @@ export function ListRow({
                 </span>
                 {/* Level with the title's first line when the row wraps, past the line over it. */}
                 {trailing ? (
-                    <span className={cn('flex shrink-0 items-center gap-2', lines === 'all' && 'min-h-[1.40625rem]', lines === 'all' && eyebrow && 'mt-[1.34375rem]')}>
+                    <span
+                    className={cn(
+                        'flex shrink-0 items-center gap-2',
+                        lines === 'all' && 'min-h-[1.40625rem]',
+                        lines === 'all' && eyebrow && 'mt-[1.34375rem]',
+                        // Stacked under the title it needs no lift to meet the title's line.
+                        stackBelow === 'sm' && 'max-sm:mt-0',
+                        stackBelow === 'md' && 'max-md:mt-0'
+                    )}
+                >
                         {trailing}
                     </span>
                 ) : null}
