@@ -27,7 +27,7 @@ const poll: Poll = {
         { id: 'yes', label: 'yes' },
         { id: 'no', label: 'no' },
     ],
-    deadline: '2026-12-01T00:00:00Z',
+    deadline: '2026-07-01T00:00:00Z',
     snapshot_block: 900000,
     weight_mode: 'one_per_address',
     weight_params: null,
@@ -47,7 +47,7 @@ const reveal: Reveal = {
     kind: 'oc-vote/reveal',
     poll_id: pid,
     reveal_sk: revealSk,
-    revealed_at: '2026-12-02T00:00:00Z',
+    revealed_at: '2026-07-02T00:00:00Z',
     sig: { alg: 'bip322', pubkey: CREATOR, value: 'good' },
 };
 

@@ -208,11 +208,12 @@
     "@noble/curves" "^1.9.0"
     "@noble/hashes" "^1.8.0"
 
-"@orangecheck/vote-core@^1.4.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-1.5.0.tgz#9caa3bde6942d3b235db3caadd603cc3ca7d6abb"
-  integrity sha512-YI9RyUXMT0AfOmKQQdVNADNnQCHwhLt/c96jMoBdxaRuqu/Cq77TfgkcnjOYd22PbaU2oTN8akJt6Kw7YKyZ7g==
+"@orangecheck/vote-core@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-1.6.0.tgz#d197b4d9f3d3d2f6a2b5aadfe7b750008e51f017"
+  integrity sha512-RMJWm+fHUnNH8twZjTxenc+rXXZTMksQIDJvfTMs8rZMzT/dycg6LMrrquQBFSc/0te9qr1kqRu9JDKCK7MT8Q==
   dependencies:
+    "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.5.0"
 
 "@oxc-project/types@=0.151.0":

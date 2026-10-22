@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.3] — 2026-10-22
+
+### Changed
+
+- Requires `@orangecheck/vote-core` ^1.6.0 (oc-vote-protocol errata of
+  2026-10-22): poll deadlines and ballot times are read only as `iso8601_utc`,
+  and a reveal counts only once the deadline has passed by this machine's
+  clock and only with the key for the poll's `reveal_pk`.
+
 ## [0.6.2] — 2026-10-16
 
 ### Fixed — signatures verify again on a fresh install
