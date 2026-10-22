@@ -195,8 +195,8 @@ event = verify_webhook(request.headers, raw_body)  # raises InvalidWebhook
 A token verifies until it expires, up to 30 days. To refuse one the person
 ended everywhere (signed out everywhere, removed a passkey, deleted the
 account), keep one `RevocationList` (2.8.0 or later) per process and pass it with the request's
-method. It reads those account cutoffs from me.ochk.io at most once a minute,
-signed with your secret:
+method. It reads me.ochk.io's list of ended sessions for the token's origin at most
+once a minute, signed with your secret:
 
 ```python
 from orangecheck import RevocationList, SessionEnded
@@ -209,6 +209,26 @@ session = verify_session(token, audience="https://your-site.example",
 # can't be read, reads go on and writes raise reason "revocations_unavailable".
 # If your own session replaces the token, keep its rh, aud and iat with that
 # session and ask REVOCATIONS.status(rh, aud, iat): "revoked" ends it.
+```
+
+`BondRequired` and `SessionEnded` are both `InvalidSession`s, so catch them
+before `InvalidSession`, or that handler takes them too.
+
+The key set, the policy and the list are each fetched inside the call that first
+needs them. To keep those fetches off your requests, warm them at startup and
+every ten seconds from a background thread in each process (2.10.0 or later). One
+`SignInPolicy` and one `RevocationList` are safe to share between threads.
+
+```python
+import threading, time
+from orangecheck import warm_session
+
+def keep_warm() -> None:
+    while True:
+        warm_session("https://your-site.example", revocations=REVOCATIONS, policy=POLICY)
+        time.sleep(10)
+
+threading.Thread(target=keep_warm, daemon=True).start()
 ```
 
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).

@@ -50,6 +50,8 @@ _JWKS_TTL_SECONDS = 3600
 #: How old a key set may be and still stand in for one that can't be fetched.
 _JWKS_MAX_STALE_SECONDS = 6 * 3600
 _FORCED_REFRESH_MIN_SECONDS = 60
+#: After a failed fetch, how long requests use what is held before the next try.
+_JWKS_RETRY_SECONDS = 10
 
 
 class InvalidSession(OrangeCheckError):
@@ -102,6 +104,7 @@ class _KeySet:
         self._retired: dict[str, float] = {}
         self._fetched_at = 0.0
         self._forced_at = 0.0
+        self._failed_at = float("-inf")
         self._lock = threading.Lock()
 
     def _fetch(self) -> None:
@@ -113,17 +116,31 @@ class _KeySet:
             self._retired = _retired_at(doc)
             self._fetched_at = time.time()
         except (httpx.HTTPError, ValueError):
+            self._failed_at = time.time()
             # Stale on error: a key set seen before keeps working through an outage, for a while.
             if not self._keys or time.time() - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
                 raise
+
+    def _refresh(self) -> None:
+        """Fetch once the copy is an hour old; while fetches fail, try again at most every ten seconds."""
+        now = time.time()
+        if self._keys and now - self._fetched_at < _JWKS_TTL_SECONDS:
+            return
+        if now - self._failed_at >= _JWKS_RETRY_SECONDS:
+            self._fetch()
+        elif not self._keys or now - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
+            raise ValueError("key set unavailable")
+
+    def warm(self) -> None:
+        with self._lock:
+            self._refresh()
 
     def retired_at(self, kid: str) -> Optional[float]:
         return self._retired.get(kid)
 
     def get(self, kid: str) -> Optional[Ed25519PublicKey]:
         with self._lock:
-            if not self._keys or time.time() - self._fetched_at >= _JWKS_TTL_SECONDS:
-                self._fetch()
+            self._refresh()
             key = self._keys.get(kid)
             # A key that rotated in since the last fetch: refetch, at most once a minute.
             if key is None and time.time() - self._forced_at >= _FORCED_REFRESH_MIN_SECONDS:
@@ -228,12 +245,19 @@ class _AudienceList:
             self._failed_at = time.time()
             self._owner._warn_once(err)
 
+    def _refresh(self, now: float) -> None:
+        fresh = self._fetched_at is not None and now - self._fetched_at < _REVOCATIONS_TTL_SECONDS
+        if not fresh and now - self._failed_at >= _REVOCATIONS_RETRY_SECONDS:
+            self._fetch()
+
+    def warm(self) -> None:
+        with self._lock:
+            self._refresh(time.time())
+
     def status(self, rh: str, iat: Optional[float]) -> str:
         with self._lock:
             now = time.time()
-            fresh = self._fetched_at is not None and now - self._fetched_at < _REVOCATIONS_TTL_SECONDS
-            if not fresh and now - self._failed_at >= _REVOCATIONS_RETRY_SECONDS:
-                self._fetch()
+            self._refresh(now)
             if self._fetched_at is None:
                 return "unverified"
             cutoff = self._handles.get(rh)
@@ -275,14 +299,17 @@ class RevocationList:
         self._warned = True
         _log.warning("orangecheck: the revocation list could not be read (%s); reads go on, writes are refused until it can", err)
 
-    def status(self, rh: Optional[str], aud: Optional[str], iat: Optional[float]) -> str:
-        if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
-            return "live"
+    def _list(self, aud: str) -> _AudienceList:
         with self._lists_lock:
             lst = self._lists.get(aud)
             if lst is None:
                 lst = self._lists[aud] = _AudienceList(self, aud)
-        return lst.status(rh, iat)
+            return lst
+
+    def status(self, rh: Optional[str], aud: Optional[str], iat: Optional[float]) -> str:
+        if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
+            return "live"
+        return self._list(aud).status(rh, iat)
 
 
 # ─── who may sign in (coin backing) ──────────────────────────────────────
@@ -404,6 +431,34 @@ def _need_from(require_bond: Mapping[str, Any]) -> dict[str, int]:
 
 
 # ─── sign-in tokens ──────────────────────────────────────────────────────
+
+
+def warm_session(
+    audience: Union[str, list[str]],
+    *,
+    revocations: Optional[RevocationList] = None,
+    policy: Optional[SignInPolicy] = None,
+) -> None:
+    """
+    Fetch now what :func:`verify_session` with the same arguments would otherwise
+    fetch inside a request: ochk.io's key set, your project's sign-in requirement
+    and the revocation list for each audience, each only when its copy is due. Call
+    it at startup and then every ten seconds from a background thread, in each
+    process. It never raises; a failure is left for ``verify_session`` to meet.
+    """
+    try:
+        _session_keys.warm()
+    except (httpx.HTTPError, ValueError):
+        pass
+    if policy is not None:
+        try:
+            policy.requirement()
+        except InvalidSession:
+            pass
+    if revocations is not None:
+        for aud in [audience] if isinstance(audience, str) else audience:
+            if isinstance(aud, str) and aud:
+                revocations._list(aud).warm()
 
 
 def verify_session(

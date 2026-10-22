@@ -11,8 +11,10 @@ backend can't drift apart. Regenerate with
 from __future__ import annotations
 
 import json
+import threading
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 from urllib.parse import quote
@@ -32,6 +34,7 @@ from orangecheck import (
     sign_event,
     verify_session,
     verify_webhook,
+    warm_session,
 )
 
 VECTORS_PATH = Path(__file__).resolve().parents[2] / "me-client" / "test-vectors" / "integrator.json"
@@ -378,3 +381,90 @@ def test_the_last_requirement_read_stands_through_an_outage(monkeypatch: pytest.
     assert policy.requirement() == {"min_sats": 100000, "min_days": 30}
     monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
     assert policy.requirement() == {"min_sats": 100000, "min_days": 30}
+
+
+# ─── warming, and sharing between threads ────────────────────────────────
+
+
+def _serve_everything_verify_session_reads(v: dict[str, Any]) -> list[respx.Route]:
+    rl_url = f"https://me.ochk.io/api/integrator/revocations?project_key={R['request']['project_key']}&aud={quote(v['audience'], safe='')}"
+    return [
+        respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"])),
+        respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": None})),
+        respx.get(rl_url).mock(return_value=httpx.Response(200, json={
+            "v": 1, "at": V["now"], "tokens": [], "accounts": {}, "handles": {},
+        })),
+    ]
+
+
+@respx.mock
+def test_warm_session_fetches_what_verify_session_reads_so_a_request_fetches_nothing(fresh_key_sets: None) -> None:
+    v = _rh_vector()
+    routes = _serve_everything_verify_session_reads(v)
+    rl, policy = _revocations(), SignInPolicy("pk_test_tv")
+    warm_session(v["audience"], revocations=rl, policy=policy)
+    assert [r.call_count for r in routes] == [1, 1, 1]
+    s = verify_session(v["token"], v["audience"], revocations=rl, policy=policy, method="POST")
+    assert s.sub == v["claims"]["sub"]
+    assert [r.call_count for r in routes] == [1, 1, 1]
+
+
+@respx.mock
+def test_warm_session_never_raises(fresh_key_sets: None) -> None:
+    respx.get(url__startswith="https://").mock(return_value=httpx.Response(503))
+    warm_session("https://soniq.example", revocations=_revocations(), policy=SignInPolicy("pk_test_tv"))
+    respx.get("https://me.ochk.io/api/integrator/pk_test_nope/sign-in").mock(return_value=httpx.Response(404))
+    warm_session(["https://soniq.example", "https://www.soniq.example"], policy=SignInPolicy("pk_test_nope"))
+
+
+@respx.mock
+def test_a_failed_key_set_refresh_is_tried_again_after_ten_seconds_not_on_every_request(
+    fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    route = respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(503)] * 2
+    )
+    v = V["session"]["valid"][0]
+    verify_session(v["token"], v["audience"])
+    integrator._session_keys._fetched_at = V["now"] - 3600
+    for _ in range(3):
+        assert verify_session(v["token"], v["audience"]).sub == v["claims"]["sub"]
+    assert route.call_count == 2
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11))
+    assert verify_session(v["token"], v["audience"]).sub == v["claims"]["sub"]
+    assert route.call_count == 3
+
+
+def _ask_from_threads(n: int, ask: Callable[[], Any]) -> list[Any]:
+    out: list[Any] = []
+    threads = [threading.Thread(target=lambda: out.append(ask())) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    return out
+
+
+def _slow(response: httpx.Response) -> Callable[[httpx.Request], httpx.Response]:
+    def answer(request: httpx.Request) -> httpx.Response:
+        time.sleep(0.2)
+        return response
+    return answer
+
+
+@respx.mock
+def test_one_revocation_list_shared_by_threads_fetches_once_per_audience() -> None:
+    route = respx.get(R["request"]["url"]).mock(side_effect=_slow(httpx.Response(200, json=R["lists"][R["request"]["aud"]])))
+    rl = _revocations()
+    want = next(s for s in R["sessions"] if s["aud"] == R["request"]["aud"] and s["status"] == "revoked")
+    out = _ask_from_threads(8, lambda: rl.status(want["rh"], want["aud"], want["iat"]))
+    assert out == ["revoked"] * 8
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_one_sign_in_policy_shared_by_threads_fetches_once() -> None:
+    route = respx.get(SIGN_IN).mock(side_effect=_slow(httpx.Response(200, json={"require_bond": {"min_sats": 1000, "min_days": 0}})))
+    policy = SignInPolicy("pk_test_tv")
+    assert _ask_from_threads(8, policy.requirement) == [{"min_sats": 1000, "min_days": 0}] * 8
+    assert route.call_count == 1

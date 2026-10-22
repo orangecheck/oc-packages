@@ -4,6 +4,23 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] — 2026-10-22
+
+### Added
+
+- `warm_session(audience, *, revocations=, policy=)` fetches what `verify_session`
+  with the same arguments would otherwise fetch inside a request: ochk.io's key
+  set, the project's sign-in requirement and each audience's revocation list, each
+  only when its copy is due. Call it at startup and every ten seconds from a
+  background thread, in each process. It never raises.
+
+### Changed
+
+- After a failed key-set refresh, the session and webhook key sets wait ten
+  seconds before trying again, as `RevocationList` and `SignInPolicy` already do.
+  Until then requests use the keys already held (for up to six hours, as before)
+  instead of each waiting on a fetch of their own.
+
 ## [2.9.0] — 2026-10-22
 
 ### Added — who may sign in, at parity with me-client

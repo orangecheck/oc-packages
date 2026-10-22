@@ -76,6 +76,7 @@ from .integrator import (
     sign_event,
     verify_session,
     verify_webhook,
+    warm_session,
 )
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
 from .types import (
@@ -127,6 +128,7 @@ __all__ = [
     "BOND_MAX_WINDOW_SECONDS",
     # ochk.app sign-in, billable events and webhooks, for an integrator's backend
     "verify_session",
+    "warm_session",
     "sign_event",
     "verify_webhook",
     "Session",
@@ -153,7 +155,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.9.0"
+__version__ = "2.10.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:
