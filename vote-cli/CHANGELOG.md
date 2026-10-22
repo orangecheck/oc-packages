@@ -11,6 +11,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.0] — 2026-10-22
+
+As oc-vote-protocol's anchored ballots (SPEC §4.6), on vote-core 2.0.0. From a
+deadline of 2026-11-15T00:00:00Z a ballot is in time when a Bitcoin block
+anchors it: use 0.7.0 or later.
+
+### Changed
+
+- `tally` counts an anchored poll against the chain: the tip and `H_close`
+  from mempool.space (or `--mempool-base`), and each ballot's anchor height from
+  every OC Stamp copy the relays hold. Each stamp's id is rebuilt from its
+  fields and its proof walked to block headers this CLI fetches; what a stamp
+  declares about its anchor is not read. It prints the state (`tallied`,
+  `provisional` with the count not yet anchored, `deferred`, or
+  `awaiting reveal`), what decided timing, and the ballots counted. A relay set
+  that did not finish answering, or a header that could not be read, stops the
+  tally with an error rather than a count.
+- `vote` stamps the ballot it publishes in an anchored poll, under a fresh key,
+  and publishes the stamp.
+- `reveal` refuses, without `--force`, an anchored poll's reveal before the tip
+  reaches `H_close + G + 6`, when talliers would not accept it.
+
 ## [0.6.4] — 2026-10-22
 
 ### Changed

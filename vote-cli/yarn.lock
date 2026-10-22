@@ -175,10 +175,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/bip322@^1.0.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.0.tgz#2884e42042661e8d9cb8b1c3becc3649635721b1"
-  integrity sha512-Q175HQIqRQe3KPpeFCtNxnxbgZ6GVJ5TGk3P4YVOGa9fblfAhvtPuBNBDVqO/cfEXV2d54d4iZ4xXMhRCy9Mfg==
+"@orangecheck/bip322@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
+  integrity sha512-NaaSTlL3HkVobUHrUUcMpoi+WVccEHMruWRRHiCVczkf3ac7JW0sXKEtDvqZ5YPI+KZi5xmxi2XK3ZE6do/t/w==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
@@ -208,10 +208,25 @@
     "@noble/curves" "^1.9.0"
     "@noble/hashes" "^1.8.0"
 
-"@orangecheck/vote-core@^1.6.1":
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-1.6.1.tgz#b02f73a2f4121a5ec7110edabb950eade1891468"
-  integrity sha512-pA2+OGLfqanvOqErOoRk0pWhdNZ+IX81IssUdUNuH7AREkhO7NRdX87LZ0XlZrfImdGXP5Z5HmzjWVp2S3tbhQ==
+"@orangecheck/stamp-core@^1.0.0", "@orangecheck/stamp-core@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.3.0.tgz#03bca4dc4df3a1599f3ef08f70d7eff1d09ebbd3"
+  integrity sha512-4CE7vPOH3UezTG5oZRzYSoPQvuvAIQyAAOC5muP3xLbqfM7hi6FRgELL+4g+N9rWd/8YGTZz49Z61Sva8LtMuw==
+  dependencies:
+    "@noble/hashes" "^1.5.0"
+
+"@orangecheck/stamp-ots@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-ots/-/stamp-ots-0.6.0.tgz#2aa10164352b92682fa97232c8e483ce84087df5"
+  integrity sha512-PyJLKnFju9BsQ8akHCOqlADsEK6EFqKbJ8BjzzJJelOEF52rDUDffg6KYFTXqu1YD9LkCdLtjmo2Lhpps9K31Q==
+  dependencies:
+    "@noble/hashes" "^1.8.0"
+    "@orangecheck/stamp-core" "^1.0.0"
+
+"@orangecheck/vote-core@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-2.0.0.tgz#1e39d16dc31e5646f821c67b7140cdc496ab92f3"
+  integrity sha512-TXdmdEPUQp4Bu31Bg4X8j4eAXw2bnCRmQN/ZrhwzU8qEze66OwMD2Fvw61AWbTQQlywLb/0HjljniHWEm+SC7w==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.5.0"

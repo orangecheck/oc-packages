@@ -1,6 +1,14 @@
 // oc-vote reveal — publish the reveal event for a secret-mode poll.
 
-import { revealId } from '@orangecheck/vote-core';
+import {
+    ANCHOR_FINAL_CONFIRMATIONS,
+    anchoredTallyIsFinal,
+    isAnchoredPoll,
+    lastAnchorHeight,
+    mempoolBlockTimeSource,
+    resolveCloseBlock,
+    revealId,
+} from '@orangecheck/vote-core';
 import type { Reveal } from '@orangecheck/vote-core';
 
 import { bip322Verify } from '../bip322.js';
@@ -38,14 +46,33 @@ export async function runReveal(opts: RevealOptions): Promise<void> {
             `poll creator is ${poll.creator} but you provided ${opts.creator}`
         );
     }
-    if (Date.parse(poll.deadline) > Date.now() && !opts.force) {
+    // SPEC §10.3: an anchored poll's reveal counts only once the tip reaches
+    // H_close + G + 6; a clock-dated poll's once the deadline has passed.
+    let chain: { tipHeight: number; closeHeight: number | null } | undefined;
+    if (isAnchoredPoll(poll)) {
+        const close = await resolveCloseBlock(poll.deadline, mempoolBlockTimeSource());
+        if (!close.ok) throw new Error(`the block at the deadline could not be read: ${close.reason}`);
+        chain = { tipHeight: close.tip, closeHeight: close.height };
+        if (!anchoredTallyIsFinal(close.height, close.tip) && !opts.force) {
+            throw new Error(
+                close.height === null
+                    ? 'no block at the deadline yet: talliers would not accept a reveal now (pass --force to publish anyway)'
+                    : `talliers accept the reveal from block ${lastAnchorHeight(close.height) + ANCHOR_FINAL_CONFIRMATIONS}; the tip is ${close.tip} (pass --force to publish anyway)`
+            );
+        }
+    } else if (Date.parse(poll.deadline) > Date.now() && !opts.force) {
         throw new Error(
             `poll deadline is ${poll.deadline} — pass --force to publish before deadline`
         );
     }
 
     // Only a reveal that verifies against the poll counts as already published.
-    const existing = await selectReveal((await fetchRevealEvents(opts.pollId, relays)).events, poll, bip322Verify);
+    const existing = await selectReveal(
+        (await fetchRevealEvents(opts.pollId, relays)).events,
+        poll,
+        bip322Verify,
+        chain
+    );
     if (existing && !opts.force) {
         throw new Error('a reveal event already exists for this poll (pass --force to replace)');
     }

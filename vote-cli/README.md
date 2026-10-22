@@ -16,7 +16,7 @@ npx -y @orangecheck/vote-cli tally <poll_id>
 
 ### `oc-vote tally <poll_id>`
 
-Fetch the poll and all ballots from Nostr, verify every BIP-322 signature, look up UTXO state at the declared snapshot block from mempool.space, and run the pure tally function. Output matches what any conforming implementation produces.
+Fetch the poll and all ballots from Nostr, verify every BIP-322 signature, look up UTXO state at the declared snapshot block from mempool.space, and run the pure tally function. In an anchored poll (deadline on or after 2026-11-15T00:00:00Z) it also reads every OC Stamp over each ballot and checks each anchor against block headers itself, and says whether the count is final or provisional. Output matches what any conforming implementation produces.
 
 ```
 $ oc-vote tally 3054390f047f2703186943a41178bc15931500b5139229517f26e56282026ee5

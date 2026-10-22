@@ -144,7 +144,7 @@ describe('computeTally (secret mode)', () => {
             snapshotBlock: 900000,
             verify,
         });
-        expect(r).toEqual({ state: 'awaiting_reveal' });
+        expect(r).toEqual({ state: 'awaiting_reveal', basis: 'voter_clocks' });
     });
 });
 

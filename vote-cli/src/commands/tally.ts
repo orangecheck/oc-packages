@@ -3,7 +3,9 @@
 import { hexDecode, utf8Decode } from '@orangecheck/lock-crypto';
 import { unseal } from '@orangecheck/lock-core';
 import {
+    ANCHOR_FINAL_CONFIRMATIONS,
     ballotId,
+    lastAnchorHeight,
     mempoolBlockTimeSource,
     resolvePollSnapshot,
     tally,
@@ -15,6 +17,7 @@ import {
     type UtxoLookup,
 } from '@orangecheck/vote-core';
 
+import { anchoredChain, type AnchoredChain } from '../anchors.js';
 import { ballotCopiesFromEvents } from '../ballots.js';
 import { bip322Verify } from '../bip322.js';
 import {
@@ -52,7 +55,10 @@ export interface ComputeTallyInput {
     /** A reveal that already passed verifyReveal; null when none exists. */
     reveal: Reveal | null;
     utxosAt: UtxoLookup;
-    snapshotBlock: number;
+    /** A clock-dated poll's snapshot height; an anchored poll's "deadline" snapshot is H_close. */
+    snapshotBlock?: number;
+    /** An anchored poll's tip, H_close and anchor heights (SPEC §4.6). */
+    chain?: AnchoredChain | null;
     /** null skips every signature check (--no-verify). */
     verify: SignatureVerifier | null;
 }
@@ -68,7 +74,14 @@ export function computeTally(input: ComputeTallyInput): Promise<TallyResult> {
         poll,
         ballots: input.ballots,
         utxosAt: input.utxosAt,
-        snapshotBlock: input.snapshotBlock,
+        ...(input.snapshotBlock !== undefined ? { snapshotBlock: input.snapshotBlock } : {}),
+        ...(input.chain
+            ? {
+                  tipHeight: input.chain.tipHeight,
+                  closeHeight: input.chain.closeHeight,
+                  anchorHeight: input.chain.anchorHeight,
+              }
+            : {}),
         ...(input.verify ? { verify: input.verify } : { skipSignatures: true }),
         ...(poll.mode === 'secret' && reveal
             ? { unseal: (b: Ballot) => unsealOption(b, reveal.reveal_sk) }
@@ -136,15 +149,25 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     // Every copy: the tally verifies each before it picks one ballot per voter.
     const ballots = ballotCopiesFromEvents(requireComplete(ballotFetch, 'ballot'), pid);
 
-    // Only a reveal signed by the creator, after the deadline, opens ballots.
+    // An anchored poll is counted against the chain (SPEC §4.6): the tip,
+    // H_close, and each ballot's anchor from every stamp the relays hold.
+    const chain = await anchoredChain(poll, ballots.map(ballotId), {
+        relays,
+        ...(opts.mempoolBase ? { mempoolBase: opts.mempoolBase } : {}),
+    });
+
+    // Only a reveal signed by the creator, once the poll has closed, opens ballots.
     const reveal: Reveal | null =
-        poll.mode === 'secret' ? await selectReveal(revealFetch.events, poll, bip322Verify) : null;
+        poll.mode === 'secret'
+            ? await selectReveal(revealFetch.events, poll, bip322Verify, chain ?? undefined)
+            : null;
     // No reveal found is only "awaiting reveal" if a relay finished answering.
     if (poll.mode === 'secret' && !reveal) requireComplete(revealFetch, 'reveal');
 
     const source = mempoolSource(opts.mempoolBase);
     const utxosAt = buildLookup(source);
-    const snapshot = await resolveSnapshot(poll, opts);
+    // An anchored poll's tally checks its own snapshot against the tip.
+    const snapshot = chain ? undefined : await resolveSnapshot(poll, opts);
 
     // Pass `snapshotBlock` rather than mutating poll.snapshot_block: the
     // poll's canonical bytes (and therefore pollId) include snapshot_block
@@ -154,7 +177,8 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         ballots,
         reveal,
         utxosAt,
-        snapshotBlock: snapshot,
+        ...(snapshot !== undefined ? { snapshotBlock: snapshot } : {}),
+        chain,
         verify,
     });
 
@@ -186,17 +210,37 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     w(`  weight:     ${poll.weight_mode}\n`);
     w(`  threshold:  ${poll.min_sats} sat / ${poll.min_days} d\n`);
     w(`  deadline:   ${poll.deadline}\n`);
-    w(`  snapshot:   ${snapshot}\n`);
+    if (snapshot !== undefined) w(`  snapshot:   ${snapshot}\n`);
+    if (chain) {
+        const close = chain.closeHeight;
+        w(`  timing:     anchored in Bitcoin blocks (SPEC §4.6); tip ${chain.tipHeight}\n`);
+        w(
+            close === null
+                ? `  close:      no block at the deadline yet\n`
+                : `  close:      H_close ${close}; anchors count up to ${lastAnchorHeight(close)}; final at ${lastAnchorHeight(close) + ANCHOR_FINAL_CONFIRMATIONS}\n`
+        );
+    } else {
+        w(`  timing:     dated by each voter's own clock (deadline before 2026-11-15)\n`);
+    }
     w(`  ballots:    ${new Set(ballots.map((b) => ballotId(b))).size}\n`);
     for (const what of skipped) w(`  ! not checked: ${what}\n`);
     w(`\n`);
 
     if (result.state === 'awaiting_reveal') {
-        w(`  STATE:      awaiting reveal — secret-mode poll, creator has not yet published reveal_sk\n\n`);
+        w(`  STATE:      awaiting reveal — secret-mode poll, no reveal accepted yet\n\n`);
+        return;
+    }
+    if (result.state === 'deferred') {
+        w(`  STATE:      deferred (${result.code}) — the snapshot block is not known yet or has fewer than 6 confirmations\n\n`);
         return;
     }
 
-    w(`  STATE:      tallied\n`);
+    w(
+        result.state === 'provisional'
+            ? `  STATE:      provisional — not final; ${result.unanchored ?? 0} counted ballot(s) not anchored in time yet\n`
+            : `  STATE:      tallied\n`
+    );
+    w(`  counted:    ${result.counted.length} ballot(s)\n`);
     w(`  turnout:    ${result.turnout.voters} voters, weight ${result.turnout.weight.toLocaleString()}\n\n`);
 
     // Sort options by poll.options order

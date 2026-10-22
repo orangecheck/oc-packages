@@ -8,6 +8,9 @@ import { bytesToHex, hexToBytes, randomBytes } from '@noble/hashes/utils';
 import { canonicalBytes, ballotId, pollId, revealId } from '@orangecheck/vote-core';
 import type { Ballot, Poll, Reveal } from '@orangecheck/vote-core';
 
+import type { StampEnvelope } from '@orangecheck/stamp-core';
+
+import { STAMP_KIND, stampEventParts } from './anchors.js';
 import type { NostrEvent } from './nostr.js';
 
 function nip01Id(pubkey: string, created_at: number, kind: number, tags: string[][], content: string): string {
@@ -75,4 +78,10 @@ export function buildRevealEvent(reveal: Reveal): NostrEvent {
         ['poll_id', reveal.poll_id],
         ['reveal_id', rid],
     ], content);
+}
+
+/** The kind-30083 event that publishes an OC Stamp over a ballot (OC Stamp §7), under a fresh key. */
+export function buildStampEvent(env: StampEnvelope): NostrEvent {
+    const { tags, content } = stampEventParts(env);
+    return sign(STAMP_KIND, tags, content);
 }

@@ -6,12 +6,13 @@
 
 import { seal } from '@orangecheck/lock-core';
 import { utf8Encode } from '@orangecheck/lock-crypto';
-import { ballotId, commit } from '@orangecheck/vote-core';
+import { ballotId, commit, isAnchoredPoll } from '@orangecheck/vote-core';
 import type { Ballot } from '@orangecheck/vote-core';
 
 import { bip322Verify } from '../bip322.js';
 
-import { buildBallotEvent } from '../events.js';
+import { stampBallot } from '../anchors.js';
+import { buildBallotEvent, buildStampEvent } from '../events.js';
 import { DEFAULT_RELAYS, fetchPollEvents, publishEvent } from '../nostr.js';
 import { findPoll } from '../select.js';
 import { promptForSignature } from '../sig.js';
@@ -91,6 +92,18 @@ export async function runVote(opts: VoteOptions): Promise<void> {
     const results = await publishEvent(pub, opts.relays ?? DEFAULT_RELAYS);
     const okCount = results.filter((r) => r.ok).length;
 
+    // SPEC §4.6: in an anchored poll the voter's client stamps the ballot it publishes.
+    let stamped: { relays: number; total: number } | { error: string } | null = null;
+    if (okCount > 0 && isAnchoredPoll(poll)) {
+        try {
+            const env = await stampBallot(draft);
+            const sent = await publishEvent(buildStampEvent(env), opts.relays ?? DEFAULT_RELAYS);
+            stamped = { relays: sent.filter((r) => r.ok).length, total: sent.length };
+        } catch (e) {
+            stamped = { error: (e as Error).message };
+        }
+    }
+
     if (opts.json) {
         process.stdout.write(
             JSON.stringify(
@@ -99,6 +112,7 @@ export async function runVote(opts: VoteOptions): Promise<void> {
                     published: okCount,
                     total: results.length,
                     relays: results,
+                    ...(stamped ? { stamp: stamped } : {}),
                     ballot: draft,
                 },
                 null,
@@ -116,6 +130,11 @@ export async function runVote(opts: VoteOptions): Promise<void> {
     w(`  published:  ${okCount}/${results.length} relays\n`);
     for (const r of results) {
         w(`    ${r.ok ? '✓' : '✗'} ${r.relay}${r.reason ? ` (${r.reason})` : ''}\n`);
+    }
+    if (stamped && 'error' in stamped) {
+        w(`  stamp:      not made here (${stamped.error}); vote.ochk.io's anchorer stamps every ballot it sees\n`);
+    } else if (stamped) {
+        w(`  stamp:      published to ${stamped.relays}/${stamped.total} relays; a Bitcoin block usually anchors it within an hour or two\n`);
     }
     w(`\n`);
 }

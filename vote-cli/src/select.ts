@@ -62,14 +62,20 @@ export function requireComplete(fetched: EventsFetch, what: string): NostrEvent[
     return fetched.events;
 }
 
+/**
+ * The first reveal that verifies against the poll. An anchored poll's reveal
+ * counts only once `chain.tipHeight` reaches H_close + G + 6 (SPEC §10.3), so
+ * without `chain` none does.
+ */
 export async function selectReveal(
     events: NostrEvent[],
     poll: Poll,
-    verify: SignatureVerifier
+    verify: SignatureVerifier,
+    chain?: { tipHeight: number; closeHeight: number | null }
 ): Promise<Reveal | null> {
     for (const ev of events) {
         const r = parse<Reveal>(ev);
-        if (r && (await verifyReveal(r, poll, verify)).ok) return r;
+        if (r && (await verifyReveal(r, poll, verify, Date.now(), chain)).ok) return r;
     }
     return null;
 }
