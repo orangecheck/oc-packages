@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.37.0] — 2026-10-22
+
+### Changed
+
+- **A refused Google or GitHub sign-in says what to do next.** The auth host
+  now finds a provider sign-in's account by the provider's own id for the
+  person, and reaches an existing email account only where the provider hosts
+  the address. When it refuses, `OcSignIn` names the reason instead of "That
+  sign-in didn't finish": `oauth_error=email_code_required` says the email
+  already has an account and to sign in with an email code, and
+  `account_mismatch` says a different Google or GitHub account is already
+  linked to it. Either opens the form on the email code. Other reasons keep
+  the general line.
+
 ## [2.36.1] — 2026-10-22
 
 ### Fixed

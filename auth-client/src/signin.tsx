@@ -385,6 +385,20 @@ export function looksLikeBitcoinAddress(input: string): boolean {
 
 /* --- main component --- */
 
+/** Provider refusals whose way back in is an email code. */
+const OAUTH_EMAIL_CODE_REASONS = new Set(['email_code_required', 'account_mismatch']);
+
+/** What a refused provider sign-in (`?oauth_error=`) says to the person. */
+function oauthErrorText(reason: string): string {
+    if (reason === 'email_code_required') {
+        return 'This email already has an orangecheck account. Sign in to it with an email code below.';
+    }
+    if (reason === 'account_mismatch') {
+        return 'A different Google or GitHub account is already linked to this email. Use that one, or sign in with an email code below.';
+    }
+    return "That sign-in didn't finish. Try again, or use another way below.";
+}
+
 export function OcSignIn({
     audience,
     returnTo,
@@ -488,13 +502,15 @@ export function OcSignIn({
     // Set when the user is bounced back here after a failed provider
     // (e.g. Google) sign-in — the auth host redirects to
     // `/signin?oauth_error=…`.
-    const [oauthError, setOauthError] = React.useState(false);
+    const [oauthError, setOauthError] = React.useState<string | null>(null);
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
-        if (new URLSearchParams(window.location.search).has('oauth_error')) {
-            setOauthError(true);
-        }
-    }, []);
+        const reason = new URLSearchParams(window.location.search).get('oauth_error');
+        if (reason === null) return;
+        setOauthError(reason);
+        // The way back in is an email code, so open on it.
+        if (OAUTH_EMAIL_CODE_REASONS.has(reason) && emailEnabled) setPath('email');
+    }, [emailEnabled]);
 
     const navigate = React.useCallback(
         async (account: OcAccount) => {
@@ -616,7 +632,7 @@ export function OcSignIn({
                         fontSize: signinRoleSize('text', signinSize(11)),
                     }}
                 >
-                    That sign-in didn&apos;t finish. Try again, or use another way below.
+                    {oauthErrorText(oauthError)}
                 </div>
             )}
             {addMode && (
