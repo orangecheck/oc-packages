@@ -218,6 +218,12 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
         expect(result.state).toBe('provisional');
     });
 
+    it('names nothing held while the count is provisional anyway', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 5, { silent: ['wss://b'] });
+        expect(chain?.finalBlocked).toBeNull();
+        expect(result.state).toBe('provisional');
+    });
+
     it('holds the count short of final when the ballot lookup was cut short', async () => {
         const cut = [answered[0]!, { ...answered[1]!, truncated: true }];
         const { chain, result } = await run(CLOSE + 36 + 6, { ballotRelays: cut });

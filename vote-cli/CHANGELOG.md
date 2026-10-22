@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.2] — 2026-10-22
+
+### Changed
+
+- `not_final_because` and "! not final" appear only when an incomplete relay
+  answer is what keeps an anchored count from final, not while the count is
+  provisional anyway.
+
 ## [0.7.1] — 2026-10-22
 
 ### Changed

@@ -159,14 +159,16 @@ export async function anchoredChain(
     const stampsMissing = opts.ballotRelays
         .filter((r) => r.answered && !stampsDone.includes(r.relay))
         .map((r) => r.relay);
-    const finalBlocked = ballotsCut.length
+    const incomplete = ballotsCut.length
         ? `the ballot lookup was cut short on ${ballotsCut.join(', ')}`
         : stampsMissing.length
           ? `the stamp lookup did not finish on ${stampsMissing.join(', ')}`
           : null;
     const finalAt = close.height === null ? null : lastAnchorHeight(close.height) + ANCHOR_FINAL_CONFIRMATIONS;
+    // Named only when it holds the count back: before the final block it is provisional anyway.
+    const finalBlocked = incomplete && finalAt !== null && close.tip >= finalAt ? incomplete : null;
     return {
-        tipHeight: finalBlocked && finalAt !== null ? Math.min(close.tip, finalAt - 1) : close.tip,
+        tipHeight: finalBlocked && finalAt !== null ? finalAt - 1 : close.tip,
         chainTip: close.tip,
         finalBlocked,
         closeHeight: close.height,
