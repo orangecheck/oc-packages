@@ -41,9 +41,11 @@
 import {
     bondMeets,
     getOcSession as getOcSessionCore,
+    integratorRevocationCheck,
     readBondClaim,
     verifyOcToken,
     type BondClaim,
+    type RevocationCheck,
     type SessionPayload,
     type VerifyOcOptions,
     type SessionRequestHeaders,
@@ -68,6 +70,57 @@ export type {
     VerifyActivityOptions,
 } from './identity';
 
+export interface OcSessionOptions extends VerifyOcOptions {
+    /**
+     * The request's method. While me.ochk.io's list of ended sessions can't be
+     * read, reads go on and writes are refused; with no method, a request
+     * counts as a write. The adapters pass it for you.
+     */
+    method?: string;
+    /** Your project key. Default `OC_PROJECT_KEY`. */
+    projectKey?: string;
+    /**
+     * The check for sessions the person ended everywhere (sign out
+     * everywhere, a passkey removed, the account deleted). Default:
+     * auth-core's `integratorRevocationCheck`, from `OC_PROJECT_KEY` and
+     * `OC_SIGNING_SECRET`; none when they are unset. `false` turns it off.
+     */
+    revocation?: RevocationCheck | false;
+}
+
+/** One check per project key, shared by every request in this process. */
+const sessionChecks = new Map<string, RevocationCheck | null>();
+let warnedUnchecked = false;
+
+function revocationFor(options: OcSessionOptions): RevocationCheck | null {
+    if (options.revocation === false) return null;
+    if (options.revocation) return options.revocation;
+    const key = options.projectKey ?? '';
+    if (!sessionChecks.has(key)) {
+        sessionChecks.set(
+            key,
+            integratorRevocationCheck(options.projectKey ? { projectKey: options.projectKey } : {})
+        );
+    }
+    const check = sessionChecks.get(key)!;
+    const production = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+    if (!check && !warnedUnchecked && production) {
+        warnedUnchecked = true;
+        console.warn(
+            '[@orangecheck/me-client] sessions are checked by signature only, so one the person ended ' +
+                'everywhere stays valid here until it expires. Set OC_PROJECT_KEY and OC_SIGNING_SECRET ' +
+                'to refuse it.'
+        );
+    }
+    return check;
+}
+
+/** Tests only: forget the per-project checks and the one-time warning. */
+export function _resetSessionChecksForTests(): void {
+    sessionChecks.clear();
+    warnedUnchecked = false;
+}
+
 /**
  * Verify the OC session for a request. Accepts either:
  *
@@ -79,14 +132,22 @@ export type {
  * `Authorization: Bearer <token>` so cross-domain integrators (no
  * .ochk.io cookie reach) verify the same way.
  *
+ * A session the person ended everywhere is refused once `OC_PROJECT_KEY` and
+ * `OC_SIGNING_SECRET` are set (see {@link OcSessionOptions.revocation}).
+ *
  * Returns `null` for unauthenticated requests. Never throws.
  */
 export async function getOcSession(
     headers: SessionRequestHeaders | Headers,
-    options: VerifyOcOptions = {}
+    options: OcSessionOptions = {}
 ): Promise<SessionPayload | null> {
     const session = await getOcSessionCore(headers, options);
-    if (!session && options.audience === undefined) warnIfAudienceMissing(headers);
+    if (!session) {
+        if (options.audience === undefined) warnIfAudienceMissing(headers);
+        return null;
+    }
+    const check = revocationFor(options);
+    if (check && (await check.refuses(session, options.method))) return null;
     return session;
 }
 
@@ -132,6 +193,7 @@ function base64UrlToString(s: string): string {
 // ─── Next.js Pages Router adapter ────────────────────────────────────────
 
 interface NextApiRequestLike {
+    method?: string;
     headers: { cookie?: string; authorization?: string; [k: string]: unknown };
     ocSession?: SessionPayload | null;
 }
@@ -143,7 +205,7 @@ interface NextApiResponseLike {
 /** A request with the verified session attached: `WithOcSession<NextApiRequest>`. */
 export type WithOcSession<Req> = Req & { ocSession?: SessionPayload | null };
 
-export interface WithOcAuthOptions extends VerifyOcOptions {
+export interface WithOcAuthOptions extends OcSessionOptions {
     /** When true, unauthenticated requests get a 401 + `{ok:false}` response
      *  before the wrapped handler runs. Default: false — handler runs and
      *  receives `req.ocSession === null`, useful when the route serves both
@@ -161,7 +223,8 @@ export interface WithOcAuthOptions extends VerifyOcOptions {
      * Your project key. The requirement you set in the project's settings
      * ("who can sign in") is read from me.ochk.io within a minute of a change
      * and enforced like `requireBond`, so you change it there, not in code.
-     * An explicit `requireBond` wins over it.
+     * An explicit `requireBond` wins over it. Default `OC_PROJECT_KEY` for the
+     * ended-session check only.
      */
     projectKey?: string;
     /** Where the project config is read. Default https://me.ochk.io. */
@@ -310,7 +373,7 @@ export function withOcAuth<
                         ? req.headers.authorization
                         : null,
             },
-            options
+            { ...options, method: req.method }
         );
         const withSession = req as WithOcSession<Req>;
         withSession.ocSession = session;
@@ -337,6 +400,7 @@ declare global {
 export type OcHonoEnv = { Variables: { ocSession: SessionPayload | null } };
 
 interface ExpressRequestLike {
+    method?: string;
     headers: { cookie?: string; authorization?: string; [k: string]: unknown };
     ocSession?: SessionPayload | null;
 }
@@ -379,7 +443,7 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
                             ? req.headers.authorization
                             : null,
                 },
-                options
+                { ...options, method: req.method }
             );
             req.ocSession = session;
             const refused = await refusal(session, options);
@@ -397,7 +461,7 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
 // ─── Hono middleware ─────────────────────────────────────────────────────
 
 interface HonoContextLike {
-    req: { raw: { headers: Headers } };
+    req: { raw: { headers: Headers; method?: string } };
     set(key: string, value: unknown): void;
     json(body: unknown, status?: number): unknown;
     header(name: string, value: string): void;
@@ -423,7 +487,10 @@ export function ocAuthHono(options: WithOcAuthOptions = {}) {
     return async (c: HonoContextLike, next: HonoNextLike) => {
         c.header('Cache-Control', 'no-store, private');
         c.header('Vary', 'Cookie, Authorization');
-        const session = await getOcSession(c.req.raw.headers, options);
+        const session = await getOcSession(c.req.raw.headers, {
+            ...options,
+            method: c.req.raw.method,
+        });
         c.set('ocSession', session);
         const refused = await refusal(session, options);
         if (refused) return c.json(refused.body, refused.status);

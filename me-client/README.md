@@ -41,8 +41,27 @@ import { signInWithOc } from '@orangecheck/me-client/popup';
 
 const result = await signInWithOc();
 if (result) {
-    // A token bound to your origin. Send it to your server as a Bearer.
-    await fetch('/api/me', { headers: { Authorization: `Bearer ${result.token}` } });
+    // A token bound to your origin. Hand it to your server once; it keeps it
+    // in an httpOnly cookie, out of reach of your page's scripts.
+    await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: result.token }),
+    });
+}
+```
+
+```ts
+// Server · pages/api/auth/session.ts
+import { verifyOcToken } from '@orangecheck/me-client/server';
+
+export default async function session(req, res) {
+    const token = String(req.body?.token ?? '');
+    const s = await verifyOcToken(token, { audience: 'https://your-site.example' });
+    if (!s) return res.status(401).json({ ok: false });
+    const maxAge = (s.exp ?? 0) - Math.floor(Date.now() / 1000);
+    res.setHeader('Set-Cookie', `oc_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`);
+    res.status(200).json({ ok: true });
 }
 ```
 
@@ -228,6 +247,10 @@ app.get('/api/me', (c) => {
 
 `getOcSession(headers)` is the framework-agnostic primitive: pass a Web `Headers` object or a plain `{ cookie, authorization }` object. Cookie auth (family `*.ochk.io`) and Bearer auth (cross-domain) are handled identically.
 
+### Sessions ended everywhere
+
+Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a session the person ended everywhere: sign out everywhere, a passkey removed, the account deleted. They read those account cutoffs from me.ochk.io once a minute, with a request signed by your secret, so a refusal lands within about two minutes. If me.ochk.io can't be reached, reads go on and writes are refused until it can. Without the two variables, a token is checked by its signature alone and stays valid until it expires.
+
 ## Browser popup signin
 
 ```tsx
@@ -236,10 +259,14 @@ import { signInWithOc } from '@orangecheck/me-client/popup';
 button.addEventListener('click', async () => {
     const result = await signInWithOc();
     if (!result) return; // user cancelled or popup blocked
-    // Cross-domain integrators only — same-origin family integrators
-    // (.ochk.io) skip this; the cookie rides automatically.
-    localStorage.setItem('oc-token', result.token);
-    location.assign('/dashboard');
+    // Your server verifies it and keeps it in an httpOnly cookie. Not
+    // localStorage: any script on the page could read it there.
+    const r = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: result.token }),
+    });
+    if (r.ok) location.assign('/dashboard');
 });
 ```
 

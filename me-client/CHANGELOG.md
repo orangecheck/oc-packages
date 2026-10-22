@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Added
+
+- `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a
+  session the person ended everywhere (sign out everywhere, a passkey removed,
+  the account deleted) once `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` are set.
+  They read the account cutoffs from me.ochk.io once a minute through
+  auth-core's `integratorRevocationCheck`. While the cutoffs can't be read, reads
+  go on and writes are refused. New options: `method` (the adapters pass it),
+  `projectKey` and `revocation` (a check of your own, or `false`). Without the
+  two variables nothing changes, apart from a one-time warning in production.
+
+### Changed
+
+- The README and `signInWithOc`'s example hand the token to the site's server,
+  which keeps it in an httpOnly cookie, as ochk.io/docs/me/quickstart teaches.
+
 ## [0.33.0] — 2026-10-22
 
 ### Changed

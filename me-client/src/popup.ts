@@ -8,10 +8,14 @@
  *
  *   document.querySelector('#oc-signin')!.addEventListener('click', async () => {
  *       const result = await signInWithOc();
- *       if (result) {
- *           localStorage.setItem('oc-session-token', result.token);
- *           location.assign('/app');
- *       }
+ *       if (!result) return;
+ *       // Your server verifies it and keeps it in an httpOnly cookie.
+ *       const r = await fetch('/api/auth/session', {
+ *           method: 'POST',
+ *           headers: { 'Content-Type': 'application/json' },
+ *           body: JSON.stringify({ token: result.token }),
+ *       });
+ *       if (r.ok) location.assign('/app');
  *   });
  *
  * Why this lives in a separate entry point: it's browser-only (uses
@@ -53,10 +57,11 @@ export interface OcPopupResult {
      *  same at every site; the email and Bitcoin address stay private
      *  unless the user grants a scope. */
     account: OcPopupAccount;
-    /** The session JWT. Cross-domain integrators store this and send
-     *  it as `Authorization: Bearer <token>` on subsequent calls.
-     *  Family integrators (*.ochk.io) can ignore it — the cookie set
-     *  Domain=.ochk.io rides home automatically. */
+    /** The session JWT, bound to your origin. Hand it once to your own
+     *  server, which verifies it and keeps it in an httpOnly cookie; never
+     *  in localStorage, where any script on the page can read it. Family
+     *  sites (*.ochk.io) can ignore it: the Domain=.ochk.io cookie rides
+     *  home on its own. */
     token: string;
 }
 
