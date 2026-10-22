@@ -152,6 +152,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     // An anchored poll is counted against the chain (SPEC §4.6): the tip,
     // H_close, and each ballot's anchor from every stamp the relays hold.
     const chain = await anchoredChain(poll, ballots.map(ballotId), {
+        ballotRelays: ballotFetch.relays,
         relays,
         ...(opts.mempoolBase ? { mempoolBase: opts.mempoolBase } : {}),
     });
@@ -193,6 +194,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         ballot_count: new Set(ballots.map((b) => ballotId(b))).size,
         reveal_present: reveal != null,
         skipped,
+        ...(chain?.finalBlocked ? { not_final_because: chain.finalBlocked } : {}),
         ...result,
     };
 
@@ -213,7 +215,8 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     if (snapshot !== undefined) w(`  snapshot:   ${snapshot}\n`);
     if (chain) {
         const close = chain.closeHeight;
-        w(`  timing:     anchored in Bitcoin blocks (SPEC §4.6); tip ${chain.tipHeight}\n`);
+        w(`  timing:     anchored in Bitcoin blocks (SPEC §4.6); tip ${chain.chainTip}\n`);
+        if (chain.finalBlocked) w(`  ! not final: ${chain.finalBlocked}\n`);
         w(
             close === null
                 ? `  close:      no block at the deadline yet\n`

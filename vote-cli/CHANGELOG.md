@@ -11,6 +11,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.1] — 2026-10-22
+
+### Changed
+
+- Ballots and ballot stamps are read page by page from each relay with
+  `until`, so newer events under a poll's or a ballot's tag cannot push them
+  out of a relay's answer. An anchored poll's count is held provisional, and
+  says why, when a relay's ballot answer was cut short or a relay the ballots
+  came from did not answer the stamp lookup to the end. `--json` adds
+  `not_final_because`.
+
 ## [0.7.0] — 2026-10-22
 
 As oc-vote-protocol's anchored ballots (SPEC §4.6), on vote-core 2.0.0. From a

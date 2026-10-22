@@ -10,21 +10,29 @@ import type { StampEnvelope } from '@orangecheck/stamp-core';
 import { mempoolHeaderSource, submitToCalendars, toStampOts, verifiedAnchor } from '@orangecheck/stamp-ots';
 import type { BlockHeaderSource } from '@orangecheck/stamp-ots';
 import {
+    ANCHOR_FINAL_CONFIRMATIONS,
     anchorHeightFromStamps,
     ballotStampContent,
+    lastAnchorHeight,
     isAnchoredPoll,
     mempoolBlockTimeSource,
     resolveCloseBlock,
 } from '@orangecheck/vote-core';
 import type { Ballot, BlockTimeSource, Poll } from '@orangecheck/vote-core';
 
-import { query, type EventsFetch } from './nostr.js';
+import { DEFAULT_RELAYS, queryPaged, type QueryFn, type RelayRead } from './nostr.js';
 
 export const STAMP_KIND = 30083;
-const IDS_PER_QUERY = 50;
+/** Ballot ids per REQ: fewer per filter, so one ballot's flood pages alone. */
+const IDS_PER_QUERY = 20;
 
 export interface AnchoredChain {
+    /** The tip the tally is given: held below the final block while `finalBlocked`. */
     tipHeight: number;
+    /** The chain tip as read. */
+    chainTip: number;
+    /** Why this count cannot be final however far the chain is, or null. */
+    finalBlocked: string | null;
     /** `H_close`, null while no block's median_time_past has passed the deadline. */
     closeHeight: number | null;
     anchorHeight: (ballotId: string) => number | null;
@@ -73,17 +81,30 @@ export function stampAnchorVerifier(headers: BlockHeaderSource) {
     };
 }
 
-/** Every stamp copy over each ballot id, never collapsed; `complete` is false when a query reached no EOSE. */
+/**
+ * Every stamp copy over each ballot id, never collapsed, paged per relay so a
+ * flood under a ballot's tag cannot push its stamps out. `relays` says which
+ * relays answered every page of every lookup.
+ */
 export async function fetchBallotStamps(
     ballotIds: readonly string[],
-    fetch: (ids: string[]) => Promise<EventsFetch>
-): Promise<{ stamps: Map<string, unknown[]>; complete: boolean }> {
+    relays: readonly string[] = DEFAULT_RELAYS,
+    queryFn?: QueryFn
+): Promise<{ stamps: Map<string, unknown[]>; relays: RelayRead[] }> {
     const ids = [...new Set(ballotIds)];
     const stamps = new Map<string, unknown[]>(ids.map((id) => [id, []]));
-    let complete = true;
+    const reads = new Map<string, RelayRead>(relays.map((relay) => [relay, { relay, answered: true, truncated: false }]));
     for (let i = 0; i < ids.length; i += IDS_PER_QUERY) {
-        const r = await fetch(ids.slice(i, i + IDS_PER_QUERY));
-        if (!r.complete) complete = false;
+        const chunk = ids.slice(i, i + IDS_PER_QUERY);
+        const r = await queryPaged({ kinds: [STAMP_KIND], '#t': chunk.map((id) => `sha256:${id}`) }, relays, queryFn);
+        for (const read of r.relays) {
+            const sum = reads.get(read.relay)!;
+            reads.set(read.relay, {
+                relay: read.relay,
+                answered: sum.answered && read.answered,
+                truncated: sum.truncated || read.truncated,
+            });
+        }
         for (const e of r.events) {
             let content: unknown;
             try {
@@ -95,7 +116,7 @@ export async function fetchBallotStamps(
             if (typeof hash === 'string' && hash.startsWith('sha256:')) stamps.get(hash.slice(7))?.push(content);
         }
     }
-    return { stamps, complete };
+    return { stamps, relays: [...reads.values()] };
 }
 
 /**
@@ -107,12 +128,14 @@ export async function anchoredChain(
     poll: Poll,
     ballotIds: readonly string[],
     opts: {
+        /** How the ballots were read: which relays answered to the end. */
+        ballotRelays: readonly RelayRead[];
         relays?: readonly string[];
         blockTimes?: BlockTimeSource;
         headers?: BlockHeaderSource;
         mempoolBase?: string;
-        fetchStamps?: (ids: string[]) => Promise<EventsFetch>;
-    } = {}
+        queryFn?: QueryFn;
+    }
 ): Promise<AnchoredChain | null> {
     if (!isAnchoredPoll(poll)) return null;
     const close = await resolveCloseBlock(
@@ -120,17 +143,35 @@ export async function anchoredChain(
         opts.blockTimes ?? mempoolBlockTimeSource(opts.mempoolBase ? { base: opts.mempoolBase } : {})
     );
     if (!close.ok) throw new Error(`the block at the deadline could not be read (${close.code}): ${close.reason}`);
-    const fetchStamps =
-        opts.fetchStamps ??
-        ((ids: string[]) => query({ kinds: [STAMP_KIND], '#t': ids.map((id) => `sha256:${id}`) }, opts.relays));
-    const { stamps, complete } = await fetchBallotStamps(ballotIds, fetchStamps);
-    if (!complete) throw new Error('no relay finished answering the stamp query; try again');
+    const read = await fetchBallotStamps(ballotIds, opts.relays ?? DEFAULT_RELAYS, opts.queryFn);
+    if (!read.relays.some((r) => r.answered)) throw new Error('no relay finished answering the stamp query; try again');
     const headers =
         opts.headers ?? cachedHeaders(mempoolHeaderSource(opts.mempoolBase ? { baseUrl: opts.mempoolBase } : {}));
     const verify = stampAnchorVerifier(headers);
     const heights = new Map<string, number | null>();
-    for (const [id, copies] of stamps) heights.set(id, await anchorHeightFromStamps(id, copies, (s) => verify(s)));
-    return { tipHeight: close.tip, closeHeight: close.height, anchorHeight: (id) => heights.get(id) ?? null };
+    for (const [id, copies] of read.stamps) heights.set(id, await anchorHeightFromStamps(id, copies, (s) => verify(s)));
+
+    // A final count rests on the relays the ballots came from: each must have
+    // answered the stamp lookup to the end, and none may have cut the ballot
+    // lookup short. A stamp a relay did not send is not evidence of none.
+    const stampsDone = read.relays.filter((r) => r.answered && !r.truncated).map((r) => r.relay);
+    const ballotsCut = opts.ballotRelays.filter((r) => r.truncated).map((r) => r.relay);
+    const stampsMissing = opts.ballotRelays
+        .filter((r) => r.answered && !stampsDone.includes(r.relay))
+        .map((r) => r.relay);
+    const finalBlocked = ballotsCut.length
+        ? `the ballot lookup was cut short on ${ballotsCut.join(', ')}`
+        : stampsMissing.length
+          ? `the stamp lookup did not finish on ${stampsMissing.join(', ')}`
+          : null;
+    const finalAt = close.height === null ? null : lastAnchorHeight(close.height) + ANCHOR_FINAL_CONFIRMATIONS;
+    return {
+        tipHeight: finalBlocked && finalAt !== null ? Math.min(close.tip, finalAt - 1) : close.tip,
+        chainTip: close.tip,
+        finalBlocked,
+        closeHeight: close.height,
+        anchorHeight: (id) => heights.get(id) ?? null,
+    };
 }
 
 /**

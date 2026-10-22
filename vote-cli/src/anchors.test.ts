@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { anchoredChain, stampAnchorVerifier } from './anchors.js';
 import { computeTally } from './commands/tally.js';
-import type { EventsFetch, NostrEvent } from './nostr.js';
+import type { NostrEvent, QueryFn, RelayRead } from './nostr.js';
 
 const KEY = new Uint8Array(32).fill(5);
 const SIGNER = addressFromPrivateKey(KEY, 'p2wpkh');
@@ -113,10 +113,27 @@ const blockTimes = (tip: number) => ({
     },
     tipHeight: async () => tip,
 });
-const relay = (stamps: unknown[], complete = true) => async (): Promise<EventsFetch> => ({
-    events: stamps.map((s) => ({ content: JSON.stringify(s) }) as unknown as NostrEvent),
-    complete,
-});
+const RELAYS = ['wss://a', 'wss://b'];
+let seq = 0;
+/** A stamp as a relay holds it: an event under the ballot's tag, dated `at`. */
+const asEvent = (stamp: { content: { hash: string } }, at = 1_000): NostrEvent =>
+    ({ id: `ev-${seq++}`, created_at: at, kind: 30083, tags: [['t', stamp.content.hash]], content: JSON.stringify(stamp) }) as unknown as NostrEvent;
+/**
+ * Relays that answer like real ones: newest first, at most `limit` and a cap of
+ * 500 per REQ, honouring `until`. `silent` relays never answer.
+ */
+const relaysHolding = (events: NostrEvent[], silent: string[] = []) =>
+    (async (filter: { limit?: number; until?: number; '#t'?: string[] }, relays: readonly string[]) => {
+        const relayStatus = relays.map((relay) => ({ relay, ok: !silent.includes(relay), eose: !silent.includes(relay), events: 0 }));
+        const sent = relays.some((r) => !silent.includes(r))
+            ? events
+                  .filter((e) => (filter.until === undefined || e.created_at <= filter.until) && e.tags.some((t) => t[0] === 't' && filter['#t']?.includes(t[1]!)))
+                  .sort((a, b) => b.created_at - a.created_at)
+                  .slice(0, Math.min(filter.limit ?? Infinity, 500))
+            : [];
+        return { events: sent, relayStatus };
+    }) as unknown as QueryFn;
+const answered: RelayRead[] = RELAYS.map((relay) => ({ relay, answered: true, truncated: false }));
 
 describe('stampAnchorVerifier', () => {
     it('reads the height from the header the proof reaches, never from the stamp', async () => {
@@ -150,16 +167,22 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
     });
     afterEach(() => vi.useRealTimers());
 
-    async function run(tip: number) {
+    async function run(tip: number, opts: { junk?: number; silent?: string[]; ballotRelays?: RelayRead[] } = {}) {
         const headers = new Headers();
         const s = await anchoredStamp(early, CLOSE - 3, headers);
         const pending = { ...s, ots: { ...s.ots, status: 'pending' as const, proof: '' } };
+        const events = [asEvent(pending, 900), asEvent(s, 1_000)];
+        for (let i = 0; i < (opts.junk ?? 0); i++) {
+            events.push({ ...asEvent(s, 2_000 + i), content: '{}' } as NostrEvent);
+        }
         const chain = await anchoredChain(poll, [ballotId(early), ballotId(late)], {
+            ballotRelays: opts.ballotRelays ?? answered,
+            relays: RELAYS,
             blockTimes: blockTimes(tip),
             headers,
-            fetchStamps: relay([pending, s]),
+            queryFn: relaysHolding(events, opts.silent),
         });
-        return computeTally({
+        const result = await computeTally({
             poll,
             ballots: [early, late],
             reveal: null,
@@ -167,10 +190,11 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
             chain,
             verify: null,
         });
+        return { chain, result };
     }
 
     it('is final at H_close + G + 6 and counts only the anchored ballot', async () => {
-        expect(await run(CLOSE + 36 + 6)).toMatchObject({
+        expect((await run(CLOSE + 36 + 6)).result).toMatchObject({
             state: 'tallied',
             basis: 'anchored',
             close_height: CLOSE,
@@ -179,20 +203,41 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
     });
 
     it('is provisional a block earlier and says one counted ballot is not anchored', async () => {
-        expect(await run(CLOSE + 36 + 5)).toMatchObject({ state: 'provisional', unanchored: 1 });
+        expect((await run(CLOSE + 36 + 5)).result).toMatchObject({ state: 'provisional', unanchored: 1 });
     });
 
-    it('refuses to count when no relay finished answering the stamp query', async () => {
+    it("finds a ballot's stamps behind 600 newer junk events under its tag, and the count is final", async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { junk: 600 });
+        expect(chain?.finalBlocked).toBeNull();
+        expect(result).toMatchObject({ state: 'tallied', counted: [ballotId(early)] });
+    });
+
+    it('holds the count short of final when a relay the ballots came from did not answer the stamp lookup', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { silent: ['wss://b'] });
+        expect(chain?.finalBlocked).toMatch(/wss:\/\/b/);
+        expect(result.state).toBe('provisional');
+    });
+
+    it('holds the count short of final when the ballot lookup was cut short', async () => {
+        const cut = [answered[0]!, { ...answered[1]!, truncated: true }];
+        const { chain, result } = await run(CLOSE + 36 + 6, { ballotRelays: cut });
+        expect(chain?.finalBlocked).toMatch(/ballot lookup was cut short/);
+        expect(result.state).toBe('provisional');
+    });
+
+    it('refuses to count when no relay answered the stamp query', async () => {
         await expect(
             anchoredChain(poll, [ballotId(early)], {
+                ballotRelays: answered,
+                relays: RELAYS,
                 blockTimes: blockTimes(CLOSE + 100),
                 headers: new Headers(),
-                fetchStamps: relay([], false),
+                queryFn: relaysHolding([], RELAYS),
             })
         ).rejects.toThrow(/stamp query/);
     });
 
     it('is null for a clock-dated poll', async () => {
-        expect(await anchoredChain({ ...poll, deadline: '2026-11-01T00:00:00Z' }, [])).toBeNull();
+        expect(await anchoredChain({ ...poll, deadline: '2026-11-01T00:00:00Z' }, [], { ballotRelays: [] })).toBeNull();
     });
 });
