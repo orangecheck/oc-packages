@@ -10,21 +10,29 @@ and [Semantic Versioning](https://semver.org/).
 
 - _(no pending changes)_
 
-## [1.1.1] — 2026-10-21
-
-### Fixed
-
-- `decodeAddress` and `verifySignature` accept an all-uppercase bech32 address,
-  as BIP-173 allows and QR codes carry it, by lowercasing it. Mixed case is
-  still refused.
+## [1.1.2] — 2026-10-22
 
 ### Added
 
+- `normalizeAddress(input)`: the canonical spelling of an address a person
+  typed or scanned. It drops surrounding whitespace, lowercases all-capitals
+  bech32 (as QR codes carry it, BIP-173), leaves base58 unchanged, and returns
+  null for mixed case or anything that is not an address. Store, key and
+  compare addresses in this form.
 - `decodeAddress` returns the address's `network`: `'mainnet'`, `'testnet'` or
   `'regtest'`. Base58 regtest addresses share testnet's version bytes and
   report `'testnet'`.
-- The README states what 1.1 accepts for P2WPKH, P2TR and P2PKH under each
-  signature form, and a test recomputes that table by signing and verifying.
+- The README states what the package accepts per address type and signature
+  form, and a test recomputes that table by signing and verifying.
+
+### Unchanged
+
+- `verifySignature` and `decodeAddress` still read bech32 only in lowercase,
+  so one key has one address that verifies.
+
+## [1.1.1]
+
+1.1.1 was not published.
 
 ## [1.1.0] — 2026-10-21
 

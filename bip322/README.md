@@ -9,10 +9,10 @@ It is built only on audited primitives: `@noble/curves`, `@noble/hashes` and `@s
 ## Install
 
 ```bash
-yarn add @orangecheck/bip322@^1.1.1
+yarn add @orangecheck/bip322@^1.1.2
 ```
 
-This README describes 1.1.1. Before 1.1.0 there was no `signMessage`, and a signature carrying the finalized BIP's `smp` prefix was refused; a wallet that follows the finalized BIP needs 1.1.0 or later on the verifying side.
+This README describes 1.1.2. Before 1.1.0 there was no `signMessage`, and a signature carrying the finalized BIP's `smp` prefix was refused; a wallet that follows the finalized BIP needs 1.1.0 or later on the verifying side.
 
 ## Use
 
@@ -38,21 +38,34 @@ const signature = signMessage(address, message, key); // base64, BIP-322 simple
 
 The finalized BIP-322 says signers prefix a simple signature with `smp`. Verifiers deployed before it, including this package before 1.1.0 and `bip322-js`, reject the prefix, so `signMessage` leaves it off unless you pass `{ prefixed: true }`.
 
-`decodeAddress(address)` returns `{ type, network, program, scriptPubKey }` for mainnet, testnet/signet and regtest addresses, and `null` for anything else. A bech32 address may be all lowercase or all uppercase, as QR codes carry it (BIP-173), but not mixed. `network` is `'mainnet'`, `'testnet'` or `'regtest'`; a base58 testnet address reports `'testnet'`, because base58 regtest addresses use the same version bytes.
+## Addresses: one spelling per key
+
+```ts
+import { normalizeAddress } from '@orangecheck/bip322';
+
+normalizeAddress(' BC1Q9VZA2E8X573NCZRLZMS0WVX3GSQJX7VAVGKX0L '); // 'bc1q9vza2e8x…', or null
+```
+
+`verifySignature` and `decodeAddress` read bech32 only in its canonical lowercase spelling, so one key never has two addresses that verify, and anything you key by address (votes, accounts, devices, limits) sees one spelling. QR codes carry bech32 in capitals, which BIP-173 allows: call `normalizeAddress` on what a person typed or scanned, before signing, verifying or storing. It drops surrounding whitespace, lowercases all-capitals bech32, leaves base58 as it is, and returns `null` for mixed case or anything that is not an address.
+
+`decodeAddress(address)` returns `{ type, network, program, scriptPubKey }` for mainnet, testnet/signet and regtest addresses, and `null` for anything else. `network` is `'mainnet'`, `'testnet'` or `'regtest'`; a base58 testnet address reports `'testnet'`, because base58 regtest addresses use the same version bytes.
 
 ## What it accepts
 
-Measured by signing and verifying with 1.1, not read off the code. `test/behaviour.test.ts` recomputes every cell of this table on each run, so the table cannot drift from the code.
+Measured by signing and verifying, not read off the code. `test/behaviour.test.ts` recomputes every cell of this table on each run, so the table cannot drift from the code.
 
 | Address | BIP-322 simple | simple with `smp` | BIP-322 full (`ful`) | BIP-137 legacy |
 | --- | --- | --- | --- | --- |
 | P2WPKH (`bc1q…`) | accepted | accepted | refused | accepted, under any header flag |
+| P2SH-P2WPKH (`3…`) | accepted | accepted | refused | accepted, under any header flag |
 | P2TR (`bc1p…`, single key) | accepted | accepted | refused | accepted, under any header flag |
 | P2PKH (`1…`) | refused: no witness to sign with | refused | refused | accepted, under any header flag |
+| Uppercase bech32 (`BC1Q…`) | refused: not the canonical spelling | refused | refused | refused |
 
-- **BIP-322 simple** is a witness signature, with or without the `smp` prefix. P2SH-P2WPKH (`3…`) simple signatures are accepted too. BIP-322 defines no simple form for P2PKH, which has no witness; a P2PKH address signs with BIP-137.
+- **BIP-322 simple** is a witness signature, with or without the `smp` prefix. BIP-322 defines no simple form for P2PKH, which has no witness; a P2PKH address signs with BIP-137. The P2SH-P2WPKH simple signature in the table was made by `bip322-js`, because `signMessage` signs only P2WPKH and P2TR.
 - **BIP-322 full** (`ful`) and **proof of funds** (`pof`) are refused without being parsed. A wallet that only produces those cannot sign here.
 - **BIP-137 legacy** is the 65-byte `signmessage` signature. The header flag (27–42) is not checked against the address type: wallets disagree on it for segwit addresses, some using the P2PKH flags and some the BIP-137 segwit flags, and both verify. What is checked is that the recovered key derives the claimed address: its hash for P2WPKH and P2PKH, its BIP-86 output key for P2TR.
+- **Uppercase bech32** is refused in every column; `normalizeAddress` turns it into the lowercase address, which verifies as its row says.
 
 ## Compatibility
 

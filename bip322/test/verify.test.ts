@@ -1,7 +1,7 @@
 import { bech32, bech32m } from '@scure/base';
 import { describe, expect, it } from 'vitest';
 
-import { decodeAddress, verifySignature } from '../src/index';
+import { decodeAddress, normalizeAddress, verifySignature } from '../src/index';
 import attestations from './fixtures/attestations.json';
 import corpus from './fixtures/bip322-js-6.1.8.json';
 
@@ -106,13 +106,40 @@ describe('malformed input', () => {
 });
 
 describe('uppercase bech32 (BIP-173, as QR codes carry it)', () => {
-    it('verifies against an all-uppercase address', () => {
-        expect(verifySignature(P2WPKH.toUpperCase(), 'Hello World', SIG_HELLO)).toBe(true);
-        expect(verifySignature(P2TR.toUpperCase(), 'Hello World', SIG_TR_HELLO)).toBe(true);
+    it('does not verify: only the canonical lowercase spelling does', () => {
+        expect(verifySignature(P2WPKH.toUpperCase(), 'Hello World', SIG_HELLO)).toBe(false);
+        expect(verifySignature(P2TR.toUpperCase(), 'Hello World', SIG_TR_HELLO)).toBe(false);
+        expect(decodeAddress(P2WPKH.toUpperCase())).toBeNull();
     });
 
-    it('decodes it to the same program', () => {
-        expect(decodeAddress(P2WPKH.toUpperCase())).toEqual(decodeAddress(P2WPKH));
+    it('normalizeAddress turns it into the address that verifies', () => {
+        for (const [addr, sig] of [[P2WPKH, SIG_HELLO], [P2TR, SIG_TR_HELLO]] as const) {
+            const canonical = normalizeAddress(addr.toUpperCase());
+            expect(canonical).toBe(addr);
+            expect(verifySignature(canonical!, 'Hello World', sig)).toBe(true);
+        }
+    });
+});
+
+describe('normalizeAddress', () => {
+    it.each([
+        [P2WPKH, P2WPKH],
+        [`  ${P2WPKH}\n`, P2WPKH],
+        ['TB1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KXPJZSX', 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'],
+        ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2', '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'],
+        ['3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy'],
+    ])('%s -> %s', (input, canonical) => {
+        expect(normalizeAddress(input)).toBe(canonical);
+    });
+
+    it.each([
+        ['mixed case', 'BC1Q' + P2WPKH.slice(4)],
+        ['mixed case after the prefix', P2WPKH.slice(0, 5) + P2WPKH.slice(5).toUpperCase()],
+        ['base58 with its case changed', '1BVBMSEYSTWETQTFN5AU4M4GFG7XJANVN2'],
+        ['not an address', 'hello'],
+        ['empty', ''],
+    ])('refuses %s', (_, input) => {
+        expect(normalizeAddress(input)).toBeNull();
     });
 });
 

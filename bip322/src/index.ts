@@ -76,12 +76,13 @@ const scriptFor: Record<AddressType, (p: Uint8Array) => Uint8Array> = {
 };
 
 /**
- * Decode a mainnet, testnet/signet or regtest address. Bech32 may be all
- * lowercase or all uppercase (BIP-173; QR codes use uppercase), never mixed.
- * Null for anything else, including witness versions other than 0 and 1.
+ * Decode a mainnet, testnet/signet or regtest address in its canonical
+ * spelling: bech32 lowercase only, so one key never has two addresses that
+ * verify. Null for anything else, including uppercase bech32 (pass what a
+ * person typed or scanned through `normalizeAddress` first) and witness
+ * versions other than 0 and 1.
  */
-export function decodeAddress(input: string): DecodedAddress | null {
-    const address = /^(BC|TB|BCRT)1[^a-z]*$/.test(input) ? input.toLowerCase() : input;
+export function decodeAddress(address: string): DecodedAddress | null {
     const make = (type: AddressType, program: Uint8Array, network: DecodedAddress['network']): DecodedAddress => ({
         type,
         network,
@@ -287,6 +288,19 @@ function bip86OutputKey(pubkey: Uint8Array): Uint8Array {
     const tweak = schnorr.utils.bytesToNumberBE(taggedHash('TapTweak', x));
     const P = schnorr.utils.lift_x(schnorr.utils.bytesToNumberBE(x));
     return P.add(secp256k1.Point.BASE.multiply(tweak)).toBytes(true).subarray(1);
+}
+
+/**
+ * The canonical spelling of an address a person typed or scanned: surrounding
+ * whitespace dropped, bech32 lowercased (QR codes carry it in capitals, which
+ * BIP-173 allows), base58 unchanged. Null when the result is not an address
+ * `decodeAddress` reads, mixed-case bech32 included. Store, key and compare
+ * addresses in this form only.
+ */
+export function normalizeAddress(input: string): string | null {
+    const trimmed = input.trim();
+    const address = /^(BC|TB|BCRT)1[^a-z]*$/.test(trimmed) ? trimmed.toLowerCase() : trimmed;
+    return decodeAddress(address) ? address : null;
 }
 
 /**
