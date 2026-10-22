@@ -10,7 +10,7 @@
 
 import { commit as computeCommit } from './commit.js';
 import { ballotId, pollId } from './ids.js';
-import { BALLOT_VERSION, POLL_VERSION } from './types.js';
+import { POLL_VERSION } from './types.js';
 import type {
     Ballot,
     Poll,
@@ -19,7 +19,8 @@ import type {
     UtxoLookup,
     Utxo,
 } from './types.js';
-import { isBlockHeight, isMainnetAddress, VoteError } from './verify.js';
+import { isBlockHeight, isMainnetAddress, parseUtc, verifyBallot, VoteError } from './verify.js';
+import type { SignatureVerifier } from './verify.js';
 import { isSupportedMode, voterWeight } from './weight.js';
 
 export interface TallyOptions {
@@ -154,18 +155,19 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
     }
 
     // 1. Filter to ballots that structurally belong to this poll and are in time.
-    const deadlineMs = Date.parse(poll.deadline);
+    const deadlineMs = parseUtc(poll.deadline);
+    if (deadlineMs === null) throw new VoteError('E_WRONG_POLL', 'poll deadline is not iso8601_utc');
+    const verifier: SignatureVerifier = opts.skipSignatures
+        ? () => true
+        : (opts.verify ?? ((a) => opts.verifyBip322!(a.address, a.message, a.signature)));
     const filtered: Ballot[] = [];
     for (const b of ballots) {
-        // Per-ballot version, dropped rather than thrown: one publisher on a
-        // format we do not speak must not void everyone else's tally, which is
-        // how every other structural mismatch in this loop behaves.
-        if (b.v !== BALLOT_VERSION) continue;
-        if (b.poll_id !== pid) continue;
-        // SPEC §4.3: voter MUST be a mainnet address. A UTXO lookup on another
-        // network's address answers for a different chain, or not at all.
-        if (!isMainnetAddress(b.voter)) continue;
-        if (Date.parse(b.created_at) > deadlineMs) continue;
+        if (!b || b.poll_id !== pid) continue;
+        // SPEC §0, §4.3: a created_at that is not iso8601_utc is not a time. Read
+        // leniently it compares as NaN, or in the tallier's own time zone, and
+        // two talliers stop agreeing.
+        const createdAt = parseUtc(b.created_at);
+        if (createdAt === null || createdAt > deadlineMs) continue;
 
         if (poll.mode === 'secret') {
             if (b.secret == null) continue;
@@ -179,13 +181,11 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
             }
         }
 
-        if (!opts.skipSignatures) {
-            const id = ballotId(b);
-            const ok = opts.verify
-                ? await opts.verify({ address: b.voter, message: id, signature: b.sig.value })
-                : await opts.verifyBip322!(b.voter, id, b.sig.value);
-            if (!ok) continue;
-        }
+        // Version, mainnet voter (SPEC §4.3), shape and signature: the checks
+        // verifyBallot makes on a ballot read on its own. A version this client
+        // does not speak is dropped, not thrown, so one publisher on another
+        // format cannot void everyone else's tally.
+        if (!(await verifyBallot(b, verifier)).ok) continue;
 
         filtered.push(b);
     }
@@ -305,8 +305,9 @@ function hasOwn(obj: object, key: string): boolean {
 }
 
 function chooseByTiebreak(a: Ballot, b: Ballot, t: Tiebreak): Ballot {
-    const ta = Date.parse(a.created_at);
-    const tb = Date.parse(b.created_at);
+    // Both passed step 1, so both parse.
+    const ta = parseUtc(a.created_at)!;
+    const tb = parseUtc(b.created_at)!;
     if (t === 'latest') {
         if (tb > ta) return b;
         if (ta > tb) return a;

@@ -13,6 +13,7 @@ import { canonicalBytes } from './canonical.js';
 import { pollId, ballotId, revealId } from './ids.js';
 import { commit } from './commit.js';
 import { tally } from './tally.js';
+import { verifyReveal } from './verify.js';
 import type { Ballot, Poll, Reveal, TallyResult, Utxo } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -103,6 +104,13 @@ describe('oc-vote-protocol conformance', () => {
                     const c = structuredClone(reveal);
                     c.sig.value = '';
                     expect(canonicalBytes(c)).toBe(exp.reveal_canonical);
+                });
+            }
+
+            if (reveal && poll.mode === 'secret') {
+                it("accepts the reveal: its key is the poll's reveal_pk (SPEC §10.3)", async () => {
+                    // Signatures in the vectors are placeholders; the key and the clock are what is checked.
+                    expect(await verifyReveal(reveal, poll, () => true, Date.parse(poll.deadline))).toEqual({ ok: true });
                 });
             }
 

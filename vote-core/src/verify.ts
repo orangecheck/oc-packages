@@ -3,6 +3,9 @@
 // Like `tally`, these take the BIP-322 verifier as a callback: this package
 // stays free of any secp256k1 / bip322 dependency.
 
+import { x25519 } from '@noble/curves/ed25519';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+
 import { ballotId, pollId, revealId } from './ids.js';
 import { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
 import type { Ballot, Poll, Reveal, VoteErrorCode } from './types.js';
@@ -37,6 +40,22 @@ export function isMainnetAddress(addr: unknown): boolean {
     return /^[13][1-9A-HJ-NP-Za-km-z]+$/.test(addr);
 }
 
+const UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+
+/**
+ * Milliseconds for an `iso8601_utc` string (SPEC §0): `YYYY-MM-DDTHH:MM:SSZ`,
+ * optionally with `.sss`. Null for anything else, including a time with no
+ * zone, which `Date.parse` reads in the reader's own time zone, and a date
+ * that does not exist, which it rolls over.
+ */
+export function parseUtc(value: unknown): number | null {
+    if (typeof value !== 'string' || !UTC_RE.test(value)) return null;
+    const ms = Date.parse(value);
+    if (!Number.isFinite(ms)) return null;
+    const canonical = value.length === 20 ? `${value.slice(0, 19)}.000Z` : value;
+    return new Date(ms).toISOString() === canonical ? ms : null;
+}
+
 const OPTION_ID_RE = /^[a-z0-9_-]{1,32}$/;
 
 /**
@@ -63,8 +82,8 @@ export async function verifyPoll(poll: Poll, verify: SignatureVerifier): Promise
         if (ids.has(o.id)) return bad('E_WRONG_POLL', 'duplicate option id');
         ids.add(o.id);
     }
-    if (!Number.isFinite(Date.parse(poll.deadline))) {
-        return bad('E_WRONG_POLL', 'unparseable deadline');
+    if (parseUtc(poll.deadline) === null) {
+        return bad('E_WRONG_POLL', 'deadline is not iso8601_utc');
     }
     if (poll.snapshot_block !== 'deadline' && !isBlockHeight(poll.snapshot_block)) {
         return bad('E_WRONG_POLL', 'snapshot_block must be a positive integer or "deadline"');
@@ -114,8 +133,8 @@ export async function verifyBallot(ballot: Ballot, verify: SignatureVerifier): P
     if (!isPublic && !isSecret) {
         return bad('E_UNKNOWN_OPTION', 'ballot must carry exactly one of option or secret');
     }
-    if (!Number.isFinite(Date.parse(ballot.created_at))) {
-        return bad('E_WRONG_POLL', 'unparseable created_at');
+    if (parseUtc(ballot.created_at) === null) {
+        return bad('E_WRONG_POLL', 'created_at is not iso8601_utc');
     }
     const signature = ballot.sig?.value;
     if (ballot.sig?.alg !== 'bip322' || typeof signature !== 'string' || !signature) {
@@ -126,14 +145,17 @@ export async function verifyBallot(ballot: Ballot, verify: SignatureVerifier): P
 }
 
 /**
- * SPEC §6.4 step 1 and §10.3: a reveal is accepted only if it names this poll,
- * is dated at or after the deadline, and is signed by the poll's creator over
- * `reveal_id`.
+ * SPEC §6.4 step 1, §10.3 and SECURITY Scenario 13: a reveal is accepted only
+ * if it names this secret poll, carries the secret key whose X25519 public key
+ * is the poll's `reveal_pk`, is signed by the poll's creator over `reveal_id`,
+ * and the verifier's own clock (`now`) has reached the deadline. The reveal's
+ * `revealed_at` is the creator's claim and decides nothing.
  */
 export async function verifyReveal(
     reveal: Reveal,
     poll: Poll,
-    verify: SignatureVerifier
+    verify: SignatureVerifier,
+    now: Date | number = Date.now()
 ): Promise<VerifyResult> {
     const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
     if (!reveal || typeof reveal !== 'object') return bad('E_NO_REVEAL', 'not a reveal object');
@@ -141,15 +163,20 @@ export async function verifyReveal(
         return bad('E_NO_REVEAL', 'not an oc-vote/reveal v0 object');
     }
     if (reveal.poll_id !== pollId(poll)) return bad('E_WRONG_POLL', 'reveal is for a different poll');
+    if (poll.mode !== 'secret' || typeof poll.reveal_pk !== 'string') {
+        return bad('E_NO_REVEAL', 'poll is not a secret poll');
+    }
     if (typeof reveal.reveal_sk !== 'string' || !/^[0-9a-f]{64}$/.test(reveal.reveal_sk)) {
         return bad('E_NO_REVEAL', 'reveal_sk is not 32-byte hex');
     }
-    const revealedAt = Date.parse(reveal.revealed_at);
-    const deadline = Date.parse(poll.deadline);
-    if (!Number.isFinite(revealedAt) || !Number.isFinite(deadline)) {
-        return bad('E_NO_REVEAL', 'unparseable revealed_at or deadline');
+    if (bytesToHex(x25519.getPublicKey(hexToBytes(reveal.reveal_sk))) !== poll.reveal_pk) {
+        return bad('E_NO_REVEAL', "reveal_sk is not the key for the poll's reveal_pk");
     }
-    if (revealedAt < deadline) return bad('E_NO_REVEAL', 'premature reveal (revealed_at < deadline)');
+    const deadline = parseUtc(poll.deadline);
+    if (deadline === null || parseUtc(reveal.revealed_at) === null) {
+        return bad('E_NO_REVEAL', 'revealed_at or deadline is not iso8601_utc');
+    }
+    if (+now < deadline) return bad('E_NO_REVEAL', 'premature reveal: the deadline has not passed');
     const signature = reveal.sig?.value;
     if (typeof signature !== 'string' || !signature) return bad('E_BAD_SIG', 'reveal is unsigned');
     const ok = await verify({ address: poll.creator, message: revealId(reveal), signature });

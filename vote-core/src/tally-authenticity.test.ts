@@ -1,12 +1,14 @@
 // Authenticity and input-domain rules from SPEC §3.3, §4.3, §6.4, §8 and §10.
 
+import { x25519 } from '@noble/curves/ed25519';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { describe, expect, it } from 'vitest';
 
 import { commit } from './commit.js';
 import { ballotId, pollId, revealId } from './ids.js';
 import { tally } from './tally.js';
 import type { Ballot, Poll, Reveal } from './types.js';
-import { isMainnetAddress, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
+import { isMainnetAddress, parseUtc, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 
 const CREATOR = 'bc1qcreator0000000000000000000000000000000';
 const ALICE = 'bc1qalice00000000000000000000000000000000';
@@ -241,36 +243,130 @@ describe('snapshot confirmations (SPEC §10.5)', () => {
     });
 });
 
-describe('verifyReveal (SPEC §6.4, §10.3)', () => {
-    const poll = mkPoll({ mode: 'secret', reveal_pk: 'ab'.repeat(32) });
+describe('verifyReveal (SPEC §6.4, §10.3, SECURITY Scenario 13)', () => {
+    const REVEAL_SK = 'cd'.repeat(32);
+    const poll = mkPoll({ mode: 'secret', reveal_pk: bytesToHex(x25519.getPublicKey(hexToBytes(REVEAL_SK))) });
+    const AFTER = Date.parse('2026-12-01T00:00:00Z');
+    const BEFORE = Date.parse('2026-11-30T23:59:59Z');
     const mkReveal = (over: Partial<Reveal> = {}): Reveal => ({
         v: 0,
         kind: 'oc-vote/reveal',
         poll_id: pollId(poll),
-        reveal_sk: 'cd'.repeat(32),
+        reveal_sk: REVEAL_SK,
         revealed_at: '2026-12-02T00:00:00Z',
         sig: { alg: 'bip322', pubkey: CREATOR, value: 'good' },
         ...over,
     });
 
-    it('accepts a creator-signed reveal after the deadline, signed over reveal_id', async () => {
+    it('accepts a creator-signed reveal once the deadline has passed, signed over reveal_id', async () => {
         const r = mkReveal();
         const calls: string[] = [];
-        const res = await verifyReveal(r, poll, (a) => {
-            calls.push(`${a.address}:${a.message}`);
-            return verify(a);
-        });
+        const res = await verifyReveal(
+            r,
+            poll,
+            (a) => {
+                calls.push(`${a.address}:${a.message}`);
+                return verify(a);
+            },
+            AFTER
+        );
         expect(res).toEqual({ ok: true });
         expect(calls).toEqual([`${CREATOR}:${revealId(r)}`]);
     });
 
+    it("judges the deadline by the verifier's clock, not the creator's revealed_at", async () => {
+        // Dated after the deadline, checked before it: still premature.
+        expect(await verifyReveal(mkReveal(), poll, verify, BEFORE)).toMatchObject({ ok: false, code: 'E_NO_REVEAL' });
+        // Dated before the deadline, checked after it: the date decides nothing.
+        expect(await verifyReveal(mkReveal({ revealed_at: '2026-11-30T00:00:00Z' }), poll, verify, AFTER)).toEqual({
+            ok: true,
+        });
+    });
+
+    it("refuses a key that is not the poll's reveal_pk, however well signed", async () => {
+        const r = mkReveal({ reveal_sk: 'ef'.repeat(32) });
+        expect(await verifyReveal(r, poll, verify, AFTER)).toMatchObject({ ok: false, code: 'E_NO_REVEAL' });
+    });
+
     it.each([
-        ['premature', { revealed_at: '2026-11-30T00:00:00Z' }],
         ['other poll', { poll_id: '00'.repeat(32) }],
         ['bad signature', { sig: { alg: 'bip322' as const, pubkey: CREATOR, value: 'bad' } }],
         ['malformed reveal_sk', { reveal_sk: 'zz' }],
+        ['revealed_at with no zone', { revealed_at: '2026-12-02T00:00:00' }],
     ])('rejects: %s', async (_name, over) => {
-        expect((await verifyReveal(mkReveal(over as Partial<Reveal>), poll, verify)).ok).toBe(false);
+        expect((await verifyReveal(mkReveal(over as Partial<Reveal>), poll, verify, AFTER)).ok).toBe(false);
+    });
+
+    it('rejects a reveal for a public poll', async () => {
+        const pub = mkPoll();
+        const r = { ...mkReveal(), poll_id: pollId(pub) };
+        expect(await verifyReveal(r, pub, verify, AFTER)).toMatchObject({ ok: false, code: 'E_NO_REVEAL' });
+    });
+});
+
+describe('iso8601_utc times (SPEC §0, §3.3, §4.3)', () => {
+    it.each([
+        ['2026-05-07T23:30:00Z', Date.UTC(2026, 4, 7, 23, 30)],
+        ['2026-05-07T23:30:00.250Z', Date.UTC(2026, 4, 7, 23, 30, 0, 250)],
+    ])('reads %s', (s, ms) => {
+        expect(parseUtc(s)).toBe(ms);
+    });
+
+    it.each([
+        ['no zone', '2026-05-07T23:30:00'],
+        ['an offset', '2026-05-07T23:30:00+00:00'],
+        ['a day that does not exist', '2026-02-30T00:00:00Z'],
+        ['hour 24', '2026-05-07T24:00:00Z'],
+        ['a date only', '2026-05-07'],
+        ['words', 'late-1'],
+        ['a number', 1778196600000],
+    ])('refuses %s', (_name, s) => {
+        expect(parseUtc(s)).toBeNull();
+    });
+
+    it('verifyPoll refuses a deadline with no zone', async () => {
+        expect(await verifyPoll(mkPoll({ deadline: '2026-12-01T00:00:00' }), verify)).toMatchObject({
+            ok: false,
+            code: 'E_WRONG_POLL',
+        });
+    });
+
+    it('verifyBallot refuses a created_at with no zone', async () => {
+        const b = mkBallot(mkPoll(), ALICE, { created_at: '2026-06-02T00:00:00' });
+        expect(await verifyBallot(b, verify)).toMatchObject({ ok: false, code: 'E_WRONG_POLL' });
+    });
+
+    it('tally refuses a poll whose deadline has no zone', async () => {
+        const poll = mkPoll({ deadline: '2026-12-01T00:00:00' });
+        await expect(tally({ poll, ballots: [], utxosAt: oneUtxo, verify })).rejects.toMatchObject({
+            code: 'E_WRONG_POLL',
+        });
+    });
+
+    it('a ballot whose created_at is not a time is dropped, in every input order', async () => {
+        // One voter: yes on 06-01, no on 06-02, and a signed yes dated "late-…".
+        // Read leniently, the third compares as NaN and the winner depended on
+        // the order relays returned the ballots.
+        const poll = mkPoll();
+        const x = mkBallot(poll, ALICE, { option: 'yes', created_at: '2026-06-01T00:00:00Z' });
+        const y = mkBallot(poll, ALICE, { option: 'no', created_at: '2026-06-02T00:00:00Z' });
+        const n = mkBallot(poll, ALICE, { option: 'yes', created_at: 'late-1' });
+        const orders = [
+            [x, y, n], [x, n, y], [y, x, n], [y, n, x], [n, x, y], [n, y, x],
+        ]; // prettier-ignore
+        for (const ballots of orders) {
+            const r = await tally({ poll, ballots, utxosAt: oneUtxo, verify });
+            expect(r).toMatchObject({ tallies: { yes: 0, no: 1 } });
+        }
+    });
+
+    it('a ballot dated with no zone is dropped whatever the time zone', async () => {
+        // Two days before the deadline in every time zone, so only the missing zone drops it.
+        const poll = mkPoll();
+        const b = mkBallot(poll, ALICE, { created_at: '2026-11-29T00:00:00' });
+        expect(await tally({ poll, ballots: [b], utxosAt: oneUtxo, verify })).toMatchObject({
+            tallies: { yes: 0, no: 0 },
+        });
     });
 });
 

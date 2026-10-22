@@ -7,6 +7,29 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.6.0] — 2026-10-22
+
+As oc-vote-protocol's errata of 2026-10-22 (SPEC §0, §3.3, §4.3, §6.4, §8, §10.3).
+
+### Changed
+
+- **Times are `iso8601_utc`.** `verifyPoll` requires the deadline, and
+  `verifyBallot` the ballot's `created_at`, to be `YYYY-MM-DDTHH:MM:SSZ` (or
+  with `.sss`), a date that exists. `tally` throws `E_WRONG_POLL` for a
+  deadline that is not, and drops a ballot whose `created_at` is not, so every
+  tallier reads the same instants.
+- **`tally` checks each ballot with `verifyBallot`**, the same structure and
+  signature checks a ballot gets on its own, before it counts.
+- **`verifyReveal(reveal, poll, verify, now?)`** accepts a reveal only once
+  `now` (default: the current time) has reached the deadline; `revealed_at`
+  does not decide. It requires the reveal key to be the X25519 secret key for
+  the poll's `reveal_pk` (SECURITY Scenario 13), and a secret poll.
+
+### Added
+
+- `parseUtc(value)`: milliseconds for an `iso8601_utc` time, or null.
+- Dependency: `@noble/curves` (X25519).
+
 ## [1.5.2] — 2026-10-21
 
 ### Fixed — an open poll no longer asks for a block that does not exist yet

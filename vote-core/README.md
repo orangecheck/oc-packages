@@ -17,7 +17,8 @@ npm i @orangecheck/vote-core @orangecheck/bip322
 - `commit(pollId, voter, option)` — secret-mode commitment per SPEC §4.4.
 - `voterWeight({ utxos, snapshot, minSats, minDays, mode, params })` — three canonical weight modes: `one_per_address`, `sats`, `sats_days`.
 - `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot.
-- `verifyPoll(poll, verify)` / `verifyBallot(ballot, verify)` / `verifyReveal(reveal, poll, verify)` — SPEC §3.3 / §4.3 structure plus the creator's or voter's BIP-322 signature (§10.1, §6.4, §10.3).
+- `verifyPoll(poll, verify)` / `verifyBallot(ballot, verify)` / `verifyReveal(reveal, poll, verify, now?)` — SPEC §3.3 / §4.3 structure plus the creator's or voter's BIP-322 signature (§10.1, §6.4, §10.3). `verifyReveal` also requires the reveal key to be the poll's `reveal_pk`, and accepts a reveal only once `now` (default: the current time) has reached the deadline.
+- `parseUtc(value)` — milliseconds for an `iso8601_utc` time (SPEC §0), or null. Deadlines and ballot times are read only this way.
 - `isMainnetAddress(addr)` — network check by address prefix (§3.3, §4.3).
 - `resolvePollSnapshot(poll, source)` / `resolveDeadlineSnapshot(deadline, source)` — the §3 snapshot block (greatest `median_time_past` ≤ deadline, ≥ 6 confirmations); `mempoolBlockTimeSource()` supplies chain data from mempool.space or your own instance.
 - Full TypeScript types for `Poll`, `Ballot`, `Reveal`, `TallyResult`.
