@@ -30,7 +30,11 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
     // Envelopes about another pledge say nothing about this one, and only the
     // swearer can abandon (SPEC §5.3). Signatures are the caller's job via
     // verifyAbandonment()/verifyOutcome() with the pledge supplied.
-    const outcome = input.outcome && input.outcome.pledge_id === pledge.id ? input.outcome : null;
+    // An outcome dated after `now` describes a resolution that has not happened
+    // yet, so it does not classify the pledge until then.
+    const inForce = (o: OutcomeEnvelope) =>
+        o.pledge_id === pledge.id && !datedAfter(o.resolved_at, nowMs);
+    const outcome = input.outcome && inForce(input.outcome) ? input.outcome : null;
     const abandonment =
         input.abandonment &&
         input.abandonment.pledge_id === pledge.id &&
@@ -46,7 +50,7 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
     // Contradictory outcome envelopes from authorized resolvers → disputed.
     if (outcome !== null && contradictoryOutcomes && contradictoryOutcomes.length > 0) {
         for (const other of contradictoryOutcomes) {
-            if (other.pledge_id === pledge.id && other.outcome !== outcome.outcome) {
+            if (inForce(other) && other.outcome !== outcome.outcome) {
                 return 'disputed';
             }
         }
@@ -113,6 +117,15 @@ function parseUtc(s: string): number {
         Number(mi),
         Number(se),
     );
+}
+
+/** True when `iso` is later than `nowMs`, or not a timestamp at all. */
+function datedAfter(iso: string, nowMs: number): boolean {
+    try {
+        return parseUtc(iso) > nowMs;
+    } catch {
+        return true;
+    }
 }
 
 /**

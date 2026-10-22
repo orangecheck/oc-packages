@@ -18,6 +18,7 @@ import {
     type PledgeEnvelope,
     type PledgeErrorCode,
     type VerifyErr,
+    type VerifyPledgeAsOfSwornAtInput,
     type VerifyPledgeInput,
     type VerifyPledgeOk,
     type VerifyPledgeResult,
@@ -218,9 +219,37 @@ export function wrapPledgeEnvelope(
  *
  * skipSignatureVerification = true is the test-vector path (placeholder
  * sigs); production callers MUST supply verifyBip322.
+ *
+ * An agent-signed pledge is checked as of `now` (default: the current time):
+ * its delegation must be in force then. The agent chooses `sworn_at`, so a
+ * delegation that has since expired or been revoked cannot date a pledge
+ * back into its window. To audit a past pledge as of its own `sworn_at`, use
+ * verifyPledgeAsOfSwornAt.
  */
 export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPledgeResult> {
+    return verifyPledgeAt(input, input.now ?? new Date());
+}
+
+/**
+ * Verify a past pledge as of its own `sworn_at`, for an audit or a history.
+ * The swearer, or the agent, chose that time, so the verdict holds only if the
+ * claim is true: `asOf.anchored` is false, since a v1 pledge carries no anchor
+ * that fixes it. Never use this to decide whether a pledge counts now.
+ */
+export async function verifyPledgeAsOfSwornAt(
+    input: VerifyPledgeAsOfSwornAtInput,
+): Promise<VerifyPledgeResult> {
+    return verifyPledgeAt(input, null);
+}
+
+/** `now` null: the audit form, checked as of the pledge's own sworn_at. */
+async function verifyPledgeAt(
+    input: VerifyPledgeInput,
+    now: Date | null,
+): Promise<VerifyPledgeResult> {
     const env = input.envelope;
+    // Seconds precision, the form every pledge and delegation timestamp takes.
+    const at = now === null ? env.sworn_at : now.toISOString().replace(/\.\d+Z$/, 'Z');
 
     // 1. Version
     if (env.v !== ENVELOPE_VERSION) {
@@ -274,7 +303,8 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
         );
     }
     if (env.via_delegation && env.agent_address && input.delegationLookup) {
-        const delegation = await input.delegationLookup(env.via_delegation, env.sworn_at);
+        // The lookup checks the delegation, and any revocation of it, as of `at`.
+        const delegation = await input.delegationLookup(env.via_delegation, at);
         if (delegation === null) {
             return err(
                 'E_DELEGATION_NOT_FOUND',
@@ -299,6 +329,12 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
                 `delegation.expires_at (${delegation.expires_at}) <= pledge.sworn_at (${env.sworn_at})`,
             );
         }
+        if (now !== null && !isoUtcGreaterThan(delegation.expires_at, at)) {
+            return err(
+                'E_DELEGATION_EXPIRED',
+                `delegation.expires_at (${delegation.expires_at}) <= now (${at})`,
+            );
+        }
         const scopeCheck = checkPledgeCreateScope(env, delegation);
         if (!scopeCheck.ok) {
             return err(scopeCheck.code, scopeCheck.reason);
@@ -310,6 +346,10 @@ export async function verifyPledge(input: VerifyPledgeInput): Promise<VerifyPled
         envelope: env,
         canonicalMessage: reconstructed,
         id: env.id,
+        asOf:
+            now === null
+                ? { basis: 'sworn_at', swornAt: env.sworn_at, anchored: false }
+                : { basis: 'now', now: at },
     };
     return result;
 }

@@ -11,6 +11,7 @@ or any other adapter of choice.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Callable, Literal, Optional, Protocol, Union
 
 from .canonical import (
@@ -100,6 +101,10 @@ class VerifyOk:
     # True for an unsigned deterministic outcome: the envelope is a claim, and
     # the caller must re-evaluate the mechanism against public state (§11.4).
     recompute_required: bool = False
+    # For a pledge, the time the verdict holds for: {"basis": "now", "now": ...}
+    # from verify_pledge, {"basis": "sworn_at", "sworn_at": ..., "anchored": False}
+    # from verify_pledge_as_of_sworn_at. None for outcomes and abandonments.
+    as_of: Optional[dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -260,6 +265,7 @@ def verify_pledge(
     delegation_lookup: Optional[Callable[[str, str], Any]] = None,
     *,
     skip_delegation_verification: bool = False,
+    now: Optional[datetime] = None,
 ) -> VerifyResult:
     """
     Envelope-only verify per SPEC §9.1 steps 1–4.
@@ -275,7 +281,62 @@ def verify_pledge(
     An agent pledge (``via_delegation``) is refused without a
     ``delegation_lookup`` unless ``skip_delegation_verification=True`` states
     that the delegation is not being checked.
+
+    An agent pledge is checked as of ``now`` (default: the current time): its
+    delegation must be in force then. The agent chooses ``sworn_at``, so a
+    delegation that has since expired or been revoked cannot date a pledge
+    back into its window. ``verify_pledge_as_of_sworn_at`` audits a past
+    pledge as of its own ``sworn_at``.
     """
+    return _verify_pledge_at(
+        envelope,
+        verify_bip322,
+        skip_signature_verification,
+        delegation_lookup,
+        skip_delegation_verification,
+        now if now is not None else datetime.now(timezone.utc),
+    )
+
+
+def verify_pledge_as_of_sworn_at(
+    envelope: dict[str, Any],
+    verify_bip322: Optional[VerifyBip322] = None,
+    skip_signature_verification: bool = False,
+    delegation_lookup: Optional[Callable[[str, str], Any]] = None,
+    *,
+    skip_delegation_verification: bool = False,
+) -> VerifyResult:
+    """
+    Verify a past pledge as of its own ``sworn_at``, for an audit or a
+    history. Its signer chose that time, so the verdict holds only if the
+    claim is true: ``as_of["anchored"]`` is False, since a v1 pledge carries
+    no anchor that fixes it. Never use this to decide whether a pledge counts now.
+    """
+    return _verify_pledge_at(
+        envelope,
+        verify_bip322,
+        skip_signature_verification,
+        delegation_lookup,
+        skip_delegation_verification,
+        None,
+    )
+
+
+def _iso_seconds(t: datetime) -> str:
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _verify_pledge_at(
+    envelope: dict[str, Any],
+    verify_bip322: Optional[VerifyBip322],
+    skip_signature_verification: bool,
+    delegation_lookup: Optional[Callable[[str, str], Any]],
+    skip_delegation_verification: bool,
+    now: Optional[datetime],
+) -> VerifyResult:
+    """``now`` None: the audit form, checked as of the pledge's own sworn_at."""
     if envelope.get("v") != ENVELOPE_VERSION:
         return _err("E_UNSUPPORTED_VERSION", f"pledge envelope v={envelope.get('v')!r} not supported")
 
@@ -338,7 +399,9 @@ def verify_pledge(
         )
         import inspect
 
-        result = delegation_lookup(envelope["via_delegation"], envelope["sworn_at"])
+        # The lookup checks the delegation, and any revocation of it, as of `at`.
+        at = envelope["sworn_at"] if now is None else _iso_seconds(now)
+        result = delegation_lookup(envelope["via_delegation"], at)
         if inspect.isawaitable(result):
             # Async lookup not supported here (verify_pledge is sync). Wrap
             # in your event loop or pre-resolve before calling. We surface a
@@ -369,12 +432,26 @@ def verify_pledge(
                 "E_DELEGATION_EXPIRED",
                 f"delegation.expires_at ({delegation.expires_at}) <= pledge.sworn_at ({envelope['sworn_at']})",
             )
+        if now is not None and not iso_utc_greater_than(delegation.expires_at, at):
+            return _err(
+                "E_DELEGATION_EXPIRED",
+                f"delegation.expires_at ({delegation.expires_at}) <= now ({at})",
+            )
         scope_check = check_pledge_create_scope(envelope, delegation)
         if not scope_check.ok:
             return _err(scope_check.code, scope_check.reason)
 
+    as_of: dict[str, Any] = (
+        {"basis": "sworn_at", "sworn_at": envelope["sworn_at"], "anchored": False}
+        if now is None
+        else {"basis": "now", "now": _iso_seconds(now)}
+    )
     return VerifyOk(
-        ok=True, envelope=envelope, canonical_message=canonical_message, id=declared_id
+        ok=True,
+        envelope=envelope,
+        canonical_message=canonical_message,
+        id=declared_id,
+        as_of=as_of,
     )
 
 

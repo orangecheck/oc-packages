@@ -304,6 +304,28 @@ def test_state_still_counts_the_swearer_abandoning_this_pledge() -> None:
     assert s == "broken"
 
 
+def test_state_waits_for_an_outcome_dated_after_now() -> None:
+    # Published early and dated in the future: not a resolution until then.
+    early = _outcome(BASE, outcome="broken", resolved_at="2026-07-01T00:00:00Z")
+    s = classify_state(pledge=_envelope(BASE), outcome=early, abandonment=None, now=NOW)
+    assert s == "resolvable"
+    s = classify_state(
+        pledge=_envelope(BASE), outcome=early, abandonment=None, now="2026-07-02T00:00:00Z"
+    )
+    assert s == "broken"
+
+
+def test_state_ignores_a_future_dated_contradiction() -> None:
+    s = classify_state(
+        pledge=_envelope(BASE),
+        outcome=_outcome(BASE, outcome="kept"),
+        abandonment=None,
+        now=NOW,
+        contradictory_outcomes=[_outcome(BASE, outcome="broken", resolved_at="2026-07-01T00:00:00Z")],
+    )
+    assert s == "kept"
+
+
 # ─── verify_pledge: an agent pledge needs its delegation (SPEC §7.3) ─────
 
 

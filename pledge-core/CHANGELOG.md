@@ -8,6 +8,42 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.2.0] — 2026-10-22
+
+### Changed — an agent pledge is checked as of the time of verification
+
+SPEC §7.3, §11.12.
+
+- `verifyPledge` takes `now` (default: the current time). The delegation lookup
+  is asked as of `now`, not as of `sworn_at`, and the delegation must still be
+  unexpired then (`E_DELEGATION_EXPIRED`). Step 5, `expires_at > sworn_at`,
+  still applies. The agent chooses `sworn_at`, so it no longer decides whether
+  the delegation was in force.
+- The ok result carries `asOf: { basis: 'now', now }`.
+- A `DelegationLookup` receives that time as `nowIso`. Return null for a
+  delegation that a valid revocation in effect by then has ended.
+
+### Changed — an outcome dated after `now` does not classify a pledge yet
+
+SPEC §4.4. `classifyState` leaves out an outcome, or a contradicting one, whose
+`resolved_at` is later than `now`. Vector `v31`.
+
+### Added
+
+- `verifyPledgeAsOfSwornAt(input)` checks a past pledge as of its own
+  `sworn_at`, for a history. Its result carries
+  `asOf: { basis: 'sworn_at', swornAt, anchored: false }`.
+- The `VerifyPledgeAsOfSwornAtInput` type.
+
+### Migrating
+
+- A site deciding whether a pledge counts keeps calling `verifyPledge`. An agent
+  pledge whose delegation has since expired or been revoked now fails it.
+- A history that still wants to show such a pledge calls
+  `verifyPledgeAsOfSwornAt` and says the time is unanchored.
+- A lookup that ignored `nowIso` should check the delegation, and revocations,
+  as of it.
+
 ## [3.1.2] — 2026-10-19
 
 ### Fixed — a bond's age is that of the coins covering `min_sats`

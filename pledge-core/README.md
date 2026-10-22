@@ -81,6 +81,15 @@ if (result.ok) {
 }
 ```
 
+An agent-signed pledge (`via_delegation`) also needs `delegationLookup`, and is
+checked as of `now` (default: the current time): its delegation must be in force
+then, unexpired and not revoked. The agent chooses `sworn_at`, so a delegation
+that has since lapsed cannot date a pledge back into its window. To show a past
+pledge in a history, `verifyPledgeAsOfSwornAt` checks it as of its own
+`sworn_at` and returns `asOf.anchored: false`: that time is the signer's claim.
+`sworn_at` is otherwise unbounded (SPEC §11.5); reject one outside your own
+window if your use needs it.
+
 ## Outcome envelopes
 
 Deterministic outcome (any of the five non-counterparty mechanisms — `chain_state`, `nostr_event_exists`, `stamp_published`, `http_get_hash`, `dns_record`, `vote_resolves`):

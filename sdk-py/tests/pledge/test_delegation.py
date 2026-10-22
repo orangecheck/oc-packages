@@ -16,8 +16,10 @@ from orangecheck.pledge import (
     parse_pledge_create_scope,
     pledge_input_from_dict,
     verify_pledge,
+    verify_pledge_as_of_sworn_at,
     wrap_pledge_envelope,
 )
+from datetime import datetime, timezone
 
 
 def _pledge(opts: dict | None = None) -> dict:
@@ -213,6 +215,86 @@ def test_verify_agent_mismatch():
 
 def test_verify_expired_delegation():
     r = verify_pledge(
+        _pledge({"sworn_at": "2026-04-01T00:00:00Z"}),
+        skip_signature_verification=True,
+        delegation_lookup=lambda _id, _now: _delegation({"expires_at": "2026-03-01T00:00:00Z"}),
+    )
+    assert not r.ok
+    assert r.code == "E_DELEGATION_EXPIRED"
+
+
+def test_verify_judges_the_delegation_at_now_not_at_sworn_at():
+    # The delegation expired on 2026-01-01; the agent dates its pledge the day before.
+    seen: list[str] = []
+
+    def lookup(_id: str, now_iso: str) -> DelegationLookupResult:
+        seen.append(now_iso)
+        return _delegation({"expires_at": "2026-01-01T00:00:00Z"})
+
+    r = verify_pledge(
+        _pledge({"sworn_at": "2025-12-31T00:00:00Z"}),
+        skip_signature_verification=True,
+        delegation_lookup=lookup,
+        now=datetime(2026, 10, 21, 20, 0, 0, 123000, tzinfo=timezone.utc),
+    )
+    assert not r.ok
+    assert r.code == "E_DELEGATION_EXPIRED"
+    assert seen == ["2026-10-21T20:00:00Z"]
+
+
+def test_verify_refuses_a_delegation_revoked_by_now_whatever_sworn_at_says():
+    # A lookup that honours a revocation in effect from 2026-06-01.
+    def lookup(_id: str, now_iso: str):
+        return None if now_iso >= "2026-06-01T00:00:00Z" else _delegation()
+
+    env = _pledge({"sworn_at": "2026-04-01T00:00:00Z"})
+    live = verify_pledge(
+        env,
+        skip_signature_verification=True,
+        delegation_lookup=lookup,
+        now=datetime(2026, 10, 21, 20, 0, 0, tzinfo=timezone.utc),
+    )
+    assert not live.ok
+    assert live.code == "E_DELEGATION_NOT_FOUND"
+    before = verify_pledge(
+        env,
+        skip_signature_verification=True,
+        delegation_lookup=lookup,
+        now=datetime(2026, 5, 1, tzinfo=timezone.utc),
+    )
+    assert before.ok
+
+
+def test_verify_says_the_verdict_is_as_of_now():
+    r = verify_pledge(
+        _pledge(),
+        skip_signature_verification=True,
+        delegation_lookup=lambda _id, _now: _delegation(),
+        now=datetime(2026, 10, 21, 20, 0, 0, tzinfo=timezone.utc),
+    )
+    assert r.ok
+    assert r.as_of == {"basis": "now", "now": "2026-10-21T20:00:00Z"}
+
+
+def test_audit_as_of_sworn_at_checks_then_and_says_unanchored():
+    seen: list[str] = []
+
+    def lookup(_id: str, now_iso: str) -> DelegationLookupResult:
+        seen.append(now_iso)
+        return _delegation({"expires_at": "2026-01-01T00:00:00Z"})
+
+    r = verify_pledge_as_of_sworn_at(
+        _pledge({"sworn_at": "2025-12-31T00:00:00Z"}),
+        skip_signature_verification=True,
+        delegation_lookup=lookup,
+    )
+    assert r.ok
+    assert r.as_of == {"basis": "sworn_at", "sworn_at": "2025-12-31T00:00:00Z", "anchored": False}
+    assert seen == ["2025-12-31T00:00:00Z"]
+
+
+def test_audit_still_refuses_a_delegation_that_expired_before_sworn_at():
+    r = verify_pledge_as_of_sworn_at(
         _pledge({"sworn_at": "2026-04-01T00:00:00Z"}),
         skip_signature_verification=True,
         delegation_lookup=lambda _id, _now: _delegation({"expires_at": "2026-03-01T00:00:00Z"}),

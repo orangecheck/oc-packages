@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computePledgeId } from './canonical.js';
 import { checkPledgeCreateScope, parsePledgeCreateScope } from './delegation.js';
-import { verifyPledge } from './pledge.js';
+import { verifyPledge, verifyPledgeAsOfSwornAt } from './pledge.js';
 import {
     ENVELOPE_VERSION,
     type DelegationLookupResult,
@@ -278,6 +278,56 @@ describe('verifyPledge — delegationLookup integration', () => {
         if (!r.ok) expect(r.code).toBe('E_DELEGATION_EXPIRED');
     });
 
+    it('judges the delegation at the time of verification, not the sworn_at the agent chose', async () => {
+        // The delegation expired on 2026-01-01; the agent dates its pledge the day before.
+        const seen: string[] = [];
+        const r = await verifyPledge({
+            envelope: pledge({ sworn_at: '2025-12-31T00:00:00Z' }),
+            skipSignatureVerification: true,
+            delegationLookup: async (_id, nowIso) => {
+                seen.push(nowIso);
+                return delegation({ expires_at: '2026-01-01T00:00:00Z' });
+            },
+            now: new Date('2026-10-21T20:00:00.123Z'),
+        });
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe('E_DELEGATION_EXPIRED');
+        expect(seen).toEqual(['2026-10-21T20:00:00Z']);
+    });
+
+    it('refuses a pledge whose delegation was revoked by now, whatever sworn_at it claims', async () => {
+        // A lookup that honours a revocation in effect from 2026-06-01.
+        const lookup = async (_id: string, nowIso: string) =>
+            nowIso >= '2026-06-01T00:00:00Z' ? null : delegation();
+        const env = pledge({ sworn_at: '2026-04-01T00:00:00Z' });
+        const live = await verifyPledge({
+            envelope: env,
+            skipSignatureVerification: true,
+            delegationLookup: lookup,
+            now: new Date('2026-10-21T20:00:00Z'),
+        });
+        expect(live.ok).toBe(false);
+        if (!live.ok) expect(live.code).toBe('E_DELEGATION_NOT_FOUND');
+        const before = await verifyPledge({
+            envelope: env,
+            skipSignatureVerification: true,
+            delegationLookup: lookup,
+            now: new Date('2026-05-01T00:00:00Z'),
+        });
+        expect(before.ok).toBe(true);
+    });
+
+    it('says the verdict is as of now', async () => {
+        const r = await verifyPledge({
+            envelope: pledge(),
+            skipSignatureVerification: true,
+            delegationLookup: async () => delegation(),
+            now: new Date('2026-10-21T20:00:00Z'),
+        });
+        expect(r.ok).toBe(true);
+        if (r.ok) expect(r.asOf).toEqual({ basis: 'now', now: '2026-10-21T20:00:00Z' });
+    });
+
     it('refuses an agent pledge when no delegationLookup is supplied', async () => {
         // The agent's signature shows the agent signed, not that the swearer
         // authorised it (SPEC §7.3 steps 1–5).
@@ -313,5 +363,38 @@ describe('verifyPledge — delegationLookup integration', () => {
             },
         });
         expect(r.ok).toBe(true);
+    });
+});
+
+describe('verifyPledgeAsOfSwornAt — an audit as of the time the pledge claims', () => {
+    it('checks the delegation at sworn_at, and says the time is unanchored', async () => {
+        const seen: string[] = [];
+        const r = await verifyPledgeAsOfSwornAt({
+            envelope: pledge({ sworn_at: '2025-12-31T00:00:00Z' }),
+            skipSignatureVerification: true,
+            delegationLookup: async (_id, nowIso) => {
+                seen.push(nowIso);
+                return delegation({ expires_at: '2026-01-01T00:00:00Z' });
+            },
+        });
+        expect(r.ok).toBe(true);
+        if (r.ok) {
+            expect(r.asOf).toEqual({
+                basis: 'sworn_at',
+                swornAt: '2025-12-31T00:00:00Z',
+                anchored: false,
+            });
+        }
+        expect(seen).toEqual(['2025-12-31T00:00:00Z']);
+    });
+
+    it('still refuses a delegation that expired before sworn_at', async () => {
+        const r = await verifyPledgeAsOfSwornAt({
+            envelope: pledge({ sworn_at: '2026-04-01T00:00:00Z' }),
+            skipSignatureVerification: true,
+            delegationLookup: async () => delegation({ expires_at: '2026-03-01T00:00:00Z' }),
+        });
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe('E_DELEGATION_EXPIRED');
     });
 });

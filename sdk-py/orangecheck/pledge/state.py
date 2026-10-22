@@ -58,7 +58,12 @@ def classify_state(
     # verify_abandonment()/verify_outcome() with the pledge supplied.
     pledge_id = pledge.get("id")
     swearer = (pledge.get("swearer") or {}).get("address")
-    if outcome is not None and outcome.get("pledge_id") != pledge_id:
+    # An outcome dated after `now` describes a resolution that has not happened
+    # yet, so it does not classify the pledge until then.
+    def in_force(o: dict[str, Any]) -> bool:
+        return o.get("pledge_id") == pledge_id and not _dated_after(o.get("resolved_at"), now_ms)
+
+    if outcome is not None and not in_force(outcome):
         outcome = None
     if abandonment is not None and (
         abandonment.get("pledge_id") != pledge_id
@@ -73,9 +78,7 @@ def classify_state(
     # Contradictory outcome envelopes from authorized resolvers → disputed.
     if outcome is not None and contradictory_outcomes:
         for other in contradictory_outcomes:
-            if other.get("pledge_id") == pledge_id and other.get("outcome") != outcome.get(
-                "outcome"
-            ):
+            if in_force(other) and other.get("outcome") != outcome.get("outcome"):
                 return "disputed"
 
     if outcome is not None:
@@ -109,6 +112,14 @@ def _normalize_resolves_at(
             return _parse_utc(chain.tip_time)
         return None  # not yet mined
     return None
+
+
+def _dated_after(iso: Any, now_ms: int) -> bool:
+    """True when ``iso`` is later than ``now_ms``, or not a timestamp at all."""
+    try:
+        return _parse_utc(iso) > now_ms
+    except (TypeError, ValueError):
+        return True
 
 
 def _parse_utc(s: str) -> int:

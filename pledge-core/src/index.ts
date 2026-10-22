@@ -22,7 +22,13 @@ export {
     validateAbandonmentInput,
 } from './canonical.js';
 export type { JsonValue, ValidateResult } from './canonical.js';
-export { createPledge, verifyPledge, wrapPledgeEnvelope, PledgeError } from './pledge.js';
+export {
+    createPledge,
+    verifyPledge,
+    verifyPledgeAsOfSwornAt,
+    wrapPledgeEnvelope,
+    PledgeError,
+} from './pledge.js';
 export {
     createOutcome,
     verifyOutcome,

@@ -109,6 +109,32 @@ describe('classifyState', () => {
         expect(r).toBe('disputed');
     });
 
+    it('an outcome dated after now does not classify the pledge yet', () => {
+        // Published early, dated at resolves_at: before then it is not a resolution.
+        const early = outcome({ outcome: 'broken', resolved_at: '2026-09-01T00:00:00Z' });
+        const at = (now: string) =>
+            classifyState({ pledge: pledge(), outcome: early, abandonment: null, now });
+        expect(at('2026-08-01T00:00:00Z')).toBe('pending');
+        expect(at('2026-09-02T00:00:00Z')).toBe('broken');
+    });
+
+    it('a future-dated contradicting outcome does not dispute one already in force', () => {
+        const kept = outcome({ outcome: 'kept', resolved_at: '2026-09-01T00:00:00Z' });
+        const later = outcome({
+            id: 'd'.repeat(64),
+            outcome: 'broken',
+            resolved_at: '2026-11-01T00:00:00Z',
+        });
+        const r = classifyState({
+            pledge: pledge(),
+            outcome: kept,
+            abandonment: null,
+            now: '2026-10-01T00:00:00Z',
+            contradictoryOutcomes: [later],
+        });
+        expect(r).toBe('kept');
+    });
+
     it('abandonment trumps everything → broken (no honorable exit)', () => {
         const r = classifyState({
             pledge: pledge(),

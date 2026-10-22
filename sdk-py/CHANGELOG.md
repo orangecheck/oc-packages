@@ -4,6 +4,24 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] — 2026-10-22
+
+### Changed — an agent pledge is checked as of the time of verification
+
+As `@orangecheck/pledge-core` 3.2.0 (SPEC §7.3, §11.12, §4.4).
+
+- `verify_pledge` takes `now` (default: the current time). The delegation
+  lookup is asked as of `now`, not as of `sworn_at`, and the delegation must
+  still be unexpired then. `VerifyOk.as_of` is `{"basis": "now", "now": …}`.
+- `classify_state` leaves out an outcome, or a contradicting one, whose
+  `resolved_at` is later than `now`.
+
+### Added
+
+- `verify_pledge_as_of_sworn_at` checks a past pledge as of its own
+  `sworn_at`, for a history. `as_of` is
+  `{"basis": "sworn_at", "sworn_at": …, "anchored": False}`.
+
 ## [2.3.1] — 2026-10-21
 
 ### Fixed — signatures from wallets that follow the finalized BIP-322

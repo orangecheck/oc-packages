@@ -281,10 +281,10 @@ export interface VerifyPledgeInput {
     skipSignatureVerification?: boolean;
     /**
      * Optional — when present AND envelope.via_delegation is set, verifyPledge
-     * runs SPEC §7.3 steps 1–5: resolve the delegation, confirm
-     * principal == swearer, agent == agent_address, expires_at > sworn_at,
-     * and that scopes contain a `pledge:create(...)` whose constraints fit
-     * the pledge's bond / mechanism / counterparty.
+     * runs SPEC §7.3 steps 1–5 as of `now`: resolve the delegation, confirm
+     * principal == swearer, agent == agent_address, expires_at later than
+     * both sworn_at and now, and that scopes contain a `pledge:create(...)`
+     * whose constraints fit the pledge's bond / mechanism / counterparty.
      *
      * An agent-delegated pledge is refused with `E_DELEGATION_NOT_FOUND`
      * when this hook is absent, unless `skipDelegationVerification` says so
@@ -298,7 +298,17 @@ export interface VerifyPledgeInput {
      * result as unauthorised (test vectors, offline previews).
      */
     skipDelegationVerification?: boolean;
+    /**
+     * The time of verification; defaults to new Date(). An agent-signed
+     * pledge's delegation must be in force at `now`: unexpired, and not
+     * revoked at or before it. The agent chooses `sworn_at`, so it cannot
+     * decide this.
+     */
+    now?: Date;
 }
+
+/** An audit of a past pledge as of its own sworn_at: no `now`. See verifyPledgeAsOfSwornAt. */
+export type VerifyPledgeAsOfSwornAtInput = Omit<VerifyPledgeInput, 'now'>;
 
 /**
  * Caller-supplied delegation resolver. Returns the resolved delegation
@@ -310,6 +320,13 @@ export interface VerifyPledgeInput {
  * `oc-agent-del:<delegation_id>`) and running OC Agent's full
  * verifyDelegation check before returning the typed shape. pledge-core
  * trusts the adapter's output for the §7.3 1–5 logic.
+ */
+/**
+ * `nowIso` is the time the verdict is for: the time of verification in
+ * verifyPledge, the pledge's sworn_at in verifyPledgeAsOfSwornAt. Return null
+ * for a delegation that is not in force then, or that a valid revocation in
+ * effect at or before then has ended, and when the revocations could not be
+ * read at all (SPEC §11.12).
  */
 export type DelegationLookup = (
     delegationId: string,
@@ -415,6 +432,12 @@ export interface VerifyPledgeOk {
     envelope: PledgeEnvelope;
     canonicalMessage: string;
     id: string;
+    /**
+     * The time the verdict holds for. `now`: verifyPledge, checked live.
+     * `sworn_at`: verifyPledgeAsOfSwornAt, checked as of the time the pledge
+     * claims; `anchored` is false because only its signer says so.
+     */
+    asOf: { basis: 'now'; now: string } | { basis: 'sworn_at'; swornAt: string; anchored: boolean };
 }
 
 export interface VerifyOutcomeOk {

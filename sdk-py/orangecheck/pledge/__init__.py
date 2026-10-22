@@ -90,6 +90,7 @@ from .envelopes import (
     verify_abandonment,
     verify_outcome,
     verify_pledge,
+    verify_pledge_as_of_sworn_at,
     wrap_abandonment_envelope,
     wrap_outcome_envelope,
     wrap_pledge_envelope,
@@ -139,6 +140,7 @@ __all__ = [
     # Build / verify
     "create_pledge",
     "verify_pledge",
+    "verify_pledge_as_of_sworn_at",
     "create_outcome",
     "verify_outcome",
     "create_abandonment",
