@@ -352,3 +352,55 @@ describe('canonical message consistency', () => {
         expect(lines.length).toBe(6);
     });
 });
+
+describe('signed_at (SPEC §0): one rule, never rewritten', () => {
+    const base = { content: new TextEncoder().encode('x'), mime: 'text/plain', signer: fakeSigner() };
+
+    it('keeps a Date to the millisecond, and writes whole seconds without them', async () => {
+        expect((await stamp({ ...base, signedAt: new Date('2026-04-24T18:30:00.123Z') })).signed_at).toBe(
+            '2026-04-24T18:30:00.123Z'
+        );
+        expect((await stamp({ ...base, signedAt: FIXED_DATE })).signed_at).toBe('2026-04-24T18:30:00Z');
+    });
+
+    it('defaults to now without dropping its milliseconds', async () => {
+        const before = Date.now();
+        const env = await stamp(base);
+        expect(Math.abs(Date.parse(env.signed_at) - before)).toBeLessThan(5_000);
+        expect(env.signed_at).toBe(new Date(Date.parse(env.signed_at)).toISOString().replace(/\.000Z$/, 'Z'));
+    });
+
+    it('uses a timestamp string exactly as given', async () => {
+        for (const s of ['2026-04-24T18:30:00Z', '2026-04-24T18:30:00.000Z', '2026-04-24T18:30:00.120Z']) {
+            const env = await stamp({ ...base, signedAt: s });
+            expect(env.signed_at).toBe(s);
+            expect(env.id).toBe(
+                computeEnvelopeId({
+                    address: FIXED_ADDRESS,
+                    content_hash: env.content.hash,
+                    content_length: 1,
+                    content_mime: 'text/plain',
+                    signed_at: s,
+                })
+            );
+        }
+    });
+
+    it('refuses what it cannot keep, rather than changing it', async () => {
+        for (const s of ['2026-04-24T18:30:00.5Z', '2026-04-24T18:30:00.123456Z', '2026-04-24T18:30:00+00:00', '2026-02-30T00:00:00Z', 'now']) {
+            await expect(stamp({ ...base, signedAt: s }), s).rejects.toMatchObject({ code: 'E_MALFORMED' });
+        }
+        await expect(stamp({ ...base, signedAt: new Date('nope') })).rejects.toMatchObject({ code: 'E_MALFORMED' });
+    });
+
+    it('verify() holds an envelope to the same rule', async () => {
+        const env = await stamp({ ...base, signedAt: FIXED_DATE });
+        const withSignedAt = (signed_at: string): StampEnvelope => {
+            const canon = { address: FIXED_ADDRESS, content_hash: env.content.hash, content_length: 1, content_mime: 'text/plain', signed_at };
+            return { ...env, signed_at, id: computeEnvelopeId(canon) };
+        };
+        expect((await verify({ envelope: withSignedAt('2026-04-24T18:30:00.123Z'), skipSignatureVerification: true })).ok).toBe(true);
+        const loose = await verify({ envelope: withSignedAt('2026-04-24T18:30:00.5Z'), skipSignatureVerification: true });
+        expect(loose).toMatchObject({ ok: false, code: 'E_MALFORMED' });
+    });
+});

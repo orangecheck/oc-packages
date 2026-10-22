@@ -1,10 +1,9 @@
 // Submit an envelope id to one or more OTS calendars. Returns a pending proof.
 // See SPEC.md §6.1.
 //
-// The submission strategy: try each calendar in parallel, take the first
-// success, report which calendar produced it. A stamp that only reaches one
-// calendar is a single point of failure for upgrade; the reference app
-// submits to at least two calendars for redundancy.
+// The submission strategy: try each calendar in parallel and keep every
+// receipt. A stamp that only reaches one calendar is a single point of failure
+// for upgrade, so by default two must answer (SPEC §6.1's SHOULD).
 
 import { base64Encode, hexDecode } from './base64.js';
 import { createCalendarClient, DEFAULT_CALENDARS } from './calendar.js';
@@ -18,9 +17,9 @@ export interface SubmitOptions {
      */
     calendars?: readonly (string | CalendarClient)[];
     /**
-     * Minimum number of calendars that must succeed. Defaults to 1.
-     * If fewer than `minSuccesses` calendars respond with a proof,
-     * submit() throws an aggregate error.
+     * Minimum number of calendars that must answer with a readable receipt.
+     * Defaults to 2, as SPEC §6.1 recommends, or to the number of calendars
+     * when fewer are given. If fewer answer, submitToCalendars throws.
      */
     minSuccesses?: number;
     /** Optional custom fetch passed through to calendar clients. */
@@ -52,7 +51,7 @@ export async function submitToCalendars(idHex: string, opts: SubmitOptions = {})
     if (clients.length === 0) {
         throw new Error('submitToCalendars: at least one calendar is required');
     }
-    const minSuccesses = Math.max(1, opts.minSuccesses ?? 1);
+    const minSuccesses = Math.max(1, opts.minSuccesses ?? Math.min(2, clients.length));
 
     const settled = await Promise.allSettled(
         clients.map(async (c) => {

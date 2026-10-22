@@ -11,6 +11,31 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.0] — 2026-10-21
+
+### Changed — two calendars by default
+
+`submitToCalendars` needed only one calendar to answer, against SPEC §6.1's
+SHOULD of at least two run by different parties. `minSuccesses` now defaults to
+2, or to the number of calendars given when that is fewer. Pass
+`minSuccesses: 1` to keep the old behaviour.
+
+### Changed — `upgradeProof` needs `headerSource`
+
+`parseAnchor` let a caller report a proof `confirmed` with no block header
+check, and calling with neither option threw at run time while the type
+allowed it. `headerSource` is now required and `parseAnchor` is gone: a proof
+is `confirmed` only when the header at its attested height has the proof's
+Merkle root, and that header gives `blockHash`. Until then it stays `pending`.
+Pass `mempoolHeaderSource()` or your own node's headers.
+
+### Docs
+
+- `CalendarClient.submit` said `POST /digest` carries
+  `Content-Type: application/vnd.opentimestamps.v1`. It carries none, and
+  createCalendarClient has sent none since 0.2.1: that type makes browsers send
+  a preflight the public calendars refuse.
+
 ## [0.3.1] — 2026-10-21
 
 ### Fixed — the proof keeps every calendar's receipt

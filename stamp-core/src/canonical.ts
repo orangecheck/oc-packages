@@ -5,11 +5,14 @@
 //   1. canonicalMessage(input) — the exact byte sequence the signer signs via
 //      BIP-322. LF-separated, no trailing LF after signed_at. SPEC §3.1.
 //
-//   2. canonicalizeEnvelope(env) — RFC 8785 JSON canonicalization of the wire
-//      envelope, used for stable serialization / equality checks. SPEC §5.
+//   2. canonicalEnvelopeBytes(env) — RFC 8785 JSON canonicalization of the wire
+//      envelope plus a final LF, used for stable serialization / equality
+//      checks. SPEC §5. canonicalizeEnvelope(env) is the same JSON as a string,
+//      without the LF.
 //
 // Only (1) participates in the id derivation. (2) is for test-vector byte
-// equality and any future operation that needs deterministic envelope bytes.
+// equality and any future operation that needs deterministic envelope bytes;
+// its final LF never reaches the id.
 
 import { sha256 } from '@noble/hashes/sha256';
 
@@ -31,6 +34,19 @@ export function canonicalMessage(input: CanonicalMessageInput): string {
         `content_mime: ${input.content_mime}`,
         `signed_at: ${input.signed_at}`,
     ].join('\n');
+}
+
+/**
+ * The one form `signed_at` takes (SPEC §0): `YYYY-MM-DDTHH:MM:SSZ` or
+ * `YYYY-MM-DDTHH:MM:SS.sssZ`, a real UTC instant. stamp(), verify() and
+ * parseStamp() all hold it to this, and none of them rewrites it: the id is
+ * computed over the string exactly as written.
+ */
+export function isSignedAt(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value)) return false;
+    // A calendar-valid instant: Feb 30 or 25:00 would otherwise pass the shape.
+    const t = new Date(value);
+    return !Number.isNaN(t.getTime()) && t.toISOString() === value.replace(/(:\d{2})Z$/, '$1.000Z');
 }
 
 /**
@@ -62,8 +78,11 @@ export function validateCanonicalInput(input: CanonicalMessageInput):
     if (!input.content_mime || /[\x00-\x1f]/.test(input.content_mime)) {
         return { ok: false, reason: 'content_mime must be non-empty with no control chars' };
     }
-    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(input.signed_at)) {
-        return { ok: false, reason: 'signed_at must be ISO 8601 UTC ending in Z' };
+    if (!isSignedAt(input.signed_at)) {
+        return {
+            ok: false,
+            reason: 'signed_at must be YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.sssZ (SPEC §0)',
+        };
     }
     return { ok: true };
 }
@@ -93,10 +112,16 @@ export type JsonValue =
     | JsonValue[]
     | { [key: string]: JsonValue };
 
+/**
+ * The envelope's RFC 8785 JSON as a string, ending in `}`. SPEC §5's byte form
+ * adds a final LF: use canonicalEnvelopeBytes for that. Neither feeds the id,
+ * which is computed over the canonical message (SPEC §3.1, no trailing LF).
+ */
 export function canonicalizeEnvelope(env: StampEnvelope): string {
     return canonicalize(env as unknown as JsonValue);
 }
 
+/** SPEC §5's canonical envelope bytes: the RFC 8785 JSON, then a final LF (0x0a). */
 export function canonicalEnvelopeBytes(env: StampEnvelope): Uint8Array {
     return new TextEncoder().encode(canonicalize(env as unknown as JsonValue) + '\n');
 }

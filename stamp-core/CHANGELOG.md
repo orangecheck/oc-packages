@@ -7,6 +7,42 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.3.0] — 2026-10-21
+
+### Added — `parseStamp`, the edge for an envelope from outside
+
+Examples cast `JSON.parse` to `StampEnvelope`, so a malformed `.stamp` reached
+the code as if it were well formed. `parseStamp(textOrValue)` checks every
+field's shape and type (SPEC §4.1, §4.2) and returns the envelope typed, or
+throws `StampError`: `E_UNSUPPORTED_VERSION` for a `v` other than 1,
+`E_MALFORMED` for anything else. Unknown top-level fields are kept; a missing
+`content.ref`, `stake` or `ots` reads as null. Text over 1,000,000 characters is
+refused before parsing.
+
+### Changed — `signed_at` is kept as given, under one rule
+
+SPEC §0 allows `YYYY-MM-DDTHH:MM:SSZ` or `YYYY-MM-DDTHH:MM:SS.sssZ`. stamp()
+dropped a Date's milliseconds without saying so, and stamp() and verify() took
+any number of fractional digits.
+
+- `signedAt` takes a `Date` or a string. A Date keeps its milliseconds, written
+  without them only when they are zero, so whole-second Dates sign exactly as
+  before. A string must already be in one of the two forms and is used exactly
+  as given. Anything else throws `E_MALFORMED`.
+- The default, now, keeps its milliseconds.
+- stamp(), verify() and parseStamp() share `isSignedAt`, which also refuses a
+  date that does not exist (Feb 30, 25:00). verify() now returns `E_MALFORMED`
+  for a `signed_at` such as `.5Z` or `.123456Z` that it used to accept.
+
+### Docs
+
+- `canonicalizeEnvelope` and `canonicalEnvelopeBytes` say which is SPEC §5's
+  byte form (the bytes, ending in LF) and that neither feeds the id. The vector
+  suite checks both against an independent serializer.
+- `VerifyInput.verifyBip322` states its argument order,
+  `(message, signatureB64, address)`, and that leaving it out fails closed with
+  `E_BAD_SIG`.
+
 ## [1.2.0] — 2026-10-21
 
 ### Added — `checkStake`, for a stake reference nobody signed

@@ -62,7 +62,7 @@ describe('submitToCalendars', () => {
         const out = await submitToCalendars(FIXED_ID, { calendars: [cal1, cal2] });
         const asked: string[] = [];
         await upgradeProof(out, FIXED_ID, {
-            parseAnchor: async () => null,
+            headerSource: { getHeaderAt: async () => null },
             fetch: (async (url: string) => {
                 asked.push(new URL(url).origin);
                 return new Response(null, { status: 404 });
@@ -71,18 +71,33 @@ describe('submitToCalendars', () => {
         expect(asked.sort()).toEqual(['https://a.example', 'https://b.example']);
     });
 
-    it('tolerates one calendar failure when minSuccesses defaults to 1', async () => {
+    it('by default needs two calendars to answer, as SPEC §6.1 recommends', async () => {
         const bad = fakeCalendar({ url: 'https://bad.example', submitShouldFail: true });
         const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
-        const out = await submitToCalendars(FIXED_ID, { calendars: [bad, good] });
+        const also = fakeCalendar({ url: 'https://also.example', submitResult: pendingReceipt('https://also.example', 8) });
+        await expect(submitToCalendars(FIXED_ID, { calendars: [bad, good] })).rejects.toThrow(/did not reach 2 calendar/);
+        const out = await submitToCalendars(FIXED_ID, { calendars: [bad, good, also] });
+        expect(out.calendars).toEqual(['https://good.example', 'https://also.example']);
+    });
+
+    it('tolerates one calendar failure when minSuccesses is 1', async () => {
+        const bad = fakeCalendar({ url: 'https://bad.example', submitShouldFail: true });
+        const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
+        const out = await submitToCalendars(FIXED_ID, { calendars: [bad, good], minSuccesses: 1 });
         expect(out.calendars).toEqual(['https://good.example']);
         expect(pendingUris(out)).toEqual(['https://good.example']);
+    });
+
+    it('asks only as many as it was given when that is fewer than two', async () => {
+        const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
+        const out = await submitToCalendars(FIXED_ID, { calendars: [good] });
+        expect(out.calendars).toEqual(['https://good.example']);
     });
 
     it('counts an unreadable receipt as a failure', async () => {
         const junk = fakeCalendar({ url: 'https://junk.example', submitResult: new Uint8Array([1, 2, 3]) });
         const good = fakeCalendar({ url: 'https://good.example', submitResult: pendingReceipt('https://good.example', 9) });
-        const out = await submitToCalendars(FIXED_ID, { calendars: [junk, good] });
+        const out = await submitToCalendars(FIXED_ID, { calendars: [junk, good], minSuccesses: 1 });
         expect(out.calendars).toEqual(['https://good.example']);
         await expect(submitToCalendars(FIXED_ID, { calendars: [junk] })).rejects.toThrow(/unreadable proof/);
     });
@@ -119,10 +134,18 @@ describe('upgradeProof', () => {
             upgradedAt: '2026-04-24T19:00:00Z',
         };
         const out = await upgradeProof(confirmed, FIXED_ID, {
-            parseAnchor: async () => {
-                throw new Error('should not be called');
+            headerSource: {
+                getHeaderAt: async () => {
+                    throw new Error('should not be called');
+                },
             },
         });
         expect(out).toEqual(confirmed);
+    });
+
+    it('refuses to run without a header source, so nothing is confirmed unchecked', async () => {
+        await expect(
+            upgradeProof(basePending, FIXED_ID, {} as unknown as Parameters<typeof upgradeProof>[2])
+        ).rejects.toThrow(/headerSource/);
     });
 });

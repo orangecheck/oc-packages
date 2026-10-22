@@ -7,6 +7,7 @@ import {
     canonicalMessageBytes,
     computeEnvelopeId,
     hexEncode,
+    isSignedAt,
     validateCanonicalInput,
 } from './canonical.js';
 import {
@@ -71,7 +72,7 @@ export async function stamp(input: StampInput): Promise<StampEnvelope> {
         }
     }
 
-    const signedAt = isoUtcSeconds(input.signedAt ?? new Date());
+    const signedAt = signedAtOf(input.signedAt);
 
     const canon = {
         address: input.signer.address,
@@ -232,8 +233,11 @@ function checkShape(env: StampEnvelope): VerifyResult | null {
     if (env.signer.address !== env.sig.pubkey) {
         return err('E_MALFORMED', 'envelope.signer.address must equal envelope.sig.pubkey');
     }
-    if (typeof env.signed_at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(env.signed_at)) {
-        return err('E_MALFORMED', 'envelope.signed_at must be ISO 8601 UTC ending in Z');
+    if (typeof env.signed_at !== 'string' || !isSignedAt(env.signed_at)) {
+        return err(
+            'E_MALFORMED',
+            'envelope.signed_at must be YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.sssZ (SPEC §0)'
+        );
     }
     if (!env.sig || env.sig.alg !== 'bip322' || typeof env.sig.value !== 'string') {
         return err('E_MALFORMED', 'envelope.sig invalid');
@@ -245,9 +249,15 @@ function err(code: VerifyErrorCode, message: string): VerifyResult {
     return { ok: false, code, message };
 }
 
-function isoUtcSeconds(d: Date): string {
-    // Drop milliseconds; SPEC allows ms-precision but we default to seconds
-    // for shorter wallet-signing prompts. Callers needing millisecond
-    // precision can pass a pre-formatted ISO string via a future field.
-    return d.toISOString().replace(/\.\d+Z$/, 'Z');
+// signed_at as given, never rounded: a Date keeps its milliseconds (written
+// without them only when they are zero), and a string is used exactly as
+// written once validateCanonicalInput accepts it.
+function signedAtOf(value: Date | string | undefined): string {
+    const date = value ?? new Date();
+    if (date instanceof Date) {
+        if (Number.isNaN(date.getTime())) throw new StampError('E_MALFORMED', 'signedAt is an invalid Date');
+        return date.toISOString().replace(/\.000Z$/, 'Z');
+    }
+    if (typeof date === 'string') return date;
+    throw new StampError('E_MALFORMED', 'signedAt must be a Date or a SPEC §0 timestamp string');
 }

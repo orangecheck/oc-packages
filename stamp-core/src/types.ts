@@ -66,7 +66,7 @@ export interface CanonicalMessageInput {
     content_length: number;
     /** "application/octet-stream" if unknown. */
     content_mime: string;
-    /** ISO 8601 UTC. */
+    /** `YYYY-MM-DDTHH:MM:SSZ` or `YYYY-MM-DDTHH:MM:SS.sssZ` (SPEC §0). */
     signed_at: string;
 }
 
@@ -84,8 +84,17 @@ export interface StampInput {
         signMessage: (msg: string) => Promise<string>;
     };
     stake?: StampStake | null;
-    /** Defaults to now. */
-    signedAt?: Date;
+    /**
+     * When it was signed. Defaults to now.
+     *
+     * - A `Date` keeps its milliseconds: `2026-04-24T18:30:00.123Z`, or
+     *   `2026-04-24T18:30:00Z` when they are zero.
+     * - A string must already be `YYYY-MM-DDTHH:MM:SSZ` or
+     *   `YYYY-MM-DDTHH:MM:SS.sssZ` (SPEC §0) and is used exactly as given.
+     *
+     * stamp() never rounds or reformats it; anything else throws E_MALFORMED.
+     */
+    signedAt?: Date | string;
 }
 
 export interface VerifyInput {
@@ -98,6 +107,12 @@ export interface VerifyInput {
     /**
      * Verifier for BIP-322. Plugged in by the caller because signature verification
      * libraries differ across Node, browser, and CLI environments.
+     *
+     * Called as `verifyBip322(message, signatureB64, address)`, where `message`
+     * is the envelope id as 64 lowercase hex characters (SPEC §4.5).
+     *
+     * Required unless `skipSignatureVerification` is true: without it, verify()
+     * fails closed with `E_BAD_SIG` ("no BIP-322 verifier supplied").
      */
     verifyBip322?: (msg: string, signatureB64: string, address: string) => Promise<boolean>;
     /**

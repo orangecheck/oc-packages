@@ -23,15 +23,13 @@ import type { BlockHeaderSource, OtsProof } from './types.js';
 
 export interface UpgradeOptions {
     /**
-     * Header source used to resolve the anchor's block hash and to check that
-     * the proof's Merkle root is in that block.
+     * Where block headers come from (`mempoolHeaderSource()`, your node, or a
+     * headers snapshot). Required: the proof is reported `confirmed` only when
+     * the header at its attested height has the proof's Merkle root, and that
+     * header gives `blockHash`. Until such a header is found the proof stays
+     * `pending`, with whatever the calendars added merged in.
      */
-    headerSource?: BlockHeaderSource;
-    /**
-     * Alternative to `headerSource`: given the merged proof bytes, return the
-     * anchor if the proof is confirmed, else null.
-     */
-    parseAnchor?: (proofBytes: Uint8Array) => Promise<{ blockHeight: number; blockHash: string } | null>;
+    headerSource: BlockHeaderSource;
     /** Optional custom fetch passed through to calendar clients. */
     fetch?: typeof fetch;
     /** Request timeout per calendar. Default 30_000ms. */
@@ -47,8 +45,8 @@ export async function upgradeProof(
     opts: UpgradeOptions
 ): Promise<OtsProof> {
     if (current.status === 'confirmed') return current; // idempotent
-    if (!opts.headerSource && !opts.parseAnchor) {
-        throw new Error('upgradeProof: pass headerSource or parseAnchor');
+    if (!opts?.headerSource) {
+        throw new Error('upgradeProof: pass headerSource; a proof is confirmed only against a block header');
     }
 
     const before = base64Decode(current.proof);
@@ -72,7 +70,7 @@ export async function upgradeProof(
     );
 
     const merged = serializeTimestamp(tree);
-    const anchor = await resolveAnchor(merged, tree, opts);
+    const anchor = await resolveAnchor(tree, opts.headerSource);
     const calendars = [...answered, ...current.calendars.filter((c) => !answered.includes(norm(c)))];
 
     if (anchor) {
@@ -92,13 +90,11 @@ export async function upgradeProof(
 }
 
 async function resolveAnchor(
-    merged: Uint8Array,
     tree: ReturnType<typeof parseTimestamp>,
-    opts: UpgradeOptions
+    headers: BlockHeaderSource
 ): Promise<{ blockHeight: number; blockHash: string } | null> {
-    if (opts.parseAnchor) return opts.parseAnchor(merged);
     for (const a of bitcoinAnchors(tree)) {
-        const header = await opts.headerSource!.getHeaderAt(a.blockHeight);
+        const header = await headers.getHeaderAt(a.blockHeight);
         if (header && header.byteLength === 80 && bytesEqual(header.subarray(36, 68), a.merkleRoot)) {
             return { blockHeight: a.blockHeight, blockHash: blockHashOf(header) };
         }

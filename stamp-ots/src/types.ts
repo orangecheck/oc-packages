@@ -26,9 +26,11 @@ export interface CalendarClient {
      * Submit a 32-byte digest to the calendar for aggregation. Returns the raw
      * pending proof bytes.
      *
-     * OTS calendar HTTP API: POST <url>/digest with the raw bytes as the body,
-     * Content-Type: application/vnd.opentimestamps.v1, returns the proof bytes
-     * as the response body.
+     * OTS calendar HTTP API: POST <url>/digest with the raw bytes as the body
+     * and no Content-Type header, returns the proof bytes as the response body.
+     * A Content-Type outside the CORS-safelisted ones makes a browser send a
+     * preflight, which the public calendars refuse; createCalendarClient sends
+     * none.
      */
     submit(digest: Uint8Array, signal?: AbortSignal): Promise<Uint8Array>;
 

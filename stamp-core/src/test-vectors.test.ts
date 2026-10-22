@@ -15,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { canonicalMessage, computeEnvelopeId } from './canonical.js';
+import { canonicalEnvelopeBytes, canonicalizeEnvelope, canonicalMessage, computeEnvelopeId } from './canonical.js';
+import { parseStamp } from './parse.js';
 import { checkStake, type ResolvedAttestation } from './stake.js';
 import { verify } from './stamp.js';
 import type { StampEnvelope } from './types.js';
@@ -117,6 +118,26 @@ describe('oc-stamp-protocol test vectors', () => {
             });
             expect(id).toBe(data.expected.id);
             expect(id).toBe(data.expected.envelope.id);
+        });
+
+        it(`${name} — §5 bytes: sorted, compact JSON then one LF, and not what the id hashes`, () => {
+            const env = data.expected.envelope;
+            // An independent §5 serializer: keys sorted at every level, no whitespace.
+            const sorted = (v: unknown): unknown =>
+                Array.isArray(v)
+                    ? v.map(sorted)
+                    : v && typeof v === 'object'
+                      ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted((v as Record<string, unknown>)[k])]))
+                      : v;
+            const bytes = canonicalEnvelopeBytes(env);
+            expect(new TextDecoder().decode(bytes)).toBe(JSON.stringify(sorted(env)) + '\n');
+            expect(bytes[bytes.length - 1]).toBe(0x0a);
+            expect(canonicalizeEnvelope(env)).toBe(JSON.stringify(sorted(env)));
+            expect(data.expected.canonical_message.endsWith('\n')).toBe(false);
+        });
+
+        it(`${name} — parseStamp() takes the declared envelope as is`, () => {
+            expect(parseStamp(JSON.stringify(data.expected.envelope))).toEqual(data.expected.envelope);
         });
 
         it(`${name} — declared envelope passes verify() with skipSignatureVerification`, async () => {
