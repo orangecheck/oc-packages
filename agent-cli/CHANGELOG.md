@@ -11,6 +11,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.1] — 2026-10-22
+
+### Dependencies
+
+`@orangecheck/bip322` ^1.1.0, so a signature with the final BIP-322 `smp`
+prefix verifies in every install, including a lockfile that held 1.0.x.
+
 ## [0.3.0] — 2026-10-21
 
 ### Changed — an action is checked live
