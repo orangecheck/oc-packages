@@ -41,6 +41,11 @@ export interface RevocationCheckOptions {
   url?: string;
   /** This site's feed token. Default `OC_REVOCATION_FEED_TOKEN`. */
   token?: string;
+  /**
+   * Headers for each fetch, in place of the feed token: an integrator's
+   * request signed with its project secret ({@link integratorRevocationCheck}).
+   */
+  headers?: () => Record<string, string> | Promise<Record<string, string>>;
   /** How long a copy is used before fetching again. Default 60 s. */
   ttlMs?: number;
   /** Past this age a copy cannot vouch for a write. Default 10 min. */
@@ -116,6 +121,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   const issuer = (env("OC_AUTH_ISSUER") ?? "https://ochk.io").replace(/\/$/, "");
   const url = opts.url ?? env("OC_REVOCATION_FEED_URL") ?? `${issuer}/api/auth/revocations`;
   const token = opts.token ?? env("OC_REVOCATION_FEED_TOKEN")?.trim();
+  const signer = opts.headers;
   const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
   const maxStaleMs = opts.maxStaleMs ?? DEFAULT_MAX_STALE_MS;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -138,8 +144,9 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {
+      const credential = signer ? await signer() : { authorization: `Bearer ${token}` };
       const res = await doFetch(url, {
-        headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+        headers: { ...credential, accept: "application/json" },
         signal: ctl.signal,
       });
       if (!res.ok) throw new Error(`revocation feed answered ${res.status}`);
@@ -167,7 +174,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   }
 
   async function status(claims: RevocableClaims): Promise<RevocationStatus> {
-    if (!token) {
+    if (!token && !signer) {
       if (developing) return "live";
       warn("OC_REVOCATION_FEED_TOKEN is not set; sessions cannot be checked for revocation");
       return "unverified";
@@ -196,6 +203,58 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
       return !SAFE_METHODS.has((method ?? "").toUpperCase());
     },
   };
+}
+
+export interface IntegratorRevocationOptions
+  extends Omit<RevocationCheckOptions, "url" | "token" | "headers" | "developing"> {
+  /** Default `OC_PROJECT_KEY`. */
+  projectKey?: string;
+  /** Default `OC_SIGNING_SECRET`. */
+  signingSecret?: string;
+  /** Default `OC_ME_ORIGIN`, else `https://me.ochk.io`. */
+  meOrigin?: string;
+}
+
+async function hmacHex(secret: string, data: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await globalThis.crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = new Uint8Array(await globalThis.crypto.subtle.sign("HMAC", key, enc.encode(data)));
+  return Array.from(mac, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * For an integrator's server: the account cutoffs (sign out everywhere, a
+ * passkey removed, an account deleted) from me.ochk.io's
+ * `/api/integrator/revocations`, fetched with a request signed by the project
+ * secret, so a session the person ended everywhere is refused here too. Null
+ * when the project key or secret is not set: a site that has not configured
+ * it keeps verifying by signature alone rather than refusing writes.
+ */
+export function integratorRevocationCheck(
+  opts: IntegratorRevocationOptions = {},
+): RevocationCheck | null {
+  const { projectKey: pk, signingSecret, meOrigin, ...rest } = opts;
+  const projectKey = (pk ?? env("OC_PROJECT_KEY"))?.trim();
+  const secret = (signingSecret ?? env("OC_SIGNING_SECRET"))?.trim();
+  if (!projectKey || !secret) return null;
+  const origin = (meOrigin ?? env("OC_ME_ORIGIN") ?? "https://me.ochk.io").replace(/\/$/, "");
+  const query = `project_key=${encodeURIComponent(projectKey)}`;
+  const now = rest.now ?? Date.now;
+  return createRevocationCheck({
+    ...rest,
+    url: `${origin}/api/integrator/revocations?${query}`,
+    headers: async () => {
+      const t = Math.floor(now() / 1000);
+      return { "x-oc-signature": `t=${t},v1=${await hmacHex(secret, `${t}.${query}`)}` };
+    },
+    developing: false,
+  });
 }
 
 const SHARED = Symbol.for("@orangecheck/auth-core/revocation-check/v1");

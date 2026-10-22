@@ -9,7 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Added — integrators honour sign-out everywhere
+
+- `integratorRevocationCheck(opts?)`: for an integrator's server, the account
+  cutoffs (sign out everywhere, a passkey removed, an account deleted) from
+  me.ochk.io's `/api/integrator/revocations`, fetched once a minute with a
+  request signed by the project secret (`OC_PROJECT_KEY`, `OC_SIGNING_SECRET`).
+  Null when either is unset. Same `status` / `refuses` policy as the family check.
+- `RevocationCheckOptions.headers`: request headers for each feed fetch, in place
+  of the Bearer feed token.
 
 ## [2.10.0] — 2026-10-22
 

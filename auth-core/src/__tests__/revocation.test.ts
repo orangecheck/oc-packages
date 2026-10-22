@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createHmac } from "node:crypto";
+
 import {
   _resetFamilyRevocationCheckForTests,
   createRevocationCheck,
   familyRevocationCheck,
+  integratorRevocationCheck,
   revocationKey,
 } from "../index";
 
@@ -203,5 +206,59 @@ describe("familyRevocationCheck", () => {
     } finally {
       globalThis.fetch = real;
     }
+  });
+});
+
+describe("integratorRevocationCheck", () => {
+  const PROJECT = "pk_live_abc123";
+  const SECRET = "f".repeat(64);
+  let seen: Array<{ url: string; headers: Headers }>;
+  const signedFetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    seen.push({ url: String(url), headers: new Headers(init?.headers) });
+    return Response.json(feed);
+  }) as unknown as typeof fetch;
+  const integrator = () =>
+    integratorRevocationCheck({ projectKey: PROJECT, signingSecret: SECRET, fetch: signedFetch, now })!;
+
+  beforeEach(() => {
+    seen = [];
+  });
+
+  it("asks me.ochk.io with a request signed by the project secret, and no feed token", async () => {
+    await integrator().status(session());
+    expect(seen).toHaveLength(1);
+    const query = `project_key=${PROJECT}`;
+    expect(seen[0]!.url).toBe(`https://me.ochk.io/api/integrator/revocations?${query}`);
+    const t = nowSec();
+    const mac = createHmac("sha256", SECRET).update(`${t}.${query}`).digest("hex");
+    expect(seen[0]!.headers.get("x-oc-signature")).toBe(`t=${t},v1=${mac}`);
+    expect(seen[0]!.headers.get("authorization")).toBeNull();
+  });
+
+  it("refuses a session its account cutoff ends, and keeps one minted after it", async () => {
+    feed.accounts[await revocationKey("sub", SUB)] = nowSec() - 60;
+    const check = integrator();
+    expect(await check.refuses(session({ iat: nowSec() - 3600 }), "GET")).toBe(true);
+    expect(await check.refuses(session({ iat: nowSec() - 30 }), "POST")).toBe(false);
+  });
+
+  it("signs each fetch afresh, so a copy refetched later carries a current timestamp", async () => {
+    const check = integrator();
+    await check.status(session());
+    clock += 61_000;
+    await check.status(session());
+    expect(seen).toHaveLength(2);
+    expect(seen[1]!.headers.get("x-oc-signature")).toMatch(new RegExp(`^t=${nowSec()},v1=[0-9a-f]{64}$`));
+  });
+
+  it("is null without a project key and secret, so an unconfigured site is never refused", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OC_PROJECT_KEY", "");
+    vi.stubEnv("OC_SIGNING_SECRET", "");
+    expect(integratorRevocationCheck()).toBeNull();
+    vi.stubEnv("OC_PROJECT_KEY", PROJECT);
+    expect(integratorRevocationCheck()).toBeNull();
+    vi.stubEnv("OC_SIGNING_SECRET", SECRET);
+    expect(integratorRevocationCheck()).not.toBeNull();
   });
 });
