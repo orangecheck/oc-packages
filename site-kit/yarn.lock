@@ -512,9 +512,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/app-design@^1.10.1":
-  version "1.10.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-1.10.1.tgz#be9d10d2b9859ad269e7a0bb94e3222bfdaf95c3"
-  integrity sha512-Azj04d5DK8AbMj60pH37/gVM7pFz8+7K5KMnnog5AE47r6Heyuet80auX1ofYbfy9ZESCvcelhN4SrFxCiEwmQ==
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-1.16.0.tgz#267eba6f53c1fb3dbcdbddf76f5ed077bebd610e"
+  integrity sha512-36Mu8w/k+fNYsa11mZ1Uz7X9lKiILGLQ6sRRFkUedPgblQAfjLG7cicqwigtAnMMWj2eFkcWCq/R3s4+0DLFog==
   dependencies:
     "@radix-ui/react-checkbox" "^1.3.3"
     "@radix-ui/react-dialog" "^1.1.15"
