@@ -205,3 +205,27 @@ describe('an expiry that is not a time', () => {
         expect(r.ok).toBe(true);
     });
 });
+
+describe('a signed issue time ahead of the clock', () => {
+    const at = (ms: number) => new Date(Date.now() + ms).toISOString();
+
+    it('refuses one more than two minutes ahead as not_yet_valid', async () => {
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2099-01-01T00:00:00Z');
+        const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
+        expect(r.ok).toBe(false);
+        expect(r.codes).toContain('not_yet_valid');
+    });
+
+    it('accepts one within two minutes of the clock', async () => {
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], at(60_000));
+        const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
+        expect(r.ok).toBe(true);
+    });
+
+    it('refuses an issued_at that is not an RFC 3339 time', async () => {
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], 'tomorrow');
+        const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
+        expect(r.ok).toBe(false);
+        expect(r.codes).toContain('decode_error');
+    });
+});

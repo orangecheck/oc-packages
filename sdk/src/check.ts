@@ -19,11 +19,9 @@ import {
 } from './attestation';
 import { DEFAULT_RELAYS, signedEnvelope } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
-import { rfc3339Ms } from './utils/time';
+import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
 
-/** How far ahead of this clock a signed issued_at may be and still count. */
-const ISSUED_AHEAD_MS = 120_000;
 /** Candidates whose signatures are tried before the newest is taken as is. */
 const MAX_CANDIDATES = 20;
 

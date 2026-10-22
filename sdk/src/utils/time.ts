@@ -1,3 +1,6 @@
+/** How far ahead of the verifier's clock a signed issued_at may be (OC Attest SPEC §7). */
+export const ISSUED_AHEAD_MS = 120_000;
+
 const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 /** An RFC 3339 date-time as epoch milliseconds, or null when it is not one. */

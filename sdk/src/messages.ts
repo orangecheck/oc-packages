@@ -59,6 +59,11 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
         detail: 'This signature has passed its expiration date. Generate a new signature with a fresh message.',
         severity: 'error',
     },
+    not_yet_valid: {
+        label: 'Not valid yet',
+        detail: 'The message is dated ahead of this clock. It counts once that time arrives, or once a clock that is wrong is set right.',
+        severity: 'error',
+    },
     network_testmode: {
         label: 'Test network detected',
         detail: 'This signature uses testnet or signet. Test networks are for development only and cannot be verified in production mode.',

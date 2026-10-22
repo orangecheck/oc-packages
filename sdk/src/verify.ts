@@ -23,7 +23,7 @@ import { generateAttestationId, parseIdentities } from './canonical';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
 import { signatureScheme, toBase64Maybe } from './utils/signature';
-import { rfc3339Ms } from './utils/time';
+import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 
 const log = createLogger('ocp/verify');
 
@@ -422,6 +422,18 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
                 codes.push('aud_mismatch');
                 return { ok: false, codes, network, attestation_id };
             }
+        }
+
+        // The signed issue time is an RFC 3339 time (SPEC §7.1.g) and not ahead
+        // of this clock by more than the allowed skew.
+        const issued = rfc3339Ms(parsed.core.issued_at);
+        if (issued === null) {
+            codes.push('decode_error');
+            return { ok: false, codes, network, attestation_id };
+        }
+        if (issued > Date.now() + ISSUED_AHEAD_MS) {
+            codes.push('not_yet_valid');
+            return { ok: false, codes, network, attestation_id };
         }
 
         // Check message expiration. An expiry that is not an RFC 3339 time is

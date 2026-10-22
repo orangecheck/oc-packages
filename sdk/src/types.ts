@@ -45,6 +45,7 @@ export type StatusCode =
     | 'bond_insufficient' // Insufficient bond amount
     | 'aud_mismatch' // Audience mismatch
     | 'expired' // Attestation expired
+    | 'not_yet_valid' // Signed issued_at is ahead of the verifier's clock
     | 'network_testmode' // Test network mode
     | 'bad_request' // Invalid request
     | 'decode_error' // Decoding error

@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.16.1] — 2026-10-22
+
+### Changed
+
+- **`verify()` reads the signed `issued_at` as an RFC 3339 time** (OC Attest
+  SPEC §7.1.g) and answers `decode_error` when it is not one.
+- **`verify()` answers `not_yet_valid`** when the signed `issued_at` is more
+  than two minutes ahead of the verifier's clock, the same allowance
+  `check()` uses to rank attestations. New status code `not_yet_valid`.
+
 ## [1.16.0] — 2026-10-22
 
 ### Fixed
