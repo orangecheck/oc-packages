@@ -17,13 +17,12 @@ import type {
     VerifyOutcome,
 } from './types';
 
-import { Buffer } from 'buffer';
-
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
 import { generateAttestationId, parseIdentities } from './canonical';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
+import { signatureScheme, toBase64Maybe } from './utils/signature';
 import { rfc3339Ms } from './utils/time';
 
 const log = createLogger('ocp/verify');
@@ -54,150 +53,25 @@ interface SignatureVerifyInput {
     msg: string;
     /** Signature (hex or base64) */
     sig: string;
-    /** Optional signature scheme (auto-detected if not provided) */
+    /** @deprecated Ignored: the signature's own bytes decide the scheme. */
     scheme?: Scheme;
 }
 
 /**
- * Check if a string looks like hexadecimal
- * @param s - String to check
- * @returns True if string is valid hex with even length
+ * Verify a signature and name the scheme that verified it. The scheme comes
+ * from the signature's bytes (see `signatureScheme`), never from the address
+ * or a caller's hint, so a valid BIP-137 signature verifies on every address
+ * it can stand for, whatever its recovery id.
  */
-function looksLikeHex(s: string): boolean {
-    return /^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0;
-}
-
-/**
- * Convert signature to base64 if it's in hex format
- * @param sig - Signature (hex or base64)
- * @returns Signature in base64 format
- */
-function toBase64Maybe(sig: string): string {
-    if (looksLikeHex(sig)) {
-        return Buffer.from(sig, 'hex').toString('base64');
-    }
-    return sig;
-}
-
-/**
- * Auto-detect signature scheme based on address type and signature format
- *
- * @param addr - Bitcoin address
- * @param sig - Signature
- * @returns Detected scheme ('bip322' or 'legacy')
- */
-function detectSignatureScheme(addr: string, sig: string): Scheme {
-    // SegWit and Taproot addresses MUST use BIP-322
-    const isSegWit = addr.startsWith('bc1') || addr.startsWith('tb1');
-    if (isSegWit) {
-        return 'bip322';
-    }
-
-    // For P2PKH addresses, check if signature looks like legacy format
+async function verifySignature({ addr, msg, sig }: SignatureVerifyInput): Promise<StatusCode> {
     const sigBase64 = toBase64Maybe(sig);
-    const looksLikeLegacy = sigBase64.length === 88 && /^[IHG]/.test(sigBase64);
+    const scheme = signatureScheme(sigBase64);
+    if (!scheme) return 'sig_unsupported_script';
 
-    if (looksLikeLegacy) {
-        return 'legacy';
-    }
-
-    // Default to BIP-322
-    return 'bip322';
-}
-
-async function verifySignature({
-    addr,
-    msg,
-    sig,
-    scheme,
-}: SignatureVerifyInput): Promise<StatusCode> {
-    // Auto-detect scheme if not explicitly provided
-    const detectedScheme = scheme || detectSignatureScheme(addr, sig);
-
-    log.debug(
-        { addr, msgLength: msg.length, sigLength: sig.length, scheme: detectedScheme },
-        'Verifying signature'
-    );
-
-    if (detectedScheme === 'bip322') {
-        const sigBase64 = toBase64Maybe(sig);
-        log.debug(
-            { sigBase64: sigBase64.substring(0, 50) + '...' },
-            'Signature converted to base64'
-        );
-
-        // Log the full message for debugging
-        log.debug(
-            {
-                msgFull: msg,
-                msgLines: msg.split('\n').length,
-                msgFirstLine: msg.split('\n')[0],
-                msgLastLine: msg.split('\n')[msg.split('\n').length - 1],
-            },
-            'Message being verified'
-        );
-
-        const ok = verifyBitcoinSignature(addr, msg, sigBase64);
-        log.info({ addr, ok }, 'BIP-322 verification result');
-
-        if (!ok) {
-            // Check if this looks like an Electrum signature (88 chars, base64)
-            const isSegWit = addr.startsWith('bc1') || addr.startsWith('tb1');
-            if (isSegWit && sigBase64.length === 88) {
-                log.warn(
-                    { addr, wallet: 'possibly Electrum', sigLength: sigBase64.length },
-                    'BIP-322 verification failed - likely Electrum wallet (does not support BIP-322 for SegWit)'
-                );
-            } else {
-                log.error(
-                    {
-                        addr,
-                        sigLength: sigBase64.length,
-                        msgLength: msg.length,
-                        msgPreview: msg.substring(0, 200),
-                    },
-                    'BIP-322 verification failed - signature does not match message'
-                );
-            }
-        }
-
-        return ok ? 'sig_ok_bip322' : 'sig_invalid';
-    }
-
-    if (detectedScheme === 'legacy') {
-        const sigBase64 = toBase64Maybe(sig);
-
-        // Legacy policy: P2PKH only (address must start with '1' for mainnet or 'm'/'n' for testnet)
-        if (!addr.startsWith('1') && !addr.startsWith('m') && !addr.startsWith('n')) {
-            log.warn({ addr }, 'Legacy signature attempted on non-P2PKH address');
-            return 'sig_unsupported_script';
-        }
-
-        log.debug(
-            {
-                addr,
-                sigBase64: sigBase64.substring(0, 50) + '...',
-                msgPreview: msg.substring(0, 100) + '...',
-                msgLength: msg.length,
-            },
-            'Verifying legacy signature'
-        );
-        const ok = verifyBitcoinSignature(addr, msg, sigBase64);
-        log.info({ addr, ok, sigBase64Length: sigBase64.length }, 'Legacy verification result');
-        if (!ok) {
-            log.error(
-                {
-                    addr,
-                    msgFirstLine: msg.split('\n')[0],
-                    sigFormat: sigBase64.substring(0, 10),
-                },
-                'Legacy signature verification failed - check message format and signature'
-            );
-        }
-        return ok ? 'sig_ok_legacy' : 'sig_invalid';
-    }
-
-    return 'invalid_scheme';
+    const ok = verifyBitcoinSignature(addr, msg, sigBase64);
+    log.info({ addr, ok, scheme, msgLength: msg.length }, 'Signature verification result');
+    if (!ok) return 'sig_invalid';
+    return scheme === 'legacy' ? 'sig_ok_legacy' : 'sig_ok_bip322';
 }
 
 /** True when `sig` is a valid signature by `addr` over `msg`; no chain lookup. */

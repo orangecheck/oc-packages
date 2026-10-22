@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/sdk",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "OrangeCheck SDK — proof of Bitcoin stake for the open web. A sybil-resistance primitive for any app.",
   "keywords": [
     "bitcoin",
@@ -89,7 +89,7 @@
   "dependencies": {
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^1.5.0",
-    "@orangecheck/bip322": "^1.0.0",
+    "@orangecheck/bip322": "^1.1.0",
     "@scure/base": "^1.1.9",
     "buffer": "^6.0.3"
   },

@@ -26,9 +26,9 @@
 
 import type { Scheme } from './types';
 
-import { Buffer } from 'buffer';
-
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
+
+import { signatureScheme, toBase64Maybe } from './utils/signature';
 
 const AUTH_HEADER = 'orangecheck-auth';
 const AUTH_ACK = 'I authorize this session under the OrangeCheck auth challenge.';
@@ -178,9 +178,9 @@ function parseChallenge(message: string): ParsedChallenge {
 export interface VerifyChallengeOptions {
     /** The signed canonical challenge text, exactly as issued. */
     message: string;
-    /** BIP-322 or legacy signature. */
+    /** BIP-322 or legacy signature, base64 or hex. */
     signature: string;
-    /** Scheme override. Default 'bip322'. */
+    /** @deprecated Ignored: the signature's own bytes decide the scheme. */
     scheme?: Scheme;
 
     /** If set, require the challenge's `audience:` extension to match. */
@@ -215,6 +215,8 @@ export interface VerifyChallengeResult {
     reason: VerifyChallengeReason;
     /** Present on success — the cryptographically proven Bitcoin address. */
     address?: string;
+    /** Present on success — the scheme that verified the signature. */
+    scheme?: Scheme;
     /** Present on success — when the challenge expires (unix ms). */
     expiresAt?: number;
     /** Present on success — the nonce from the challenge. */
@@ -272,30 +274,18 @@ export async function verifyChallenge(
         return { ok: false, reason: 'purpose_mismatch' };
     }
 
-    const scheme: Scheme = opts.scheme ?? 'bip322';
-    let sigValid: boolean;
-    if (scheme === 'bip322') {
-        const sigBase64 =
-            /^[0-9a-fA-F]+$/.test(opts.signature) && opts.signature.length % 2 === 0
-                ? Buffer.from(opts.signature, 'hex').toString('base64')
-                : opts.signature;
-        sigValid = verifyBitcoinSignature(address, opts.message, sigBase64);
-    } else if (scheme === 'legacy') {
-        // Legacy signmessage only works for P2PKH addresses.
-        if (!/^[1m][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address)) {
-            return { ok: false, reason: 'sig_unsupported_scheme' };
-        }
-        sigValid = verifyBitcoinSignature(address, opts.message, opts.signature);
-    } else {
-        return { ok: false, reason: 'sig_unsupported_scheme' };
+    const sigBase64 = toBase64Maybe(opts.signature);
+    const scheme = signatureScheme(sigBase64);
+    if (!scheme) return { ok: false, reason: 'sig_unsupported_scheme' };
+    if (!verifyBitcoinSignature(address, opts.message, sigBase64)) {
+        return { ok: false, reason: 'sig_invalid' };
     }
-
-    if (!sigValid) return { ok: false, reason: 'sig_invalid' };
 
     return {
         ok: true,
         reason: 'ok',
         address,
+        scheme,
         expiresAt: expiresAt.getTime(),
         nonce,
         ...(audience !== undefined ? { audience } : {}),

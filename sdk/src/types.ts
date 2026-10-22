@@ -38,7 +38,7 @@ export type StatusCode =
     | 'sig_ok_bip322' // BIP-322 signature verified
     | 'sig_ok_legacy' // Legacy signature verified
     | 'sig_invalid' // Signature verification failed
-    | 'sig_unsupported_script' // Unsupported script type
+    | 'sig_unsupported_script' // A BIP-322 full or proof-of-funds signature, not supported
     | 'bond_confirmed' // Bond amount confirmed
     | 'bond_zero' // No bond amount
     | 'bond_pending' // Bond pending confirmation
@@ -85,7 +85,7 @@ export interface VerifyInput {
     msg?: string;
     /** Signature (optional when using attestation_id) */
     sig?: string;
-    /** Signature scheme (auto-detected if not provided) */
+    /** @deprecated Ignored: the signature's own bytes decide the scheme. */
     scheme?: Scheme;
     /** Attestation ID (alternative to addr/msg/sig) */
     attestation_id?: string;

@@ -21,12 +21,12 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
     },
     sig_invalid: {
         label: 'Signature verification failed',
-        detail: 'The signature does not match the message and address. Common issues: (1) Message not copied exactly from Step 2, (2) Wrong wallet/address used, (3) Wallet does not support BIP-322 (Electrum does NOT support BIP-322 for SegWit addresses - use Sparrow Wallet instead). For testnet, ensure your wallet is in testnet mode.',
+        detail: 'The signature does not match the message and address. Common issues: (1) the message was not copied exactly, (2) a different address signed it, (3) the wallet signed on another network.',
         severity: 'error',
     },
     sig_unsupported_script: {
-        label: 'Wallet does not support BIP-322',
-        detail: 'Your wallet generated a legacy signature, but your SegWit address (bc1/tb1) requires BIP-322 message signing. Please use a wallet that supports BIP-322 (like Sparrow Wallet or Bitcoin Core), or switch to a P2PKH address (starting with "1" for mainnet or "m"/"n" for testnet) if your wallet only supports legacy signing.',
+        label: 'Signature form not supported',
+        detail: 'Your wallet made a BIP-322 full or proof-of-funds signature. Sign with a BIP-322 simple signature, or with legacy message signing, which every address type here accepts.',
         severity: 'error',
     },
     bond_confirmed: {

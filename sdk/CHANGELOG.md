@@ -7,6 +7,34 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.16.0] — 2026-10-22
+
+### Fixed
+
+- **A signature's bytes decide its scheme.** `verify()`, `signatureIsValid()`
+  (and so `check()` and discovery) and `verifyChallenge()` treat a 65-byte
+  signature as legacy BIP-137 on every address type it can stand for (P2PKH,
+  P2SH-P2WPKH, P2WPKH, P2TR) and anything else as BIP-322 simple, the rule
+  `@orangecheck/bip322` verifies by. `verify()` used to pick the scheme from the
+  address and the signature's first base64 letter, so a valid BIP-137
+  signature on a `3…` address passed or failed with its recovery id, and
+  passed on a `bc1…` address labelled `sig_ok_bip322`. `verifyChallenge()`
+  with `scheme: 'legacy'` refused every address but P2PKH.
+
+### Changed
+
+- `verify()` labels each signature by the scheme that verified it:
+  `sig_ok_legacy` or `sig_ok_bip322`. `sig_unsupported_script` now means a
+  BIP-322 full or proof-of-funds signature, which is not supported, and
+  `verifyChallenge()` answers those with `sig_unsupported_scheme`.
+- The `scheme` input of `verify()`, `signatureIsValid()` and
+  `verifyChallenge()` is deprecated and ignored.
+- Requires `@orangecheck/bip322` ^1.1.0, which reads the `smp` prefix.
+
+### Added
+
+- `verifyChallenge()` returns `scheme` on success.
+
 ## [1.15.0] — 2026-10-21
 
 ### Changed

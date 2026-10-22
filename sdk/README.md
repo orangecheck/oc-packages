@@ -61,13 +61,14 @@ const outcome = await verify({
     addr: 'bc1q...',
     msg: canonicalMessage, // the exact signed text
     sig: signature,
-    scheme: 'bip322',
 });
 
 if (outcome.ok) {
     console.log(outcome.metrics); // { sats_bonded, days_unspent, score }
 }
 ```
+
+The signature's bytes decide how it is checked: 65 bytes is a legacy (BIP-137) signature, on any address it can stand for, and anything else is BIP-322 simple, with or without the `smp` prefix. `outcome.codes` names the one that verified, `sig_ok_bip322` or `sig_ok_legacy`. A BIP-322 full or proof-of-funds signature gets `sig_unsupported_script`. The `scheme` input is ignored.
 
 Use this when you already hold the `(addr, msg, sig)` tuple — e.g., a user pasted it into your UI, or you're verifying an offline proof.
 
