@@ -8,6 +8,21 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.5.0] — 2026-10-22
+
+### Added — the reader's clock in `liveDevices`; dating a revocation
+
+- `liveDevices(records, { now?, maxSkewMs? })`: a bind whose signed
+  `created_at` is later than `now` plus `maxSkewMs` (default
+  `DEFAULT_BIND_SKEW_MS`, 10 minutes) is not live yet. A bind with no readable
+  `created_at` is not live.
+- `pendingDevices(records, opts)`: the binds no revocation retires that are
+  dated later than that, so a device list can show them and offer Revoke.
+- `revokedAtFor(records, address, deviceId, now?)`: the `revoked_at` to sign,
+  the current time or the latest signed `created_at` among that device's binds
+  if later. A revocation dated so retires a bind dated ahead when its date
+  comes.
+
 ## [0.4.0] — 2026-10-21
 
 ### Added — `liveDevices`: a wallet-signed revocation retires a device anywhere

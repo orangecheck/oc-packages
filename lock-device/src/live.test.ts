@@ -7,6 +7,8 @@ import {
     buildRevocationStatement,
     liveDevices,
     parseDeviceEvent,
+    pendingDevices,
+    revokedAtFor,
     signedTime,
     type ParsedDeviceEvent,
 } from './index.js';
@@ -103,6 +105,42 @@ describe('liveDevices', () => {
 
     it('never returns a revocation record itself', () => {
         expect(liveDevices([revoke('laptop', '2026-10-01T00:00:00Z')])).toEqual([]);
+    });
+});
+
+describe('the reader\'s clock', () => {
+    const NOW = new Date('2026-10-22T00:00:00Z');
+
+    it('a bind dated more than the skew ahead of the reader is not live yet', () => {
+        const ahead = bind('laptop', '2027-10-22T00:00:00Z');
+        expect(liveDevices([ahead], { now: NOW })).toEqual([]);
+        expect(ids(pendingDevices([ahead], { now: NOW }))).toEqual(['laptop']);
+    });
+
+    it('a bind within the skew is live', () => {
+        const slightly = bind('laptop', '2026-10-22T00:05:00Z');
+        expect(ids(liveDevices([slightly], { now: NOW }))).toEqual(['laptop']);
+        expect(pendingDevices([slightly], { now: NOW })).toEqual([]);
+    });
+
+    it('a revocation dated today does not reach a bind dated ahead', () => {
+        const ahead = bind('laptop', '2027-10-22T00:00:00Z');
+        const today = revoke('laptop', NOW.toISOString());
+        expect(ids(liveDevices([ahead, today], { now: new Date('2027-10-23T00:00:00Z') }))).toEqual(['laptop']);
+    });
+
+    it('revokedAtFor dates a revocation at the latest bind of that device, or now', () => {
+        const ahead = bind('laptop', '2027-10-22T00:00:00Z');
+        const other = bind('phone', '2028-01-01T00:00:00Z');
+        expect(revokedAtFor([ahead, other], ADDR, 'laptop', NOW)).toBe('2027-10-22T00:00:00.000Z');
+        expect(revokedAtFor([other], ADDR, 'laptop', NOW)).toBe(NOW.toISOString());
+    });
+
+    it('a revocation dated by revokedAtFor retires a bind dated ahead, when its date comes', () => {
+        const ahead = bind('laptop', '2027-10-22T00:00:00Z');
+        const r = revoke('laptop', revokedAtFor([ahead], ADDR, 'laptop', NOW));
+        expect(liveDevices([ahead, r], { now: new Date('2027-10-23T00:00:00Z') })).toEqual([]);
+        expect(pendingDevices([ahead, r], { now: NOW })).toEqual([]);
     });
 });
 

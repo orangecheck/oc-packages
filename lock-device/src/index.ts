@@ -352,4 +352,11 @@ function parseBindingStatement(
 }
 
 export { authorizedDevices } from './authorize.js';
-export { liveDevices, signedTime } from './live.js';
+export {
+    DEFAULT_BIND_SKEW_MS,
+    liveDevices,
+    pendingDevices,
+    revokedAtFor,
+    signedTime,
+} from './live.js';
+export type { LiveOptions } from './live.js';
