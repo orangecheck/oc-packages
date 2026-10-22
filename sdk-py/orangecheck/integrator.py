@@ -245,7 +245,9 @@ def sign_event(
     ``body`` must be the exact bytes you send; serialise once and send that
     string. The key is the signing secret's text as UTF-8 (it is not
     hex-decoded), and the MAC covers ``f"{t}.{body}"``. me.ochk.io refuses a
-    timestamp more than 300 seconds from its clock.
+    timestamp more than 300 seconds behind its clock or 60 seconds ahead, and
+    processes the same signed bytes once: sending them again returns the first
+    event, whatever ``Idempotency-Key`` they carry.
 
         body = json.dumps({"project_key": key, "subtype": "account_created",
                            "user_address": session.did_oc})
