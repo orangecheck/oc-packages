@@ -569,3 +569,61 @@ def test_a_fork_while_a_fetch_holds_a_lock_leaves_the_child_able_to_take_it() ->
     finally:
         for lock in held:
             lock.release()
+
+
+# ─── what warming reports ────────────────────────────────────────────────
+
+
+@respx.mock
+def test_warm_session_says_what_it_fetched_then_what_it_kept(fresh_key_sets: None) -> None:
+    v = _rh_vector()
+    _serve_everything_verify_session_reads(v)
+    rl, policy = _revocations(), SignInPolicy("pk_test_tv")
+    first = warm_session(v["audience"], revocations=rl, policy=policy)
+    assert first.ok and first.failures() == []
+    assert (first.keys.state, first.policy and first.policy.state, first.lists[v["audience"]].state) == (
+        "fetched", "fetched", "fetched",
+    )
+    again = warm_session(v["audience"], revocations=rl, policy=policy)
+    assert (again.keys.state, again.policy and again.policy.state, again.lists[v["audience"]].state) == (
+        "kept", "kept", "kept",
+    )
+
+
+@respx.mock
+def test_warm_session_names_each_failure_and_why(fresh_key_sets: None) -> None:
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(503))
+    respx.get("https://me.ochk.io/api/integrator/pk_test_tv/sign-in").mock(return_value=httpx.Response(404))
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(403, json={"ok": False, "error": "domain_unverified"}))
+    result = warm_session(R["request"]["aud"], revocations=_revocations(), policy=SignInPolicy("pk_test_tv"))
+    assert not result.ok
+    assert result.failures() == [
+        "key set: HTTP 503",
+        "sign-in rule: unknown_project_key",
+        f"list for {R['request']['aud']}: HTTP 403 domain_unverified",
+    ]
+
+
+@respx.mock
+def test_warm_session_reports_a_failed_refresh_while_the_last_copy_still_answers(
+    fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    respx.get(SIGN_IN).mock(side_effect=[httpx.Response(200, json={"ok": True, "require_bond": None}), httpx.Response(503)])
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
+    policy = SignInPolicy("pk_test_tv")
+    assert warm_session("https://soniq.example", policy=policy).ok
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    later = warm_session("https://soniq.example", policy=policy)
+    assert later.policy is not None and later.policy.state == "failed"
+    assert later.failures() == ["sign-in rule: HTTP 503"]
+    assert policy.requirement() is None  # the rule read a minute ago still stands
+
+
+@respx.mock
+def test_warm_session_reports_a_list_too_old_to_vouch(fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["lists"][R["request"]["aud"]]))
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11 * 60))
+    result = warm_session(R["request"]["aud"], revocations=_revocations())
+    part = result.lists[R["request"]["aud"]]
+    assert part.state == "failed" and part.reason is not None and "ten minutes" in part.reason

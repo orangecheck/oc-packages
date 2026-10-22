@@ -4,6 +4,17 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] — 2026-10-22
+
+### Added
+
+- `warm_session` returns a `WarmResult` instead of `None`: for the key set, the
+  sign-in rule and each audience's list, a `WarmPart` whose `state` is
+  `"fetched"`, `"kept"` or `"failed"`, with a `reason` when it failed (`HTTP 403
+  domain_unverified`, `unknown_project_key`, a list older than ten minutes by its
+  own clock). `result.ok` and `result.failures()` make a failing warm loop easy to
+  log. It still never raises.
+
 ## [2.10.1] — 2026-10-22
 
 ### Fixed

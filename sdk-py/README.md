@@ -220,12 +220,14 @@ every ten seconds from a background thread in each process (2.10.0 or later). On
 `SignInPolicy` and one `RevocationList` are safe to share between threads.
 
 ```python
-import threading, time
+import logging, threading, time
 from orangecheck import warm_session
 
 def keep_warm() -> None:
     while True:
-        warm_session("https://your-site.example", revocations=REVOCATIONS, policy=POLICY)
+        result = warm_session("https://your-site.example", revocations=REVOCATIONS, policy=POLICY)
+        if not result.ok:  # 2.11.0 or later: what failed, and why
+            logging.warning("orangecheck warming: %s", "; ".join(result.failures()))
         time.sleep(10)
 
 threading.Thread(target=keep_warm, daemon=True).start()

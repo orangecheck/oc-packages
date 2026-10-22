@@ -103,6 +103,59 @@ def _finite(v: Any) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
+def _failure_reason(err: BaseException) -> str:
+    """A failed fetch in a few words: ``HTTP 403 domain_unverified``, ``ConnectError: …``."""
+    if isinstance(err, httpx.HTTPStatusError):
+        code = ""
+        try:
+            body = err.response.json()
+            if isinstance(body, dict):
+                code = str(body.get("error") or body.get("reason") or "")
+        except ValueError:
+            pass
+        return f"HTTP {err.response.status_code}" + (f" {code}" if code else "")
+    if isinstance(err, InvalidSession):
+        return err.reason
+    return f"{type(err).__name__}: {err}"
+
+
+@dataclass(frozen=True)
+class WarmPart:
+    """
+    One thing :func:`warm_session` keeps warm. ``state`` is ``"fetched"`` (read
+    just now), ``"kept"`` (the copy in memory is still fresh) or ``"failed"`` (it
+    could not be read; ``reason`` says why, and an older copy may still answer).
+    """
+
+    state: str
+    reason: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class WarmResult:
+    """What :func:`warm_session` did: the key set, the sign-in rule and each audience's list."""
+
+    keys: WarmPart
+    policy: Optional[WarmPart] = None
+    lists: dict[str, WarmPart] = field(default_factory=dict)
+
+    def failures(self) -> list[str]:
+        """Each part that failed, as ``"<part>: <reason>"``; empty when all is well."""
+        parts = [("key set", self.keys)]
+        if self.policy is not None:
+            parts.append(("sign-in rule", self.policy))
+        parts += [(f"list for {aud}", part) for aud, part in self.lists.items()]
+        return [f"{name}: {part.reason}" for name, part in parts if part.state == "failed"]
+
+    @property
+    def ok(self) -> bool:
+        return not self.failures()
+
+
+_FETCHED = WarmPart("fetched")
+_KEPT = WarmPart("kept")
+
+
 # Every cache here guards itself with a lock. A process that forks while a
 # thread holds one hands the child a lock nothing will release, so the child
 # gets fresh locks.
@@ -128,6 +181,7 @@ class _KeySet:
         self._fetched_at = 0.0
         self._forced_at = 0.0
         self._failed_at = float("-inf")
+        self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
 
@@ -142,8 +196,10 @@ class _KeySet:
             self._keys = _import_jwks(doc)
             self._retired = _retired_at(doc)
             self._fetched_at = time.time()
-        except (httpx.HTTPError, ValueError):
+            self._error = None
+        except (httpx.HTTPError, ValueError) as err:
             self._failed_at = time.time()
+            self._error = _failure_reason(err)
             # Stale on error: a key set seen before keeps working through an outage, for a while.
             if not self._keys or time.time() - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
                 raise
@@ -158,9 +214,16 @@ class _KeySet:
         elif not self._keys or now - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
             raise ValueError("key set unavailable")
 
-    def warm(self) -> None:
+    def warm(self) -> WarmPart:
         with self._lock:
-            self._refresh()
+            before = self._fetched_at
+            try:
+                self._refresh()
+            except (httpx.HTTPError, ValueError) as err:
+                return WarmPart("failed", self._error or _failure_reason(err))
+            if self._fetched_at != before:
+                return _FETCHED
+            return WarmPart("failed", self._error) if self._error else _KEPT
 
     def retired_at(self, kid: str) -> Optional[float]:
         return self._retired.get(kid)
@@ -243,6 +306,7 @@ class _AudienceList:
         self._at: Optional[float] = None
         self._fetched_at: Optional[float] = None
         self._failed_at = float("-inf")
+        self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
 
@@ -276,9 +340,11 @@ class _AudienceList:
             at: Any = doc.get("at")
             self._at = float(at) if _finite(at) else None
             self._fetched_at = time.time()
+            self._error = None
         except (httpx.HTTPError, ValueError) as err:
             # Keep the last copy; try again after a short wait.
             self._failed_at = time.time()
+            self._error = _failure_reason(err)
             self._owner._warn_once(err)
 
     def _refresh(self, now: float) -> None:
@@ -286,9 +352,26 @@ class _AudienceList:
         if not fresh and now - self._failed_at >= _REVOCATIONS_RETRY_SECONDS:
             self._fetch()
 
-    def warm(self) -> None:
+    def _cannot_vouch(self, now: float) -> Optional[str]:
+        """Why the copy held can't say a session is live, or None when it can."""
+        if self._fetched_at is None:
+            return self._error or "no list read yet"
+        # The list's age is its own: an old copy served fresh is still old.
+        if self._at is None or self._at > now + _REVOCATIONS_SKEW_SECONDS:
+            return "the list's own time is missing or ahead of this clock"
+        if now - self._at > _REVOCATIONS_MAX_STALE_SECONDS:
+            return "the list is older than ten minutes by its own clock"
+        return None
+
+    def warm(self) -> WarmPart:
         with self._lock:
-            self._refresh(time.time())
+            now = time.time()
+            before = self._fetched_at
+            self._refresh(now)
+            problem = self._error or self._cannot_vouch(now)
+            if problem:
+                return WarmPart("failed", problem)
+            return _FETCHED if self._fetched_at != before else _KEPT
 
     def status(self, rh: str, iat: Optional[float]) -> str:
         with self._lock:
@@ -299,10 +382,7 @@ class _AudienceList:
             cutoff = self._handles.get(rh)
             if cutoff is not None and not (iat is not None and iat >= cutoff):
                 return "revoked"
-            # The list's age is its own: an old copy served fresh is still old.
-            if self._at is None or self._at > now + _REVOCATIONS_SKEW_SECONDS:
-                return "unverified"
-            return "unverified" if now - self._at > _REVOCATIONS_MAX_STALE_SECONDS else "live"
+            return "unverified" if self._cannot_vouch(now) else "live"
 
 
 class RevocationList:
@@ -430,6 +510,7 @@ class SignInPolicy:
         self._read_at: Optional[float] = None
         self._failed_at = float("-inf")
         self._unknown_at = float("-inf")
+        self._error: Optional[str] = None
         self._new_locks()
         _LOCKED.add(self)
 
@@ -439,25 +520,40 @@ class SignInPolicy:
     def requirement(self) -> Optional[dict[str, int]]:
         """``{"min_sats", "min_days"}``, or None for no requirement. Raises :class:`InvalidSession` as described above."""
         with self._lock:
-            now = time.time()
-            if now - self._unknown_at < _POLICY_TTL_SECONDS:
+            return self._requirement(time.time())
+
+    def _requirement(self, now: float) -> Optional[dict[str, int]]:
+        if now - self._unknown_at < _POLICY_TTL_SECONDS:
+            raise InvalidSession("unknown_project_key")
+        if self._read_at is not None and now - self._read_at < _POLICY_TTL_SECONDS:
+            return self._need
+        if now - self._failed_at < _POLICY_RETRY_SECONDS:
+            return self._stand_in(now)
+        try:
+            r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
+            if r.status_code == 404:
+                self._unknown_at = now
                 raise InvalidSession("unknown_project_key")
-            if self._read_at is not None and now - self._read_at < _POLICY_TTL_SECONDS:
-                return self._need
-            if now - self._failed_at < _POLICY_RETRY_SECONDS:
-                return self._stand_in(now)
+            r.raise_for_status()
+            self._need = _read_requirement(r.json())
+            self._read_at = now
+            self._error = None
+            return self._need
+        except (httpx.HTTPError, ValueError) as err:
+            self._failed_at = now
+            self._error = _failure_reason(err)
+            return self._stand_in(now)
+
+    def _warm(self) -> WarmPart:
+        with self._lock:
+            before = self._read_at
             try:
-                r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
-                if r.status_code == 404:
-                    self._unknown_at = now
-                    raise InvalidSession("unknown_project_key")
-                r.raise_for_status()
-                self._need = _read_requirement(r.json())
-                self._read_at = now
-                return self._need
-            except (httpx.HTTPError, ValueError):
-                self._failed_at = now
-                return self._stand_in(now)
+                self._requirement(time.time())
+            except InvalidSession as err:
+                return WarmPart("failed", self._error if err.reason == "bond_policy_unavailable" and self._error else err.reason)
+            if self._read_at != before:
+                return _FETCHED
+            return WarmPart("failed", self._error) if self._error else _KEPT
 
     def _stand_in(self, now: Optional[float] = None) -> Optional[dict[str, int]]:
         now = time.time() if now is None else now
@@ -494,31 +590,34 @@ def warm_session(
     *,
     revocations: Optional[RevocationList] = None,
     policy: Optional[SignInPolicy] = None,
-) -> None:
+) -> WarmResult:
     """
     Fetch now what :func:`verify_session` with the same arguments would otherwise
     fetch inside a request: ochk.io's key set, your project's sign-in requirement
     and the revocation list for each audience, each only when its copy is due. Call
     it at startup and then every ten seconds from a background thread, in each
-    process. It never raises; a failure is left for ``verify_session`` to meet.
+    process. It never raises: it returns a :class:`WarmResult` saying what it
+    fetched, kept or failed to read, and why (``result.ok``, ``result.failures()``).
     """
+
     # A warming loop must outlive anything one of these meets.
-    try:
-        _session_keys.warm()
-    except Exception:
-        pass
-    if policy is not None:
+    def part(warm: Any) -> WarmPart:
         try:
-            policy.requirement()
-        except Exception:
-            pass
+            out = warm()
+            return out if isinstance(out, WarmPart) else WarmPart("failed", "no answer")
+        except Exception as err:
+            return WarmPart("failed", _failure_reason(err))
+
+    lists: dict[str, WarmPart] = {}
     if revocations is not None:
         for aud in [audience] if isinstance(audience, str) else audience:
             if isinstance(aud, str) and aud:
-                try:
-                    revocations._list(aud).warm()
-                except Exception:
-                    pass
+                lists[aud] = part(lambda aud=aud: revocations._list(aud).warm())
+    return WarmResult(
+        keys=part(lambda: _session_keys.warm()),
+        policy=part(policy._warm) if policy is not None else None,
+        lists=lists,
+    )
 
 
 def verify_session(
