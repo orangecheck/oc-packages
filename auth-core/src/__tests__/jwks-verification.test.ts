@@ -135,6 +135,64 @@ describe("verifyOcToken", () => {
   });
 });
 
+describe("verifyOcToken · keys rotated out", () => {
+  const nowSec = () => Math.floor(Date.now() / 1000);
+  async function mintAt(iat: number) {
+    return new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: KID })
+      .setSubject("acct-1")
+      .setJti("jti-1")
+      .setIssuer(ISSUER)
+      .setIssuedAt(iat)
+      .setExpirationTime(nowSec() + 300)
+      .sign(privateKey);
+  }
+
+  it("honours a retired key only for tokens it signed before it retired", async () => {
+    const retiredAt = nowSec() - 600;
+    jwks = { keys: [{ ...jwks.keys[0]!, status: "retired", retired_at: retiredAt }] };
+    stubJwks();
+    expect(await verifyOcToken(await mintAt(retiredAt - 60), { issuer: ISSUER })).not.toBeNull();
+    _resetJwksCachesForTests();
+    expect(await verifyOcToken(await mintAt(retiredAt), { issuer: ISSUER })).toBeNull();
+    _resetJwksCachesForTests();
+    expect(await verifyOcToken(await mintAt(nowSec()), { issuer: ISSUER })).toBeNull();
+  });
+
+  it("uses a stale key list through an outage only up to the cap", async () => {
+    let up = true;
+    vi.stubGlobal("fetch", async () =>
+      up
+        ? ({ ok: true, json: async () => jwks } as unknown as Response)
+        : ({ ok: false, status: 503 } as unknown as Response),
+    );
+    const t0 = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(t0);
+    const opts = { issuer: ISSUER, jwksCacheTtlMs: 1_000, jwksMaxStaleMs: 5_000 };
+    const token = await mint();
+    expect(await verifyOcToken(token, opts)).not.toBeNull();
+    up = false;
+    clock.mockReturnValue(t0 + 3_000); // past the TTL, inside the cap
+    expect(await verifyOcToken(token, opts)).not.toBeNull();
+    clock.mockReturnValue(t0 + 6_000); // past the cap
+    expect(await verifyOcToken(token, opts)).toBeNull();
+  });
+
+  it("keeps the cached keys when an unknown kid arrives during an outage", async () => {
+    let up = true;
+    vi.stubGlobal("fetch", async () =>
+      up
+        ? ({ ok: true, json: async () => jwks } as unknown as Response)
+        : ({ ok: false, status: 503 } as unknown as Response),
+    );
+    const token = await mint();
+    expect(await verifyOcToken(token, { issuer: ISSUER })).not.toBeNull();
+    up = false;
+    expect(await verifyOcToken(await mint("unknown"), { issuer: ISSUER })).toBeNull();
+    expect(await verifyOcToken(token, { issuer: ISSUER })).not.toBeNull();
+  });
+});
+
 describe("getOcSession", () => {
   it("accepts a Bearer token when there is no cookie — the cross-domain path", async () => {
     stubJwks();

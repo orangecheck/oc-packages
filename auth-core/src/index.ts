@@ -625,9 +625,13 @@ export async function resolveSessionFromRequest(
 // JWK string, an env var, or a base64 dance.
 
 const DEFAULT_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
+/** How old a key list may be and still stand in for one that can't be fetched. */
+const DEFAULT_JWKS_MAX_STALE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 interface JwksCacheEntry {
   keys: Record<string, AuthKey>;
+  /** kid → unix seconds, for keys published as `status: "retired"`. */
+  retiredAt: Record<string, number>;
   fetchedAt: number;
 }
 
@@ -658,6 +662,7 @@ interface JwksJson {
 async function fetchJwks(
   issuer: string,
   ttlMs: number,
+  maxStaleMs: number = DEFAULT_JWKS_MAX_STALE_MS,
 ): Promise<JwksCacheEntry> {
   const cached = jwksCache.get(issuer);
   if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
@@ -679,24 +684,31 @@ async function fetchJwks(
         );
       }
       const keys: Record<string, AuthKey> = {};
+      const retiredAt: Record<string, number> = {};
       for (const k of json.keys) {
         if (typeof k.kid !== "string") continue;
         try {
           keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
         } catch {
           /* skip keys that won't import for our alg */
+          continue;
+        }
+        if (k.status === "retired") {
+          // A retired key with no readable retirement time signs nothing.
+          retiredAt[k.kid] =
+            typeof k.retired_at === "number" ? k.retired_at : 0;
         }
       }
-      const entry: JwksCacheEntry = { keys, fetchedAt: Date.now() };
+      const entry: JwksCacheEntry = { keys, retiredAt, fetchedAt: Date.now() };
       jwksCache.set(issuer, entry);
       return entry;
     } catch (err) {
       // Stale-on-error: a transient JWKS outage shouldn't lock out
-      // every consumer. If we have a cache entry — even an expired
-      // one — keep using it until the next successful fetch. Throw
-      // only when we've never seen a usable JWKS.
+      // every consumer, so an expired entry keeps answering — but only
+      // until it is `maxStaleMs` old. A key the auth host removed must
+      // stop verifying even while its key list can't be fetched.
       const stale = jwksCache.get(issuer);
-      if (stale) return stale;
+      if (stale && Date.now() - stale.fetchedAt < maxStaleMs) return stale;
       throw err;
     }
   })().finally(() => {
@@ -736,6 +748,9 @@ export interface VerifyOcOptions {
   /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
    *  cache exists, verification still works during a transient outage. */
   jwksCacheTtlMs?: number;
+  /** How old a cached JWKS may be and still stand in during an outage.
+   *  Defaults to 6 hours; past it, verification fails closed. */
+  jwksMaxStaleMs?: number;
   /** Accepted `aud` · see AudienceRule. An integrator verifying tokens from
    *  the sign-in popup sets this to its own origin, e.g.
    *  `"https://example.com"`, so a token issued to another site is refused. */
@@ -752,9 +767,10 @@ export interface VerifyOcOptions {
  *
  * Integrators don't need to handle JWKs, env vars, or rotation — the
  * cache picks up new keys automatically when they appear in the JWKS
- * response. Stale tokens signed under a retired key continue to verify
- * as long as the retired key is still published in the JWKS (standard
- * key-rotation overlap window).
+ * response. A key published with `status: "retired"` verifies only tokens
+ * issued before its `retired_at`; a key removed from the JWKS stops
+ * verifying once the cache refreshes, and an unreachable JWKS is stood in
+ * for by the last one fetched for at most `jwksMaxStaleMs`.
  */
 export async function verifyOcToken(
   token: string,
@@ -762,11 +778,12 @@ export async function verifyOcToken(
 ): Promise<SessionPayload | null> {
   const issuer = options.issuer ?? DEFAULT_ISSUER;
   const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
+  const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
   try {
     assertSafeIssuer(issuer);
     // Fast path: try the cache. If the kid isn't in the cache (e.g.
     // brand-new key just rotated in), fall through to a fresh fetch.
-    let entry = await fetchJwks(issuer, ttl);
+    let entry = await fetchJwks(issuer, ttl, maxStale);
     const headerB64 = token.split(".")[0];
     if (!headerB64) return null;
     const headerJson =
@@ -785,8 +802,8 @@ export async function verifyOcToken(
       const last = lastForcedRefresh.get(issuer) ?? 0;
       if (now - last >= FORCED_REFRESH_MIN_INTERVAL_MS) {
         lastForcedRefresh.set(issuer, now);
-        jwksCache.delete(issuer);
-        entry = await fetchJwks(issuer, ttl);
+        // TTL 0 refetches while keeping the cached list as the stand-in.
+        entry = await fetchJwks(issuer, 0, maxStale);
         key = entry.keys[header.kid];
       }
     }
@@ -797,6 +814,11 @@ export async function verifyOcToken(
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
+    // A retired key vouches only for what it signed before it retired.
+    const retiredAt = entry.retiredAt[header.kid];
+    if (retiredAt !== undefined && !(typeof p.iat === "number" && p.iat < retiredAt)) {
+      return null;
+    }
     if (!audienceSatisfied(p.aud, options.audience)) return null;
     return p;
   } catch {

@@ -9,6 +9,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+- _(no pending changes)_
+
+## [2.10.0] — 2026-10-22
+
+### Added — key rotation
+
+- `verifyOcToken` reads `status: "retired"` and `retired_at` (unix seconds) on a
+  JWKS key, as ochk.io publishes them after a rotation. A retired key verifies
+  only tokens whose `iat` is before its `retired_at`; one with no readable
+  `retired_at`, or a token with no `iat`, verifies nothing.
+- `VerifyOcOptions.jwksMaxStaleMs` (default 6 hours): how long the last fetched
+  JWKS stands in while the key list can't be fetched. Past it, verification
+  fails closed.
+
+### Changed
+
+- A token with an unknown `kid` refetches the key list (still at most once a
+  minute per issuer) without dropping the cached one, so the keys already held
+  keep answering if that refetch fails.
+
 ### Deprecated
 
 - `SessionPayload.home_federation`. The auth host no longer sets it, so it is always
