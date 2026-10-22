@@ -585,13 +585,6 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/wallet-adapter@^0.6.4":
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.6.5.tgz#7d2383f529353e8500f2ceb3a4ddaa4f56ae553a"
-  integrity sha512-dg1aUkpupdOWAtYRITGqHRtjMNSiLMWJqRBlak27TPHQnxU/09GJueq6roxOIGlzfIhJta4Tvpjtq3ftv3qdKQ==
-  dependencies:
-    "@orangecheck/bip322" "^1.0.0"
-
 "@orangecheck/wallet-adapter@^0.7.0":
   version "0.7.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.0.tgz#9231f5faceff155b500b80c51bbdd40220a9576f"
