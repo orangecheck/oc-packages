@@ -6,6 +6,7 @@
 import { x25519 } from '@noble/curves/ed25519';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
+import { anchoredTallyIsFinal, isAnchoredPoll } from './anchor.js';
 import { ballotId, pollId, revealId } from './ids.js';
 import { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
 import type { Ballot, Poll, Reveal, VoteErrorCode } from './types.js';
@@ -148,14 +149,17 @@ export async function verifyBallot(ballot: Ballot, verify: SignatureVerifier): P
  * SPEC §6.4 step 1, §10.3 and SECURITY Scenario 13: a reveal is accepted only
  * if it names this secret poll, carries the secret key whose X25519 public key
  * is the poll's `reveal_pk`, is signed by the poll's creator over `reveal_id`,
- * and the verifier's own clock (`now`) has reached the deadline. The reveal's
- * `revealed_at` is the creator's claim and decides nothing.
+ * and is not premature. For an anchored poll (§4.6) that means `chain.tipHeight`
+ * has reached `H_close + G + 6`; for a clock-dated poll, that the verifier's own
+ * clock (`now`) has reached the deadline. The reveal's `revealed_at` is the
+ * creator's claim and decides neither.
  */
 export async function verifyReveal(
     reveal: Reveal,
     poll: Poll,
     verify: SignatureVerifier,
-    now: Date | number = Date.now()
+    now: Date | number = Date.now(),
+    chain?: { tipHeight: number; closeHeight: number | null }
 ): Promise<VerifyResult> {
     const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
     if (!reveal || typeof reveal !== 'object') return bad('E_NO_REVEAL', 'not a reveal object');
@@ -176,7 +180,16 @@ export async function verifyReveal(
     if (deadline === null || parseUtc(reveal.revealed_at) === null) {
         return bad('E_NO_REVEAL', 'revealed_at or deadline is not iso8601_utc');
     }
-    if (+now < deadline) return bad('E_NO_REVEAL', 'premature reveal: the deadline has not passed');
+    if (isAnchoredPoll(poll)) {
+        if (!chain || !isBlockHeight(chain.tipHeight) || (chain.closeHeight !== null && !isBlockHeight(chain.closeHeight))) {
+            return bad('E_NO_REVEAL', 'an anchored poll needs the chain tip and H_close to accept a reveal');
+        }
+        if (!anchoredTallyIsFinal(chain.closeHeight, chain.tipHeight)) {
+            return bad('E_NO_REVEAL', 'premature reveal: the tip has not reached H_close + G + 6');
+        }
+    } else if (+now < deadline) {
+        return bad('E_NO_REVEAL', 'premature reveal: the deadline has not passed');
+    }
     const signature = reveal.sig?.value;
     if (typeof signature !== 'string' || !signature) return bad('E_BAD_SIG', 'reveal is unsigned');
     const ok = await verify({ address: poll.creator, message: revealId(reveal), signature });

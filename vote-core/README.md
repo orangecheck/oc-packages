@@ -16,17 +16,19 @@ npm i @orangecheck/vote-core @orangecheck/bip322
 - `pollId(poll) / ballotId(ballot) / revealId(reveal)` — content-addressed ids via SHA-256 of canonical bytes with `sig.value` emptied.
 - `commit(pollId, voter, option)` — secret-mode commitment per SPEC §4.4.
 - `voterWeight({ utxos, snapshot, minSats, minDays, mode, params })` — three canonical weight modes: `one_per_address`, `sats`, `sats_days`.
-- `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot.
+- `tally({ poll, ballots, utxosAt, verify, unseal?, snapshotBlock?, tipHeight?, closeHeight?, anchorHeight? })` — deterministic pure tally function. Verifies the poll's creator signature and every ballot's; in secret mode `unseal(ballot)` is called only on each voter's verified, tiebroken ballot. Every result carries `basis`; a tally lists the ballots it counted in `counted`. An anchored poll (deadline on or after 2026-11-15T00:00:00Z, SPEC §4.6) needs `tipHeight`, `closeHeight` (`H_close`, or null while unknown) and `anchorHeight`, and is `provisional`, with an `unanchored` count, until the tip reaches `H_close + G + 6`. A snapshot block that is unknown or has fewer than 6 confirmations gives `{ state: 'deferred', code: 'E_REORG' }`.
 - `distinctBallotCopies(ballots)` — what to pass `tally` as `ballots`: every copy read from relays, byte-identical copies collapsed. Never keep one copy per `ballot_id` first; `ballot_id` leaves out `sig.value`, and `tally` verifies each copy.
-- `verifyPoll(poll, verify)` / `verifyBallot(ballot, verify)` / `verifyReveal(reveal, poll, verify, now?)` — SPEC §3.3 / §4.3 structure plus the creator's or voter's BIP-322 signature (§10.1, §6.4, §10.3). `verifyReveal` also requires the reveal key to be the poll's `reveal_pk`, and accepts a reveal only once `now` (default: the current time) has reached the deadline.
+- `verifyPoll(poll, verify)` / `verifyBallot(ballot, verify)` / `verifyReveal(reveal, poll, verify, now?, chain?)` — SPEC §3.3 / §4.3 structure plus the creator's or voter's BIP-322 signature (§10.1, §6.4, §10.3). `verifyReveal` also requires the reveal key to be the poll's `reveal_pk`, and accepts a reveal only once the poll has closed: for an anchored poll, once `chain.tipHeight` reaches `H_close + G + 6`; otherwise once `now` (default: the current time) has reached the deadline.
+- `anchorHeightFromStamps(ballotId, stamps, verifyAnchor)` — a ballot's anchor height (SPEC §4.6) from every OC Stamp copy read from every relay: the lowest height `verifyAnchor` confirms among stamps whose `content.hash` names the ballot. `ballotStampContent(ballot)` gives the `content` a stamp over the ballot carries. `isAnchoredPoll`, `ANCHOR_GRACE_BLOCKS` (`G` = 36) and `anchoredTallyIsFinal` state the rest of §4.6.
 - `parseUtc(value)` — milliseconds for an `iso8601_utc` time (SPEC §0), or null. Deadlines and ballot times are read only this way.
 - `isMainnetAddress(addr)` — network check by address prefix (§3.3, §4.3).
-- `resolvePollSnapshot(poll, source)` / `resolveDeadlineSnapshot(deadline, source)` — the §3 snapshot block (greatest `median_time_past` ≤ deadline, ≥ 6 confirmations); `mempoolBlockTimeSource()` supplies chain data from mempool.space or your own instance.
+- `resolveCloseBlock(deadline, source)` — `H_close`, the greatest block height whose `median_time_past` ≤ deadline, with the tip it was read against; `height` is null until a block's `median_time_past` passes the deadline.
+- `resolvePollSnapshot(poll, source)` / `resolveDeadlineSnapshot(deadline, source)` — the §3.3 snapshot block (`H_close` once it has ≥ 6 confirmations); `mempoolBlockTimeSource()` supplies chain data from mempool.space or your own instance.
 - Full TypeScript types for `Poll`, `Ballot`, `Reveal`, `TallyResult`.
 
 ## Conformance
 
-The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for all six vectors (v01 minimal public, v02 sats-weighted, v03 sats_days with cap, v04 vote-change, v05 secret-ballot, v06 tiebreak first).
+The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for every vector there (sixteen as of oc-vote-protocol's anchored-ballots release: v01–v07 clock-dated, v08–v15 anchored polls, an open anchored poll and a deferred tally, v16 the order of `counted`).
 
 ## Usage
 
@@ -45,13 +47,36 @@ const result = await tally({
   ballots,
   snapshotBlock: snap.height,
   utxosAt: (addr, snapshotBlock) => fetchUtxos(addr, snapshotBlock),
-  tipHeight, // optional: refuse a snapshot with < 6 confirmations (E_REORG)
+  tipHeight, // defers a snapshot with < 6 confirmations (E_REORG); required for an anchored poll
   verify: ({ address, message, signature }) => verifySignature(address, message, signature),
   // secret mode only, once the creator's reveal is verified:
   // unseal: (ballot) => openEnvelope(ballot.secret.envelope, reveal.reveal_sk),
 });
 
-// { state: 'tallied', snapshot_block: 900000, turnout: {...}, tallies: {...} }
+// { state: 'tallied', basis: 'voter_clocks', snapshot_block: 900000, turnout: {...}, tallies: {...}, counted: [...] }
+```
+
+### Tally an anchored poll
+
+```ts
+import { anchorHeightFromStamps, isAnchoredPoll, mempoolBlockTimeSource, resolveCloseBlock, tally } from '@orangecheck/vote-core';
+
+if (isAnchoredPoll(poll)) {
+  const close = await resolveCloseBlock(poll.deadline, mempoolBlockTimeSource());
+  if (!close.ok) throw new Error(`${close.code}: ${close.reason}`);
+  const result = await tally({
+    poll,
+    ballots,
+    utxosAt,
+    verify,
+    tipHeight: close.tip,
+    closeHeight: close.height, // null while the poll is open
+    // Every stamp copy from every relay (REQ kinds 30083, #t sha256:<ballot_id>).
+    // verifyAnchor rebuilds the stamp id and walks its OTS proof to a header you checked.
+    anchorHeight: (id) => anchorHeightFromStamps(id, stampsByBallot.get(id) ?? [], verifyAnchor),
+  });
+  // { state: 'provisional', basis: 'anchored', close_height: null, ..., counted: [...], unanchored: 2 }
+}
 ```
 
 ### Build a ballot ready to sign

@@ -38,6 +38,10 @@ interface Vector {
         ballots: Ballot[];
         reveal?: Reveal;
         revealed_options?: Record<string, string>;
+        /** Anchored polls (SPEC §4.6): the chain tip and H_close. */
+        chain?: { tip_height: number; close_height: number | null };
+        /** Anchored polls: the verified anchor height per ballot_id. */
+        anchors?: Record<string, number>;
     };
     expected: {
         poll_id: string;
@@ -47,6 +51,7 @@ interface Vector {
         reveal_id?: string;
         reveal_canonical?: string;
         commits?: Record<string, string>;
+        reveal_accepted?: boolean;
         tally_with_utxos: {
             utxo_snapshot: Record<string, Utxo[]>;
             expected_result?: TallyResult;
@@ -72,7 +77,14 @@ describe('oc-vote-protocol conformance', () => {
 
     for (const { name, vector } of cases) {
         describe(name, () => {
-            const { poll, ballots, reveal, revealed_options } = vector.inputs;
+            const { poll, ballots, reveal, revealed_options, chain, anchors } = vector.inputs;
+            const anchorOpts = chain
+                ? {
+                      closeHeight: chain.close_height,
+                      tipHeight: chain.tip_height,
+                      anchorHeight: (id: string) => anchors?.[id] ?? null,
+                  }
+                : {};
             const exp = vector.expected;
 
             it('computes poll_id', () => {
@@ -108,9 +120,16 @@ describe('oc-vote-protocol conformance', () => {
             }
 
             if (reveal && poll.mode === 'secret') {
-                it("accepts the reveal: its key is the poll's reveal_pk (SPEC §10.3)", async () => {
-                    // Signatures in the vectors are placeholders; the key and the clock are what is checked.
-                    expect(await verifyReveal(reveal, poll, () => true, Date.parse(poll.deadline))).toEqual({ ok: true });
+                it('accepts the reveal when the vector says so (SPEC §10.3)', async () => {
+                    // Signatures in the vectors are placeholders; the key and the timing are what is checked.
+                    const r = await verifyReveal(
+                        reveal,
+                        poll,
+                        () => true,
+                        Date.parse(poll.deadline),
+                        chain ? { tipHeight: chain.tip_height, closeHeight: chain.close_height } : undefined
+                    );
+                    expect(r.ok).toBe(exp.reveal_accepted ?? true);
                 });
             }
 
@@ -128,20 +147,26 @@ describe('oc-vote-protocol conformance', () => {
                 const utxos = exp.tally_with_utxos.utxo_snapshot;
                 const utxosAt = (addr: string) => utxos[addr] ?? [];
 
+                // Before any reveal is accepted, a secret poll awaits it (SPEC §8 step 3).
+                const preExpected = exp.tally_with_utxos.expected_result_pre_reveal;
+                if (preExpected) {
+                    const pre = await tally({ poll, ballots, utxosAt, skipSignatures: true, ...anchorOpts });
+                    expect(pre).toEqual(preExpected);
+                }
                 if (poll.mode === 'secret' && !revealed_options) {
-                    const pre = await tally({ poll, ballots, utxosAt, skipSignatures: true });
-                    expect(pre).toEqual(
-                        exp.tally_with_utxos.expected_result_pre_reveal ?? { state: 'awaiting_reveal' }
-                    );
+                    expect(preExpected).toBeDefined();
                     return;
                 }
 
+                // A reveal the vector refuses opens nothing.
+                const opened = revealed_options && exp.reveal_accepted !== false ? revealed_options : null;
                 const result = await tally({
                     poll,
                     ballots,
                     utxosAt,
                     skipSignatures: true,
-                    ...(revealed_options ? { revealedOptions: revealed_options } : {}),
+                    ...anchorOpts,
+                    ...(opened ? { revealedOptions: opened } : {}),
                 });
 
                 const expected =
@@ -167,7 +192,7 @@ describe('tally requires a signature verifier', () => {
         creator: 'bc1qcreator00000000000000000000000000000000',
         question: 'ship?',
         options: [{ id: 'yes', label: 'yes' }],
-        deadline: '2026-12-01T00:00:00.000Z',
+        deadline: '2026-11-01T00:00:00.000Z',
         snapshot_block: 900000,
         weight_mode: 'sats',
         weight_params: null,
@@ -220,7 +245,7 @@ describe('tally rejects versions it does not support (SPEC §12)', () => {
         creator: 'bc1qcreator00000000000000000000000000000000',
         question: 'ship?',
         options: [{ id: 'yes', label: 'yes' }],
-        deadline: '2026-12-01T00:00:00.000Z',
+        deadline: '2026-11-01T00:00:00.000Z',
         snapshot_block: 900000,
         weight_mode: 'sats',
         weight_params: null,

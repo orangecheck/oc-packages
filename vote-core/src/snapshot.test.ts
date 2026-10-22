@@ -1,12 +1,13 @@
-// SPEC §3: a deferred snapshot is "the block whose median_time_past is the
-// greatest value ≤ deadline and has ≥ 6 confirmations"; §10.5 applies the
-// same confirmation floor to a numeric snapshot.
+// SPEC §3.3: a deferred snapshot is `H_close`, "the greatest block height whose
+// `median_time_past` ≤ `deadline`", used "only once it has ≥ 6 confirmations";
+// §10.5 applies the same confirmation floor to a numeric snapshot.
 
 import { describe, expect, it } from 'vitest';
 
 import {
     MIN_SNAPSHOT_CONFIRMATIONS,
     mempoolBlockTimeSource,
+    resolveCloseBlock,
     resolveDeadlineSnapshot,
     resolvePollSnapshot,
     type BlockTimeSource,
@@ -171,5 +172,44 @@ describe('mempoolBlockTimeSource', () => {
             ok: false,
             code: 'E_REORG',
         });
+    });
+});
+
+describe('resolveCloseBlock (SPEC §4.6)', () => {
+    it('finds H_close without asking for confirmations', async () => {
+        const r = await resolveCloseBlock(DEADLINE, chain(1001, 1001));
+        expect(r).toMatchObject({ ok: true, height: 1000, tip: 1001 });
+        // The snapshot from the same chain is still deferred.
+        expect(await resolveDeadlineSnapshot(DEADLINE, chain(1001, 1001))).toMatchObject({ ok: false, code: "E_REORG" });
+    });
+
+    it('leaves H_close unknown while the tip still qualifies', async () => {
+        expect(await resolveCloseBlock(DEADLINE, chain(1000, 998))).toEqual({ ok: true, height: null, tip: 1000 });
+        expect(await resolveDeadlineSnapshot(DEADLINE, chain(1000, 998))).toMatchObject({ ok: false, code: 'E_REORG' });
+    });
+
+    it('leaves H_close unknown for a deadline still to come, without a seed lookup', async () => {
+        const noSeed: BlockTimeSource = {
+            blockHeightAtTimestamp: async () => {
+                throw new Error('asked for a block at a future time');
+            },
+            medianTimePast: async () => 0,
+            tipHeight: async () => 1234,
+        };
+        const future = new Date(Date.now() + 7 * 86_400_000).toISOString();
+        expect(await resolveCloseBlock(future, noSeed)).toEqual({ ok: true, height: null, tip: 1234 });
+    });
+
+    it('fails closed when a block below the tip cannot be read, rather than stopping short', async () => {
+        // Here 1001 also qualifies, so stopping at 1000 would name the wrong block.
+        const flaky: BlockTimeSource = {
+            blockHeightAtTimestamp: async () => 1000,
+            medianTimePast: async (h) => {
+                if (h === 1001) throw new Error('timeout');
+                return DEADLINE_TS + (h - 1001) * 600;
+            },
+            tipHeight: async () => 1100,
+        };
+        expect(await resolveCloseBlock(DEADLINE, flaky)).toMatchObject({ ok: false, code: 'E_SNAPSHOT_UNRESOLVED' });
     });
 });

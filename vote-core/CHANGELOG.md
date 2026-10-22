@@ -7,6 +7,51 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.0.0] — 2026-10-22
+
+As oc-vote-protocol's anchored-ballots release (SPEC §0, §3.3, §4.6, §8, §9,
+§10.3, §10.5, §10.8). From a deadline of 2026-11-15T00:00:00Z a ballot is in
+time when a Bitcoin block anchors it, and a 1.x tally of such a poll would
+count it by other rules: use 2.0.0 or later.
+
+### Breaking
+
+- `TallyResult` has two more states. `'provisional'` is a count that is not
+  final yet; `'deferred'` (`{ state, code: 'E_REORG', basis }`) is no count
+  yet. Code that reads `tallies` narrows on `state`.
+- With `tipHeight` given, a snapshot block that is unknown or has fewer than
+  6 confirmations returns the `'deferred'` result. `tally` does not throw
+  `E_REORG`.
+- `tally` throws for an anchored poll called without `tipHeight`,
+  `closeHeight` (a height, or null while unknown) and `anchorHeight`.
+
+### Added
+
+- **Anchored polls.** `isAnchoredPoll`, `ANCHOR_CUTOVER`, `ANCHOR_GRACE_BLOCKS`
+  (`G` = 36), `ANCHOR_FINAL_CONFIRMATIONS`, `lastAnchorHeight`,
+  `anchoredTallyIsFinal`. A final tally counts only ballots anchored at or
+  below `H_close + G`; until the tip reaches `H_close + G + 6` the result is
+  `provisional`. Under `tiebreak`, anchor height ranks first. For
+  `snapshot_block: "deadline"` an anchored poll's snapshot is `closeHeight`.
+- `anchorHeightFromStamps(ballotId, stamps, verifyAnchor)`: the lowest anchor
+  `verifyAnchor` confirms across every stamp copy whose `content.hash` names
+  the ballot. It rejects when any copy could not be checked: an unread anchor
+  is never a missing one. `ballotStampContent(ballot)` and `BALLOT_STAMP_MIME`.
+- `resolveCloseBlock(deadline, source)`: `H_close` and the tip; `height` is
+  null while the tip still qualifies.
+- Results: `basis` (`'anchored'` | `'voter_clocks'`) on every result,
+  `close_height` on an anchored poll's results, and on a tally `counted` (each
+  voter's standing `ballot_id`, lowercase hex ascending) and, when
+  provisional, `unanchored`. Types `DeferredResult` and `TallyResultHead`.
+
+### Changed
+
+- `verifyReveal(reveal, poll, verify, now, chain)`: an anchored poll's reveal
+  is accepted only once `chain.tipHeight` reaches `H_close + G + 6`, and never
+  while `chain.closeHeight` is null.
+- `resolveCloseBlock` and the deadline snapshot fail closed when a block below
+  the tip cannot be read.
+
 ## [1.6.1] — 2026-10-22
 
 ### Added

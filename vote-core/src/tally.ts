@@ -1,6 +1,6 @@
 // Deterministic tally per SPEC §8.
 //
-// tally(poll, ballots[], utxosAt, revealSk?) -> { state, snapshot_block, turnout, tallies }
+// tally(poll, ballots[], utxosAt, revealSk?) -> { state, basis, snapshot_block, turnout, tallies, counted }
 //
 // Pure function. Same inputs → byte-identical output across implementations.
 // The caller SUPPLIES the BIP-322 verifier, but supplying one is not optional:
@@ -16,10 +16,12 @@ import type {
     Ballot,
     Poll,
     TallyResult,
+    TallyResultHead,
     Tiebreak,
     UtxoLookup,
     Utxo,
 } from './types.js';
+import { anchoredTallyIsFinal, isAnchoredPoll, lastAnchorHeight } from './anchor.js';
 import { isBlockHeight, isMainnetAddress, parseUtc, verifyBallot, VoteError } from './verify.js';
 import type { SignatureVerifier } from './verify.js';
 import { isSupportedMode, voterWeight } from './weight.js';
@@ -62,11 +64,25 @@ export interface TallyOptions {
      */
     revealedOptions?: Record<string, string>;
     /**
-     * Current chain tip height. When supplied, `tally` throws `VoteError`
-     * `E_REORG` unless the snapshot block has at least 6 confirmations
-     * (SPEC §10.5), which also refuses a snapshot that has not been mined.
+     * Current chain tip height. When supplied, `tally` returns
+     * `{ state: 'deferred', code: 'E_REORG' }` unless the snapshot block has at
+     * least 6 confirmations (SPEC §10.5), which also covers a snapshot that has
+     * not been mined. Required for an anchored poll.
      */
     tipHeight?: number;
+    /**
+     * Anchored polls (SPEC §4.6) only, and required for them: `H_close`, the
+     * greatest block whose median_time_past ≤ deadline, or null while no
+     * block's median_time_past has passed the deadline (the tally is then
+     * provisional). See `resolveCloseBlock`.
+     */
+    closeHeight?: number | null;
+    /**
+     * Anchored polls (SPEC §4.6) only: the lowest block height at which the
+     * caller verified, against Bitcoin block headers, an OpenTimestamps anchor
+     * over this ballot id (OC Stamp §6.3, §7.2), or null when it has none.
+     */
+    anchorHeight?: (ballotId: string) => Promise<number | null> | number | null;
     /** Async BIP-322 verifier. Omitting every verifier throws — see `skipSignatures`. */
     /**
      * POSITIONAL, and this package's order is `(address, message, signature)`.
@@ -164,6 +180,31 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
     // 1. Filter to ballots that structurally belong to this poll and are in time.
     const deadlineMs = parseUtc(poll.deadline);
     if (deadlineMs === null) throw new VoteError('E_WRONG_POLL', 'poll deadline is not iso8601_utc');
+    // SPEC §4.6: an anchored poll needs the chain, and is final only at H_close + G + 6.
+    const anchored = isAnchoredPoll(poll);
+    const { anchorHeight } = opts;
+    const closeHeight = opts.closeHeight ?? null;
+    if (
+        anchored &&
+        (opts.closeHeight === undefined ||
+            (closeHeight !== null && !isBlockHeight(closeHeight)) ||
+            !isBlockHeight(opts.tipHeight) ||
+            typeof anchorHeight !== 'function')
+    ) {
+        throw new Error(
+            'tally: an anchored poll (SPEC §4.6) needs closeHeight (a height, or null while unknown), tipHeight and anchorHeight'
+        );
+    }
+    const final = !anchored || anchoredTallyIsFinal(closeHeight, opts.tipHeight!);
+    const head: TallyResultHead = anchored
+        ? { basis: 'anchored', close_height: closeHeight }
+        : { basis: 'voter_clocks' };
+    // In time (§4.6): anchored at or below H_close + G, or at all while H_close is unknown.
+    const inTime = (h: number | null): boolean =>
+        h !== null && (closeHeight === null || h <= lastAnchorHeight(closeHeight));
+    // A secret anchored poll is never provisional: its reveal counts only once final (§10.3).
+    if (anchored && !final && poll.mode === 'secret') return { state: 'awaiting_reveal', ...head };
+    const heights = new Map<string, number | null>();
     const verifier: SignatureVerifier = opts.skipSignatures
         ? () => true
         : (opts.verify ?? ((a) => opts.verifyBip322!(a.address, a.message, a.signature)));
@@ -194,6 +235,15 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         // format cannot void everyone else's tally.
         if (!(await verifyBallot(b, verifier)).ok) continue;
 
+        if (anchored) {
+            const id = ballotId(b);
+            const h = await anchorHeight!(id);
+            const height = isBlockHeight(h) ? h : null;
+            // E_NOT_ANCHORED: a final tally counts only ballots anchored by H_close + G.
+            if (final && !inTime(height)) continue;
+            heights.set(id, height);
+        }
+
         filtered.push(b);
     }
 
@@ -204,15 +254,19 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         if (!existing) {
             perVoter.set(b.voter, b);
         } else {
-            perVoter.set(b.voter, chooseByTiebreak(existing, b, poll.tiebreak));
+            perVoter.set(b.voter, chooseByTiebreak(existing, b, poll.tiebreak, anchored ? heights : null));
         }
     }
+
+    // The id of each voter's standing ballot, taken before step 3 substitutes its option.
+    const standing = new Map<string, string>();
+    for (const [voter, b] of perVoter) standing.set(voter, ballotId(b));
 
     // 3. Reveal: if secret mode, unseal each voter's surviving ballot and
     //    verify the commit binding per SPEC §4.4.
     if (poll.mode === 'secret') {
         const { unseal, revealedOptions } = opts;
-        if (!unseal && !revealedOptions) return { state: 'awaiting_reveal' };
+        if (!unseal && !revealedOptions) return { state: 'awaiting_reveal', ...head };
         for (const [voter, b] of Array.from(perVoter.entries())) {
             let option: string | null = null;
             if (unseal) {
@@ -243,12 +297,20 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         }
     }
 
-    // 4. Resolve snapshot block. The caller MUST pass `opts.snapshotBlock`
-    //    when poll.snapshot_block === 'deadline' — see the option doc for
-    //    why mutating poll.snapshot_block is unsafe (changes pollId).
+    // 4. Resolve snapshot block. For poll.snapshot_block === 'deadline' that is
+    //    H_close: an anchored poll's closeHeight, otherwise `opts.snapshotBlock`,
+    //    which the caller MUST pass — see the option doc for why mutating
+    //    poll.snapshot_block is unsafe (changes pollId).
     let H: number;
     if (typeof poll.snapshot_block === 'number') {
         H = poll.snapshot_block;
+    } else if (poll.snapshot_block === 'deadline' && anchored) {
+        if (opts.snapshotBlock !== undefined && opts.snapshotBlock !== closeHeight) {
+            throw new Error('tally: opts.snapshotBlock differs from closeHeight, which is H_close for this poll');
+        }
+        // H_close not yet known: the snapshot is not either (SPEC §10.5).
+        if (closeHeight === null) return { state: 'deferred', code: 'E_REORG', ...head };
+        H = closeHeight;
     } else if (poll.snapshot_block === 'deadline' && typeof opts.snapshotBlock === 'number') {
         H = opts.snapshotBlock;
     } else {
@@ -262,12 +324,7 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
     }
     if (opts.tipHeight !== undefined) {
         if (!isBlockHeight(opts.tipHeight)) throw new Error('tally: tipHeight must be a positive integer');
-        if (opts.tipHeight - H + 1 < 6) {
-            throw new VoteError(
-                'E_REORG',
-                `snapshot block ${H} has ${Math.max(0, opts.tipHeight - H + 1)} confirmations; 6 required`
-            );
-        }
+        if (opts.tipHeight - H + 1 < 6) return { state: 'deferred', code: 'E_REORG', ...head };
     }
 
     // 5. Sum weights per option. Deterministic iteration order by voter (sorted).
@@ -299,11 +356,15 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         turnoutWeight += w;
     }
 
+    const counted = voters.map((v) => standing.get(v)!).sort();
     return {
-        state: 'tallied',
+        state: final ? 'tallied' : 'provisional',
+        ...head,
         snapshot_block: H,
         turnout: { voters: turnoutVoters, weight: turnoutWeight },
         tallies,
+        counted,
+        ...(final ? {} : { unanchored: counted.filter((id) => !inTime(heights.get(id) ?? null)).length }),
     };
 }
 
@@ -333,20 +394,29 @@ function hasOwn(obj: object, key: string): boolean {
     return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
-function chooseByTiebreak(a: Ballot, b: Ballot, t: Tiebreak): Ballot {
-    // Both passed step 1, so both parse.
-    const ta = parseUtc(a.created_at)!;
-    const tb = parseUtc(b.created_at)!;
-    if (t === 'latest') {
-        if (tb > ta) return b;
-        if (ta > tb) return a;
-        // tie on created_at: pick greater ballot_id lexicographically
-        return ballotId(b) > ballotId(a) ? b : a;
-    }
-    // tiebreak === 'first'
-    if (tb < ta) return b;
-    if (ta < tb) return a;
-    return ballotId(b) < ballotId(a) ? b : a;
+/**
+ * SPEC §8: order a voter's ballots by (anchor height, created_at, ballot_id) in
+ * an anchored poll, by (created_at, ballot_id) otherwise; `latest` takes the
+ * greater key, `first` the lesser. An unanchored ballot's height sorts after
+ * every height (it can only be present in a provisional tally).
+ */
+function chooseByTiebreak(
+    a: Ballot,
+    b: Ballot,
+    t: Tiebreak,
+    heights: Map<string, number | null> | null
+): Ballot {
+    const key = (x: Ballot): [number, number, string] => {
+        const id = ballotId(x);
+        // Both passed step 1, so created_at parses.
+        return [heights ? (heights.get(id) ?? Infinity) : 0, parseUtc(x.created_at)!, id];
+    };
+    const ka = key(a);
+    const kb = key(b);
+    let cmp = 0;
+    for (let i = 0; i < 3 && cmp === 0; i++) cmp = kb[i]! > ka[i]! ? 1 : kb[i]! < ka[i]! ? -1 : 0;
+    if (t === 'latest') return cmp > 0 ? b : a;
+    return cmp < 0 ? b : a;
 }
 
 // Re-export so callers can `import { pollId, ballotId } from '@orangecheck/vote-core/tally'`

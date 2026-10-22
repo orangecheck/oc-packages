@@ -17,15 +17,27 @@ export {
     voterWeight,
 } from './weight.js';
 export { distinctBallotCopies, tally } from './tally.js';
+export {
+    ANCHOR_CUTOVER,
+    ANCHOR_FINAL_CONFIRMATIONS,
+    ANCHOR_GRACE_BLOCKS,
+    anchoredTallyIsFinal,
+    anchorHeightFromStamps,
+    BALLOT_STAMP_MIME,
+    ballotStampContent,
+    isAnchoredPoll,
+    lastAnchorHeight,
+} from './anchor.js';
 export type { TallyOptions } from './tally.js';
 export { isMainnetAddress, parseUtc, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 export {
     MIN_SNAPSHOT_CONFIRMATIONS,
     mempoolBlockTimeSource,
+    resolveCloseBlock,
     resolveDeadlineSnapshot,
     resolvePollSnapshot,
 } from './snapshot.js';
-export type { BlockTimeSource, SnapshotResolution } from './snapshot.js';
+export type { BlockTimeSource, CloseResolution, SnapshotResolution } from './snapshot.js';
 export type { SignatureVerifier, VerifyResult } from './verify.js';
 export { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
 export type {
@@ -33,12 +45,14 @@ export type {
     Ballot,
     BallotSecret,
     BipSig,
+    DeferredResult,
     Poll,
     PollMode,
     PollOption,
     Reveal,
     TalliedResult,
     TallyResult,
+    TallyResultHead,
     TallyTurnout,
     Tiebreak,
     Utxo,

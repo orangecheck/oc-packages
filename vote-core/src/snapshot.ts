@@ -1,6 +1,6 @@
-// Resolving `snapshot_block: "deadline"` to a concrete height, per SPEC §3:
-// "the tallier MUST use the block whose `median_time_past` is the greatest
-// value ≤ deadline and has ≥ 6 confirmations."
+// Resolving `snapshot_block: "deadline"` to a concrete height, per SPEC §3.3:
+// "the tallier MUST use `H_close`, the greatest block height whose
+// `median_time_past` ≤ `deadline`, and only once it has ≥ 6 confirmations."
 //
 // median_time_past (BIP-113) is the median timestamp of the previous 11
 // blocks. It is monotonic where a raw block timestamp is not, which is why the
@@ -32,16 +32,23 @@ export const MIN_SNAPSHOT_CONFIRMATIONS = 6;
  *  this fails closed rather than guessing. */
 const MAX_WALK = 32;
 
+export type CloseResolution =
+    | { ok: true; height: number | null; tip: number }
+    | { ok: false; code: 'E_SNAPSHOT_UNRESOLVED'; reason: string };
+
 /**
- * Resolve `snapshot_block: "deadline"` per SPEC §3. Fails closed: an
- * unresolvable or under-confirmed snapshot is an error, never a plausible
- * height.
+ * `H_close` (SPEC §0, §4.6): the greatest block whose median_time_past ≤ the
+ * deadline, with the chain tip it was read against. `height` is null while no
+ * block's median_time_past has passed the deadline, because a later block
+ * could still qualify. Unlike the snapshot it needs no confirmations; an
+ * anchored tally is final only once the tip reaches `H_close + G + 6`. Fails
+ * closed on any lookup error.
  */
-export async function resolveDeadlineSnapshot(
+export async function resolveCloseBlock(
     deadlineIso: string,
     source: BlockTimeSource
-): Promise<SnapshotResolution> {
-    const unresolved = (reason: string): SnapshotResolution => ({
+): Promise<CloseResolution> {
+    const unresolved = (reason: string): CloseResolution => ({
         ok: false,
         code: 'E_SNAPSHOT_UNRESOLVED',
         reason,
@@ -49,8 +56,15 @@ export async function resolveDeadlineSnapshot(
     const deadlineMs = Date.parse(deadlineIso);
     if (!Number.isFinite(deadlineMs)) return unresolved(`unparseable deadline: ${deadlineIso}`);
     const deadline = Math.floor(deadlineMs / 1000);
-    // No block exists at a time still to come; a chain source asked for one fails or guesses.
-    if (deadlineMs > Date.now()) return unresolved(`deadline ${deadlineIso} has not passed`);
+
+    let tip: number;
+    try {
+        tip = await source.tipHeight();
+    } catch (e) {
+        return unresolved(`tip lookup failed: ${(e as Error).message}`);
+    }
+    // No block's median_time_past is past a deadline still to come.
+    if (deadlineMs > Date.now()) return { ok: true, height: null, tip };
 
     let height: number;
     try {
@@ -69,15 +83,11 @@ export async function resolveDeadlineSnapshot(
             height -= 1;
         }
         // Walk up while the next block still qualifies: the GREATEST such height.
+        // A qualifying tip means H_close is not known yet.
         steps = 0;
         for (;;) {
-            let nextMtp: number;
-            try {
-                nextMtp = await source.medianTimePast(height + 1);
-            } catch {
-                break; // next block does not exist yet
-            }
-            if (nextMtp > deadline) break;
+            if (height >= tip) return { ok: true, height: null, tip };
+            if ((await source.medianTimePast(height + 1)) > deadline) break;
             height += 1;
             if (++steps > MAX_WALK) {
                 return unresolved(`walk exceeded ${MAX_WALK} blocks looking for the greatest qualifying height`);
@@ -86,14 +96,32 @@ export async function resolveDeadlineSnapshot(
     } catch (e) {
         return unresolved(`median_time_past lookup failed: ${(e as Error).message}`);
     }
+    return { ok: true, height, tip };
+}
 
-    let tip: number;
-    try {
-        tip = await source.tipHeight();
-    } catch (e) {
-        return unresolved(`tip lookup failed: ${(e as Error).message}`);
+/**
+ * Resolve `snapshot_block: "deadline"` per SPEC §3. Fails closed: an
+ * unresolvable or under-confirmed snapshot is an error, never a plausible
+ * height.
+ */
+export async function resolveDeadlineSnapshot(
+    deadlineIso: string,
+    source: BlockTimeSource
+): Promise<SnapshotResolution> {
+    const deadlineMs = Date.parse(deadlineIso);
+    if (deadlineMs > Date.now()) {
+        return { ok: false, code: 'E_SNAPSHOT_UNRESOLVED', reason: `deadline ${deadlineIso} has not passed` };
     }
-
+    const close = await resolveCloseBlock(deadlineIso, source);
+    if (!close.ok) return close;
+    const { height, tip } = close;
+    if (height === null) {
+        return {
+            ok: false,
+            code: 'E_REORG',
+            reason: "no block's median_time_past has passed the deadline yet — tally deferred",
+        };
+    }
     const confirmations = tip - height + 1;
     if (confirmations < MIN_SNAPSHOT_CONFIRMATIONS) {
         return {

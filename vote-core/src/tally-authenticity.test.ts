@@ -24,7 +24,7 @@ function mkPoll(over: Partial<Poll> = {}): Poll {
             { id: 'yes', label: 'yes' },
             { id: 'no', label: 'no' },
         ],
-        deadline: '2026-12-01T00:00:00Z',
+        deadline: '2026-11-01T00:00:00Z',
         snapshot_block: 900000,
         weight_mode: 'one_per_address',
         weight_params: null,
@@ -92,21 +92,21 @@ describe('secret mode: unseal runs on the verified per-voter ballot only (SPEC �
     });
 
     it('a revealed option outside poll.options is dropped (E_UNKNOWN_OPTION)', async () => {
+        const bob = secretBallot(poll, BOB, 'yes', '2026-06-02T00:00:00Z', 'good');
         const r = await tally({
             poll,
-            ballots: [
-                secretBallot(poll, ALICE, 'constructor', '2026-06-02T00:00:00Z', 'good'),
-                secretBallot(poll, BOB, 'yes', '2026-06-02T00:00:00Z', 'good'),
-            ],
+            ballots: [secretBallot(poll, ALICE, 'constructor', '2026-06-02T00:00:00Z', 'good'), bob],
             utxosAt: oneUtxo,
             verify,
             unseal: readPlain,
         });
         expect(r).toEqual({
             state: 'tallied',
+            basis: 'voter_clocks',
             snapshot_block: 900000,
             turnout: { voters: 1, weight: 1 },
             tallies: { yes: 1, no: 0 },
+            counted: [ballotId(bob)],
         });
     });
 
@@ -252,12 +252,14 @@ describe('snapshot confirmations (SPEC §10.5)', () => {
     const run = (tipHeight: number) =>
         tally({ poll, ballots: [mkBallot(poll, ALICE)], utxosAt: oneUtxo, verify, tipHeight });
 
-    it('throws E_REORG for a snapshot above the tip', async () => {
-        await expect(run(899_000)).rejects.toMatchObject({ code: 'E_REORG' });
+    const deferred = { state: 'deferred', code: 'E_REORG', basis: 'voter_clocks' };
+
+    it('defers with E_REORG for a snapshot above the tip', async () => {
+        await expect(run(899_000)).resolves.toEqual(deferred);
     });
 
-    it('throws E_REORG with fewer than 6 confirmations', async () => {
-        await expect(run(900_004)).rejects.toMatchObject({ code: 'E_REORG' });
+    it('defers with E_REORG with fewer than 6 confirmations', async () => {
+        await expect(run(900_004)).resolves.toEqual(deferred);
     });
 
     it('tallies at exactly 6 confirmations', async () => {
@@ -268,14 +270,14 @@ describe('snapshot confirmations (SPEC §10.5)', () => {
 describe('verifyReveal (SPEC §6.4, §10.3, SECURITY Scenario 13)', () => {
     const REVEAL_SK = 'cd'.repeat(32);
     const poll = mkPoll({ mode: 'secret', reveal_pk: bytesToHex(x25519.getPublicKey(hexToBytes(REVEAL_SK))) });
-    const AFTER = Date.parse('2026-12-01T00:00:00Z');
-    const BEFORE = Date.parse('2026-11-30T23:59:59Z');
+    const AFTER = Date.parse('2026-11-01T00:00:00Z');
+    const BEFORE = Date.parse('2026-10-31T23:59:59Z');
     const mkReveal = (over: Partial<Reveal> = {}): Reveal => ({
         v: 0,
         kind: 'oc-vote/reveal',
         poll_id: pollId(poll),
         reveal_sk: REVEAL_SK,
-        revealed_at: '2026-12-02T00:00:00Z',
+        revealed_at: '2026-11-02T00:00:00Z',
         sig: { alg: 'bip322', pubkey: CREATOR, value: 'good' },
         ...over,
     });
@@ -300,7 +302,7 @@ describe('verifyReveal (SPEC §6.4, §10.3, SECURITY Scenario 13)', () => {
         // Dated after the deadline, checked before it: still premature.
         expect(await verifyReveal(mkReveal(), poll, verify, BEFORE)).toMatchObject({ ok: false, code: 'E_NO_REVEAL' });
         // Dated before the deadline, checked after it: the date decides nothing.
-        expect(await verifyReveal(mkReveal({ revealed_at: '2026-11-30T00:00:00Z' }), poll, verify, AFTER)).toEqual({
+        expect(await verifyReveal(mkReveal({ revealed_at: '2026-10-31T00:00:00Z' }), poll, verify, AFTER)).toEqual({
             ok: true,
         });
     });
@@ -314,7 +316,7 @@ describe('verifyReveal (SPEC §6.4, §10.3, SECURITY Scenario 13)', () => {
         ['other poll', { poll_id: '00'.repeat(32) }],
         ['bad signature', { sig: { alg: 'bip322' as const, pubkey: CREATOR, value: 'bad' } }],
         ['malformed reveal_sk', { reveal_sk: 'zz' }],
-        ['revealed_at with no zone', { revealed_at: '2026-12-02T00:00:00' }],
+        ['revealed_at with no zone', { revealed_at: '2026-11-02T00:00:00' }],
     ])('rejects: %s', async (_name, over) => {
         expect((await verifyReveal(mkReveal(over as Partial<Reveal>), poll, verify, AFTER)).ok).toBe(false);
     });
@@ -347,7 +349,7 @@ describe('iso8601_utc times (SPEC §0, §3.3, §4.3)', () => {
     });
 
     it('verifyPoll refuses a deadline with no zone', async () => {
-        expect(await verifyPoll(mkPoll({ deadline: '2026-12-01T00:00:00' }), verify)).toMatchObject({
+        expect(await verifyPoll(mkPoll({ deadline: '2026-11-01T00:00:00' }), verify)).toMatchObject({
             ok: false,
             code: 'E_WRONG_POLL',
         });
@@ -359,7 +361,7 @@ describe('iso8601_utc times (SPEC §0, §3.3, §4.3)', () => {
     });
 
     it('tally refuses a poll whose deadline has no zone', async () => {
-        const poll = mkPoll({ deadline: '2026-12-01T00:00:00' });
+        const poll = mkPoll({ deadline: '2026-11-01T00:00:00' });
         await expect(tally({ poll, ballots: [], utxosAt: oneUtxo, verify })).rejects.toMatchObject({
             code: 'E_WRONG_POLL',
         });
@@ -385,7 +387,7 @@ describe('iso8601_utc times (SPEC §0, §3.3, §4.3)', () => {
     it('a ballot dated with no zone is dropped whatever the time zone', async () => {
         // Two days before the deadline in every time zone, so only the missing zone drops it.
         const poll = mkPoll();
-        const b = mkBallot(poll, ALICE, { created_at: '2026-11-29T00:00:00' });
+        const b = mkBallot(poll, ALICE, { created_at: '2026-10-29T00:00:00' });
         expect(await tally({ poll, ballots: [b], utxosAt: oneUtxo, verify })).toMatchObject({
             tallies: { yes: 0, no: 0 },
         });

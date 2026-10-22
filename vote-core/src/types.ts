@@ -91,18 +91,37 @@ export interface TallyTurnout {
     weight: number;
 }
 
-export interface TalliedResult {
-    state: 'tallied';
+/** Fields every tally result carries (SPEC §8). */
+export interface TallyResultHead {
+    /** What decided whether a ballot was in time: its anchor, or the voter's own `created_at`. */
+    basis: 'anchored' | 'voter_clocks';
+    /** `H_close` for an anchored poll, null until a block's median_time_past passes the deadline; absent otherwise. */
+    close_height?: number | null;
+}
+
+export interface TalliedResult extends TallyResultHead {
+    /** `provisional` until an anchored poll's tip reaches `H_close + G + 6` (SPEC §4.6, §8). */
+    state: 'tallied' | 'provisional';
     snapshot_block: number;
     turnout: TallyTurnout;
     tallies: Record<string, number>;
+    /** Ascending `ballot_id` of the ballot that stood for each voter, withdrawals and zero weights included. */
+    counted: string[];
+    /** Provisional tallies only: how many counted ballots have no anchor at or below `H_close + G` yet. */
+    unanchored?: number;
 }
 
-export interface AwaitingRevealResult {
+export interface AwaitingRevealResult extends TallyResultHead {
     state: 'awaiting_reveal';
 }
 
-export type TallyResult = TalliedResult | AwaitingRevealResult;
+/** The snapshot block is not yet known or has fewer than 6 confirmations (SPEC §10.5). */
+export interface DeferredResult extends TallyResultHead {
+    state: 'deferred';
+    code: 'E_REORG';
+}
+
+export type TallyResult = TalliedResult | AwaitingRevealResult | DeferredResult;
 
 /** Error codes per SPEC §9. Non-weight-returning conditions. */
 export type VoteErrorCode =
@@ -113,5 +132,6 @@ export type VoteErrorCode =
     | 'E_COMMIT_MISMATCH'
     | 'E_BELOW_THRESHOLD'
     | 'E_NO_REVEAL'
+    | 'E_NOT_ANCHORED'
     | 'E_REORG'
     | 'E_UNSUPPORTED_MODE';
