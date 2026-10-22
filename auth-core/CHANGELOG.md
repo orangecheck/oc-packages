@@ -9,6 +9,10 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+- _(no pending changes)_
+
+## [2.11.0] — 2026-10-22
+
 ### Added — integrators honour sign-out everywhere
 
 - `integratorRevocationCheck(opts?)`: for an integrator's server, the account
