@@ -160,7 +160,8 @@ describe('revoke', () => {
         expect(r.ok).toBe(true);
     });
 
-    it('rejects a revocation from an unauthorized signer', async () => {
+    it('rejects a revocation from a signer who is neither principal nor agent', async () => {
+        const OTHER = 'bc1qother0000000000000000000000000000000000';
         const delegation = await createDelegation({
             principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
             agentAddress: AGENT,
@@ -168,29 +169,28 @@ describe('revoke', () => {
             ttlMs: 60_000,
         });
         await expect(
-            revoke({
-                signer: { address: AGENT, signMessage: fakeSign(AGENT) },
-                delegation, // revocation.holders default = ['principal']
-            })
+            revoke({ signer: { address: OTHER, signMessage: fakeSign(OTHER) }, delegation })
         ).rejects.toThrow(/not authorized/);
     });
 
-    it('allows agent revocation when delegation opts in', async () => {
-        const delegation = await createDelegation({
-            principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
-            agentAddress: AGENT,
-            scopes: ['stamp:sign(mime=text/markdown)'],
-            ttlMs: 60_000,
-            revocationHolders: ['principal', 'agent'],
+    for (const revocationHolders of [undefined, ['principal'] as const, ['principal', 'agent'] as const]) {
+        it(`lets the agent revoke whatever holders says (${JSON.stringify(revocationHolders)})`, async () => {
+            const delegation = await createDelegation({
+                principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+                agentAddress: AGENT,
+                scopes: ['stamp:sign(mime=text/markdown)'],
+                ttlMs: 60_000,
+                ...(revocationHolders ? { revocationHolders: [...revocationHolders] } : {}),
+            });
+            const rev = await revoke({
+                signer: { address: AGENT, signMessage: fakeSign(AGENT) },
+                delegation,
+                reason: 'self-revoke',
+            });
+            const r = await verifyRevocation({ envelope: rev, delegation, verifyBip322: fakeVerify });
+            expect(r.ok).toBe(true);
         });
-        const rev = await revoke({
-            signer: { address: AGENT, signMessage: fakeSign(AGENT) },
-            delegation,
-            reason: 'self-revoke',
-        });
-        const r = await verifyRevocation({ envelope: rev, delegation, verifyBip322: fakeVerify });
-        expect(r.ok).toBe(true);
-    });
+    }
 });
 
 describe('re-exported verifiers', () => {

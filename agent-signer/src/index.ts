@@ -294,11 +294,9 @@ export interface RevokeInput {
 }
 
 export async function revoke(input: RevokeInput): Promise<RevocationEnvelope> {
-    const holders = input.delegation.revocation?.holders ?? ['principal'];
-    const allowed = new Set<string>();
-    if (holders.includes('principal')) allowed.add(input.delegation.principal.address);
-    if (holders.includes('agent')) allowed.add(input.delegation.agent.address);
-    if (!allowed.has(input.signer.address)) {
+    // The principal and the agent may always revoke (SPEC §9.5).
+    const { principal, agent } = input.delegation;
+    if (input.signer.address !== principal.address && input.signer.address !== agent.address) {
         throw new Error(
             `revoke: signer ${input.signer.address} not authorized to revoke this delegation`
         );

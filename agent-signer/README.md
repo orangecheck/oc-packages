@@ -116,7 +116,7 @@ Returns an `ActionEnvelope` — a strict extension of an [OC Stamp](https://gith
 
 ```ts
 interface RevokeInput {
-    signer: SignerRef;                 // must be in delegation.revocation.holders
+    signer: SignerRef;                 // the delegation's principal or agent
     delegation: DelegationEnvelope;
     reason?: string;                   // ASCII, <=128 bytes
     signedAt?: Date;
@@ -124,7 +124,7 @@ interface RevokeInput {
 }
 ```
 
-Returns a `RevocationEnvelope`. The function throws if the signer isn't authorized to revoke per `delegation.revocation.holders`.
+Returns a `RevocationEnvelope`. The function throws unless the signer is the delegation's principal or its agent, who may always revoke (OC Agent §9.5).
 
 ## Verification
 

@@ -11,6 +11,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.1] — 2026-10-22
+
+- `revoke` lets the delegation's agent revoke whatever
+  `revocation.holders` says, as the principal always could (oc-agent-protocol
+  1.8.0, §9.5). Requires `@orangecheck/agent-core` ^2.7.1.
+
 ## [0.5.0] — 2026-10-21
 
 - Requires `@orangecheck/agent-core` ^2.7.0, whose `verifyAction` checks an
