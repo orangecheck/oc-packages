@@ -117,22 +117,24 @@ describe('revocation authority always includes the principal', () => {
         });
     }
 
-    it('the agent may revoke only when holders lists it', async () => {
-        const open = delegation(['principal', 'agent']);
-        const closed = delegation(['principal']);
-        const okR = await verifyRevocation({
-            envelope: revocation(open, AGENT, '2026-04-23T00:00:00Z'),
-            delegation: open,
-            skipSignatureVerification: true,
+    // A copy of the delegation presented with holders ["principal"] has the same
+    // id and signature as one with the agent listed, so it must not undo the
+    // agent's own revocation (SPEC §9.5).
+    for (const holders of [['principal', 'agent'], ['principal'], [], undefined]) {
+        it(`the agent's revocation is honoured with holders=${JSON.stringify(holders)}`, async () => {
+            const d = delegation(holders);
+            const rev = revocation(d, AGENT, '2026-04-23T00:00:00Z');
+            const rr = await verifyRevocation({ envelope: rev, delegation: d, skipSignatureVerification: true });
+            expect(rr.ok).toBe(true);
+            const dr = await verifyDelegation({
+                envelope: d,
+                revocations: [rev],
+                skipSignatureVerification: true,
+                now: AT,
+            });
+            expect(dr.ok === false && dr.code).toBe('E_REVOKED');
         });
-        expect(okR.ok).toBe(true);
-        const noR = await verifyRevocation({
-            envelope: revocation(closed, AGENT, '2026-04-23T00:00:00Z'),
-            delegation: closed,
-            skipSignatureVerification: true,
-        });
-        expect(noR.ok === false && noR.code).toBe('E_REVOKER_UNAUTHORIZED');
-    });
+    }
 
     it('a third party is never an authorised revoker', async () => {
         const d = delegation(['principal', 'agent']);

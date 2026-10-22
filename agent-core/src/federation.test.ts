@@ -245,7 +245,7 @@ d('federation delegation revocation check', () => {
         };
     }
 
-    it('honours an agent self-revocation only when holders include the agent', async () => {
+    it('honours the agent’s own revocation whatever holders says', async () => {
         const dv = await load('v19-federation-delegation-3of5-valid.json');
         const del = dv.expected.envelope as FederationDelegationEnvelope;
         const principalOnly = { ...del, revocation: { holders: ['principal' as const], ref: null } };
@@ -253,12 +253,12 @@ d('federation delegation revocation check', () => {
             ...del,
             revocation: { holders: ['principal' as const, 'agent' as const], ref: null },
         };
-        const ignored = await verifyFederationDelegation({
+        const revokedToo = await verifyFederationDelegation({
             envelope: principalOnly,
             revocations: [agentRevocation(principalOnly)],
             ...base,
         });
-        expect(ignored.ok).toBe(true);
+        expect(revokedToo.ok === false && revokedToo.code).toBe('E_REVOKED');
         const revoked = await verifyFederationDelegation({
             envelope: withAgent,
             revocations: [agentRevocation(withAgent)],

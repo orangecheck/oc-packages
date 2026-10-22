@@ -230,7 +230,7 @@ export interface VerifyFederationDelegationInput extends VerifyFederationBase {
     envelope: FederationDelegationEnvelope;
     /**
      * Revocations to check (kind-30085 by `#t` with the delegation id, SPEC §9.4): federation revocations,
-     * and agent self-revocations when `revocation.holders` includes "agent".
+     * and the agent's own revocations.
      * Required unless `skipRevocationCheck` states that revocation is not checked.
      */
     revocations?: Array<FederationRevocationEnvelope | RevocationEnvelope>;
@@ -316,9 +316,8 @@ export async function verifyFederationDelegation(
 }
 
 /**
- * FEDERATION.md §4: the federation (M-of-N) may always revoke; the agent may
- * self-revoke with its own BIP-322 signature when `revocation.holders`
- * includes "agent".
+ * FEDERATION.md §4: the federation (M-of-N) may always revoke, and so may the
+ * agent with its own BIP-322 signature, whatever `revocation.holders` says.
  */
 async function verifyRevocationOf(
     d: FederationDelegationEnvelope,
@@ -334,10 +333,6 @@ async function verifyRevocationOf(
         });
     }
     const v1 = rev as RevocationEnvelope;
-    const holders = d.revocation?.holders ?? ['principal'];
-    if (!Array.isArray(holders) || !holders.includes('agent')) {
-        return fail('E_REVOKER_UNAUTHORIZED', 'only the federation may revoke this delegation');
-    }
     if (v1.kind !== 'agent-revocation' || v1.signer?.address !== d.agent.address) {
         return fail('E_REVOKER_UNAUTHORIZED', 'a single-address revocation must be signed by the agent');
     }

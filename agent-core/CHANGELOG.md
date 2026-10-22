@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.7.1] — 2026-10-22
+
+### Fixed — the agent may always revoke
+
+oc-agent-protocol 1.8.0, SPEC §9.5.
+
+- `verifyRevocation`, and the revocation lookup in `verifyDelegation` and
+  `verifyAction`, accept a revocation signed by the delegation's principal or
+  its agent, whatever `revocation.holders` says. Any other signer is
+  `E_REVOKER_UNAUTHORIZED`.
+- `verifyRevocationOf` (federation) accepts the agent's revocation on the same
+  terms.
+
 ## [2.7.0] — 2026-10-21
 
 ### Changed — `verifyAction` checks as of the time of verification

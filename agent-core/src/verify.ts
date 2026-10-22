@@ -717,13 +717,14 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
         return err('E_DELEGATION_MISMATCH', `revocation.delegation_id (${env.delegation_id}) != delegation.id (${d.id})`);
     }
 
-    // The principal may always revoke (SPEC §9.5). `revocation.holders` is not
-    // covered by the delegation signature, so it may only add the agent.
-    const holders = d.revocation?.holders ?? ['principal'];
-    const holderAddrs = new Set<string>([d.principal.address]);
-    if (Array.isArray(holders) && holders.includes('agent')) holderAddrs.add(d.agent.address);
-    if (!holderAddrs.has(env.signer.address)) {
-        return err('E_REVOKER_UNAUTHORIZED', `revocation signer ${env.signer.address} not in delegation holders`);
+    // The principal and the agent may always revoke (SPEC §9.5). Revoking only
+    // removes authority, and `revocation.holders` is outside the delegation's
+    // signature, so no copy of it decides who may.
+    if (env.signer.address !== d.principal.address && env.signer.address !== d.agent.address) {
+        return err(
+            'E_REVOKER_UNAUTHORIZED',
+            `revocation signer ${env.signer.address} is neither the principal nor the agent`
+        );
     }
 
     const canonInput = {
