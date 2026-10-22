@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
+from .address import decode_address
+
 HEADER = "orangecheck-bond"
 ACK = "I back this subject with this coin. It stays in my wallet."
 FIELDS = ("address", "outpoint", "subject", "nonce", "issued_at", "expires_at")
@@ -34,82 +36,6 @@ _OUTPOINT = re.compile(r"^[0-9a-f]{64}:(0|[1-9][0-9]{0,9})$")
 _NONCE = re.compile(r"^[0-9a-f]{32}$")
 _TIME = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SUBJECT = re.compile(r"^[\x21-\x7e]{1,256}$")
-
-_BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-_BECH32M_CONST = 0x2BC830A3
-_B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-_B58_VERSIONS = (0x00, 0x05, 0x6F, 0xC4)
-
-
-def _polymod(values: list[int]) -> int:
-    gen = (0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3)
-    chk = 1
-    for v in values:
-        top = chk >> 25
-        chk = (chk & 0x1FFFFFF) << 5 ^ v
-        for i in range(5):
-            chk ^= gen[i] if ((top >> i) & 1) else 0
-    return chk
-
-
-def _five_to_eight(words: list[int]) -> Optional[bytes]:
-    """BIP-173 regrouping with strict padding: None when the padding is wrong."""
-    acc = bits = 0
-    out = bytearray()
-    for w in words:
-        acc = (acc << 5) | w
-        bits += 5
-        while bits >= 8:
-            bits -= 8
-            out.append((acc >> bits) & 0xFF)
-    if bits >= 5 or (acc << (8 - bits)) & 0xFF:
-        return None
-    return bytes(out)
-
-
-def _segwit_ok(address: str, hrp: str) -> bool:
-    if len(address) > 90 or address.lower() != address:
-        return False
-    sep = address.rfind("1")
-    if address[:sep] != hrp or len(address) - sep < 8:
-        return False
-    try:
-        data = [_BECH32.index(c) for c in address[sep + 1 :]]
-    except ValueError:
-        return False
-    const = _polymod([ord(c) >> 5 for c in hrp] + [0] + [ord(c) & 31 for c in hrp] + data)
-    words = data[:-6]
-    if not words:
-        return False
-    program = _five_to_eight(words[1:])
-    if program is None:
-        return False
-    if words[0] == 0:
-        return const == 1 and len(program) in (20, 32)
-    if words[0] == 1:
-        return const == _BECH32M_CONST and len(program) == 32
-    return False
-
-
-def _base58_ok(address: str) -> bool:
-    n = 0
-    for c in address:
-        i = _B58.find(c)
-        if i < 0:
-            return False
-        n = n * 58 + i
-    raw = b"\0" * (len(address) - len(address.lstrip("1"))) + n.to_bytes((n.bit_length() + 7) // 8, "big")
-    payload, check = raw[:-4], raw[-4:]
-    if len(payload) != 21 or payload[0] not in _B58_VERSIONS:
-        return False
-    return hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4] == check
-
-
-def _address_ok(address: str) -> bool:
-    """An address @orangecheck/bip322's decodeAddress accepts, checksum included."""
-    m = re.match(r"^(bc|tb|bcrt)1", address)
-    return _segwit_ok(address, m.group(1)) if m else _base58_ok(address)
-
 
 @dataclass(frozen=True)
 class BondFields:
@@ -128,7 +54,7 @@ def _when(s: str) -> datetime:
 
 def _well_formed(f: BondFields) -> bool:
     return bool(
-        _address_ok(f.address)
+        decode_address(f.address)
         and _OUTPOINT.match(f.outpoint)
         and _SUBJECT.match(f.subject)
         and _NONCE.match(f.nonce)

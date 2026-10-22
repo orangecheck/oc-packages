@@ -40,6 +40,8 @@ from .canonical import (
     score_v0,
 )
 
+from .address import DecodedAddress, decode_address, normalize_address
+
 # Local BIP-322 verification is optional (requires the `bip322` extra).
 # Expose the function when available; absent otherwise.
 try:
@@ -97,6 +99,10 @@ __all__ = [
     "random_nonce",
     "score_v0",
     "CanonicalIdentityBinding",
+    # Addresses in the one spelling the family verifies and keys by
+    "decode_address",
+    "normalize_address",
+    "DecodedAddress",
     # Local BIP-322 verification (requires the `[verify]` extra at install time;
     # the name is re-exported as None when the extra isn't installed so callers
     # can check `if verify_bip322_signature is not None`).
@@ -133,7 +139,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

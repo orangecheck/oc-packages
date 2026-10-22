@@ -4,6 +4,35 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] — 2026-10-22
+
+### Fixed — legacy signatures, as @orangecheck/bip322 verifies them
+
+- `verify_bip322_signature` verifies a 65-byte legacy BIP-137 `signmessage`
+  signature on every address it can stand for: P2PKH (compressed or
+  uncompressed key), P2SH-P2WPKH, P2WPKH and P2TR, under any header flag
+  (27–42). Before, it refused every legacy signature, P2PKH included. The
+  signature's bytes decide: 65 bytes is BIP-137, anything else BIP-322
+  simple. It now agrees with `@orangecheck/bip322` on the bip322-js corpus
+  that package is held to and on BIP-137 cases across every header range
+  and recovery-id parity.
+- BIP-137 recovers the key with integer arithmetic over public values, and
+  `cryptography` checks the signature against it. RIPEMD-160 comes from
+  hashlib, or a pure-Python fallback where hashlib lacks it.
+
+### Changed — one spelling per address
+
+- `verify_bip322_signature` refuses a bech32 address that is not lowercase,
+  as `@orangecheck/bip322` does, so one key has one address that verifies.
+
+### Added
+
+- `normalize_address(text)`: the canonical spelling of an address a person
+  typed or scanned (whitespace dropped, all-capitals bech32 lowercased, base58
+  unchanged), or None. Key and compare addresses in this form.
+- `decode_address(address)` returns its type, network and program, or None.
+  Bonds read addresses through it.
+
 ## [2.4.0] — 2026-10-22
 
 ### Changed — an agent pledge is checked as of the time of verification
