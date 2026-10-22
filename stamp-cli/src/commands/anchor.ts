@@ -8,7 +8,7 @@ import type { StampEnvelope } from '@orangecheck/stamp-core';
 import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 import { advanceOts } from '../anchor-check.js';
-import { die, emit, pathExists, readJson } from '../util.js';
+import { die, emit, pathExists, readStamp } from '../util.js';
 
 export interface AnchorOptions {
     stampPath: string;
@@ -19,7 +19,7 @@ export interface AnchorOptions {
 
 export async function runAnchor(opts: AnchorOptions): Promise<void> {
     if (!(await pathExists(opts.stampPath))) die(`no such file: ${opts.stampPath}`);
-    const envelope = await readJson<StampEnvelope>(opts.stampPath);
+    const envelope = await readStamp(opts.stampPath);
 
     if (envelope.ots?.status === 'confirmed') {
         emit(opts.json, {

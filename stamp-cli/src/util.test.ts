@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { hashFile, mimeFromPath, pathExists, readBytes, readJson, signatureForId } from './util';
+import { hashFile, mimeFromPath, pathExists, readBytes, readStamp, signatureForId } from './util';
 
 function tmpFile(name: string, contents: string | Uint8Array): string {
     const dir = mkdtempSync(join(tmpdir(), 'stamp-cli-test-'));
@@ -94,16 +94,43 @@ describe('pathExists', () => {
     });
 });
 
-describe('readJson', () => {
-    it('parses JSON from a file path', async () => {
-        const path = tmpFile('payload.json', JSON.stringify({ ok: true, n: 42 }));
-        const out = await readJson<{ ok: boolean; n: number }>(path);
-        expect(out).toEqual({ ok: true, n: 42 });
+const ENVELOPE = {
+    v: 1,
+    kind: 'stamp',
+    id: 'ad30c983dfc872a8c53cd70eb4d84e1869967a4b8433586beec7ba468b03c3de',
+    content: {
+        hash: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+        length: 42,
+        mime: 'text/plain',
+        ref: null,
+    },
+    signer: { address: 'bc1qalice000000000000000000000000000000000', alg: 'bip322' },
+    signed_at: '2026-04-24T18:30:00Z',
+    stake: null,
+    ots: null,
+    sig: { alg: 'bip322', pubkey: 'bc1qalice000000000000000000000000000000000', value: 'ZmFrZS1zaWduYXR1cmU=' },
+};
+
+describe('readStamp', () => {
+    it('reads a .stamp file into a checked envelope', async () => {
+        const path = tmpFile('ok.stamp', JSON.stringify(ENVELOPE));
+        expect(await readStamp(path)).toEqual(ENVELOPE);
     });
 
-    it('throws on malformed JSON', async () => {
-        const path = tmpFile('bad.json', '{ not valid json');
-        await expect(readJson(path)).rejects.toThrow();
+    it('exits naming the field, for a file that is not an envelope', async () => {
+        const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+            throw new Error(`exit ${code}`);
+        }) as never);
+        const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            for (const text of ['{ not valid json', JSON.stringify({ ...ENVELOPE, signed_at: 'yesterday' })]) {
+                await expect(readStamp(tmpFile('bad.stamp', text))).rejects.toThrow('exit 1');
+            }
+            expect(error.mock.calls.at(-1)?.[0]).toMatch(/E_MALFORMED.*signed_at/);
+        } finally {
+            exit.mockRestore();
+            error.mockRestore();
+        }
     });
 });
 

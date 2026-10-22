@@ -2,12 +2,12 @@
 // verification algorithm locally. Structured JSON output with `--json`.
 
 import { verifySignature } from '@orangecheck/bip322';
-import { verify, type StampEnvelope } from '@orangecheck/stamp-core';
+import { verify } from '@orangecheck/stamp-core';
 import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 import { checkAnchorClaim } from '../anchor-check.js';
 
-import { die, emit, hashFile, pathExists, readBytes, readJson } from '../util.js';
+import { die, emit, hashFile, pathExists, readBytes, readStamp } from '../util.js';
 
 export interface VerifyOptions {
     stampPath: string;
@@ -27,7 +27,7 @@ export interface VerifyOptions {
 export async function runVerify(opts: VerifyOptions): Promise<void> {
     if (!(await pathExists(opts.stampPath))) die(`no such file: ${opts.stampPath}`);
 
-    const envelope = await readJson<StampEnvelope>(opts.stampPath);
+    const envelope = await readStamp(opts.stampPath);
 
     let contentBytes: Uint8Array | undefined;
     if (opts.contentPath) {
@@ -92,7 +92,10 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         anchor: anchorLabel,
         anchor_state: anchor.state,
         signature_checked: !opts.skipSignature,
-        stake: envelope.stake,
+        // Outside the id and the signature (SPEC §8.1 step 7): what the
+        // envelope says, which anyone relaying it can strip, add or swap.
+        stake_declared: envelope.stake,
+        stake_checked: false,
     });
     void hashFile;
 }

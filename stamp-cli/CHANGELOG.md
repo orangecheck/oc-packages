@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.3] — 2026-10-21
+
+### Changed — a passing `verify` no longer shows the stake as if checked
+
+`verify` printed the envelope's `stake` inside an `ok: true` result. The stake
+is outside the id and the signature, and anyone relaying the envelope can
+strip, add or swap it. It is now `stake_declared`, with `stake_checked: false`.
+
+### Changed — a `.stamp` file is parsed at the edge
+
+`verify` and `anchor` read the file with stamp-core's `parseStamp` and exit 1
+naming the field a malformed file fails on, before anything reads it.
+
+### Dependencies
+
+`@orangecheck/stamp-core` ^1.3.0 and `@orangecheck/stamp-ots` ^0.4.0: two
+calendars must answer a submission by default, and an upgrade is confirmed only
+against a block header.
+
 ## [0.2.2] — 2026-10-21
 
 ### Fixed — the CLI asked you to sign the wrong thing

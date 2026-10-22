@@ -6,6 +6,7 @@ import { basename } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
 import { verifySignature } from '@orangecheck/bip322';
+import { parseStamp, StampError, type StampEnvelope } from '@orangecheck/stamp-core';
 
 /** Read a path into bytes. */
 export async function readBytes(path: string): Promise<Uint8Array> {
@@ -76,16 +77,21 @@ export async function pathExists(path: string): Promise<boolean> {
 }
 
 /**
- * Read JSON from a path or `-` for stdin.
+ * Read a .stamp file (or `-` for stdin) and check every field's form with
+ * parseStamp before anything reads it. A file that is not an envelope exits
+ * with the field it failed on.
  */
-export async function readJson<T = unknown>(pathOrDash: string): Promise<T> {
-    let text: string;
-    if (pathOrDash === '-' || pathOrDash === '/dev/stdin') {
-        text = await readStdin();
-    } else {
-        text = (await readFile(pathOrDash, 'utf8')) as string;
+export async function readStamp(pathOrDash: string): Promise<StampEnvelope> {
+    const text =
+        pathOrDash === '-' || pathOrDash === '/dev/stdin'
+            ? await readStdin()
+            : ((await readFile(pathOrDash, 'utf8')) as string);
+    try {
+        return parseStamp(text);
+    } catch (e) {
+        if (e instanceof StampError) die(`${pathOrDash} is not a stamp envelope (${e.code}): ${e.message}`);
+        throw e;
     }
-    return JSON.parse(text) as T;
 }
 
 function readStdin(): Promise<string> {

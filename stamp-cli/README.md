@@ -69,9 +69,18 @@ $ stamp verify blogpost.md.stamp blogpost.md --json
   "anchor": "confirmed at block 890123 (checked against the block header)",
   "anchor_state": "anchored",
   "signature_checked": true,
-  "stake": null
+  "stake_declared": null,
+  "stake_checked": false
 }
 ```
+
+`stake_declared` is the envelope's `stake` as written. It sits outside the id
+and the signature, so `verify` does not vouch for it: `stake_checked` is always
+`false`. Re-resolve the attestation and run `checkStake` from
+`@orangecheck/stamp-core` if the stake matters to you.
+
+A `.stamp` file is read through `parseStamp`, so a file whose fields are not
+in a stamp's form exits 1 naming the field.
 
 A confirmed anchor is checked per SPEC §6.3: the proof must commit to the
 stamp id, and the block header at the claimed height (from
