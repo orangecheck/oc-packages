@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetJwksCachesForTests } from '@orangecheck/auth-core';
 
-import { withOcAuth } from '../server';
+import { ocAuthExpress, withOcAuth } from '../server';
 
 /**
  * An app that asks for backed accounts (oc-attest-protocol BOND.md) refuses an
@@ -141,10 +141,6 @@ describe('withOcAuth · projectKey', () => {
         expect(r.ran).toBe(false);
         expect(r.status).toBe(503);
         expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
-        // A signed-out request on an optional route gets the same reason, not "sign in".
-        const anon = await call(null, { audience: MINE, projectKey: 'pk_live_down' });
-        expect(anon.status).toBe(503);
-        expect(anon.body).toMatchObject({ reason: 'bond_policy_unavailable' });
     });
 });
 
@@ -157,7 +153,7 @@ describe('withOcAuth · a projectKey that names no project', () => {
         expect(r.ran).toBe(false);
         expect(r.status).toBe(500);
         expect(r.body).toMatchObject({ reason: 'unknown_project_key' });
-        const again = await call(null, opts);
+        const again = await call(await token(), opts);
         expect(again.body).toMatchObject({ reason: 'unknown_project_key' });
         expect(errors).toHaveBeenCalledTimes(1);
         expect(String(errors.mock.calls[0]![0])).toContain('pk_live_typo');
@@ -260,5 +256,42 @@ describe('withOcAuth · an outage longer than ten minutes', () => {
         config = { status: 200, body: { ok: true, require_bond: null } };
         vi.setSystemTime(new Date('2026-10-16T12:10:12Z'));
         expect((await call(await token(), opts)).ran).toBe(true);
+    });
+});
+
+describe('withOcAuth · a request with no session', () => {
+    it('is served without reading the rule, even while me.ochk.io is down', async () => {
+        config = { status: 503, body: {} };
+        const r = await call(null, { audience: MINE, projectKey: 'pk_live_anon_down' });
+        expect(r.ran).toBe(true);
+        expect(configReads).toBe(0);
+    });
+
+    it('is not held to the project rule when it can be read', async () => {
+        config = { status: 200, body: { ok: true, require_bond: { min_sats: 100_000, min_days: 0 } } };
+        expect((await call(null, { audience: MINE, projectKey: 'pk_live_anon_rule' })).ran).toBe(true);
+        expect(configReads).toBe(0);
+    });
+
+    it('gets 401 with required, still without reading the rule', async () => {
+        config = { status: 503, body: {} };
+        const r = await call(null, { audience: MINE, projectKey: 'pk_live_anon_required', required: true });
+        expect(r.status).toBe(401);
+        expect(r.body).toMatchObject({ reason: 'unauthenticated' });
+        expect(configReads).toBe(0);
+    });
+
+    it('is served by the Express adapter the same way', async () => {
+        config = { status: 503, body: {} };
+        let passed = false;
+        await ocAuthExpress({ audience: MINE, projectKey: 'pk_live_anon_express' })(
+            { method: 'GET', headers: {} },
+            { status: () => ({ json: () => undefined }), json: () => undefined, setHeader: () => undefined } as never,
+            () => {
+                passed = true;
+            }
+        );
+        expect(passed).toBe(true);
+        expect(configReads).toBe(0);
     });
 });

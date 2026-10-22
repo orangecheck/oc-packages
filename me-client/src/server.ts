@@ -231,9 +231,11 @@ export interface WithOcAuthOptions extends OcSessionOptions {
     /**
      * Your project key. The requirement you set in the project's settings
      * ("who can sign in") is read from me.ochk.io within a minute of a change
-     * and enforced like `requireBond`, so you change it there, not in code.
-     * An explicit `requireBond` wins over it. Default `OC_PROJECT_KEY` for the
-     * ended-session check only.
+     * and holds every signed-in account like `requireBond`, so you change it
+     * there, not in code. A request with no session is not held to it and never
+     * waits on reading it: pass `required` to answer it 401. An explicit
+     * `requireBond` wins over it. Default `OC_PROJECT_KEY` for the ended-session
+     * check only.
      */
     projectKey?: string;
 }
@@ -324,10 +326,13 @@ async function refusal(
     session: SessionPayload | null,
     options: WithOcAuthOptions
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
-    const need = await bondNeed(options);
     if (!session && options.required) {
         return { status: 401, body: { ok: false, reason: 'unauthenticated' } };
     }
+    // The project's rule is about who signs in: a request with no session is not
+    // held to it, so it never waits on reading it.
+    if (!session && !options.requireBond) return null;
+    const need = await bondNeed(options);
     if (need === UNKNOWN_PROJECT) {
         return { status: 500, body: { ok: false, reason: 'unknown_project_key' } };
     }
