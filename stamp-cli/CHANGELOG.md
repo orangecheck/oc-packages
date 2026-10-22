@@ -11,6 +11,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-10-22
+
+### Changed — an anchor that could not be checked exits 3
+
+`verify` checks a confirmed anchor through stamp-core's `verify()` (SPEC §8.1
+step 5). When the block header cannot be read (the source errors, answers 5xx
+or does not answer), the anchor is unchecked (step 5d): `anchor_state` is
+`unchecked`, and `--require-anchor` exits `3` with code `ANCHOR_UNCHECKED`.
+Nothing failed; run it again later.
+
+`E_BAD_ANCHOR` (exit 2) means a header was read: the proof does not chain to
+it, it does not hash to the claimed block, or the explorer has no block at that
+height. `E_NO_ANCHOR` means the stamp has no confirmed anchor (SPEC §10).
+
+`anchor_state` is one of `anchored`, `unchecked`, `pending` or `none`;
+`unchecked` replaces `unverified`.
+
+### Changed — `--version` reads package.json
+
+### Dependencies
+
+`@orangecheck/stamp-core` ^1.4.0 and `@orangecheck/stamp-ots` ^0.6.1.
+
 ## [0.2.3] — 2026-10-21
 
 ### Changed — a passing `verify` no longer shows the stake as if checked

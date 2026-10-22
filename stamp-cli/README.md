@@ -85,9 +85,20 @@ in a stamp's form exits 1 naming the field.
 A confirmed anchor is checked per SPEC §6.3: the proof must commit to the
 stamp id, and the block header at the claimed height (from
 `--headers-url`, default `https://mempool.space/api`) must hash to the claimed
-block hash and carry the proof's Merkle root. A proof that does not chain
-exits 2 with `E_BAD_ANCHOR`. If no header can be fetched the claim is reported
-as unverified, and `--require-anchor` fails.
+block hash and carry the proof's Merkle root. A header that was read and does
+not match, or no block at that height, exits 2 with `E_BAD_ANCHOR`.
+
+If the header cannot be read (the source errors, answers 5xx or does not
+answer), the anchor is unchecked (SPEC §8.1 step 5d): nothing failed, so check
+again later. `anchor_state` is `unchecked`, and with `--require-anchor` the
+command exits `3`:
+
+```
+$ stamp verify blogpost.md.stamp blogpost.md --require-anchor --json
+{ "ok": false, "code": "ANCHOR_UNCHECKED", "id": "f0dd79a5...", "block_height": 890123, "message": "couldn't check the anchor at block 890123: ..." }
+```
+
+`anchor_state` is one of `anchored`, `unchecked`, `pending` or `none`.
 
 On failure, exits `2` with an error code:
 
@@ -98,7 +109,7 @@ $ stamp verify blogpost.md.stamp other-content.md --json
 
 ## `--json` output
 
-All commands accept `--json` for machine-readable output. Exit codes: `0` success, `1` user error (bad input), `2` verification failure.
+All commands accept `--json` for machine-readable output. Exit codes: `0` success, `1` user error (bad input), `2` verification failure, `3` the anchor could not be checked (`verify --require-anchor` only; run it again later).
 
 ## How the signing flow works
 

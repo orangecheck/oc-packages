@@ -3,9 +3,7 @@
 
 import { verifySignature } from '@orangecheck/bip322';
 import { verify } from '@orangecheck/stamp-core';
-import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
-
-import { checkAnchorClaim } from '../anchor-check.js';
+import { makeAnchorVerifier, mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 import { die, emit, hashFile, pathExists, readBytes, readStamp } from '../util.js';
 
@@ -39,11 +37,18 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         ? undefined
         : async (m: string, s: string, a: string) => verifySignature(a, m, s);
 
+    // SPEC §8.1 step 5: the proof must chain to the header at the claimed height.
+    // A header that could not be read leaves the anchor unchecked (step 5d).
+    const verifyOtsAnchor = makeAnchorVerifier({
+        headerSource: mempoolHeaderSource({ baseUrl: opts.headersUrl }),
+    });
+
     const r = await verify({
         envelope,
         content: contentBytes,
         verifyBip322,
         skipSignatureVerification: opts.skipSignature,
+        verifyOtsAnchor,
     });
 
     if (!r.ok) {
@@ -55,27 +60,31 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         process.exit(2);
     }
 
-    const anchor = await checkAnchorClaim(
-        envelope,
-        mempoolHeaderSource({ baseUrl: opts.headersUrl })
-    );
-    if (anchor.state === 'fail') {
-        emit(opts.json, { ok: false, code: 'E_BAD_ANCHOR', message: anchor.message });
-        process.exit(2);
+    const anchor = r.anchor;
+    const anchorState = anchor.status === 'confirmed' ? 'anchored' : anchor.status;
+    const anchorLabel =
+        anchor.status === 'confirmed'
+            ? `confirmed at block ${anchor.blockHeight} (checked against the block header)`
+            : anchor.status === 'unchecked'
+              ? `claims block ${anchor.blockHeight}, couldn't check: ${anchor.reason}`
+              : anchor.status;
+
+    if (opts.requireAnchor && anchor.status === 'unchecked') {
+        emit(opts.json, {
+            ok: false,
+            code: 'ANCHOR_UNCHECKED',
+            id: r.id,
+            block_height: anchor.blockHeight,
+            message: `couldn't check the anchor at block ${anchor.blockHeight}: ${anchor.reason}. Nothing failed; try again later.`,
+        });
+        process.exit(3);
     }
 
-    const anchorLabel =
-        anchor.state === 'anchored'
-            ? `confirmed at block ${anchor.blockHeight} (checked against the block header)`
-            : anchor.state === 'unverified'
-              ? `claims block ${anchor.blockHeight}, unverified: ${anchor.message}`
-              : anchor.state;
-
-    if (opts.requireAnchor && anchor.state !== 'anchored') {
+    if (opts.requireAnchor && anchor.status !== 'confirmed') {
         emit(opts.json, {
             ok: false,
             code: 'E_NO_ANCHOR',
-            message: `required a verified OTS anchor, got ${anchor.state}`,
+            message: `required a verified OTS anchor, got ${anchorState}`,
         });
         process.exit(2);
     }
@@ -90,7 +99,7 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
         content_length: envelope.content.length,
         content_checked: Boolean(contentBytes),
         anchor: anchorLabel,
-        anchor_state: anchor.state,
+        anchor_state: anchorState,
         signature_checked: !opts.skipSignature,
         // Outside the id and the signature (SPEC §8.1 step 7): what the
         // envelope says, which anyone relaying it can strip, add or swap.

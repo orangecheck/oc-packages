@@ -1,28 +1,8 @@
 import type { StampEnvelope } from '@orangecheck/stamp-core';
-import { hexDecode } from '@orangecheck/stamp-ots';
+import { hexDecode, makeAnchorVerifier } from '@orangecheck/stamp-ots';
 import { describe, expect, it } from 'vitest';
 
-import { advanceOts, checkAnchorClaim } from './anchor-check';
-
-// opentimestamps-client examples/hello-world.txt.ots as a bare timestamp:
-// commits to sha256("Hello World!\n"), anchored in block 358391.
-const HELLO_ID = '03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340';
-const HELLO_PROOF =
-    'A/HIAQEAAAAB5IL50y7MO6ZXtp2JgBCFe1RFepBJeYL/Vvl8TsWOb5gBAAAAa0gwRQIhALJTrdHRz5CEQzik' +
-    'daBP8T/J570kKwd2LeoH9WCLLeNnAiAAsmjKnDNCs3ac3QYokTF83O+HqsMQtoVenZOJjrvo7AEhAg2OTRB9' +
-    'KzObAFDv3UtKCSRaoFYEjxJTljdOpqKrBwnG/////wJlM+YFAAAAABl2qRQL8FfUD7umdEhiUV9bVaIxDeV3' +
-    'L4isoIYBAAAAAAAZdqkU8AaIrAAAAAAICPEgqYf3FsUzkTwxTHjjXTWITKyUP6QsrEnSssafQAP4X4gICPEg' +
-    '3sVbNIfh4/cipJtVp3gyFYYnhfSjrLOShGAZ9x3GSp0ICPEgssoY9IXggEeOAl2rPUZLQWwOHstmKcmu/OjI' +
-    'IU0EJDIICPAgEbDpBmEZb/SwgTw+2hQbq16RYEg3vfegyd832w46EZgICPAgw0vBpKEJP/0UjAFrHmZHQpFO' +
-    'k576vk09NWUVkUsm2eIICPAgw+bnw4xp9q8kwr4066xIJX7eYewKIblTXkRDJ3vjBkYICPEgB5i/hgbgACTl' +
-    '1dVL8Mlg9infudrWkVdFW28mUsDo3oEICPAgP5rabWC6okQAa7Cq1RRIrS+vudS2SHoJmc/ya5Hw9TYICPEg' +
-    'xwMBnpWajdP673SJuzKLpIVXR1jnCR8BRk62WHLJdcgICPAgy/7/9RP/hLkV4/7W+deZZ2Yw+DZOoqbHVX+t' +
-    'lKW114gICPEgC+I3CYWZE7q9RGC73fjtIT58h3OksfrOMPis/fCTtwUICAAFiJYNc9cZAQP37xU=';
-const HELLO_HEIGHT = 358391;
-const HELLO_HASH = '000000000000000003e892881a8cdcdc117c06d444057c98b6f04a9ee75a2319';
-const HELLO_HEADER =
-    '02000000b96394585a281b7e5f438fd1c9ed492645a1fd61cb3802040000000000000000007ee445d23ad0' +
-    '61af4a36b809501fab1ac4f2d7e7a739817dd0cbb7ec661b8a1e376755f58616186272def6';
+import { advanceOts } from './anchor-check';
 
 // opentimestamps-client examples/incomplete.txt.ots, pending at alice, and
 // alice's real answer for its commitment, which reaches block 428648.
@@ -57,48 +37,6 @@ const headersOf = (map: Record<number, string>) => ({
     getHeaderAt: async (h: number) => (map[h] ? hexDecode(map[h]!) : null),
 });
 
-function confirmed(id: string, blockHash = HELLO_HASH): StampEnvelope {
-    return {
-        id,
-        ots: {
-            status: 'confirmed',
-            proof: HELLO_PROOF,
-            calendars: [],
-            block_height: HELLO_HEIGHT,
-            block_hash: blockHash,
-            upgraded_at: '2026-09-24T00:00:00Z',
-        },
-    } as unknown as StampEnvelope;
-}
-
-describe('checkAnchorClaim', () => {
-    const chain = headersOf({ [HELLO_HEIGHT]: HELLO_HEADER });
-
-    it('reports anchored when the proof chains to the block header', async () => {
-        expect(await checkAnchorClaim(confirmed(HELLO_ID), chain)).toEqual({
-            state: 'anchored',
-            blockHeight: HELLO_HEIGHT,
-        });
-    });
-
-    it('fails a proof that does not commit to the envelope id', async () => {
-        expect((await checkAnchorClaim(confirmed('ab'.repeat(32)), chain)).state).toBe('fail');
-    });
-
-    it('fails a claimed block hash the header does not hash to', async () => {
-        expect((await checkAnchorClaim(confirmed(HELLO_ID, '00'.repeat(32)), chain)).state).toBe('fail');
-    });
-
-    it('leaves the claim unverified when no header can be fetched', async () => {
-        const down = {
-            getHeaderAt: async () => {
-                throw new Error('offline');
-            },
-        };
-        expect((await checkAnchorClaim(confirmed(HELLO_ID), down)).state).toBe('unverified');
-    });
-});
-
 describe('advanceOts', () => {
     const pending = {
         id: INC_ID,
@@ -128,8 +66,8 @@ describe('advanceOts', () => {
         const next = await advanceOts(pending, { headers: chain, fetch: calendar(INC_ANSWER, seen) });
         expect(seen.some((u) => u.endsWith('/digest'))).toBe(false);
         expect(next.ots).toMatchObject({ status: 'confirmed', block_height: INC_HEIGHT, block_hash: INC_HASH });
-        const check = await checkAnchorClaim(next, chain);
-        expect(check.state).toBe('anchored');
+        const anchored = makeAnchorVerifier({ headerSource: chain });
+        expect(await anchored(next.ots!.proof, INC_HEIGHT, INC_HASH, INC_ID)).toBe(true);
     });
 
     it('keeps the existing pending proof while the calendar has no upgrade', async () => {

@@ -16,6 +16,7 @@
  * --help.
  */
 
+import { createRequire } from 'node:module';
 import { basename } from 'node:path';
 
 import { Command } from 'commander';
@@ -29,6 +30,8 @@ import { canonicalMessage, computeEnvelopeId } from '@orangecheck/stamp-core';
 import { hashFile, mimeFromPath } from './util.js';
 
 const invoked = basename(process.argv[1] ?? 'stamp');
+// dist/cli.js and src/cli.ts both sit one level under the package root.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
 
 const program = new Command();
 
@@ -37,7 +40,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('git-stamp')
         .description('Stamp git tags with your Bitcoin address, anchored to Bitcoin.')
-        .version('0.2.2');
+        .version(version);
 
     program
         .command('tag <tagname>')
@@ -61,7 +64,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .command('verify <tagname>')
         .description('Verify the stamp stored under .git/stamps/<tagname>.stamp')
-        .option('--require-anchor', 'Fail unless the OTS anchor is confirmed and checked against the block header')
+        .option('--require-anchor', 'Fail unless the OTS anchor is checked against the block header; exit 3 if it could not be read')
         .option('--json', 'Emit JSON')
         .action(async (tag, opts) => {
             await runGitVerify({
@@ -74,7 +77,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .name('stamp')
         .description('OC Stamp — sign anything with your Bitcoin address, anchor to Bitcoin.')
-        .version('0.2.2');
+        .version(version);
 
     program
         .command('file <path>')
@@ -102,7 +105,7 @@ if (invoked.startsWith('git-stamp')) {
     program
         .command('verify <stamp> [content]')
         .description('Run the full SPEC §8 verification')
-        .option('--require-anchor', 'Fail unless the OTS anchor is confirmed and checked against the block header')
+        .option('--require-anchor', 'Fail unless the OTS anchor is checked against the block header; exit 3 if it could not be read')
         .option('--skip-signature', 'Skip BIP-322 verification (for CI smoke tests only)')
         .option('--headers-url <url>', 'Esplora API for block headers (default: https://mempool.space/api)')
         .option('--json', 'Emit JSON')
