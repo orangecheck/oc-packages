@@ -187,3 +187,15 @@ describe('server helpers · sessions ended everywhere', () => {
         expect(feedCalls).toHaveLength(0);
     });
 });
+
+describe('server helpers · the list is read where meOrigin says', () => {
+    it('asks the me.ochk.io named in the options, and keeps its list apart', async () => {
+        ended[SITE] = { [`rh:${SITE}`]: ISSUED + 1 };
+        expect(await viaNext('GET', undefined, { meOrigin: 'https://me-test.example' })).toBeNull();
+        expect(await viaNext('GET')).toBeNull();
+        expect(feedCalls.map((c) => new URL(c.url).origin)).toEqual([
+            'https://me-test.example',
+            'https://me.ochk.io',
+        ]);
+    });
+});

@@ -26,9 +26,12 @@ import hashlib
 import hmac
 import json
 import logging
+import math
+import os
 import re
 import threading
 import time
+import weakref
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
@@ -95,6 +98,26 @@ class Session:
 # ─── key sets ────────────────────────────────────────────────────────────
 
 
+def _finite(v: Any) -> bool:
+    """A JSON number Node reads as one: not a bool, not NaN, not infinite."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+# Every cache here guards itself with a lock. A process that forks while a
+# thread holds one hands the child a lock nothing will release, so the child
+# gets fresh locks.
+_LOCKED: "weakref.WeakSet[Any]" = weakref.WeakSet()
+
+
+def _new_locks_after_fork() -> None:
+    for obj in list(_LOCKED):
+        obj._new_locks()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_new_locks_after_fork)
+
+
 class _KeySet:
     """A fetched JWKS, cached for an hour and kept through a failed refresh for six."""
 
@@ -105,6 +128,10 @@ class _KeySet:
         self._fetched_at = 0.0
         self._forced_at = 0.0
         self._failed_at = float("-inf")
+        self._new_locks()
+        _LOCKED.add(self)
+
+    def _new_locks(self) -> None:
         self._lock = threading.Lock()
 
     def _fetch(self) -> None:
@@ -124,7 +151,7 @@ class _KeySet:
     def _refresh(self) -> None:
         """Fetch once the copy is an hour old; while fetches fail, try again at most every ten seconds."""
         now = time.time()
-        if self._keys and now - self._fetched_at < _JWKS_TTL_SECONDS:
+        if self._fetched_at and now - self._fetched_at < _JWKS_TTL_SECONDS:
             return
         if now - self._failed_at >= _JWKS_RETRY_SECONDS:
             self._fetch()
@@ -216,6 +243,10 @@ class _AudienceList:
         self._at: Optional[float] = None
         self._fetched_at: Optional[float] = None
         self._failed_at = float("-inf")
+        self._new_locks()
+        _LOCKED.add(self)
+
+    def _new_locks(self) -> None:
         self._lock = threading.Lock()
 
     def _fetch(self) -> None:
@@ -230,15 +261,20 @@ class _AudienceList:
             )
             r.raise_for_status()
             doc = r.json()
-            if not isinstance(doc, dict) or doc.get("v") != 1:
+            # The shape auth-core's parseFeed takes, and nothing looser.
+            if (
+                not isinstance(doc, dict)
+                or not _finite(doc.get("v"))
+                or doc.get("v") != 1
+                or not isinstance(doc.get("tokens"), list)
+                or not isinstance(doc.get("accounts"), dict)
+            ):
                 raise ValueError("revocations: unexpected body")
             raw = doc.get("handles")
             handles: dict[str, Any] = raw if isinstance(raw, dict) else {}
-            self._handles = {
-                k: float(v) for k, v in handles.items() if isinstance(v, (int, float)) and not isinstance(v, bool)
-            }
-            at = doc.get("at")
-            self._at = float(at) if isinstance(at, (int, float)) and not isinstance(at, bool) else None
+            self._handles = {k: float(v) for k, v in handles.items() if _finite(v)}
+            at: Any = doc.get("at")
+            self._at = float(at) if _finite(at) else None
             self._fetched_at = time.time()
         except (httpx.HTTPError, ValueError) as err:
             # Keep the last copy; try again after a short wait.
@@ -290,8 +326,12 @@ class RevocationList:
         self._secret = signing_secret
         self._base = url[: -len("/api/integrator/revocations")] if url.endswith("/api/integrator/revocations") else url
         self._lists: dict[str, _AudienceList] = {}
-        self._lists_lock = threading.Lock()
         self._warned = False
+        self._new_locks()
+        _LOCKED.add(self)
+
+    def _new_locks(self) -> None:
+        self._lists_lock = threading.Lock()
 
     def _warn_once(self, err: Exception) -> None:
         if self._warned:
@@ -318,7 +358,9 @@ class RevocationList:
 BACK_ACCOUNT_URL = "https://ochk.app/me/account#backing"
 _POLICY_TTL_SECONDS = 60
 _POLICY_RETRY_SECONDS = 10
-_NULLIFIER = re.compile(r"^[0-9a-f]{64}$")
+#: How long the last requirement read stands while it can't be read again.
+_POLICY_MAX_STALE_SECONDS = 600
+_NULLIFIER = re.compile(r"[0-9a-f]{64}")
 
 
 class BondRequired(InvalidSession):
@@ -334,13 +376,13 @@ class BondRequired(InvalidSession):
 def read_bond_claim(claims: Union[Session, Mapping[str, Any]]) -> Optional[dict[str, Any]]:
     """The token's coin backing claim (``oc_bond``) when well-formed, else None. As auth-core's ``readBondClaim``."""
     b = claims.oc_bond if isinstance(claims, Session) else claims.get("oc_bond")
-    if not isinstance(b, dict) or b.get("v") != 1:
+    if not isinstance(b, dict) or not _finite(b.get("v")) or b.get("v") != 1:
         return None
     for k in ("sats_floor", "days_floor", "height", "checked_at"):
-        n = b.get(k)
-        if not isinstance(n, (int, float)) or isinstance(n, bool) or n < 0:
+        n: Any = b.get(k)
+        if not _finite(n) or n < 0:
             return None
-    if not isinstance(b.get("nullifier"), str) or not _NULLIFIER.match(b["nullifier"]):
+    if not isinstance(b.get("nullifier"), str) or not _NULLIFIER.fullmatch(b["nullifier"]):
         return None
     return b
 
@@ -364,7 +406,7 @@ def bond_meets(
     if b["sats_floor"] < min_sats or b["days_floor"] < min_days:
         return False
     if max_age_secs is not None:
-        age = int(time.time()) - int(b["checked_at"])
+        age = math.floor(time.time()) - b["checked_at"]
         if age < 0 or age > max_age_secs:
             return False
     return True
@@ -375,10 +417,11 @@ class SignInPolicy:
     Your project's "who can sign in" requirement, set on ochk.app, read from
     me.ochk.io (``/api/integrator/<key>/sign-in``) and held a minute, as
     me-client's ``withOcAuth({ projectKey })`` reads it. Pass it to
-    :func:`verify_session`. While it can't be read, the last one read stands;
-    with none read yet, sign-in is refused (reason ``bond_policy_unavailable``)
-    rather than let through unchecked. A key that names no project is refused
-    with reason ``unknown_project_key``.
+    :func:`verify_session`. While it can't be read, or the answer does not say
+    it, the last one read stands for ten minutes; with none read in that time,
+    sign-in is refused (reason ``bond_policy_unavailable``) rather than let
+    through unchecked. A key that names no project is refused with reason
+    ``unknown_project_key``.
     """
 
     def __init__(self, project_key: str, *, me_origin: str = "https://me.ochk.io"):
@@ -387,6 +430,10 @@ class SignInPolicy:
         self._read_at: Optional[float] = None
         self._failed_at = float("-inf")
         self._unknown_at = float("-inf")
+        self._new_locks()
+        _LOCKED.add(self)
+
+    def _new_locks(self) -> None:
         self._lock = threading.Lock()
 
     def requirement(self) -> Optional[dict[str, int]]:
@@ -398,29 +445,38 @@ class SignInPolicy:
             if self._read_at is not None and now - self._read_at < _POLICY_TTL_SECONDS:
                 return self._need
             if now - self._failed_at < _POLICY_RETRY_SECONDS:
-                return self._stand_in()
+                return self._stand_in(now)
             try:
                 r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
                 if r.status_code == 404:
                     self._unknown_at = now
                     raise InvalidSession("unknown_project_key")
                 r.raise_for_status()
-                req = r.json().get("require_bond")
-                self._need = (
-                    {"min_sats": int(req.get("min_sats", 0)), "min_days": int(req.get("min_days", 0))}
-                    if isinstance(req, dict)
-                    else None
-                )
+                self._need = _read_requirement(r.json())
                 self._read_at = now
                 return self._need
-            except (httpx.HTTPError, ValueError, AttributeError):
+            except (httpx.HTTPError, ValueError):
                 self._failed_at = now
-                return self._stand_in()
+                return self._stand_in(now)
 
-    def _stand_in(self) -> Optional[dict[str, int]]:
-        if self._read_at is None:
+    def _stand_in(self, now: Optional[float] = None) -> Optional[dict[str, int]]:
+        now = time.time() if now is None else now
+        if self._read_at is None or now - self._read_at >= _POLICY_MAX_STALE_SECONDS:
             raise InvalidSession("bond_policy_unavailable")
         return self._need
+
+
+def _read_requirement(doc: Any) -> Optional[dict[str, int]]:
+    """The rule in me.ochk.io's answer, ``None`` for none; ValueError when the answer does not say it."""
+    if not isinstance(doc, dict) or doc.get("ok") is not True or "require_bond" not in doc:
+        raise ValueError("sign-in: unexpected body")
+    req = doc["require_bond"]
+    if req is None:
+        return None
+    floors: list[Any] = [req.get(k) for k in ("min_sats", "min_days")] if isinstance(req, dict) else []
+    if len(floors) != 2 or not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in floors):
+        raise ValueError("sign-in: unexpected body")
+    return {"min_sats": floors[0], "min_days": floors[1]}
 
 
 def _need_from(require_bond: Mapping[str, Any]) -> dict[str, int]:
@@ -446,19 +502,23 @@ def warm_session(
     it at startup and then every ten seconds from a background thread, in each
     process. It never raises; a failure is left for ``verify_session`` to meet.
     """
+    # A warming loop must outlive anything one of these meets.
     try:
         _session_keys.warm()
-    except (httpx.HTTPError, ValueError):
+    except Exception:
         pass
     if policy is not None:
         try:
             policy.requirement()
-        except InvalidSession:
+        except Exception:
             pass
     if revocations is not None:
         for aud in [audience] if isinstance(audience, str) else audience:
             if isinstance(aud, str) and aud:
-                revocations._list(aud).warm()
+                try:
+                    revocations._list(aud).warm()
+                except Exception:
+                    pass
 
 
 def verify_session(

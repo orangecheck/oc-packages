@@ -4,6 +4,25 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.10.1] — 2026-10-22
+
+### Fixed
+
+- `SignInPolicy`: an answer that does not say the rule (not `ok: true`, no
+  `require_bond`, or a floor that is not a whole number of at least 0) counts as
+  unreadable, not as "no requirement". While the rule can't be read, the last one
+  read stands for ten minutes, then sign-in is refused (`bond_policy_unavailable`).
+- `RevocationList` takes only the list shape `@orangecheck/auth-core` takes
+  (`v` 1, a `tokens` array, an `accounts` object); any other answer leaves the
+  status `unverified`. Cutoffs that are not finite numbers are skipped.
+- `read_bond_claim` and `bond_meets` decide as auth-core does: finite floors, the
+  whole nullifier, `v` that is not a bool, and the claim's age counted from its own
+  `checked_at`.
+- A key set that answers with no keys is fetched again on the hour, not on every call.
+- After a fork, the child process gets fresh locks, so a fetch in flight in the
+  parent can't leave the child waiting forever.
+- `warm_session` never raises, whatever an answer holds.
+
 ## [2.10.0] — 2026-10-22
 
 ### Added

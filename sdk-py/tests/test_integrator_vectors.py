@@ -11,6 +11,7 @@ backend can't drift apart. Regenerate with
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -327,7 +328,7 @@ SIGN_IN = "https://me.ochk.io/api/integrator/pk_test_tv/sign-in"
 
 @respx.mock
 def test_sign_in_policy_reads_the_project_requirement_once_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
-    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": {"min_sats": 100000, "min_days": 30}}))
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 100000, "min_days": 30}}))
     policy = SignInPolicy("pk_test_tv")
     plain = V["session"]["valid"][0]
     with pytest.raises(BondRequired) as err:
@@ -343,14 +344,14 @@ def test_sign_in_policy_reads_the_project_requirement_once_a_minute(monkeypatch:
 
 @respx.mock
 def test_sign_in_policy_with_no_requirement_admits_everyone() -> None:
-    respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": None}))
+    respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"ok": True, "require_bond": None}))
     plain = V["session"]["valid"][0]
     assert verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=SignInPolicy("pk_test_tv")).sub
 
 
 @respx.mock
 def test_require_bond_in_code_wins_over_the_project_policy() -> None:
-    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": {"min_sats": 10000000, "min_days": 365}}))
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 10000000, "min_days": 365}}))
     backed = _bond_vector()
     s = verify_session(backed["token"], backed["audience"], jwks=V["session"]["jwks"],
                        policy=SignInPolicy("pk_test_tv"), require_bond={"min_sats": 1000})
@@ -374,7 +375,7 @@ def test_an_unknown_project_or_an_unreadable_policy_refuses_rather_than_admits()
 @respx.mock
 def test_the_last_requirement_read_stands_through_an_outage(monkeypatch: pytest.MonkeyPatch) -> None:
     respx.get(SIGN_IN).mock(side_effect=[
-        httpx.Response(200, json={"require_bond": {"min_sats": 100000, "min_days": 30}}),
+        httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 100000, "min_days": 30}}),
         httpx.Response(503),
     ])
     policy = SignInPolicy("pk_test_tv")
@@ -390,7 +391,7 @@ def _serve_everything_verify_session_reads(v: dict[str, Any]) -> list[respx.Rout
     rl_url = f"https://me.ochk.io/api/integrator/revocations?project_key={R['request']['project_key']}&aud={quote(v['audience'], safe='')}"
     return [
         respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"])),
-        respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": None})),
+        respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"ok": True, "require_bond": None})),
         respx.get(rl_url).mock(return_value=httpx.Response(200, json={
             "v": 1, "at": V["now"], "tokens": [], "accounts": {}, "handles": {},
         })),
@@ -464,7 +465,107 @@ def test_one_revocation_list_shared_by_threads_fetches_once_per_audience() -> No
 
 @respx.mock
 def test_one_sign_in_policy_shared_by_threads_fetches_once() -> None:
-    route = respx.get(SIGN_IN).mock(side_effect=_slow(httpx.Response(200, json={"require_bond": {"min_sats": 1000, "min_days": 0}})))
+    route = respx.get(SIGN_IN).mock(side_effect=_slow(httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 1000, "min_days": 0}})))
     policy = SignInPolicy("pk_test_tv")
     assert _ask_from_threads(8, policy.requirement) == [{"min_sats": 1000, "min_days": 0}] * 8
     assert route.call_count == 1
+
+
+# ─── answers that don't say what they should ─────────────────────────────
+
+
+@respx.mock
+@pytest.mark.parametrize("body", [
+    {},
+    {"ok": False, "reason": "project_not_found"},
+    {"ok": True, "policy": {"require_bond": {"min_sats": 100000}}},
+    {"ok": True, "require_bond": {"min_sats": None, "min_days": 0}},
+    {"ok": True, "require_bond": {"min_sats": -1, "min_days": 0}},
+    {"ok": True, "require_bond": {"min_sats": True, "min_days": 0}},
+], ids=["empty", "ok false", "another key", "null floor", "negative floor", "bool floor"])
+def test_a_policy_answer_that_does_not_say_the_rule_is_refused_not_read_as_open(body: dict[str, Any]) -> None:
+    respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json=body))
+    plain = V["session"]["valid"][0]
+    with pytest.raises(InvalidSession) as err:
+        verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=SignInPolicy("pk_test_tv"))
+    assert err.value.reason == "bond_policy_unavailable"
+    warm_session(plain["audience"], policy=SignInPolicy("pk_test_tv"))
+
+
+@respx.mock
+def test_the_last_requirement_read_stands_ten_minutes_and_no_longer(monkeypatch: pytest.MonkeyPatch) -> None:
+    respx.get(SIGN_IN).mock(side_effect=[httpx.Response(200, json={"ok": True, "require_bond": None})] + [httpx.Response(503)] * 3)
+    policy = SignInPolicy("pk_test_tv")
+    assert policy.requirement() is None
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 599))
+    assert policy.requirement() is None
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 611))
+    with pytest.raises(InvalidSession) as err:
+        policy.requirement()
+    assert err.value.reason == "bond_policy_unavailable"
+
+
+@respx.mock
+@pytest.mark.parametrize("body", [
+    {"v": 1, "at": V["now"]},
+    {"v": True, "at": V["now"], "tokens": [], "accounts": {}, "handles": {}},
+    {"v": 1, "at": V["now"], "tokens": {}, "accounts": {}, "handles": {}},
+    {"v": 1, "at": V["now"], "tokens": [], "accounts": [], "handles": {}},
+], ids=["no tokens", "v true", "tokens not a list", "accounts not an object"])
+def test_a_revocation_list_shaped_unlike_the_node_feed_cannot_vouch(body: dict[str, Any]) -> None:
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=body))
+    assert _revocations().status("x", R["request"]["aud"], 0) == "unverified"
+
+
+@respx.mock
+def test_a_handle_whose_cutoff_is_not_a_finite_number_is_skipped_as_node_skips_it() -> None:
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, content=(
+        '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":Infinity,"b":NaN,"c":%d}}' % (V["now"], V["now"] + 1)
+    ).encode(), headers={"content-type": "application/json"}))
+    rl = _revocations()
+    assert [rl.status(h, R["request"]["aud"], V["now"]) for h in ("a", "b", "c")] == ["live", "live", "revoked"]
+
+
+@pytest.mark.parametrize("bond", [
+    {"v": True},
+    {"sats_floor": float("inf")},
+    {"days_floor": float("nan")},
+    {"nullifier": "ab" * 32 + "\n"},
+], ids=["v true", "infinite floor", "nan floor", "nullifier with a newline"])
+def test_a_bond_claim_node_refuses_is_refused_here(bond: dict[str, Any]) -> None:
+    claim = {"v": 1, "sats_floor": 100000, "days_floor": 30, "height": 1, "checked_at": V["now"], "nullifier": "ab" * 32, **bond}
+    assert integrator.read_bond_claim({"oc_bond": claim}) is None
+    assert not bond_meets({"oc_bond": claim})
+
+
+def test_bond_age_is_counted_as_node_counts_it() -> None:
+    claim = {"v": 1, "sats_floor": 1, "days_floor": 0, "height": 1, "checked_at": V["now"] - 99.5, "nullifier": "ab" * 32}
+    assert bond_meets({"oc_bond": claim}, max_age_secs=99.6)  # type: ignore[arg-type]
+    assert not bond_meets({"oc_bond": claim}, max_age_secs=99)
+
+
+@respx.mock
+def test_an_empty_key_set_is_not_fetched_again_on_every_call(fresh_key_sets: None) -> None:
+    route = respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json={"keys": []}))
+    for _ in range(5):
+        assert integrator._session_keys.get("k1") is None
+    assert route.call_count == 2  # the hourly read, and the once-a-minute read for a key not seen
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs fork")
+def test_a_fork_while_a_fetch_holds_a_lock_leaves_the_child_able_to_take_it() -> None:
+    policy, rl = SignInPolicy("pk_test_tv"), _revocations()
+    one = rl._list(R["request"]["aud"])
+    held = [policy._lock, one._lock, rl._lists_lock, integrator._session_keys._lock]
+    for lock in held:
+        lock.acquire()
+    try:
+        pid = os.fork()
+        if pid == 0:
+            free = [policy._lock, one._lock, rl._lists_lock, integrator._session_keys._lock]
+            os._exit(0 if all(lock.acquire(timeout=1) for lock in free) else 1)
+        _, status = os.waitpid(pid, 0)
+        assert os.WEXITSTATUS(status) == 0
+    finally:
+        for lock in held:
+            lock.release()

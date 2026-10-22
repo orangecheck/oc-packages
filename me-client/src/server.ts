@@ -80,6 +80,12 @@ export interface OcSessionOptions extends VerifyOcOptions {
     /** Your project key. Default `OC_PROJECT_KEY`. */
     projectKey?: string;
     /**
+     * Where me.ochk.io is: the project's sign-in rule and its list of ended
+     * sessions are read there. Default https://me.ochk.io (`OC_ME_ORIGIN` for
+     * the list).
+     */
+    meOrigin?: string;
+    /**
      * The check for sessions the person ended everywhere (sign out
      * everywhere, a passkey removed, the account deleted). Default:
      * auth-core's `integratorRevocationCheck`, from `OC_PROJECT_KEY` and
@@ -88,18 +94,21 @@ export interface OcSessionOptions extends VerifyOcOptions {
     revocation?: RevocationCheck | false;
 }
 
-/** One check per project key, shared by every request in this process. */
+/** One check per me.ochk.io and project key, shared by every request in this process. */
 const sessionChecks = new Map<string, RevocationCheck | null>();
 let warnedUnchecked = false;
 
 function revocationFor(options: OcSessionOptions): RevocationCheck | null {
     if (options.revocation === false) return null;
     if (options.revocation) return options.revocation;
-    const key = options.projectKey ?? '';
+    const key = `${options.meOrigin ?? ''} ${options.projectKey ?? ''}`;
     if (!sessionChecks.has(key)) {
         sessionChecks.set(
             key,
-            integratorRevocationCheck(options.projectKey ? { projectKey: options.projectKey } : {})
+            integratorRevocationCheck({
+                ...(options.projectKey ? { projectKey: options.projectKey } : {}),
+                ...(options.meOrigin ? { meOrigin: options.meOrigin } : {}),
+            })
         );
     }
     const check = sessionChecks.get(key)!;
@@ -227,8 +236,6 @@ export interface WithOcAuthOptions extends OcSessionOptions {
      * ended-session check only.
      */
     projectKey?: string;
-    /** Where the project config is read. Default https://me.ochk.io. */
-    meOrigin?: string;
 }
 
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
@@ -240,52 +247,66 @@ const UNKNOWN_PROJECT = Symbol('unknown_project');
 const POLICY_TTL_MS = 60_000;
 /** After a failed read, how long before me.ochk.io is asked again. */
 const POLICY_RETRY_MS = 10_000;
+/** How long the last rule read stands while it can't be read again. */
+const POLICY_MAX_STALE_MS = 600_000;
 const policies = new Map<string, { at: number; need: BondNeed | null; failedAt?: number }>();
+
+const isFloor = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
+
+/** The rule in me.ochk.io's answer, or undefined when the answer does not say one. */
+function readRequirement(body: unknown): BondNeed | null | undefined {
+    const b = body as { ok?: unknown; require_bond?: unknown } | null;
+    if (!b || typeof b !== 'object' || b.ok !== true || !('require_bond' in b)) return undefined;
+    if (b.require_bond === null) return null;
+    const r = b.require_bond as { min_sats?: unknown; min_days?: unknown } | undefined;
+    if (!r || typeof r !== 'object' || !isFloor(r.min_sats) || !isFloor(r.min_days)) return undefined;
+    return { minSats: r.min_sats, minDays: r.min_days };
+}
 
 /**
  * The project's requirement, from its uncached sign-in endpoint, held a
  * minute here. (The price config is edge-cached for ten minutes: reading the
  * requirement there let a just-tightened app keep admitting unbacked accounts.)
- * When it can't be read, the last one read stands, and the next try waits ten
- * seconds so an outage doesn't hold every request; with none read yet it is
- * `undefined`, and the request is refused rather than let through unchecked.
+ * When it can't be read, or the answer does not say it, the last one read
+ * stands for ten minutes, and the next try waits ten seconds so an outage
+ * doesn't hold every request; with none read in that time it is `undefined`,
+ * and the request is refused rather than let through unchecked.
  */
 async function projectRequirement(
     options: WithOcAuthOptions
 ): Promise<BondNeed | null | undefined | typeof UNKNOWN_PROJECT> {
+    const base = (options.meOrigin ?? 'https://me.ochk.io').replace(/\/$/, '');
     const key = options.projectKey!;
-    const hit = policies.get(key);
+    const slot = `${base} ${key}`;
+    const hit = policies.get(slot);
     const now = Date.now();
-    if (unknownKeys.has(key) && now - unknownKeys.get(key)! < POLICY_TTL_MS) return UNKNOWN_PROJECT;
+    const standing = () => (hit?.at && now - hit.at < POLICY_MAX_STALE_MS ? hit.need : undefined);
+    if (unknownKeys.has(slot) && now - unknownKeys.get(slot)! < POLICY_TTL_MS) return UNKNOWN_PROJECT;
     if (hit && now - hit.at < POLICY_TTL_MS) return hit.need;
-    if (hit?.failedAt && now - hit.failedAt < POLICY_RETRY_MS) return hit.at ? hit.need : undefined;
+    if (hit?.failedAt && now - hit.failedAt < POLICY_RETRY_MS) return standing();
     try {
-        const base = options.meOrigin ?? 'https://me.ochk.io';
         const r = await fetch(`${base}/api/integrator/${encodeURIComponent(key)}/sign-in`, {
             signal: AbortSignal.timeout(4000),
         });
         // A key that names no project is a setup mistake, not an outage: say so once.
         if (r.status === 404) {
-            if (!unknownKeys.has(key)) {
+            if (!unknownKeys.has(slot)) {
                 console.error(
                     `[@orangecheck/me-client] projectKey "${key}" is not a project. Copy yours from https://ochk.app/me/projects.`
                 );
             }
-            unknownKeys.set(key, Date.now());
+            unknownKeys.set(slot, Date.now());
             return UNKNOWN_PROJECT;
         }
-        unknownKeys.delete(key);
+        unknownKeys.delete(slot);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const j = (await r.json()) as {
-            require_bond?: { min_sats: number; min_days: number } | null;
-        };
-        const req = j.require_bond ?? null;
-        const need = req ? { minSats: req.min_sats, minDays: req.min_days } : null;
-        policies.set(key, { at: Date.now(), need });
+        const need = readRequirement(await r.json());
+        if (need === undefined) throw new Error('unexpected body');
+        policies.set(slot, { at: Date.now(), need });
         return need;
     } catch {
-        policies.set(key, { at: hit?.at ?? 0, need: hit?.need ?? null, failedAt: Date.now() });
-        return hit?.at ? hit.need : undefined;
+        policies.set(slot, { at: hit?.at ?? 0, need: hit?.need ?? null, failedAt: Date.now() });
+        return standing();
     }
 }
 

@@ -198,3 +198,67 @@ describe('withOcAuth · projectKey over time', () => {
         expect(configReads).toBe(3);
     });
 });
+
+describe('withOcAuth · an answer that does not say the rule', () => {
+    it.each([
+        ['an empty body', {}],
+        ['ok false', { ok: false, reason: 'project_not_found' }],
+        ['the rule under another key', { ok: true, policy: { require_bond: { min_sats: 100_000 } } }],
+        ['a floor that is not a number', { ok: true, require_bond: { min_sats: null, min_days: 0 } }],
+        ['a negative floor', { ok: true, require_bond: { min_sats: -1, min_days: 0 } }],
+    ])('refuses rather than reads %s as no requirement', async (name, body) => {
+        config = { status: 200, body };
+        const r = await call(await token(), { audience: MINE, projectKey: `pk_live_shape_${name.replace(/\W/g, '')}` });
+        expect(r.ran).toBe(false);
+        expect(r.status).toBe(503);
+        expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+    });
+});
+
+describe('withOcAuth · the rule read from one me.ochk.io is not another one', () => {
+    it('keys the rule by where it was read', async () => {
+        const reads: string[] = [];
+        vi.stubGlobal('fetch', async (url: string) => {
+            if (/\/sign-in$/.test(String(url))) {
+                reads.push(String(url));
+                const open = String(url).startsWith('https://me-test.example');
+                return new Response(
+                    JSON.stringify({ ok: true, require_bond: open ? null : { min_sats: 100_000, min_days: 0 } }),
+                    { status: 200 }
+                );
+            }
+            return { ok: true, json: async () => jwks } as Response;
+        });
+        const pk = 'pk_live_two_origins';
+        expect((await call(await token(), { audience: MINE, projectKey: pk, meOrigin: 'https://me-test.example' })).ran).toBe(true);
+        expect((await call(await token(), { audience: MINE, projectKey: pk })).status).toBe(403);
+        expect(reads).toEqual([
+            `https://me-test.example/api/integrator/${pk}/sign-in`,
+            `https://me.ochk.io/api/integrator/${pk}/sign-in`,
+        ]);
+    });
+});
+
+describe('withOcAuth · an outage longer than ten minutes', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('stops standing on the last rule read and refuses until it can read one', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_long_outage' };
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        expect((await call(await token(), opts)).ran).toBe(true);
+        config = { status: 503, body: {} };
+        vi.setSystemTime(new Date('2026-10-16T12:09:59Z'));
+        expect((await call(await token(), opts)).ran).toBe(true);
+        vi.setSystemTime(new Date('2026-10-16T12:10:01Z'));
+        const r = await call(await token(), opts);
+        expect(r.ran).toBe(false);
+        expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        vi.setSystemTime(new Date('2026-10-16T12:10:12Z'));
+        expect((await call(await token(), opts)).ran).toBe(true);
+    });
+});

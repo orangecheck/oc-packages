@@ -8,6 +8,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.36.1] — 2026-10-22
+
+### Fixed
+
+- `projectKey`: an answer from me.ochk.io that does not say the sign-in rule
+  (not `ok: true`, no `require_bond`, or a floor that is not a whole number of
+  at least 0) counts as unreadable, not as "no requirement".
+- `projectKey`: while the rule can't be read, the last one read stands for ten
+  minutes, then requests are refused (`503 bond_policy_unavailable`) until it
+  can be read.
+- `meOrigin` now applies to the list of ended sessions too, and both the rule and
+  the list are held per me.ochk.io as well as per project key.
+
 ## [0.36.0] — 2026-10-22
 
 ### Added
