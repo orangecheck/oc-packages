@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/bip322",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "BIP-322 simple and legacy BIP-137 Bitcoin message-signature verification, and BIP-322 simple signing for P2WPKH and P2TR, on audited primitives (@noble/curves, @noble/hashes, @scure/base). No bitcoinjs-lib, no PSBT library.",
   "keywords": [
     "bitcoin",

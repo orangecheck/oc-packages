@@ -17,6 +17,8 @@ export type AddressType = 'p2pkh' | 'p2sh' | 'p2wpkh' | 'p2wsh' | 'p2tr';
 
 export interface DecodedAddress {
     type: AddressType;
+    /** Base58 testnet versions also serve regtest; only bech32 tells them apart. */
+    network: 'mainnet' | 'testnet' | 'regtest';
     /** The pubkey hash, script hash, or (for p2tr) the x-only output key. */
     program: Uint8Array;
     scriptPubKey: Uint8Array;
@@ -28,12 +30,14 @@ const utf8 = new TextEncoder();
 /** The finalized BIP-322 prefixes a signature with its variant. */
 const SIMPLE_PREFIX = 'smp';
 
-const BASE58_VERSIONS: Record<number, AddressType> = {
-    0x00: 'p2pkh',
-    0x05: 'p2sh',
-    0x6f: 'p2pkh',
-    0xc4: 'p2sh',
+const BASE58_VERSIONS: Record<number, [AddressType, 'mainnet' | 'testnet']> = {
+    0x00: ['p2pkh', 'mainnet'],
+    0x05: ['p2sh', 'mainnet'],
+    0x6f: ['p2pkh', 'testnet'],
+    0xc4: ['p2sh', 'testnet'],
 };
+
+const BECH32_NETWORKS = { bc: 'mainnet', tb: 'testnet', bcrt: 'regtest' } as const;
 
 function concat(...parts: Uint8Array[]): Uint8Array {
     const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
@@ -72,17 +76,21 @@ const scriptFor: Record<AddressType, (p: Uint8Array) => Uint8Array> = {
 };
 
 /**
- * Decode a mainnet, testnet/signet or regtest address. Null for anything else,
- * including uppercase bech32 and witness versions other than 0 and 1.
+ * Decode a mainnet, testnet/signet or regtest address. Bech32 may be all
+ * lowercase or all uppercase (BIP-173; QR codes use uppercase), never mixed.
+ * Null for anything else, including witness versions other than 0 and 1.
  */
-export function decodeAddress(address: string): DecodedAddress | null {
-    const make = (type: AddressType, program: Uint8Array): DecodedAddress => ({
+export function decodeAddress(input: string): DecodedAddress | null {
+    const address = /^(BC|TB|BCRT)1[^a-z]*$/.test(input) ? input.toLowerCase() : input;
+    const make = (type: AddressType, program: Uint8Array, network: DecodedAddress['network']): DecodedAddress => ({
         type,
+        network,
         program,
         scriptPubKey: scriptFor[type](program),
     });
     if (/^(bc|tb|bcrt)1/.test(address)) {
         const prefix = address.slice(0, address.lastIndexOf('1'));
+        const network = BECH32_NETWORKS[prefix as keyof typeof BECH32_NETWORKS];
         const segwit = (codec: typeof bech32) => {
             try {
                 const { prefix: hrp, words } = codec.decode(address as `${string}1${string}`);
@@ -97,21 +105,21 @@ export function decodeAddress(address: string): DecodedAddress | null {
         if (v0 && v0[0] === 0) {
             const program = bech32.fromWordsUnsafe(v0.slice(1));
             if (!program) return null;
-            if (program.length === 20) return make('p2wpkh', program);
-            if (program.length === 32) return make('p2wsh', program);
+            if (program.length === 20) return make('p2wpkh', program, network);
+            if (program.length === 32) return make('p2wsh', program, network);
             return null;
         }
         const v1 = segwit(bech32m);
         if (v1 && v1[0] === 1) {
             const program = bech32m.fromWordsUnsafe(v1.slice(1));
-            return program && program.length === 32 ? make('p2tr', program) : null;
+            return program && program.length === 32 ? make('p2tr', program, network) : null;
         }
         return null;
     }
     try {
         const payload = base58check.decode(address);
-        const type = BASE58_VERSIONS[payload[0]!];
-        return type && payload.length === 21 ? make(type, payload.slice(1)) : null;
+        const version = BASE58_VERSIONS[payload[0]!];
+        return version && payload.length === 21 ? make(version[0], payload.slice(1), version[1]) : null;
     } catch {
         return null;
     }

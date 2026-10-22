@@ -88,7 +88,9 @@ describe('malformed input', () => {
     it.each([
         ['', 'Hello World', SIG_HELLO],
         ['not-an-address', 'Hello World', SIG_HELLO],
-        [P2WPKH.toUpperCase(), 'Hello World', SIG_HELLO],
+        // Mixed case is never bech32 (BIP-173), whatever the checksum says.
+        [P2WPKH.slice(0, 5) + P2WPKH.slice(5).toUpperCase(), 'Hello World', SIG_HELLO],
+        ['BC1Q' + P2WPKH.slice(4), 'Hello World', SIG_HELLO],
         [P2WPKH, 'Hello World', ''],
         [P2WPKH, 'Hello World', '!!!!'],
         [P2WPKH, 'Hello World', 'AA=='],
@@ -100,6 +102,32 @@ describe('malformed input', () => {
     it('accepts URL-safe and unpadded base64', () => {
         const urlSafe = SIG_HELLO.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         expect(verifySignature(P2WPKH, 'Hello World', urlSafe)).toBe(true);
+    });
+});
+
+describe('uppercase bech32 (BIP-173, as QR codes carry it)', () => {
+    it('verifies against an all-uppercase address', () => {
+        expect(verifySignature(P2WPKH.toUpperCase(), 'Hello World', SIG_HELLO)).toBe(true);
+        expect(verifySignature(P2TR.toUpperCase(), 'Hello World', SIG_TR_HELLO)).toBe(true);
+    });
+
+    it('decodes it to the same program', () => {
+        expect(decodeAddress(P2WPKH.toUpperCase())).toEqual(decodeAddress(P2WPKH));
+    });
+});
+
+describe('decodeAddress network', () => {
+    it.each([
+        [P2WPKH, 'mainnet'],
+        [P2TR, 'mainnet'],
+        ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2', 'mainnet'],
+        ['3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'mainnet'],
+        ['tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx', 'testnet'],
+        ['mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn', 'testnet'],
+        ['2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc', 'testnet'],
+        ['bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw', 'regtest'],
+    ])('%s is %s', (address, network) => {
+        expect(decodeAddress(address)?.network).toBe(network);
     });
 });
 
