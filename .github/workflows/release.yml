@@ -314,6 +314,34 @@ jobs:
               working-directory: oc-packages
               run: node scripts/gen-docs.mjs ${{ steps.parse.outputs.package }}
 
+            # The docs PR's checks install this version, and the registry can
+            # take minutes after `npm publish` to serve it. Opening the PR
+            # first left its checks on a 404 that never re-ran.
+            - name: Wait until npm serves the tarball
+              if: steps.pkgcheck.outputs.ok == 'true'
+              working-directory: oc-packages
+              env:
+                  PKG: ${{ steps.parse.outputs.package }}
+                  VERSION: ${{ steps.parse.outputs.version }}
+              run: |
+                  NAME=$(node -p "require('./$PKG/package.json').name")
+                  delay=10
+                  deadline=$((SECONDS + 900))
+                  while :; do
+                      URL=$(npm view "$NAME@$VERSION" dist.tarball 2>/dev/null || true)
+                      if [ -n "$URL" ] && curl -sfI -o /dev/null "$URL"; then
+                          echo "$NAME@$VERSION is served: $URL"
+                          break
+                      fi
+                      if [ "$SECONDS" -ge "$deadline" ]; then
+                          echo "::error::$NAME@$VERSION is not fetchable from npm after 15 minutes (tarball: ${URL:-none}). Not opening the docs PR; re-run this job once it is."
+                          exit 1
+                      fi
+                      echo "$NAME@$VERSION not served yet (tarball: ${URL:-none}); retrying in ${delay}s"
+                      sleep "$delay"
+                      delay=$((delay * 2 > 120 ? 120 : delay * 2))
+                  done
+
             - name: Open / update PR in oc-docs
               if: steps.pkgcheck.outputs.ok == 'true'
               working-directory: oc-docs
