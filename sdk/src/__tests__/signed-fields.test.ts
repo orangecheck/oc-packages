@@ -35,7 +35,13 @@ function message(address: string, identities: Identity[], issuedAt: string, ext:
 }
 
 /** An envelope as anyone may publish it: the signed message and signature, any JSON beside them. */
-function publish(msg: string, signature: string, beside: Record<string, unknown> = {}, publisher = 'ab') {
+function publish(
+    msg: string,
+    signature: string,
+    beside: Record<string, unknown> = {},
+    publisher = 'ab',
+    createdAt = 1_700_000_000
+) {
     const id = createHash('sha256').update(msg).digest('hex');
     const address = /\naddress: (\S+)/.exec(msg)![1]!;
     const identities = sdk.parseIdentities(/\nidentities: ([^\n]*)/.exec(msg)![1]!);
@@ -49,10 +55,10 @@ function publish(msg: string, signature: string, beside: Record<string, unknown>
         ...((envelope.identities as Identity[]).map((b) => ['i', `${b.protocol}:${b.identifier}`])),
     ];
     store.push({
-        id: createHash('sha256').update(publisher + id + JSON.stringify(beside)).digest('hex'),
+        id: createHash('sha256').update(publisher + id + signature + JSON.stringify(beside)).digest('hex'),
         kind: 30078,
         pubkey: publisher.repeat(32).slice(0, 64),
-        created_at: 1_700_000_000,
+        created_at: createdAt,
         tags,
         content: JSON.stringify(envelope),
         sig: 'ef'.repeat(64),
@@ -80,12 +86,17 @@ class FakeRelay {
     send(raw: string): void {
         const [type, sub, filter] = JSON.parse(raw);
         if (type !== 'REQ') return;
-        const hits = store.filter((ev) =>
-            Object.entries(filter).every(([k, v]) => {
-                if (!k.startsWith('#')) return true;
-                return ev.tags.some((t) => t[0] === k.slice(1) && (v as string[]).includes(t[1] ?? ''));
-            })
-        );
+        // As NIP-01 relays answer: matching events newest first, none after `until`, cut at `limit`.
+        const hits = store
+            .filter((ev) =>
+                Object.entries(filter).every(([k, v]) => {
+                    if (!k.startsWith('#')) return true;
+                    return ev.tags.some((t) => t[0] === k.slice(1) && (v as string[]).includes(t[1] ?? ''));
+                })
+            )
+            .filter((ev) => filter.until === undefined || ev.created_at <= filter.until)
+            .sort((a, b) => b.created_at - a.created_at)
+            .slice(0, filter.limit ?? Infinity);
         for (const ev of hits) this.onmessage?.({ data: JSON.stringify(['EVENT', sub, ev]) });
         this.onmessage?.({ data: JSON.stringify(['EOSE', sub]) });
     }
@@ -227,5 +238,58 @@ describe('a signed issue time ahead of the clock', () => {
         const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
         expect(r.ok).toBe(false);
         expect(r.codes).toContain('decode_error');
+    });
+});
+
+describe('every copy under a subject is read', () => {
+    const T = 1_750_000_000;
+    // A message naming the subject, with a signature that does not hold for it.
+    const unsigned = (address: string, identities: Identity[], n: number) =>
+        message(address, identities, new Date(Date.UTC(2026, 5, 1) + n * 1000).toISOString());
+
+    it('a newer copy under the id with a signature that does not hold does not hide the signed one', async () => {
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z');
+        const id = publish(msg, sig, {}, 'ab', T);
+        publish(msg, 'A'.repeat(88), {}, 'cd', T + 100);
+        const r = await sdk.check({ id, relays: RELAYS });
+        expect(r).toMatchObject({ ok: true, attestation_id: id });
+    });
+
+    it('by address, the signed attestation is found behind 600 newer events under the address', async () => {
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z');
+        const id = publish(msg, sig, {}, 'ab', T);
+        for (let n = 1; n <= 600; n++) publish(unsigned(OWNER, [], n), 'A'.repeat(88), {}, 'cd', T + n);
+        const r = await sdk.check({ addr: OWNER, relays: RELAYS });
+        expect(r).toMatchObject({ ok: true, attestation_id: id });
+    });
+
+    it('by identity, the signed claim is found behind newer claims whose signatures do not hold', async () => {
+        const handle = [{ protocol: 'github', identifier: 'alice' }];
+        const owner = signed(OWNER_KEY, OWNER, handle, '2026-01-01T00:00:00Z');
+        publish(owner.msg, owner.sig, {}, 'ab', T);
+        for (let n = 1; n <= 30; n++) publish(unsigned(SQUATTER, handle, n), 'A'.repeat(88), {}, 'cd', T + n);
+        const r = await sdk.check({ identity: handle[0]!, relays: RELAYS });
+        expect(r).toMatchObject({ ok: true, address: OWNER });
+    });
+});
+
+describe('a key signed twice', () => {
+    it('is refused by verify()', async () => {
+        const base = message(OWNER, [], '2026-01-01T00:00:00Z');
+        const msg = base + 'expires: 2030-01-01T00:00:00Z\nexpires: 2020-01-01T00:00:00Z\n';
+        const sig = signMessage(OWNER, msg, OWNER_KEY);
+        const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
+        expect(r.ok).toBe(false);
+        expect(r.codes).toContain('decode_error');
+    });
+
+    it('takes no part in check()', async () => {
+        const base = message(OWNER, [], '2026-02-01T00:00:00Z');
+        const twice = base + 'network: mainnet\nnetwork: testnet\n';
+        publish(twice, signMessage(OWNER, twice, OWNER_KEY));
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z');
+        const id = publish(msg, sig);
+        const r = await sdk.check({ addr: OWNER, relays: RELAYS });
+        expect(r).toMatchObject({ ok: true, attestation_id: id });
     });
 });

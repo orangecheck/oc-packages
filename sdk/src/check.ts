@@ -22,8 +22,6 @@ import { nostrPubkeyToHex } from './nostr-pubkey';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
 
-/** Candidates whose signatures are tried before the newest is taken as is. */
-const MAX_CANDIDATES = 20;
 
 export interface CheckParams {
     /** Bitcoin address to look up. */
@@ -106,7 +104,7 @@ export async function check(params: CheckParams): Promise<CheckResult> {
 
     // The newest whose signature holds (SPEC §7.2).
     let env = envelopes[0]!;
-    for (const candidate of envelopes.slice(0, MAX_CANDIDATES)) {
+    for (const candidate of envelopes) {
         if (await signedBy(candidate)) {
             env = candidate;
             break;

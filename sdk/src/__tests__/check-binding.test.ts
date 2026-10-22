@@ -74,7 +74,8 @@ class FakeRelay {
 async function attest(address: string, identities: IdentityBinding[], issuedAt: string) {
     const message = buildCanonicalMessage({ address, identities }, {}, { issuedAt });
     const env = await createAttestationEnvelope(message, 'sig', 'bip322', address, identities);
-    const ev = { ...createAttestationEvent(env, 'ab'.repeat(32)), id: 'cd'.repeat(32), sig: 'ef'.repeat(64) };
+    // Each event its own id, as relays require.
+    const ev = { ...createAttestationEvent(env, 'ab'.repeat(32)), id: env.attestation_id, sig: 'ef'.repeat(64) };
     return { env, ev: ev as NostrEvent };
 }
 

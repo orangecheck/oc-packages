@@ -124,11 +124,16 @@ export function parseCanonicalMessage(msg: string) {
         'ack',
     ]);
     const extensions: Record<string, string> = {};
+    // A key signed twice has two meanings, and readers could pick either one.
+    const keys = new Set<string>();
+    const repeated: string[] = [];
     for (const line of lines) {
         const idx = line.indexOf(':');
         if (idx === -1) continue;
         const key = line.slice(0, idx).trim().toLowerCase();
         const val = line.slice(idx + 1).trim();
+        if (keys.has(key)) repeated.push(key);
+        keys.add(key);
         if (!coreKeys.has(key) && val) extensions[key] = val;
     }
 
@@ -141,6 +146,7 @@ export function parseCanonicalMessage(msg: string) {
     return {
         core: { address, identities, issued_at },
         expires,
+        repeated,
         network,
         extensions,
         bond: bond !== undefined && !isNaN(bond) && bond > 0 ? bond : undefined,
@@ -399,6 +405,12 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
 
         // Compute attestation ID
         const attestation_id = await generateAttestationId(input.msg);
+
+        // One value per key (SPEC §2.2).
+        if (parsed.repeated.length > 0) {
+            codes.push('decode_error');
+            return { ok: false, codes, network, attestation_id };
+        }
 
         // Validate address consistency
         if (parsed.core.address !== input.addr) {

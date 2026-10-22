@@ -324,174 +324,130 @@ export async function publishToRelays(
     return { success, failed };
 }
 
+/** Events asked for per page: relays commonly cap one REQ at 500. */
+const PAGE_LIMIT = 500;
 /**
- * Query relays for attestations by attestation ID
+ * Pages read per relay for one subject. Anyone can publish events under a
+ * subject's tags, so a lookup reads every event a relay holds for it up to
+ * PAGE_LIMIT × MAX_PAGES (2,000), newest first, and leaves the choice to the
+ * signatures. An older event goes unread only when every queried relay holds
+ * more than that many newer events for the same subject.
+ */
+const MAX_PAGES = 4;
+
+/** Every event matching `filter` on each relay, paged by `until`, within the shared deadline. */
+async function querySubject(
+    filter: Record<string, unknown>,
+    relays: string[],
+    label: string
+): Promise<NostrEvent[]> {
+    const events: NostrEvent[] = [];
+    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
+
+    await Promise.allSettled(
+        relays.map(async (relayUrl) => {
+            let ws: WebSocket | null = null;
+            try {
+                ws = new WebSocket(relayUrl);
+                const wsRef = ws;
+                await new Promise<void>((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        wsRef.close();
+                        reject(new Error('Query timeout'));
+                    }, budgetFor(deadlineAt));
+                    const seen = new Set<string>();
+                    let page = 0;
+                    let inPage = 0;
+                    let newInPage = 0;
+                    let oldest = Infinity;
+
+                    const ask = () => {
+                        page++;
+                        inPage = 0;
+                        newInPage = 0;
+                        // `until` is inclusive; events already read are skipped by id.
+                        const until = Number.isFinite(oldest) ? { until: oldest } : {};
+                        wsRef.send(
+                            JSON.stringify([
+                                'REQ',
+                                `ochk_${label}_${Date.now()}_${page}`,
+                                { ...filter, ...until, limit: PAGE_LIMIT },
+                            ])
+                        );
+                    };
+
+                    wsRef.onopen = ask;
+                    wsRef.onmessage = (msg) => {
+                        try {
+                            const data = JSON.parse(msg.data);
+                            if (data[0] === 'EVENT') {
+                                const event = data[2] as NostrEvent;
+                                const key = event.id ?? JSON.stringify(event);
+                                inPage++;
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    newInPage++;
+                                    events.push(event);
+                                }
+                                if (typeof event.created_at === 'number') {
+                                    oldest = Math.min(oldest, event.created_at);
+                                }
+                            } else if (data[0] === 'EOSE') {
+                                wsRef.send(JSON.stringify(['CLOSE', data[1]]));
+                                // A full page that brought something new may have more behind it.
+                                if (inPage >= PAGE_LIMIT && newInPage > 0 && page < MAX_PAGES) {
+                                    ask();
+                                } else {
+                                    clearTimeout(timeout);
+                                    wsRef.close();
+                                    resolve();
+                                }
+                            }
+                        } catch (err) {
+                            log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
+                        }
+                    };
+                    wsRef.onerror = (err) => {
+                        clearTimeout(timeout);
+                        log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
+                        reject(err);
+                    };
+                });
+            } catch (err) {
+                log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
+            } finally {
+                if (ws && ws.readyState !== WebSocket.CLOSED) ws.close();
+            }
+        })
+    );
+
+    log.info({ label, eventCount: events.length }, 'Query complete');
+    return events;
+}
+
+/**
+ * Query relays for every event under an attestation id's `d` tag. Anyone can
+ * publish an event with that tag, so the copies are read and the signature
+ * decides between them (see collectSignedEnvelopes).
  */
 export async function queryByAttestationId(
     attestationId: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
-    const events: NostrEvent[] = [];
-
     log.info({ attestationId, relayCount: relays.length }, 'Querying relays for attestation');
-
-    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
-
-    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
-
-    const queryPromises = relays.map(async (relayUrl) => {
-        let ws: WebSocket | null = null;
-
-        try {
-            ws = new WebSocket(relayUrl);
-            const wsRef = ws; // Capture for closures
-
-            await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    wsRef.close();
-                    reject(new Error('Query timeout'));
-                }, budgetFor(deadlineAt));
-
-                const cleanup = () => {
-                    clearTimeout(timeout);
-                    wsRef.close();
-                };
-
-                wsRef.onopen = () => {
-                    // Send REQ message for kind 30078 with d-tag = attestation_id
-                    const subscriptionId = `ochk_${Date.now()}`;
-                    wsRef.send(
-                        JSON.stringify([
-                            'REQ',
-                            subscriptionId,
-                            {
-                                kinds: [30078],
-                                '#d': [attestationId],
-                                limit: 1,
-                            },
-                        ])
-                    );
-                };
-
-                wsRef.onmessage = (msg) => {
-                    try {
-                        const data = JSON.parse(msg.data);
-                        if (data[0] === 'EVENT') {
-                            events.push(data[2]);
-                        } else if (data[0] === 'EOSE') {
-                            cleanup();
-                            resolve();
-                        }
-                    } catch (err) {
-                        log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
-                    }
-                };
-
-                wsRef.onerror = (err) => {
-                    log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
-                    cleanup();
-                    reject(err);
-                };
-
-                wsRef.onclose = () => {
-                    clearTimeout(timeout);
-                };
-            });
-        } catch (err) {
-            log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
-        } finally {
-            // Ensure WebSocket is closed
-            if (ws && ws.readyState !== WebSocket.CLOSED) {
-                ws.close();
-            }
-        }
-    });
-
-    await Promise.allSettled(queryPromises);
-
-    log.info({ eventCount: events.length }, 'Query complete');
-
-    return events;
+    return querySubject({ kinds: [30078], '#d': [attestationId] }, relays, 'id');
 }
 
 /**
- * Query relays for attestations by Bitcoin address
+ * Query relays for attestations by Bitcoin address. Relays index
+ * single-letter tags only, so the address is the `t` tag, not `address`.
  */
 export async function queryByAddress(
     address: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
-    const events: NostrEvent[] = [];
-
     log.info({ address, relayCount: relays.length }, 'Querying relays for address');
-
-    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
-
-    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
-
-    const queryPromises = relays.map(async (relayUrl) => {
-        try {
-            const ws = new WebSocket(relayUrl);
-
-            await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    reject(new Error('Query timeout'));
-                }, budgetFor(deadlineAt));
-
-                ws.onopen = () => {
-                    const subscriptionId = `ochk_addr_${Date.now()}`;
-                    ws.send(
-                        JSON.stringify([
-                            'REQ',
-                            subscriptionId,
-                            {
-                                kinds: [30078],
-                                // `#t`, NOT `#address`: NIP-12 relays index
-                                // single-letter tags only, so `#address`
-                                // matched nothing on any relay and this
-                                // function returned empty for every real
-                                // attestation. attest.ochk.io's verifier has
-                                // queried `#t` since the same fix landed
-                                // there; this is the back-port.
-                                '#t': [address],
-                                limit: 50,
-                            },
-                        ])
-                    );
-                };
-
-                ws.onmessage = (msg) => {
-                    try {
-                        const data = JSON.parse(msg.data);
-                        if (data[0] === 'EVENT') {
-                            events.push(data[2]);
-                        } else if (data[0] === 'EOSE') {
-                            clearTimeout(timeout);
-                            ws.close();
-                            resolve();
-                        }
-                    } catch (err) {
-                        log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
-                    }
-                };
-
-                ws.onerror = (err) => {
-                    clearTimeout(timeout);
-                    log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
-                    reject(err);
-                };
-            });
-        } catch (err) {
-            log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
-        }
-    });
-
-    await Promise.allSettled(queryPromises);
-
-    log.info({ eventCount: events.length }, 'Query complete');
-
-    return events;
+    return querySubject({ kinds: [30078], '#t': [address] }, relays, 'addr');
 }
 
 /**
@@ -502,75 +458,12 @@ export async function queryByIdentity(
     identifier: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
-    const events: NostrEvent[] = [];
-    const identityTag = `${protocol}:${identifier}`;
     const identityTags =
         protocol === 'nostr'
             ? nostrIdentifierForms(identifier).map((f) => `nostr:${f}`)
-            : [identityTag];
-
+            : [`${protocol}:${identifier}`];
     log.info({ protocol, identifier, relayCount: relays.length }, 'Querying relays for identity');
-
-    // One shared deadline for the whole fan-out — see FANOUT_DEADLINE_MS.
-
-    const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
-
-    const queryPromises = relays.map(async (relayUrl) => {
-        try {
-            const ws = new WebSocket(relayUrl);
-
-            await new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    reject(new Error('Query timeout'));
-                }, budgetFor(deadlineAt));
-
-                ws.onopen = () => {
-                    const subscriptionId = `ochk_identity_${Date.now()}`;
-                    ws.send(
-                        JSON.stringify([
-                            'REQ',
-                            subscriptionId,
-                            {
-                                kinds: [30078],
-                                '#i': identityTags,
-                                limit: 10,
-                            },
-                        ])
-                    );
-                };
-
-                ws.onmessage = (msg) => {
-                    try {
-                        const data = JSON.parse(msg.data);
-                        if (data[0] === 'EVENT') {
-                            events.push(data[2]);
-                        } else if (data[0] === 'EOSE') {
-                            clearTimeout(timeout);
-                            ws.close();
-                            resolve();
-                        }
-                    } catch (err) {
-                        log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
-                    }
-                };
-
-                ws.onerror = (err) => {
-                    clearTimeout(timeout);
-                    log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
-                    reject(err);
-                };
-            });
-        } catch (err) {
-            log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
-        }
-    });
-
-    await Promise.allSettled(queryPromises);
-
-    log.info({ eventCount: events.length }, 'Query complete');
-
-    return events;
+    return querySubject({ kinds: [30078], '#i': identityTags }, relays, 'identity');
 }
 
 /**
@@ -686,7 +579,7 @@ function base64Url(text: string): string {
  * Only `message` and `signature` are signed. `address`, `identities`,
  * `issued_at`, `expires_at` and `message_b64url` are copies beside them, so
  * they are taken from the message here. Null when the message names no address
- * or no RFC 3339 `issued_at`.
+ * or no RFC 3339 `issued_at`, or signs any key twice.
  */
 export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelope | null {
     let parsed: ReturnType<typeof parseCanonicalMessage>;
@@ -696,6 +589,7 @@ export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelo
         return null;
     }
     if (!parsed.core.address || rfc3339Ms(parsed.core.issued_at) === null) return null;
+    if (parsed.repeated.length > 0) return null;
     const { expires_at: _copy, ...rest } = envelope;
     return {
         ...rest,

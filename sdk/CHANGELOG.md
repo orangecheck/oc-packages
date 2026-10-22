@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.16.2] — 2026-10-22
+
+### Changed
+
+- **A lookup by id, address or identity reads every event under the
+  subject's tag,** paged by `until`, up to 2,000 per relay, and the signatures
+  choose among them. A lookup by id reads every copy under the `d` tag.
+- **`check()` tries every candidate's signature,** newest signed `issued_at`
+  first, until one holds.
+- **A message that signs any key twice is refused:** `verify()` answers
+  `decode_error`, and discovery and `check()` leave it out (OC Attest SPEC
+  §2.2).
+
 ## [1.16.1] — 2026-10-22
 
 ### Changed
