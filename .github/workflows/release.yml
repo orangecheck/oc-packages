@@ -201,13 +201,22 @@ jobs:
               working-directory: ${{ steps.parse.outputs.dir }}
               run: yarn build
 
+            # A plain `npm publish` points `latest` at whatever published last,
+            # so a late or re-run release of an older version would take it from
+            # a newer one. Prereleases go to `next`; a version at or below the
+            # current `latest` goes to its own `v<major>.<minor>-line` tag.
+            - name: Choose the dist-tag
+              id: disttag
+              working-directory: ${{ steps.parse.outputs.dir }}
+              run: node "$GITHUB_WORKSPACE/scripts/dist-tag.mjs" "$(node -p "require('./package.json').name")" "${{ steps.parse.outputs.version }}"
+
             - name: Publish
               working-directory: ${{ steps.parse.outputs.dir }}
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               # `npm publish` is used because `yarn 1.x publish` prompts for
               # 2FA interactively and --provenance requires npm CLI + OIDC.
-              run: npm publish --access public --provenance
+              run: npm publish --access public --provenance --tag "${{ steps.disttag.outputs.tag }}"
 
             - name: Create GitHub Release notes
               uses: softprops/action-gh-release@v2

@@ -38,6 +38,19 @@ jobs:
                   node-version: '24'
             - run: node scripts/check-release-triggers.mjs
 
+    dist-tag:
+        # release.yml picks the npm dist-tag with scripts/dist-tag.mjs so that a
+        # late or re-run release never moves `latest` backwards. Its ordering
+        # has to be semver's, prereleases and 0.x included.
+        name: A release never moves latest backwards
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node scripts/check-dist-tag.mjs
+
     home-paths:
         # A /Users/<name>/ fallback sat in six test files of this public repo,
         # naming a person and working on one laptop only. Fail on any.
