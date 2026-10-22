@@ -212,43 +212,77 @@ describe("familyRevocationCheck", () => {
 describe("integratorRevocationCheck", () => {
   const PROJECT = "pk_live_abc123";
   const SECRET = "f".repeat(64);
+  const SITE = "https://site.example";
+  const WWW = "https://www.site.example";
   let seen: Array<{ url: string; headers: Headers }>;
+  let lists: Record<string, { v: 1; at: number; tokens: string[]; accounts: Record<string, number>; handles: Record<string, number> }>;
   const signedFetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     seen.push({ url: String(url), headers: new Headers(init?.headers) });
-    return Response.json(feed);
+    const aud = new URL(String(url)).searchParams.get("aud") ?? "";
+    return Response.json(lists[aud] ?? { v: 1, at: nowSec(), tokens: [], accounts: {}, handles: {} });
   }) as unknown as typeof fetch;
   const integrator = () =>
     integratorRevocationCheck({ projectKey: PROJECT, signingSecret: SECRET, fetch: signedFetch, now })!;
+  const pathFor = (aud: string) =>
+    `/api/integrator/revocations?project_key=${encodeURIComponent(PROJECT)}&aud=${encodeURIComponent(aud)}`;
+  const tok = (over: Record<string, unknown> = {}) => ({ ...session(), aud: SITE, rh: "rh-site", ...over });
 
   beforeEach(() => {
     seen = [];
+    lists = {
+      [SITE]: { v: 1, at: nowSec(), tokens: [], accounts: {}, handles: {} },
+      [WWW]: { v: 1, at: nowSec(), tokens: [], accounts: {}, handles: {} },
+    };
   });
 
-  it("asks me.ochk.io with a request signed by the project secret, and no feed token", async () => {
-    await integrator().status(session());
+  it("asks for the token's own audience, signed over method, path and aud", async () => {
+    await integrator().status(tok());
     expect(seen).toHaveLength(1);
-    const query = `project_key=${PROJECT}`;
-    expect(seen[0]!.url).toBe(`https://me.ochk.io/api/integrator/revocations?${query}`);
+    expect(seen[0]!.url).toBe(`https://me.ochk.io${pathFor(SITE)}`);
     const t = nowSec();
-    const mac = createHmac("sha256", SECRET).update(`${t}.${query}`).digest("hex");
+    const mac = createHmac("sha256", SECRET).update(`${t}.GET ${pathFor(SITE)}`).digest("hex");
     expect(seen[0]!.headers.get("x-oc-signature")).toBe(`t=${t},v1=${mac}`);
     expect(seen[0]!.headers.get("authorization")).toBeNull();
   });
 
-  it("refuses a session its account cutoff ends, and keeps one minted after it", async () => {
-    feed.accounts[await revocationKey("sub", SUB)] = nowSec() - 60;
-    const check = integrator();
-    expect(await check.refuses(session({ iat: nowSec() - 3600 }), "GET")).toBe(true);
-    expect(await check.refuses(session({ iat: nowSec() - 30 }), "POST")).toBe(false);
+  it("sends the token's aud exactly as it is, never normalised", async () => {
+    await integrator().status(tok({ aud: "https://Site.example" }));
+    expect(seen[0]!.url).toBe(`https://me.ochk.io${pathFor("https://Site.example")}`);
   });
 
-  it("signs each fetch afresh, so a copy refetched later carries a current timestamp", async () => {
+  it("refuses a session whose handle the list ends, and keeps one minted after the cutoff", async () => {
+    lists[SITE]!.handles = { "rh-site": nowSec() - 60 };
     const check = integrator();
-    await check.status(session());
-    clock += 61_000;
-    await check.status(session());
-    expect(seen).toHaveLength(2);
-    expect(seen[1]!.headers.get("x-oc-signature")).toMatch(new RegExp(`^t=${nowSec()},v1=[0-9a-f]{64}$`));
+    expect(await check.refuses(tok({ iat: nowSec() - 3600 }), "GET")).toBe(true);
+    expect(await check.refuses(tok({ iat: nowSec() - 30 }), "POST")).toBe(false);
+    expect(await check.refuses(tok({ iat: undefined }), "GET")).toBe(true);
+  });
+
+  it("refuses ended sessions from each origin of one site, with one check", async () => {
+    lists[SITE]!.handles = { "rh-site": nowSec() + 1 };
+    lists[WWW]!.handles = { "rh-www": nowSec() + 1 };
+    const check = integrator();
+    expect(await check.refuses(tok(), "GET")).toBe(true);
+    expect(await check.refuses(tok({ aud: WWW, rh: "rh-www" }), "GET")).toBe(true);
+    expect(new Set(seen.map((x) => new URL(x.url).searchParams.get("aud")))).toEqual(new Set([SITE, WWW]));
+  });
+
+  it("checks a token with no handle by its signature alone, and never fetches for it", async () => {
+    lists[SITE]!.handles = { "rh-site": nowSec() + 1 };
+    const check = integrator();
+    expect(await check.status(tok({ rh: undefined }))).toBe("live");
+    expect(await check.refuses(tok({ rh: undefined }), "POST")).toBe(false);
+    expect(seen).toHaveLength(0);
+  });
+
+  it("measures staleness from the list's own time: an old or future-dated list cannot vouch for a write", async () => {
+    lists[SITE]!.at = nowSec() - 11 * 60;
+    expect(await integrator().refuses(tok(), "POST")).toBe(true);
+    expect(await integrator().refuses(tok(), "GET")).toBe(false);
+    lists[SITE]!.at = nowSec() + 5 * 60;
+    expect(await integrator().refuses(tok(), "POST")).toBe(true);
+    lists[SITE]!.at = nowSec() + 30;
+    expect(await integrator().refuses(tok(), "POST")).toBe(false);
   });
 
   it("is null without a project key and secret, so an unconfigured site is never refused", () => {

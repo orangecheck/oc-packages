@@ -17,6 +17,9 @@ export interface RevocableClaims {
   jti?: unknown;
   sub?: unknown;
   iat?: unknown;
+  /** An audience-bound token's revocation handle, looked up in a list's `handles`. */
+  rh?: unknown;
+  aud?: unknown;
 }
 
 /**
@@ -50,6 +53,15 @@ export interface RevocationCheckOptions {
   ttlMs?: number;
   /** Past this age a copy cannot vouch for a write. Default 10 min. */
   maxStaleMs?: number;
+  /**
+   * What a copy's age is measured from: when this process fetched it
+   * (`"fetch"`, the default), or the list's own `at` (`"at"`), so a list
+   * that was already old when served is not taken for a fresh one. With
+   * `"at"`, a list dated more than `skewMs` ahead cannot vouch either.
+   */
+  staleFrom?: "fetch" | "at";
+  /** Clock difference tolerated between the list's `at` and this host. Default 60 s. */
+  skewMs?: number;
   /** One fetch's time limit. Default 3 s. */
   timeoutMs?: number;
   /** After a failed fetch, how long to wait before the next. Default 10 s. */
@@ -67,6 +79,9 @@ export interface RevocationCheckOptions {
 interface Snapshot {
   tokens: Set<string>;
   accounts: Map<string, number>;
+  handles: Map<string, number>;
+  /** The list's own time, unix seconds, when it says. */
+  at: number | null;
   fetchedAt: number;
 }
 
@@ -75,6 +90,7 @@ const DEFAULT_TTL_MS = 60_000;
 const DEFAULT_MAX_STALE_MS = 10 * 60_000;
 const DEFAULT_TIMEOUT_MS = 3_000;
 const DEFAULT_RETRY_MS = 10_000;
+const DEFAULT_SKEW_MS = 60_000;
 
 function env(name: string): string | undefined {
   return typeof process !== "undefined" ? process.env?.[name] : undefined;
@@ -99,7 +115,7 @@ export async function revocationKey(
 }
 
 function parseFeed(body: unknown, fetchedAt: number): Snapshot {
-  const b = body as { v?: unknown; tokens?: unknown; accounts?: unknown } | null;
+  const b = body as { v?: unknown; at?: unknown; tokens?: unknown; accounts?: unknown; handles?: unknown } | null;
   if (!b || b.v !== 1 || !Array.isArray(b.tokens) || typeof b.accounts !== "object" || !b.accounts) {
     throw new Error("revocation feed: unexpected body");
   }
@@ -109,7 +125,14 @@ function parseFeed(body: unknown, fetchedAt: number): Snapshot {
   for (const [k, v] of Object.entries(b.accounts as Record<string, unknown>)) {
     if (typeof v === "number" && Number.isFinite(v)) accounts.set(k, v);
   }
-  return { tokens, accounts, fetchedAt };
+  const handles = new Map<string, number>();
+  if (typeof b.handles === "object" && b.handles) {
+    for (const [k, v] of Object.entries(b.handles as Record<string, unknown>)) {
+      if (typeof v === "number" && Number.isFinite(v)) handles.set(k, v);
+    }
+  }
+  const at = typeof b.at === "number" && Number.isFinite(b.at) ? b.at : null;
+  return { tokens, accounts, handles, at, fetchedAt };
 }
 
 /**
@@ -124,6 +147,8 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   const signer = opts.headers;
   const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
   const maxStaleMs = opts.maxStaleMs ?? DEFAULT_MAX_STALE_MS;
+  const staleFrom = opts.staleFrom ?? "fetch";
+  const skewMs = opts.skewMs ?? DEFAULT_SKEW_MS;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const retryMs = opts.retryMs ?? DEFAULT_RETRY_MS;
   const developing = opts.developing ?? env("NODE_ENV") !== "production";
@@ -191,7 +216,21 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
         return "revoked";
       }
     }
-    return now() - snap.fetchedAt > maxStaleMs ? "unverified" : "live";
+    if (typeof claims.rh === "string" && snap.handles.size > 0) {
+      const cutoff = snap.handles.get(claims.rh);
+      if (cutoff !== undefined && !(typeof claims.iat === "number" && claims.iat >= cutoff)) {
+        return "revoked";
+      }
+    }
+    return tooOld(snap) ? "unverified" : "live";
+  }
+
+  function tooOld(snap: Snapshot): boolean {
+    const t = now();
+    if (staleFrom === "fetch") return t - snap.fetchedAt > maxStaleMs;
+    if (snap.at === null) return true;
+    const at = snap.at * 1000;
+    return at > t + skewMs || t - at > maxStaleMs;
   }
 
   return {
@@ -206,7 +245,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
 }
 
 export interface IntegratorRevocationOptions
-  extends Omit<RevocationCheckOptions, "url" | "token" | "headers" | "developing"> {
+  extends Omit<RevocationCheckOptions, "url" | "token" | "headers" | "developing" | "staleFrom"> {
   /** Default `OC_PROJECT_KEY`. */
   projectKey?: string;
   /** Default `OC_SIGNING_SECRET`. */
@@ -229,12 +268,19 @@ async function hmacHex(secret: string, data: string): Promise<string> {
 }
 
 /**
- * For an integrator's server: the account cutoffs (sign out everywhere, a
- * passkey removed, an account deleted) from me.ochk.io's
- * `/api/integrator/revocations`, fetched with a request signed by the project
- * secret, so a session the person ended everywhere is refused here too. Null
- * when the project key or secret is not set: a site that has not configured
- * it keeps verifying by signature alone rather than refusing writes.
+ * For an integrator's server: refuse a session the person ended everywhere
+ * (sign out everywhere, a passkey removed, the account deleted). A token from
+ * the sign-in popup carries `rh`, its revocation handle for its own audience;
+ * this looks it up in me.ochk.io's list of ended handles for that audience
+ * (`/api/integrator/revocations`), fetched at most once a minute per audience
+ * with a request signed by the project secret over method, path and audience.
+ * A token without `rh` is checked by its signature alone. Staleness is
+ * measured from the list's own `at`. Null when the project key or secret is
+ * not set: a site that has not configured it keeps verifying by signature
+ * alone rather than refusing writes.
+ *
+ * Call it with a session `verifyOcToken` has already accepted: the audience
+ * it looks up is the token's own `aud`, sent exactly as minted.
  */
 export function integratorRevocationCheck(
   opts: IntegratorRevocationOptions = {},
@@ -244,17 +290,36 @@ export function integratorRevocationCheck(
   const secret = (signingSecret ?? env("OC_SIGNING_SECRET"))?.trim();
   if (!projectKey || !secret) return null;
   const origin = (meOrigin ?? env("OC_ME_ORIGIN") ?? "https://me.ochk.io").replace(/\/$/, "");
-  const query = `project_key=${encodeURIComponent(projectKey)}`;
   const now = rest.now ?? Date.now;
-  return createRevocationCheck({
-    ...rest,
-    url: `${origin}/api/integrator/revocations?${query}`,
-    headers: async () => {
-      const t = Math.floor(now() / 1000);
-      return { "x-oc-signature": `t=${t},v1=${await hmacHex(secret, `${t}.${query}`)}` };
+  const lists = new Map<string, RevocationCheck>();
+  const listFor = (aud: string): RevocationCheck => {
+    let check = lists.get(aud);
+    if (!check) {
+      const path = `/api/integrator/revocations?project_key=${encodeURIComponent(projectKey)}&aud=${encodeURIComponent(aud)}`;
+      check = createRevocationCheck({
+        ...rest,
+        url: `${origin}${path}`,
+        headers: async () => {
+          const t = Math.floor(now() / 1000);
+          return { "x-oc-signature": `t=${t},v1=${await hmacHex(secret, `${t}.GET ${path}`)}` };
+        },
+        developing: false,
+        staleFrom: "at",
+      });
+      lists.set(aud, check);
+    }
+    return check;
+  };
+  const handled = (c: RevocableClaims): c is RevocableClaims & { rh: string; aud: string } =>
+    typeof c.rh === "string" && typeof c.aud === "string";
+  return {
+    async status(claims) {
+      return handled(claims) ? listFor(claims.aud).status(claims) : "live";
     },
-    developing: false,
-  });
+    async refuses(claims, method) {
+      return handled(claims) ? listFor(claims.aud).refuses(claims, method) : false;
+    },
+  };
 }
 
 const SHARED = Symbol.for("@orangecheck/auth-core/revocation-check/v1");

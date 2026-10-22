@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.12.0] — 2026-10-22
+
+### Changed — integrator revocation by per-audience handle
+
+- `integratorRevocationCheck` looks a token's `rh` (its revocation handle for its
+  own audience, minted by ochk.io) up in me.ochk.io's list of ended handles for
+  that audience, one list per audience the site's tokens carry. A token without
+  `rh` is checked by its signature alone. The request is signed over method,
+  path, project key and audience (`${t}.GET /api/integrator/revocations?project_key=…&aud=…`),
+  and the token's `aud` is sent exactly as minted.
+- The list's age is measured from its own `at`; one dated more than 60 s ahead,
+  or older than 10 minutes, cannot vouch for a write.
+- `RevocationCheckOptions.staleFrom` (`"fetch"` default, or `"at"`) and `skewMs`;
+  `RevocableClaims.rh` and `aud`; a list's optional `handles` map.
+
+### Deprecated
+
+- 2.11.0's integrator check. Use 2.12.0 or later: me.ochk.io answers the 2.11.0
+  request with an empty list.
+
 ## [2.11.0] — 2026-10-22
 
 ### Added — integrators honour sign-out everywhere
