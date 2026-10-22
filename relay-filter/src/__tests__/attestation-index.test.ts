@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@orangecheck/sdk', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@orangecheck/sdk')>()),
+    signatureIsValid: vi.fn(async ({ sig }: { sig: string }) => sig !== 'forged'),
     verify: vi.fn(),
     queryByIdentity: vi.fn(async () => []),
     queryByAddress: vi.fn(async () => []),
@@ -33,11 +34,18 @@ const [NPUB_A, HEX_A] = nostrIdentifierForms('7e7e9c42a91bfef19fa929e5fda1b72e0e
 const [NPUB_B, HEX_B] = nostrIdentifierForms('3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d');
 const STRANGER = 'c'.repeat(64);
 
-async function attestation(address: string, identities: IdentityBinding[]) {
-    const message = buildCanonicalMessage({ address, identities }, {}, { issuedAt: '2026-01-01T00:00:00Z' });
-    const env = await createAttestationEnvelope(message, 'sig', 'bip322', address, identities);
-    return createAttestationEvent(env, 'ab'.repeat(32));
+async function attestation(
+    address: string,
+    identities: IdentityBinding[],
+    issuedAt = '2026-01-01T00:00:00Z',
+    beside: { signature?: string; issued_at?: string } = {}
+) {
+    const message = buildCanonicalMessage({ address, identities }, {}, { issuedAt });
+    const env = await createAttestationEnvelope(message, beside.signature ?? 'sig', 'bip322', address, identities);
+    return createAttestationEvent({ ...env, ...beside }, 'ab'.repeat(32));
 }
+
+const readFor = () => vi.mocked(verify).mock.lastCall?.[0].msg ?? '';
 
 const ev = (pubkey: string, kind = 1) => ({ id: 'e'.repeat(64), pubkey, kind });
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -250,5 +258,49 @@ describe('handleLine (strfry wire format)', () => {
 
     it('answers nothing for lookback events', () => {
         expect(handleLine(JSON.stringify({ type: 'lookback', event: ev(STRANGER) }), index, {})).toBeNull();
+    });
+
+    it('reads the bond of the attestation the address signed last, not the one its envelope dates last', async () => {
+        bond(500_000);
+        const key = [{ protocol: 'nostr', identifier: NPUB_A! }];
+        index.ingest(await attestation(ADDR, key, '2025-01-01T00:00:00Z', { issued_at: '2099-01-01T00:00:00Z' }));
+        index.ingest(await attestation(ADDR, key, '2026-01-01T00:00:00Z'));
+        await flush();
+        await flush();
+        expect(readFor()).toContain('issued_at: 2026-01-01T00:00:00Z');
+    });
+
+    it('skips an attestation signed with a date ahead of now', async () => {
+        bond(500_000);
+        const key = [{ protocol: 'nostr', identifier: NPUB_A! }];
+        index.ingest(await attestation(ADDR, key, '2099-01-01T00:00:00Z'));
+        index.ingest(await attestation(ADDR, key, '2026-01-01T00:00:00Z'));
+        await flush();
+        await flush();
+        expect(readFor()).toContain('issued_at: 2026-01-01T00:00:00Z');
+    });
+
+    it('a newer copy whose signature does not hold is not the one read', async () => {
+        bond(500_000);
+        const key = [{ protocol: 'nostr', identifier: NPUB_A! }];
+        index.ingest(await attestation(ADDR, key, '2026-06-01T00:00:00Z', { signature: 'forged' }));
+        index.ingest(await attestation(ADDR, key, '2026-01-01T00:00:00Z'));
+        await flush();
+        await flush();
+        expect(readFor()).toContain('issued_at: 2026-01-01T00:00:00Z');
+        expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
+    });
+
+    it('only copies the address signed count toward a shared stake', async () => {
+        bond(500_000);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        index.ingest(
+            await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_B! }], '2026-02-01T00:00:00Z', {
+                signature: 'forged',
+            })
+        );
+        await flush();
+        await flush();
+        expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
     });
 });

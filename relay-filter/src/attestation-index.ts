@@ -9,6 +9,7 @@ import {
     parseIdentities,
     queryByAddress,
     queryByIdentity,
+    signatureIsValid,
     verify,
 } from '@orangecheck/sdk';
 
@@ -22,6 +23,9 @@ const WARMUP_MS = 10_000;
 const MAX_LOOKUPS_IN_FLIGHT = 4;
 const LOOKUP_AGAIN_AFTER_MS = 10 * 60_000;
 const MAX_LOOKUPS_REMEMBERED = 10_000;
+// A signed issued_at further ahead of this clock is not valid yet (OC Attest SPEC §7.2).
+const ISSUED_AHEAD_MS = 120_000;
+const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 interface Attestation {
     id: string;
@@ -70,7 +74,7 @@ export function parseAttestationEvent(event: {
     } catch {
         return null;
     }
-    const { attestation_id: id, address, message, signature, scheme, issued_at } = env;
+    const { attestation_id: id, address, message, signature, scheme } = env;
     if (typeof id !== 'string' || typeof address !== 'string' || typeof message !== 'string') return null;
     if (typeof signature !== 'string' || (scheme !== 'bip322' && scheme !== 'legacy')) return null;
     if (createHash('sha256').update(message).digest('hex') !== id) return null;
@@ -89,7 +93,10 @@ export function parseAttestationEvent(event: {
     } catch {
         return null;
     }
-    const issuedAt = Date.parse(typeof issued_at === 'string' ? issued_at : '') || 0;
+    // The issue time the address signed, not the envelope's copy of it.
+    const issued = signedLine(message, 'issued_at') ?? '';
+    const issuedAt = RFC3339.test(issued) ? Date.parse(issued) : NaN;
+    if (Number.isNaN(issuedAt)) return null;
     return { id, address, message, signature, scheme, issuedAt, keys: [...new Set(keys)] };
 }
 
@@ -100,8 +107,13 @@ export function parseAttestationEvent(event: {
  * the background every `refreshMs`, which bounds how long a spent bond keeps
  * passing (SECURITY.md §2, chain finality).
  */
+/** One copy of an attestation: copies of one id may carry different signatures. */
+const copyKey = (a: Attestation) => `${a.id}:${a.scheme}:${a.signature}`;
+
 export class AttestationIndex {
     private readonly byId = new Map<string, Attestation>();
+    /** Whether each copy's signature verifies; a copy that does not counts for nothing. */
+    private readonly signed = new Map<string, boolean>();
     private readonly bonds = new Map<string, Bond>();
     /** Signature verified, but the chain API has not answered yet for this address. */
     private readonly chainDown = new Set<string>();
@@ -134,9 +146,9 @@ export class AttestationIndex {
     /** Add one attestation event. Returns true if it was new and sound. */
     ingest(event: { tags?: string[][]; content?: string }): boolean {
         const att = parseAttestationEvent(event);
-        if (!att || att.keys.length === 0 || this.byId.has(att.id)) return false;
+        if (!att || att.keys.length === 0 || this.byId.has(copyKey(att))) return false;
         const newAddress = ![...this.byId.values()].some((a) => a.address === att.address);
-        this.byId.set(att.id, att);
+        this.byId.set(copyKey(att), att);
         // Everything this address signed, marker or not, so a second key it backs is seen.
         if (newAddress) {
             void queryByAddress(att.address, this.options.relays ?? DEFAULT_RELAYS)
@@ -269,17 +281,33 @@ export class AttestationIndex {
             .finally(() => this.lookupsInFlight--);
     }
 
+    /** The keys this address signed for. Only the address's own signature counts. */
     private keysFor(address: string): Set<string> {
         const keys = new Set<string>();
-        for (const a of this.byId.values()) if (a.address === address) a.keys.forEach((k) => keys.add(k));
+        for (const a of this.byId.values()) {
+            if (a.address === address && this.signed.get(copyKey(a))) a.keys.forEach((k) => keys.add(k));
+        }
         return keys;
     }
 
+    /** Newest signed issued_at first, none dated ahead of this clock (OC Attest SPEC §7.2). */
+    private candidates(address: string): Attestation[] {
+        const latest = Date.now() + ISSUED_AHEAD_MS;
+        return [...this.byId.values()]
+            .filter((a) => a.address === address && a.issuedAt <= latest)
+            .sort((a, b) => b.issuedAt - a.issuedAt || (a.id < b.id ? -1 : 1));
+    }
+
     private async refresh(address: string): Promise<void> {
-        let latest: Attestation | undefined;
-        for (const a of this.byId.values()) {
-            if (a.address === address && (!latest || a.issuedAt > latest.issuedAt)) latest = a;
+        const list = this.candidates(address);
+        // Each copy's signature is checked once; a known answer costs no wait.
+        for (const a of list) {
+            const key = copyKey(a);
+            if (this.signed.has(key)) continue;
+            this.signed.set(key, await signatureIsValid({ addr: a.address, msg: a.message, sig: a.signature, scheme: a.scheme }));
         }
+        // The newest the address signed; with none, the newest, so its bond reads as invalid.
+        const latest = list.find((a) => this.signed.get(copyKey(a))) ?? list[0];
         if (!latest) return;
         const cover = this.cover;
         try {

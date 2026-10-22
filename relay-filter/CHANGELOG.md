@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.2] — 2026-10-21
+
+### Changed
+
+- **`AttestationIndex` reads an attestation's issue time from its signed
+  message**, as in OC Attest SPEC §5.3, and reads each address's bond from
+  the attestation it signed last (SPEC §7.2): newest signed `issued_at`, none
+  dated more than two minutes ahead, the first whose signature verifies.
+- **Only attestations an address signed count toward `stake_shared`.** Each
+  copy's signature is checked once, off the write path; copies of one id that
+  carry different signatures are held apart.
+- `@orangecheck/sdk` is required at `^1.15.0`, for `signatureIsValid`.
+
 ## [0.5.1] — 2026-10-19
 
 ### Fixed
