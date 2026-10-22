@@ -40,7 +40,7 @@ function fakeRelay(store: Ev[]) {
 }
 
 function attestation(n: number, created_at: number, message?: string): Ev {
-    const msg = `orangecheck\naddress: bc1qaddr${n}\nnonce: ${n}`;
+    const msg = `orangecheck\naddress: bc1qaddr${n}\nnonce: ${n}\nissued_at: ${new Date(created_at * 1000).toISOString()}`;
     const id = createHash('sha256').update(msg).digest('hex');
     const envelope = {
         attestation_id: id,

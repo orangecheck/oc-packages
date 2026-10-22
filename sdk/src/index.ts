@@ -28,7 +28,7 @@
 // ─── The three load-bearing exports ────────────────────────────────────────
 export { check } from './check';
 export type { CheckParams, CheckResult } from './check';
-export { verify } from './verify';
+export { signatureIsValid, verify } from './verify';
 export { createAttestation } from './attestation';
 export { nostrIdentifierForms, nostrPubkeyToHex } from './nostr-pubkey';
 
@@ -110,6 +110,7 @@ export {
     queryByAttestationId,
     queryByIdentity,
     queryRecent,
+    signedEnvelope,
 } from './nostr';
 export {
     getNip07Info,

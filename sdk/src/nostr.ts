@@ -8,6 +8,8 @@ import type { AttestationEnvelope, IdentityBinding, NostrEvent } from './types';
 
 import { nostrIdentifierForms } from './nostr-pubkey';
 import { createLogger } from './utils/logger';
+import { rfc3339Ms } from './utils/time';
+import { parseCanonicalMessage, signatureIsValid } from './verify';
 
 const log = createLogger('ocp/nostr');
 
@@ -646,15 +648,7 @@ export async function queryRecent(
 
     await Promise.allSettled(queryPromises);
 
-    const seen = new Set<string>();
-    const envelopes: AttestationEnvelope[] = [];
-    for (const ev of events) {
-        const envelope = parseAttestationFromEvent(ev);
-        if (!envelope || seen.has(envelope.attestation_id)) continue;
-        if (!(await verifyAttestationEnvelope(envelope))) continue;
-        seen.add(envelope.attestation_id);
-        envelopes.push(envelope);
-    }
+    const envelopes = await collectSignedEnvelopes(events);
 
     log.info({ eventCount: events.length, unique: envelopes.length }, 'Recent query complete');
 
@@ -679,6 +673,79 @@ export async function verifyAttestationEnvelope(envelope: AttestationEnvelope): 
         log.error({ error: err }, 'Failed to verify attestation envelope');
         return false;
     }
+}
+
+function base64Url(text: string): string {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+/**
+ * The envelope with every field the signature covers read from its message.
+ *
+ * Only `message` and `signature` are signed. `address`, `identities`,
+ * `issued_at`, `expires_at` and `message_b64url` are copies beside them, so
+ * they are taken from the message here. Null when the message names no address
+ * or no RFC 3339 `issued_at`.
+ */
+export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelope | null {
+    let parsed: ReturnType<typeof parseCanonicalMessage>;
+    try {
+        parsed = parseCanonicalMessage(envelope.message);
+    } catch {
+        return null;
+    }
+    if (!parsed.core.address || rfc3339Ms(parsed.core.issued_at) === null) return null;
+    const { expires_at: _copy, ...rest } = envelope;
+    return {
+        ...rest,
+        address: parsed.core.address,
+        identities: parsed.core.identities,
+        issued_at: parsed.core.issued_at,
+        ...(parsed.expires !== undefined ? { expires_at: parsed.expires } : {}),
+        message_b64url: base64Url(envelope.message),
+    };
+}
+
+/**
+ * One envelope per attestation id, its fields read from its signed message.
+ *
+ * Anyone can publish a copy of an attestation under their own Nostr key, with
+ * any signature beside the message. When copies of one id disagree on the
+ * signature, the first whose signature is valid is kept.
+ */
+export async function collectSignedEnvelopes(
+    events: NostrEvent[],
+    accept: (event: NostrEvent, envelope: AttestationEnvelope) => boolean = () => true
+): Promise<AttestationEnvelope[]> {
+    const copies = new Map<string, AttestationEnvelope[]>();
+    for (const event of events) {
+        const raw = parseAttestationFromEvent(event);
+        if (!raw || !(await verifyAttestationEnvelope(raw))) continue;
+        const envelope = signedEnvelope(raw);
+        if (!envelope || !accept(event, envelope)) continue;
+        const same = copies.get(envelope.attestation_id) ?? [];
+        if (!same.some((e) => e.signature === envelope.signature && e.scheme === envelope.scheme)) {
+            same.push(envelope);
+        }
+        copies.set(envelope.attestation_id, same);
+    }
+    const kept: AttestationEnvelope[] = [];
+    for (const same of copies.values()) {
+        if (same.length === 1) {
+            kept.push(same[0]!);
+            continue;
+        }
+        let valid: AttestationEnvelope | undefined;
+        for (const e of same) {
+            if (await signatureIsValid({ addr: e.address, msg: e.message, sig: e.signature, scheme: e.scheme })) {
+                valid = e;
+                break;
+            }
+        }
+        kept.push(valid ?? same[0]!);
+    }
+    return kept;
 }
 
 /**

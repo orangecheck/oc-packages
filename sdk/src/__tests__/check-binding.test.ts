@@ -18,6 +18,7 @@ vi.mock('../verify', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../verify')>();
     return {
         ...actual,
+        signatureIsValid: vi.fn(async ({ sig }: { sig: string }) => sig !== 'forged'),
         verify: vi.fn(async ({ addr }: { addr: string }) => ({
             ok: true,
             codes: ['sig_ok_bip322', 'bond_confirmed'],

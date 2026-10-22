@@ -24,6 +24,7 @@ import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 import { generateAttestationId, parseIdentities } from './canonical';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
+import { rfc3339Ms } from './utils/time';
 
 const log = createLogger('ocp/verify');
 
@@ -199,6 +200,16 @@ async function verifySignature({
     return 'invalid_scheme';
 }
 
+/** True when `sig` is a valid signature by `addr` over `msg`; no chain lookup. */
+export async function signatureIsValid(input: SignatureVerifyInput): Promise<boolean> {
+    try {
+        const code = await verifySignature(input);
+        return code === 'sig_ok_bip322' || code === 'sig_ok_legacy';
+    } catch {
+        return false;
+    }
+}
+
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)
 export function parseCanonicalMessage(msg: string) {
     const lines = msg.split('\n').map((l) => l.trim());
@@ -216,6 +227,9 @@ export function parseCanonicalMessage(msg: string) {
 
     const address = getVal('address') || '';
     const identitiesStr = getVal('identities') || '';
+    const issued_at = getVal('issued_at') || '';
+    // Present but empty is kept as '', so a reader can refuse it rather than skip it.
+    const expires = getVal('expires');
 
     // Parse identities
     let identities: IdentityBinding[] = [];
@@ -251,7 +265,8 @@ export function parseCanonicalMessage(msg: string) {
     const bond = bondStr ? parseInt(bondStr, 10) : undefined;
 
     return {
-        core: { address, identities },
+        core: { address, identities, issued_at },
+        expires,
         network,
         extensions,
         bond: bond !== undefined && !isNaN(bond) && bond > 0 ? bond : undefined,
@@ -535,10 +550,11 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             }
         }
 
-        // Check message expiration
-        if (parsed.extensions['expires']) {
-            const exp = Date.parse(parsed.extensions['expires']);
-            if (!Number.isNaN(exp) && exp < Date.now()) {
+        // Check message expiration. An expiry that is not an RFC 3339 time is
+        // refused as expired: nothing shows it lies ahead.
+        if (parsed.expires !== undefined) {
+            const exp = rfc3339Ms(parsed.expires);
+            if (exp === null || exp < Date.now()) {
                 codes.push('expired');
                 return { ok: false, codes, network, attestation_id };
             }

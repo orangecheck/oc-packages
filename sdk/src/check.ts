@@ -17,9 +17,15 @@ import {
     getAttestationsForAddress,
     getAttestationsForIdentity,
 } from './attestation';
-import { DEFAULT_RELAYS } from './nostr';
+import { DEFAULT_RELAYS, signedEnvelope } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
-import { parseCanonicalMessage, verify } from './verify';
+import { rfc3339Ms } from './utils/time';
+import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
+
+/** How far ahead of this clock a signed issued_at may be and still count. */
+const ISSUED_AHEAD_MS = 120_000;
+/** Candidates whose signatures are tried before the newest is taken as is. */
+const MAX_CANDIDATES = 20;
 
 export interface CheckParams {
     /** Bitcoin address to look up. */
@@ -83,18 +89,30 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         found = await getAttestationsForIdentity(identity.protocol, identity.identifier, relays);
     }
 
-    // Relays match on unsigned tags. Keep only envelopes whose signed message
-    // says what was asked, or anyone could re-tag a stranger's attestation.
-    const envelopes = found.filter((e) => signedMatch(e, { addr, id, identity }));
+    // Every field used, ordered by or returned comes from the signed message.
+    // Relays match on unsigned tags, so keep only envelopes whose message says
+    // what was asked; one dated ahead of now is not valid yet.
+    const latest = Date.now() + ISSUED_AHEAD_MS;
+    const envelopes = found
+        .map(signedEnvelope)
+        .filter((e): e is AttestationEnvelope => e !== null)
+        .filter((e) => signedMatch(e, { addr, id, identity }))
+        .map((e) => ({ e, at: rfc3339Ms(e.issued_at)! }))
+        .filter(({ at }) => at <= latest)
+        // Newest signed issued_at first; the id breaks a tie the same way everywhere.
+        .sort((a, b) => b.at - a.at || (a.e.attestation_id < b.e.attestation_id ? -1 : 1))
+        .map(({ e }) => e);
     if (envelopes.length === 0) {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['not_found'] };
     }
 
-    // Prefer most recent.
-    envelopes.sort((a, b) => new Date(b.issued_at).getTime() - new Date(a.issued_at).getTime());
-    const env = envelopes[0];
-    if (!env) {
-        return { ok: false, sats: 0, days: 0, score: 0, reasons: ['not_found'] };
+    // The newest whose signature holds (SPEC §7.2).
+    let env = envelopes[0]!;
+    for (const candidate of envelopes.slice(0, MAX_CANDIDATES)) {
+        if (await signedBy(candidate)) {
+            env = candidate;
+            break;
+        }
     }
 
     // SECURITY.md §3: one address, one bond. An address that also backs a
@@ -130,7 +148,7 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         score,
         attestation_id: env.attestation_id,
         address: env.address,
-        identities: env.identities,
+        identities: signedIdentities(env),
         network: outcome.network,
         ...(reasons.length ? { reasons } : {}),
     };
@@ -175,6 +193,10 @@ function signedMatch(
     return false;
 }
 
+function signedBy(e: AttestationEnvelope): Promise<boolean> {
+    return signatureIsValid({ addr: e.address, msg: e.message, sig: e.signature, scheme: e.scheme });
+}
+
 async function backsOtherIdentity(
     env: AttestationEnvelope,
     identity: Identity,
@@ -185,10 +207,11 @@ async function backsOtherIdentity(
     const siblings = await getAttestationsForAddress(env.address, relays);
     for (const e of [env, ...siblings]) {
         if (!signedMatch(e, { addr: env.address })) continue;
-        for (const b of signedIdentities(e)) {
-            if (b.protocol.trim().toLowerCase() !== protocol) continue;
-            if (identityKey(b) !== want) return true;
-        }
+        const other = signedIdentities(e).some(
+            (b) => b.protocol.trim().toLowerCase() === protocol && identityKey(b) !== want
+        );
+        // Only the address's own signature can lend its stake to another identity.
+        if (other && (e === env || (await signedBy(e)))) return true;
     }
     return false;
 }

@@ -8,9 +8,9 @@ import type { AttestationEnvelope, IdentityBinding, NostrEvent, Scheme } from '.
 
 import { createAttestationEnvelope } from './canonical';
 import {
+    collectSignedEnvelopes,
     createAttestationEvent,
     DEFAULT_RELAYS,
-    parseAttestationFromEvent,
     publishToRelays,
     queryByAddress,
     queryByAttestationId,
@@ -235,29 +235,14 @@ export async function discoverAttestations(
         throw new Error('Must provide attestationId, address, or identity');
     }
 
-    // Parse and verify envelopes. Every relay holding an attestation returns it,
-    // and its id is the hash of its message, so keep the first valid copy of each.
-    const envelopes: AttestationEnvelope[] = [];
-    const kept = new Set<string>();
-    for (const event of events) {
-        const envelope = parseAttestationFromEvent(event);
-        if (envelope && kept.has(envelope.attestation_id)) continue;
-        if (envelope && !eventIndexesEnvelope(event, envelope)) {
-            log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
-        } else if (envelope) {
-            // Verify envelope integrity
-            const isValid = await verifyAttestationEnvelope(envelope);
-            if (isValid) {
-                kept.add(envelope.attestation_id);
-                envelopes.push(envelope);
-            } else {
-                log.warn(
-                    { attestationId: envelope.attestation_id },
-                    'Skipping invalid attestation envelope'
-                );
-            }
-        }
-    }
+    // Every relay holding an attestation returns it. One envelope per id, its
+    // fields read from the signed message, and only where the relay's index tags
+    // agree with it.
+    const envelopes = await collectSignedEnvelopes(events, (event, envelope) => {
+        if (eventIndexesEnvelope(event, envelope)) return true;
+        log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
+        return false;
+    });
 
     log.info({ eventCount: events.length, validCount: envelopes.length }, 'Discovery complete');
 

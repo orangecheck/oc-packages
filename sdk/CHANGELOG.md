@@ -7,6 +7,31 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.15.0] — 2026-10-21
+
+### Changed
+
+- **Signed fields only.** `check()`, `discoverAttestations()` and
+  `queryRecent()` read `address`, `identities`, `issued_at` and `expires_at`
+  from the signed message (OC Attest SPEC §5.3). The envelope's copies of those
+  fields are not used, and `message_b64url` is re-encoded from the message.
+- **`check()` takes the newest attestation whose signature holds,** ordered by
+  its signed `issued_at`. An `issued_at` more than two minutes ahead of the
+  verifier's clock is not valid yet. Only attestations the address signed count
+  toward `stake_shared`.
+- **Discovery keeps one envelope per id;** where copies of one id carry
+  different signatures, the first whose signature holds.
+- **`verify()` treats an `expires` value that is not an RFC 3339 date-time as
+  expired.**
+
+### Added
+
+- `signedEnvelope(envelope)`: the envelope with its signed fields read from its
+  message, or null when the message names no address or no RFC 3339
+  `issued_at`.
+- `signatureIsValid({ addr, msg, sig, scheme })`: the signature check alone,
+  with no chain lookup.
+
 ## [1.14.1] — 2026-10-21
 
 ### Fixed
