@@ -21,7 +21,10 @@ import respx
 
 import orangecheck.integrator as integrator
 from orangecheck import (
+    BondRequired,
     InvalidSession,
+    SignInPolicy,
+    bond_meets,
     InvalidWebhook,
     RevocationList,
     SessionEnded,
@@ -283,3 +286,95 @@ def test_verify_session_keeps_reads_refuses_writes_and_warns_once_while_the_list
         assert err.value.reason == "revocations_unavailable"
     warnings = [r for r in caplog.records if r.name == "orangecheck" and r.levelname == "WARNING"]
     assert len(warnings) == 1
+
+
+# ─── who may sign in (coin backing) ──────────────────────────────────────
+
+B = V["bond"]
+
+
+@pytest.mark.parametrize("v", B, ids=lambda v: v["name"])
+def test_bond_meets_as_the_node_sdk_decides(v: dict[str, Any]) -> None:
+    claims = {"sub": "s", "did_oc": "d", "jti": "j", **({"oc_bond": v["bond"]} if v["bond"] else {})}
+    need = v["need"]
+    assert bond_meets(claims, min_sats=need.get("min_sats", 0), min_days=need.get("min_days", 0),
+                      max_age_secs=need.get("max_age_secs")) is v["meets"]
+
+
+def _bond_vector() -> dict[str, Any]:
+    return next(v for v in V["session"]["valid"] if v["name"] == "backed by a coin (a complete claim)")
+
+
+def test_verify_session_require_bond_refuses_an_unbacked_or_short_account() -> None:
+    plain = V["session"]["valid"][0]
+    with pytest.raises(BondRequired) as err:
+        verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], require_bond={"min_sats": 1000})
+    assert isinstance(err.value, InvalidSession)
+    assert err.value.reason == "bond_required"
+    assert err.value.need == {"min_sats": 1000, "min_days": 0}
+    assert err.value.have is None
+    assert err.value.back_url == "https://ochk.app/me/account#backing"
+    backed = _bond_vector()
+    s = verify_session(backed["token"], backed["audience"], jwks=V["session"]["jwks"], require_bond={"min_sats": 100000})
+    assert s.oc_bond is not None
+
+
+SIGN_IN = "https://me.ochk.io/api/integrator/pk_test_tv/sign-in"
+
+
+@respx.mock
+def test_sign_in_policy_reads_the_project_requirement_once_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": {"min_sats": 100000, "min_days": 30}}))
+    policy = SignInPolicy("pk_test_tv")
+    plain = V["session"]["valid"][0]
+    with pytest.raises(BondRequired) as err:
+        verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=policy)
+    assert err.value.need == {"min_sats": 100000, "min_days": 30}
+    backed = _bond_vector()
+    assert verify_session(backed["token"], backed["audience"], jwks=V["session"]["jwks"], policy=policy).sub
+    assert route.call_count == 1
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    policy.requirement()
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_sign_in_policy_with_no_requirement_admits_everyone() -> None:
+    respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": None}))
+    plain = V["session"]["valid"][0]
+    assert verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=SignInPolicy("pk_test_tv")).sub
+
+
+@respx.mock
+def test_require_bond_in_code_wins_over_the_project_policy() -> None:
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(200, json={"require_bond": {"min_sats": 10000000, "min_days": 365}}))
+    backed = _bond_vector()
+    s = verify_session(backed["token"], backed["audience"], jwks=V["session"]["jwks"],
+                       policy=SignInPolicy("pk_test_tv"), require_bond={"min_sats": 1000})
+    assert s.sub
+    assert route.call_count == 0
+
+
+@respx.mock
+def test_an_unknown_project_or_an_unreadable_policy_refuses_rather_than_admits() -> None:
+    plain = V["session"]["valid"][0]
+    respx.get("https://me.ochk.io/api/integrator/pk_test_nope/sign-in").mock(return_value=httpx.Response(404))
+    with pytest.raises(InvalidSession) as err:
+        verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=SignInPolicy("pk_test_nope"))
+    assert err.value.reason == "unknown_project_key"
+    respx.get(SIGN_IN).mock(return_value=httpx.Response(503))
+    with pytest.raises(InvalidSession) as err2:
+        verify_session(plain["token"], plain["audience"], jwks=V["session"]["jwks"], policy=SignInPolicy("pk_test_tv"))
+    assert err2.value.reason == "bond_policy_unavailable"
+
+
+@respx.mock
+def test_the_last_requirement_read_stands_through_an_outage(monkeypatch: pytest.MonkeyPatch) -> None:
+    respx.get(SIGN_IN).mock(side_effect=[
+        httpx.Response(200, json={"require_bond": {"min_sats": 100000, "min_days": 30}}),
+        httpx.Response(503),
+    ])
+    policy = SignInPolicy("pk_test_tv")
+    assert policy.requirement() == {"min_sats": 100000, "min_days": 30}
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    assert policy.requirement() == {"min_sats": 100000, "min_days": 30}

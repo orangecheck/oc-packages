@@ -68,6 +68,20 @@ const sessionVectors = {
     valid: [
         { name: 'bound to this site', token: good, audience: SITE, claims: drop(base, 'iss') },
         {
+            name: 'backed by a coin (a complete claim)',
+            token: await jwt({
+                ...base,
+                jti: 'tv-jti-bond',
+                oc_bond: { v: 1, sats_floor: 100000, days_floor: 30, height: 900000, checked_at: NOW - 60, nullifier: 'ab'.repeat(32) },
+            }),
+            audience: SITE,
+            claims: {
+                ...drop(base, 'iss'),
+                jti: 'tv-jti-bond',
+                oc_bond: { v: 1, sats_floor: 100000, days_floor: 30, height: 900000, checked_at: NOW - 60, nullifier: 'ab'.repeat(32) },
+            },
+        },
+        {
             name: 'carries a revocation handle',
             token: await jwt({ ...base, jti: 'tv-jti-rh', rh: 'tv-rh-0001' }),
             audience: SITE,
@@ -214,6 +228,21 @@ const revocationVectors = {
     ],
 };
 
+// Who may sign in (auth-core bondMeets, sdk-py bond_meets): a token's coin
+// backing claim against a requirement, at the clock both suites set (NOW).
+const BOND = { v: 1, sats_floor: 100000, days_floor: 30, height: 900000, checked_at: NOW - 60, nullifier: 'ab'.repeat(32) };
+const bondVectors = [
+    { name: 'floors met (50k sats, 30 days)', bond: BOND, need: { min_sats: 50000, min_days: 30 }, meets: true },
+    { name: 'no requirement but a bond', bond: BOND, need: {}, meets: true },
+    { name: 'sats floor short', bond: BOND, need: { min_sats: 1000000 }, meets: false },
+    { name: 'days floor short', bond: BOND, need: { min_days: 90 }, meets: false },
+    { name: 'checked too long ago', bond: BOND, need: { max_age_secs: 30 }, meets: false },
+    { name: 'checked recently enough', bond: BOND, need: { max_age_secs: 120 }, meets: true },
+    { name: 'no bond at all', bond: null, need: {}, meets: false },
+    { name: 'malformed nullifier', bond: { ...BOND, nullifier: 'nope' }, need: {}, meets: false },
+    { name: 'wrong version', bond: { ...BOND, v: 2 }, need: {}, meets: false },
+];
+
 const doc = {
     description:
         'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and revocation handles. ' +
@@ -224,6 +253,7 @@ const doc = {
     event: eventVectors,
     webhook: webhookVectors,
     revocation: revocationVectors,
+    bond: bondVectors,
 };
 writeFileSync(OUT, JSON.stringify(doc, null, 4) + '\n');
 console.log(`wrote ${OUT}`);

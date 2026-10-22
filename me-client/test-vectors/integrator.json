@@ -40,6 +40,27 @@
                 }
             },
             {
+                "name": "backed by a coin (a complete claim)",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktYm9uZCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzAsImhlaWdodCI6OTAwMDAwLCJjaGVja2VkX2F0IjoxNzk5OTk5OTQwLCJudWxsaWZpZXIiOiJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn0sImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.zPLUAPJ8wwILZtrqSrA-gRs9UBLA1KxXVdcKSzKXw6DxBmZ_GmjWfcd0ZJSK3FwaVwY3DQZljgPPl-OE-ykQDQ",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-bond",
+                    "iat": 1799999940,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example",
+                    "oc_bond": {
+                        "v": 1,
+                        "sats_floor": 100000,
+                        "days_floor": 30,
+                        "height": 900000,
+                        "checked_at": 1799999940,
+                        "nullifier": "abababababababababababababababababababababababababababababababab"
+                    }
+                }
+            },
+            {
                 "name": "carries a revocation handle",
                 "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktcmgiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJ0di1yaC0wMDAxIiwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.FJILjGMfYrqR-NCJZB9WVt_rbgIwGgmlWdes6dLJ9Kwb-hD0v0fE3KVQrHcu_qrGVjNvmTaMpqAop_-nWZE-BA",
                 "audience": "https://soniq.example",
@@ -392,5 +413,128 @@
                 "canonical": false
             }
         ]
-    }
+    },
+    "bond": [
+        {
+            "name": "floors met (50k sats, 30 days)",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {
+                "min_sats": 50000,
+                "min_days": 30
+            },
+            "meets": true
+        },
+        {
+            "name": "no requirement but a bond",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {},
+            "meets": true
+        },
+        {
+            "name": "sats floor short",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {
+                "min_sats": 1000000
+            },
+            "meets": false
+        },
+        {
+            "name": "days floor short",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {
+                "min_days": 90
+            },
+            "meets": false
+        },
+        {
+            "name": "checked too long ago",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {
+                "max_age_secs": 30
+            },
+            "meets": false
+        },
+        {
+            "name": "checked recently enough",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {
+                "max_age_secs": 120
+            },
+            "meets": true
+        },
+        {
+            "name": "no bond at all",
+            "bond": null,
+            "need": {},
+            "meets": false
+        },
+        {
+            "name": "malformed nullifier",
+            "bond": {
+                "v": 1,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "nope"
+            },
+            "need": {},
+            "meets": false
+        },
+        {
+            "name": "wrong version",
+            "bond": {
+                "v": 2,
+                "sats_floor": 100000,
+                "days_floor": 30,
+                "height": 900000,
+                "checked_at": 1799999940,
+                "nullifier": "abababababababababababababababababababababababababababababababab"
+            },
+            "need": {},
+            "meets": false
+        }
+    ]
 }

@@ -79,21 +79,36 @@ export interface SignInWithOcOptions {
 }
 
 /**
- * Open the OC signin popup and resolve with the session result. Returns
- * `null` if the user closed the popup without completing signin, or if
- * the AbortSignal fired.
+ * How a sign-in popup ended:
+ *   - `signed_in` · the person signed in; `account` and `token` as from signInWithOc.
+ *   - `blocked`   · the browser refused to open the window. Ask the person to
+ *                   allow pop-ups for your site, then try again from a click.
+ *   - `closed`    · the person closed the window without signing in.
+ *   - `aborted`   · your AbortSignal fired.
+ *   - `failed`    · not in a browser, or the popup's answer was malformed.
+ */
+export type OcPopupOutcome =
+    | ({ status: 'signed_in' } & OcPopupResult)
+    | { status: 'blocked' }
+    | { status: 'closed' }
+    | { status: 'aborted' }
+    | { status: 'failed' };
+
+/**
+ * Open the OC signin popup and resolve with how it ended (OcPopupOutcome),
+ * so a blocked window and a closed one can be told apart.
  *
  * MUST be called inside a user-gesture handler (e.g. a button onClick).
  * Browsers block `window.open` outside of user gestures.
  */
-export function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopupResult | null> {
+export function signInWithOcOutcome(options: SignInWithOcOptions = {}): Promise<OcPopupOutcome> {
     const popupOrigin = options.popupOrigin ?? DEFAULT_POPUP_ORIGIN;
     const popupPath = options.popupPath ?? DEFAULT_POPUP_PATH;
     const features = options.features ?? DEFAULT_FEATURES;
 
     return new Promise((resolve) => {
         if (typeof window === 'undefined') {
-            resolve(null);
+            resolve({ status: 'failed' });
             return;
         }
 
@@ -101,9 +116,7 @@ export function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopup
         url.searchParams.set('opener_origin', window.location.origin);
         const popup = window.open(url.toString(), 'oc-signin', features);
         if (!popup) {
-            // Popup blocked. Caller can detect a null result and fall
-            // back to a full-page redirect if desired.
-            resolve(null);
+            resolve({ status: 'blocked' });
             return;
         }
         popup.focus();
@@ -115,7 +128,7 @@ export function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopup
             if (options.signal) options.signal.removeEventListener('abort', onAbort);
         };
 
-        function settle(value: OcPopupResult | null) {
+        function settle(value: OcPopupOutcome) {
             if (settled) return;
             settled = true;
             cleanup();
@@ -139,29 +152,42 @@ export function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopup
                 | null;
             if (!data || data.type !== 'oc-signin-success') return;
             if (!data.account || !data.token) {
-                // Malformed payload — treat as not-signed-in.
-                settle(null);
+                settle({ status: 'failed' });
                 return;
             }
-            settle({ account: data.account, token: data.token });
+            settle({ status: 'signed_in', account: data.account, token: data.token });
         }
 
         function onAbort() {
-            settle(null);
+            settle({ status: 'aborted' });
         }
 
         window.addEventListener('message', onMessage);
         if (options.signal) {
             if (options.signal.aborted) {
-                settle(null);
+                settle({ status: 'aborted' });
                 return;
             }
             options.signal.addEventListener('abort', onAbort);
         }
 
-        // Detect the user closing the popup without completing signin.
+        // Detect the person closing the popup without completing signin.
         const closedTimer = setInterval(() => {
-            if (popup && popup.closed) settle(null);
+            if (popup && popup.closed) settle({ status: 'closed' });
         }, 500);
     });
+}
+
+/**
+ * Open the OC signin popup and resolve with the session result. Returns
+ * `null` if the user closed the popup without completing signin, if the
+ * browser blocked it, or if the AbortSignal fired. To tell those apart,
+ * use signInWithOcOutcome.
+ *
+ * MUST be called inside a user-gesture handler (e.g. a button onClick).
+ * Browsers block `window.open` outside of user gestures.
+ */
+export async function signInWithOc(options: SignInWithOcOptions = {}): Promise<OcPopupResult | null> {
+    const outcome = await signInWithOcOutcome(options);
+    return outcome.status === 'signed_in' ? { account: outcome.account, token: outcome.token } : null;
 }

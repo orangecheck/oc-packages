@@ -170,11 +170,17 @@ speak the same wire formats as `@orangecheck/me-client`.
 
 ```python
 import json, httpx
-from orangecheck import verify_session, sign_event, verify_webhook, InvalidSession
+from orangecheck import verify_session, sign_event, verify_webhook, InvalidSession, SignInPolicy
 
 # The origin of the page that opened the popup, exactly.
 session = verify_session(token, audience="https://your-site.example")
 session.did_oc  # who signed in
+
+# Who may sign in: your project's requirement, set on ochk.app (2.9.0 or later).
+# BondRequired (an InvalidSession) carries need, have and back_url.
+POLICY = SignInPolicy(PROJECT_KEY)
+session = verify_session(token, audience="https://your-site.example", policy=POLICY)
+# Or in code, which wins over the project's: require_bond={"min_sats": 100000, "min_days": 30}
 
 body = json.dumps({"project_key": PROJECT_KEY, "subtype": "account_created",
                    "user_address": session.did_oc})

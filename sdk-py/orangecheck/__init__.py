@@ -63,11 +63,15 @@ from .bond import (
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .integrator import (
+    BondRequired,
     InvalidSession,
     InvalidWebhook,
     RevocationList,
     Session,
     SessionEnded,
+    SignInPolicy,
+    bond_meets,
+    read_bond_claim,
     revocation_key,
     sign_event,
     verify_session,
@@ -131,6 +135,10 @@ __all__ = [
     "RevocationList",
     "SessionEnded",
     "revocation_key",
+    "SignInPolicy",
+    "BondRequired",
+    "bond_meets",
+    "read_bond_claim",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -145,7 +153,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.8.0"
+__version__ = "2.9.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

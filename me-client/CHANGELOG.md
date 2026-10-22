@@ -8,6 +8,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.36.0] — 2026-10-22
+
+### Added
+
+- `signInWithOcOutcome(options?)`: opens the sign-in popup like `signInWithOc` and
+  resolves with how it ended: `{ status: 'signed_in', account, token }`,
+  `'blocked'` (the browser refused the window), `'closed'` (the person closed it),
+  `'aborted'` (your signal) or `'failed'`. `signInWithOc` is unchanged: it still
+  resolves the account and token, or `null`.
+- Shared vectors for who may sign in (`bond`), held by `bondMeets` here and by
+  sdk-py's `bond_meets`.
+
 ## [0.35.0] — 2026-10-22
 
 Requires `@orangecheck/auth-core` `^2.12.0`.

@@ -4,6 +4,22 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.9.0] — 2026-10-22
+
+### Added — who may sign in, at parity with me-client
+
+- `SignInPolicy(project_key)`: your project's "who can sign in" requirement, set on
+  ochk.app, read from me.ochk.io's `/api/integrator/<key>/sign-in` and held a minute,
+  as `withOcAuth({ projectKey })` reads it. While it can't be read the last one read
+  stands; with none read yet, sign-in is refused (`bond_policy_unavailable`). A key
+  that names no project is refused (`unknown_project_key`).
+- `verify_session(..., policy=, require_bond=)`: raises `BondRequired` (an
+  `InvalidSession`, reason `bond_required`, with `need`, `have` and `back_url`) when
+  the account's coin backing doesn't meet it. `require_bond` in code wins over the
+  project's.
+- `bond_meets(claims, min_sats=, min_days=, max_age_secs=)` and `read_bond_claim`,
+  as auth-core's `bondMeets` / `readBondClaim`, held to shared vectors (`bond`).
+
 ## [2.8.0] — 2026-10-22
 
 ### Changed — revocation by per-audience handle

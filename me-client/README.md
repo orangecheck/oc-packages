@@ -270,7 +270,18 @@ button.addEventListener('click', async () => {
 });
 ```
 
-`signInWithOc()` MUST be called inside a user-gesture handler (browsers block `window.open` outside of gestures). Returns `{ account, token }` on success, `null` on cancel / popup block / abort. Pins both `event.origin` AND `event.source === popup` on the postMessage handler so a same-origin attacker can't settle the promise.
+`signInWithOc()` MUST be called inside a user-gesture handler (browsers block `window.open` outside of gestures). Returns `{ account, token }` on success, `null` on cancel / popup block / abort.
+
+To tell those apart, `signInWithOcOutcome()` (0.36.0 or later) resolves with a `status`:
+
+```ts
+import { signInWithOcOutcome } from '@orangecheck/me-client/popup';
+
+const outcome = await signInWithOcOutcome();
+if (outcome.status === 'blocked') showHint('Allow pop-ups for this site, then try again.');
+if (outcome.status === 'signed_in') await keepSession(outcome.token);
+// 'closed' (the person closed the window), 'aborted' (your signal), 'failed' (not a browser, or a malformed answer)
+``` Pins both `event.origin` AND `event.source === popup` on the postMessage handler so a same-origin attacker can't settle the promise.
 
 ## Custom origin
 

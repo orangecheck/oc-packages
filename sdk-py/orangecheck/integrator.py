@@ -26,6 +26,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 import threading
 import time
 from collections.abc import Mapping
@@ -284,6 +285,124 @@ class RevocationList:
         return lst.status(rh, iat)
 
 
+# ─── who may sign in (coin backing) ──────────────────────────────────────
+
+#: Where someone turned away for want of backing can back their account.
+BACK_ACCOUNT_URL = "https://ochk.app/me/account#backing"
+_POLICY_TTL_SECONDS = 60
+_POLICY_RETRY_SECONDS = 10
+_NULLIFIER = re.compile(r"^[0-9a-f]{64}$")
+
+
+class BondRequired(InvalidSession):
+    """The account is not backed enough to sign in here. ``need``, ``have`` and ``back_url`` say why and where to fix it."""
+
+    def __init__(self, need: dict[str, int], have: Optional[dict[str, int]]):
+        super().__init__("bond_required", "session token refused: the account is not backed enough to sign in here")
+        self.need = need
+        self.have = have
+        self.back_url = BACK_ACCOUNT_URL
+
+
+def read_bond_claim(claims: Union[Session, Mapping[str, Any]]) -> Optional[dict[str, Any]]:
+    """The token's coin backing claim (``oc_bond``) when well-formed, else None. As auth-core's ``readBondClaim``."""
+    b = claims.oc_bond if isinstance(claims, Session) else claims.get("oc_bond")
+    if not isinstance(b, dict) or b.get("v") != 1:
+        return None
+    for k in ("sats_floor", "days_floor", "height", "checked_at"):
+        n = b.get(k)
+        if not isinstance(n, (int, float)) or isinstance(n, bool) or n < 0:
+            return None
+    if not isinstance(b.get("nullifier"), str) or not _NULLIFIER.match(b["nullifier"]):
+        return None
+    return b
+
+
+def bond_meets(
+    claims: Union[Session, Mapping[str, Any]],
+    *,
+    min_sats: int = 0,
+    min_days: int = 0,
+    max_age_secs: Optional[int] = None,
+) -> bool:
+    """
+    True when a coin backs the account with floors reaching ``min_sats`` and
+    ``min_days``, checked by the issuer within ``max_age_secs`` (default: any
+    age). As auth-core's ``bondMeets``: compare against the floor ladder, so
+    ``min_sats=50000`` is met by a ``sats_floor`` of 100000, not 10000.
+    """
+    b = read_bond_claim(claims)
+    if b is None:
+        return False
+    if b["sats_floor"] < min_sats or b["days_floor"] < min_days:
+        return False
+    if max_age_secs is not None:
+        age = int(time.time()) - int(b["checked_at"])
+        if age < 0 or age > max_age_secs:
+            return False
+    return True
+
+
+class SignInPolicy:
+    """
+    Your project's "who can sign in" requirement, set on ochk.app, read from
+    me.ochk.io (``/api/integrator/<key>/sign-in``) and held a minute, as
+    me-client's ``withOcAuth({ projectKey })`` reads it. Pass it to
+    :func:`verify_session`. While it can't be read, the last one read stands;
+    with none read yet, sign-in is refused (reason ``bond_policy_unavailable``)
+    rather than let through unchecked. A key that names no project is refused
+    with reason ``unknown_project_key``.
+    """
+
+    def __init__(self, project_key: str, *, me_origin: str = "https://me.ochk.io"):
+        self._url = me_origin.rstrip("/") + "/api/integrator/" + quote(project_key, safe="") + "/sign-in"
+        self._need: Optional[dict[str, int]] = None
+        self._read_at: Optional[float] = None
+        self._failed_at = float("-inf")
+        self._unknown_at = float("-inf")
+        self._lock = threading.Lock()
+
+    def requirement(self) -> Optional[dict[str, int]]:
+        """``{"min_sats", "min_days"}``, or None for no requirement. Raises :class:`InvalidSession` as described above."""
+        with self._lock:
+            now = time.time()
+            if now - self._unknown_at < _POLICY_TTL_SECONDS:
+                raise InvalidSession("unknown_project_key")
+            if self._read_at is not None and now - self._read_at < _POLICY_TTL_SECONDS:
+                return self._need
+            if now - self._failed_at < _POLICY_RETRY_SECONDS:
+                return self._stand_in()
+            try:
+                r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
+                if r.status_code == 404:
+                    self._unknown_at = now
+                    raise InvalidSession("unknown_project_key")
+                r.raise_for_status()
+                req = r.json().get("require_bond")
+                self._need = (
+                    {"min_sats": int(req.get("min_sats", 0)), "min_days": int(req.get("min_days", 0))}
+                    if isinstance(req, dict)
+                    else None
+                )
+                self._read_at = now
+                return self._need
+            except (httpx.HTTPError, ValueError, AttributeError):
+                self._failed_at = now
+                return self._stand_in()
+
+    def _stand_in(self) -> Optional[dict[str, int]]:
+        if self._read_at is None:
+            raise InvalidSession("bond_policy_unavailable")
+        return self._need
+
+
+def _need_from(require_bond: Mapping[str, Any]) -> dict[str, int]:
+    need = {"min_sats": int(require_bond.get("min_sats", 0)), "min_days": int(require_bond.get("min_days", 0))}
+    if require_bond.get("max_age_secs") is not None:
+        need["max_age_secs"] = int(require_bond["max_age_secs"])
+    return need
+
+
 # ─── sign-in tokens ──────────────────────────────────────────────────────
 
 
@@ -296,6 +415,8 @@ def verify_session(
     leeway: int = 0,
     revocations: Optional[RevocationList] = None,
     method: Optional[str] = None,
+    require_bond: Optional[Mapping[str, Any]] = None,
+    policy: Optional[SignInPolicy] = None,
 ) -> Session:
     """
     Verify a token from the ochk.app sign-in popup and return who signed in.
@@ -386,6 +507,20 @@ def verify_session(
             raise SessionEnded()
         if state == "unverified" and (method or "").upper() not in _SAFE_METHODS:
             raise InvalidSession("revocations_unavailable")
+
+    # Who may sign in: an explicit requirement wins over the project's.
+    need = _need_from(require_bond) if require_bond is not None else (policy.requirement() if policy else None)
+    if need is not None and not bond_meets(
+        payload,
+        min_sats=need.get("min_sats", 0),
+        min_days=need.get("min_days", 0),
+        max_age_secs=need.get("max_age_secs"),
+    ):
+        backing = read_bond_claim(payload)
+        floors = (
+            {"sats_floor": int(backing["sats_floor"]), "days_floor": int(backing["days_floor"])} if backing else None
+        )
+        raise BondRequired(need, floors)
 
     bond = payload.get("oc_bond")
     return Session(
