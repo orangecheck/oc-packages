@@ -8,7 +8,9 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [Unreleased]
+## [0.34.0] — 2026-10-22
+
+Requires `@orangecheck/auth-core` `^2.11.0`.
 
 ### Added
 

@@ -4,7 +4,7 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.7.0] — 2026-10-22
 
 ### Added — refuse a session the person ended everywhere
 
