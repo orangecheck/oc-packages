@@ -445,6 +445,16 @@ export const Sign: StoryObj = {
                     onSignature={() => undefined}
                 />
             </div>
+            {/* A message that ends in a line feed, as lock's binding statement does: selected by hand and copied, the LF comes too. */}
+            <div className="mt-8 max-w-xl rounded-[1.25rem] border border-border bg-card p-6 md:p-8" data-story="lf">
+                <SignMessage
+                    lead="Bind this device to your address. The statement ends in a line feed, and the signature covers it."
+                    address={ADDRESS}
+                    message={`oc-lock binding v3\naddress: ${ADDRESS}\nid: 86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c\n`}
+                    submitLabel="Bind"
+                    onSignature={() => undefined}
+                />
+            </div>
         </Section>
     ),
 };

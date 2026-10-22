@@ -19,6 +19,9 @@
  * - A page shortcut ("/") waits while a menu is open; ⌘K/Ctrl-K still toggles
  *   search from its own field. Focus is back on a dialog's opener within a
  *   frame of it closing.
+ * - A message to sign, selected by hand (a range, a drag) and copied, is the
+ *   exact bytes, its final LF too; a part selection copies as the browser
+ *   would; the kept newline draws no line.
  * - Tab past a toast goes on to the page, not back to where it came from;
  *   sonner's alt+T still returns there.
  * - A highlighted menu or select item stands out from its neighbours at 3:1.
@@ -57,6 +60,7 @@ const check = (ok, msg) => {
 const show = (v) => JSON.stringify(v);
 
 const src = (f) => join(pkg, 'src', f);
+const SIGNED = 'oc-lock binding v3\naddress: bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t\nid: 86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c\n';
 const dir = mkdtempSync(join(tmpdir(), 'app-design-focus-'));
 try {
     const mount = (imports, jsx) => `${imports}\nimport { createRoot } from 'react-dom/client';\ncreateRoot(document.getElementById('root')).render(${jsx});\n`;
@@ -109,6 +113,14 @@ try {
             `import { SearchDialog } from '${src('components/search.tsx')}';\n` +
                 `import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '${src('primitives/overlay.tsx')}';`,
             `<div className="flex gap-4 p-6"><SearchDialog onQuery={() => []} /><DropdownMenu modal={false}><DropdownMenuTrigger id="sites">All orangecheck sites</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>stamp</DropdownMenuItem><DropdownMenuItem>vote</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>`
+        ),
+        // A message to sign that ends in LF (lock's binding statement), beside the same lines without it.
+        signing: mount(
+            `import { SignMessage } from '${src('components/verify.tsx')}';\n` +
+                `import { CodeBlock } from '${src('components/code-block.tsx')}';\n` +
+                `const SIGNED = ${JSON.stringify(SIGNED)};`,
+            `<div className="mx-auto flex max-w-[40rem] flex-col gap-6 p-4"><div data-sign=""><SignMessage address="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t" message={SIGNED} onSignature={() => {}} /></div>` +
+                `<div data-nolf=""><CodeBlock code={SIGNED.slice(0, -1)} caption="Message to sign" wrap /></div><div data-lf=""><CodeBlock code={SIGNED} caption="Message to sign" wrap /></div></div>`
         ),
         ownmain: mount(`import { SkipLink } from '${src('chrome/site.tsx')}';`, `<><SkipLink /><header><a href="/">Home</a></header><main id="main-content"><p>The page</p><a href="/next">Next</a></main></>`),
         // A page that handles its own hash, as Swagger UI does: the browser never moves focus for the link.
@@ -359,6 +371,59 @@ try {
             const moved = await q.evaluate(() => scrollY);
             check(hidden.length === 0 && moved < scrolled, `${name} at ${vw}: a focused control scrolled in under the sticky bar (${JSON.stringify(hidden.slice(0, 2))}; the page scrolled from ${scrolled} to ${moved})`);
             await q.close();
+        }
+
+        // SignMessage: select the whole message by hand, copy, and the clipboard holds the exact bytes, its final LF too.
+        for (const vw of [390, 1440]) {
+            const ctx = await browser.newContext({ viewport: { width: vw, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+            const q = await ctx.newPage();
+            await q.goto(client('signing'));
+            await q.waitForSelector('[data-sign] pre code [data-line]');
+            const copyOf = async (how) => {
+                await q.evaluate(() => navigator.clipboard.writeText('(nothing copied)'));
+                if (how === 'range') {
+                    await q.evaluate(() => {
+                        const r = document.createRange();
+                        r.selectNodeContents(document.querySelector('[data-sign] pre code'));
+                        const sel = getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(r);
+                    });
+                } else {
+                    // A drag from the first character to below the last line, as a reader selects it.
+                    const box = await q.evaluate(() => {
+                        const pre = document.querySelector('[data-sign] pre');
+                        const first = pre.querySelector('[data-line]').getBoundingClientRect();
+                        const p = pre.getBoundingClientRect();
+                        return { x0: first.left + 20, y0: first.top + first.height / 2, x1: p.right - 8, y1: p.bottom - 4 };
+                    });
+                    await q.mouse.move(box.x0, box.y0);
+                    await q.mouse.down();
+                    await q.mouse.move(box.x1, box.y1, { steps: 8 });
+                    await q.mouse.up();
+                }
+                await q.keyboard.press('Control+C');
+                return q.evaluate(() => navigator.clipboard.readText());
+            };
+            for (const how of ['range', 'drag']) {
+                const got = await copyOf(how);
+                check(got === SIGNED, `[${vw}] SignMessage: a hand selection (${how}) copies ${JSON.stringify(got.slice(-24))}, not the exact bytes ending ${JSON.stringify(SIGNED.slice(-24))}`);
+            }
+            // Part of the message selected: the browser's own copy, untouched.
+            await q.evaluate(() => {
+                const line = document.querySelector('[data-sign] pre code [data-line]');
+                const r = document.createRange();
+                r.selectNodeContents(line);
+                const sel = getSelection();
+                sel.removeAllRanges();
+                sel.addRange(r);
+            });
+            await q.keyboard.press('Control+C');
+            const part = await q.evaluate(() => navigator.clipboard.readText());
+            check(part === 'oc-lock binding v3', `[${vw}] CodeBlock: a part selection copies ${JSON.stringify(part)}, not just the line`);
+            const wells = await q.evaluate(() => ['nolf', 'lf'].map((k) => Math.round(document.querySelector(`[data-${k}] pre`).getBoundingClientRect().height)));
+            check(wells[0] === wells[1], `[${vw}] CodeBlock: the kept final newline draws an extra line (${wells[1]}px against ${wells[0]}px)`);
+            await ctx.close();
         }
 
         // DocsNav: the open section's button closes it, and opens it again.

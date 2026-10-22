@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.16.1] — 2026-10-22
+
+- A message to sign, selected by hand and copied, is the exact bytes, its
+  final line feed included. Copy took them already, but a hand selection lost
+  the last LF in Chrome, so a signature made from it failed against a message
+  that ends in one (ochk.io's sign-in, link and sudo statements; vault's and
+  lock's signing pages). `CodeBlock` keeps the final newline in its markup
+  (Firefox copies it from there) and, when a selection covers every line of
+  the block, puts the exact source on the clipboard (Chrome drops a block's
+  last newline from a selection). A part selection copies as the browser
+  would. Nothing visible is added, and the signed format is unchanged.
+- check-focus selects a message ending in LF by hand (a range, a drag), copies
+  it at 390 and 1440, and compares the clipboard to the exact bytes; a part
+  selection copies untouched, and the newline draws no extra line. It fails on
+  1.16.0.
+
 ## [1.16.0] — 2026-10-21
 
 - `ListRow stackBelow="sm"` (or `"md"`): below that width the row's end

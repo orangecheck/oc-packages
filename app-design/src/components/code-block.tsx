@@ -1,5 +1,5 @@
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore, type ClipboardEvent, type ReactNode, type RefObject } from 'react';
 
 import { grammarOf, highlight, linesToHtml, parseLineRanges, readDiff } from '../code/highlight';
 import { cn } from '../lib/cn';
@@ -75,7 +75,8 @@ function prepare(code: string, lang: string | undefined, marks: string | readonl
     const lines = highlight(src, lang === 'diff' ? undefined : lang);
     const kept = d ? src.split('\n').filter((_, i) => d.diff.get(i + 1) !== 'remove') : null;
     return {
-        html: linesToHtml(lines, { highlight: parseLineRanges(marks), diff: d?.diff }),
+        // The final newline stays in the markup, invisible, for a browser that copies it from a selection (Firefox).
+        html: linesToHtml(lines, { highlight: parseLineRanges(marks), diff: d?.diff }) + (!d && /\n$/.test(code) ? '\n' : ''),
         // Byte for byte, the final newline too: a hash printed beside the code must match a copy of it.
         copy: kept ? kept.join('\n') + (/\n$/.test(code) ? '\n' : '') : code,
         lines: lines.length,
@@ -228,11 +229,26 @@ export function CodeBlock({
         () => (html === undefined && children === undefined && code !== undefined ? prepare(code, lang, markKey, !!isDiff) : null),
         [code, html, children, lang, markKey, isDiff]
     );
-    const markup = prepared?.html ?? html;
+    // Build-time markup whose source ended in a newline keeps it too.
+    const markup = prepared?.html ?? (html !== undefined && trailingNewline && !html.endsWith('\n') ? `${html}\n` : html);
     const lines = prepared?.lines ?? (html !== undefined ? html.split('\n').length : (code?.split('\n').length ?? 0));
     const read = () => forClipboard(prepared?.copy ?? linesFromDom(preRef.current, trailingNewline) ?? code ?? '', lang);
+    /*
+     * A hand selection of every line copies the exact source, its final newline
+     * too. Chrome drops a block's last newline from a selection, so a message
+     * selected and pasted into a wallet signed different bytes and failed.
+     */
+    const onCopy = (e: ClipboardEvent<HTMLElement>) => {
+        const sel = window.getSelection();
+        const shown = linesFromDom(preRef.current, false);
+        const exact = prepared ? (prepared.diff ? null : (code ?? null)) : html !== undefined ? linesFromDom(preRef.current, trailingNewline) : null;
+        if (!sel || sel.isCollapsed || shown === null || exact === null || exact === shown) return;
+        if (sel.toString().replace(/\n+$/, '') !== shown) return;
+        e.clipboardData.setData('text/plain', exact);
+        e.preventDefault();
+    };
     return (
-        <figure className={cn(FRAME, className)}>
+        <figure className={cn(FRAME, className)} onCopy={onCopy}>
             <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
                 <span className="truncate text-[0.8125rem] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
                 <span className="flex shrink-0 items-center gap-1">
