@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.3] — 2026-10-22
+
+### Changed
+
+- The STATE line of a provisional anchored count says "every counted ballot
+  is anchored" when none is waiting, and "no ballot counted yet" when nothing
+  is counted, instead of "0 counted ballot(s) not anchored in time yet".
+
 ## [0.7.2] — 2026-10-22
 
 ### Changed

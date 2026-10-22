@@ -13,6 +13,7 @@ import {
     type Poll,
     type Reveal,
     type SignatureVerifier,
+    type TalliedResult,
     type TallyResult,
     type UtxoLookup,
 } from '@orangecheck/vote-core';
@@ -124,6 +125,16 @@ export function skippedChecks(
         skipped.push('snapshot resolution and confirmations (--snapshot)');
     }
     return skipped;
+}
+
+/** The STATE line for a counted poll; a provisional count says what it still waits on. */
+export function stateLine(result: TalliedResult): string {
+    if (result.state === 'tallied') return 'tallied';
+    const waiting = result.unanchored ?? 0;
+    if (result.counted.length === 0) return 'provisional — not final; no ballot counted yet';
+    return waiting > 0
+        ? `provisional — not final; ${waiting} counted ballot(s) not anchored in a block yet`
+        : 'provisional — not final; every counted ballot is anchored';
 }
 
 export async function runTally(opts: TallyOptions): Promise<void> {
@@ -238,11 +249,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         return;
     }
 
-    w(
-        result.state === 'provisional'
-            ? `  STATE:      provisional — not final; ${result.unanchored ?? 0} counted ballot(s) not anchored in time yet\n`
-            : `  STATE:      tallied\n`
-    );
+    w(`  STATE:      ${stateLine(result)}\n`);
     w(`  counted:    ${result.counted.length} ballot(s)\n`);
     w(`  turnout:    ${result.turnout.voters} voters, weight ${result.turnout.weight.toLocaleString()}\n\n`);
 

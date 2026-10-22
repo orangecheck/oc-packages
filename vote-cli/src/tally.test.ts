@@ -7,7 +7,7 @@ import { generateX25519KeyPair, hexEncode, utf8Encode } from '@orangecheck/lock-
 import { commit, pollId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { describe, expect, it } from 'vitest';
 
-import { computeTally, skippedChecks } from './commands/tally.js';
+import { computeTally, skippedChecks, stateLine } from './commands/tally.js';
 import type { NostrEvent } from './nostr.js';
 import { selectPoll, selectReveal } from './select.js';
 
@@ -184,5 +184,35 @@ describe('skippedChecks', () => {
             skippedChecks({ snapshot_block: 'deadline' }, { verify: true, snapshotBlock: 900000 })
         ).toEqual(['snapshot resolution and confirmations (--snapshot)']);
         expect(skippedChecks({ snapshot_block: 900000 }, { snapshotBlock: 1 })).toEqual([]);
+    });
+});
+
+describe('stateLine', () => {
+    const head = {
+        basis: 'anchored' as const,
+        close_height: null,
+        snapshot_block: 972_616,
+        turnout: { voters: 1, weight: 1 },
+        tallies: { yes: 1, no: 0 },
+        counted: ['5617b9c1dab2877e7acb5a30354210059d3315e33d7a99e2700d012f8e83734e'],
+    };
+
+    it('says a provisional count with every ballot anchored waits on nothing but the chain', () => {
+        const line = stateLine({ ...head, state: 'provisional', unanchored: 0 });
+        expect(line).toBe('provisional — not final; every counted ballot is anchored');
+        expect(line).not.toMatch(/\b0 counted/);
+    });
+
+    it('names how many counted ballots still wait for an anchor', () => {
+        expect(stateLine({ ...head, state: 'provisional', unanchored: 1 })).toBe(
+            'provisional — not final; 1 counted ballot(s) not anchored in a block yet'
+        );
+    });
+
+    it('says when nothing is counted yet, and when the count is final', () => {
+        expect(stateLine({ ...head, counted: [], state: 'provisional', unanchored: 0 })).toBe(
+            'provisional — not final; no ballot counted yet'
+        );
+        expect(stateLine({ ...head, state: 'tallied', unanchored: 0 })).toBe('tallied');
     });
 });
