@@ -1,0 +1,47 @@
+name: Deprecate a release range
+
+# Marks published @orangecheck/* versions deprecated on npm, with the
+# release workflow's credential. npm shows the message on every install of a
+# matching version. Run it again with an empty message to lift it.
+
+on:
+    workflow_dispatch:
+        inputs:
+            spec:
+                description: 'Package and range, e.g. @orangecheck/agent-core@<2.7.0'
+                required: true
+                type: string
+            message:
+                description: 'Message npm shows; empty lifts the deprecation'
+                required: false
+                type: string
+
+permissions:
+    contents: read
+
+jobs:
+    deprecate:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+                  registry-url: 'https://registry.npmjs.org'
+
+            - name: Deprecate
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  SPEC: ${{ inputs.spec }}
+                  MESSAGE: ${{ inputs.message }}
+              run: |
+                  if ! printf '%s' "$SPEC" | grep -Eq '^@orangecheck/[a-z0-9-]+@[0-9A-Za-z.<>=^~| -]+$'; then
+                    echo "::error::spec must name one @orangecheck/* package and a version range"
+                    exit 1
+                  fi
+                  npm whoami > /dev/null
+                  npm deprecate "$SPEC" "$MESSAGE"
+
+            - name: Show the result
+              env:
+                  SPEC: ${{ inputs.spec }}
+              run: npm view "$SPEC" deprecated
