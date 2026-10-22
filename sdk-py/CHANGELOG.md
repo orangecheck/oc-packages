@@ -4,6 +4,19 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] — 2026-10-22
+
+### Changed — key rotation and outages, as `@orangecheck/auth-core` 2.10.0
+
+- `verify_session` reads `status: "retired"` and `retired_at` on a key in the
+  set. A retired key verifies only tokens whose `iat` is before its
+  `retired_at`; anything else is refused with reason `retired_key`. The
+  shared integrator vectors carry both cases, so the Node and Python SDKs
+  agree.
+- A fetched key set stands in through a failed refresh for at most six hours.
+  Past that, `verify_session` and `verify_webhook` refuse with
+  `key_set_unavailable` until a fetch succeeds.
+
 ## [2.5.2] — 2026-10-22
 
 ### Fixed — an agent pledge's agent is never its swearer

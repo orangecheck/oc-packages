@@ -40,6 +40,8 @@ SESSION_JWKS_URL = "https://ochk.io/.well-known/jwks.json"
 WEBHOOK_JWKS_URL = "https://me.ochk.io/api/dev-jwks"
 
 _JWKS_TTL_SECONDS = 3600
+#: How old a key set may be and still stand in for one that can't be fetched.
+_JWKS_MAX_STALE_SECONDS = 6 * 3600
 _FORCED_REFRESH_MIN_SECONDS = 60
 
 
@@ -78,11 +80,12 @@ class Session:
 
 
 class _KeySet:
-    """A fetched JWKS, cached for an hour and kept through a failed refresh."""
+    """A fetched JWKS, cached for an hour and kept through a failed refresh for six."""
 
     def __init__(self, url: str):
         self.url = url
         self._keys: dict[str, Ed25519PublicKey] = {}
+        self._retired: dict[str, float] = {}
         self._fetched_at = 0.0
         self._forced_at = 0.0
         self._lock = threading.Lock()
@@ -91,12 +94,17 @@ class _KeySet:
         try:
             r = httpx.get(self.url, headers={"Accept": "application/json"}, timeout=10.0)
             r.raise_for_status()
-            self._keys = _import_jwks(r.json())
+            doc = r.json()
+            self._keys = _import_jwks(doc)
+            self._retired = _retired_at(doc)
             self._fetched_at = time.time()
         except (httpx.HTTPError, ValueError):
-            # Stale on error: a key set seen before keeps working through an outage.
-            if not self._keys:
+            # Stale on error: a key set seen before keeps working through an outage, for a while.
+            if not self._keys or time.time() - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
                 raise
+
+    def retired_at(self, kid: str) -> Optional[float]:
+        return self._retired.get(kid)
 
     def get(self, kid: str) -> Optional[Ed25519PublicKey]:
         with self._lock:
@@ -117,6 +125,16 @@ _webhook_keys = _KeySet(WEBHOOK_JWKS_URL)
 
 def _b64url(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+
+def _retired_at(doc: Any) -> dict[str, float]:
+    """kid → ``retired_at`` for keys published as retired; 0 when it can't be read."""
+    out: dict[str, float] = {}
+    for k in doc.get("keys", []) if isinstance(doc, dict) else []:
+        if isinstance(k, dict) and isinstance(k.get("kid"), str) and k.get("status") == "retired":
+            at = k.get("retired_at")
+            out[k["kid"]] = at if isinstance(at, (int, float)) and not isinstance(at, bool) else 0
+    return out
 
 
 def _import_jwks(doc: Any) -> dict[str, Ed25519PublicKey]:
@@ -184,11 +202,13 @@ def verify_session(
             key = _import_jwks(dict(jwks)).get(kid)
         except ValueError as err:
             raise InvalidSession("unknown_key") from err
+        retired_at = _retired_at(dict(jwks)).get(kid)
     else:
         try:
             key = _session_keys.get(kid)
         except (httpx.HTTPError, ValueError) as err:
             raise InvalidSession("key_set_unavailable") from err
+        retired_at = _session_keys.retired_at(kid)
     if key is None:
         raise InvalidSession("unknown_key")
     try:
@@ -210,6 +230,9 @@ def verify_session(
     iat = payload.get("iat")
     if iat is not None and not isinstance(iat, (int, float)):
         raise InvalidSession("claims")
+    # A retired key vouches only for what it signed before it retired.
+    if retired_at is not None and not (iat is not None and iat < retired_at):
+        raise InvalidSession("retired_key")
     for claim in ("sub", "did_oc", "jti"):
         if not isinstance(payload.get(claim), str) or not payload[claim]:
             raise InvalidSession("claims")

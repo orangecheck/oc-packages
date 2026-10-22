@@ -80,9 +80,37 @@ def test_session_keeps_a_key_set_through_an_outage(fresh_key_sets: None) -> None
     v = V["session"]["valid"][0]
     verify_session(v["token"], v["audience"])
     # The hour is up, the refetch fails, and the keys already held still verify.
-    integrator._session_keys._fetched_at = 0.0
+    integrator._session_keys._fetched_at = V["now"] - 3600
     assert verify_session(v["token"], v["audience"]).did_oc == v["claims"]["did_oc"]
     assert route.call_count == 2
+
+
+@respx.mock
+def test_session_stops_leaning_on_a_key_set_six_hours_old(fresh_key_sets: None) -> None:
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(503)] * 3
+    )
+    v = V["session"]["valid"][0]
+    verify_session(v["token"], v["audience"])
+    integrator._session_keys._fetched_at = V["now"] - 5 * 3600
+    assert verify_session(v["token"], v["audience"]).did_oc == v["claims"]["did_oc"]
+    integrator._session_keys._fetched_at = V["now"] - 6 * 3600 - 1
+    with pytest.raises(InvalidSession) as err:
+        verify_session(v["token"], v["audience"])
+    assert err.value.reason == "key_set_unavailable"
+
+
+@respx.mock
+def test_webhook_stops_leaning_on_a_key_set_six_hours_old(fresh_key_sets: None) -> None:
+    respx.get("https://me.ochk.io/api/dev-jwks").mock(
+        side_effect=[httpx.Response(200, json=V["webhook"]["jwks"])] + [httpx.Response(503)] * 3
+    )
+    v = V["webhook"]["valid"][0]
+    verify_webhook(v["headers"], v["body"])
+    integrator._webhook_keys._fetched_at = V["now"] - 6 * 3600 - 1
+    with pytest.raises(InvalidWebhook) as err:
+        verify_webhook(v["headers"], v["body"])
+    assert err.value.reason == "key_set_unavailable"
 
 
 @respx.mock
