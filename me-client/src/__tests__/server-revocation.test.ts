@@ -5,7 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { _resetJwksCachesForTests } from '@orangecheck/auth-core';
 
-import { _resetSessionChecksForTests, getOcSession, ocAuthExpress, ocAuthHono, withOcAuth } from '../server';
+import {
+    _resetSessionChecksForTests,
+    checkOcSession,
+    getOcSession,
+    ocAuthExpress,
+    ocAuthHono,
+    withOcAuth,
+} from '../server';
 
 /**
  * A person who signs out everywhere, removes a passkey or deletes the account
@@ -158,15 +165,13 @@ describe('server helpers · sessions ended everywhere', () => {
         expect(await getOcSession(headers, { audience: SITE, method: 'GET' })).toBeNull();
     });
 
-    it('keeps reads and refuses writes while the list cannot be read', async () => {
+    it('keeps reads while the list cannot be read (writes: see below)', async () => {
         feedUp = false;
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         expect((await viaNext('GET'))?.sub).toBe('acct-1');
-        expect(await viaNext('POST')).toBeNull();
         expect((await viaExpress('GET'))?.sub).toBe('acct-1');
-        expect(await viaExpress('POST')).toBeNull();
         expect((await viaHono('GET'))?.sub).toBe('acct-1');
-        expect(await viaHono('POST')).toBeNull();
+        expect(await getOcSession({ cookie: `oc_session=${await token()}` }, { audience: SITE, method: 'POST' })).toBeNull();
     });
 
     it('checks nothing without the project secret, and says so once in production', async () => {
@@ -197,5 +202,99 @@ describe('server helpers · the list is read where meOrigin says', () => {
             'https://me-test.example',
             'https://me.ochk.io',
         ]);
+    });
+});
+
+describe('server helpers · a write while the list cannot be read', () => {
+    type Answer = { status: number; body: unknown; ran: boolean };
+
+    async function nextAnswer(method: string): Promise<Answer> {
+        const out: Answer = { status: 200, body: undefined, ran: false };
+        const res = {
+            status: (c: number) => {
+                out.status = c;
+                return res;
+            },
+            json: (b: unknown) => {
+                out.body = b;
+            },
+            setHeader: () => undefined,
+        };
+        await withOcAuth(async () => {
+            out.ran = true;
+        }, { audience: SITE })({ method, headers: { cookie: `oc_session=${await token()}` } }, res);
+        return out;
+    }
+
+    async function expressAnswer(method: string): Promise<Answer> {
+        const out: Answer = { status: 200, body: undefined, ran: false };
+        const res = {
+            status: (c: number) => {
+                out.status = c;
+                return res;
+            },
+            json: (b: unknown) => {
+                out.body = b;
+            },
+            setHeader: () => undefined,
+        };
+        await ocAuthExpress({ audience: SITE })(
+            { method, headers: { cookie: `oc_session=${await token()}` } },
+            res as never,
+            () => {
+                out.ran = true;
+            }
+        );
+        return out;
+    }
+
+    async function honoAnswer(method: string): Promise<Answer> {
+        const out: Answer = { status: 200, body: undefined, ran: false };
+        const raw = new Request(`${SITE}/api/x`, { method, headers: { cookie: `oc_session=${await token()}` } });
+        const c = {
+            req: { raw },
+            set: () => undefined,
+            json: (b: unknown, st?: number) => {
+                out.body = b;
+                out.status = st ?? 200;
+            },
+            header: () => undefined,
+        };
+        await ocAuthHono({ audience: SITE })(c, async () => {
+            out.ran = true;
+        });
+        return out;
+    }
+
+    it('answers 503 revocations_unavailable on every adapter, not "signed out"', async () => {
+        feedUp = false;
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        for (const answer of [nextAnswer, expressAnswer, honoAnswer]) {
+            const write = await answer('POST');
+            expect(write.ran).toBe(false);
+            expect(write.status).toBe(503);
+            expect(write.body).toMatchObject({ ok: false, reason: 'revocations_unavailable' });
+            expect((await answer('GET')).ran).toBe(true);
+        }
+    });
+
+    it('checkOcSession tells unavailable from signed out', async () => {
+        const headers = { cookie: `oc_session=${await token()}` };
+        expect(await checkOcSession(headers, { audience: SITE, method: 'POST' })).toMatchObject({
+            status: 'signed_in',
+            session: { sub: 'acct-1' },
+        });
+        expect(await checkOcSession({ cookie: null, authorization: null }, { audience: SITE })).toEqual({
+            status: 'signed_out',
+        });
+        _resetSessionChecksForTests();
+        feedUp = false;
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        expect(await checkOcSession(headers, { audience: SITE, method: 'POST' })).toEqual({ status: 'unavailable' });
+        expect((await checkOcSession(headers, { audience: SITE, method: 'GET' })).status).toBe('signed_in');
+        feedUp = true;
+        _resetSessionChecksForTests();
+        ended[SITE] = { [`rh:${SITE}`]: ISSUED + 1 };
+        expect(await checkOcSession(headers, { audience: SITE, method: 'GET' })).toEqual({ status: 'signed_out' });
     });
 });

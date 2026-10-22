@@ -150,15 +150,43 @@ export async function getOcSession(
     headers: SessionRequestHeaders | Headers,
     options: OcSessionOptions = {}
 ): Promise<SessionPayload | null> {
+    const checked = await checkOcSession(headers, options);
+    return checked.status === 'signed_in' ? checked.session : null;
+}
+
+/** A request's session: signed in, signed out, or not checkable right now. */
+export type OcSessionCheck =
+    | { status: 'signed_in'; session: SessionPayload }
+    | { status: 'signed_out' }
+    | { status: 'unavailable' };
+
+/**
+ * `getOcSession`, telling "signed out" from "can't tell right now":
+ * `unavailable` when the token verifies but me.ochk.io's list of ended
+ * sessions can't vouch for this request (a write while the list can't be read).
+ * A token the person ended is `signed_out`. The adapters answer `unavailable`
+ * with 503 `revocations_unavailable`, so a client retries instead of signing
+ * the person out.
+ */
+export async function checkOcSession(
+    headers: SessionRequestHeaders | Headers,
+    options: OcSessionOptions = {}
+): Promise<OcSessionCheck> {
     const session = await getOcSessionCore(headers, options);
     if (!session) {
         if (options.audience === undefined) warnIfAudienceMissing(headers);
-        return null;
+        return { status: 'signed_out' };
     }
     const check = revocationFor(options);
-    if (check && (await check.refuses(session, options.method))) return null;
-    return session;
+    if (check && (await check.refuses(session, options.method))) {
+        return (await check.status(session)) === 'revoked'
+            ? { status: 'signed_out' }
+            : { status: 'unavailable' };
+    }
+    return { status: 'signed_in', session };
 }
+
+const UNAVAILABLE = { status: 503, body: { ok: false, reason: 'revocations_unavailable' } };
 
 let warnedAudience = false;
 
@@ -391,7 +419,7 @@ export function withOcAuth<
     return async (req: Req, res: Res) => {
         res.setHeader('Cache-Control', 'no-store, private');
         res.setHeader('Vary', 'Cookie, Authorization');
-        const session = await getOcSession(
+        const checked = await checkOcSession(
             {
                 cookie: typeof req.headers.cookie === 'string' ? req.headers.cookie : null,
                 authorization:
@@ -401,9 +429,10 @@ export function withOcAuth<
             },
             { ...options, method: req.method }
         );
+        const session = checked.status === 'signed_in' ? checked.session : null;
         const withSession = req as WithOcSession<Req>;
         withSession.ocSession = session;
-        const refused = await refusal(session, options);
+        const refused = checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
         if (refused) return res.status(refused.status).json(refused.body);
         return handler(withSession, res);
     };
@@ -461,7 +490,7 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
         try {
             res.setHeader('Cache-Control', 'no-store, private');
             res.setHeader('Vary', 'Cookie, Authorization');
-            const session = await getOcSession(
+            const checked = await checkOcSession(
                 {
                     cookie: typeof req.headers.cookie === 'string' ? req.headers.cookie : null,
                     authorization:
@@ -471,8 +500,10 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
                 },
                 { ...options, method: req.method }
             );
+            const session = checked.status === 'signed_in' ? checked.session : null;
             req.ocSession = session;
-            const refused = await refusal(session, options);
+            const refused =
+                checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
             if (refused) {
                 res.status(refused.status).json(refused.body);
                 return;
@@ -513,12 +544,14 @@ export function ocAuthHono(options: WithOcAuthOptions = {}) {
     return async (c: HonoContextLike, next: HonoNextLike) => {
         c.header('Cache-Control', 'no-store, private');
         c.header('Vary', 'Cookie, Authorization');
-        const session = await getOcSession(c.req.raw.headers, {
+        const checked = await checkOcSession(c.req.raw.headers, {
             ...options,
             method: c.req.raw.method,
         });
+        const session = checked.status === 'signed_in' ? checked.session : null;
         c.set('ocSession', session);
-        const refused = await refusal(session, options);
+        const refused =
+            checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
         if (refused) return c.json(refused.body, refused.status);
         await next();
     };

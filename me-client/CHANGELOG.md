@@ -8,6 +8,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.38.0] — 2026-10-22
+
+### Added
+
+- `checkOcSession(headers, options)`: like `getOcSession`, but resolves
+  `{ status: 'signed_in', session }`, `{ status: 'signed_out' }` or
+  `{ status: 'unavailable' }`, the last when the token verifies but me.ochk.io's
+  list of ended sessions can't vouch for this request (a write while it can't be
+  read). `getOcSession` is unchanged.
+
+### Changed
+
+- `withOcAuth`, `ocAuthExpress` and `ocAuthHono` answer such a write
+  `503 { ok: false, reason: 'revocations_unavailable' }` before your handler runs,
+  instead of treating the person as signed out (which `required` turned into a
+  401). Reads go on as before.
+
 ## [0.37.0] — 2026-10-22
 
 ### Changed
