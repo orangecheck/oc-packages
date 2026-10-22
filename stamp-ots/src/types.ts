@@ -66,7 +66,11 @@ export interface AnchorVerificationInput {
 }
 
 export interface BlockHeaderSource {
-    /** Return the 80-byte raw block header at the given height, or null if unknown. */
+    /**
+     * The 80-byte raw block header at the given height, or null when there is
+     * no block at that height. Throw when the header could not be read: a
+     * failed lookup must never read as a missing block.
+     */
     getHeaderAt(height: number): Promise<Uint8Array | null>;
 }
 

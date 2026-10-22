@@ -132,16 +132,22 @@ export interface MempoolHeaderSourceOptions {
 export function mempoolHeaderSource(opts: MempoolHeaderSourceOptions = {}): BlockHeaderSource {
     const base = (opts.baseUrl ?? 'https://mempool.space/api').replace(/\/+$/, '');
     const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
+    // Null only when the explorer says there is no such block (404). Any other
+    // failure throws: a header that could not be read is not a missing block.
+    const read = async (url: string, shape: RegExp): Promise<string | null> => {
+        const r = await fetchImpl(url);
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error(`header lookup failed: HTTP ${r.status} from ${url}`);
+        const text = (await r.text()).trim();
+        if (!shape.test(text)) throw new Error(`header lookup failed: unexpected answer from ${url}`);
+        return text;
+    };
     return {
         async getHeaderAt(height) {
-            const h = await fetchImpl(`${base}/block-height/${height}`);
-            if (!h.ok) return null;
-            const hash = (await h.text()).trim();
-            if (!/^[0-9a-f]{64}$/.test(hash)) return null;
-            const r = await fetchImpl(`${base}/block/${hash}/header`);
-            if (!r.ok) return null;
-            const hex = (await r.text()).trim();
-            return /^[0-9a-f]{160}$/.test(hex) ? hexDecode(hex) : null;
+            const hash = await read(`${base}/block-height/${height}`, /^[0-9a-f]{64}$/);
+            if (hash === null) return null;
+            const hex = await read(`${base}/block/${hash}/header`, /^[0-9a-f]{160}$/);
+            return hex === null ? null : hexDecode(hex);
         },
     };
 }

@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.0] — 2026-10-22
+
+### Changed
+
+- `mempoolHeaderSource().getHeaderAt` returns null only when the explorer
+  answers 404, no block at that height. Any other failure (an HTTP error, a
+  rate limit, an answer that is not a hash or a header) throws. The
+  `BlockHeaderSource` contract says the same: null is a missing block, a throw
+  is a header that could not be read. `upgradeProof` and `verifiedAnchor`
+  therefore reject when headers cannot be read, instead of reporting the
+  proof as pending or unanchored. stamp-core's `verify()` still reports a
+  throwing anchor verifier as `E_BAD_ANCHOR`, now with the lookup's reason.
+
 ## [0.5.0] — 2026-10-22
 
 ### Added

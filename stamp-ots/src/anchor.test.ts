@@ -69,4 +69,22 @@ describe('mempoolHeaderSource', () => {
         expect(await src.getHeaderAt(1)).toBeNull();
         expect(calls[0]).toBe(`https://esplora.test/api/block-height/${BLOCK_HEIGHT}`);
     });
+
+    it('throws when the explorer fails, so a failed lookup never reads as no block', async () => {
+        for (const answer of [
+            () => new Response('busy', { status: 503 }),
+            () => new Response('slow down', { status: 429 }),
+            () => new Response('<html>gateway</html>'),
+        ]) {
+            const src = mempoolHeaderSource({ fetch: (async () => answer()) as unknown as typeof fetch });
+            await expect(src.getHeaderAt(BLOCK_HEIGHT)).rejects.toThrow(/header lookup failed/);
+        }
+        const headerDown = (async (url: string) =>
+            url.endsWith(`/block-height/${BLOCK_HEIGHT}`)
+                ? new Response(BLOCK_HASH)
+                : new Response('', { status: 502 })) as unknown as typeof fetch;
+        await expect(mempoolHeaderSource({ fetch: headerDown }).getHeaderAt(BLOCK_HEIGHT)).rejects.toThrow(
+            /HTTP 502/
+        );
+    });
 });
