@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.36.1] — 2026-10-22
+
+### Fixed
+
+- **An address scanned in capitals signs in.** QR codes carry bech32 in
+  capitals, and only the lowercase spelling verifies. The address fields of
+  `OcSignIn`, the link flow and the bond flow now hold the canonical spelling
+  (`normalizeAddress` from `@orangecheck/bip322` ^1.1.2) as soon as the text is
+  a whole address, so the challenge names the address the account is keyed by.
+- `looksLikeBitcoinAddress` refuses mixed-case bech32, which BIP-173 forbids.
+
 ## [2.36.0] — 2026-10-21
 
 ### Changed

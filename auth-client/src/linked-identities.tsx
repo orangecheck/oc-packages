@@ -42,6 +42,7 @@ import {
     signinSize,
     signinTracking,
 } from './appearance';
+import { addressInputValue } from './address';
 import { tabSessionHeader } from './tab-session';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
@@ -819,7 +820,7 @@ function BtcLinkForm({
                         data-oca-field=""
                         type="text"
                         value={addr}
-                        onChange={(e) => setAddr(e.target.value.trim())}
+                        onChange={(e) => setAddr(addressInputValue(e.target.value.trim()))}
                         placeholder="bc1q…"
                         autoCapitalize="none"
                         spellCheck={false}

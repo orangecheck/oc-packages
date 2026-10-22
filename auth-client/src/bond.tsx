@@ -14,6 +14,7 @@
  */
 import * as React from 'react';
 
+import { addressInputValue } from './address';
 import { SIGNIN_FONT } from './appearance';
 import {
     bodyStyle,
@@ -559,7 +560,7 @@ function BondForm({
                     aria-describedby={`${id}-advice`}
                     style={inputStyle}
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => setAddress(addressInputValue(e.target.value))}
                     placeholder="bc1q…"
                     spellCheck={false}
                     autoComplete="off"

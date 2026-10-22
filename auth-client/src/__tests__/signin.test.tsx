@@ -65,6 +65,7 @@ describe('looksLikeBitcoinAddress', () => {
 
     it('rejects what is not one', () => {
         expect(looksLikeBitcoinAddress('hello')).toBe(false);
+        expect(looksLikeBitcoinAddress('BC1Q' + ADDR.slice(4))).toBe(false);
         expect(looksLikeBitcoinAddress('not-a-real-address-at-all')).toBe(false);
     });
 });
@@ -102,6 +103,36 @@ describe('OcSignIn · wallet path', () => {
         });
     }
 
+    it('fetches the challenge for the canonical spelling of an address scanned in capitals', async () => {
+        // A QR code carries bech32 in capitals; only the lowercase spelling verifies.
+        const canonical = 'bc1q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l';
+        openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
+        await act(async () => {});
+        const field = screen.getByLabelText('Bitcoin address');
+        fireEvent.change(field, { target: { value: canonical.toUpperCase() } });
+        expect(field).toHaveProperty('value', canonical);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        const fetched = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+        const challenge = fetched.map((c) => String(c[0])).find((u) => u.includes('/api/challenge'));
+        expect(challenge).toContain(`addr=${canonical}&`);
+    });
+
+    it('leaves mixed case as typed, and refuses it without fetching', async () => {
+        openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
+        await act(async () => {});
+        const mixed = 'BC1Q9vza2e8x573nczrlzms0wvx3gsqjx7vavgkx0l';
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: mixed } });
+        expect(screen.getByLabelText('Bitcoin address')).toHaveProperty('value', mixed);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toMatch(/doesn't look like a Bitcoin address/);
+        const fetched = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+        expect(fetched.some((c) => String(c[0]).includes('/api/challenge'))).toBe(false);
+    });
+
     it('refuses a typo without fetching a challenge', async () => {
         openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
         fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: 'hello' } });
@@ -116,8 +147,7 @@ describe('OcSignIn · wallet path', () => {
     it('with no browser wallet, takes a pasted signature and names no scheme', async () => {
         const posts = openWalletTab({ status: 401, body: { ok: false, reason: 'sig_invalid' } });
         await pasteSignature(SIG);
-        // No scheme: the verifier only detects a legacy BIP-137 signature
-        // (Electrum, hardware wallets on a 1… address) when none is named.
+        // No scheme: a pasted signature may be legacy BIP-137; the host decides from its bytes.
         expect(posts).toEqual([
             {
                 message: 'sign this',

@@ -39,6 +39,7 @@
 
 import * as React from 'react';
 
+import { addressInputValue } from './address';
 import { LinkPromptStep } from './linked-identities';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
@@ -377,7 +378,9 @@ const BASE58_ADDRESS = /^[123mn][1-9A-HJ-NP-Za-km-z]{25,34}$/;
  */
 export function looksLikeBitcoinAddress(input: string): boolean {
     const s = input.trim();
-    return BECH32_ADDRESS.test(s) || BASE58_ADDRESS.test(s);
+    // BIP-173: bech32 is all lowercase or all uppercase, never mixed.
+    if (BECH32_ADDRESS.test(s)) return s === s.toLowerCase() || s === s.toUpperCase();
+    return BASE58_ADDRESS.test(s);
 }
 
 /* --- main component --- */
@@ -1122,9 +1125,8 @@ function WalletFlow({
 
     /**
      * POST the signature. A browser wallet signs BIP-322, so that path names
-     * the scheme. A pasted signature may be legacy BIP-137 (Electrum, most
-     * hardware wallets on a `1…` address), which the verifier only detects
-     * when no scheme is named, so the manual path leaves it out.
+     * the scheme; a pasted one may be legacy BIP-137, so the manual path names
+     * none. The host decides from the signature's bytes either way.
      */
     async function submitSignature(
         message: string,
@@ -1316,7 +1318,7 @@ function WalletFlow({
                 type="text"
                 value={address}
                 onChange={(e) => {
-                    setAddress(e.target.value);
+                    setAddress(addressInputValue(e.target.value));
                     if (error) setError(null);
                 }}
                 placeholder="bc1q… · 3… · 1…"
