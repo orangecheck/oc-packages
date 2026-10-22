@@ -37,6 +37,10 @@ import { importJWK, type CryptoKey, type KeyObject } from 'jose';
 const DEFAULT_ISSUER = 'https://me.ochk.io';
 const JWKS_PATH = '/api/dev-jwks';
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
+/** How old a key list may be and still stand in for one that can't be fetched. */
+const DEFAULT_MAX_STALE_MS = 6 * 60 * 60 * 1000;
+/** An unknown kid refetches the key list at most this often per issuer. */
+const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
 
 export interface VerifyResult {
     ok: boolean;
@@ -53,7 +57,7 @@ export interface OcPublicJwk {
 }
 
 export interface VerifyOptions {
-    /** Override the auth host issuer. Defaults to https://ochk.io. */
+    /** Override the issuer. Defaults to https://me.ochk.io. */
     issuer?: string;
     /** Pass a JWK directly to skip the network fetch entirely. Useful
      *  for tests, edge runtimes that can't fetch, or integrators that
@@ -61,8 +65,11 @@ export interface VerifyOptions {
     jwk?: OcPublicJwk;
     /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: a
      *  transient JWKS outage falls back to the previous cached value
-     *  rather than rejecting every webhook. */
+     *  rather than rejecting every webhook, for at most `jwksMaxStaleMs`. */
     jwksCacheTtlMs?: number;
+    /** How old a cached JWKS may be and still stand in during an outage.
+     *  Defaults to 6 hours; past it, verification fails closed. */
+    jwksMaxStaleMs?: number;
 }
 
 type AuthKey = CryptoKey | KeyObject;
@@ -74,8 +81,13 @@ interface JwksCacheEntry {
 
 const jwksCache = new Map<string, JwksCacheEntry>();
 const inflight = new Map<string, Promise<JwksCacheEntry>>();
+const lastForcedRefresh = new Map<string, number>();
 
-async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry> {
+async function fetchJwks(
+    issuer: string,
+    ttlMs: number,
+    maxStaleMs = DEFAULT_MAX_STALE_MS
+): Promise<JwksCacheEntry> {
     const cached = jwksCache.get(issuer);
     if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
     const existing = inflight.get(issuer);
@@ -102,8 +114,9 @@ async function fetchJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry>
             jwksCache.set(issuer, entry);
             return entry;
         } catch (err) {
+            // A key the issuer removed must stop verifying even while its list can't be fetched.
             const stale = jwksCache.get(issuer);
-            if (stale) return stale;
+            if (stale && Date.now() - stale.fetchedAt < maxStaleMs) return stale;
             throw err;
         }
     })().finally(() => {
@@ -202,12 +215,14 @@ export async function verify(
     } else {
         const issuer = options.issuer ?? DEFAULT_ISSUER;
         const ttl = options.jwksCacheTtlMs ?? DEFAULT_TTL_MS;
+        const maxStale = options.jwksMaxStaleMs ?? DEFAULT_MAX_STALE_MS;
         try {
-            let entry = await fetchJwks(issuer, ttl);
+            let entry = await fetchJwks(issuer, ttl, maxStale);
             key = entry.keys[kid];
-            if (!key) {
-                jwksCache.delete(issuer);
-                entry = await fetchJwks(issuer, ttl);
+            if (!key && Date.now() - (lastForcedRefresh.get(issuer) ?? 0) >= FORCED_REFRESH_MIN_INTERVAL_MS) {
+                // Likely a rotation. Refetch, at most once a minute.
+                lastForcedRefresh.set(issuer, Date.now());
+                entry = await fetchJwks(issuer, 0, maxStale);
                 key = entry.keys[kid];
             }
         } catch (err) {

@@ -33,6 +33,9 @@ const DID = 'did:oc:0123456789abcdef0123456789abcdef';
 const session = keyFromSeed('11'.repeat(32), 'tv-session-1');
 const stranger = keyFromSeed('22'.repeat(32), 'tv-session-1');
 const hook = keyFromSeed('33'.repeat(32), 'tv-webhook-1');
+// A rotated-out key: ochk.io keeps publishing it, marked retired.
+const old = keyFromSeed('44'.repeat(32), 'tv-session-0');
+const RETIRED_AT = NOW - 3600;
 
 async function jwt(claims, { key = session.privateKey, kid = 'tv-session-1' } = {}) {
     const { aud, ...rest } = claims;
@@ -61,7 +64,7 @@ const unsigned = `${Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT', kid: '
 
 const sessionVectors = {
     issuer: ISSUER,
-    jwks: { keys: [session.jwk] },
+    jwks: { keys: [session.jwk, { ...old.jwk, status: 'retired', retired_at: RETIRED_AT }] },
     valid: [
         { name: 'bound to this site', token: good, audience: SITE, claims: drop(base, 'iss') },
         {
@@ -69,6 +72,12 @@ const sessionVectors = {
             token: await jwt({ ...base, jti: 'tv-jti-2', oc_bond: { v: 1, sats_floor: 100000, days_floor: 30 } }),
             audience: SITE,
             claims: { ...drop(base, 'iss'), jti: 'tv-jti-2', oc_bond: { v: 1, sats_floor: 100000, days_floor: 30 } },
+        },
+        {
+            name: 'signed by a retired key before it retired',
+            token: await jwt({ ...base, jti: 'tv-jti-3', iat: RETIRED_AT - 60 }, { key: old.privateKey, kid: 'tv-session-0' }),
+            audience: SITE,
+            claims: { ...drop(base, 'iss'), jti: 'tv-jti-3', iat: RETIRED_AT - 60 },
         },
     ],
     invalid: [
@@ -82,6 +91,18 @@ const sessionVectors = {
         { name: 'payload changed after signing', token: `${h}.${tamperedPayload}.${good.split('.')[2]}`, audience: SITE, reason: 'signature' },
         { name: 'signed by a key not in the set', token: await jwt(base, { key: stranger.privateKey }), audience: SITE, reason: 'signature' },
         { name: 'kid not in the set', token: await jwt(base, { kid: 'tv-unknown' }), audience: SITE, reason: 'unknown_key' },
+        {
+            name: 'signed by a retired key after it retired',
+            token: await jwt({ ...base, iat: RETIRED_AT }, { key: old.privateKey, kid: 'tv-session-0' }),
+            audience: SITE,
+            reason: 'retired_key',
+        },
+        {
+            name: 'signed by a retired key, with no iat',
+            token: await jwt(drop(base, 'iat'), { key: old.privateKey, kid: 'tv-session-0' }),
+            audience: SITE,
+            reason: 'retired_key',
+        },
         { name: 'alg none', token: unsigned, audience: SITE, reason: 'algorithm' },
         { name: 'not a JWT', token: 'not-a-jwt', audience: SITE, reason: 'malformed' },
     ],

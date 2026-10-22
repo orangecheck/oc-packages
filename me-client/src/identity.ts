@@ -22,6 +22,10 @@ import { importJWK, type CryptoKey, type KeyObject } from 'jose';
 
 const DEFAULT_ISSUER = 'https://me.ochk.io';
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
+/** How old a key list may be and still stand in for one that can't be fetched. */
+const DEFAULT_MAX_STALE_MS = 6 * 60 * 60 * 1000;
+/** An unknown kid refetches the key list at most this often per issuer. */
+const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
 const ENVELOPE_JWKS_PATH = '/.well-known/oc-envelope-jwks.json';
 
 export interface ActivityAttestation {
@@ -79,8 +83,11 @@ export interface VerifyActivityOptions {
      *  edge-runtime deployments. */
     jwk?: OcEnvelopePublicJwk;
     /** JWKS cache TTL in ms. Defaults to 1h. Stale-on-error falls back
-     *  to the previous cached value. */
+     *  to the previous cached value, for at most `jwksMaxStaleMs`. */
     jwksCacheTtlMs?: number;
+    /** How old a cached JWKS may be and still stand in during an outage.
+     *  Defaults to 6h; past it, verification fails closed. */
+    jwksMaxStaleMs?: number;
     /** Optional · override "now" for deterministic tests. */
     now?: Date;
 }
@@ -94,8 +101,13 @@ interface JwksCacheEntry {
 
 const jwksCache = new Map<string, JwksCacheEntry>();
 const inflight = new Map<string, Promise<JwksCacheEntry>>();
+const lastForcedRefresh = new Map<string, number>();
 
-async function fetchEnvelopeJwks(issuer: string, ttlMs: number): Promise<JwksCacheEntry> {
+async function fetchEnvelopeJwks(
+    issuer: string,
+    ttlMs: number,
+    maxStaleMs = DEFAULT_MAX_STALE_MS
+): Promise<JwksCacheEntry> {
     const cached = jwksCache.get(issuer);
     if (cached && Date.now() - cached.fetchedAt < ttlMs) return cached;
     const existing = inflight.get(issuer);
@@ -122,8 +134,9 @@ async function fetchEnvelopeJwks(issuer: string, ttlMs: number): Promise<JwksCac
             jwksCache.set(issuer, entry);
             return entry;
         } catch (err) {
+            // A key the issuer removed must stop verifying even while its list can't be fetched.
             const stale = jwksCache.get(issuer);
-            if (stale) return stale;
+            if (stale && Date.now() - stale.fetchedAt < maxStaleMs) return stale;
             throw err;
         }
     })().finally(() => {
@@ -348,13 +361,14 @@ export async function verifyActivityAttestation(
     } else {
         const issuer = options.issuer ?? DEFAULT_ISSUER;
         const ttl = options.jwksCacheTtlMs ?? DEFAULT_TTL_MS;
+        const maxStale = options.jwksMaxStaleMs ?? DEFAULT_MAX_STALE_MS;
         try {
-            let entry = await fetchEnvelopeJwks(issuer, ttl);
+            let entry = await fetchEnvelopeJwks(issuer, ttl, maxStale);
             key = entry.keys[bundle.kid] ?? null;
-            if (!key) {
-                // Cache miss · likely a rotation. Force-refresh once.
-                jwksCache.delete(issuer);
-                entry = await fetchEnvelopeJwks(issuer, ttl);
+            if (!key && Date.now() - (lastForcedRefresh.get(issuer) ?? 0) >= FORCED_REFRESH_MIN_INTERVAL_MS) {
+                // Cache miss · likely a rotation. Refetch, at most once a minute.
+                lastForcedRefresh.set(issuer, Date.now());
+                entry = await fetchEnvelopeJwks(issuer, 0, maxStale);
                 key = entry.keys[bundle.kid] ?? null;
             }
             checks.push({

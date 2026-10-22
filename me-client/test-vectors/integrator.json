@@ -12,6 +12,16 @@
                     "use": "sig",
                     "kid": "tv-session-1",
                     "x": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc"
+                },
+                {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "alg": "EdDSA",
+                    "use": "sig",
+                    "kid": "tv-session-0",
+                    "x": "11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+                    "status": "retired",
+                    "retired_at": 1799996400
                 }
             ]
         },
@@ -45,6 +55,19 @@
                         "sats_floor": 100000,
                         "days_floor": 30
                     }
+                }
+            },
+            {
+                "name": "signed by a retired key before it retired",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMyIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjM0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.iSB9AzK74PQrZqcnw4krshXz2RNY1IDOsmUAhpTy1N2HUf_b9pqCH-CV_sa0hOsccSv3Bk-ij80L_QgDn_ogCg",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-3",
+                    "iat": 1799996340,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example"
                 }
             }
         ],
@@ -108,6 +131,18 @@
                 "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXVua25vd24ifQ.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.SLzv1E4JBaEBNFD_e46NfrAU6JjS7MVVncrbj8pM_O7LmZ3pi7iBY9IoOxiejwrRzk3IDyKCJUGQBK_p3G3PAQ",
                 "audience": "https://soniq.example",
                 "reason": "unknown_key"
+            },
+            {
+                "name": "signed by a retired key after it retired",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.ixdDBd2ZyaxftQXXhb3AcqKZupnSUbQ3_Dp9RdL2UeXoOk83GObhHBikHjw2ftCSIRb4cyRd7cmNGhgBSMRrAQ",
+                "audience": "https://soniq.example",
+                "reason": "retired_key"
+            },
+            {
+                "name": "signed by a retired key, with no iat",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImV4cCI6MTgwMDAwMzYwMCwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.Yt4US3MrLtnOU--xRNZroz78NLar07q1hDpNMJQ5-zinunhUrEFLjbYh_YQ89E78oOcABz6IXr5_3oS7vNA0Dw",
+                "audience": "https://soniq.example",
+                "reason": "retired_key"
             },
             {
                 "name": "alg none",

@@ -280,3 +280,83 @@ describe('the result is what the signature covers', () => {
         expect(result.reason).toBe('canonical bytes are not an activity attestation');
     });
 });
+
+describe('the envelope key list, cached', () => {
+    const HOUR = 60 * 60 * 1000;
+    let calls = 0;
+    let up = true;
+
+    function serve(keys: unknown[]) {
+        calls = 0;
+        up = true;
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => {
+                calls++;
+                return up
+                    ? new Response(JSON.stringify({ keys }), { status: 200 })
+                    : new Response('unavailable', { status: 503 });
+            })
+        );
+    }
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('stands in for an unreachable key list for six hours, then refuses', async () => {
+        const issuer = 'https://stale-cap.test';
+        const { bundle, jwk } = await makeAttestation();
+        serve([jwk]);
+        const t0 = Date.now();
+        expect((await verifyActivityAttestation(bundle, { issuer })).ok).toBe(true);
+        up = false;
+        vi.spyOn(Date, 'now').mockReturnValue(t0 + 5 * HOUR);
+        expect((await verifyActivityAttestation(bundle, { issuer })).ok).toBe(true);
+        vi.spyOn(Date, 'now').mockReturnValue(t0 + 6 * HOUR + 1000);
+        const late = await verifyActivityAttestation(bundle, { issuer });
+        expect(late.ok).toBe(false);
+        expect(late.reason).toMatch(/^envelope JWKS unavailable/);
+    });
+
+    it('takes a shorter stand-in window from jwksMaxStaleMs', async () => {
+        const issuer = 'https://stale-option.test';
+        const { bundle, jwk } = await makeAttestation();
+        serve([jwk]);
+        const t0 = Date.now();
+        expect((await verifyActivityAttestation(bundle, { issuer })).ok).toBe(true);
+        up = false;
+        vi.spyOn(Date, 'now').mockReturnValue(t0 + 2 * HOUR);
+        const r = await verifyActivityAttestation(bundle, { issuer, jwksMaxStaleMs: HOUR });
+        expect(r.ok).toBe(false);
+    });
+
+    it('asks again for an unknown key at most once a minute', async () => {
+        const issuer = 'https://unknown-kid.test';
+        const { bundle: known, jwk } = await makeAttestation();
+        const { bundle: unknown } = await makeAttestation();
+        serve([jwk]);
+        const t0 = Date.now();
+        expect((await verifyActivityAttestation(known, { issuer })).ok).toBe(true);
+        expect(calls).toBe(1);
+        expect((await verifyActivityAttestation(unknown, { issuer })).ok).toBe(false);
+        expect(calls).toBe(2);
+        expect((await verifyActivityAttestation(unknown, { issuer })).ok).toBe(false);
+        expect(calls).toBe(2);
+        vi.spyOn(Date, 'now').mockReturnValue(t0 + 61_000);
+        expect((await verifyActivityAttestation(unknown, { issuer })).ok).toBe(false);
+        expect(calls).toBe(3);
+    });
+
+    it('keeps the cached keys when an unknown key arrives during an outage', async () => {
+        const issuer = 'https://unknown-outage.test';
+        const { bundle: known, jwk } = await makeAttestation();
+        const { bundle: unknown } = await makeAttestation();
+        serve([jwk]);
+        expect((await verifyActivityAttestation(known, { issuer })).ok).toBe(true);
+        up = false;
+        expect((await verifyActivityAttestation(unknown, { issuer })).ok).toBe(false);
+        expect((await verifyActivityAttestation(known, { issuer })).ok).toBe(true);
+    });
+});

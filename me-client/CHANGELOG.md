@@ -8,6 +8,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.33.0] — 2026-10-22
+
+### Changed
+
+- Requires `@orangecheck/auth-core` ^2.10.0, so `verifyOcToken` (and
+  `withOcAuth`, `ocAuthExpress`, `ocAuthHono`) honours a key published as
+  retired only for tokens issued before its `retired_at`, and stops leaning on
+  a stale ochk.io key list after `jwksMaxStaleMs` (6 hours by default).
+- `oc.identity.verifyActivityAttestation` and `oc.webhook.verify` take the same
+  `jwksMaxStaleMs` option, with the same 6-hour default: the last fetched key
+  list stands in during an outage until then, and verification fails closed
+  after. An unknown `kid` refetches the list at most once a minute per issuer,
+  and keeps the cached keys if that refetch fails.
+- The integrator vectors (`test-vectors/integrator.json`, shared with sdk-py)
+  carry a retired key: one token it signed before retiring, which verifies,
+  and two it did not, which are refused.
+
 ## [0.32.4] — 2026-10-21
 
 ### Fixed
