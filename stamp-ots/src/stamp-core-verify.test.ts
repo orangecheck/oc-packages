@@ -5,7 +5,7 @@ import { verify, type StampEnvelope } from '@orangecheck/stamp-core';
 import { sha256 } from '@noble/hashes/sha2';
 import { describe, expect, it } from 'vitest';
 
-import { blockHashOf, makeAnchorVerifier } from './anchor.js';
+import { blockHashOf, makeAnchorVerifier, mempoolHeaderSource } from './anchor.js';
 import { base64Encode, hexDecode } from './base64.js';
 import { serializeTimestamp, type OtsTimestamp } from './ots.js';
 
@@ -70,5 +70,19 @@ describe('stamp-core verify() with makeAnchorVerifier', () => {
             verifyOtsAnchor,
         });
         expect(r.ok ? 'ok' : r.code).toBe('E_BAD_ANCHOR');
+    });
+
+    it('reports the anchor unchecked, not E_BAD_ANCHOR, when the header source answers 503', async () => {
+        const down = mempoolHeaderSource({
+            fetch: (async () => new Response('down', { status: 503 })) as unknown as typeof fetch,
+        });
+        const r = await verify({
+            envelope: withOts(),
+            skipSignatureVerification: true,
+            verifyOtsAnchor: makeAnchorVerifier({ headerSource: down }),
+        });
+        expect(r.ok).toBe(true);
+        expect(r.ok && r.anchor).toMatchObject({ status: 'unchecked', blockHeight: HEIGHT, verified: false });
+        expect(r.ok && r.anchor.status === 'unchecked' && r.anchor.reason).toMatch(/HTTP 503/);
     });
 });
