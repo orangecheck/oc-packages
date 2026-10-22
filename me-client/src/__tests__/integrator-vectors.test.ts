@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { _resetJwksCachesForTests } from '@orangecheck/auth-core';
+import {
+    _resetJwksCachesForTests,
+    integratorRevocationCheck,
+    revocationKey,
+} from '@orangecheck/auth-core';
 
 import { oc } from '../index';
 import { verifyOcToken } from '../server';
@@ -13,7 +17,7 @@ import { verify as verifyWebhook, type OcPublicJwk } from '../webhook';
  * The wire formats an integrator's own backend speaks, held to the vectors in
  * test-vectors/integrator.json. sdk-py reads the same file
  * (tests/test_integrator_vectors.py), so a Python site and a Node site accept
- * and refuse exactly the same tokens, event signatures and webhooks.
+ * and refuse exactly the same tokens, event signatures, webhooks and ended sessions.
  */
 
 const V = JSON.parse(
@@ -123,5 +127,42 @@ describe('webhook signatures · oc.webhook.verify', () => {
             jwk,
         });
         expect(r.ok).toBe(false);
+    });
+});
+
+const R = (V as unknown as {
+    revocation: {
+        request: { project_key: string; secret: string; timestamp: number; url: string; header: string };
+        keys: { sub: string; key: string }[];
+        feed: { v: 1; at: number; tokens: string[]; accounts: Record<string, number> };
+        sessions: { name: string; sub: string; iat: number | null; status: string }[];
+    };
+}).revocation;
+
+describe('vectors · account cutoffs', () => {
+    const seen: { url: string; signature: string | null }[] = [];
+    const check = () =>
+        integratorRevocationCheck({
+            projectKey: R.request.project_key,
+            signingSecret: R.request.secret,
+            now: () => R.request.timestamp * 1000,
+            fetch: (async (url: RequestInfo | URL, init?: RequestInit) => {
+                seen.push({ url: String(url), signature: new Headers(init?.headers).get('x-oc-signature') });
+                return Response.json(R.feed);
+            }) as typeof fetch,
+        })!;
+
+    it('signs the request as the vector does', async () => {
+        await check().status({ sub: 'x', iat: 0 });
+        expect(seen.at(-1)).toEqual({ url: R.request.url, signature: R.request.header });
+    });
+
+    it.each(R.keys)('derives the key for $sub', async (v) => {
+        expect(await revocationKey('sub', v.sub)).toBe(v.key);
+    });
+
+    it.each(R.sessions)('decides: $name', async (v) => {
+        const c = check();
+        expect(await c.status({ sub: v.sub, iat: v.iat ?? undefined, jti: 'j' })).toBe(v.status);
     });
 });

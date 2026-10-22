@@ -65,7 +65,10 @@ from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .integrator import (
     InvalidSession,
     InvalidWebhook,
+    RevocationList,
     Session,
+    SessionEnded,
+    revocation_key,
     sign_event,
     verify_session,
     verify_webhook,
@@ -125,6 +128,9 @@ __all__ = [
     "Session",
     "InvalidSession",
     "InvalidWebhook",
+    "RevocationList",
+    "SessionEnded",
+    "revocation_key",
     # Types
     "CheckResult",
     "VerifyOutcome",

@@ -186,6 +186,23 @@ httpx.post("https://me.ochk.io/api/integrator/event", content=body, headers={
 event = verify_webhook(request.headers, raw_body)  # raises InvalidWebhook
 ```
 
+A token verifies until it expires, up to 30 days. To refuse one the person
+ended everywhere (signed out everywhere, removed a passkey, deleted the
+account), keep one `RevocationList` per process and pass it with the request's
+method. It reads those account cutoffs from me.ochk.io at most once a minute,
+signed with your secret:
+
+```python
+from orangecheck import RevocationList, SessionEnded
+
+REVOCATIONS = RevocationList(PROJECT_KEY, SIGNING_SECRET)
+
+session = verify_session(token, audience="https://your-site.example",
+                         revocations=REVOCATIONS, method=request.method)
+# SessionEnded (an InvalidSession) when the person ended it. While the list
+# can't be read, reads go on and writes raise reason "revocations_unavailable".
+```
+
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
 
 ---

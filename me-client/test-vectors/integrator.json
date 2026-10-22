@@ -1,5 +1,5 @@
 {
-    "description": "Integrator wire formats: sign-in tokens, X-OC-Signature event signatures and webhook signatures. Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). Regenerate with node scripts/gen-integrator-vectors.mjs.",
+    "description": "Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and account cutoffs. Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). Regenerate with node scripts/gen-integrator-vectors.mjs.",
     "now": 1800000000,
     "session": {
         "issuer": "https://ochk.io",
@@ -252,6 +252,55 @@
                 },
                 "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
                 "reason": "missing"
+            }
+        ]
+    },
+    "revocation": {
+        "request": {
+            "project_key": "pk_test_tv",
+            "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
+            "timestamp": 1800000000,
+            "url": "https://me.ochk.io/api/integrator/revocations?project_key=pk_test_tv",
+            "header": "t=1800000000,v1=c1a481e4f19882e00e02974b750e4abb45fa420f639febb26845649d959aeb9d"
+        },
+        "keys": [
+            {
+                "sub": "acct-tv-0001",
+                "key": "5MfG_Ix0iWsGOA3OmCNGSA"
+            }
+        ],
+        "feed": {
+            "v": 1,
+            "at": 1800000000,
+            "tokens": [],
+            "accounts": {
+                "5MfG_Ix0iWsGOA3OmCNGSA": 1799999900
+            }
+        },
+        "sessions": [
+            {
+                "name": "issued before the cutoff",
+                "sub": "acct-tv-0001",
+                "iat": 1799996400,
+                "status": "revoked"
+            },
+            {
+                "name": "issued in the cutoff second",
+                "sub": "acct-tv-0001",
+                "iat": 1799999900,
+                "status": "live"
+            },
+            {
+                "name": "no iat",
+                "sub": "acct-tv-0001",
+                "iat": null,
+                "status": "revoked"
+            },
+            {
+                "name": "another account",
+                "sub": "acct-tv-0002",
+                "iat": 1799996400,
+                "status": "live"
             }
         ]
     }

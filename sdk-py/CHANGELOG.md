@@ -4,6 +4,20 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added — refuse a session the person ended everywhere
+
+As `@orangecheck/auth-core`'s `integratorRevocationCheck`. `RevocationList(project_key,
+signing_secret)` reads the account cutoffs (sign out everywhere, a passkey removed, an
+account deleted) from me.ochk.io's `/api/integrator/revocations` at most once a minute,
+signed with `X-OC-Signature` over the query. `verify_session(..., revocations=, method=)`
+raises `SessionEnded` (an `InvalidSession`, reason `ended`) for a session it ends; while
+no copy younger than ten minutes can be read, a read goes on and anything else is
+refused (`revocations_unavailable`). `RevocationList.status(sub, iat)` answers for a
+site whose own session replaced the token. `revocation_key(kind, value)` derives the
+list's keys. Held to me-client's vectors (`revocation`).
+
 ## [2.6.0] — 2026-10-22
 
 ### Changed — key rotation and outages, as `@orangecheck/auth-core` 2.10.0

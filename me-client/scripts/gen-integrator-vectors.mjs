@@ -5,7 +5,7 @@
 // running this again changes nothing unless the inputs below change.
 //
 //   node scripts/gen-integrator-vectors.mjs
-import { createHmac, createPrivateKey, createPublicKey, sign } from 'node:crypto';
+import { createHash, createHmac, createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -157,15 +157,40 @@ const webhookVectors = {
     ],
 };
 
+// The account cutoffs an integrator reads (auth-core integratorRevocationCheck,
+// sdk-py RevocationList): the signed request, a feed, and what it decides.
+const revKey = (sub) =>
+    createHash('sha256').update(`ocrev1:sub:${sub}`).digest().subarray(0, 16).toString('base64url');
+const REV_SUB = 'acct-tv-0001';
+const revQuery = `project_key=${encodeURIComponent('pk_test_tv')}`;
+const revocationVectors = {
+    request: {
+        project_key: 'pk_test_tv',
+        secret: SECRET,
+        timestamp: NOW,
+        url: `https://me.ochk.io/api/integrator/revocations?${revQuery}`,
+        header: `t=${NOW},v1=${createHmac('sha256', SECRET).update(`${NOW}.${revQuery}`).digest('hex')}`,
+    },
+    keys: [{ sub: REV_SUB, key: revKey(REV_SUB) }],
+    feed: { v: 1, at: NOW, tokens: [], accounts: { [revKey(REV_SUB)]: NOW - 100 } },
+    sessions: [
+        { name: 'issued before the cutoff', sub: REV_SUB, iat: NOW - 3600, status: 'revoked' },
+        { name: 'issued in the cutoff second', sub: REV_SUB, iat: NOW - 100, status: 'live' },
+        { name: 'no iat', sub: REV_SUB, iat: null, status: 'revoked' },
+        { name: 'another account', sub: 'acct-tv-0002', iat: NOW - 3600, status: 'live' },
+    ],
+};
+
 const doc = {
     description:
-        'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures and webhook signatures. ' +
+        'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and account cutoffs. ' +
         'Read by me-client (src/__tests__/integrator-vectors.test.ts) and sdk-py (tests/test_integrator_vectors.py). ' +
         'Regenerate with node scripts/gen-integrator-vectors.mjs.',
     now: NOW,
     session: sessionVectors,
     event: eventVectors,
     webhook: webhookVectors,
+    revocation: revocationVectors,
 };
 writeFileSync(OUT, JSON.stringify(doc, null, 4) + '\n');
 console.log(`wrote ${OUT}`);

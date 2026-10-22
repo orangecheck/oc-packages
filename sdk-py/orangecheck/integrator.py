@@ -9,6 +9,10 @@ Three jobs, the same wire formats as ``@orangecheck/me-client``:
     header = sign_event(signing_secret, body)          # X-OC-Signature
     event = verify_webhook(request.headers, raw_body)
 
+    # Refuse a session the person ended everywhere (one list per process):
+    revocations = RevocationList(project_key, signing_secret)
+    session = verify_session(token, audience, revocations=revocations, method=request.method)
+
 Both SDKs are held to one set of vectors
 (``me-client/test-vectors/integrator.json``), so they accept and refuse the
 same tokens, signatures and deliveries.
@@ -26,6 +30,7 @@ import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
+from urllib.parse import quote
 
 import httpx
 from cryptography.exceptions import InvalidSignature
@@ -51,6 +56,13 @@ class InvalidSession(OrangeCheckError):
     def __init__(self, reason: str, message: str | None = None):
         super().__init__(message or f"session token refused: {reason}")
         self.reason = reason
+
+
+class SessionEnded(InvalidSession):
+    """The person ended this session everywhere: signed out everywhere, removed a passkey or deleted the account."""
+
+    def __init__(self) -> None:
+        super().__init__("ended", "session token refused: the person ended it")
 
 
 class InvalidWebhook(OrangeCheckError):
@@ -153,6 +165,91 @@ def _import_jwks(doc: Any) -> dict[str, Ed25519PublicKey]:
     return keys
 
 
+# ─── account cutoffs ─────────────────────────────────────────────────────
+
+REVOCATIONS_URL = "https://me.ochk.io/api/integrator/revocations"
+_REVOCATIONS_TTL_SECONDS = 60
+_REVOCATIONS_MAX_STALE_SECONDS = 600
+_REVOCATIONS_RETRY_SECONDS = 10
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def revocation_key(kind: str, value: str) -> str:
+    """The list's key for a token (``"jti"``) or an account (``"sub"``), as auth-core derives it."""
+    digest = hashlib.sha256(f"ocrev1:{kind}:{value}".encode("utf-8")).digest()[:16]
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+class RevocationList:
+    """
+    The account cutoffs (sign out everywhere, a passkey removed, an account
+    deleted) from me.ochk.io, fetched at most once a minute with a request
+    signed by your project secret, as ``@orangecheck/auth-core``'s
+    ``integratorRevocationCheck`` does. Make one per process and pass it to
+    :func:`verify_session`.
+
+    ``status`` is ``"revoked"``, ``"live"``, or ``"unverified"`` when no copy
+    younger than ten minutes could be read: then reads may go on, but a write
+    should not.
+    """
+
+    def __init__(self, project_key: str, signing_secret: str, *, url: str = REVOCATIONS_URL):
+        query = "project_key=" + quote(project_key, safe="-_.!~*'()")
+        self._url = f"{url}?{query}"
+        self._query = query
+        self._secret = signing_secret
+        self._tokens: set[str] = set()
+        self._accounts: dict[str, float] = {}
+        self._fetched_at: Optional[float] = None
+        self._failed_at = float("-inf")
+        self._lock = threading.Lock()
+
+    def _fetch(self) -> None:
+        try:
+            r = httpx.get(
+                self._url,
+                headers={
+                    "Accept": "application/json",
+                    "X-OC-Signature": sign_event(self._secret, self._query),
+                },
+                timeout=3.0,
+            )
+            r.raise_for_status()
+            doc = r.json()
+            if (
+                not isinstance(doc, dict)
+                or doc.get("v") != 1
+                or not isinstance(doc.get("tokens"), list)
+                or not isinstance(doc.get("accounts"), dict)
+            ):
+                raise ValueError("revocations: unexpected body")
+            self._tokens = {t for t in doc["tokens"] if isinstance(t, str)}
+            self._accounts = {
+                k: float(v)
+                for k, v in doc["accounts"].items()
+                if isinstance(v, (int, float)) and not isinstance(v, bool)
+            }
+            self._fetched_at = time.time()
+        except (httpx.HTTPError, ValueError):
+            # Keep the last copy; try again after a short wait.
+            self._failed_at = time.time()
+
+    def status(self, sub: str, iat: Optional[float], jti: Optional[str] = None) -> str:
+        with self._lock:
+            now = time.time()
+            fresh = self._fetched_at is not None and now - self._fetched_at < _REVOCATIONS_TTL_SECONDS
+            if not fresh and now - self._failed_at >= _REVOCATIONS_RETRY_SECONDS:
+                self._fetch()
+            if self._fetched_at is None:
+                return "unverified"
+            if jti is not None and revocation_key("jti", jti) in self._tokens:
+                return "revoked"
+            cutoff = self._accounts.get(revocation_key("sub", sub))
+            if cutoff is not None and not (iat is not None and iat >= cutoff):
+                return "revoked"
+            return "unverified" if now - self._fetched_at > _REVOCATIONS_MAX_STALE_SECONDS else "live"
+
+
 # ─── sign-in tokens ──────────────────────────────────────────────────────
 
 
@@ -163,6 +260,8 @@ def verify_session(
     jwks: Optional[Mapping[str, Any]] = None,
     issuer: str = SESSION_ISSUER,
     leeway: int = 0,
+    revocations: Optional[RevocationList] = None,
+    method: Optional[str] = None,
 ) -> Session:
     """
     Verify a token from the ochk.app sign-in popup and return who signed in.
@@ -175,8 +274,11 @@ def verify_session(
     ``jwks`` to verify offline.
 
     Raises :class:`InvalidSession` on any failure. The token proves who signed
-    in until it expires (up to 30 days); it does not prove the person has not
-    signed out since. Keep your own session, and see the docs on ending one.
+    in until it expires (up to 30 days). Pass ``revocations`` (a
+    :class:`RevocationList`) to refuse one the person ended everywhere with
+    :class:`SessionEnded`. Pass the request's ``method`` too: while the list
+    can't be read, a read goes on and anything else is refused with reason
+    ``revocations_unavailable``; with no method, a request counts as a write.
     """
     parts = token.split(".") if isinstance(token, str) else []
     if len(parts) != 3:
@@ -242,6 +344,13 @@ def verify_session(
     want = [audience] if isinstance(audience, str) else list(audience)
     if not any(isinstance(a, str) and a in want for a in have):
         raise InvalidSession("audience")
+
+    if revocations is not None:
+        state = revocations.status(payload["sub"], iat, payload["jti"])
+        if state == "revoked":
+            raise SessionEnded()
+        if state == "unverified" and (method or "").upper() not in _SAFE_METHODS:
+            raise InvalidSession("revocations_unavailable")
 
     bond = payload.get("oc_bond")
     return Session(

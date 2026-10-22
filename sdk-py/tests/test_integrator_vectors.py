@@ -22,6 +22,9 @@ import orangecheck.integrator as integrator
 from orangecheck import (
     InvalidSession,
     InvalidWebhook,
+    RevocationList,
+    SessionEnded,
+    revocation_key,
     sign_event,
     verify_session,
     verify_webhook,
@@ -175,3 +178,71 @@ def test_webhook_fetches_me_ochk_io_dev_jwks(fresh_key_sets: None) -> None:
     v = V["webhook"]["valid"][0]
     assert verify_webhook(v["headers"], v["body"])["id"] == "oc-me-tv-1"
     assert route.call_count == 1
+
+
+# ─── account cutoffs ─────────────────────────────────────────────────────
+
+R = V["revocation"]
+
+
+def _revocations() -> RevocationList:
+    return RevocationList(R["request"]["project_key"], R["request"]["secret"])
+
+
+@respx.mock
+def test_revocations_request_is_signed_as_the_node_sdk_signs_it() -> None:
+    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
+    _revocations().status("someone", 0)
+    assert route.call_count == 1
+    sent = route.calls[0].request
+    assert str(sent.url) == R["request"]["url"]
+    assert sent.headers["x-oc-signature"] == R["request"]["header"]
+
+
+@pytest.mark.parametrize("v", R["keys"], ids=lambda v: v["sub"])
+def test_revocation_key_matches_the_node_sdk(v: dict[str, Any]) -> None:
+    assert revocation_key("sub", v["sub"]) == v["key"]
+
+
+@respx.mock
+@pytest.mark.parametrize("v", R["sessions"], ids=lambda v: v["name"])
+def test_revocations_decide_as_the_node_sdk_does(v: dict[str, Any]) -> None:
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
+    assert _revocations().status(v["sub"], v["iat"]) == v["status"]
+
+
+@respx.mock
+def test_revocations_are_fetched_at_most_once_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
+    route = respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["feed"]))
+    rl = _revocations()
+    rl.status("someone", 0)
+    rl.status("someone", 0)
+    assert route.call_count == 1
+    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    rl.status("someone", 0)
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_verify_session_refuses_a_session_its_account_cutoff_ends() -> None:
+    v = V["session"]["valid"][0]
+    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
+    assert s.iat is not None
+    feed = {"v": 1, "at": V["now"], "tokens": [], "accounts": {revocation_key("sub", s.sub): s.iat + 1}}
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=feed))
+    with pytest.raises(SessionEnded) as err:
+        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=_revocations())
+    assert isinstance(err.value, InvalidSession)
+    assert err.value.reason == "ended"
+
+
+@respx.mock
+def test_verify_session_keeps_reads_and_refuses_writes_while_cutoffs_cannot_be_read() -> None:
+    respx.get(R["request"]["url"]).mock(return_value=httpx.Response(503))
+    v = V["session"]["valid"][0]
+    rl = _revocations()
+    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="GET")
+    assert s.sub == v["claims"]["sub"]
+    with pytest.raises(InvalidSession) as err:
+        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl, method="POST")
+    assert err.value.reason == "revocations_unavailable"
