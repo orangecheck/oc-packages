@@ -27,10 +27,13 @@ let feedUp: boolean;
 let feedCalls: Array<{ url: string; signature: string | null }>;
 
 const nowSec = () => Math.floor(Date.now() / 1000);
+/** Every token in a test carries this iat, so a cutoff set from it cannot race the clock. */
+let ISSUED: number;
 
 beforeEach(async () => {
     _resetJwksCachesForTests();
     _resetSessionChecksForTests();
+    ISSUED = nowSec();
     const pair = await generateKeyPair('EdDSA', { extractable: true });
     privateKey = pair.privateKey as CryptoKey;
     jwks = { keys: [{ ...(await exportJWK(pair.publicKey)), kid: KID }] };
@@ -62,8 +65,8 @@ async function token() {
         .setJti('j-1')
         .setIssuer(ISSUER)
         .setAudience(SITE)
-        .setIssuedAt()
-        .setExpirationTime('5m')
+        .setIssuedAt(ISSUED)
+        .setExpirationTime(ISSUED + 300)
         .sign(privateKey);
 }
 
@@ -111,7 +114,7 @@ async function viaHono(method: string) {
 
 describe('server helpers · sessions ended everywhere', () => {
     it('refuses a session its account cutoff ends, asking me.ochk.io with the signed request', async () => {
-        cutoffs[await revocationKey('sub', SUB)] = nowSec() + 1;
+        cutoffs[await revocationKey('sub', SUB)] = ISSUED + 1;
         expect(await viaNext('GET')).toBeNull();
         expect(feedCalls).toHaveLength(1);
         const query = `project_key=${PROJECT}`;
@@ -122,12 +125,12 @@ describe('server helpers · sessions ended everywhere', () => {
     });
 
     it('keeps a session minted after the cutoff', async () => {
-        cutoffs[await revocationKey('sub', SUB)] = nowSec() - 60;
+        cutoffs[await revocationKey('sub', SUB)] = ISSUED - 60;
         expect((await viaNext('POST'))?.sub).toBe(SUB);
     });
 
     it('refuses on every adapter, and getOcSession too', async () => {
-        cutoffs[await revocationKey('sub', SUB)] = nowSec() + 1;
+        cutoffs[await revocationKey('sub', SUB)] = ISSUED + 1;
         expect(await viaExpress('GET')).toBeNull();
         expect(await viaHono('GET')).toBeNull();
         const headers = { cookie: `oc_session=${await token()}` };
@@ -148,7 +151,7 @@ describe('server helpers · sessions ended everywhere', () => {
     it('checks nothing without the project secret, and says so once in production', async () => {
         vi.stubEnv('OC_SIGNING_SECRET', '');
         vi.stubEnv('NODE_ENV', 'production');
-        cutoffs[await revocationKey('sub', SUB)] = nowSec() + 1;
+        cutoffs[await revocationKey('sub', SUB)] = ISSUED + 1;
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         expect((await viaNext('POST'))?.sub).toBe(SUB);
         expect((await viaNext('POST'))?.sub).toBe(SUB);
@@ -158,7 +161,7 @@ describe('server helpers · sessions ended everywhere', () => {
     });
 
     it('turns off with revocation: false', async () => {
-        cutoffs[await revocationKey('sub', SUB)] = nowSec() + 1;
+        cutoffs[await revocationKey('sub', SUB)] = ISSUED + 1;
         expect((await viaNext('GET', { revocation: false }))?.sub).toBe(SUB);
         expect(feedCalls).toHaveLength(0);
     });
