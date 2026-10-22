@@ -8,6 +8,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.38.1] — 2026-10-22
+
+Requires `@orangecheck/auth-core` `^2.13.0`.
+
+### Fixed
+
+- A server whose wall clock stepped back let the last sign-in rule stand past ten
+  minutes and waited longer before asking me.ochk.io again. Both are measured on a
+  monotonic clock now (`performance.now()`), as auth-core 2.13.0 measures the list
+  of ended sessions.
+- Requests that arrive together while the rule is being read share that one read
+  instead of each asking me.ochk.io.
+- `checkOcSession` reads the list of ended sessions once per request and decides
+  on that answer, so two reads can't disagree about the same request.
+
 ## [0.38.0] — 2026-10-22
 
 ### Added

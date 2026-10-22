@@ -11,6 +11,24 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.13.0] — 2026-10-22
+
+### Changed — a wall clock set back no longer extends a revocation list
+
+- A server whose wall clock stepped back kept a copy of the list past its minute,
+  waited longer before asking a failing host again, and held an old list as if it
+  were younger. How long a copy has been held and how long since a failed fetch
+  are now measured on a monotonic clock (`performance.now()`), and a list's age by
+  its own `at` is read against the wall clock once, when fetched, then grown on
+  the monotonic clock.
+
+### Added
+
+- `clock` option on `createRevocationCheck` and `integratorRevocationCheck`: the
+  monotonic clock, for tests. When only `now` is given, it is used for both.
+- `SAFE_METHODS`: the methods that go on while the list can't vouch for a
+  session (`GET`, `HEAD`, `OPTIONS`), shared with me-client.
+
 ## [2.12.0] — 2026-10-22
 
 ### Changed — integrator revocation by per-audience handle

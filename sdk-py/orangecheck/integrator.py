@@ -98,6 +98,13 @@ class Session:
 # ─── key sets ────────────────────────────────────────────────────────────
 
 
+def _clock() -> float:
+    """Seconds on a clock that never steps back: every cache here measures how long
+    it has held a copy, and how long since a failed read, on it. A wall clock set
+    back must not extend either."""
+    return time.monotonic()
+
+
 def _finite(v: Any) -> bool:
     """A JSON number Node reads as one: not a bool, not NaN, not infinite."""
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
@@ -178,8 +185,8 @@ class _KeySet:
         self.url = url
         self._keys: dict[str, Ed25519PublicKey] = {}
         self._retired: dict[str, float] = {}
-        self._fetched_at = 0.0
-        self._forced_at = 0.0
+        self._fetched_at: Optional[float] = None
+        self._forced_at = float("-inf")
         self._failed_at = float("-inf")
         self._error: Optional[str] = None
         self._new_locks()
@@ -195,23 +202,26 @@ class _KeySet:
             doc = r.json()
             self._keys = _import_jwks(doc)
             self._retired = _retired_at(doc)
-            self._fetched_at = time.time()
+            self._fetched_at = _clock()
             self._error = None
         except (httpx.HTTPError, ValueError) as err:
-            self._failed_at = time.time()
+            self._failed_at = _clock()
             self._error = _failure_reason(err)
             # Stale on error: a key set seen before keeps working through an outage, for a while.
-            if not self._keys or time.time() - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
+            if not self._keys or self._held() >= _JWKS_MAX_STALE_SECONDS:
                 raise
+
+    def _held(self) -> float:
+        """How long the copy has been held; forever when there is none."""
+        return float("inf") if self._fetched_at is None else _clock() - self._fetched_at
 
     def _refresh(self) -> None:
         """Fetch once the copy is an hour old; while fetches fail, try again at most every ten seconds."""
-        now = time.time()
-        if self._fetched_at and now - self._fetched_at < _JWKS_TTL_SECONDS:
+        if self._held() < _JWKS_TTL_SECONDS:
             return
-        if now - self._failed_at >= _JWKS_RETRY_SECONDS:
+        if _clock() - self._failed_at >= _JWKS_RETRY_SECONDS:
             self._fetch()
-        elif not self._keys or now - self._fetched_at >= _JWKS_MAX_STALE_SECONDS:
+        elif not self._keys or self._held() >= _JWKS_MAX_STALE_SECONDS:
             raise ValueError("key set unavailable")
 
     def warm(self) -> WarmPart:
@@ -233,8 +243,8 @@ class _KeySet:
             self._refresh()
             key = self._keys.get(kid)
             # A key that rotated in since the last fetch: refetch, at most once a minute.
-            if key is None and time.time() - self._forced_at >= _FORCED_REFRESH_MIN_SECONDS:
-                self._forced_at = time.time()
+            if key is None and _clock() - self._forced_at >= _FORCED_REFRESH_MIN_SECONDS:
+                self._forced_at = _clock()
                 self._fetch()
                 key = self._keys.get(kid)
             return key
@@ -304,6 +314,8 @@ class _AudienceList:
         )
         self._handles: dict[str, float] = {}
         self._at: Optional[float] = None
+        # How old the list already was when fetched, by the wall clock.
+        self._age_at_fetch = float("inf")
         self._fetched_at: Optional[float] = None
         self._failed_at = float("-inf")
         self._error: Optional[str] = None
@@ -339,11 +351,12 @@ class _AudienceList:
             self._handles = {k: float(v) for k, v in handles.items() if _finite(v)}
             at: Any = doc.get("at")
             self._at = float(at) if _finite(at) else None
-            self._fetched_at = time.time()
+            self._age_at_fetch = float("inf") if self._at is None else time.time() - self._at
+            self._fetched_at = _clock()
             self._error = None
         except (httpx.HTTPError, ValueError) as err:
             # Keep the last copy; try again after a short wait.
-            self._failed_at = time.time()
+            self._failed_at = _clock()
             self._error = _failure_reason(err)
             self._owner._warn_once(err)
 
@@ -356,16 +369,18 @@ class _AudienceList:
         """Why the copy held can't say a session is live, or None when it can."""
         if self._fetched_at is None:
             return self._error or "no list read yet"
-        # The list's age is its own: an old copy served fresh is still old.
-        if self._at is None or self._at > now + _REVOCATIONS_SKEW_SECONDS:
+        # The list's age is its own, read against the wall clock once, when it was
+        # fetched, and grown on the monotonic clock since: an old copy served fresh is
+        # still old, and a wall clock set back does not make it younger.
+        if self._at is None or self._age_at_fetch < -_REVOCATIONS_SKEW_SECONDS:
             return "the list's own time is missing or ahead of this clock"
-        if now - self._at > _REVOCATIONS_MAX_STALE_SECONDS:
+        if self._age_at_fetch + (now - self._fetched_at) > _REVOCATIONS_MAX_STALE_SECONDS:
             return "the list is older than ten minutes by its own clock"
         return None
 
     def warm(self) -> WarmPart:
         with self._lock:
-            now = time.time()
+            now = _clock()
             before = self._fetched_at
             self._refresh(now)
             problem = self._error or self._cannot_vouch(now)
@@ -375,7 +390,7 @@ class _AudienceList:
 
     def status(self, rh: str, iat: Optional[float]) -> str:
         with self._lock:
-            now = time.time()
+            now = _clock()
             self._refresh(now)
             if self._fetched_at is None:
                 return "unverified"
@@ -520,7 +535,7 @@ class SignInPolicy:
     def requirement(self) -> Optional[dict[str, int]]:
         """``{"min_sats", "min_days"}``, or None for no requirement. Raises :class:`InvalidSession` as described above."""
         with self._lock:
-            return self._requirement(time.time())
+            return self._requirement(_clock())
 
     def _requirement(self, now: float) -> Optional[dict[str, int]]:
         if now - self._unknown_at < _POLICY_TTL_SECONDS:
@@ -532,23 +547,24 @@ class SignInPolicy:
         try:
             r = httpx.get(self._url, headers={"Accept": "application/json"}, timeout=4.0)
             if r.status_code == 404:
-                self._unknown_at = now
+                self._unknown_at = _clock()
                 raise InvalidSession("unknown_project_key")
             r.raise_for_status()
             self._need = _read_requirement(r.json())
-            self._read_at = now
+            self._read_at = _clock()
             self._error = None
             return self._need
         except (httpx.HTTPError, ValueError) as err:
-            self._failed_at = now
+            # The wait counts from the failure, not from when the read began.
+            self._failed_at = _clock()
             self._error = _failure_reason(err)
-            return self._stand_in(now)
+            return self._stand_in(self._failed_at)
 
     def _warm(self) -> WarmPart:
         with self._lock:
             before = self._read_at
             try:
-                self._requirement(time.time())
+                self._requirement(_clock())
             except InvalidSession as err:
                 return WarmPart("failed", self._error if err.reason == "bond_policy_unavailable" and self._error else err.reason)
             if self._read_at != before:
@@ -556,7 +572,7 @@ class SignInPolicy:
             return WarmPart("failed", self._error) if self._error else _KEPT
 
     def _stand_in(self, now: Optional[float] = None) -> Optional[dict[str, int]]:
-        now = time.time() if now is None else now
+        now = _clock() if now is None else now
         if self._read_at is None or now - self._read_at >= _POLICY_MAX_STALE_SECONDS:
             raise InvalidSession("bond_policy_unavailable")
         return self._need

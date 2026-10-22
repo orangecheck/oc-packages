@@ -192,6 +192,71 @@ describe("createRevocationCheck", () => {
   });
 });
 
+describe("createRevocationCheck · a wall clock that steps back", () => {
+  // The wall clock steps back an hour while the monotonic clock runs on.
+  let mono = 0;
+  const steppedBack = (extra: Parameters<typeof createRevocationCheck>[0] = {}) =>
+    check({ clock: () => mono, ...extra });
+
+  beforeEach(() => {
+    mono = 5_000_000;
+  });
+
+  it("does not extend the ten-minute bound on a copy kept through an outage", async () => {
+    const c = steppedBack();
+    await c.status(session());
+    reachable = false;
+    clock -= 60 * 60_000;
+    mono += 11 * 60_000;
+    clock += 11 * 60_000;
+    expect(await c.refuses(session(), "POST")).toBe(true);
+    expect(await c.refuses(session(), "GET")).toBe(false);
+  });
+
+  it("does not extend the bound measured from the list's own time either", async () => {
+    let up = true;
+    const c = integratorRevocationCheck({
+      projectKey: "pk_live_abc123",
+      signingSecret: "f".repeat(64),
+      fetch: vi.fn(async () => {
+        if (!up) throw new TypeError("fetch failed");
+        return Response.json({ v: 1, at: nowSec(), tokens: [], accounts: {}, handles: {} });
+      }) as unknown as typeof fetch,
+      now,
+      clock: () => mono,
+    })!;
+    const tok = { ...session(), aud: "https://site.example", rh: "rh-site" };
+    expect(await c.refuses(tok, "POST")).toBe(false);
+    up = false;
+    // Five minutes back on the wall, eleven on: by its own time the copy is now
+    // eleven minutes old, and the step back must not make it look six.
+    clock -= 5 * 60_000;
+    clock += 11 * 60_000;
+    mono += 11 * 60_000;
+    expect(await c.refuses(tok, "POST")).toBe(true);
+    expect(await c.refuses(tok, "GET")).toBe(false);
+  });
+
+  it("does not extend the wait before asking a failing host again", async () => {
+    reachable = false;
+    const c = steppedBack();
+    await c.status(session());
+    clock -= 60 * 60_000;
+    mono += 10_001;
+    await c.status(session());
+    expect(fetches).toHaveLength(2);
+  });
+
+  it("does not keep a copy past its minute", async () => {
+    const c = steppedBack();
+    await c.status(session());
+    clock -= 60 * 60_000;
+    mono += 61_000;
+    await c.status(session());
+    expect(fetches).toHaveLength(2);
+  });
+});
+
 describe("familyRevocationCheck", () => {
   it("is one check per process, read from the environment", async () => {
     vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "env-token");

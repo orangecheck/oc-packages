@@ -43,6 +43,7 @@ import {
     getOcSession as getOcSessionCore,
     integratorRevocationCheck,
     readBondClaim,
+    SAFE_METHODS,
     verifyOcToken,
     type BondClaim,
     type RevocationCheck,
@@ -178,10 +179,13 @@ export async function checkOcSession(
         return { status: 'signed_out' };
     }
     const check = revocationFor(options);
-    if (check && (await check.refuses(session, options.method))) {
-        return (await check.status(session)) === 'revoked'
-            ? { status: 'signed_out' }
-            : { status: 'unavailable' };
+    if (check) {
+        // One read of the list, so the answer can't change between two.
+        const state = await check.status(session);
+        if (state === 'revoked') return { status: 'signed_out' };
+        if (state === 'unverified' && !SAFE_METHODS.has((options.method ?? '').toUpperCase())) {
+            return { status: 'unavailable' };
+        }
     }
     return { status: 'signed_in', session };
 }
@@ -279,7 +283,12 @@ const POLICY_TTL_MS = 60_000;
 const POLICY_RETRY_MS = 10_000;
 /** How long the last rule read stands while it can't be read again. */
 const POLICY_MAX_STALE_MS = 600_000;
-const policies = new Map<string, { at: number; need: BondNeed | null; failedAt?: number }>();
+type ProjectRule = BondNeed | null | undefined | typeof UNKNOWN_PROJECT;
+/** Read times are on the monotonic clock, so a wall clock set back can't extend them. */
+const policies = new Map<string, { at: number | null; need: BondNeed | null; failedAt?: number }>();
+/** The read in flight for each project: requests that arrive together share it. */
+const policyReads = new Map<string, Promise<ProjectRule>>();
+const monotonic = () => performance.now();
 
 const isFloor = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
 
@@ -293,6 +302,12 @@ function readRequirement(body: unknown): BondNeed | null | undefined {
     return { minSats: r.min_sats, minDays: r.min_days };
 }
 
+/** The last rule read, while it is younger than ten minutes; undefined after. */
+function standing(slot: string, now: number): BondNeed | null | undefined {
+    const hit = policies.get(slot);
+    return hit?.at != null && now - hit.at < POLICY_MAX_STALE_MS ? hit.need : undefined;
+}
+
 /**
  * The project's requirement, from its uncached sign-in endpoint, held a
  * minute here. (The price config is edge-cached for ten minutes: reading the
@@ -302,18 +317,25 @@ function readRequirement(body: unknown): BondNeed | null | undefined {
  * doesn't hold every request; with none read in that time it is `undefined`,
  * and the request is refused rather than let through unchecked.
  */
-async function projectRequirement(
-    options: WithOcAuthOptions
-): Promise<BondNeed | null | undefined | typeof UNKNOWN_PROJECT> {
+async function projectRequirement(options: WithOcAuthOptions): Promise<ProjectRule> {
     const base = (options.meOrigin ?? 'https://me.ochk.io').replace(/\/$/, '');
     const key = options.projectKey!;
     const slot = `${base} ${key}`;
+    const now = monotonic();
+    const unknownAt = unknownKeys.get(slot);
+    if (unknownAt !== undefined && now - unknownAt < POLICY_TTL_MS) return UNKNOWN_PROJECT;
     const hit = policies.get(slot);
-    const now = Date.now();
-    const standing = () => (hit?.at && now - hit.at < POLICY_MAX_STALE_MS ? hit.need : undefined);
-    if (unknownKeys.has(slot) && now - unknownKeys.get(slot)! < POLICY_TTL_MS) return UNKNOWN_PROJECT;
-    if (hit && now - hit.at < POLICY_TTL_MS) return hit.need;
-    if (hit?.failedAt && now - hit.failedAt < POLICY_RETRY_MS) return standing();
+    if (hit?.at != null && now - hit.at < POLICY_TTL_MS) return hit.need;
+    if (hit?.failedAt !== undefined && now - hit.failedAt < POLICY_RETRY_MS) return standing(slot, now);
+    let read = policyReads.get(slot);
+    if (!read) {
+        read = readProjectRule(base, key, slot).finally(() => policyReads.delete(slot));
+        policyReads.set(slot, read);
+    }
+    return read;
+}
+
+async function readProjectRule(base: string, key: string, slot: string): Promise<ProjectRule> {
     try {
         const r = await fetch(`${base}/api/integrator/${encodeURIComponent(key)}/sign-in`, {
             signal: AbortSignal.timeout(4000),
@@ -325,18 +347,21 @@ async function projectRequirement(
                     `[@orangecheck/me-client] projectKey "${key}" is not a project. Copy yours from https://ochk.app/me/projects.`
                 );
             }
-            unknownKeys.set(slot, Date.now());
+            unknownKeys.set(slot, monotonic());
             return UNKNOWN_PROJECT;
         }
         unknownKeys.delete(slot);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const need = readRequirement(await r.json());
         if (need === undefined) throw new Error('unexpected body');
-        policies.set(slot, { at: Date.now(), need });
+        policies.set(slot, { at: monotonic(), need });
         return need;
     } catch {
-        policies.set(slot, { at: hit?.at ?? 0, need: hit?.need ?? null, failedAt: Date.now() });
-        return standing();
+        // The wait counts from the failure, not from when the read began.
+        const failedAt = monotonic();
+        const hit = policies.get(slot);
+        policies.set(slot, { at: hit?.at ?? null, need: hit?.need ?? null, failedAt });
+        return standing(slot, failedAt);
     }
 }
 

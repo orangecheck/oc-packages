@@ -4,6 +4,20 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.11.1] — 2026-10-22
+
+### Fixed
+
+- A server whose wall clock stepped back let the last sign-in rule stand past ten
+  minutes, kept a revocation list or key set past its minute or hour, waited longer
+  before asking again after a failure, and held an old list as if it were younger.
+  How long a copy has been held, and how long since a failed read, are measured on
+  `time.monotonic()` now; a list's age by its own `at` is read against the wall
+  clock once, when fetched, and grown on the monotonic clock since. As
+  `@orangecheck/auth-core` 2.13.0 and `@orangecheck/me-client` 0.38.1.
+- After a failed read of the sign-in rule, the ten-second wait counts from the
+  failure, not from when the read began, so a slow failure is not retried early.
+
 ## [2.11.0] — 2026-10-22
 
 ### Added

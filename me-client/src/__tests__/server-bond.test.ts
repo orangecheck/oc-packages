@@ -163,7 +163,7 @@ describe('withOcAuth · a projectKey that names no project', () => {
 
 describe('withOcAuth · projectKey over time', () => {
     beforeEach(() => {
-        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.useFakeTimers({ toFake: ['Date', 'performance'] });
         vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
     });
     afterEach(() => vi.useRealTimers());
@@ -173,9 +173,9 @@ describe('withOcAuth · projectKey over time', () => {
         config = { status: 200, body: { ok: true, require_bond: null } };
         expect((await call(await token(), opts)).ran).toBe(true);
         config = { status: 200, body: { ok: true, require_bond: { min_sats: 1_000, min_days: 0 } } };
-        vi.setSystemTime(new Date('2026-10-16T12:00:59Z'));
+        vi.advanceTimersByTime(59_000);
         expect((await call(await token(), opts)).ran).toBe(true);
-        vi.setSystemTime(new Date('2026-10-16T12:01:01Z'));
+        vi.advanceTimersByTime(2_000);
         expect((await call(await token(), opts)).status).toBe(403);
         expect(configReads).toBe(2);
     });
@@ -185,11 +185,11 @@ describe('withOcAuth · projectKey over time', () => {
         config = { status: 200, body: { ok: true, require_bond: { min_sats: 1_000, min_days: 0 } } };
         await call(await token(BOND), opts);
         config = { status: 503, body: {} };
-        vi.setSystemTime(new Date('2026-10-16T12:01:01Z'));
+        vi.advanceTimersByTime(61_000);
         expect((await call(await token(), opts)).status).toBe(403);
         expect((await call(await token(BOND), opts)).ran).toBe(true);
         expect(configReads).toBe(2);
-        vi.setSystemTime(new Date('2026-10-16T12:01:12Z'));
+        vi.advanceTimersByTime(11_000);
         await call(await token(BOND), opts);
         expect(configReads).toBe(3);
     });
@@ -237,7 +237,7 @@ describe('withOcAuth · the rule read from one me.ochk.io is not another one', (
 
 describe('withOcAuth · an outage longer than ten minutes', () => {
     beforeEach(() => {
-        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.useFakeTimers({ toFake: ['Date', 'performance'] });
         vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
     });
     afterEach(() => vi.useRealTimers());
@@ -247,14 +247,14 @@ describe('withOcAuth · an outage longer than ten minutes', () => {
         config = { status: 200, body: { ok: true, require_bond: null } };
         expect((await call(await token(), opts)).ran).toBe(true);
         config = { status: 503, body: {} };
-        vi.setSystemTime(new Date('2026-10-16T12:09:59Z'));
+        vi.advanceTimersByTime(599_000);
         expect((await call(await token(), opts)).ran).toBe(true);
-        vi.setSystemTime(new Date('2026-10-16T12:10:01Z'));
+        vi.advanceTimersByTime(2_000);
         const r = await call(await token(), opts);
         expect(r.ran).toBe(false);
         expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
         config = { status: 200, body: { ok: true, require_bond: null } };
-        vi.setSystemTime(new Date('2026-10-16T12:10:12Z'));
+        vi.advanceTimersByTime(11_000);
         expect((await call(await token(), opts)).ran).toBe(true);
     });
 });
@@ -293,5 +293,58 @@ describe('withOcAuth · a request with no session', () => {
         );
         expect(passed).toBe(true);
         expect(configReads).toBe(0);
+    });
+});
+
+describe('withOcAuth · the rule, against a wall clock set back', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+        vi.setSystemTime(new Date('2026-10-16T12:00:00Z'));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('does not let the last rule stand past ten minutes', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_stepback_standing' };
+        config = { status: 200, body: { ok: true, require_bond: null } };
+        expect((await call(await token(), opts)).ran).toBe(true);
+        config = { status: 503, body: {} };
+        vi.setSystemTime(new Date('2026-10-16T11:00:00Z'));
+        vi.advanceTimersByTime(10 * 60_000 + 1_000);
+        const r = await call(await token(), opts);
+        expect(r.ran).toBe(false);
+        expect(r.body).toMatchObject({ reason: 'bond_policy_unavailable' });
+    });
+
+    it('does not extend the wait before asking again', async () => {
+        const opts = { audience: MINE, projectKey: 'pk_live_stepback_retry' };
+        config = { status: 503, body: {} };
+        await call(await token(), opts);
+        expect(configReads).toBe(1);
+        vi.setSystemTime(new Date('2026-10-16T11:00:00Z'));
+        vi.advanceTimersByTime(10_001);
+        await call(await token(), opts);
+        expect(configReads).toBe(2);
+    });
+});
+
+describe('withOcAuth · requests that arrive together', () => {
+    it('share one read of the rule', async () => {
+        let open!: () => void;
+        const gate = new Promise<void>((r) => (open = r));
+        vi.stubGlobal('fetch', async (url: string) => {
+            if (/\/sign-in$/.test(String(url))) {
+                configReads++;
+                await gate;
+                return new Response(JSON.stringify({ ok: true, require_bond: null }), { status: 200 });
+            }
+            return { ok: true, json: async () => jwks } as Response;
+        });
+        const opts = { audience: MINE, projectKey: 'pk_live_together' };
+        const tokens = await Promise.all([1, 2, 3, 4, 5].map(() => token()));
+        const all = Promise.all(tokens.map((t) => call(t, opts)));
+        await new Promise((r) => setTimeout(r, 20));
+        open();
+        expect((await all).every((r) => r.ran)).toBe(true);
+        expect(configReads).toBe(1);
     });
 });

@@ -298,3 +298,21 @@ describe('server helpers · a write while the list cannot be read', () => {
         expect(await checkOcSession(headers, { audience: SITE, method: 'GET' })).toEqual({ status: 'signed_out' });
     });
 });
+
+describe('checkOcSession · one read of the list per request', () => {
+    it('cannot be told two different things by two reads', async () => {
+        let reads = 0;
+        const answers = ['revoked', 'live'] as const;
+        const status = async () => answers[Math.min(reads++, answers.length - 1)]!;
+        const revocation = {
+            status,
+            refuses: async () => (await status()) === 'revoked',
+        };
+        const r = await checkOcSession(
+            { cookie: `oc_session=${await token()}` },
+            { audience: SITE, method: 'POST', revocation }
+        );
+        expect(r).toEqual({ status: 'signed_out' });
+        expect(reads).toBe(1);
+    });
+});

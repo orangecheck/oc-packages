@@ -42,9 +42,15 @@ VECTORS_PATH = Path(__file__).resolve().parents[2] / "me-client" / "test-vectors
 V: dict[str, Any] = json.loads(VECTORS_PATH.read_text())
 
 
+def _move_to(monkeypatch: pytest.MonkeyPatch, t: float) -> None:
+    """Both clocks at ``t``: the wall clock and the monotonic one the caches measure on."""
+    monkeypatch.setattr(integrator.time, "time", lambda: float(t))
+    monkeypatch.setattr(integrator, "_clock", lambda: float(t), raising=False)
+
+
 @pytest.fixture(autouse=True)
 def fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"]))
+    _move_to(monkeypatch, V["now"])
 
 
 @pytest.fixture
@@ -241,7 +247,7 @@ def test_revocations_are_fetched_at_most_once_a_minute_per_audience(monkeypatch:
     rl.status("x", R["request"]["aud"], 0)
     rl.status("x", R["request"]["aud"], 0)
     assert route.call_count == 1
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    _move_to(monkeypatch, V["now"] + 61)
     rl.status("x", R["request"]["aud"], 0)
     assert route.call_count == 2
 
@@ -250,11 +256,11 @@ def test_revocations_are_fetched_at_most_once_a_minute_per_audience(monkeypatch:
 def test_a_list_dated_too_old_or_too_far_ahead_cannot_vouch(monkeypatch: pytest.MonkeyPatch) -> None:
     body = dict(R["lists"][R["request"]["aud"]])
     respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=body))
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11 * 60))
+    _move_to(monkeypatch, V["now"] + 11 * 60)
     assert _revocations().status("x", R["request"]["aud"], 0) == "unverified"
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] - 5 * 60))
+    _move_to(monkeypatch, V["now"] - 5 * 60)
     assert _revocations().status("x", R["request"]["aud"], 0) == "unverified"
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] - 30))
+    _move_to(monkeypatch, V["now"] - 30)
     assert _revocations().status("x", R["request"]["aud"], 0) == "live"
 
 
@@ -337,7 +343,7 @@ def test_sign_in_policy_reads_the_project_requirement_once_a_minute(monkeypatch:
     backed = _bond_vector()
     assert verify_session(backed["token"], backed["audience"], jwks=V["session"]["jwks"], policy=policy).sub
     assert route.call_count == 1
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    _move_to(monkeypatch, V["now"] + 61)
     policy.requirement()
     assert route.call_count == 2
 
@@ -380,7 +386,7 @@ def test_the_last_requirement_read_stands_through_an_outage(monkeypatch: pytest.
     ])
     policy = SignInPolicy("pk_test_tv")
     assert policy.requirement() == {"min_sats": 100000, "min_days": 30}
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    _move_to(monkeypatch, V["now"] + 61)
     assert policy.requirement() == {"min_sats": 100000, "min_days": 30}
 
 
@@ -431,7 +437,7 @@ def test_a_failed_key_set_refresh_is_tried_again_after_ten_seconds_not_on_every_
     for _ in range(3):
         assert verify_session(v["token"], v["audience"]).sub == v["claims"]["sub"]
     assert route.call_count == 2
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11))
+    _move_to(monkeypatch, V["now"] + 11)
     assert verify_session(v["token"], v["audience"]).sub == v["claims"]["sub"]
     assert route.call_count == 3
 
@@ -497,9 +503,9 @@ def test_the_last_requirement_read_stands_ten_minutes_and_no_longer(monkeypatch:
     respx.get(SIGN_IN).mock(side_effect=[httpx.Response(200, json={"ok": True, "require_bond": None})] + [httpx.Response(503)] * 3)
     policy = SignInPolicy("pk_test_tv")
     assert policy.requirement() is None
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 599))
+    _move_to(monkeypatch, V["now"] + 599)
     assert policy.requirement() is None
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 611))
+    _move_to(monkeypatch, V["now"] + 611)
     with pytest.raises(InvalidSession) as err:
         policy.requirement()
     assert err.value.reason == "bond_policy_unavailable"
@@ -612,7 +618,7 @@ def test_warm_session_reports_a_failed_refresh_while_the_last_copy_still_answers
     respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
     policy = SignInPolicy("pk_test_tv")
     assert warm_session("https://soniq.example", policy=policy).ok
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 61))
+    _move_to(monkeypatch, V["now"] + 61)
     later = warm_session("https://soniq.example", policy=policy)
     assert later.policy is not None and later.policy.state == "failed"
     assert later.failures() == ["sign-in rule: HTTP 503"]
@@ -623,7 +629,130 @@ def test_warm_session_reports_a_failed_refresh_while_the_last_copy_still_answers
 def test_warm_session_reports_a_list_too_old_to_vouch(fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch) -> None:
     respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
     respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, json=R["lists"][R["request"]["aud"]]))
-    monkeypatch.setattr(integrator.time, "time", lambda: float(V["now"] + 11 * 60))
+    _move_to(monkeypatch, V["now"] + 11 * 60)
     result = warm_session(R["request"]["aud"], revocations=_revocations())
     part = result.lists[R["request"]["aud"]]
     assert part.state == "failed" and part.reason is not None and "ten minutes" in part.reason
+
+
+# ─── a wall clock set back ───────────────────────────────────────────────
+
+
+class _Clocks:
+    """A wall clock and a monotonic one that the test moves separately."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self.wall = float(V["now"])
+        self.mono = 1000.0
+        monkeypatch.setattr(integrator.time, "time", lambda: self.wall)
+        monkeypatch.setattr(integrator, "_clock", lambda: self.mono, raising=False)
+
+    def step_back(self, seconds: float) -> None:
+        self.wall -= seconds
+
+    def run(self, seconds: float) -> None:
+        self.wall += seconds
+        self.mono += seconds
+
+
+@respx.mock
+def test_a_wall_clock_set_back_does_not_let_the_last_rule_stand_past_ten_minutes(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    respx.get(SIGN_IN).mock(side_effect=[httpx.Response(200, json={"ok": True, "require_bond": None})] + [httpx.Response(503)] * 3)
+    policy = SignInPolicy("pk_test_tv")
+    assert policy.requirement() is None
+    clocks.step_back(3600)
+    clocks.run(10 * 60 + 1)
+    with pytest.raises(InvalidSession) as err:
+        policy.requirement()
+    assert err.value.reason == "bond_policy_unavailable"
+
+
+@respx.mock
+def test_a_wall_clock_set_back_does_not_extend_the_wait_before_reading_the_rule_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    route = respx.get(SIGN_IN).mock(return_value=httpx.Response(503))
+    policy = SignInPolicy("pk_test_tv")
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    clocks.step_back(3600)
+    clocks.run(10.001)
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_the_wait_after_a_failed_rule_read_counts_from_the_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+
+    def slow_failure(request: httpx.Request) -> httpx.Response:
+        clocks.run(4)  # the read takes four seconds to fail
+        return httpx.Response(503)
+
+    route = respx.get(SIGN_IN).mock(side_effect=slow_failure)
+    policy = SignInPolicy("pk_test_tv")
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    clocks.run(6)  # ten seconds after the read began, six after it failed
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    assert route.call_count == 1
+    clocks.run(4.001)
+    with pytest.raises(InvalidSession):
+        policy.requirement()
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_a_wall_clock_set_back_does_not_keep_a_revocation_list_past_its_minute_or_its_wait(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    route = respx.get(R["request"]["url"]).mock(side_effect=[
+        httpx.Response(200, json=R["lists"][R["request"]["aud"]]),
+        httpx.Response(503),
+        httpx.Response(503),
+    ])
+    rl = _revocations()
+    rl.status("x", R["request"]["aud"], 0)
+    clocks.step_back(3600)
+    clocks.run(61)
+    rl.status("x", R["request"]["aud"], 0)
+    assert route.call_count == 2
+    clocks.step_back(3600)
+    clocks.run(10.001)
+    rl.status("x", R["request"]["aud"], 0)
+    assert route.call_count == 3
+
+
+@respx.mock
+def test_a_wall_clock_set_back_does_not_make_a_kept_list_look_younger(monkeypatch: pytest.MonkeyPatch) -> None:
+    clocks = _Clocks(monkeypatch)
+    body = {"v": 1, "at": V["now"], "tokens": [], "accounts": {}, "handles": {}}
+    respx.get(R["request"]["url"]).mock(side_effect=[httpx.Response(200, json=body)] + [httpx.Response(503)] * 5)
+    rl = _revocations()
+    assert rl.status("x", R["request"]["aud"], 0) == "live"
+    # Five minutes back on the wall, eleven on: by its own time the list is now
+    # eleven minutes old, and the step back must not make it look six.
+    clocks.step_back(5 * 60)
+    clocks.run(11 * 60)
+    assert rl.status("x", R["request"]["aud"], 0) == "unverified"
+
+
+@respx.mock
+def test_a_wall_clock_set_back_does_not_extend_the_wait_before_fetching_the_key_set_again(
+    fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clocks = _Clocks(monkeypatch)
+    route = respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(503)] * 3
+    )
+    kid = V["session"]["jwks"]["keys"][0]["kid"]
+    keys = integrator._session_keys
+    assert keys.get(kid) is not None
+    clocks.run(3600)
+    assert keys.get(kid) is not None  # the hourly refresh fails; the keys held still answer
+    assert route.call_count == 2
+    clocks.step_back(3 * 3600)
+    clocks.run(10.001)
+    keys.get(kid)
+    assert route.call_count == 3

@@ -73,7 +73,14 @@ export interface RevocationCheckOptions {
    */
   developing?: boolean;
   fetch?: typeof fetch;
+  /** The wall clock, ms: what the list's own `at` is read against. Default `Date.now`. */
   now?: () => number;
+  /**
+   * A clock that never steps back, ms, on which a copy's age and the wait
+   * after a failed fetch are measured, so a wall clock set back cannot extend
+   * either. Default `performance.now()`; when only `now` is given, `now`.
+   */
+  clock?: () => number;
 }
 
 interface Snapshot {
@@ -82,10 +89,14 @@ interface Snapshot {
   handles: Map<string, number>;
   /** The list's own time, unix seconds, when it says. */
   at: number | null;
+  /** When this process fetched it, on the monotonic clock. */
   fetchedAt: number;
+  /** How old the list already was when fetched, by the wall clock, ms. */
+  ageAtFetch: number;
 }
 
-const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+/** Methods that only read: they go on while the list can't vouch for a session. */
+export const SAFE_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD", "OPTIONS"]);
 const DEFAULT_TTL_MS = 60_000;
 const DEFAULT_MAX_STALE_MS = 10 * 60_000;
 const DEFAULT_TIMEOUT_MS = 3_000;
@@ -114,7 +125,7 @@ export async function revocationKey(
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function parseFeed(body: unknown, fetchedAt: number): Snapshot {
+function parseFeed(body: unknown, fetchedAt: number, wallAtFetch: number): Snapshot {
   const b = body as { v?: unknown; at?: unknown; tokens?: unknown; accounts?: unknown; handles?: unknown } | null;
   if (!b || b.v !== 1 || !Array.isArray(b.tokens) || typeof b.accounts !== "object" || !b.accounts) {
     throw new Error("revocation feed: unexpected body");
@@ -132,7 +143,7 @@ function parseFeed(body: unknown, fetchedAt: number): Snapshot {
     }
   }
   const at = typeof b.at === "number" && Number.isFinite(b.at) ? b.at : null;
-  return { tokens, accounts, handles, at, fetchedAt };
+  return { tokens, accounts, handles, at, fetchedAt, ageAtFetch: at === null ? Infinity : wallAtFetch - at * 1000 };
 }
 
 /**
@@ -154,6 +165,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   const developing = opts.developing ?? env("NODE_ENV") !== "production";
   const doFetch = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const now = opts.now ?? Date.now;
+  const clock = opts.clock ?? (opts.now ? opts.now : () => performance.now());
 
   let snapshot: Snapshot | null = null;
   let inflight: Promise<void> | null = null;
@@ -175,7 +187,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
         signal: ctl.signal,
       });
       if (!res.ok) throw new Error(`revocation feed answered ${res.status}`);
-      snapshot = parseFeed(await res.json(), now());
+      snapshot = parseFeed(await res.json(), clock(), now());
       warned = false;
     } finally {
       clearTimeout(timer);
@@ -183,12 +195,12 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   }
 
   async function current(): Promise<Snapshot | null> {
-    const t = now();
+    const t = clock();
     if (snapshot && t - snapshot.fetchedAt < ttlMs) return snapshot;
     if (t - failedAt < retryMs) return snapshot;
     inflight ??= load()
       .catch((err: unknown) => {
-        failedAt = now();
+        failedAt = clock();
         warn(`${err instanceof Error ? err.message : String(err)}; using the last copy`);
       })
       .finally(() => {
@@ -226,11 +238,13 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
   }
 
   function tooOld(snap: Snapshot): boolean {
-    const t = now();
-    if (staleFrom === "fetch") return t - snap.fetchedAt > maxStaleMs;
+    const held = clock() - snap.fetchedAt;
+    if (staleFrom === "fetch") return held > maxStaleMs;
     if (snap.at === null) return true;
-    const at = snap.at * 1000;
-    return at > t + skewMs || t - at > maxStaleMs;
+    // The list's age by its own time, read against the wall clock once, when
+    // fetched, and grown on the monotonic clock since.
+    if (snap.ageAtFetch < -skewMs) return true;
+    return snap.ageAtFetch + held > maxStaleMs;
   }
 
   return {
