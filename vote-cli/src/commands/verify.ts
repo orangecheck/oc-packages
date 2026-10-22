@@ -1,8 +1,6 @@
 // oc-vote verify <poll_id> — fetch poll + ballots, verify every BIP-322 signature, report.
 
-import { verifySignature } from '@orangecheck/bip322';
-import { ballotId as computeBallotId, type Ballot } from '@orangecheck/vote-core';
-
+import { ballotCopiesFromEvents, ballotVerdicts } from '../ballots.js';
 import { bip322Verify } from '../bip322.js';
 import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvents } from '../nostr.js';
 import { findPoll, requireComplete } from '../select.js';
@@ -29,23 +27,9 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
 
     const pollSigOk = selected.signatureValid;
 
-    const ballots: Ballot[] = [];
-    const seen = new Set<string>();
-    const ballotResults: Array<{ voter: string; ballot_id: string; ok: boolean }> = [];
-    for (const ev of ballotEvents) {
-        try {
-            const b = JSON.parse(ev.content) as Ballot;
-            if (b.poll_id !== pid) continue;
-            const bid = computeBallotId(b);
-            if (seen.has(bid)) continue;
-            seen.add(bid);
-            ballots.push(b);
-            const ok = verifySignature(b.voter, bid, b.sig.value);
-            ballotResults.push({ voter: b.voter, ballot_id: bid, ok });
-        } catch {
-            // skip
-        }
-    }
+    // One verdict per ballot, from every copy the relays hold: valid when any copy verifies.
+    const ballotResults = ballotVerdicts(ballotCopiesFromEvents(ballotEvents, pid));
+    const ballots = ballotResults;
 
     const okCount = ballotResults.filter((r) => r.ok).length;
 

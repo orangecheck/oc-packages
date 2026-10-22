@@ -15,6 +15,7 @@ import {
     type UtxoLookup,
 } from '@orangecheck/vote-core';
 
+import { ballotCopiesFromEvents } from '../ballots.js';
 import { bip322Verify } from '../bip322.js';
 import {
     DEFAULT_RELAYS,
@@ -132,20 +133,8 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     }
     const poll = selected.poll;
 
-    const ballots: Ballot[] = [];
-    const seen = new Set<string>();
-    for (const ev of requireComplete(ballotFetch, 'ballot')) {
-        try {
-            const b = JSON.parse(ev.content) as Ballot;
-            if (b.poll_id !== pid) continue;
-            const id = ballotId(b);
-            if (seen.has(id)) continue;
-            seen.add(id);
-            ballots.push(b);
-        } catch {
-            // skip malformed
-        }
-    }
+    // Every copy: the tally verifies each before it picks one ballot per voter.
+    const ballots = ballotCopiesFromEvents(requireComplete(ballotFetch, 'ballot'), pid);
 
     // Only a reveal signed by the creator, after the deadline, opens ballots.
     const reveal: Reveal | null =
@@ -177,7 +166,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         mode: poll.mode,
         weight_mode: poll.weight_mode,
         deadline: poll.deadline,
-        ballot_count: ballots.length,
+        ballot_count: new Set(ballots.map((b) => ballotId(b))).size,
         reveal_present: reveal != null,
         skipped,
         ...result,
@@ -198,7 +187,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     w(`  threshold:  ${poll.min_sats} sat / ${poll.min_days} d\n`);
     w(`  deadline:   ${poll.deadline}\n`);
     w(`  snapshot:   ${snapshot}\n`);
-    w(`  ballots:    ${ballots.length}\n`);
+    w(`  ballots:    ${new Set(ballots.map((b) => ballotId(b))).size}\n`);
     for (const what of skipped) w(`  ! not checked: ${what}\n`);
     w(`\n`);
 

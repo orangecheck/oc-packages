@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.4] — 2026-10-22
+
+### Changed
+
+- `tally`, `verify` and `discover` verify every copy of a ballot or poll the
+  relays return before they deduplicate: `tally` passes every distinct copy to
+  vote-core 1.6.1, `verify` reports a ballot valid when any copy of it
+  verifies, and `discover` lists a poll id once a copy of it verifies.
+
 ## [0.6.3] — 2026-10-22
 
 ### Changed

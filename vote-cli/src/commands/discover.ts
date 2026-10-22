@@ -31,10 +31,11 @@ export async function runDiscover(opts: DiscoverOptions): Promise<void> {
             if (poll.kind !== 'oc-vote/poll' || poll.v !== 0) continue;
             const pid = computePollId(poll);
             if (seen.has(pid)) continue;
-            seen.add(pid);
             if (opts.openOnly && Date.parse(poll.deadline) < Date.now()) continue;
-            // Listed only when the creator's signature verifies (SPEC §10.1).
+            // Listed only when the creator's signature verifies (SPEC §10.1). A copy
+            // that fails leaves the id open for another: poll_id leaves out sig.value.
             if (!(await verifyPoll(poll, bip322Verify)).ok) continue;
+            seen.add(pid);
             items.push({ poll_id: pid, poll, nostr_created_at: ev.created_at });
         } catch {}
     }
