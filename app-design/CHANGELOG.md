@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.17.2] — 2026-10-23
+
+- A theme switch styles the content of a closed `<details>` while transitions
+  are still off. Chrome styles that content only when it opens, so a footer
+  accordion opened before a switch and again after it faded its links.
+- The provider stills a change of the system's mode only while the page
+  follows the system. With a mode picked, or a `forcedTheme`, the system's
+  change is not the page's, and nothing is put in.
+- check-focus opens and shuts a `<details>` before a switch, then opens it
+  again: its link must not fade. It also flips the system's mode with a mode
+  picked: no style may go in. Both fail on 1.17.1.
+
 ## [1.17.1] — 2026-10-23
 
 - The system turning dark (or light) while a page is open changes the colours

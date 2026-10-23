@@ -153,7 +153,7 @@ try {
                 `function Own() { const { resolvedTheme, setTheme } = useTheme(); return <button id="own" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>Mode</button>; }\n` +
                 `window.__sheets = 0;\n` +
                 `new MutationObserver((l) => { for (const m of l) for (const n of m.addedNodes) if (n.nodeName === 'STYLE') window.__sheets++; }).observe(document.head, { childList: true });`,
-            `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /><Own /></div></ThemeProvider>`
+            `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /><Own /></div><details id="acc"><summary>More</summary><a id="tucked" href="#t" className="text-foreground transition-colors duration-700">Tucked away</a></details></ThemeProvider>`
         ),
         // The provider following the system's mode, beside the same swatch.
         themesys: mount(
@@ -368,6 +368,15 @@ try {
         await p.waitForTimeout(300);
         const before = await p.evaluate(() => ({ bg: getComputedStyle(document.getElementById('swatch')).backgroundColor, styles: document.querySelectorAll('style').length, mounted: window.__sheets, cls: document.documentElement.className }));
         check(before.mounted === 0 && before.cls.includes('light'), `ThemeProvider: mounting put ${before.mounted} style elements in (a page-wide transition kill re-styles the whole document twice), class "${before.cls}"`);
+        // Opened and shut again before the switch, so its link has a style from the light mode.
+        await p.evaluate(async () => {
+            const acc = document.getElementById('acc');
+            acc.open = true;
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            void getComputedStyle(document.getElementById('tucked')).color;
+            acc.open = false;
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        });
         await p.click('button[aria-label^="Theme:"]');
         await p.waitForFunction(() => document.documentElement.classList.contains('dark'));
         await p.waitForTimeout(80);
@@ -377,6 +386,12 @@ try {
         });
         check(after.fading.length === 0 && after.bg !== before.bg, `ThemeToggle: a switch fades the page's colours (${after.fading.join(', ')} running; background ${before.bg} → ${after.bg})`);
         check(after.styles === before.styles && /color/.test(after.still), `ThemeToggle: the switch left its stilling style behind (${before.styles} → ${after.styles} style elements; transition-property ${after.still})`);
+        // Chrome styles a closed <details>' content only when it opens; reopened just after a switch, its link must not fade either.
+        await p.evaluate(() => (document.getElementById('acc').open = true));
+        await p.waitForTimeout(80);
+        const tucked = await p.evaluate(() => document.getElementById('tucked').getAnimations().filter((a) => a.constructor.name === 'CSSTransition').map((a) => a.transitionProperty));
+        check(tucked.length === 0, `ThemeToggle: a link in a closed <details>, opened after the switch, fades (${tucked.join(', ')})`);
+        await p.evaluate(() => (document.getElementById('acc').open = false));
         // A site's own switch, through the package's useTheme, changes the colours at once too.
         await p.click('#own');
         await p.waitForFunction(() => !document.documentElement.classList.contains('dark'));
@@ -401,6 +416,18 @@ try {
         await p.waitForTimeout(600);
         const sysStyles = await p.evaluate(() => document.querySelectorAll('style').length);
         check(sys.fading.length === 0 && sys.bg !== sysBefore.bg && sysStyles === sysBefore.styles, `ThemeProvider: the system's switch to dark fades the page (${sys.fading.join(', ')} running; background ${sysBefore.bg} → ${sys.bg}; style elements ${sysBefore.styles} → ${sysStyles})`);
+        // With a mode picked, the system's change is not the page's: nothing is stilled.
+        await p.evaluate(() => localStorage.setItem('theme', 'dark'));
+        await p.emulateMedia({ colorScheme: 'light' });
+        await p.reload();
+        await p.waitForFunction(() => document.documentElement.classList.contains('dark'));
+        await p.waitForTimeout(200);
+        const pinnedBefore = await p.evaluate(() => document.querySelectorAll('style').length);
+        await p.emulateMedia({ colorScheme: 'dark' });
+        await p.waitForTimeout(60);
+        const pinned = await p.evaluate(() => ({ styles: document.querySelectorAll('style').length, cls: document.documentElement.className }));
+        check(pinned.styles === pinnedBefore && pinned.cls.includes('dark'), `ThemeProvider: with a mode picked, the system's change still put a style in (${pinnedBefore} → ${pinned.styles} style elements, class "${pinned.cls}")`);
+        await p.evaluate(() => localStorage.removeItem('theme'));
         await p.emulateMedia({ colorScheme: null });
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));

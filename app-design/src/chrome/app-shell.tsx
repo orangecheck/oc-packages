@@ -621,6 +621,8 @@ function switchQuietly(apply: () => void) {
         clearTimeout(timer);
         // The new colours computed while transitions are off; then they come back with nothing to animate.
         void root.offsetHeight;
+        // Layout skips a closed <details>; styled here, its content does not fade when it next opens.
+        for (const el of document.querySelectorAll('details:not([open]) *')) void getComputedStyle(el).color;
         still.remove();
     };
     // next-themes writes the class in an effect after the render; a switch to "system" that changes nothing writes none.
@@ -639,17 +641,27 @@ const useEarlyEffect = typeof window === 'undefined' ? useEffect : useLayoutEffe
  * until someone picks one. No disableTransitionOnChange: ThemeToggle stills
  * its own switch, and the option cost every page load two recalculations.
  */
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children, storageKey = 'theme', defaultTheme = 'system', forcedTheme, ...props }: ThemeProviderProps) {
     // The system's own switch (dark mode at sunset) reaches next-themes, not ThemeToggle. Registered
     // in a layout effect, this listener runs before next-themes' own, which it adds in a passive one.
     useEarlyEffect(() => {
+        if (forcedTheme) return;
         const scheme = window.matchMedia('(prefers-color-scheme: dark)');
-        const still = () => switchQuietly(() => {});
+        const still = () => {
+            let chosen: string | null = null;
+            try {
+                chosen = window.localStorage.getItem(storageKey);
+            } catch {
+                // Storage refused: next-themes falls back to the default too.
+            }
+            // A mode the person picked does not follow the system.
+            if ((chosen ?? defaultTheme) === 'system') switchQuietly(() => {});
+        };
         scheme.addEventListener('change', still);
         return () => scheme.removeEventListener('change', still);
-    }, []);
+    }, [storageKey, defaultTheme, forcedTheme]);
     return (
-        <NextThemeProvider attribute="class" defaultTheme="system" enableSystem {...props}>
+        <NextThemeProvider attribute="class" enableSystem storageKey={storageKey} defaultTheme={defaultTheme} forcedTheme={forcedTheme} {...props}>
             {children}
         </NextThemeProvider>
     );
