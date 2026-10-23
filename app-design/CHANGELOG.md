@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.17.1] — 2026-10-23
+
+- The system turning dark (or light) while a page is open changes the colours
+  at once too, as the old `disableTransitionOnChange` did. `ThemeToggle` stills
+  only its own switch; next-themes applies a system change itself, so on the
+  1.17.0 sites (vault's links, rechrome-cosign) colours faded there. The
+  package's `ThemeProvider` listens for the system's change ahead of
+  next-themes and stills transitions around it.
+- check-focus turns the emulated system dark under the provider beside a
+  swatch with a 700ms colour transition: no transition may run, and the
+  stilling style must be gone after. It fails on 1.17.0.
+
 ## [1.17.0] — 2026-10-23
 
 - `ThemeProvider` (from `/chrome`): next-themes as the family sets it, the

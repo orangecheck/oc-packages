@@ -29,8 +29,9 @@
  * - Shift+Tab back through a docs table scrolled right brings each link, its
  *   ring included, inside the table's box.
  * - The theme switch changes the page's colours at once, not as a fade, and
- *   leaves transitions as they were; the package's ThemeProvider puts no
- *   stylesheet in as it mounts.
+ *   leaves transitions as they were, as does the system turning dark while
+ *   the page is open; the package's ThemeProvider puts no stylesheet in as
+ *   it mounts.
  *
  * Run after `yarn build`.
  */
@@ -153,6 +154,11 @@ try {
                 `window.__sheets = 0;\n` +
                 `new MutationObserver((l) => { for (const m of l) for (const n of m.addedNodes) if (n.nodeName === 'STYLE') window.__sheets++; }).observe(document.head, { childList: true });`,
             `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /><Own /></div></ThemeProvider>`
+        ),
+        // The provider following the system's mode, beside the same swatch.
+        themesys: mount(
+            `import { ThemeProvider } from '${src('chrome/app-shell.tsx')}';`,
+            `<ThemeProvider><div className="p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div></div></ThemeProvider>`
         ),
     };
     bundle(dir, clients);
@@ -377,6 +383,25 @@ try {
         await p.waitForTimeout(80);
         const own = await p.evaluate(() => document.getElementById('swatch').getAnimations().filter((a) => a.constructor.name === 'CSSTransition').map((a) => a.transitionProperty));
         check(own.length === 0, `useTheme: a site's own switch fades the page's colours (${own.join(', ')} running)`);
+        // The system turns dark while the page is open: the colours change at once there too.
+        await p.emulateMedia({ colorScheme: 'light' });
+        // The switch checks above stored a mode; this page follows the system's.
+        await p.evaluate(() => localStorage.removeItem('theme'));
+        await p.goto(client('themesys'));
+        await p.waitForFunction(() => document.documentElement.classList.contains('light'));
+        await p.waitForTimeout(300);
+        const sysBefore = await p.evaluate(() => ({ bg: getComputedStyle(document.getElementById('swatch')).backgroundColor, styles: document.querySelectorAll('style').length }));
+        await p.emulateMedia({ colorScheme: 'dark' });
+        await p.waitForFunction(() => document.documentElement.classList.contains('dark'));
+        await p.waitForTimeout(80);
+        const sys = await p.evaluate(() => {
+            const sw = document.getElementById('swatch');
+            return { fading: sw.getAnimations().filter((a) => a.constructor.name === 'CSSTransition').map((a) => a.transitionProperty), bg: getComputedStyle(sw).backgroundColor, styles: document.querySelectorAll('style').length };
+        });
+        await p.waitForTimeout(600);
+        const sysStyles = await p.evaluate(() => document.querySelectorAll('style').length);
+        check(sys.fading.length === 0 && sys.bg !== sysBefore.bg && sysStyles === sysBefore.styles, `ThemeProvider: the system's switch to dark fades the page (${sys.fading.join(', ')} running; background ${sysBefore.bg} → ${sys.bg}; style elements ${sysBefore.styles} → ${sysStyles})`);
+        await p.emulateMedia({ colorScheme: null });
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));
         await p.waitForSelector('table a');

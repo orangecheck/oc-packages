@@ -1,7 +1,7 @@
 import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
@@ -632,12 +632,22 @@ function switchQuietly(apply: () => void) {
 
 export type ThemeProviderProps = Omit<NextThemeProviderProps, 'disableTransitionOnChange'>;
 
+const useEarlyEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 /**
  * next-themes as the family sets it: the class on <html>, the system's mode
  * until someone picks one. No disableTransitionOnChange: ThemeToggle stills
  * its own switch, and the option cost every page load two recalculations.
  */
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+    // The system's own switch (dark mode at sunset) reaches next-themes, not ThemeToggle. Registered
+    // in a layout effect, this listener runs before next-themes' own, which it adds in a passive one.
+    useEarlyEffect(() => {
+        const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+        const still = () => switchQuietly(() => {});
+        scheme.addEventListener('change', still);
+        return () => scheme.removeEventListener('change', still);
+    }, []);
     return (
         <NextThemeProvider attribute="class" defaultTheme="system" enableSystem {...props}>
             {children}
