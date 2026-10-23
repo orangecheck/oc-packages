@@ -370,6 +370,13 @@ Two independent defects, either of which was fatal:
 
 - _(no pending changes)_
 
+## [0.38.3] — 2026-10-23
+
+### Changed
+
+- The session check passes `@orangecheck/auth-core` only the options it
+  reads (`issuer`, `jwksCacheTtlMs`, `jwksMaxStaleMs`, `audience`).
+
 ## [0.38.2] — 2026-10-23
 
 ### Changed

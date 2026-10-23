@@ -175,7 +175,8 @@ export async function checkOcSession(
     options: OcSessionOptions = {}
 ): Promise<OcSessionCheck> {
     checkOptions(options);
-    const session = await getOcSessionCore(headers, options);
+    const { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience } = options;
+    const session = await getOcSessionCore(headers, { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience });
     if (!session) {
         if (options.audience === undefined) warnIfAudienceMissing(headers);
         return { status: 'signed_out' };
