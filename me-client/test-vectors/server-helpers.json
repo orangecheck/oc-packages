@@ -1,0 +1,229 @@
+{
+    "description": "What a site's own backend answers for a sign-in token, spending a token's jti once, and ending a token at ochk.io. Read by me-client (src/__tests__/server-helpers.test.ts) and sdk-py (tests/test_server_helpers.py), so a Node site and a Python site give the same answer. Tokens are named, not copied: each `token` points into integrator.json (section, list, name).",
+    "now": 1800000000,
+    "check": {
+        "description": "One request with the token as a Bearer, through me-client's adapters (withOcAuth with required: true) and sdk-py's check_oc_session. `list` is me.ochk.io's answer for the token's list of ended sessions (no `list`: no list is read). `policy` is its answer for the project's sign-in rule, read for `project_key`. `expect` is the HTTP status and, when refused, the JSON body.",
+        "project_key": "pk_test_tv",
+        "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
+        "cases": [
+            {
+                "name": "signed in, the list read",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "POST",
+                "list": {
+                    "status": 200,
+                    "body": { "v": 1, "at": 1800000000, "tokens": [], "accounts": {}, "handles": {} }
+                },
+                "expect": { "status": 200 }
+            },
+            {
+                "name": "no token",
+                "token": null,
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "expect": { "status": 401, "body": { "ok": false, "reason": "unauthenticated" } }
+            },
+            {
+                "name": "a token for another site",
+                "token": ["session", "invalid", "bound to another site"],
+                "audience": "https://other.example",
+                "method": "GET",
+                "expect": { "status": 401, "body": { "ok": false, "reason": "unauthenticated" } }
+            },
+            {
+                "name": "an expired token",
+                "token": ["session", "invalid", "expired"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "expect": { "status": 401, "body": { "ok": false, "reason": "unauthenticated" } }
+            },
+            {
+                "name": "a token with no revocation handle",
+                "token": ["session", "invalid", "no revocation handle"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "expect": { "status": 401, "body": { "ok": false, "reason": "no_session_handle" } }
+            },
+            {
+                "name": "a session the person ended everywhere",
+                "token": ["revocation", "tokens", "one string aud, ended on its list"],
+                "audience": "https://site.example",
+                "method": "GET",
+                "list": {
+                    "status": 200,
+                    "body": {
+                        "v": 1,
+                        "at": 1800000000,
+                        "tokens": [],
+                        "accounts": {},
+                        "handles": { "mkMrKS_qd0aD4ZZYbwxamw": 1799999900 }
+                    }
+                },
+                "expect": { "status": 401, "body": { "ok": false, "reason": "unauthenticated" } }
+            },
+            {
+                "name": "a write while the list can't be read",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "POST",
+                "list": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "revocations_unavailable" } }
+            },
+            {
+                "name": "a read while the list can't be read",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "list": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 200 }
+            },
+            {
+                "name": "no method counts as a write",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": null,
+                "list": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "revocations_unavailable" } }
+            },
+            {
+                "name": "an unbacked account where the code asks for a coin",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "require_bond": { "min_sats": 50000 },
+                "expect": {
+                    "status": 403,
+                    "body": {
+                        "ok": false,
+                        "reason": "bond_required",
+                        "need": { "min_sats": 50000, "min_days": 0 },
+                        "have": null,
+                        "back_url": "https://ochk.app/me/account#backing"
+                    }
+                }
+            },
+            {
+                "name": "a backed account below the floor, with a maximum age",
+                "token": ["session", "valid", "backed by a coin (a complete claim)"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "require_bond": { "min_sats": 1000000, "min_days": 30, "max_age_secs": 3600 },
+                "expect": {
+                    "status": 403,
+                    "body": {
+                        "ok": false,
+                        "reason": "bond_required",
+                        "need": { "min_sats": 1000000, "min_days": 30, "max_age_secs": 3600 },
+                        "have": { "sats_floor": 100000, "days_floor": 30 },
+                        "back_url": "https://ochk.app/me/account#backing"
+                    }
+                }
+            },
+            {
+                "name": "a backed account that meets the floor",
+                "token": ["session", "valid", "backed by a coin (a complete claim)"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "require_bond": { "min_sats": 100000, "min_days": 30 },
+                "expect": { "status": 200 }
+            },
+            {
+                "name": "the project's rule asks for a coin",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "project_key": "pk_test_rule_coin",
+                "policy": {
+                    "status": 200,
+                    "body": { "ok": true, "require_bond": { "min_sats": 10000, "min_days": 0 } }
+                },
+                "expect": {
+                    "status": 403,
+                    "body": {
+                        "ok": false,
+                        "reason": "bond_required",
+                        "need": { "min_sats": 10000, "min_days": 0 },
+                        "have": null,
+                        "back_url": "https://ochk.app/me/account#backing"
+                    }
+                }
+            },
+            {
+                "name": "the project's rule asks for nothing",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "project_key": "pk_test_rule_none",
+                "policy": { "status": 200, "body": { "ok": true, "require_bond": null } },
+                "expect": { "status": 200 }
+            },
+            {
+                "name": "the project's rule can't be read, and none was read before",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "project_key": "pk_test_rule_down",
+                "policy": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "bond_policy_unavailable" } }
+            },
+            {
+                "name": "a project key that names no project",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "project_key": "pk_test_rule_missing",
+                "policy": { "status": 404, "body": { "ok": false, "error": "not_found" } },
+                "expect": { "status": 500, "body": { "ok": false, "reason": "unknown_project_key" } }
+            }
+        ]
+    },
+    "spend_once": {
+        "description": "Steps run in order against one fresh in-memory store, each at its own `now`. A token's jti starts one session: the first spend is true, any repeat while the token lives is false, and a token that has expired is never spent.",
+        "steps": [
+            { "name": "the first spend", "jti": "jti-a", "exp": 1800003600, "now": 1800000000, "spent": true },
+            { "name": "the same jti again", "jti": "jti-a", "exp": 1800003600, "now": 1800000001, "spent": false },
+            { "name": "another jti", "jti": "jti-b", "exp": 1800003600, "now": 1800000002, "spent": true },
+            { "name": "a token that expires this second", "jti": "jti-c", "exp": 1800000003, "now": 1800000003, "spent": false },
+            { "name": "a token that expired", "jti": "jti-d", "exp": 1799999999, "now": 1800000004, "spent": false },
+            { "name": "a spent jti, once its token has expired", "jti": "jti-a", "exp": 1800003600, "now": 1800003600, "spent": false },
+            { "name": "the store forgets a jti after its token expired", "jti": "jti-a", "exp": 1800007200, "now": 1800003601, "spent": true }
+        ],
+        "refused": [
+            { "name": "an empty jti", "jti": "", "exp": 1800003600 },
+            { "name": "a jti that is not a string", "jti": 7, "exp": 1800003600 },
+            { "name": "an exp that is a string", "jti": "jti-z", "exp": "1800003600" },
+            { "name": "no exp", "jti": "jti-z", "exp": null },
+            { "name": "an exp that is a boolean", "jti": "jti-z", "exp": true }
+        ]
+    },
+    "revoke": {
+        "description": "Ending a token at the auth host: POST https://ochk.io/api/auth/revoke with {tokens}. A call that can't be valid is refused before anything is sent; every answer becomes a result, never an exception. `repeat` builds a long input: `count` copies of `of`.",
+        "url": "https://ochk.io/api/auth/revoke",
+        "requests": [
+            { "name": "one token", "input": "a.b.c", "body": { "tokens": ["a.b.c"] } },
+            { "name": "two tokens", "input": ["a.b.c", "d.e.f"], "body": { "tokens": ["a.b.c", "d.e.f"] } },
+            { "name": "eight tokens, the most one call takes", "input": { "repeat": "list", "of": "a.b.c", "count": 8 }, "body": { "tokens": { "repeat": "list", "of": "a.b.c", "count": 8 } } }
+        ],
+        "refused": [
+            { "name": "an empty token", "input": "" },
+            { "name": "no tokens", "input": [] },
+            { "name": "an empty token in a list", "input": ["a.b.c", ""] },
+            { "name": "a token that is not a string", "input": [7] },
+            { "name": "nine tokens", "input": { "repeat": "list", "of": "a.b.c", "count": 9 } },
+            { "name": "a token over 4096 characters", "input": { "repeat": "string", "of": "a", "count": 4097 } }
+        ],
+        "answers": [
+            { "name": "ended", "status": 200, "body": { "ok": true, "revoked": 1 }, "result": { "ok": true, "revoked": 1 } },
+            { "name": "nothing ochk.io could end", "status": 200, "body": { "ok": true, "revoked": 0 }, "result": { "ok": true, "revoked": 0 } },
+            { "name": "rate limited", "status": 429, "body": { "ok": false, "reason": "rate_limited" }, "result": { "ok": false, "reason": "rate_limited", "status": 429 } },
+            { "name": "a body ochk.io refused", "status": 400, "body": { "ok": false, "reason": "invalid_body" }, "result": { "ok": false, "reason": "bad_request", "status": 400 } },
+            { "name": "a server error", "status": 500, "body": { "ok": false, "reason": "server_error" }, "result": { "ok": false, "reason": "unavailable", "status": 500 } },
+            { "name": "a 200 without a count", "status": 200, "body": { "ok": true }, "result": { "ok": false, "reason": "unavailable", "status": 200 } },
+            { "name": "a 200 with a negative count", "status": 200, "body": { "ok": true, "revoked": -1 }, "result": { "ok": false, "reason": "unavailable", "status": 200 } },
+            { "name": "a 200 that is not JSON", "status": 200, "body": "<html>", "result": { "ok": false, "reason": "unavailable", "status": 200 } },
+            { "name": "a redirect", "status": 302, "body": null, "result": { "ok": false, "reason": "unavailable", "status": 0 } },
+            { "name": "no answer", "status": 0, "body": null, "result": { "ok": false, "reason": "unavailable", "status": 0 } }
+        ]
+    }
+}

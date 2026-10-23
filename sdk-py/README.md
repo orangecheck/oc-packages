@@ -237,6 +237,41 @@ def keep_warm() -> None:
 threading.Thread(target=keep_warm, daemon=True).start()
 ```
 
+`check_oc_session` (3.2.0 or later) takes the same arguments and gives the HTTP
+answer instead of raising, with the status and body `@orangecheck/me-client`'s
+adapters send: 401 for no token, a bad one or one the person ended; 403
+`bond_required`; 503 while the list, the key set or the rule can't be read, so
+the client tries again rather than signing the person out.
+
+```python
+from orangecheck import check_oc_session
+
+checked = check_oc_session(bearer, "https://your-site.example",
+                           revocations=REVOCATIONS, policy=POLICY, method=request.method)
+if not checked.ok:
+    return JSONResponse(checked.body, status_code=checked.status)
+session = checked.session
+```
+
+When the token starts your own session, spend its `jti` so it starts only one,
+then end it at ochk.io (3.2.0 or later). `store` is yours: anything with an
+atomic `add(jti, exp) -> bool` that every server shares, such as a unique row
+or Redis `SET NX`. `MemoryJtiStore` is for tests and a single process.
+
+```python
+from orangecheck import revoke_token, spend_once
+
+if not spend_once(session.jti, session.exp, store):  # a repeat, or expired
+    return JSONResponse({"ok": False, "error": "token_used"}, status_code=401)
+start_your_session(session)
+revoke_token(token)  # TokensRevoked or RevokeRefusal, never an exception
+```
+
+`issuer=` on `verify_session`, `check_oc_session`, `warm_session` and
+`revoke_token` names another auth host, such as a test stack's (3.2.0 or
+later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https
+(http only on localhost). `jwks=` given explicitly wins, and nothing is fetched.
+
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
 
 ## Keep your own login: OC Connect

@@ -401,11 +401,13 @@ export interface WebhookPayload extends BillableEvent {
 
 /**
  * Non-billable SYSTEM webhook deliveries — project-level operational
- * signals (escrow.low, escrow.depleted, escrow.recovered, drop.closed).
+ * signals (escrow.low, escrow.depleted, escrow.recovered, drop.closed,
+ * connect.claimed, federation.migrating, federation.migration_cancelled).
  * Same signing + headers as billable deliveries; receivers subscribe
  * via the same `subscribed` list ('*' or the explicit subtype string).
- * Carries no user identity. Discriminate on `kind` first, then
- * `subtype`:
+ * Carries no user identity, except connect.claimed. It has no `id`: the
+ * `OC-Envelope-Id` header is its only id, so deduplicate on that.
+ * Discriminate on `kind` first, then `subtype`:
  *
  *   const payload = JSON.parse(body) as WebhookPayload | SystemWebhookPayload;
  *   if (payload.kind === 'oc-system-event' && payload.subtype === 'drop.closed') { … }
@@ -436,24 +438,65 @@ export interface DropClosedWebhookPayload extends SystemWebhookPayload {
     user_share_sats: number;
 }
 
+/** The federation a project moves to, as `federation.migrating` names it. */
+export interface FederationSuccessor {
+    slug: string;
+    name: string;
+    /** `"3-of-4"`; null while the successor has none set. */
+    threshold: string | null;
+    /** `"bitcoin"`, `"signet"`, …; null while unset. */
+    network: string | null;
+    /** The successor's ratified charter, by hash; null before it has one. */
+    charter_hash: string | null;
+    /** Each guardian seat's operator key, hex. */
+    guardians: string[];
+}
+
+/**
+ * `federation.migrating`: your project's federation is being replaced. Top-ups
+ * pause now; events and sign-in carry on. The project and its balance move no
+ * sooner than `flip_not_before`.
+ */
+export interface FederationMigratingWebhookPayload extends SystemWebhookPayload {
+    subtype: 'federation.migrating';
+    migration_id: string;
+    /** The federation the project is on now (its slug). */
+    from: string;
+    /** The federation it moves to (its slug). */
+    to: string;
+    /** ISO time: the earliest the move can happen. */
+    flip_not_before: string;
+    successor: FederationSuccessor;
+}
+
+/** `federation.migration_cancelled`: that move is off, and top-ups work again. */
+export interface FederationMigrationCancelledWebhookPayload extends SystemWebhookPayload {
+    subtype: 'federation.migration_cancelled';
+    migration_id: string;
+    from: string;
+    to: string;
+}
+
 /**
  * HTTP headers OC sends with every webhook delivery. Capture these in
  * the receive handler · `OC-Signature` is what verifies the body.
  */
 export interface WebhookHeaders {
-    /** Ed25519 signature over the raw response body, hex-encoded. */
+    /** Ed25519 signature over the raw request body, hex-encoded. */
     'OC-Signature': string;
-    /** Stable kid of the signing key · resolves against
-     *  ochk.io/.well-known/jwks.json. */
+    /** kid of the key that signed it, published by me.ochk.io at
+     *  https://me.ochk.io/api/dev-jwks (not ochk.io's sign-in keys). */
     'OC-Key-Id': string;
-    /** Envelope id · matches payload.id; useful for idempotent
-     *  receive handlers that dedupe on this header without parsing
-     *  the body. */
+    /** For a billable event, its `id`, the same as `payload.id`. A system
+     *  notice (`OC-Class: system`) has no `id` in its body: this header is
+     *  its only id, the delivery's own. Not signed. Deduplicate on
+     *  `payload.id` when there is one, else on this. */
     'OC-Envelope-Id': string;
-    /** Subtype · matches payload.subtype (built-in or a custom event key);
-     *  lets routers branch on the header before parsing. */
+    /** Subtype · matches payload.subtype (built-in or a custom event key,
+     *  or a system notice's subtype); lets routers branch on the header
+     *  before parsing. */
     'OC-Subtype': EventKey;
-    /** Class · matches payload.class. */
+    /** Class · matches payload.class; `system` for a system notice. */
     'OC-Class': EventClass;
     /** 1-indexed delivery attempt count. >1 means the prior attempt
      *  did not return a 2xx within the timeout · idempotency key on

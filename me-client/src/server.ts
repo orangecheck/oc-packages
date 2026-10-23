@@ -155,6 +155,9 @@ export type {
     ConnectRefused,
 } from './connect';
 export { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from './connect-consent';
+// After a sign-in: start one session per token, then end the token at ochk.io.
+export { spendOnce, MemoryJtiStore, revokeToken } from './tokens';
+export type { JtiStore, RevokeTokenOptions, RevokeTokenResult, RevokeTokenRefusal } from './tokens';
 export type {
     ActivityAttestation,
     ActivityAttestationBundle,

@@ -27,6 +27,9 @@ import { signInWithOc } from '@orangecheck/me-client/popup';
 // Keep your own login: make an orangecheck account for your user (OC Connect).
 import { connectProvision } from '@orangecheck/me-client/server';
 import { CONNECT_CONSENT_LABEL } from '@orangecheck/me-client/connect-consent';
+
+// After a sign-in: the token starts one session, then ends at ochk.io.
+import { spendOnce, revokeToken } from '@orangecheck/me-client/server';
 ```
 
 ## Install

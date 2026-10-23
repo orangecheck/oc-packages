@@ -83,11 +83,13 @@ from .integrator import (
     InvalidWebhook,
     RevocationList,
     Session,
+    SessionCheck,
     SessionEnded,
     SignInPolicy,
     WarmPart,
     WarmResult,
     bond_meets,
+    check_oc_session,
     read_bond_claim,
     revocation_key,
     sign_event,
@@ -95,6 +97,7 @@ from .integrator import (
     verify_webhook,
     warm_session,
 )
+from .tokens import JtiStore, MemoryJtiStore, RevokeRefusal, TokensRevoked, revoke_token, spend_once
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
 from .types import (
     AttestationSummary,
@@ -145,6 +148,8 @@ __all__ = [
     "BOND_MAX_WINDOW_SECONDS",
     # ochk.app sign-in, billable events and webhooks, for an integrator's backend
     "verify_session",
+    "check_oc_session",
+    "SessionCheck",
     "warm_session",
     "WarmResult",
     "WarmPart",
@@ -160,6 +165,13 @@ __all__ = [
     "BondRequired",
     "bond_meets",
     "read_bond_claim",
+    # After a sign-in: one session per token, then end the token at ochk.io
+    "spend_once",
+    "JtiStore",
+    "MemoryJtiStore",
+    "revoke_token",
+    "TokensRevoked",
+    "RevokeRefusal",
     # OC Connect, for a site that keeps its own login
     "connect_provision",
     "connect_claim_link",
@@ -184,7 +196,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

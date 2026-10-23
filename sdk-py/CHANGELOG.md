@@ -4,6 +4,43 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.2.0] — 2026-10-24
+
+### Added
+
+- `check_oc_session(token, audience, …)`: `verify_session`'s arguments,
+  answered as a `SessionCheck` with the HTTP status and JSON body
+  `@orangecheck/me-client`'s adapters send: 200 with `session`; 401
+  `unauthenticated` (no token, a bad one, or one the person ended) or
+  `no_session_handle`; 403 `bond_required` with `need`, `have` and `back_url`;
+  503 `revocations_unavailable` or `bond_policy_unavailable`; 500
+  `unknown_project_key`. Both SDKs are held to
+  `me-client/test-vectors/server-helpers.json`. It also answers 503
+  `key_set_unavailable` while the key set can't be read; the Node SDK can't
+  tell that apart from a bad token and answers 401.
+- `spend_once(jti, exp, store)`, `JtiStore` and `MemoryJtiStore`: a token's
+  `jti` starts one session. True the first time, False for a repeat or a token
+  that has expired. The store is yours, shared by every server; a store that
+  fails raises.
+- `revoke_token(token, issuer=, timeout=)`: ends a token, or up to eight, at
+  the auth host (`POST <issuer>/api/auth/revoke`). Returns `TokensRevoked` or
+  `RevokeRefusal` (`rate_limited`, `bad_request`, `unavailable`), never raises
+  on an outage.
+- `warm_session(…, issuer=, jwks=)`, as `verify_session` takes them. With
+  `jwks` given nothing is fetched and `keys` reads `"kept"`.
+
+### Changed
+
+- `issuer=` on `verify_session` also names where the key set is fetched:
+  `<issuer>/.well-known/jwks.json`, as `@orangecheck/me-client` fetches it.
+  Before, the key set was always ochk.io's. An issuer it would fetch over plain
+  http, other than localhost, raises `ValueError`. A `jwks=` given explicitly
+  wins, and nothing is fetched.
+- `RevocationList(project_key, signing_secret)` raises `ValueError` unless each
+  is one non-empty string. An empty one signs requests me.ochk.io refuses, so
+  every write would answer `revocations_unavailable` for as long as the
+  process runs.
+
 ## [3.1.0] — 2026-10-23
 
 ### Changed

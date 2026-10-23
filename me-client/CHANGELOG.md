@@ -8,6 +8,35 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.41.0] — 2026-10-24
+
+### Added
+
+- From `/server`, for after a sign-in:
+  - `spendOnce(jti, exp, store)`, `JtiStore` and `MemoryJtiStore`: a token's
+    `jti` starts one session. True the first time, false for a repeat or a
+    token that has expired. The store is yours, shared by every server
+    (`add` must be atomic); a store that fails rejects.
+  - `revokeToken(token | tokens, { issuer?, timeoutMs? })`: ends a token, or up
+    to eight, at the auth host (`POST <issuer>/api/auth/revoke`). Resolves to
+    `{ ok: true, revoked }` or `{ ok: false, reason, status }` (`rate_limited`,
+    `bad_request`, `unavailable`), never throws on an outage. An unknown option
+    throws.
+- `FederationMigratingWebhookPayload`, `FederationMigrationCancelledWebhookPayload`
+  and `FederationSuccessor`: the two federation notices, typed as me.ochk.io
+  sends them. `/integrator` now exports them too, with `SystemWebhookPayload`
+  and `DropClosedWebhookPayload`.
+- `test-vectors/server-helpers.json`: what the adapters answer for a token, and
+  how `spendOnce` and `revokeToken` behave, read by this package and by
+  `orangecheck` 3.2.0's `check_oc_session`, `spend_once` and `revoke_token`.
+
+### Changed
+
+- `WebhookHeaders` documents `OC-Envelope-Id` as the event's `id` for a
+  billable event only. A system notice (`OC-Class: system`) has no `id` in its
+  body, so this header is its only id. `OC-Key-Id` names a key published at
+  `https://me.ochk.io/api/dev-jwks`.
+
 ## [0.40.1] — 2026-10-23
 
 ### Changed

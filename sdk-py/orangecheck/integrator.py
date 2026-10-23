@@ -35,7 +35,7 @@ import weakref
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 from cryptography.exceptions import InvalidSignature
@@ -261,6 +261,38 @@ class _KeySet:
 
 _session_keys = _KeySet(SESSION_JWKS_URL)
 _webhook_keys = _KeySet(WEBHOOK_JWKS_URL)
+#: Key sets of issuers other than ochk.io (a test stack's auth host), by issuer.
+_issuer_keys: dict[str, _KeySet] = {}
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def _issuer_url(issuer: str) -> str:
+    """Where an issuer's key set is: ``<issuer>/.well-known/jwks.json``, over https (http only on this machine)."""
+    try:
+        parts = urlsplit(issuer)
+    except ValueError:
+        parts = None
+    if (
+        parts is None
+        or not parts.hostname
+        or not (parts.scheme == "https" or (parts.scheme == "http" and parts.hostname in _LOCAL_HOSTS))
+    ):
+        raise ValueError(
+            f"issuer must be an https URL (http only on localhost) to fetch its key set, got {issuer!r}; "
+            "pass jwks= to verify offline"
+        )
+    return issuer.rstrip("/") + "/.well-known/jwks.json"
+
+
+def _keys_for(issuer: str) -> _KeySet:
+    """The key set that signs ``issuer``'s tokens, as auth-core fetches it."""
+    url = _issuer_url(issuer)
+    if url == SESSION_JWKS_URL:
+        return _session_keys
+    keys = _issuer_keys.get(url)
+    if keys is None:
+        keys = _issuer_keys.setdefault(url, _KeySet(url))
+    return keys
 
 
 def _b64url(s: str) -> bytes:
@@ -429,6 +461,11 @@ class RevocationList:
     """
 
     def __init__(self, project_key: str, signing_secret: str, *, url: str = REVOCATIONS_URL):
+        # An empty key or secret signs requests me.ochk.io refuses, so every write
+        # would be refused for as long as the process runs. Say so here instead.
+        for name, value in (("project_key", project_key), ("signing_secret", signing_secret)):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"RevocationList: {name} must be one non-empty string")
         self._project_key = project_key
         self._secret = signing_secret
         self._base = url[: -len("/api/integrator/revocations")] if url.endswith("/api/integrator/revocations") else url
@@ -633,14 +670,18 @@ def warm_session(
     *,
     revocations: Optional[RevocationList] = None,
     policy: Optional[SignInPolicy] = None,
+    issuer: str = SESSION_ISSUER,
+    jwks: Optional[Mapping[str, Any]] = None,
 ) -> WarmResult:
     """
     Fetch now what :func:`verify_session` with the same arguments would otherwise
-    fetch inside a request: ochk.io's key set, your project's sign-in requirement
-    and the revocation list for each audience, each only when its copy is due. Call
-    it at startup and then every ten seconds from a background thread, in each
-    process. It never raises: it returns a :class:`WarmResult` saying what it
-    fetched, kept or failed to read, and why (``result.ok``, ``result.failures()``).
+    fetch inside a request: the issuer's key set (ochk.io's by default), your
+    project's sign-in requirement and the revocation list for each audience, each
+    only when its copy is due. With ``jwks`` given, no key set is fetched and
+    ``keys`` reads ``"kept"``. Call it at startup and then every ten seconds from a
+    background thread, in each process. It never raises: it returns a
+    :class:`WarmResult` saying what it fetched, kept or failed to read, and why
+    (``result.ok``, ``result.failures()``).
     """
 
     # A warming loop must outlive anything one of these meets.
@@ -657,7 +698,7 @@ def warm_session(
             if isinstance(aud, str) and aud:
                 lists[aud] = part(lambda aud=aud: revocations._list(aud).warm())
     return WarmResult(
-        keys=part(lambda: _session_keys.warm()),
+        keys=_KEPT if jwks is not None else part(lambda: _keys_for(issuer).warm()),
         policy=part(policy._warm) if policy is not None else None,
         lists=lists,
     )
@@ -683,8 +724,9 @@ def verify_session(
     (``https://your-site.example``, or ``http://localhost:5173`` while you
     develop). A token issued to any other origin, or a family token with no
     ``aud`` at all, is refused. The key set is fetched from
-    ``https://ochk.io/.well-known/jwks.json`` and cached for an hour; pass
-    ``jwks`` to verify offline.
+    ``<issuer>/.well-known/jwks.json`` (``https://ochk.io``'s by default, over
+    https; http only on localhost) and cached for an hour; pass ``jwks`` to
+    verify offline, and it wins over the fetch.
 
     Raises :class:`InvalidSession` on any failure. The token proves who signed
     in until it expires (up to 30 days). Pass ``revocations`` (a
@@ -727,11 +769,12 @@ def verify_session(
             raise InvalidSession("unknown_key") from err
         retired_at = _retired_at(dict(jwks)).get(kid)
     else:
+        keys = _keys_for(issuer)
         try:
-            key = _session_keys.get(kid)
+            key = keys.get(kid)
         except (httpx.HTTPError, ValueError) as err:
             raise InvalidSession("key_set_unavailable") from err
-        retired_at = _session_keys.retired_at(kid)
+        retired_at = keys.retired_at(kid)
     if key is None:
         raise InvalidSession("unknown_key")
     try:
@@ -809,6 +852,104 @@ def verify_session(
         claims=payload,
         rh=rh if isinstance(rh, str) else None,
     )
+
+
+#: Can't tell right now: the client should try again, never sign the person out.
+_UNAVAILABLE = frozenset({"revocations_unavailable", "key_set_unavailable", "bond_policy_unavailable"})
+
+
+@dataclass(frozen=True)
+class SessionCheck:
+    """
+    One request's answer, as ``@orangecheck/me-client``'s ``withOcAuth`` (with
+    ``required: true``) gives it. ``status`` is 200, with ``session``, when the
+    person is signed in. Otherwise it is the HTTP status to answer, and ``body``
+    the JSON to send:
+
+    - 401 ``unauthenticated``: no token, one that does not verify, or one the
+      person ended everywhere;
+    - 401 ``no_session_handle``: a token sign out everywhere could not end;
+    - 403 ``bond_required``: the account is not backed enough here, with
+      ``need``, ``have`` and ``back_url``;
+    - 503 ``revocations_unavailable`` (a write while the list of ended sessions
+      can't be read), ``key_set_unavailable`` or ``bond_policy_unavailable``:
+      can't tell right now, so the client tries again instead of signing out;
+    - 500 ``unknown_project_key``: the :class:`SignInPolicy` names no project.
+    """
+
+    status: int
+    session: Optional[Session] = None
+    body: Optional[dict[str, Any]] = None
+
+    @property
+    def ok(self) -> bool:
+        return self.status == 200
+
+
+def check_oc_session(
+    token: Optional[str],
+    audience: Union[str, list[str]],
+    *,
+    jwks: Optional[Mapping[str, Any]] = None,
+    issuer: str = SESSION_ISSUER,
+    leeway: int = 0,
+    revocations: Optional[RevocationList] = None,
+    method: Optional[str] = None,
+    require_bond: Optional[Mapping[str, Any]] = None,
+    policy: Optional[SignInPolicy] = None,
+    require_handle: bool = True,
+) -> SessionCheck:
+    """
+    :func:`verify_session` as the HTTP answer for a request: a :class:`SessionCheck`
+    with the status and body me-client's adapters send, held to the same vectors
+    (``me-client/test-vectors/server-helpers.json``). ``token`` is the request's
+    token, or None when it brought none. It takes ``verify_session``'s arguments
+    and raises only on a mistake in the call itself.
+
+        checked = check_oc_session(bearer, "https://your-site.example",
+                                   revocations=revocations, method=request.method)
+        if not checked.ok:
+            return JSONResponse(checked.body, status_code=checked.status)
+        session = checked.session
+    """
+    if not isinstance(require_handle, bool):
+        raise TypeError("require_handle must be True or False")
+    if jwks is None:
+        _issuer_url(issuer)
+    if not isinstance(token, str) or not token:
+        return SessionCheck(401, body={"ok": False, "reason": "unauthenticated"})
+    try:
+        session = verify_session(
+            token,
+            audience,
+            jwks=jwks,
+            issuer=issuer,
+            leeway=leeway,
+            revocations=revocations,
+            method=method,
+            require_bond=require_bond,
+            policy=policy,
+            require_handle=require_handle,
+        )
+    except BondRequired as err:
+        return SessionCheck(
+            403,
+            body={
+                "ok": False,
+                "reason": "bond_required",
+                "need": dict(err.need),
+                "have": dict(err.have) if err.have is not None else None,
+                "back_url": err.back_url,
+            },
+        )
+    except InvalidSession as err:
+        if err.reason in _UNAVAILABLE:
+            return SessionCheck(503, body={"ok": False, "reason": err.reason})
+        if err.reason == "unknown_project_key":
+            return SessionCheck(500, body={"ok": False, "reason": err.reason})
+        reason = "no_session_handle" if err.reason == "no_session_handle" else "unauthenticated"
+        return SessionCheck(401, body={"ok": False, "reason": reason})
+    return SessionCheck(200, session=session)
 
 
 # ─── billable events ─────────────────────────────────────────────────────

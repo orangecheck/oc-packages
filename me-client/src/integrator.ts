@@ -37,6 +37,11 @@ export type {
     ValidationResult,
     BillableEvent,
     WebhookPayload,
+    SystemWebhookPayload,
+    DropClosedWebhookPayload,
+    FederationSuccessor,
+    FederationMigratingWebhookPayload,
+    FederationMigrationCancelledWebhookPayload,
     WebhookHeaders,
 } from './types';
 
