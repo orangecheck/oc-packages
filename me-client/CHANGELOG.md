@@ -8,6 +8,25 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.39.0] — 2026-10-23
+
+### Added
+
+- OC Connect for a site that keeps its own login, in `/server`:
+  `connectProvision`, `connectClaimLink` and `connectDelete`. Each takes
+  `{ apiKey, userId }` (plus `consent`, `email`, `emailVerified` for provision)
+  and resolves `{ ok: true, … }` or `{ ok: false, reason, status }`. A refusal or
+  an outage is a result, never a throw, and a call gives up after `timeoutMs`
+  (5 s, at most 30 s). Only a mistake in the call throws, before anything is sent:
+  an option it does not read, a missing key or user id, `emailVerified` without
+  `email`, `consent: false` (an unticked box means no call at all), or a call from
+  a browser, where the API key would be exposed.
+- `@orangecheck/me-client/connect-consent`: `CONNECT_CONSENT_LABEL` and
+  `CONNECT_CONSENT_BLURB`, the words for an optional "also make me an orangecheck
+  account" box, from a module with no imports so any UI can render it. Also
+  exported from the main and `/server` entries. The same words and results as
+  `orangecheck` (py) 2.13.0, held to `test-vectors/connect.json`.
+
 ## [0.38.1] — 2026-10-22
 
 Requires `@orangecheck/auth-core` `^2.13.0`.

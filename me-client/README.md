@@ -23,6 +23,10 @@ import { withOcAuth, ocAuthExpress, ocAuthHono } from '@orangecheck/me-client/se
 
 // Browser-only popup orchestrator — same shape Google / GitHub use.
 import { signInWithOc } from '@orangecheck/me-client/popup';
+
+// Keep your own login: make an orangecheck account for your user (OC Connect).
+import { connectProvision } from '@orangecheck/me-client/server';
+import { CONNECT_CONSENT_LABEL } from '@orangecheck/me-client/connect-consent';
 ```
 
 ## Install
@@ -252,6 +256,29 @@ app.get('/api/me', (c) => {
 ### Sessions ended everywhere
 
 Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a session the person ended everywhere: sign out everywhere, a passkey removed, the account deleted. A sign-in token carries `rh`, its revocation handle for your origin; they look it up in me.ochk.io's list of ended handles for that origin, read once a minute per origin with a request signed by your secret, so a refusal lands within about two minutes. The handles name nobody, and another site's handles for the same person never match yours. If the list can't be read, or is more than ten minutes old by its own clock, reads go on and writes are refused until it can: the adapters answer such a write `503 { reason: 'revocations_unavailable' }` (0.38.0), not 401, so a client retries instead of signing the person out, and `checkOcSession(headers, options)` tells the same apart for your own code (`signed_in`, `signed_out` or `unavailable`). A token without `rh`, and every token while the two variables are unset, is checked by its signature alone and stays valid until it expires. Needs 0.35.0 or later.
+
+## Keep your own login: OC Connect
+
+A site that keeps its own login (Auth0, Clerk, NextAuth, email and password) makes an orangecheck account for its user from its backend. Your Connect API key is on ochk.app, under your project's **Sign-in → Your own login**. Server only: these refuse to run in a browser, where the key would be exposed.
+
+```ts
+import { connectProvision, connectClaimLink, connectDelete } from '@orangecheck/me-client/server';
+
+const r = await connectProvision({ apiKey: process.env.OCHK_CONNECT_KEY!, userId: user.id });
+if (r.ok) await saveDid(user.id, r.did_oc); // keep it on your user record
+// r.ok === false: r.reason is 'account_deleted', 'daily_limit', 'rate_limited',
+// 'invalid_api_key', 'app_suspended', 'bad_request' or 'unavailable'
+```
+
+A refusal or an outage is a result, never a throw, so it can't block your own sign-in; a call is given up after `timeoutMs` (5 s, at most 30 s). Only a mistake in the call throws: an option it does not read, a missing key or user id, or `consent: false`.
+
+**With or without asking.** Make the account with no prompt, or show an opt-in box on your sign-in or sign-up with the canonical words, from a module with no dependencies that any UI can use:
+
+```ts
+import { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from '@orangecheck/me-client/connect-consent';
+```
+
+Show the box unticked, never pre-ticked and never bundled with your Terms. Ticked: `connectProvision({ apiKey, userId, consent: true })`. Unticked: make no call at all. A later tick upgrades an account made without asking. `connectClaimLink` mints a link for your signed-in user to claim their account at ochk.app; `connectDelete` deletes it when they delete their account with you. The full guide is [ochk.io/docs/connect](https://ochk.io/docs/connect). Needs 0.39.0 or later.
 
 ## Browser popup signin
 

@@ -28,6 +28,10 @@ A site that signs people in with ochk.app verifies the sign-in token, signs
 billable events and checks webhooks with three more:
 
     from orangecheck import verify_session, sign_event, verify_webhook
+
+A site that keeps its own login makes an orangecheck account for its user
+(OC Connect) with ``connect_provision``, ``connect_claim_link`` and
+``connect_delete``.
 """
 
 from .canonical import (
@@ -62,6 +66,17 @@ from .bond import (
 )
 from .client import AsyncClient, Client
 from .errors import OrangeCheckError, RateLimitError, VerificationError
+from .connect import (
+    CONNECT_CONSENT_BLURB,
+    CONNECT_CONSENT_LABEL,
+    ConnectAccount,
+    ConnectClaimLink,
+    ConnectDeleted,
+    ConnectRefusal,
+    connect_claim_link,
+    connect_delete,
+    connect_provision,
+)
 from .integrator import (
     BondRequired,
     InvalidSession,
@@ -145,6 +160,16 @@ __all__ = [
     "BondRequired",
     "bond_meets",
     "read_bond_claim",
+    # OC Connect, for a site that keeps its own login
+    "connect_provision",
+    "connect_claim_link",
+    "connect_delete",
+    "ConnectAccount",
+    "ConnectClaimLink",
+    "ConnectDeleted",
+    "ConnectRefusal",
+    "CONNECT_CONSENT_LABEL",
+    "CONNECT_CONSENT_BLURB",
     # Types
     "CheckResult",
     "VerifyOutcome",
@@ -159,7 +184,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "2.12.0"
+__version__ = "2.13.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

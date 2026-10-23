@@ -235,6 +235,36 @@ threading.Thread(target=keep_warm, daemon=True).start()
 
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
 
+## Keep your own login: OC Connect
+
+A site that keeps its own login makes an orangecheck account for its user from
+its backend (2.13.0 or later). The Connect API key is on ochk.app, under your
+project's **Sign-in → Your own login**.
+
+```python
+import os
+from orangecheck import connect_provision, CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB
+
+result = connect_provision(os.environ["OCHK_CONNECT_KEY"], user.id)
+if result.ok:
+    user.did_oc = result.did_oc  # keep it on your user record
+# else result.reason: account_deleted, daily_limit, rate_limited, invalid_api_key,
+# app_suspended, bad_request or unavailable (an outage or a timeout)
+```
+
+A refusal or an outage is a `ConnectRefusal`, never an exception, so it can't
+block your own sign-in; a call is given up after `timeout` (5 s, at most 30 s).
+Only a mistake in the call raises: an argument it does not take, a missing key or
+user id, or `consent=False`.
+
+**With or without asking.** Make the account with no prompt, or show an opt-in
+box with `CONNECT_CONSENT_LABEL` and `CONNECT_CONSENT_BLURB`: unticked by default,
+never pre-ticked, never bundled with your Terms. Ticked: `consent=True`. Unticked:
+make no call at all. A later tick upgrades an account made without asking.
+`connect_claim_link` mints a link for your signed-in user to claim their account
+at ochk.app; `connect_delete` deletes it when they delete their account with you.
+The full guide is at [ochk.io/docs/connect](https://ochk.io/docs/connect).
+
 ---
 
 ## Configuration

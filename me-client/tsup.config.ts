@@ -6,6 +6,7 @@ export default defineConfig({
         server: 'src/server.ts',
         popup: 'src/popup.ts',
         integrator: 'src/integrator.ts',
+        'connect-consent': 'src/connect-consent.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,

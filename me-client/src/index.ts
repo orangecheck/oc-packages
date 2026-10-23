@@ -67,6 +67,8 @@ export type {
     TrustAttestationCount,
 } from './scope';
 export { family } from './family';
+// The words for an optional Connect consent box, for a site's own sign-up form.
+export { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from './connect-consent';
 export type { FamilyVerb, FamilyScopesOptions, FamilyScopesResult } from './family';
 export {
     identity,

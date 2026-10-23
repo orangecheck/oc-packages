@@ -24,6 +24,12 @@
  *   ocAuthExpress(opts?)       → Express / Connect middleware
  *   ocAuthHono(opts?)          → Hono middleware
  *
+ * OC Connect, for a site that keeps its own login (ochk.io/docs/connect):
+ *
+ *   connectProvision({ apiKey, userId, consent? }) → { ok, did_oc, is_new }
+ *   connectClaimLink({ apiKey, userId })           → { ok, url, expires_at }
+ *   connectDelete({ apiKey, userId })              → { ok, result }
+ *
  * Plus the activity-attestation verifier · for sybil-resistance gating:
  *
  *   verifyActivityAttestation(bundle, opts?) → ActivityVerifyResult
@@ -63,6 +69,21 @@ export {
     verifyActivityAttestation,
     refreshEnvelopeJwks,
 } from './identity';
+// OC Connect: a site that keeps its own login makes an orangecheck account
+// for its user from its own backend.
+export { connectProvision, connectClaimLink, connectDelete } from './connect';
+export type {
+    ConnectOptions,
+    ConnectProvisionOptions,
+    ConnectProvisionResult,
+    ConnectProvisionRefusal,
+    ConnectClaimLinkResult,
+    ConnectClaimLinkRefusal,
+    ConnectDeleteResult,
+    ConnectDeleteRefusal,
+    ConnectRefused,
+} from './connect';
+export { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from './connect-consent';
 export type {
     ActivityAttestation,
     ActivityAttestationBundle,

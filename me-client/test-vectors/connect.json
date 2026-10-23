@@ -1,0 +1,274 @@
+{
+    "description": "OC Connect, as a site's own backend calls it: what each call sends, and what each of ochk.io's answers becomes. Read by me-client (src/__tests__/connect.test.ts) and sdk-py (tests/test_connect.py), so a Node site and a Python site get the same result from the same answer. The consent words are the ones both SDKs export.",
+    "consent": {
+        "label": "Also create my orangecheck account",
+        "blurb": "An identity you can use on other sites, held by orangecheck until you claim it at ochk.app, where you can also delete it."
+    },
+    "requests": [
+        {
+            "name": "provision, no box",
+            "call": "provision",
+            "input": { "user_id": "user-1" },
+            "path": "/api/connect/provision",
+            "body": { "user_id": "user-1" }
+        },
+        {
+            "name": "provision, box ticked",
+            "call": "provision",
+            "input": { "user_id": "user-1", "consent": true },
+            "path": "/api/connect/provision",
+            "body": { "user_id": "user-1", "consent": true }
+        },
+        {
+            "name": "provision, with a verified email",
+            "call": "provision",
+            "input": {
+                "user_id": "user-1",
+                "consent": true,
+                "email": "person@example.com",
+                "email_verified": true
+            },
+            "path": "/api/connect/provision",
+            "body": {
+                "user_id": "user-1",
+                "consent": true,
+                "email": "person@example.com",
+                "email_verified": true
+            }
+        },
+        {
+            "name": "delete",
+            "call": "delete",
+            "input": { "user_id": "user-1" },
+            "path": "/api/connect/delete",
+            "body": { "user_id": "user-1" }
+        },
+        {
+            "name": "claim link",
+            "call": "claim_link",
+            "input": { "user_id": "user-1" },
+            "path": "/api/connect/claim-link",
+            "body": { "user_id": "user-1" }
+        }
+    ],
+    "answers": [
+        {
+            "name": "provision: a new account",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "did_oc": "did:oc:0123456789abcdef0123456789abcdef", "is_new": true },
+            "result": { "ok": true, "did_oc": "did:oc:0123456789abcdef0123456789abcdef", "is_new": true }
+        },
+        {
+            "name": "provision: an existing account",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "did_oc": "did:oc:0123456789abcdef0123456789abcdef", "is_new": false },
+            "result": { "ok": true, "did_oc": "did:oc:0123456789abcdef0123456789abcdef", "is_new": false }
+        },
+        {
+            "name": "provision: deleted, and no consent this time",
+            "call": "provision",
+            "status": 410,
+            "body": { "ok": false, "reason": "account_deleted" },
+            "result": { "ok": false, "reason": "account_deleted", "status": 410 }
+        },
+        {
+            "name": "provision: the app's daily limit",
+            "call": "provision",
+            "status": 429,
+            "body": { "ok": false, "reason": "daily_limit" },
+            "result": { "ok": false, "reason": "daily_limit", "status": 429 }
+        },
+        {
+            "name": "provision: rate limited",
+            "call": "provision",
+            "status": 429,
+            "body": { "ok": false, "reason": "rate_limited" },
+            "result": { "ok": false, "reason": "rate_limited", "status": 429 }
+        },
+        {
+            "name": "provision: a wrong key",
+            "call": "provision",
+            "status": 401,
+            "body": { "ok": false, "reason": "invalid_api_key" },
+            "result": { "ok": false, "reason": "invalid_api_key", "status": 401 }
+        },
+        {
+            "name": "provision: no key reached the server",
+            "call": "provision",
+            "status": 401,
+            "body": { "ok": false, "reason": "missing_api_key" },
+            "result": { "ok": false, "reason": "invalid_api_key", "status": 401 }
+        },
+        {
+            "name": "provision: a suspended app",
+            "call": "provision",
+            "status": 403,
+            "body": { "ok": false, "reason": "app_suspended" },
+            "result": { "ok": false, "reason": "app_suspended", "status": 403 }
+        },
+        {
+            "name": "provision: a body the server refused",
+            "call": "provision",
+            "status": 400,
+            "body": { "ok": false, "reason": "bad_request" },
+            "result": { "ok": false, "reason": "bad_request", "status": 400 }
+        },
+        {
+            "name": "provision: a server error",
+            "call": "provision",
+            "status": 500,
+            "body": { "ok": false, "reason": "server_error" },
+            "result": { "ok": false, "reason": "unavailable", "status": 500 }
+        },
+        {
+            "name": "provision: a gateway page, not JSON",
+            "call": "provision",
+            "status": 502,
+            "raw": "<html>Bad gateway</html>",
+            "result": { "ok": false, "reason": "unavailable", "status": 502 }
+        },
+        {
+            "name": "provision: a reason this SDK does not know",
+            "call": "provision",
+            "status": 409,
+            "body": { "ok": false, "reason": "something_new" },
+            "result": { "ok": false, "reason": "unavailable", "status": 409 }
+        },
+        {
+            "name": "provision: 200 with no account id",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "is_new": true },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "provision: 200 with an id that is not a did:oc",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "did_oc": "did:oc:<script>", "is_new": true },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "provision: 200 that says not ok",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": false, "reason": "account_deleted" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "delete: deleted",
+            "call": "delete",
+            "status": 200,
+            "body": { "ok": true, "result": "deleted" },
+            "result": { "ok": true, "result": "deleted" }
+        },
+        {
+            "name": "delete: detached, the person claimed it",
+            "call": "delete",
+            "status": 200,
+            "body": { "ok": true, "result": "detached" },
+            "result": { "ok": true, "result": "detached" }
+        },
+        {
+            "name": "delete: already deleted",
+            "call": "delete",
+            "status": 200,
+            "body": { "ok": true, "result": "already_deleted" },
+            "result": { "ok": true, "result": "already_deleted" }
+        },
+        {
+            "name": "delete: never provisioned",
+            "call": "delete",
+            "status": 404,
+            "body": { "ok": false, "reason": "unknown_user" },
+            "result": { "ok": false, "reason": "unknown_user", "status": 404 }
+        },
+        {
+            "name": "delete: it earned, so it stays",
+            "call": "delete",
+            "status": 409,
+            "body": { "ok": false, "reason": "holds_earnings" },
+            "result": { "ok": false, "reason": "holds_earnings", "status": 409 }
+        },
+        {
+            "name": "delete: not deletable",
+            "call": "delete",
+            "status": 409,
+            "body": { "ok": false, "reason": "not_deletable" },
+            "result": { "ok": false, "reason": "not_deletable", "status": 409 }
+        },
+        {
+            "name": "delete: what it holds cannot be read",
+            "call": "delete",
+            "status": 503,
+            "body": { "ok": false, "reason": "summary_unavailable" },
+            "result": { "ok": false, "reason": "unavailable", "status": 503 }
+        },
+        {
+            "name": "delete: a result this SDK does not know",
+            "call": "delete",
+            "status": 200,
+            "body": { "ok": true, "result": "archived" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "delete: a wrong key",
+            "call": "delete",
+            "status": 401,
+            "body": { "ok": false, "reason": "invalid_api_key" },
+            "result": { "ok": false, "reason": "invalid_api_key", "status": 401 }
+        },
+        {
+            "name": "claim link: a link",
+            "call": "claim_link",
+            "status": 200,
+            "body": {
+                "ok": true,
+                "url": "https://ochk.app/connect/claim#t=abc",
+                "expires_at": "2026-10-24T12:15:00.000Z"
+            },
+            "result": {
+                "ok": true,
+                "url": "https://ochk.app/connect/claim#t=abc",
+                "expires_at": "2026-10-24T12:15:00.000Z"
+            }
+        },
+        {
+            "name": "claim link: provision first",
+            "call": "claim_link",
+            "status": 404,
+            "body": { "ok": false, "reason": "unknown_user" },
+            "result": { "ok": false, "reason": "unknown_user", "status": 404 }
+        },
+        {
+            "name": "claim link: claimed already",
+            "call": "claim_link",
+            "status": 409,
+            "body": { "ok": false, "reason": "already_claimed" },
+            "result": { "ok": false, "reason": "already_claimed", "status": 409 }
+        },
+        {
+            "name": "claim link: a suspended app",
+            "call": "claim_link",
+            "status": 403,
+            "body": { "ok": false, "reason": "app_suspended" },
+            "result": { "ok": false, "reason": "app_suspended", "status": 403 }
+        },
+        {
+            "name": "claim link: a link that is not https",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "javascript:alert(1)", "expires_at": "2026-10-24T12:15:00.000Z" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "claim link: no expiry",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "https://ochk.app/connect/claim#t=abc" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        }
+    ]
+}
