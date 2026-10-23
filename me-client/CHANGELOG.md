@@ -8,6 +8,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.40.1] — 2026-10-23
+
+### Changed
+
+- Needs `@orangecheck/auth-core` ^2.15.0: a sign-in token that carries `rh`
+  verifies only when `rh` is a non-empty string and `aud` is one string your
+  site accepts, so every such session is looked up on its audience's list of
+  ended sessions. `SessionPayload.rh` names the handle. The same as
+  `orangecheck` 3.1.0, held to `test-vectors/integrator.json`.
+
 ## [0.40.0] — 2026-10-23
 
 ### Changed

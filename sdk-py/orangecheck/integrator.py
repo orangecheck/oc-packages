@@ -93,6 +93,8 @@ class Session:
     #: Coin backing, when the person backed their account (see require-bond).
     oc_bond: Optional[dict[str, Any]] = None
     claims: dict[str, Any] = field(default_factory=dict)
+    #: The token's revocation handle on its audience's list of ended sessions.
+    rh: Optional[str] = None
 
 
 # ─── key sets ────────────────────────────────────────────────────────────
@@ -422,7 +424,8 @@ class RevocationList:
     ``status(rh, aud, iat)`` is ``"revoked"``, ``"live"``, or ``"unverified"`` when
     no list younger than ten minutes (by its own ``at``) could be read: then reads
     may go on, but a write should not. A token without ``rh`` is ``"live"``: it is
-    checked by its signature alone.
+    checked by its signature alone. A handle that is not a non-empty string, or
+    comes without one string ``aud``, is ``"revoked"``: no list can end it.
     """
 
     def __init__(self, project_key: str, signing_secret: str, *, url: str = REVOCATIONS_URL):
@@ -451,8 +454,10 @@ class RevocationList:
             return lst
 
     def status(self, rh: Optional[str], aud: Optional[str], iat: Optional[float]) -> str:
-        if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
+        if rh is None:
             return "live"
+        if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
+            return "revoked"
         return self._list(aud).status(rh, iat)
 
 
@@ -750,6 +755,13 @@ def verify_session(
     rh = payload.get("rh")
     if require_handle and not (isinstance(rh, str) and rh):
         raise InvalidSession("no_session_handle")
+    # A handle is kept on one audience's list, so a token carrying one names
+    # one audience, as a string; with no handle the token is checked as before.
+    if "rh" in payload:
+        if not (isinstance(rh, str) and rh):
+            raise InvalidSession("claims")
+        if not isinstance(aud, str):
+            raise InvalidSession("audience")
 
     if revocations is not None:
         token_aud = aud if isinstance(aud, str) else None
@@ -783,6 +795,7 @@ def verify_session(
         exp=int(exp),
         oc_bond=bond if isinstance(bond, dict) else None,
         claims=payload,
+        rh=rh if isinstance(rh, str) else None,
     )
 
 

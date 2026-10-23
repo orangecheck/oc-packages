@@ -181,10 +181,16 @@ const R = (
       >;
       sessions: {
         name: string;
-        aud: string;
-        rh: string | null;
+        aud: unknown;
+        rh: unknown;
         iat: number | null;
         status: string;
+      }[];
+      tokens: {
+        name: string;
+        token: string;
+        audience: string;
+        outcome: "ended" | "audience";
       }[];
     };
   }
@@ -230,6 +236,23 @@ describe("vectors · revocation handles", () => {
         iat: v.iat ?? undefined,
       }),
     ).toBe(v.status);
+  });
+
+  it.each(R.tokens)("a whole token: $name", async (v) => {
+    _resetJwksCachesForTests();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(R.request.timestamp * 1000);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => V.session.jwks }) as Response),
+    );
+    const session = await verifyOcToken(v.token, { audience: v.audience });
+    if (v.outcome === "audience") {
+      expect(session).toBeNull();
+      return;
+    }
+    expect(session).not.toBeNull();
+    expect(await check().status(session!)).toBe("revoked");
   });
 });
 

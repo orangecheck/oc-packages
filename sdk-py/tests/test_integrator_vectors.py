@@ -251,6 +251,40 @@ def test_revocations_decide_as_the_node_sdk_does(v: dict[str, Any]) -> None:
 
 
 @respx.mock
+@pytest.mark.parametrize("v", R["tokens"], ids=lambda v: v["name"])
+def test_a_whole_token_is_ended_or_refused_as_the_node_sdk_does(v: dict[str, Any]) -> None:
+    _serve_lists()
+    if v["outcome"] == "ended":
+        with pytest.raises(SessionEnded):
+            verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=_revocations())
+    else:
+        with pytest.raises(InvalidSession) as err:
+            verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=_revocations())
+        assert err.value.reason == v["outcome"]
+
+
+def test_a_session_names_its_revocation_handle() -> None:
+    v = V["session"]["valid"][0]
+    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
+    assert s.rh == v["claims"]["rh"]
+
+
+@pytest.mark.parametrize("name", ["a revocation handle that is not a string", "an empty revocation handle"])
+def test_a_handle_that_is_not_a_non_empty_string_is_refused_even_without_require_handle(name: str) -> None:
+    v = next(x for x in V["session"]["invalid"] if x["name"] == name)
+    with pytest.raises(InvalidSession) as err:
+        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], require_handle=False)
+    assert err.value.reason == "claims"
+
+
+def test_a_handle_with_a_list_aud_is_refused_even_without_require_handle() -> None:
+    v = next(x for x in V["session"]["invalid"] if x["name"] == "a handle with a list aud")
+    with pytest.raises(InvalidSession) as err:
+        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], require_handle=False)
+    assert err.value.reason == "audience"
+
+
+@respx.mock
 def test_a_token_with_no_handle_is_never_looked_up() -> None:
     route = respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(
         return_value=httpx.Response(200, json={})

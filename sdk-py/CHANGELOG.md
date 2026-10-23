@@ -4,6 +4,23 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] — 2026-10-23
+
+### Changed
+
+- `verify_session` accepts a token that carries `rh` only when `rh` is a
+  non-empty string (`InvalidSession("claims")` otherwise, with
+  `require_handle=False`) and `aud` is one string (`InvalidSession("audience")`
+  otherwise). A token without `rh` verifies as before.
+- `RevocationList.status(rh, aud, iat)` answers `"revoked"` for a handle that
+  is not a non-empty string, or one given without a string `aud`.
+- The same as `@orangecheck/auth-core` 2.15.0 and `@orangecheck/me-client`
+  0.40.1, held to `me-client/test-vectors/integrator.json`.
+
+### Added
+
+- `Session.rh`: the token's revocation handle.
+
 ## [3.0.0] — 2026-10-23
 
 ### Changed

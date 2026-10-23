@@ -123,6 +123,15 @@ const sessionVectors = {
         // Sign out everywhere can't reach it: refused unless the site opts out (requireHandle: false, require_handle=False).
         { name: 'no revocation handle', token: await jwt(drop(base, 'rh')), audience: SITE, reason: 'no_session_handle' },
         { name: 'an empty revocation handle', token: await jwt({ ...base, rh: '' }), audience: SITE, reason: 'no_session_handle' },
+        { name: 'a revocation handle that is not a string', token: await jwt({ ...base, rh: 42 }), audience: SITE, reason: 'no_session_handle' },
+        // A handle is kept on one audience's list, so a token carrying one names one audience.
+        { name: 'a handle with a list aud', token: await jwt({ ...base, aud: [SITE] }), audience: SITE, reason: 'audience' },
+        {
+            name: 'a handle with a list aud naming two sites',
+            token: await jwt({ ...base, aud: [SITE, 'https://other.example'] }),
+            audience: SITE,
+            reason: 'audience',
+        },
         { name: 'not a JWT', token: 'not-a-jwt', audience: SITE, reason: 'malformed' },
     ],
 };
@@ -216,6 +225,27 @@ const revocationVectors = {
         { name: 'another account', aud: REV_SITE, rh: rh(revKey('acct-tv-0002'), REV_SITE), iat: NOW - 3600, status: 'live' },
         { name: 'a handle for another audience', aud: REV_SITE, rh: rh(AK, REV_WWW), iat: NOW - 3600, status: 'live' },
         { name: 'no handle: signature only', aud: REV_SITE, rh: null, iat: NOW - 3600, status: 'live' },
+        // Issued after the cutoff, so a lookup would say live: only the shape refuses these.
+        { name: 'a handle with a list aud', aud: [REV_SITE], rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
+        { name: 'a handle with no aud', aud: null, rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
+        { name: 'a handle that is not a string', aud: REV_SITE, rh: 42, iat: NOW - 30, status: 'revoked' },
+        { name: 'an empty handle', aud: REV_SITE, rh: '', iat: NOW - 30, status: 'revoked' },
+    ],
+    // Whole tokens through verification and the list: one ended on its own
+    // audience's list, and the same handle under a list aud, refused before any lookup.
+    tokens: [
+        {
+            name: 'one string aud, ended on its list',
+            token: await jwt({ ...base, jti: 'tv-jti-ended', aud: REV_SITE, rh: rh(AK, REV_SITE), iat: NOW - 3600 }),
+            audience: REV_SITE,
+            outcome: 'ended',
+        },
+        {
+            name: 'the same handle with a list aud',
+            token: await jwt({ ...base, jti: 'tv-jti-list', aud: [REV_SITE], rh: rh(AK, REV_SITE), iat: NOW - 3600 }),
+            audience: REV_SITE,
+            outcome: 'audience',
+        },
     ],
     // What me.ochk.io accepts as aud: exactly the origin ochk.io mints. An SDK sends the token's aud as it is.
     audiences: [

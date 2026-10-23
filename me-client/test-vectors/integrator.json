@@ -188,6 +188,24 @@
                 "reason": "no_session_handle"
             },
             {
+                "name": "a revocation handle that is not a string",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6NDIsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.robYCqWyL39beHjcX9S9Nvg2NksALDFoPLmCF_npcJOEn1nDodwprdmL3HFzfcUnHD6Zu53nTpGD2LOBA68iBQ",
+                "audience": "https://soniq.example",
+                "reason": "no_session_handle"
+            },
+            {
+                "name": "a handle with a list aud",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOlsiaHR0cHM6Ly9zb25pcS5leGFtcGxlIl19.os61GweTHrx1hjLXY9HUR3Irpqmhzfx-Z0W_3jPrz43zWreBDA_-ik5WBWMe8V91LcM0jtNkM-UmZU-EB86PDg",
+                "audience": "https://soniq.example",
+                "reason": "audience"
+            },
+            {
+                "name": "a handle with a list aud naming two sites",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOlsiaHR0cHM6Ly9zb25pcS5leGFtcGxlIiwiaHR0cHM6Ly9vdGhlci5leGFtcGxlIl19.XHcAwPlOSCCj1yf1GuWmDPmwm0RWRIaR0tZ_1mr2GnPbJ1fycILCw5fXjhoc3aFYM_svmS5pwiR5Xx7S3-xJCg",
+                "audience": "https://soniq.example",
+                "reason": "audience"
+            },
+            {
                 "name": "not a JWT",
                 "token": "not-a-jwt",
                 "audience": "https://soniq.example",
@@ -391,6 +409,50 @@
                 "rh": null,
                 "iat": 1799996400,
                 "status": "live"
+            },
+            {
+                "name": "a handle with a list aud",
+                "aud": [
+                    "https://site.example"
+                ],
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
+                "iat": 1799999970,
+                "status": "revoked"
+            },
+            {
+                "name": "a handle with no aud",
+                "aud": null,
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
+                "iat": 1799999970,
+                "status": "revoked"
+            },
+            {
+                "name": "a handle that is not a string",
+                "aud": "https://site.example",
+                "rh": 42,
+                "iat": 1799999970,
+                "status": "revoked"
+            },
+            {
+                "name": "an empty handle",
+                "aud": "https://site.example",
+                "rh": "",
+                "iat": 1799999970,
+                "status": "revoked"
+            }
+        ],
+        "tokens": [
+            {
+                "name": "one string aud, ended on its list",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktZW5kZWQiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTY0MDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJta01yS1NfcWQwYUQ0WlpZYnd4YW13IiwiYXVkIjoiaHR0cHM6Ly9zaXRlLmV4YW1wbGUifQ.8IVlEVUP1Y0O250qYIe96ut6LXVYQjUvBhIKfJS-sbScLToZ49jA2G_kffqfO7qx47J2X5uwxxULrWndooxLCQ",
+                "audience": "https://site.example",
+                "outcome": "ended"
+            },
+            {
+                "name": "the same handle with a list aud",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbGlzdCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6Im1rTXJLU19xZDBhRDRaWllid3hhbXciLCJhdWQiOlsiaHR0cHM6Ly9zaXRlLmV4YW1wbGUiXX0.3KpTAy6pX78qPtwqG__HZx06POwgoUYzeZYW4zya0X1Ld3sWCPpuprmfKPXRKDiCbpuWZJLhD71gGayk1uY1AQ",
+                "audience": "https://site.example",
+                "outcome": "audience"
             }
         ],
         "audiences": [
