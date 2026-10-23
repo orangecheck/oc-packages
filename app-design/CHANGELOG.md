@@ -14,12 +14,15 @@
   medians) and from 301 to 104 ms on ochk.io/. Every family site set the
   option; swap the provider, or drop the prop.
 - `ThemeToggle` stills transitions for the switch a person makes, so colours
-  still change at once rather than fade, and only then.
+  still change at once rather than fade, and only then. `useTheme` (from
+  `/chrome`) is next-themes' with that `setTheme`, for a site's own switch
+  (ochk.app's account menu).
 - The halftone was the suspect and is not the cause: its frames take 1 to 13
   ms on that profile, and drawing nothing left TBT where it was.
 - check-focus mounts the provider and counts the style elements it puts in,
-  and switches the theme beside a swatch with a 700ms colour transition: no
-  transition may run, and the stilling style must be gone after. The switch
+  and switches the theme, by ThemeToggle and by a button on `useTheme`, beside a
+  swatch with a 700ms colour transition: no transition may run, and the
+  stilling style must be gone after. The switch
   check fails on 1.16.4, and the mount check fails with the option set.
 
 ## [1.16.4] — 2026-10-23

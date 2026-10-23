@@ -34,14 +34,15 @@ class on `<html>`, the system's mode until someone picks one. Do not mount the f
 next-themes applies the theme on every mount, and with it puts a stylesheet in and
 takes it out, two whole-document style recalculations on every page load (ochk.app/
 at 390 on a 4× slower CPU: TBT 682 ms with it, 310 without). `ThemeToggle` stills
-transitions for the switch a person makes.
+transitions for the switch a person makes; a switch of your own takes `useTheme` from
+`/chrome` for the same.
 
 | Entry | What |
 |---|---|
 | `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere` |
 | `/primitives` | `Button`, `Badge`, `Card`, form controls (`Input size="sm"` for tools), `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster`, `DensityProvider` |
 | `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps`, `ErrorPage`, the public page blocks (`SectionHeading`, `FactBlock`, `ProofStrip`, `Closing`, `LegalDocument` …), the protocol page blocks (`ProtocolGrid`, `AppGrid`, `ProtocolHero`, `SpecCard`, `VerifyBox`, `ComparisonTable`, `VerifyReport`, `SignMessage`), code (`CodeBlock`, `CodeTabs`, `InstallTabs`), the docs blocks (`Breadcrumbs`, `DocsPager`, `OnThisPage`, `Callout`, `Steps`, `LinkCard`, `ApiTable`, `Diagram`, `SearchDialog`) and the tool parts (`ArtifactView`, `DropZone`, `FormSection`, `StateBadge`, `AnchorStatus`, `BlockHeight`, `BlockCountdown`, `Meter`, `FilterChips`, `ToolGrid`), and the parts signed-in pages repeat (`SectionTitle`, `ListCard`, `ListRow`, `ChoiceGroup`, `ChoiceCard`, `Avatar`) |
-| `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `PaneHeader`, `AccountMenu`, `ThemeProvider`, `ThemeToggle`, `DocsShell`, `DocsNav`, `ToolShell`, `ToolColumn`, `SessionAccountView`, `AccountCta` |
+| `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `PaneHeader`, `AccountMenu`, `ThemeProvider`, `ThemeToggle`, `useTheme`, `DocsShell`, `DocsNav`, `ToolShell`, `ToolColumn`, `SessionAccountView`, `AccountCta` |
 | `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
 | `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`, `failureText`, `OFFLINE_TEXT`; no React |

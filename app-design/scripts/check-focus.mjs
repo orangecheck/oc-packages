@@ -148,10 +148,11 @@ try {
         ),
         // The theme switch under the package's provider, beside a swatch that fades its colours; style elements put in while it mounts are counted.
         themes: mount(
-            `import { ThemeProvider, ThemeToggle } from '${src('chrome/app-shell.tsx')}';\n` +
+            `import { ThemeProvider, ThemeToggle, useTheme } from '${src('chrome/app-shell.tsx')}';\n` +
+                `function Own() { const { resolvedTheme, setTheme } = useTheme(); return <button id="own" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>Mode</button>; }\n` +
                 `window.__sheets = 0;\n` +
                 `new MutationObserver((l) => { for (const m of l) for (const n of m.addedNodes) if (n.nodeName === 'STYLE') window.__sheets++; }).observe(document.head, { childList: true });`,
-            `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /></div></ThemeProvider>`
+            `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /><Own /></div></ThemeProvider>`
         ),
     };
     bundle(dir, clients);
@@ -370,6 +371,12 @@ try {
         });
         check(after.fading.length === 0 && after.bg !== before.bg, `ThemeToggle: a switch fades the page's colours (${after.fading.join(', ')} running; background ${before.bg} → ${after.bg})`);
         check(after.styles === before.styles && /color/.test(after.still), `ThemeToggle: the switch left its stilling style behind (${before.styles} → ${after.styles} style elements; transition-property ${after.still})`);
+        // A site's own switch, through the package's useTheme, changes the colours at once too.
+        await p.click('#own');
+        await p.waitForFunction(() => !document.documentElement.classList.contains('dark'));
+        await p.waitForTimeout(80);
+        const own = await p.evaluate(() => document.getElementById('swatch').getAnimations().filter((a) => a.constructor.name === 'CSSTransition').map((a) => a.transitionProperty));
+        check(own.length === 0, `useTheme: a site's own switch fades the page's colours (${own.join(', ')} running)`);
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));
         await p.waitForSelector('table a');

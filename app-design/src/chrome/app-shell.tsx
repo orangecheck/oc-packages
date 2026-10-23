@@ -1,7 +1,7 @@
 import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeProvider as NextThemeProvider, useTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
@@ -645,6 +645,14 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     );
 }
 
+/** next-themes' useTheme, whose setTheme changes the colours at once rather than fading them: for a site's own switch. */
+export function useTheme() {
+    const t = useNextTheme();
+    const { setTheme: set } = t;
+    const setTheme = useCallback((value: Parameters<typeof set>[0]) => switchQuietly(() => set(value)), [set]);
+    return { ...t, setTheme };
+}
+
 /** Light, dark, or follow the system: one button that cycles. */
 export function ThemeToggle({ className }: { className?: string }) {
     const { theme, setTheme } = useTheme();
@@ -656,7 +664,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
         <button
             type="button"
-            onClick={() => switchQuietly(() => setTheme(next))}
+            onClick={() => setTheme(next)}
             aria-label={`Theme: ${current}. Switch to ${next}`}
             title={`Theme: ${current}`}
             className={cn(
