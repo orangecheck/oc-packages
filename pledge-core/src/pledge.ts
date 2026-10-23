@@ -38,10 +38,11 @@ export class PledgeError extends Error {
  *
  * Two signing paths:
  *   - Direct (most common): swearer signs themselves. Pass `swearerSigner`
- *     whose `address` matches the canonical message's swearer.
+ *     whose `address` equals `swearer`.
  *   - Agent (SPEC §7.3): an agent signs on behalf of a principal under an
  *     OC Agent delegation. Pass `viaDelegation` with the delegation id and
- *     the agent's signer. The envelope carries `via_delegation` and
+ *     the agent's signer; the principal is `swearer`, an address, and no
+ *     signer of theirs is needed. The envelope carries `via_delegation` and
  *     `agent_address` but those fields are NOT in the canonical message —
  *     they're verifier-checked claims, not signed bytes.
  *
@@ -70,9 +71,9 @@ export async function createPledge(input: CreatePledgeInput): Promise<PledgeEnve
     const v = validatePledgeInput(canon);
     if (!v.ok) throw new PledgeError('E_PLEDGE_MALFORMED', v.reason);
 
-    // Agent path: signer must be the agent (not the principal). Also enforce
-    // that swearer.address still equals canon.swearer (the principal); the
-    // agent's address goes into agent_address in the envelope.
+    // Agent path: the agent signs, and the swearer stays the principal named in
+    // canon.swearer. Direct path: the swearer signs, so its signer must be the
+    // swearer's address (verifyPledge refuses anything else, §3.6).
     if (input.viaDelegation) {
         if (input.viaDelegation.delegation_id.length !== 64) {
             throw new PledgeError(
@@ -80,10 +81,29 @@ export async function createPledge(input: CreatePledgeInput): Promise<PledgeEnve
                 'viaDelegation.delegation_id must be 64 hex chars',
             );
         }
-        if (input.viaDelegation.agent_signer.address === input.swearerSigner.address) {
+        if (input.viaDelegation.agent_signer.address === input.swearer) {
             throw new PledgeError(
                 'E_PLEDGE_MALFORMED',
                 'agent_address must differ from swearer.address (principal-vs-agent invariant)',
+            );
+        }
+        if (input.swearerSigner && input.swearerSigner.address !== input.swearer) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'swearerSigner.address must equal swearer (leave swearerSigner out on the agent path)',
+            );
+        }
+    } else {
+        if (!input.swearerSigner) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'swearerSigner is required unless viaDelegation is given',
+            );
+        }
+        if (input.swearerSigner.address !== input.swearer) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'swearerSigner.address must equal swearer (SPEC §3.6)',
             );
         }
     }

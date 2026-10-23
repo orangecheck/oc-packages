@@ -108,6 +108,55 @@ describe('createPledge — agent path', () => {
     });
 });
 
+describe('createPledge — who signs (one shape per path)', () => {
+    const agent = 'bc1qagent0000000000000000000000000000000000';
+    const viaDelegation = (agentSigner: Bip322Signer) => ({
+        delegation_id: 'd'.repeat(64),
+        agent_signer: agentSigner,
+    });
+
+    it('an agent pledge needs only the swearer address, no signer from the principal', async () => {
+        const agentSigner = fakeSigner(agent);
+        const env = await createPledge({ ...baseInput, viaDelegation: viaDelegation(agentSigner) });
+        expect(env.swearer.address).toBe(baseInput.swearer);
+        expect(env.agent_address).toBe(agent);
+        expect(env.sig.pubkey).toBe(agent);
+        expect(agentSigner.signMessage).toHaveBeenCalledWith(env.id);
+    });
+
+    it('an agent pledge whose agent is the swearer is refused, with no principal signer given', async () => {
+        await expect(
+            createPledge({ ...baseInput, viaDelegation: viaDelegation(fakeSigner(baseInput.swearer)) }),
+        ).rejects.toMatchObject({ code: 'E_PLEDGE_MALFORMED' });
+    });
+
+    it('a principal signer given on the agent path must be the swearer', async () => {
+        const agentSigner = fakeSigner(agent);
+        await expect(
+            createPledge({
+                ...baseInput,
+                swearerSigner: fakeSigner('bc1qsomeoneelse00000000000000000000000000'),
+                viaDelegation: viaDelegation(agentSigner),
+            }),
+        ).rejects.toMatchObject({ code: 'E_PLEDGE_MALFORMED' });
+        expect(agentSigner.signMessage).not.toHaveBeenCalled();
+    });
+
+    it('a direct pledge without a signer is refused', async () => {
+        await expect(
+            createPledge({ ...baseInput } as unknown as CreatePledgeInput),
+        ).rejects.toMatchObject({ code: 'E_PLEDGE_MALFORMED' });
+    });
+
+    it('a direct pledge signed by anyone but the swearer is refused before signing', async () => {
+        const other = fakeSigner('bc1qsomeoneelse00000000000000000000000000');
+        await expect(createPledge({ ...baseInput, swearerSigner: other })).rejects.toMatchObject({
+            code: 'E_PLEDGE_MALFORMED',
+        });
+        expect(other.signMessage).not.toHaveBeenCalled();
+    });
+});
+
 describe('wrapPledgeEnvelope', () => {
     it('produces an envelope byte-identical to createPledge for the same inputs + sig', async () => {
         const fromCreate = await createPledge({

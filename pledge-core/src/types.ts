@@ -227,7 +227,8 @@ export interface Bip322Signer {
     signMessage: (msg: string) => Promise<string>;
 }
 
-export interface CreatePledgeInput extends Omit<PledgeCanonicalInput, 'sworn_at' | 'nonce' | 'remediation'> {
+/** What a pledge says, before who signs it. */
+export interface CreatePledgeTerms extends Omit<PledgeCanonicalInput, 'sworn_at' | 'nonce' | 'remediation'> {
     /** Defaults to "now" (truncated to seconds, ISO 8601 UTC, Z-terminated). */
     swornAt?: Date | string;
     /**
@@ -238,14 +239,30 @@ export interface CreatePledgeInput extends Omit<PledgeCanonicalInput, 'sworn_at'
     nonce?: string;
     /** Defaults to "breach_recorded" (the only legal value in v0.1). */
     remediation?: 'breach_recorded';
-    swearerSigner: Bip322Signer;
-    /**
-     * If present, pledge is signed by this agent under an OC Agent delegation.
-     * `via_delegation` (the delegation id) and `agent_address` (the agent's
-     * address) appear in the envelope but are NOT in the canonical message.
-     */
-    viaDelegation?: { delegation_id: string; agent_signer: Bip322Signer };
 }
+
+/** The swearer signs (SPEC §3.6): `swearerSigner.address` must equal `swearer`. */
+export interface CreateDirectPledgeInput extends CreatePledgeTerms {
+    swearerSigner: Bip322Signer;
+    viaDelegation?: undefined;
+}
+
+/**
+ * An agent signs under an OC Agent delegation (SPEC §7.3). The swearer is
+ * `swearer`, an address; nothing the principal holds is needed.
+ * `via_delegation` (the delegation id) and `agent_address` (the agent's
+ * address) appear in the envelope but are NOT in the canonical message.
+ */
+export interface CreateDelegatedPledgeInput extends CreatePledgeTerms {
+    viaDelegation: { delegation_id: string; agent_signer: Bip322Signer };
+    /**
+     * @deprecated Not read on this path beyond its address, which must equal
+     * `swearer`. Leave it out.
+     */
+    swearerSigner?: Bip322Signer;
+}
+
+export type CreatePledgeInput = CreateDirectPledgeInput | CreateDelegatedPledgeInput;
 
 export interface CreateOutcomeInput extends OutcomeCanonicalInput {
     /**

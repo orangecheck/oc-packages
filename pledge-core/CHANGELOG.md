@@ -8,6 +8,21 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.3.0] — 2026-10-23
+
+### Changed — an agent pledge needs no signer from the principal
+
+`CreatePledgeInput` is now one of two shapes. `CreateDirectPledgeInput` takes
+`swearerSigner`, whose address must equal `swearer`. `CreateDelegatedPledgeInput`
+takes `viaDelegation` and needs nothing from the principal: the swearer is the
+`swearer` address. `swearerSigner` stays accepted on the agent path, deprecated,
+and its address must equal `swearer`. `createPledge` refuses, with
+`E_PLEDGE_MALFORMED` and before anything is signed, a direct pledge with no
+signer or one whose signer is not the swearer (`verifyPledge` already refused
+such an envelope, SPEC §3.6), and checks the agent against `swearer` rather than
+against the signer. `CreatePledgeTerms` names the fields the two shapes share.
+The test script also type-checks `*.test-d.ts`.
+
 ## [3.2.2] — 2026-10-22
 
 ### Fixed — an agent pledge's agent is never its swearer

@@ -81,6 +81,18 @@ if (result.ok) {
 }
 ```
 
+An agent swears on a principal's behalf with `viaDelegation` and no
+`swearerSigner`: the principal is the `swearer` address, and only the agent
+signs.
+
+```ts
+const agentPledge = await createPledge({
+    ...terms, // the pledge fields above, without swearerSigner
+    swearer: principalAddress,
+    viaDelegation: { delegation_id: delegation.id, agent_signer: agentSigner },
+});
+```
+
 An agent-signed pledge (`via_delegation`) also needs `delegationLookup`, and is
 checked as of `now` (default: the current time): its delegation must be in force
 then, unexpired and not revoked. The agent chooses `sworn_at`, so a delegation
