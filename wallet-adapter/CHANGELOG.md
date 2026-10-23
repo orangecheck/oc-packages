@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.2] — 2026-10-23
+
+### Changed
+
+- `OcWalletButton` and `OcWalletPicker` render every listed wallet from their
+  first render, each as not installed (paste ready), and detection after mount
+  only changes each row's state. A list that appeared a frame after its form
+  pushed everything below it down by its own height. The server's HTML now
+  carries the rows too, so hydrating matches.
+
 ## [0.7.1] — 2026-10-22
 
 ### Dependencies

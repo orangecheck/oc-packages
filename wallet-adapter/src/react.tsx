@@ -34,7 +34,7 @@ import {
   walletStrong,
   walletTracking,
 } from "./appearance";
-import { detectWallets } from "./detect";
+import { detectWallets, listedWallets } from "./detect";
 import { assertSignedBy, getSigner } from "./sign";
 
 /** A decorative glyph of the family look, which a site can hide (--oc-wallet-mark). */
@@ -95,7 +95,9 @@ export function OcWalletPicker({
   className,
   label,
 }: OcWalletPickerProps) {
-  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  // Every row from the first render; detection after mount (wallets are
+  // browser globals, and the server cannot see them) only changes their state.
+  const [wallets, setWallets] = useState<WalletInfo[]>(listedWallets);
   const [hydrated, setHydrated] = useState(false);
   const uid = useId();
 
@@ -307,7 +309,8 @@ export function OcWalletButton({
   layout = "list",
   showManual = true,
 }: OcWalletButtonProps) {
-  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  // Every row from the first render, as in OcWalletPicker.
+  const [wallets, setWallets] = useState<WalletInfo[]>(listedWallets);
   const [busyId, setBusyId] = useState<WalletId | null>(null);
   const uid = useId();
   // The manual / paste wallet opens an INLINE panel (message + copy + textarea),

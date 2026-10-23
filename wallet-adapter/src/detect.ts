@@ -126,6 +126,18 @@ export function detectWallets(): WalletInfo[] {
     }));
 }
 
+/**
+ * Every supported wallet as a server sees them: none installed, paste always
+ * there. What a list shows before it can look at `window`, so its rows are
+ * there from the first render and detection only changes their state.
+ */
+export function listedWallets(): WalletInfo[] {
+    return (Object.keys(WALLETS) as ListedWalletId[]).map((id) => ({
+        ...WALLETS[id],
+        detected: id === 'manual',
+    }));
+}
+
 export function isWalletDetected(id: WalletId): boolean {
     return id !== 'alby' && detect()[id];
 }
