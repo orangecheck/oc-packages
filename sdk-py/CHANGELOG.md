@@ -19,6 +19,10 @@ All notable changes to the **`orangecheck`** Python package. Follows
   `@orangecheck/me-client` 0.40.0 (`requireHandle`), held to
   `me-client/test-vectors/integrator.json`, where every token now carries `rh`
   and two that don't are refused.
+- Popup tokens have carried `rh` since 2026-10-22 and live up to 30 days. A site
+  that keeps the popup token and verifies it again on later requests, rather
+  than starting its own session, signs out anyone still holding an older one,
+  once, until about 2026-11-21; they sign in again.
 
 ## [2.13.0] — 2026-10-23
 
