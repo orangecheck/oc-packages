@@ -52,6 +52,8 @@ const base = {
     iat: NOW - 60,
     exp: NOW + 3600,
     aud: SITE,
+    // Every token the popup issues carries its handle on the list of ended sessions.
+    rh: 'tv-rh-0001',
 };
 const drop = (o, k) => Object.fromEntries(Object.entries(o).filter(([key]) => key !== k));
 
@@ -80,12 +82,6 @@ const sessionVectors = {
                 jti: 'tv-jti-bond',
                 oc_bond: { v: 1, sats_floor: 100000, days_floor: 30, height: 900000, checked_at: NOW - 60, nullifier: 'ab'.repeat(32) },
             },
-        },
-        {
-            name: 'carries a revocation handle',
-            token: await jwt({ ...base, jti: 'tv-jti-rh', rh: 'tv-rh-0001' }),
-            audience: SITE,
-            claims: { ...drop(base, 'iss'), jti: 'tv-jti-rh', rh: 'tv-rh-0001' },
         },
         {
             name: 'carries a coin backing claim',
@@ -124,6 +120,9 @@ const sessionVectors = {
             reason: 'retired_key',
         },
         { name: 'alg none', token: unsigned, audience: SITE, reason: 'algorithm' },
+        // Sign out everywhere can't reach it: refused unless the site opts out (requireHandle: false, require_handle=False).
+        { name: 'no revocation handle', token: await jwt(drop(base, 'rh')), audience: SITE, reason: 'no_session_handle' },
+        { name: 'an empty revocation handle', token: await jwt({ ...base, rh: '' }), audience: SITE, reason: 'no_session_handle' },
         { name: 'not a JWT', token: 'not-a-jwt', audience: SITE, reason: 'malformed' },
     ],
 };

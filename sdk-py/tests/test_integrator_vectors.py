@@ -78,6 +78,25 @@ def test_session_refuses(v: dict[str, Any]) -> None:
     assert err.value.reason == v["reason"]
 
 
+def _session_vector(name: str) -> dict[str, Any]:
+    return next(v for v in V["session"]["invalid"] if v["name"] == name)
+
+
+def test_session_without_a_handle_is_accepted_only_when_the_site_opts_out() -> None:
+    v = _session_vector("no revocation handle")
+    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], require_handle=False)
+    assert s.did_oc == V["session"]["valid"][0]["claims"]["did_oc"]
+    assert "rh" not in s.claims
+
+
+def test_require_handle_takes_a_bool_only() -> None:
+    v = V["session"]["valid"][0]
+    assert verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], require_handle=True).did_oc
+    for wrong in ("false", 0, None):
+        with pytest.raises(TypeError):
+            verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], require_handle=wrong)  # type: ignore[arg-type]
+
+
 @respx.mock
 def test_session_fetches_the_ochk_io_key_set_once(fresh_key_sets: None) -> None:
     route = respx.get("https://ochk.io/.well-known/jwks.json").mock(

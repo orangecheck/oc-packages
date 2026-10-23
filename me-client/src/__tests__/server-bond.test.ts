@@ -47,7 +47,11 @@ const BOND = {
 };
 
 async function token(oc_bond?: unknown) {
-    return new SignJWT({ did_oc: 'did:oc:0123456789abcdef0123456789abcdef', ...(oc_bond ? { oc_bond } : {}) })
+    return new SignJWT({
+        did_oc: 'did:oc:0123456789abcdef0123456789abcdef',
+        rh: 'rh-1',
+        ...(oc_bond ? { oc_bond } : {}),
+    })
         .setProtectedHeader({ alg: 'EdDSA', kid: KID })
         .setSubject('acct-1')
         .setJti('j-1')

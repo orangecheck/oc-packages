@@ -4,6 +4,22 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] — 2026-10-23
+
+### Changed
+
+- **Breaking, by design.** `verify_session` refuses a token with no `rh` with
+  `InvalidSession("no_session_handle")`. `rh` is the token's handle on your
+  project's list of ended sessions, so without it sign out everywhere can't end
+  the session, and the quickstart asked every site to refuse such a token itself.
+  Now the SDK does. Every token from the ochk.app sign-in popup carries one, so a
+  site that signs people in that way sees no change. `require_handle=False`
+  accepts such a token, which sign out everywhere then does not end;
+  `require_handle` must be `True` or `False`. The same as
+  `@orangecheck/me-client` 0.40.0 (`requireHandle`), held to
+  `me-client/test-vectors/integrator.json`, where every token now carries `rh`
+  and two that don't are refused.
+
 ## [2.13.0] — 2026-10-23
 
 ### Added

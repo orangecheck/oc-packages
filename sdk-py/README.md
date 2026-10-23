@@ -211,6 +211,10 @@ session = verify_session(token, audience="https://your-site.example",
 # session and ask REVOCATIONS.status(rh, aud, iat): "revoked" ends it.
 ```
 
+A token with no `rh` is refused with reason `no_session_handle` (3.0.0 or
+later), since sign out everywhere can't reach it. Every token from the sign-in
+popup carries one; `require_handle=False` accepts one minted some other way.
+
 `BondRequired` and `SessionEnded` are both `InvalidSession`s, so catch them
 before `InvalidSession`, or that handler takes them too.
 

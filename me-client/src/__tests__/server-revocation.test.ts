@@ -151,9 +151,11 @@ describe('server helpers · sessions ended everywhere', () => {
         );
     });
 
-    it('checks a token with no handle by its signature alone', async () => {
+    it('refuses a token with no handle, and with requireHandle: false checks it by its signature alone', async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         ended[SITE] = { [`rh:${SITE}`]: ISSUED + 1 };
-        expect((await viaNext('POST', await token(SITE, null)))?.sub).toBe('acct-1');
+        expect(await viaNext('POST', await token(SITE, null))).toBeNull();
+        expect((await viaNext('POST', await token(SITE, null), { requireHandle: false }))?.sub).toBe('acct-1');
         expect(feedCalls).toHaveLength(0);
     });
 

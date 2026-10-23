@@ -31,7 +31,8 @@ afterEach(() => {
 });
 
 async function token(aud?: string) {
-    const jwt = new SignJWT({ did_oc: 'did:oc:0123456789abcdef0123456789abcdef' })
+    // A bound token carries its revocation handle, as the popup's do.
+    const jwt = new SignJWT({ did_oc: 'did:oc:0123456789abcdef0123456789abcdef', ...(aud ? { rh: 'rh-1' } : {}) })
         .setProtectedHeader({ alg: 'EdDSA', kid: KID })
         .setSubject('acct-1')
         .setJti('j-1')
