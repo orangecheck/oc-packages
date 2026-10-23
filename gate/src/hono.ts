@@ -1,5 +1,6 @@
 import type { GateOptions } from './types';
 
+import { checkGateOptions } from './core';
 import { ocGateFetch } from './next';
 
 /**
@@ -28,6 +29,7 @@ type AnyHonoContext = any;
 type AnyNext = () => Promise<void>;
 
 export function ocGateHono(opts: GateOptions) {
+    checkGateOptions(opts);
     return async function ocHonoMiddleware(
         c: AnyHonoContext,
         next: AnyNext

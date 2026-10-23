@@ -1,6 +1,6 @@
 import type { GateDecision, GateOptions, MinimalReq, MinimalRes } from './types';
 
-import { assertOc, sendBlockedDefault } from './core';
+import { assertOc, checkGateOptions, sendBlockedDefault } from './core';
 
 /** Cap the amount of body we'll parse for a `body: ...` subject source.
  * Without this a 100 MB POST ties up the gate before any downstream limiter
@@ -28,6 +28,7 @@ export function withOcGate<H extends (req: any, res: any) => any>(
     handler: H,
     opts: GateOptions
 ): H {
+    checkGateOptions(opts);
     const wrapped = async (req: MinimalReq, res: MinimalRes) => {
         const decision = await assertOc(req, opts);
         if (opts.onDecision) opts.onDecision(req, decision);

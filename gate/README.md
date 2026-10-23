@@ -221,6 +221,10 @@ interface GateOptions {
 }
 ```
 
+The gate reads only these options. Any other key, or a subject source key its
+`from` does not read, throws when the middleware is built (and on every
+`assertOc` / `ocGateFetch` call), so a misspelled option never goes unnoticed.
+
 ---
 
 ## How it works

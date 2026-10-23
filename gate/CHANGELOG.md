@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.1] — 2026-10-23
+
+### Changed
+
+- **Unknown options throw.** `ocGate`, `ocGateFastify`, `ocGateHono` and
+  `withOcGate` throw a `TypeError` when built with an option the gate does not
+  read, and `assertOc` / `ocGateFetch` reject. A subject source with a key its
+  `from` does not read (`name` on `body`, `path` on `header`) throws too. The
+  gate reads only the options in `GateOptions`.
+
 ## [0.3.0] — 2026-10-08
 
 ### Changed

@@ -22,6 +22,66 @@ const DEFAULT_CACHE_TTL_MS = 60_000;
 const ESPLORA_WORST_MS = 2 * 5_000;
 export const DEFAULT_LOOKUP_TIMEOUT_MS = 2 * FANOUT_DEADLINE_MS + ESPLORA_WORST_MS + 1_000;
 
+/** Every option GateOptions declares. Anything else is refused. */
+const KNOWN_OPTIONS: ReadonlySet<string> = new Set<keyof GateOptions>([
+    'minSats',
+    'minDays',
+    'address',
+    'attestationId',
+    'identity',
+    'cacheTtlMs',
+    'cacheMax',
+    'failOpen',
+    'relays',
+    'lookupTimeoutMs',
+    'trustUnsafeSources',
+    'exposeSubject',
+    'onDecision',
+    'onBlocked',
+]);
+
+/** The keys each kind of subject source reads. */
+const SOURCE_KEYS: Record<string, ReadonlySet<string>> = {
+    header: new Set(['from', 'name']),
+    cookie: new Set(['from', 'name']),
+    query: new Set(['from', 'name']),
+    body: new Set(['from', 'path']),
+    function: new Set(['from']),
+};
+
+/**
+ * Throw on an option the gate does not read. A misspelled or unsupported
+ * option would otherwise be ignored, and the gate would admit what the caller
+ * meant it to refuse.
+ */
+export function checkGateOptions(opts: GateOptions): void {
+    if (opts === null || typeof opts !== 'object') {
+        throw new TypeError('@orangecheck/gate: options must be an object');
+    }
+    const unknown = Object.keys(opts).filter((k) => !KNOWN_OPTIONS.has(k));
+    if (unknown.length > 0) {
+        throw new TypeError(
+            `@orangecheck/gate: unknown option ${unknown.join(', ')}. ` +
+                `The gate reads only ${[...KNOWN_OPTIONS].join(', ')}.`
+        );
+    }
+    for (const field of ['address', 'attestationId', 'identity'] as const) {
+        const src = opts[field] as Record<string, unknown> | undefined;
+        if (src === undefined) continue;
+        const kind = typeof src?.from === 'function' ? 'function' : String(src?.from);
+        const allowed = SOURCE_KEYS[kind];
+        if (!allowed) {
+            throw new TypeError(`@orangecheck/gate: ${field}: unknown source from ${kind}`);
+        }
+        const extra = Object.keys(src).filter((k) => !allowed.has(k));
+        if (extra.length > 0) {
+            throw new TypeError(
+                `@orangecheck/gate: ${field}: unknown key ${extra.join(', ')} for from: ${kind}`
+            );
+        }
+    }
+}
+
 /** Our own deadline expired. Never treated as an outage, so never fails open. */
 class LookupTimeout extends Error {}
 
@@ -152,6 +212,7 @@ function resolve(src: SubjectSource | undefined, req: MinimalReq): string | unde
  *   if (!decision.ok) return res.status(403).json({ error: decision.reason });
  */
 export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<GateDecision> {
+    checkGateOptions(opts);
     const sources = [
         ['attestation_id', opts.attestationId] as const,
         ['address', opts.address] as const,

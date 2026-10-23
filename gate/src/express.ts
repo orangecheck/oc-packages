@@ -1,6 +1,6 @@
 import type { GateOptions, MinimalReq, MinimalRes } from './types';
 
-import { assertOc, sendBlockedDefault } from './core';
+import { assertOc, checkGateOptions, sendBlockedDefault } from './core';
 
 /**
  * Express / Connect / Next-pages-API middleware.
@@ -21,6 +21,7 @@ import { assertOc, sendBlockedDefault } from './core';
  * unless `opts.onBlocked` is provided.
  */
 export function ocGate(opts: GateOptions) {
+    checkGateOptions(opts);
     return async function gateMiddleware(
         req: MinimalReq,
         res: MinimalRes,

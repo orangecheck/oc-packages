@@ -1,6 +1,6 @@
 import type { GateOptions, MinimalReq } from './types';
 
-import { assertOc, sendBlockedDefault } from './core';
+import { assertOc, checkGateOptions, sendBlockedDefault } from './core';
 
 /**
  * Fastify plugin-friendly adapter. Usage:
@@ -33,6 +33,7 @@ type AnyFastifyReq = any;
 type AnyFastifyReply = any;
 
 export function ocGateFastify(opts: GateOptions) {
+    checkGateOptions(opts);
     return async function ocPreHandler(
         req: AnyFastifyReq,
         reply: AnyFastifyReply
