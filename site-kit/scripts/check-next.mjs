@@ -72,13 +72,13 @@ try {
     writeFileSync(
         join(site, 'pages', 'api', 'og.js'),
         "import { createOgHandler } from '@orangecheck/site-kit/og';\n" +
-            "export default createOgHandler({ wordmark: 'oc·stamp', badge: 'V1 · PREVIEW', defaultTitle: 'sign anything.', host: 'STAMP.OCHK.IO', footer: '§', mark: <svg width=\"20\" height=\"20\" /> });\n"
+            "export default createOgHandler({ wordmark: 'oc·stamp', badge: 'V1 · PREVIEW', defaultTitle: 'sign anything.', host: 'STAMP.OCHK.IO', footer: '§', mark: <svg width=\"20\" height=\"20\" />, cards: { create: 'Create a stamp' } });\n"
     );
     writeFileSync(join(site, 'pages', 'index.js'), 'export default function Home() { return <p>static</p>; }\n');
     writeFileSync(
         join(site, 'pages', 'ssr.js'),
         "import { createSeo, defineSite } from '@orangecheck/site-kit/seo';\n" +
-            "const { Seo } = createSeo(defineSite({ url: 'https://stamp.ochk.io', name: 'OC Stamp', defaultTitle: 'OC Stamp', defaultDescription: 'd', ogRoute: '/api/og' }));\n" +
+            "const { Seo } = createSeo(defineSite({ url: 'https://stamp.ochk.io', name: 'OC Stamp', defaultTitle: 'OC Stamp', defaultDescription: 'd', ogRoute: '/api/og', ogCards: { create: 'Create a stamp' } }));\n" +
             'export default function Ssr({ at }) { return <><Seo title="Create a stamp · OC Stamp" canonical="/ssr" /><p>ssr {at}</p></>; }\n' +
             'export async function getServerSideProps() { return { props: { at: Date.now() } }; }\n'
     );
@@ -107,18 +107,22 @@ try {
         const html = await res.text();
         if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
         if (!html.includes('data-oc-analytics="plausible"')) fail(`${path} has no analytics script`);
-        if (path === '/ssr' && !html.includes('property="og:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"')) {
+        if (path === '/ssr' && !html.includes('property="og:image" content="https://stamp.ochk.io/api/og?page=create"')) {
             fail('/ssr does not share its own card in og:image');
         }
     }
-    for (const path of ['/api/og', '/api/og?title=hello']) {
+    const pngs = {};
+    for (const path of ['/api/og', '/api/og?title=hello&eyebrow=x', '/api/og?page=create']) {
         const res = await fetch(base + path);
         const png = Buffer.from(await res.arrayBuffer());
         if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
         if (res.headers.get('content-type') !== 'image/png') fail(`${path} answered ${res.headers.get('content-type')}`);
         if (png.readUInt32BE(16) !== 1200 || png.readUInt32BE(20) !== 630) fail(`${path} is not 1200×630`);
+        pngs[path] = png;
     }
-    console.log('✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, og:image naming the page card, and /api/og a 1200×630 PNG');
+    if (!pngs['/api/og?title=hello&eyebrow=x'].equals(pngs['/api/og'])) fail("/api/og drew a request's own text");
+    if (pngs['/api/og?page=create'].equals(pngs['/api/og'])) fail('/api/og?page=create did not draw its card');
+    console.log("✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, og:image naming the page's card by key, and /api/og a 1200×630 PNG that draws only the site's cards");
 } finally {
     server?.kill();
     rmSync(site, { recursive: true, force: true });

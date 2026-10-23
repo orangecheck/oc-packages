@@ -13,10 +13,10 @@ Each site keeps its own deploy and passes its own values.
 
 | Entry | What it gives a site |
 |---|---|
-| `./seo` | `Seo`, `createSeo(site)`, `generateMetaTags`, `jsonLd` (escapes `<` `>` `&` U+2028 U+2029), and schema.org builders: `webSite`, `organization`, `softwareApplication`, `techArticle`, `webPage`. Every page names its `canonical`. A site with `ogRoute: '/api/og'` shares each page as the card with that page's title. |
+| `./seo` | `Seo`, `createSeo(site)`, `generateMetaTags`, `jsonLd` (escapes `<` `>` `&` U+2028 U+2029), and schema.org builders: `webSite`, `organization`, `softwareApplication`, `techArticle`, `webPage`. Every page names its `canonical`. A site with `ogRoute: '/api/og'` shares the route's default card, or `?page=<key>` for a page whose card title is one of its `ogCards`. No title rides the URL. |
 | `./headers` | `siteHeaders(opts)` for next.config `headers()`, `securityHeaders`, `buildCsp`. Every CSP source is validated: no `*`, no plain http, no injected directive. Relay URLs reduce to their wss origin. |
 | `./auth` | `createSessionReader`, `createMeHandler`, `refuseCookieSession` (same-site only from a listed family site), `FAMILY_ORIGINS`. |
-| `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime, `?title=` for the headline and `?eyebrow=` for the line above it. Needs `@orangecheck/app-design` ^1.10.1. |
+| `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime. It draws only cards the site issues: `?page=<key>` from its `cards` map (a title, or `{ title, eyebrow }`), the default card for anything else. A request's own text is never drawn. Needs `@orangecheck/app-design` ^1.10.1. |
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
 | `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`. Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
 

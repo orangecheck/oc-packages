@@ -203,26 +203,33 @@ describe('share image', () => {
         return m.openGraph.images[0]!.url;
     };
 
-    it("with an og route, each page shares the card with its own title, the site's name cut", () => {
-        expect(image(ROUTED, { title: 'Create a stamp · OC Stamp', canonical: '/create' })).toBe(
-            'https://stamp.ochk.io/api/og?title=Create%20a%20stamp'
-        );
-        expect(image(ROUTED, { title: 'Verify a stamp', canonical: '/verify' })).toBe(
-            'https://stamp.ochk.io/api/og?title=Verify%20a%20stamp'
-        );
-        // The home page's default title names the site first.
-        expect(image(ROUTED, { canonical: '/' })).toBe(
-            `https://stamp.ochk.io/api/og?title=${encodeURIComponent('sign anything with your Bitcoin address, anchor the moment to Bitcoin')}`
-        );
-        // A title that is only the name stays whole, and the query is encoded.
-        expect(image(ROUTED, { title: 'OC Stamp', canonical: '/' })).toBe('https://stamp.ochk.io/api/og?title=OC%20Stamp');
-        expect(image(ROUTED, { title: 'a&b #1?', canonical: '/x' })).toBe('https://stamp.ochk.io/api/og?title=a%26b%20%231%3F');
+    it('with an og route and no cards, every page shares the default card: no title rides the URL', () => {
+        for (const page of [
+            { title: 'Create a stamp · OC Stamp', canonical: '/create' },
+            { title: 'Verify a stamp', canonical: '/verify' },
+            { canonical: '/' },
+            { title: 'a&b #1?', canonical: '/x' },
+        ]) {
+            expect(image(ROUTED, page)).toBe('https://stamp.ochk.io/api/og');
+        }
+    });
+
+    it("with cards, a page whose card title the site issues names it by key, the site's name cut", () => {
+        const CARDED = defineSite({ ...ROUTED, ogCards: { create: 'Create a stamp', verify: { title: 'Verify a stamp', eyebrow: 'Verify' } } });
+        expect(image(CARDED, { title: 'Create a stamp · OC Stamp', canonical: '/create' })).toBe('https://stamp.ochk.io/api/og?page=create');
+        expect(image(CARDED, { title: 'Verify a stamp', canonical: '/verify' })).toBe('https://stamp.ochk.io/api/og?page=verify');
+        expect(image(CARDED, { title: 'Pricing', canonical: '/pricing' })).toBe('https://stamp.ochk.io/api/og');
+        expect(image(CARDED, { canonical: '/' })).toBe('https://stamp.ochk.io/api/og');
+    });
+
+    it.each<Record<string, string | { title: string }>>([{ 'Bad Key': 'x' }, { 'a/b': 'x' }, { '': 'x' }, { ok: '' }, { ok: { title: ' ' } }])('defineSite refuses ogCards %j', (ogCards) => {
+        expect(() => defineSite({ ...ROUTED, ogCards })).toThrow(TypeError);
     });
 
     it('without one, the static image; a page or a site image wins over the route', () => {
         expect(image(STAMP, { title: 'Verify', canonical: '/verify' })).toBe('https://stamp.ochk.io/og.png');
-        expect(image(ROUTED, { canonical: '/p/1', ogImage: 'https://stamp.ochk.io/api/og?title=Pledge%201' })).toBe(
-            'https://stamp.ochk.io/api/og?title=Pledge%201'
+        expect(image(ROUTED, { canonical: '/p/1', ogImage: 'https://stamp.ochk.io/api/og?page=p1' })).toBe(
+            'https://stamp.ochk.io/api/og?page=p1'
         );
         expect(image(defineSite({ ...ROUTED, ogImage: 'https://cdn.example/x.png' }), { canonical: '/' })).toBe('https://cdn.example/x.png');
     });
@@ -245,9 +252,10 @@ describe('share image', () => {
     });
 
     it('<Seo> writes the card to og:image and twitter:image', () => {
-        const html = renderToStaticMarkup(<Seo site={ROUTED} title="Create a stamp · OC Stamp" canonical="/create" />);
-        expect(html).toContain('property="og:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"');
-        expect(html).toContain('name="twitter:image" content="https://stamp.ochk.io/api/og?title=Create%20a%20stamp"');
+        const site = defineSite({ ...ROUTED, ogCards: { create: 'Create a stamp' } });
+        const html = renderToStaticMarkup(<Seo site={site} title="Create a stamp · OC Stamp" canonical="/create" />);
+        expect(html).toContain('property="og:image" content="https://stamp.ochk.io/api/og?page=create"');
+        expect(html).toContain('name="twitter:image" content="https://stamp.ochk.io/api/og?page=create"');
     });
 });
 

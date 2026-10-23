@@ -12,10 +12,17 @@ export interface SiteSeo {
      */
     ogImage?: string | ((title: string) => string);
     /**
-     * This site's share-card route, e.g. `/api/og` (`createOgHandler`). Each
-     * page then shares the card with its own title, without the site name.
+     * This site's share-card route, e.g. `/api/og` (`createOgHandler`). A page
+     * whose card title is one of `ogCards` shares `?page=<key>`; every other
+     * page shares the route's default card. No title ever rides the URL.
      */
     ogRoute?: string;
+    /**
+     * The cards this site issues, by page key (`[a-z0-9-]`): the same map the
+     * site gives `createOgHandler` as `cards`. A page matches by its title
+     * with the site's name cut (`cardTitle`).
+     */
+    ogCards?: Readonly<Record<string, OgCardEntry>>;
     /** When set, pages also emit `og:image:type`. */
     ogImageType?: string;
     /** Between a page title and the site name. Default `' | '`. */
@@ -26,6 +33,14 @@ export interface SiteSeo {
      * already names OC Stamp).
      */
     brand?: RegExp;
+}
+
+/** A share card a site issues: its headline, and optionally the line above it. */
+export type OgCardEntry = string | { readonly title: string; readonly eyebrow?: string };
+
+/** The headline of a card entry. */
+export function cardHeadline(entry: OgCardEntry): string {
+    return typeof entry === 'string' ? entry : entry.title;
 }
 
 /** What one page says about itself. */
@@ -85,6 +100,10 @@ export function defineSite<T extends SiteSeo>(site: T): Readonly<T> {
     if (site.ogRoute !== undefined && !/^\/[\w./-]*$/.test(site.ogRoute)) {
         throw new TypeError(`site-kit: ogRoute must be a path such as /api/og, got ${JSON.stringify(site.ogRoute)}`);
     }
+    for (const [key, entry] of Object.entries(site.ogCards ?? {})) {
+        if (!/^[a-z0-9][a-z0-9-]*$/.test(key)) throw new TypeError(`site-kit: an ogCards key is [a-z0-9-], got ${JSON.stringify(key)}`);
+        if (!cardHeadline(entry)?.trim()) throw new TypeError(`site-kit: ogCards.${key} has no title`);
+    }
     return Object.freeze({ ...site });
 }
 
@@ -122,13 +141,20 @@ export function cardTitle(site: Pick<SiteSeo, 'name'>, title: string): string {
     return cut || title;
 }
 
+/** The route's card for a page: `?page=<key>` when the site issues one with this title, else the default. */
+function routeCard(site: SiteSeo, route: string, title: string): string {
+    const headline = cardTitle(site, title);
+    const key = Object.entries(site.ogCards ?? {}).find(([, entry]) => cardHeadline(entry) === headline)?.[0];
+    return key ? `${site.url}${route}?page=${key}` : `${site.url}${route}`;
+}
+
 /** The share image for a page with this title, as the site asks for it. */
 export function siteOgImage(site: SiteSeo, title: string): string {
     if (typeof site.ogImage === 'string') return site.ogImage;
     const url = site.ogImage
         ? site.ogImage(title)
         : site.ogRoute
-          ? `${site.url}${site.ogRoute}?title=${encodeURIComponent(cardTitle(site, title))}`
+          ? routeCard(site, site.ogRoute, title)
           : `${site.url}/og.png`;
     if (!/^https?:\/\//.test(url)) throw new TypeError(`site-kit: ogImage(title) must give an absolute URL, got ${JSON.stringify(url)}`);
     return url;

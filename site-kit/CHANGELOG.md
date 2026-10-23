@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.3
+
+The share card draws only text the site issues. `createOgHandler` no longer
+reads `?title=` or `?eyebrow=`: with no `cards` every request gets the site's
+default card, and with `cards: { key: title }` (or `{ title, eyebrow }`)
+`?page=<key>` draws that card, an own key of the map only. `ogTitle` reads the
+same way, so a route built on it is covered too. `ogEyebrow` is gone; no site
+imported it.
+
+`siteOgImage` emits `?page=<key>` for a page whose card title is one of the
+site's `ogCards`, and the bare route for every other page. A site restores its
+per-page cards by giving the same map to `defineSite({ ogCards })` and
+`createOgHandler({ cards })`.
+
 ## 0.5.2
 
 `createOgHandler` takes `?eyebrow=`, the line above the title, cut to 80

@@ -4,9 +4,19 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { ImageResponse } from 'next/og.js';
 import type { ReactNode } from 'react';
 
+import { cardHeadline, type OgCardEntry } from '../seo/meta';
+
+export type { OgCardEntry } from '../seo/meta';
+
 export interface OgCardOptions {
-    /** Headline when the request has no `?title=`. */
+    /** The default card's headline: every request that names no card of `cards` gets it. */
     defaultTitle: string;
+    /**
+     * The cards this site issues, by page key: `?page=<key>` draws that card.
+     * Nothing a request carries is ever drawn as text, so with no `cards` every
+     * request gets the default card.
+     */
+    cards?: Readonly<Record<string, OgCardEntry>>;
     /** At the foot, e.g. `stamp.ochk.io`. */
     host: string;
     /** The site's word beside the lockup, e.g. `stamp`. Default: `wordmark` without its `oc·`. */
@@ -15,7 +25,7 @@ export interface OgCardOptions {
     eyebrow?: string;
     /** `ink` (default) or `paper`. */
     tone?: 'ink' | 'paper';
-    /** A longer `?title=` is cut, so one request cannot ask for an unbounded render. Default 200. */
+    /** A card headline longer than this is cut. Default 200. */
     maxTitleLength?: number;
     /** e.g. `oc·stamp`: gives `product` and `eyebrow` when they are not set. */
     wordmark?: string;
@@ -31,19 +41,20 @@ export interface OgCardOptions {
     wordmarkLeft?: number;
 }
 
-/** The title a request asks for, or the default; cut to the limit. */
-export function ogTitle(url: string | undefined, opts: Pick<OgCardOptions, 'defaultTitle' | 'maxTitleLength'>): string {
-    const { searchParams } = new URL(url ?? '/', 'http://og.invalid');
-    const title = searchParams.get('title') ?? opts.defaultTitle;
-    const max = opts.maxTitleLength ?? 200;
-    return title.length > max ? `${title.slice(0, max - 1)}…` : title;
+/** The card a request names by `?page=<key>`, when the site issues one: an own key of `cards` only. */
+function issued(url: string | undefined, cards: OgCardOptions['cards']): { title: string; eyebrow?: string } | undefined {
+    if (!cards) return undefined;
+    const key = new URL(url ?? '/', 'http://og.invalid').searchParams.get('page');
+    if (key === null || !Object.prototype.hasOwnProperty.call(cards, key)) return undefined;
+    const entry = cards[key]!;
+    return typeof entry === 'string' ? { title: entry } : { title: cardHeadline(entry), eyebrow: entry.eyebrow };
 }
 
-/** The eyebrow a request names (`?eyebrow=`), cut to 80 characters; otherwise the site's. */
-export function ogEyebrow(url: string | undefined): string | undefined {
-    const eyebrow = new URL(url ?? '/', 'http://og.invalid').searchParams.get('eyebrow')?.trim();
-    if (!eyebrow) return undefined;
-    return eyebrow.length > 80 ? `${eyebrow.slice(0, 79)}…` : eyebrow;
+/** The headline for a request: the card it names from `cards`, else the default; cut to the limit. Never the request's own text. */
+export function ogTitle(url: string | undefined, opts: Pick<OgCardOptions, 'defaultTitle' | 'maxTitleLength' | 'cards'>): string {
+    const title = issued(url, opts.cards)?.title ?? opts.defaultTitle;
+    const max = opts.maxTitleLength ?? 200;
+    return title.length > max ? `${title.slice(0, max - 1)}…` : title;
 }
 
 /** What app-design's `OgCard` is given for these options: `oc·stamp` reads as `stamp` under `OC Stamp`. */
@@ -66,7 +77,7 @@ function ogCardProps(opts: OgCardOptions, title: string, asked?: string) {
  */
 export function createOgHandler(opts: OgCardOptions) {
     return async function ogHandler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-        const card = ogCardProps(opts, ogTitle(req.url, opts), ogEyebrow(req.url));
+        const card = ogCardProps(opts, ogTitle(req.url, opts), issued(req.url, opts.cards)?.eyebrow);
         const image = new ImageResponse(<OgCard {...card} />, { ...OG_SIZE, fonts: ogFonts() });
         const body = Buffer.from(await image.arrayBuffer());
         image.headers.forEach((value, key) => res.setHeader(key, value));

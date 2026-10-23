@@ -23,6 +23,7 @@ export {
     pageTitle,
     siteOgImage,
     type MetaTags,
+    type OgCardEntry,
     type PageSeo,
     type SiteSeo,
 } from './meta';
