@@ -72,7 +72,9 @@ export interface VerifyOcTokenOptions extends VerifyOcOptions {
      * Every token ochk.app's sign-in popup issues carries one; `false` accepts
      * one minted some other way, and then sign out everywhere does not end it.
      * A family session (no `aud`, on *.ochk.io) is not held to this: the
-     * family's own feed ends it. Default: true.
+     * family's own feed ends it. `audience: '*'` admits family sessions too,
+     * so keep it for routes that receive tokens forwarded from *.ochk.io.
+     * Default: true.
      */
     requireHandle?: boolean;
 }

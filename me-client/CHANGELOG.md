@@ -28,6 +28,13 @@ this file tracks the package's TS / Node / runtime API surface.
   unknown option is still refused. The same as `orangecheck` 3.0.0
   (`require_handle`), held to `test-vectors/integrator.json`, where every token
   now carries `rh` and two that don't are refused.
+- Popup tokens have carried `rh` since 2026-10-22 and live up to 30 days. A site
+  that keeps the popup token and verifies it again on later requests, rather
+  than starting its own session, signs out anyone still holding an older one,
+  once, until about 2026-11-21; they sign in again.
+- `audience: '*'` admits family sessions too, which have no `rh`; only the
+  family's own feed ends them. Use it only on a route that receives tokens
+  forwarded from *.ochk.io.
 
 ## [0.39.0] — 2026-10-23
 
