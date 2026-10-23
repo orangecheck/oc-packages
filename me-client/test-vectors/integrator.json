@@ -28,7 +28,7 @@
         "valid": [
             {
                 "name": "bound to this site",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.cWtSaXWZr7X_5--7IrM6EuW4OpZ3K7Hp2bbEaJOA2zPIMPGl0z75AWwrk0-elLnIoSGV1z7s3nCIBxj8yTKxBw",
                 "audience": "https://soniq.example",
                 "claims": {
                     "sub": "6f1c2a5e-0000-4000-8000-000000000001",
@@ -36,12 +36,13 @@
                     "jti": "tv-jti-1",
                     "iat": 1799999940,
                     "exp": 1800003600,
-                    "aud": "https://soniq.example"
+                    "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001"
                 }
             },
             {
                 "name": "backed by a coin (a complete claim)",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktYm9uZCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzAsImhlaWdodCI6OTAwMDAwLCJjaGVja2VkX2F0IjoxNzk5OTk5OTQwLCJudWxsaWZpZXIiOiJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn0sImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.zPLUAPJ8wwILZtrqSrA-gRs9UBLA1KxXVdcKSzKXw6DxBmZ_GmjWfcd0ZJSK3FwaVwY3DQZljgPPl-OE-ykQDQ",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktYm9uZCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzAsImhlaWdodCI6OTAwMDAwLCJjaGVja2VkX2F0IjoxNzk5OTk5OTQwLCJudWxsaWZpZXIiOiJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn0sImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.LLtjxHGDRiiXfSD5p23It-0u9CmLji2184OsSK4E92bUmG3Wz0nW6VyxJU3PJec-MYct5lPeqIgomcXNZVIaCA",
                 "audience": "https://soniq.example",
                 "claims": {
                     "sub": "6f1c2a5e-0000-4000-8000-000000000001",
@@ -50,6 +51,7 @@
                     "iat": 1799999940,
                     "exp": 1800003600,
                     "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001",
                     "oc_bond": {
                         "v": 1,
                         "sats_floor": 100000,
@@ -61,22 +63,8 @@
                 }
             },
             {
-                "name": "carries a revocation handle",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktcmgiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJ0di1yaC0wMDAxIiwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.FJILjGMfYrqR-NCJZB9WVt_rbgIwGgmlWdes6dLJ9Kwb-hD0v0fE3KVQrHcu_qrGVjNvmTaMpqAop_-nWZE-BA",
-                "audience": "https://soniq.example",
-                "claims": {
-                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
-                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
-                    "jti": "tv-jti-rh",
-                    "iat": 1799999940,
-                    "exp": 1800003600,
-                    "aud": "https://soniq.example",
-                    "rh": "tv-rh-0001"
-                }
-            },
-            {
                 "name": "carries a coin backing claim",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMiIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzB9LCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.I6NaGdHl7c9lMBQYIMC1qJFeGfGrKtoBxjT_Uq77FhEd8KFuoTkBxKNdIJOzTScQeJBdsLyzS2wBE_UkY3sNCg",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMiIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJvY19ib25kIjp7InYiOjEsInNhdHNfZmxvb3IiOjEwMDAwMCwiZGF5c19mbG9vciI6MzB9LCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.tlBcFxCvIphYg87tWf6SET4ZKn1Nk7Mp3rth8LMqVNKy1TRtc1Y_izkOjn5wc4iPIpKp8n5zu6_4GzkQoQlKBQ",
                 "audience": "https://soniq.example",
                 "claims": {
                     "sub": "6f1c2a5e-0000-4000-8000-000000000001",
@@ -85,6 +73,7 @@
                     "iat": 1799999940,
                     "exp": 1800003600,
                     "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001",
                     "oc_bond": {
                         "v": 1,
                         "sats_floor": 100000,
@@ -94,7 +83,7 @@
             },
             {
                 "name": "signed by a retired key before it retired",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMyIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjM0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.iSB9AzK74PQrZqcnw4krshXz2RNY1IDOsmUAhpTy1N2HUf_b9pqCH-CV_sa0hOsccSv3Bk-ij80L_QgDn_ogCg",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMyIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjM0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.C8UMH9xaDYJ_cvK17dVmAWXd1xhMfjloVQASHdQDA6fKzy3Y0cnQS6vrznM09tv81PGHfMkdRKSsQTSzkf_LDg",
                 "audience": "https://soniq.example",
                 "claims": {
                     "sub": "6f1c2a5e-0000-4000-8000-000000000001",
@@ -102,88 +91,101 @@
                     "jti": "tv-jti-3",
                     "iat": 1799996340,
                     "exp": 1800003600,
-                    "aud": "https://soniq.example"
+                    "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001"
                 }
             }
         ],
         "invalid": [
             {
                 "name": "bound to another site",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.cWtSaXWZr7X_5--7IrM6EuW4OpZ3K7Hp2bbEaJOA2zPIMPGl0z75AWwrk0-elLnIoSGV1z7s3nCIBxj8yTKxBw",
                 "audience": "https://other.example",
                 "reason": "audience"
             },
             {
                 "name": "a family session with no aud",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwfQ.SfTj29hU5G483WZ_f1tkbksVQzv_cBH91Xjsr7_HpbS0irb3u3kNjr1rbr9wutItvtA71vQQFSr3GMfBZIkiBw",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEifQ.jwKNIFQg2k6rTzbafXcIFIAfiSR2Axtsx5IWpVwJjbq6qF_3TXKJTN9d-LLyWuq3PlspYqQfDE1yYEYbdsYuAg",
                 "audience": "https://soniq.example",
                 "reason": "audience"
             },
             {
                 "name": "expired",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxNzk5OTk5OTk5LCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.oxpEs82Elv0YN_IqO_m30OrvtHXWPhyQ3tiMGSXddOmBWxx6hbDwxeGy86vGQ4ehzrxoZeGG2htwLXU2K9ABAg",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxNzk5OTk5OTk5LCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.PH6_nrSM1Q1iqXYihzZwebxQk5-u0_dgSrmv9QVUXF-ywdvDokPUnequsnDSfq0kGR5gbVeceSD7mkgdW8Y8BA",
                 "audience": "https://soniq.example",
                 "reason": "expired"
             },
             {
                 "name": "not yet valid",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJuYmYiOjE4MDAwMDA2MDAsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.ctQlsm67PRQr7pbqjAf8nhWjiWkRsGF3hDfOby8HWBPMC3PjZ6CfHFj1vUeILoR7KbFd-hxonQRbkHPRLPNcBQ",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJuYmYiOjE4MDAwMDA2MDAsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.adKFlnXKPeqdj1L6kHihmurhXFOTVIIKgUzVl4j7WO9hpI8skD45YORc3SVqiSOtTtwQFpD3MWr2i6Qafb3oAg",
                 "audience": "https://soniq.example",
                 "reason": "not_yet_valid"
             },
             {
                 "name": "another issuer",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vZXZpbC5leGFtcGxlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.lQyEs3pAvC8GNFHuW1pGX9MNOpP250mkyqg0VnziEzCO2KaHh-LNUOVZ6RVmKIBuKLpK-zEtGddoVckKasg6Dw",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vZXZpbC5leGFtcGxlIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsInJoIjoidHYtcmgtMDAwMSIsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.Wf3gC7y6gRl54OizvC8BJyGiEOoulUizS0Wn7aw3n60OkwrsD2WLDH_GmhD0elDrV2wwHeM-rDmrev96280-CA",
                 "audience": "https://soniq.example",
                 "reason": "issuer"
             },
             {
                 "name": "no did_oc",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.unrH7OIY07DqFAnPVG0IppPraO4pt1KlH2HKSWmVLp0IP5IozoBunlUTp5HCl5JiPNtBheVDWrOPFfsDh3q3Bg",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.x42H0udMXzg1G16ss27LM1oJ15PiSBrrPkPfiKe7IHdrZVrNtHX7gbah9JVRmrZTDMiSeIBcyH1wN2av4TSLDw",
                 "audience": "https://soniq.example",
                 "reason": "claims"
             },
             {
                 "name": "no jti",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.D8CB78WRCb3QGSTbqwHF9byKRlwuoJAZ2woZqHqSi7MoTfx2i5y4A1DGSglRwhZXDA6VKsP7npyIy2q_V81fBw",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJ0di1yaC0wMDAxIiwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.woOW6wSLLJ3BlX9Ffz7DjmjAZeEzdwTd7GlVjQ1SPoFOcN1rXFlx3w5ck1AhDP5QY8WKFHfUD-Xyt_4FL-0ZDQ",
                 "audience": "https://soniq.example",
                 "reason": "claims"
             },
             {
                 "name": "payload changed after signing",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUiLCJyaCI6InR2LXJoLTAwMDEifQ.cWtSaXWZr7X_5--7IrM6EuW4OpZ3K7Hp2bbEaJOA2zPIMPGl0z75AWwrk0-elLnIoSGV1z7s3nCIBxj8yTKxBw",
                 "audience": "https://soniq.example",
                 "reason": "signature"
             },
             {
                 "name": "signed by a key not in the set",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.6sRPmC2KezIwpbj9k_tkYlK_heoSPXQFXyzhVCzV9nzXdKqHHG60GriHHunqzcjTGpjf4Q6hREBGb3TQdohuCQ",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.-mUPqKrtiqdUEdT3-TRY0Pyk4-XuYGggguPhk8hmPlPkpADwFZvUwOxFPbw4rVrWR76J7gN10X4GzDtMt9DZAw",
                 "audience": "https://soniq.example",
                 "reason": "signature"
             },
             {
                 "name": "kid not in the set",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXVua25vd24ifQ.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.SLzv1E4JBaEBNFD_e46NfrAU6JjS7MVVncrbj8pM_O7LmZ3pi7iBY9IoOxiejwrRzk3IDyKCJUGQBK_p3G3PAQ",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXVua25vd24ifQ.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.Kdg6He_b_IBBs3YOYSti1t-zzMKzB58ayCwmGCadWCZx8Xu4y1xV4upIRfq3EwOx-qKl50KcVa-2d6WZWYm3Dw",
                 "audience": "https://soniq.example",
                 "reason": "unknown_key"
             },
             {
                 "name": "signed by a retired key after it retired",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.ixdDBd2ZyaxftQXXhb3AcqKZupnSUbQ3_Dp9RdL2UeXoOk83GObhHBikHjw2ftCSIRb4cyRd7cmNGhgBSMRrAQ",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.p-URxjNUrq5GEW2la-7DM9UOYOltL6E2Wp2tiySJOlMOcHlznoZiqPpf1AkJWGe8WNG3XQm_A4itv2bNvae6Bg",
                 "audience": "https://soniq.example",
                 "reason": "retired_key"
             },
             {
                 "name": "signed by a retired key, with no iat",
-                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImV4cCI6MTgwMDAwMzYwMCwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.Yt4US3MrLtnOU--xRNZroz78NLar07q1hDpNMJQ5-zinunhUrEFLjbYh_YQ89E78oOcABz6IXr5_3oS7vNA0Dw",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMCJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJ0di1yaC0wMDAxIiwiYXVkIjoiaHR0cHM6Ly9zb25pcS5leGFtcGxlIn0.OO5ipFYriXm_zsXsHmkdEUZwK4TM3pT0eTe9oBvoOcsgd3k6IdMbtE-SChrgnHnQRzhLfSRXttSELPyC7k1yBA",
                 "audience": "https://soniq.example",
                 "reason": "retired_key"
             },
             {
                 "name": "alg none",
-                "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIiwia2lkIjoidHYtc2Vzc2lvbi0xIn0.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.",
+                "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIiwia2lkIjoidHYtc2Vzc2lvbi0xIn0.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6InR2LXJoLTAwMDEiLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.",
                 "audience": "https://soniq.example",
                 "reason": "algorithm"
+            },
+            {
+                "name": "no revocation handle",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.lRHFhr_SNoZDSoi6oEKPU4zhf3DXt0zp29FkFiZQRhR1PUaDX3uCQPpbePzhnAKlwcJ1xy1h60sFVZCUFAG8DA",
+                "audience": "https://soniq.example",
+                "reason": "no_session_handle"
+            },
+            {
+                "name": "an empty revocation handle",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktMSIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6IiIsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.zRh4yRBx7DTuAL-2pt1UBntwQg4t3BiKi_JchKAVjo02PeUax0V2bQEQ_BIaEswfpGfMPDR5VOCBB8pdO4SwBw",
+                "audience": "https://soniq.example",
+                "reason": "no_session_handle"
             },
             {
                 "name": "not a JWT",

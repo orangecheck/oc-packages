@@ -656,6 +656,7 @@ def verify_session(
     method: Optional[str] = None,
     require_bond: Optional[Mapping[str, Any]] = None,
     policy: Optional[SignInPolicy] = None,
+    require_handle: bool = True,
 ) -> Session:
     """
     Verify a token from the ochk.app sign-in popup and return who signed in.
@@ -673,7 +674,15 @@ def verify_session(
     :class:`SessionEnded`. Pass the request's ``method`` too: while the list
     can't be read, a read goes on and anything else is refused with reason
     ``revocations_unavailable``; with no method, a request counts as a write.
+
+    A token with no ``rh``, its handle on your project's list of ended
+    sessions, is refused with reason ``no_session_handle``: sign out
+    everywhere could not end it. Every token from the sign-in popup carries
+    one. ``require_handle=False`` accepts one minted some other way, and then
+    sign out everywhere does not end it.
     """
+    if not isinstance(require_handle, bool):
+        raise TypeError("require_handle must be True or False")
     parts = token.split(".") if isinstance(token, str) else []
     if len(parts) != 3:
         raise InvalidSession("malformed")
@@ -738,6 +747,9 @@ def verify_session(
     want = [audience] if isinstance(audience, str) else list(audience)
     if not any(isinstance(a, str) and a in want for a in have):
         raise InvalidSession("audience")
+    rh = payload.get("rh")
+    if require_handle and not (isinstance(rh, str) and rh):
+        raise InvalidSession("no_session_handle")
 
     if revocations is not None:
         token_aud = aud if isinstance(aud, str) else None

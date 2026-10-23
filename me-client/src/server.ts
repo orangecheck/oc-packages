@@ -50,7 +50,7 @@ import {
     integratorRevocationCheck,
     readBondClaim,
     SAFE_METHODS,
-    verifyOcToken,
+    verifyOcToken as verifyOcTokenCore,
     type BondClaim,
     type RevocationCheck,
     type SessionPayload,
@@ -58,8 +58,77 @@ import {
     type SessionRequestHeaders,
 } from '@orangecheck/auth-core';
 
-export { bondMeets, readBondClaim, verifyOcToken };
+export { bondMeets, readBondClaim };
 export type { BondClaim, SessionPayload, VerifyOcOptions };
+
+/** Why a token that verified is still not a session here. */
+export type OcSessionRefusal = 'no_session_handle';
+
+export interface VerifyOcTokenOptions extends VerifyOcOptions {
+    /**
+     * Refuse a token bound to your site (one with `aud`) that carries no `rh`,
+     * its handle on your project's list of ended sessions. Without it "sign out
+     * everywhere" can't reach the session, so it is refused by default.
+     * Every token ochk.app's sign-in popup issues carries one; `false` accepts
+     * one minted some other way, and then sign out everywhere does not end it.
+     * A family session (no `aud`, on *.ochk.io) is not held to this: the
+     * family's own feed ends it. Default: true.
+     */
+    requireHandle?: boolean;
+}
+
+/** A bound token with no handle, unless the site opted out. */
+function lacksHandle(session: SessionPayload, requireHandle: boolean | undefined): boolean {
+    if (requireHandle === false) return false;
+    const { aud, rh } = session as { aud?: unknown; rh?: unknown };
+    if (aud === undefined) return false;
+    return typeof rh !== 'string' || rh.length === 0;
+}
+
+function checkRequireHandle(requireHandle: unknown): void {
+    if (requireHandle !== undefined && typeof requireHandle !== 'boolean') {
+        throw new TypeError('@orangecheck/me-client: requireHandle must be true or false');
+    }
+}
+
+let warnedHandle = false;
+
+/** Say once why a signed-in person is turned away for want of a handle. */
+function warnNoHandle(session: SessionPayload): void {
+    if (warnedHandle) return;
+    warnedHandle = true;
+    console.warn(
+        `[@orangecheck/me-client] a sign-in token bound to ${JSON.stringify((session as { aud?: unknown }).aud)} ` +
+            'carries no revocation handle (rh), so sign out everywhere could not end it, and it was refused ' +
+            '(no_session_handle). Tokens from the ochk.app sign-in popup carry one. Pass requireHandle: false ' +
+            'only to accept tokens minted some other way.'
+    );
+}
+
+/**
+ * Verify a sign-in token: the signature, the issuer, expiry and, with
+ * `audience`, that it was issued to your site. A token bound to your site with
+ * no revocation handle is refused (see {@link VerifyOcTokenOptions.requireHandle}).
+ * Null for any token that fails. It does not read the list of ended sessions:
+ * `getOcSession` and the adapters do.
+ */
+export async function verifyOcToken(
+    token: string,
+    options: VerifyOcTokenOptions = {}
+): Promise<SessionPayload | null> {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/me-client: options must be an object');
+    }
+    const { requireHandle, ...core } = options;
+    checkRequireHandle(requireHandle);
+    const session = await verifyOcTokenCore(token, core);
+    if (!session) return null;
+    if (lacksHandle(session, requireHandle)) {
+        warnNoHandle(session);
+        return null;
+    }
+    return session;
+}
 
 // Activity-attestation verifier · re-export from the identity module so
 // server-side integrators get the gating helper alongside session
@@ -92,7 +161,7 @@ export type {
     VerifyActivityOptions,
 } from './identity';
 
-export interface OcSessionOptions extends VerifyOcOptions {
+export interface OcSessionOptions extends VerifyOcTokenOptions {
     /**
      * The request's method. While me.ochk.io's list of ended sessions can't be
      * read, reads go on and writes are refused; with no method, a request
@@ -146,10 +215,11 @@ function revocationFor(options: OcSessionOptions): RevocationCheck | null {
     return check;
 }
 
-/** Tests only: forget the per-project checks and the one-time warning. */
+/** Tests only: forget the per-project checks and the one-time warnings. */
 export function _resetSessionChecksForTests(): void {
     sessionChecks.clear();
     warnedUnchecked = false;
+    warnedHandle = false;
 }
 
 /**
@@ -177,19 +247,24 @@ export async function getOcSession(
     return checked.status === 'signed_in' ? checked.session : null;
 }
 
-/** A request's session: signed in, signed out, or not checkable right now. */
+/**
+ * A request's session: signed in, signed out, or not checkable right now.
+ * `reason` says why a token that verified is still signed out.
+ */
 export type OcSessionCheck =
     | { status: 'signed_in'; session: SessionPayload }
-    | { status: 'signed_out' }
+    | { status: 'signed_out'; reason?: OcSessionRefusal }
     | { status: 'unavailable' };
 
 /**
  * `getOcSession`, telling "signed out" from "can't tell right now":
  * `unavailable` when the token verifies but me.ochk.io's list of ended
  * sessions can't vouch for this request (a write while the list can't be read).
- * A token the person ended is `signed_out`. The adapters answer `unavailable`
- * with 503 `revocations_unavailable`, so a client retries instead of signing
- * the person out.
+ * A token the person ended is `signed_out`, and so is one bound to your site
+ * with no revocation handle (`reason: 'no_session_handle'`, unless
+ * `requireHandle: false`). The adapters answer `unavailable` with 503
+ * `revocations_unavailable`, so a client retries instead of signing the person
+ * out.
  */
 export async function checkOcSession(
     headers: SessionRequestHeaders | Headers,
@@ -201,6 +276,10 @@ export async function checkOcSession(
     if (!session) {
         if (options.audience === undefined) warnIfAudienceMissing(headers);
         return { status: 'signed_out' };
+    }
+    if (lacksHandle(session, options.requireHandle)) {
+        warnNoHandle(session);
+        return { status: 'signed_out', reason: 'no_session_handle' };
     }
     const check = revocationFor(options);
     if (check) {
@@ -215,6 +294,9 @@ export async function checkOcSession(
 }
 
 const UNAVAILABLE = { status: 503, body: { ok: false, reason: 'revocations_unavailable' } };
+
+const refusedFor = (checked: OcSessionCheck): OcSessionRefusal | undefined =>
+    checked.status === 'signed_out' ? checked.reason : undefined;
 
 let warnedAudience = false;
 
@@ -308,6 +390,7 @@ const KNOWN_OPTIONS: ReadonlySet<string> = new Set<keyof WithOcAuthOptions>([
     'projectKey',
     'meOrigin',
     'revocation',
+    'requireHandle',
     'required',
     'requireBond',
 ]);
@@ -329,6 +412,7 @@ function checkOptions(options: WithOcAuthOptions): void {
                 `It reads only ${[...KNOWN_OPTIONS].join(', ')}.`
         );
     }
+    checkRequireHandle(options.requireHandle);
     const bond = options.requireBond;
     if (bond === undefined) return;
     if (bond === null || typeof bond !== 'object') {
@@ -448,14 +532,17 @@ async function bondNeed(
     return null;
 }
 
-/** Why a session can't pass, as a status and body, or null when it can. */
+/**
+ * Why a session can't pass, as a status and body, or null when it can. `why`
+ * names what turned a token away, so a 401 says it rather than "unauthenticated".
+ */
 async function refusal(
     session: SessionPayload | null,
-    options: WithOcAuthOptions
+    options: WithOcAuthOptions,
+    why?: OcSessionRefusal
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
-    if (!session && options.required) {
-        return { status: 401, body: { ok: false, reason: 'unauthenticated' } };
-    }
+    const unauthenticated = { status: 401, body: { ok: false, reason: why ?? 'unauthenticated' } };
+    if (!session && options.required) return unauthenticated;
     // The project's rule is about who signs in: a request with no session is not
     // held to it, so it never waits on reading it.
     if (!session && !options.requireBond) return null;
@@ -466,9 +553,7 @@ async function refusal(
     if (need === undefined) {
         return { status: 503, body: { ok: false, reason: 'bond_policy_unavailable' } };
     }
-    if (!session) {
-        return need ? { status: 401, body: { ok: false, reason: 'unauthenticated' } } : null;
-    }
+    if (!session) return need ? unauthenticated : null;
     if (need && !bondMeets(session, need)) {
         const have = readBondClaim(session);
         return {
@@ -532,7 +617,10 @@ export function withOcAuth<
         const session = checked.status === 'signed_in' ? checked.session : null;
         const withSession = req as WithOcSession<Req>;
         withSession.ocSession = session;
-        const refused = checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
+        const refused =
+            checked.status === 'unavailable'
+                ? UNAVAILABLE
+                : await refusal(session, options, refusedFor(checked));
         if (refused) return res.status(refused.status).json(refused.body);
         return handler(withSession, res);
     };
@@ -604,7 +692,9 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
             const session = checked.status === 'signed_in' ? checked.session : null;
             req.ocSession = session;
             const refused =
-                checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
+                checked.status === 'unavailable'
+                    ? UNAVAILABLE
+                    : await refusal(session, options, refusedFor(checked));
             if (refused) {
                 res.status(refused.status).json(refused.body);
                 return;
@@ -653,7 +743,9 @@ export function ocAuthHono(options: WithOcAuthOptions = {}) {
         const session = checked.status === 'signed_in' ? checked.session : null;
         c.set('ocSession', session);
         const refused =
-            checked.status === 'unavailable' ? UNAVAILABLE : await refusal(session, options);
+            checked.status === 'unavailable'
+                ? UNAVAILABLE
+                : await refusal(session, options, refusedFor(checked));
         if (refused) return c.json(refused.body, refused.status);
         await next();
     };

@@ -8,6 +8,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.40.0] — 2026-10-23
+
+### Changed
+
+- **Breaking, by design.** A sign-in token bound to your site (one with `aud`)
+  that carries no `rh` is refused by `verifyOcToken`, `getOcSession`,
+  `checkOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono`. `rh` is the
+  token's handle on your project's list of ended sessions, so without it sign
+  out everywhere can't end the session, and the quickstart asked every site to
+  refuse such a token itself. Now the SDK does. Every token from the ochk.app
+  sign-in popup carries one, so a site that signs people in that way sees no
+  change. `checkOcSession` answers `{ status: 'signed_out', reason:
+  'no_session_handle' }`, and an adapter with `required` answers
+  `401 { reason: 'no_session_handle' }`; the SDK says why once on the console.
+  `requireHandle: false` accepts such a token, which sign out everywhere then
+  does not end. A family session (no `aud`, on *.ochk.io) is not held to it:
+  the family's own feed ends it. `requireHandle` must be `true` or `false`; an
+  unknown option is still refused. The same as `orangecheck` 3.0.0
+  (`require_handle`), held to `test-vectors/integrator.json`, where every token
+  now carries `rh` and two that don't are refused.
+
 ## [0.39.0] — 2026-10-23
 
 ### Added
