@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.16.3] — 2026-10-23
+
+- `SignInFrame` holds still while the ceremony mounts. The form column is
+  top-aligned: centred, the title rose by half of whatever the ceremony grew
+  (ochk.io /signin signed out measured CLS 0.231 at 1440). The ink column is
+  one screen tall and pinned, so its art no longer re-centres lower when the
+  form outgrows the window.
+- `ThemeToggle` is 44px to a thumb, as Button's icon size; a mouse keeps the
+  40px button. It no longer shrinks in a crowded row (18px wide in a flex row
+  with no `shrink-0`).
+- Swagger UI's small controls (the collapse arrows, the operation lock, the
+  models toggle) are at least 24px at every width; the phone rule still makes
+  them 44px. They were 20x20 (the lock 30x20): the preflight takes away the
+  button padding Swagger relies on. The info block's links are padded to 24px
+  without moving a line.
+- check-layout grows a ceremony past the window and holds SignInFrame's title
+  and art to within 1px, and reaches the theme switch from 22px off its
+  middle; check-swagger asserts the 24px floor before the phone rule and the
+  info links' padding. Each fails on 1.16.2.
+
 ## [1.16.2] — 2026-10-22
 
 - The fallback faces set text at the webfonts' widths, so the swap to Inter

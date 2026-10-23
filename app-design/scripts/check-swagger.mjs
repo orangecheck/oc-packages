@@ -2,9 +2,10 @@
 /*
  * styles/swagger.css keeps its promises. Swagger UI's method badges carry
  * white text at AA; the operation lock clears 3:1 and a parameter's small
- * print 4.5:1 on every method's tinted row, light and dark; on a phone each
- * of its small controls is a 44px target. Reads the stylesheet and tokens.css, so an edit to either is
- * checked here.
+ * print 4.5:1 on every method's tinted row, light and dark; each of its
+ * small controls is a 24px target at every width and 44px on a phone, and the
+ * info block's links are 24px tall. Reads the stylesheet and tokens.css, so an
+ * edit to either is checked here.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -108,8 +109,20 @@ for (const c of CONTROLS) {
     );
 }
 
+// Every width: each small control at least 24px, below the phone rule; the info block's links 24px tall.
+const floor = rules(outside).filter((r) => /min-height:\s*24px/.test(r.body) && /min-width:\s*24px/.test(r.body));
+for (const c of CONTROLS) {
+    check(
+        floor.some((r) => r.selector.includes(c) && r.selector.includes("[data-oc-app='ochk'] .swagger-ui")),
+        `${c} has no 24px floor outside the phone rule`
+    );
+}
+check(css.indexOf('min-width: 24px') >= 0 && css.indexOf('min-width: 24px') < css.indexOf('@media (width < 48rem)'), 'the 24px floor must come before the phone rule, which wins below 48rem');
+const info = rules(outside).find((r) => /\.swagger-ui \.info a$/.test(r.selector));
+check(/padding-block:\s*max\(0px,\s*calc\(\(24\.5px - 1em\) \/ 2\)\)/.test(info?.body ?? ''), "the info block's links are not padded to 24px");
+
 if (failures) {
     console.error(`\n${failures} swagger failure(s)`);
     process.exit(1);
 }
-console.log(`✓ swagger: ${checks} checks; method badges, the lock and parameter inks in both modes, phone targets`);
+console.log(`✓ swagger: ${checks} checks; method badges, the lock and parameter inks in both modes, 24px targets at every width and 44px on a phone`);

@@ -205,10 +205,24 @@
     color: var(--muted-foreground);
 }
 
+/* Swagger draws a 20px glyph in a button with no padding of its own, and the
+   preflight takes the browser's button padding away: 20x20 targets (the
+   operation lock 30x20). At least 24px at every width; 44px on a phone below. */
+[data-oc-app='ochk'] .swagger-ui :is(.expand-operation, .expand-methods, .opblock-control-arrow, .authorization__btn, .models-control) {
+    min-width: 24px;
+    min-height: 24px;
+}
+/* The info block's links (the licence, the spec URL) were 14-16px tall, in
+   Swagger's own sans. A face's line is at least 1em, so this padding makes any
+   of them 24px to press without moving a line. */
+[data-oc-app='ochk'] .swagger-ui .info a {
+    padding-block: max(0px, calc((24.5px - 1em) / 2));
+}
+
 /* Swagger UI sets its fields to 12-14px at a specificity that beats the system's
    16px phone floor, so iOS zoomed on every focus. One class more wins here.
-   Its collapse arrows, the operation lock and the models toggle are 20-30px
-   targets; on a phone each reaches 44px, the glyphs unchanged. */
+   Its collapse arrows, the operation lock and the models toggle reach 44px on
+   a phone, the glyphs unchanged. */
 @media (width < 48rem) {
     [data-oc-app='ochk'] .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
         font-size: 16px;

@@ -617,7 +617,8 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-label={`Theme: ${current}. Switch to ${next}`}
             title={`Theme: ${current}`}
             className={cn(
-                'inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                // 40px drawn, 44px to a thumb, as Button's icon size; a crowded row does not squeeze it.
+                'relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
                 className
             )}
         >

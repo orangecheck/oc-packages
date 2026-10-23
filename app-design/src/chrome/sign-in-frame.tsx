@@ -83,7 +83,8 @@ export function SignInFrame({
                         back
                     )}
                 </header>
-                <div id="signin" tabIndex={-1} className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col justify-center gap-9 py-12 outline-none">
+                {/* Top-aligned: centred, the title rose by half of whatever the ceremony grew as it mounted. */}
+                <div id="signin" tabIndex={-1} className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col gap-9 py-12 outline-none lg:pt-[max(3rem,12vh)]">
                     <div className="flex flex-col gap-3">
                         <h1 className="oca-display-2">{title}</h1>
                         {lead ? <p className="oca-lead">{lead}</p> : null}
@@ -97,9 +98,10 @@ export function SignInFrame({
                     {fineprint ? <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{fineprint}</p> : null}
                 </div>
             </section>
+            {/* One screen tall and pinned: stretched with a form that outgrew the window, the art re-centred lower. */}
             <aside
                 aria-hidden
-                className="relative hidden flex-col justify-between gap-10 overflow-hidden border-l border-[var(--oca-band-line)] bg-oca-ink p-14 text-oca-ink-foreground lg:flex"
+                className="relative hidden flex-col justify-between gap-10 overflow-hidden border-l border-[var(--oca-band-line)] bg-oca-ink p-14 text-oca-ink-foreground lg:sticky lg:top-0 lg:flex lg:h-dvh lg:self-start"
             >
                 <div className="flex flex-1 items-center justify-center">{art ?? <IsoCheck size={340} settle tilt className="max-w-full" />}</div>
                 {caption ? <div className="flex max-w-[24rem] flex-col gap-3">{caption}</div> : null}

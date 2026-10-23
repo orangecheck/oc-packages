@@ -37,9 +37,12 @@
  * - ListRow stackBelow="sm" gives a phone's long-token title (a bc1q
  *   address) the whole row, the badge under it; a desk's row is unchanged.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
- *   screen), a 36px small button and a 40px icon button are 44px targets; a
- *   mouse sees them unchanged. A small field is drawn 44px tall to a thumb and
- *   36px to a mouse.
+ *   screen), a 36px small button, a 40px icon button and the theme switch
+ *   are 44px targets; a mouse sees them unchanged. A small field is drawn
+ *   44px tall to a thumb and 36px to a mouse.
+ * - SignInFrame holds still while its ceremony grows past the window: the
+ *   title stays put, and the ink column is one screen tall with its art in
+ *   place.
  * - A tool site's Docs link is in its phone menu, a 44px target, when the
  *   tools are the tab bar.
  * - A ListRow with lines="all" wraps its title and line in full, stays
@@ -316,6 +319,8 @@ try {
             )
         )
     );
+    // A sign-in whose ceremony grows as it mounts: from one line to taller than the window.
+    const signinGrow = page('signin-grow', renderToStaticMarkup(h(Ch.SignInFrame, { title: 'Sign in', lead: 'One line under the title.' }, h('div', { 'data-ceremony': '', style: { height: '40px' } }, 'Checking your session'))));
     // Fields in a tool's compact density, a small one set by hand, and a default one.
     const fields = page(
         'fields',
@@ -340,6 +345,7 @@ try {
                 h(P.Button, { size: 'sm', 'data-t': 'sm' }, 'Get an account'),
                 h(P.Button, { size: 'icon', variant: 'ghost', 'aria-label': 'Menu', 'data-t': 'icon' }, 'M'),
                 h(C.CopyButton, { value: 'x', label: 'Copy passphrase' }),
+                h(Ch.ThemeToggle, {}),
                 h(C.Panel, { title: 'Hash rate', expandable: true }, h('p', null, 'chart'))
             )
         )
@@ -823,6 +829,23 @@ try {
                             `[${width}] ${c.name} at ${c.font}: ${c.fallback} sets text ${(c.off * 100).toFixed(2)}% off the webfont's width (within ${c.tol * 100}%), its line ${c.dh.toFixed(1)}px off: the swap moves the line`
                         );
             }
+            // SignInFrame holds still while its ceremony mounts: the title stays put and the ink column's art does not re-centre.
+            await p.goto(signinGrow);
+            const place = () =>
+                p.evaluate(() => {
+                    const aside = document.querySelector('main > aside');
+                    const art = aside?.firstElementChild?.getBoundingClientRect();
+                    return { title: document.querySelector('#signin h1').getBoundingClientRect().top, art: art && art.height ? art.top + art.height / 2 : null, aside: aside?.getBoundingClientRect().height ?? 0 };
+                });
+            const before = await place();
+            await p.evaluate(() => (document.querySelector('[data-ceremony]').style.height = '1400px'));
+            const after = await place();
+            check(Math.abs(after.title - before.title) < 1, `[${width}] SignInFrame: the title moved ${Math.round(after.title - before.title)}px as the ceremony grew`);
+            if (width >= 1024)
+                check(
+                    before.art !== null && Math.abs(after.art - before.art) < 1 && after.aside <= height + 0.5,
+                    `[${width}] SignInFrame: the art moved ${Math.round((after.art ?? 0) - (before.art ?? 0))}px and the ink column is ${Math.round(after.aside)}px tall in a ${height}px window`
+                );
             // stackBelow="sm": on a phone a long-token title takes the row and the badge goes under it; from sm, as without it.
             await p.goto(stacked);
             const st = await p.evaluate(() => {
@@ -883,7 +906,7 @@ try {
                 const t = await ctx.newPage();
                 await t.goto(icons);
                 const reach = await t.evaluate(() =>
-                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]'].map((sel) => {
+                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
                         const el = document.querySelector(sel);
                         const r = el.getBoundingClientRect();
                         const cx = r.left + r.width / 2;
@@ -891,13 +914,13 @@ try {
                         const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
                         // A wide button needs only the height; a square one both ways.
                         const wide = r.width > 44;
-                        return { sel, size: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
+                        return { sel, size: Math.round(r.height), w: Math.round(r.width), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
-                const DRAWN = { '[data-t="sm"]': 36, '[data-t="icon"]': 40 };
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="icon"]': 40, 'button[aria-label^="Theme:"]': 40 };
                 for (const r of reach) {
                     const drawn = DRAWN[r.sel] ?? 32;
-                    if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.size}px, 44px target ${r.reach}`);
+                    if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);
                     else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
                 }
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
