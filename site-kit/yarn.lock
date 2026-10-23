@@ -512,9 +512,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/app-design@^1.10.1":
-  version "1.16.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-1.16.0.tgz#267eba6f53c1fb3dbcdbddf76f5ed077bebd610e"
-  integrity sha512-36Mu8w/k+fNYsa11mZ1Uz7X9lKiILGLQ6sRRFkUedPgblQAfjLG7cicqwigtAnMMWj2eFkcWCq/R3s4+0DLFog==
+  version "1.17.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-1.17.2.tgz#0a3b0f8ae06d3fe0a2370dcc3bfe9a9a56016a40"
+  integrity sha512-PDO/yfuZICkkqi5z7BA5gPuf9Vwgts7xwzG1Sy+8xVSD1RRUm7+yxdfhWsfAYVHU/hXFePL7f2mEDJ26f8js8w==
   dependencies:
     "@radix-ui/react-checkbox" "^1.3.3"
     "@radix-ui/react-dialog" "^1.1.15"
@@ -544,9 +544,9 @@
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.9.0":
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.9.0.tgz#124fe0105dde4c9c6bf64252bad4c941fe56a431"
-  integrity sha512-29c0sU+kDUoZlrNv7uyGphqNmFx2ZpugotnTb7fG6IVXjrW8VSqI52d8qpOavtitTYa4WIORGtLDVMGygAQddA==
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.14.0.tgz#088358badaf0f5e58028744b6969cb65e7eebcbf"
+  integrity sha512-FGXSEtD1iu6qIHVPGsFvyl4KvBHXVKy5nE/okFBSjGTulGoFPsIGTVzMh2OvsRcrrEvTItQIK/m59BdJKV64/g==
   dependencies:
     jose "^6.2.2"
 
