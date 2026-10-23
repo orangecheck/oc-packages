@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.1] — 2026-10-23
+
+### Changed
+
+- Requires `@orangecheck/agent-signer` `^0.5.1` and `@orangecheck/agent-core`
+  `^2.7.1`, the versions whose `verifyAction` checks an action as of the time
+  of verification.
+
 ## [0.5.0] — 2026-10-21
 
 ### Changed — `invokeWithStamp` hands the action to the call

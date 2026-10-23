@@ -8,6 +8,14 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 - _(no pending changes)_
 
+## [1.1.2] — 2026-10-23
+
+### Changed
+
+- Requires `@orangecheck/agent-signer` `^0.5.1` and `@orangecheck/agent-core`
+  `^2.7.1`, the versions whose `verifyAction` checks an action as of the time
+  of verification.
+
 ## [0.0.1] — Initial in-design release
 
 Initial published state. Provider/SDK-agnostic adapter for LangGraph tool nodes — canonicalizes `(verb, args, callId, graph_state_hash)`, the only adapter in the OrangeCheck family with a graph-state-bound action receipt.
