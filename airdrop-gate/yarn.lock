@@ -183,18 +183,18 @@
   integrity sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==
 
 "@orangecheck/bip322@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.0.tgz#2884e42042661e8d9cb8b1c3becc3649635721b1"
-  integrity sha512-Q175HQIqRQe3KPpeFCtNxnxbgZ6GVJ5TGk3P4YVOGa9fblfAhvtPuBNBDVqO/cfEXV2d54d4iZ4xXMhRCy9Mfg==
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
+  integrity sha512-NaaSTlL3HkVobUHrUUcMpoi+WVccEHMruWRRHiCVczkf3ac7JW0sXKEtDvqZ5YPI+KZi5xmxi2XK3ZE6do/t/w==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
 "@orangecheck/sdk@^1.7.0":
-  version "1.16.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.16.0.tgz#f786649d4afcbf2d5c7fdcfba5b09ee5ed4fae6e"
-  integrity sha512-V3e8OtMqKNx5wvmyLipj5G/hxH5XNMt5vnH5vRguAXdSt7pfRwQki1TkbYjJCpRjtrPguzZVufUvrTb+7M7QUg==
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.16.2.tgz#726d1c106b4e642c25a4c7894649123959ac1d26"
+  integrity sha512-6AiAK55616OFumwkFebs3GZMc6UTx6YemrQwiKYsYiLcGVi9VybDGmiwilOgWfueLkqgYinZxbbb5zXDqUW1TA==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
