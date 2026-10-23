@@ -14,8 +14,11 @@ All notable changes to the **`orangecheck`** Python package. Follows
   `ConnectDeleted`, or a `ConnectRefusal(reason, status)`. A refusal or an outage
   is a result, never an exception, and a call gives up after `timeout` (5 s, at
   most 30 s). Only a mistake in the call raises: an argument it does not take, a
-  missing key or user id, `email_verified` without `email`, or `consent=False`
-  (an unticked box means no call at all).
+  missing key or user id, `email_verified` without `email`, an origin with a
+  user name or password, or `consent=False` (an unticked box means no call at
+  all). A redirect is never followed; with the default origin, a claim link
+  anywhere but `https://ochk.app` is `unavailable`; a user id is counted in UTF-16
+  code units, as ochk.io counts it.
 - `CONNECT_CONSENT_LABEL` and `CONNECT_CONSENT_BLURB`: the words for an optional
   "also make me an orangecheck account" box, the same as `@orangecheck/me-client`
   0.39.0. Both SDKs are held to `me-client/test-vectors/connect.json`.

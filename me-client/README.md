@@ -259,7 +259,7 @@ Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `ge
 
 ## Keep your own login: OC Connect
 
-A site that keeps its own login (Auth0, Clerk, NextAuth, email and password) makes an orangecheck account for its user from its backend. Your Connect API key is on ochk.app, under your project's **Sign-in → Your own login**. Server only: these refuse to run in a browser, where the key would be exposed.
+A site that keeps its own login (Auth0, Clerk, NextAuth, email and password) makes an orangecheck account for its user from its backend. Your Connect API key is on ochk.app, under your project's **Sign-in → Your own login**. Server only: import these only from code that never reaches a client bundle. They refuse to run where there is a `document`, which catches the commonest slip but is not a guard (a browser Web Worker has none).
 
 ```ts
 import { connectProvision, connectClaimLink, connectDelete } from '@orangecheck/me-client/server';
@@ -270,7 +270,7 @@ if (r.ok) await saveDid(user.id, r.did_oc); // keep it on your user record
 // 'invalid_api_key', 'app_suspended', 'bad_request' or 'unavailable'
 ```
 
-A refusal or an outage is a result, never a throw, so it can't block your own sign-in; a call is given up after `timeoutMs` (5 s, at most 30 s). Only a mistake in the call throws: an option it does not read, a missing key or user id, or `consent: false`.
+A refusal or an outage is a result, never a throw, so it can't block your own sign-in; a call is given up after `timeoutMs` (5 s, at most 30 s), and a redirect is never followed. Only a mistake in the call throws: an option it does not read, a missing key or user id, or `consent: false`. Only your options object's own keys are read, once, so nothing inherited (a polluted `Object.prototype`) can choose where the key goes or tick consent.
 
 **With or without asking.** Make the account with no prompt, or show an opt-in box on your sign-in or sign-up with the canonical words, from a module with no dependencies that any UI can use:
 

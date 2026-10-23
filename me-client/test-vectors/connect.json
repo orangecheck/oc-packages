@@ -2,7 +2,12 @@
     "description": "OC Connect, as a site's own backend calls it: what each call sends, and what each of ochk.io's answers becomes. Read by me-client (src/__tests__/connect.test.ts) and sdk-py (tests/test_connect.py), so a Node site and a Python site get the same result from the same answer. The consent words are the ones both SDKs export.",
     "consent": {
         "label": "Also create my orangecheck account",
-        "blurb": "An identity you can use on other sites, held by orangecheck until you claim it at ochk.app, where you can also delete it."
+        "blurb": "It stays with orangecheck until you claim it at ochk.app. Then you can use it on other sites, or delete it."
+    },
+    "user_ids": {
+        "description": "ochk.io counts a user id in UTF-16 code units, 1 to 256, as JavaScript's length does. An emoji is two.",
+        "accepted": ["a", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"],
+        "refused": ["", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"]
     },
     "requests": [
         {
@@ -158,6 +163,14 @@
             "result": { "ok": false, "reason": "unavailable", "status": 200 }
         },
         {
+            "name": "provision: a redirect is answered as it is, never followed",
+            "call": "provision",
+            "status": 307,
+            "raw": "",
+            "headers": { "location": "https://evil.example/api/connect/provision" },
+            "result": { "ok": false, "reason": "unavailable", "status": 307 }
+        },
+        {
             "name": "delete: deleted",
             "call": "delete",
             "status": 200,
@@ -261,6 +274,13 @@
             "call": "claim_link",
             "status": 200,
             "body": { "ok": true, "url": "javascript:alert(1)", "expires_at": "2026-10-24T12:15:00.000Z" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "claim link: a link to anywhere but ochk.app",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "https://evil.example/connect/claim#t=abc", "expires_at": "2026-10-24T12:15:00.000Z" },
             "result": { "ok": false, "reason": "unavailable", "status": 200 }
         },
         {

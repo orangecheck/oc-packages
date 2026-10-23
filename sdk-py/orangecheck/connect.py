@@ -28,10 +28,10 @@ import httpx
 
 #: The checkbox label for an optional "also make me an orangecheck account" box.
 CONNECT_CONSENT_LABEL = "Also create my orangecheck account"
-#: One sentence under the label.
+#: The line under the label.
 CONNECT_CONSENT_BLURB = (
-    "An identity you can use on other sites, held by orangecheck until you claim it at "
-    "ochk.app, where you can also delete it."
+    "It stays with orangecheck until you claim it at ochk.app. Then you can use it on "
+    "other sites, or delete it."
 )
 
 CONNECT_ORIGIN = "https://ochk.io"
@@ -88,18 +88,29 @@ class ConnectDeleted:
     ok: Literal[True] = True
 
 
+def _utf16_units(s: str) -> int:
+    """A string's length as JavaScript and ochk.io count it: an emoji is two."""
+    return len(s.encode("utf-16-le")) // 2
+
+
 def _check_call(api_key: Any, user_id: Any, origin: Any, timeout: Any) -> str:
     if not isinstance(api_key, str) or not api_key.strip():
         raise ValueError("api_key is required (your Connect API key)")
-    if not isinstance(user_id, str) or not 1 <= len(user_id) <= 256:
+    if not isinstance(user_id, str) or not 1 <= _utf16_units(user_id) <= 256:
         raise ValueError("user_id must be your user's id, 1 to 256 characters")
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= _MAX_TIMEOUT:
         raise ValueError(f"timeout must be above 0 and at most {_MAX_TIMEOUT:g} seconds")
     parts = urlsplit(origin if isinstance(origin, str) else "")
+    try:
+        port = parts.port
+    except ValueError:
+        port = -1
     local = parts.hostname in ("localhost", "127.0.0.1")
-    if not parts.hostname or not (parts.scheme == "https" or (local and parts.scheme == "http")):
-        raise ValueError("origin must be an https URL")
-    return f"{parts.scheme}://{parts.netloc}"
+    scheme = parts.scheme == "https" or (local and parts.scheme == "http")
+    if not parts.hostname or not scheme or parts.username is not None or port == -1:
+        raise ValueError("origin must be an https URL with no user name or password")
+    # Rebuilt from its parts, so nothing but scheme, host and port is ever sent to.
+    return f"{parts.scheme}://{parts.hostname}" + (f":{port}" if port is not None else "")
 
 
 def _post(origin: str, path: str, api_key: str, body: dict[str, Any], timeout: float) -> tuple[int, Optional[dict[str, Any]]]:
@@ -109,6 +120,8 @@ def _post(origin: str, path: str, api_key: str, body: dict[str, Any], timeout: f
             json=body,
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             timeout=timeout,
+            # These endpoints never redirect: a redirect is answered as it is, never followed.
+            follow_redirects=False,
         )
     except httpx.HTTPError:
         return 0, None
@@ -179,8 +192,13 @@ def connect_claim_link(
     origin: str = CONNECT_ORIGIN,
     timeout: float = _DEFAULT_TIMEOUT,
 ) -> Union[ConnectClaimLink, ConnectRefusal]:
-    """A link for your signed-in user to claim their account at ochk.app. Good once, for fifteen minutes."""
+    """A link for your signed-in user to claim their account at ochk.app. Good once, for fifteen minutes.
+
+    With the default origin, a link anywhere but https://ochk.app is refused
+    (``unavailable``), so you never send your user somewhere else.
+    """
     base = _check_call(api_key, user_id, origin, timeout)
+    standard = base == CONNECT_ORIGIN
     status, data = _post(base, "/api/connect/claim-link", api_key, {"user_id": user_id}, timeout)
     if status != 200:
         return _refused(status, data, _CLAIM_LINK_REASONS)
@@ -191,6 +209,7 @@ def connect_claim_link(
         and data.get("ok") is True
         and isinstance(url, str)
         and urlsplit(url).scheme == "https"
+        and (not standard or urlsplit(url).netloc == "ochk.app")
         and isinstance(expires_at, str)
         and expires_at
     ):

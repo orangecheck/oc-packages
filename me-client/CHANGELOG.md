@@ -19,8 +19,13 @@ this file tracks the package's TS / Node / runtime API surface.
   an outage is a result, never a throw, and a call gives up after `timeoutMs`
   (5 s, at most 30 s). Only a mistake in the call throws, before anything is sent:
   an option it does not read, a missing key or user id, `emailVerified` without
-  `email`, `consent: false` (an unticked box means no call at all), or a call from
-  a browser, where the API key would be exposed.
+  `email`, `consent: false` (an unticked box means no call at all), an origin with
+  a user name or password, or a call where there is a `document` (a hint for the
+  commonest slip, not a guard: import these only from server code). Only the
+  options object's own keys are read, once, so an inherited `origin` or `consent`
+  is never used. A redirect is never followed. With the default origin, a claim
+  link anywhere but `https://ochk.app` is `unavailable`. A user id is counted in
+  UTF-16 code units, as ochk.io counts it.
 - `@orangecheck/me-client/connect-consent`: `CONNECT_CONSENT_LABEL` and
   `CONNECT_CONSENT_BLURB`, the words for an optional "also make me an orangecheck
   account" box, from a module with no imports so any UI can render it. Also

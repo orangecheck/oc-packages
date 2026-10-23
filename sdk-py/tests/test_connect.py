@@ -75,13 +75,65 @@ def test_what_each_call_sends(r: dict[str, Any]) -> None:
 def test_what_each_answer_becomes(a: dict[str, Any]) -> None:
     path = {"provision": "provision", "delete": "delete", "claim_link": "claim-link"}[a["call"]]
     if "raw" in a:
-        response = httpx.Response(a["status"], text=a["raw"], headers={"content-type": "text/html"})
+        response = httpx.Response(
+            a["status"], text=a["raw"], headers={"content-type": "text/html", **a.get("headers", {})}
+        )
     else:
         response = httpx.Response(a["status"], json=a["body"])
     respx.post(f"https://ochk.io/api/connect/{path}").mock(return_value=response)
     result = _call(a["call"], {"user_id": "user-1"})
     assert result.ok is a["result"]["ok"]
     assert _as_dict(result) == a["result"]
+
+
+@pytest.mark.parametrize("user_id", V["user_ids"]["accepted"], ids=lambda u: f"{len(u)} chars")
+@respx.mock
+def test_user_ids_ochk_io_accepts(user_id: str) -> None:
+    route = respx.post("https://ochk.io/api/connect/provision").mock(
+        return_value=httpx.Response(500, json={"ok": False, "reason": "server_error"})
+    )
+    connect_provision(KEY, user_id)
+    assert route.call_count == 1
+
+
+@pytest.mark.parametrize("user_id", V["user_ids"]["refused"], ids=lambda u: f"{len(u)} chars")
+def test_user_ids_ochk_io_refuses_counted_in_utf16_units(user_id: str) -> None:
+    with pytest.raises(ValueError, match="user_id"):
+        connect_provision(KEY, user_id)
+
+
+@respx.mock
+def test_an_origin_is_sent_to_as_scheme_host_and_port_only() -> None:
+    route = respx.post("https://oc-www-test.example:8443/api/connect/provision").mock(
+        return_value=httpx.Response(500, json={"ok": False, "reason": "server_error"})
+    )
+    connect_provision(KEY, "u", origin="https://oc-www-test.example:8443/some/path?q=1")
+    assert route.call_count == 1
+    assert route.calls.last.request.headers["authorization"] == f"Bearer {KEY}"
+
+
+def test_an_origin_with_a_user_name_or_password_raises() -> None:
+    with pytest.raises(ValueError, match="origin"):
+        connect_provision(KEY, "u", origin="https://user:pw@ochk.io")
+    with pytest.raises(ValueError, match="origin"):
+        connect_provision(KEY, "u", origin="https://user@ochk.io")
+
+
+@respx.mock
+def test_a_claim_link_elsewhere_is_refused_with_the_default_origin() -> None:
+    link = {"ok": True, "url": "https://oc-app-test.example/connect/claim#t=a", "expires_at": "x"}
+    respx.post("https://ochk.io/api/connect/claim-link").mock(return_value=httpx.Response(200, json=link))
+    assert connect_claim_link(KEY, "u") == ConnectRefusal(reason="unavailable", status=200)
+
+
+@respx.mock
+def test_a_test_stack_may_hand_back_its_own_claim_host() -> None:
+    link = {"ok": True, "url": "https://oc-app-test.example/connect/claim#t=a", "expires_at": "x"}
+    respx.post("https://oc-www-test.example/api/connect/claim-link").mock(
+        return_value=httpx.Response(200, json=link)
+    )
+    result = connect_claim_link(KEY, "u", origin="https://oc-www-test.example")
+    assert result == ConnectClaimLink(url=link["url"], expires_at="x")
 
 
 @respx.mock
@@ -130,10 +182,6 @@ def test_no_key_no_user_id_or_one_the_server_would_refuse() -> None:
     route = respx.post(url__regex=r"https://ochk\.io/.*").mock(return_value=httpx.Response(200, json={}))
     with pytest.raises(ValueError, match="api_key"):
         connect_provision("", "u")
-    with pytest.raises(ValueError, match="user_id"):
-        connect_provision(KEY, "")
-    with pytest.raises(ValueError, match="user_id"):
-        connect_provision(KEY, "x" * 257)
     with pytest.raises(ValueError, match="email"):
         connect_provision(KEY, "u", email_verified=True)
     with pytest.raises(ValueError, match="origin"):

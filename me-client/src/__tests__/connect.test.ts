@@ -21,6 +21,7 @@ const V = JSON.parse(
     readFileSync(join(__dirname, '..', '..', 'test-vectors', 'connect.json'), 'utf8')
 ) as {
     consent: { label: string; blurb: string };
+    user_ids: { accepted: string[]; refused: string[] };
     requests: {
         name: string;
         call: Call;
@@ -34,6 +35,7 @@ const V = JSON.parse(
         status: number;
         body?: unknown;
         raw?: string;
+        headers?: Record<string, string>;
         result: Record<string, unknown>;
     }[];
 };
@@ -41,7 +43,7 @@ const V = JSON.parse(
 const KEY = 'ck_live_test_key';
 const sent: { url: string; init: RequestInit }[] = [];
 
-function answer(status: number, body: unknown, raw?: string) {
+function answer(status: number, body: unknown, raw?: string, headers?: Record<string, string>) {
     sent.length = 0;
     vi.stubGlobal(
         'fetch',
@@ -49,7 +51,10 @@ function answer(status: number, body: unknown, raw?: string) {
             sent.push({ url, init });
             return new Response(raw ?? JSON.stringify(body), {
                 status,
-                headers: { 'content-type': raw ? 'text/html' : 'application/json' },
+                headers: {
+                    'content-type': raw !== undefined ? 'text/html' : 'application/json',
+                    ...headers,
+                },
             });
         })
     );
@@ -84,6 +89,8 @@ describe('what each call sends', () => {
             expect(sent).toHaveLength(1);
             expect(sent[0]!.url).toBe(`https://ochk.io${r.path}`);
             expect(sent[0]!.init.method).toBe('POST');
+            // A redirect is answered as it is: the key and body go to the origin named only.
+            expect(sent[0]!.init.redirect).toBe('manual');
             const headers = new Headers(sent[0]!.init.headers);
             expect(headers.get('authorization')).toBe(`Bearer ${KEY}`);
             expect(headers.get('content-type')).toBe('application/json');
@@ -95,10 +102,99 @@ describe('what each call sends', () => {
 describe('what each answer becomes', () => {
     for (const a of V.answers) {
         it(a.name, async () => {
-            answer(a.status, a.body, a.raw);
+            answer(a.status, a.body, a.raw, a.headers);
             expect(await call(a.call, { user_id: 'user-1' })).toEqual(a.result);
         });
     }
+});
+
+describe('user ids are counted as ochk.io counts them, in UTF-16 code units', () => {
+    for (const id of V.user_ids.accepted) {
+        it(`accepts ${id.length} units`, async () => {
+            answer(500, { ok: false, reason: 'server_error' });
+            await connectProvision({ apiKey: KEY, userId: id });
+            expect(sent).toHaveLength(1);
+        });
+    }
+    for (const id of V.user_ids.refused) {
+        it(`refuses ${id.length} units`, () => {
+            answer(500, {});
+            expect(() => connectProvision({ apiKey: KEY, userId: id })).toThrow(/userId/);
+            expect(sent).toHaveLength(0);
+        });
+    }
+});
+
+// An inherited key was invisible to the unknown-option check but read later, so
+// a polluted Object.prototype could choose where the API key goes and tick consent.
+describe('only the caller\'s own options are read', () => {
+    afterEach(() => {
+        delete (Object.prototype as Record<string, unknown>).origin;
+        delete (Object.prototype as Record<string, unknown>).consent;
+    });
+
+    it('a polluted Object.prototype.origin does not move the call', async () => {
+        (Object.prototype as Record<string, unknown>).origin = 'https://evil.example';
+        answer(500, { ok: false, reason: 'server_error' });
+        await connectProvision({ apiKey: KEY, userId: 'u' });
+        expect(sent[0]!.url).toBe('https://ochk.io/api/connect/provision');
+    });
+
+    it('a polluted Object.prototype.consent does not tick the box', async () => {
+        (Object.prototype as Record<string, unknown>).consent = true;
+        answer(500, { ok: false, reason: 'server_error' });
+        await connectProvision({ apiKey: KEY, userId: 'u' });
+        expect(JSON.parse(String(sent[0]!.init.body))).toEqual({ user_id: 'u' });
+    });
+
+    it('options built on a prototype that carries origin and consent', async () => {
+        const options = Object.assign(
+            Object.create({ origin: 'https://evil.example', consent: true }) as object,
+            { apiKey: KEY, userId: 'u' }
+        ) as { apiKey: string; userId: string };
+        answer(500, { ok: false, reason: 'server_error' });
+        await connectProvision(options);
+        expect(sent[0]!.url).toBe('https://ochk.io/api/connect/provision');
+        expect(JSON.parse(String(sent[0]!.init.body))).toEqual({ user_id: 'u' });
+    });
+
+    it('a getter is read once, so the check and the body see the same value', async () => {
+        let reads = 0;
+        const options = {
+            apiKey: KEY,
+            get userId() {
+                reads++;
+                return reads === 1 ? 'checked' : 'x'.repeat(1000);
+            },
+        };
+        answer(500, { ok: false, reason: 'server_error' });
+        await connectProvision(options);
+        expect(reads).toBe(1);
+        expect(JSON.parse(String(sent[0]!.init.body))).toEqual({ user_id: 'checked' });
+    });
+});
+
+describe('a claim link goes to ochk.app', () => {
+    const link = { ok: true, url: 'https://oc-app-test.example/connect/claim#t=a', expires_at: 'x' };
+
+    it('with the default origin, a link elsewhere is refused', async () => {
+        answer(200, link);
+        expect(await connectClaimLink({ apiKey: KEY, userId: 'u' })).toEqual({
+            ok: false,
+            reason: 'unavailable',
+            status: 200,
+        });
+    });
+
+    it('a test stack (its own origin) may hand back its own host', async () => {
+        answer(200, link);
+        const r = await connectClaimLink({
+            apiKey: KEY,
+            userId: 'u',
+            origin: 'https://oc-www-test.example',
+        });
+        expect(r).toEqual({ ok: true, url: link.url, expires_at: 'x' });
+    });
 });
 
 describe('an outage is a result, never a throw', () => {
@@ -167,11 +263,9 @@ describe('a mistake in the call throws before anything is sent', () => {
         expect(sent).toHaveLength(0);
     });
 
-    it('no key, no user id, or a user id the server would refuse', () => {
+    it('no key', () => {
         answer(200, {});
         expect(() => connectProvision({ apiKey: '', userId: 'u' })).toThrow(/apiKey/);
-        expect(() => connectProvision({ apiKey: KEY, userId: '' })).toThrow(/userId/);
-        expect(() => connectProvision({ apiKey: KEY, userId: 'x'.repeat(257) })).toThrow(/userId/);
         expect(sent).toHaveLength(0);
     });
 
@@ -189,11 +283,15 @@ describe('a mistake in the call throws before anything is sent', () => {
         expect(sent).toHaveLength(0);
     });
 
-    it('an origin that is not https', () => {
+    it('an origin that is not https, or that carries a user name or password', () => {
         answer(200, {});
         expect(() =>
             connectProvision({ apiKey: KEY, userId: 'u', origin: 'http://ochk.io' })
         ).toThrow(/origin/);
+        expect(() =>
+            connectProvision({ apiKey: KEY, userId: 'u', origin: 'https://user:pw@ochk.io' })
+        ).toThrow(/origin/);
+        expect(sent).toHaveLength(0);
     });
 });
 

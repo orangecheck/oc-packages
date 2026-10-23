@@ -9,8 +9,12 @@
  * A refusal or an outage is a result (`{ ok: false, reason, status }`), never a
  * throw, so a failed call can't block the site's own login. Only a mistake in
  * the call itself throws, before anything is sent: an option it does not read,
- * a missing key or user id, `consent: false`, or a call from a browser, where
- * the API key would be exposed.
+ * a missing key or user id, or `consent: false`.
+ *
+ * They refuse to run where there is a `document`, as a hint for the most common
+ * mistake. That is not a guard: a browser Web Worker has no `document`. What
+ * keeps the key safe is importing these only from `/server` code that never
+ * reaches a client bundle.
  */
 
 const DEFAULT_ORIGIN = 'https://ochk.io';
@@ -121,8 +125,26 @@ function fail(message: string): never {
     throw new TypeError(`@orangecheck/me-client: ${message}`);
 }
 
-/** Check the call itself; throws on a mistake in it. Returns the origin to call. */
-function checkCall(name: string, options: ConnectOptions, known: ReadonlySet<string>): string {
+/** A call's options, copied once onto a bare object, and where to send it. */
+interface Checked<O> {
+    /** Only the caller's own keys, read once: nothing inherited, no getter read twice. */
+    o: O;
+    /** The origin to post to. */
+    origin: string;
+    /** Whether `origin` was left at ochk.io. */
+    standard: boolean;
+}
+
+/**
+ * Check the call itself; throws on a mistake in it. Every later read is from the
+ * copy it returns, so an inherited `origin` or `consent` (a polluted
+ * Object.prototype, or options made with Object.create) is never read.
+ */
+function checkCall<O extends ConnectOptions>(
+    name: string,
+    options: O,
+    known: ReadonlySet<string>
+): Checked<O> {
     if (typeof document !== 'undefined') {
         fail(`${name} runs on your server only: in a browser your API key would be exposed`);
     }
@@ -132,29 +154,31 @@ function checkCall(name: string, options: ConnectOptions, known: ReadonlySet<str
         const only = [...known].join(', ');
         fail(`${name}: unknown option ${unknown.join(', ')}. It reads only ${only}.`);
     }
-    if (typeof options.apiKey !== 'string' || options.apiKey.trim() === '') {
+    const o = Object.assign(Object.create(null) as O, options);
+    if (typeof o.apiKey !== 'string' || o.apiKey.trim() === '') {
         fail(`${name}: apiKey is required (your Connect API key)`);
     }
-    const id = options.userId;
+    // ochk.io counts a user id in UTF-16 code units, as JavaScript's length does.
+    const id = o.userId;
     if (typeof id !== 'string' || id.length < 1 || id.length > 256) {
         fail(`${name}: userId must be your user's id, 1 to 256 characters`);
     }
-    const t = options.timeoutMs;
+    const t = o.timeoutMs;
     if (t !== undefined && !(typeof t === 'number' && t > 0 && t <= MAX_TIMEOUT_MS)) {
         fail(`${name}: timeoutMs must be above 0 and at most ${MAX_TIMEOUT_MS}`);
     }
-    const origin = options.origin ?? DEFAULT_ORIGIN;
     let url: URL;
     try {
-        url = new URL(origin);
+        url = new URL(o.origin ?? DEFAULT_ORIGIN);
     } catch {
         return fail(`${name}: origin must be an https URL`);
     }
     const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-    if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) {
-        fail(`${name}: origin must be an https URL`);
+    const scheme = url.protocol === 'https:' || (local && url.protocol === 'http:');
+    if (!scheme || url.username !== '' || url.password !== '') {
+        fail(`${name}: origin must be an https URL with no user name or password`);
     }
-    return url.origin;
+    return { o, origin: url.origin, standard: url.origin === DEFAULT_ORIGIN };
 }
 
 type Answer = { status: number; body: Record<string, unknown> | null };
@@ -171,6 +195,9 @@ async function post(
     try {
         const res = await fetch(`${origin}${path}`, {
             method: 'POST',
+            // These endpoints never redirect. A redirect is answered as it is, never
+            // followed, so the key and the body go only to the origin named.
+            redirect: 'manual',
             headers: {
                 'content-type': 'application/json',
                 authorization: `Bearer ${apiKey}`,
@@ -211,14 +238,14 @@ function refused<R extends string>(
 export function connectProvision(
     options: ConnectProvisionOptions
 ): Promise<ConnectProvisionResult> {
-    const origin = checkCall('connectProvision', options, PROVISION_KEYS);
-    if (options.consent !== undefined && options.consent !== true) {
+    const { o, origin } = checkCall('connectProvision', options, PROVISION_KEYS);
+    if (o.consent !== undefined && o.consent !== true) {
         fail(
             'connectProvision: consent must be true or left out. An unticked box means no ' +
                 'call at all; a call without consent makes an account nobody asked for'
         );
     }
-    const { email, emailVerified } = options;
+    const { email, emailVerified } = o;
     if (email !== undefined && (typeof email !== 'string' || email === '')) {
         fail('connectProvision: email must be a non-empty string');
     }
@@ -228,11 +255,11 @@ export function connectProvision(
     if (emailVerified !== undefined && email === undefined) {
         fail('connectProvision: emailVerified describes email, so pass email too');
     }
-    const body: Record<string, unknown> = { user_id: options.userId };
-    if (options.consent === true) body.consent = true;
+    const body: Record<string, unknown> = { user_id: o.userId };
+    if (o.consent === true) body.consent = true;
     if (email !== undefined) body.email = email;
     if (emailVerified !== undefined) body.email_verified = emailVerified;
-    return call(origin, '/api/connect/provision', options, body).then(
+    return call(origin, '/api/connect/provision', o, body).then(
         (answer): ConnectProvisionResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, PROVISION_REASONS);
@@ -248,16 +275,21 @@ export function connectProvision(
     );
 }
 
-/** A link for your signed-in user to claim their account at ochk.app. Good once, for fifteen minutes. */
+/**
+ * A link for your signed-in user to claim their account at ochk.app. Good once,
+ * for fifteen minutes. With the default origin, a link anywhere but
+ * https://ochk.app is refused (`unavailable`), so you never send your user
+ * somewhere else.
+ */
 export function connectClaimLink(options: ConnectOptions): Promise<ConnectClaimLinkResult> {
-    const origin = checkCall('connectClaimLink', options, USER_KEYS);
-    return call(origin, '/api/connect/claim-link', options, { user_id: options.userId }).then(
+    const { o, origin, standard } = checkCall('connectClaimLink', options, USER_KEYS);
+    return call(origin, '/api/connect/claim-link', o, { user_id: o.userId }).then(
         (answer): ConnectClaimLinkResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, CLAIM_LINK_REASONS);
             const good =
                 b?.ok === true &&
-                isHttpsUrl(b.url) &&
+                isClaimUrl(b.url, standard) &&
                 typeof b.expires_at === 'string' &&
                 b.expires_at !== '';
             return good
@@ -269,8 +301,8 @@ export function connectClaimLink(options: ConnectOptions): Promise<ConnectClaimL
 
 /** Your user deleted their account with you: delete the one Connect made for them. */
 export function connectDelete(options: ConnectOptions): Promise<ConnectDeleteResult> {
-    const origin = checkCall('connectDelete', options, USER_KEYS);
-    return call(origin, '/api/connect/delete', options, { user_id: options.userId }).then(
+    const { o, origin } = checkCall('connectDelete', options, USER_KEYS);
+    return call(origin, '/api/connect/delete', o, { user_id: o.userId }).then(
         (answer): ConnectDeleteResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, DELETE_REASONS);
@@ -284,16 +316,18 @@ export function connectDelete(options: ConnectOptions): Promise<ConnectDeleteRes
 function call(
     origin: string,
     path: string,
-    options: ConnectOptions,
+    o: ConnectOptions,
     body: Record<string, unknown>
 ): Promise<Answer> {
-    return post(origin, path, options.apiKey, body, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    return post(origin, path, o.apiKey, body, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 }
 
-function isHttpsUrl(v: unknown): v is string {
+/** https, and with the default origin, on ochk.app. */
+function isClaimUrl(v: unknown, standard: boolean): v is string {
     if (typeof v !== 'string') return false;
     try {
-        return new URL(v).protocol === 'https:';
+        const url = new URL(v);
+        return url.protocol === 'https:' && (!standard || url.host === 'ochk.app');
     } catch {
         return false;
     }

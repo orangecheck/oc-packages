@@ -17,7 +17,7 @@
 /** The checkbox label. */
 export const CONNECT_CONSENT_LABEL = 'Also create my orangecheck account';
 
-/** One sentence under the label. */
+/** The line under the label. */
 export const CONNECT_CONSENT_BLURB =
-    'An identity you can use on other sites, held by orangecheck until you claim it at ' +
-    'ochk.app, where you can also delete it.';
+    'It stays with orangecheck until you claim it at ochk.app. Then you can use it on ' +
+    'other sites, or delete it.';
