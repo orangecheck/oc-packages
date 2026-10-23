@@ -8,6 +8,18 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.6.0] — 2026-10-23
+
+### Changed — v2 records stop naming an inbox (OC Lock SPEC 2.3.0 §3.4)
+
+- `authorizedDevices(records, { now? })`: from `V2_INBOX_SUNSET`
+  (2027-01-21T00:00:00Z) by `now` (default: the current time), a v2 record
+  authorizes no Nostr key; only v3 records do. Before it, the 0.3.0 rule
+  applies. An option it does not read throws a `TypeError`.
+- `liveDevices` is unchanged: a v2 bind stays live for sealing to its
+  `device_pk`.
+- Exports `V2_INBOX_SUNSET` and the `AuthorizeOptions` type.
+
 ## [0.5.0] — 2026-10-22
 
 ### Added — the reader's clock in `liveDevices`; dating a revocation

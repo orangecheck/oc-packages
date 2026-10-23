@@ -351,7 +351,8 @@ function parseBindingStatement(
     return null;
 }
 
-export { authorizedDevices } from './authorize.js';
+export { authorizedDevices, V2_INBOX_SUNSET } from './authorize.js';
+export type { AuthorizeOptions } from './authorize.js';
 export {
     DEFAULT_BIND_SKEW_MS,
     liveDevices,

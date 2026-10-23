@@ -2,7 +2,13 @@
 // so a v2 record's event pubkey is only its author's claim.
 import { describe, expect, it } from 'vitest';
 
-import { authorizedDevices, buildBindingStatement, parseDeviceEvent } from './index.js';
+import {
+    authorizedDevices,
+    buildBindingStatement,
+    liveDevices,
+    parseDeviceEvent,
+    V2_INBOX_SUNSET,
+} from './index.js';
 
 const ADDR = 'bc1qowner00000000000000000000000000000000';
 const DEVICE_PK = 'aa'.repeat(32);
@@ -72,33 +78,70 @@ describe('v3 bind statement', () => {
     });
 });
 
-describe('authorizedDevices', () => {
+const SUNSET = new Date(V2_INBOX_SUNSET);
+const BEFORE = { now: new Date(SUNSET.getTime() - 1000) };
+const AT = { now: SUNSET };
+
+describe('authorizedDevices before the v2 sunset', () => {
     const v2Owner = parseDeviceEvent(event(OWNER_NOSTR, statement()));
     const v2Other = parseDeviceEvent(event(OTHER_NOSTR, statement()));
     const v3Owner = parseDeviceEvent(event(OWNER_NOSTR, statement(OWNER_NOSTR)));
 
     it('authorizes a v2 device seen under exactly one pubkey', () => {
-        expect(authorizedDevices([v2Owner]).map((d) => d.nostrPubkey)).toEqual([OWNER_NOSTR]);
+        expect(authorizedDevices([v2Owner], BEFORE).map((d) => d.nostrPubkey)).toEqual([
+            OWNER_NOSTR,
+        ]);
     });
 
     it('authorizes neither pubkey when one v2 device appears under two', () => {
-        expect(authorizedDevices([v2Owner, v2Other])).toEqual([]);
+        expect(authorizedDevices([v2Owner, v2Other], BEFORE)).toEqual([]);
     });
 
     it('a v3 record for the device supersedes every v2 copy of it', () => {
-        expect(authorizedDevices([v2Other, v3Owner, v2Owner]).map((d) => d.nostrPubkey)).toEqual(
-            [OWNER_NOSTR]
-        );
-        expect(authorizedDevices([v2Other, v3Owner])).toEqual([v3Owner]);
+        expect(
+            authorizedDevices([v2Other, v3Owner, v2Owner], BEFORE).map((d) => d.nostrPubkey)
+        ).toEqual([OWNER_NOSTR]);
+        expect(authorizedDevices([v2Other, v3Owner], BEFORE)).toEqual([v3Owner]);
     });
 
     it('scopes the v2 rule per device_id', () => {
         const second = parseDeviceEvent(
             event(OTHER_NOSTR, statement(undefined, 'owner-phone'), 'owner-phone')
         );
-        expect(authorizedDevices([v2Owner, second]).map((d) => d.device_id)).toEqual([
+        expect(authorizedDevices([v2Owner, second], BEFORE).map((d) => d.device_id)).toEqual([
             DEVICE_ID,
             'owner-phone',
         ]);
+    });
+});
+
+describe('authorizedDevices from the v2 sunset (SPEC §3.4)', () => {
+    const v2Owner = parseDeviceEvent(event(OWNER_NOSTR, statement()));
+    const v2Other = parseDeviceEvent(event(OTHER_NOSTR, statement()));
+    const v3Owner = parseDeviceEvent(event(OWNER_NOSTR, statement(OWNER_NOSTR)));
+
+    it('a v2 record authorizes no key, however many carry it', () => {
+        expect(authorizedDevices([v2Owner], AT)).toEqual([]);
+        expect(authorizedDevices([v2Other], AT)).toEqual([]);
+        expect(authorizedDevices([v2Owner, v2Other], AT)).toEqual([]);
+    });
+
+    it('a v3 record still authorizes its signed key', () => {
+        expect(authorizedDevices([v2Other, v3Owner, v2Owner], AT)).toEqual([v3Owner]);
+    });
+
+    it('a v2 bind stays live for sealing to its device_pk', () => {
+        expect(liveDevices([v2Owner], AT)).toEqual([v2Owner]);
+    });
+
+    it("reads the reader's clock when no now is given", () => {
+        const v2Counts = Date.now() < SUNSET.getTime();
+        expect(authorizedDevices([v2Owner]).length).toBe(v2Counts ? 1 : 0);
+    });
+
+    it('refuses an option it does not read', () => {
+        expect(() =>
+            authorizedDevices([v2Owner], { at: SUNSET } as unknown as { now?: Date })
+        ).toThrow(/does not read option "at"/);
     });
 });
