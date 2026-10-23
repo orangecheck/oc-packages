@@ -247,7 +247,11 @@ def test_revocation_key_matches_the_node_sdk(v: dict[str, Any]) -> None:
 @pytest.mark.parametrize("v", R["sessions"], ids=lambda v: v["name"])
 def test_revocations_decide_as_the_node_sdk_does(v: dict[str, Any]) -> None:
     _serve_lists()
-    assert _revocations().status(v["rh"], v["aud"], v["iat"]) == v["status"]
+    # A key absent from the vector is absent from the claims; null stays null.
+    claims = {k: v[k] for k in ("rh", "aud", "iat") if k in v}
+    assert _revocations().status_for(claims) == v["status"]
+    if "rh" not in v or v["rh"] is not None:
+        assert _revocations().status(v.get("rh"), v["aud"], v["iat"]) == v["status"]
 
 
 @respx.mock

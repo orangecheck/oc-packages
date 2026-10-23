@@ -406,9 +406,15 @@
             {
                 "name": "no handle: signature only",
                 "aud": "https://site.example",
-                "rh": null,
                 "iat": 1799996400,
                 "status": "live"
+            },
+            {
+                "name": "a literal null handle",
+                "aud": "https://site.example",
+                "rh": null,
+                "iat": 1799999970,
+                "status": "revoked"
             },
             {
                 "name": "a handle with a list aud",
@@ -439,6 +445,13 @@
                 "rh": "",
                 "iat": 1799999970,
                 "status": "revoked"
+            },
+            {
+                "name": "an empty aud with a sound handle",
+                "aud": "",
+                "rh": "mkMrKS_qd0aD4ZZYbwxamw",
+                "iat": 1799999970,
+                "status": "revoked"
             }
         ],
         "tokens": [
@@ -453,6 +466,12 @@
                 "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbGlzdCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6Im1rTXJLU19xZDBhRDRaWllid3hhbXciLCJhdWQiOlsiaHR0cHM6Ly9zaXRlLmV4YW1wbGUiXX0.3KpTAy6pX78qPtwqG__HZx06POwgoUYzeZYW4zya0X1Ld3sWCPpuprmfKPXRKDiCbpuWZJLhD71gGayk1uY1AQ",
                 "audience": "https://site.example",
                 "outcome": "audience"
+            },
+            {
+                "name": "a literal null handle",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbnVsbCIsImlzcyI6Imh0dHBzOi8vb2Noay5pbyIsImlhdCI6MTc5OTk5NjQwMCwiZXhwIjoxODAwMDAzNjAwLCJyaCI6bnVsbCwiYXVkIjoiaHR0cHM6Ly9zaXRlLmV4YW1wbGUifQ.ol5uycSc4bT1iedoB0zTGOKhHFyrcpEdxNuJuqzAuEdzvlPG2un7DO-cPnnHZcwjXEbyEq7elF8uB7_ZSFw8Aw",
+                "audience": "https://site.example",
+                "outcome": "no_session_handle"
             }
         ],
         "audiences": [

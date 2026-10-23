@@ -224,12 +224,15 @@ const revocationVectors = {
         { name: 'the www origin of the same site', aud: REV_WWW, rh: rh(AK, REV_WWW), iat: NOW - 3600, status: 'revoked' },
         { name: 'another account', aud: REV_SITE, rh: rh(revKey('acct-tv-0002'), REV_SITE), iat: NOW - 3600, status: 'live' },
         { name: 'a handle for another audience', aud: REV_SITE, rh: rh(AK, REV_WWW), iat: NOW - 3600, status: 'live' },
-        { name: 'no handle: signature only', aud: REV_SITE, rh: null, iat: NOW - 3600, status: 'live' },
+        // A key left out is absent; a key given as null is a claim whose value is null.
+        { name: 'no handle: signature only', aud: REV_SITE, iat: NOW - 3600, status: 'live' },
+        { name: 'a literal null handle', aud: REV_SITE, rh: null, iat: NOW - 30, status: 'revoked' },
         // Issued after the cutoff, so a lookup would say live: only the shape refuses these.
         { name: 'a handle with a list aud', aud: [REV_SITE], rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
         { name: 'a handle with no aud', aud: null, rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
         { name: 'a handle that is not a string', aud: REV_SITE, rh: 42, iat: NOW - 30, status: 'revoked' },
         { name: 'an empty handle', aud: REV_SITE, rh: '', iat: NOW - 30, status: 'revoked' },
+        { name: 'an empty aud with a sound handle', aud: '', rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
     ],
     // Whole tokens through verification and the list: one ended on its own
     // audience's list, and the same handle under a list aud, refused before any lookup.
@@ -245,6 +248,12 @@ const revocationVectors = {
             token: await jwt({ ...base, jti: 'tv-jti-list', aud: [REV_SITE], rh: rh(AK, REV_SITE), iat: NOW - 3600 }),
             audience: REV_SITE,
             outcome: 'audience',
+        },
+        {
+            name: 'a literal null handle',
+            token: await jwt({ ...base, jti: 'tv-jti-null', aud: REV_SITE, rh: null, iat: NOW - 3600 }),
+            audience: REV_SITE,
+            outcome: 'no_session_handle',
         },
     ],
     // What me.ochk.io accepts as aud: exactly the origin ochk.io mints. An SDK sends the token's aud as it is.

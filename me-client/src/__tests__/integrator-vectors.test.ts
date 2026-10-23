@@ -182,7 +182,7 @@ const R = (
       sessions: {
         name: string;
         aud: unknown;
-        rh: unknown;
+        rh?: unknown;
         iat: number | null;
         status: string;
       }[];
@@ -190,7 +190,7 @@ const R = (
         name: string;
         token: string;
         audience: string;
-        outcome: "ended" | "audience";
+        outcome: string;
       }[];
     };
   }
@@ -227,12 +227,13 @@ describe("vectors · revocation handles", () => {
 
   it.each(R.sessions)("decides: $name", async (v) => {
     const c = check();
+    // A key absent from the vector is absent from the claims; null stays null.
     expect(
       await c.status({
         sub: "x",
         jti: "j",
         aud: v.aud,
-        rh: v.rh ?? undefined,
+        ...("rh" in v ? { rh: v.rh } : {}),
         iat: v.iat ?? undefined,
       }),
     ).toBe(v.status);
@@ -247,7 +248,7 @@ describe("vectors · revocation handles", () => {
       vi.fn(async () => ({ ok: true, status: 200, json: async () => V.session.jwks }) as Response),
     );
     const session = await verifyOcToken(v.token, { audience: v.audience });
-    if (v.outcome === "audience") {
+    if (v.outcome !== "ended") {
       expect(session).toBeNull();
       return;
     }

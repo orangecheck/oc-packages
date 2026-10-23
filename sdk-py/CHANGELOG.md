@@ -13,12 +13,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
   `require_handle=False`) and `aud` is one string (`InvalidSession("audience")`
   otherwise). A token without `rh` verifies as before.
 - `RevocationList.status(rh, aud, iat)` answers `"revoked"` for a handle that
-  is not a non-empty string, or one given without a string `aud`.
+  is not a non-empty string, or one given without a non-empty string `aud`.
 - The same as `@orangecheck/auth-core` 2.15.0 and `@orangecheck/me-client`
   0.40.1, held to `me-client/test-vectors/integrator.json`.
 
 ### Added
 
+- `RevocationList.status_for(claims)`: the same answer from a token's claims,
+  telling a missing `rh` (`"live"`) from `"rh": null` (`"revoked"`), as
+  auth-core's `integratorRevocationCheck` does. `verify_session` uses it.
 - `Session.rh`: the token's revocation handle.
 
 ## [3.0.0] — 2026-10-23

@@ -456,6 +456,19 @@ class RevocationList:
     def status(self, rh: Optional[str], aud: Optional[str], iat: Optional[float]) -> str:
         if rh is None:
             return "live"
+        return self._status(rh, aud, iat)
+
+    def status_for(self, claims: Mapping[str, Any]) -> str:
+        """
+        ``status`` for a token's claims, as ``integratorRevocationCheck`` reads them: a
+        token with no ``rh`` key is ``"live"``, and ``"rh": null`` is a handle that is
+        not a string, so ``"revoked"``. :func:`verify_session` uses this.
+        """
+        if "rh" not in claims:
+            return "live"
+        return self._status(claims["rh"], claims.get("aud"), claims.get("iat"))
+
+    def _status(self, rh: Any, aud: Any, iat: Optional[float]) -> str:
         if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
             return "revoked"
         return self._list(aud).status(rh, iat)
@@ -764,8 +777,7 @@ def verify_session(
             raise InvalidSession("audience")
 
     if revocations is not None:
-        token_aud = aud if isinstance(aud, str) else None
-        state = revocations.status(payload.get("rh"), token_aud, iat)
+        state = revocations.status_for(payload)
         if state == "revoked":
             raise SessionEnded()
         if state == "unverified" and (method or "").upper() not in _SAFE_METHODS:
