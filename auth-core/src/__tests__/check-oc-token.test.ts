@@ -102,6 +102,46 @@ describe("checkOcToken · a bad token is not an outage", () => {
     expect(await checkOcToken(await mint(), { issuer: ISSUER })).toEqual({ status: "unavailable" });
   });
 
+  it("answers unavailable for an unknown kid while the key set can't be fetched", async () => {
+    // A key may have rotated in during the outage: "can't tell", not a bad token.
+    const ks = keySet();
+    expect((await checkOcToken(await mint(), { issuer: ISSUER })).status).toBe("valid");
+    ks.down();
+    const other = await generateKeyPair(JWT_ALG, { extractable: true });
+    const rotated = await new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: "rotated-in" })
+      .setSubject("acct-1")
+      .setJti("jti-2")
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(other.privateKey as CryptoKey);
+    expect(await checkOcToken(rotated, { issuer: ISSUER })).toEqual({ status: "unavailable" });
+    // Within the refetch throttle too, while the last fetch failed.
+    expect(await checkOcToken(rotated, { issuer: ISSUER })).toEqual({ status: "unavailable" });
+    // A known kid still verifies from the copy held.
+    expect((await checkOcToken(await mint(), { issuer: ISSUER })).status).toBe("valid");
+  });
+
+  it("answers invalid for an unknown kid once the key set reads again", async () => {
+    keySet();
+    const rotated = await new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: "never-published" })
+      .setSubject("acct-1")
+      .setJti("jti-3")
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(privateKey);
+    expect(await checkOcToken(rotated, { issuer: ISSUER })).toEqual({ status: "invalid" });
+  });
+
+  it("takes an issuer with a trailing slash as the same issuer", async () => {
+    keySet();
+    expect((await checkOcToken(await mint(), { issuer: `${ISSUER}/` })).status).toBe("valid");
+    expect((await verifyOcToken(await mint(), { issuer: `${ISSUER}/` }))?.did_oc).toBe("did:oc:abc");
+  });
+
   it("answers invalid, not unavailable, for an issuer it may not fetch from", async () => {
     keySet();
     expect(await checkOcToken(await mint(), { issuer: "http://issuer.test" })).toEqual({ status: "invalid" });

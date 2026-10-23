@@ -672,6 +672,8 @@ interface JwksCacheEntry {
 
 const jwksCache = new Map<string, JwksCacheEntry>();
 const inflight = new Map<string, Promise<JwksCacheEntry>>();
+/** Issuers whose latest key-set fetch failed: an unknown kid there can't be told from a new key. */
+const jwksFailing = new Set<string>();
 
 /**
  * When each issuer last had its cache force-refreshed by an unrecognised
@@ -736,8 +738,10 @@ async function fetchJwks(
       }
       const entry: JwksCacheEntry = { keys, retiredAt, fetchedAt: Date.now() };
       jwksCache.set(issuer, entry);
+      jwksFailing.delete(issuer);
       return entry;
     } catch (err) {
+      jwksFailing.add(issuer);
       // Stale-on-error: a transient JWKS outage shouldn't lock out
       // every consumer, so an expired entry keeps answering — but only
       // until it is `maxStaleMs` old. A key the auth host removed must
@@ -878,10 +882,14 @@ export async function checkOcToken(
         key = entry.keys[header.kid];
       }
     }
-    if (!key) return INVALID;
+    // A key may have rotated in while the key set can't be fetched: that is an
+    // outage, not a token the set does not know.
+    if (!key) return jwksFailing.has(issuer) ? { status: "unavailable" } : INVALID;
+    // A trailing slash on the issuer asked for names the same issuer.
+    const bare = issuer.replace(/\/+$/, "");
     const res = await jwtVerify(token, key, {
       algorithms: [JWT_ALG],
-      issuer,
+      issuer: bare === issuer ? issuer : [issuer, bare],
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return INVALID;
@@ -989,6 +997,7 @@ export function _resetJwksCachesForTests(): void {
   jwksCache.clear();
   inflight.clear();
   lastForcedRefresh.clear();
+  jwksFailing.clear();
 }
 
 export * from "./revocation";

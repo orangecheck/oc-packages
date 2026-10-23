@@ -23,7 +23,16 @@ this file tracks the package's TS / Node / runtime API surface.
 - `readOcSessionToken(headers)`: the token a request carries, as
   `getOcSession` reads it (the `oc_session` cookie, then a Bearer header).
 
+A token whose `kid` is not in the key set held, while the latest fetch of that
+set failed, is `unavailable` too: the key may have rotated in during the
+outage.
+
 `verifyOcToken` and `getOcSession` answer as before: a session, or `null`.
+
+### Changed
+
+- An `issuer` with a trailing slash names the same issuer: a token's `iss`
+  may be either spelling.
 
 ## [2.15.0] — 2026-10-23
 
