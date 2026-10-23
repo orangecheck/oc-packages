@@ -8,6 +8,19 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.15] — 2026-10-23
+
+### Added — an account a site made for you
+
+The ochk.app Privacy policy said nothing about accounts a site makes through
+OrangeCheck Connect. It now says what is kept for one (a hash of the id the
+site gave you, a keyed hash of your email if the site sent one, when it was
+made, whether you agreed to earn, and what it earned), that it keeps no
+sign-in times, that it earns nothing until you agree, and how it ends: you
+claim it and delete your own account, or the site deletes it unless it holds
+earnings, after which only a hash remains so it cannot be made again without
+you.
+
 ## [0.7.14] — 2026-10-20
 
 ### Changed — the docs address

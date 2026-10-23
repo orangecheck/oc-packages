@@ -385,6 +385,20 @@ const privacy: DocSpec = {
                 },
             ],
         },
+        {
+            id: 'site-made-accounts',
+            heading: 'an account a site made for you',
+            blocks: [
+                {
+                    kind: 'para',
+                    text: 'A site that signs you in its own way can use OrangeCheck Connect to make an orangecheck account for you. For that account OrangeCheck keeps a hash of the id the site gave you, never the id; a keyed hash of your email address if the site sent one, never the address; when the account was made; whether the site said you agreed to earn with it; and what it earned, if the site pays. It keeps no sign-in times, because the account has no sign-in of its own. Until you agree, through the site or by claiming it, the account is for sign-in only and earns nothing.',
+                },
+                {
+                    kind: 'para',
+                    text: 'You can claim it on ochk.app with a link the site gives you, or with an email address the site verified and you hold. It then becomes part of your own account, and deleting your account deletes it. The site can delete it too, for example when you close your account with that site, unless it holds earnings: those stay yours until you claim them. After a deletion OrangeCheck keeps only a hash of the id the site gave you, with the site\'s app id, so the site cannot quietly make the account again; it can only when you agree again.',
+                },
+            ],
+        },
         privacyTransfers,
         privacyRegional,
         privacyChildren,

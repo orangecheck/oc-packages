@@ -104,3 +104,20 @@ test('ochk.io terms and privacy name ochk.app as the commercial product', () => 
         assert.match(DOCS.find(([n]) => n === name)[1], /commercial products ochk\.app and vault\.ochk\.io/);
     }
 });
+
+// An account a site made through Connect (privacy, ochk.app): what is kept and
+// how it ends, as ochk.io stores it since #266. No sign-in times: it has none.
+test('the ochk.app privacy policy says what a site-made account keeps, and how it is deleted', () => {
+    const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(text, 'me/privacy renders');
+    for (const fact of [
+        'a hash of the id the site gave you, never the id',
+        'a keyed hash of your email address if the site sent one, never the address',
+        'It keeps no sign-in times',
+        'for sign-in only and earns nothing',
+        'The site can delete it too',
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+});
+
