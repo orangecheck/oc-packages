@@ -371,12 +371,17 @@ export function integratorRevocationCheck(
     return check;
   };
   const handled = (c: RevocableClaims): c is RevocableClaims & { rh: string; aud: string } =>
-    typeof c.rh === "string" && typeof c.aud === "string";
+    typeof c.rh === "string" && c.rh.length > 0 && typeof c.aud === "string";
+  // A handle is looked up on its audience's list, so one that is not a
+  // non-empty string, or comes without one string aud, is never live.
+  const unsound = (c: RevocableClaims) => c.rh !== undefined && !handled(c);
   return {
     async status(claims) {
+      if (unsound(claims)) return "revoked";
       return handled(claims) ? listFor(claims.aud).status(claims) : "live";
     },
     async refuses(claims, method) {
+      if (unsound(claims)) return true;
       return handled(claims) ? listFor(claims.aud).refuses(claims, method) : false;
     },
   };

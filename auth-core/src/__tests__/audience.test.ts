@@ -84,6 +84,36 @@ describe('audience binding', () => {
     });
 });
 
+describe('a token that carries a revocation handle', () => {
+    type Claims = Parameters<typeof signSession>[0];
+    const handled = (over: Record<string, unknown>) =>
+        signSession({ ...claims, aud: A, rh: 'rh-1', ...over } as unknown as Claims, sign, 60);
+
+    it('verifies only with one string aud, the audience asked for', async () => {
+        const p = await verifySessionToken(await handled({}), { publicJwk, audience: A });
+        expect(p).toMatchObject({ aud: A, rh: 'rh-1' });
+        expect(p?.rh).toBe('rh-1');
+        for (const aud of [[A], [A, B]]) {
+            const t = await handled({ aud });
+            expect(await verifySessionToken(t, { publicJwk, audience: A })).toBeNull();
+            expect(await verifySessionToken(t, { publicJwk, audience: [A, B] })).toBeNull();
+            expect(await verifySessionToken(t, { publicJwk, audience: '*' })).toBeNull();
+        }
+    });
+
+    it('is refused when the handle is not a non-empty string', async () => {
+        for (const rh of [42, '', ['rh-1'], null]) {
+            const t = await handled({ rh });
+            expect(await verifySessionToken(t, { publicJwk, audience: A })).toBeNull();
+        }
+    });
+
+    it('a token with no handle keeps verifying with a list aud', async () => {
+        const t = await signSession({ ...claims, aud: [A, B] as unknown as string }, sign, 60);
+        expect(await verifySessionToken(t, { publicJwk, audience: A })).not.toBeNull();
+    });
+});
+
 describe('audienceSatisfied', () => {
     it('handles array-valued aud claims', () => {
         expect(audienceSatisfied([A, B], B)).toBe(true);

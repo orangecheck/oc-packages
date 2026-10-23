@@ -416,6 +416,20 @@ describe("integratorRevocationCheck", () => {
     expect(seen).toHaveLength(0);
   });
 
+  it("never answers live for a handle without one string aud, and never fetches for it", async () => {
+    const check = integrator();
+    for (const over of [{ aud: [SITE] }, { aud: [SITE, WWW] }, { aud: undefined }, { rh: 42 }, { rh: "" }]) {
+      expect(await check.status(tok(over))).toBe("revoked");
+      expect(await check.refuses(tok(over), "GET")).toBe(true);
+    }
+    expect(seen).toHaveLength(0);
+  });
+
+  it("still refuses a string-aud session whose handle the list ends", async () => {
+    lists[SITE]!.handles = { "rh-site": nowSec() + 1 };
+    expect(await integrator().refuses(tok(), "GET")).toBe(true);
+  });
+
   it("measures staleness from the list's own time: an old or future-dated list cannot vouch for a write", async () => {
     lists[SITE]!.at = nowSec() - 11 * 60;
     expect(await integrator().refuses(tok(), "POST")).toBe(true);

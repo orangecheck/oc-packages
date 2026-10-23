@@ -123,6 +123,12 @@ export interface SessionPayload extends JWTPayload {
    */
   merged_from?: string[];
   /**
+   * The token's revocation handle on its audience's list of ended sessions,
+   * on every token the ochk.app sign-in popup issues. A token that carries
+   * one verifies only with a single string `aud`.
+   */
+  rh?: string;
+  /**
    * Unix seconds when the user last successfully completed a WebAuthn
    * step-up assertion on the auth host. Consumer subdomains gate
    * sensitive actions on `(now - step_up_at) < their_window` —
@@ -316,6 +322,16 @@ export function resolveDisplayIdentity(
  */
 export type AudienceRule = string | readonly string[] | "*";
 
+/**
+ * A token that carries a revocation handle names one audience, as a string,
+ * and its handle is a non-empty string: a list of ended sessions is kept per
+ * audience, so only then can one end it. A token with no handle is unaffected.
+ */
+function handleBoundToOneAudience(p: { aud?: unknown; rh?: unknown }): boolean {
+  if (p.rh === undefined) return true;
+  return typeof p.rh === "string" && p.rh.length > 0 && typeof p.aud === "string";
+}
+
 /** Pure · does the payload's `aud` satisfy the rule? */
 export function audienceSatisfied(aud: unknown, rule: AudienceRule | undefined): boolean {
   const have = aud === undefined ? [] : Array.isArray(aud) ? aud : [aud];
@@ -475,6 +491,7 @@ export async function verifySessionToken(
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
     if (!audienceSatisfied(p.aud, cfg.audience)) return null;
+    if (!handleBoundToOneAudience(p)) return null;
     return p;
   } catch {
     return null;
@@ -860,6 +877,7 @@ export async function verifyOcToken(
       return null;
     }
     if (!audienceSatisfied(p.aud, options.audience)) return null;
+    if (!handleBoundToOneAudience(p)) return null;
     return p;
   } catch {
     return null;

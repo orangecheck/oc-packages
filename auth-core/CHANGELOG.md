@@ -11,6 +11,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.15.0] — 2026-10-23
+
+### Changed — a revocation handle needs one string audience
+
+- `verifyOcToken`, `getOcSession`, `verifySessionToken` and
+  `resolveSessionFromRequest` accept a token that carries `rh` only when
+  `rh` is a non-empty string and `aud` is one string the verifier accepts.
+  A token without `rh` verifies as before.
+- `integratorRevocationCheck` answers `revoked` (and `refuses`) for claims
+  whose `rh` is not a non-empty string or whose `aud` is not one string.
+
+### Added
+
+- `SessionPayload.rh`: the token's revocation handle.
+
 ## [2.14.0] — 2026-10-23
 
 ### Changed — unknown options throw

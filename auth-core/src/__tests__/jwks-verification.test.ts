@@ -60,6 +60,28 @@ function stubJwks(): { calls: () => number } {
   return { calls: () => calls };
 }
 
+describe("verifyOcToken · a token that carries a revocation handle", () => {
+  const SITE = "https://site.example";
+
+  it("needs one string aud, the audience asked for", async () => {
+    stubJwks();
+    const ok = await verifyOcToken(await mint(KID, { aud: SITE, rh: "rh-1" }), { issuer: ISSUER, audience: SITE });
+    expect(ok?.rh).toBe("rh-1");
+    for (const aud of [[SITE], [SITE, "https://other.example"]]) {
+      const token = await mint(KID, { aud, rh: "rh-1" });
+      expect(await verifyOcToken(token, { issuer: ISSUER, audience: SITE })).toBeNull();
+      expect(await verifyOcToken(token, { issuer: ISSUER, audience: "*" })).toBeNull();
+    }
+  });
+
+  it("refuses a handle that is not a non-empty string", async () => {
+    stubJwks();
+    for (const rh of [42, "", ["rh-1"]]) {
+      expect(await verifyOcToken(await mint(KID, { aud: SITE, rh }), { issuer: ISSUER, audience: SITE })).toBeNull();
+    }
+  });
+});
+
 describe("verifyOcToken", () => {
   it("verifies a token against the published key", async () => {
     stubJwks();
