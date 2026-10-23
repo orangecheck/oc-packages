@@ -200,6 +200,7 @@ def connect_claim_link(
         and data.get("ok") is True
         and isinstance(url, str)
         and urlsplit(url).scheme == "https"
+        # The whole netloc, so a user name, password or port on ochk.app is refused too.
         and urlsplit(url).netloc == "ochk.app"
         and isinstance(expires_at, str)
         and expires_at

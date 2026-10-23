@@ -290,12 +290,18 @@ function call(path: string, o: ConnectOptions, body: Record<string, unknown>): P
     return post(path, o.apiKey, body, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 }
 
-/** An https link on ochk.app, the only place a claim happens. */
+/** An https link on ochk.app, the only place a claim happens: no user name, password or port. */
 function isClaimUrl(v: unknown): v is string {
     if (typeof v !== 'string') return false;
     try {
         const url = new URL(v);
-        return url.protocol === 'https:' && url.host === 'ochk.app';
+        return (
+            url.protocol === 'https:' &&
+            url.hostname === 'ochk.app' &&
+            url.port === '' &&
+            url.username === '' &&
+            url.password === ''
+        );
     } catch {
         return false;
     }

@@ -284,6 +284,27 @@
             "result": { "ok": false, "reason": "unavailable", "status": 200 }
         },
         {
+            "name": "claim link: a user name on ochk.app",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "https://user@ochk.app/connect/claim#t=abc", "expires_at": "2026-10-24T12:15:00.000Z" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "claim link: a user name and password on ochk.app",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "https://user:pw@ochk.app/connect/claim#t=abc", "expires_at": "2026-10-24T12:15:00.000Z" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "claim link: a port on ochk.app",
+            "call": "claim_link",
+            "status": 200,
+            "body": { "ok": true, "url": "https://ochk.app:8443/connect/claim#t=abc", "expires_at": "2026-10-24T12:15:00.000Z" },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
             "name": "claim link: no expiry",
             "call": "claim_link",
             "status": 200,
