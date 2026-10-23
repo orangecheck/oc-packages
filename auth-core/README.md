@@ -102,6 +102,9 @@ if (await familyRevocationCheck().refuses(payload, req.method)) {
 - **No call per request.** Verification is crypto only. The revocation
   check fetches the auth host's list at most once per minute per process
   and answers from memory.
+- **Unknown options throw.** Every verifier, the signer and the revocation
+  checks refuse a key they do not read, so a misspelt `audience` is never
+  read as no audience.
 
 ## License
 

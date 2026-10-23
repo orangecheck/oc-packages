@@ -22,6 +22,8 @@ import {
   type KeyObject,
 } from "jose";
 
+import { refuseUnknownOptions } from "./options";
+
 export const JWT_ALG = "EdDSA" as const;
 export const SESSION_COOKIE = "oc_session" as const;
 export const DEFAULT_ISSUER = "https://ochk.io" as const;
@@ -339,6 +341,14 @@ export interface SignConfig extends VerifyConfig {
   kid: string;
 }
 
+/** The options {@link verifySessionToken} and {@link resolveSessionFromRequest} read. */
+const VERIFY_CONFIG: ReadonlySet<string> = new Set<keyof VerifyConfig>(["publicJwk", "issuer", "audience"]);
+/**
+ * The options {@link signSession} reads. `publicJwk` is part of the type and
+ * harmless; `audience` is not read, since a token's audience is `claims.aud`.
+ */
+const SIGN_CONFIG: ReadonlySet<string> = new Set<keyof SignConfig>(["privateJwk", "kid", "issuer", "publicJwk"]);
+
 // ─── JWK helpers ────────────────────────────────────────────────────────
 
 function decodeJwk(value: string): Record<string, unknown> {
@@ -425,6 +435,12 @@ export async function signSession(
   cfg: SignConfig,
   ttlSeconds: number,
 ): Promise<string> {
+  if (cfg && typeof cfg === "object" && "audience" in cfg) {
+    throw new TypeError(
+      "@orangecheck/auth-core: signSession does not read cfg.audience. Bind a token to a relying party with claims.aud.",
+    );
+  }
+  refuseUnknownOptions("signSession", cfg, SIGN_CONFIG);
   const now = Math.floor(Date.now() / 1000);
   // did_oc is the sole user identifier. The legacy `addr` shim that
   // mirrored did_oc was dropped in v2.0.0 along with the type field.
@@ -450,6 +466,7 @@ export async function verifySessionToken(
   token: string,
   cfg: VerifyConfig,
 ): Promise<SessionPayload | null> {
+  refuseUnknownOptions("verifySessionToken", cfg, VERIFY_CONFIG);
   try {
     const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
       algorithms: [JWT_ALG],
@@ -595,12 +612,13 @@ function headerValue(
  *
  * Crypto-only (signature + exp + iss via {@link verifySessionToken}); a
  * signed-out token still resolves, so pass the payload to
- * {@link familyRevocationCheck}. Never throws.
+ * {@link familyRevocationCheck}. Throws only on an option it does not read.
  */
 export async function resolveSessionFromRequest(
   headers: IncomingRequestHeaders,
   cfg: VerifyConfig,
 ): Promise<ResolveSessionResult> {
+  refuseUnknownOptions("resolveSessionFromRequest", cfg, VERIFY_CONFIG);
   const tabToken = headerValue(headers, TAB_SESSION_HEADER);
   if (tabToken) {
     const payload = await verifySessionToken(tabToken, cfg);
@@ -757,13 +775,34 @@ export interface VerifyOcOptions {
   audience?: AudienceRule;
 }
 
+/** The options {@link verifyOcToken} and {@link getOcSession} read. */
+const VERIFY_OC_OPTIONS: ReadonlySet<string> = new Set<keyof VerifyOcOptions>([
+  "issuer",
+  "jwksCacheTtlMs",
+  "jwksMaxStaleMs",
+  "audience",
+]);
+/**
+ * Read by @orangecheck/me-client, which up to 0.38.2 passes its own options
+ * through to {@link getOcSession}. Accepted and not read here.
+ */
+const ME_CLIENT_OPTIONS: ReadonlySet<string> = new Set([
+  "method",
+  "projectKey",
+  "meOrigin",
+  "revocation",
+  "required",
+  "requireBond",
+]);
+
 /**
  * Verify a JWT issued by an OC auth host. Lazy-fetches the JWKS from
  * `<issuer>/.well-known/jwks.json`, picks the key whose `kid` matches
  * the token's protected header, and verifies the signature.
  *
  * Returns the payload on success, `null` on any failure (bad signature,
- * expired, wrong issuer, kid not in JWKS, malformed). Never throws.
+ * expired, wrong issuer, kid not in JWKS, malformed). Throws only on an
+ * option it does not read.
  *
  * Integrators don't need to handle JWKs, env vars, or rotation — the
  * cache picks up new keys automatically when they appear in the JWKS
@@ -776,6 +815,7 @@ export async function verifyOcToken(
   token: string,
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
+  refuseUnknownOptions("verifyOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
   const issuer = options.issuer ?? DEFAULT_ISSUER;
   const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
   const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
@@ -840,12 +880,13 @@ export interface SessionRequestHeaders {
  * .ochk.io cookie) can verify the same way.
  *
  * Returns `null` for unauthenticated, missing, or invalid requests.
- * Never throws.
+ * Throws only on an option it does not read.
  */
 export async function getOcSession(
   headers: SessionRequestHeaders | Headers,
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
+  refuseUnknownOptions("getOcSession", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
   const cookie = isHeaders(headers)
     ? headers.get("cookie")
     : (headers.cookie ?? null);

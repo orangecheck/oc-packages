@@ -11,6 +11,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.14.0] — 2026-10-23
+
+### Changed — unknown options throw
+
+- `verifyOcToken`, `getOcSession`, `verifySessionToken`,
+  `resolveSessionFromRequest`, `signSession`, `createRevocationCheck` and
+  `integratorRevocationCheck` throw (or reject) a `TypeError` naming an
+  option they do not read. Each reads only the keys of its options type.
+- `signSession` refuses `audience` in its config: a token's audience is
+  `claims.aud`.
+- `verifyOcToken` and `getOcSession` accept, and do not read, the keys
+  `@orangecheck/me-client` 0.38.2 and earlier pass through to them:
+  `method`, `projectKey`, `meOrigin`, `revocation`, `required`,
+  `requireBond`.
+
 ## [2.13.0] — 2026-10-22
 
 ### Changed — neither a clock set back nor a paused host stretches a revocation list

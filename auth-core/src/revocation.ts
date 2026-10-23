@@ -13,6 +13,8 @@
 //     account issued before it (`iat < cutoff`) is ended.
 
 /** The claims a revocation decision reads. A verified session payload has them all. */
+import { refuseUnknownOptions } from "./options";
+
 export interface RevocableClaims {
   jti?: unknown;
   sub?: unknown;
@@ -156,7 +158,40 @@ function parseFeed(body: unknown, fetchedAt: number, wallAtFetch: number): Snaps
  * process and share it (fluid compute keeps module state across requests);
  * {@link familyRevocationCheck} is that one, configured from the environment.
  */
+/** The options {@link createRevocationCheck} reads. */
+const REVOCATION_CHECK_OPTIONS: ReadonlySet<string> = new Set<keyof RevocationCheckOptions>([
+  "url",
+  "token",
+  "headers",
+  "ttlMs",
+  "maxStaleMs",
+  "staleFrom",
+  "skewMs",
+  "timeoutMs",
+  "retryMs",
+  "developing",
+  "fetch",
+  "now",
+  "clock",
+]);
+
+/** The options {@link integratorRevocationCheck} reads. */
+const INTEGRATOR_REVOCATION_OPTIONS: ReadonlySet<string> = new Set<keyof IntegratorRevocationOptions>([
+  "projectKey",
+  "signingSecret",
+  "meOrigin",
+  "ttlMs",
+  "maxStaleMs",
+  "skewMs",
+  "timeoutMs",
+  "retryMs",
+  "fetch",
+  "now",
+  "clock",
+]);
+
 export function createRevocationCheck(opts: RevocationCheckOptions = {}): RevocationCheck {
+  refuseUnknownOptions("createRevocationCheck", opts, REVOCATION_CHECK_OPTIONS);
   const issuer = (env("OC_AUTH_ISSUER") ?? "https://ochk.io").replace(/\/$/, "");
   const url = opts.url ?? env("OC_REVOCATION_FEED_URL") ?? `${issuer}/api/auth/revocations`;
   const token = opts.token ?? env("OC_REVOCATION_FEED_TOKEN")?.trim();
@@ -309,6 +344,7 @@ async function hmacHex(secret: string, data: string): Promise<string> {
 export function integratorRevocationCheck(
   opts: IntegratorRevocationOptions = {},
 ): RevocationCheck | null {
+  refuseUnknownOptions("integratorRevocationCheck", opts, INTEGRATOR_REVOCATION_OPTIONS);
   const { projectKey: pk, signingSecret, meOrigin, ...rest } = opts;
   const projectKey = (pk ?? env("OC_PROJECT_KEY"))?.trim();
   const secret = (signingSecret ?? env("OC_SIGNING_SECRET"))?.trim();
