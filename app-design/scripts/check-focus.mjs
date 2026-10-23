@@ -28,6 +28,9 @@
  * - A tab pressed with the mouse shows no ring; one reached by the keyboard does.
  * - Shift+Tab back through a docs table scrolled right brings each link, its
  *   ring included, inside the table's box.
+ * - The theme switch changes the page's colours at once, not as a fade, and
+ *   leaves transitions as they were; the package's ThemeProvider puts no
+ *   stylesheet in as it mounts.
  *
  * Run after `yarn build`.
  */
@@ -142,6 +145,13 @@ try {
         widetable: mount(
             `import { MdxTable } from '${src('components/docs.tsx')}';`,
             `<div className="w-[40rem] p-6"><MdxTable><thead><tr><th>Property</th><th>Type</th><th>Description</th><th>Defined in</th></tr></thead><tbody>{['FederationRevocationEnvelope', 'FederationDelegationEnvelope', 'RevocationEnvelope'].map((t, i) => <tr key={t}><td>{'revocations' + i}</td><td><a href={'#' + t}>{t}</a></td><td style={{ minWidth: '36rem' }}>Revocations to check (kind-30085 by #t with the delegation id): federation revocations, and the agent's own.</td><td><a href={'#src' + i}>{'agent-core/src/federation.ts:23' + i}</a></td></tr>)}</tbody></MdxTable></div>`
+        ),
+        // The theme switch under the package's provider, beside a swatch that fades its colours; style elements put in while it mounts are counted.
+        themes: mount(
+            `import { ThemeProvider, ThemeToggle } from '${src('chrome/app-shell.tsx')}';\n` +
+                `window.__sheets = 0;\n` +
+                `new MutationObserver((l) => { for (const m of l) for (const n of m.addedNodes) if (n.nodeName === 'STYLE') window.__sheets++; }).observe(document.head, { childList: true });`,
+            `<ThemeProvider defaultTheme="light"><div className="flex items-center gap-4 p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div><ThemeToggle /></div></ThemeProvider>`
         ),
     };
     bundle(dir, clients);
@@ -345,6 +355,21 @@ try {
         await p.waitForTimeout(150);
         const panel = await ringOf('[role="tabpanel"]');
         check(panel.reached && panel.drawn, `TabsContent: the panel, reached by Tab, has no focus ring (${JSON.stringify(panel)})`);
+        // A theme switch changes the page's colours at once, then leaves transitions as they were.
+        await p.goto(client('themes'));
+        await p.waitForSelector('button[aria-label^="Theme:"]');
+        await p.waitForTimeout(300);
+        const before = await p.evaluate(() => ({ bg: getComputedStyle(document.getElementById('swatch')).backgroundColor, styles: document.querySelectorAll('style').length, mounted: window.__sheets, cls: document.documentElement.className }));
+        check(before.mounted === 0 && before.cls.includes('light'), `ThemeProvider: mounting put ${before.mounted} style elements in (a page-wide transition kill re-styles the whole document twice), class "${before.cls}"`);
+        await p.click('button[aria-label^="Theme:"]');
+        await p.waitForFunction(() => document.documentElement.classList.contains('dark'));
+        await p.waitForTimeout(80);
+        const after = await p.evaluate(() => {
+            const sw = document.getElementById('swatch');
+            return { fading: sw.getAnimations().filter((a) => a.constructor.name === 'CSSTransition').map((a) => a.transitionProperty), bg: getComputedStyle(sw).backgroundColor, styles: document.querySelectorAll('style').length, still: getComputedStyle(sw).transitionProperty };
+        });
+        check(after.fading.length === 0 && after.bg !== before.bg, `ThemeToggle: a switch fades the page's colours (${after.fading.join(', ')} running; background ${before.bg} → ${after.bg})`);
+        check(after.styles === before.styles && /color/.test(after.still), `ThemeToggle: the switch left its stilling style behind (${before.styles} → ${after.styles} style elements; transition-property ${after.still})`);
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));
         await p.waitForSelector('table a');

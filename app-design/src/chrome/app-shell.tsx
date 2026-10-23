@@ -1,6 +1,6 @@
 import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
+import { ThemeProvider as NextThemeProvider, useTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { ProductLockup } from './product-lockup';
@@ -602,6 +602,49 @@ export function AccountMenu({
     );
 }
 
+/*
+ * A switch changes every colour at once, not as a fade. next-themes'
+ * disableTransitionOnChange did that on every load as well (it applies the
+ * theme on mount), at two whole-document style recalculations; this does it
+ * only when someone switches.
+ */
+function switchQuietly(apply: () => void) {
+    const root = document.documentElement;
+    const still = document.createElement('style');
+    still.textContent = "[data-oc-app='ochk'] *,[data-oc-app='ochk'] *::before,[data-oc-app='ochk'] *::after{transition:none!important}";
+    document.head.appendChild(still);
+    let done = false;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        watch.disconnect();
+        clearTimeout(timer);
+        // The new colours computed while transitions are off; then they come back with nothing to animate.
+        void root.offsetHeight;
+        still.remove();
+    };
+    // next-themes writes the class in an effect after the render; a switch to "system" that changes nothing writes none.
+    const watch = new MutationObserver(finish);
+    watch.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+    const timer = setTimeout(finish, 500);
+    apply();
+}
+
+export type ThemeProviderProps = Omit<NextThemeProviderProps, 'disableTransitionOnChange'>;
+
+/**
+ * next-themes as the family sets it: the class on <html>, the system's mode
+ * until someone picks one. No disableTransitionOnChange: ThemeToggle stills
+ * its own switch, and the option cost every page load two recalculations.
+ */
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+    return (
+        <NextThemeProvider attribute="class" defaultTheme="system" enableSystem {...props}>
+            {children}
+        </NextThemeProvider>
+    );
+}
+
 /** Light, dark, or follow the system: one button that cycles. */
 export function ThemeToggle({ className }: { className?: string }) {
     const { theme, setTheme } = useTheme();
@@ -613,7 +656,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
         <button
             type="button"
-            onClick={() => setTheme(next)}
+            onClick={() => switchQuietly(() => setTheme(next))}
             aria-label={`Theme: ${current}. Switch to ${next}`}
             title={`Theme: ${current}`}
             className={cn(

@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.17.0] — 2026-10-23
+
+- `ThemeProvider` (from `/chrome`): next-themes as the family sets it, the
+  class on `<html>` and the system's mode until someone picks one, without
+  `disableTransitionOnChange`. next-themes applies the theme on every mount,
+  and with that option put a page-wide `transition:none` stylesheet in and took
+  it out, two whole-document style recalculations on every load: on ochk.app/
+  at 390 with a 4x slower CPU, about 3,200 elements and 120-140 ms each. With
+  only that stylesheet held back, TBT went from 682 to 310 ms there (5 runs,
+  medians) and from 301 to 104 ms on ochk.io/. Every family site set the
+  option; swap the provider, or drop the prop.
+- `ThemeToggle` stills transitions for the switch a person makes, so colours
+  still change at once rather than fade, and only then.
+- The halftone was the suspect and is not the cause: its frames take 1 to 13
+  ms on that profile, and drawing nothing left TBT where it was.
+- check-focus mounts the provider and counts the style elements it puts in,
+  and switches the theme beside a swatch with a 700ms colour transition: no
+  transition may run, and the stilling style must be gone after. The switch
+  check fails on 1.16.4, and the mount check fails with the option set.
+
 ## [1.16.4] — 2026-10-23
 
 - A keyboard focus inside a sideways scroller (a docs table, a code block, a
