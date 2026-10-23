@@ -1,0 +1,11 @@
+# gitleaks: the default rules, minus what this repo publishes on purpose.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "me-client's integrator test vectors: tv-session tokens and the fixed test secrets that sign them"
+paths = ['''^me-client/test-vectors/''', '''^me-client/scripts/gen-integrator-vectors\.mjs$''']
+
+[[allowlists]]
+description = "Project keys (pk_test_, pk_live_) identify a project in public pages; they are not secrets"
+regexes = ['''^pk_(?:test|live)_[A-Za-z0-9_-]+(?:\.\.\.|…)?$''']

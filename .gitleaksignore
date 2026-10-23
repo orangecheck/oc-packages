@@ -1,0 +1,4 @@
+# auth-client/src/__tests__/signin.test.tsx: an identifier the linkedin rule mistakes for a client id
+364584995d7761d003fd7ba32c00f4edec12bf75:auth-client/src/__tests__/signin.test.tsx:linkedin-client-id:17
+# site-kit/src/analytics/analytics.test.tsx: a fixture key in a URL fragment
+cd8c0490376cec87f07d594b3601ad522a65ea14:site-kit/src/analytics/analytics.test.tsx:generic-api-key:19
