@@ -98,20 +98,28 @@ export type RevokeTokenResult =
 
 const REVOKE_OPTIONS: ReadonlySet<string> = new Set<keyof RevokeTokenOptions>(['issuer', 'timeoutMs']);
 
-/** An absolute https URL, or http on this machine only, as auth-core takes an issuer. */
+/**
+ * The issuer as one origin, `scheme://host[:port]`: https, or http on this
+ * machine only. A path, a query, a fragment or a user name would send the
+ * tokens somewhere else on the host (or carry credentials), so each is refused.
+ */
 function issuerOrigin(issuer: unknown): string {
     if (typeof issuer !== 'string') fail('revokeToken: issuer must be a URL');
+    const refuse = (): never =>
+        fail(`revokeToken: issuer must be one https origin (http only on this machine), such as https://ochk.io, got ${issuer}`);
+    if (/[?#@\\]/.test(issuer)) refuse();
     let url: URL;
     try {
         url = new URL(issuer);
     } catch {
-        fail(`revokeToken: issuer must be an absolute URL, got ${issuer}`);
+        return refuse();
     }
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) {
-        fail(`revokeToken: issuer must be https (http only on this machine), got ${issuer}`);
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) refuse();
+    if (url.pathname !== '/' || url.search !== '' || url.hash !== '' || url.username !== '' || url.password !== '') {
+        refuse();
     }
-    return issuer.replace(/\/+$/, '');
+    return url.origin;
 }
 
 /**

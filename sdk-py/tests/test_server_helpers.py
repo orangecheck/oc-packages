@@ -316,3 +316,68 @@ def test_revocation_list_needs_one_non_empty_string_for_key_and_secret(key: Any,
 
 def test_revocation_list_takes_a_key_and_secret() -> None:
     assert RevocationList("pk_test_tv", "s3cret").status(None, None, None) == "live"
+
+
+# ─── review follow-ups ───────────────────────────────────────────────────
+
+
+@respx.mock
+def test_an_unknown_kid_while_the_key_set_cannot_be_read_is_an_outage() -> None:
+    # A key may have rotated in while ochk.io was unreachable: that is "can't tell", not a bad token.
+    route = respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"]), httpx.Response(503), httpx.Response(200, json=V["session"]["jwks"])]
+    )
+    valid = V["session"]["valid"][0]
+    unknown = next(v for v in V["session"]["invalid"] if v["name"] == "kid not in the set")
+    assert verify_session(valid["token"], valid["audience"]).did_oc
+    got = check_oc_session(unknown["token"], unknown["audience"], method="GET")
+    assert (got.status, got.body) == (503, {"ok": False, "reason": "key_set_unavailable"})
+    # Once a fetch succeeds again, the same kid is a token the set does not know.
+    integrator._session_keys._forced_at = float("-inf")
+    integrator._session_keys._forced_wall = float("-inf")
+    with pytest.raises(InvalidSession) as err:
+        verify_session(unknown["token"], unknown["audience"])
+    assert err.value.reason == "unknown_key"
+    assert route.call_count == 3
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["https://ochk.io/#", "https://ochk.io?x", "https://ochk.io/path", "https://u:p@ochk.io", "https://ochk.io\\@evil.example"],
+)
+def test_an_issuer_is_one_origin_and_nothing_else(bad: str) -> None:
+    v = V["session"]["valid"][0]
+    with pytest.raises(ValueError, match="issuer"):
+        verify_session(v["token"], v["audience"], issuer=bad)
+    with pytest.raises(ValueError, match="issuer"):
+        revoke_token("a.b.c", issuer=bad)
+
+
+@respx.mock
+def test_an_issuer_with_a_trailing_slash_is_the_same_issuer() -> None:
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
+    v = V["session"]["valid"][0]
+    assert verify_session(v["token"], v["audience"], issuer="https://ochk.io/").did_oc == v["claims"]["did_oc"]
+    assert check_oc_session(v["token"], v["audience"], issuer="https://ochk.io/", method="GET").ok
+
+
+def test_spend_once_async_takes_an_async_store_or_a_sync_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    import asyncio
+
+    from orangecheck import spend_once_async
+
+    class AsyncStore:
+        def __init__(self) -> None:
+            self.inner = MemoryJtiStore()
+
+        async def add(self, jti: str, exp: int) -> bool:
+            return self.inner.add(jti, exp)
+
+    for store in (AsyncStore(), MemoryJtiStore()):
+        for s in H["spend_once"]["steps"]:
+            _move_to(monkeypatch, s["now"])
+            assert asyncio.run(spend_once_async(s["jti"], s["exp"], store)) is s["spent"], s["name"]
+        _move_to(monkeypatch, H["now"])
+    for s in H["spend_once"]["refused"]:
+        with pytest.raises(TypeError, match="spend_once"):
+            asyncio.run(spend_once_async(s["jti"], s["exp"], MemoryJtiStore()))

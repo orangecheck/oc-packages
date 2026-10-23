@@ -246,6 +246,16 @@ describe('revokeToken · ending a token at ochk.io', () => {
         ]);
         expect(() => revokeToken('a.b.c', { issuer: 'http://ochk.io' })).toThrow(SDK);
         expect(() => revokeToken('a.b.c', { issuer: 'not a url' })).toThrow(SDK);
+        // One origin and nothing else: a path, query, fragment or user name sends the tokens elsewhere.
+        for (const bad of [
+            'https://ochk.io/#',
+            'https://ochk.io?x',
+            'https://ochk.io/path',
+            'https://u:p@ochk.io',
+            'https://ochk.io\\@evil.example',
+        ]) {
+            expect(() => revokeToken('a.b.c', { issuer: bad }), bad).toThrow(SDK);
+        }
     });
 
     it('refuses an option it does not read', () => {

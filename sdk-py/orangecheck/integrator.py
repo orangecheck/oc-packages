@@ -256,6 +256,10 @@ class _KeySet:
                 self._forced_at, self._forced_wall = _clock(), time.time()
                 self._fetch()
                 key = self._keys.get(kid)
+            # A key may have rotated in while the set can't be fetched: that is an
+            # outage, not a token the set does not know.
+            if key is None and self._error is not None:
+                raise ValueError(f"key set unavailable: {self._error}")
             return key
 
 
@@ -266,22 +270,31 @@ _issuer_keys: dict[str, _KeySet] = {}
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
-def _issuer_url(issuer: str) -> str:
-    """Where an issuer's key set is: ``<issuer>/.well-known/jwks.json``, over https (http only on this machine)."""
+def _issuer_origin(issuer: str) -> str:
+    """An issuer as one origin, ``scheme://host[:port]``: https, or http on this machine only.
+    A path, a query, a fragment or a user name would send requests somewhere else on the
+    host (or carry credentials), so each is refused. A trailing slash is allowed."""
     try:
-        parts = urlsplit(issuer)
+        parts = urlsplit(issuer) if isinstance(issuer, str) else None
     except ValueError:
         parts = None
     if (
         parts is None
+        or any(c in issuer for c in "?#@\\")
+        or parts.path not in ("", "/")
         or not parts.hostname
         or not (parts.scheme == "https" or (parts.scheme == "http" and parts.hostname in _LOCAL_HOSTS))
     ):
         raise ValueError(
-            f"issuer must be an https URL (http only on localhost) to fetch its key set, got {issuer!r}; "
+            f"issuer must be one https origin (http only on localhost), such as https://ochk.io, got {issuer!r}; "
             "pass jwks= to verify offline"
         )
-    return issuer.rstrip("/") + "/.well-known/jwks.json"
+    return f"{parts.scheme}://{parts.netloc}"
+
+
+def _issuer_url(issuer: str) -> str:
+    """Where an issuer's key set is: ``<issuer>/.well-known/jwks.json``."""
+    return _issuer_origin(issuer) + "/.well-known/jwks.json"
 
 
 def _keys_for(issuer: str) -> _KeySet:
@@ -782,7 +795,8 @@ def verify_session(
     except InvalidSignature as err:
         raise InvalidSession("signature") from err
 
-    if payload.get("iss") != issuer:
+    # A trailing slash on the issuer asked for names the same issuer.
+    if payload.get("iss") not in (issuer, issuer.rstrip("/")):
         raise InvalidSession("issuer")
     now = time.time()
     exp = payload.get("exp")

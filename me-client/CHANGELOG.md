@@ -21,7 +21,10 @@ this file tracks the package's TS / Node / runtime API surface.
     to eight, at the auth host (`POST <issuer>/api/auth/revoke`). Resolves to
     `{ ok: true, revoked }` or `{ ok: false, reason, status }` (`rate_limited`,
     `bad_request`, `unavailable`), never throws on an outage. An unknown option
-    throws.
+    throws, and so does an `issuer` that is not one origin (https, or http on
+    this machine; no path, query, fragment or user name). ochk.io takes 60
+    calls a minute per IP: queue a `rate_limited` or `unavailable` result and
+    try again, since the token stays valid until it expires.
 - `FederationMigratingWebhookPayload`, `FederationMigrationCancelledWebhookPayload`
   and `FederationSuccessor`: the two federation notices, typed as me.ochk.io
   sends them. `/integrator` now exports them too, with `SystemWebhookPayload`

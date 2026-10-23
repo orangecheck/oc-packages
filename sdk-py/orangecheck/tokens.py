@@ -18,6 +18,7 @@ calls and results as ``@orangecheck/me-client/server``, held to
 
 from __future__ import annotations
 
+import inspect
 import math
 import threading
 import time
@@ -26,7 +27,7 @@ from typing import Any, Literal, Protocol, Union
 
 import httpx
 
-from .integrator import SESSION_ISSUER, _issuer_url
+from .integrator import SESSION_ISSUER, _issuer_origin
 
 _DEFAULT_TIMEOUT = 5.0
 _MAX_TIMEOUT = 30.0
@@ -69,14 +70,8 @@ class MemoryJtiStore:
             return True
 
 
-def spend_once(jti: str, exp: Union[int, float], store: JtiStore) -> bool:
-    """
-    Spend a verified token's ``jti`` so it starts one session: True the first
-    time, False for a repeat or a token that has expired (``exp``, in seconds, at
-    or before now). Call it after verifying the token and before starting your
-    own session; on False, refuse the sign-in. A store that fails raises, so the
-    sign-in fails closed.
-    """
+def _spend_check(jti: Any, exp: Any, store: Any) -> Any:
+    """The store's ``add``, once the call is right; raises TypeError otherwise."""
     if not isinstance(jti, str) or not jti:
         raise TypeError("spend_once: jti must be one non-empty string")
     if isinstance(exp, bool) or not isinstance(exp, (int, float)) or not math.isfinite(exp):
@@ -84,12 +79,39 @@ def spend_once(jti: str, exp: Union[int, float], store: JtiStore) -> bool:
     add = getattr(store, "add", None)
     if not callable(add):
         raise TypeError("spend_once: store must have add(jti, exp)")
+    return add
+
+
+def _spent(answer: Any) -> bool:
+    if not isinstance(answer, bool):
+        raise TypeError("spend_once: store.add must answer True or False")
+    return answer
+
+
+def spend_once(jti: str, exp: Union[int, float], store: JtiStore) -> bool:
+    """
+    Spend a verified token's ``jti`` so it starts one session: True the first
+    time, False for a repeat or a token that has expired (``exp``, in seconds, at
+    or before now). Call it after verifying the token and before starting your
+    own session; on False, refuse the sign-in. A store that fails raises, so the
+    sign-in fails closed. With an async store, use :func:`spend_once_async`.
+    """
+    add = _spend_check(jti, exp, store)
     if exp <= math.floor(time.time()):
         return False
-    spent = add(jti, exp)
-    if not isinstance(spent, bool):
-        raise TypeError("spend_once: store.add must answer True or False")
-    return spent
+    return _spent(add(jti, exp))
+
+
+async def spend_once_async(jti: str, exp: Union[int, float], store: Any) -> bool:
+    """:func:`spend_once` for an async route: ``store.add`` may be a coroutine
+    (redis.asyncio, an async ORM) or a plain function."""
+    add = _spend_check(jti, exp, store)
+    if exp <= math.floor(time.time()):
+        return False
+    answer = add(jti, exp)
+    if inspect.isawaitable(answer):
+        answer = await answer
+    return _spent(answer)
 
 
 @dataclass(frozen=True)
@@ -137,7 +159,7 @@ def revoke_token(
             f"of at most {_MAX_TOKEN_LENGTH} characters"
         )
     try:
-        url = _issuer_url(issuer)[: -len("/.well-known/jwks.json")] + "/api/auth/revoke"
+        url = _issuer_origin(issuer) + "/api/auth/revoke"
     except ValueError as err:
         raise ValueError(f"revoke_token: {err}") from err
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= _MAX_TIMEOUT:

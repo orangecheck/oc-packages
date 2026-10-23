@@ -20,7 +20,7 @@ All notable changes to the **`orangecheck`** Python package. Follows
 - `spend_once(jti, exp, store)`, `JtiStore` and `MemoryJtiStore`: a token's
   `jti` starts one session. True the first time, False for a repeat or a token
   that has expired. The store is yours, shared by every server; a store that
-  fails raises.
+  fails raises. `spend_once_async` takes a store whose `add` is a coroutine.
 - `revoke_token(token, issuer=, timeout=)`: ends a token, or up to eight, at
   the auth host (`POST <issuer>/api/auth/revoke`). Returns `TokensRevoked` or
   `RevokeRefusal` (`rate_limited`, `bad_request`, `unavailable`), never raises
@@ -32,9 +32,14 @@ All notable changes to the **`orangecheck`** Python package. Follows
 
 - `issuer=` on `verify_session` also names where the key set is fetched:
   `<issuer>/.well-known/jwks.json`, as `@orangecheck/me-client` fetches it.
-  Before, the key set was always ochk.io's. An issuer it would fetch over plain
-  http, other than localhost, raises `ValueError`. A `jwks=` given explicitly
-  wins, and nothing is fetched.
+  Before, the key set was always ochk.io's. The issuer must be one origin
+  (https, or http on localhost only; no path, query, fragment or user name),
+  or it raises `ValueError`; a trailing slash names the same issuer. A `jwks=`
+  given explicitly wins, and nothing is fetched.
+- A token whose `kid` is not in the key set held, while the latest fetch of
+  that set failed, raises `InvalidSession("key_set_unavailable")`: the key may
+  have rotated in during the outage. Once a fetch succeeds it is `unknown_key`
+  again. The same for webhooks.
 - `RevocationList(project_key, signing_secret)` raises `ValueError` unless each
   is one non-empty string. An empty one signs requests me.ochk.io refuses, so
   every write would answer `revocations_unavailable` for as long as the

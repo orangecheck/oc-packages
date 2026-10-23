@@ -267,6 +267,11 @@ start_your_session(session)
 revoke_token(token)  # TokensRevoked or RevokeRefusal, never an exception
 ```
 
+`spend_once_async` takes a store whose `add` is a coroutine (redis.asyncio, an
+async ORM). ochk.io ends at most 60 calls a minute per IP: queue a
+`RevokeRefusal` (`rate_limited` or `unavailable`) and try again, since the
+token stays valid until it expires.
+
 `issuer=` on `verify_session`, `check_oc_session`, `warm_session` and
 `revoke_token` names another auth host, such as a test stack's (3.2.0 or
 later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https

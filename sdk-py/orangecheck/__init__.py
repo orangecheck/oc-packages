@@ -97,7 +97,15 @@ from .integrator import (
     verify_webhook,
     warm_session,
 )
-from .tokens import JtiStore, MemoryJtiStore, RevokeRefusal, TokensRevoked, revoke_token, spend_once
+from .tokens import (
+    JtiStore,
+    MemoryJtiStore,
+    RevokeRefusal,
+    TokensRevoked,
+    revoke_token,
+    spend_once,
+    spend_once_async,
+)
 from .top_level import challenge_issue, challenge_verify, check, discover, verify
 from .types import (
     AttestationSummary,
@@ -167,6 +175,7 @@ __all__ = [
     "read_bond_claim",
     # After a sign-in: one session per token, then end the token at ochk.io
     "spend_once",
+    "spend_once_async",
     "JtiStore",
     "MemoryJtiStore",
     "revoke_token",
