@@ -19,9 +19,9 @@
  *   in another cell stays its own; a compact HashChip sits in a line under
  *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
  *   lockup and product word fit its sidebar.
- * - The family footer fits a phone in 600px, each link group a disclosure
- *   with a 44px summary, every link still there; a desk sees the columns. A
- *   product's footer with seven groups fits too.
+ * - The family footer fits a phone in 600px, its meta line included, each
+ *   link group a disclosure with a 44px summary, every link still there; a
+ *   desk sees the columns. A product's footer with seven groups fits too.
  * - A block title keeps one button beside it on a phone, level with the
  *   title; a group of three wraps under it.
  * - A ListRow holds a line over its title and two under it; a text action
@@ -31,13 +31,15 @@
  *   18px title, a padded card's air and hairlines inset to its text; a list
  *   in a flush Card runs to the card's edges, lined up with its text.
  * - A docs heading that is one long identifier breaks rather than widen a
- *   phone; a link in prose, a list or a table cell is 24px to press; the
- *   Inter fallback face sets text at Inter's width.
+ *   phone; a link in prose, a list or a table cell is 24px to press. Each
+ *   fallback stack sets text at its webfont's width (prose in four weights,
+ *   display type, code), and no measure is in ch, which the fallback narrows.
  * - ListRow stackBelow="sm" gives a phone's long-token title (a bc1q
  *   address) the whole row, the badge under it; a desk's row is unchanged.
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button and a 40px icon button are 44px targets; a
- *   mouse sees them unchanged.
+ *   mouse sees them unchanged. A small field is drawn 44px tall to a thumb and
+ *   36px to a mouse.
  * - A tool site's Docs link is in its phone menu, a 44px target, when the
  *   tools are the tab bar.
  * - A ListRow with lines="all" wraps its title and line in full, stays
@@ -55,7 +57,7 @@
  * after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -68,6 +70,14 @@ if (!existsSync(join(pkg, 'dist/chrome.js'))) {
     console.error('✗ layout: dist is missing; run yarn build first');
     process.exit(1);
 }
+
+// Docs prose, a display line and a code token, for the fallback faces' widths.
+const FALLBACK_PROSE =
+    'The content itself is NOT included in the envelope, only its hash. You ship the envelope alongside the content (archive, filesystem, HTTP, whatever). ' +
+    'Hex is chosen so the signed message is legible in wallet UIs: a user signing through UniSat, Xverse, Leather, or Sparrow sees something they can read aloud. ' +
+    'Envelopes can be published to Nostr kind-30083 for durable public discovery, but it is optional. A stamp is a self-contained JSON blob; email it, embed it in a git commit message, put it in S3.';
+const FALLBACK_HEADLINE = 'Sign in with a Bitcoin wallet. Back it with coins you hold.';
+const FALLBACK_CODE = 'application/vnd.orangecheck.stamp+json sha256(canonical(stamp)) 0x1f2e3d4c';
 
 function findChrome() {
     const found = [process.env.OCA_CHROME, process.env.CHROME_BIN, '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
@@ -95,6 +105,15 @@ const check = (ok, msg) => {
         failures++;
     }
 };
+
+// A ch is the face's 0, which the Arial fallback draws 6-12% narrower than Inter's, so a measure in ch moves at the swap.
+{
+    const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
+    const inCh = walk(join(pkg, 'src'))
+        .filter((f) => /\.(tsx?|css)$/.test(f) && !/\.stories\.tsx$/.test(f))
+        .flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\[[\d.]+ch\]|:\s*[\d.]+ch\b/g)].map((m) => `${f.slice(pkg.length + 1)}: ${m[0]}`));
+    check(inCh.length === 0, `a width in ch moves at the font swap; use em: ${inCh.join(', ')}`);
+}
 
 try {
     // The package's CSS, compiled the way a site compiles it.
@@ -294,6 +313,19 @@ try {
                 { className: 'flex flex-col gap-10 px-4 py-6' },
                 h('div', { 'data-t': 'one' }, h(C.SectionTitle, { title: 'Payout addresses', description: 'Where your earnings go, and when they last moved.', action: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Add address') })),
                 h('div', { 'data-t': 'many' }, h(C.SectionTitle, { title: 'Keys', action: h('div', { className: 'flex gap-2' }, ...['Import', 'Generate', 'Export all'].map((l) => h(P.Button, { key: l, size: 'sm', variant: 'secondary' }, l))) }))
+            )
+        )
+    );
+    // Fields in a tool's compact density, a small one set by hand, and a default one.
+    const fields = page(
+        'fields',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-4 p-6' },
+                h(P.DensityProvider, { density: 'compact' }, h(P.Input, { 'data-f': 'compact', 'aria-label': 'Attestation id' }), h(P.Select, null, h(P.SelectTrigger, { 'data-f': 'select', 'aria-label': 'Network' }, h(P.SelectValue, { placeholder: 'Mainnet' })))),
+                h(P.Input, { size: 'sm', 'data-f': 'sm', 'aria-label': 'Small' }),
+                h(P.Input, { 'data-f': 'md', 'aria-label': 'Default' })
             )
         )
     );
@@ -747,26 +779,49 @@ try {
             });
             check(tg.anchors.length >= 2 && tg.anchors.every(Boolean), `[${width}] a docs heading's "#" anchor is not 24px to press (${JSON.stringify(tg.anchors)})`);
             check(tg.crumbs.length === 2 && tg.crumbs.every((x) => x >= 24), `[${width}] Breadcrumbs: a link is ${JSON.stringify(tg.crumbs)}px tall, under 24`);
-            // The fallback face matches Inter's widths, so the swap does not move a line (tool headers moved 3-5px).
+            // The fallback faces set text at Inter's widths, so the swap does not move a line: docs prose
+            // reflowed at 17px (CLS 0.1), and a code token ran a third wider. Each stack against itself without Inter.
             if (width >= 1024) {
-                const fb = await p.evaluate(async () => {
-                    await document.fonts.ready;
-                    const probe = (family) => {
+                const fb = await p.evaluate(async ([prose, headline, code]) => {
+                    const root = getComputedStyle(document.documentElement);
+                    const stack = (name) => root.getPropertyValue(name).trim();
+                    const probe = (font, family, text) => {
                         const s = document.createElement('span');
-                        s.style.cssText = `font: 500 16px ${family}; white-space: nowrap; position: absolute`;
-                        s.textContent = 'orangecheck stamp lock vote agent pledge Docs About Create Verify';
+                        s.style.cssText = `font: ${font} ${family}; line-height: normal; white-space: nowrap; position: absolute`;
+                        s.textContent = text;
                         document.body.append(s);
-                        const w = s.getBoundingClientRect().width;
+                        const r = s.getBoundingClientRect();
                         s.remove();
-                        return w;
+                        return { w: r.width, h: r.height };
                     };
-                    const mono = probe('monospace');
+                    const cases = [
+                        ...['400 15px', '400 16px', '400 17px', '500 16px', '600 16px', '700 16px'].map((font) => [font, '--oc-font-sans', prose, 0.01]),
+                        ...['400 32px', '400 48px', '400 76px'].map((font) => [font, '--oc-font-display', headline, 0.01]),
+                        ['400 14px', '--oc-font-mono', code, 0.005],
+                    ].map(([font, name, text, tol]) => {
+                        const full = stack(name);
+                        return { font, name, text, tol, full, without: full.slice(full.indexOf(',') + 1).trim() };
+                    });
+                    await Promise.all(cases.flatMap((c) => [document.fonts.load(`${c.font} ${c.full}`, c.text), document.fonts.load(`${c.font} ${c.without}`, c.text)]));
+                    const mono = probe('400 16px', 'monospace', prose).w;
                     // Does this machine have Arial or one of its metric twins at all?
-                    const twin = ['Arial', "'Liberation Sans'", 'Arimo'].some((f) => Math.abs(probe(`${f}, monospace`) - mono) >= 0.5);
-                    return { inter: probe("'OCA Inter'"), fallback: probe("'OCA Inter Fallback', monospace"), mono, twin };
-                });
-                if (!fb.twin) console.log(`  · layout: no Arial or metric twin on this machine; the fallback face's widths are not measured here`);
-                else check(Math.abs(fb.fallback - fb.mono) >= 0.5 && Math.abs(fb.fallback - fb.inter) / fb.inter <= 0.02, `[${width}] the Inter fallback is ${Math.round(fb.fallback)}px against Inter's ${Math.round(fb.inter)}px (or it found no face on a machine with one): the swap moves the line`);
+                    const twin = ['Arial', "'Liberation Sans'", 'Arimo'].some((f) => Math.abs(probe('400 16px', `${f}, monospace`, prose).w - mono) >= 0.5);
+                    return {
+                        twin,
+                        cases: cases.map((c) => {
+                            const a = probe(c.font, c.full, c.text);
+                            const b = probe(c.font, c.without, c.text);
+                            return { font: c.font, name: c.name, tol: c.tol, off: b.w / a.w - 1, dh: b.h - a.h, fallback: c.without.split(',')[0] };
+                        }),
+                    };
+                }, [FALLBACK_PROSE, FALLBACK_HEADLINE, FALLBACK_CODE]);
+                if (!fb.twin) console.log(`  · layout: no Arial or metric twin on this machine; the fallback faces' widths are not measured here`);
+                else
+                    for (const c of fb.cases)
+                        check(
+                            Math.abs(c.off) <= c.tol && Math.abs(c.dh) <= 1,
+                            `[${width}] ${c.name} at ${c.font}: ${c.fallback} sets text ${(c.off * 100).toFixed(2)}% off the webfont's width (within ${c.tol * 100}%), its line ${c.dh.toFixed(1)}px off: the swap moves the line`
+                        );
             }
             // stackBelow="sm": on a phone a long-token title takes the row and the badge goes under it; from sm, as without it.
             await p.goto(stacked);
@@ -845,6 +900,14 @@ try {
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.size}px, 44px target ${r.reach}`);
                     else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
                 }
+                // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
+                await t.goto(fields);
+                const fh = await t.$$eval('[data-f]', (els) => Object.fromEntries(els.map((el) => [el.dataset.f, el.getBoundingClientRect().height])));
+                for (const [k, hgt] of Object.entries(fh)) {
+                    const want = width < 768 || k === 'md' ? 44 : 36;
+                    check(Math.abs(hgt - want) < 0.5, `[${width} ${width < 768 ? 'touch' : 'mouse'}] a ${k} field is ${Math.round(hgt)}px tall, not ${want}`);
+                }
+                check(Object.keys(fh).length === 4, `[${width}] the fields page drew ${Object.keys(fh).join(', ')}`);
                 await ctx.close();
             }
             // Bare borders take the hairline token, in both modes; a colour utility still wins.

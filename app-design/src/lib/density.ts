@@ -4,7 +4,8 @@ import { sharedContext } from './shared-context';
 
 /*
  * How tightly data and fields are set. A public page is `comfortable`; a
- * tool is `compact` (36px fields, 14px table text, smaller stat cards).
+ * tool is `compact` (36px fields, 44px on touch; 14px table text; smaller
+ * stat cards).
  * ToolShell sets it for everything inside, dialogs included (a React
  * context crosses a portal where a CSS scope would not); a prop on one
  * component still wins.

@@ -226,7 +226,8 @@ export function Closing({
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
                     {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
-                    {fineprint ? <div className="max-w-[52ch] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
+                    {/* 52ch in em: a ch is the face's 0, which the fallback draws 6% narrower, so the measure moved at the swap. */}
+                    {fineprint ? <div className="max-w-[32.7em] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
                 </Reveal>
                 {art !== null ? (
                     // Room under the check on a phone, so its glow fades before the band ends.

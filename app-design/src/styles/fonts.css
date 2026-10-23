@@ -54,24 +54,101 @@
 }
 
 /* Metric-matched fallbacks, so the swap from Arial / Courier to the webfont
-   does not move a line. Values are next/font's for Inter and JetBrains Mono.
-   Liberation and Arimo / Cousine are Arial's and Courier New's metric twins:
-   a machine with neither Arial nor them (most Linux) fell to a wider face, and
-   a tool site's header moved 3-5px at the swap. */
+   does not move a line. Liberation and Arimo / Cousine are Arial's and Courier
+   New's metric twins: a machine with neither Arial nor them (most Linux) fell
+   to a wider face, and a tool site's header moved 3-5px at the swap.
+
+   Inter narrows as optical sizing follows the font size, about 9% from 14px to
+   32px, and widens with weight, so one face cannot match it. Text gets faces
+   measured at 16px, display type faces measured at 32px and up, each weight
+   band its own Arial cut. Measured on docs prose in Chrome; ascent and descent
+   keep Inter's line box at every size-adjust. JetBrains Mono and Courier New
+   share one advance, 0.6em, so the mono face is not scaled. */
+
 @font-face {
     font-family: 'OCA Inter Fallback';
+    font-weight: 100 449;
     src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
-    ascent-override: 90.44%;
-    descent-override: 22.52%;
+    ascent-override: 91.46%;
+    descent-override: 22.77%;
     line-gap-override: 0%;
-    size-adjust: 107.12%;
+    size-adjust: 105.92%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Fallback';
+    font-weight: 450 549;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
+    ascent-override: 90.51%;
+    descent-override: 22.54%;
+    line-gap-override: 0%;
+    size-adjust: 107.03%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Fallback';
+    font-weight: 550 649;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+    ascent-override: 96.45%;
+    descent-override: 24.02%;
+    line-gap-override: 0%;
+    size-adjust: 100.44%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Fallback';
+    font-weight: 650 900;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+    ascent-override: 95.46%;
+    descent-override: 23.77%;
+    line-gap-override: 0%;
+    size-adjust: 101.48%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback';
+    font-weight: 100 449;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
+    ascent-override: 99.36%;
+    descent-override: 24.74%;
+    line-gap-override: 0%;
+    size-adjust: 97.5%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback';
+    font-weight: 450 549;
+    src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
+    ascent-override: 97.42%;
+    descent-override: 24.26%;
+    line-gap-override: 0%;
+    size-adjust: 99.44%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback';
+    font-weight: 550 649;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+    ascent-override: 102.92%;
+    descent-override: 25.63%;
+    line-gap-override: 0%;
+    size-adjust: 94.13%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback';
+    font-weight: 650 900;
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+    ascent-override: 101%;
+    descent-override: 25.15%;
+    line-gap-override: 0%;
+    size-adjust: 95.92%;
 }
 
 @font-face {
     font-family: 'OCA JetBrains Mono Fallback';
     src: local('Courier New'), local('CourierNewPSMT'), local('Liberation Mono'), local('LiberationMono'), local('Cousine');
-    ascent-override: 75.79%;
-    descent-override: 22.29%;
+    ascent-override: 101.17%;
+    descent-override: 29.75%;
     line-gap-override: 0%;
-    size-adjust: 133.49%;
 }

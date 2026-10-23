@@ -395,7 +395,8 @@ export interface SiteFooterProps {
  * The footer, in the deck's register: a line of fine print, columns of links,
  * the family when it is on, the legal row and the support credit. Any number
  * of columns: the lockup shares their row up to five, then takes its own.
- * Links are 44px tall on phones.
+ * Links are 44px tall on phones. A phone sees the whole footer in 600px, fine
+ * print and meta included: six groups leave them about 110px, seven about 65px.
  */
 export function SiteFooter({
     columns = [],

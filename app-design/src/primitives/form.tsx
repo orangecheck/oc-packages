@@ -32,14 +32,14 @@ const fieldBase = [
     'aria-[invalid=true]:border-destructive',
 ];
 
-/* `sm` is 36px for a tool's dense forms; the text stays 16px on phones. */
+/* `sm` is 36px for a tool's dense forms, 44px to a thumb like the buttons; the text stays 16px on phones. */
 const FIELD_SIZE = {
     md: 'h-11 px-3.5',
-    sm: 'h-9 rounded-[0.625rem] px-3 md:text-[0.875rem]',
+    sm: 'h-9 rounded-[0.625rem] px-3 pointer-coarse:h-11 md:text-[0.875rem]',
 } as const;
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
-    /** `sm` (36px) for a tool's dense forms. Defaults to the density around it. */
+    /** `sm` (36px, 44px on touch) for a tool's dense forms. Defaults to the density around it. */
     size?: 'md' | 'sm';
 }
 

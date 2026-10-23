@@ -11,7 +11,8 @@ export function Acknowledgement({ onBrand = false, className }: { onBrand?: bool
     return (
         <p
             className={cn(
-                'max-w-[52ch] text-[0.875rem] leading-relaxed',
+                // 52ch in em: the fallback's 0, and so its ch, is 6% narrower than Inter's.
+                'max-w-[32.7em] text-[0.875rem] leading-relaxed',
                 onBrand ? 'text-brand-foreground' : 'text-muted-foreground',
                 className
             )}

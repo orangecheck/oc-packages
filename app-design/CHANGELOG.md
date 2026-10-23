@@ -2,6 +2,40 @@
 
 ## [Unreleased]
 
+## [1.16.2] — 2026-10-22
+
+- The fallback faces set text at the webfonts' widths, so the swap to Inter
+  and JetBrains Mono moves no line. Code was the worst: the mono fallback was
+  scaled to 133%, though JetBrains Mono and Courier New share one 0.6em
+  advance, so every code token ran a third wider until the font came. On the
+  docs that reflowed paragraphs at first paint (CLS 0.10 to 0.13 on /me/api
+  and /stamp/envelope). It is no longer scaled.
+  - Inter narrows about 9% from 14px to 32px as optical sizing follows the
+    size, and widens with weight, so one Arial face could not match it. Text
+    has faces measured at 16px, and display type (`--oc-font-display`, the
+    `oca-display-*` styles) faces measured at 32px and up, each weight band on
+    its own Arial cut. Prose at 15 to 17px is within 0.75% of Inter (was up to
+    1.9%), display type within 0.1% (was 9.8%), bold within 0.1% (was 1.7%),
+    code within 0.02% (was 33%). Line heights are unchanged.
+  - With the late-arriving mono font held back, as the docs load today, both
+    pages go from 0.10 to 0.13 to 0 at 1440 and 390 in Chrome. When Inter
+    itself paints late, one /me/api paragraph at 1440 can still move a line:
+    0.5% at 17px is more than that paragraph's slack.
+- Closing's fine print and `Acknowledgement` set their measure in em, not ch.
+  A ch is the face's 0, which the fallback draws 6% narrower than Inter's (12%
+  at display sizes), so a measure in ch narrowed until the font came and its
+  text moved at the swap. Sites with a heading or paragraph in `max-w-[Nch]`
+  move the same way.
+- A small field (`Input`, `SelectTrigger`; a tool's compact density picks it)
+  is 44px tall on a touch screen, as the buttons are to a thumb. A mouse keeps
+  36px. pledge /create's attestation id was 36px at 390.
+- SiteFooter's doc says what the 600px phone budget holds: the whole footer,
+  fine print and meta included.
+- check-layout measures each fallback stack against its webfont (prose at 15,
+  16 and 17px and in four weights, display type at 32, 48 and 76px, code at
+  14px), refuses a measure in ch, and measures small fields to a thumb and a
+  mouse. All three fail on 1.16.1.
+
 ## [1.16.1] — 2026-10-22
 
 - A message to sign, selected by hand and copied, is the exact bytes, its

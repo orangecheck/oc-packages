@@ -129,7 +129,8 @@
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
-    --oc-font-display: var(--oc-font-sans);
+    /* Inter itself; the fallback is matched to Inter's display cut (fonts.css). */
+    --oc-font-display: 'OCA Inter', 'OCA Inter Display Fallback', ui-sans-serif, system-ui, sans-serif;
 
     /* The family sign-in ceremony (@orangecheck/auth-client ≥ 2.27) in this
        design: sentence-case Inter, pill buttons, rounded fields. */
