@@ -813,12 +813,99 @@ const ME_CLIENT_OPTIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * A token's verification, telling a bad token from a key set that can't be
+ * read: `unavailable` when the issuer's JWKS can't be fetched and no copy
+ * younger than `jwksMaxStaleMs` is held. That is an outage, not a refusal:
+ * answer it 503 so the client tries again, never as "signed out".
+ */
+export type OcTokenCheck =
+  | { status: "valid"; session: SessionPayload }
+  | { status: "invalid" }
+  | { status: "unavailable" };
+
+const INVALID: OcTokenCheck = { status: "invalid" };
+
+/**
+ * {@link verifyOcToken}, telling "invalid" from "can't tell right now"
+ * (see {@link OcTokenCheck}). Throws only on an option it does not read.
+ */
+export async function checkOcToken(
+  token: string,
+  options: VerifyOcOptions = {},
+): Promise<OcTokenCheck> {
+  refuseUnknownOptions("checkOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
+  const issuer = options.issuer ?? DEFAULT_ISSUER;
+  const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
+  const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
+  try {
+    assertSafeIssuer(issuer);
+  } catch {
+    return INVALID;
+  }
+  let entry: JwksCacheEntry;
+  try {
+    // Fast path: try the cache. If the kid isn't in the cache (e.g.
+    // brand-new key just rotated in), fall through to a fresh fetch.
+    entry = await fetchJwks(issuer, ttl, maxStale);
+  } catch {
+    return { status: "unavailable" };
+  }
+  try {
+    const headerB64 = token.split(".")[0];
+    if (!headerB64) return INVALID;
+    const headerJson =
+      typeof Buffer !== "undefined"
+        ? Buffer.from(headerB64, "base64url").toString("utf8")
+        : new TextDecoder().decode(base64UrlDecode(headerB64));
+    const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
+    if (!header.kid) return INVALID;
+    let key = entry.keys[header.kid];
+    if (!key) {
+      // Force a fresh JWKS fetch in case the integrator's cache is older
+      // than the active key set on the auth host — but at most once a
+      // minute per issuer, so an unknown kid cannot be used to drive
+      // unbounded refetches (see lastForcedRefresh).
+      const now = Date.now();
+      const last = lastForcedRefresh.get(issuer) ?? 0;
+      if (now - last >= FORCED_REFRESH_MIN_INTERVAL_MS) {
+        lastForcedRefresh.set(issuer, now);
+        // TTL 0 refetches while keeping the cached list as the stand-in.
+        try {
+          entry = await fetchJwks(issuer, 0, maxStale);
+        } catch {
+          return { status: "unavailable" };
+        }
+        key = entry.keys[header.kid];
+      }
+    }
+    if (!key) return INVALID;
+    const res = await jwtVerify(token, key, {
+      algorithms: [JWT_ALG],
+      issuer,
+    });
+    const p = res.payload as SessionPayload;
+    if (!p.sub || !p.did_oc || !p.jti) return INVALID;
+    // A retired key vouches only for what it signed before it retired.
+    const retiredAt = entry.retiredAt[header.kid];
+    if (retiredAt !== undefined && !(typeof p.iat === "number" && p.iat < retiredAt)) {
+      return INVALID;
+    }
+    if (!audienceSatisfied(p.aud, options.audience)) return INVALID;
+    if (!handleBoundToOneAudience(p)) return INVALID;
+    return { status: "valid", session: p };
+  } catch {
+    return INVALID;
+  }
+}
+
+/**
  * Verify a JWT issued by an OC auth host. Lazy-fetches the JWKS from
  * `<issuer>/.well-known/jwks.json`, picks the key whose `kid` matches
  * the token's protected header, and verifies the signature.
  *
  * Returns the payload on success, `null` on any failure (bad signature,
- * expired, wrong issuer, kid not in JWKS, malformed). Throws only on an
+ * expired, wrong issuer, kid not in JWKS, malformed, or a JWKS that can't be
+ * read: {@link checkOcToken} tells that last one apart). Throws only on an
  * option it does not read.
  *
  * Integrators don't need to handle JWKs, env vars, or rotation — the
@@ -833,55 +920,8 @@ export async function verifyOcToken(
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("verifyOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
-  const issuer = options.issuer ?? DEFAULT_ISSUER;
-  const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
-  const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
-  try {
-    assertSafeIssuer(issuer);
-    // Fast path: try the cache. If the kid isn't in the cache (e.g.
-    // brand-new key just rotated in), fall through to a fresh fetch.
-    let entry = await fetchJwks(issuer, ttl, maxStale);
-    const headerB64 = token.split(".")[0];
-    if (!headerB64) return null;
-    const headerJson =
-      typeof Buffer !== "undefined"
-        ? Buffer.from(headerB64, "base64url").toString("utf8")
-        : new TextDecoder().decode(base64UrlDecode(headerB64));
-    const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
-    if (!header.kid) return null;
-    let key = entry.keys[header.kid];
-    if (!key) {
-      // Force a fresh JWKS fetch in case the integrator's cache is older
-      // than the active key set on the auth host — but at most once a
-      // minute per issuer, so an unknown kid cannot be used to drive
-      // unbounded refetches (see lastForcedRefresh).
-      const now = Date.now();
-      const last = lastForcedRefresh.get(issuer) ?? 0;
-      if (now - last >= FORCED_REFRESH_MIN_INTERVAL_MS) {
-        lastForcedRefresh.set(issuer, now);
-        // TTL 0 refetches while keeping the cached list as the stand-in.
-        entry = await fetchJwks(issuer, 0, maxStale);
-        key = entry.keys[header.kid];
-      }
-    }
-    if (!key) return null;
-    const res = await jwtVerify(token, key, {
-      algorithms: [JWT_ALG],
-      issuer,
-    });
-    const p = res.payload as SessionPayload;
-    if (!p.sub || !p.did_oc || !p.jti) return null;
-    // A retired key vouches only for what it signed before it retired.
-    const retiredAt = entry.retiredAt[header.kid];
-    if (retiredAt !== undefined && !(typeof p.iat === "number" && p.iat < retiredAt)) {
-      return null;
-    }
-    if (!audienceSatisfied(p.aud, options.audience)) return null;
-    if (!handleBoundToOneAudience(p)) return null;
-    return p;
-  } catch {
-    return null;
-  }
+  const checked = await checkOcToken(token, options);
+  return checked.status === "valid" ? checked.session : null;
 }
 
 export interface SessionRequestHeaders {
@@ -905,19 +945,30 @@ export async function getOcSession(
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("getOcSession", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
+  const token = readOcSessionToken(headers);
+  if (!token) return null;
+  return verifyOcToken(token, options);
+}
+
+/**
+ * The token a request carries, as {@link getOcSession} reads it: the
+ * `oc_session` cookie first, then `Authorization: Bearer <token>`. Null when
+ * it carries neither. Pure: verifies nothing.
+ */
+export function readOcSessionToken(headers: SessionRequestHeaders | Headers): string | null {
   const cookie = isHeaders(headers)
     ? headers.get("cookie")
     : (headers.cookie ?? null);
   const authorization = isHeaders(headers)
     ? headers.get("authorization")
     : (headers.authorization ?? null);
-  let token = readSessionCookie(cookie);
-  if (!token && typeof authorization === "string") {
+  const token = readSessionCookie(cookie);
+  if (token) return token;
+  if (typeof authorization === "string") {
     const m = /^Bearer\s+(.+)$/i.exec(authorization);
-    if (m) token = m[1]!;
+    if (m) return m[1]!;
   }
-  if (!token) return null;
-  return verifyOcToken(token, options);
+  return null;
 }
 
 function isHeaders(value: unknown): value is Headers {

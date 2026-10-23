@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.16.0] — 2026-10-24
+
+### Added — a key-set outage is not a bad token
+
+- `checkOcToken(token, options)` answers `{ status: "valid", session }`,
+  `{ status: "invalid" }`, or `{ status: "unavailable" }` when the issuer's key
+  set can't be fetched and no copy younger than `jwksMaxStaleMs` is held. A
+  verifier answers that as an outage (503), never as signed out. It takes
+  `verifyOcToken`'s options and throws on one it does not read.
+- `readOcSessionToken(headers)`: the token a request carries, as
+  `getOcSession` reads it (the `oc_session` cookie, then a Bearer header).
+
+`verifyOcToken` and `getOcSession` answer as before: a session, or `null`.
+
 ## [2.15.0] — 2026-10-23
 
 ### Changed — a revocation handle needs one string audience
