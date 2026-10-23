@@ -136,7 +136,7 @@ def create_pledge(
     dispute: dict[str, Any],
     sworn_at: str,
     nonce: str,
-    swearer_signer: Bip322Signer,
+    swearer_signer: Optional[Bip322Signer] = None,
     via_delegation: Optional[dict[str, Any]] = None,
     remediation: Literal["breach_recorded"] = "breach_recorded",
 ) -> dict[str, Any]:
@@ -144,13 +144,14 @@ def create_pledge(
     Build, validate, and sign a pledge envelope.
 
     Two signing paths:
-      * Direct: ``swearer_signer`` is the swearer's wallet; the swearer
-        address signs the lowercase-hex pledge id.
+      * Direct: ``swearer_signer`` is the swearer's wallet, and its address
+        must equal ``swearer``; it signs the lowercase-hex pledge id.
       * Agent (``via_delegation`` non-None): the agent in
         ``via_delegation['agent_signer']`` signs on behalf of the principal
-        named in ``swearer``. The envelope carries ``via_delegation`` and
-        ``agent_address``; SPEC §7.3 says the verifier uses ``agent_address``
-        as the BIP-322 verification key.
+        named in ``swearer``. No signer of the principal's is needed; one
+        given anyway must be for ``swearer``. The envelope carries
+        ``via_delegation`` and ``agent_address``; SPEC §7.3 says the verifier
+        uses ``agent_address`` as the BIP-322 verification key.
 
     Returns the envelope as a dict (JSON-shaped). Raises ``PledgeError`` on
     validation failure.
@@ -205,18 +206,35 @@ def create_pledge(
                 "E_PLEDGE_MALFORMED",
                 "via_delegation.delegation_id must be 64 hex chars",
             )
-        if agent_signer is None or agent_signer.address == swearer_signer.address:
+        if agent_signer is None or agent_signer.address == swearer:
             raise PledgeError(
                 "E_PLEDGE_MALFORMED",
                 "agent_address must differ from swearer.address (principal-vs-agent invariant)",
             )
+        if swearer_signer is not None and swearer_signer.address != swearer:
+            raise PledgeError(
+                "E_PLEDGE_MALFORMED",
+                "swearer_signer.address must equal swearer (leave it out on the agent path)",
+            )
+        signer: Bip322Signer = agent_signer
+    elif swearer_signer is None:
+        raise PledgeError(
+            "E_PLEDGE_MALFORMED",
+            "swearer_signer is required unless via_delegation is given",
+        )
+    elif swearer_signer.address != swearer:
+        raise PledgeError(
+            "E_PLEDGE_MALFORMED",
+            "swearer_signer.address must equal swearer (SPEC §3.6)",
+        )
+    else:
+        signer = swearer_signer
 
     pledge_id = compute_pledge_id(canon)
 
     # SPEC §3.5: BIP-322 commits to lowercase hex of the id, NOT the
     # canonical-message bytes. Hex chosen so wallet UIs render legible text
     # to the user before signing.
-    signer = via_delegation["agent_signer"] if via_delegation else swearer_signer
     sig_value = signer.sign_message(pledge_id)
 
     envelope: dict[str, Any] = {

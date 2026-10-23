@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [2.12.0] — 2026-10-23
+
+### Changed
+
+- `pledge.create_pledge` needs no signer from the principal on the agent path:
+  with `via_delegation`, `swearer_signer` may be left out, and the swearer is the
+  `swearer` address. One given anyway must be for `swearer`. Without
+  `via_delegation`, `swearer_signer` is required and must be for `swearer`. Both
+  are refused with `E_PLEDGE_MALFORMED` before anything is signed; `verify_pledge`
+  already refused such a direct envelope (SPEC §3.6). The agent is checked against
+  `swearer` rather than against the signer. As `@orangecheck/pledge-core` 3.3.0.
+
 ## [2.11.1] — 2026-10-22
 
 ### Fixed
