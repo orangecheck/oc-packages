@@ -58,6 +58,20 @@ const withMDX = createMDX({ options: { rehypePlugins: [rehypeCode] } });
 // _app.tsx: <MDXProvider components={createMdxComponents({ mermaid: () => import('mermaid') })}>
 ```
 
+Set a measure in `em`, not `ch`. A `ch` is the face's "0", and until Inter
+arrives the fallback's "0" is 6% narrower at text sizes and 12% at display
+sizes, so a box in `ch` changes width at the swap. Inter's "0", by optical size
+(the font size in px, from 32 up the same):
+
+| Size | 14 | 15 | 16 | 17 | 32+ |
+|---|---|---|---|---|---|
+| 1ch | 0.631em | 0.630em | 0.629em | 0.628em | 0.613em |
+
+So 52ch at 14px is `32.8em`, 65ch (`max-w-prose`) at 15px `40.9em`, 20ch on
+an `oca-display-*` heading `12.27em`. Headless Chrome on Linux rounds a "0" to
+whole pixels at small sizes; measure one at a large size with the optical size
+pinned rather than trust a 14px reading.
+
 `yarn test` fails if any text token (the syntax colours included) drops under WCAG
 AA in light or dark, if a rule could match without the attribute, if the
 highlighter changes a character of the code it colours, or if a component stops

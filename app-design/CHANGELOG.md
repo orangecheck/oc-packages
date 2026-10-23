@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- The README gives Inter's ch in em at each text size, for a site moving a
+  measure off ch. check-layout's ch guard reads the stories too, and
+  `max-w-prose` (65ch) and inline `'Nch'` styles; the Home story's headline
+  measure is in em, as ochk.app's now is.
+
 ## [1.16.3] — 2026-10-23
 
 - `SignInFrame` holds still while the ceremony mounts. The form column is

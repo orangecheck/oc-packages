@@ -49,7 +49,7 @@ function HomeHero({ status, primary, secondary }: { status: ReactNode; primary: 
             <div className="oca-container relative grid min-h-[min(54rem,calc(100svh-4rem))] grid-cols-1 items-center gap-14 py-14 md:grid-cols-12 md:gap-8 md:py-20">
                 <div className="flex flex-col items-start gap-7 md:col-span-7">
                     {status}
-                    <h1 className="oca-display-1 max-w-[12ch] text-[clamp(2.75rem,1.4rem+4.1vw,4.9rem)] leading-[0.98] md:max-w-none">
+                    <h1 className="oca-display-1 max-w-[7.36em] text-[clamp(2.75rem,1.4rem+4.1vw,4.9rem)] leading-[0.98] md:max-w-none">
                         Make fake accounts cost something <Accent>real</Accent>.
                     </h1>
                     <Lead className="max-w-[30rem]">

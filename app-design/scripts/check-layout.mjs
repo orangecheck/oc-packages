@@ -110,11 +110,12 @@ const check = (ok, msg) => {
 };
 
 // A ch is the face's 0, which the Arial fallback draws 6-12% narrower than Inter's, so a measure in ch moves at the swap.
+// Stories too: a story is what a site copies. max-w-prose is 65ch.
 {
     const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
     const inCh = walk(join(pkg, 'src'))
-        .filter((f) => /\.(tsx?|css)$/.test(f) && !/\.stories\.tsx$/.test(f))
-        .flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\[[\d.]+ch\]|:\s*[\d.]+ch\b/g)].map((m) => `${f.slice(pkg.length + 1)}: ${m[0]}`));
+        .filter((f) => /\.(tsx?|css)$/.test(f))
+        .flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\[[\d.]+ch\]|:\s*['"]?[\d.]+ch\b|['"][\d.]+ch['"]|\bmax-w-prose\b/g)].map((m) => `${f.slice(pkg.length + 1)}: ${m[0]}`));
     check(inCh.length === 0, `a width in ch moves at the font swap; use em: ${inCh.join(', ')}`);
 }
 
