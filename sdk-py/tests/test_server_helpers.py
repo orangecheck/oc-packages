@@ -78,7 +78,8 @@ def _response(answer: dict[str, Any]) -> httpx.Response:
 @respx.mock
 @pytest.mark.parametrize("c", H["check"]["cases"], ids=lambda c: c["name"])
 def test_check_answers_as_the_node_adapters_do(c: dict[str, Any]) -> None:
-    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
+    jwks = c.get("jwks", {"status": 200, "body": V["session"]["jwks"]})
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=_response(jwks))
     if "list" in c:
         respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(return_value=_response(c["list"]))
     if "policy" in c:
@@ -98,14 +99,6 @@ def test_check_answers_as_the_node_adapters_do(c: dict[str, Any]) -> None:
     else:
         assert not got.ok and got.session is None
         assert got.body == c["expect"]["body"]
-
-
-@respx.mock
-def test_check_answers_503_while_the_key_set_cannot_be_read() -> None:
-    # The Node SDK can't tell this apart from a bad token (auth-core answers null); Python can.
-    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(503))
-    got = check_oc_session(_token(["session", "valid", "bound to this site"]), "https://soniq.example", method="GET")
-    assert (got.status, got.body) == (503, {"ok": False, "reason": "key_set_unavailable"})
 
 
 def test_check_takes_only_what_verify_session_takes() -> None:

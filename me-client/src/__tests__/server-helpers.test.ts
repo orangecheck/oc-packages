@@ -35,6 +35,7 @@ type Case = {
     token: [string, string, string] | null;
     audience: string;
     method: string | null;
+    jwks?: Answer;
     list?: Answer;
     policy?: Answer;
     project_key?: string;
@@ -84,7 +85,8 @@ describe('one request · the adapters answer as the vectors say', () => {
             'fetch',
             vi.fn(async (url: string) => {
                 const u = String(url);
-                if (u === 'https://ochk.io/.well-known/jwks.json') return respond({ status: 200, body: V.session.jwks });
+                if (u === 'https://ochk.io/.well-known/jwks.json')
+                    return respond(c.jwks ?? { status: 200, body: V.session.jwks });
                 if (u.includes('/api/integrator/revocations?') && c.list) return respond(c.list);
                 if (/\/api\/integrator\/[^/]+\/sign-in$/.test(u) && c.policy) return respond(c.policy);
                 throw new Error(`unexpected fetch ${u}`);

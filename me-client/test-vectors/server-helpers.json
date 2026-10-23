@@ -2,7 +2,7 @@
     "description": "What a site's own backend answers for a sign-in token, spending a token's jti once, and ending a token at ochk.io. Read by me-client (src/__tests__/server-helpers.test.ts) and sdk-py (tests/test_server_helpers.py), so a Node site and a Python site give the same answer. Tokens are named, not copied: each `token` points into integrator.json (section, list, name).",
     "now": 1800000000,
     "check": {
-        "description": "One request with the token as a Bearer, through me-client's adapters (withOcAuth with required: true) and sdk-py's check_oc_session. `list` is me.ochk.io's answer for the token's list of ended sessions (no `list`: no list is read). `policy` is its answer for the project's sign-in rule, read for `project_key`. `expect` is the HTTP status and, when refused, the JSON body.",
+        "description": "One request with the token as a Bearer, through me-client's adapters (withOcAuth with required: true) and sdk-py's check_oc_session. `jwks` is ochk.io's answer for its key set (no `jwks`: integrator.json's session key set, 200). `list` is me.ochk.io's answer for the token's list of ended sessions (no `list`: no list is read). `policy` is its answer for the project's sign-in rule, read for `project_key`. `expect` is the HTTP status and, when refused, the JSON body.",
         "project_key": "pk_test_tv",
         "secret": "9f2c7a1d4e8b03f6a5c2d1e0b9a8f7e6d5c4b3a2918f7e6d5c4b3a2918f7e6d5",
         "cases": [
@@ -16,6 +16,30 @@
                     "body": { "v": 1, "at": 1800000000, "tokens": [], "accounts": {}, "handles": {} }
                 },
                 "expect": { "status": 200 }
+            },
+            {
+                "name": "a read while the key set can't be read",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "jwks": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "key_set_unavailable" } }
+            },
+            {
+                "name": "a key set that answers without keys",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "POST",
+                "jwks": { "status": 200, "body": { "ok": true } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "key_set_unavailable" } }
+            },
+            {
+                "name": "no token while the key set can't be read",
+                "token": null,
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "jwks": { "status": 503, "body": { "ok": false } },
+                "expect": { "status": 401, "body": { "ok": false, "reason": "unauthenticated" } }
             },
             {
                 "name": "no token",

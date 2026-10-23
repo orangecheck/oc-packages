@@ -15,9 +15,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
   `no_session_handle`; 403 `bond_required` with `need`, `have` and `back_url`;
   503 `revocations_unavailable` or `bond_policy_unavailable`; 500
   `unknown_project_key`. Both SDKs are held to
-  `me-client/test-vectors/server-helpers.json`. It also answers 503
-  `key_set_unavailable` while the key set can't be read; the Node SDK can't
-  tell that apart from a bad token and answers 401.
+  `me-client/test-vectors/server-helpers.json`, and both answer 503
+  `key_set_unavailable` while the key set can't be read (me-client 0.41.0).
 - `spend_once(jti, exp, store)`, `JtiStore` and `MemoryJtiStore`: a token's
   `jti` starts one session. True the first time, False for a repeat or a token
   that has expired. The store is yours, shared by every server; a store that

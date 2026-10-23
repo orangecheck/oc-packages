@@ -292,7 +292,10 @@ describe('server helpers · a write while the list cannot be read', () => {
         _resetSessionChecksForTests();
         feedUp = false;
         vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-        expect(await checkOcSession(headers, { audience: SITE, method: 'POST' })).toEqual({ status: 'unavailable' });
+        expect(await checkOcSession(headers, { audience: SITE, method: 'POST' })).toEqual({
+            status: 'unavailable',
+            reason: 'revocations_unavailable',
+        });
         expect((await checkOcSession(headers, { audience: SITE, method: 'GET' })).status).toBe('signed_in');
         feedUp = true;
         _resetSessionChecksForTests();

@@ -46,9 +46,10 @@
 
 import {
     bondMeets,
-    getOcSession as getOcSessionCore,
+    checkOcToken,
     integratorRevocationCheck,
     readBondClaim,
+    readOcSessionToken,
     SAFE_METHODS,
     verifyOcToken as verifyOcTokenCore,
     type BondClaim,
@@ -252,24 +253,29 @@ export async function getOcSession(
     return checked.status === 'signed_in' ? checked.session : null;
 }
 
+/** Why a session can't be told right now: the key set, or the list of ended sessions. */
+export type OcSessionUnavailable = 'key_set_unavailable' | 'revocations_unavailable';
+
 /**
  * A request's session: signed in, signed out, or not checkable right now.
- * `reason` says why a token that verified is still signed out.
+ * `reason` says why a token that verified is still signed out, or what can't
+ * be read.
  */
 export type OcSessionCheck =
     | { status: 'signed_in'; session: SessionPayload }
     | { status: 'signed_out'; reason?: OcSessionRefusal }
-    | { status: 'unavailable' };
+    | { status: 'unavailable'; reason?: OcSessionUnavailable };
 
 /**
- * `getOcSession`, telling "signed out" from "can't tell right now":
- * `unavailable` when the token verifies but me.ochk.io's list of ended
- * sessions can't vouch for this request (a write while the list can't be read).
- * A token the person ended is `signed_out`, and so is one bound to your site
- * with no revocation handle (`reason: 'no_session_handle'`, unless
- * `requireHandle: false`). The adapters answer `unavailable` with 503
- * `revocations_unavailable`, so a client retries instead of signing the person
- * out.
+ * `getOcSession`, telling "signed out" from "can't tell right now".
+ * `unavailable` with `reason: 'key_set_unavailable'` when the request carries a
+ * token and ochk.io's key set can't be read (with auth-core 2.16.0 or later),
+ * and `'revocations_unavailable'` when the token verifies but me.ochk.io's list
+ * of ended sessions can't vouch for this request (a write while the list can't
+ * be read). A token the person ended is `signed_out`, and so is one bound to
+ * your site with no revocation handle (`reason: 'no_session_handle'`, unless
+ * `requireHandle: false`). The adapters answer `unavailable` with 503 and that
+ * reason, so a client retries instead of signing the person out.
  */
 export async function checkOcSession(
     headers: SessionRequestHeaders | Headers,
@@ -277,11 +283,16 @@ export async function checkOcSession(
 ): Promise<OcSessionCheck> {
     checkOptions(options);
     const { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience } = options;
-    const session = await getOcSessionCore(headers, { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience });
-    if (!session) {
+    const token = readOcSessionToken(headers);
+    if (!token) return { status: 'signed_out' };
+    const verified = await checkOcToken(token, { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience });
+    // An outage is never "signed out": the client retries.
+    if (verified.status === 'unavailable') return { status: 'unavailable', reason: 'key_set_unavailable' };
+    if (verified.status === 'invalid') {
         if (options.audience === undefined) warnIfAudienceMissing(headers);
         return { status: 'signed_out' };
     }
+    const session = verified.session;
     if (lacksHandle(session, options.requireHandle)) {
         warnNoHandle(session);
         return { status: 'signed_out', reason: 'no_session_handle' };
@@ -292,13 +303,16 @@ export async function checkOcSession(
         const state = await check.status(session);
         if (state === 'revoked') return { status: 'signed_out' };
         if (state === 'unverified' && !SAFE_METHODS.has((options.method ?? '').toUpperCase())) {
-            return { status: 'unavailable' };
+            return { status: 'unavailable', reason: 'revocations_unavailable' };
         }
     }
     return { status: 'signed_in', session };
 }
 
-const UNAVAILABLE = { status: 503, body: { ok: false, reason: 'revocations_unavailable' } };
+const unavailable = (checked: { reason?: OcSessionUnavailable }) => ({
+    status: 503,
+    body: { ok: false, reason: checked.reason ?? 'revocations_unavailable' },
+});
 
 const refusedFor = (checked: OcSessionCheck): OcSessionRefusal | undefined =>
     checked.status === 'signed_out' ? checked.reason : undefined;
@@ -624,7 +638,7 @@ export function withOcAuth<
         withSession.ocSession = session;
         const refused =
             checked.status === 'unavailable'
-                ? UNAVAILABLE
+                ? unavailable(checked)
                 : await refusal(session, options, refusedFor(checked));
         if (refused) return res.status(refused.status).json(refused.body);
         return handler(withSession, res);
@@ -698,7 +712,7 @@ export function ocAuthExpress(options: WithOcAuthOptions = {}) {
             req.ocSession = session;
             const refused =
                 checked.status === 'unavailable'
-                    ? UNAVAILABLE
+                    ? unavailable(checked)
                     : await refusal(session, options, refusedFor(checked));
             if (refused) {
                 res.status(refused.status).json(refused.body);
@@ -749,7 +763,7 @@ export function ocAuthHono(options: WithOcAuthOptions = {}) {
         c.set('ocSession', session);
         const refused =
             checked.status === 'unavailable'
-                ? UNAVAILABLE
+                ? unavailable(checked)
                 : await refusal(session, options, refusedFor(checked));
         if (refused) return c.json(refused.body, refused.status);
         await next();

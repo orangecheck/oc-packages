@@ -9,9 +9,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@orangecheck/auth-core', async (importOriginal) => {
     const real = await importOriginal<typeof import('@orangecheck/auth-core')>();
-    return { ...real, getOcSession: vi.fn(real.getOcSession) };
+    // No network: a token is only ever answered "invalid" here.
+    return { ...real, checkOcToken: vi.fn(async () => ({ status: 'invalid' as const })) };
 });
-import { getOcSession as coreGetOcSession } from '@orangecheck/auth-core';
+import { checkOcToken as coreCheckOcToken } from '@orangecheck/auth-core';
 
 import {
     checkOcSession,
@@ -66,15 +67,15 @@ describe('unknown options', () => {
     });
 
     it('passes auth-core only the options auth-core reads', async () => {
-        vi.mocked(coreGetOcSession).mockClear();
-        await checkOcSession(headers, {
+        vi.mocked(coreCheckOcToken).mockClear();
+        await checkOcSession({ cookie: null, authorization: 'Bearer a.b.c' }, {
             audience: 'https://site.example',
             method: 'POST',
             projectKey: 'pk_live_example',
             required: true,
             requireBond: { minSats: 1 },
         });
-        const passed = vi.mocked(coreGetOcSession).mock.calls[0]?.[1] ?? {};
+        const passed = vi.mocked(coreCheckOcToken).mock.calls[0]?.[1] ?? {};
         expect(Object.keys(passed).sort()).toEqual(['audience', 'issuer', 'jwksCacheTtlMs', 'jwksMaxStaleMs']);
         expect(passed.audience).toBe('https://site.example');
     });

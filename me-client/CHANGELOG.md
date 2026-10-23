@@ -32,6 +32,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Changed
 
+- Needs `@orangecheck/auth-core` ^2.16.0. A request whose token can't be
+  checked because ochk.io's key set can't be read (and no copy younger than
+  `jwksMaxStaleMs` is held) is `{ status: 'unavailable', reason:
+  'key_set_unavailable' }` from `checkOcSession`, and `withOcAuth`,
+  `ocAuthExpress` and `ocAuthHono` answer it 503 `key_set_unavailable`, for
+  reads and writes alike. It was signed out. `getOcSession` still answers
+  `null`. `OcSessionCheck`'s `unavailable` names its `reason`
+  (`OcSessionUnavailable`), and a write while the list of ended sessions can't
+  be read is `revocations_unavailable`, as before. The same answer as
+  `orangecheck` 3.2.0's `check_oc_session`, held to
+  `test-vectors/server-helpers.json`.
 - `WebhookHeaders` documents `OC-Envelope-Id` as the event's `id` for a
   billable event only. A system notice (`OC-Class: system`) has no `id` in its
   body, so this header is its only id. `OC-Key-Id` names a key published at
