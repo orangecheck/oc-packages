@@ -163,12 +163,12 @@
             "result": { "ok": false, "reason": "unavailable", "status": 200 }
         },
         {
-            "name": "provision: a redirect is answered as it is, never followed",
+            "name": "provision: a redirect is an error, never followed",
             "call": "provision",
             "status": 307,
             "raw": "",
             "headers": { "location": "https://evil.example/api/connect/provision" },
-            "result": { "ok": false, "reason": "unavailable", "status": 307 }
+            "result": { "ok": false, "reason": "unavailable", "status": 0 }
         },
         {
             "name": "delete: deleted",

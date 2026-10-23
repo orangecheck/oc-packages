@@ -17,7 +17,8 @@
  * reaches a client bundle.
  */
 
-const DEFAULT_ORIGIN = 'https://ochk.io';
+/** The only place a call goes: the key never travels anywhere else. */
+const ORIGIN = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_TIMEOUT_MS = 30_000;
 const DID_OC = /^did:oc:[0-9a-f]{32}$/;
@@ -27,8 +28,6 @@ export interface ConnectOptions {
     apiKey: string;
     /** Your own stable id for this user, 1 to 256 characters. */
     userId: string;
-    /** Where ochk.io is. Default https://ochk.io. */
-    origin?: string;
     /** Answer `unavailable` after this long. Default 5000, at most 30000. */
     timeoutMs?: number;
 }
@@ -92,7 +91,7 @@ export type ConnectClaimLinkResult =
     | { ok: true; url: string; expires_at: string }
     | ConnectRefused<ConnectClaimLinkRefusal>;
 
-const BASE_KEYS = ['apiKey', 'userId', 'origin', 'timeoutMs'];
+const BASE_KEYS = ['apiKey', 'userId', 'timeoutMs'];
 const PROVISION_KEYS = new Set([...BASE_KEYS, 'consent', 'email', 'emailVerified']);
 const USER_KEYS = new Set(BASE_KEYS);
 const PROVISION_REASONS = new Set<string>([
@@ -125,26 +124,13 @@ function fail(message: string): never {
     throw new TypeError(`@orangecheck/me-client: ${message}`);
 }
 
-/** A call's options, copied once onto a bare object, and where to send it. */
-interface Checked<O> {
-    /** Only the caller's own keys, read once: nothing inherited, no getter read twice. */
-    o: O;
-    /** The origin to post to. */
-    origin: string;
-    /** Whether `origin` was left at ochk.io. */
-    standard: boolean;
-}
-
 /**
- * Check the call itself; throws on a mistake in it. Every later read is from the
- * copy it returns, so an inherited `origin` or `consent` (a polluted
- * Object.prototype, or options made with Object.create) is never read.
+ * Check the call itself; throws on a mistake in it. Returns the options copied
+ * once onto a bare object, and every later read is from that copy, so an
+ * inherited `consent` (a polluted Object.prototype, or options made with
+ * Object.create) is never read and a getter is read once.
  */
-function checkCall<O extends ConnectOptions>(
-    name: string,
-    options: O,
-    known: ReadonlySet<string>
-): Checked<O> {
+function checkCall<O extends ConnectOptions>(name: string, options: O, known: ReadonlySet<string>): O {
     if (typeof document !== 'undefined') {
         fail(`${name} runs on your server only: in a browser your API key would be exposed`);
     }
@@ -167,24 +153,12 @@ function checkCall<O extends ConnectOptions>(
     if (t !== undefined && !(typeof t === 'number' && t > 0 && t <= MAX_TIMEOUT_MS)) {
         fail(`${name}: timeoutMs must be above 0 and at most ${MAX_TIMEOUT_MS}`);
     }
-    let url: URL;
-    try {
-        url = new URL(o.origin ?? DEFAULT_ORIGIN);
-    } catch {
-        return fail(`${name}: origin must be an https URL`);
-    }
-    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-    const scheme = url.protocol === 'https:' || (local && url.protocol === 'http:');
-    if (!scheme || url.username !== '' || url.password !== '') {
-        fail(`${name}: origin must be an https URL with no user name or password`);
-    }
-    return { o, origin: url.origin, standard: url.origin === DEFAULT_ORIGIN };
+    return o;
 }
 
 type Answer = { status: number; body: Record<string, unknown> | null };
 
 async function post(
-    origin: string,
     path: string,
     apiKey: string,
     body: Record<string, unknown>,
@@ -193,11 +167,11 @@ async function post(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        const res = await fetch(`${origin}${path}`, {
+        const res = await fetch(`${ORIGIN}${path}`, {
             method: 'POST',
-            // These endpoints never redirect. A redirect is answered as it is, never
-            // followed, so the key and the body go only to the origin named.
-            redirect: 'manual',
+            // These endpoints never redirect, so a redirect is an error: the key and
+            // the body go to ochk.io and nowhere else.
+            redirect: 'error',
             headers: {
                 'content-type': 'application/json',
                 authorization: `Bearer ${apiKey}`,
@@ -238,7 +212,7 @@ function refused<R extends string>(
 export function connectProvision(
     options: ConnectProvisionOptions
 ): Promise<ConnectProvisionResult> {
-    const { o, origin } = checkCall('connectProvision', options, PROVISION_KEYS);
+    const o = checkCall('connectProvision', options, PROVISION_KEYS);
     if (o.consent !== undefined && o.consent !== true) {
         fail(
             'connectProvision: consent must be true or left out. An unticked box means no ' +
@@ -259,7 +233,7 @@ export function connectProvision(
     if (o.consent === true) body.consent = true;
     if (email !== undefined) body.email = email;
     if (emailVerified !== undefined) body.email_verified = emailVerified;
-    return call(origin, '/api/connect/provision', o, body).then(
+    return call('/api/connect/provision', o, body).then(
         (answer): ConnectProvisionResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, PROVISION_REASONS);
@@ -277,19 +251,18 @@ export function connectProvision(
 
 /**
  * A link for your signed-in user to claim their account at ochk.app. Good once,
- * for fifteen minutes. With the default origin, a link anywhere but
- * https://ochk.app is refused (`unavailable`), so you never send your user
- * somewhere else.
+ * for fifteen minutes. A link anywhere but https://ochk.app is refused
+ * (`unavailable`), so you never send your user somewhere else.
  */
 export function connectClaimLink(options: ConnectOptions): Promise<ConnectClaimLinkResult> {
-    const { o, origin, standard } = checkCall('connectClaimLink', options, USER_KEYS);
-    return call(origin, '/api/connect/claim-link', o, { user_id: o.userId }).then(
+    const o = checkCall('connectClaimLink', options, USER_KEYS);
+    return call('/api/connect/claim-link', o, { user_id: o.userId }).then(
         (answer): ConnectClaimLinkResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, CLAIM_LINK_REASONS);
             const good =
                 b?.ok === true &&
-                isClaimUrl(b.url, standard) &&
+                isClaimUrl(b.url) &&
                 typeof b.expires_at === 'string' &&
                 b.expires_at !== '';
             return good
@@ -301,8 +274,8 @@ export function connectClaimLink(options: ConnectOptions): Promise<ConnectClaimL
 
 /** Your user deleted their account with you: delete the one Connect made for them. */
 export function connectDelete(options: ConnectOptions): Promise<ConnectDeleteResult> {
-    const { o, origin } = checkCall('connectDelete', options, USER_KEYS);
-    return call(origin, '/api/connect/delete', o, { user_id: o.userId }).then(
+    const o = checkCall('connectDelete', options, USER_KEYS);
+    return call('/api/connect/delete', o, { user_id: o.userId }).then(
         (answer): ConnectDeleteResult => {
             const b = answer.body;
             if (answer.status !== 200) return refused(answer, DELETE_REASONS);
@@ -313,21 +286,16 @@ export function connectDelete(options: ConnectOptions): Promise<ConnectDeleteRes
     );
 }
 
-function call(
-    origin: string,
-    path: string,
-    o: ConnectOptions,
-    body: Record<string, unknown>
-): Promise<Answer> {
-    return post(origin, path, o.apiKey, body, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+function call(path: string, o: ConnectOptions, body: Record<string, unknown>): Promise<Answer> {
+    return post(path, o.apiKey, body, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 }
 
-/** https, and with the default origin, on ochk.app. */
-function isClaimUrl(v: unknown, standard: boolean): v is string {
+/** An https link on ochk.app, the only place a claim happens. */
+function isClaimUrl(v: unknown): v is string {
     if (typeof v !== 'string') return false;
     try {
         const url = new URL(v);
-        return url.protocol === 'https:' && (!standard || url.host === 'ochk.app');
+        return url.protocol === 'https:' && url.host === 'ochk.app';
     } catch {
         return false;
     }

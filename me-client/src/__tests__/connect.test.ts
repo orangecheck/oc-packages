@@ -49,6 +49,10 @@ function answer(status: number, body: unknown, raw?: string, headers?: Record<st
         'fetch',
         vi.fn(async (url: string, init: RequestInit) => {
             sent.push({ url, init });
+            // As fetch does: with redirect 'error', a redirect is a network error.
+            if (init.redirect === 'error' && status >= 300 && status < 400) {
+                throw new TypeError('fetch failed: unexpected redirect');
+            }
             return new Response(raw ?? JSON.stringify(body), {
                 status,
                 headers: {
@@ -89,8 +93,8 @@ describe('what each call sends', () => {
             expect(sent).toHaveLength(1);
             expect(sent[0]!.url).toBe(`https://ochk.io${r.path}`);
             expect(sent[0]!.init.method).toBe('POST');
-            // A redirect is answered as it is: the key and body go to the origin named only.
-            expect(sent[0]!.init.redirect).toBe('manual');
+            // A redirect is an error: the key and the body go to ochk.io only.
+            expect(sent[0]!.init.redirect).toBe('error');
             const headers = new Headers(sent[0]!.init.headers);
             expect(headers.get('authorization')).toBe(`Bearer ${KEY}`);
             expect(headers.get('content-type')).toBe('application/json');
@@ -175,25 +179,13 @@ describe('only the caller\'s own options are read', () => {
 });
 
 describe('a claim link goes to ochk.app', () => {
-    const link = { ok: true, url: 'https://oc-app-test.example/connect/claim#t=a', expires_at: 'x' };
-
-    it('with the default origin, a link elsewhere is refused', async () => {
-        answer(200, link);
+    it('a link anywhere else is refused', async () => {
+        answer(200, { ok: true, url: 'https://ochk.app.evil.example/connect/claim#t=a', expires_at: 'x' });
         expect(await connectClaimLink({ apiKey: KEY, userId: 'u' })).toEqual({
             ok: false,
             reason: 'unavailable',
             status: 200,
         });
-    });
-
-    it('a test stack (its own origin) may hand back its own host', async () => {
-        answer(200, link);
-        const r = await connectClaimLink({
-            apiKey: KEY,
-            userId: 'u',
-            origin: 'https://oc-www-test.example',
-        });
-        expect(r).toEqual({ ok: true, url: link.url, expires_at: 'x' });
     });
 });
 
@@ -283,14 +275,11 @@ describe('a mistake in the call throws before anything is sent', () => {
         expect(sent).toHaveLength(0);
     });
 
-    it('an origin that is not https, or that carries a user name or password', () => {
+    it('an origin: a call carrying the key goes to ochk.io and nowhere else', () => {
         answer(200, {});
         expect(() =>
-            connectProvision({ apiKey: KEY, userId: 'u', origin: 'http://ochk.io' })
-        ).toThrow(/origin/);
-        expect(() =>
-            connectProvision({ apiKey: KEY, userId: 'u', origin: 'https://user:pw@ochk.io' })
-        ).toThrow(/origin/);
+            connectProvision({ apiKey: KEY, userId: 'u', origin: 'https://evil.example' } as never)
+        ).toThrow(/unknown option origin/);
         expect(sent).toHaveLength(0);
     });
 });

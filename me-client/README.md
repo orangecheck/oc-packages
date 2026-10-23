@@ -270,7 +270,7 @@ if (r.ok) await saveDid(user.id, r.did_oc); // keep it on your user record
 // 'invalid_api_key', 'app_suspended', 'bad_request' or 'unavailable'
 ```
 
-A refusal or an outage is a result, never a throw, so it can't block your own sign-in; a call is given up after `timeoutMs` (5 s, at most 30 s), and a redirect is never followed. Only a mistake in the call throws: an option it does not read, a missing key or user id, or `consent: false`. Only your options object's own keys are read, once, so nothing inherited (a polluted `Object.prototype`) can choose where the key goes or tick consent.
+A refusal or an outage is a result, never a throw, so it can't block your own sign-in; a call is given up after `timeoutMs` (5 s, at most 30 s). Every call goes to `https://ochk.io` and nowhere else, and a redirect is an error. Only a mistake in the call throws: an option it does not read, a missing key or user id, or `consent: false`. Only your options object's own keys are read, once, so nothing inherited (a polluted `Object.prototype`) can tick consent.
 
 **With or without asking.** Make the account with no prompt, or show an opt-in box on your sign-in or sign-up with the canonical words, from a module with no dependencies that any UI can use:
 
@@ -321,6 +321,8 @@ import { setOrigin } from '@orangecheck/me-client';
 
 setOrigin('https://me.example-staging.com');
 ```
+
+The Connect calls in `/server` don't use it: a call that carries your Connect API key goes to `https://ochk.io` and nowhere else.
 
 ## License
 

@@ -102,38 +102,16 @@ def test_user_ids_ochk_io_refuses_counted_in_utf16_units(user_id: str) -> None:
         connect_provision(KEY, user_id)
 
 
-@respx.mock
-def test_an_origin_is_sent_to_as_scheme_host_and_port_only() -> None:
-    route = respx.post("https://oc-www-test.example:8443/api/connect/provision").mock(
-        return_value=httpx.Response(500, json={"ok": False, "reason": "server_error"})
-    )
-    connect_provision(KEY, "u", origin="https://oc-www-test.example:8443/some/path?q=1")
-    assert route.call_count == 1
-    assert route.calls.last.request.headers["authorization"] == f"Bearer {KEY}"
-
-
-def test_an_origin_with_a_user_name_or_password_raises() -> None:
-    with pytest.raises(ValueError, match="origin"):
-        connect_provision(KEY, "u", origin="https://user:pw@ochk.io")
-    with pytest.raises(ValueError, match="origin"):
-        connect_provision(KEY, "u", origin="https://user@ochk.io")
+def test_origin_is_not_an_argument_so_the_key_goes_to_ochk_io_only() -> None:
+    with pytest.raises(TypeError, match="origin"):
+        connect_provision(KEY, "u", origin="https://evil.example")  # type: ignore[call-arg]
 
 
 @respx.mock
-def test_a_claim_link_elsewhere_is_refused_with_the_default_origin() -> None:
-    link = {"ok": True, "url": "https://oc-app-test.example/connect/claim#t=a", "expires_at": "x"}
+def test_a_claim_link_anywhere_but_ochk_app_is_refused() -> None:
+    link = {"ok": True, "url": "https://ochk.app.evil.example/connect/claim#t=a", "expires_at": "x"}
     respx.post("https://ochk.io/api/connect/claim-link").mock(return_value=httpx.Response(200, json=link))
     assert connect_claim_link(KEY, "u") == ConnectRefusal(reason="unavailable", status=200)
-
-
-@respx.mock
-def test_a_test_stack_may_hand_back_its_own_claim_host() -> None:
-    link = {"ok": True, "url": "https://oc-app-test.example/connect/claim#t=a", "expires_at": "x"}
-    respx.post("https://oc-www-test.example/api/connect/claim-link").mock(
-        return_value=httpx.Response(200, json=link)
-    )
-    result = connect_claim_link(KEY, "u", origin="https://oc-www-test.example")
-    assert result == ConnectClaimLink(url=link["url"], expires_at="x")
 
 
 @respx.mock
@@ -184,8 +162,6 @@ def test_no_key_no_user_id_or_one_the_server_would_refuse() -> None:
         connect_provision("", "u")
     with pytest.raises(ValueError, match="email"):
         connect_provision(KEY, "u", email_verified=True)
-    with pytest.raises(ValueError, match="origin"):
-        connect_provision(KEY, "u", origin="http://ochk.io")
     assert route.call_count == 0
 
 

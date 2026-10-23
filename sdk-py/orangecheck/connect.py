@@ -11,7 +11,8 @@ an orangecheck account for its user with one call (ochk.io/docs/connect).
 A refusal or an outage is a result (``ConnectRefusal(reason, status)``), never
 an exception, so a failed call can't block the site's own login. Only a mistake
 in the call itself raises, before anything is sent: an argument it does not
-take, a missing key or user id, or ``consent=False``.
+take, a missing key or user id, or ``consent=False``. Every call goes to
+https://ochk.io and nowhere else, and a redirect is an error.
 
 The same requests and results as ``@orangecheck/me-client/server``, held to
 ``me-client/test-vectors/connect.json``.
@@ -34,7 +35,8 @@ CONNECT_CONSENT_BLURB = (
     "other sites, or delete it."
 )
 
-CONNECT_ORIGIN = "https://ochk.io"
+#: The only place a call goes: the key never travels anywhere else.
+_ORIGIN = "https://ochk.io"
 _DEFAULT_TIMEOUT = 5.0
 _MAX_TIMEOUT = 30.0
 _DID_OC = re.compile(r"^did:oc:[0-9a-f]{32}$")
@@ -93,37 +95,29 @@ def _utf16_units(s: str) -> int:
     return len(s.encode("utf-16-le")) // 2
 
 
-def _check_call(api_key: Any, user_id: Any, origin: Any, timeout: Any) -> str:
+def _check_call(api_key: Any, user_id: Any, timeout: Any) -> None:
     if not isinstance(api_key, str) or not api_key.strip():
         raise ValueError("api_key is required (your Connect API key)")
     if not isinstance(user_id, str) or not 1 <= _utf16_units(user_id) <= 256:
         raise ValueError("user_id must be your user's id, 1 to 256 characters")
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= _MAX_TIMEOUT:
         raise ValueError(f"timeout must be above 0 and at most {_MAX_TIMEOUT:g} seconds")
-    parts = urlsplit(origin if isinstance(origin, str) else "")
-    try:
-        port = parts.port
-    except ValueError:
-        port = -1
-    local = parts.hostname in ("localhost", "127.0.0.1")
-    scheme = parts.scheme == "https" or (local and parts.scheme == "http")
-    if not parts.hostname or not scheme or parts.username is not None or port == -1:
-        raise ValueError("origin must be an https URL with no user name or password")
-    # Rebuilt from its parts, so nothing but scheme, host and port is ever sent to.
-    return f"{parts.scheme}://{parts.hostname}" + (f":{port}" if port is not None else "")
 
 
-def _post(origin: str, path: str, api_key: str, body: dict[str, Any], timeout: float) -> tuple[int, Optional[dict[str, Any]]]:
+def _post(path: str, api_key: str, body: dict[str, Any], timeout: float) -> tuple[int, Optional[dict[str, Any]]]:
     try:
         resp = httpx.post(
-            f"{origin}{path}",
+            f"{_ORIGIN}{path}",
             json=body,
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             timeout=timeout,
-            # These endpoints never redirect: a redirect is answered as it is, never followed.
             follow_redirects=False,
         )
     except httpx.HTTPError:
+        return 0, None
+    # These endpoints never redirect, so a redirect is an error, as in me-client:
+    # the key and the body go to ochk.io and nowhere else.
+    if resp.is_redirect or 300 <= resp.status_code < 400:
         return 0, None
     try:
         data = resp.json()
@@ -146,7 +140,6 @@ def connect_provision(
     consent: Optional[Literal[True]] = None,
     email: Optional[str] = None,
     email_verified: Optional[bool] = None,
-    origin: str = CONNECT_ORIGIN,
     timeout: float = _DEFAULT_TIMEOUT,
 ) -> Union[ConnectAccount, ConnectRefusal]:
     """Make (or find) the orangecheck account for one of your users.
@@ -156,7 +149,7 @@ def connect_provision(
     orangecheck account" box just now; leave it out when you show no box. An
     unticked box means no call at all, so ``consent=False`` raises.
     """
-    base = _check_call(api_key, user_id, origin, timeout)
+    _check_call(api_key, user_id, timeout)
     if consent is not None and consent is not True:
         raise ValueError(
             "consent must be True or left out. An unticked box means no call at all; "
@@ -175,7 +168,7 @@ def connect_provision(
         body["email"] = email
     if email_verified is not None:
         body["email_verified"] = email_verified
-    status, data = _post(base, "/api/connect/provision", api_key, body, timeout)
+    status, data = _post("/api/connect/provision", api_key, body, timeout)
     if status != 200:
         return _refused(status, data, _PROVISION_REASONS)
     did = data.get("did_oc") if data else None
@@ -189,17 +182,15 @@ def connect_claim_link(
     api_key: str,
     user_id: str,
     *,
-    origin: str = CONNECT_ORIGIN,
     timeout: float = _DEFAULT_TIMEOUT,
 ) -> Union[ConnectClaimLink, ConnectRefusal]:
     """A link for your signed-in user to claim their account at ochk.app. Good once, for fifteen minutes.
 
-    With the default origin, a link anywhere but https://ochk.app is refused
-    (``unavailable``), so you never send your user somewhere else.
+    A link anywhere but https://ochk.app is refused (``unavailable``), so you
+    never send your user somewhere else.
     """
-    base = _check_call(api_key, user_id, origin, timeout)
-    standard = base == CONNECT_ORIGIN
-    status, data = _post(base, "/api/connect/claim-link", api_key, {"user_id": user_id}, timeout)
+    _check_call(api_key, user_id, timeout)
+    status, data = _post("/api/connect/claim-link", api_key, {"user_id": user_id}, timeout)
     if status != 200:
         return _refused(status, data, _CLAIM_LINK_REASONS)
     url = data.get("url") if data else None
@@ -209,7 +200,7 @@ def connect_claim_link(
         and data.get("ok") is True
         and isinstance(url, str)
         and urlsplit(url).scheme == "https"
-        and (not standard or urlsplit(url).netloc == "ochk.app")
+        and urlsplit(url).netloc == "ochk.app"
         and isinstance(expires_at, str)
         and expires_at
     ):
@@ -221,12 +212,11 @@ def connect_delete(
     api_key: str,
     user_id: str,
     *,
-    origin: str = CONNECT_ORIGIN,
     timeout: float = _DEFAULT_TIMEOUT,
 ) -> Union[ConnectDeleted, ConnectRefusal]:
     """Your user deleted their account with you: delete the one Connect made for them."""
-    base = _check_call(api_key, user_id, origin, timeout)
-    status, data = _post(base, "/api/connect/delete", api_key, {"user_id": user_id}, timeout)
+    _check_call(api_key, user_id, timeout)
+    status, data = _post("/api/connect/delete", api_key, {"user_id": user_id}, timeout)
     if status != 200:
         return _refused(status, data, _DELETE_REASONS)
     result = data.get("result") if data else None
