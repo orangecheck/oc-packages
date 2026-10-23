@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.16.4] — 2026-10-23
+
+- A keyboard focus inside a sideways scroller (a docs table, a code block, a
+  tab bar) is brought all the way in. The browser leaves an element that is
+  partly visible where it is, so Shift+Tab back onto a docs table's first
+  links, scrolled right, showed only a sliver of the link and its ring
+  (agent-core's VerifyFederationDelegationInput at 1440). `ScrollFade` now
+  scrolls it clear of the edge fades, for keyboard focus only.
+- check-focus walks Shift+Tab back through a docs table scrolled so its links
+  show only their right part, and holds every link and its ring inside the
+  table's box. It fails on 1.16.3.
 - The README gives Inter's ch in em at each text size, for a site moving a
   measure off ch. check-layout's ch guard reads the stories too, and
   `max-w-prose` (65ch) and inline `'Nch'` styles; the Home story's headline

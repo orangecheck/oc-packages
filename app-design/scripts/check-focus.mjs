@@ -26,6 +26,8 @@
  *   sonner's alt+T still returns there.
  * - A highlighted menu or select item stands out from its neighbours at 3:1.
  * - A tab pressed with the mouse shows no ring; one reached by the keyboard does.
+ * - Shift+Tab back through a docs table scrolled right brings each link, its
+ *   ring included, inside the table's box.
  *
  * Run after `yarn build`.
  */
@@ -135,6 +137,11 @@ try {
                 `import { Tabs, TabsList, TabsTrigger, TabsContent } from '${src('primitives/tabs.tsx')}';`,
             `<div className="flex max-w-md flex-col gap-6 p-6"><CodeBlock lang="bash" code={'curl -s https://stamp.ochk.io/api/v1/stamps/86020d78db788237e9f0c1b2a3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a85eeb1c | jq .envelope.signature'} />` +
                 `<Tabs defaultValue="a"><TabsList><TabsTrigger value="a" id="ta">Envelope</TabsTrigger><TabsTrigger value="b">Proof</TabsTrigger></TabsList><TabsContent value="a" id="pa"><p>The envelope, as published.</p></TabsContent><TabsContent value="b"><p>The proof.</p></TabsContent></Tabs></div>`
+        ),
+        // A docs table wider than its column, links in its second and last columns.
+        widetable: mount(
+            `import { MdxTable } from '${src('components/docs.tsx')}';`,
+            `<div className="w-[40rem] p-6"><MdxTable><thead><tr><th>Property</th><th>Type</th><th>Description</th><th>Defined in</th></tr></thead><tbody>{['FederationRevocationEnvelope', 'FederationDelegationEnvelope', 'RevocationEnvelope'].map((t, i) => <tr key={t}><td>{'revocations' + i}</td><td><a href={'#' + t}>{t}</a></td><td style={{ minWidth: '36rem' }}>Revocations to check (kind-30085 by #t with the delegation id): federation revocations, and the agent's own.</td><td><a href={'#src' + i}>{'agent-core/src/federation.ts:23' + i}</a></td></tr>)}</tbody></MdxTable></div>`
         ),
     };
     bundle(dir, clients);
@@ -338,6 +345,36 @@ try {
         await p.waitForTimeout(150);
         const panel = await ringOf('[role="tabpanel"]');
         check(panel.reached && panel.drawn, `TabsContent: the panel, reached by Tab, has no focus ring (${JSON.stringify(panel)})`);
+        // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
+        await p.goto(client('widetable'));
+        await p.waitForSelector('table a');
+        await p.evaluate(() => {
+            // The last link focused, then the table scrolled so the type links show only their right part, as the docs page had it.
+            const sc = document.querySelector('table').parentElement;
+            const links = [...document.querySelectorAll('table a')];
+            links.at(-1).focus();
+            const a = links.at(-2).getBoundingClientRect();
+            sc.scrollLeft += a.left + a.width * 0.6 - sc.getBoundingClientRect().left;
+        });
+        const steps = [];
+        for (let i = 0; i < 6; i++) {
+            await p.keyboard.press('Shift+Tab');
+            await p.waitForTimeout(150);
+            steps.push(
+                await p.evaluate(() => {
+                    const e = document.activeElement;
+                    const sc = e.closest('table')?.parentElement;
+                    if (!sc) return null;
+                    const cs = getComputedStyle(e);
+                    const ring = (parseFloat(cs.outlineOffset) || 0) + (parseFloat(cs.outlineWidth) || 0);
+                    const r = e.getBoundingClientRect();
+                    const v = sc.getBoundingClientRect();
+                    return { t: e.textContent, inside: r.left - ring >= v.left - 0.5 && r.right + ring <= v.right + 0.5, at: [Math.round(r.left), Math.round(r.right)], box: [Math.round(v.left), Math.round(v.right)] };
+                })
+            );
+        }
+        const walked = steps.filter(Boolean);
+        check(walked.length === 5 && walked.every((x) => x.inside), `MdxTable: Shift+Tab back through a table scrolled right leaves a link outside its box (${JSON.stringify(walked.filter((x) => !x.inside))}, ${walked.length} stops)`);
 
         // A control the keyboard reaches is never left under a sticky bar: a tool page at a desk, the docs on a phone.
         for (const [name, url, vw] of [

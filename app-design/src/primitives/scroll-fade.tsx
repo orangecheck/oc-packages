@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type HTMLAttributes } from 'react';
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
 
@@ -24,6 +24,23 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
         const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
         setEdges((e) => (e.left === left && e.right === right ? e : { left, right }));
     }, []);
+    // The browser leaves a part-hidden focus where it is: Shift+Tab onto a
+    // first column of a table scrolled right showed a sliver of the ring.
+    // Bring all of it in, clear of the edge fades (32px, 40px) and the ring.
+    const reveal = useCallback((e: FocusEvent<HTMLDivElement>) => {
+        const el = ref.current;
+        const t = e.target;
+        if (!el || t === el || !(t instanceof Element) || !t.matches(':focus-visible')) return;
+        // After the frame: the browser's own scroll for a hidden focus comes after this event.
+        requestAnimationFrame(() => {
+            const box = el.getBoundingClientRect();
+            const r = t.getBoundingClientRect();
+            const left = r.left - (box.left + 36);
+            const right = r.right - (box.right - 44);
+            if (left < 0) el.scrollLeft += left;
+            else if (right > 0) el.scrollLeft += Math.min(right, left);
+        });
+    }, []);
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
@@ -40,6 +57,7 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
             <div
                 ref={ref}
                 onScroll={measure}
+                onFocus={reveal}
                 // While it hides something, a keyboard can reach it to scroll.
                 tabIndex={edges.left || edges.right ? 0 : undefined}
                 className={cn(
