@@ -418,7 +418,7 @@ describe("integratorRevocationCheck", () => {
 
   it("never answers live for a handle without one string aud, and never fetches for it", async () => {
     const check = integrator();
-    for (const over of [{ aud: [SITE] }, { aud: [SITE, WWW] }, { aud: undefined }, { rh: 42 }, { rh: "" }]) {
+    for (const over of [{ aud: [SITE] }, { aud: [SITE, WWW] }, { aud: undefined }, { aud: "" }, { rh: 42 }, { rh: "" }, { rh: null }]) {
       expect(await check.status(tok(over))).toBe("revoked");
       expect(await check.refuses(tok(over), "GET")).toBe(true);
     }

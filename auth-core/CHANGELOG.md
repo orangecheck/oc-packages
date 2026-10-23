@@ -20,7 +20,8 @@ this file tracks the package's TS / Node / runtime API surface.
   `rh` is a non-empty string and `aud` is one string the verifier accepts.
   A token without `rh` verifies as before.
 - `integratorRevocationCheck` answers `revoked` (and `refuses`) for claims
-  whose `rh` is not a non-empty string or whose `aud` is not one string.
+  whose `rh` is present but not a non-empty string (`null` included), or
+  whose `aud` is not one non-empty string.
 
 ### Added
 
