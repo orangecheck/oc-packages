@@ -535,10 +535,11 @@
     tailwind-merge "^3.3.1"
 
 "@orangecheck/auth-client@^2.32.3":
-  version "2.36.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.36.0.tgz#1a974d17df52d31a7d9abb0677c6d3657b85ac86"
-  integrity sha512-8tJMjo11eR9xgSZVSWpkXOhtXi/zjWbi2+1Ec41N2EoMIV1yD/UF8EkjacftdmsZYBK/t7Ea4gns7FsKpS7aCw==
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.37.0.tgz#20cf16e6400160a450d60eff0025164cf26b03be"
+  integrity sha512-+n55KADNFme44T8zEoaawQvVZaE52MCVA7fvLuMOKVBxXVpJlocFG00InMHdJ355+9kcgUGMqOv8KJEMN0NuXw==
   dependencies:
+    "@orangecheck/bip322" "^1.1.2"
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
@@ -549,21 +550,21 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/bip322@^1.0.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.0.tgz#2884e42042661e8d9cb8b1c3becc3649635721b1"
-  integrity sha512-Q175HQIqRQe3KPpeFCtNxnxbgZ6GVJ5TGk3P4YVOGa9fblfAhvtPuBNBDVqO/cfEXV2d54d4iZ4xXMhRCy9Mfg==
+"@orangecheck/bip322@^1.1.0", "@orangecheck/bip322@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
+  integrity sha512-NaaSTlL3HkVobUHrUUcMpoi+WVccEHMruWRRHiCVczkf3ac7JW0sXKEtDvqZ5YPI+KZi5xmxi2XK3ZE6do/t/w==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
 "@orangecheck/wallet-adapter@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.0.tgz#9231f5faceff155b500b80c51bbdd40220a9576f"
-  integrity sha512-JF54bW+vfXoldLSQqFC3FOxsLCoHEITM9m8nwdN3XDVcDFDUDleUqdUqgBFroZzROROSlqsXlRbar0GDfY4xcA==
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"
+  integrity sha512-1Rk1vWkCrHA5IRFqAbj35oHLs1du8HsZl/xhQH3ARV8zed8nIXl50vhJuzD3B3tNwiv62Z5a9ZjdXY/uSs0qsA==
   dependencies:
-    "@orangecheck/bip322" "^1.0.0"
+    "@orangecheck/bip322" "^1.1.0"
 
 "@oxc-project/types@=0.154.0":
   version "0.154.0"

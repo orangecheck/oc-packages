@@ -562,10 +562,11 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.32.3":
-  version "2.36.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.36.0.tgz#1a974d17df52d31a7d9abb0677c6d3657b85ac86"
-  integrity sha512-8tJMjo11eR9xgSZVSWpkXOhtXi/zjWbi2+1Ec41N2EoMIV1yD/UF8EkjacftdmsZYBK/t7Ea4gns7FsKpS7aCw==
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.37.0.tgz#20cf16e6400160a450d60eff0025164cf26b03be"
+  integrity sha512-+n55KADNFme44T8zEoaawQvVZaE52MCVA7fvLuMOKVBxXVpJlocFG00InMHdJ355+9kcgUGMqOv8KJEMN0NuXw==
   dependencies:
+    "@orangecheck/bip322" "^1.1.2"
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
@@ -576,7 +577,7 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/bip322@^1.0.0":
+"@orangecheck/bip322@^1.0.0", "@orangecheck/bip322@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
   integrity sha512-NaaSTlL3HkVobUHrUUcMpoi+WVccEHMruWRRHiCVczkf3ac7JW0sXKEtDvqZ5YPI+KZi5xmxi2XK3ZE6do/t/w==
