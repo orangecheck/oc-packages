@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.2] — 2026-10-23
+
+### Changed
+
+- **Unknown options throw.** `filterAllowlist` rejects with a `TypeError`
+  naming an option it does not read. It reads only the keys in
+  `FilterAllowlistOptions`.
+
 ## [0.2.1] — 2026-09-24
 
 ### Changed

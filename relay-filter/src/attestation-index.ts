@@ -13,6 +13,7 @@ import {
     verify,
 } from '@orangecheck/sdk';
 
+import { checkFilterOptions, checkIndexOptions } from './options';
 import { chainUnreachable } from './outage';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002];
@@ -127,6 +128,7 @@ export class AttestationIndex {
     private cover: number;
 
     constructor(private readonly options: IndexOptions = {}) {
+        checkIndexOptions(options);
         this.cover = options.minSats ?? 0;
     }
 
@@ -165,6 +167,7 @@ export class AttestationIndex {
     }
 
     decide(event: MinimalNostrEvent, opts: FilterOptions = {}): FilterDecision {
+        checkFilterOptions(opts, 'AttestationIndex.decide');
         const pubkey = event.pubkey.toLowerCase();
         if ((opts.allowKinds ?? DEFAULT_ALLOW_KINDS).includes(event.kind)) {
             return { action: 'accept', reason: 'allowed_kind' };

@@ -186,6 +186,7 @@ async function handleIncomingEvent(socket: WebSocket, event: Event) {
 - **One bond, one key.** An address that backs more than one Nostr key admits none of them through that bond (`stake_shared`), as SECURITY.md §3 of the protocol requires. A holder who wants two keys gated uses two addresses.
 - **Only the signed message counts.** Event tags are indexes. A key is admitted only if the attestation's signed `identities:` line binds it, in npub or hex form.
 - **Freshness is bounded, not live.** The index re-reads bonds every `OC_REFRESH_MS`. `filterEvent` caches per pubkey for `cacheTtlMs`, at most ten minutes. Either way, pick the window your relay can tolerate a spent bond passing for.
+- **Unknown options throw.** `filterEvent`, `AttestationIndex.decide` and `new AttestationIndex()` refuse a key they do not read, so a misspelt `minSats` never reads as 0.
 
 ---
 

@@ -20,6 +20,7 @@ import type {
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
 import { generateAttestationId, parseIdentities } from './canonical';
+import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
 import { signatureScheme, toBase64Maybe } from './utils/signature';
@@ -389,6 +390,7 @@ function computeMetrics(
  * ```
  */
 export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Promise<VerifyOutcome> {
+    checkVerifyOptions(opts);
     const codes: StatusCode[] = [];
     let network: Network = 'mainnet';
 

@@ -195,6 +195,8 @@ These mirror what the me.ochk.io API accepts and returns. A change to the API sh
 
 Verify the OC session on your backend without writing a JWK fetcher, an env-var loader, or a cache. The SDK does that internally.
 
+The adapters and `getOcSession` / `checkOcSession` throw on an option they do not read, so a misspelt `projectKey`, `audience` or bond threshold is never ignored.
+
 ### Next.js Pages Router
 
 ```ts

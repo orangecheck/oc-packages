@@ -19,6 +19,7 @@ import {
 } from './attestation';
 import { DEFAULT_RELAYS, signedEnvelope } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
+import { checkCheckParams } from './options';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
 
@@ -62,6 +63,7 @@ export interface CheckResult {
 }
 
 export async function check(params: CheckParams): Promise<CheckResult> {
+    checkCheckParams(params);
     const {
         addr,
         id,

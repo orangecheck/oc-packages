@@ -3,6 +3,7 @@ import type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';
 import { check, nostrPubkeyToHex } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
+import { checkFilterOptions } from './options';
 import { chainUnreachable } from './outage';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
@@ -93,6 +94,7 @@ export async function filterEvent(
     event: MinimalNostrEvent,
     options: FilterOptions
 ): Promise<FilterDecision> {
+    checkFilterOptions(options);
     // Bypass: allowed kinds.
     const allowKinds = options.allowKinds ?? DEFAULT_ALLOW_KINDS;
     if (allowKinds.includes(event.kind)) {

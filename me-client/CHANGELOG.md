@@ -370,6 +370,16 @@ Two independent defects, either of which was fatal:
 
 - _(no pending changes)_
 
+## [0.38.2] — 2026-10-23
+
+### Changed
+
+- **Unknown options throw.** `withOcAuth`, `ocAuthExpress` and `ocAuthHono`
+  throw a `TypeError` when built with an option they do not read, and
+  `getOcSession` / `checkOcSession` reject. So does a key in `requireBond`
+  other than `minSats`, `minDays` and `maxAgeSecs`. They read only the keys
+  in `WithOcAuthOptions`.
+
 ## [0.25.1] — 2026-09-14
 
 ### Fixed

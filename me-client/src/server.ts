@@ -145,7 +145,8 @@ export function _resetSessionChecksForTests(): void {
  * A session the person ended everywhere is refused once `OC_PROJECT_KEY` and
  * `OC_SIGNING_SECRET` are set (see {@link OcSessionOptions.revocation}).
  *
- * Returns `null` for unauthenticated requests. Never throws.
+ * Returns `null` for unauthenticated requests. Throws only on an option it
+ * does not read.
  */
 export async function getOcSession(
     headers: SessionRequestHeaders | Headers,
@@ -173,6 +174,7 @@ export async function checkOcSession(
     headers: SessionRequestHeaders | Headers,
     options: OcSessionOptions = {}
 ): Promise<OcSessionCheck> {
+    checkOptions(options);
     const session = await getOcSessionCore(headers, options);
     if (!session) {
         if (options.audience === undefined) warnIfAudienceMissing(headers);
@@ -273,6 +275,51 @@ export interface WithOcAuthOptions extends OcSessionOptions {
 }
 
 type BondNeed = NonNullable<WithOcAuthOptions['requireBond']>;
+
+/** The options the session check and the adapters read. */
+const KNOWN_OPTIONS: ReadonlySet<string> = new Set<keyof WithOcAuthOptions>([
+    'issuer',
+    'jwksCacheTtlMs',
+    'jwksMaxStaleMs',
+    'audience',
+    'method',
+    'projectKey',
+    'meOrigin',
+    'revocation',
+    'required',
+    'requireBond',
+]);
+const BOND_OPTIONS: ReadonlySet<string> = new Set<keyof BondNeed>(['minSats', 'minDays', 'maxAgeSecs']);
+
+/**
+ * Throw on a key me-client does not read. Ignored, a misspelt `projectKey`
+ * would skip the project's sign-in rule, a misspelt `audience` would accept
+ * family sessions, and a misspelt `requireBond.minSats` would read as 0.
+ */
+function checkOptions(options: WithOcAuthOptions): void {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/me-client: options must be an object');
+    }
+    const unknown = Object.keys(options).filter((k) => !KNOWN_OPTIONS.has(k));
+    if (unknown.length > 0) {
+        throw new TypeError(
+            `@orangecheck/me-client: unknown option ${unknown.join(', ')}. ` +
+                `It reads only ${[...KNOWN_OPTIONS].join(', ')}.`
+        );
+    }
+    const bond = options.requireBond;
+    if (bond === undefined) return;
+    if (bond === null || typeof bond !== 'object') {
+        throw new TypeError('@orangecheck/me-client: requireBond must be an object');
+    }
+    const extra = Object.keys(bond).filter((k) => !BOND_OPTIONS.has(k));
+    if (extra.length > 0) {
+        throw new TypeError(
+            `@orangecheck/me-client: requireBond: unknown option ${extra.join(', ')}. ` +
+                `It reads only ${[...BOND_OPTIONS].join(', ')}.`
+        );
+    }
+}
 /** Where someone turned away for want of backing can back their account. */
 export const BACK_ACCOUNT_URL = 'https://ochk.app/me/account#backing';
 /** A moment on both clocks: performance.now() and the wall clock. */
@@ -446,6 +493,7 @@ export function withOcAuth<
     handler: (req: WithOcSession<Req>, res: Res) => unknown,
     options: WithOcAuthOptions = {}
 ): (req: Req, res: Res) => Promise<unknown> {
+    checkOptions(options);
     return async (req: Req, res: Res) => {
         res.setHeader('Cache-Control', 'no-store, private');
         res.setHeader('Vary', 'Cookie, Authorization');
@@ -516,6 +564,7 @@ type ExpressNextLike = (err?: unknown) => void;
  * with a 401 before they reach your handler.
  */
 export function ocAuthExpress(options: WithOcAuthOptions = {}) {
+    checkOptions(options);
     return async (req: ExpressRequestLike, res: ExpressResponseLike, next: ExpressNextLike) => {
         try {
             res.setHeader('Cache-Control', 'no-store, private');
@@ -571,6 +620,7 @@ type HonoNextLike = () => Promise<void>;
  *   });
  */
 export function ocAuthHono(options: WithOcAuthOptions = {}) {
+    checkOptions(options);
     return async (c: HonoContextLike, next: HonoNextLike) => {
         c.header('Cache-Control', 'no-store, private');
         c.header('Vary', 'Cookie, Authorization');

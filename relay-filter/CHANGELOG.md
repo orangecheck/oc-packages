@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.4] — 2026-10-23
+
+### Changed
+
+- **Unknown options throw.** `filterEvent` rejects, and
+  `AttestationIndex.decide` and `new AttestationIndex()` throw, a `TypeError`
+  naming an option they do not read. They read only the keys in
+  `FilterOptions` and `IndexOptions`.
+
 ## [0.5.3] — 2026-10-22
 
 ### Changed

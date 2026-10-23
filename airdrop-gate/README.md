@@ -44,6 +44,8 @@ const { ok, rejected } = await filterAllowlist(candidates, {
 
 **Returns:** `{ ok: string[], rejected: AirdropDecision[], all: AirdropDecision[] }`.
 
+Any other option throws.
+
 Addresses are deduplicated before checking — duplicates in input waste API calls and never change the outcome.
 
 ### `AirdropDecision`

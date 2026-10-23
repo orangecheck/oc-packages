@@ -307,6 +307,7 @@ Full type definitions ship with the package.
 - **No custody.** The SDK never touches user funds. It signs messages, it doesn't spend coins.
 - **No telemetry.** The SDK makes network calls only to public Bitcoin explorers (mempool.space, blockstream.info) and Nostr relays you pass in. No OrangeCheck server is in the path for `verify()`.
 - **Offline-verifiable.** Given `(addr, msg, sig)`, anyone — including you, sitting on an island with a Raspberry Pi — can verify.
+- **Unknown options throw.** `check()` and `verify()` refuse a key they do not read, so a misspelt `minSats` or `expectedAud` is never ignored.
 
 ---
 

@@ -308,6 +308,15 @@ way to name the types it takes — oc-www had to recover one with
 
 - _(no pending changes)_
 
+## [1.17.0] — 2026-10-23
+
+### Changed
+
+- **Unknown options throw.** `check()` and `verify()` reject with a
+  `TypeError` naming an option they do not read, and `check()` does the same
+  for a key in `verifyOptions`. They read only the keys in `CheckParams` and
+  `VerifyOptions`.
+
 ## [1.3.0] — 2026-05-18 · Remove the Binding Attestation API (reverted)
 
 Removes `verifyBinding`, `buildBindingMessage`, `bindingId`,

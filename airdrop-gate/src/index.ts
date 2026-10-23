@@ -50,6 +50,34 @@ export interface FilterAllowlistOptions {
     rejectOnError?: boolean;
 }
 
+/** The options `filterAllowlist` reads. */
+const KNOWN_OPTIONS: ReadonlySet<string> = new Set<keyof FilterAllowlistOptions>([
+    'minSats',
+    'minDays',
+    'concurrency',
+    'onProgress',
+    'relays',
+    'rejectOnError',
+]);
+
+/**
+ * Throw on a key `filterAllowlist` does not read. Ignored, a misspelt
+ * `minSats` would leave the threshold at 0 and every attested address would
+ * make the list.
+ */
+function checkOptions(options: FilterAllowlistOptions): void {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/airdrop-gate: options must be an object');
+    }
+    const unknown = Object.keys(options).filter((k) => !KNOWN_OPTIONS.has(k));
+    if (unknown.length > 0) {
+        throw new TypeError(
+            `@orangecheck/airdrop-gate: unknown option ${unknown.join(', ')}. ` +
+                `filterAllowlist reads only ${[...KNOWN_OPTIONS].join(', ')}.`
+        );
+    }
+}
+
 export interface AirdropDecision {
     /** The candidate address that was checked. */
     address: string;
@@ -101,6 +129,7 @@ export async function filterAllowlist(
     addresses: string[],
     options: FilterAllowlistOptions = {}
 ): Promise<FilterAllowlistResult> {
+    checkOptions(options);
     const {
         minSats = 0,
         minDays = 0,
