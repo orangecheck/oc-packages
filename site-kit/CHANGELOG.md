@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4
+
+`FAMILY_ORIGINS` and `isFamilyOrigin` in `@orangecheck/site-kit/auth` are now
+the ones `@orangecheck/auth-core/family-origins` keeps, re-exported: same names,
+same answers, one list, with one difference: localhost counts as family only
+when `NODE_ENV` is `development` or `test`, not when it is unset. The optional
+peer on `@orangecheck/auth-core` is `^2.21.0`, the first release with that
+entry.
+
 ## 0.5.3
 
 The share card draws only text the site issues. `createOgHandler` no longer

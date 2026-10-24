@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/site-kit",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "OrangeCheck family-internal site scaffolding for the .ochk.io Next.js sites: SEO and JSON-LD, security headers and CSP, the local /api/auth/me and session gate, the OG card route, the build-time sitemap, and analytics that never report a page's query or fragment. Not for third-party use.",
   "keywords": [
     "orangecheck",
@@ -75,7 +75,7 @@
   },
   "peerDependencies": {
     "@orangecheck/app-design": "^1.10.1",
-    "@orangecheck/auth-core": "^2.9.0",
+    "@orangecheck/auth-core": "^2.21.0",
     "next": "^15.0.0 || ^16.0.0",
     "react": "^18.0.0 || ^19.0.0"
   },
@@ -90,7 +90,7 @@
   "devDependencies": {
     "@orangecheck/app-design": "^1.10.1",
     "@orangecheck/auth-client": "^2.32.3",
-    "@orangecheck/auth-core": "^2.9.0",
+    "@orangecheck/auth-core": "^2.21.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",

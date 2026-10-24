@@ -1,3 +1,4 @@
+import * as authCore from '@orangecheck/auth-core/family-origins';
 import { describe, expect, it } from 'vitest';
 
 import { classifyRequestOrigin, FAMILY_ORIGINS, isFamilyOrigin, refuseCookieSession } from './origin';
@@ -9,7 +10,12 @@ describe('isFamilyOrigin', () => {
         for (const o of FAMILY_ORIGINS) expect(isFamilyOrigin(o, false)).toBe(true);
     });
 
-    it('matches oc-www FAMILY_ORIGINS as of a0e14a7 (2026-10-20)', () => {
+    it('is the list @orangecheck/auth-core/family-origins keeps, not a copy', () => {
+        expect(FAMILY_ORIGINS).toBe(authCore.FAMILY_ORIGINS);
+        expect(isFamilyOrigin).toBe(authCore.isFamilyOrigin);
+    });
+
+    it('holds the seventeen family sites', () => {
         expect([...FAMILY_ORIGINS].sort()).toEqual(
             [
                 'https://ochk.io',

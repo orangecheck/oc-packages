@@ -9,41 +9,10 @@
  * session, and a same-site caller only from a listed family site.
  */
 
-/**
- * The family sites that may change state on the shared cookie. Mirrors
- * `FAMILY_ORIGINS` in oc-www `src/lib/auth/family-origins.ts` (2026-10-20). A
- * name that is not listed is not family, even under .ochk.io: a retired or
- * unclaimed subdomain must never inherit a signed-in visitor's session.
- */
-export const FAMILY_ORIGINS: ReadonlySet<string> = new Set([
-    'https://ochk.io',
-    'https://me.ochk.io',
-    'https://attest.ochk.io',
-    'https://lock.ochk.io',
-    'https://vote.ochk.io',
-    'https://stamp.ochk.io',
-    'https://agent.ochk.io',
-    'https://pledge.ochk.io',
-    'https://vault.ochk.io',
-    'https://chat.ochk.io',
-    'https://cosign.ochk.io',
-    'https://me-demo.ochk.io',
-    'https://globe.ochk.io',
-    'https://btc.ochk.io',
-    'https://analytics.ochk.io',
-    'https://bot.ochk.io',
-    'https://forge.ochk.io',
-]);
+import { FAMILY_ORIGINS, isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
 
-const LOCALHOST = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-
-const isDeveloping = () => typeof process !== 'undefined' && process.env.NODE_ENV !== 'production';
-
-/** Is this Origin header value a family site? Localhost counts only while developing. */
-export function isFamilyOrigin(origin: string | undefined, developing = isDeveloping()): boolean {
-    if (typeof origin !== 'string') return false;
-    return FAMILY_ORIGINS.has(origin) || (developing && LOCALHOST.test(origin));
-}
+/** The family sites, and the check against them, as `@orangecheck/auth-core/family-origins` keeps them. */
+export { FAMILY_ORIGINS, isFamilyOrigin };
 
 /** The minimal request shape read here; structural so narrower request types fit. */
 export interface OriginBearingRequest {
