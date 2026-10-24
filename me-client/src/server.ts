@@ -101,10 +101,15 @@ function vouch(session: SessionPayload): SessionPayload {
     return session;
 }
 
+/** A family session: no aud, or an empty list, as verification with no audience accepts. */
+function isFamily(session: SessionPayload): boolean {
+    const aud: unknown = session.aud;
+    return aud === undefined || (Array.isArray(aud) && aud.length === 0);
+}
+
 function lacksHandle(session: SessionPayload, requireHandle: boolean | undefined): boolean {
-    if (requireHandle === false) return false;
-    const { aud, rh } = session as { aud?: unknown; rh?: unknown };
-    if (aud === undefined) return false;
+    if (requireHandle === false || isFamily(session)) return false;
+    const rh: unknown = session.rh;
     return typeof rh !== 'string' || rh.length === 0;
 }
 
@@ -255,7 +260,7 @@ function revocationFor(options: OcSessionOptions, session: SessionPayload): Revo
     if (options.revocation === false) return null;
     if (options.revocation) return options.revocation;
     // A family session is ended on ochk.io's own feed, never on a project's list.
-    if (session.aud === undefined) {
+    if (isFamily(session)) {
         const token = typeof process !== 'undefined' ? process.env?.OC_REVOCATION_FEED_TOKEN?.trim() : undefined;
         if (!token) {
             throw new Error(

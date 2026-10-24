@@ -98,6 +98,20 @@ describe('a family session with no feed configured', () => {
         expect(String(passed)).toMatch(/OC_REVOCATION_FEED_TOKEN/);
     });
 
+    it('counts an empty aud list as a family session, as verification does', async () => {
+        const iat = nowSec();
+        const listless = await new SignJWT({ did_oc: 'did:oc:0123456789abcdef0123456789abcdef', aud: [] })
+            .setProtectedHeader({ alg: 'EdDSA', kid: KID })
+            .setSubject('acct-1')
+            .setJti('j-2')
+            .setIssuer(ISSUER)
+            .setIssuedAt(iat)
+            .setExpirationTime(iat + 300)
+            .sign(privateKey);
+        const headers = { authorization: `Bearer ${listless}`, cookie: null };
+        await expect(checkOcSession(headers, { method: 'GET' })).rejects.toThrow(/OC_REVOCATION_FEED_TOKEN/);
+    });
+
     it('is read by signature alone only when the site says so', async () => {
         expect(await checkOcSession(await bearer(), { revocation: false })).toMatchObject({ status: 'signed_in' });
     });

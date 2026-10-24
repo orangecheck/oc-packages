@@ -20,7 +20,9 @@ this file tracks the package's TS / Node / runtime API surface.
   calls throw, naming the variable, rather than accept it by signature alone.
   `revocation: false` still reads it by signature alone on purpose, and a
   check the site passes still wins. Tokens bound to your site (`aud`) are
-  checked as before. orangecheck (Python) reads no family sessions:
+  checked as before. A token whose `aud` is an empty list counts as a family
+  session here, as verification with no audience already counts it.
+  orangecheck (Python) reads no family sessions:
   `verify_session` refuses a token without `aud`.
 
 ## [0.43.0] — 2026-10-24
