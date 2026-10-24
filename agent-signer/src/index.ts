@@ -17,7 +17,9 @@ import {
     computeRevocationId,
     ENVELOPE_VERSION,
     hexEncode,
+    authoredReasonProblem,
     parseScope,
+    REVOCATION_REASON_MAX_BYTES,
     sealScopes,
     validateScope,
 } from '@orangecheck/agent-core';
@@ -286,7 +288,7 @@ export async function signAsAgent(input: SignAsAgentInput): Promise<ActionEnvelo
 export interface RevokeInput {
     signer: SignerRef;
     delegation: DelegationEnvelope;
-    /** Short ASCII rationale. Defaults to empty string. */
+    /** Printable ASCII, at most 128 bytes: SPEC §9.1 allows any ASCII; we write no control character. Defaults to "". */
     reason?: string;
     signedAt?: Date;
     /** OTS proof / anchor data if the caller has already submitted; otherwise null. */
@@ -303,7 +305,19 @@ export async function revoke(input: RevokeInput): Promise<RevocationEnvelope> {
     }
 
     const reason = input.reason ?? '';
-    if (reason.length > 128) throw new Error('revoke: reason must be <=128 bytes');
+    // Stricter than the spec on purpose: a control character changes the shape of the signed message.
+    switch (authoredReasonProblem(reason)) {
+        case null:
+            break;
+        case 'too_long':
+            throw new Error(`revoke: reason must be at most ${REVOCATION_REASON_MAX_BYTES} bytes`);
+        case 'not_ascii':
+            throw new Error('revoke: reason must be ASCII');
+        case 'control_character':
+            throw new Error('revoke: reason must have no line break or other control character');
+        case 'not_text':
+            throw new Error('revoke: reason must be text');
+    }
 
     const signedAt = isoUtcSeconds(input.signedAt ?? new Date());
     const canonInput = {
@@ -349,6 +363,10 @@ export {
     isSubScope,
     canonicalizeScope,
     REGISTERED_SCOPES,
+    authoredReasonProblem,
+    reasonProblem,
+    REVOCATION_REASON_MAX_BYTES,
+    shownReason,
 } from '@orangecheck/agent-core';
 export type {
     ActionEnvelope,

@@ -118,7 +118,7 @@ Returns an `ActionEnvelope` — a strict extension of an [OC Stamp](https://gith
 interface RevokeInput {
     signer: SignerRef;                 // the delegation's principal or agent
     delegation: DelegationEnvelope;
-    reason?: string;                   // ASCII, <=128 bytes
+    reason?: string;                   // printable ASCII, <=128 bytes
     signedAt?: Date;
     ots?: ActionOts | null;
 }

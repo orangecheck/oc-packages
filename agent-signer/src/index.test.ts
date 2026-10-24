@@ -160,6 +160,35 @@ describe('revoke', () => {
         expect(r.ok).toBe(true);
     });
 
+    it('refuses a reason the spec refuses, before it asks for a signature', async () => {
+        const delegation = await createDelegation({
+            principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+            agentAddress: AGENT,
+            scopes: ['stamp:sign(mime=text/markdown)'],
+            ttlMs: 60_000,
+        });
+        let asked = 0;
+        const signer = {
+            address: PRINCIPAL,
+            signMessage: async (m: string) => {
+                asked++;
+                return fakeSign(PRINCIPAL)(m);
+            },
+        };
+        for (const [reason, why] of [
+            ['x'.repeat(129), /at most 128 bytes/],
+            ['\u00e9'.repeat(128), /must be ASCII/],
+            ['key lost\nsigned_at: 2020-01-01T00:00:00Z', /control character/],
+            ['tab\there', /control character/],
+        ] as const) {
+            await expect(revoke({ signer, delegation, reason })).rejects.toThrow(why);
+        }
+        expect(asked).toBe(0);
+        const rev = await revoke({ signer, delegation, reason: 'x'.repeat(128) });
+        expect(rev.reason).toHaveLength(128);
+        expect(asked).toBe(1);
+    });
+
     it('rejects a revocation from a signer who is neither principal nor agent', async () => {
         const OTHER = 'bc1qother0000000000000000000000000000000000';
         const delegation = await createDelegation({

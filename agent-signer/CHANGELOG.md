@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.2] — 2026-10-24
+
+- `revoke` writes a reason of printable ASCII only, at most 128 bytes, and
+  refuses any other before it asks for a signature. SPEC §9.1 allows any
+  ASCII; we write no control character, since a line break changes the shape
+  of the signed message. Requires `@orangecheck/agent-core` ^2.9.0 for
+  `authoredReasonProblem`; it, `reasonProblem` and `shownReason` are
+  re-exported here.
+
 ## [0.5.1] — 2026-10-22
 
 - `revoke` lets the delegation's agent revoke whatever
