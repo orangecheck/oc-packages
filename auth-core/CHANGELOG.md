@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.21.0] — 2026-10-24
+
+### Added
+
+- `@orangecheck/auth-core/family-origins`: `FAMILY_ORIGINS` and
+  `isFamilyOrigin`, the list of family sites that may use the shared session
+  cookie to change state and that a sign-in may return to. Like
+  `/display-name`, the entry imports nothing, so a browser bundle can take it.
+  Also exported from the package root. `@orangecheck/site-kit/auth` and
+  `@orangecheck/auth-client` read it from here instead of keeping copies.
+  Localhost counts as family only when `NODE_ENV` is `development` or `test`
+  (site-kit's copy also counted an unset `NODE_ENV`), and the check reads a
+  frozen list, so adding to the exported Set changes no answer.
+
 ## [2.20.0] — 2026-10-24
 
 ### Added

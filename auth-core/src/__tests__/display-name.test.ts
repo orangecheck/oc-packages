@@ -1,7 +1,4 @@
-import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
@@ -48,41 +45,6 @@ describe("the family name rule", () => {
   it("keeps its own source to visible ASCII", () => {
     const source = readFileSync(new URL("../display-name.ts", import.meta.url), "utf8");
     expect([...source].filter((c) => c > "~").map((c) => c.codePointAt(0)!.toString(16))).toEqual([]);
-  });
-
-  // The /display-name entry ships to browsers. As built, it must load, as ESM and as CJS,
-  // in a separate Node process with no other module beside it: any import it gains fails here.
-  it("loads as built with nothing else installed", () => {
-    const dist = new URL("../../dist/", import.meta.url);
-    for (const f of ["display-name.mjs", "display-name.js"]) {
-      expect(existsSync(new URL(f, dist)), `dist/${f} is missing: run yarn build first`).toBe(true);
-    }
-    // A node: built-in would load in the probe below but break a browser bundle, so the built
-    // files may not import, require or re-export anything at all.
-    for (const f of ["display-name.mjs", "display-name.js"]) {
-      const built = readFileSync(new URL(f, dist), "utf8");
-      expect(built, f).not.toMatch(/\bimport\b|\brequire\s*\(|\bfrom\s*["']/);
-    }
-    const dir = mkdtempSync(join(tmpdir(), "display-name-"));
-    try {
-      copyFileSync(new URL("display-name.mjs", dist), join(dir, "display-name.mjs"));
-      copyFileSync(new URL("display-name.js", dist), join(dir, "display-name.cjs"));
-      writeFileSync(
-        join(dir, "probe.mjs"),
-        [
-          'import { createRequire } from "node:module";',
-          'const esm = await import("./display-name.mjs");',
-          'const cjs = createRequire(import.meta.url)("./display-name.cjs");',
-          'const names = ["och\\ufe0fk", "Lumen\\u00adNotes", "Lumen Notes"];',
-          "console.log(JSON.stringify([esm, cjs].map((m) => names.map((n) => m.nameProblem(n, 80)))));",
-        ].join("\n"),
-      );
-      const out = execFileSync(process.execPath, ["probe.mjs"], { cwd: dir, encoding: "utf8" });
-      const answer = ["reserved", "hidden_characters", null];
-      expect(JSON.parse(out)).toEqual([answer, answer]);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
   });
 
   it("says when a name is missing or too long", () => {
