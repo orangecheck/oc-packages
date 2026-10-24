@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.5.0] — 2026-10-24
+
+### Added
+
+- `exchange_native_code(code, code_verifier, redirect_uri, project_key, audience, *, issuer=, timeout=)`
+  → `NativeSignIn` or `NativeRefusal`: the server's half of native sign-in,
+  for an app on the person's own device. It trades the one-time code the app's
+  loopback listener received at `POST <issuer>/api/auth/native/token`, then
+  verifies the token for your `audience` as `verify_session` does. Only a
+  mistake in the call raises. As `@orangecheck/me-client` 0.49.0's
+  `exchangeNativeCode`, held to the shared vectors (`exchange_native`).
+
 ## [3.4.0] — 2026-10-24
 
 ### Added

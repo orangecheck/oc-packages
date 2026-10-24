@@ -295,6 +295,34 @@ token stays valid until it expires.
 later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https
 (http only on localhost). `jwks=` given explicitly wins, and nothing is fetched.
 
+### Sign in from an app on the person's device
+
+A desktop build or a game can't open the popup, and must not carry a secret. It
+signs the person in through their browser instead (3.5.0, test projects only for
+now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a
+PKCE challenge, and its listener receives a one-time `code`. The app hands the
+code, its verifier and its redirect to your server, which trades them:
+
+```python
+from orangecheck import exchange_native_code, spend_once
+
+got = exchange_native_code(
+    code,
+    code_verifier,
+    redirect_uri,  # exactly as the app sent it: http://127.0.0.1:<port>/<path>
+    "pk_test_…",
+    "https://your-site.example",  # your verified domain, or your test project's dev origin
+)
+if got.status == "valid" and spend_once(got.session.jti, got.session.exp, store):
+    start_your_session(got.session)
+```
+
+`got` is a `NativeSignIn` (the token and its session, verified for your
+audience, with `azp` `"native"`) or a `NativeRefusal`: `invalid` names why
+(`invalid_grant`: start again), and `unavailable` is an outage, so answer it 503.
+Each code works once, whatever the answer. The app's half, with a Godot
+example, is at ochk.io/docs/integration/native-sign-in.
+
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
 
 ## Keep your own login: OC Connect

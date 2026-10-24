@@ -101,6 +101,7 @@ from .integrator import (
     verify_webhook,
     warm_session,
 )
+from .native import NativeRefusal, NativeSignIn, exchange_native_code
 from .tokens import (
     JtiStore,
     MemoryJtiStore,
@@ -189,6 +190,10 @@ __all__ = [
     "revoke_token",
     "TokensRevoked",
     "RevokeRefusal",
+    # Native sign-in: an app on the person's device, through their browser
+    "exchange_native_code",
+    "NativeSignIn",
+    "NativeRefusal",
     # OC Connect, for a site that keeps its own login
     "connect_provision",
     "connect_claim_link",
@@ -213,7 +218,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.4.0"
+__version__ = "3.5.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

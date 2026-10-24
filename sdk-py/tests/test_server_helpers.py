@@ -23,6 +23,8 @@ import orangecheck.tokens as tokens
 from orangecheck import (
     InvalidSession,
     MemoryJtiStore,
+    NativeRefusal,
+    NativeSignIn,
     RevocationList,
     RevokeRefusal,
     SessionCheck,
@@ -30,6 +32,7 @@ from orangecheck import (
     TokensRevoked,
     check_oc_session,
     check_sign_in_rule,
+    exchange_native_code,
     revoke_token,
     spend_once,
     verify_session,
@@ -309,6 +312,79 @@ def test_revoke_goes_to_the_issuer_named_and_only_an_https_one() -> None:
     for timeout in (0, 30.5, True):
         with pytest.raises(ValueError, match="timeout"):
             revoke_token("a.b.c", timeout=timeout)  # type: ignore[arg-type]
+
+
+# ─── exchange_native_code ────────────────────────────────────────────────
+
+X = H["exchange_native"]
+
+
+def _exchange(i: dict[str, Any]) -> Any:
+    return exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"])
+
+
+@respx.mock
+def test_exchange_sends_what_the_node_sdk_sends() -> None:
+    route = respx.post(X["url"]).mock(return_value=httpx.Response(400, json={"ok": False, "reason": "invalid_grant"}))
+    _exchange(X["input"])
+    assert route.call_count == 1
+    sent = route.calls.last.request
+    assert sent.headers["content-type"] == "application/json"
+    assert json.loads(sent.content) == X["body"]
+
+
+@respx.mock
+@pytest.mark.parametrize("r", X["refused"], ids=lambda r: r["name"])
+def test_exchange_refuses_before_sending(r: dict[str, Any]) -> None:
+    route = respx.post(X["url"]).mock(return_value=httpx.Response(200, json={"ok": True}))
+    patch = {k: _expand(v) for k, v in r["input"].items()}
+    with pytest.raises(ValueError, match="exchange_native_code"):
+        _exchange({**X["input"], **patch})
+    assert route.call_count == 0
+
+
+@respx.mock
+@pytest.mark.parametrize("a", X["answers"], ids=lambda a: a["name"])
+def test_exchange_reads_each_answer_as_the_node_sdk_does(a: dict[str, Any]) -> None:
+    jwks = a.get("jwks", {"status": 200, "body": V["session"]["jwks"]})
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=_response(jwks))
+    route = respx.post(X["url"])
+    body = a["body"]
+    if isinstance(body, dict) and isinstance(body.get("token"), list):
+        body = {**body, "token": _token(body["token"])}
+    if a["status"] == 0:
+        route.mock(side_effect=httpx.ConnectError("no route"))
+    elif 300 <= a["status"] < 400:
+        route.mock(return_value=httpx.Response(a["status"], headers={"Location": "https://elsewhere.example/"}))
+    else:
+        route.mock(return_value=_response({"status": a["status"], "body": body}))
+    got = _exchange(X["input"])
+    want = a["result"]
+    assert got.status == want["status"]
+    if want["status"] == "valid":
+        assert isinstance(got, NativeSignIn) and got.token == body["token"]
+        for k, v in want["claims"].items():
+            assert got.session.claims[k] == v
+    else:
+        assert got == NativeRefusal(want["status"], want["reason"])
+
+
+@respx.mock
+def test_exchange_goes_to_the_issuer_named_and_verifies_against_it() -> None:
+    a = respx.post("https://issuer.example/api/auth/native/token").mock(
+        return_value=httpx.Response(200, json={"ok": True, "token": _token(["session", "valid", "from native sign-in"])})
+    )
+    respx.get("https://issuer.example/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
+    i = X["input"]
+    got = exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], issuer="https://issuer.example")
+    # The vector token's iss is https://ochk.io, so the issuer named refuses it.
+    assert (a.call_count, got) == (1, NativeRefusal("invalid", "invalid_token"))
+    for bad in ("http://ochk.io", "https://ochk.io/path"):
+        with pytest.raises(ValueError, match="issuer"):
+            exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], issuer=bad)
+    for timeout in (0, 30.5, True):
+        with pytest.raises(ValueError, match="timeout"):
+            exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], timeout=timeout)  # type: ignore[arg-type]
 
 
 # ─── warm_session and verify_session: issuer and jwks ────────────────────
