@@ -1,7 +1,7 @@
 import { markSvg, type MarkVariant } from './index';
 
 /** PNG widths written to assets/png, in px. The bare mark is half as tall; the tile is square. */
-export const PNG_WIDTHS = [16, 24, 32, 48, 64, 96, 128, 256] as const;
+export const PNG_WIDTHS = [16, 24, 32, 40, 48, 64, 80, 96, 128, 256] as const;
 
 const FILES: Array<{ name: string; variant: MarkVariant; color?: string }> = [
     { name: 'orangecheck-mark-brand', variant: 'brand' },

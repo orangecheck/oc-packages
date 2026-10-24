@@ -9,8 +9,10 @@ export interface OrangecheckMarkProps extends Omit<SVGProps<SVGSVGElement>, 'chi
     variant?: MarkVariant;
     /** An accessible name. Without one the mark is decoration, hidden from assistive technology. */
     title?: string;
-    /** Width as a CSS length or px number, `1.5em` by default (the tile `1.25em`); the height follows. */
+    /** Width as a CSS length or px number, `1.75em` by default (the tile `1.25em`); the height follows. */
     size?: string | number;
+    /** Mono only: every face at full strength, one flat shape (forced colours). */
+    flat?: boolean;
     /** The mono colour, `currentColor` by default. */
     color?: string;
 }
@@ -24,12 +26,12 @@ function half(size: string | number): string | number {
 }
 
 /** The orangecheck mark. Mono takes the text colour; brand is for dark grounds; the tile reads anywhere. */
-export function OrangecheckMark({ variant = 'mono', title, size, color = 'currentColor', ...rest }: OrangecheckMarkProps) {
-    const width = size ?? (variant === 'tile' ? '1.25em' : '1.5em');
+export function OrangecheckMark({ variant = 'mono', title, size, color = 'currentColor', flat = false, ...rest }: OrangecheckMarkProps) {
+    const width = size ?? (variant === 'tile' ? '1.25em' : '1.75em');
     const a11y = title ? { role: 'img' } : { 'aria-hidden': true, focusable: false };
     const polys = ORDER.map((face) =>
         variant === 'mono' ? (
-            <polygon key={face} points={MARK_POINTS[face]} fill={color} fillOpacity={MARK_MONO_OPACITY[face] === 1 ? undefined : MARK_MONO_OPACITY[face]} />
+            <polygon key={face} points={MARK_POINTS[face]} fill={color} fillOpacity={flat || MARK_MONO_OPACITY[face] === 1 ? undefined : MARK_MONO_OPACITY[face]} />
         ) : (
             <polygon key={face} points={MARK_POINTS[face]} fill={MARK_FACES[face]} />
         )

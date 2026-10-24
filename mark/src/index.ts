@@ -18,8 +18,12 @@ export const MARK_VIEWBOX = '0 0 16 8';
 /** The faces as drawn. For dark grounds only: the top face is about 1.3:1 on white. */
 export const MARK_FACES = { top: '#FED8AB', left: '#FB933C', right: '#EA580B' } as const;
 
-/** One colour, three weights: the check at full strength, the sides as depth. */
-export const MARK_MONO_OPACITY = { top: 1, left: 0.7, right: 0.45 } as const;
+/**
+ * One colour, three weights: the check at full strength, the sides as depth.
+ * Chosen for the widest smallest step between neighbouring faces and the
+ * ground across light, dark and mid-tone (amber, brown) buttons.
+ */
+export const MARK_MONO_OPACITY = { top: 1, left: 0.6, right: 0.3 } as const;
 
 /** The tile: the faces on an ink square with rounded corners, 24×24. Reads on any ground. */
 export const MARK_TILE = {
@@ -39,8 +43,10 @@ export interface MarkSvgOptions {
     variant?: MarkVariant;
     /** An accessible name. Without one the mark is decoration, hidden from assistive technology. */
     title?: string;
-    /** Width as a CSS length, `1.5em` by default (the tile `1.25em`); the height follows. Overridable from CSS. */
+    /** Width as a CSS length, `1.75em` by default (the tile `1.25em`); the height follows. Overridable from CSS. */
     width?: string;
+    /** Mono only: every face at full strength, one flat shape. For forced colours and anything that cannot shade. */
+    flat?: boolean;
     /** The mono colour. Default `currentColor`; a data URI needs a real colour, since an image inherits none. */
     color?: string;
     /** Added to the `<svg>` element. */
@@ -53,10 +59,15 @@ function escape(s: string): string {
     return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-function faces(variant: MarkVariant, color: string): string {
+/** A face's opacity in mono: stepped, or full for a flat mark. */
+function opacity(face: (typeof ORDER)[number], flat: boolean): number {
+    return flat ? 1 : MARK_MONO_OPACITY[face];
+}
+
+function faces(variant: MarkVariant, color: string, flat = false): string {
     return ORDER.map((face) =>
         variant === 'mono'
-            ? `<polygon points="${MARK_POINTS[face]}" fill="${escape(color)}"${MARK_MONO_OPACITY[face] === 1 ? '' : ` fill-opacity="${MARK_MONO_OPACITY[face]}"`}/>`
+            ? `<polygon points="${MARK_POINTS[face]}" fill="${escape(color)}"${opacity(face, flat) === 1 ? '' : ` fill-opacity="${opacity(face, flat)}"`}/>`
             : `<polygon points="${MARK_POINTS[face]}" fill="${MARK_FACES[face]}"/>`
     ).join('');
 }
@@ -76,7 +87,7 @@ function heightFor(variant: MarkVariant, width: string): string {
 export function markSvg(options: MarkSvgOptions = {}): string {
     const variant = options.variant ?? 'mono';
     if (variant !== 'mono' && variant !== 'brand' && variant !== 'tile') throw new TypeError(`markSvg: unknown variant ${String(variant)}`);
-    const width = options.width ?? (variant === 'tile' ? '1.25em' : '1.5em');
+    const width = options.width ?? (variant === 'tile' ? '1.25em' : '1.75em');
     const color = options.color ?? 'currentColor';
     const label = options.title ? `<title>${escape(options.title)}</title>` : '';
     const a11y = options.title ? 'role="img"' : 'aria-hidden="true" focusable="false"';
@@ -89,7 +100,7 @@ export function markSvg(options: MarkSvgOptions = {}): string {
             `<g transform="${MARK_TILE.transform}">${faces('brand', color)}</g></svg>`
         );
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" ${size} ${a11y} data-oc-mark="${variant}"${cls}>${label}${faces(variant, color)}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" ${size} ${a11y} data-oc-mark="${variant}"${cls}>${label}${faces(variant, color, options.flat)}</svg>`;
 }
 
 /** The mark as a `data:image/svg+xml` URI, for CSS backgrounds and `<img>`. Mono needs an explicit `color`. */
@@ -110,7 +121,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 export function markElement(doc: Document, options: Omit<MarkSvgOptions, 'className'> & { className?: string } = {}): SVGSVGElement {
     const variant = options.variant ?? 'mono';
     if (variant !== 'mono' && variant !== 'brand' && variant !== 'tile') throw new TypeError(`markElement: unknown variant ${String(variant)}`);
-    const width = options.width ?? (variant === 'tile' ? '1.25em' : '1.5em');
+    const width = options.width ?? (variant === 'tile' ? '1.25em' : '1.75em');
     const color = options.color ?? 'currentColor';
     const el = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>) => {
         const node = doc.createElementNS(SVG_NS, tag);
@@ -139,7 +150,7 @@ export function markElement(doc: Document, options: Omit<MarkSvgOptions, 'classN
         const attrs: Record<string, string> = { points: MARK_POINTS[face] };
         if (variant === 'mono') {
             attrs.fill = color;
-            if (MARK_MONO_OPACITY[face] !== 1) attrs['fill-opacity'] = String(MARK_MONO_OPACITY[face]);
+            if (opacity(face, !!options.flat) !== 1) attrs['fill-opacity'] = String(opacity(face, !!options.flat));
         } else attrs.fill = MARK_FACES[face];
         parent.append(el('polygon', attrs));
     }

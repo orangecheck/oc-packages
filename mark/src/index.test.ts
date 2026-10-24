@@ -26,7 +26,7 @@ describe('markSvg', () => {
         expect(faces.every((f) => attr(f, 'fill') === 'currentColor')).toBe(true);
         const top = faces.find((f) => attr(f, 'points') === MARK_POINTS.top)!;
         expect(attr(top, 'fill-opacity')).toBeUndefined();
-        expect(faces.map((f) => attr(f, 'fill-opacity') ?? '1').sort()).toEqual(['0.45', '0.7', '1']);
+        expect(faces.map((f) => attr(f, 'fill-opacity') ?? '1').sort()).toEqual(['0.3', '0.6', '1']);
         expect(svg).not.toMatch(/#[0-9a-f]{6}/i);
     });
 
@@ -41,8 +41,8 @@ describe('markSvg', () => {
 
     it('sizes in em with the 2:1 aspect, as attributes a stylesheet can override, never inline styles', () => {
         const svg = markSvg();
-        expect(attr(svg, 'width')).toBe('1.5em');
-        expect(attr(svg, 'height')).toBe('0.75em');
+        expect(attr(svg, 'width')).toBe('1.75em');
+        expect(attr(svg, 'height')).toBe('0.875em');
         expect(attr(markSvg({ width: '20px' }), 'height')).toBe('10px');
         expect(attr(markSvg({ variant: 'tile' }), 'height')).toBe('1.25em');
         for (const v of ['mono', 'brand', 'tile'] as const) expect(markSvg({ variant: v })).not.toContain('style=');
@@ -63,6 +63,32 @@ describe('markSvg', () => {
         const uri = markDataUri({ variant: 'mono', color: '#111111' });
         expect(uri.startsWith('data:image/svg+xml,')).toBe(true);
         expect(decodeURIComponent(uri)).toContain('fill="#111111"');
+    });
+
+    it('draws a flat mono mark for forced colours: every face at full strength', () => {
+        const faces = polygons(markSvg({ flat: true }));
+        expect(faces.every((f) => attr(f, 'fill') === 'currentColor' && attr(f, 'fill-opacity') === undefined)).toBe(true);
+        expect(polygons(markSvg({ variant: 'brand', flat: true })).map((f) => attr(f, 'fill'))).toEqual([MARK_FACES.left, MARK_FACES.right, MARK_FACES.top]);
+    });
+
+    it('steps mono faces apart on every kind of button: light, dark, amber, brown', () => {
+        // Text colour on button colour, as hosts draw them. Neighbours are top↔left, left↔right, right↔ground.
+        const hosts: Array<[string, string]> = [
+            ['#1c1917', '#fbfaf7'],
+            ['#18181b', '#ffffff'],
+            ['#fafaf9', '#1c1917'],
+            ['#fafafa', '#09090b'],
+            ['#2b1d05', '#f2b04a'],
+            ['#ffffff', '#9a6420'],
+        ];
+        const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+        const hex = (c: number[]) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+        const over = (ink: string, a: number, ground: string) => hex(rgb(ink).map((v, i) => v * a + rgb(ground)[i]! * (1 - a)));
+        for (const [ink, ground] of hosts) {
+            const [t, l, r] = (['top', 'left', 'right'] as const).map((f) => over(ink, MARK_MONO_OPACITY[f], ground));
+            const steps = [contrast(t!, l!), contrast(l!, r!), contrast(r!, ground)];
+            expect(Math.min(...steps), `${ink} on ${ground}: ${steps.map((x) => x.toFixed(2)).join(', ')}`).toBeGreaterThanOrEqual(1.6);
+        }
     });
 
     it('keeps its promise about grounds: brand faces read on ink, not all on white', () => {

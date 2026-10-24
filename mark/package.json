@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/mark",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The orangecheck mark, with no dependencies: SVG strings, a data URI, the geometry, a React component, and SVG and PNG files for native and game clients.",
   "keywords": [
     "orangecheck",
@@ -41,6 +41,7 @@
     "dist",
     "assets",
     "README.md",
+    "TRADEMARK.md",
     "LICENSE"
   ],
   "scripts": {

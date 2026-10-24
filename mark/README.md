@@ -14,7 +14,7 @@ npm install @orangecheck/mark
 
 | Variant | Draws | Use it |
 |---|---|---|
-| `mono` | one colour, `currentColor` by default; the check at full strength, the sides lighter | anywhere the text beside it has 3:1 contrast with the ground: it takes the host's text colour |
+| `mono` | one colour, `currentColor` by default; the check at full strength, the sides at 0.6 and 0.3 | anywhere the text beside it has 3:1 contrast with the ground: it takes the host's text colour |
 | `brand` | the three oranges as drawn | on dark grounds only (the top face is about 1.3:1 on white) |
 | `tile` | the three oranges on their own ink tile | on any ground |
 
@@ -26,11 +26,14 @@ import { markSvg } from '@orangecheck/mark';
 button.insertAdjacentHTML('afterbegin', markSvg({ variant: 'mono' }));
 ```
 
-`markSvg()` returns an `<svg>` sized `1.5em` wide (the tile `1.25em`), so it
+`markSvg()` returns an `<svg>` sized `1.75em` wide (the tile `1.25em`), so it
 follows the font size of the text beside it. Width and height are attributes,
 never inline styles: any stylesheet can resize it, and a strict
 Content-Security-Policy needs nothing. Without a `title` it is decoration
 (`aria-hidden`); the button's label names it.
+
+`flat: true` draws mono with every face at full strength: one shape, for forced
+colours or anything that cannot shade.
 
 `markElement(document, options)` builds the same `<svg>` node by node, with no
 HTML parsing: use it where Trusted Types or a strict CSP refuse `innerHTML`.
@@ -57,7 +60,8 @@ import { OrangecheckMark } from '@orangecheck/mark/react';
 
 `assets/svg/` holds each variant as a standalone SVG (`orangecheck-mark-brand`,
 `-tile`, `-mono` in currentColor, `-mono-black`, `-mono-white`), and
-`assets/png/` the same at 16, 24, 32, 48, 64, 96, 128 and 256 px wide. Godot 4
+`assets/png/` the same at 16, 24, 32, 40, 48, 64, 80, 96, 128 and 256 px wide
+(the bare mark is half as tall: `-40` is 20px tall, `-80` its 2x). Godot 4
 imports the SVGs directly: set a `Button`'s `icon` to the mono SVG and keep your
 theme's font and colours.
 
@@ -67,8 +71,7 @@ node_modules/@orangecheck/mark/assets/png/orangecheck-mark-mono-white-32.png
 
 ## Licence and the mark
 
-The code and the files are MIT. The mark is orangecheck's trademark, and the MIT
-licence grants no trademark rights: using it to show that a sign-in goes through
-orangecheck is fine, as long as it is never more prominent than your own brand
-and is drawn only in the variants above. See
-[TRADEMARK.md](https://github.com/orangecheck/oc-packages/blob/main/TRADEMARK.md).
+The code and the files are MIT. The mark is a trademark of OrangeCheck, and the
+MIT licence grants no trademark rights: using it to show that a sign-in goes
+through orangecheck is fine, as long as it is never more prominent than your own
+brand and is drawn only in the variants above. See [TRADEMARK.md](./TRADEMARK.md).
