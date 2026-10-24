@@ -357,6 +357,28 @@ examples: [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integra
 
 The `<span data-oc-mark>` holds the mark's place, so drawing it moves nothing.
 
+From a CDN, load `dist/button-auto.mjs` by a tag instead, with the exact
+version and its Subresource Integrity hash, so the browser refuses any other
+bytes. It enhances every `[data-oc-sign-in]` button and reports through
+events, so your own script imports nothing:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@orangecheck/me-client@0.48.0/dist/button.css"
+      integrity="sha384-…" crossorigin="anonymous" />
+<button class="your-button" data-oc-sign-in><span data-oc-mark></span>Sign in with orangecheck</button>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@orangecheck/me-client@0.48.0/dist/button-auto.mjs"
+        integrity="sha384-…" crossorigin="anonymous"></script>
+<script>
+    document.addEventListener('oc-signed-in', (e) => e.detail.waitUntil(keepSession(e.detail.token)));
+    document.addEventListener('oc-sign-in-outcome', (e) => showNote(e.detail.message));
+</script>
+```
+
+Take the two hashes from the files in the published package
+(`openssl dgst -sha384 -binary dist/button-auto.mjs | openssl base64 -A`), or
+copy them from your project's snippet on ochk.app. Under a strict
+Content-Security-Policy, serve both files from your own origin instead.
+
 ```tsx
 import { SignInWithOrangecheck } from '@orangecheck/me-client/react';
 import '@orangecheck/me-client/button.css'; // optional: the mark's size, one line, a 44px target

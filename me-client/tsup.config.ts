@@ -8,6 +8,7 @@ export default defineConfig({
         integrator: 'src/integrator.ts',
         'connect-consent': 'src/connect-consent.ts',
         button: 'src/button.ts',
+        'button-auto': 'src/button-auto.ts',
         react: 'src/react.tsx',
     },
     format: ['cjs', 'esm'],

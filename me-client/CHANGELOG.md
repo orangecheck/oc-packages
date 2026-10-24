@@ -8,6 +8,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.48.0] — 2026-10-24
+
+### Added
+
+- `@orangecheck/me-client/button-auto` (`dist/button-auto.mjs`): the sign-in
+  button for a page that loads it by a tag. It enhances every
+  `button[data-oc-sign-in]` when it runs, reads its options from the button
+  (`data-mark`, `data-appearance`, `data-busy-label`, `data-accessible-label`,
+  `data-label="none"`), and reports through DOM events: `oc-signed-in`
+  (`{ account, token, waitUntil }`; the button stays busy until every
+  `waitUntil` promise settles) and `oc-sign-in-outcome` (`{ status, message }`).
+  The page's own code imports nothing, so the file can be loaded from a CDN
+  with a pinned version and Subresource Integrity, which covers a
+  `<script src>` but no `import` in an inline script. Like `button.mjs`, it is
+  one file with no imports. A button it cannot enhance is reported in the
+  console and skipped.
+
 ## [0.47.0] — 2026-10-24
 
 ### Added
