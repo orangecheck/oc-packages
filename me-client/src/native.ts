@@ -92,7 +92,10 @@ export type ExchangeNativeCodeRefusal =
     | 'session_ended'
     | 'unknown_project_key';
 
-/** What an outage left unknown. Answer it 503, so the app tries again. */
+/**
+ * What an outage left unknown. Answer it 503: the app starts the sign-in
+ * again, since the code may already be spent.
+ */
 export type ExchangeNativeCodeUnavailable =
     | 'auth_host_unavailable'
     | 'rate_limited'
