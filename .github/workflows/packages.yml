@@ -130,6 +130,7 @@ jobs:
                     - webhook-verify
                     - me-client
                     - insights-client
+                    - mark
                     - auth-core
                     - auth-client
                     - legal

@@ -1,0 +1,76 @@
+{
+  "name": "@orangecheck/mark",
+  "version": "0.1.0",
+  "description": "The orangecheck mark, with no dependencies: SVG strings, a data URI, the geometry, a React component, and SVG and PNG files for native and game clients.",
+  "keywords": [
+    "orangecheck",
+    "mark",
+    "logo",
+    "svg",
+    "sign-in"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "homepage": "https://ochk.io/docs/integration/sign-in-button",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "mark"
+  },
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.js"
+    },
+    "./assets/*": "./assets/*"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "assets": "node scripts/assets.mjs",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.1.0",
+    "jsdom": "^29.0.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "sharp": "^0.35.5",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.11"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
