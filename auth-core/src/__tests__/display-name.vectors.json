@@ -1,0 +1,49 @@
+{
+    "reserved": [
+        "orangecheck",
+        "OrangeCheck",
+        "ORANGECHECK",
+        "Orange Check",
+        "orange\u00a0check",
+        "o r a n g e c h e c k",
+        "ochk",
+        "OCHK",
+        "ochk.io",
+        "OCHK.IO",
+        "ochk .io",
+        "ochk.app",
+        "Ochk.App",
+        "\uff4f\uff52\uff41\uff4e\uff47\uff45\uff43\uff48\uff45\uff43\uff4b",
+        "\uff4f\uff43\uff48\uff4b\uff0e\uff49\uff4f",
+        "\u24de\u24d2\u24d7\u24da",
+        "ochk\u2024io",
+        "ochk\ufe0f"
+    ],
+    "allowed": [
+        "Brickworks",
+        "orangecheck demo",
+        "orangecheck.dev",
+        "ochk.iox",
+        "my ochk app",
+        "OC",
+        "L\u00fcmen \u30ce\u30fc\u30c8 \u0639\u0631\u0628\u064a",
+        "Brickworks \u2764\ufe0f"
+    ],
+    "hidden": [
+        "orange\u00adcheck",
+        "Lumen\u202eNotes",
+        "Lumen\u2066Notes",
+        "Lumen\u2069Notes",
+        "Lumen\u200bNotes",
+        "Lumen\u200dNotes",
+        "Lumen\u200fNotes",
+        "Lumen\u061cNotes",
+        "Lumen\u0007Notes",
+        "Lumen\u0085Notes",
+        "Lumen\u2060Notes",
+        "Lumen\u034fNotes",
+        "Lumen\u3164Notes",
+        "Lumen\u2800Notes",
+        "Lumen\udb40\udc41Notes"
+    ]
+}

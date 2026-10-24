@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.19.0] — 2026-10-24
+
+### Added
+
+- `nameProblem(value, max)`, `isReservedName(value)` and `HIDDEN_TEXT_CHARS`:
+  the family's rule for a name other people are shown on orangecheck's pages,
+  notices and email. It refuses text that can hide or reorder part of a name
+  (control and format characters, bidi, zero-width marks, soft hyphens, tags,
+  lone surrogates, the blank fillers) and the names orangecheck goes by
+  (orangecheck, ochk, ochk.io, ochk.app), matched after NFKC, case folding and
+  removing whitespace and variation selectors. me.ochk.io, ochk.io and vault
+  share it instead of keeping copies.
+
 ## [2.18.0] — 2026-10-24
 
 ### Added
