@@ -24,6 +24,10 @@ import { withOcAuth, ocAuthExpress, ocAuthHono } from '@orangecheck/me-client/se
 // Browser-only popup orchestrator — same shape Google / GitHub use.
 import { signInWithOc } from '@orangecheck/me-client/popup';
 
+// The "Sign in with orangecheck" button, in your site's own style.
+import { enhanceSignInButton } from '@orangecheck/me-client/button'; // any page
+import { SignInWithOrangecheck } from '@orangecheck/me-client/react'; // React
+
 // Keep your own login: make an orangecheck account for your user (OC Connect).
 import { connectProvision } from '@orangecheck/me-client/server';
 import { CONNECT_CONSENT_LABEL } from '@orangecheck/me-client/connect-consent';
@@ -329,6 +333,50 @@ if (outcome.status === 'blocked') showHint('Allow pop-ups for this site, then tr
 if (outcome.status === 'signed_in') await keepSession(outcome.token);
 // 'closed' (the person closed the window), 'aborted' (your signal), 'failed' (not a browser, or a malformed answer)
 ``` Pins both `event.origin` AND `event.source === popup` on the postMessage handler so a same-origin attacker can't settle the promise.
+
+## The sign-in button
+
+Your button, your style: the package adds the orangecheck mark (from
+[`@orangecheck/mark`](https://www.npmjs.com/package/@orangecheck/mark)), an
+approved label, the popup inside the click, and the busy state. Rules and live
+examples: [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
+
+```html
+<button class="your-button" data-oc-sign-in>Sign in with orangecheck</button>
+<script type="module">
+    import { enhanceSignInButton, OUTCOME_COPY } from '/vendor/oc-sign-in.mjs'; // dist/button.mjs, copied
+    enhanceSignInButton(document.querySelector('[data-oc-sign-in]'), {
+        onSignedIn: async ({ token }) => {
+            const r = await fetch('/api/auth/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+            if (r.ok) location.assign('/dashboard');
+        },
+        onOutcome: (o) => { if (o.status !== 'signed_in' && o.status !== 'aborted') showNote(OUTCOME_COPY[o.status]); },
+    });
+</script>
+```
+
+```tsx
+import { SignInWithOrangecheck } from '@orangecheck/me-client/react';
+import '@orangecheck/me-client/button.css'; // optional: spacing, a 44px target, a focus ring
+
+<SignInWithOrangecheck className="btn btn-outline" onSignedIn={({ token }) => keepSession(token)} />;
+```
+
+- `appearance`: `inherit` (default) sets no colour, font, border or radius;
+  your class draws it. `brand` is orangecheck's ink button, themed by
+  `--oc-button-bg`, `-fg`, `-border`, `-radius`, `-font`, `-size`, `-weight`,
+  `-pad`, `-hover-bg` and `--oc-focus`.
+- `mark`: `mono` (default, your text colour), `brand` (dark buttons), `tile`
+  (any button), or `false`.
+- `label`: one of `SIGN_IN_LABELS`: "Sign in with orangecheck" (default),
+  "Continue with orangecheck", "Sign up with orangecheck". Anything else throws.
+- While the window is open the button is `aria-busy` and `aria-disabled`, still
+  focusable, says "Signing in…", and opens no second window.
+- `button.css` is optional and has zero specificity: every rule of yours wins.
+  Tune it with `--oc-mark-gap`, `--oc-mark-size`, `--oc-target` and `--oc-focus`.
+- `dist/button.mjs` has no imports, so it can be served from your own origin
+  under `script-src 'self'`. It builds the mark node by node: no `innerHTML`, so
+  Trusted Types are fine too.
 
 ## Custom origin
 

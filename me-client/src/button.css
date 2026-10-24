@@ -1,0 +1,73 @@
+/*
+ * @orangecheck/me-client/button.css: the sign-in button's own rules, inside
+ * :where(), so their specificity is zero (one pseudo-class for focus and
+ * hover) and your own rules win. Optional: without it the button is your
+ * button with the mark in it.
+ *
+ * appearance "inherit" (the default) sets no colour, font, border or radius:
+ * only the mark's spacing, a 44px target and a focus ring for a site that has
+ * none. appearance "brand" is orangecheck's button, themed by --oc-* properties.
+ */
+
+:where([data-oc-sign-in]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--oc-mark-gap, 0.5em);
+    min-block-size: var(--oc-target, 44px);
+    cursor: pointer;
+}
+
+:where([data-oc-sign-in]) :where([data-oc-mark]) {
+    flex: none;
+    inline-size: var(--oc-mark-size, 1.5em);
+    block-size: auto;
+}
+
+:where([data-oc-sign-in]) :where([data-oc-mark='tile']) {
+    inline-size: var(--oc-mark-size, 1.25em);
+}
+
+:where([data-oc-sign-in]):focus-visible {
+    outline: 2px solid var(--oc-focus, currentColor);
+    outline-offset: 2px;
+}
+
+:where([data-oc-sign-in][aria-busy='true']) {
+    cursor: progress;
+}
+
+:where([data-oc-sign-in]:disabled) {
+    cursor: not-allowed;
+}
+
+:where([data-oc-sign-in][data-appearance='brand']) {
+    padding-inline: var(--oc-button-pad, 1.25em);
+    border: 1px solid var(--oc-button-border, #262626);
+    border-radius: var(--oc-button-radius, 10px);
+    background: var(--oc-button-bg, #0a0a0a);
+    color: var(--oc-button-fg, #fafafa);
+    font-family: var(--oc-button-font, inherit);
+    font-size: var(--oc-button-size, 1rem);
+    font-weight: var(--oc-button-weight, 600);
+    line-height: 1.2;
+    transition: background-color 120ms ease;
+}
+
+:where([data-oc-sign-in][data-appearance='brand']):hover {
+    background: var(--oc-button-hover-bg, #262626);
+}
+
+:where([data-oc-sign-in][data-appearance='brand']):focus-visible {
+    outline-color: var(--oc-focus, #fb933c);
+}
+
+:where([data-oc-sign-in][data-appearance='brand']:disabled) {
+    opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :where([data-oc-sign-in][data-appearance='brand']) {
+        transition: none;
+    }
+}

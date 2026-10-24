@@ -282,6 +282,11 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
+"@orangecheck/mark@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.1.0.tgz#6b5fcef88f2893888589933ea856ceb7c1a7be5e"
+  integrity sha512-2PBA4sMt0g3lGSvmWLXZIVU2cTEcgwbzZdH2PtRlr1wk6pcaVrZjsTnRY39yc3CBQ8isJ4ggKOyAPG4b6ICIBw==
+
 "@orangecheck/wallet-adapter@^0.7.0":
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"

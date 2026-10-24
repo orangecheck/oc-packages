@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.46.0] — 2026-10-24
+
+### Added
+
+- `@orangecheck/me-client/button`: `enhanceSignInButton(button, options)` makes
+  the site's own `<button>` a "Sign in with orangecheck" button. It keeps the
+  button's classes and styles, adds the orangecheck mark (`mono` in the text
+  colour by default, `brand`, `tile` or none) and an approved label
+  (`SIGN_IN_LABELS`), opens the popup inside the click, holds a focusable busy
+  state, and reports how the popup ended (`OUTCOME_COPY` has the words). The
+  file has no imports, so it can be copied onto the site's origin, and it
+  parses no HTML.
+- `@orangecheck/me-client/react`: `<SignInWithOrangecheck>`, the same as a
+  native button (`react` is an optional peer).
+- `@orangecheck/me-client/button.css`: optional, zero specificity. `inherit`
+  (the default) adds only the mark's spacing, a 44px target and a focus ring;
+  `brand` is orangecheck's button, themed by `--oc-*` properties.
+
 ## [0.45.0] — 2026-10-24
 
 ### Added
