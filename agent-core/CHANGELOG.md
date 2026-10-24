@@ -7,6 +7,23 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.9.0] — 2026-10-24
+
+### Added — the revocation reason rule
+
+SPEC §9.1 says a reason is ASCII, at most 128 bytes, `""` when there is none.
+We accept any ASCII and write printable ASCII only.
+
+- `reasonProblem(reason)` applies the spec exactly, and verifiers will use it.
+- `authoredReasonProblem(reason)` is deliberately stricter: it also refuses a
+  control character, since a line break above all changes the shape of the
+  signed message. A signer checks a reason with it before signing;
+  `@orangecheck/agent-signer` does from 0.5.2.
+- `shownReason(reason)` escapes control characters for display and drops none.
+- `REVOCATION_REASON_MAX_BYTES` (128).
+
+Verification is unchanged in this release.
+
 ## [2.8.0] — 2026-10-24
 
 ### Fixed — a field of the wrong shape is E_MALFORMED
