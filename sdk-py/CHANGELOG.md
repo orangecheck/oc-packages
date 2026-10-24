@@ -20,8 +20,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
 - `project_key` is keyword-only: it is your own key, from your config. The
   3.5.0 call, with the key fourth, raises `TypeError`.
 
-3.5.0 is withdrawn: use 3.6.0. As `@orangecheck/me-client` 0.50.0's
-`exchangeNativeCode`, held to the shared vectors (`exchange_native`).
+As `@orangecheck/me-client` 0.50.0's `exchangeNativeCode`, held to the
+shared vectors (`exchange_native`).
 
 ## [3.5.0] — 2026-10-24
 
