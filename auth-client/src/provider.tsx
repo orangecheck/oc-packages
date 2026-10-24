@@ -28,6 +28,15 @@ import {
 
 const SessionContext = React.createContext<OcSessionState | null>(null);
 
+/** Back and forward; a router's move renders the tree again, which reads the address again. */
+function onHistory(change: () => void): () => void {
+    window.addEventListener('popstate', change);
+    return () => window.removeEventListener('popstate', change);
+}
+const pageAddress = () => window.location.href.split('#')[0];
+/** The server has no page, and the browser's first render must say what the server's HTML said. */
+const noPageYet = () => undefined;
+
 type RawSigningMethod = 'fedimint_threshold' | 'fedimint_client' | 'bip322';
 
 interface RawRosterEntry {
@@ -557,9 +566,11 @@ export function OcSessionProvider({
         [cfg.authOrigin, refresh]
     );
 
+    // Read through the store, not from the window as this renders: a server-rendered
+    // link keeps the server's href when hydrating, so the page is added after.
+    const here = React.useSyncExternalStore(onHistory, pageAddress, noPageYet);
     const value = React.useMemo<OcSessionState>(() => {
-        const returnTo =
-            defaultReturnTo ?? (typeof window !== 'undefined' ? window.location.href : undefined);
+        const returnTo = defaultReturnTo ?? here;
         return {
             status,
             account,
@@ -586,6 +597,7 @@ export function OcSessionProvider({
         setDisplayIdentity,
         cfg,
         defaultReturnTo,
+        here,
     ]);
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
