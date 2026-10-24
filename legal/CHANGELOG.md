@@ -8,6 +8,19 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.17] — 2026-10-24
+
+### Changed — the record a deletion keeps is under a keyed id
+
+The ochk.app Privacy policy said the record of a deleted account is kept under
+the account's id, and that payment receipts are kept under an id that no
+longer leads to the person. It now says both are kept under a keyed id, so the
+record by itself doesn't say whose account it was: me.ochk.io, vault, chat and
+cosign each keep them under a keyed hash of the account's id, and none of them
+looks a deleted account up by its own id any more. orangecheck holds the key,
+so it does not claim the record can never be linked back. The policy's updated
+date moves to 2026-10-24.
+
 ## [0.7.16] — 2026-10-24
 
 ### Added — deleting an account that runs a guardian

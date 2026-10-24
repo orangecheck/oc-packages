@@ -48,6 +48,10 @@ const BANNED = [
     [/\bme\.ochk\.io (is an?|is not|is designed|does|publishes|never collects|provides)\b/i, 'the Service is ochk.app; me.ochk.io is its API'],
     [/(accessing or using|stop using|integrate|Nothing) me\.ochk\.io/i, 'the Service is ochk.app; me.ochk.io is its API'],
     [/commercial products \*?\*?me\.ochk\.io/i, 'the commercial product is ochk.app'],
+    // Every product keeps a deleted account's record under a keyed id only (#313), and we
+    // hold the key, so the record names no one by itself; it is not unlinkable.
+    [/deleted, under its id/i, 'deletion records are kept under a keyed id, never the did'],
+    [/no longer leads to (you|the person)/i, 'we hold the key: the record by itself names no one'],
 ];
 
 test('every doc renders', () => {
@@ -132,7 +136,8 @@ test('the ochk.app privacy policy says when an operator can delete, and what the
         'has finished any exit, created no federation that still exists, and is owed nothing',
         'stay public under the key, with what you wrote in them',
         "exit records and machine reports stay visible to that federation's guardians and to us",
-        'We keep a record that your account was deleted, under its id and out of public view',
+        'We keep a record that your account was deleted, out of public view',
+        "Receipts and that record are kept under a keyed id, so the record by itself doesn't say whose account it was",
     ]) {
         assert.ok(text.includes(fact), fact);
     }

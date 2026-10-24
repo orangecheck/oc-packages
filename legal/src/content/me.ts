@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-19',
+    updated: '2026-10-24',
     preamble: [
         {
             kind: 'callout',
@@ -381,7 +381,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'In [your settings](/me/settings) you can delete your account. A person reviews the request within 48 hours. Completing it erases your data on ochk.io, me.ochk.io, vault, chat and cosign and closes your sign-in, so signing in again starts a new account. Payment receipts are kept for accounting under an id that no longer leads to you, and backups roll off within 30 days. We keep a record that your account was deleted, under its id and out of public view, so sessions you already had stop working and the deletion can be shown. Deleting does not pay out sats OrangeCheck holds for you: settle a non-zero balance first. If you run a guardian, you can delete only once your operator key holds no seat or hosted guardian, has finished any exit, created no federation that still exists, and is owed nothing. Charter signatures, incidents and amendment proposals the key signed stay public under the key, with what you wrote in them; exit records and machine reports stay visible to that federation\'s guardians and to us. Hashes anchored to Bitcoin and records published to Nostr cannot be deleted by anyone. me.ochk.io\'s own anchors name no one, but attestations, polls, pledges, stamps and a chat listing you published carry your Bitcoin address.',
+                    text: 'In [your settings](/me/settings) you can delete your account. A person reviews the request within 48 hours. Completing it erases your data on ochk.io, me.ochk.io, vault, chat and cosign and closes your sign-in, so signing in again starts a new account. Payment receipts are kept for accounting, and backups roll off within 30 days. We keep a record that your account was deleted, out of public view, so sessions you already had stop working and the deletion can be shown. Receipts and that record are kept under a keyed id, so the record by itself doesn\'t say whose account it was. Deleting does not pay out sats OrangeCheck holds for you: settle a non-zero balance first. If you run a guardian, you can delete only once your operator key holds no seat or hosted guardian, has finished any exit, created no federation that still exists, and is owed nothing. Charter signatures, incidents and amendment proposals the key signed stay public under the key, with what you wrote in them; exit records and machine reports stay visible to that federation\'s guardians and to us. Hashes anchored to Bitcoin and records published to Nostr cannot be deleted by anyone. me.ochk.io\'s own anchors name no one, but attestations, polls, pledges, stamps and a chat listing you published carry your Bitcoin address.',
                 },
             ],
         },
