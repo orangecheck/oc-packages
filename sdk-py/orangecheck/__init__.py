@@ -90,6 +90,7 @@ from .integrator import (
     WarmResult,
     bond_meets,
     check_oc_session,
+    check_sign_in_rule,
     read_bond_claim,
     revocation_key,
     sign_event,
@@ -157,6 +158,7 @@ __all__ = [
     # ochk.app sign-in, billable events and webhooks, for an integrator's backend
     "verify_session",
     "check_oc_session",
+    "check_sign_in_rule",
     "SessionCheck",
     "warm_session",
     "WarmResult",
@@ -205,7 +207,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.2.1"
+__version__ = "3.3.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

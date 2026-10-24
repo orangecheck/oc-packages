@@ -7,11 +7,14 @@ import { _resetJwksCachesForTests, integratorRevocationCheck } from '@orangechec
 
 import {
     _resetSessionChecksForTests,
+    checkSignInRule,
     MemoryJtiStore,
     revokeToken,
     spendOnce,
     withOcAuth,
     type JtiStore,
+    type SessionPayload,
+    type SignInRuleOptions,
     type WithOcAuthOptions,
 } from '../server';
 
@@ -263,5 +266,90 @@ describe('revokeToken · ending a token at ochk.io', () => {
         expect(() => revokeToken('a.b.c', { timeout: 5 } as never)).toThrow(/unknown option timeout/);
         expect(() => revokeToken('a.b.c', { timeoutMs: 0 })).toThrow(SDK);
         expect(() => revokeToken('a.b.c', { timeoutMs: 30_001 })).toThrow(SDK);
+    });
+});
+
+describe("the sign-in rule for a session the site verified · checkSignInRule", () => {
+    type RuleCase = {
+        name: string;
+        session: [string, string, string];
+        project_key?: string;
+        require_bond?: { min_sats?: number; min_days?: number; max_age_secs?: number };
+        policy?: Answer;
+        expect: { status: number; body?: unknown };
+    };
+    type Refused = { name: string; session: [string, string, string] | null; options: Record<string, unknown> };
+
+    /** The claims of a session named in integrator.json. */
+    function claimsFor(ref: [string, string, string]): SessionPayload {
+        const [section, list, name] = ref;
+        const found = (V[section][list] as { name: string; claims: SessionPayload }[]).find((v) => v.name === name);
+        if (!found) throw new Error(`no vector ${ref.join(' / ')}`);
+        return found.claims;
+    }
+
+    /** Vector options, in me-client's names. */
+    function optionsFor(o: Record<string, unknown>): SignInRuleOptions {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(o)) {
+            if (k === 'project_key') out.projectKey = v;
+            else if (k === 'require_bond') {
+                const b = v as { min_sats?: number; min_days?: number; max_age_secs?: number };
+                out.requireBond = {
+                    ...(b.min_sats !== undefined ? { minSats: b.min_sats } : {}),
+                    ...(b.min_days !== undefined ? { minDays: b.min_days } : {}),
+                    ...(b.max_age_secs !== undefined ? { maxAgeSecs: b.max_age_secs } : {}),
+                };
+            } else out[k] = v;
+        }
+        return out as SignInRuleOptions;
+    }
+
+    it.each(H.sign_in_rule.cases as RuleCase[])('$name', async (c) => {
+        let reads = 0;
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url: string) => {
+                if (/\/api\/integrator\/[^/]+\/sign-in$/.test(String(url)) && c.policy) {
+                    reads += 1;
+                    return respond(c.policy);
+                }
+                throw new Error(`unexpected fetch ${String(url)}`);
+            })
+        );
+        const options = optionsFor({
+            ...(c.project_key ? { project_key: c.project_key } : {}),
+            ...(c.require_bond ? { require_bond: c.require_bond } : {}),
+        });
+        const checked = await checkSignInRule(claimsFor(c.session), options);
+        if (c.expect.status === 200) expect(checked).toEqual({ ok: true });
+        else expect(checked).toEqual({ ok: false, status: c.expect.status, body: c.expect.body });
+        // An explicit floor wins: the project's rule is never read.
+        if (c.require_bond) expect(reads).toBe(0);
+    });
+
+    it.each(H.sign_in_rule.refused as Refused[])('refuses: $name', async (r) => {
+        vi.stubGlobal('fetch', vi.fn(async () => respond({ status: 200, body: { ok: true, require_bond: null } })));
+        await expect(
+            checkSignInRule((r.session ? claimsFor(r.session) : null) as never, optionsFor(r.options))
+        ).rejects.toThrow(SDK);
+    });
+
+    it('reads the rule once a minute, as withOcAuth does', async () => {
+        let reads = 0;
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => {
+                reads += 1;
+                return respond({ status: 200, body: { ok: true, require_bond: null } });
+            })
+        );
+        const session = claimsFor(['session', 'valid', 'bound to this site']);
+        await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
+        await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
+        expect(reads).toBe(1);
+        vi.setSystemTime(H.now * 1000 + 61_000);
+        await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
+        expect(reads).toBe(2);
     });
 });

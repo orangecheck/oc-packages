@@ -28,6 +28,7 @@ from orangecheck import (
     SignInPolicy,
     TokensRevoked,
     check_oc_session,
+    check_sign_in_rule,
     revoke_token,
     spend_once,
     verify_session,
@@ -50,6 +51,7 @@ def fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     _move_to(monkeypatch, H["now"])
     monkeypatch.setattr(integrator, "_session_keys", integrator._KeySet(integrator.SESSION_JWKS_URL))
     monkeypatch.setattr(integrator, "_issuer_keys", {})
+    monkeypatch.setattr(integrator, "_policies", {})
 
 
 def _token(ref: Optional[list[str]]) -> Optional[str]:
@@ -104,6 +106,76 @@ def test_check_answers_as_the_node_adapters_do(c: dict[str, Any]) -> None:
 def test_check_takes_only_what_verify_session_takes() -> None:
     with pytest.raises(TypeError):
         check_oc_session("a.b.c", "https://soniq.example", audiences=["x"])  # type: ignore[call-arg]
+
+
+# ─── check_sign_in_rule: the rule for a session the site verified ────────
+
+
+def _claims(ref: list[str]) -> dict[str, Any]:
+    section, kind, name = ref
+    return dict(next(v["claims"] for v in V[section][kind] if v["name"] == name))
+
+
+@respx.mock
+@pytest.mark.parametrize("c", H["sign_in_rule"]["cases"], ids=lambda c: c["name"])
+def test_sign_in_rule_answers_as_me_client_does(c: dict[str, Any]) -> None:
+    route = respx.get(f"https://me.ochk.io/api/integrator/{c['project_key']}/sign-in").mock(
+        return_value=_response(c["policy"])
+    )
+    kwargs: dict[str, Any] = {"project_key": c["project_key"]}
+    if "require_bond" in c:
+        kwargs["require_bond"] = c["require_bond"]
+    got = check_sign_in_rule(_claims(c["session"]), **kwargs)
+    assert isinstance(got, SessionCheck)
+    assert got.status == c["expect"]["status"]
+    if got.status == 200:
+        assert got.ok and got.body is None
+    else:
+        assert not got.ok and got.body == c["expect"]["body"]
+    # An explicit floor wins: the project's rule is never read.
+    if "require_bond" in c:
+        assert route.call_count == 0
+
+
+@respx.mock
+@pytest.mark.parametrize("r", H["sign_in_rule"]["refused"], ids=lambda r: r["name"])
+def test_sign_in_rule_refuses_a_mistake_in_the_call(r: dict[str, Any]) -> None:
+    session = _claims(r["session"]) if r["session"] else None
+    with pytest.raises(TypeError):
+        check_sign_in_rule(session, **r["options"])  # type: ignore[arg-type]
+
+
+def test_sign_in_rule_takes_one_project() -> None:
+    session = _claims(["session", "valid", "bound to this site"])
+    with pytest.raises(TypeError):
+        check_sign_in_rule(session, project_key="pk_test_srule_a", policy=SignInPolicy("pk_test_srule_b"))
+    with pytest.raises(TypeError):
+        check_sign_in_rule(session, project_key="")
+
+
+@respx.mock
+def test_sign_in_rule_reads_the_rule_once_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
+    route = respx.get("https://me.ochk.io/api/integrator/pk_test_srule_cache/sign-in").mock(
+        return_value=httpx.Response(200, json={"ok": True, "require_bond": None})
+    )
+    session = _claims(["session", "valid", "bound to this site"])
+    assert check_sign_in_rule(session, project_key="pk_test_srule_cache").ok
+    assert check_sign_in_rule(session, project_key="pk_test_srule_cache").ok
+    assert route.call_count == 1
+    _move_to(monkeypatch, H["now"] + 61)
+    assert check_sign_in_rule(session, project_key="pk_test_srule_cache").ok
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_sign_in_rule_takes_a_policy_or_a_verified_session() -> None:
+    respx.get("https://me.ochk.io/api/integrator/pk_test_srule_obj/sign-in").mock(
+        return_value=httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 10000, "min_days": 0}})
+    )
+    v = next(v for v in V["session"]["valid"] if v["name"] == "bound to this site")
+    session = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
+    got = check_sign_in_rule(session, policy=SignInPolicy("pk_test_srule_obj"))
+    assert (got.status, got.body["reason"] if got.body else None) == (403, "bond_required")
 
 
 # ─── spend_once ──────────────────────────────────────────────────────────

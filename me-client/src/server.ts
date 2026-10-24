@@ -636,6 +636,65 @@ async function refusal(
     return null;
 }
 
+/** The options {@link checkSignInRule} reads. */
+export interface SignInRuleOptions {
+    /** Your project key: its "who can sign in" rule is read from me.ochk.io, as `withOcAuth` reads it. */
+    projectKey?: string;
+    /** Default `https://me.ochk.io`. */
+    meOrigin?: string;
+    /** An explicit floor, which wins over the project's rule. */
+    requireBond?: WithOcAuthOptions['requireBond'];
+}
+
+/**
+ * Whether a session meets the sign-in rule: `{ ok: true }`, or the status and
+ * body the adapters answer with (403 `bond_required`, 503
+ * `bond_policy_unavailable`, 500 `unknown_project_key`).
+ */
+export type SignInRuleCheck = { ok: true } | { ok: false; status: number; body: Record<string, unknown> };
+
+const SIGN_IN_RULE_OPTIONS: ReadonlySet<string> = new Set<keyof SignInRuleOptions>([
+    'projectKey',
+    'meOrigin',
+    'requireBond',
+]);
+
+/**
+ * Apply your project's "who can sign in" rule to a session you have already
+ * verified, for a site whose own session replaces the token: `checkOcToken`
+ * and `verifyOcToken` check the token, not the rule. It reads the rule with the
+ * same one-minute cache and ten-minute stand-in as `withOcAuth`, and refuses
+ * rather than lets in when no rule could be read. Throws on a missing session,
+ * a missing rule, or an option it does not read.
+ *
+ *   const checked = await checkSignInRule(session, { projectKey: process.env.OC_PROJECT_KEY! });
+ *   if (!checked.ok) return res.status(checked.status).json(checked.body);
+ */
+export async function checkSignInRule(
+    session: SessionPayload,
+    options: SignInRuleOptions
+): Promise<SignInRuleCheck> {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/me-client: options must be an object');
+    }
+    const unknown = Object.keys(options).filter((k) => !SIGN_IN_RULE_OPTIONS.has(k));
+    if (unknown.length > 0) {
+        throw new TypeError(
+            `@orangecheck/me-client: unknown option ${unknown.join(', ')}. ` +
+                `It reads only ${[...SIGN_IN_RULE_OPTIONS].join(', ')}.`
+        );
+    }
+    checkOptions(options);
+    if (!options.projectKey && !options.requireBond) {
+        throw new TypeError('@orangecheck/me-client: checkSignInRule needs projectKey or requireBond');
+    }
+    if (session === null || typeof session !== 'object') {
+        throw new TypeError('@orangecheck/me-client: checkSignInRule needs the session you verified');
+    }
+    const refused = await refusal(session, options);
+    return refused ? { ok: false, status: refused.status, body: refused.body } : { ok: true };
+}
+
 /**
  * Wrap a Next.js Pages-Router API route handler. Adds `req.ocSession` —
  * the verified SessionPayload, or null when unauthenticated.

@@ -679,6 +679,37 @@ def _need_from(require_bond: Mapping[str, Any]) -> dict[str, int]:
     return need
 
 
+def _apply_rule(
+    claims: Union[Session, Mapping[str, Any]],
+    require_bond: Optional[Mapping[str, Any]],
+    policy: Optional[SignInPolicy],
+) -> None:
+    """Raise :class:`BondRequired` when the account is not backed enough. An explicit requirement wins over the project's."""
+    need = _need_from(require_bond) if require_bond is not None else (policy.requirement() if policy else None)
+    if need is not None and not bond_meets(
+        claims,
+        min_sats=need.get("min_sats", 0),
+        min_days=need.get("min_days", 0),
+        max_age_secs=need.get("max_age_secs"),
+    ):
+        backing = read_bond_claim(claims)
+        floors = (
+            {"sats_floor": int(backing["sats_floor"]), "days_floor": int(backing["days_floor"])} if backing else None
+        )
+        raise BondRequired(need, floors)
+
+
+_policies: dict[tuple[str, str], SignInPolicy] = {}
+
+
+def _policy_for(project_key: str, me_origin: str) -> SignInPolicy:
+    """One :class:`SignInPolicy` per project, so its minute holds from call to call."""
+    policy = _policies.get((me_origin, project_key))
+    if policy is None:
+        policy = _policies.setdefault((me_origin, project_key), SignInPolicy(project_key, me_origin=me_origin))
+    return policy
+
+
 # ─── sign-in tokens ──────────────────────────────────────────────────────
 
 
@@ -844,19 +875,7 @@ def verify_session(
         if state == "unverified" and (method or "").upper() not in _SAFE_METHODS:
             raise InvalidSession("revocations_unavailable")
 
-    # Who may sign in: an explicit requirement wins over the project's.
-    need = _need_from(require_bond) if require_bond is not None else (policy.requirement() if policy else None)
-    if need is not None and not bond_meets(
-        payload,
-        min_sats=need.get("min_sats", 0),
-        min_days=need.get("min_days", 0),
-        max_age_secs=need.get("max_age_secs"),
-    ):
-        backing = read_bond_claim(payload)
-        floors = (
-            {"sats_floor": int(backing["sats_floor"]), "days_floor": int(backing["days_floor"])} if backing else None
-        )
-        raise BondRequired(need, floors)
+    _apply_rule(payload, require_bond, policy)
 
     bond = payload.get("oc_bond")
     return Session(
@@ -949,7 +968,13 @@ def check_oc_session(
             policy=policy,
             require_handle=require_handle,
         )
-    except BondRequired as err:
+    except InvalidSession as err:
+        return _refused(err)
+    return SessionCheck(200, session=session)
+
+
+def _refused(err: InvalidSession) -> SessionCheck:
+    if isinstance(err, BondRequired):
         return SessionCheck(
             403,
             body={
@@ -960,14 +985,55 @@ def check_oc_session(
                 "back_url": err.back_url,
             },
         )
+    if err.reason in _UNAVAILABLE:
+        return SessionCheck(503, body={"ok": False, "reason": err.reason})
+    if err.reason == "unknown_project_key":
+        return SessionCheck(500, body={"ok": False, "reason": err.reason})
+    reason = "no_session_handle" if err.reason == "no_session_handle" else "unauthenticated"
+    return SessionCheck(401, body={"ok": False, "reason": reason})
+
+
+def check_sign_in_rule(
+    session: Union[Session, Mapping[str, Any]],
+    *,
+    project_key: Optional[str] = None,
+    me_origin: str = "https://me.ochk.io",
+    policy: Optional[SignInPolicy] = None,
+    require_bond: Optional[Mapping[str, Any]] = None,
+) -> SessionCheck:
+    """
+    Your project's "who can sign in" rule for a session you verified yourself,
+    as me-client's ``checkSignInRule``. For a site that verifies the token with
+    :func:`verify_session`, or keeps a session of its own, and still wants the
+    rule set on ochk.app. ``session`` is the :class:`Session` or its claims.
+
+    The rule is read and held as :class:`SignInPolicy` holds it: a minute, the
+    last one read standing ten more while it can't be read, and then refused
+    (503 ``bond_policy_unavailable``) rather than let through unchecked. The
+    answer is a :class:`SessionCheck`: 200, 403 ``bond_required`` with
+    ``need``, ``have`` and ``back_url``, 503, or 500 ``unknown_project_key``.
+    Pass ``require_bond`` to set the floor yourself; it wins, and nothing is
+    read. It raises only on a mistake in the call itself.
+
+        checked = check_sign_in_rule(session, project_key=os.environ["OC_PROJECT_KEY"])
+        if not checked.ok:
+            return JSONResponse(checked.body, status_code=checked.status)
+    """
+    if not isinstance(session, (Session, Mapping)):
+        raise TypeError("check_sign_in_rule needs the session you verified")
+    if project_key is not None and policy is not None:
+        raise TypeError("pass project_key or policy, not both")
+    if project_key is not None and (not isinstance(project_key, str) or not project_key):
+        raise TypeError("project_key must be your project's key")
+    if project_key is None and policy is None and require_bond is None:
+        raise TypeError("check_sign_in_rule needs project_key, policy or require_bond")
+    if project_key is not None:
+        policy = _policy_for(project_key, me_origin)
+    try:
+        _apply_rule(session, require_bond, policy)
     except InvalidSession as err:
-        if err.reason in _UNAVAILABLE:
-            return SessionCheck(503, body={"ok": False, "reason": err.reason})
-        if err.reason == "unknown_project_key":
-            return SessionCheck(500, body={"ok": False, "reason": err.reason})
-        reason = "no_session_handle" if err.reason == "no_session_handle" else "unauthenticated"
-        return SessionCheck(401, body={"ok": False, "reason": reason})
-    return SessionCheck(200, session=session)
+        return _refused(err)
+    return SessionCheck(200, session=session if isinstance(session, Session) else None)
 
 
 # ─── billable events ─────────────────────────────────────────────────────

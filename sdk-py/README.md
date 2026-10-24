@@ -253,6 +253,19 @@ if not checked.ok:
 session = checked.session
 ```
 
+Where you verify the token without `policy=`, say in the route that starts your
+own session, `check_sign_in_rule` (3.3.0 or later) applies the project's rule to
+the session with the same answers. Pass the `POLICY` you warm, or
+`project_key=` and it keeps one per project:
+
+```python
+from orangecheck import check_sign_in_rule
+
+checked = check_sign_in_rule(session, policy=POLICY)
+if not checked.ok:
+    return JSONResponse(checked.body, status_code=checked.status)
+```
+
 When the token starts your own session, spend its `jti` so it starts only one,
 then end it at ochk.io (3.2.0 or later). `store` is yours: anything with an
 atomic `add(jti, exp) -> bool` that every server shares, such as a unique row

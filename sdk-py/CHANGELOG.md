@@ -4,6 +4,20 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.3.0] — 2026-10-24
+
+### Added
+
+- `check_sign_in_rule(session, project_key=…)`: your project's "who can sign
+  in" rule for a session you verified yourself, as `@orangecheck/me-client`
+  0.43.0's `checkSignInRule`. One `SignInPolicy` per project is kept, so the
+  rule is read once a minute, and its stand-in and refusal rules hold. It
+  answers a `SessionCheck`: 200, 403 `bond_required` with `need`, `have` and
+  `back_url`, 503 `bond_policy_unavailable`, or 500 `unknown_project_key`.
+  Pass `policy=` to use a `SignInPolicy` you already warm, or `require_bond=`
+  to set the floor yourself (nothing is read). Both SDKs are held to
+  `me-client/test-vectors/server-helpers.json` (`sign_in_rule`).
+
 ## [3.2.1] — 2026-10-24
 
 ### Fixed
