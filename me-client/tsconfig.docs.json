@@ -1,0 +1,8 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "..",
+        "baseUrl": ".",
+        "paths": { "@orangecheck/auth-core": ["../auth-core/src/index.ts"] }
+    }
+}

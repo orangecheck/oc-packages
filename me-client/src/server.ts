@@ -1,4 +1,15 @@
 /**
+ * Server-side helpers: verify a sign-in token (`checkOcToken`,
+ * `verifyOcToken`), check a request's session (`checkOcSession`, `withOcAuth`,
+ * `ocAuthExpress`, `ocAuthHono`), end a token (`revokeToken`), spend one once
+ * (`spendOnce`), and the Connect calls. The rest of the client is in
+ * [`@orangecheck/me-client`](/sdk/me-client/README), and the popup in
+ * [`@orangecheck/me-client/popup`](/sdk/me-client/popup/README).
+ *
+ * @packageDocumentation
+ */
+
+/**
  * @orangecheck/me-client/server
  *
  * Server-side verification helpers for OC integrators.

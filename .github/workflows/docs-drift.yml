@@ -19,7 +19,7 @@ on:
         branches: [main]
         paths:
             - '**/*.ts'
-            - '**/typedoc.json'
+            - '**/typedoc*.json'
             - 'typedoc.base.json'
             - 'scripts/gen-docs.mjs'
             - 'scripts/mdx-transform.mjs'
@@ -29,7 +29,7 @@ on:
         branches: [main]
         paths:
             - '**/*.ts'
-            - '**/typedoc.json'
+            - '**/typedoc*.json'
             - 'typedoc.base.json'
             - 'scripts/gen-docs.mjs'
             - 'scripts/mdx-transform.mjs'

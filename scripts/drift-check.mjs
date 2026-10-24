@@ -63,17 +63,22 @@ try {
     for (const pkg of packages) {
         const pkgDir = resolve(REPO_ROOT, pkg);
         // Override `out` to land under tmpRoot/<pkg>.
-        const outDir = resolve(tmpRoot, pkg);
-        try {
-            execFileSync(
-                TYPEDOC_BIN,
-                ['--options', 'typedoc.json', '--out', outDir],
-                { cwd: pkgDir, stdio: ['ignore', 'pipe', 'pipe'] },
-            );
-        } catch (err) {
-            console.error(`[drift-check] ✗ ${pkg}: typedoc exit ${err.status ?? '?'}`);
-            if (err.stderr) console.error(String(err.stderr).split('\n').slice(-10).join('\n'));
-            exitCode = 2;
+        // typedoc.<entry>.json writes <pkg>/<entry>, as gen-docs does.
+        const extra = readdirSync(pkgDir).filter((f) => /^typedoc\.[a-z0-9-]+\.json$/.test(f)).sort();
+        for (const config of ['typedoc.json', ...extra]) {
+            const sub = config.slice('typedoc.'.length, -'.json'.length);
+            const outDir = config === 'typedoc.json' ? resolve(tmpRoot, pkg) : resolve(tmpRoot, pkg, sub);
+            try {
+                execFileSync(
+                    TYPEDOC_BIN,
+                    ['--options', config, '--out', outDir],
+                    { cwd: pkgDir, stdio: ['ignore', 'pipe', 'pipe'] },
+                );
+            } catch (err) {
+                console.error(`[drift-check] ✗ ${pkg} (${config}): typedoc exit ${err.status ?? '?'}`);
+                if (err.stderr) console.error(String(err.stderr).split('\n').slice(-10).join('\n'));
+                exitCode = 2;
+            }
         }
     }
 

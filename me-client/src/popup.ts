@@ -1,4 +1,13 @@
 /**
+ * Browser only: `signInWithOc` opens the orangecheck sign-in popup and resolves
+ * with a token bound to your origin; `signInWithOcOutcome` says why when it
+ * does not. Verify the token on your server with
+ * [`@orangecheck/me-client/server`](/sdk/me-client/server/README).
+ *
+ * @packageDocumentation
+ */
+
+/**
  * @orangecheck/me-client/popup
  *
  * Browser-side helper that opens the OC sign-in popup, listens for the

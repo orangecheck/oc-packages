@@ -1,0 +1,8 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "extends": ["../typedoc.base.json"],
+    "entryPoints": ["src/server.ts"],
+    "tsconfig": "tsconfig.docs.json",
+    "name": "@orangecheck/me-client/server",
+    "out": "../../oc-docs/src/pages/sdk/me-client/server"
+}

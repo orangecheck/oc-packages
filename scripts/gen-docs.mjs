@@ -61,18 +61,22 @@ for (const pkg of packages) {
         failures += 1;
         continue;
     }
-    process.stdout.write(`[gen-docs] · ${pkg} ... `);
-    try {
-        execSync(`"${TYPEDOC_BIN}" --options typedoc.json`, {
-            cwd: pkgDir,
-            stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        console.log('ok');
-    } catch (err) {
-        console.error(`exit ${err.status ?? '?'}`);
-        if (err.stdout) console.error(String(err.stdout).split('\n').slice(-10).join('\n'));
-        if (err.stderr) console.error(String(err.stderr).split('\n').slice(-10).join('\n'));
-        failures += 1;
+    // typedoc.json first: its run empties the package's folder, then each
+    // typedoc.<entry>.json (a subpath export) writes its own subfolder.
+    for (const config of typedocConfigs(pkgDir)) {
+        process.stdout.write(`[gen-docs] · ${pkg} (${config}) ... `);
+        try {
+            execSync(`"${TYPEDOC_BIN}" --options ${config}`, {
+                cwd: pkgDir,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            });
+            console.log('ok');
+        } catch (err) {
+            console.error(`exit ${err.status ?? '?'}`);
+            if (err.stdout) console.error(String(err.stdout).split('\n').slice(-10).join('\n'));
+            if (err.stderr) console.error(String(err.stderr).split('\n').slice(-10).join('\n'));
+            failures += 1;
+        }
     }
 }
 
@@ -107,6 +111,12 @@ function discoverAllPackages() {
         if (existsSync(resolve(dir, 'typedoc.json'))) out.push(entry);
     }
     return out.sort();
+}
+
+/** typedoc.json, then each typedoc.<entry>.json in name order. */
+function typedocConfigs(pkgDir) {
+    const extra = readdirSync(pkgDir).filter((f) => /^typedoc\.[a-z0-9-]+\.json$/.test(f));
+    return ['typedoc.json', ...extra.sort()];
 }
 
 function walkMdx(dir, onFile) {

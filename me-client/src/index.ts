@@ -1,4 +1,13 @@
 /**
+ * The main entry: the `oc.*` namespaces (events, config, webhooks, payments)
+ * and every type, with no React. Verifying sign-in on your server is in
+ * [`@orangecheck/me-client/server`](/sdk/me-client/server/README), and the sign-in popup is
+ * in [`@orangecheck/me-client/popup`](/sdk/me-client/popup/README).
+ *
+ * @packageDocumentation
+ */
+
+/**
  * @orangecheck/me-client
  *
  * Client for me.ochk.io. Verify orangecheck sign-in on your server, let in
