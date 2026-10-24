@@ -57,6 +57,12 @@ describe("the family name rule", () => {
     for (const f of ["display-name.mjs", "display-name.js"]) {
       expect(existsSync(new URL(f, dist)), `dist/${f} is missing: run yarn build first`).toBe(true);
     }
+    // A node: built-in would load in the probe below but break a browser bundle, so the built
+    // files may not import, require or re-export anything at all.
+    for (const f of ["display-name.mjs", "display-name.js"]) {
+      const built = readFileSync(new URL(f, dist), "utf8");
+      expect(built, f).not.toMatch(/\bimport\b|\brequire\s*\(|\bfrom\s*["']/);
+    }
     const dir = mkdtempSync(join(tmpdir(), "display-name-"));
     try {
       copyFileSync(new URL("display-name.mjs", dist), join(dir, "display-name.mjs"));
