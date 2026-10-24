@@ -1,5 +1,5 @@
 {
-    "description": "Where a site sends someone back to after signing in or re-proving: a path on that site, or the fallback. Read by me-client (src/__tests__/return-path.test.ts) and sdk-py (tests/test_return_path.py), so a Node site and a Python site agree. Every `refused` input answers the fallback; every `kept` input answers its `out`, which is the input unchanged. Started from site-attest's 50-vector set for #333.",
+    "description": "Where a site sends someone back to after signing in or re-proving: a path on that site, or the fallback. Read by me-client (src/__tests__/return-path.test.ts) and sdk-py (tests/test_return_path.py), so a Node site and a Python site agree. Every `refused` input answers the fallback; every `kept` input answers its `out`, which is the input unchanged. A string that is not well-formed UTF-16 (a lone surrogate, which a JSON body can carry) is refused. Started from site-attest's 50-vector set for #333.",
     "fallback": "/",
     "refused": [
         "/\t/evil.com",
@@ -35,7 +35,11 @@
         "/%C3",
         "/%80",
         "/%ED%A0%80",
-        "/%C0%AF"
+        "/%C0%AF",
+        "/\ud800",
+        "/a\udc00b",
+        "\ud800/",
+        "/\udc00\ud800"
     ],
     "kept": [
         {

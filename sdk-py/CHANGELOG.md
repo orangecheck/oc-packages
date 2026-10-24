@@ -12,7 +12,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
   they sign in or prove it is them again. A path on your own site comes back
   unchanged; anything a browser would take elsewhere (`//evil.com`,
   `/\\evil.com`, a scheme), a backslash anywhere, C0 and C1 control
-  characters, a percent that does not decode, dot segments (plain or
+  characters, a lone surrogate (which a JSON body can carry), a percent that
+  does not decode, dot segments (plain or
   percent-encoded) and anything over 2048 UTF-16 units answer `fallback`. As
   `@orangecheck/me-client` 0.51.0's `safeReturnPath`, held to the same vectors
   (`me-client/test-vectors/return-path.json`).

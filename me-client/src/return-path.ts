@@ -10,6 +10,12 @@
  */
 export function safeReturnPath(raw: unknown, fallback = '/'): string {
     if (typeof raw !== 'string' || raw.length === 0 || raw.length > 2048) return fallback;
+    // A lone surrogate (a JSON body can carry one) is not text; encodeURIComponent throws on it.
+    try {
+        encodeURIComponent(raw);
+    } catch {
+        return fallback;
+    }
     if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return fallback;
     if (/[\u0000-\u001f\u007f-\u009f\\]/.test(raw)) return fallback;
     try {

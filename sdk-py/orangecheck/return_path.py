@@ -24,8 +24,15 @@ def safe_return_path(value: object, fallback: str = "/") -> str:
     ``safeReturnPath`` answers the same for every input in
     me-client/test-vectors/return-path.json.
     """
+    if not isinstance(value, str) or not value:
+        return fallback
+    # A lone surrogate (a JSON body can carry one) is not text; me-client refuses it too.
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return fallback
     # The length me-client measures: UTF-16 code units, so the two agree at the limit.
-    if not isinstance(value, str) or not value or len(value.encode("utf-16-le")) // 2 > 2048:
+    if len(value.encode("utf-16-le")) // 2 > 2048:
         return fallback
     if not value.startswith("/") or value.startswith(("//", "/\\")) or _REFUSED.search(value):
         return fallback
