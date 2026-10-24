@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.2] — 2026-10-24
+
+### Dependencies
+
+`@orangecheck/agent-core` ^2.8.0, whose verifiers answer with a result for any
+input: a revocation list holding entries that are not revocations is read
+around them, and they are counted in `revocationsSkipped`.
+
 ## [0.3.1] — 2026-10-22
 
 ### Dependencies
