@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.22.0] — 2026-10-24
+
+- `ToolShell`'s body is at least a window tall under the header, so a tool
+  page's footer starts below the fold. A page whose content arrives after the
+  first paint pushed a footer in view out of it: 0.061 to 0.079 of layout
+  shift on pledge's `/p/<id>` at 390 and 1440. A short page's footer is now
+  one scroll away.
+- check-layout asserts a short tool page's footer starts below the window.
+
 ## [1.21.0] — 2026-10-24
 
 - `AppShell`'s place strip shows on phones in every state, beside the tab bar

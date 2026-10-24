@@ -242,7 +242,8 @@ export function ToolShell({
                         </>
                     }
                 />
-                <div className={cn('mx-auto flex w-full', app ? 'min-h-0 flex-1' : 'max-w-[90rem] flex-1')}>
+                {/* At least a window tall, so the footer starts below the fold and late content moves nothing in view. */}
+                <div className={cn('mx-auto flex w-full', app ? 'min-h-0 flex-1' : 'min-h-[calc(100dvh-3.5rem)] max-w-[90rem] flex-1')}>
                     {rail ? (
                         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                             <SideNav groups={[{ label: 'Tools', items: tools.map(({ href, label, icon, active }) => ({ href, label, icon, active })) }]} />

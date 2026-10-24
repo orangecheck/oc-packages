@@ -52,6 +52,8 @@
  *   still wins.
  * - Every tool page's title starts at one x: ToolShell's wide and narrow
  *   columns, an app page's ToolColumn, and an ErrorPage inside the shell.
+ *   A short tool page's footer starts below the window, so content that
+ *   arrives after the first paint moves no footer in view.
  * - On a phone the small controls are a thumb's 44px: the compact footer's
  *   lockup, an artifact's Download, Copy and view switch, filter chips, a
  *   menu's items, a row in a pane. A row's actions keep clear of its time.
@@ -1000,7 +1002,9 @@ try {
                     left: document.querySelector('main h1').getBoundingClientRect().left,
                     width: document.querySelector('main header')?.getBoundingClientRect().width,
                     foot: document.querySelector('footer a[href="https://ochk.io"]')?.getBoundingClientRect().left,
+                    footTop: document.querySelector('footer')?.getBoundingClientRect().top,
                 }));
+                if (box.footTop !== undefined) check(box.footTop >= height - 0.5, `[${width}] ${name}: the footer starts at ${Math.round(box.footTop)}px, inside a ${height}px window`);
                 check(Math.abs(box.left - gutter) < 0.5, `[${width}] ${name}: the title starts at ${Math.round(box.left)}px, not the column's ${gutter}px`);
                 if (box.foot !== undefined) check(Math.abs(box.foot - gutter) < 0.5, `[${width}] ${name}: the footer's lockup starts at ${Math.round(box.foot)}px, not the column's ${gutter}px`);
                 if (name === 'narrow') check(box.width <= 768.5, `[${width}] narrow: the page runs ${Math.round(box.width)}px wide, past 48rem`);
