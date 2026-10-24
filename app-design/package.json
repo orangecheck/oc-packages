@@ -113,7 +113,7 @@
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
     "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-next.mjs",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit && tsc -p tsconfig.stories.json",
     "clean": "rm -rf dist"
   },
   "sideEffects": [
@@ -157,6 +157,7 @@
     "@orangecheck/auth-core": "^2.5.0",
     "@orangecheck/me-client": "^0.47.0",
     "@orangecheck/wallet-adapter": "^0.7.0",
+    "@storybook/react": "^10",
     "@tailwindcss/cli": "^4.3.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
@@ -169,6 +170,7 @@
     "playwright-core": "~1.60.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "storybook": "^10",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3"
