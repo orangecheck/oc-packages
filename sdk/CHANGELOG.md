@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.17.1] — 2026-10-24
+
+### Changed
+
+- **`createAttestationEnvelope()` copies `issued_at` from the signed line
+  `verify()` reads:** the first line whose key is `issued_at`, in any case,
+  split at its first colon. Other text containing `issued_at: ` does not set
+  it.
+
 ## [1.16.2] — 2026-10-22
 
 ### Changed

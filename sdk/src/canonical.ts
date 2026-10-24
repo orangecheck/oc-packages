@@ -224,6 +224,20 @@ export async function generateAttestationId(message: string): Promise<string> {
 }
 
 /**
+ * A signed line's value as verify() reads it: the first trimmed line whose key,
+ * in any case, is `key`, split at its first colon. Not exported from the package.
+ */
+export function readMessageValue(message: string, key: string): string | undefined {
+    const needle = key + ':';
+    const hit = message
+        .split('\n')
+        .map((l) => l.trim())
+        .find((l) => l.toLowerCase().startsWith(needle));
+    if (!hit) return undefined;
+    return hit.slice(hit.indexOf(':') + 1).trim();
+}
+
+/**
  * Create an attestation envelope for publishing
  *
  * This wraps the canonical message with metadata for Nostr publishing
@@ -246,9 +260,8 @@ export async function createAttestationEnvelope(
 ): Promise<AttestationEnvelope> {
     const attestation_id = await generateAttestationId(message);
 
-    // Extract issued_at from message
-    const issuedAtMatch = message.match(/issued_at: ([^\n]+)/);
-    const issued_at = issuedAtMatch?.[1] ?? new Date().toISOString();
+    // The signed line verify() reads, not the first "issued_at: " anywhere in the text.
+    const issued_at = readMessageValue(message, 'issued_at') ?? new Date().toISOString();
 
     // Extract expires from extensions if present
     const expires_at = extensions.expires;

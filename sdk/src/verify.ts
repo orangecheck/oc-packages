@@ -19,7 +19,7 @@ import type {
 
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
-import { generateAttestationId, parseIdentities } from './canonical';
+import { generateAttestationId, parseIdentities, readMessageValue } from './canonical';
 import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
@@ -88,17 +88,8 @@ export async function signatureIsValid(input: SignatureVerifyInput): Promise<boo
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)
 export function parseCanonicalMessage(msg: string) {
     const lines = msg.split('\n').map((l) => l.trim());
-    // `.split(':', 2)[1]` truncates values containing a colon (e.g. URLs in
-    // extensions, or npubs in identities). Use the first colon as the
-    // separator and keep everything after it — same approach as the
-    // extensions loop below.
-    const getVal = (prefix: string): string | undefined => {
-        const needle = prefix + ':';
-        const hit = lines.find((l) => l.toLowerCase().startsWith(needle));
-        if (!hit) return undefined;
-        const idx = hit.indexOf(':');
-        return hit.slice(idx + 1).trim();
-    };
+    // Split at the first colon: values can hold colons (URLs, npubs).
+    const getVal = (key: string) => readMessageValue(msg, key);
 
     const address = getVal('address') || '';
     const identitiesStr = getVal('identities') || '';
