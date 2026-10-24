@@ -47,6 +47,14 @@ describe("the family name rule", () => {
     expect([...source].filter((c) => c > "~").map((c) => c.codePointAt(0)!.toString(16))).toEqual([]);
   });
 
+  // The /display-name entry ships to browsers, so the rule may not import the token code or jose.
+  it("imports nothing", () => {
+    const source = readFileSync(new URL("../display-name.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/^\s*import\b/m);
+    expect(source).not.toMatch(/\bfrom\s*['"]/);
+    expect(source).not.toMatch(/\brequire\(|\bimport\(/);
+  });
+
   it("says when a name is missing or too long", () => {
     expect(nameProblem("", 80)).toBe("required");
     expect(nameProblem("x".repeat(81), 80)).toBe("too_long");
