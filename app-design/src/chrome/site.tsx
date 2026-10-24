@@ -6,6 +6,7 @@ import { Lockup, Mark } from '../brand/mark';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import type { FooterColumn, NavItem } from '../lib/nav';
+import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { ThemeToggle } from './app-shell';
@@ -135,13 +136,15 @@ export interface SiteHeaderProps {
 }
 
 /**
- * The header's "Get an account", in the registry's words. On ochk.io and its
- * docs it links ochk.app; ochk.app passes its own sign-in as `href`.
+ * The header's "Get an account", in the registry's words. It links ochk.io's
+ * sign-in, returning to the page it is on; ochk.app passes its own sign-in as
+ * `href`.
  */
-export function AccountCta({ href = GET_AN_ACCOUNT.href, className }: { href?: string; className?: string }) {
+export function AccountCta({ href, className }: { href?: string; className?: string }) {
+    const family = useFamilySignInHref();
     return (
         <Button asChild size="sm" className={className}>
-            <a href={href}>{GET_AN_ACCOUNT.label}</a>
+            <a href={href ?? family}>{GET_AN_ACCOUNT.label}</a>
         </Button>
     );
 }

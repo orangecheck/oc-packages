@@ -1,6 +1,7 @@
 import { useOptionalOcSession, type OcAccount } from '@orangecheck/auth-client';
 
 import { OCHK_APP_ACCOUNT, SessionAccountView, type SessionState } from '../chrome/tool-shell';
+import { returningTo, useHereHref } from '../lib/sign-in';
 import type { AccountMenuItem } from '../chrome/app-shell';
 import { shortenMiddle } from '../format';
 
@@ -30,7 +31,7 @@ export function SessionAccount({
     items,
     nameFrom = 'lg',
 }: {
-    /** Default: the session's sign-in URL on the auth host. */
+    /** Default: the session's sign-in URL on the auth host, else ochk.io's; either returns to the page the viewer is on. */
     signInHref?: string;
     /** This site's own sign-in page (`/signin`): sign in here, in place, and return to the page the viewer is on. */
     signInPath?: string;
@@ -44,6 +45,8 @@ export function SessionAccount({
     nameFrom?: 'sm' | 'lg';
 }) {
     const session = useOptionalOcSession();
+    // The session's sign-in, returning to the page the viewer is on now, not the one it was first read on.
+    const here = useHereHref();
     const status = session?.status ?? 'anonymous';
     const state: SessionState =
         status === 'authenticated' ? 'in' : status === 'anonymous' ? 'out' : status === 'error' ? 'unknown' : 'checking';
@@ -57,7 +60,7 @@ export function SessionAccount({
             name={name}
             detail={detail}
             items={items}
-            signInHref={signInHref ?? (signInPath ? undefined : (session?.signInUrl ?? 'https://ochk.io/signin'))}
+            signInHref={signInHref ?? (signInPath || !session?.signInUrl ? undefined : returningTo(session.signInUrl, here))}
             signInPath={signInPath}
             signInLabel={signInLabel}
             signInVariant={signInVariant}

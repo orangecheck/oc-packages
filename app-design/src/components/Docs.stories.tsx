@@ -2,8 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Anchor, BookOpen, FileCheck2, Terminal } from 'lucide-react';
 
 import { DocsShell, type DocsNavSection } from '../chrome';
+import { GET_AN_ACCOUNT } from '../family';
 import { createMdxComponents } from '../mdx';
-import { Button } from '../primitives';
+import { SessionAccount } from '../session';
 import {
     ApiTable,
     Breadcrumbs,
@@ -162,11 +163,7 @@ export const Page: StoryObj = {
             nav={NAV}
             current="/stamp/quickstart"
             search={<SearchDialog onQuery={searchQuery} hotkey={false} />}
-            actions={
-                <Button asChild size="sm" variant="secondary">
-                    <a href="https://ochk.app/signin">Sign in</a>
-                </Button>
-            }
+            actions={<SessionAccount signInLabel={GET_AN_ACCOUNT.label} />}
             breadcrumbs={
                 <Breadcrumbs
                     items={[{ href: '/', label: 'Docs' }, { href: '/stamp', label: 'OC Stamp' }, { label: 'Quickstart' }]}

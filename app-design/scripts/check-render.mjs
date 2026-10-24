@@ -485,7 +485,7 @@ const html = (el) => renderToStaticMarkup(el);
 {
     const F = require(join(here, '../dist/family.js'));
     const cta = html(h(Ch.AccountCta));
-    check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.app/signin', 'AccountCta: not the registry\'s phrase to ochk.app\'s sign-in');
+    check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.io/signin', 'AccountCta: not the registry\'s phrase to ochk.io\'s sign-in');
     // The account phrase looks the same wherever it shows: primary, as AccountCta draws it. "Sign in" stays secondary.
     const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
     const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';

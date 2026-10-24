@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-10-24
+
+- "Get an account" signs a person in on ochk.io and brings them back to the
+  page they started on. `GET_AN_ACCOUNT.href` is `https://ochk.io/signin`, not
+  ochk.app's; `AccountCta`, `SessionAccountView` with no sign-in given, and
+  `SessionAccount` (the session's sign-in URL too) add `return_to=<this page>`
+  in the browser, and follow a route change. The fragment is never sent.
+  ochk.app passes its own sign-in and is unchanged.
+- `useFamilySignInHref()` (from `/chrome`) is that address, for a site's own
+  sign-in link; `useSignInHref` moves beside it and is unchanged.
+- The Protocol and Docs page stories draw `AccountCta` and `SessionAccount`
+  instead of a hand-written ochk.app link.
+- check-focus mounts all three signed out on a page with a query and a
+  fragment, then moves the page: each link must return to the page, without the
+  fragment, both times. It fails on 1.17.2.
+
 ## [1.17.2] — 2026-10-23
 
 - A theme switch styles the content of a closed `<details>` while transitions

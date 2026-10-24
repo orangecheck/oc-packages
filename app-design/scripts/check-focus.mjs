@@ -32,6 +32,9 @@
  *   leaves transitions as they were, as does the system turning dark while
  *   the page is open; the package's ThemeProvider puts no stylesheet in as
  *   it mounts.
+ * - Signed out, "Get an account" (ToolShell's slot, AccountCta, SessionAccount)
+ *   links ochk.io's sign-in returning to the page it is on, fragment left
+ *   off, and follows a client-side move; never ochk.app.
  *
  * Run after `yarn build`.
  */
@@ -159,6 +162,13 @@ try {
         themesys: mount(
             `import { ThemeProvider } from '${src('chrome/app-shell.tsx')}';`,
             `<ThemeProvider><div className="p-6"><div id="swatch" className="size-10 bg-background text-foreground transition-colors duration-700">Aa</div></div></ThemeProvider>`
+        ),
+        // The signed-out account phrase three ways, with no sign-in address given: each must link ochk.io's sign-in, returning here.
+        familysignin: mount(
+            `import { SessionAccountView } from '${src('chrome/tool-shell.tsx')}';\n` +
+                `import { AccountCta } from '${src('chrome/site.tsx')}';\n` +
+                `import { SessionAccount } from '${src('session/index.tsx')}';`,
+            `<div className="flex gap-4 p-6"><div data-a="view"><SessionAccountView state="out" signInLabel="Get an account" /></div><div data-a="cta"><AccountCta /></div><div data-a="session"><SessionAccount signInLabel="Get an account" /></div></div>`
         ),
     };
     bundle(dir, clients);
@@ -429,6 +439,23 @@ try {
         check(pinned.styles === pinnedBefore && pinned.cls.includes('dark'), `ThemeProvider: with a mode picked, the system's change still put a style in (${pinnedBefore} → ${pinned.styles} style elements, class "${pinned.cls}")`);
         await p.evaluate(() => localStorage.removeItem('theme'));
         await p.emulateMedia({ colorScheme: null });
+        // Signed out, "Get an account" goes to ochk.io's sign-in and comes back to this page, after a client-side move too; never ochk.app.
+        await p.goto(client('familysignin', '?from=docs#keep-off'));
+        await p.waitForSelector('[data-a="session"] a');
+        const signinHrefs = () =>
+            p.evaluate(() => ({
+                want: `https://ochk.io/signin?return_to=${encodeURIComponent(location.href.split('#')[0])}`,
+                got: Object.fromEntries([...document.querySelectorAll('[data-a]')].map((d) => [d.dataset.a, d.querySelector('a')?.getAttribute('href')])),
+            }));
+        const onLoad = await signinHrefs();
+        await p.evaluate(() => {
+            history.pushState({}, '', '?from=elsewhere#also-off');
+            dispatchEvent(new PopStateEvent('popstate'));
+        });
+        await p.waitForTimeout(100);
+        const moved = await signinHrefs();
+        for (const [when, r] of [['on load', onLoad], ['after a move', moved]])
+            check(Object.values(r.got).length === 3 && Object.values(r.got).every((h) => h === r.want), `Get an account ${when}: ${JSON.stringify(r.got)}, not ${r.want}`);
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));
         await p.waitForSelector('table a');

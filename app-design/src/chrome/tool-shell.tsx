@@ -1,13 +1,12 @@
 import { ArrowUpRight, CircleUser, LogOut } from 'lucide-react';
-import { useRouter } from 'next/compat/router';
-import type { NextRouter } from 'next/router';
-import { useSyncExternalStore, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
 import { GET_AN_ACCOUNT, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
+import { useFamilySignInHref, useSignInHref } from '../lib/sign-in';
 import { SiteHomeContext } from '../lib/site-home';
 import { Button } from '../primitives/button';
 import { StatusBadge } from '../primitives/status-badge';
@@ -20,38 +19,6 @@ import { SiteFooter, SiteHeader, SkipLink } from './site';
 export type SessionState = 'checking' | 'in' | 'out' | 'unknown';
 
 export const OCHK_APP_ACCOUNT = 'https://ochk.app/me/account';
-
-/** Back and forward; a router move re-renders the page, which reads the address again. */
-function onHistory(change: () => void) {
-    window.addEventListener('popstate', change);
-    return () => window.removeEventListener('popstate', change);
-}
-
-/** The page's path and query, never the fragment. Anything the URL parser would read as another host returns home. */
-function herePath(): string {
-    const { href, origin, pathname, search } = window.location;
-    const path = pathname + search;
-    return new URL(path, href).origin === origin ? path : '/';
-}
-
-/** The route the server renders, with the base path; none for a dynamic route, whose template is no address. */
-function routePath(router: NextRouter | null): string | null {
-    if (!router || router.pathname.includes('[')) return null;
-    return router.basePath && router.pathname === '/' ? router.basePath : router.basePath + router.pathname;
-}
-
-/**
- * This site's sign-in page, set to return to the page the viewer is on:
- * `/signin?return_to=%2Fverify%3Fid%3D…`. The server renders the route
- * without its query, so hydration matches; the fragment is never read, so a
- * share link's secret stays off servers. Pass no path for none.
- */
-export function useSignInHref(path?: string): string | undefined {
-    const router = useRouter();
-    const here = useSyncExternalStore(onHistory, herePath, () => routePath(router));
-    if (!path) return undefined;
-    return here ? `${path}?return_to=${encodeURIComponent(here)}` : path;
-}
 
 /**
  * The header's account control, for any session source: the account menu
@@ -93,6 +60,7 @@ export function SessionAccountView({
     nameFrom?: 'sm' | 'lg';
 }) {
     const inPlace = useSignInHref(signInPath);
+    const family = useFamilySignInHref();
     if (state === 'in') {
         return (
             <AccountMenu
@@ -125,7 +93,7 @@ export function SessionAccountView({
                 variant={signInVariant ?? (signInLabel === GET_AN_ACCOUNT.label ? 'primary' : 'secondary')}
                 tabIndex={state === 'checking' ? -1 : undefined}
             >
-                <a href={signInHref ?? inPlace ?? 'https://ochk.io/signin'}>{signInLabel}</a>
+                <a href={signInHref ?? inPlace ?? family}>{signInLabel}</a>
             </Button>
         </span>
     );

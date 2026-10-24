@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { OcWalletButton } from '@orangecheck/wallet-adapter/react';
 import { Anchor, Code2, FileCheck2, UserX } from 'lucide-react';
 
-import { SiteFooter, SiteHeader } from '../chrome';
+import { AccountCta, SiteFooter, SiteHeader } from '../chrome';
 import { OCHK_IO_FOOTER, OCHK_IO_NAV } from '../family';
 import { Button } from '../primitives';
 import {
@@ -147,11 +147,7 @@ export const Page: StoryObj = {
                         ? { ...n, active: true, children: n.children?.map((c) => ({ ...c, active: c.label === 'stamp' })) }
                         : n
                 )}
-                actions={
-                    <Button asChild size="sm">
-                        <a href="https://ochk.app/signin">Sign in</a>
-                    </Button>
-                }
+                actions={<AccountCta />}
             />
             <main id="main-content">
                 <div className="oca-container pt-2">
