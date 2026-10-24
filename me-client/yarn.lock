@@ -266,10 +266,10 @@
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
-"@orangecheck/auth-core@^2.16.0":
-  version "2.16.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.16.0.tgz#52812ba0a7142a20fc38bc2fdcb54513e4fb99e0"
-  integrity sha512-iQIjEIUf8Hi9tbadBSqKGriRa175+exHgANZ2PpqZHZNYWqUz9ILHYUNbWdMCBSFYuUJphIshGpz5QwgK/algw==
+"@orangecheck/auth-core@^2.17.0":
+  version "2.17.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.17.0.tgz#25acd863ee81c29733605e6003fb60ad71da6305"
+  integrity sha512-Ggt1/yBzU8Kh/uQH8/MM2vLuygU2d6XfnXp8V3LpJSHL4WgTlAUm7E2kC4figAUuXdZRbwyZTAQuwgVtH+J+Fg==
   dependencies:
     jose "^6.2.2"
 
