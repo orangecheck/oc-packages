@@ -98,6 +98,12 @@ describe('familyReturnTarget', () => {
         expect(familyReturnTarget('http://ochk.io/')).toBeUndefined();
     });
 
+    it('refuses localhost even while NODE_ENV is test', () => {
+        expect(process.env.NODE_ENV).toBe('test');
+        expect(familyReturnTarget('http://localhost:3000/x')).toBeUndefined();
+        expect(familyReturnTarget('http://127.0.0.1:3000/x')).toBeUndefined();
+    });
+
     it('refuses empty, null and non-string input', () => {
         expect(familyReturnTarget('')).toBeUndefined();
         expect(familyReturnTarget(null)).toBeUndefined();

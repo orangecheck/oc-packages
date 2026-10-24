@@ -213,6 +213,28 @@ describe('installTabLinkDecorator', () => {
         uninstall();
     });
 
+    it('never stamps a localhost origin other than this page, even while NODE_ENV is test', () => {
+        expect(process.env.NODE_ENV).toBe('test');
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        for (const href of ['http://localhost:4999/x', 'http://127.0.0.1:3000/x']) {
+            expect(new URL(href).origin).not.toBe(window.location.origin);
+            expect(fireLink({ href }), href).toBe(href);
+            expect(fireLink({ href, target: '_blank' }), href).toBe(href);
+        }
+        uninstall();
+    });
+
+    it('stamps a link to the configured auth host even when it is not a listed family origin', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://oc-www-test.vercel.app');
+        expect(fireLink({ href: 'https://oc-www-test.vercel.app/me' })).toBe(
+            `https://oc-www-test.vercel.app/me#oc-as=${DID_A}`
+        );
+        expect(fireLink({ href: 'https://btcpay.ochk.io/i/abc' })).toBe('https://btcpay.ochk.io/i/abc');
+        uninstall();
+    });
+
     it('never stamps when the tab is unpinned', () => {
         const uninstall = installTabLinkDecorator('https://ochk.io');
         expect(fireLink({ href: FAMILY })).toBe(FAMILY);
