@@ -81,6 +81,14 @@
             "out": "l e e@example.com"
         },
         {
+            "in": "\t\n\u000b\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeffZed@Example.com\ufeff\u3000\u205f\u202f\u2029\u2028\u200a\u2009\u2008\u2007\u2006\u2005\u2004\u2003\u2002\u2001\u2000\u1680\u00a0 \r\f\u000b\n\t",
+            "out": "zed@example.com"
+        },
+        {
+            "in": "\u001c\u001d\u001e\u001f\u0085\u180e\u200bUma@Example.com\u001c\u001d\u001e\u001f\u0085\u180e\u200b",
+            "out": "\u001c\u001d\u001e\u001f\u0085\u180e\u200buma@example.com\u001c\u001d\u001e\u001f\u0085\u180e\u200b"
+        },
+        {
             "in": "",
             "out": ""
         },
