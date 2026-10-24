@@ -21,6 +21,12 @@ const ENTRIES = [
       'return ["https://vault.ochk.io", "https://btcpay.ochk.io", "http://localhost:3000"].map((o) => m.isFamilyOrigin(o, false)).concat(m.isFamilyOrigin("http://localhost:3000"), m.FAMILY_ORIGINS.size);',
     answer: [true, false, false, false, 17],
   },
+  {
+    name: "identifiers",
+    probe:
+      'const did = "did:oc:" + "a".repeat(32); return [m.isDidOc(did), m.isDidOc(did + "\\n"), m.isDidOc(did.toUpperCase()), m.normalizeEmail(" Ann@Example.COM\\t")];',
+    answer: [true, false, false, "ann@example.com"],
+  },
 ];
 
 describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) => {

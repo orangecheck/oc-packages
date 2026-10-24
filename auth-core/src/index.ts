@@ -1049,3 +1049,4 @@ export function _resetJwksCachesForTests(): void {
 export * from "./revocation";
 export * from "./display-name";
 export * from "./family-origins";
+export * from "./identifiers";

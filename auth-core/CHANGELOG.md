@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.22.0] — 2026-10-24
+
+### Added
+
+- `@orangecheck/auth-core/identifiers`: `isDidOc(value)` and
+  `normalizeEmail(raw)`. A did:oc is `did:oc:` and 32 lowercase hex digits with
+  nothing before or after it (no upper case, no surrounding space, no trailing
+  newline). An email is stored and looked up trimmed, then lower-cased, as
+  every family repo already does. The entry imports nothing, so a browser
+  bundle can take it; both are also exported from the package root. The rules
+  are pinned by `test-vectors/identifiers.json`, which sdk-py's twins read too.
+
 ## [2.21.0] — 2026-10-24
 
 ### Added

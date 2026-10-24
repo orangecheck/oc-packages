@@ -1,0 +1,92 @@
+{
+    "description": "The two identifier rules every family repo applies: what a did:oc is, and the form an email address is stored and looked up in. Read by auth-core (src/__tests__/identifiers.test.ts) and sdk-py (tests/test_identifiers.py), so a Node site and a Python site agree. A did:oc is did:oc: and 32 lowercase hex digits, with nothing before or after it. An email is trimmed of exactly the characters JavaScript's String.prototype.trim removes, then lower-cased.",
+    "did_oc": {
+        "valid": [
+            "did:oc:0123456789abcdef0123456789abcdef",
+            "did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
+        "invalid": [
+            "",
+            "did:oc:",
+            "did:oc:0123456789abcdef0123456789abcde",
+            "did:oc:0123456789abcdef0123456789abcdef0",
+            "did:oc:0123456789ABCDEF0123456789ABCDEF",
+            "DID:OC:0123456789abcdef0123456789abcdef",
+            "Did:oc:0123456789abcdef0123456789abcdef",
+            " did:oc:0123456789abcdef0123456789abcdef",
+            "did:oc:0123456789abcdef0123456789abcdef ",
+            "did:oc:0123456789abcdef0123456789abcdef\n",
+            "did:oc:0123456789abcdef0123456789abcdef\r\n",
+            "did:oc:0123456789abcdef0123456789abcdef\u0000",
+            "xdid:oc:0123456789abcdef0123456789abcdef",
+            "did:oc:0123456789abcdef0123456789abcdef:x",
+            "did:oc:0123456789abcdef0123456789abcdeg",
+            "did:oc:0123456789abcdef0123456789abcde\u0661",
+            "did:oc:\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10\uff10",
+            "did:email:0123456789abcdef0123456789abcdef",
+            "did:bip322:0123456789abcdef0123456789abcdef"
+        ]
+    },
+    "email": [
+        {
+            "in": "Alice@Example.COM",
+            "out": "alice@example.com"
+        },
+        {
+            "in": "  bob@example.com\n",
+            "out": "bob@example.com"
+        },
+        {
+            "in": "\tcarol@example.com\r\n",
+            "out": "carol@example.com"
+        },
+        {
+            "in": "\u000b\fdan@example.com",
+            "out": "dan@example.com"
+        },
+        {
+            "in": "\u00a0erin@example.com\u3000",
+            "out": "erin@example.com"
+        },
+        {
+            "in": "\ufefffrank@example.com",
+            "out": "frank@example.com"
+        },
+        {
+            "in": "\u2028gina@example.com\u2029",
+            "out": "gina@example.com"
+        },
+        {
+            "in": "\u1680\u2000\u200ahal@example.com\u202f\u205f",
+            "out": "hal@example.com"
+        },
+        {
+            "in": "\u0085ivy@example.com",
+            "out": "\u0085ivy@example.com"
+        },
+        {
+            "in": "\u001cjo@example.com\u001f",
+            "out": "\u001cjo@example.com\u001f"
+        },
+        {
+            "in": "\u200bkim@example.com",
+            "out": "\u200bkim@example.com"
+        },
+        {
+            "in": "\u00c5SA@Example.com",
+            "out": "\u00e5sa@example.com"
+        },
+        {
+            "in": "l e e@example.com",
+            "out": "l e e@example.com"
+        },
+        {
+            "in": "",
+            "out": ""
+        },
+        {
+            "in": " \t\n ",
+            "out": ""
+        }
+    ]
+}
