@@ -4,6 +4,13 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- This changelog ships in the wheel (`orangecheck/CHANGELOG.md`) and the sdist,
+  and PyPI links it as "Changelog".
+
 ## [3.6.0] — 2026-10-24
 
 ### Changed

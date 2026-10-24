@@ -43,6 +43,7 @@ Homepage = "https://ochk.io"
 Documentation = "https://ochk.io/docs"
 Repository = "https://github.com/orangecheck/oc-packages"
 Issues = "https://github.com/orangecheck/oc-packages/issues"
+Changelog = "https://github.com/orangecheck/oc-packages/blob/main/sdk-py/CHANGELOG.md"
 
 [project.optional-dependencies]
 # Local BIP-322 signature verification. Not required for the hosted-API
@@ -67,6 +68,10 @@ orangecheck = "orangecheck.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["orangecheck"]
+
+# What changed in each version travels with it: in the package, and in the sdist by default.
+[tool.hatch.build.targets.wheel.force-include]
+"CHANGELOG.md" = "orangecheck/CHANGELOG.md"
 
 [tool.ruff]
 line-length = 100
