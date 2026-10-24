@@ -12,7 +12,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { enhanceSignInButton, OUTCOME_COPY, SIGN_IN_BUSY_LABEL, SIGN_IN_LABELS } from '../button';
+import { enhanceSignInButton, holdWidth, OUTCOME_COPY, SIGN_IN_BUSY_LABEL, SIGN_IN_LABELS } from '../button';
 import { SignInWithOrangecheck } from '../react';
 
 const ACCOUNT = { id: 'acct-1', did_oc: 'did:oc:' + 'a'.repeat(32) };
@@ -76,12 +76,84 @@ describe('enhanceSignInButton', () => {
         expect(c.querySelector('svg')).toBeNull();
     });
 
+    it('takes the words in any language, as long as they say "orangecheck" as written', () => {
+        for (const label of ['Se connecter avec orangecheck', 'Mit orangecheck anmelden', 'orangecheck でログイン', 'Continuar con orangecheck']) {
+            const b = hostButton();
+            enhanceSignInButton(b, { onSignedIn() {}, label });
+            expect(b.textContent).toBe(label);
+        }
+        for (const label of ['Sign in with OC', 'Sign in with OrangeCheck', 'Sign in with ORANGECHECK', 'Sign in with orangecheckout', 'Log in']) {
+            expect(() => enhanceSignInButton(hostButton(), { onSignedIn() {}, label }), label).toThrow(/must say "orangecheck"/);
+        }
+    });
+
+    it("keeps the host's own words when they already say orangecheck", () => {
+        const b = hostButton('<button class="btn">Mit orangecheck anmelden</button>');
+        enhanceSignInButton(b, { onSignedIn() {} });
+        expect(b.textContent).toBe('Mit orangecheck anmelden');
+        const c = hostButton('<button class="btn">Log in</button>');
+        enhanceSignInButton(c, { onSignedIn() {} });
+        expect(c.textContent).toBe(SIGN_IN_LABELS.signIn);
+    });
+
     it('refuses what it would otherwise get quietly wrong', () => {
         const b = hostButton();
-        expect(() => enhanceSignInButton(b, { onSignedIn() {}, label: 'Sign in with OC' as never })).toThrow(/approved label/);
         expect(() => enhanceSignInButton(b, { onSignedIn() {}, colour: 'red' } as never)).toThrow(/unknown option colour/);
         expect(() => enhanceSignInButton(b, {} as never)).toThrow(/onSignedIn is required/);
+        expect(() => enhanceSignInButton(b, { onSignedIn() {}, label: false, mark: false })).toThrow(/needs the mark/);
+        expect(() => enhanceSignInButton(b, { onSignedIn() {}, label: false, accessibleLabel: 'Sign in' })).toThrow(/must say "orangecheck"/);
+        expect(() => enhanceSignInButton(b, { onSignedIn() {}, busyLabel: ' ' })).toThrow(/busyLabel/);
         expect(() => enhanceSignInButton(document.createElement('a') as never, { onSignedIn() {} })).toThrow(/<button>/);
+    });
+
+    it('draws the mark alone, square, still named for a screen reader', () => {
+        const b = hostButton();
+        enhanceSignInButton(b, { onSignedIn() {}, label: false });
+        expect(b.getAttribute('data-label')).toBe('none');
+        expect(b.getAttribute('aria-label')).toBe(SIGN_IN_LABELS.signIn);
+        expect(b.textContent).toBe('');
+        expect(b.children).toHaveLength(1);
+        expect(b.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+        const c = hostButton('<button data-label="none"></button>');
+        enhanceSignInButton(c, { onSignedIn() {}, accessibleLabel: 'Mit orangecheck anmelden' });
+        expect(c.getAttribute('aria-label')).toBe('Mit orangecheck anmelden');
+        expect(c.querySelector('[data-oc-label]')).toBeNull();
+    });
+
+    it('draws the mark where the placeholder was, in the variant it names', () => {
+        const b = hostButton('<button class="btn"><span data-oc-mark="brand"></span>Sign in with orangecheck</button>');
+        enhanceSignInButton(b, { onSignedIn() {} });
+        expect(b.querySelectorAll('[data-oc-mark]')).toHaveLength(1);
+        expect(b.firstElementChild!.tagName.toLowerCase()).toBe('svg');
+        expect(b.firstElementChild!.getAttribute('data-oc-mark')).toBe('brand');
+        expect(b.textContent).toBe('Sign in with orangecheck');
+        const c = hostButton('<button><span data-oc-mark></span>Sign in with orangecheck</button>');
+        enhanceSignInButton(c, { onSignedIn() {} });
+        expect(c.firstElementChild!.getAttribute('data-oc-mark')).toBe('mono');
+    });
+
+    it('holds its width while it says it is busy, then lets go', async () => {
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 212.5 } as DOMRect);
+        const b = hostButton('<button style="width: 50%">Sign in</button>');
+        enhanceSignInButton(b, { onSignedIn() {}, busyLabel: 'Connexion…' });
+        b.click();
+        expect(b.style.width).toBe('212.5px');
+        expect(b.style.minWidth).toBe('212.5px');
+        expect(b.textContent).toBe('Connexion…');
+        signIn();
+        await settle();
+        expect(b.style.width).toBe('50%');
+        expect(b.style.minWidth).toBe('');
+        expect(b.textContent).toBe(SIGN_IN_LABELS.signIn);
+    });
+
+    it('holds nothing it cannot measure', () => {
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 0 } as DOMRect);
+        const b = hostButton();
+        const release = holdWidth(b);
+        expect(b.style.width).toBe('');
+        release();
+        expect(b.getAttribute('style')).toBe('border-radius:10px');
     });
 
     it('opens the popup inside the click, stays focusable while busy, and opens it once', async () => {
@@ -146,6 +218,9 @@ describe('enhanceSignInButton', () => {
         expect(b.outerHTML).toBe('<button class="x"><b>Sign in</b></button>');
         b.click();
         expect(window.open).not.toHaveBeenCalled();
+        const c = hostButton('<button aria-label="Go" data-label="x">Sign in</button>');
+        enhanceSignInButton(c, { onSignedIn() {}, label: false })();
+        expect(c.outerHTML).toBe('<button aria-label="Go" data-label="x">Sign in</button>');
     });
 });
 
@@ -181,10 +256,35 @@ describe('SignInWithOrangecheck', () => {
         expect(b.hasAttribute('aria-busy')).toBe(false);
     });
 
-    it('refuses an unapproved label', () => {
+    it('takes a translated label and refuses one without the name', () => {
+        const host = render(<SignInWithOrangecheck label="Se connecter avec orangecheck" onSignedIn={() => {}} />);
+        expect(host.querySelector('button')!.textContent).toBe('Se connecter avec orangecheck');
+        act(() => root!.unmount());
         vi.spyOn(console, 'error').mockImplementation(() => {});
-        expect(() => render(<SignInWithOrangecheck label={'Login' as never} onSignedIn={() => {}} />)).toThrow(/approved label/);
+        expect(() => render(<SignInWithOrangecheck label="Login" onSignedIn={() => {}} />)).toThrow(/must say "orangecheck"/);
         root = null;
+    });
+
+    it('draws the mark alone with an accessible name', () => {
+        const host = render(<SignInWithOrangecheck label={false} onSignedIn={() => {}} />);
+        const b = host.querySelector('button')!;
+        expect(b.getAttribute('aria-label')).toBe(SIGN_IN_LABELS.signIn);
+        expect(b.getAttribute('data-label')).toBe('none');
+        expect(b.textContent).toBe('');
+    });
+
+    it('holds its width while busy and says the busy words it is given', async () => {
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 180 } as DOMRect);
+        const host = render(<SignInWithOrangecheck busyLabel="Connexion…" onSignedIn={() => {}} />);
+        const b = host.querySelector('button')!;
+        act(() => b.click());
+        await settle();
+        expect(b.style.width).toBe('180px');
+        expect(b.textContent).toBe('Connexion…');
+        signIn();
+        await settle();
+        expect(b.style.width).toBe('');
+        expect(b.textContent).toBe(SIGN_IN_LABELS.signIn);
     });
 });
 
@@ -202,8 +302,44 @@ describe('button.css', () => {
         }
     });
 
+    const rule = (selector: string) => css.match(new RegExp(`(^|\\})\\s*${selector.replace(/[[\]()*.]/g, '\\$&')}\\s*\\{([^}]*)\\}`))?.[2] ?? '';
+
+    it('keeps the words on one line and the mark at a fixed size before it paints', () => {
+        expect(rule(':where([data-oc-sign-in])')).toMatch(/white-space:\s*nowrap/);
+        const mark = rule(':where([data-oc-sign-in]) :where([data-oc-mark])');
+        expect(mark).toMatch(/flex:\s*none/);
+        expect(mark).toMatch(/inline-size:\s*var\(--oc-mark-size,\s*1\.75em\)/);
+        expect(mark).toMatch(/aspect-ratio:\s*2\s*\/\s*1/);
+        expect(rule(":where([data-oc-sign-in]) :where([data-oc-mark='tile'])")).toMatch(/aspect-ratio:\s*1\s*\/\s*1/);
+    });
+
+    it('gives the mark alone a square target of at least 44px', () => {
+        const alone = rule(":where([data-oc-sign-in][data-label='none'])");
+        expect(alone).toMatch(/min-inline-size:\s*var\(--oc-target,\s*44px\)/);
+        expect(alone).toMatch(/padding-inline:\s*0/);
+        expect(rule(':where([data-oc-sign-in])')).toMatch(/min-block-size:\s*var\(--oc-target,\s*44px\)/);
+    });
+
+    it('draws a focus ring only for the brand appearance; the host keeps its own', () => {
+        const focus = selectors.filter((s) => s.includes(':focus'));
+        expect(focus.length).toBeGreaterThan(0);
+        for (const sel of focus) expect(sel).toContain("data-appearance='brand'");
+    });
+
+    it('falls back to one flat shape in the text colour, and system colours, when colours are forced', () => {
+        const forced = css.slice(css.indexOf('@media (forced-colors: active)'));
+        expect(forced.length).toBeLessThan(css.length);
+        expect(forced).toMatch(/:where\(polygon\)\s*\{\s*fill:\s*currentColor;\s*fill-opacity:\s*1;/);
+        expect(forced).toMatch(/:where\(rect\)\s*\{\s*fill:\s*transparent;/);
+        expect(forced).toMatch(/outline-color:\s*Highlight/);
+    });
+
     it('gives the inherit appearance no colour, font, border, radius or alignment', () => {
         const base = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, sel]) => !sel!.includes("data-appearance='brand'"));
-        for (const [, sel, body] of base) expect(body, sel).not.toMatch(/(^|[;\s])(color|background|font|border|border-radius|justify-content|text-align)\s*:/);
+        for (const [, sel, body] of base) {
+            expect(body, sel).not.toMatch(/(^|[;\s])(color|background|font|border|border-radius|text-align)\s*:/);
+            // Centring belongs to the brand button and to the mark alone in its square; a host's words stay where the host puts them.
+            if (!sel!.includes("data-label='none'")) expect(body, sel).not.toMatch(/(^|[;\s])justify-content\s*:/);
+        }
     });
 });

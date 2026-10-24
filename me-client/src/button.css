@@ -4,9 +4,10 @@
  * hover) and your own rules win. Optional: without it the button is your
  * button with the mark in it.
  *
- * appearance "inherit" (the default) sets no colour, font, border or radius:
- * only the mark's spacing, a 44px target and a focus ring for a site that has
- * none. appearance "brand" is orangecheck's button, themed by --oc-* properties.
+ * appearance "inherit" (the default) sets no colour, font, border, radius,
+ * alignment or focus ring: only the mark's size and spacing, one line of words
+ * and a 44px target. appearance "brand" is orangecheck's button, themed by
+ * --oc-* properties, with its own focus ring.
  */
 
 :where([data-oc-sign-in]) {
@@ -14,22 +15,29 @@
     align-items: center;
     gap: var(--oc-mark-gap, 0.5em);
     min-block-size: var(--oc-target, 44px);
+    white-space: nowrap;
     cursor: pointer;
 }
 
+/* Sized before it paints, and the same size as a placeholder <span data-oc-mark>: drawing the mark moves nothing. */
 :where([data-oc-sign-in]) :where([data-oc-mark]) {
+    display: inline-block;
     flex: none;
-    inline-size: var(--oc-mark-size, 1.5em);
+    inline-size: var(--oc-mark-size, 1.75em);
     block-size: auto;
+    aspect-ratio: 2 / 1;
 }
 
 :where([data-oc-sign-in]) :where([data-oc-mark='tile']) {
     inline-size: var(--oc-mark-size, 1.25em);
+    aspect-ratio: 1 / 1;
 }
 
-:where([data-oc-sign-in]):focus-visible {
-    outline: 2px solid var(--oc-focus, currentColor);
-    outline-offset: 2px;
+/* The mark alone: centred, at least the target wide; a 44px square unless your class gives it padding. */
+:where([data-oc-sign-in][data-label='none']) {
+    justify-content: center;
+    min-inline-size: var(--oc-target, 44px);
+    padding-inline: 0;
 }
 
 :where([data-oc-sign-in][aria-busy='true']) {
@@ -59,11 +67,32 @@
 }
 
 :where([data-oc-sign-in][data-appearance='brand']):focus-visible {
-    outline-color: var(--oc-focus, #fb933c);
+    outline: 2px solid var(--oc-focus, #fb933c);
+    outline-offset: 2px;
 }
 
 :where([data-oc-sign-in][data-appearance='brand']:disabled) {
     opacity: 0.55;
+}
+
+/* Forced colours: one flat shape in the text colour, no ink tile, system colours for the ring. */
+@media (forced-colors: active) {
+    :where([data-oc-sign-in]) :where([data-oc-mark]) :where(polygon) {
+        fill: currentColor;
+        fill-opacity: 1;
+    }
+
+    :where([data-oc-sign-in]) :where([data-oc-mark='tile']) :where(rect) {
+        fill: transparent;
+    }
+
+    :where([data-oc-sign-in][data-appearance='brand']) {
+        border-color: ButtonText;
+    }
+
+    :where([data-oc-sign-in][data-appearance='brand']):focus-visible {
+        outline-color: Highlight;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

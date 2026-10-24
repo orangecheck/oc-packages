@@ -342,7 +342,7 @@ approved label, the popup inside the click, and the busy state. Rules and live
 examples: [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
 
 ```html
-<button class="your-button" data-oc-sign-in>Sign in with orangecheck</button>
+<button class="your-button" data-oc-sign-in><span data-oc-mark></span>Sign in with orangecheck</button>
 <script type="module">
     import { enhanceSignInButton, OUTCOME_COPY } from '/vendor/oc-sign-in.mjs'; // dist/button.mjs, copied
     enhanceSignInButton(document.querySelector('[data-oc-sign-in]'), {
@@ -355,25 +355,35 @@ examples: [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integra
 </script>
 ```
 
+The `<span data-oc-mark>` holds the mark's place, so drawing it moves nothing.
+
 ```tsx
 import { SignInWithOrangecheck } from '@orangecheck/me-client/react';
-import '@orangecheck/me-client/button.css'; // optional: spacing, a 44px target, a focus ring
+import '@orangecheck/me-client/button.css'; // optional: the mark's size, one line, a 44px target
 
 <SignInWithOrangecheck className="btn btn-outline" onSignedIn={({ token }) => keepSession(token)} />;
 ```
 
-- `appearance`: `inherit` (default) sets no colour, font, border or radius;
-  your class draws it. `brand` is orangecheck's ink button, themed by
-  `--oc-button-bg`, `-fg`, `-border`, `-radius`, `-font`, `-size`, `-weight`,
-  `-pad`, `-hover-bg` and `--oc-focus`.
+- `appearance`: `inherit` (default) sets no colour, font, border, radius or
+  focus ring; your class draws it, your ring shows. `brand` is orangecheck's
+  ink button, themed by `--oc-button-bg`, `-fg`, `-border`, `-radius`, `-font`,
+  `-size`, `-weight`, `-pad`, `-hover-bg` and `--oc-focus`.
 - `mark`: `mono` (default, your text colour), `brand` (dark buttons), `tile`
   (any button), or `false`.
-- `label`: one of `SIGN_IN_LABELS`: "Sign in with orangecheck" (default),
-  "Continue with orangecheck", "Sign up with orangecheck". Anything else throws.
+- `label`: "Sign in with orangecheck" by default, or "Continue with
+  orangecheck", "Sign up with orangecheck" (`SIGN_IN_LABELS`), or the same in
+  your language, as long as it keeps "orangecheck", lowercase, as written.
+  Words without it throw. `busyLabel` is what it says while the window is open
+  ("Signing in…" by default). `label: false` draws the mark alone, named by
+  `accessibleLabel` for screen readers.
 - While the window is open the button is `aria-busy` and `aria-disabled`, still
-  focusable, says "Signing in…", and opens no second window.
+  focusable, keeps its width, and opens no second window.
 - `button.css` is optional and has zero specificity: every rule of yours wins.
-  Tune it with `--oc-mark-gap`, `--oc-mark-size`, `--oc-target` and `--oc-focus`.
+  It keeps the words on one line, sizes the mark before it paints (1.75em),
+  gives a 44px target, and draws the mark flat in your text colour when the
+  system forces colours. Tune it with `--oc-mark-gap` and `--oc-mark-size`.
+  `--oc-target` lowers the 44px minimum; 44px is the rule, so keep it unless
+  your own buttons already give a 44px target.
 - `dist/button.mjs` has no imports, so it can be served from your own origin
   under `script-src 'self'`. It builds the mark node by node: no `innerHTML`, so
   Trusted Types are fine too.

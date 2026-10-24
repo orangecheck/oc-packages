@@ -8,6 +8,35 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.47.0] — 2026-10-24
+
+### Added
+
+- A label in any language: `label` takes any words that keep "orangecheck",
+  lowercase, as written (`"Se connecter avec orangecheck"`). The approved
+  English set stays the default (`SIGN_IN_LABELS`). Words without the name
+  still throw. Words already in the button that say "orangecheck" are kept.
+- `busyLabel` sets what the button says while the window is open.
+- `label: false` (or `data-label="none"` on the button) draws the mark alone:
+  `aria-label` names it ("Sign in with orangecheck", or `accessibleLabel`), and
+  `button.css` makes it at least 44px wide and centred.
+- A `<span data-oc-mark>` placeholder in the button is replaced by the mark,
+  at the size `button.css` already gave it, so enhancing changes no size. Its
+  value, if any, names the variant (`data-oc-mark="brand"`).
+- `holdWidth(button)`: the busy state keeps the button's width (and minimum
+  width), so shorter busy words move nothing beside it.
+
+### Changed
+
+- `button.css`: the words stay on one line; the mark is 1.75em wide (the tile
+  1.25em) with its aspect ratio set before it paints; under
+  `forced-colors: active` the mark is one flat shape in the text colour, the
+  tile has no ink square, and the brand button's ring and edge use system
+  colours. The `inherit` appearance no longer draws a focus ring: the site's
+  own ring shows, as on its other buttons. `brand` keeps its own.
+- Built with `@orangecheck/mark` 0.2.0: the mono mark's faces step 1, 0.6 and
+  0.3, so it reads as the check at button size.
+
 ## [0.46.1] — 2026-10-24
 
 ### Fixed
