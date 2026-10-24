@@ -288,9 +288,9 @@
     "@scure/base" "^1.2.6"
 
 "@orangecheck/sdk@^1.7.0":
-  version "1.16.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.16.2.tgz#726d1c106b4e642c25a4c7894649123959ac1d26"
-  integrity sha512-6AiAK55616OFumwkFebs3GZMc6UTx6YemrQwiKYsYiLcGVi9VybDGmiwilOgWfueLkqgYinZxbbb5zXDqUW1TA==
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.17.0.tgz#f0766f30079223231a196cb624447ae576493227"
+  integrity sha512-TWz0Mt3YueuQaIay0yJST3zR98EjPs9fw8YpHjL96NWNm52FewZVG19nJXB4mn9LU+ka38j/C3UlYkMbaz+CBQ==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
