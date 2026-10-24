@@ -10,6 +10,11 @@ package's code and files; it grants no right to the trademark.
   in with orangecheck, beside the words "Sign in with orangecheck",
   "Continue with orangecheck", "Sign up with orangecheck", or the same words in
   another language that keep "orangecheck" as written.
+- Show it beside an action that is truthfully about orangecheck: "Link
+  orangecheck" (connect an account on your site to an orangecheck account),
+  "Unlink orangecheck" (remove that connection), or "Sign in with orangecheck to
+  <action>" (confirm a sensitive action, such as "Sign in with orangecheck to
+  delete"). "orangecheck" stays lowercase, and the words say what the button does.
 - Show it in documentation or interface copy that says your site works with
   orangecheck.
 
