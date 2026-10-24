@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-10-24
+
+- `SessionAccount` under a session provider returns to the page on a
+  server-rendered page too. The provider builds its sign-in URL from the
+  window as it renders, so the browser's first render named the page while
+  the server's HTML did not, and React keeps the server's `href` on a link it
+  hydrates: the docs header linked a bare `https://ochk.io/signin`. The page
+  is now left off until the browser knows it, then set.
+- check-focus renders the three in Node, hydrates that HTML in Chrome with
+  the session signed out, and reads each link. It fails on 1.18.0.
+
 ## [1.18.0] — 2026-10-24
 
 - "Get an account" signs a person in on ochk.io and brings them back to the

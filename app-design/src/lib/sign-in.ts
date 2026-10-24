@@ -50,11 +50,16 @@ export function useHereHref(): string | null {
     return useSyncExternalStore(onHistory, hereHref, () => null);
 }
 
-/** `url` (a sign-in page) set to return to `here`; unchanged when there is no here. */
+/**
+ * `url` (a sign-in page) set to return to `here`, and to nowhere before the
+ * browser knows the page: the session's URL is built in render from the
+ * window, so passing it through would differ from the server's HTML, and
+ * React keeps the server's address on a hydrated link.
+ */
 export function returningTo(url: string, here: string | null): string {
-    if (!here) return url;
     const u = new URL(url);
-    u.searchParams.set('return_to', here);
+    if (here) u.searchParams.set('return_to', here);
+    else u.searchParams.delete('return_to');
     return u.toString();
 }
 

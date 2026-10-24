@@ -34,11 +34,13 @@
  *   it mounts.
  * - Signed out, "Get an account" (ToolShell's slot, AccountCta, SessionAccount)
  *   links ochk.io's sign-in returning to the page it is on, fragment left
- *   off, and follows a client-side move; never ochk.app.
+ *   off, and follows a client-side move; never ochk.app. Hydrating a
+ *   server's HTML, the session's under its provider as on the docs, too.
  *
  * Run after `yarn build`.
  */
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -170,10 +172,42 @@ try {
                 `import { SessionAccount } from '${src('session/index.tsx')}';`,
             `<div className="flex gap-4 p-6"><div data-a="view"><SessionAccountView state="out" signInLabel="Get an account" /></div><div data-a="cta"><AccountCta /></div><div data-a="session"><SessionAccount signInLabel="Get an account" /></div></div>`
         ),
+        // The same three hydrating a server's HTML, the session's under its provider, as a docs page has them.
+        familyhydrate:
+            `import { hydrateRoot } from 'react-dom/client';\nimport { Tree } from './familyhydrate-tree.jsx';\n` +
+            `hydrateRoot(document.getElementById('root'), <Tree />);\n`,
     };
+    writeFileSync(
+        join(dir, 'familyhydrate-tree.jsx'),
+        `import { OcSessionProvider } from '@orangecheck/auth-client';\n` +
+            `import { SessionAccountView } from '${src('chrome/tool-shell.tsx')}';\n` +
+            `import { AccountCta } from '${src('chrome/site.tsx')}';\n` +
+            `import { SessionAccount } from '${src('session/index.tsx')}';\n` +
+            `export const Tree = () => <OcSessionProvider><div className="flex gap-4 p-6"><div data-a="view"><SessionAccountView state="out" signInLabel="Get an account" /></div><div data-a="cta"><AccountCta /></div><div data-a="session"><SessionAccount signInLabel="Get an account" /></div></div></OcSessionProvider>;\n`
+    );
     bundle(dir, clients);
     compileCss(dir, Object.keys(clients));
     const client = (name, q = '') => writePage(dir, name, '<div id="root"></div>', { script: `<script>${COLOUR_KIT}</script><script src="${name}.js"></script>` }) + q;
+    // Its HTML as a server renders it: in Node, with no window.
+    writeFileSync(join(dir, 'familyhydrate-server.jsx'), `import { renderToString } from 'react-dom/server';\nimport { Tree } from './familyhydrate-tree.jsx';\nprocess.stdout.write(renderToString(<Tree />));\n`);
+    require('esbuild').buildSync({
+        entryPoints: [join(dir, 'familyhydrate-server.jsx')],
+        outfile: join(dir, 'familyhydrate-server.cjs'),
+        bundle: true,
+        platform: 'node',
+        format: 'cjs',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
+    const served = spawnSync(process.execPath, [join(dir, 'familyhydrate-server.cjs')], { encoding: 'utf8' });
+    if (served.status !== 0) throw new Error(`familyhydrate: the server render failed\n${served.stderr}`);
+    // The session check answers signed out, as ochk.io does for a stranger.
+    const hydrated = (q) =>
+        writePage(dir, 'familyhydrate', `<div id="root">${served.stdout}</div>`, {
+            script: `<script>window.fetch = () => Promise.resolve(new Response('{}', { status: 401 }));</script><script src="familyhydrate.js"></script>`,
+        }) + q;
 
     // Server-rendered pages: fields, the band, the sign-in frame, the shells.
     const { createElement: h } = require('react');
@@ -456,6 +490,12 @@ try {
         const moved = await signinHrefs();
         for (const [when, r] of [['on load', onLoad], ['after a move', moved]])
             check(Object.values(r.got).length === 3 && Object.values(r.got).every((h) => h === r.want), `Get an account ${when}: ${JSON.stringify(r.got)}, not ${r.want}`);
+        // Hydrating a server's HTML: the browser's first render must match it, or React leaves the server's address in place.
+        await p.goto(hydrated('?from=docs#keep-off'));
+        await p.waitForSelector('[data-a="session"] span:not(.invisible) > a');
+        await p.waitForTimeout(100);
+        const onHydrate = await signinHrefs();
+        check(Object.values(onHydrate.got).length === 3 && Object.values(onHydrate.got).every((h) => h === onHydrate.want), `Get an account after hydrating a server's HTML: ${JSON.stringify(onHydrate.got)}, not ${onHydrate.want}`);
         // A table scrolled right: Shift+Tab back through its links brings each one, ring and all, inside the scroller.
         await p.goto(client('widetable'));
         await p.waitForSelector('table a');
