@@ -37,6 +37,7 @@
  * the fresh cookie. Override via onSuccess if you must.
  */
 
+import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
 import * as React from 'react';
 
 import { addressInputValue } from './address';
@@ -68,8 +69,8 @@ interface OcSignInBaseProps {
     /**
      * Where to navigate after success. Defaults to `'/'`.
      * Open-redirect-safe: a same-origin path (must start with `/`, NOT
-     * `//`) or an absolute `https://` URL on `ochk.io` / `*.ochk.io` —
-     * the add-another-account flow starts on a consumer subdomain and
+     * `//`) or an absolute URL on a listed family site (`isFamilyOrigin`;
+     * not any name under .ochk.io). The add-another-account flow starts on a consumer subdomain and
      * must round-trip back to it, including through the OAuth provider
      * hop. Anything else is ignored. When omitted, the component reads
      * `?return_to=` (or `?next=`) from the page URL — so the auth
@@ -252,10 +253,10 @@ export function safeReturnTo(input: string | undefined): string {
 
 /**
  * Family-aware return target. Accepts a same-origin relative path
- * (exactly like {@link safeReturnTo}) OR an absolute `https://` URL on
- * `ochk.io` / `*.ochk.io` — mirroring the auth host's own post-signin
- * redirect allowlist. Returns `undefined` when the input is neither, so
- * callers can layer fallbacks.
+ * (exactly like {@link safeReturnTo}) OR an absolute URL on a family site
+ * (`isFamilyOrigin` from `@orangecheck/auth-core/family-origins`; a name under
+ * .ochk.io that is not listed, such as btcpay.ochk.io, is not one). Returns
+ * `undefined` when the input is neither, so callers can layer fallbacks.
  */
 export function familyReturnTarget(input: string | undefined | null): string | undefined {
     if (typeof input !== 'string' || input.length === 0) return undefined;
@@ -266,9 +267,7 @@ export function familyReturnTarget(input: string | undefined | null): string | u
     }
     try {
         const u = new URL(input);
-        if (u.protocol !== 'https:') return undefined;
-        const host = u.hostname.toLowerCase();
-        if (host === 'ochk.io' || host.endsWith('.ochk.io')) return u.toString();
+        if (isFamilyOrigin(u.origin, false)) return u.toString();
     } catch {
         // not an absolute URL either
     }
@@ -426,7 +425,7 @@ export function OcSignIn({
     // point needs the OAuth provider hop to carry the same target the
     // embedding page honors (the add-another-account fix: a vault user
     // adding an account via Google must land back on vault, not on the
-    // host's homepage). Absolute https://*.ochk.io URLs are allowed;
+    // host's homepage). Absolute URLs on a listed family site are allowed;
     // everything else clamps to `/`.
     const [resolvedReturn, setResolvedReturn] = React.useState<string>(
         () => familyReturnTarget(returnTo) ?? safeReturnTo(returnTo)

@@ -199,6 +199,20 @@ describe('installTabLinkDecorator', () => {
         uninstall();
     });
 
+    it('never stamps a name under .ochk.io that is not a listed family site', () => {
+        writeTabSession({ token: 'tok-a', didOc: DID_A });
+        const uninstall = installTabLinkDecorator('https://ochk.io');
+        for (const href of [
+            'https://btcpay.ochk.io/i/abc',
+            'https://relay.ochk.io/',
+            'http://stamp.ochk.io/create',
+        ]) {
+            expect(fireLink({ href }), href).toBe(href);
+        }
+        expect(fireLink({ href: 'https://ochk.io/me' })).toBe(`https://ochk.io/me#oc-as=${DID_A}`);
+        uninstall();
+    });
+
     it('never stamps when the tab is unpinned', () => {
         const uninstall = installTabLinkDecorator('https://ochk.io');
         expect(fireLink({ href: FAMILY })).toBe(FAMILY);
