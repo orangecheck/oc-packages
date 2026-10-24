@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.23.0] — 2026-10-24
+
+- `AppShell`'s lockup links are named by the lockup they show, then "home",
+  in place of an `aria-label="Home"` that didn't contain the visible name
+  (axe label-content-name-mismatch, on every signed-in page of ochk.app).
+- `AppShell`'s phone bar and the desk's account bar are `header` landmarks,
+  so the bar, the lockup and the place strip are in one.
+- `Pagination`'s default name is "Pagination", apart from the shell's own
+  "Pages" navigation; a page that passes `label` is unchanged.
+- `SignInFrame`'s skip link says "Skip to content": the frame also holds
+  consent and error screens.
+- check-shell asserts the lockup names, the header and the pager's default.
+
 ## [1.22.0] — 2026-10-24
 
 - `ToolShell`'s body is at least a window tall under the header, so a tool

@@ -373,7 +373,8 @@ function SidebarShell({
             >
                 {/* Past the bar, the sidebar and the account: 8 to 11 stops before the page without it. */}
                 <SkipLink />
-                <div data-oca-sticky="app-bar" className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
+                {/* A header, so the bar and the place strip sit in a landmark; the desk's header below is hidden here. */}
+                <header data-oca-sticky="app-bar" className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
                     <div className="flex h-14 items-center gap-2 px-3">
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
@@ -396,8 +397,10 @@ function SidebarShell({
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
-                        <Link href={home} aria-label="Home" className="rounded-lg p-1">
+                        <Link href={home} className="rounded-lg p-1">
                             <ProductLockup size={22} product={product} />
+                            {/* Read as "orangecheck home": the name starts with what the link shows. */}
+                            <span className="sr-only"> home</span>
                         </Link>
                         {familyMenu}
                         <div className="ml-auto flex items-center">{account}</div>
@@ -414,12 +417,13 @@ function SidebarShell({
                             <span className="truncate font-medium">{place.page}</span>
                         </div>
                     ) : null}
-                </div>
+                </header>
                 <div className="mx-auto flex w-full max-w-[90rem]">
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                         <div className="flex items-center gap-1">
-                            <Link href={home} className="min-w-0 px-2" aria-label="Home">
+                            <Link href={home} className="min-w-0 px-2">
                                 <ProductLockup size={product ? 24 : 26} product={product} />
+                                <span className="sr-only"> home</span>
                             </Link>
                             {familyMenu}
                         </div>
@@ -428,7 +432,7 @@ function SidebarShell({
                         <div className="mt-auto flex flex-col gap-3">{footer}</div>
                     </aside>
                     <div className="flex min-w-0 flex-1 flex-col">
-                        <div className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:flex">{account}</div>
+                        <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:flex">{account}</header>
                         {banner ? <div className="px-4 pb-2 pt-4 md:px-8 lg:pt-0">{banner}</div> : null}
                         <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-16 pt-6 outline-none md:px-8 lg:pt-2">
                             {/* One width for every signed-in page. */}

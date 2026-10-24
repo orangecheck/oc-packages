@@ -635,7 +635,7 @@ try {
                 await p.goto(productShell);
                 const side = await p.evaluate(() => {
                     const aside = document.querySelector('aside');
-                    const home = aside.querySelector('a[aria-label="Home"]');
+                    const home = aside.querySelector('a[href="/"]');
                     return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
                 });
                 check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);

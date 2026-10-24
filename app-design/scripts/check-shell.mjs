@@ -166,8 +166,21 @@ for (const [name, props] of drawer) {
     check(!root(html).includes('max-md:pb-'), `${name} add no room for a tab bar`);
 }
 
+// Landmarks and names: the lockup link is named by what it shows, the phone bar is a header, and
+// no landmark shares the sidebar's "Pages" by default.
+{
+    const html = render({ nav: [{ items: PAGES.map(([href, label, Icon]) => ({ href, label, icon: h(Icon) })) }] });
+    const homes = html.match(/<a[^>]*href="\/"[^>]*>[\s\S]*?<\/a>/g) ?? [];
+    check(homes.length === 2, `the shell has two lockup links, phone and desk (got ${homes.length})`);
+    check(homes.every((a) => !/aria-label=/.test(a) && /<span class="sr-only"> home<\/span><\/a>$/.test(a)), 'each lockup link is named by its lockup, then "home", not by an aria-label');
+    check(/<header data-oca-sticky="app-bar"/.test(html), 'the phone bar is a header landmark');
+    const { Pagination } = require(join(here, '../dist/primitives.js'));
+    const pages = renderToStaticMarkup(h(Pagination, { pageIndex: 0, pageSize: 10, total: 30, onPage: () => {} }));
+    check(!/aria-label="Pages"/.test(pages), "Pagination's default name is not the sidebar's \"Pages\"");
+}
+
 if (failures) {
     console.error(`✗ shell: ${failures} failing`);
     process.exit(1);
 }
-console.log('✓ shell: a tab bar for pages with icons (More past five), sections as tabs, the rail; the drawer for the rest');
+console.log('✓ shell: a tab bar for pages with icons (More past five), sections as tabs, the rail; the drawer for the rest; lockup names and landmarks');

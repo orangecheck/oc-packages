@@ -18,7 +18,7 @@ export function Pagination({
     pageSize,
     total,
     onPage,
-    label = 'Pages',
+    label = 'Pagination',
     className,
 }: {
     /** From 0. */
@@ -26,7 +26,7 @@ export function Pagination({
     pageSize: number;
     total: number;
     onPage: (pageIndex: number) => void;
-    /** The navigation's name for a screen reader: "Stamps, pages". */
+    /** The navigation's name for a screen reader: "Stamps, pages". Default "Pagination", apart from the shell's "Pages". */
     label?: string;
     className?: string;
 }) {
