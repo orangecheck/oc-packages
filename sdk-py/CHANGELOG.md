@@ -15,7 +15,9 @@ All notable changes to the **`orangecheck`** Python package. Follows
   answers a `SessionCheck`: 200, 403 `bond_required` with `need`, `have` and
   `back_url`, 503 `bond_policy_unavailable`, or 500 `unknown_project_key`.
   Pass `policy=` to use a `SignInPolicy` you already warm, or `require_bond=`
-  to set the floor yourself (nothing is read). Both SDKs are held to
+  to set the floor yourself (nothing is read). It takes only the `Session`
+  that `verify_session` or `check_oc_session` returned, and raises TypeError
+  for a dict of claims or a Session built any other way. Both SDKs are held to
   `me-client/test-vectors/server-helpers.json` (`sign_in_rule`).
 
 ## [3.2.1] — 2026-10-24

@@ -259,7 +259,7 @@
         ]
     },
     "sign_in_rule": {
-        "description": "checkSignInRule / check_sign_in_rule: the project's \"who can sign in\" rule, or an explicit floor, applied to a session the site has already verified, with the read, cache and answers the adapters use. For a site whose own session replaces the token. `session` names a valid session in integrator.json; its claims are what is checked. Each case has its own project key, so no case reads another's cached rule.",
+        "description": "checkSignInRule / check_sign_in_rule: the project's \"who can sign in\" rule, or an explicit floor, applied to a session the site has already verified, with the read, cache and answers the adapters use. For a site whose own session replaces the token. `session` names a valid token in integrator.json, and the session passed is the one the SDK's own verify call returned for it (verifyOcToken, verify_session). `verified: false` passes the token's claims as read instead, a plain object or dict nobody verified, which both SDKs refuse. Each case has its own project key, so no case reads another's cached rule.",
         "cases": [
             { "name": "the project's rule asks for a coin and the account has none", "session": ["session", "valid", "bound to this site"], "project_key": "pk_test_srule_coin", "policy": { "status": 200, "body": { "ok": true, "require_bond": { "min_sats": 10000, "min_days": 0 } } }, "expect": { "status": 403, "body": { "ok": false, "reason": "bond_required", "need": { "min_sats": 10000, "min_days": 0 }, "have": null, "back_url": "https://ochk.app/me/account#backing" } } },
             { "name": "the project's rule asks for nothing", "session": ["session", "valid", "bound to this site"], "project_key": "pk_test_srule_none", "policy": { "status": 200, "body": { "ok": true, "require_bond": null } }, "expect": { "status": 200 } },
@@ -271,7 +271,9 @@
         "refused": [
             { "name": "no rule to apply", "session": ["session", "valid", "bound to this site"], "options": {} },
             { "name": "no session", "session": null, "options": { "project_key": "pk_test_srule_none" } },
-            { "name": "an option it does not read", "session": ["session", "valid", "bound to this site"], "options": { "project_key": "pk_test_srule_none", "audience": "https://soniq.example" } }
+            { "name": "an option it does not read", "session": ["session", "valid", "bound to this site"], "options": { "project_key": "pk_test_srule_none", "audience": "https://soniq.example" } },
+            { "name": "claims nobody verified", "session": ["session", "valid", "bound to this site"], "verified": false, "options": { "project_key": "pk_test_srule_none" } },
+            { "name": "claims nobody verified, claiming a coin", "session": ["session", "valid", "backed by a coin (a complete claim)"], "verified": false, "options": { "require_bond": { "min_sats": 10000 } } }
         ]
     }
 }

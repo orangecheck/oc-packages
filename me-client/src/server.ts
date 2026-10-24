@@ -92,6 +92,14 @@ export interface VerifyOcTokenOptions extends VerifyOcOptions {
 }
 
 /** A bound token with no handle, unless the site opted out. */
+// Each session this module verified, so checkSignInRule takes nothing else: a
+// claims-shaped object anyone built could carry any did and any backing.
+const VERIFIED = new WeakSet<SessionPayload>();
+function vouch(session: SessionPayload): SessionPayload {
+    VERIFIED.add(session);
+    return session;
+}
+
 function lacksHandle(session: SessionPayload, requireHandle: boolean | undefined): boolean {
     if (requireHandle === false) return false;
     const { aud, rh } = session as { aud?: unknown; rh?: unknown };
@@ -141,7 +149,7 @@ export async function verifyOcToken(
         warnNoHandle(session);
         return null;
     }
-    return session;
+    return vouch(session);
 }
 
 /**
@@ -173,7 +181,7 @@ export async function checkOcToken(token: string, options: VerifyOcTokenOptions 
         warnNoHandle(checked.session);
         return { status: 'invalid', reason: 'no_session_handle' };
     }
-    return { status: 'valid', session: checked.session };
+    return { status: 'valid', session: vouch(checked.session) };
 }
 
 // Activity-attestation verifier · re-export from the identity module so
@@ -349,7 +357,7 @@ export async function checkOcSession(
             return { status: 'unavailable', reason: 'revocations_unavailable' };
         }
     }
-    return { status: 'signed_in', session };
+    return { status: 'signed_in', session: vouch(session) };
 }
 
 const unavailable = (checked: { reason?: OcSessionUnavailable }) => ({
@@ -664,9 +672,16 @@ const SIGN_IN_RULE_OPTIONS: ReadonlySet<string> = new Set<keyof SignInRuleOption
  * verified, for a site whose own session replaces the token: `checkOcToken`
  * and `verifyOcToken` check the token, not the rule. It reads the rule with the
  * same one-minute cache and ten-minute stand-in as `withOcAuth`, and refuses
- * rather than lets in when no rule could be read. Throws on a missing session,
- * a missing rule, or an option it does not read.
+ * rather than lets in when no rule could be read.
  *
+ * `session` is the object `verifyOcToken`, `checkOcToken`, `getOcSession` or
+ * an adapter (`req.ocSession`) returned, as is. Anything else throws, a copy or
+ * claims read back from your own store included: apply the rule in the route
+ * that starts your session, where you hold the verified one. It also throws
+ * on a missing rule or an option it does not read.
+ *
+ *   const session = await verifyOcToken(token, { audience: 'https://your-site.example' });
+ *   if (!session) return res.status(401).json({ ok: false });
  *   const checked = await checkSignInRule(session, { projectKey: process.env.OC_PROJECT_KEY! });
  *   if (!checked.ok) return res.status(checked.status).json(checked.body);
  */
@@ -688,8 +703,11 @@ export async function checkSignInRule(
     if (!options.projectKey && !options.requireBond) {
         throw new TypeError('@orangecheck/me-client: checkSignInRule needs projectKey or requireBond');
     }
-    if (session === null || typeof session !== 'object') {
-        throw new TypeError('@orangecheck/me-client: checkSignInRule needs the session you verified');
+    if (session === null || typeof session !== 'object' || !VERIFIED.has(session)) {
+        throw new TypeError(
+            '@orangecheck/me-client: checkSignInRule takes the session verifyOcToken, checkOcToken or ' +
+                'getOcSession returned, as is, not claims read some other way'
+        );
     }
     const refused = await refusal(session, options);
     return refused ? { ok: false, status: refused.status, body: refused.body } : { ok: true };

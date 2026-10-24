@@ -253,18 +253,23 @@ if not checked.ok:
 session = checked.session
 ```
 
-Where you verify the token without `policy=`, say in the route that starts your
-own session, `check_sign_in_rule` (3.3.0 or later) applies the project's rule to
-the session with the same answers. Pass the `POLICY` you warm, or
-`project_key=` and it keeps one per project:
+Where you verify the token without `policy=`, apply the project's rule in the
+route that starts your own session with `check_sign_in_rule` (3.3.0 or later),
+which gives the same answers. Pass the `POLICY` you warm, or `project_key=` and
+it keeps one per project:
 
 ```python
-from orangecheck import check_sign_in_rule
+from orangecheck import check_sign_in_rule, verify_session
 
+session = verify_session(token, audience="https://your-site.example")
 checked = check_sign_in_rule(session, policy=POLICY)
 if not checked.ok:
     return JSONResponse(checked.body, status_code=checked.status)
 ```
+
+It takes only the `Session` that `verify_session` or `check_oc_session` returned
+and raises TypeError for claims as a dict, or a Session built any other way:
+those could name anyone.
 
 When the token starts your own session, spend its `jti` so it starts only one,
 then end it at ochk.io (3.2.0 or later). `store` is yours: anything with an

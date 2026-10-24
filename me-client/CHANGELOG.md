@@ -20,8 +20,10 @@ this file tracks the package's TS / Node / runtime API surface.
   then refused. It answers `{ ok: true }` or `{ ok: false, status, body }` with
   `withOcAuth`'s status and body: 403 `bond_required` with `need`, `have` and
   `back_url`, 503 `bond_policy_unavailable`, or 500 `unknown_project_key`.
-  `requireBond` sets the floor yourself and reads nothing. It throws on an
-  option it does not read. sdk-py 3.3.0 has `check_sign_in_rule`, and both are
+  `requireBond` sets the floor yourself and reads nothing. It takes only the
+  session object `verifyOcToken`, `checkOcToken`, `getOcSession` or an adapter
+  returned, and throws for claims read any other way, or on an option it does
+  not read. sdk-py 3.3.0 has `check_sign_in_rule`, and both are
   held to `test-vectors/server-helpers.json` (`sign_in_rule`).
 
 ## [0.42.1] — 2026-10-24

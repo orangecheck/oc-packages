@@ -9,6 +9,7 @@ the same HTTP answer, spend the same tokens and read ochk.io's answers alike.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any, Optional
@@ -111,9 +112,13 @@ def test_check_takes_only_what_verify_session_takes() -> None:
 # ─── check_sign_in_rule: the rule for a session the site verified ────────
 
 
-def _claims(ref: list[str]) -> dict[str, Any]:
+def _session(ref: list[str], verified: bool = True) -> Any:
+    """The Session verify_session returns for a token in integrator.json, or its claims as read."""
     section, kind, name = ref
-    return dict(next(v["claims"] for v in V[section][kind] if v["name"] == name))
+    v = next(v for v in V[section][kind] if v["name"] == name)
+    if not verified:
+        return dict(v["claims"])
+    return verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
 
 
 @respx.mock
@@ -125,11 +130,11 @@ def test_sign_in_rule_answers_as_me_client_does(c: dict[str, Any]) -> None:
     kwargs: dict[str, Any] = {"project_key": c["project_key"]}
     if "require_bond" in c:
         kwargs["require_bond"] = c["require_bond"]
-    got = check_sign_in_rule(_claims(c["session"]), **kwargs)
+    got = check_sign_in_rule(_session(c["session"]), **kwargs)
     assert isinstance(got, SessionCheck)
     assert got.status == c["expect"]["status"]
     if got.status == 200:
-        assert got.ok and got.body is None
+        assert got.ok and got.body is None and got.session is not None
     else:
         assert not got.ok and got.body == c["expect"]["body"]
     # An explicit floor wins: the project's rule is never read.
@@ -140,13 +145,31 @@ def test_sign_in_rule_answers_as_me_client_does(c: dict[str, Any]) -> None:
 @respx.mock
 @pytest.mark.parametrize("r", H["sign_in_rule"]["refused"], ids=lambda r: r["name"])
 def test_sign_in_rule_refuses_a_mistake_in_the_call(r: dict[str, Any]) -> None:
-    session = _claims(r["session"]) if r["session"] else None
+    session = _session(r["session"], r.get("verified", True)) if r["session"] else None
     with pytest.raises(TypeError):
-        check_sign_in_rule(session, **r["options"])  # type: ignore[arg-type]
+        check_sign_in_rule(session, **r["options"])
+
+
+def test_sign_in_rule_refuses_a_session_built_by_hand() -> None:
+    verified = _session(["session", "valid", "backed by a coin (a complete claim)"])
+    assert check_sign_in_rule(verified, require_bond={"min_sats": 10000}).ok
+    with pytest.raises(TypeError):
+        check_sign_in_rule(dataclasses.replace(verified), require_bond={"min_sats": 10000})
+
+
+@respx.mock
+def test_sign_in_rule_takes_the_session_check_oc_session_returns() -> None:
+    respx.get("https://me.ochk.io/api/integrator/pk_test_srule_paths/sign-in").mock(
+        return_value=httpx.Response(200, json={"ok": True, "require_bond": None})
+    )
+    v = next(v for v in V["session"]["valid"] if v["name"] == "bound to this site")
+    checked = check_oc_session(v["token"], v["audience"], jwks=V["session"]["jwks"], method="POST")
+    assert checked.ok and checked.session is not None
+    assert check_sign_in_rule(checked.session, project_key="pk_test_srule_paths").ok
 
 
 def test_sign_in_rule_takes_one_project() -> None:
-    session = _claims(["session", "valid", "bound to this site"])
+    session = _session(["session", "valid", "bound to this site"])
     with pytest.raises(TypeError):
         check_sign_in_rule(session, project_key="pk_test_srule_a", policy=SignInPolicy("pk_test_srule_b"))
     with pytest.raises(TypeError):
@@ -158,7 +181,7 @@ def test_sign_in_rule_reads_the_rule_once_a_minute(monkeypatch: pytest.MonkeyPat
     route = respx.get("https://me.ochk.io/api/integrator/pk_test_srule_cache/sign-in").mock(
         return_value=httpx.Response(200, json={"ok": True, "require_bond": None})
     )
-    session = _claims(["session", "valid", "bound to this site"])
+    session = _session(["session", "valid", "bound to this site"])
     assert check_sign_in_rule(session, project_key="pk_test_srule_cache").ok
     assert check_sign_in_rule(session, project_key="pk_test_srule_cache").ok
     assert route.call_count == 1
@@ -172,9 +195,7 @@ def test_sign_in_rule_takes_a_policy_or_a_verified_session() -> None:
     respx.get("https://me.ochk.io/api/integrator/pk_test_srule_obj/sign-in").mock(
         return_value=httpx.Response(200, json={"ok": True, "require_bond": {"min_sats": 10000, "min_days": 0}})
     )
-    v = next(v for v in V["session"]["valid"] if v["name"] == "bound to this site")
-    session = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
-    got = check_sign_in_rule(session, policy=SignInPolicy("pk_test_srule_obj"))
+    got = check_sign_in_rule(_session(["session", "valid", "bound to this site"]), policy=SignInPolicy("pk_test_srule_obj"))
     assert (got.status, got.body["reason"] if got.body else None) == (403, "bond_required")
 
 

@@ -701,6 +701,10 @@ def _apply_rule(
 
 _policies: dict[tuple[str, str], SignInPolicy] = {}
 
+# Each Session verify_session returned, so check_sign_in_rule takes nothing else:
+# claims anyone built could carry any did and any backing.
+_verified: "weakref.WeakValueDictionary[int, Session]" = weakref.WeakValueDictionary()
+
 
 def _policy_for(project_key: str, me_origin: str) -> SignInPolicy:
     """One :class:`SignInPolicy` per project, so its minute holds from call to call."""
@@ -878,7 +882,7 @@ def verify_session(
     _apply_rule(payload, require_bond, policy)
 
     bond = payload.get("oc_bond")
-    return Session(
+    session = Session(
         sub=payload["sub"],
         did_oc=payload["did_oc"],
         jti=payload["jti"],
@@ -889,6 +893,8 @@ def verify_session(
         claims=payload,
         rh=rh if isinstance(rh, str) else None,
     )
+    _verified[id(session)] = session
+    return session
 
 
 #: Can't tell right now: the client should try again, never sign the person out.
@@ -994,7 +1000,7 @@ def _refused(err: InvalidSession) -> SessionCheck:
 
 
 def check_sign_in_rule(
-    session: Union[Session, Mapping[str, Any]],
+    session: Session,
     *,
     project_key: Optional[str] = None,
     me_origin: str = "https://me.ochk.io",
@@ -1004,8 +1010,11 @@ def check_sign_in_rule(
     """
     Your project's "who can sign in" rule for a session you verified yourself,
     as me-client's ``checkSignInRule``. For a site that verifies the token with
-    :func:`verify_session`, or keeps a session of its own, and still wants the
-    rule set on ochk.app. ``session`` is the :class:`Session` or its claims.
+    :func:`verify_session` and then starts a session of its own, and still wants
+    the rule set on ochk.app. ``session`` is the :class:`Session` that
+    :func:`verify_session` or :func:`check_oc_session` returned, as is; claims
+    as a dict, or a Session built any other way, raise TypeError. Apply the rule
+    where your own session starts, while you hold the verified one.
 
     The rule is read and held as :class:`SignInPolicy` holds it: a minute, the
     last one read standing ten more while it can't be read, and then refused
@@ -1019,8 +1028,8 @@ def check_sign_in_rule(
         if not checked.ok:
             return JSONResponse(checked.body, status_code=checked.status)
     """
-    if not isinstance(session, (Session, Mapping)):
-        raise TypeError("check_sign_in_rule needs the session you verified")
+    if not isinstance(session, Session) or _verified.get(id(session)) is not session:
+        raise TypeError("check_sign_in_rule takes the Session verify_session returned, as is, not claims")
     if project_key is not None and policy is not None:
         raise TypeError("pass project_key or policy, not both")
     if project_key is not None and (not isinstance(project_key, str) or not project_key):
@@ -1033,7 +1042,7 @@ def check_sign_in_rule(
         _apply_rule(session, require_bond, policy)
     except InvalidSession as err:
         return _refused(err)
-    return SessionCheck(200, session=session if isinstance(session, Session) else None)
+    return SessionCheck(200, session=session)
 
 
 # ─── billable events ─────────────────────────────────────────────────────

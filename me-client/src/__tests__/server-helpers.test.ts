@@ -7,7 +7,9 @@ import { _resetJwksCachesForTests, integratorRevocationCheck } from '@orangechec
 
 import {
     _resetSessionChecksForTests,
+    checkOcToken,
     checkSignInRule,
+    getOcSession,
     MemoryJtiStore,
     revokeToken,
     spendOnce,
@@ -16,6 +18,7 @@ import {
     type SessionPayload,
     type SignInRuleOptions,
     type WithOcAuthOptions,
+    verifyOcToken,
 } from '../server';
 
 /**
@@ -269,23 +272,52 @@ describe('revokeToken · ending a token at ochk.io', () => {
     });
 });
 
-describe("the sign-in rule for a session the site verified · checkSignInRule", () => {
+describe('the sign-in rule for a session the site verified · checkSignInRule', () => {
+    type Bond = { min_sats?: number; min_days?: number; max_age_secs?: number };
     type RuleCase = {
         name: string;
         session: [string, string, string];
         project_key?: string;
-        require_bond?: { min_sats?: number; min_days?: number; max_age_secs?: number };
+        require_bond?: Bond;
         policy?: Answer;
         expect: { status: number; body?: unknown };
     };
-    type Refused = { name: string; session: [string, string, string] | null; options: Record<string, unknown> };
+    type Refused = {
+        name: string;
+        session: [string, string, string] | null;
+        verified?: boolean;
+        options: Record<string, unknown>;
+    };
 
-    /** The claims of a session named in integrator.json. */
-    function claimsFor(ref: [string, string, string]): SessionPayload {
+    /** ochk.io's key set, and the project's rule from `policy`, counting the rule's reads. */
+    function serve(policy?: Answer) {
+        const reads = { rule: 0 };
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url: string) => {
+                const u = String(url);
+                if (u === 'https://ochk.io/.well-known/jwks.json') return respond({ status: 200, body: V.session.jwks });
+                if (/\/api\/integrator\/[^/]+\/sign-in$/.test(u) && policy) {
+                    reads.rule += 1;
+                    return respond(policy);
+                }
+                throw new Error(`unexpected fetch ${u}`);
+            })
+        );
+        return reads;
+    }
+
+    /** The session verifyOcToken returns for a token in integrator.json, or its claims as read. */
+    async function sessionFor(ref: [string, string, string], verified = true): Promise<SessionPayload> {
         const [section, list, name] = ref;
-        const found = (V[section][list] as { name: string; claims: SessionPayload }[]).find((v) => v.name === name);
+        const found = (V[section][list] as { name: string; token: string; audience: string; claims: SessionPayload }[]).find(
+            (v) => v.name === name
+        );
         if (!found) throw new Error(`no vector ${ref.join(' / ')}`);
-        return found.claims;
+        if (!verified) return { ...found.claims };
+        const session = await verifyOcToken(found.token, { audience: found.audience });
+        if (!session) throw new Error(`${name} did not verify`);
+        return session;
     }
 
     /** Vector options, in me-client's names. */
@@ -294,7 +326,7 @@ describe("the sign-in rule for a session the site verified · checkSignInRule", 
         for (const [k, v] of Object.entries(o)) {
             if (k === 'project_key') out.projectKey = v;
             else if (k === 'require_bond') {
-                const b = v as { min_sats?: number; min_days?: number; max_age_secs?: number };
+                const b = v as Bond;
                 out.requireBond = {
                     ...(b.min_sats !== undefined ? { minSats: b.min_sats } : {}),
                     ...(b.min_days !== undefined ? { minDays: b.min_days } : {}),
@@ -306,50 +338,55 @@ describe("the sign-in rule for a session the site verified · checkSignInRule", 
     }
 
     it.each(H.sign_in_rule.cases as RuleCase[])('$name', async (c) => {
-        let reads = 0;
-        vi.stubGlobal(
-            'fetch',
-            vi.fn(async (url: string) => {
-                if (/\/api\/integrator\/[^/]+\/sign-in$/.test(String(url)) && c.policy) {
-                    reads += 1;
-                    return respond(c.policy);
-                }
-                throw new Error(`unexpected fetch ${String(url)}`);
-            })
-        );
+        const reads = serve(c.policy);
         const options = optionsFor({
             ...(c.project_key ? { project_key: c.project_key } : {}),
             ...(c.require_bond ? { require_bond: c.require_bond } : {}),
         });
-        const checked = await checkSignInRule(claimsFor(c.session), options);
+        const checked = await checkSignInRule(await sessionFor(c.session), options);
         if (c.expect.status === 200) expect(checked).toEqual({ ok: true });
         else expect(checked).toEqual({ ok: false, status: c.expect.status, body: c.expect.body });
         // An explicit floor wins: the project's rule is never read.
-        if (c.require_bond) expect(reads).toBe(0);
+        if (c.require_bond) expect(reads.rule).toBe(0);
     });
 
     it.each(H.sign_in_rule.refused as Refused[])('refuses: $name', async (r) => {
-        vi.stubGlobal('fetch', vi.fn(async () => respond({ status: 200, body: { ok: true, require_bond: null } })));
-        await expect(
-            checkSignInRule((r.session ? claimsFor(r.session) : null) as never, optionsFor(r.options))
-        ).rejects.toThrow(SDK);
+        const reads = serve({ status: 200, body: { ok: true, require_bond: null } });
+        const session = r.session ? await sessionFor(r.session, r.verified !== false) : null;
+        await expect(checkSignInRule(session as never, optionsFor(r.options))).rejects.toThrow(SDK);
+        expect(reads.rule).toBe(0);
+    });
+
+    it('takes the session checkOcToken, getOcSession and withOcAuth hand over', async () => {
+        serve({ status: 200, body: { ok: true, require_bond: null } });
+        const v = (V.session.valid as { name: string; token: string; audience: string }[]).find(
+            (x) => x.name === 'bound to this site'
+        )!;
+        const options = { projectKey: 'pk_test_srule_paths' };
+        const checked = await checkOcToken(v.token, { audience: v.audience });
+        expect(checked.status).toBe('valid');
+        if (checked.status === 'valid') expect(await checkSignInRule(checked.session, options)).toEqual({ ok: true });
+        const headers = { authorization: `Bearer ${v.token}` };
+        const got = await getOcSession(headers, { audience: v.audience, revocation: false });
+        expect(await checkSignInRule(got!, options)).toEqual({ ok: true });
+        let wrapped: unknown = 'not run';
+        await withOcAuth(
+            async (req) => {
+                wrapped = await checkSignInRule(req.ocSession!, options);
+            },
+            { audience: v.audience, revocation: false }
+        )({ method: 'POST', headers }, { status: () => ({ json: () => undefined }), json: () => undefined, setHeader: () => undefined } as never);
+        expect(wrapped).toEqual({ ok: true });
     });
 
     it('reads the rule once a minute, as withOcAuth does', async () => {
-        let reads = 0;
-        vi.stubGlobal(
-            'fetch',
-            vi.fn(async () => {
-                reads += 1;
-                return respond({ status: 200, body: { ok: true, require_bond: null } });
-            })
-        );
-        const session = claimsFor(['session', 'valid', 'bound to this site']);
+        const reads = serve({ status: 200, body: { ok: true, require_bond: null } });
+        const session = await sessionFor(['session', 'valid', 'bound to this site']);
         await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
         await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
-        expect(reads).toBe(1);
+        expect(reads.rule).toBe(1);
         vi.setSystemTime(H.now * 1000 + 61_000);
         await checkSignInRule(session, { projectKey: 'pk_test_srule_cache' });
-        expect(reads).toBe(2);
+        expect(reads.rule).toBe(2);
     });
 });
