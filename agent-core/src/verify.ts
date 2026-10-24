@@ -14,6 +14,15 @@ import {
     revocationCanonicalBytes,
     revocationCanonicalMessage,
 } from './canonical.js';
+import {
+    isHex64,
+    isIsoUtc,
+    isPlainObject,
+    isText,
+    nowProblem,
+    shown,
+    signatureVerifies,
+} from './guards.js';
 import { unsealScopes } from './private-scope.js';
 import {
     canonicalizeScope,
@@ -105,10 +114,16 @@ export interface VerifyDelegationInput extends VerifyBase {
 }
 
 export async function verifyDelegation(input: VerifyDelegationInput): Promise<VerifyDelegationResult> {
+    if (!isPlainObject(input)) return err('E_MALFORMED', 'verifyDelegation takes an options object');
     const env = input.envelope;
+    if (!isPlainObject(env)) return err('E_MALFORMED', 'the delegation must be an object');
+    const listProblem = revocationsProblem(input.revocations);
+    if (listProblem) return err('E_MALFORMED', listProblem);
+    const badNow = nowProblem(input.now);
+    if (badNow) return err('E_MALFORMED', badNow);
 
     if (env.v !== ENVELOPE_VERSION) {
-        return err('E_UNSUPPORTED_VERSION', `delegation version ${env.v} not supported`);
+        return err('E_UNSUPPORTED_VERSION', `delegation version ${shown(env.v)} not supported`);
     }
 
     const shape = checkDelegationShape(env);
@@ -139,7 +154,7 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
         if (env.scopes_encrypted.from?.address !== env.principal.address) {
             return err(
                 'E_MALFORMED',
-                `scopes_encrypted.from.address (${env.scopes_encrypted.from?.address}) does not match principal.address (${env.principal.address})`
+                `scopes_encrypted.from.address (${shown(env.scopes_encrypted.from?.address)}) does not match principal.address (${env.principal.address})`
             );
         }
         // Step P5: decryption capability.
@@ -223,7 +238,7 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
     // Signature.
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied');
-        const ok = await input.verifyBip322(env.id, env.sig.value, env.principal.address);
+        const ok = await signatureVerifies(input.verifyBip322, env.id, env.sig.value, env.principal.address);
         if (!ok) return err('E_BAD_SIG', 'BIP-322 signature did not verify');
     }
 
@@ -238,18 +253,26 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
                 'SPEC §9.4) or an explicit skipRevocationCheck:true to state that revocation is not being checked',
         );
     }
-    if (input.revocations) {
-        for (const rev of input.revocations) {
-            if (rev.delegation_id !== env.id) continue;
-            const rr = await verifyRevocation({
-                envelope: rev,
-                delegation: env,
-                verifyBip322: input.verifyBip322,
-                skipSignatureVerification: input.skipSignatureVerification,
-            });
-            if (!rr.ok) continue; // a malformed revocation revokes nothing
-            return err('E_REVOKED', `delegation ${env.id} was revoked by ${rev.id}`);
+    // A revocation that is not an object, or cites this delegation and fails its
+    // own check, revokes nothing; it is skipped and counted.
+    let revocationsSkipped = 0;
+    for (const rev of input.revocations ?? []) {
+        if (!isPlainObject(rev)) {
+            revocationsSkipped++;
+            continue;
         }
+        if (rev.delegation_id !== env.id) continue;
+        const rr = await verifyRevocation({
+            envelope: rev,
+            delegation: env,
+            verifyBip322: input.verifyBip322,
+            skipSignatureVerification: input.skipSignatureVerification,
+        });
+        if (!rr.ok) {
+            revocationsSkipped++;
+            continue;
+        }
+        return err('E_REVOKED', `delegation ${env.id} was revoked by ${rr.id}`);
     }
 
     // Temporal.
@@ -274,7 +297,15 @@ export async function verifyDelegation(input: VerifyDelegationInput): Promise<Ve
         envelope: returnedEnvelope,
         canonicalMessage: reconstructedMessage,
         id: env.id,
+        revocationsSkipped,
     };
+}
+
+/** `revocations` is absent or a list; its entries are checked one by one. */
+function revocationsProblem(revocations: unknown): string | null {
+    return revocations === undefined || revocations === null || Array.isArray(revocations)
+        ? null
+        : 'revocations must be a list';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -352,6 +383,9 @@ export type VerifyActionAsOfSignedAtInput = Omit<VerifyActionInput, 'now' | 'max
  * pass the freshness bound.
  */
 export async function verifyAction(input: VerifyActionInput): Promise<VerifyActionResult> {
+    if (!isPlainObject(input)) return err('E_MALFORMED', 'verifyAction takes an options object');
+    const badNow = nowProblem(input.now);
+    if (badNow) return err('E_MALFORMED', badNow);
     return verifyActionAt(input, input.now ?? new Date());
 }
 
@@ -364,6 +398,7 @@ export async function verifyAction(input: VerifyActionInput): Promise<VerifyActi
 export async function verifyActionAsOfSignedAt(
     input: VerifyActionAsOfSignedAtInput
 ): Promise<VerifyActionResult> {
+    if (!isPlainObject(input)) return err('E_MALFORMED', 'verifyActionAsOfSignedAt takes an options object');
     return verifyActionAt(input, null);
 }
 
@@ -374,9 +409,20 @@ async function verifyActionAt(
 ): Promise<VerifyActionResult> {
     const a = input.action;
     const d = input.delegation;
+    if (!isPlainObject(a)) return err('E_MALFORMED', 'the action must be an object');
+    const listProblem = revocationsProblem(input.revocations);
+    if (listProblem) return err('E_MALFORMED', listProblem);
+    const chainInput: unknown = input.subdelegationChain ?? [];
+    if (!Array.isArray(chainInput)) return err('E_MALFORMED', 'subdelegationChain must be a list');
+    if (!chainInput.every(isPlainObject)) {
+        return err('E_MALFORMED', 'every subdelegationChain entry must be an object');
+    }
+    if (input.content !== undefined && !(input.content instanceof Uint8Array)) {
+        return err('E_MALFORMED', 'content must be a Uint8Array');
+    }
 
     // 0. Chain-depth check (SUB-DELEGATION.md §2.1) — before any per-link work.
-    const chain: SubdelegationEnvelope[] = input.subdelegationChain ?? [];
+    const chain = chainInput as unknown as SubdelegationEnvelope[];
     const maxDepth = input.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
     if (chain.length > maxDepth) {
         return err(
@@ -426,7 +472,7 @@ async function verifyActionAt(
 
     // 2. Core action checks.
     if (a.v !== ENVELOPE_VERSION) {
-        return err('E_UNSUPPORTED_VERSION', `action version ${a.v} not supported`);
+        return err('E_UNSUPPORTED_VERSION', `action version ${shown(a.v)} not supported`);
     }
     const shape = checkActionShape(a);
     if (shape) return shape;
@@ -448,7 +494,7 @@ async function verifyActionAt(
 
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied');
-        const ok = await input.verifyBip322(a.id, a.sig.value, a.signer.address);
+        const ok = await signatureVerifies(input.verifyBip322, a.id, a.sig.value, a.signer.address);
         if (!ok) return err('E_BAD_ACTION_STAMP', 'action BIP-322 signature did not verify');
     }
 
@@ -523,10 +569,14 @@ async function verifyActionAt(
     } catch (e) {
         return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
     }
-    if (input.revocations && input.revocations.length > 0) {
+    // A revocation that is not an object, or cites a link and fails its own
+    // check, affects nothing; it is skipped and counted.
+    const revocations = (input.revocations ?? []).filter(isPlainObject) as RevocationEnvelope[];
+    let revocationsSkipped = (input.revocations ?? []).length - revocations.length;
+    if (revocations.length > 0) {
         const allLinks: ChainLink[] = [rootHydrated, ...hydratedChain];
         for (const link of allLinks) {
-            for (const rev of input.revocations) {
+            for (const rev of revocations) {
                 if (rev.delegation_id !== link.id) continue;
                 // Verify the revocation itself (signature + canonical + signer
                 // authorization). verifyRevocation accepts ChainLink, so the
@@ -537,7 +587,10 @@ async function verifyActionAt(
                     verifyBip322: input.verifyBip322,
                     skipSignatureVerification: input.skipSignatureVerification,
                 });
-                if (!rr.ok) continue; // malformed revocations don't affect the action
+                if (!rr.ok) {
+                    revocationsSkipped++;
+                    continue;
+                }
                 let revAnchor: number | null;
                 try {
                     revAnchor = await verifiedAnchorHeight(rev, input);
@@ -607,6 +660,7 @@ async function verifyActionAt(
         asOf: now
             ? { basis: 'now', now: now.toISOString() }
             : { basis: 'signed_at', signedAt: a.signed_at, anchored: actionAnchor !== null },
+        revocationsSkipped,
     };
 }
 
@@ -623,10 +677,13 @@ export function createReplayGuard(maxSkewMs: number = DEFAULT_MAX_SKEW_MS): {
     const keepUntil = new Map<string, number>();
     return {
         firstUse(action, now = new Date()) {
+            // Without a text id there is nothing to remember it by, so it is never a first use.
+            if (!isPlainObject(action) || !isText(action.id) || nowProblem(now)) return false;
             const t = now.getTime();
             for (const [id, until] of keepUntil) if (until <= t) keepUntil.delete(id);
             if (keepUntil.has(action.id)) return false;
-            keepUntil.set(action.id, new Date(action.signed_at).getTime() + maxSkewMs);
+            const signed = isIsoUtc(action.signed_at) ? Date.parse(action.signed_at) : t;
+            keepUntil.set(action.id, signed + maxSkewMs);
             return true;
         },
     };
@@ -665,7 +722,7 @@ async function hydrateSubdelegationScopes(
     if (sub.scopes_encrypted.from?.address !== sub.principal.address) {
         return err(
             'E_MALFORMED',
-            `subdelegation.scopes_encrypted.from.address (${sub.scopes_encrypted.from?.address}) does not match principal.address (${sub.principal.address})`
+            `subdelegation.scopes_encrypted.from.address (${shown(sub.scopes_encrypted.from?.address)}) does not match principal.address (${shown(sub.principal.address)})`
         );
     }
     if (!input.decryptScopesWith) {
@@ -707,14 +764,18 @@ export interface VerifyRevocationInput extends VerifyBase {
 }
 
 export async function verifyRevocation(input: VerifyRevocationInput): Promise<VerifyRevocationResult> {
+    if (!isPlainObject(input)) return err('E_MALFORMED', 'verifyRevocation takes an options object');
     const env = input.envelope;
     const d = input.delegation;
+    if (!isPlainObject(env)) return err('E_MALFORMED', 'the revocation must be an object');
 
     if (env.v !== ENVELOPE_VERSION) {
-        return err('E_UNSUPPORTED_VERSION', `revocation version ${env.v} not supported`);
+        return err('E_UNSUPPORTED_VERSION', `revocation version ${shown(env.v)} not supported`);
     }
     const shape = checkRevocationShape(env);
     if (shape) return shape;
+    const target = checkChainLinkShape(d, 'the revoked delegation');
+    if (target) return target;
 
     if (env.delegation_id !== d.id) {
         return err('E_DELEGATION_MISMATCH', `revocation.delegation_id (${env.delegation_id}) != delegation.id (${d.id})`);
@@ -744,7 +805,7 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
 
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied');
-        const ok = await input.verifyBip322(env.id, env.sig.value, env.signer.address);
+        const ok = await signatureVerifies(input.verifyBip322, env.id, env.sig.value, env.signer.address);
         if (!ok) return err('E_BAD_SIG', 'revocation BIP-322 signature did not verify');
     }
 
@@ -755,16 +816,11 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
 // Shape checks
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** A JSON object, not null or a list: a field read into must be one. */
-function isPlainObject(v: unknown): boolean {
-    return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
 function checkDelegationShape(env: DelegationEnvelope): VerifyDelegationResult | null {
     if (env.kind !== 'agent-delegation') return err('E_MALFORMED', 'kind must be "agent-delegation"');
     if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
-    if (!env.principal?.address || env.principal.alg !== 'bip322') return err('E_MALFORMED', 'principal invalid');
-    if (!env.agent?.address || env.agent.alg !== 'bip322') return err('E_MALFORMED', 'agent invalid');
+    if (!isText(env.principal?.address) || env.principal.alg !== 'bip322') return err('E_MALFORMED', 'principal invalid');
+    if (!isText(env.agent?.address) || env.agent.alg !== 'bip322') return err('E_MALFORMED', 'agent invalid');
     // v1.2: scopes OR scopes_encrypted (exactly one). Mutual exclusion +
     // presence checks are performed by the verify-time PRE-VERIFICATION block
     // (PRIVATE-SCOPE.md §2 steps P1–P2) so they can return their own error
@@ -785,9 +841,33 @@ function checkDelegationShape(env: DelegationEnvelope): VerifyDelegationResult |
     if (!isIsoUtc(env.expires_at)) return err('E_MALFORMED', 'expires_at must be ISO 8601 UTC');
     const windowError = delegationWindowError(env.issued_at, env.expires_at);
     if (windowError) return err('E_MALFORMED', windowError);
-    if (!/^[0-9a-f]{32}$/.test(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
+    if (!isNonce(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
     if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
     if (env.sig.pubkey !== env.principal.address) return err('E_MALFORMED', 'sig.pubkey must equal principal.address');
+    return null;
+}
+
+function isNonce(v: unknown): v is string {
+    return typeof v === 'string' && /^[0-9a-f]{32}$/.test(v);
+}
+
+/**
+ * A delegation or sub-delegation handed in beside the envelope being checked
+ * (a parent, a revoked delegation): it must have its kind's shape before any
+ * of it is read, and the scopes a chain walk reads must be text.
+ */
+function checkChainLinkShape(link: unknown, what: string): VerifyErrResult | null {
+    if (!isPlainObject(link)) return err('E_MALFORMED', `${what} must be an object`);
+    const shape =
+        link.kind === 'agent-delegation'
+            ? checkDelegationShape(link as unknown as DelegationEnvelope)
+            : link.kind === 'agent-subdelegation'
+              ? checkSubdelegationShape(link as unknown as SubdelegationEnvelope)
+              : err('E_MALFORMED', `${what} must be a delegation or a sub-delegation`);
+    if (shape && !shape.ok) return err(shape.code, `${what}: ${shape.message}`);
+    if (link.scopes !== undefined && !(link.scopes as unknown[]).every(isText)) {
+        return err('E_MALFORMED', `${what}: every scope must be text`);
+    }
     return null;
 }
 
@@ -810,12 +890,28 @@ function checkActionShape(a: ActionEnvelope): VerifyActionResult | null {
         return err('E_MALFORMED', 'content.hash must start with "sha256:"');
     }
     if (!Number.isInteger(a.content.length) || a.content.length < 0) return err('E_MALFORMED', 'content.length invalid');
+    if (typeof a.content.mime !== 'string') return err('E_MALFORMED', 'content.mime must be text');
     if (!a.signer?.address || a.signer.alg !== 'bip322') return err('E_MALFORMED', 'signer invalid');
     if (!isIsoUtc(a.signed_at)) return err('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
     if (!isHex64(a.delegation_id)) return err('E_MALFORMED', 'delegation_id must be 64-hex');
     if (typeof a.scope_exercised !== 'string' || a.scope_exercised.length === 0) return err('E_MALFORMED', 'scope_exercised required');
     if (a.sig?.alg !== 'bip322' || typeof a.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
     if (a.sig.pubkey !== a.signer.address) return err('E_MALFORMED', 'sig.pubkey must equal signer.address');
+    // ots sits outside the action id, so a copy can carry any; it is read only in this shape.
+    const ots: unknown = a.ots;
+    if (ots !== null) {
+        if (!isPlainObject(ots)) return err('E_MALFORMED', 'ots must be null or an object');
+        if (ots.status !== 'pending' && ots.status !== 'confirmed') {
+            return err('E_MALFORMED', 'ots.status must be "pending" or "confirmed"');
+        }
+        if (typeof ots.proof !== 'string') return err('E_MALFORMED', 'ots.proof must be text');
+        if (ots.block_height !== null && !Number.isInteger(ots.block_height)) {
+            return err('E_MALFORMED', 'ots.block_height must be an integer or null');
+        }
+        if (ots.block_hash !== null && typeof ots.block_hash !== 'string') {
+            return err('E_MALFORMED', 'ots.block_hash must be text or null');
+        }
+    }
     return null;
 }
 
@@ -835,8 +931,8 @@ function checkSubdelegationShape(env: SubdelegationEnvelope): VerifySubdelegatio
     if (env.kind !== 'agent-subdelegation') return err('E_MALFORMED', 'kind must be "agent-subdelegation"');
     if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
     if (!isHex64(env.parent_id)) return err('E_MALFORMED', 'parent_id must be 64-hex');
-    if (!env.principal?.address || env.principal.alg !== 'bip322') return err('E_MALFORMED', 'principal invalid');
-    if (!env.agent?.address || env.agent.alg !== 'bip322') return err('E_MALFORMED', 'agent invalid');
+    if (!isText(env.principal?.address) || env.principal.alg !== 'bip322') return err('E_MALFORMED', 'principal invalid');
+    if (!isText(env.agent?.address) || env.agent.alg !== 'bip322') return err('E_MALFORMED', 'agent invalid');
     // v1.2: scopes OR scopes_encrypted (post-hydration the chain walker
     // always sees `scopes` populated). Mutual exclusion + presence checked
     // by hydrateSubdelegationScopes.
@@ -852,7 +948,7 @@ function checkSubdelegationShape(env: SubdelegationEnvelope): VerifySubdelegatio
     }
     if (!isIsoUtc(env.issued_at)) return err('E_MALFORMED', 'issued_at must be ISO 8601 UTC');
     if (!isIsoUtc(env.expires_at)) return err('E_MALFORMED', 'expires_at must be ISO 8601 UTC');
-    if (!/^[0-9a-f]{32}$/.test(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
+    if (!isNonce(env.nonce)) return err('E_MALFORMED', 'nonce must be 32 lowercase hex chars');
     if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
     if (env.sig.pubkey !== env.principal.address) return err('E_MALFORMED', 'sig.pubkey must equal principal.address');
     return null;
@@ -878,7 +974,7 @@ async function verifyChainLink(
     input: VerifyBase
 ): Promise<VerifySubdelegationResult> {
     if (s.v !== ENVELOPE_VERSION) {
-        return err('E_UNSUPPORTED_VERSION', `subdelegation version ${s.v} not supported`);
+        return err('E_UNSUPPORTED_VERSION', `subdelegation version ${shown(s.v)} not supported`);
     }
     const shape = checkSubdelegationShape(s);
     if (shape) return shape;
@@ -928,7 +1024,7 @@ async function verifyChainLink(
     // Step 3c: BIP-322 signature.
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied for subdelegation');
-        const ok = await input.verifyBip322(s.id, s.sig.value, s.principal.address);
+        const ok = await signatureVerifies(input.verifyBip322, s.id, s.sig.value, s.principal.address);
         if (!ok) return err('E_BAD_SIG', 'subdelegation BIP-322 signature did not verify');
     }
 
@@ -971,7 +1067,13 @@ async function verifyChainLink(
             'parent has no plaintext scopes — caller must hydrate v1.2 parents before invoking verifyChainLink'
         );
     }
-    const parentScopesParsed = parent.scopes.map((str) => parseScope(str));
+    let parentScopesParsed;
+    try {
+        parentScopesParsed = parent.scopes.map((str) => parseScope(str));
+    } catch (e) {
+        const msg = e instanceof ScopeParseError ? e.message : (e as Error).message;
+        return err('E_BAD_SCOPE_GRAMMAR', `parent scope: ${msg}`);
+    }
     for (let i = 0; i < parsedScopes.length; i++) {
         const childScope = parsedScopes[i]!;
         const containedBySomeParentScope = parentScopesParsed.some((p) => isSubScope(childScope, p));
@@ -1027,6 +1129,12 @@ export interface VerifySubdelegationInput extends VerifyBase {
 export async function verifySubdelegation(
     input: VerifySubdelegationInput
 ): Promise<VerifySubdelegationResult> {
+    if (!isPlainObject(input)) return err('E_MALFORMED', 'verifySubdelegation takes an options object');
+    if (!isPlainObject(input.envelope)) return err('E_MALFORMED', 'the sub-delegation must be an object');
+    const parentShape = checkChainLinkShape(input.parent, 'the parent');
+    if (parentShape) return parentShape;
+    const badNow = nowProblem(input.now);
+    if (badNow) return err('E_MALFORMED', badNow);
     // v1.2: hydrate private-mode envelopes before chain-link checks so
     // the walker uniformly reads plaintext scopes.
     const hydrated = await hydrateSubdelegationScopes(input.envelope, input);
@@ -1089,13 +1197,3 @@ function err(code: AgentErrorCode, message: string): VerifyErrResult {
 
 type VerifyErrResult = { ok: false; code: AgentErrorCode; message: string };
 
-function isHex64(s: unknown): s is string {
-    return typeof s === 'string' && /^[0-9a-f]{64}$/.test(s);
-}
-
-function isIsoUtc(s: unknown): s is string {
-    return (
-        typeof s === 'string' &&
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(s)
-    );
-}

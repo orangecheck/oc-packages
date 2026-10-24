@@ -17,6 +17,36 @@ this file tracks the package's TS / Node / runtime API surface.
 - `verifySubdelegation` and the chain walker do the same for a
   sub-delegation's `scopes_encrypted` and `principal`.
 
+### Fixed — every verifier answers with a result for any input
+
+`verifyDelegation`, `verifyAction`, `verifyActionAsOfSignedAt`,
+`verifySubdelegation`, `verifyRevocation`, `verifyFederationDelegation` and
+`verifyFederationRevocation` check each input before reading it:
+
+- An options object, envelope, action or delegation that is not an object is
+  `E_MALFORMED`.
+- `revocations` must be a list. An entry that is not an object, or that cites
+  the delegation (or a link of the chain) and fails its own check, revokes
+  nothing; it is counted in `revocationsSkipped`, new on an `ok` result.
+- `subdelegationChain` must be a list of objects.
+- An action's `ots` must be `null` or an object with a `status` of `pending`
+  or `confirmed`, a text `proof`, and a `block_height` and `block_hash` of
+  their type or `null`; `content.mime` must be text.
+- The `parent` given to `verifySubdelegation` and the `delegation` given to
+  `verifyRevocation` must have the shape of a delegation or a sub-delegation,
+  with text scopes.
+- Addresses and nonces must be text before they are compared or hashed, and
+  a value that is not text is named in a message by its kind.
+- `now` must be a valid `Date`, and `content` a `Uint8Array`.
+- A federation descriptor's guardians and a federation signature's entries
+  must be objects with text addresses, and a federation delegation's `bond`
+  an object or `null`.
+- A `verifyBip322` callback that throws counts as a signature that does not
+  verify (`E_BAD_SIG`).
+- `createReplayGuard().firstUse` answers `false` for an action without a text
+  `id`, and keeps one whose `signed_at` it cannot read for `maxSkewMs` from
+  `now`.
+
 ## [2.7.1] — 2026-10-22
 
 ### Fixed — the agent may always revoke

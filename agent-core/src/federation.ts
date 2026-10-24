@@ -31,7 +31,17 @@ import type {
     DelegationBond,
     DelegationRevocationRef,
     RevocationEnvelope,
+    RevocationsRead,
 } from './types.js';
+import {
+    isHex64,
+    isIsoUtc,
+    isPlainObject,
+    isText,
+    nowProblem,
+    shown,
+    signatureVerifies,
+} from './guards.js';
 import { delegationWindowError } from './verify.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,7 +105,7 @@ export interface FederationRevocationEnvelope {
 }
 
 export type FederationVerifyResult =
-    | { ok: true; id: string; canonicalMessage: string }
+    | ({ ok: true; id: string; canonicalMessage: string } & RevocationsRead)
     | { ok: false; code: AgentErrorCode; message: string };
 
 export interface VerifyFederationBase {
@@ -139,8 +149,6 @@ function parseThreshold(t: unknown): { m: number; n: number } | null {
     return { m: mm, n: nn };
 }
 
-const HEX64 = /^[0-9a-f]{64}$/;
-const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
 /**
  * Shared descriptor + quorum validation (FEDERATION.md §3.3 checks 3–8 minus the
@@ -161,9 +169,12 @@ async function checkFederationQuorum(
         return fail('E_MALFORMED', 'principal.descriptor missing or wrong kind');
     }
     const parsed = parseThreshold(descriptor.threshold);
-    if (!parsed) return fail('E_MALFORMED', `malformed threshold "${descriptor.threshold}"`);
+    if (!parsed) return fail('E_MALFORMED', `malformed threshold "${shown(descriptor.threshold)}"`);
     if (!Array.isArray(descriptor.guardians) || descriptor.guardians.length !== parsed.n) {
         return fail('E_MALFORMED', 'guardians length must equal N in M-of-N');
+    }
+    if (!descriptor.guardians.every((g) => isPlainObject(g) && isText(g.address))) {
+        return fail('E_MALFORMED', 'every guardian must be an object with an address');
     }
 
     // §3.3.3 — descriptor_id matches the canonical hash of the inlined descriptor.
@@ -182,13 +193,16 @@ async function checkFederationQuorum(
     if (sig.threshold !== descriptor.threshold) {
         return fail(
             'E_THRESHOLD_MISMATCH',
-            `sig.threshold (${sig.threshold}) != descriptor.threshold (${descriptor.threshold})`
+            `sig.threshold (${shown(sig.threshold)}) != descriptor.threshold (${descriptor.threshold})`
         );
     }
 
     // §3.3.5 — at least M signatures.
     const sigs = sig.signatures;
     if (!Array.isArray(sigs)) return fail('E_MALFORMED', 'sig.signatures must be an array');
+    if (!sigs.every((s) => isPlainObject(s) && isText(s.guardian_address) && typeof s.value === 'string')) {
+        return fail('E_MALFORMED', 'every signature must be an object with a guardian_address and a value');
+    }
     if (sigs.length < parsed.m) {
         return fail(
             'E_THRESHOLD_NOT_MET',
@@ -213,7 +227,7 @@ async function checkFederationQuorum(
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return fail('E_BAD_SIG', 'no BIP-322 verifier supplied');
         for (const s of sigs) {
-            const ok = await input.verifyBip322(reconstructedId, s.value, s.guardian_address);
+            const ok = await signatureVerifies(input.verifyBip322, reconstructedId, s.value, s.guardian_address);
             if (!ok) {
                 return fail('E_BAD_SIG', `guardian ${s.guardian_address} signature did not verify`);
             }
@@ -242,19 +256,33 @@ export interface VerifyFederationDelegationInput extends VerifyFederationBase {
 export async function verifyFederationDelegation(
     input: VerifyFederationDelegationInput
 ): Promise<FederationVerifyResult> {
+    if (!isPlainObject(input)) return fail('E_MALFORMED', 'verifyFederationDelegation takes an options object');
     const env = input.envelope;
-    if (env?.kind !== 'agent-delegation') return fail('E_MALFORMED', 'kind must be "agent-delegation"');
-    if (!HEX64.test(env.id ?? '')) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
-    if (!env.agent?.address || env.agent.alg !== 'bip322') return fail('E_MALFORMED', 'agent invalid');
+    if (!isPlainObject(env)) return fail('E_MALFORMED', 'the delegation must be an object');
+    const revocations: unknown = input.revocations;
+    if (revocations !== undefined && revocations !== null && !Array.isArray(revocations)) {
+        return fail('E_MALFORMED', 'revocations must be a list');
+    }
+    const badNow = nowProblem(input.now);
+    if (badNow) return fail('E_MALFORMED', badNow);
+    if (env.kind !== 'agent-delegation') return fail('E_MALFORMED', 'kind must be "agent-delegation"');
+    if (!isHex64(env.id)) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
+    if (!isText(env.agent?.address) || env.agent.alg !== 'bip322') return fail('E_MALFORMED', 'agent invalid');
     if (!Array.isArray(env.scopes) || env.scopes.length === 0) {
         return fail('E_MALFORMED', 'scopes must be a non-empty array');
     }
-    if (!ISO_UTC.test(env.issued_at) || !ISO_UTC.test(env.expires_at)) {
+    if (!isIsoUtc(env.issued_at) || !isIsoUtc(env.expires_at)) {
         return fail('E_MALFORMED', 'issued_at / expires_at must be ISO 8601 UTC');
     }
     const windowError = delegationWindowError(env.issued_at, env.expires_at);
     if (windowError) return fail('E_MALFORMED', windowError);
-    if (!/^[0-9a-f]{32}$/.test(env.nonce)) return fail('E_MALFORMED', 'nonce must be 32 hex chars');
+    if (typeof env.nonce !== 'string' || !/^[0-9a-f]{32}$/.test(env.nonce)) {
+        return fail('E_MALFORMED', 'nonce must be 32 hex chars');
+    }
+    if (!isHex64(env.principal?.descriptor_id)) {
+        return fail('E_MALFORMED', 'principal.descriptor_id must be 64-hex');
+    }
+    if (env.bond !== null && !isPlainObject(env.bond)) return fail('E_MALFORMED', 'bond must be an object or null');
 
     // Canonical scopes (identical rules to v1) must be sorted on the envelope.
     let canonicalScopes: string[];
@@ -272,7 +300,7 @@ export async function verifyFederationDelegation(
     // §3.3.1 / §3.1 — reconstruct the id with the `federation:<descriptor_id>`
     // principal substitution. Everything else is the v1 canonical message.
     const canonInput = {
-        principal: `federation:${env.principal?.descriptor_id ?? ''}`,
+        principal: `federation:${env.principal.descriptor_id}`,
         agent: env.agent.address,
         scopes: canonicalScopes,
         bond_sats: env.bond?.sats ?? 0,
@@ -297,11 +325,21 @@ export async function verifyFederationDelegation(
                 'or an explicit skipRevocationCheck:true to state that revocation is not being checked'
         );
     }
+    // A revocation that is not an object, or cites this delegation and fails
+    // its own check, revokes nothing; it is skipped and counted.
+    let revocationsSkipped = 0;
     for (const rev of input.revocations ?? []) {
-        if (rev?.delegation_id !== env.id) continue;
+        if (!isPlainObject(rev)) {
+            revocationsSkipped++;
+            continue;
+        }
+        if (rev.delegation_id !== env.id) continue;
         const rr = await verifyRevocationOf(env, rev, input);
-        if (!rr.ok) continue; // a malformed or unauthorized revocation revokes nothing
-        return fail('E_REVOKED', `delegation ${env.id} was revoked by ${rev.id}`);
+        if (!rr.ok) {
+            revocationsSkipped++;
+            continue;
+        }
+        return fail('E_REVOKED', `delegation ${env.id} was revoked by ${rr.id}`);
     }
 
     if (!input.skipTemporalCheck) {
@@ -312,7 +350,12 @@ export async function verifyFederationDelegation(
         if (now >= expires) return fail('E_EXPIRED', `delegation expired at ${env.expires_at}`);
     }
 
-    return { ok: true, id: env.id, canonicalMessage: delegationCanonicalMessage(canonInput) };
+    return {
+        ok: true,
+        id: env.id,
+        canonicalMessage: delegationCanonicalMessage(canonInput),
+        revocationsSkipped,
+    };
 }
 
 /**
@@ -336,7 +379,7 @@ async function verifyRevocationOf(
     if (v1.kind !== 'agent-revocation' || v1.signer?.address !== d.agent.address) {
         return fail('E_REVOKER_UNAUTHORIZED', 'a single-address revocation must be signed by the agent');
     }
-    if (typeof v1.reason !== 'string' || !ISO_UTC.test(v1.signed_at ?? '')) {
+    if (typeof v1.reason !== 'string' || !isIsoUtc(v1.signed_at)) {
         return fail('E_MALFORMED', 'revocation reason / signed_at invalid');
     }
     const canonInput = {
@@ -346,10 +389,13 @@ async function verifyRevocationOf(
         signed_at: v1.signed_at,
     };
     const id = computeRevocationId(canonInput);
-    if (id !== v1.id) return fail('E_BAD_ID', `reconstructed id (${id}) != revocation.id (${v1.id})`);
+    if (id !== v1.id) return fail('E_BAD_ID', `reconstructed id (${id}) != revocation.id (${shown(v1.id)})`);
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return fail('E_BAD_SIG', 'no BIP-322 verifier supplied');
-        if (typeof v1.sig?.value !== 'string' || !(await input.verifyBip322(v1.id, v1.sig.value, v1.signer.address))) {
+        if (
+            typeof v1.sig?.value !== 'string' ||
+            !(await signatureVerifies(input.verifyBip322, v1.id, v1.sig.value, v1.signer.address))
+        ) {
             return fail('E_BAD_SIG', 'revocation BIP-322 signature did not verify');
         }
     }
@@ -369,31 +415,34 @@ export interface VerifyFederationRevocationInput extends VerifyFederationBase {
 export async function verifyFederationRevocation(
     input: VerifyFederationRevocationInput
 ): Promise<FederationVerifyResult> {
+    if (!isPlainObject(input)) return fail('E_MALFORMED', 'verifyFederationRevocation takes an options object');
     const env = input.envelope;
-    if (env?.kind !== 'agent-revocation') return fail('E_MALFORMED', 'kind must be "agent-revocation"');
-    if (!HEX64.test(env.id ?? '')) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
-    if (!HEX64.test(env.delegation_id ?? '')) return fail('E_MALFORMED', 'delegation_id must be 64-hex');
+    if (!isPlainObject(env)) return fail('E_MALFORMED', 'the revocation must be an object');
+    if (env.kind !== 'agent-revocation') return fail('E_MALFORMED', 'kind must be "agent-revocation"');
+    if (!isHex64(env.id)) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
+    if (!isHex64(env.delegation_id)) return fail('E_MALFORMED', 'delegation_id must be 64-hex');
     if (typeof env.reason !== 'string' || env.reason.length > 128) {
         return fail('E_MALFORMED', 'reason must be a string ≤128 bytes');
     }
-    if (!ISO_UTC.test(env.signed_at)) return fail('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
+    if (!isIsoUtc(env.signed_at)) return fail('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
+    if (!isHex64(env.signer?.descriptor_id)) return fail('E_MALFORMED', 'signer.descriptor_id must be 64-hex');
 
     const d = input.delegation;
-    if (!d || !HEX64.test(d.id ?? '')) return fail('E_MALFORMED', 'the revoked delegation is required');
+    if (!d || !isHex64(d.id)) return fail('E_MALFORMED', 'the revoked delegation is required');
     if (env.delegation_id !== d.id) {
         return fail('E_DELEGATION_MISMATCH', `revocation.delegation_id (${env.delegation_id}) != delegation.id (${d.id})`);
     }
     if (d.principal?.alg !== 'federation' || env.signer?.descriptor_id !== d.principal.descriptor_id) {
         return fail(
             'E_REVOKER_UNAUTHORIZED',
-            `revoking federation (${env.signer?.descriptor_id}) is not the delegation's principal`
+            `revoking federation (${env.signer.descriptor_id}) is not the delegation's principal`
         );
     }
 
     // §4 — the `address:` line carries the `federation:<descriptor_id>`
     // substitution; everything else is the v1 revocation canonical message.
     const canonInput = {
-        address: `federation:${env.signer?.descriptor_id ?? ''}`,
+        address: `federation:${env.signer.descriptor_id}`,
         delegation_id: env.delegation_id,
         reason: env.reason,
         signed_at: env.signed_at,

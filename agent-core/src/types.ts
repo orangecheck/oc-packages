@@ -276,7 +276,17 @@ export interface VerifyErr {
     message: string;
 }
 
-export type VerifyDelegationResult = VerifyOk<DelegationEnvelope> | VerifyErr;
+/** On a verdict that read revocations: how many were skipped as revoking nothing. */
+export interface RevocationsRead {
+    /**
+     * Revocations passed in that were not objects, or that cited this
+     * delegation (or a link of the chain) and failed their own check. They
+     * revoke nothing; a high count says a relay is serving junk.
+     */
+    revocationsSkipped?: number;
+}
+
+export type VerifyDelegationResult = (VerifyOk<DelegationEnvelope> & RevocationsRead) | VerifyErr;
 export type VerifyRevocationResult = VerifyOk<RevocationEnvelope> | VerifyErr;
 export type VerifySubdelegationResult = VerifyOk<SubdelegationEnvelope> | VerifyErr;
 
@@ -310,5 +320,5 @@ export interface VerifyActionOkExtra {
 }
 
 export type VerifyActionResult =
-    | (VerifyOk<ActionEnvelope> & VerifyActionOkExtra)
+    | (VerifyOk<ActionEnvelope> & VerifyActionOkExtra & RevocationsRead)
     | VerifyErr;

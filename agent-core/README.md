@@ -121,7 +121,9 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 - `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
 - `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`
 
-`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when a relay answered with EOSE and nothing matched.
+`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when a relay answered with EOSE and nothing matched. You may pass what the relays sent unfiltered: an entry that is not an object, or that cites the envelope and fails its own check, revokes nothing and is counted in `revocationsSkipped` on an `ok` result.
+
+Every verifier answers with a result whatever it is given, and does not throw: an input of the wrong shape is `E_MALFORMED`, and a `verifyBip322` callback that throws counts as a signature that does not verify.
 
 Each returns a discriminated union:
 
