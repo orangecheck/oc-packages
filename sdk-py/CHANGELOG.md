@@ -4,7 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.7.0] — 2026-10-24
+
+### Added
+
+- `safe_return_path(value, fallback="/")`: where to send someone back to after
+  they sign in or prove it is them again. A path on your own site comes back
+  unchanged; anything a browser would take elsewhere (`//evil.com`,
+  `/\\evil.com`, a scheme), a backslash anywhere, C0 and C1 control
+  characters, a percent that does not decode, dot segments (plain or
+  percent-encoded) and anything over 2048 UTF-16 units answer `fallback`. As
+  `@orangecheck/me-client` 0.51.0's `safeReturnPath`, held to the same vectors
+  (`me-client/test-vectors/return-path.json`).
 
 ### Changed
 

@@ -8,6 +8,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.51.0] — 2026-10-24
+
+### Added
+
+- `safeReturnPath(raw, fallback = '/')`: where to send someone back to after
+  they sign in or prove it is them again. It answers `raw` when that is a path
+  on your own site, and `fallback` for anything a browser would take elsewhere
+  (`//evil.com`, `/\evil.com`, a scheme), a backslash anywhere, C0 and C1
+  control characters (browsers drop some, so `/\t/evil.com` becomes
+  `//evil.com`), a percent that does not decode (`/%`, `/%zz`, bytes that are
+  not UTF-8), dot segments, plain or percent-encoded, and anything over 2048
+  UTF-16 units. The path comes back
+  unchanged. sdk-py's `safe_return_path` answers the same for every input in
+  `test-vectors/return-path.json`.
+
 ## [0.50.0] — 2026-10-24
 
 ### Changed
