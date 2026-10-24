@@ -12,7 +12,6 @@
 :where([data-oc-sign-in]) {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: var(--oc-mark-gap, 0.5em);
     min-block-size: var(--oc-target, 44px);
     cursor: pointer;
@@ -42,6 +41,7 @@
 }
 
 :where([data-oc-sign-in][data-appearance='brand']) {
+    justify-content: center;
     padding-inline: var(--oc-button-pad, 1.25em);
     border: 1px solid var(--oc-button-border, #262626);
     border-radius: var(--oc-button-radius, 10px);

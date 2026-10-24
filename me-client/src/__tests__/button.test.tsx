@@ -202,8 +202,8 @@ describe('button.css', () => {
         }
     });
 
-    it('gives the inherit appearance no colour, font, border or radius', () => {
+    it('gives the inherit appearance no colour, font, border, radius or alignment', () => {
         const base = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, sel]) => !sel!.includes("data-appearance='brand'"));
-        for (const [, sel, body] of base) expect(body, sel).not.toMatch(/(^|[;\s])(color|background|font|border|border-radius)\s*:/);
+        for (const [, sel, body] of base) expect(body, sel).not.toMatch(/(^|[;\s])(color|background|font|border|border-radius|justify-content|text-align)\s*:/);
     });
 });

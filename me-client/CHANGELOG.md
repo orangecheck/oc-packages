@@ -8,6 +8,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.46.1] — 2026-10-24
+
+### Fixed
+
+- `button.css` leaves the button's alignment to the site in the `inherit`
+  appearance. It centred the mark and label, so on me-demo, whose other
+  full-width buttons start at the left, the orangecheck button alone was
+  centred. `brand` still centres its own content.
+
 ## [0.46.0] — 2026-10-24
 
 ### Added
