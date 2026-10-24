@@ -7,7 +7,7 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [2.7.2] — 2026-10-24
+## [2.8.0] — 2026-10-24
 
 ### Fixed — a field of the wrong shape is E_MALFORMED
 
