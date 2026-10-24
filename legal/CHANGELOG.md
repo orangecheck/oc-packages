@@ -20,6 +20,12 @@ and amendment proposals the key signed stay public under the key, with what
 the operator wrote in them, and that exit records and machine reports stay
 visible to that federation's guardians and to orangecheck.
 
+### Added — the record a deletion keeps
+
+The same section now says that a record of the deletion is kept under the
+account's id, out of public view, so sessions the account already had stop
+working and the deletion can be shown.
+
 ## [0.7.15] — 2026-10-23
 
 ### Added — an account a site made for you

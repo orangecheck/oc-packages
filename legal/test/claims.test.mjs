@@ -132,6 +132,7 @@ test('the ochk.app privacy policy says when an operator can delete, and what the
         'has finished any exit, created no federation that still exists, and is owed nothing',
         'stay public under the key, with what you wrote in them',
         "exit records and machine reports stay visible to that federation's guardians and to us",
+        'We keep a record that your account was deleted, under its id and out of public view',
     ]) {
         assert.ok(text.includes(fact), fact);
     }
