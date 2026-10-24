@@ -350,10 +350,13 @@ def test_exchange_reads_each_answer_as_the_node_sdk_does(a: dict[str, Any]) -> N
     jwks = a.get("jwks", {"status": 200, "body": V["session"]["jwks"]})
     respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=_response(jwks))
     key = a.get("project_key", X["project_key"])
-    rule = respx.get(f"https://me.ochk.io/api/integrator/{key}/sign-in").mock(
-        return_value=_response(a.get("policy", X["policy"]))
-    )
+    me = a.get("me_origin", "https://me.ochk.io")
+    rule = respx.get(f"{me}/api/integrator/{key}/sign-in").mock(return_value=_response(a.get("policy", X["policy"])))
     kwargs: dict[str, Any] = {"project_key": key}
+    if "me_origin" in a:
+        kwargs["me_origin"] = me
+    if "require_bond" in a:
+        kwargs["require_bond"] = a["require_bond"]
     if "list" in a:
         respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(return_value=_response(a["list"]))
         kwargs["revocations"] = RevocationList(H["check"]["project_key"], H["check"]["secret"])
@@ -374,7 +377,7 @@ def test_exchange_reads_each_answer_as_the_node_sdk_does(a: dict[str, Any]) -> N
         assert isinstance(got, NativeSignIn) and got.token == body["token"]
         for k, v in want["claims"].items():
             assert got.session.claims[k] == v
-        # A valid answer always passed the project's rule, read with the key from config.
+        # A valid answer passed the project's rule, read with the key from config.
         assert rule.call_count == 1
     else:
         extra = {k: want[k] for k in ("need", "have", "back_url") if k in want}

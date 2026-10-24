@@ -284,6 +284,8 @@ describe('exchangeNativeCode · a native sign-in code traded for its token', () 
         list?: Answer;
         project_key?: string;
         policy?: Answer;
+        require_bond?: { min_sats?: number; min_days?: number };
+        me_origin?: string;
         result: { status: string; reason?: string; claims?: Record<string, unknown> } & Record<string, unknown>;
     };
     const X = H.exchange_native as {
@@ -306,15 +308,16 @@ describe('exchangeNativeCode · a native sign-in code traded for its token', () 
             { projectKey: X.project_key, revocation: false, ...options }
         );
 
-    function stub(a: { status: number; body: unknown; jwks?: Answer; list?: Answer; policy?: Answer }) {
+    function stub(a: { status: number; body: unknown; jwks?: Answer; list?: Answer; policy?: Answer; me_origin?: string }) {
         const calls: { url: string; init: RequestInit }[] = [];
+        const me = a.me_origin ?? 'https://me.ochk.io';
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url: string, init: RequestInit = {}) => {
                 const u = String(url);
                 if (u === 'https://ochk.io/.well-known/jwks.json') return respond(a.jwks ?? { status: 200, body: V.session.jwks });
-                if (u.startsWith('https://me.ochk.io/api/integrator/revocations?') && a.list) return respond(a.list);
-                if (/^https:\/\/me\.ochk\.io\/api\/integrator\/[^/]+\/sign-in$/.test(u)) return respond(a.policy ?? X.policy);
+                if (u.startsWith(`${me}/api/integrator/revocations?`) && a.list) return respond(a.list);
+                if (u.startsWith(`${me}/api/integrator/`) && u.endsWith('/sign-in')) return respond(a.policy ?? X.policy);
                 if (u !== X.url) throw new Error(`unexpected fetch ${u}`);
                 calls.push({ url: u, init });
                 if (a.status === 0) throw new TypeError('fetch failed');
@@ -350,6 +353,10 @@ describe('exchangeNativeCode · a native sign-in code traded for its token', () 
             { ...X.input, ...(a.audience ? { audience: a.audience } : {}) },
             {
                 ...(a.project_key ? { projectKey: a.project_key } : {}),
+                ...(a.me_origin ? { meOrigin: a.me_origin } : {}),
+                ...(a.require_bond
+                    ? { requireBond: { minSats: a.require_bond.min_sats, minDays: a.require_bond.min_days } }
+                    : {}),
                 ...(a.list
                     ? { revocation: integratorRevocationCheck({ projectKey: H.check.project_key, signingSecret: H.check.secret })! }
                     : {}),

@@ -118,6 +118,27 @@ describe('exchangeNativeCode', () => {
         });
     });
 
+    it('reads the rule and the list of ended sessions where meOrigin says', async () => {
+        vi.stubEnv('OC_SIGNING_SECRET', 'ne-secret');
+        const me = 'https://me-test.example';
+        const reads: string[] = [];
+        const ochk = globalThis.fetch;
+        vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+            if (!url.startsWith(`${me}/`)) return ochk(url, init);
+            reads.push(url.slice(me.length).split('?')[0]!);
+            if (url.endsWith('/sign-in')) return Response.json({ ok: true, require_bond: null });
+            const at = Math.floor(Date.now() / 1000);
+            return Response.json({ v: 1, at, tokens: [], accounts: {}, handles: {} });
+        });
+        const out = await exchangeNativeCode(INPUT, { projectKey: 'pk_test_ne_elsewhere', meOrigin: me });
+        expect(out.status).toBe('valid');
+        expect(reads.sort()).toEqual([
+            '/api/integrator/pk_test_ne_elsewhere/sign-in',
+            '/api/integrator/revocations',
+        ]);
+        expect(ruleReads).toEqual([]);
+    });
+
     it('uses one issuer for the trade and the verification', async () => {
         const local = 'http://127.0.0.1:3000';
         answer = async () => Response.json({ ok: true, token: await token({}, local) });
