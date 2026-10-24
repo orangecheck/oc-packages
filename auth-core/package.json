@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/auth-core",
-    "version": "2.19.0",
+    "version": "2.20.0",
     "description": "OrangeCheck session JWT primitives. Verifies oc_session tokens against the auth host's published JWKS — no env vars, no JWK handling. Re-exported by @orangecheck/me-client for integrators; also used by family consumer subdomains directly.",
     "keywords": [
         "orangecheck",
@@ -30,6 +30,11 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.mjs",
             "require": "./dist/index.js"
+        },
+        "./display-name": {
+            "types": "./dist/display-name.d.ts",
+            "import": "./dist/display-name.mjs",
+            "require": "./dist/display-name.js"
         }
     },
     "files": [
