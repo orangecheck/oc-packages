@@ -9,7 +9,7 @@ const meta = {
 } satisfies Meta<typeof LayoutSubHeader>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 /** Canonical: one quiet capability phrase on the right. */
 export const Stamp: Story = {

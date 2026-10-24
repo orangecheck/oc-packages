@@ -43,11 +43,11 @@ export const Radios: Story = {
     name: 'RadioGroup',
     render: () => (
         <RadioGroup defaultValue="balance" className="space-y-1">
-            {[
+            {([
                 ['balance', 'stake weight = balance'],
                 ['age', 'stake weight = coin age'],
                 ['flat', 'one address, one vote'],
-            ].map(([v, label]) => (
+            ] as const).map(([v, label]) => (
                 <div key={v} className="flex items-center gap-2">
                     <RadioGroupItem value={v} id={`r-${v}`} />
                     <Label htmlFor={`r-${v}`}>{label}</Label>

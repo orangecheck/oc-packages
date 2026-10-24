@@ -24,6 +24,7 @@ export const Small: Story = {
 };
 
 export const Panel: Story = {
+    args: { text: 'anchoring to bitcoin' },
     render: () => (
         <div className="max-w-md">
             <WorkingPanel text="anchoring to bitcoin" progress="block 1 of 6" />

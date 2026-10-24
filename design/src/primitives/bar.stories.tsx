@@ -9,7 +9,7 @@ const meta = {
 } satisfies Meta<typeof Bar>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const Accents: Story = {
     render: () => (

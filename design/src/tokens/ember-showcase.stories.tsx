@@ -1,10 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import {
-    Ban,
     Bitcoin,
     Check,
     EyeOff,
-    KeyRound,
     LayoutGrid,
     Lock,
     LogOut,

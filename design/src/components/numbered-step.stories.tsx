@@ -8,7 +8,7 @@ const meta = {
 } satisfies Meta<typeof StepList>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 const STEPS = [
     { title: 'Sign a message', children: 'Prove control of your Bitcoin address with BIP-322 — no account, no KYC.' },

@@ -11,7 +11,7 @@ const meta = {
 } satisfies Meta<typeof ErrorBoundary>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 function Bomb(): React.ReactElement {
     throw new Error('demo: a child component threw during render');

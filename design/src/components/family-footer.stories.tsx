@@ -9,7 +9,7 @@ const meta = {
 } satisfies Meta<typeof OcFamilyFooter>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 /** A protocol/product site: own columns + the shared brand/legal skeleton. */
 export const Stamp: Story = {

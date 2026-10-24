@@ -10,7 +10,7 @@ const meta = {
 } satisfies Meta<typeof AlertWithAction>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const WithAction: Story = {
     render: () => (

@@ -74,7 +74,7 @@
     "test": "node scripts/check-a11y-floors.mjs && node scripts/check-token-contrast.mjs && node scripts/check-pagination.mjs && node scripts/check-family.mjs",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit && tsc -p tsconfig.stories.json",
     "clean": "rm -rf dist storybook-static",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build && node .storybook/finish-static.mjs",

@@ -8,7 +8,7 @@ const meta = {
 } satisfies Meta<typeof ComparisonTable>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 const ROWS = [
     { label: 'Account required', theirs: 'Email + password', ours: 'A Bitcoin address' },

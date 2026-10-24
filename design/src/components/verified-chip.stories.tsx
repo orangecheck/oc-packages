@@ -9,7 +9,7 @@ const meta = {
 } satisfies Meta<typeof VerifiedChip>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const Default: Story = {
     render: () => <VerifiedChip label="verified on bitcoin" />,

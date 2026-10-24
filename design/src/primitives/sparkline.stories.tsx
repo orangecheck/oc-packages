@@ -9,7 +9,7 @@ const meta = {
 } satisfies Meta<typeof Sparkline>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 const series = [4, 6, 5, 8, 7, 10, 9, 13, 12, 16, 15, 19];
 

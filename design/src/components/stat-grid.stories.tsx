@@ -8,7 +8,7 @@ const meta = {
 } satisfies Meta<typeof StatGrid>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 export const Dashboard: Story = {
     render: () => (
