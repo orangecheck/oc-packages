@@ -181,7 +181,7 @@ const AttestState = createStateBadge({
 export const Dashboard: StoryObj = {
     name: 'Tool shell: dashboard with a rail',
     render: function Render() {
-        const [filter, setFilter] = useState<'all' | 'active' | 'moved' | 'expired'>('all');
+        const [filter, setFilter] = useState<'all' | 'active' | 'moved' | 'expired' | 'revoked'>('all');
         const rows = ROWS.filter((r) => filter === 'all' || r.state === filter);
         return (
             <ToolShell
