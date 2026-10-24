@@ -8,6 +8,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.49.0] — 2026-10-24
+
+### Added
+
+- `exchangeNativeCode({ code, codeVerifier, redirectUri, projectKey, audience }, { issuer?, timeoutMs? })`
+  in `@orangecheck/me-client/server`: the server's half of native sign-in, for
+  an app on the person's own device. It trades the one-time code the app's
+  loopback listener received at `POST <issuer>/api/auth/native/token`, then
+  verifies the returned token for your `audience` as `checkOcToken` does.
+  `valid` carries the token and its session (`azp: "native"`); `invalid`
+  carries `invalid_grant`, `not_offered`, `bad_request`, `invalid_token` or
+  `no_session_handle`; `unavailable` carries `auth_host_unavailable`,
+  `rate_limited` or `key_set_unavailable`. Only a mistake in the call throws.
+
 ## [0.48.0] — 2026-10-24
 
 ### Added

@@ -275,5 +275,35 @@
             { "name": "claims nobody verified", "session": ["session", "valid", "bound to this site"], "verified": false, "options": { "project_key": "pk_test_srule_none" } },
             { "name": "claims nobody verified, claiming a coin", "session": ["session", "valid", "backed by a coin (a complete claim)"], "verified": false, "options": { "require_bond": { "min_sats": 10000 } } }
         ]
+    },
+    "exchange_native": {
+        "description": "A native sign-in's code traded for its token (me-client exchangeNativeCode, sdk-py exchange_native_code): POST `url` with `body`, then the token verified for the input's audience against integrator.json's session key set. A call that can't be valid is refused before anything is sent (`refused` patches `input`); every answer is a result, never an exception. A `token` in an answer's body names a token in integrator.json. `jwks` is ochk.io's answer for its key set (none: integrator.json's, 200). A valid result names the claims its session must carry.",
+        "url": "https://ochk.io/api/auth/native/token",
+        "input": { "code": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:53819/oc/callback", "project_key": "pk_test_tv", "audience": "https://soniq.example" },
+        "body": { "grant_type": "authorization_code", "code": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:53819/oc/callback", "project": "pk_test_tv" },
+        "refused": [
+            { "name": "an empty code", "input": { "code": "" } },
+            { "name": "no verifier", "input": { "code_verifier": null } },
+            { "name": "a project key that is not a string", "input": { "project_key": 7 } },
+            { "name": "every site as the audience", "input": { "audience": "*" } },
+            { "name": "a field over 512 characters", "input": { "redirect_uri": { "repeat": "string", "of": "a", "count": 513 } } }
+        ],
+        "answers": [
+            { "name": "a token from native sign-in", "status": 200, "body": { "ok": true, "token": ["session", "valid", "from native sign-in"], "token_type": "orangecheck" }, "result": { "status": "valid", "claims": { "did_oc": "did:oc:0123456789abcdef0123456789abcdef", "jti": "tv-jti-native", "azp": "native" } } },
+            { "name": "a popup token", "status": 200, "body": { "ok": true, "token": ["session", "valid", "bound to this site"] }, "result": { "status": "valid", "claims": { "jti": "tv-jti-1" } } },
+            { "name": "a token with no aud", "status": 200, "body": { "ok": true, "token": ["session", "invalid", "a family session with no aud"] }, "result": { "status": "invalid", "reason": "invalid_token" } },
+            { "name": "a token signed by another key", "status": 200, "body": { "ok": true, "token": ["session", "invalid", "signed by a key not in the set"] }, "result": { "status": "invalid", "reason": "invalid_token" } },
+            { "name": "a token with no revocation handle", "status": 200, "body": { "ok": true, "token": ["session", "invalid", "no revocation handle"] }, "result": { "status": "invalid", "reason": "no_session_handle" } },
+            { "name": "a token while the key set can't be read", "status": 200, "body": { "ok": true, "token": ["session", "valid", "from native sign-in"] }, "jwks": { "status": 503, "body": { "ok": false } }, "result": { "status": "unavailable", "reason": "key_set_unavailable" } },
+            { "name": "a 200 without a token", "status": 200, "body": { "ok": true }, "result": { "status": "unavailable", "reason": "auth_host_unavailable" } },
+            { "name": "a 200 that is not JSON", "status": 200, "body": "<html>", "result": { "status": "unavailable", "reason": "auth_host_unavailable" } },
+            { "name": "a spent, unknown or mismatched code", "status": 400, "body": { "ok": false, "reason": "invalid_grant" }, "result": { "status": "invalid", "reason": "invalid_grant" } },
+            { "name": "a field ochk.io could not read", "status": 400, "body": { "ok": false, "reason": "invalid_request" }, "result": { "status": "invalid", "reason": "bad_request" } },
+            { "name": "native sign-in not offered", "status": 404, "body": { "ok": false, "reason": "not_found" }, "result": { "status": "invalid", "reason": "not_offered" } },
+            { "name": "rate limited", "status": 429, "body": { "ok": false, "reason": "rate_limited" }, "result": { "status": "unavailable", "reason": "rate_limited" } },
+            { "name": "an outage at me.ochk.io", "status": 503, "body": { "ok": false, "reason": "project_unavailable" }, "result": { "status": "unavailable", "reason": "auth_host_unavailable" } },
+            { "name": "a redirect", "status": 302, "body": null, "result": { "status": "unavailable", "reason": "auth_host_unavailable" } },
+            { "name": "no answer", "status": 0, "body": null, "result": { "status": "unavailable", "reason": "auth_host_unavailable" } }
+        ]
     }
 }

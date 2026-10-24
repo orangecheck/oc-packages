@@ -2,7 +2,8 @@
  * Server-side helpers: verify a sign-in token (`checkOcToken`,
  * `verifyOcToken`), check a request's session (`checkOcSession`, `withOcAuth`,
  * `ocAuthExpress`, `ocAuthHono`), end a token (`revokeToken`), spend one once
- * (`spendOnce`), and the Connect calls. The rest of the client is in
+ * (`spendOnce`), trade a native app's sign-in code (`exchangeNativeCode`), and
+ * the Connect calls. The rest of the client is in
  * [`@orangecheck/me-client`](/sdk/me-client/README), and the popup in
  * [`@orangecheck/me-client/popup`](/sdk/me-client/popup/README).
  *
@@ -40,6 +41,11 @@
  *   connectProvision({ apiKey, userId, consent? }) → { ok, did_oc, is_new }
  *   connectClaimLink({ apiKey, userId })           → { ok, url, expires_at }
  *   connectDelete({ apiKey, userId })              → { ok, result }
+ *
+ * Native sign-in, for an app on a person's device (ochk.io/docs/integration/native-sign-in):
+ *
+ *   exchangeNativeCode({ code, codeVerifier, redirectUri, projectKey, audience })
+ *     → { status: 'valid', token, session } | { status: 'invalid' | 'unavailable', reason }
  *
  * Plus the activity-attestation verifier · for sybil-resistance gating:
  *
@@ -215,6 +221,13 @@ export type {
 export { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from './connect-consent';
 // After a sign-in: start one session per token, then end the token at ochk.io.
 export { spendOnce, MemoryJtiStore, revokeToken } from './tokens';
+export { exchangeNativeCode } from './native';
+export type {
+    ExchangeNativeCodeInput,
+    ExchangeNativeCodeOptions,
+    ExchangeNativeCodeRefusal,
+    ExchangeNativeCodeResult,
+} from './native';
 // After an account merge: find the user this person was at your site.
 export { matchMergedUser, mergedHandles } from './merged';
 export type { MergedUserMatch } from './merged';

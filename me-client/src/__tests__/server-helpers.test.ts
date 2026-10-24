@@ -9,6 +9,7 @@ import {
     _resetSessionChecksForTests,
     checkOcToken,
     checkSignInRule,
+    exchangeNativeCode,
     getOcSession,
     MemoryJtiStore,
     revokeToken,
@@ -269,6 +270,78 @@ describe('revokeToken · ending a token at ochk.io', () => {
         expect(() => revokeToken('a.b.c', { timeout: 5 } as never)).toThrow(/unknown option timeout/);
         expect(() => revokeToken('a.b.c', { timeoutMs: 0 })).toThrow(SDK);
         expect(() => revokeToken('a.b.c', { timeoutMs: 30_001 })).toThrow(SDK);
+    });
+});
+
+describe('exchangeNativeCode · a native sign-in code traded for its token', () => {
+    type In = { code: string; code_verifier: string; redirect_uri: string; project_key: string; audience: string };
+    const X = H.exchange_native as {
+        url: string;
+        input: In;
+        body: unknown;
+        refused: { name: string; input: Partial<Record<keyof In, unknown>> }[];
+        answers: {
+            name: string;
+            status: number;
+            body: unknown;
+            jwks?: Answer;
+            result: { status: string; reason?: string; claims?: Record<string, unknown> };
+        }[];
+    };
+    const call = (i: Record<string, unknown>) =>
+        exchangeNativeCode({
+            code: i.code,
+            codeVerifier: i.code_verifier,
+            redirectUri: i.redirect_uri,
+            projectKey: i.project_key,
+            audience: i.audience,
+        } as Parameters<typeof exchangeNativeCode>[0]);
+
+    function stub(answer: Answer, jwks?: Answer) {
+        const calls: { url: string; init: RequestInit }[] = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url: string, init: RequestInit = {}) => {
+                const u = String(url);
+                if (u === 'https://ochk.io/.well-known/jwks.json') return respond(jwks ?? { status: 200, body: V.session.jwks });
+                calls.push({ url: u, init });
+                if (answer.status === 0) throw new TypeError('fetch failed');
+                if (answer.status >= 300 && answer.status < 400) throw new TypeError('unexpected redirect');
+                return respond(answer);
+            })
+        );
+        return calls;
+    }
+
+    it('sends what sdk-py sends', async () => {
+        const calls = stub({ status: 400, body: { ok: false, reason: 'invalid_grant' } });
+        await call(X.input);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.url).toBe(X.url);
+        expect(calls[0]!.init).toMatchObject({ method: 'POST', redirect: 'error' });
+        expect(JSON.parse(String(calls[0]!.init.body))).toEqual(X.body);
+    });
+
+    it.each(X.refused)('refuses before sending: $name', async (r) => {
+        const calls = stub({ status: 200, body: { ok: true } });
+        const patch = Object.fromEntries(Object.entries(r.input).map(([k, v]) => [k, expand(v)]));
+        await expect(call({ ...X.input, ...patch })).rejects.toThrow(SDK);
+        expect(calls).toHaveLength(0);
+    });
+
+    it.each(X.answers)('reads the answer: $name', async (a) => {
+        const body =
+            a.body && typeof a.body === 'object' && Array.isArray((a.body as { token?: unknown }).token)
+                ? { ...a.body, token: tokenFor((a.body as { token: [string, string, string] }).token) }
+                : a.body;
+        stub({ status: a.status, body }, a.jwks);
+        const got = await call(X.input);
+        if (a.result.status === 'valid') {
+            expect(got.status).toBe('valid');
+            if (got.status === 'valid') expect(got.session).toMatchObject(a.result.claims!);
+        } else {
+            expect(got).toEqual({ status: a.result.status, reason: a.result.reason });
+        }
     });
 });
 

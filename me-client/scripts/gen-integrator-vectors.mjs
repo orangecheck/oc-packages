@@ -95,6 +95,13 @@ const sessionVectors = {
             audience: SITE,
             claims: { ...drop(base, 'iss'), jti: 'tv-jti-3', iat: RETIRED_AT - 60 },
         },
+        {
+            // Native sign-in (an app on the person's device) issues the popup's token, with azp.
+            name: 'from native sign-in',
+            token: await jwt({ ...base, jti: 'tv-jti-native', azp: 'native' }),
+            audience: SITE,
+            claims: { ...drop(base, 'iss'), jti: 'tv-jti-native', azp: 'native' },
+        },
     ],
     invalid: [
         { name: 'bound to another site', token: good, audience: 'https://other.example', reason: 'audience' },

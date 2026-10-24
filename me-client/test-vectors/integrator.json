@@ -94,6 +94,21 @@
                     "aud": "https://soniq.example",
                     "rh": "tv-rh-0001"
                 }
+            },
+            {
+                "name": "from native sign-in",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbmF0aXZlIiwiaXNzIjoiaHR0cHM6Ly9vY2hrLmlvIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsInJoIjoidHYtcmgtMDAwMSIsImF6cCI6Im5hdGl2ZSIsImF1ZCI6Imh0dHBzOi8vc29uaXEuZXhhbXBsZSJ9.fI99khTwSeA4O6dFjF81rn4_D4vxTelRx__SckpN1fUO_8bpPyjfO6KRdyw284IKST0tHyCA2Wi1Fs0bSGu6Cg",
+                "audience": "https://soniq.example",
+                "claims": {
+                    "sub": "6f1c2a5e-0000-4000-8000-000000000001",
+                    "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+                    "jti": "tv-jti-native",
+                    "iat": 1799999940,
+                    "exp": 1800003600,
+                    "aud": "https://soniq.example",
+                    "rh": "tv-rh-0001",
+                    "azp": "native"
+                }
             }
         ],
         "invalid": [

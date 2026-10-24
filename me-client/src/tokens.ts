@@ -103,10 +103,10 @@ const REVOKE_OPTIONS: ReadonlySet<string> = new Set<keyof RevokeTokenOptions>(['
  * machine only. A path, a query, a fragment or a user name would send the
  * tokens somewhere else on the host (or carry credentials), so each is refused.
  */
-function issuerOrigin(issuer: unknown): string {
-    if (typeof issuer !== 'string') fail('revokeToken: issuer must be a URL');
+export function issuerOrigin(issuer: unknown, where = 'revokeToken'): string {
+    if (typeof issuer !== 'string') fail(`${where}: issuer must be a URL`);
     const refuse = (): never =>
-        fail(`revokeToken: issuer must be one https origin (http only on this machine), such as https://ochk.io, got ${issuer}`);
+        fail(`${where}: issuer must be one https origin (http only on this machine), such as https://ochk.io, got ${issuer}`);
     if (/[?#@\\]/.test(issuer)) refuse();
     let url: URL;
     try {

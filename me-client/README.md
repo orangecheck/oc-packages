@@ -279,6 +279,27 @@ A *.ochk.io site that reads the family cookie (no `audience`) sees family sessio
 
 Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `getOcSession`, `withOcAuth`, `ocAuthExpress` and `ocAuthHono` refuse a session the person ended everywhere: sign out everywhere, a passkey removed, the account deleted. A sign-in token carries `rh`, its revocation handle for your origin; they look it up in me.ochk.io's list of ended handles for that origin, read once a minute per origin with a request signed by your secret, so a refusal lands within about two minutes. The handles name nobody, and another site's handles for the same person never match yours. If the list can't be read, or is more than ten minutes old by its own clock, reads go on and writes are refused until it can: the adapters answer such a write `503 { reason: 'revocations_unavailable' }` (0.38.0), not 401, so a client retries instead of signing the person out, and `checkOcSession(headers, options)` tells the same apart for your own code (`signed_in`, `signed_out` or `unavailable`). Every token while the two variables are unset is checked by its signature alone and stays valid until it expires. A token bound to your site without `rh` is refused (`no_session_handle`, 0.40.0 or later), since sign out everywhere can't reach it; every token from the sign-in popup carries one, and `requireHandle: false` accepts one minted some other way. Needs 0.35.0 or later.
 
+### Sign in from an app on the person's device
+
+A desktop build or a game can't open the popup, and must not carry a secret. It signs the person in through their browser instead (0.49.0, test projects only for now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE challenge, and its listener receives a one-time `code`. The app hands the code, its verifier and its redirect to your server, which trades them:
+
+```ts
+import { exchangeNativeCode, spendOnce } from '@orangecheck/me-client/server';
+
+const out = await exchangeNativeCode({
+    code,
+    codeVerifier,
+    redirectUri, // exactly as the app sent it: http://127.0.0.1:<port>/<path>
+    projectKey: 'pk_test_…',
+    audience: 'https://your-site.example', // your verified domain, or your test project's dev origin
+});
+if (out.status === 'valid' && (await spendOnce(out.session.jti, out.session.exp ?? 0, store))) {
+    // Start your session for out.session.did_oc.
+}
+```
+
+The token is the popup's, verified for your `audience`, with `azp: "native"`. `invalid` names why (`invalid_grant`: start again); `unavailable` is an outage, so answer it 503. Each code works once, whatever the answer. Turn native sign-in on for a test project on ochk.app; the app's half, with a Godot example, is at ochk.io/docs/integration/native-sign-in.
+
 ## Keep your own login: OC Connect
 
 A site that keeps its own login (Auth0, Clerk, NextAuth, email and password) makes an orangecheck account for its user from its backend. Your Connect API key is on ochk.app, under your project's **Sign-in → Your own login**. Server only: import these only from code that never reaches a client bundle. They refuse to run where there is a `document`, which catches the commonest slip but is not a guard (a browser Web Worker has none).
