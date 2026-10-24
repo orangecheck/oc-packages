@@ -12,7 +12,7 @@ import {
 } from "@orangecheck/auth-core";
 
 import { oc } from "../index";
-import { verifyOcToken } from "../server";
+import { matchMergedUser, mergedHandles, verifyOcToken } from "../server";
 import { verify as verifyWebhook, type OcPublicJwk } from "../webhook";
 
 /**
@@ -292,5 +292,44 @@ describe("vectors · who may sign in (coin backing)", () => {
       }),
     ).toBe(v.meets);
     vi.useRealTimers();
+  });
+});
+
+const M = (
+  V as unknown as {
+    merged: {
+      token: { name: string; token: string; audience: string; merged_rh: string[] };
+      cases: {
+        name: string;
+        session: { merged_rh?: unknown };
+        stored: Record<string, string>;
+        expect: { kind: string; user?: string; users?: string[] };
+      }[];
+    };
+  }
+).merged;
+
+describe("vectors · after an account merge", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("a verified token names the merged accounts' handles", async () => {
+    _resetJwksCachesForTests();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(V.now * 1000);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => V.session.jwks }) as Response),
+    );
+    const session = await verifyOcToken(M.token.token, { audience: M.token.audience });
+    expect(session).not.toBeNull();
+    expect(mergedHandles(session!)).toEqual(M.token.merged_rh);
+  });
+
+  it.each(M.cases)("matches: $name", async (v) => {
+    const got = await matchMergedUser(v.session, (rh) => v.stored[rh] ?? null);
+    expect(got).toEqual(v.expect);
   });
 });

@@ -215,6 +215,9 @@ export type {
 export { CONNECT_CONSENT_LABEL, CONNECT_CONSENT_BLURB } from './connect-consent';
 // After a sign-in: start one session per token, then end the token at ochk.io.
 export { spendOnce, MemoryJtiStore, revokeToken } from './tokens';
+// After an account merge: find the user this person was at your site.
+export { matchMergedUser, mergedHandles } from './merged';
+export type { MergedUserMatch } from './merged';
 export type { JtiStore, RevokeTokenOptions, RevokeTokenResult, RevokeTokenRefusal } from './tokens';
 export type {
     ActivityAttestation,

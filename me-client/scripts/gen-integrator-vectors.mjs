@@ -303,6 +303,30 @@ const bondVectors = [
     { name: 'wrong version', bond: { ...BOND, v: 2 }, need: {}, meets: false },
 ];
 
+// After an account merge (merged_rh): a token's handles for the accounts merged
+// in, matched against the handles an integrator stored (rh → its user id).
+const H1 = rh(revKey('acct-tv-merged-1'), SITE);
+const H2 = rh(revKey('acct-tv-merged-2'), SITE);
+const H3 = rh(revKey('acct-tv-merged-3'), SITE);
+const mergedVectors = {
+    token: {
+        name: 'a token naming two merged accounts',
+        token: await jwt({ ...base, jti: 'tv-jti-merged', merged_rh: [H1, H2] }),
+        audience: SITE,
+        merged_rh: [H1, H2],
+    },
+    cases: [
+        { name: 'nothing merged in', session: {}, stored: { [H1]: 'user-1' }, expect: { kind: 'none' } },
+        { name: 'one stored handle', session: { merged_rh: [H1, H2] }, stored: { [H1]: 'user-1' }, expect: { kind: 'one', user: 'user-1' } },
+        { name: 'two handles of one user', session: { merged_rh: [H1, H2] }, stored: { [H1]: 'user-1', [H2]: 'user-1' }, expect: { kind: 'one', user: 'user-1' } },
+        { name: 'a handle that matches nothing: a new user', session: { merged_rh: [H3] }, stored: { [H1]: 'user-1' }, expect: { kind: 'none' } },
+        { name: 'two of your users: pick neither', session: { merged_rh: [H1, H2] }, stored: { [H1]: 'user-2', [H2]: 'user-1' }, expect: { kind: 'conflict', users: ['user-1', 'user-2'] } },
+        { name: 'not a list', session: { merged_rh: H1 }, stored: { [H1]: 'user-1' }, expect: { kind: 'none' } },
+        { name: 'a list with a non-string', session: { merged_rh: [H1, 7] }, stored: { [H1]: 'user-1' }, expect: { kind: 'none' } },
+        { name: 'more than 16 handles', session: { merged_rh: [H1, ...Array.from({ length: 16 }, (_, i) => `tv-filler-${i}`)] }, stored: { [H1]: 'user-1' }, expect: { kind: 'none' } },
+    ],
+};
+
 const doc = {
     description:
         'Integrator wire formats: sign-in tokens, X-OC-Signature event signatures, webhook signatures and revocation handles. ' +
@@ -314,6 +338,7 @@ const doc = {
     webhook: webhookVectors,
     revocation: revocationVectors,
     bond: bondVectors,
+    merged: mergedVectors,
 };
 writeFileSync(OUT, JSON.stringify(doc, null, 4) + '\n');
 console.log(`wrote ${OUT}`);

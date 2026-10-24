@@ -8,6 +8,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.45.0] — 2026-10-24
+
+### Added
+
+- `matchMergedUser(session, lookup)` and `mergedHandles(session)` (server):
+  after someone merges two orangecheck accounts, a sign-in token carries
+  `merged_rh`, your site's handle for each account merged in. Look them up in
+  the handles you stored; the answer is `none` (a new user), `one` (attach this
+  `did_oc` to that user) or `conflict` (two of your users: pick neither). A
+  claim that is not a list of at most 16 non-empty strings reads as none.
+  `orangecheck` 3.4.0 has `match_merged_user`; both are held to
+  `test-vectors/integrator.json` (`merged`).
+
 ## [0.44.0] — 2026-10-24
 
 ### Changed

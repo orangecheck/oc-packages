@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.18.0] — 2026-10-24
+
+### Added
+
+- `SessionPayload.merged_rh`: on a token for one audience, that audience's
+  revocation handle for each account merged into this one, at most 16. A site
+  matches them against handles it stored to keep a person's history after they
+  merge accounts (`matchMergedUser` in `@orangecheck/me-client` 0.45.0).
+
+### Changed
+
+- `SessionPayload.merged_from` says it is on family sessions only; a token for
+  another site carries `merged_rh` instead.
+
 ## [2.17.1] — 2026-10-24
 
 ### Docs

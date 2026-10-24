@@ -31,6 +31,8 @@ from orangecheck import (
     InvalidSession,
     SignInPolicy,
     bond_meets,
+    match_merged_user,
+    merged_handles,
     InvalidWebhook,
     RevocationList,
     SessionEnded,
@@ -933,3 +935,24 @@ def test_a_list_dated_ahead_vouches_once_a_lagging_clock_catches_up(monkeypatch:
     clocks.wall += 31
     clocks.mono += 1
     assert rl.status("x", R["request"]["aud"], 0) == "live"
+
+
+# ─── after an account merge ──────────────────────────────────────────────
+
+MV = V["merged"]
+
+
+def test_a_verified_token_names_the_merged_accounts_handles() -> None:
+    v = MV["token"]
+    s = verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"])
+    assert list(s.merged_rh) == v["merged_rh"]
+    assert list(merged_handles(s)) == v["merged_rh"]
+
+
+@pytest.mark.parametrize("v", MV["cases"], ids=lambda v: v["name"])
+def test_merged_users_match_as_the_node_sdk_does(v: dict[str, Any]) -> None:
+    got = match_merged_user(v["session"], lambda rh: v["stored"].get(rh))
+    want = v["expect"]
+    assert got.kind == want["kind"]
+    assert got.user == want.get("user")
+    assert list(got.users) == want.get("users", [])

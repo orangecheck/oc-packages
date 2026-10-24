@@ -657,5 +657,152 @@
             "need": {},
             "meets": false
         }
-    ]
+    ],
+    "merged": {
+        "token": {
+            "name": "a token naming two merged accounts",
+            "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbWVyZ2VkIiwiaXNzIjoiaHR0cHM6Ly9vY2hrLmlvIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDM2MDAsInJoIjoidHYtcmgtMDAwMSIsIm1lcmdlZF9yaCI6WyJDcC0yTkNQNXZnemZ0R2haOGdqOGVRIiwiQnJrZE82dGE0QldUN3lBQkxKTC1OQSJdLCJhdWQiOiJodHRwczovL3NvbmlxLmV4YW1wbGUifQ.sYPcbgmINEUbNT0U9t2o_IDPawoPQ3ivEyj6aBG0u-_1Ap0D8b93d4n9y88PGvgcYuA9zmK4JCTPrLnmA7LsBg",
+            "audience": "https://soniq.example",
+            "merged_rh": [
+                "Cp-2NCP5vgzftGhZ8gj8eQ",
+                "BrkdO6ta4BWT7yABLJL-NA"
+            ]
+        },
+        "cases": [
+            {
+                "name": "nothing merged in",
+                "session": {},
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "none"
+                }
+            },
+            {
+                "name": "one stored handle",
+                "session": {
+                    "merged_rh": [
+                        "Cp-2NCP5vgzftGhZ8gj8eQ",
+                        "BrkdO6ta4BWT7yABLJL-NA"
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "one",
+                    "user": "user-1"
+                }
+            },
+            {
+                "name": "two handles of one user",
+                "session": {
+                    "merged_rh": [
+                        "Cp-2NCP5vgzftGhZ8gj8eQ",
+                        "BrkdO6ta4BWT7yABLJL-NA"
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1",
+                    "BrkdO6ta4BWT7yABLJL-NA": "user-1"
+                },
+                "expect": {
+                    "kind": "one",
+                    "user": "user-1"
+                }
+            },
+            {
+                "name": "a handle that matches nothing: a new user",
+                "session": {
+                    "merged_rh": [
+                        "XLxRvwDgXZ93vY_fWT0vmA"
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "none"
+                }
+            },
+            {
+                "name": "two of your users: pick neither",
+                "session": {
+                    "merged_rh": [
+                        "Cp-2NCP5vgzftGhZ8gj8eQ",
+                        "BrkdO6ta4BWT7yABLJL-NA"
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-2",
+                    "BrkdO6ta4BWT7yABLJL-NA": "user-1"
+                },
+                "expect": {
+                    "kind": "conflict",
+                    "users": [
+                        "user-1",
+                        "user-2"
+                    ]
+                }
+            },
+            {
+                "name": "not a list",
+                "session": {
+                    "merged_rh": "Cp-2NCP5vgzftGhZ8gj8eQ"
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "none"
+                }
+            },
+            {
+                "name": "a list with a non-string",
+                "session": {
+                    "merged_rh": [
+                        "Cp-2NCP5vgzftGhZ8gj8eQ",
+                        7
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "none"
+                }
+            },
+            {
+                "name": "more than 16 handles",
+                "session": {
+                    "merged_rh": [
+                        "Cp-2NCP5vgzftGhZ8gj8eQ",
+                        "tv-filler-0",
+                        "tv-filler-1",
+                        "tv-filler-2",
+                        "tv-filler-3",
+                        "tv-filler-4",
+                        "tv-filler-5",
+                        "tv-filler-6",
+                        "tv-filler-7",
+                        "tv-filler-8",
+                        "tv-filler-9",
+                        "tv-filler-10",
+                        "tv-filler-11",
+                        "tv-filler-12",
+                        "tv-filler-13",
+                        "tv-filler-14",
+                        "tv-filler-15"
+                    ]
+                },
+                "stored": {
+                    "Cp-2NCP5vgzftGhZ8gj8eQ": "user-1"
+                },
+                "expect": {
+                    "kind": "none"
+                }
+            }
+        ]
+    }
 }

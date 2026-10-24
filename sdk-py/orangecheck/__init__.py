@@ -81,6 +81,7 @@ from .integrator import (
     BondRequired,
     InvalidSession,
     InvalidWebhook,
+    MergedUserMatch,
     RevocationList,
     Session,
     SessionCheck,
@@ -91,6 +92,8 @@ from .integrator import (
     bond_meets,
     check_oc_session,
     check_sign_in_rule,
+    match_merged_user,
+    merged_handles,
     read_bond_claim,
     revocation_key,
     sign_event,
@@ -175,6 +178,9 @@ __all__ = [
     "BondRequired",
     "bond_meets",
     "read_bond_claim",
+    "MergedUserMatch",
+    "match_merged_user",
+    "merged_handles",
     # After a sign-in: one session per token, then end the token at ochk.io
     "spend_once",
     "spend_once_async",
@@ -207,7 +213,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.3.1"
+__version__ = "3.4.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

@@ -32,7 +32,7 @@ import re
 import threading
 import time
 import weakref
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
 from urllib.parse import quote, urlsplit
@@ -95,6 +95,8 @@ class Session:
     claims: dict[str, Any] = field(default_factory=dict)
     #: The token's revocation handle on its audience's list of ended sessions.
     rh: Optional[str] = None
+    #: This site's handles for accounts merged into this one (see match_merged_user).
+    merged_rh: tuple[str, ...] = ()
 
 
 # ─── key sets ────────────────────────────────────────────────────────────
@@ -899,9 +901,59 @@ def verify_session(
         oc_bond=bond if isinstance(bond, dict) else None,
         claims=payload,
         rh=rh if isinstance(rh, str) else None,
+        merged_rh=merged_handles(payload),
     )
     _verified[id(session)] = session
     return session
+
+
+# ─── after an account merge ──────────────────────────────────────────────
+
+#: At most this many handles ride one token; a longer claim is not read.
+_MERGED_HANDLES_MAX = 16
+
+
+def merged_handles(session: Union["Session", Mapping[str, Any]]) -> tuple[str, ...]:
+    """
+    The merged handles on a verified session (or its claims), as
+    ``@orangecheck/me-client``'s ``mergedHandles`` reads them: a claim that is not
+    a list of at most 16 non-empty strings reads as none.
+    """
+    raw = session.get("merged_rh") if isinstance(session, Mapping) else session.claims.get("merged_rh")
+    if not isinstance(raw, list) or len(raw) > _MERGED_HANDLES_MAX:
+        return ()
+    if not all(isinstance(h, str) and h for h in raw):
+        return ()
+    return tuple(dict.fromkeys(raw))
+
+
+@dataclass(frozen=True)
+class MergedUserMatch:
+    """Which of your users a merged account was: ``kind`` is ``"none"``, ``"one"`` or ``"conflict"``."""
+
+    kind: str
+    user: Optional[str] = None
+    users: tuple[str, ...] = ()
+
+
+def match_merged_user(
+    session: Union["Session", Mapping[str, Any]], lookup: Callable[[str], Optional[str]]
+) -> MergedUserMatch:
+    """
+    Which of your users this person was before a merge, as me-client's
+    ``matchMergedUser``. Call it with a verified session whose ``did_oc`` you have
+    no row for; ``lookup`` answers the user that stored a handle, or None.
+
+    ``"none"``: create a user, as for anyone new. ``"one"``: attach this
+    ``did_oc`` and ``rh`` to that user. ``"conflict"``: the handles name two of
+    your users; pick neither, and log it.
+    """
+    users = {u for u in (lookup(h) for h in merged_handles(session)) if isinstance(u, str) and u}
+    if not users:
+        return MergedUserMatch("none")
+    if len(users) == 1:
+        return MergedUserMatch("one", user=next(iter(users)))
+    return MergedUserMatch("conflict", users=tuple(sorted(users)))
 
 
 #: Can't tell right now: the client should try again, never sign the person out.

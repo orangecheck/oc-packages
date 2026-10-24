@@ -140,8 +140,20 @@ export interface SessionPayload extends JWTPayload {
    * aggregate per-user data should union queries across
    * `[did_oc, ...merged_from]`. Absent / empty means "no absorbed
    * accounts." Order is not significant.
+   *
+   * Family sessions only (orangecheck's own sites). A token the sign-in
+   * popup issues to another site never carries it, because it would hand
+   * that site ids it never saw; it carries `merged_rh` instead.
    */
   merged_from?: string[];
+  /**
+   * On a token for one audience: the revocation handle, for that same
+   * audience, of each account merged into this one (up to 16). A site
+   * matches them only against handles it stored when those accounts signed
+   * in, so it can move a user to the account they use now and learns no id
+   * it hadn't already seen. Absent when nothing was merged in.
+   */
+  merged_rh?: string[];
   /**
    * The token's revocation handle on its audience's list of ended sessions,
    * on every token the ochk.app sign-in popup issues: one handle per account

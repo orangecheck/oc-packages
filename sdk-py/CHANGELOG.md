@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.4.0] — 2026-10-24
+
+### Added
+
+- `Session.merged_rh`, `merged_handles(session)` and
+  `match_merged_user(session, lookup)` → `MergedUserMatch`: after an account
+  merge, a sign-in token names your site's handle for each account merged in.
+  Look them up in the handles you stored: `"none"` (a new user), `"one"`
+  (attach this `did_oc` to that user) or `"conflict"` (two of your users: pick
+  neither). As `@orangecheck/me-client` 0.45.0's `matchMergedUser`, held to
+  the shared vectors (`merged`).
+
 ## [3.3.1] — 2026-10-24
 
 ### Changed
