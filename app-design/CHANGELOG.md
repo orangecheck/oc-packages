@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-10-24
+
+- `FontPreloads` renders nothing. The font preload delayed first paint by 118
+  to 162 ms on stamp, vote, agent and the docs (paired runs, 23 of 23), and
+  without it the font swap moves nothing: CLS stayed at or under 0.0001 on 28
+  of 29 pages across the 15 sites that rendered it, with the swap exercised.
+  The export stays, so a `_document` that mounts it keeps building; remove it
+  when convenient. `FONT_FILES` is unchanged.
+- check-next asserts the built page carries no font preload.
+
 ## [1.19.0] — 2026-10-24
 
 - The mark's geometry and colours come from `@orangecheck/mark`, the

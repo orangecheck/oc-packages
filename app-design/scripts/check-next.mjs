@@ -11,8 +11,8 @@
  * that mounts only ErrorBoundary and Toaster stays small; the 404 page, which
  * Vercel runs as a function shipping only what _app, _document and the page
  * trace (and a static page's trace leaves out node_modules), imports nothing
- * from node_modules that those traces do not carry; and FontPreloads names
- * the very file the stylesheet does, base path and hash. Run after `yarn build`.
+ * from node_modules that those traces do not carry; and FontPreloads, kept for
+ * the sites that mount it, puts no preload in the page. Run after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -161,17 +161,15 @@ try {
         console.error(`✗ next: the 404 page imports ${[...missing].join(', ')} at run time, which the 404 function does not ship`);
         process.exit(1);
     }
-    // FontPreloads names the file the stylesheet does: same hash, under the base path.
+    // FontPreloads is mounted in _document and renders nothing: no font preload reaches the page.
     const page = readFileSync(join(site, '.next', 'server', 'pages', 'index.html'), 'utf8');
-    const preload = page.match(/<link rel="preload" as="font"[^>]*href="([^"]+)"/)?.[1];
-    const css = readdirSync(join(site, '.next', 'static', 'css')).map((f) => readFileSync(join(site, '.next', 'static', 'css', f), 'utf8')).join('');
-    const sheetFont = css.match(/url\(([^)]*inter-latin\.[0-9a-f]+\.woff2[^)]*)\)/)?.[1]?.replace(/["']/g, '');
-    if (!preload || !sheetFont || preload !== sheetFont || !preload.startsWith('/b/_next/static/media/') || !preload.endsWith('?dpl=dpl_check')) {
-        console.error(`✗ next: FontPreloads named ${preload}; the stylesheet loads ${sheetFont}`);
+    const preload = page.match(/<link rel="preload" as="font"[^>]*>/)?.[0];
+    if (preload) {
+        console.error(`✗ next: FontPreloads put ${preload} in the page; it renders nothing since 1.20.0`);
         process.exit(1);
     }
     console.log(
-        `✓ next: router links, relative links and docs cards carry the base path, and sign-in returns to the route; _app ${appKb.toFixed(0)} kB, the 404 function has what the page imports, the font preload is the stylesheet's file, in a real Next build`
+        `✓ next: router links, relative links and docs cards carry the base path, and sign-in returns to the route; _app ${appKb.toFixed(0)} kB, the 404 function has what the page imports, no font preload, in a real Next build`
     );
 } finally {
     rmSync(site, { recursive: true, force: true });

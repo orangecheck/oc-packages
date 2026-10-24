@@ -46,7 +46,7 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 | `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
 | `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`, `failureText`, `OFFLINE_TEXT`; no React |
-| `/fonts` | `FontPreloads`, `FONT_FILES`: preload the fonts the first screen paints in, at the stylesheet's own address |
+| `/fonts` | `FONT_FILES`: the fonts the first screen paints in, at the stylesheet's own address. `FontPreloads` renders nothing since 1.20.0 (a preload cost first paint and saved no shift) and stays so no `_document` breaks |
 | `/og` | `OgCard`, `ogFonts()`, `OG_SIZE`: the family share card for next/og's ImageResponse, Inter inline |
 | `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
 | `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |
