@@ -399,9 +399,32 @@ for (const mode of ['dark', 'light']) {
     await search.unmount();
 }
 
+// useRefusals: a refused submit says so on its fields, marks them, puts the cursor on the first; typing clears it.
+{
+    function Form() {
+        const { errors, control, refuse } = P.useRefusals();
+        return h(
+            'form',
+            { onSubmit: (e) => (e.preventDefault(), refuse({ name: 'Add a name.', domain: 'Add the domain.', note: false })) },
+            h(P.Field, { label: 'Name', error: errors.name }, h(P.Input, { 'data-k': 'name', ...control('name') })),
+            h(P.Field, { label: 'Domain', error: errors.domain }, h(P.Input, { 'data-k': 'domain', ...control('domain') })),
+            h('button', { type: 'submit' }, 'Next')
+        );
+    }
+    const f = await mount(h(Form));
+    const field = (k) => f.host.querySelector(`[data-k="${k}"]`);
+    const said = (el) => (el.getAttribute('aria-describedby') ?? '').split(' ').map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
+    await act(async () => f.host.querySelector('form').requestSubmit());
+    check(field('name').getAttribute('aria-invalid') === 'true' && said(field('name')).includes('Add a name.') && said(field('domain')).includes('Add the domain.'), `useRefusals: the fields read ${show(said(field('name')))} and ${show(said(field('domain')))}`);
+    check(document.activeElement === field('name'), `useRefusals: the cursor is on ${show(document.activeElement?.dataset?.k)}, not the first refused field`);
+    await act(async () => field('name').dispatchEvent(new window.Event('input', { bubbles: true })));
+    check(field('name').getAttribute('aria-invalid') === null && field('domain').getAttribute('aria-invalid') === 'true', 'useRefusals: typing in a field clears its message, and only its message');
+    await f.unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields`);
 process.exit(0);

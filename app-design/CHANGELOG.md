@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-10-24
+
+- `useRefusals()` (primitives): a refused submit said on its fields rather
+  than in a toast that fades. `refuse({ name: 'Add a name.' })` puts each
+  message under its `Field`, marks the control invalid, moves the cursor to
+  the first and returns true; typing in a field clears its message. ochk.app's
+  forms refused an empty field with a toast that named no field and was gone
+  in seconds.
+- check-dom asserts the messages, the invalid marks, the cursor and the clear.
+
 ## [1.23.0] — 2026-10-24
 
 - `AppShell`'s lockup links are named by the lockup they show, then "home",

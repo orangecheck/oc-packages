@@ -8,8 +8,11 @@ import {
     cloneElement,
     forwardRef,
     isValidElement,
+    useCallback,
     useContext,
     useId,
+    useRef,
+    useState,
     type ComponentPropsWithoutRef,
     type ElementRef,
     type InputHTMLAttributes,
@@ -169,6 +172,46 @@ export function Field({ label, hint, optional, error, children, id: fixedId, cla
             ) : null}
         </div>
     );
+}
+
+/**
+ * A refused submit, said on its fields rather than in a toast that fades:
+ * `refuse({ name: !name.trim() && 'Add a name.' })` puts each message under its
+ * field, marks it invalid, moves the cursor to the first one and returns true;
+ * nothing to say returns false. Spread `control(key)` on the control and pass
+ * `errors[key]` to its Field. Typing in a field clears its message.
+ */
+export function useRefusals<K extends string>(): {
+    errors: Partial<Record<K, string>>;
+    control: (key: K) => { ref: (el: HTMLElement | null) => void; onInput: () => void };
+    refuse: (messages: Partial<Record<K, string | false | null | undefined>>) => boolean;
+} {
+    const [errors, setErrors] = useState<Partial<Record<K, string>>>({});
+    const els = useRef<Partial<Record<K, HTMLElement | null>>>({});
+    const control = useCallback(
+        (key: K) => ({
+            ref: (el: HTMLElement | null) => {
+                els.current[key] = el;
+            },
+            onInput: () =>
+                setErrors((e) => {
+                    if (!(key in e)) return e;
+                    const next = { ...e };
+                    delete next[key];
+                    return next;
+                }),
+        }),
+        []
+    );
+    const refuse = useCallback((messages: Partial<Record<K, string | false | null | undefined>>) => {
+        const said = Object.entries(messages).filter((m): m is [K, string] => typeof m[1] === 'string' && m[1] !== '');
+        setErrors(Object.fromEntries(said) as Partial<Record<K, string>>);
+        const first = said[0];
+        if (!first) return false;
+        els.current[first[0]]?.focus();
+        return true;
+    }, []);
+    return { errors, control, refuse };
 }
 
 /* ── Select ───────────────────────────────────────────────────────────── */
