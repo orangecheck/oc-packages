@@ -1,20 +1,19 @@
 import type { SVGProps } from 'react';
 
+import { MARK_FACES, MARK_POINTS } from '@orangecheck/mark';
+
 import { cn } from '../lib/cn';
 
 /*
  * The isometric check, measured from the ochk.app design (iteration 2, slide 9) onto a 16×8 grid:
  * a chevron with a 3-unit short arm and a 5-unit long arm, one unit thick,
- * extruded two units. Three faces, three oranges.
+ * extruded two units. Three faces, three oranges. The geometry is @orangecheck/mark's,
+ * the package integrators draw it from, so there is one mark.
  */
 
-const TOP = '0,3 2,2 6,4 14,0 16,1 6,6';
-const LEFT = '0,3 6,6 6,8 0,5';
-const RIGHT = '6,6 16,1 16,3 6,8';
+const { top: TOP, left: LEFT, right: RIGHT } = MARK_POINTS;
 
-export const MARK_FACES = { top: '#FED8AB', left: '#FB933C', right: '#EA580B' } as const;
-/** The mark's three faces as SVG points, in a 16×8 box: for a renderer that draws its own SVG (an OG card). */
-export const MARK_POINTS = { top: TOP, left: LEFT, right: RIGHT } as const;
+export { MARK_FACES, MARK_POINTS };
 
 export interface MarkProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
     /** Accessible name. Omit to render the mark as decoration. */

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-10-24
+
+- The mark's geometry and colours come from `@orangecheck/mark`, the
+  dependency-free package integrators draw it from, so the family and every
+  "Sign in with orangecheck" button show one mark. `Mark`, `AppIcon`,
+  `Lockup`, `MARK_FACES` and `MARK_POINTS` are unchanged. The split ESM build
+  carries it inside, like Radix; the CommonJS build depends on it.
+- Stories: "Sign-in button" on design.ochk.io, with the integrator button
+  (`@orangecheck/me-client/react`) in three hosts' styles, orangecheck's own
+  themed button, and the mark's variants and sizes.
+
 ## [1.18.1] — 2026-10-24
 
 - `SessionAccount` under a session provider returns to the page on a

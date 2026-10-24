@@ -56,6 +56,6 @@ export default defineConfig([
         format: ['esm'],
         dts: false,
         splitting: true,
-        noExternal: [/^@radix-ui\//, 'class-variance-authority', 'clsx', 'tailwind-merge'],
+        noExternal: [/^@radix-ui\//, 'class-variance-authority', 'clsx', 'tailwind-merge', '@orangecheck/mark'],
     },
 ]);

@@ -570,6 +570,13 @@
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
+"@orangecheck/auth-core@^2.17.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.18.0.tgz#08ff04ebf8bfc7da5fce8173f182de792b9948e7"
+  integrity sha512-/isxk8cCCr3mHiIZ0nruFYTKLTWIujiEI3SEQmrMdhP88uhzHMdjfEf6kHkWYEvZkuLBHqwXa2/ypkIhNd9t9g==
+  dependencies:
+    jose "^6.2.2"
+
 "@orangecheck/auth-core@^2.5.0":
   version "2.14.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.14.0.tgz#088358badaf0f5e58028744b6969cb65e7eebcbf"
@@ -585,6 +592,18 @@
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
+
+"@orangecheck/mark@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.1.0.tgz#6b5fcef88f2893888589933ea856ceb7c1a7be5e"
+  integrity sha512-2PBA4sMt0g3lGSvmWLXZIVU2cTEcgwbzZdH2PtRlr1wk6pcaVrZjsTnRY39yc3CBQ8isJ4ggKOyAPG4b6ICIBw==
+
+"@orangecheck/me-client@^0.46.0":
+  version "0.46.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.46.0.tgz#12b4f8047c894718596f090361727ff5094db188"
+  integrity sha512-JhGT+LZ8XCrdLzwA7Ttfo1Naitw3Ce+bxqTImkpjnecszgK5y1xLLTTpdp8e/5EUKDq47r7DBvqCatzIspK6qg==
+  dependencies:
+    "@orangecheck/auth-core" "^2.17.0"
 
 "@orangecheck/wallet-adapter@^0.7.0":
   version "0.7.2"
