@@ -83,6 +83,13 @@ import { OcSignInButton, OcAccountPill } from '@orangecheck/auth-client';
 Both components use CSS classes from the caller — no enforced styling,
 so they work with Tailwind, vanilla CSS, or whatever.
 
+> **Building your own site, not an `ochk.io` one?** `OcSignInButton` is for
+> orangecheck's own sites, which share the family cookie. Your site wants the
+> sign-in button in [`@orangecheck/me-client`](https://www.npmjs.com/package/@orangecheck/me-client):
+> your button's class with the orangecheck mark, the sign-in window, and the
+> token for your own session. See
+> [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
+
 ## API
 
 ```ts

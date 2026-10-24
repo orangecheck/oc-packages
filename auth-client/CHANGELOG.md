@@ -7,6 +7,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.37.2] — 2026-10-24
+
+### Docs
+
+- README: `OcSignInButton` is for orangecheck's own sites. A site of its own
+  is pointed to `@orangecheck/me-client`'s sign-in button and
+  ochk.io/docs/integration/sign-in-button.
+
 ## [2.37.1] — 2026-10-24
 
 ### Fixed
