@@ -8,7 +8,7 @@
 
 Drop a provider near your app root, then consume the signed-in identity
 from any subdomain in the `.ochk.io` ecosystem via hooks or a prebuilt
-sign-in button.
+sign-in button. It is for orangecheck's own sites.
 
 Pairs with [`@orangecheck/auth-core`](../auth-core) on the server side.
 
@@ -18,6 +18,22 @@ Pairs with [`@orangecheck/auth-core`](../auth-core) on the server side.
 > to your users, you don't need this package — see
 > [OrangeCheck Connect](https://ochk.io/docs/connect). Both pathways are
 > compared at [ochk.io/docs/integration](https://ochk.io/docs/integration).
+
+> **Not an `ochk.io` site?** This package is for orangecheck's own sites, which
+> share the family cookie. Don't put its `OcSignInButton` on your site. Use the
+> sign-in button in [`@orangecheck/me-client`](https://www.npmjs.com/package/@orangecheck/me-client),
+> which keeps your button's own styles, shows the orangecheck mark, opens the
+> sign-in window and hands you the token for your own session:
+>
+> - `@orangecheck/me-client/react`: `<SignInWithOrangecheck>`, for React;
+> - `@orangecheck/me-client/button`: `enhanceSignInButton(button, options)`, for
+>   any other framework, with `@orangecheck/me-client/button.css`;
+> - `@orangecheck/me-client/button-auto` (`dist/button-auto.mjs`): a
+>   `<script src>` that enhances every `button[data-oc-sign-in]`, for plain
+>   HTML loaded from a CDN with Subresource Integrity.
+>
+> The words, sizes and rules are at
+> [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
 
 ## Install
 
@@ -83,12 +99,8 @@ import { OcSignInButton, OcAccountPill } from '@orangecheck/auth-client';
 Both components use CSS classes from the caller — no enforced styling,
 so they work with Tailwind, vanilla CSS, or whatever.
 
-> **Building your own site, not an `ochk.io` one?** `OcSignInButton` is for
-> orangecheck's own sites, which share the family cookie. Your site wants the
-> sign-in button in [`@orangecheck/me-client`](https://www.npmjs.com/package/@orangecheck/me-client):
-> your button's class with the orangecheck mark, the sign-in window, and the
-> token for your own session. See
-> [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
+`OcSignInButton` is for orangecheck's own sites only. On your own site, use
+me-client's button (see "Not an `ochk.io` site?" above).
 
 ## API
 
