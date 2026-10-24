@@ -659,6 +659,9 @@ async function hydrateSubdelegationScopes(
     if (sub.scopes_encrypted === undefined) {
         return { ok: true, envelope: sub };
     }
+    if (!isPlainObject(sub.scopes_encrypted) || !isPlainObject(sub.principal)) {
+        return err('E_MALFORMED', 'subdelegation scopes_encrypted and principal must be objects');
+    }
     if (sub.scopes_encrypted.from?.address !== sub.principal.address) {
         return err(
             'E_MALFORMED',
@@ -752,6 +755,11 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
 // Shape checks
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** A JSON object, not null or a list: a field read into must be one. */
+function isPlainObject(v: unknown): boolean {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
 function checkDelegationShape(env: DelegationEnvelope): VerifyDelegationResult | null {
     if (env.kind !== 'agent-delegation') return err('E_MALFORMED', 'kind must be "agent-delegation"');
     if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
@@ -766,7 +774,10 @@ function checkDelegationShape(env: DelegationEnvelope): VerifyDelegationResult |
         if (!Array.isArray(env.scopes) || env.scopes.length === 0)
             return err('E_MALFORMED', 'scopes must be non-empty array');
     }
+    if (env.scopes_encrypted !== undefined && !isPlainObject(env.scopes_encrypted))
+        return err('E_MALFORMED', 'scopes_encrypted must be an object');
     if (env.bond !== null) {
+        if (!isPlainObject(env.bond)) return err('E_MALFORMED', 'bond must be an object or null');
         if (!Number.isInteger(env.bond.sats) || env.bond.sats < 0) return err('E_MALFORMED', 'bond.sats must be non-negative integer');
         if (!isHex64(env.bond.attestation_id)) return err('E_MALFORMED', 'bond.attestation_id must be 64-hex');
     }
@@ -833,6 +844,8 @@ function checkSubdelegationShape(env: SubdelegationEnvelope): VerifySubdelegatio
         if (!Array.isArray(env.scopes) || env.scopes.length === 0)
             return err('E_MALFORMED', 'scopes must be non-empty array');
     }
+    if (env.scopes_encrypted !== undefined && !isPlainObject(env.scopes_encrypted))
+        return err('E_MALFORMED', 'scopes_encrypted must be an object');
     // Sub-delegations MUST NOT carry a bond field (SUB-DELEGATION.md §1.3).
     if ('bond' in env && (env as { bond?: unknown }).bond !== undefined) {
         return err('E_MALFORMED', 'sub-delegation envelopes MUST NOT carry a bond field');
