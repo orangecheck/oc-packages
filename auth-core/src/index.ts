@@ -691,6 +691,8 @@ const jwksFailing = new Set<string>();
  */
 const lastForcedRefresh = new Map<string, number>();
 const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
+/** A host that takes the connection and never answers would otherwise hold each request for minutes. */
+const JWKS_FETCH_TIMEOUT_MS = 10_000;
 
 interface JwksJson {
   keys: Array<Record<string, unknown> & { kid?: string }>;
@@ -708,7 +710,10 @@ async function fetchJwks(
   const p = (async (): Promise<JwksCacheEntry> => {
     try {
       const url = `${issuer.replace(/\/$/, "")}/.well-known/jwks.json`;
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(JWKS_FETCH_TIMEOUT_MS),
+      });
       if (!res.ok) {
         throw new Error(
           `[@orangecheck/auth-core] JWKS fetch ${url} returned ${res.status}`,
@@ -735,6 +740,12 @@ async function fetchJwks(
           retiredAt[k.kid] =
             typeof k.retired_at === "number" ? k.retired_at : 0;
         }
+      }
+      // No key this verifier can use is a misdeploy at the host, not a reason to refuse every token.
+      if (Object.keys(keys).length === 0) {
+        throw new Error(
+          `[@orangecheck/auth-core] JWKS at ${url} has no ${JWT_ALG} key`,
+        );
       }
       const entry: JwksCacheEntry = { keys, retiredAt, fetchedAt: Date.now() };
       jwksCache.set(issuer, entry);
@@ -831,7 +842,7 @@ const INVALID: OcTokenCheck = { status: "invalid" };
 
 /**
  * {@link verifyOcToken}, telling "invalid" from "can't tell right now"
- * (see {@link OcTokenCheck}). Throws only on an option it does not read.
+ * (see {@link OcTokenCheck}). Throws on an option it does not read, or an issuer it may not fetch from.
  */
 export async function checkOcToken(
   token: string,
@@ -841,11 +852,8 @@ export async function checkOcToken(
   const issuer = options.issuer ?? DEFAULT_ISSUER;
   const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
   const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
-  try {
-    assertSafeIssuer(issuer);
-  } catch {
-    return INVALID;
-  }
+  // A mistake in the call: answering invalid would sign out every user.
+  assertSafeIssuer(issuer);
   let entry: JwksCacheEntry;
   try {
     // Fast path: try the cache. If the kid isn't in the cache (e.g.
@@ -928,7 +936,12 @@ export async function verifyOcToken(
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("verifyOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
-  const checked = await checkOcToken(token, options);
+  let checked: OcTokenCheck;
+  try {
+    checked = await checkOcToken(token, options);
+  } catch {
+    return null; // an issuer it may not fetch from
+  }
   return checked.status === "valid" ? checked.session : null;
 }
 

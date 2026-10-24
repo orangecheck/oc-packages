@@ -10,6 +10,7 @@ backend can't drift apart. Regenerate with
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import threading
@@ -21,6 +22,8 @@ import httpx
 from urllib.parse import quote
 import pytest
 import respx
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 import orangecheck.integrator as integrator
 from orangecheck import (
@@ -147,6 +150,18 @@ def test_webhook_stops_leaning_on_a_key_set_six_hours_old(fresh_key_sets: None) 
     with pytest.raises(InvalidWebhook) as err:
         verify_webhook(v["headers"], v["body"])
     assert err.value.reason == "key_set_unavailable"
+
+
+@respx.mock
+def test_session_keeps_a_key_set_when_the_set_comes_back_with_no_usable_key(fresh_key_sets: None) -> None:
+    # An empty or unusable set is a misdeploy at the host: the copy held stands in, as for an outage.
+    respx.get("https://ochk.io/.well-known/jwks.json").mock(
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"]), httpx.Response(200, json={"keys": [{"kty": "EC", "kid": "x"}]})]
+    )
+    v = V["session"]["valid"][0]
+    verify_session(v["token"], v["audience"])
+    integrator._session_keys._fetched_at = V["now"] - 3600
+    assert verify_session(v["token"], v["audience"]).did_oc == v["claims"]["did_oc"]
 
 
 @respx.mock
@@ -609,10 +624,12 @@ def test_bond_age_is_counted_as_node_counts_it() -> None:
 
 @respx.mock
 def test_an_empty_key_set_is_not_fetched_again_on_every_call(fresh_key_sets: None) -> None:
+    # An empty set is an outage at the host, retried at most every ten seconds, never a refetch per token.
     route = respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=httpx.Response(200, json={"keys": []}))
     for _ in range(5):
-        assert integrator._session_keys.get("k1") is None
-    assert route.call_count == 2  # the hourly read, and the once-a-minute read for a key not seen
+        with pytest.raises(ValueError, match="key set unavailable|no Ed25519 key"):
+            integrator._session_keys.get("k1")
+    assert route.call_count == 1
 
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="needs fork")
@@ -886,8 +903,11 @@ def test_after_a_pause_the_key_set_is_fetched_again_and_a_dropped_key_is_gone(
     fresh_key_sets: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     clocks = _Clocks(monkeypatch)
+    # The host withdraws a key by publishing the set without it (an empty set reads as an outage).
+    other = Ed25519PrivateKey.generate().public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    replaced = {"keys": [{"kty": "OKP", "crv": "Ed25519", "kid": "replacement", "x": base64.urlsafe_b64encode(other).rstrip(b"=").decode()}]}
     route = respx.get("https://ochk.io/.well-known/jwks.json").mock(
-        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(200, json={"keys": []})] * 2
+        side_effect=[httpx.Response(200, json=V["session"]["jwks"])] + [httpx.Response(200, json=replaced)] * 2
     )
     kid = V["session"]["jwks"]["keys"][0]["kid"]
     assert integrator._session_keys.get(kid) is not None

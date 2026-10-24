@@ -142,9 +142,46 @@ describe("checkOcToken · a bad token is not an outage", () => {
     expect((await verifyOcToken(await mint(), { issuer: `${ISSUER}/` }))?.did_oc).toBe("did:oc:abc");
   });
 
-  it("answers invalid, not unavailable, for an issuer it may not fetch from", async () => {
+  it("throws for an issuer it may not fetch from, as for an option it does not read", async () => {
+    // A misconfigured issuer signs out every user; throwing surfaces it on the first request.
     keySet();
-    expect(await checkOcToken(await mint(), { issuer: "http://issuer.test" })).toEqual({ status: "invalid" });
+    await expect(checkOcToken(await mint(), { issuer: "http://issuer.test" })).rejects.toThrow(/issuer must be https/);
+    expect(await verifyOcToken(await mint(), { issuer: "http://issuer.test" })).toBeNull();
+  });
+
+  it("answers unavailable for a key set with no key it can use", async () => {
+    // An empty or unusable set is a misdeploy at the host, not a bad token.
+    jwks = { keys: [] };
+    keySet();
+    expect(await checkOcToken(await mint(), { issuer: ISSUER })).toEqual({ status: "unavailable" });
+    _resetJwksCachesForTests();
+    jwks = { keys: [{ kty: "EC", crv: "P-256", x: "AA", y: "AA", kid: KID }] };
+    keySet();
+    expect(await checkOcToken(await mint(), { issuer: ISSUER })).toEqual({ status: "unavailable" });
+  });
+
+  it("lets a held key set stand in when the set comes back with no usable key", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(1_800_000_000_000);
+    keySet();
+    expect((await checkOcToken(await mint(), { issuer: ISSUER })).status).toBe("valid");
+    const held = jwks;
+    jwks = { keys: [] };
+    vi.setSystemTime(1_800_000_000_000 + 2 * 3600_000); // past the hour, within six
+    expect((await checkOcToken(await mint(), { issuer: ISSUER })).status).toBe("valid");
+    jwks = held;
+  });
+
+  it("gives up on a key set that does not answer within ten seconds", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    let signal: AbortSignal | null | undefined;
+    vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
+      signal = init?.signal;
+      return new Response(JSON.stringify(jwks), { status: 200 });
+    });
+    expect((await checkOcToken(await mint(), { issuer: ISSUER })).status).toBe("valid");
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    expect(signal).toBe(timeout.mock.results[0]?.value);
   });
 
   it("leaves verifyOcToken as it was: a session, or null for both", async () => {

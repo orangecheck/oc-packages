@@ -209,7 +209,11 @@ class _KeySet:
             r = httpx.get(self.url, headers={"Accept": "application/json"}, timeout=10.0)
             r.raise_for_status()
             doc = r.json()
-            self._keys = _import_jwks(doc)
+            keys = _import_jwks(doc)
+            # No key this verifier can use is a misdeploy at the host, not a reason to refuse every token.
+            if not keys:
+                raise ValueError("JWKS has no Ed25519 key")
+            self._keys = keys
             self._retired = _retired_at(doc)
             self._fetched_at, self._fetched_wall = _clock(), time.time()
             self._error = None

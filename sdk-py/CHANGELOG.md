@@ -4,6 +4,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.2.1] — 2026-10-24
+
+### Fixed
+
+- A key set that answers with no Ed25519 key counts as a failed fetch, as in
+  `@orangecheck/auth-core` 2.17.0: the copy held stands in, and with none held
+  `check_oc_session` answers 503 `key_set_unavailable` (shared vector "a key set
+  with no key the verifier can use"). It answered 401, signing out everyone. To
+  withdraw a key, the host publishes the set without it.
+
 ## [3.2.0] — 2026-10-24
 
 ### Added

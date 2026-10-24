@@ -11,6 +11,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.17.0] — 2026-10-24
+
+### Changed — fewer ways an outage reads as a bad token
+
+- A key set that answers with no key this verifier can use (`{keys: []}`, or
+  keys that won't import) counts as a failed fetch: the copy held stands in, and
+  with none held the answer is `unavailable`. To withdraw a key, publish the set
+  without it; an empty set now reads as an outage.
+- The key-set fetch gives up after 10 seconds, so a host that takes the
+  connection and never answers no longer holds each request for minutes.
+- `checkOcToken` throws for an issuer it may not fetch from (plain http off
+  localhost, or not a URL), as it does for an option it does not read. It
+  answered `invalid`, which signed out every user of a misconfigured verifier.
+  `verifyOcToken` and `getOcSession` still answer `null`.
+
 ## [2.16.0] — 2026-10-24
 
 ### Added — a key-set outage is not a bad token
