@@ -8,6 +8,28 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.50.0] — 2026-10-24
+
+### Changed
+
+- `exchangeNativeCode(input, options)` checks the traded token as `withOcAuth`
+  checks a request's, so `valid` means the same thing on both paths: the
+  person has not ended the session everywhere (read as a write: a list that
+  can't be read answers `unavailable` `revocations_unavailable`), and the
+  account meets the project's "who can sign in" rule, read and cached as
+  `checkSignInRule` reads it (`invalid` `bond_required` with `need`, `have`
+  and `back_url`; `unavailable` `bond_policy_unavailable`; `invalid`
+  `unknown_project_key`). New refusals: `session_ended`, `bond_required`,
+  `unknown_project_key`.
+- `projectKey` moves from the input to the options, defaulting to
+  `OC_PROJECT_KEY`: it is your own key, from your config. A `projectKey`, or
+  any other key the input does not read, throws. New options: `meOrigin`,
+  `revocation` (default: read with your project key and `OC_SIGNING_SECRET`) and
+  `requireBond`.
+- New type `ExchangeNativeCodeUnavailable`.
+
+0.49.0 is deprecated: use 0.50.0.
+
 ## [0.49.0] — 2026-10-24
 
 ### Added

@@ -281,24 +281,28 @@ Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `ge
 
 ### Sign in from an app on the person's device
 
-A desktop build or a game can't open the popup, and must not carry a secret. It signs the person in through their browser instead (0.49.0, test projects only for now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE challenge, and its listener receives a one-time `code`. The app hands the code, its verifier and its redirect to your server, which trades them:
+A desktop build or a game can't open the popup, and must not carry a secret. It signs the person in through their browser instead (0.50.0, test projects only for now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE challenge, and its listener receives a one-time `code`. The app hands the code, its verifier and its redirect to your server, which trades them:
 
 ```ts
 import { exchangeNativeCode, spendOnce } from '@orangecheck/me-client/server';
 
-const out = await exchangeNativeCode({
-    code,
-    codeVerifier,
-    redirectUri, // exactly as the app sent it: http://127.0.0.1:<port>/<path>
-    projectKey: 'pk_test_…',
-    audience: 'https://your-site.example', // your verified domain, or your test project's dev origin
-});
+const out = await exchangeNativeCode(
+    {
+        code,
+        codeVerifier,
+        redirectUri, // exactly as the app sent it: http://127.0.0.1:<port>/<path>
+        audience: 'https://your-site.example', // your verified domain, or your test project's dev origin
+    },
+    { projectKey: process.env.OC_PROJECT_KEY } // your own key, from your config, never from the request
+);
 if (out.status === 'valid' && (await spendOnce(out.session.jti, out.session.exp ?? 0, store))) {
     // Start your session for out.session.did_oc.
 }
 ```
 
-The token is the popup's, verified for your `audience`, with `azp: "native"`. `invalid` names why (`invalid_grant`: start again); `unavailable` is an outage, so answer it 503. Each code works once, whatever the answer. Turn native sign-in on for a test project on ochk.app; the app's half, with a Godot example, is at ochk.io/docs/integration/native-sign-in.
+Start a session only from `valid`. It means what a request through `withOcAuth` means: the token is the popup's, verified for your `audience`, with `azp: "native"`; the person has not ended it everywhere; and the account meets your project's "who can sign in" rule. The key decides whose rule and list of ended sessions apply, so it comes from your config (`projectKey`, default `OC_PROJECT_KEY`), and a `projectKey` in the input throws. The list of ended sessions is read with your project key and `OC_SIGNING_SECRET`, as the adapters read it, or pass `revocation`; the trade counts as a write, so a list that can't be read answers `unavailable`.
+
+`invalid` names why: `invalid_grant` (start again), `session_ended`, or `bond_required` with `need`, `have` and `back_url`, as the adapters' 403 carries them. `unavailable` is an outage (`revocations_unavailable` and `bond_policy_unavailable` among them), so answer it 503. Each code works once, whatever the answer. Turn native sign-in on for a test project on ochk.app; the app's half, with a Godot example, is at ochk.io/docs/integration/native-sign-in.
 
 ## Keep your own login: OC Connect
 

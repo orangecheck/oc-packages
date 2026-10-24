@@ -44,8 +44,9 @@
  *
  * Native sign-in, for an app on a person's device (ochk.io/docs/integration/native-sign-in):
  *
- *   exchangeNativeCode({ code, codeVerifier, redirectUri, projectKey, audience })
+ *   exchangeNativeCode({ code, codeVerifier, redirectUri, audience }, { projectKey })
  *     → { status: 'valid', token, session } | { status: 'invalid' | 'unavailable', reason }
+ *   (valid: verified for your audience, not ended everywhere, meets your project's rule)
  *
  * Plus the activity-attestation verifier · for sybil-resistance gating:
  *
@@ -227,6 +228,7 @@ export type {
     ExchangeNativeCodeOptions,
     ExchangeNativeCodeRefusal,
     ExchangeNativeCodeResult,
+    ExchangeNativeCodeUnavailable,
 } from './native';
 // After an account merge: find the user this person was at your site.
 export { matchMergedUser, mergedHandles } from './merged';

@@ -274,50 +274,61 @@ describe('revokeToken · ending a token at ochk.io', () => {
 });
 
 describe('exchangeNativeCode · a native sign-in code traded for its token', () => {
-    type In = { code: string; code_verifier: string; redirect_uri: string; project_key: string; audience: string };
+    type In = { code: string; code_verifier: string; redirect_uri: string; audience: string };
+    type Ans = {
+        name: string;
+        status: number;
+        body: unknown;
+        audience?: string;
+        jwks?: Answer;
+        list?: Answer;
+        project_key?: string;
+        policy?: Answer;
+        result: { status: string; reason?: string; claims?: Record<string, unknown> } & Record<string, unknown>;
+    };
     const X = H.exchange_native as {
         url: string;
+        project_key: string;
+        policy: Answer;
         input: In;
         body: unknown;
         refused: { name: string; input: Partial<Record<keyof In, unknown>> }[];
-        answers: {
-            name: string;
-            status: number;
-            body: unknown;
-            jwks?: Answer;
-            result: { status: string; reason?: string; claims?: Record<string, unknown> };
-        }[];
+        answers: Ans[];
     };
-    const call = (i: Record<string, unknown>) =>
-        exchangeNativeCode({
-            code: i.code,
-            codeVerifier: i.code_verifier,
-            redirectUri: i.redirect_uri,
-            projectKey: i.project_key,
-            audience: i.audience,
-        } as Parameters<typeof exchangeNativeCode>[0]);
+    const call = (i: Record<string, unknown>, options: Parameters<typeof exchangeNativeCode>[1] = {}) =>
+        exchangeNativeCode(
+            {
+                code: i.code,
+                codeVerifier: i.code_verifier,
+                redirectUri: i.redirect_uri,
+                audience: i.audience,
+            } as Parameters<typeof exchangeNativeCode>[0],
+            { projectKey: X.project_key, revocation: false, ...options }
+        );
 
-    function stub(answer: Answer, jwks?: Answer) {
+    function stub(a: { status: number; body: unknown; jwks?: Answer; list?: Answer; policy?: Answer }) {
         const calls: { url: string; init: RequestInit }[] = [];
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url: string, init: RequestInit = {}) => {
                 const u = String(url);
-                if (u === 'https://ochk.io/.well-known/jwks.json') return respond(jwks ?? { status: 200, body: V.session.jwks });
+                if (u === 'https://ochk.io/.well-known/jwks.json') return respond(a.jwks ?? { status: 200, body: V.session.jwks });
+                if (u.startsWith('https://me.ochk.io/api/integrator/revocations?') && a.list) return respond(a.list);
+                if (/^https:\/\/me\.ochk\.io\/api\/integrator\/[^/]+\/sign-in$/.test(u)) return respond(a.policy ?? X.policy);
+                if (u !== X.url) throw new Error(`unexpected fetch ${u}`);
                 calls.push({ url: u, init });
-                if (answer.status === 0) throw new TypeError('fetch failed');
-                if (answer.status >= 300 && answer.status < 400) throw new TypeError('unexpected redirect');
-                return respond(answer);
+                if (a.status === 0) throw new TypeError('fetch failed');
+                if (a.status >= 300 && a.status < 400) throw new TypeError('unexpected redirect');
+                return respond(a);
             })
         );
         return calls;
     }
 
-    it('sends what sdk-py sends', async () => {
+    it('sends what sdk-py sends, with the project key from config', async () => {
         const calls = stub({ status: 400, body: { ok: false, reason: 'invalid_grant' } });
         await call(X.input);
         expect(calls).toHaveLength(1);
-        expect(calls[0]!.url).toBe(X.url);
         expect(calls[0]!.init).toMatchObject({ method: 'POST', redirect: 'error' });
         expect(JSON.parse(String(calls[0]!.init.body))).toEqual(X.body);
     });
@@ -334,13 +345,22 @@ describe('exchangeNativeCode · a native sign-in code traded for its token', () 
             a.body && typeof a.body === 'object' && Array.isArray((a.body as { token?: unknown }).token)
                 ? { ...a.body, token: tokenFor((a.body as { token: [string, string, string] }).token) }
                 : a.body;
-        stub({ status: a.status, body }, a.jwks);
-        const got = await call(X.input);
+        stub({ ...a, body });
+        const got = await call(
+            { ...X.input, ...(a.audience ? { audience: a.audience } : {}) },
+            {
+                ...(a.project_key ? { projectKey: a.project_key } : {}),
+                ...(a.list
+                    ? { revocation: integratorRevocationCheck({ projectKey: H.check.project_key, signingSecret: H.check.secret })! }
+                    : {}),
+            }
+        );
+        const { claims, ...rest } = a.result;
         if (a.result.status === 'valid') {
             expect(got.status).toBe('valid');
-            if (got.status === 'valid') expect(got.session).toMatchObject(a.result.claims!);
+            if (got.status === 'valid') expect(got.session).toMatchObject(claims!);
         } else {
-            expect(got).toEqual({ status: a.result.status, reason: a.result.reason });
+            expect(got).toEqual(rest);
         }
     });
 });
