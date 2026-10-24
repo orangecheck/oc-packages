@@ -82,6 +82,26 @@ export interface BondClaim {
 export interface SessionPayload extends JWTPayload {
   sub: string;
   /**
+   * Who the token is for. Absent on a family session (the `oc_session` cookie
+   * on `*.ochk.io`). On a token from the ochk.app sign-in popup it is one
+   * string: the origin of the page that opened the popup. Verify with
+   * `audience` set to your own origin.
+   */
+  aud?: string | string[];
+  /**
+   * Unix seconds when this token was minted. For a popup token that is the end
+   * of the popup's sign-in, not when the person's ochk.io session began. Keep
+   * it with `rh` and `aud`: a cutoff on the list of ended sessions is compared
+   * with it.
+   */
+  iat?: number;
+  /**
+   * Unix seconds after which the token no longer verifies. For a popup token it
+   * is the earlier of the ochk.io session's expiry and `iat` + 30 days. It is
+   * never refreshed: when it passes, the person signs in again.
+   */
+  exp?: number;
+  /**
    * Opaque public-facing identifier · `did:oc:<32-hex>`. The sole
    * canonical user identifier post auth-refactor. Stable across
    * linking events. Per AUTH-REFACTOR-PLAN.md §2.1.
@@ -124,8 +144,9 @@ export interface SessionPayload extends JWTPayload {
   merged_from?: string[];
   /**
    * The token's revocation handle on its audience's list of ended sessions,
-   * on every token the ochk.app sign-in popup issues. A token that carries
-   * one verifies only with a single string `aud`.
+   * on every token the ochk.app sign-in popup issues: one handle per account
+   * and audience. A token that carries one verifies only with a single string
+   * `aud`. Keep it with `aud` and `iat` to check "sign out everywhere".
    */
   rh?: string;
   /**

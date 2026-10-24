@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.17.1] — 2026-10-24
+
+### Docs
+
+- `SessionPayload` declares `aud`, `iat` and `exp`, with what each means for a
+  family session and for a token from the sign-in popup, and `rh` says to keep
+  it with `aud` and `iat`. The types are unchanged.
+
 ## [2.17.0] — 2026-10-24
 
 ### Changed — fewer ways an outage reads as a bad token
