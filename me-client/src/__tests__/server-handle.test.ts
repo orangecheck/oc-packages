@@ -118,7 +118,8 @@ describe('a sign-in token without a revocation handle', () => {
     });
 
     it('a family session, with no audience, is not held to it', async () => {
-        expect((await next(await token({}), {})).seen).toMatchObject({ did_oc: expect.any(String) });
+        // Its own feed is checked in server-family-feed.test.ts.
+        expect((await next(await token({}), { revocation: false })).seen).toMatchObject({ did_oc: expect.any(String) });
     });
 
     it('getOcSession and checkOcSession refuse it and name the reason', async () => {

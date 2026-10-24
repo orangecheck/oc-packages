@@ -58,6 +58,7 @@
 import {
     bondMeets,
     checkOcToken as checkOcTokenCore,
+    familyRevocationCheck,
     integratorRevocationCheck,
     readBondClaim,
     readOcSessionToken,
@@ -235,9 +236,13 @@ export interface OcSessionOptions extends VerifyOcTokenOptions {
     meOrigin?: string;
     /**
      * The check for sessions the person ended everywhere (sign out
-     * everywhere, a passkey removed, the account deleted). Default:
-     * auth-core's `integratorRevocationCheck`, from `OC_PROJECT_KEY` and
-     * `OC_SIGNING_SECRET`; none when they are unset. `false` turns it off.
+     * everywhere, a passkey removed, the account deleted). Default, for a
+     * token bound to your site: auth-core's `integratorRevocationCheck`, from
+     * `OC_PROJECT_KEY` and `OC_SIGNING_SECRET`; none when they are unset. For a
+     * family session (no `aud`, the ochk.io cookie a *.ochk.io site reads):
+     * auth-core's `familyRevocationCheck`, from `OC_REVOCATION_FEED_TOKEN`, and
+     * with that unset the call throws rather than read the session by its
+     * signature alone (0.44.0). `false` turns the check off for both.
      */
     revocation?: RevocationCheck | false;
 }
@@ -246,9 +251,21 @@ export interface OcSessionOptions extends VerifyOcTokenOptions {
 const sessionChecks = new Map<string, RevocationCheck | null>();
 let warnedUnchecked = false;
 
-function revocationFor(options: OcSessionOptions): RevocationCheck | null {
+function revocationFor(options: OcSessionOptions, session: SessionPayload): RevocationCheck | null {
     if (options.revocation === false) return null;
     if (options.revocation) return options.revocation;
+    // A family session is ended on ochk.io's own feed, never on a project's list.
+    if (session.aud === undefined) {
+        const token = typeof process !== 'undefined' ? process.env?.OC_REVOCATION_FEED_TOKEN?.trim() : undefined;
+        if (!token) {
+            throw new Error(
+                '@orangecheck/me-client: a family session (no aud) is checked against ochk.io\'s ' +
+                    'revocation feed, and OC_REVOCATION_FEED_TOKEN is not set. Set it, or pass ' +
+                    '`revocation: false` to read family sessions by signature alone.'
+            );
+        }
+        return familyRevocationCheck();
+    }
     const key = `${options.meOrigin ?? ''} ${options.projectKey ?? ''}`;
     if (!sessionChecks.has(key)) {
         sessionChecks.set(
@@ -348,7 +365,7 @@ export async function checkOcSession(
         warnNoHandle(session);
         return { status: 'signed_out', reason: 'no_session_handle' };
     }
-    const check = revocationFor(options);
+    const check = revocationFor(options, session);
     if (check) {
         // One read of the list, so the answer can't change between two.
         const state = await check.status(session);

@@ -8,6 +8,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.44.0] — 2026-10-24
+
+### Changed
+
+- A family session (no `aud`: the ochk.io cookie a *.ochk.io site reads with
+  no `audience`) is checked against ochk.io's revocation feed by default, in
+  `checkOcSession`, `getOcSession`, `withOcAuth`, `ocAuthExpress` and
+  `ocAuthHono`, through auth-core's `familyRevocationCheck`, the same feed
+  site-kit reads. **A family site must now set `OC_REVOCATION_FEED_TOKEN`**; with it unset, a family session makes these
+  calls throw, naming the variable, rather than accept it by signature alone.
+  `revocation: false` still reads it by signature alone on purpose, and a
+  check the site passes still wins. Tokens bound to your site (`aud`) are
+  checked as before. orangecheck (Python) reads no family sessions:
+  `verify_session` refuses a token without `aud`.
+
 ## [0.43.0] — 2026-10-24
 
 ### Added
