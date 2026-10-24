@@ -268,7 +268,7 @@
 
 "@noble/hashes@1.8.0", "@noble/hashes@^1.8.0":
   version "1.8.0"
-  resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-core@^2.3.0":
@@ -278,7 +278,7 @@
   dependencies:
     jose "^6.2.2"
 
-"@orangecheck/bip322@^1.0.0", "@orangecheck/bip322@^1.1.2":
+"@orangecheck/bip322@^1.1.0", "@orangecheck/bip322@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
   integrity sha512-NaaSTlL3HkVobUHrUUcMpoi+WVccEHMruWRRHiCVczkf3ac7JW0sXKEtDvqZ5YPI+KZi5xmxi2XK3ZE6do/t/w==
@@ -288,11 +288,11 @@
     "@scure/base" "^1.2.6"
 
 "@orangecheck/wallet-adapter@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.0.tgz#9231f5faceff155b500b80c51bbdd40220a9576f"
-  integrity sha512-JF54bW+vfXoldLSQqFC3FOxsLCoHEITM9m8nwdN3XDVcDFDUDleUqdUqgBFroZzROROSlqsXlRbar0GDfY4xcA==
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"
+  integrity sha512-1Rk1vWkCrHA5IRFqAbj35oHLs1du8HsZl/xhQH3ARV8zed8nIXl50vhJuzD3B3tNwiv62Z5a9ZjdXY/uSs0qsA==
   dependencies:
-    "@orangecheck/bip322" "^1.0.0"
+    "@orangecheck/bip322" "^1.1.0"
 
 "@oxc-project/types@=0.149.0":
   version "0.149.0"
