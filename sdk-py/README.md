@@ -298,30 +298,42 @@ later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https
 ### Sign in from an app on the person's device
 
 A desktop build or a game can't open the popup, and must not carry a secret. It
-signs the person in through their browser instead (3.5.0, test projects only for
+signs the person in through their browser instead (3.6.0, test projects only for
 now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a
 PKCE challenge, and its listener receives a one-time `code`. The app hands the
 code, its verifier and its redirect to your server, which trades them:
 
 ```python
-from orangecheck import exchange_native_code, spend_once
+import os
+from orangecheck import RevocationList, exchange_native_code, spend_once
+
+revocations = RevocationList(os.environ["OC_PROJECT_KEY"], os.environ["OC_SIGNING_SECRET"])  # one per process
 
 got = exchange_native_code(
     code,
     code_verifier,
     redirect_uri,  # exactly as the app sent it: http://127.0.0.1:<port>/<path>
-    "pk_test_…",
     "https://your-site.example",  # your verified domain, or your test project's dev origin
+    project_key=os.environ["OC_PROJECT_KEY"],  # your own key, from your config, never from the request
+    revocations=revocations,
 )
 if got.status == "valid" and spend_once(got.session.jti, got.session.exp, store):
     start_your_session(got.session)
 ```
 
-`got` is a `NativeSignIn` (the token and its session, verified for your
-audience, with `azp` `"native"`) or a `NativeRefusal`: `invalid` names why
-(`invalid_grant`: start again), and `unavailable` is an outage, so answer it 503.
-Each code works once, whatever the answer. The app's half, with a Godot
-example, is at ochk.io/docs/integration/native-sign-in.
+Start a session only from `valid`. It means what `check_oc_session` passing a
+request means: the token is the popup's, verified for your audience, with `azp`
+`"native"`; the person has not ended it on `revocations`; and the account meets
+your project's "who can sign in" rule, read with `project_key` as
+`check_sign_in_rule` reads it. The trade counts as a write, so a list that can't
+be read answers `unavailable`.
+
+Otherwise `got` is a `NativeRefusal`: `invalid` names why (`invalid_grant`:
+start again; `session_ended`; `bond_required`, with `need`, `have` and
+`back_url`), and `unavailable` is an outage (`revocations_unavailable` and
+`bond_policy_unavailable` among them), so answer it 503. Each code works once,
+whatever the answer. The app's half, with a Godot example, is at
+ochk.io/docs/integration/native-sign-in.
 
 The full guide is at [ochk.io/docs/sdk/python](https://ochk.io/docs/sdk/python).
 

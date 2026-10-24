@@ -319,8 +319,9 @@ def test_revoke_goes_to_the_issuer_named_and_only_an_https_one() -> None:
 X = H["exchange_native"]
 
 
-def _exchange(i: dict[str, Any]) -> Any:
-    return exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"])
+def _exchange(i: dict[str, Any], **kwargs: Any) -> Any:
+    kwargs.setdefault("project_key", X["project_key"])
+    return exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["audience"], **kwargs)
 
 
 @respx.mock
@@ -348,6 +349,14 @@ def test_exchange_refuses_before_sending(r: dict[str, Any]) -> None:
 def test_exchange_reads_each_answer_as_the_node_sdk_does(a: dict[str, Any]) -> None:
     jwks = a.get("jwks", {"status": 200, "body": V["session"]["jwks"]})
     respx.get("https://ochk.io/.well-known/jwks.json").mock(return_value=_response(jwks))
+    key = a.get("project_key", X["project_key"])
+    rule = respx.get(f"https://me.ochk.io/api/integrator/{key}/sign-in").mock(
+        return_value=_response(a.get("policy", X["policy"]))
+    )
+    kwargs: dict[str, Any] = {"project_key": key}
+    if "list" in a:
+        respx.get(url__startswith="https://me.ochk.io/api/integrator/revocations").mock(return_value=_response(a["list"]))
+        kwargs["revocations"] = RevocationList(H["check"]["project_key"], H["check"]["secret"])
     route = respx.post(X["url"])
     body = a["body"]
     if isinstance(body, dict) and isinstance(body.get("token"), list):
@@ -358,15 +367,18 @@ def test_exchange_reads_each_answer_as_the_node_sdk_does(a: dict[str, Any]) -> N
         route.mock(return_value=httpx.Response(a["status"], headers={"Location": "https://elsewhere.example/"}))
     else:
         route.mock(return_value=_response({"status": a["status"], "body": body}))
-    got = _exchange(X["input"])
+    got = _exchange({**X["input"], "audience": a.get("audience", X["input"]["audience"])}, **kwargs)
     want = a["result"]
     assert got.status == want["status"]
     if want["status"] == "valid":
         assert isinstance(got, NativeSignIn) and got.token == body["token"]
         for k, v in want["claims"].items():
             assert got.session.claims[k] == v
+        # A valid answer always passed the project's rule, read with the key from config.
+        assert rule.call_count == 1
     else:
-        assert got == NativeRefusal(want["status"], want["reason"])
+        extra = {k: want[k] for k in ("need", "have", "back_url") if k in want}
+        assert got == NativeRefusal(want["status"], want["reason"], **extra)
 
 
 @respx.mock
@@ -375,16 +387,29 @@ def test_exchange_goes_to_the_issuer_named_and_verifies_against_it() -> None:
         return_value=httpx.Response(200, json={"ok": True, "token": _token(["session", "valid", "from native sign-in"])})
     )
     respx.get("https://issuer.example/.well-known/jwks.json").mock(return_value=httpx.Response(200, json=V["session"]["jwks"]))
-    i = X["input"]
-    got = exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], issuer="https://issuer.example")
+    got = _exchange(X["input"], issuer="https://issuer.example")
     # The vector token's iss is https://ochk.io, so the issuer named refuses it.
     assert (a.call_count, got) == (1, NativeRefusal("invalid", "invalid_token"))
     for bad in ("http://ochk.io", "https://ochk.io/path"):
         with pytest.raises(ValueError, match="issuer"):
-            exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], issuer=bad)
+            _exchange(X["input"], issuer=bad)
     for timeout in (0, 30.5, True):
         with pytest.raises(ValueError, match="timeout"):
-            exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["project_key"], i["audience"], timeout=timeout)  # type: ignore[arg-type]
+            _exchange(X["input"], timeout=timeout)
+
+
+def test_exchange_takes_the_project_key_from_your_config_only() -> None:
+    i = X["input"]
+    # The old order put the app's key fourth: that call no longer fits.
+    with pytest.raises(TypeError):
+        exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], X["project_key"], i["audience"])  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        exchange_native_code(i["code"], i["code_verifier"], i["redirect_uri"], i["audience"])  # type: ignore[call-arg]
+    for bad in ("", 7, None):
+        with pytest.raises(ValueError, match="project_key"):
+            _exchange(i, project_key=bad)
+    with pytest.raises(TypeError, match="revocations"):
+        _exchange(i, revocations={"project_key": X["project_key"]})
 
 
 # ─── warm_session and verify_session: issuer and jwks ────────────────────

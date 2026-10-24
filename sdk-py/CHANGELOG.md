@@ -4,6 +4,25 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.6.0] — 2026-10-24
+
+### Changed
+
+- `exchange_native_code(code, code_verifier, redirect_uri, audience, *, project_key, issuer=, me_origin=, revocations=, require_bond=, timeout=)`
+  checks the traded token as `check_oc_session` checks a request's, so
+  `valid` means the same thing on both paths: not ended on `revocations` (the
+  trade counts as a write: a list that can't be read answers `unavailable`
+  `revocations_unavailable`), and the account meets the project's "who can
+  sign in" rule, read and cached as `check_sign_in_rule` reads it (`invalid`
+  `bond_required`, with `need`, `have` and `back_url` on `NativeRefusal`;
+  `unavailable` `bond_policy_unavailable`; `invalid` `unknown_project_key`).
+  New refusal: `session_ended`.
+- `project_key` is keyword-only: it is your own key, from your config. The
+  3.5.0 call, with the key fourth, raises `TypeError`.
+
+3.5.0 is withdrawn: use 3.6.0. As `@orangecheck/me-client` 0.50.0's
+`exchangeNativeCode`, held to the shared vectors (`exchange_native`).
+
 ## [3.5.0] — 2026-10-24
 
 ### Added
