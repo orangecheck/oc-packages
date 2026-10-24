@@ -46,7 +46,7 @@
 
 import {
     bondMeets,
-    checkOcToken,
+    checkOcToken as checkOcTokenCore,
     integratorRevocationCheck,
     readBondClaim,
     readOcSessionToken,
@@ -131,6 +131,38 @@ export async function verifyOcToken(
         return null;
     }
     return session;
+}
+
+/**
+ * A sign-in token's check, telling one that fails from a key set that can't be
+ * read. `unavailable` is an outage: answer it 503 so the client tries again,
+ * never as a failed sign-in.
+ */
+export type OcTokenCheck =
+    | { status: 'valid'; session: SessionPayload }
+    | { status: 'invalid'; reason?: OcSessionRefusal }
+    | { status: 'unavailable'; reason: 'key_set_unavailable' };
+
+/**
+ * {@link verifyOcToken}, telling a token that fails from a key set that can't
+ * be read (see {@link OcTokenCheck}). For the route that receives the token
+ * from the sign-in popup. Throws on an option it does not read, or an issuer it
+ * may not fetch from.
+ */
+export async function checkOcToken(token: string, options: VerifyOcTokenOptions = {}): Promise<OcTokenCheck> {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/me-client: options must be an object');
+    }
+    const { requireHandle, ...core } = options;
+    checkRequireHandle(requireHandle);
+    const checked = await checkOcTokenCore(token, core);
+    if (checked.status === 'unavailable') return { status: 'unavailable', reason: 'key_set_unavailable' };
+    if (checked.status === 'invalid') return { status: 'invalid' };
+    if (lacksHandle(checked.session, requireHandle)) {
+        warnNoHandle(checked.session);
+        return { status: 'invalid', reason: 'no_session_handle' };
+    }
+    return { status: 'valid', session: checked.session };
 }
 
 // Activity-attestation verifier · re-export from the identity module so
@@ -285,7 +317,7 @@ export async function checkOcSession(
     const { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience } = options;
     const token = readOcSessionToken(headers);
     if (!token) return { status: 'signed_out' };
-    const verified = await checkOcToken(token, { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience });
+    const verified = await checkOcTokenCore(token, { issuer, jwksCacheTtlMs, jwksMaxStaleMs, audience });
     // An outage is never "signed out": the client retries.
     if (verified.status === 'unavailable') return { status: 'unavailable', reason: 'key_set_unavailable' };
     if (verified.status === 'invalid') {

@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.42.0] — 2026-10-24
+
+### Added
+
+- `checkOcToken(token, options)` from `@orangecheck/me-client/server`, for the
+  route that receives the token from the sign-in popup. It answers
+  `{ status: 'valid', session }`, `{ status: 'invalid', reason? }` (`reason:
+  'no_session_handle'` for a bound token with no handle) or `{ status:
+  'unavailable', reason: 'key_set_unavailable' }`. Answer the last with 503 so
+  the page tries again: `verifyOcToken` answers `null` for it, which reads as a
+  failed sign-in. It takes `verifyOcToken`'s options, `requireHandle` included.
+
+### Changed
+
+- Needs `@orangecheck/auth-core` ^2.17.0: a key set with no usable key reads as
+  an outage (503 `key_set_unavailable`, shared vector "a key set with no key the
+  verifier can use"), and the key-set fetch gives up after 10 seconds.
+
 ## [0.41.0] — 2026-10-24
 
 ### Added

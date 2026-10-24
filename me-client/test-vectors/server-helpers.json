@@ -34,6 +34,14 @@
                 "expect": { "status": 503, "body": { "ok": false, "reason": "key_set_unavailable" } }
             },
             {
+                "name": "a key set with no key the verifier can use",
+                "token": ["session", "valid", "bound to this site"],
+                "audience": "https://soniq.example",
+                "method": "GET",
+                "jwks": { "status": 200, "body": { "keys": [] } },
+                "expect": { "status": 503, "body": { "ok": false, "reason": "key_set_unavailable" } }
+            },
+            {
                 "name": "no token while the key set can't be read",
                 "token": null,
                 "audience": "https://soniq.example",
