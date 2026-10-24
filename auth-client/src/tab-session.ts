@@ -19,6 +19,8 @@
  * multi-account migration, so this channel is not new.
  */
 
+import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
+
 /** Header carrying the tab-pinned session JWT. Mirrors `@orangecheck/auth-core`'s `TAB_SESSION_HEADER`. */
 export const TAB_SESSION_HEADER = 'x-oc-tab-session';
 
@@ -188,28 +190,25 @@ export function consumeTabAdoptMarker(): boolean {
 
 const OC_AS_HINT_RE = /^oc-as=(did:oc:[0-9a-f]{32})$/;
 
-/** Apex hostname of the auth host, e.g. `ochk.io`. Null if unparseable. */
-function familyApex(authOrigin: string): string | null {
+/** The auth host's own origin, e.g. `https://ochk.io`. Null if unparseable. */
+function authHostOrigin(authOrigin: string): string | null {
     try {
-        return new URL(authOrigin).hostname.toLowerCase();
+        return new URL(authOrigin).origin;
     } catch {
         return null;
     }
 }
 
 /**
- * Is `u` a family destination worth stamping — current origin or any
- * host at/under the auth host's apex (so `stamp.ochk.io`, `ochk.io`,
- * etc. match, but `example.com` never does)? http(s) only — `mailto:`,
- * `tel:`, `javascript:`, `blob:` are excluded by construction.
+ * Is `u` a family destination worth stamping: this origin, the auth host, or a
+ * listed family site (`isFamilyOrigin`)? A name under .ochk.io that is not
+ * listed, such as btcpay.ochk.io, never receives the did. `mailto:`, `tel:`,
+ * `javascript:` and `blob:` are excluded by construction.
  */
 function isFamilyUrl(u: URL, authOrigin: string): boolean {
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
     if (typeof window !== 'undefined' && u.origin === window.location.origin) return true;
-    const apex = familyApex(authOrigin);
-    if (!apex) return false;
-    const host = u.hostname.toLowerCase();
-    return host === apex || host.endsWith(`.${apex}`);
+    return u.origin === authHostOrigin(authOrigin) || isFamilyOrigin(u.origin, false);
 }
 
 /** Would following this link land in a context that can't see this tab's pin? */

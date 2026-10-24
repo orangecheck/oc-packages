@@ -82,10 +82,16 @@ describe('familyReturnTarget', () => {
     });
 
     it('refuses a lookalike host that merely ends in the brand', () => {
-        // endsWith('.ochk.io') is what makes this safe — a bare suffix check on
-        // 'ochk.io' would accept these.
         expect(familyReturnTarget('https://evilochk.io/')).toBeUndefined();
         expect(familyReturnTarget('https://ochk.io.evil.example/')).toBeUndefined();
+    });
+
+    it('refuses a name under .ochk.io that is not a listed family site', () => {
+        // btcpay.ochk.io and relay.ochk.io are ours but not family: a sign-in never returns there.
+        expect(familyReturnTarget('https://btcpay.ochk.io/i/abc')).toBeUndefined();
+        expect(familyReturnTarget('https://relay.ochk.io/')).toBeUndefined();
+        expect(familyReturnTarget('https://fleet.ochk.io/')).toBeUndefined();
+        expect(familyReturnTarget('https://vault.ochk.io:8443/')).toBeUndefined();
     });
 
     it('refuses http for absolute family URLs — the auth host is https-only', () => {

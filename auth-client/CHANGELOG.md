@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.38.0] — 2026-10-24
+
+### Changed
+
+- `familyReturnTarget` accepts an absolute URL only on a listed family site
+  (`isFamilyOrigin` from `@orangecheck/auth-core/family-origins`), not on any
+  name under `.ochk.io`: `https://btcpay.ochk.io/...` and
+  `https://relay.ochk.io/` now answer `undefined`, and so does a family host on
+  another port.
+- The tab link decorator stamps `#oc-as=<did>` only on this origin, the auth
+  host and listed family sites, never on another name under `.ochk.io` or over
+  plain http.
+- The peer on `@orangecheck/auth-core` is `^2.21.0`.
+
 ## [2.37.2] — 2026-10-24
 
 ### Docs
