@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.20.0] — 2026-10-24
+
+### Added
+
+- `@orangecheck/auth-core/display-name`: the name rule (`nameProblem`,
+  `isReservedName`, `HIDDEN_TEXT_CHARS`) on its own entry, which imports
+  nothing. A page's browser bundle can apply the rule without the token
+  code and jose; servers can keep importing it from the package root.
+
 ## [2.19.0] — 2026-10-24
 
 ### Added

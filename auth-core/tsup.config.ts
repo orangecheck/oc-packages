@@ -1,7 +1,8 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: { index: 'src/index.ts' },
+    // display-name imports nothing, so a browser bundle can take the name rule without jose.
+    entry: { index: 'src/index.ts', 'display-name': 'src/display-name.ts' },
     format: ['cjs', 'esm'],
     dts: true,
     splitting: false,
