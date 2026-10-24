@@ -8,6 +8,18 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.16] — 2026-10-24
+
+### Added — deleting an account that runs a guardian
+
+The ochk.app Privacy policy's deletion section did not mention guardian
+operators. It now says an operator can delete once their operator key holds
+no seat or hosted guardian, has finished any exit, created no federation that
+still exists, and is owed nothing. It says that charter signatures, incidents
+and amendment proposals the key signed stay public under the key, with what
+the operator wrote in them, and that exit records and machine reports stay
+visible to that federation's guardians and to orangecheck.
+
 ## [0.7.15] — 2026-10-23
 
 ### Added — an account a site made for you

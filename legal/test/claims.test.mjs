@@ -121,3 +121,18 @@ test('the ochk.app privacy policy says what a site-made account keeps, and how i
     }
 });
 
+
+// A guardian operator's deletion (#302): when it can happen, and what the
+// operator key's signed records keep after it.
+test('the ochk.app privacy policy says when an operator can delete, and what the key keeps', () => {
+    const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(text, 'me/privacy renders');
+    for (const fact of [
+        'If you run a guardian, you can delete only once your operator key holds no seat or hosted guardian',
+        'has finished any exit, created no federation that still exists, and is owed nothing',
+        'stay public under the key, with what you wrote in them',
+        "exit records and machine reports stay visible to that federation's guardians and to us",
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+});
