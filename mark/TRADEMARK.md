@@ -22,6 +22,8 @@ package's code and files; it grants no right to the trademark.
 - Never recoloured otherwise, stretched, rotated, split, cropped or outlined.
 - Never more prominent than your own name and brand, and never in a way that
   suggests OrangeCheck endorses or runs your product.
+- Never as your own site's or app's icon: `assets/favicon/` is for orangecheck's
+  own sites.
 
 The full policy is at [ochk.io/trademark](https://ochk.io/trademark). For
 anything else, ask at [ochk.io/contact](https://ochk.io/contact).

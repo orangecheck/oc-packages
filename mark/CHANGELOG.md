@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0] — 2026-10-24
+
+- `assets/favicon/`: a site's icon set drawn from the tile (SVG, ICO with 16,
+  32 and 48 px, PNG favicons, a 180 px home-screen icon with square corners,
+  and 192 and 512 px manifest icons), so every orangecheck site shows the same
+  check in its tab. A test holds each file to its size and corners, and reads
+  the ICO's directory.
+
 ## [0.2.0] — 2026-10-24
 
 - The mark is larger by default, `1.75em` wide (was `1.5em`): at 16px text it

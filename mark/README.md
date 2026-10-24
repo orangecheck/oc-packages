@@ -69,6 +69,16 @@ theme's font and colours.
 node_modules/@orangecheck/mark/assets/png/orangecheck-mark-mono-white-32.png
 ```
 
+## A site's icons
+
+`assets/favicon/` is a site's icon set, drawn from the tile, under the names
+family sites already link: `favicon.svg`, `favicon.ico` (16, 32 and 48 px),
+`favicon-16x16.png`, `favicon-32x32.png`, `favicon-48x48.png`,
+`apple-touch-icon.png` (180 px, square corners: iOS rounds it) and
+`android-chrome-192x192.png` / `-512x512.png` for a web manifest. Copy them
+into `public/`. They are orangecheck's own icons: for orangecheck's sites, not
+for yours (see TRADEMARK.md).
+
 ## Licence and the mark
 
 The code and the files are MIT. The mark is a trademark of OrangeCheck, and the

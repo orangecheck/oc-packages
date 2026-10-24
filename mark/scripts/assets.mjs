@@ -11,12 +11,13 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-import { assetSvgs, PNG_WIDTHS } from '../dist/assets.mjs';
+import { assetSvgs, FAVICON_ICO_SIZES, FAVICON_PNGS, faviconSvg, icoFromPngs, PNG_WIDTHS, squareTileSvg } from '../dist/assets.mjs';
 
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, 'svg'), { recursive: true });
 mkdirSync(join(out, 'png'), { recursive: true });
+mkdirSync(join(out, 'favicon'), { recursive: true });
 
 for (const { name, svg } of assetSvgs()) writeFileSync(join(out, 'svg', `${name}.svg`), svg);
 for (const { name, square, svgAt } of assetSvgs()) {
@@ -26,4 +27,12 @@ for (const { name, square, svgAt } of assetSvgs()) {
         await sharp(Buffer.from(svgAt(w, h))).png({ compressionLevel: 9 }).toFile(join(out, 'png', `${name}-${w}.png`));
     }
 }
-console.log(`assets: ${assetSvgs().length} SVGs, ${(assetSvgs().length - 1) * PNG_WIDTHS.length} PNGs`);
+// A site's icon set, from the tile.
+const tile = assetSvgs().find((a) => a.name === 'orangecheck-mark-tile');
+const tilePng = (size, square) => sharp(Buffer.from(square ? squareTileSvg(size) : tile.svgAt(size, size))).png({ compressionLevel: 9 }).toBuffer();
+writeFileSync(join(out, 'favicon', 'favicon.svg'), faviconSvg());
+for (const { file, size, square } of FAVICON_PNGS) writeFileSync(join(out, 'favicon', file), await tilePng(size, square));
+const ico = await Promise.all(FAVICON_ICO_SIZES.map(async (size) => ({ size, png: await tilePng(size) })));
+writeFileSync(join(out, 'favicon', 'favicon.ico'), icoFromPngs(ico));
+
+console.log(`assets: ${assetSvgs().length} SVGs, ${(assetSvgs().length - 1) * PNG_WIDTHS.length} PNGs, ${FAVICON_PNGS.length + 2} favicon files`);
