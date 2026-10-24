@@ -155,7 +155,7 @@
   "devDependencies": {
     "@orangecheck/auth-client": "^2.32.3",
     "@orangecheck/auth-core": "^2.5.0",
-    "@orangecheck/me-client": "^0.46.0",
+    "@orangecheck/me-client": "^0.47.0",
     "@orangecheck/wallet-adapter": "^0.7.0",
     "@tailwindcss/cli": "^4.3.0",
     "@types/qrcode": "^1.5.5",

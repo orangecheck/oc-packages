@@ -23,8 +23,8 @@ const HOSTS = `
 :is(.dark *) [data-host='ledger'] { background: #1c1917; color: #fafaf9; border-color: #292524; }
 :is(.dark *) [data-host='ledger'] .host-btn { color: #fafaf9; border-color: #44403c; }
 :is(.dark *) [data-host='ledger'] .host-btn.solid { background: #fafaf9; color: #1c1917; }
-[data-host='studio'] { background: #ffffff; color: #18181b; border: 1px solid #e4e4e7; --oc-target: 40px; }
-[data-host='studio'] .host-btn { font: 500 14px/1 Inter, system-ui, sans-serif; color: #18181b; background: #ffffff; border: 1px solid #d4d4d8; border-radius: 2px; padding: 0 14px; height: 40px; }
+[data-host='studio'] { background: #ffffff; color: #18181b; border: 1px solid #e4e4e7; }
+[data-host='studio'] .host-btn { font: 500 14px/1 Inter, system-ui, sans-serif; color: #18181b; background: #ffffff; border: 1px solid #d4d4d8; border-radius: 2px; padding: 0 14px; min-height: 44px; }
 [data-host='studio'] .host-btn:focus-visible { outline: 2px solid #0e9fb3; outline-offset: 1px; }
 [data-host='studio'] .host-btn.solid { background: #0e9fb3; color: #ffffff; border-color: #0e9fb3; }
 :is(.dark *) [data-host='studio'] { background: #09090b; color: #fafafa; border-color: #27272a; }
@@ -35,6 +35,8 @@ const HOSTS = `
 [data-host='lantern'] .host-btn.quiet { background: transparent; box-shadow: inset 0 0 0 1px #e8c27a; }
 :is(.dark *) [data-host='lantern'] { background: #17120a; color: #f8ecd6; border-color: #3a2c12; }
 :is(.dark *) [data-host='lantern'] .host-btn.quiet { color: #f8ecd6; box-shadow: inset 0 0 0 1px #6b5023; }
+[data-host] .host-btn.host-icon { padding: 0; min-width: 44px; }
+[data-host='lantern'] .host-btn.host-icon { min-width: 46px; }
 `;
 
 const signedIn = () => {};
@@ -49,15 +51,18 @@ export const InTheHostsStyle: StoryObj = {
                     Email me a code
                 </button>
                 <SignInWithOrangecheck className="host-btn" onSignedIn={signedIn} />
+                <SignInWithOrangecheck className="host-btn host-icon" label={false} onSignedIn={signedIn} />
             </div>
             <div data-host="studio">
                 <button type="button" className="host-btn solid">
-                    Continue with email
+                    Continuer avec un e-mail
                 </button>
-                <SignInWithOrangecheck className="host-btn" onSignedIn={signedIn} />
+                <SignInWithOrangecheck className="host-btn" label="Se connecter avec orangecheck" busyLabel="Connexion…" onSignedIn={signedIn} />
+                <SignInWithOrangecheck className="host-btn host-icon" label={false} accessibleLabel="Se connecter avec orangecheck" onSignedIn={signedIn} />
             </div>
             <div data-host="lantern">
                 <SignInWithOrangecheck className="host-btn" label="Continue with orangecheck" onSignedIn={signedIn} />
+                <SignInWithOrangecheck className="host-btn host-icon" label={false} onSignedIn={signedIn} />
                 <button type="button" className="host-btn quiet">
                     Use email instead
                 </button>
