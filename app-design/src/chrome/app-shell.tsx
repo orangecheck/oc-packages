@@ -402,14 +402,9 @@ function SidebarShell({
                         {familyMenu}
                         <div className="ml-auto flex items-center">{account}</div>
                     </div>
+                    {/* Phones keep it beside the tab bar, so sections that arrive after first paint move nothing. */}
                     {place.page ? (
-                        <div
-                            className={cn(
-                                'flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]',
-                                // The active tab already names the page.
-                                tabs && !sectionTabsFor && !pageOverride && 'max-md:hidden'
-                            )}
-                        >
+                        <div className="flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]">
                             {place.section ? (
                                 <>
                                     <span className="shrink-0 text-muted-foreground">{place.section}</span>

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-10-24
+
+- `AppShell`'s place strip shows on phones in every state, beside the tab bar
+  too. An app whose sections resolve after the first paint (ochk.app, for an
+  account that builds or operates) grew the strip then, a 0.054 layout shift
+  at 390 px.
+
 ## [1.20.0] — 2026-10-24
 
 - `FontPreloads` renders nothing. The font preload delayed first paint by 118

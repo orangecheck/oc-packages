@@ -74,7 +74,7 @@ const root = (html) => opening(html, /^<div[^>]*>/);
     }
     check(root(html).includes('max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]'), 'the page leaves room under its content for the tab bar');
     check(menuButton(html).includes('max-md:hidden'), 'with every page in the tab bar, phones drop the menu button');
-    check(placeStrip(html).includes('max-md:hidden'), 'the active tab names the page, so phones drop the place strip');
+    check(placeStrip(html) && !placeStrip(html).includes('max-md:hidden'), 'phones keep the place strip, so sections that arrive later move nothing');
     check(html.indexOf('data-oca-tabbar') > html.indexOf('id="main-content"'), 'the tab bar comes after the content in reading order');
 }
 
