@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.37.1] — 2026-10-24
+
+### Fixed
+
+- **`signInUrl` returns to the page on a server-rendered page.** The provider
+  built it from `window.location` as it rendered, so the browser's first
+  render named the page while the server's HTML did not, and React keeps the
+  server's `href` on a link it hydrates: `OcSignInButton`, `OcAccountChip` or
+  any `<a href={signInUrl}>` on such a page sent people to a sign-in that
+  returned them home. The page is now read through `useSyncExternalStore`: the
+  bare sign-in on the server and in the first render, the page after it, and
+  the new page after a route change or Back. `defaultReturnTo` still wins.
+- `provider-ssr.test.tsx` renders on the server, hydrates that HTML in jsdom
+  and reads the link, then moves the page. It fails on 2.37.0.
+
 ## [2.37.0] — 2026-10-22
 
 ### Changed
