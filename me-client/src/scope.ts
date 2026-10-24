@@ -2,12 +2,12 @@
  * `oc.scope` — privacy-preserving scope grants.
  *
  * Background:
- *   By default, signing into your site via OC reveals only an anonymous
- *   per-integrator subject (`sub`). The user's master identity (BIP-322
- *   address or email) stays private; you cannot correlate users across
- *   sites via OC. To read additional fields (their email, attest tier,
- *   bitcoin address, display name), you must explicitly request the
- *   matching scope and the user must explicitly consent.
+ *   Signing in gives your site the person's orangecheck id (`did_oc`),
+ *   which is the same on every site, and events carry a per-project
+ *   subject (`sub`). Their Bitcoin address and email stay private. To read
+ *   additional fields (their email, attest tier, bitcoin address, display
+ *   name), you must explicitly request the matching scope and the user
+ *   must explicitly consent.
  *
  *   Guide: https://ochk.io/docs/me/sdk
  *

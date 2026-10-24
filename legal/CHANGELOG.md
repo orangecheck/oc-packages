@@ -8,6 +8,18 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.18] — 2026-10-24
+
+### Changed — what sites learn when you sign in
+
+The ochk.app Terms and Privacy policy said the id a site gets for you is
+unlinkable across sites, so two sites could not correlate you. They now say
+each site gets its own subject id for the events it reports, but signing in
+gives every site the same orangecheck id (did:oc), so sites that compare ids
+can tell it is you. The policies' short descriptions no longer list a
+"per-integrator scoped identity", and the Terms' updated date moves to
+2026-10-24.
+
 ## [0.7.17] — 2026-10-24
 
 ### Changed — the record a deletion keeps is under a keyed id

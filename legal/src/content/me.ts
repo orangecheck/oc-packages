@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for ochk.app: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-19',
+    updated: '2026-10-24',
     preamble: [
         {
             kind: 'callout',
@@ -151,7 +151,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Sites that integrate ochk.app through its API at me.ochk.io receive a **per-integrator scoped identifier** for you, not your master identity — they cannot correlate you across sites unless you explicitly grant a scope. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. OrangeCheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
+                    text: 'Sites that integrate ochk.app through its API at me.ochk.io get their own subject id for the events they report, and your Bitcoin address, email or attestation tier only if you grant that scope. Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. OrangeCheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
                 },
             ],
         },
@@ -202,10 +202,10 @@ const privacy: DocSpec = {
     eyebrow: 'privacy',
     title: 'Privacy policy',
     description:
-        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, a per-integrator scoped identity, and a documented, falsifiable account of every record OrangeCheck stores.',
+        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, and a documented, falsifiable account of every record OrangeCheck stores.',
     metaTitle: 'Privacy Policy — ochk.app',
     metaDescription:
-        'ochk.app privacy policy. No KYC, no PII required, per-integrator scoped identity, and a full account of what OrangeCheck stores.',
+        'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
     updated: '2026-10-24',
     preamble: [
@@ -218,7 +218,7 @@ const privacy: DocSpec = {
         {
             id: 'at-a-glance',
             heading: 'at a glance',
-            hint: 'no kyc · no pii · scoped identity',
+            hint: 'no kyc · no pii · what sites get',
             blocks: [
                 {
                     kind: 'bullets',
@@ -232,8 +232,8 @@ const privacy: DocSpec = {
                             v: 'a Bitcoin signature needs no personal data; an email code, Google or GitHub sign-in stores your email address, encrypted',
                         },
                         {
-                            k: 'scoped identity',
-                            v: 'integrating sites receive a per-site identifier, not your master identity; they cannot correlate you across sites',
+                            k: 'what sites get',
+                            v: 'each site gets its own subject id for events, but signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you',
                         },
                         {
                             k: 'no advertising',
@@ -285,11 +285,11 @@ const privacy: DocSpec = {
         },
         {
             id: 'scoped-identity',
-            heading: 'per-integrator identity & scopes',
+            heading: 'what sites get, and scopes',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Each integrating site receives a deterministic **scoped subject** derived from your master identity and that site’s project key. Scoped subjects are stable per-site (the integrator recognizes a returning user) but unlinkable across sites (two integrators cannot collude to correlate you). An integrator only ever receives your master Bitcoin address, email, or attestation tier if you **explicitly grant that scope** for that site — each scope is opt-in, per-site, and revocable at any time from your account.',
+                    text: 'Each site gets its own subject id for events: a **scoped subject**, derived from your account and that site’s project key, so the site recognizes you when you return. But signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. An integrator only ever receives your master Bitcoin address, email, or attestation tier if you **explicitly grant that scope** for that site — each scope is opt-in, per-site, and revocable at any time from your account.',
                 },
                 {
                     kind: 'para',
@@ -405,7 +405,7 @@ const privacy: DocSpec = {
         privacyChanges,
     ],
     summary:
-        'summary: no kyc, no pii required, a per-integrator scoped identity, and a documented account of every record orangecheck stores.',
+        'summary: no kyc, no pii required, and a documented account of every record orangecheck stores.',
 };
 
 export const meProfile = { terms, privacy };

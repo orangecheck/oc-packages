@@ -52,6 +52,10 @@ const BANNED = [
     // hold the key, so the record names no one by itself; it is not unlinkable.
     [/deleted, under its id/i, 'deletion records are kept under a keyed id, never the did'],
     [/no longer leads to (you|the person)/i, 'we hold the key: the record by itself names no one'],
+    // Every site a person signs in to gets the same did:oc, so sites can match them.
+    [/unlinkable across sites/i, 'signing in gives every site the same did:oc'],
+    [/cannot collude/i, 'signing in gives every site the same did:oc'],
+    [/cannot correlate you/i, 'signing in gives every site the same did:oc'],
 ];
 
 test('every doc renders', () => {
@@ -140,5 +144,22 @@ test('the ochk.app privacy policy says when an operator can delete, and what the
         "Receipts and that record are kept under a keyed id, so the record by itself doesn't say whose account it was",
     ]) {
         assert.ok(text.includes(fact), fact);
+    }
+});
+
+// Sign-in hands every site the same did:oc; only event subjects are per site.
+test('the ochk.app terms and privacy say sites that compare ids can tell it is you', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const [, text] = DOCS.find(([n]) => n === name) ?? [];
+        assert.ok(text, `${name} renders`);
+        assert.ok(
+            text.includes(
+                'Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you'
+            ) ||
+                text.includes(
+                    'signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you'
+                ),
+            name
+        );
     }
 });
