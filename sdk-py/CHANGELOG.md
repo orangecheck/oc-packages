@@ -4,6 +4,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.3.1] — 2026-10-24
+
+### Changed
+
+- `RevocationList` reads the `tokens` of its audience's list and answers
+  `"revoked"` for a token whose own `jti` is there, as
+  `@orangecheck/auth-core`'s `integratorRevocationCheck` does, so a token ended
+  with `revoke_token` stops passing once me.ochk.io lists it. `status()` and
+  `status_for()` take the jti (shared vectors "a token ended on its own").
+
 ## [3.3.0] — 2026-10-24
 
 ### Added

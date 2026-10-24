@@ -200,7 +200,18 @@ const REV_SITE = 'https://site.example';
 const REV_WWW = 'https://www.site.example';
 const listPath = (aud) =>
     `/api/integrator/revocations?project_key=${encodeURIComponent('pk_test_tv')}&aud=${encodeURIComponent(aud)}`;
-const list = (aud) => ({ v: 1, at: NOW, tokens: [], accounts: {}, handles: { [rh(AK, aud)]: NOW - 100 } });
+// One token ended on its own (signed out at this site): its jti's feed key, listed for its audience only.
+const jtiKey = (jti) =>
+    createHash('sha256').update(`ocrev1:jti:${jti}`).digest().subarray(0, 16).toString('base64url');
+const LISTED_JTI = 'tv-jti-listed';
+const list = (aud) => ({
+    v: 1,
+    at: NOW,
+    tokens: aud === REV_SITE ? [jtiKey(LISTED_JTI)] : [],
+    accounts: {},
+    handles: { [rh(AK, aud)]: NOW - 100 },
+});
+const LIVE_RH = rh(revKey('acct-tv-0003'), REV_SITE);
 const revocationVectors = {
     request: {
         project_key: 'pk_test_tv',
@@ -212,6 +223,7 @@ const revocationVectors = {
         header: `t=${NOW},v1=${createHmac('sha256', SECRET).update(`${NOW}.GET ${listPath(REV_SITE)}`).digest('hex')}`,
     },
     keys: [{ sub: REV_SUB, key: AK }],
+    token_keys: [{ jti: LISTED_JTI, key: jtiKey(LISTED_JTI) }],
     handles: [
         { key: RH_KEY, account_key: AK, aud: REV_SITE, rh: rh(AK, REV_SITE) },
         { key: RH_KEY, account_key: AK, aud: REV_WWW, rh: rh(AK, REV_WWW) },
@@ -233,6 +245,10 @@ const revocationVectors = {
         { name: 'a handle that is not a string', aud: REV_SITE, rh: 42, iat: NOW - 30, status: 'revoked' },
         { name: 'an empty handle', aud: REV_SITE, rh: '', iat: NOW - 30, status: 'revoked' },
         { name: 'an empty aud with a sound handle', aud: '', rh: rh(AK, REV_SITE), iat: NOW - 30, status: 'revoked' },
+        // Its account's handle is live: only the token itself was ended.
+        { name: 'a token ended on its own', aud: REV_SITE, rh: LIVE_RH, iat: NOW - 30, jti: LISTED_JTI, status: 'revoked' },
+        { name: 'another token of the same account', aud: REV_SITE, rh: LIVE_RH, iat: NOW - 30, jti: 'tv-jti-other', status: 'live' },
+        { name: 'an ended jti on another audience list', aud: REV_WWW, rh: rh(revKey('acct-tv-0003'), REV_WWW), iat: NOW - 30, jti: LISTED_JTI, status: 'live' },
     ],
     // Whole tokens through verification and the list: one ended on its own
     // audience's list, and the same handle under a list aud, refused before any lookup.
@@ -240,6 +256,12 @@ const revocationVectors = {
         {
             name: 'one string aud, ended on its list',
             token: await jwt({ ...base, jti: 'tv-jti-ended', aud: REV_SITE, rh: rh(AK, REV_SITE), iat: NOW - 3600 }),
+            audience: REV_SITE,
+            outcome: 'ended',
+        },
+        {
+            name: 'a token ended on its own, its account live',
+            token: await jwt({ ...base, jti: LISTED_JTI, aud: REV_SITE, rh: LIVE_RH, iat: NOW - 30 }),
             audience: REV_SITE,
             outcome: 'ended',
         },

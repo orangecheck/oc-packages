@@ -179,11 +179,13 @@ const R = (
           handles: Record<string, number>;
         }
       >;
+      token_keys: { jti: string; key: string }[];
       sessions: {
         name: string;
         aud: unknown;
         rh?: unknown;
         iat: number | null;
+        jti?: string;
         status: string;
       }[];
       tokens: {
@@ -225,13 +227,17 @@ describe("vectors · revocation handles", () => {
     expect(await revocationKey("sub", v.sub)).toBe(v.key);
   });
 
+  it.each(R.token_keys)("derives the token key for $jti", async (v) => {
+    expect(await revocationKey("jti", v.jti)).toBe(v.key);
+  });
+
   it.each(R.sessions)("decides: $name", async (v) => {
     const c = check();
     // A key absent from the vector is absent from the claims; null stays null.
     expect(
       await c.status({
         sub: "x",
-        jti: "j",
+        jti: v.jti ?? "j",
         aud: v.aud,
         ...("rh" in v ? { rh: v.rh } : {}),
         iat: v.iat ?? undefined,

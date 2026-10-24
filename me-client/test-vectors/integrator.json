@@ -326,6 +326,12 @@
                 "key": "5MfG_Ix0iWsGOA3OmCNGSA"
             }
         ],
+        "token_keys": [
+            {
+                "jti": "tv-jti-listed",
+                "key": "6dPHiWTK1EUADoVxbdeqDA"
+            }
+        ],
         "handles": [
             {
                 "key": "rh-vector-key-0123456789abcdef0123456789",
@@ -344,7 +350,9 @@
             "https://site.example": {
                 "v": 1,
                 "at": 1800000000,
-                "tokens": [],
+                "tokens": [
+                    "6dPHiWTK1EUADoVxbdeqDA"
+                ],
                 "accounts": {},
                 "handles": {
                     "mkMrKS_qd0aD4ZZYbwxamw": 1799999900
@@ -452,12 +460,42 @@
                 "rh": "mkMrKS_qd0aD4ZZYbwxamw",
                 "iat": 1799999970,
                 "status": "revoked"
+            },
+            {
+                "name": "a token ended on its own",
+                "aud": "https://site.example",
+                "rh": "RNDc7y8Ns7yVJT8T2-JZMw",
+                "iat": 1799999970,
+                "jti": "tv-jti-listed",
+                "status": "revoked"
+            },
+            {
+                "name": "another token of the same account",
+                "aud": "https://site.example",
+                "rh": "RNDc7y8Ns7yVJT8T2-JZMw",
+                "iat": 1799999970,
+                "jti": "tv-jti-other",
+                "status": "live"
+            },
+            {
+                "name": "an ended jti on another audience list",
+                "aud": "https://www.site.example",
+                "rh": "vHO4qPDLVffBuf4KotW21A",
+                "iat": 1799999970,
+                "jti": "tv-jti-listed",
+                "status": "live"
             }
         ],
         "tokens": [
             {
                 "name": "one string aud, ended on its list",
                 "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktZW5kZWQiLCJpc3MiOiJodHRwczovL29jaGsuaW8iLCJpYXQiOjE3OTk5OTY0MDAsImV4cCI6MTgwMDAwMzYwMCwicmgiOiJta01yS1NfcWQwYUQ0WlpZYnd4YW13IiwiYXVkIjoiaHR0cHM6Ly9zaXRlLmV4YW1wbGUifQ.8IVlEVUP1Y0O250qYIe96ut6LXVYQjUvBhIKfJS-sbScLToZ49jA2G_kffqfO7qx47J2X5uwxxULrWndooxLCQ",
+                "audience": "https://site.example",
+                "outcome": "ended"
+            },
+            {
+                "name": "a token ended on its own, its account live",
+                "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InR2LXNlc3Npb24tMSJ9.eyJzdWIiOiI2ZjFjMmE1ZS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJkaWRfb2MiOiJkaWQ6b2M6MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYiLCJqdGkiOiJ0di1qdGktbGlzdGVkIiwiaXNzIjoiaHR0cHM6Ly9vY2hrLmlvIiwiaWF0IjoxNzk5OTk5OTcwLCJleHAiOjE4MDAwMDM2MDAsInJoIjoiUk5EYzd5OE5zN3lWSlQ4VDItSlpNdyIsImF1ZCI6Imh0dHBzOi8vc2l0ZS5leGFtcGxlIn0.P-gdnmMPbAnkCmKWHfOHz8BVZLVTsyOefRRdyleMWP0rONhrLoaOs265P2SMN4pncXYONmSf1c6U0k7bzgqYAQ",
                 "audience": "https://site.example",
                 "outcome": "ended"
             },
