@@ -374,6 +374,11 @@ events, so your own script imports nothing:
 </script>
 ```
 
+Both events come from the button and bubble. Any script on the page can fire
+them too, so send only the token to your server and never trust `account` from
+the event in the browser: your server's check (`withOcAuth`, `checkOcToken`)
+is the only answer.
+
 Take the two hashes from the files in the published package
 (`openssl dgst -sha384 -binary dist/button-auto.mjs | openssl base64 -A`), or
 copy them from your project's snippet on ochk.app. Under a strict

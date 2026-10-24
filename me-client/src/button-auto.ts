@@ -12,6 +12,11 @@
  *     document.addEventListener('oc-sign-in-outcome', (e) => { note.textContent = e.detail.message; });
  *   </script>
  *
+ * Both events are dispatched on the button and bubble. Any script on the page
+ * can fire them too, and a CustomEvent is never trusted: send only the token
+ * to your server and never trust `account` from the event in the browser.
+ * Your server's check (withOcAuth, checkOcToken) is the only answer.
+ *
  * The button says what it should: its own words (they must say "orangecheck"),
  * and `data-mark` (mono, brand, tile, none), `data-appearance` (inherit,
  * brand), `data-busy-label`, `data-accessible-label`, `data-label="none"`.
