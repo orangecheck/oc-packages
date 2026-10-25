@@ -205,7 +205,7 @@ program
         } else if (env.kind === 'agent-revocation') {
             console.log(`signer:        ${env.signer.address}`);
             console.log(`delegation_id: ${env.delegation_id}`);
-            console.log(`reason:        ${shownReason(env.reason) || '(none)'}`);
+            console.log(`reason:        ${shownReason(env.reason)}`);
             console.log(`signed_at:     ${env.signed_at}`);
             console.log(`ots:           ${env.ots?.status ?? 'none'}`);
         }
@@ -332,7 +332,7 @@ function recomputeId(env: AnyEnvelope): string {
     return computeRevocationId({
         address: env.signer.address,
         delegation_id: env.delegation_id,
-        reason: env.reason,
+        reason: env.reason ?? '',
         signed_at: env.signed_at,
     });
 }
@@ -370,7 +370,7 @@ function canonicalMessageFor(env: AnyEnvelope): string {
     return revocationCanonicalMessage({
         address: env.signer.address,
         delegation_id: env.delegation_id,
-        reason: env.reason,
+        reason: env.reason ?? '',
         signed_at: env.signed_at,
     });
 }

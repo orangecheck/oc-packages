@@ -13,10 +13,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [0.3.3] — 2026-10-24
 
-- `inspect` prints a revocation's reason with each control character written
-  as an escape (agent-core `shownReason`), so a line break or a terminal
-  control in a reason shows as `\n` or `\x1b` and never acts on the terminal.
-  Requires `@orangecheck/agent-core` ^2.9.0.
+- `inspect` prints a revocation's reason with each control, bidi or invisible
+  character written as an escape (agent-core `shownReason`), so a line break or
+  a terminal control shows as `\n`, `\x1b` or `\u{9b}` and never acts on the
+  terminal. A revocation with no reason, or a `null` one, prints
+  `no reason given` and hashes as the empty reason. Requires
+  `@orangecheck/agent-core` ^2.9.0.
 
 ## [0.3.2] — 2026-10-24
 
