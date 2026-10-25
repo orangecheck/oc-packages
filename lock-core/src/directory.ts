@@ -255,7 +255,7 @@ export interface DirectoryReader {
 }
 
 export type DirectoryResolution =
-    | { result: 'holds'; holder: string; claimId: string; reads: string[] }
+    | { result: 'holds'; holder: string; claimId: string; /** The claim's current coin (§8.2.9). */ coin: string; reads: string[] }
     | { result: 'E_DIR_UNRESOLVED' | 'E_DIR_REVOKED' | 'E_DIR_UNVERIFIED'; holder: null; reads: string[] };
 
 /**
@@ -317,12 +317,12 @@ export async function resolveDirectory(
             .filter((x) => x.address === address && keys.includes(x.key))
             .reduce<DirectoryRecord | null>((best, x) => (!best || x.createdAt > best.createdAt ? x : best), null);
 
-    // §8.2.2 (3) and §8.2.9: 'pass', 'fail', or 'stop' (a read without an answer, or a bound).
+    // §8.2.2 (3) and §8.2.9: the current coin it stands on, 'fail', or 'stop' (a read without an answer, or a bound).
     const stands = async (
         rec: Extract<DirectoryRecord, { kind: 'listing' }>,
         state: Extract<DirectoryRecord, { kind: 'listing' }>,
         audit: boolean
-    ): Promise<'pass' | 'fail' | 'stop'> => {
+    ): Promise<{ pass: string } | 'fail' | 'stop'> => {
         // An anchor whose header could not be read: this claim can be neither placed nor passed over.
         if (typeof rec.anchor !== 'number') return 'stop';
         const anchor = rec.anchor;
@@ -348,7 +348,7 @@ export async function resolveDirectory(
         }
         return current.spendHeight !== null && tip - current.spendHeight + 1 >= params.repointBlocks + ANCHOR_CONFS
             ? 'fail'
-            : 'pass';
+            : { pass: coin };
     };
 
     const unresolved = (): DirectoryResolution => ({ result: 'E_DIR_UNRESOLVED', holder: null, reads });
@@ -393,7 +393,7 @@ export async function resolveDirectory(
             }
             return unresolved();
         }
-        if (verdict === 'pass') return { result: 'holds', holder: rec.address, claimId: rec.claimId, reads };
+        if (verdict !== 'fail') return { result: 'holds', holder: rec.address, claimId: rec.claimId, coin: verdict.pass, reads };
     }
     const revoked = [...bound.entries()].some(([address, keys]) => stateOf(address, keys)?.kind === 'tombstone');
     return { result: revoked ? 'E_DIR_REVOKED' : 'E_DIR_UNVERIFIED', holder: null, reads };

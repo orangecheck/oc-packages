@@ -17,7 +17,8 @@ directory relay's write gate and the chat client alike: `claimId`,
 `parseDirectoryContent` and `parseChannelDirectoryContent` (§8.3.6, with
 `channelId`), the shape a record must have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
 (bound keys and coin facts), with its bounds, and a read without an answer
-before the holder answering `E_DIR_UNRESOLVED`; `directoryAnchor`, the anchor
+before the holder answering `E_DIR_UNRESOLVED`; a holding claim names the coin
+it stands on; `directoryAnchor`, the anchor
 from an OpenTimestamps proof through `@orangecheck/stamp-ots`; and
 `esploraCoinReader`. Tested against the spec's vectors vc07 and vc22 to vc25.
 
