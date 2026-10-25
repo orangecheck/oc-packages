@@ -8,6 +8,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.53.0] — 2026-10-25
+
+### Changed
+
+- `requireBond` throws a TypeError when `withOcAuth`, `ocAuthExpress`,
+  `ocAuthHono`, `checkOcSession` or `checkSignInRule` is given one whose
+  `minSats`, `minDays` or `maxAgeSecs` is not left out or a whole number of 0
+  or more: NaN (an unset env var read with `Number()`), a string, a fraction or
+  null. `bondMeets`, from auth-core ^2.24.0, is false for such a floor.
+  `readBondNeed` is exported beside it. Held to auth-core's
+  `test-vectors/bond-need.json`.
+
 ## [0.52.0] — 2026-10-25
 
 ### Changed

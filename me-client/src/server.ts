@@ -68,6 +68,7 @@ import {
     familyRevocationCheck,
     integratorRevocationCheck,
     readBondClaim,
+    readBondNeed,
     readOcSessionToken,
     SAFE_METHODS,
     verifyOcToken as verifyOcTokenCore,
@@ -78,7 +79,7 @@ import {
     type SessionRequestHeaders,
 } from '@orangecheck/auth-core';
 
-export { bondMeets, readBondClaim };
+export { bondMeets, readBondClaim, readBondNeed };
 export type { BondClaim, SessionPayload, VerifyOcOptions };
 
 /** Why a token that verified is still not a session here. */
@@ -473,7 +474,8 @@ export interface WithOcAuthOptions extends OcSessionOptions {
      * bond backs it: one unspent coin of at least `minSats`, unspent at least
      * `minDays` days, checked within `maxAgeSecs`. The app never learns the
      * coin; `req.ocSession.oc_bond.nullifier` is the same for the same coin at
-     * your site, so ban that to ban the coin. Implies `required`.
+     * your site, so ban that to ban the coin. Implies `required`. Each value
+     * is left out or a whole number of 0 or more; anything else throws.
      */
     requireBond?: { minSats?: number; minDays?: number; maxAgeSecs?: number };
     /**
@@ -533,6 +535,13 @@ function checkOptions(options: WithOcAuthOptions): void {
         throw new TypeError(
             `@orangecheck/me-client: requireBond: unknown option ${extra.join(', ')}. ` +
                 `It reads only ${[...BOND_OPTIONS].join(', ')}.`
+        );
+    }
+    // A NaN from an unset env var, a string or a fraction would otherwise be checked as no floor.
+    if (!readBondNeed(bond)) {
+        throw new TypeError(
+            '@orangecheck/me-client: requireBond: minSats, minDays and maxAgeSecs must each be ' +
+                'left out or a whole number of 0 or more'
         );
     }
 }
