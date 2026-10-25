@@ -11,6 +11,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.4] — 2026-10-25
+
+### Changed
+
+- Requires `@orangecheck/vote-core` `^2.1.0`: a poll, ballot or reveal nests at
+  most 32 levels (oc-vote-protocol SPEC §7), the same limit every tally and
+  vote.ochk.io apply.
+
 ## [0.7.3] — 2026-10-22
 
 ### Changed
