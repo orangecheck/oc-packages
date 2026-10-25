@@ -305,7 +305,7 @@ export async function revoke(input: RevokeInput): Promise<RevocationEnvelope> {
     }
 
     const reason = input.reason ?? '';
-    // Stricter than the spec on purpose: a control character changes the shape of the signed message.
+    // SPEC §9.1: a signer writes printable ASCII of at most 128 bytes.
     switch (authoredReasonProblem(reason)) {
         case null:
             break;
@@ -364,7 +364,6 @@ export {
     canonicalizeScope,
     REGISTERED_SCOPES,
     authoredReasonProblem,
-    reasonProblem,
     REVOCATION_REASON_MAX_BYTES,
     shownReason,
 } from '@orangecheck/agent-core';
