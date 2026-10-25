@@ -478,25 +478,33 @@ describe('values with one spelling, in ASCII (SPEC §7.2 rule 4)', () => {
     });
 });
 
-// SPEC §7.4 (1.10.0): content_hash_prefix!=v withholds every hash starting with v.
-describe('!= on a hash prefix withholds every hash that starts with it (SPEC §7.4)', () => {
-    const notAb = parseScope('stamp:sign(content_hash_prefix!=ab)');
-    const sub = (s: string) => isSubScope(parseScope(s), notAb);
+// SPEC §7.2 rule 5 and §7.4 (1.10.0): a *_prefix key means "starts with". It is
+// granted with = and never with !=.
+describe('a prefix key is granted with = and means "starts with" (SPEC §7.4)', () => {
+    const ab = parseScope('stamp:sign(content_hash_prefix=ab)');
+    const sub = (s: string) => isSubScope(parseScope(s), ab);
 
-    it('is not met by a longer prefix, the same prefix, or a shorter one', () => {
-        expect(sub('stamp:sign(content_hash_prefix=abc)')).toBe(false);
-        expect(sub('stamp:sign(content_hash_prefix=ab)')).toBe(false);
+    it('is met by the same prefix or a longer one', () => {
+        expect(sub('stamp:sign(content_hash_prefix=ab)')).toBe(true);
+        expect(sub('stamp:sign(content_hash_prefix=abc)')).toBe(true);
+    });
+
+    it('is not met by a shorter prefix, another prefix, or none', () => {
         expect(sub('stamp:sign(content_hash_prefix=a)')).toBe(false);
+        expect(sub('stamp:sign(content_hash_prefix=ac)')).toBe(false);
+        expect(sub('stamp:sign')).toBe(false);
     });
 
-    it('is met by a prefix no withheld hash can start with', () => {
-        expect(sub('stamp:sign(content_hash_prefix=ac)')).toBe(true);
-        expect(sub('stamp:sign(content_hash_prefix=b)')).toBe(true);
-    });
+    for (const mode of ['strict', 'permissive'] as const) {
+        it(`${mode} mode refuses != on a prefix key`, () => {
+            expect(() =>
+                validateScope(parseScope('stamp:sign(content_hash_prefix!=ab)'), { mode })
+            ).toThrow(ScopeParseError);
+        });
+    }
 
-    it('is met by withholding a shorter prefix of it, not a longer one', () => {
-        expect(sub('stamp:sign(content_hash_prefix!=a)')).toBe(true);
-        expect(sub('stamp:sign(content_hash_prefix!=ab)')).toBe(true);
-        expect(sub('stamp:sign(content_hash_prefix!=abc)')).toBe(false);
+    it('a != grant on a prefix key admits nothing', () => {
+        const notAb = parseScope('stamp:sign(content_hash_prefix!=ab)');
+        expect(isSubScope(parseScope('stamp:sign(content_hash_prefix=ac)'), notAb)).toBe(false);
     });
 });

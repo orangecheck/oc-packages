@@ -23,8 +23,10 @@ this file tracks the package's TS / Node / runtime API surface.
   `verifyActionAsOfSignedAt` and `verifySubdelegation` return
   `E_BAD_SCOPE_GRAMMAR` for them.
 - `isSubScope` under `!=` compares integer keys as integers (`kind=00` does
-  not meet `kind!=0`), reads `content_hash_prefix!=v` as withholding every
-  hash that starts with `v`, and is false for a value `validateScope` refuses.
+  not meet `kind!=0`) and is false for a value `validateScope` refuses.
+- A `*_prefix` key (`content_hash_prefix`) means "starts with": `isSubScope`
+  admits `=abc` under `=ab`, and `validateScope` refuses `!=` on one in either
+  mode.
 - `assertScopeGranted` refuses, with reason `malformed`, an exercised scope a
   strict verifier refuses, so an adapter signs nothing every verifier rejects.
 - Permissive mode still accepts an unregistered key and applies it as a

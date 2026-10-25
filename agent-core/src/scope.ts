@@ -66,8 +66,8 @@ const HEX_RE = /^[0-9a-f]+$/;
 /** Keys whose value is a MIME type and subtype, in lower case, without parameters (SPEC §7.2 rule 4). */
 const MIME_KEYS = new Set<string>(['mime']);
 const MIME_RE = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/;
-/** Keys whose value is a prefix of a hash: `!=` withholds every hash that starts with it (SPEC §7.4). */
-const PREFIX_KEYS = new Set<string>(['content_hash_prefix']);
+/** A `*_prefix` key means "starts with": granted with `=`, never `!=` (SPEC §7.2 rule 5, §7.4). */
+const isPrefixKey = (key: string): boolean => key.endsWith('_prefix');
 /** Keys whose value is a Bitcoin address: bech32 in lower case, base58 as written (SPEC §7.2 rule 4). */
 const ADDRESS_KEYS = new Set<string>(['recipient', 'counterparty']);
 const BECH32_HRP_RE = /^(bc|tb|bcrt)1/i;
@@ -300,6 +300,9 @@ export function validateScope(scope: Scope, options: ValidationOptions = {}): vo
     }
     const registered = new Set(reg.keys);
     for (const c of scope.constraints) {
+        if (isPrefixKey(c.key) && c.op === '!=') {
+            throw new ScopeParseError(`${c.key} is a prefix and takes = ("starts with"), never !=`);
+        }
         if (!registered.has(c.key)) {
             if (mode === 'strict') {
                 throw new ScopeParseError(
@@ -335,21 +338,19 @@ export function isSubScope(exercised: Scope, granted: Scope): boolean {
         if (g.op === '*') continue; // wildcard: no requirement
 
         if (g.op === '=') {
-            if (!ex) return false;
-            if (ex.op !== '=' || ex.value !== g.value) return false;
+            if (!ex || ex.op !== '=' || ex.value === undefined || g.value === undefined) return false;
+            if (isPrefixKey(g.key)) {
+                if (valueProblem(g.key, ex.value) || !ex.value.startsWith(g.value)) return false;
+                continue;
+            }
+            if (ex.value !== g.value) return false;
             continue;
         }
 
         if (g.op === '!=') {
             if (!ex || ex.value === undefined || g.value === undefined) return false;
             if (valueProblem(g.key, ex.value) || valueProblem(g.key, g.value)) return false;
-            if (PREFIX_KEYS.has(g.key)) {
-                // Admitted only when no hash can start with both: neither value is a prefix of the other.
-                if (ex.op === '=' && !ex.value.startsWith(g.value) && !g.value.startsWith(ex.value)) continue;
-                // Withholding a shorter prefix withholds every hash the grant withholds.
-                if (ex.op === '!=' && g.value.startsWith(ex.value)) continue;
-                return false;
-            }
+            if (isPrefixKey(g.key)) return false;
             const same = NUMERIC_KEYS.has(g.key)
                 ? parseDecimalInteger(ex.value) === parseDecimalInteger(g.value)
                 : ex.value === g.value;
