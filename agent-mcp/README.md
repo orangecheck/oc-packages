@@ -96,7 +96,7 @@ Stamps the invocation first, then calls `call(invocation, action)`, so the reque
 A server checks the action before it runs the tool, with `@orangecheck/agent-core` 2.7 or later:
 
 ```ts
-import { createReplayGuard, isSubScope, parseScope, verifyAction } from '@orangecheck/agent-core';
+import { createReplayGuard, isSubScope, parseScope, verifyAction, type Scope } from '@orangecheck/agent-core';
 import { ACTION_META_KEY, canonicalizeInvocation } from '@orangecheck/agent-mcp';
 import { verifySignature } from '@orangecheck/bip322';
 
@@ -116,7 +116,15 @@ const r = await verifyAction({
 if (!r.ok) throw new Error(`refused: ${r.code}`);
 
 // The exercised scope must name this server and this tool, not just some grant.
-const here = parseScope(`mcp:invoke(server=${MY_ENDPOINT},tool=${params.name})`);
+// The tool name is the caller's text: pin it as a value, never as scope syntax.
+const here: Scope = {
+    product: 'mcp',
+    verb: 'invoke',
+    constraints: [
+        { key: 'server', op: '=', value: MY_ENDPOINT, quoted: true },
+        { key: 'tool', op: '=', value: params.name, quoted: true },
+    ],
+};
 if (!isSubScope(parseScope(action.scope_exercised), here)) throw new Error('refused: E_SCOPE_DENIED');
 
 // One signed action runs once.
