@@ -29,6 +29,12 @@ def test_refuses_our_names_however_drawn(name):
     assert name_problem(name, 80) == "reserved"
 
 
+@pytest.mark.parametrize("name", VECTORS["contains"])
+def test_refuses_a_name_that_holds_ours_as_a_whole_word(name):
+    assert is_reserved_name(name) is True
+    assert name_problem(name, 80) == "reserved"
+
+
 @pytest.mark.parametrize("name", VECTORS["allowed"])
 def test_allows_a_name_that_only_resembles_ours(name):
     assert name_problem(name, 80) is None
@@ -82,4 +88,8 @@ def test_reads_a_long_name_in_time_linear_in_its_length():
     # A capital reads two ways; only the starts of our names are carried forward.
     started = time.monotonic()
     assert is_reserved_name("A" * 22 + "B" * 2000) is False
+    assert time.monotonic() - started < 1.0
+    # Every word start begins a read, so a read must stop where nothing can still spell a name.
+    started = time.monotonic()
+    assert is_reserved_name("orange chec " * 2000) is False
     assert time.monotonic() - started < 1.0

@@ -70,24 +70,64 @@ def _allowed(allow_reserved: object, where: str) -> bool:
     return allow_reserved
 
 
+def _words(value: str) -> list[tuple[str, bool]]:
+    """Its characters, spacing dropped, each marked where a reader sees a word begin.
+
+    After spacing, at and after punctuation, at a small letter followed by a
+    capital ("myOrange"), and at the last capital of a run before a small
+    letter ("OCHKTeam").
+    """
+    kept: list[tuple[str, bool]] = []
+    spaced = False
+    for ch in value:
+        if _spacing(ch):
+            spaced = spaced or ch in JS_WHITESPACE
+            continue
+        kept.append((ch, spaced))
+        spaced = False
+    cat = unicodedata.category
+    out = []
+    for i, (ch, spaced_before) in enumerate(kept):
+        prev = kept[i - 1][0] if i > 0 else None
+        nxt = kept[i + 1][0] if i + 1 < len(kept) else None
+        starts = (
+            prev is None
+            or spaced_before
+            or cat(prev)[0] not in "LNM"
+            or cat(ch)[0] not in "LNM"
+            or (cat(prev) == "Ll" and cat(ch) == "Lu")
+            or (cat(prev) == "Lu" and cat(ch) == "Lu" and nxt is not None and cat(nxt) == "Ll")
+        )
+        out.append((ch, starts))
+    return out
+
+
 def is_reserved_name(value: str, *, allow_reserved: bool = False) -> bool:
-    """True when ``value`` reads as one of orangecheck's own names.
+    """True when ``value`` holds one of orangecheck's own names as a whole word.
 
     Whatever its case, width, spacing or variation selectors, and when drawn
-    with look-alike letters from another script or digits (UTS #39). Always
-    False with ``allow_reserved``, which a caller sets only for orangecheck's
-    own records.
+    with look-alike letters from another script or digits (UTS #39).
+    "OrangeCheck Support" and "ochk.io team" read as ours; "orangecheckers"
+    and "Brochk" do not. Always False with ``allow_reserved``, which a caller
+    sets only for orangecheck's own records.
     """
     if _allowed(allow_reserved, "is_reserved_name"):
         return False
     if not isinstance(value, str):
         raise TypeError("orangecheck: is_reserved_name: value must be a str")
-    spelt = {""}
-    for ch in value:
-        if _spacing(ch):
+    chars = _words(value)
+    for start, (_, starts) in enumerate(chars):
+        if not starts:
             continue
-        spelt = {h + r for h in spelt for r in _readings(ch) if h + r in _RESERVED_PREFIXES}
-    return any(name in _RESERVED_NAMES for name in spelt)
+        spelt = {""}
+        i = start
+        while i < len(chars) and spelt:
+            spelt = {h + r for h in spelt for r in _readings(chars[i][0]) if h + r in _RESERVED_PREFIXES}
+            word_ends = i + 1 == len(chars) or chars[i + 1][1]
+            if word_ends and any(name in _RESERVED_NAMES for name in spelt):
+                return True
+            i += 1
+    return False
 
 
 def name_problem(
