@@ -284,13 +284,34 @@ describe('OcSignIn · a network past its count of new accounts or sign-in attemp
         wallet({ status: 429, body: { error: 'challenges_capped', retry_at: RETRY } }, { status: 500, body: {} });
         await askForMessage();
         expect(screen.getByRole('alert').textContent).toBe(
-            `Too many sign-in attempts from your connection. Try again after ${AT}.`
+            `Too many wallet sign-in attempts from this connection. Try again after ${AT}, or sign in another way.`
         );
         cleanup();
         wallet({ status: 429, body: { error: 'network_challenges_capped', retry_at: RETRY } }, { status: 500, body: {} });
         await askForMessage();
         expect(screen.getByRole('alert').textContent).toBe(
-            `Too many sign-in attempts from this network. Try again after ${AT}.`
+            `Too many wallet sign-in attempts from this network. Try again after ${AT}, or sign in another way.`
+        );
+        cleanup();
+        wallet({ status: 503, body: { error: 'cap_unavailable' } }, { status: 500, body: {} });
+        await askForMessage();
+        expect(screen.getByRole('alert').textContent).toBe(
+            "We couldn't start a wallet sign-in just now. Try again in a minute, or sign in another way."
+        );
+    });
+
+    it('wallet: a count it cannot read refuses to make the account, and says so', async () => {
+        wallet(
+            { status: 200, body: { message: 'sign this', nonce: 'n1' } },
+            { status: 503, body: { error: 'new_account_cap_unavailable' } }
+        );
+        await askForMessage();
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9kAiBvOvnMEzFhPq' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toBe(
+            "We couldn't finish making your account just now. Try again in a minute."
         );
     });
 

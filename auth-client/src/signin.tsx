@@ -42,7 +42,7 @@ import { normalizeEmail } from '@orangecheck/auth-core/identifiers';
 import * as React from 'react';
 
 import { addressInputValue } from './address';
-import { capText, newAccountsCapText, otpNetworkCapText } from './caps';
+import { capText, otpNetworkCapText } from './caps';
 import { LinkPromptStep } from './linked-identities';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
@@ -399,7 +399,8 @@ const OAUTH_EMAIL_CODE_REASONS = new Set(['email_code_required', 'account_mismat
 
 /** What a refused provider sign-in (`?oauth_error=`) says to the person. */
 function oauthErrorText(reason: string, retryAt: unknown): string {
-    if (reason === 'new_accounts_capped') return newAccountsCapText(retryAt);
+    const cap = capText(reason, retryAt);
+    if (cap) return cap;
     if (reason === 'email_code_required') {
         return 'This email already has an orangecheck account. Sign in to it with an email code below.';
     }

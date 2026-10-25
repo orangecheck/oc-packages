@@ -39,13 +39,29 @@ export function newAccountsCapText(retryAt: unknown): string {
     return `Too many new accounts were made from this network recently. Try again ${at ? `after ${at}` : 'later'}, or sign in to an account you already have.`;
 }
 
-/** The sentence for a cap's reason code, or null when `reason` is not a cap. */
-export function capText(reason: string, retryAt: unknown, instead?: string): string | null {
+/**
+ * The sentence for a cap's reason code, or null when `reason` is not one.
+ * `alternative` is what else the reader can do, as a clause ("sign in another
+ * way"); a cap on new accounts offers none, since every way makes the account
+ * from the same network.
+ */
+export function capText(reason: string, retryAt: unknown, alternative = 'sign in another way'): string | null {
     const at = readableRetry(retryAt);
-    const when = at ? `Try again after ${at}.` : 'Try again later.';
-    if (reason === 'otp_network_cap') return otpNetworkCapText(retryAt, instead);
-    if (reason === 'new_accounts_capped') return newAccountsCapText(retryAt);
-    if (reason === 'challenges_capped') return `Too many sign-in attempts from your connection. ${when}`;
-    if (reason === 'network_challenges_capped') return `Too many sign-in attempts from this network. ${when}`;
-    return null;
+    const retry = at ? `Try again after ${at}` : 'Try again later';
+    switch (reason) {
+        case 'otp_network_cap':
+            return otpNetworkCapText(retryAt, alternative.charAt(0).toUpperCase() + alternative.slice(1));
+        case 'new_accounts_capped':
+            return newAccountsCapText(retryAt);
+        case 'new_account_cap_unavailable':
+            return "We couldn't finish making your account just now. Try again in a minute.";
+        case 'challenges_capped':
+            return `Too many wallet sign-in attempts from this connection. ${retry}, or ${alternative}.`;
+        case 'network_challenges_capped':
+            return `Too many wallet sign-in attempts from this network. ${retry}, or ${alternative}.`;
+        case 'cap_unavailable':
+            return `We couldn't start a wallet sign-in just now. Try again in a minute, or ${alternative}.`;
+        default:
+            return null;
+    }
 }

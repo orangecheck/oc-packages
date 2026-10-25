@@ -23,8 +23,10 @@ this file tracks the package's TS / Node / runtime API surface.
   and that an existing one still signs in. It says the same on the wallet,
   email and provider paths.
 - OcSignIn says when a capped wallet challenge frees: `challenges_capped`
-  ("from your connection") and `network_challenges_capped` ("from this
-  network"), each with its time.
+  ("from this connection") and `network_challenges_capped` ("from this
+  network"), each with its time, and offers another way to sign in. A count
+  ochk.io cannot read says so too: `cap_unavailable` on a challenge, and
+  `new_account_cap_unavailable` when an account could not be made.
 - OcLinkedIdentities says the same when linking meets a cap: a capped wallet
   challenge, or a network past its hour of codes when linking an email (which
   offers linking a wallet instead). It showed `http_429` or the reason code.

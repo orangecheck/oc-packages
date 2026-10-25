@@ -36,7 +36,7 @@ afterEach(() => {
 describe('OcLinkedIdentities · a capped network', () => {
     it('linking a wallet: a capped challenge says whose limit it is, and when', async () => {
         for (const [error, who] of [
-            ['challenges_capped', 'your connection'],
+            ['challenges_capped', 'this connection'],
             ['network_challenges_capped', 'this network'],
         ] as const) {
             stub({ path: '/api/challenge', body: { error, retry_at: RETRY } });
@@ -49,7 +49,9 @@ describe('OcLinkedIdentities · a capped network', () => {
             await act(async () => {
                 fireEvent.click(screen.getByRole('button', { name: 'get challenge' }));
             });
-            expect(screen.getByText(`Too many sign-in attempts from ${who}. Try again after ${AT}.`)).toBeTruthy();
+            expect(
+                screen.getByText(`Too many wallet sign-in attempts from ${who}. Try again after ${AT}, or link an email instead.`)
+            ).toBeTruthy();
             expect(screen.queryByText(/http_429|_capped/)).toBeNull();
             cleanup();
         }

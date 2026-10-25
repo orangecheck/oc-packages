@@ -612,7 +612,7 @@ function EmailLinkForm({
             };
             if (!r.ok || !j.token) {
                 const reason = j.reason ?? `http_${r.status}`;
-                throw new Error(capText(reason, j.retry_at, 'Link a Bitcoin wallet instead') ?? reason);
+                throw new Error(capText(reason, j.retry_at, 'link a Bitcoin wallet instead') ?? reason);
             }
             setToken(j.token);
             setStep('code');
@@ -780,7 +780,7 @@ function BtcLinkForm({
             };
             if (!r.ok || !j.message) {
                 const reason = j.reason ?? j.error ?? `http_${r.status}`;
-                throw new Error(capText(reason, j.retry_at) ?? reason);
+                throw new Error(capText(reason, j.retry_at, 'link an email instead') ?? reason);
             }
             setChallenge(j.message);
             setStep('sign');
