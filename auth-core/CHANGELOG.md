@@ -26,6 +26,12 @@ this file tracks the package's TS / Node / runtime API surface.
   `allow_reserved` set, so sdk-py's `name_problem` is held to the same answers.
   `scripts/gen-confusables.mjs` also writes sdk-py's copy of the table.
 
+### Changed
+
+- Every option bag reads only the caller's own keys. A known option that
+  would be read through the prototype (`Object.create({ audience })`, or a key
+  added to `Object.prototype`) throws, as an unknown one does.
+
 ## [2.25.0] — 2026-10-25
 
 ### Changed

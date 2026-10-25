@@ -72,6 +72,15 @@ describe('unknown options', () => {
         expect(() => createRevocationCheck({ tokn: 'secret' } as never)).toThrow(/unknown option tokn/);
     });
 
+    it('refuse a known option the caller did not set, one read through the prototype', async () => {
+        const inherited = Object.create({ audience: 'https://site.example' }) as VerifyOcOptions;
+        await expect(verifyOcToken(token, inherited)).rejects.toThrow(/option audience is inherited/);
+        await expect(getOcSession(noToken, inherited)).rejects.toThrow(/option audience is inherited/);
+        const cfg = Object.assign(Object.create({ issuer: 'https://elsewhere.example' }), { publicJwk: sign.publicJwk });
+        await expect(verifySessionToken(token, cfg)).rejects.toThrow(/option issuer is inherited/);
+        expect(() => integratorRevocationCheck(Object.create({ projectKey: 'pk_live_x' }))).toThrow(/inherited/);
+    });
+
     it('every option they read is accepted', async () => {
         const known: VerifyOcOptions = {
             issuer: DEFAULT_ISSUER,

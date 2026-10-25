@@ -102,6 +102,23 @@ describe("the family name rule", () => {
     expect(() => nameProblem("ochk", 80, { allowReserved: "yes" } as never)).toThrow(/true or false/);
     expect(() => isReservedName("ochk", { allowReserved: 1 } as never)).toThrow(/true or false/);
     expect(() => nameProblem("ochk", 80, null as never)).toThrow(/must be an object/);
+    // The option is read before the name, so an empty name still reports a bad option.
+    expect(() => nameProblem("", 80, { allowReserved: "yes" } as never)).toThrow(/true or false/);
+    expect(() => nameProblem("", 80, { allowReserve: true } as never)).toThrow(/unknown option/);
+  });
+
+  it("lifts nothing for an allowReserved the caller did not set itself", () => {
+    expect(() => nameProblem("ochk", 80, Object.create({ allowReserved: true }))).toThrow(/inherited/);
+    expect(() => isReservedName("ochk", Object.create({ allowReserved: true }))).toThrow(/inherited/);
+    const proto = Object.prototype as { allowReserved?: boolean };
+    proto.allowReserved = true;
+    try {
+      expect(() => nameProblem("ochk", 80, {})).toThrow(/inherited/);
+      expect(nameProblem("ochk", 80)).toBe("reserved");
+      expect(isReservedName("ochk")).toBe(true);
+    } finally {
+      delete proto.allowReserved;
+    }
   });
 
   // A capital reads two ways; only the starts of our names are carried forward, or the reads double per letter.

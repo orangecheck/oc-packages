@@ -73,6 +73,11 @@ def test_refuses_an_option_it_does_not_read_or_one_that_is_not_a_bool():
         name_problem(None, 80)  # type: ignore[arg-type]
 
 
+def test_a_bad_option_is_refused_before_the_name_is_read():
+    with pytest.raises(TypeError, match="True or False"):
+        name_problem("", 80, allow_reserved="yes")  # type: ignore[arg-type]
+
+
 def test_reads_a_long_name_in_time_linear_in_its_length():
     # A capital reads two ways; only the starts of our names are carried forward.
     started = time.monotonic()
