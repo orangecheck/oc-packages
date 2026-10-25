@@ -7,13 +7,19 @@ on:
         branches: [main, develop]
         paths:
             - 'sdk-py/**'
+            # Vectors sdk-py's tests read from its TypeScript twins.
             - 'me-client/test-vectors/**'
+            - 'auth-core/test-vectors/**'
+            - 'pledge-core/test-vectors/**'
             - '.github/workflows/python.yml'
     pull_request:
         branches: [main, develop]
         paths:
             - 'sdk-py/**'
+            # Vectors sdk-py's tests read from its TypeScript twins.
             - 'me-client/test-vectors/**'
+            - 'auth-core/test-vectors/**'
+            - 'pledge-core/test-vectors/**'
             - '.github/workflows/python.yml'
 
 concurrency:
