@@ -64,6 +64,14 @@ const LOWER_CASE_KEYS = new Set<string>(['content_hash_prefix', 'poll_id', 'node
 /** Keys whose value is a Bitcoin address: bech32 in lower case, base58 as written (SPEC §7.2 rule 4). */
 const ADDRESS_KEYS = new Set<string>(['recipient', 'counterparty']);
 const BECH32_HRP_RE = /^(bc|tb|bcrt)1/i;
+/** Keys whose value is a URL: scheme and host in lower case, the rest as written (SPEC §7.2 rule 4). */
+const URL_KEYS = new Set<string>(['origin', 'server', 'relay']);
+
+/** The scheme and host of a URL value: what comes before its path, query or fragment. */
+function urlHead(value: string): string {
+    const m = /^(?:[^:/?#]*:)?(?:\/\/[^/?#]*)?/.exec(value)![0];
+    return m || value.split(/[/?#]/)[0]!;
+}
 
 /** Why `value` is not a value `key` can take (SPEC §7.2 rule 4), or null. */
 function valueProblem(key: string, value: string): string | null {
@@ -76,6 +84,9 @@ function valueProblem(key: string, value: string): string | null {
     const lowerOnly = LOWER_CASE_KEYS.has(key) || (ADDRESS_KEYS.has(key) && BECH32_HRP_RE.test(value));
     if (lowerOnly && /[A-Z]/.test(value)) {
         return `${key} is written in lower case, got ${JSON.stringify(value)}`;
+    }
+    if (URL_KEYS.has(key) && /[A-Z]/.test(urlHead(value))) {
+        return `${key} has its scheme and host in lower case, got ${JSON.stringify(value)}`;
     }
     return null;
 }

@@ -16,7 +16,9 @@ this file tracks the package's TS / Node / runtime API surface.
   `method` value with a lower-case letter, and hex (`node`, `poll_id`,
   `content_hash_prefix`), a MIME type (`mime`) or a bech32 address
   (`recipient`, `counterparty` starting `bc1`, `tb1` or `bcrt1`) with an
-  upper-case letter; a base58 address keeps its case. `verifyDelegation`, `verifyAction`,
+  upper-case letter; a base58 address keeps its case. A URL value (`origin`,
+  `server`, `relay`) with an upper-case letter in its scheme or host is refused;
+  its path keeps its case. `verifyDelegation`, `verifyAction`,
   `verifyActionAsOfSignedAt` and `verifySubdelegation` return
   `E_BAD_SCOPE_GRAMMAR` for them.
 - `isSubScope` compares an integer key's values as integers under `!=`, so

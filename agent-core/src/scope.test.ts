@@ -400,3 +400,39 @@ describe('hex, MIME and bech32 values are lower case (SPEC §7.2 rule 4)', () =>
         expect(isSubScope(parseScope('lock:seal(recipient=3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy)'), granted)).toBe(true);
     });
 });
+
+// SPEC §7.2 rule 4 (1.10.0): a URL's scheme and host are lower case, the
+// canonical origin form; its path, query and fragment keep their case.
+describe('a URL value has its scheme and host in lower case (SPEC §7.2 rule 4)', () => {
+    for (const mode of ['strict', 'permissive'] as const) {
+        for (const s of [
+            'http:request(origin=https://API.example.com)',
+            'http:request(origin=HTTPS://api.example.com)',
+            'mcp:invoke(server=https://Mcp.example.com/tools)',
+            'nostr:publish(relay=wss://Relay.example.com)',
+            'mcp:invoke(server=Stdio:local/tool)',
+            'http:request(origin=API.example.com/x)',
+        ]) {
+            it(`${mode} mode refuses ${s}`, () => {
+                expect(() => validateScope(parseScope(s), { mode })).toThrow(ScopeParseError);
+            });
+        }
+    }
+
+    for (const s of [
+        'mcp:invoke(server=https://mcp.example.com/Tools)',
+        'http:request(origin=https://api.example.com:8443)',
+        'mcp:invoke(server=stdio:oc-agent-examples/Verifying-Server)',
+        'nostr:publish(relay="wss://relay.example.com/?Q=1#Frag")',
+    ]) {
+        it(`strict mode accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+
+    it('origin!= is not met by the same origin with an upper-case host', () => {
+        const notEvil = parseScope('http:request(origin!=https://evil.example)');
+        expect(isSubScope(parseScope('http:request(origin=https://EVIL.example)'), notEvil)).toBe(false);
+        expect(isSubScope(parseScope('http:request(origin=https://good.example)'), notEvil)).toBe(true);
+    });
+});
