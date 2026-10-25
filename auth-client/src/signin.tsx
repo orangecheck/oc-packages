@@ -205,6 +205,8 @@ interface SigninJsonErr {
     reason?: string;
     error?: string;
     issues?: unknown;
+    /** Unix seconds, on a cap's 429 (`otp_network_cap`, `new_accounts_capped`). */
+    retry_at?: unknown;
 }
 
 type SigninJson = SigninJsonOk | SigninJsonErr;
@@ -331,11 +333,41 @@ const SUBMIT_ERRORS: Record<string, string> = {
  * false. Says when, at `retryAt` (unix seconds), in the reader's own time.
  */
 export function otpNetworkCapText(retryAt: unknown, instead = 'Sign in another way'): string {
-    const at =
-        typeof retryAt === 'number' && Number.isFinite(retryAt)
-            ? `after ${new Date(retryAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-            : 'within the hour';
-    return `Too many codes were sent from your network in the last hour. ${instead}, or try again ${at}.`;
+    const at = readableRetry(retryAt);
+    return `Too many codes were sent from your network in the last hour. ${instead}, or try again ${at ? `after ${at}` : 'within the hour'}.`;
+}
+
+/**
+ * A network past its count of new accounts (`new_accounts_capped`, ochk.io
+ * #345). Every way of signing in counts toward it, so another way would not
+ * help; an account that already exists always signs in. Says when, at
+ * `retryAt` (unix seconds), in the reader's own time.
+ */
+export function newAccountsCapText(retryAt: unknown): string {
+    const at = readableRetry(retryAt);
+    return `Too many new accounts were made from this network recently. Try again ${at ? `after ${at}` : 'later'}, or sign in to an account you already have.`;
+}
+
+/** `retryAt` (unix seconds) as the reader's own clock time, or null when it is not a time. */
+function readableRetry(retryAt: unknown): string | null {
+    if (typeof retryAt !== 'number' || !Number.isFinite(retryAt)) return null;
+    return new Date(retryAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/** ochk.io's sign-in caps (#345): each answers 429 with `retry_at`, and says when. */
+function capText(reason: string, retryAt: unknown): string | null {
+    const at = readableRetry(retryAt);
+    const when = at ? `Try again after ${at}.` : 'Try again later.';
+    if (reason === 'new_accounts_capped') return newAccountsCapText(retryAt);
+    if (reason === 'challenges_capped') return `Too many sign-in attempts from your connection. ${when}`;
+    if (reason === 'network_challenges_capped') return `Too many sign-in attempts from this network. ${when}`;
+    return null;
+}
+
+/** The sentence a refused sign-in throws: a cap says when, any other reason stays a code. */
+function signinRefusal(json: SigninJsonErr, fallback: string): string {
+    const reason = json.reason || json.error || fallback;
+    return capText(reason, json.retry_at) ?? reason;
 }
 
 /** The auth host by name, so an outage reads as theirs and not the page's. */
@@ -402,7 +434,8 @@ export function looksLikeBitcoinAddress(input: string): boolean {
 const OAUTH_EMAIL_CODE_REASONS = new Set(['email_code_required', 'account_mismatch']);
 
 /** What a refused provider sign-in (`?oauth_error=`) says to the person. */
-function oauthErrorText(reason: string): string {
+function oauthErrorText(reason: string, retryAt: unknown): string {
+    if (reason === 'new_accounts_capped') return newAccountsCapText(retryAt);
     if (reason === 'email_code_required') {
         return 'This email already has an orangecheck account. Sign in to it with an email code below.';
     }
@@ -515,12 +548,16 @@ export function OcSignIn({
     // Set when the user is bounced back here after a failed provider
     // (e.g. Google) sign-in — the auth host redirects to
     // `/signin?oauth_error=…`.
-    const [oauthError, setOauthError] = React.useState<string | null>(null);
+    const [oauthError, setOauthError] = React.useState<{ reason: string; retryAt: unknown } | null>(
+        null
+    );
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
-        const reason = new URLSearchParams(window.location.search).get('oauth_error');
+        const params = new URLSearchParams(window.location.search);
+        const reason = params.get('oauth_error');
         if (reason === null) return;
-        setOauthError(reason);
+        const retryAt = params.get('retry_at');
+        setOauthError({ reason, retryAt: retryAt === null ? null : Number(retryAt) });
         // The way back in is an email code, so open on it.
         if (OAUTH_EMAIL_CODE_REASONS.has(reason) && emailEnabled) setPath('email');
     }, [emailEnabled]);
@@ -645,7 +682,7 @@ export function OcSignIn({
                         fontSize: signinRoleSize('text', signinSize(11)),
                     }}
                 >
-                    {oauthErrorText(oauthError)}
+                    {oauthErrorText(oauthError.reason, oauthError.retryAt)}
                 </div>
             )}
             {addMode && (
@@ -1145,9 +1182,14 @@ function WalletFlow({
         const res = await fetch(
             `${authOrigin}/api/challenge?addr=${encodeURIComponent(addr)}&audience=${encodeURIComponent(audience)}&purpose=login`
         );
-        const json = (await res.json()) as { message?: string; nonce?: string; error?: string };
+        const json = (await res.json()) as {
+            message?: string;
+            nonce?: string;
+            error?: string;
+            retry_at?: unknown;
+        };
         if (!res.ok || !json.message || !json.nonce) {
-            throw new Error(json.error ?? 'challenge_failed');
+            throw new Error(signinRefusal(json, 'challenge_failed'));
         }
         return { message: json.message, nonce: json.nonce };
     }
@@ -1182,11 +1224,7 @@ function WalletFlow({
         });
         const json = (await res.json()) as SigninJson;
         if (!res.ok || !('ok' in json) || !json.ok || !json.account) {
-            throw new Error(
-                ('reason' in json && json.reason) ||
-                    ('error' in json && json.error) ||
-                    'verify_failed'
-            );
+            throw new Error(signinRefusal(json as SigninJsonErr, 'verify_failed'));
         }
         onSuccess(json.account, json.token);
     }
@@ -1487,11 +1525,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             });
             const json = (await res.json()) as SigninJson;
             if (!res.ok || !('ok' in json) || !json.ok || !json.account) {
-                throw new Error(
-                    ('reason' in json && json.reason) ||
-                        ('error' in json && json.error) ||
-                        'server_error'
-                );
+                throw new Error(signinRefusal(json as SigninJsonErr, 'server_error'));
             }
             onSuccess(json.account, json.token);
         } catch (err) {

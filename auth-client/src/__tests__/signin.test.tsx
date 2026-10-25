@@ -15,7 +15,13 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
 }));
 
 import { inputStyle as linkedInputStyle, LinkPromptStep } from '../linked-identities';
-import { humanSigninError, looksLikeBitcoinAddress, OcSignIn, otpNetworkCapText } from '../signin';
+import {
+    humanSigninError,
+    looksLikeBitcoinAddress,
+    newAccountsCapText,
+    OcSignIn,
+    otpNetworkCapText,
+} from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
 
@@ -223,6 +229,99 @@ describe('OcSignIn · a network past its hour of codes', () => {
             'Too many codes were sent from your network in the last hour. Confirm with your wallet, or try again within the hour.'
         );
         expect(otpNetworkCapText('1761366600')).toMatch(/try again within the hour\.$/);
+    });
+});
+
+describe('OcSignIn · a network past its count of new accounts or sign-in attempts', () => {
+    const RETRY = Math.floor(Date.UTC(2026, 9, 25, 6, 45) / 1000);
+    const AT = new Date(RETRY * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const NEW_ACCOUNTS = `Too many new accounts were made from this network recently. Try again after ${AT}, or sign in to an account you already have.`;
+
+    function wallet(challenge: { status: number; body: unknown }, signin: { status: number; body: unknown }) {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.includes('/api/challenge')) return challenge;
+            if (url.endsWith('/api/auth/signin')) return signin;
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+    }
+
+    async function askForMessage() {
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+    }
+
+    it('says when a new account can be made, and that an existing one still signs in', () => {
+        expect(newAccountsCapText(RETRY)).toBe(NEW_ACCOUNTS);
+        expect(newAccountsCapText('soon')).toBe(
+            'Too many new accounts were made from this network recently. Try again later, or sign in to an account you already have.'
+        );
+    });
+
+    it('wallet: a capped new account reads as that sentence, not the code', async () => {
+        wallet(
+            { status: 200, body: { message: 'sign this', nonce: 'n1' } },
+            { status: 429, body: { error: 'new_accounts_capped', retry_at: RETRY } }
+        );
+        await askForMessage();
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9kAiBvOvnMEzFhPq' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toBe(NEW_ACCOUNTS);
+    });
+
+    it('wallet: a capped challenge says whose limit it is, and when', async () => {
+        wallet({ status: 429, body: { error: 'challenges_capped', retry_at: RETRY } }, { status: 500, body: {} });
+        await askForMessage();
+        expect(screen.getByRole('alert').textContent).toBe(
+            `Too many sign-in attempts from your connection. Try again after ${AT}.`
+        );
+        cleanup();
+        wallet({ status: 429, body: { error: 'network_challenges_capped', retry_at: RETRY } }, { status: 500, body: {} });
+        await askForMessage();
+        expect(screen.getByRole('alert').textContent).toBe(
+            `Too many sign-in attempts from this network. Try again after ${AT}.`
+        );
+    });
+
+    it('email: a capped new account at verify reads as that sentence', async () => {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.endsWith('/email-otp/start')) return { body: { ok: true, token: 't1' } };
+            if (url.endsWith('/email-otp/verify'))
+                return { status: 429, body: { ok: false, reason: 'new_accounts_capped', retry_at: RETRY } };
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
+            target: { value: 'a@example.com' },
+        });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        fireEvent.change(screen.getByLabelText('One-time code'), { target: { value: '123456' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Verify/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toBe(NEW_ACCOUNTS);
+    });
+
+    it('Google or GitHub: the redirect back says the same, with its time', async () => {
+        stubFetch((url) => (url.endsWith('/api/auth/providers') ? { body: { providers: [] } } : undefined));
+        window.history.replaceState(null, '', `/signin?oauth_error=new_accounts_capped&retry_at=${RETRY}`);
+        try {
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+            await act(async () => {});
+            expect(document.querySelector('[data-oc-signin-oauth-error]')?.textContent).toBe(NEW_ACCOUNTS);
+        } finally {
+            window.history.replaceState(null, '', '/');
+        }
     });
 });
 

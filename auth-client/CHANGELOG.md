@@ -16,6 +16,15 @@ this file tracks the package's TS / Node / runtime API surface.
   had its hour of sign-in codes waits until the hour rolls, so OcSignIn now says
   that and when, in the reader's own time, instead of "wait a minute". Other
   sites that send codes can say the same thing with it.
+- `newAccountsCapText(retryAt)`: the sentence for ochk.io's
+  `new_accounts_capped` answer (429 with `retry_at`, or `?oauth_error=` and
+  `retry_at` on the redirect back from Google or GitHub). Every way of signing
+  in counts toward that cap, so OcSignIn says when a new account can be made
+  and that an existing one still signs in. It says the same on the wallet,
+  email and provider paths.
+- OcSignIn says when a capped wallet challenge frees: `challenges_capped`
+  ("from your connection") and `network_challenges_capped` ("from this
+  network"), each with its time.
 
 ## [2.39.0] — 2026-10-25
 
