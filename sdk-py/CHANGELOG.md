@@ -4,6 +4,21 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.14.1] — 2026-10-25
+
+### Changed
+
+- `decode_address` returns None for text longer than 90 characters, and for
+  base58 longer than 35, before decoding it, as `@orangecheck/bip322` 1.1.3
+  does; `normalize_address` reads through it. Every answer is unchanged.
+  Held to `bip322/test-vectors/address-length.json`.
+
+### Note on 3.12.0
+
+- Since 3.12.0, `require_bond={"max_age_secs": None}` raises TypeError.
+  Earlier releases read None there as no age limit; leave the key out for
+  that.
+
 ## [3.14.0] — 2026-10-25
 
 ### Added

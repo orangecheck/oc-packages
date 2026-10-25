@@ -1,0 +1,109 @@
+{
+    "description": "decodeAddress(input) and normalizeAddress(input) on inputs at and past the longest address. No base58 address is longer than 35 characters and no bech32 string longer than 90 (BIP-173), so a longer input is not an address and is refused before it is decoded: the time it takes does not grow with its length. An input is a string, or {prefix, repeat, count, suffix}: prefix, then repeat written count times, then suffix. address says whether decodeAddress reads it; normalized is what normalizeAddress returns.",
+    "cases": [
+        {
+            "input": "2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc",
+            "address": true,
+            "normalized": "2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc"
+        },
+        {
+            "input": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+            "address": true,
+            "normalized": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
+        },
+        {
+            "input": "bcrt1pqv9pzxqlyckngw6zf9g9whn9d3eh4qvg37tfmf9tk2uup37w6hwq8xhc9m",
+            "address": true,
+            "normalized": "bcrt1pqv9pzxqlyckngw6zf9g9whn9d3eh4qvg37tfmf9tk2uup37w6hwq8xhc9m"
+        },
+        {
+            "input": "BCRT1PQV9PZXQLYCKNGW6ZF9G9WHN9D3EH4QVG37TFMF9TK2UUP37W6HWQ8XHC9M",
+            "address": false,
+            "normalized": "bcrt1pqv9pzxqlyckngw6zf9g9whn9d3eh4qvg37tfmf9tk2uup37w6hwq8xhc9m"
+        },
+        {
+            "input": "  bcrt1pqv9pzxqlyckngw6zf9g9whn9d3eh4qvg37tfmf9tk2uup37w6hwq8xhc9m\n",
+            "address": false,
+            "normalized": "bcrt1pqv9pzxqlyckngw6zf9g9whn9d3eh4qvg37tfmf9tk2uup37w6hwq8xhc9m"
+        },
+        {
+            "input": "11BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": "1112MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc",
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "repeat": "z",
+                "count": 36
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "repeat": "z",
+                "count": 8000
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "repeat": "1",
+                "count": 14000
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "repeat": "z",
+                "count": 1000000
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "prefix": "bc1q",
+                "repeat": "q",
+                "count": 87
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "prefix": "bc1q",
+                "repeat": "q",
+                "count": 1000000
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "prefix": "BC1Q",
+                "repeat": "Q",
+                "count": 1000000
+            },
+            "address": false,
+            "normalized": null
+        },
+        {
+            "input": {
+                "prefix": " ",
+                "repeat": "z",
+                "count": 1000000,
+                "suffix": " "
+            },
+            "address": false,
+            "normalized": null
+        }
+    ]
+}

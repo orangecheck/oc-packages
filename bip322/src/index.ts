@@ -39,6 +39,10 @@ const BASE58_VERSIONS: Record<number, [AddressType, 'mainnet' | 'testnet']> = {
 
 const BECH32_NETWORKS = { bc: 'mainnet', tb: 'testnet', bcrt: 'regtest' } as const;
 
+/** No bech32 string is longer (BIP-173), and no base58 address is longer than 35. */
+const MAX_ADDRESS_CHARS = 90;
+const MAX_BASE58_CHARS = 35;
+
 function concat(...parts: Uint8Array[]): Uint8Array {
     const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
@@ -80,9 +84,11 @@ const scriptFor: Record<AddressType, (p: Uint8Array) => Uint8Array> = {
  * spelling: bech32 lowercase only, so one key never has two addresses that
  * verify. Null for anything else, including uppercase bech32 (pass what a
  * person typed or scanned through `normalizeAddress` first) and witness
- * versions other than 0 and 1.
+ * versions other than 0 and 1. Text longer than any address is refused before
+ * it is decoded, so the time this takes does not grow with the input.
  */
 export function decodeAddress(address: string): DecodedAddress | null {
+    if (address.length > MAX_ADDRESS_CHARS) return null;
     const make = (type: AddressType, program: Uint8Array, network: DecodedAddress['network']): DecodedAddress => ({
         type,
         network,
@@ -117,6 +123,7 @@ export function decodeAddress(address: string): DecodedAddress | null {
         }
         return null;
     }
+    if (address.length > MAX_BASE58_CHARS) return null;
     try {
         const payload = base58check.decode(address);
         const version = BASE58_VERSIONS[payload[0]!];

@@ -9,10 +9,10 @@ It is built only on audited primitives: `@noble/curves`, `@noble/hashes` and `@s
 ## Install
 
 ```bash
-yarn add @orangecheck/bip322@^1.1.2
+yarn add @orangecheck/bip322@^1.1.3
 ```
 
-This README describes 1.1.2. Before 1.1.0 there was no `signMessage`, and a signature carrying the finalized BIP's `smp` prefix was refused; a wallet that follows the finalized BIP needs 1.1.0 or later on the verifying side.
+This README describes 1.1.3. Before 1.1.0 there was no `signMessage`, and a signature carrying the finalized BIP's `smp` prefix was refused; a wallet that follows the finalized BIP needs 1.1.0 or later on the verifying side.
 
 ## Use
 
@@ -48,7 +48,7 @@ normalizeAddress(' BC1Q9VZA2E8X573NCZRLZMS0WVX3GSQJX7VAVGKX0L '); // 'bc1q9vza2e
 
 `verifySignature` and `decodeAddress` read bech32 only in its canonical lowercase spelling, so one key never has two addresses that verify, and anything you key by address (votes, accounts, devices, limits) sees one spelling. QR codes carry bech32 in capitals, which BIP-173 allows: call `normalizeAddress` on what a person typed or scanned, before signing, verifying or storing. It drops surrounding whitespace, lowercases all-capitals bech32, leaves base58 as it is, and returns `null` for mixed case or anything that is not an address.
 
-`decodeAddress(address)` returns `{ type, network, program, scriptPubKey }` for mainnet, testnet/signet and regtest addresses, and `null` for anything else. `network` is `'mainnet'`, `'testnet'` or `'regtest'`; a base58 testnet address reports `'testnet'`, because base58 regtest addresses use the same version bytes.
+`decodeAddress(address)` returns `{ type, network, program, scriptPubKey }` for mainnet, testnet/signet and regtest addresses, and `null` for anything else. `network` is `'mainnet'`, `'testnet'` or `'regtest'`; a base58 testnet address reports `'testnet'`, because base58 regtest addresses use the same version bytes. Text longer than any address (more than 90 characters, or base58 longer than 35) is `null` before it is decoded, so a caller can pass request input straight in: the time it takes does not grow with the input.
 
 ## What it accepts
 

@@ -10,6 +10,17 @@ and [Semantic Versioning](https://semver.org/).
 
 - _(no pending changes)_
 
+## [1.1.3] — 2026-10-25
+
+### Changed
+
+- `decodeAddress` returns null for text longer than 90 characters, and for
+  base58 longer than 35, before decoding it: no address is longer, and the
+  time it takes no longer grows with the input. `normalizeAddress` and
+  `verifySignature` read addresses through it. Every answer is the one 1.1.2
+  gives. Held to `test-vectors/address-length.json`, which the Python SDK's
+  `decode_address` reads too.
+
 ## [1.1.2] — 2026-10-22
 
 ### Added

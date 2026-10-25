@@ -27,6 +27,9 @@ _B58_VERSIONS = {
     0xC4: ("p2sh", "testnet"),
 }
 _HRP_NETWORKS = {"bc": "mainnet", "tb": "testnet", "bcrt": "regtest"}
+# No bech32 string is longer (BIP-173), and no base58 address is longer than 35.
+_MAX_ADDRESS_CHARS = 90
+_MAX_BASE58_CHARS = 35
 
 
 @dataclass(frozen=True)
@@ -112,10 +115,16 @@ def decode_address(address: str) -> Optional[DecodedAddress]:
     Decode an address in its canonical spelling, checksum included: bech32
     lowercase only, so one key never has two addresses that verify. None for
     anything else, uppercase bech32 included; pass what a person typed or
-    scanned through ``normalize_address`` first.
+    scanned through ``normalize_address`` first. Text longer than any address
+    is refused before it is decoded, so the time this takes does not grow with
+    the input.
     """
+    if len(address) > _MAX_ADDRESS_CHARS:
+        return None
     m = re.match(r"^(bc|tb|bcrt)1", address)
-    return _decode_segwit(address, m.group(1)) if m else _decode_base58(address)
+    if m:
+        return _decode_segwit(address, m.group(1))
+    return _decode_base58(address) if len(address) <= _MAX_BASE58_CHARS else None
 
 
 def normalize_address(text: str) -> Optional[str]:
