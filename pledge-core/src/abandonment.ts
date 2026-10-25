@@ -8,6 +8,7 @@ import {
     canonicalPledgeMessageBytes,
     computeAbandonmentId,
     hexEncode,
+    readAbandonmentInput,
     validateAbandonmentInput,
 } from './canonical.js';
 import {
@@ -114,7 +115,7 @@ export async function verifyAbandonment(
         abandoned_at: env.abandoned_at,
         reason: env.reason,
     };
-    const fieldCheck = validateAbandonmentInput(canon);
+    const fieldCheck = readAbandonmentInput(canon);
     if (!fieldCheck.ok) return err('E_ABANDONMENT_MALFORMED', fieldCheck.reason);
 
     const reconstructed = canonicalAbandonmentMessage(canon);

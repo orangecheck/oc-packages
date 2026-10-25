@@ -377,9 +377,21 @@ async function runStateTransitionVector(vec: AnyVector) {
     const outcome = outcomeInputs ? outcomeEnvelopeFromInputs(outcomeInputs) : null;
 
     const abandonmentInputs = i['abandonment_envelope'] as Record<string, unknown> | null;
-    const abandonment = abandonmentInputs
+    const built = abandonmentInputs
         ? abandonmentEnvelopeFromInputs(abandonmentInputs, pledge.swearer.address)
         : null;
+    // §11.10: only an abandonment that verifies against this pledge enters §4.4.
+    const abandonment =
+        built &&
+        (
+            await verifyAbandonment({
+                envelope: built,
+                pledge: pledgeCanonFromInputs(pledgeInputs),
+                skipSignatureVerification: true,
+            })
+        ).ok
+            ? built
+            : null;
 
     const now = i['now'] as string;
     const chainHeight = i['chain_height'] as number | undefined;
@@ -497,6 +509,30 @@ async function runMalformedVector(vec: AnyVector) {
     const i = vec.inputs;
     const expected = vec.expected;
     const expectedError = expected['error'] as string;
+
+    // v41: an outcome envelope that verification MUST refuse, and its twin with
+    // the same bytes that verifies.
+    if (i['outcome_envelope']) {
+        const env = i['outcome_envelope'] as OutcomeEnvelope;
+        const r = await verifyOutcome({
+            envelope: env,
+            skipSignatureVerification: true,
+            skipResolverAuthorization: true,
+        });
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.code).toBe(expectedError);
+        const twin = i['twin'] as OutcomeEnvelope | undefined;
+        if (twin) {
+            expect(twin.id).toBe(env.id);
+            const t = await verifyOutcome({
+                envelope: twin,
+                skipSignatureVerification: true,
+                skipResolverAuthorization: true,
+            });
+            expect(t.ok).toBe(expected['twin_verifies']);
+        }
+        return;
+    }
 
     // v33: a whole envelope that verification MUST refuse.
     if (i['envelope']) {

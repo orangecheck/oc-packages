@@ -14,9 +14,10 @@ Public surface (load-bearing):
         canonical_abandonment_message,
         compute_pledge_id, compute_outcome_id, compute_abandonment_id,
 
-        # Validators
+        # Validators: what a signer may write, and what a verifier refuses
         validate_pledge_input, validate_outcome_input,
         validate_abandonment_input,
+        read_outcome_input, read_abandonment_input,
 
         # Build / verify (envelope-only — chain / relay / DNS lookups
         # are caller-supplied hooks, same as the TS SDK)
@@ -71,6 +72,9 @@ from .canonical import (
     generate_nonce,
     outcome_input_from_dict,
     pledge_input_from_dict,
+    read_abandonment_input,
+    read_outcome_input,
+    utf8_bytes,
     validate_abandonment_input,
     validate_outcome_input,
     validate_pledge_input,
@@ -131,6 +135,9 @@ __all__ = [
     "validate_pledge_input",
     "validate_outcome_input",
     "validate_abandonment_input",
+    "read_outcome_input",
+    "read_abandonment_input",
+    "utf8_bytes",
     # Dict adapters (JSON / vector loading)
     "pledge_input_from_dict",
     "outcome_input_from_dict",

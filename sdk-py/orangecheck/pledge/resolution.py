@@ -16,6 +16,8 @@ import re
 from dataclasses import dataclass
 from typing import Literal, Union
 
+from .canonical import utf8_bytes
+
 ResolutionMechanism = Literal[
     "chain_state",
     "counterparty_signs",
@@ -112,7 +114,7 @@ def validate_resolution_query(mechanism: str, query: str) -> ResolutionValidateR
 
     if "\n" in query or "\r" in query:
         return _non_det("query must be a single line (no LF or CR)")
-    if len(query.encode("utf-8")) > 1024:
+    if len(utf8_bytes(query)) > 1024:
         return _non_det("query exceeds 1024 UTF-8 bytes")
 
     # Per-mechanism dispatch with literal-string returns so mypy doesn't

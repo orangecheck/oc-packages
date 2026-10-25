@@ -25,6 +25,8 @@ from .canonical import (
     compute_abandonment_id,
     compute_outcome_id,
     compute_pledge_id,
+    read_abandonment_input,
+    read_outcome_input,
     validate_abandonment_input,
     validate_outcome_input,
     validate_pledge_input,
@@ -681,7 +683,7 @@ def verify_outcome(
     except (KeyError, TypeError, ValueError) as e:
         return _err("E_OUTCOME_MALFORMED", f"could not parse envelope: {e}")
 
-    field_check = validate_outcome_input(canon)
+    field_check = read_outcome_input(canon)
     if not field_check.ok:
         return _err("E_OUTCOME_MALFORMED", field_check.reason)
 
@@ -901,7 +903,7 @@ def verify_abandonment(
     except (KeyError, TypeError, ValueError) as e:
         return _err("E_ABANDONMENT_MALFORMED", f"could not parse envelope: {e}")
 
-    field_check = validate_abandonment_input(canon)
+    field_check = read_abandonment_input(canon)
     if not field_check.ok:
         return _err("E_ABANDONMENT_MALFORMED", field_check.reason)
 

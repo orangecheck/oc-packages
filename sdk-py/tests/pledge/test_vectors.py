@@ -25,8 +25,11 @@ import pytest
 from orangecheck.pledge import (
     abandonment_input_from_dict,
     canonical_abandonment_message,
+    canonical_abandonment_message_bytes,
     canonical_outcome_message,
+    canonical_outcome_message_bytes,
     canonical_pledge_message,
+    canonical_pledge_message_bytes,
     classify_state,
     compute_abandonment_id,
     compute_outcome_id,
@@ -109,7 +112,8 @@ def _run_pledge(vec: dict[str, Any]) -> None:
     canon = pledge_input_from_dict(inputs)
     msg = canonical_pledge_message(canon)
     assert msg == expected["canonical_message"]
-    assert len(msg.encode("utf-8")) == expected["canonical_message_bytes_len"]
+    # SPEC §0: a lone surrogate (v37) counts as the three bytes of U+FFFD.
+    assert len(canonical_pledge_message_bytes(canon)) == expected["canonical_message_bytes_len"]
 
     pid = compute_pledge_id(canon)
     assert pid == expected["pledge_id"]
@@ -133,7 +137,8 @@ def _run_outcome(vec: dict[str, Any]) -> None:
     canon = outcome_input_from_dict(inputs)
     msg = canonical_outcome_message(canon)
     assert msg == expected["canonical_message"]
-    assert len(msg.encode("utf-8")) == expected["canonical_message_bytes_len"]
+    # SPEC §0: a lone surrogate (v37) counts as the three bytes of U+FFFD.
+    assert len(canonical_outcome_message_bytes(canon)) == expected["canonical_message_bytes_len"]
 
     oid = compute_outcome_id(canon)
     assert oid == expected["outcome_id"]
@@ -157,7 +162,8 @@ def _run_abandonment(vec: dict[str, Any]) -> None:
     canon = abandonment_input_from_dict(inputs)
     msg = canonical_abandonment_message(canon)
     assert msg == expected["canonical_message"]
-    assert len(msg.encode("utf-8")) == expected["canonical_message_bytes_len"]
+    # SPEC §0: a lone surrogate (v37) counts as the three bytes of U+FFFD.
+    assert len(canonical_abandonment_message_bytes(canon)) == expected["canonical_message_bytes_len"]
 
     aid = compute_abandonment_id(canon)
     assert aid == expected["abandonment_id"]
@@ -297,11 +303,16 @@ def _run_state(vec: dict[str, Any]) -> None:
             else {
                 "v": 1,
                 "kind": "pledge-abandonment",
-                "id": "0" * 64,
+                "id": compute_abandonment_id(abandonment_input_from_dict(abandonment_d)),
                 **abandonment_d,
                 "sig": {"alg": "bip322", "pubkey": pledge_canon.swearer, "value": "AAAA"},
             }
         )
+        # §11.10: only an abandonment that verifies against this pledge enters §4.4.
+        if abandonment_env is not None and not verify_abandonment(
+            abandonment_env, skip_signature_verification=True, pledge=pledge_canon
+        ).ok:
+            abandonment_env = None
 
         chain_height = inputs.get("chain_height")
         chain = None
@@ -362,6 +373,25 @@ def _outcome_stub(pledge_id: str, outcome: str, resolved_at: str) -> dict[str, A
 def _run_malformed(vec: dict[str, Any]) -> None:
     inputs = vec["inputs"]
     expected_error = vec["expected"]["error"]
+
+    # v41: an outcome envelope that verification MUST refuse, and its twin with
+    # the same bytes that verifies.
+    if "outcome_envelope" in inputs:
+        r = verify_outcome(
+            inputs["outcome_envelope"],
+            skip_signature_verification=True,
+            skip_resolver_authorization=True,
+        )
+        assert not r.ok
+        assert r.code == expected_error
+        twin = inputs.get("twin")
+        if twin is not None:
+            assert twin["id"] == inputs["outcome_envelope"]["id"]
+            t = verify_outcome(
+                twin, skip_signature_verification=True, skip_resolver_authorization=True
+            )
+            assert t.ok == vec["expected"]["twin_verifies"]
+        return
 
     # v33: a whole envelope that verification MUST refuse.
     if "envelope" in inputs:

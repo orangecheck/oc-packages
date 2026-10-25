@@ -8,6 +8,26 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.4.0] — 2026-10-24
+
+### Changed — a verifier counts an outcome or abandonment whatever its free text
+
+SPEC §4.1, §5.1, §11.13. A signer keeps the limits; a verifier does not.
+`verifyAbandonment` verifies an abandonment whose `reason` is any string:
+empty, longer than 280 UTF-8 bytes, or over several lines. `verifyOutcome`
+verifies an outcome whose `evidence.result` or `evidence.witness` is empty or
+long, and one whose witness spans lines. Each refuses, with `E_*_MALFORMED`
+and without throwing, a value that is not a string, and `verifyOutcome` a line
+feed in `evidence.result`, whose bytes would be another envelope's.
+`createAbandonment`, `wrapAbandonmentEnvelope`, `createOutcome` and
+`wrapOutcomeEnvelope` keep refusing what a signer may not write (more than one
+line, empty, a reason past 280 bytes), and now also refuse a value there that
+is not a string, and a reason that holds a lone surrogate (SPEC §0). New
+exports `readOutcomeInput` and `readAbandonmentInput` are the verifier's rules;
+`validateOutcomeInput` and `validateAbandonmentInput` stay the signer's. The
+vector harness lets a state vector's abandonment into the state machine only
+when it verifies (§11.10). Vectors `v34`–`v41`.
+
 ## [3.3.0] — 2026-10-23
 
 ### Changed — an agent pledge needs no signer from the principal

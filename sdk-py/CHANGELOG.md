@@ -4,6 +4,24 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.9.0] — 2026-10-25
+
+### Changed
+
+- `verify_abandonment` verifies an abandonment whose `reason` is any string:
+  empty, longer than 280 UTF-8 bytes, or over several lines. `verify_outcome`
+  verifies an outcome whose `evidence.result` or `evidence.witness` is empty
+  or long, and one whose witness spans lines (OC Pledge SPEC §4.1, §5.1,
+  §11.13). A value that is not a string, or a line feed in `evidence.result`,
+  is `E_*_MALFORMED`, returned rather than raised; so is an `abandoned_at`,
+  `resolved_at` or `dispute_window_ends_at` that is not a string. The
+  producers keep the signer's limits, and refuse a reason that is not a string
+  or holds a lone surrogate. New: `read_outcome_input` and
+  `read_abandonment_input` (the verifier's rules) and `utf8_bytes`.
+- Canonical bytes encode a lone surrogate as U+FFFD, as `@orangecheck/pledge-core`
+  does (SPEC §0), so both SDKs compute the same id for one. As pledge-core
+  3.4.0, held to vectors `v34`–`v41`.
+
 ## [3.8.0] — 2026-10-25
 
 ### Added

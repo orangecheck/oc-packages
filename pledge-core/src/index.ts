@@ -20,6 +20,8 @@ export {
     validatePledgeInput,
     validateOutcomeInput,
     validateAbandonmentInput,
+    readOutcomeInput,
+    readAbandonmentInput,
 } from './canonical.js';
 export type { JsonValue, ValidateResult } from './canonical.js';
 export {

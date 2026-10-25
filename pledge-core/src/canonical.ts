@@ -303,7 +303,23 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
     return { ok: true };
 }
 
+/** What a signer may write in an outcome: the reader's rules, and one-line evidence (§4.1). */
 export function validateOutcomeInput(input: OutcomeCanonicalInput): ValidateResult {
+    const read = readOutcomeInput(input);
+    if (!read.ok) return read;
+    if (!oneLine(input.evidence.result)) return r('evidence.result must be a non-empty single line');
+    if (!oneLine(input.evidence.witness)) return r('evidence.witness must be a non-empty single line');
+    return { ok: true };
+}
+
+/**
+ * What a verifier refuses in an outcome (SPEC §4.1, §11.13). Evidence grants
+ * nothing, so its length and its line breaks are not refused, with one
+ * exception: a line feed in `result` would let another envelope give the same
+ * bytes (result "r\n  witness: a" with witness "b" is result "r" with witness
+ * "a\n  witness: b"). Every field after `witness` is strict, so it may hold one.
+ */
+export function readOutcomeInput(input: OutcomeCanonicalInput): ValidateResult {
     if (!HEX_64.test(input.pledge_id)) return r('pledge_id must be 64 lowercase hex chars');
     if (!['kept', 'broken', 'expired_unresolved', 'disputed'].includes(input.outcome)) {
         return r('outcome must be one of: kept, broken, expired_unresolved, disputed');
@@ -320,32 +336,52 @@ export function validateOutcomeInput(input: OutcomeCanonicalInput): ValidateResu
     if (!RESOLUTION_MECHANISMS.includes(input.evidence.mechanism)) {
         return r(`evidence.mechanism "${input.evidence.mechanism}" is not in the SPEC §3.4 set`);
     }
-    if (input.evidence.result.length === 0 || /[\n\r]/.test(input.evidence.result)) {
-        return r('evidence.result must be a non-empty single line');
+    if (typeof input.evidence.result !== 'string' || input.evidence.result.includes('\n')) {
+        return r('evidence.result must be a string with no line feed');
     }
-    if (input.evidence.witness.length === 0 || /[\n\r]/.test(input.evidence.witness)) {
-        return r('evidence.witness must be a non-empty single line');
-    }
+    if (typeof input.evidence.witness !== 'string') return r('evidence.witness must be a string');
     if (!ISO_UTC_STRICT.test(input.dispute_window_ends_at)) {
         return r('dispute_window_ends_at must be ISO 8601 UTC ending in Z');
     }
     return { ok: true };
 }
 
+/**
+ * What a signer may write in an abandonment: the reader's rules, and a reason
+ * on one non-empty line of at most 280 UTF-8 bytes with no lone surrogate
+ * (SPEC §0, §5.1).
+ */
 export function validateAbandonmentInput(
     input: AbandonmentCanonicalInput,
 ): ValidateResult {
-    if (!HEX_64.test(input.pledge_id)) return r('pledge_id must be 64 lowercase hex chars');
-    if (!ISO_UTC_STRICT.test(input.abandoned_at)) {
-        return r('abandoned_at must be ISO 8601 UTC ending in Z');
-    }
-    if (input.reason.length === 0 || /[\n\r]/.test(input.reason)) {
-        return r('reason must be a non-empty single line');
-    }
+    const read = readAbandonmentInput(input);
+    if (!read.ok) return read;
+    if (!oneLine(input.reason)) return r('reason must be a non-empty single line');
+    if (/\p{Surrogate}/u.test(input.reason)) return r('reason holds a lone surrogate');
     if (new TextEncoder().encode(input.reason).byteLength > 280) {
         return r('reason exceeds 280 UTF-8 bytes');
     }
     return { ok: true };
+}
+
+/**
+ * What a verifier refuses in an abandonment (SPEC §5.1, §11.13). The reason
+ * grants nothing and is the last line, after fields that are all strict, so a
+ * line break in it cannot make another abandonment's bytes: only a reason that
+ * is not a string is refused.
+ */
+export function readAbandonmentInput(input: AbandonmentCanonicalInput): ValidateResult {
+    if (!HEX_64.test(input.pledge_id)) return r('pledge_id must be 64 lowercase hex chars');
+    if (!ISO_UTC_STRICT.test(input.abandoned_at)) {
+        return r('abandoned_at must be ISO 8601 UTC ending in Z');
+    }
+    if (typeof input.reason !== 'string') return r('reason must be a string');
+    return { ok: true };
+}
+
+/** What a signer writes in a free-text field: one non-empty line, no LF or CR. */
+function oneLine(v: string): boolean {
+    return v.length > 0 && !/[\n\r]/.test(v);
 }
 
 function r(reason: string): ValidateResult {

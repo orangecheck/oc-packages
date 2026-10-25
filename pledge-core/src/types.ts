@@ -169,7 +169,7 @@ export interface AbandonmentEnvelope {
 
     pledge_id: string;
     abandoned_at: string;
-    /** Single-line UTF-8 string, ≤ 280 bytes. Informational only. */
+    /** A signer writes one line of 1–280 UTF-8 bytes; a verifier reads any string (SPEC §5.1). */
     reason: string;
 
     sig: AbandonmentSignature;

@@ -177,8 +177,17 @@ def canonical_pledge_message(input: PledgeCanonicalInput) -> str:
     return "\n".join(lines)
 
 
+def utf8_bytes(text: str) -> bytes:
+    """UTF-8 of ``text``, each lone surrogate as U+FFFD, as the WHATWG encoder
+    (and so pledge-core) writes it (SPEC §0). JSON can carry one; UTF-8 cannot."""
+    return _LONE_SURROGATE.sub("\ufffd", text).encode("utf-8")
+
+
+_LONE_SURROGATE = re.compile("[\ud800-\udfff]")
+
+
 def canonical_pledge_message_bytes(input: PledgeCanonicalInput) -> bytes:
-    return canonical_pledge_message(input).encode("utf-8")
+    return utf8_bytes(canonical_pledge_message(input))
 
 
 def compute_pledge_id(input: PledgeCanonicalInput) -> str:
@@ -204,7 +213,7 @@ def canonical_outcome_message(input: OutcomeCanonicalInput) -> str:
 
 
 def canonical_outcome_message_bytes(input: OutcomeCanonicalInput) -> bytes:
-    return canonical_outcome_message(input).encode("utf-8")
+    return utf8_bytes(canonical_outcome_message(input))
 
 
 def compute_outcome_id(input: OutcomeCanonicalInput) -> str:
@@ -224,7 +233,7 @@ def canonical_abandonment_message(input: AbandonmentCanonicalInput) -> str:
 
 
 def canonical_abandonment_message_bytes(input: AbandonmentCanonicalInput) -> bytes:
-    return canonical_abandonment_message(input).encode("utf-8")
+    return utf8_bytes(canonical_abandonment_message(input))
 
 
 def compute_abandonment_id(input: AbandonmentCanonicalInput) -> str:
@@ -264,7 +273,7 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
         return _r("swearer must be non-empty with no whitespace or control chars")
     if not input.proposition or re.search(r"[\n\r]", input.proposition):
         return _r("proposition must be non-empty and a single line (no LF or CR)")
-    if len(input.proposition.encode("utf-8")) > 512:
+    if len(utf8_bytes(input.proposition)) > 512:
         return _r("proposition exceeds 512 UTF-8 bytes")
     if input.resolution.mechanism not in RESOLUTION_MECHANISMS:
         return _r(
@@ -272,7 +281,7 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
         )
     if not input.resolution.query or re.search(r"[\n\r]", input.resolution.query):
         return _r("resolution.query must be non-empty and a single line")
-    if len(input.resolution.query.encode("utf-8")) > 1024:
+    if len(utf8_bytes(input.resolution.query)) > 1024:
         return _r("resolution.query exceeds 1024 UTF-8 bytes")
     if isinstance(input.resolves_at, ResolvesAtTime):
         if not _ISO_UTC_STRICT.fullmatch(input.resolves_at.time):
@@ -315,39 +324,91 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
 
 
 def validate_outcome_input(input: OutcomeCanonicalInput) -> ValidateResult:
-    if not _HEX_64.fullmatch(input.pledge_id):
+    """What a signer may write in an outcome: the reader's rules, and
+    one-line evidence (SPEC §4.1)."""
+    read = read_outcome_input(input)
+    if not read.ok:
+        return read
+    if not _one_line(input.evidence.result):
+        return _r("evidence.result must be a non-empty single line")
+    if not _one_line(input.evidence.witness):
+        return _r("evidence.witness must be a non-empty single line")
+    return ValidateOk()
+
+
+def read_outcome_input(input: OutcomeCanonicalInput) -> ValidateResult:
+    """What a verifier refuses in an outcome (SPEC §4.1, §11.13). Evidence
+    grants nothing, so its length and its line breaks are not refused, with one
+    exception: a line feed in ``result`` would let another envelope give the
+    same bytes (result "r\n  witness: a" with witness "b" is result "r" with
+    witness "a\n  witness: b"). Every field after ``witness`` is strict, so it
+    may hold one."""
+    if not _is_hex64(input.pledge_id):
         return _r("pledge_id must be 64 lowercase hex chars")
     if input.outcome not in ("kept", "broken", "expired_unresolved", "disputed"):
         return _r("outcome must be one of: kept, broken, expired_unresolved, disputed")
-    if not _ISO_UTC_STRICT.fullmatch(input.resolved_at):
+    if not _is_iso(input.resolved_at):
         return _r("resolved_at must be ISO 8601 UTC ending in Z")
     if input.resolved_by != "deterministic" and (
-        not input.resolved_by or re.search(r"[\s\x00-\x1f]", input.resolved_by)
+        not isinstance(input.resolved_by, str)
+        or not input.resolved_by
+        or re.search(r"[\s\x00-\x1f]", input.resolved_by)
     ):
         return _r('resolved_by must be "deterministic" or a Bitcoin address')
     if input.evidence.mechanism not in RESOLUTION_MECHANISMS:
         return _r(
             f'evidence.mechanism "{input.evidence.mechanism}" is not in the SPEC §3.4 set'
         )
-    if not input.evidence.result or re.search(r"[\n\r]", input.evidence.result):
-        return _r("evidence.result must be a non-empty single line")
-    if not input.evidence.witness or re.search(r"[\n\r]", input.evidence.witness):
-        return _r("evidence.witness must be a non-empty single line")
-    if not _ISO_UTC_STRICT.fullmatch(input.dispute_window_ends_at):
+    if not isinstance(input.evidence.result, str) or "\n" in input.evidence.result:
+        return _r("evidence.result must be a string with no line feed")
+    if not isinstance(input.evidence.witness, str):
+        return _r("evidence.witness must be a string")
+    if not _is_iso(input.dispute_window_ends_at):
         return _r("dispute_window_ends_at must be ISO 8601 UTC ending in Z")
     return ValidateOk()
 
 
 def validate_abandonment_input(input: AbandonmentCanonicalInput) -> ValidateResult:
-    if not _HEX_64.fullmatch(input.pledge_id):
-        return _r("pledge_id must be 64 lowercase hex chars")
-    if not _ISO_UTC_STRICT.fullmatch(input.abandoned_at):
-        return _r("abandoned_at must be ISO 8601 UTC ending in Z")
-    if not input.reason or re.search(r"[\n\r]", input.reason):
+    """What a signer may write in an abandonment: the reader's rules, and a
+    reason on one non-empty line of at most 280 UTF-8 bytes with no lone
+    surrogate (SPEC §0, §5.1)."""
+    read = read_abandonment_input(input)
+    if not read.ok:
+        return read
+    if not _one_line(input.reason):
         return _r("reason must be a non-empty single line")
-    if len(input.reason.encode("utf-8")) > 280:
+    if _LONE_SURROGATE.search(input.reason):
+        return _r("reason holds a lone surrogate")
+    if len(utf8_bytes(input.reason)) > 280:
         return _r("reason exceeds 280 UTF-8 bytes")
     return ValidateOk()
+
+
+def read_abandonment_input(input: AbandonmentCanonicalInput) -> ValidateResult:
+    """What a verifier refuses in an abandonment (SPEC §5.1, §11.13). The
+    reason grants nothing and is the last line, after fields that are all
+    strict, so a line break in it cannot make another abandonment's bytes:
+    only a reason that is not a string is refused."""
+    if not _is_hex64(input.pledge_id):
+        return _r("pledge_id must be 64 lowercase hex chars")
+    if not _is_iso(input.abandoned_at):
+        return _r("abandoned_at must be ISO 8601 UTC ending in Z")
+    if not isinstance(input.reason, str):
+        return _r("reason must be a string")
+    return ValidateOk()
+
+
+def _one_line(v: str) -> bool:
+    """What a signer writes in a free-text field: one non-empty line, no LF or CR."""
+    return bool(v) and not re.search(r"[\n\r]", v)
+
+
+def _is_iso(v: Any) -> bool:
+    return isinstance(v, str) and _ISO_UTC_STRICT.fullmatch(v) is not None
+
+
+def _is_hex64(v: Any) -> bool:
+    return isinstance(v, str) and _HEX_64.fullmatch(v) is not None
 
 
 # ─── Dict adapters — JSON / test-vector loading ───────────────────────────

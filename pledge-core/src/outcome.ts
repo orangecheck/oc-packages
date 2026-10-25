@@ -8,6 +8,7 @@ import {
     canonicalPledgeMessageBytes,
     computeOutcomeId,
     hexEncode,
+    readOutcomeInput,
     validateOutcomeInput,
 } from './canonical.js';
 import {
@@ -198,7 +199,7 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
         evidence: env.evidence,
         dispute_window_ends_at: env.dispute_window_ends_at,
     };
-    const fieldCheck = validateOutcomeInput(canon);
+    const fieldCheck = readOutcomeInput(canon);
     if (!fieldCheck.ok) return err('E_OUTCOME_MALFORMED', fieldCheck.reason);
 
     const reconstructed = canonicalOutcomeMessage(canon);
