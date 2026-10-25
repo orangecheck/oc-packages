@@ -27,6 +27,7 @@ This package is WebCrypto-free: it works in Node and in the browser.
 - `buildBindingStatement({ address, device_pk, device_id, created_at, nostr_pk? })` — exact bytes per SPEC §3.2 (v3 when `nostr_pk` is given).
 - `liveDevices(records, { now?, maxSkewMs? })` — the verified bind records no revocation retires (SPEC §3.5). Seal to these, one per `device_id`. `pendingDevices` lists binds dated ahead of the clock; `revokedAtFor` dates a revocation.
 - `authorizedDevices(records, { now? })` — the records whose Nostr pubkey is the device's inbox (SPEC §3.4): every v3 record, and before `V2_INBOX_SUNSET` (2027-01-21T00:00:00Z) a v2 record carried by one key only. For Nostr delivery, never for choosing recipients.
+- `verifyDeviceRecords(events, address, { verifyBip322 })` — the records among relay events that count for `address`: a valid Nostr event, a statement naming `address`, and its BIP-322 signature. `boundNostrKeys(verified, { now? })` — the Nostr keys those records bind (liveDevices, then authorizedDevices). `verifyNostrEvent` checks one event's id and signature.
 - `buildRevocationStatement({ address, device_id, revoked_at })` — for explicit revocation.
 - `deriveNostrKey(deviceSk)` — deterministic `nostr_sk` from `device_sk` (HKDF).
 - `finalizeDeviceEvent({ ... bindingSigBase64, ... })` — returns a fully signed kind-30078 `NostrEvent`.
