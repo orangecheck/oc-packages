@@ -95,7 +95,7 @@
   "devDependencies": {
     "@orangecheck/app-design": "^1.10.1",
     "@orangecheck/auth-client": "^2.32.3",
-    "@orangecheck/auth-core": "^2.21.0",
+    "@orangecheck/auth-core": "^2.24.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",

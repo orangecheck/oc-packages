@@ -812,6 +812,13 @@
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
+"@orangecheck/auth-core@^2.24.0":
+  version "2.24.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.24.0.tgz#961e5fe35886c6b05f8972c0acd5fb503cef0f81"
+  integrity sha512-hHbqp96ebpqWs0w/RxuUJIwgaSUELX4SWx6dSi9jKoBrqlNq5HkEiFMlocUUss/9wZkR4GgdW/cmFl7ncWXQDw==
+  dependencies:
+    jose "^6.2.2"
+
 "@orangecheck/bip322@^1.1.0", "@orangecheck/bip322@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.2.tgz#13eb134e3f8426fa47d6de902b75fe9071bd0c96"
@@ -2502,6 +2509,11 @@ jiti@^2.6.1:
   version "2.7.0"
   resolved "https://registry.npmjs.org/jiti/-/jiti-2.7.0.tgz#974228f2f4ca2bc21885a1797b45fea68e950c64"
   integrity sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==
+
+jose@^6.2.2:
+  version "6.2.13"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.13.tgz#4e16bf3cc81b5641ef5025cb2c9f61edfa92572f"
+  integrity sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==
 
 joycon@^3.1.1:
   version "3.1.1"
