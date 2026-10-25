@@ -42,5 +42,6 @@ const plaintext = new TextDecoder().decode(result.payload);
 - `canonicalize(value)` / `canonicalBytes(value)` — RFC 8785 JSON canonicalization with OC Lock's `recipients[]` sort rule
 - `LockError` — typed error class with protocol-defined `code`
 - Full type definitions: `LockEnvelope`, `EnvelopeRecipient`, `DeviceRecord`, etc.
+- `@orangecheck/lock-core/directory` — the OC Chat directory rule ([oc-chat-protocol](https://github.com/orangecheck/oc-chat-protocol) §8.2): `claimId`, `repointId`, `parseDirectoryContent`, `resolveDirectory`, `directoryAnchor`, `esploraCoinReader`.
 
 See [`SPEC.md`](https://github.com/orangecheck/oc-lock-protocol/blob/main/SPEC.md) for the normative spec.

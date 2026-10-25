@@ -236,6 +236,19 @@ jobs:
               run: echo "OC_LOCK_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-lock-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
+            # lock-core/directory runs the OC Chat directory vectors (vc22-vc25).
+            - name: Checkout oc-chat-protocol (for lock-core/directory conformance)
+              if: matrix.pkg == 'lock-core'
+              uses: actions/checkout@v5
+              with:
+                  repository: orangecheck/oc-chat-protocol
+                  path: .oc-chat-protocol
+
+            - name: Set OC_CHAT_VECTORS_DIR for conformance test
+              if: matrix.pkg == 'lock-core'
+              run: echo "OC_CHAT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-chat-protocol/test-vectors" >> "$GITHUB_ENV"
+              working-directory: ${{ github.workspace }}
+
             # stamp-core's conformance tests load canonical fixtures from the
             # oc-stamp-protocol repo. Same pattern.
             - name: Checkout oc-stamp-protocol (for stamp-core conformance)
