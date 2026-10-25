@@ -4,7 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import { CONFUSABLE_ALPHABET, CONFUSABLE_PROTOTYPES } from "../confusables";
 import { HIDDEN_TEXT_CHARS, isReservedName, nameProblem } from "../index";
-import vectors from "./display-name.vectors.json";
+
+// Shared with sdk-py's tests/test_display_name.py, so a Python site and a Node site refuse the same names.
+const vectors = JSON.parse(readFileSync(new URL("../../test-vectors/display-name.json", import.meta.url), "utf8")) as {
+  reserved: string[];
+  confusable: string[];
+  allowed: string[];
+  hidden: string[];
+  lengths: Array<{ name: string; max: number; problem: string | null }>;
+  allow_reserved: Array<{ name: string; max: number; problem: string | null }>;
+};
 
 describe("the family name rule", () => {
   it("refuses orangecheck's own names, whatever their case, width, spacing or variation selectors", () => {
@@ -69,6 +78,37 @@ describe("the family name rule", () => {
   it("keeps its own source to visible ASCII", () => {
     const source = readFileSync(new URL("../display-name.ts", import.meta.url), "utf8");
     expect([...source].filter((c) => c > "~").map((c) => c.codePointAt(0)!.toString(16))).toEqual([]);
+  });
+
+  // A caller sets allowReserved only for orangecheck's own records; it lifts that one check.
+  it("allows our own names to orangecheck itself, and nothing else", () => {
+    for (const { name, max, problem } of vectors.allow_reserved) {
+      expect(nameProblem(name, max, { allowReserved: true }), JSON.stringify(name)).toBe(problem);
+    }
+    for (const name of [...vectors.reserved, ...vectors.confusable]) {
+      expect(nameProblem(name, 80, { allowReserved: true }), JSON.stringify(name)).toBeNull();
+      expect(isReservedName(name, { allowReserved: true }), JSON.stringify(name)).toBe(false);
+      expect(nameProblem(name, 80, { allowReserved: false }), JSON.stringify(name)).toBe("reserved");
+      expect(isReservedName(name, {}), JSON.stringify(name)).toBe(true);
+    }
+    for (const name of vectors.hidden) {
+      expect(nameProblem(name, 80, { allowReserved: true }), JSON.stringify(name)).toBe("hidden_characters");
+    }
+  });
+
+  it("refuses an option it does not read, or one that is not true or false", () => {
+    expect(() => nameProblem("ochk", 80, { allowReserve: true } as never)).toThrow(/unknown option allowReserve/);
+    expect(() => isReservedName("ochk", { allowreserved: true } as never)).toThrow(/unknown option/);
+    expect(() => nameProblem("ochk", 80, { allowReserved: "yes" } as never)).toThrow(/true or false/);
+    expect(() => isReservedName("ochk", { allowReserved: 1 } as never)).toThrow(/true or false/);
+    expect(() => nameProblem("ochk", 80, null as never)).toThrow(/must be an object/);
+  });
+
+  // A capital reads two ways; only the starts of our names are carried forward, or the reads double per letter.
+  it("reads a long name in time linear in its length", () => {
+    const started = performance.now();
+    expect(isReservedName("A".repeat(22) + "B".repeat(2000))).toBe(false);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("says when a name is missing or too long", () => {

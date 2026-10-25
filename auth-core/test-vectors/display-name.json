@@ -75,6 +75,18 @@
         "Lumen\u2800Notes",
         "Lumen\udb40\udc41Notes"
     ],
+    "allow_reserved": [
+        {"name": "ochk", "max": 80, "problem": null},
+        {"name": "OrangeCheck", "max": 80, "problem": null},
+        {"name": "0chk", "max": 80, "problem": null},
+        {"name": "\u043e\u0441\u04bb\u043a", "max": 80, "problem": null},
+        {"name": "ochk.io", "max": 80, "problem": null},
+        {"name": "och\u200bk", "max": 80, "problem": "hidden_characters"},
+        {"name": "orange\u00adcheck", "max": 80, "problem": "hidden_characters"},
+        {"name": "orangecheckxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 32, "problem": "too_long"},
+        {"name": "", "max": 80, "problem": "required"},
+        {"name": "Brickworks", "max": 80, "problem": null}
+    ],
     "lengths": [
         { "name": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00", "max": 32, "problem": null },
         { "name": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00", "max": 32, "problem": null },

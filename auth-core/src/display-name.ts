@@ -2,10 +2,12 @@
  * The family's rule for a name someone chooses and other people are shown on
  * orangecheck's own pages, notices and email: a project's or a Connect app's
  * name, a team's name, an event's label. One rule, so no writer is laxer than
- * another. The vectors in __tests__/display-name.vectors.json are the test.
+ * another. The vectors in test-vectors/display-name.json are the test, here
+ * and in sdk-py.
  */
 
 import { CONFUSABLE_PROTOTYPES } from "./confusables";
+import { refuseUnknownOptions } from "./options";
 
 /**
  * What can hide or reorder part of a text on a consent screen or in a notice:
@@ -52,9 +54,11 @@ function unspaced(value: string): string {
  * width, spacing or variation selectors, or when it is drawn with letters
  * from another script or digits that look like ours: Cyrillic or Greek o, a,
  * e, c, 0 for o. Read a character at a time, so one script's capitals and
- * another's small letters cannot hide a name between them.
+ * another's small letters cannot hide a name between them. Always false
+ * with `allowReserved`.
  */
-export function isReservedName(value: string): boolean {
+export function isReservedName(value: string, options?: NameRuleOptions): boolean {
+  if (readNameOptions("isReservedName", options).allowReserved) return false;
   let spelt: ReadonlySet<string> = new Set([""]);
   for (const ch of unspaced(value)) {
     const next = new Set<string>();
@@ -68,15 +72,40 @@ export function isReservedName(value: string): boolean {
 
 export type NameProblem = "required" | "too_long" | "hidden_characters" | "reserved";
 
+export interface NameRuleOptions {
+  /**
+   * The name is published by orangecheck itself: its signer or owner is in
+   * the calling site's owner list. Our own names are then allowed; nothing
+   * else changes. Set it from the caller's own records, never from anything
+   * the publisher sent.
+   */
+  allowReserved?: boolean;
+}
+
+const NAME_OPTIONS: ReadonlySet<string> = new Set(["allowReserved"]);
+
+function readNameOptions(where: string, options: unknown): { allowReserved: boolean } {
+  if (options === undefined) return { allowReserved: false };
+  refuseUnknownOptions(where, options, NAME_OPTIONS);
+  const { allowReserved } = options as { allowReserved?: unknown };
+  if (allowReserved !== undefined && typeof allowReserved !== "boolean") {
+    throw new TypeError(`@orangecheck/auth-core: ${where}: allowReserved must be true or false`);
+  }
+  return { allowReserved: allowReserved === true };
+}
+
 /**
  * Why a name (already trimmed) cannot be stored, or null when it can. `max`
  * counts code points, as a reader counts characters and Postgres counts a
- * text column: an emoji is one, not two UTF-16 units.
+ * text column: an emoji is one, not two UTF-16 units. With `allowReserved`
+ * (orangecheck's own record), one of our names is not a problem; every other
+ * check still applies.
  */
-export function nameProblem(value: string, max: number): NameProblem | null {
+export function nameProblem(value: string, max: number, options?: NameRuleOptions): NameProblem | null {
+  const { allowReserved } = readNameOptions("nameProblem", options);
   if (!value) return "required";
   if (value.length > max && [...value].length > max) return "too_long";
   if (HIDDEN_TEXT_CHARS.test(value)) return "hidden_characters";
-  if (isReservedName(value)) return "reserved";
+  if (!allowReserved && isReservedName(value)) return "reserved";
   return null;
 }

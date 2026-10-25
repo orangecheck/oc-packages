@@ -11,6 +11,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.26.0] — 2026-10-25
+
+### Added
+
+- `nameProblem(value, max, { allowReserved: true })` and
+  `isReservedName(value, { allowReserved: true })`: orangecheck's own record
+  may carry one of its own names. A caller sets it only when the record's
+  signer or owner is in that site's owner list, never from anything the
+  publisher sent. It lifts the reserved check and nothing else: hidden
+  characters and length still apply. Any other option key, or a value that is
+  not true or false, throws.
+- The name vectors moved to `test-vectors/display-name.json`, with an
+  `allow_reserved` set, so sdk-py's `name_problem` is held to the same answers.
+  `scripts/gen-confusables.mjs` also writes sdk-py's copy of the table.
+
 ## [2.25.0] — 2026-10-25
 
 ### Changed

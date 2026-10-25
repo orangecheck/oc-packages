@@ -4,6 +4,21 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.14.0] — 2026-10-25
+
+### Added
+
+- `name_problem(value, max_length, *, allow_reserved=False)` and
+  `is_reserved_name(value, *, allow_reserved=False)`: the family name rule,
+  as `@orangecheck/auth-core/display-name`. A name that reads as one of
+  orangecheck's own (in any case, width or spacing, or drawn with look-alike
+  letters from another script per UTS #39), one that hides characters, or one
+  over `max_length` code points is refused. `allow_reserved=True` is for
+  orangecheck's own records only. Held to `auth-core/test-vectors/display-name.json`.
+  Character categories and NFKC follow the running Python's Unicode version,
+  so a character added after it can read differently than in Node (on Python
+  3.9, 16 such code points across every look-alike position).
+
 ## [3.13.0] — 2026-10-25
 
 ### Changed
