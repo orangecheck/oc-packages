@@ -22,6 +22,7 @@ import type {
     Utxo,
 } from './types.js';
 import { anchoredTallyIsFinal, isAnchoredPoll, lastAnchorHeight } from './anchor.js';
+import { MAX_NESTING_DEPTH, nestedTooDeep } from './depth.js';
 import { isBlockHeight, isMainnetAddress, parseUtc, verifyBallot, VoteError } from './verify.js';
 import type { SignatureVerifier } from './verify.js';
 import { isSupportedMode, voterWeight } from './weight.js';
@@ -163,6 +164,9 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
             `poll v=${poll.v} not supported by this client (expects ${POLL_VERSION})`
         );
     }
+
+    // SPEC §7: a poll nested deeper than MAX_NESTING_DEPTH is malformed.
+    if (nestedTooDeep(poll)) throw new VoteError('E_WRONG_POLL', `poll nests deeper than ${MAX_NESTING_DEPTH} levels`);
 
     // SPEC §10.1: a poll whose signature fails against `creator` MUST be rejected.
     const pid = pollId(poll);

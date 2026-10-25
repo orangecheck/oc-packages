@@ -7,6 +7,7 @@ import { x25519 } from '@noble/curves/ed25519';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 import { anchoredTallyIsFinal, isAnchoredPoll } from './anchor.js';
+import { MAX_NESTING_DEPTH, nestedTooDeep } from './depth.js';
 import { ballotId, pollId, revealId } from './ids.js';
 import { BALLOT_VERSION, POLL_VERSION, REVEAL_VERSION } from './types.js';
 import type { Ballot, Poll, Reveal, VoteErrorCode } from './types.js';
@@ -66,6 +67,7 @@ const OPTION_ID_RE = /^[a-z0-9_-]{1,32}$/;
 export async function verifyPoll(poll: Poll, verify: SignatureVerifier): Promise<VerifyResult> {
     const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
     if (!poll || typeof poll !== 'object') return bad('E_WRONG_POLL', 'not a poll object');
+    if (nestedTooDeep(poll)) return bad('E_WRONG_POLL', `poll nests deeper than ${MAX_NESTING_DEPTH} levels`);
     if (poll.v !== POLL_VERSION || poll.kind !== 'oc-vote/poll') {
         return bad('E_WRONG_POLL', 'not an oc-vote/poll v0 object');
     }
@@ -115,6 +117,7 @@ export async function verifyPoll(poll: Poll, verify: SignatureVerifier): Promise
 export async function verifyBallot(ballot: Ballot, verify: SignatureVerifier): Promise<VerifyResult> {
     const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
     if (!ballot || typeof ballot !== 'object') return bad('E_WRONG_POLL', 'not a ballot object');
+    if (nestedTooDeep(ballot)) return bad('E_WRONG_POLL', `ballot nests deeper than ${MAX_NESTING_DEPTH} levels`);
     if (ballot.v !== BALLOT_VERSION || ballot.kind !== 'oc-vote/ballot') {
         return bad('E_WRONG_POLL', 'not an oc-vote/ballot v0 object');
     }
@@ -163,6 +166,7 @@ export async function verifyReveal(
 ): Promise<VerifyResult> {
     const bad = (code: VoteErrorCode, reason: string): VerifyResult => ({ ok: false, code, reason });
     if (!reveal || typeof reveal !== 'object') return bad('E_NO_REVEAL', 'not a reveal object');
+    if (nestedTooDeep(reveal)) return bad('E_NO_REVEAL', `reveal nests deeper than ${MAX_NESTING_DEPTH} levels`);
     if (reveal.v !== REVEAL_VERSION || reveal.kind !== 'oc-vote/reveal') {
         return bad('E_NO_REVEAL', 'not an oc-vote/reveal v0 object');
     }

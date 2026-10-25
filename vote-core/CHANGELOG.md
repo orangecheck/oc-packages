@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.1.0] — 2026-10-25
+
+As oc-vote-protocol SPEC §7: a poll, ballot or reveal nests at most 32 levels
+of objects and arrays, the object itself being level 1.
+
+- `verifyPoll`, `verifyBallot` and `verifyReveal` refuse one nested deeper, and
+  `tally` refuses such a poll and leaves such a ballot out. Talliers that apply
+  the same limit count the same ballots.
+- `MAX_NESTING_DEPTH` (32) and `nestedTooDeep(value, max?)` are exported, so a
+  client that reads polls, ballots and reveals off a relay applies the same
+  rule. `nestedTooDeep` walks without recursion.
+
 ## [2.0.0] — 2026-10-22
 
 As oc-vote-protocol's anchored-ballots release (SPEC §0, §3.3, §4.6, §8, §9,
