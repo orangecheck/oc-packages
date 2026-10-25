@@ -44,6 +44,7 @@ import {
     signinTracking,
 } from './appearance';
 import { addressInputValue } from './address';
+import { capText } from './caps';
 import { tabSessionHeader } from './tab-session';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
@@ -603,8 +604,16 @@ function EmailLinkForm({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: normalizeEmail(email) }),
             });
-            const j = (await r.json()) as { ok?: boolean; token?: string; reason?: string };
-            if (!r.ok || !j.token) throw new Error(j.reason ?? `http_${r.status}`);
+            const j = (await r.json()) as {
+                ok?: boolean;
+                token?: string;
+                reason?: string;
+                retry_at?: unknown;
+            };
+            if (!r.ok || !j.token) {
+                const reason = j.reason ?? `http_${r.status}`;
+                throw new Error(capText(reason, j.retry_at, 'Link a Bitcoin wallet instead') ?? reason);
+            }
             setToken(j.token);
             setStep('code');
         } catch (e) {
@@ -763,8 +772,16 @@ function BtcLinkForm({
                 `${authOrigin}/api/challenge?addr=${encodeURIComponent(addr)}` +
                     `&purpose=link&audience=${encodeURIComponent(didOc)}`
             );
-            const j = (await r.json()) as { message?: string; reason?: string };
-            if (!r.ok || !j.message) throw new Error(j.reason ?? `http_${r.status}`);
+            const j = (await r.json()) as {
+                message?: string;
+                reason?: string;
+                error?: string;
+                retry_at?: unknown;
+            };
+            if (!r.ok || !j.message) {
+                const reason = j.reason ?? j.error ?? `http_${r.status}`;
+                throw new Error(capText(reason, j.retry_at) ?? reason);
+            }
             setChallenge(j.message);
             setStep('sign');
         } catch (e) {

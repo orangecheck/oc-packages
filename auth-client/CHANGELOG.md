@@ -25,6 +25,12 @@ this file tracks the package's TS / Node / runtime API surface.
 - OcSignIn says when a capped wallet challenge frees: `challenges_capped`
   ("from your connection") and `network_challenges_capped` ("from this
   network"), each with its time.
+- OcLinkedIdentities says the same when linking meets a cap: a capped wallet
+  challenge, or a network past its hour of codes when linking an email (which
+  offers linking a wallet instead). It showed `http_429` or the reason code.
+- A time is shown only when it is a number within the next 24 hours.
+  Otherwise the sentence says "later" or "within the hour": a `retry_at` read
+  from a link can be empty, past or not a date.
 
 ## [2.39.0] — 2026-10-25
 

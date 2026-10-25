@@ -15,13 +15,8 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
 }));
 
 import { inputStyle as linkedInputStyle, LinkPromptStep } from '../linked-identities';
-import {
-    humanSigninError,
-    looksLikeBitcoinAddress,
-    newAccountsCapText,
-    OcSignIn,
-    otpNetworkCapText,
-} from '../signin';
+import { newAccountsCapText, otpNetworkCapText } from '../caps';
+import { humanSigninError, looksLikeBitcoinAddress, OcSignIn } from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
 
@@ -204,7 +199,7 @@ describe('OcSignIn · email path', () => {
 
 describe('OcSignIn · a network past its hour of codes', () => {
     it('says so, and when the next code frees, never "wait a minute"', async () => {
-        const retryAt = Math.floor(Date.UTC(2026, 9, 25, 4, 30) / 1000);
+        const retryAt = Math.floor(Date.now() / 1000) + 1800;
         stubFetch((url) => {
             if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
             if (url.endsWith('/email-otp/start'))
@@ -228,12 +223,13 @@ describe('OcSignIn · a network past its hour of codes', () => {
         expect(otpNetworkCapText(undefined, 'Confirm with your wallet')).toBe(
             'Too many codes were sent from your network in the last hour. Confirm with your wallet, or try again within the hour.'
         );
-        expect(otpNetworkCapText('1761366600')).toMatch(/try again within the hour\.$/);
+        // A time sent as text is not trusted, even a reachable one.
+        expect(otpNetworkCapText(String(Math.floor(Date.now() / 1000) + 600))).toMatch(/try again within the hour\.$/);
     });
 });
 
 describe('OcSignIn · a network past its count of new accounts or sign-in attempts', () => {
-    const RETRY = Math.floor(Date.UTC(2026, 9, 25, 6, 45) / 1000);
+    const RETRY = Math.floor(Date.now() / 1000) + 3600;
     const AT = new Date(RETRY * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const NEW_ACCOUNTS = `Too many new accounts were made from this network recently. Try again after ${AT}, or sign in to an account you already have.`;
 
@@ -261,6 +257,14 @@ describe('OcSignIn · a network past its count of new accounts or sign-in attemp
         expect(newAccountsCapText('soon')).toBe(
             'Too many new accounts were made from this network recently. Try again later, or sign in to an account you already have.'
         );
+    });
+
+    it('shows no time it cannot trust: not a number, empty, past, unreadable or over a day away', () => {
+        const now = Math.floor(Date.now() / 1000);
+        for (const bad of [Number('abc'), Number(''), now - 60, 1e300, now + 2 * 86_400, 'soon', null]) {
+            expect(newAccountsCapText(bad), String(bad)).toMatch(/Try again later, or sign in to an account/);
+            expect(otpNetworkCapText(bad), String(bad)).toMatch(/or try again within the hour\.$/);
+        }
     });
 
     it('wallet: a capped new account reads as that sentence, not the code', async () => {
@@ -319,6 +323,14 @@ describe('OcSignIn · a network past its count of new accounts or sign-in attemp
             render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
             await act(async () => {});
             expect(document.querySelector('[data-oc-signin-oauth-error]')?.textContent).toBe(NEW_ACCOUNTS);
+            // A link's retry_at is anyone's text: an empty or impossible one names no time.
+            for (const bad of ['', '1e300', 'abc']) {
+                cleanup();
+                window.history.replaceState(null, '', `/signin?oauth_error=new_accounts_capped&retry_at=${bad}`);
+                render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+                await act(async () => {});
+                expect(document.querySelector('[data-oc-signin-oauth-error]')?.textContent).toMatch(/Try again later,/);
+            }
         } finally {
             window.history.replaceState(null, '', '/');
         }

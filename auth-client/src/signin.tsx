@@ -42,6 +42,7 @@ import { normalizeEmail } from '@orangecheck/auth-core/identifiers';
 import * as React from 'react';
 
 import { addressInputValue } from './address';
+import { capText, newAccountsCapText, otpNetworkCapText } from './caps';
 import { LinkPromptStep } from './linked-identities';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
@@ -326,43 +327,6 @@ const EMAIL_ERRORS: Record<string, string> = {
 const SUBMIT_ERRORS: Record<string, string> = {
     bad_request: "That signature couldn't be read. Copy it again, whole.",
 };
-
-/**
- * A network past its hour of sign-in codes (`otp_network_cap`, ochk.io #344):
- * its next code frees only as the hour rolls, so "wait a minute" would be
- * false. Says when, at `retryAt` (unix seconds), in the reader's own time.
- */
-export function otpNetworkCapText(retryAt: unknown, instead = 'Sign in another way'): string {
-    const at = readableRetry(retryAt);
-    return `Too many codes were sent from your network in the last hour. ${instead}, or try again ${at ? `after ${at}` : 'within the hour'}.`;
-}
-
-/**
- * A network past its count of new accounts (`new_accounts_capped`, ochk.io
- * #345). Every way of signing in counts toward it, so another way would not
- * help; an account that already exists always signs in. Says when, at
- * `retryAt` (unix seconds), in the reader's own time.
- */
-export function newAccountsCapText(retryAt: unknown): string {
-    const at = readableRetry(retryAt);
-    return `Too many new accounts were made from this network recently. Try again ${at ? `after ${at}` : 'later'}, or sign in to an account you already have.`;
-}
-
-/** `retryAt` (unix seconds) as the reader's own clock time, or null when it is not a time. */
-function readableRetry(retryAt: unknown): string | null {
-    if (typeof retryAt !== 'number' || !Number.isFinite(retryAt)) return null;
-    return new Date(retryAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-/** ochk.io's sign-in caps (#345): each answers 429 with `retry_at`, and says when. */
-function capText(reason: string, retryAt: unknown): string | null {
-    const at = readableRetry(retryAt);
-    const when = at ? `Try again after ${at}.` : 'Try again later.';
-    if (reason === 'new_accounts_capped') return newAccountsCapText(retryAt);
-    if (reason === 'challenges_capped') return `Too many sign-in attempts from your connection. ${when}`;
-    if (reason === 'network_challenges_capped') return `Too many sign-in attempts from this network. ${when}`;
-    return null;
-}
 
 /** The sentence a refused sign-in throws: a cap says when, any other reason stays a code. */
 function signinRefusal(json: SigninJsonErr, fallback: string): string {
