@@ -163,10 +163,12 @@ def _pledge_fails_constraint(
 
     if "max_bond_sats" in constraints:
         raw = constraints["max_bond_sats"]
-        # ASCII digits and a safe integer, as pledge-core reads it: int() would take " 5", "1_0" and Arabic-Indic digits.
-        if not re.fullmatch(r"[0-9]+", raw) or int(raw) > _MAX_SAFE_INTEGER:
-            return f'delegation max_bond_sats="{raw}" is not a valid integer'
-        max_sats = int(raw)
+        # ASCII digits and a safe integer, as pledge-core reads it: int() would take " 5", "1_0" and Arabic-Indic digits,
+        # and raises past CPython's digit limit, so at most 16 significant digits reach it.
+        significant = raw.lstrip("0") or "0"
+        if not re.fullmatch(r"[0-9]+", raw) or len(significant) > 16 or int(significant) > _MAX_SAFE_INTEGER:
+            return f'delegation max_bond_sats="{raw[:32]}" is not a valid integer'
+        max_sats = int(significant)
         min_sats = _json_int((pledge.get("bond") or {}).get("min_sats"))
         if not _is_count(min_sats):
             return "pledge.bond.min_sats is not a non-negative integer"

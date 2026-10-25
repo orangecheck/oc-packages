@@ -28,7 +28,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
   only) and a value, which may be quoted; `max_bond_sats` is a ceiling in
   either form; a key named twice, or a key, operator or value the check does
   not recognise, fails it; `counterparty=null` means no counterparty. A
-  ceiling fails when the pledge has no whole `bond.min_sats`. Held to vector
+  ceiling fails when the pledge has no whole `bond.min_sats`, and one of more
+  than 16 significant digits fails without reaching `int()`. Held to vector
   `v46`.
 - `counterparty` and `dispute.params` may not be the string `"null"`, which
   signs the same bytes as null (SPEC §3.6, vectors `v42`, `v43`; `v45` holds
