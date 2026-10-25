@@ -76,6 +76,11 @@ function checkOptions(options: FilterAllowlistOptions): void {
                 `filterAllowlist reads only ${[...KNOWN_OPTIONS].join(', ')}.`
         );
     }
+    // Readers read options.key, which follows the prototype: a known key must be the caller's own.
+    const inherited = [...KNOWN_OPTIONS].filter((k) => k in options && !Object.prototype.hasOwnProperty.call(options, k));
+    if (inherited.length > 0) {
+        throw new TypeError(`@orangecheck/airdrop-gate: option ${inherited.join(', ')} is inherited, not set by the caller`);
+    }
 }
 
 export interface AirdropDecision {

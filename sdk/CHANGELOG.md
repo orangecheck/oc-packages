@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.18.1] — 2026-10-25
+
+### Changed
+
+- **Options are read from the caller's own keys.** `check()` and `verify()`
+  throw a `TypeError` when an option they read is only inherited: set on the
+  options' prototype (`Object.create({ minSats })`) or on `Object.prototype`.
+  Held, with every option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+
 ## [1.18.0] — 2026-10-25
 
 ### Changed

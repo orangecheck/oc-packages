@@ -39,6 +39,11 @@ function refuseUnknown(where: string, opts: unknown, known: ReadonlySet<string>)
                 `It reads only ${[...known].join(', ')}.`
         );
     }
+    // Readers read opts.key, which follows the prototype: a known key must be the caller's own.
+    const inherited = [...known].filter((k) => k in opts && !Object.prototype.hasOwnProperty.call(opts, k));
+    if (inherited.length > 0) {
+        throw new TypeError(`@orangecheck/sdk: ${where}: option ${inherited.join(', ')} is inherited, not set by the caller`);
+    }
 }
 
 export function checkCheckParams(params: CheckParams): void {

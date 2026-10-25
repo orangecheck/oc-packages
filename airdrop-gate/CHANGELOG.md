@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.2.3] — 2026-10-25
+
+### Changed
+
+- **Options are read from the caller's own keys.** `filterAllowlist` rejects
+  with a `TypeError` when an option it reads is only inherited: set on the
+  options' prototype (`Object.create({ minSats })`) or on `Object.prototype`.
+  Held, with every option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+
 ## [0.2.2] — 2026-10-23
 
 ### Changed

@@ -79,6 +79,8 @@ import {
     type SessionRequestHeaders,
 } from '@orangecheck/auth-core';
 
+import { inheritedKeys } from './own-options';
+
 export { bondMeets, readBondClaim, readBondNeed };
 export type { BondClaim, SessionPayload, VerifyOcOptions };
 
@@ -155,6 +157,8 @@ export async function verifyOcToken(
     if (options === null || typeof options !== 'object') {
         throw new TypeError('@orangecheck/me-client: options must be an object');
     }
+    // The rest copy below keeps own keys only: an inherited one would be dropped, not refused.
+    refuseInherited('', options, KNOWN_OPTIONS);
     const { requireHandle, ...core } = options;
     checkRequireHandle(requireHandle);
     const session = await verifyOcTokenCore(token, core);
@@ -186,6 +190,8 @@ export async function checkOcToken(token: string, options: VerifyOcTokenOptions 
     if (options === null || typeof options !== 'object') {
         throw new TypeError('@orangecheck/me-client: options must be an object');
     }
+    // The rest copy below keeps own keys only: an inherited one would be dropped, not refused.
+    refuseInherited('', options, KNOWN_OPTIONS);
     const { requireHandle, ...core } = options;
     checkRequireHandle(requireHandle);
     const checked = await checkOcTokenCore(token, core);
@@ -508,6 +514,14 @@ const KNOWN_OPTIONS: ReadonlySet<string> = new Set<keyof WithOcAuthOptions>([
 ]);
 const BOND_OPTIONS: ReadonlySet<string> = new Set<keyof BondNeed>(['minSats', 'minDays', 'maxAgeSecs']);
 
+/** Throw on an option the caller did not set itself: readers follow the prototype. */
+function refuseInherited(where: string, opts: object, known: ReadonlySet<string>): void {
+    const inherited = inheritedKeys(opts, known);
+    if (inherited.length > 0) {
+        throw new TypeError(`@orangecheck/me-client: ${where}option ${inherited.join(', ')} is inherited, not set by the caller`);
+    }
+}
+
 /**
  * Throw on a key me-client does not read. Ignored, a misspelt `projectKey`
  * would skip the project's sign-in rule, a misspelt `audience` would accept
@@ -524,6 +538,7 @@ function checkOptions(options: WithOcAuthOptions): void {
                 `It reads only ${[...KNOWN_OPTIONS].join(', ')}.`
         );
     }
+    refuseInherited('', options, KNOWN_OPTIONS);
     checkRequireHandle(options.requireHandle);
     const bond = options.requireBond;
     if (bond === undefined) return;
@@ -537,6 +552,7 @@ function checkOptions(options: WithOcAuthOptions): void {
                 `It reads only ${[...BOND_OPTIONS].join(', ')}.`
         );
     }
+    refuseInherited('requireBond: ', bond, BOND_OPTIONS);
     // A NaN from an unset env var, a string or a fraction would otherwise be checked as no floor.
     if (!readBondNeed(bond)) {
         throw new TypeError(

@@ -19,6 +19,8 @@
 
 import { isDidOc } from '@orangecheck/auth-core/identifiers';
 
+import { inheritedKeys } from './own-options';
+
 /** The only place a call goes: the key never travels anywhere else. */
 const ORIGIN = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -126,10 +128,10 @@ function fail(message: string): never {
 }
 
 /**
- * Check the call itself; throws on a mistake in it. Returns the options copied
- * once onto a bare object, and every later read is from that copy, so an
- * inherited `consent` (a polluted Object.prototype, or options made with
- * Object.create) is never read and a getter is read once.
+ * Check the call itself; throws on a mistake in it, an inherited option among
+ * them (a polluted Object.prototype, or options made with Object.create).
+ * Returns the options copied once onto a bare object, and every later read is
+ * from that copy, so a getter is read once.
  */
 function checkCall<O extends ConnectOptions>(name: string, options: O, known: ReadonlySet<string>): O {
     if (typeof document !== 'undefined') {
@@ -141,6 +143,8 @@ function checkCall<O extends ConnectOptions>(name: string, options: O, known: Re
         const only = [...known].join(', ');
         fail(`${name}: unknown option ${unknown.join(', ')}. It reads only ${only}.`);
     }
+    const inherited = inheritedKeys(options, known);
+    if (inherited.length > 0) fail(`${name}: option ${inherited.join(', ')} is inherited, not set by the caller`);
     const o = Object.assign(Object.create(null) as O, options);
     if (typeof o.apiKey !== 'string' || o.apiKey.trim() === '') {
         fail(`${name}: apiKey is required (your Connect API key)`);

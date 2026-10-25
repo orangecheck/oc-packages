@@ -10,6 +10,8 @@
  * in the call itself throws, before anything is read or sent.
  */
 
+import { inheritedKeys } from './own-options';
+
 const DEFAULT_ISSUER = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -138,6 +140,8 @@ export function revokeToken(
     if (unknown.length > 0) {
         fail(`revokeToken: unknown option ${unknown.join(', ')}. It reads only ${[...REVOKE_OPTIONS].join(', ')}.`);
     }
+    const inherited = inheritedKeys(options, REVOKE_OPTIONS);
+    if (inherited.length > 0) fail(`revokeToken: option ${inherited.join(', ')} is inherited, not set by the caller`);
     const tokens = typeof token === 'string' ? [token] : Array.isArray(token) ? [...token] : null;
     if (
         !tokens ||

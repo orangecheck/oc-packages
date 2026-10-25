@@ -8,6 +8,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.53.1] — 2026-10-25
+
+### Changed
+
+- **Options are read from the caller's own keys.** `withOcAuth`,
+  `ocAuthExpress`, `ocAuthHono`, `checkOcSession`, `getOcSession`,
+  `checkSignInRule`, `verifyOcToken`, `checkOcToken`, `revokeToken`,
+  `connectProvision`, `connectClaimLink`, `connectDelete`, `exchangeNativeCode`
+  and `enhanceSignInButton` throw a `TypeError` when an option they read (or
+  a `requireBond` or native-input field) is only inherited: set on the
+  options' prototype (`Object.create({ audience })`) or on `Object.prototype`.
+  `exchangeNativeCode` refuses a `projectKey` the input itself carries, as
+  before. Held, with every option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+
 ## [0.53.0] — 2026-10-25
 
 ### Changed

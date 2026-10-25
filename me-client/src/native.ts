@@ -21,6 +21,7 @@
 import type { RevocationCheck, SessionPayload } from '@orangecheck/auth-core';
 
 import { checkOcSession, checkOcToken, checkSignInRule, type WithOcAuthOptions } from './server';
+import { inheritedKeys } from './own-options';
 import { issuerOrigin } from './tokens';
 
 const DEFAULT_ISSUER = 'https://ochk.io';
@@ -143,11 +144,13 @@ export async function exchangeNativeCode(
     options: ExchangeNativeCodeOptions = {}
 ): Promise<ExchangeNativeCodeResult> {
     if (input === null || typeof input !== 'object') fail('input must be an object');
-    if ('projectKey' in input) {
+    if (Object.prototype.hasOwnProperty.call(input, 'projectKey')) {
         fail('projectKey is your own key: pass it in options, or set OC_PROJECT_KEY, never from the request');
     }
     const extra = Object.keys(input).filter((k) => !(FIELDS as readonly string[]).includes(k));
     if (extra.length > 0) fail(`unknown input ${extra.join(', ')}. It reads only ${FIELDS.join(', ')}.`);
+    const inheritedInput = inheritedKeys(input, FIELDS);
+    if (inheritedInput.length > 0) fail(`input ${inheritedInput.join(', ')} is inherited, not set by the caller`);
     for (const f of FIELDS) {
         const v: unknown = input[f];
         if (typeof v !== 'string' || v.length === 0 || v.length > MAX_FIELD_LENGTH) {
@@ -158,6 +161,8 @@ export async function exchangeNativeCode(
     if (options === null || typeof options !== 'object') fail('options must be an object');
     const unknown = Object.keys(options).filter((k) => !OPTIONS.has(k));
     if (unknown.length > 0) fail(`unknown option ${unknown.join(', ')}. It reads only ${[...OPTIONS].join(', ')}.`);
+    const inherited = inheritedKeys(options, OPTIONS);
+    if (inherited.length > 0) fail(`option ${inherited.join(', ')} is inherited, not set by the caller`);
     const projectKey =
         options.projectKey ?? (typeof process !== 'undefined' ? process.env?.OC_PROJECT_KEY?.trim() : undefined);
     if (typeof projectKey !== 'string' || projectKey.length === 0 || projectKey.length > MAX_FIELD_LENGTH) {

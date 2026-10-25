@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.5] — 2026-10-25
+
+### Changed
+
+- **Options are read from the caller's own keys.** `filterEvent`,
+  `AttestationIndex.decide` and `new AttestationIndex()` throw a `TypeError`
+  when an option they read is only inherited: set on the options' prototype
+  (`Object.create({ minSats })`) or on `Object.prototype`. Held, with every
+  option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+
 ## [0.5.4] — 2026-10-23
 
 ### Changed

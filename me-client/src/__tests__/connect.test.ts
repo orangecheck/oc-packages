@@ -144,11 +144,11 @@ describe('only the caller\'s own options are read', () => {
         expect(sent[0]!.url).toBe('https://ochk.io/api/connect/provision');
     });
 
-    it('a polluted Object.prototype.consent does not tick the box', async () => {
+    it('a polluted Object.prototype.consent is refused, never sent as the box ticked', async () => {
         (Object.prototype as Record<string, unknown>).consent = true;
         answer(500, { ok: false, reason: 'server_error' });
-        await connectProvision({ apiKey: KEY, userId: 'u' });
-        expect(JSON.parse(String(sent[0]!.init.body))).toEqual({ user_id: 'u' });
+        expect(() => connectProvision({ apiKey: KEY, userId: 'u' })).toThrow(/option consent is inherited/);
+        expect(sent).toHaveLength(0);
     });
 
     it('options built on a prototype that carries origin and consent', async () => {
@@ -157,9 +157,8 @@ describe('only the caller\'s own options are read', () => {
             { apiKey: KEY, userId: 'u' }
         ) as { apiKey: string; userId: string };
         answer(500, { ok: false, reason: 'server_error' });
-        await connectProvision(options);
-        expect(sent[0]!.url).toBe('https://ochk.io/api/connect/provision');
-        expect(JSON.parse(String(sent[0]!.init.body))).toEqual({ user_id: 'u' });
+        expect(() => connectProvision(options)).toThrow(/option consent is inherited/);
+        expect(sent).toHaveLength(0);
     });
 
     it('a getter is read once, so the check and the body see the same value', async () => {

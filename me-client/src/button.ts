@@ -20,6 +20,7 @@
 
 import { markElement, type MarkVariant } from '@orangecheck/mark';
 
+import { inheritedKeys } from './own-options';
 import { signInWithOcOutcome, type OcPopupOutcome, type OcPopupResult, type SignInWithOcOptions } from './popup';
 
 export type { MarkVariant } from '@orangecheck/mark';
@@ -87,6 +88,7 @@ export interface CheckedSignInOptions {
 /** The options, checked: a misspelt key, or words without "orangecheck" in them, fail loudly, not quietly. */
 export function checkSignInOptions(options: EnhanceSignInButtonOptions): CheckedSignInOptions {
     for (const key of Object.keys(options)) if (!KEYS.has(key)) throw new TypeError(`sign-in button: unknown option ${key}`);
+    for (const key of inheritedKeys(options, KEYS)) throw new TypeError(`sign-in button: option ${key} is inherited, not set by the caller`);
     if (typeof options.onSignedIn !== 'function') throw new TypeError('sign-in button: onSignedIn is required');
     const label = options.label ?? SIGN_IN_LABELS.signIn;
     if (label !== false && (typeof label !== 'string' || !NAMED.test(label))) {

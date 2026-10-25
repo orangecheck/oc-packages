@@ -54,6 +54,14 @@ const SOURCE_KEYS: Record<string, ReadonlySet<string>> = {
  * option would otherwise be ignored, and the gate would admit what the caller
  * meant it to refuse.
  */
+// Readers read opts.key, which follows the prototype: a known key must be the caller's own.
+function refuseInherited(where: string, opts: object, known: ReadonlySet<string>): void {
+    const inherited = [...known].filter((k) => k in opts && !Object.prototype.hasOwnProperty.call(opts, k));
+    if (inherited.length > 0) {
+        throw new TypeError(`@orangecheck/gate: ${where}option ${inherited.join(', ')} is inherited, not set by the caller`);
+    }
+}
+
 export function checkGateOptions(opts: GateOptions): void {
     if (opts === null || typeof opts !== 'object') {
         throw new TypeError('@orangecheck/gate: options must be an object');
@@ -65,6 +73,7 @@ export function checkGateOptions(opts: GateOptions): void {
                 `The gate reads only ${[...KNOWN_OPTIONS].join(', ')}.`
         );
     }
+    refuseInherited('', opts, KNOWN_OPTIONS);
     for (const field of ['address', 'attestationId', 'identity'] as const) {
         const src = opts[field] as Record<string, unknown> | undefined;
         if (src === undefined) continue;
@@ -79,6 +88,7 @@ export function checkGateOptions(opts: GateOptions): void {
                 `@orangecheck/gate: ${field}: unknown key ${extra.join(', ')} for from: ${kind}`
             );
         }
+        refuseInherited(`${field}: `, src, allowed);
     }
 }
 
