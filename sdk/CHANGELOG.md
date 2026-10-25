@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.18.0] — 2026-10-25
+
+### Changed
+
+- **A `bond:` value is read as OC Attest SPEC §2.2 writes it.** `verify()`
+  reads the amount from base-10 ASCII digits of at most 2^53 - 1 only, and
+  fails any other value (`5000abc`, `1e9`, `+5000`, `5000.0`) with the new
+  status code `bond_malformed`, before it reads the chain.
+  `buildCanonicalMessage()` throws rather than write such a value.
+
+### Added
+
+- `readBondExtension(value)`: the amount a `bond:` value gives, or null.
+  Held, with sdk-py, to conformance vector `tv29`.
+
 ## [1.17.1] — 2026-10-24
 
 ### Changed

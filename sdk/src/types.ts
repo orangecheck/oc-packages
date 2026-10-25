@@ -43,6 +43,7 @@ export type StatusCode =
     | 'bond_zero' // No bond amount
     | 'bond_pending' // Bond pending confirmation
     | 'bond_insufficient' // Insufficient bond amount
+    | 'bond_malformed' // A bond: value that is not base-10 ASCII digits up to 2^53 - 1
     | 'aud_mismatch' // Audience mismatch
     | 'expired' // Attestation expired
     | 'not_yet_valid' // Signed issued_at is ahead of the verifier's clock

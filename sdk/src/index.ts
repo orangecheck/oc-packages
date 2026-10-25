@@ -79,6 +79,7 @@ export {
     formatIdentities,
     generateAttestationId,
     parseIdentities,
+    readBondExtension,
 } from './canonical';
 // `Extensions` is the second parameter of the public buildCanonicalMessage and
 // `BuildOptions` the third, so a consumer that wants to name either had no way

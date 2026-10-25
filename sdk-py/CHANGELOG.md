@@ -4,6 +4,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.13.0] — 2026-10-25
+
+### Changed
+
+- `build_canonical_message` raises ValueError for a `bond` extension that is
+  not a whole number of sats up to 2^53 - 1, as OC Attest SPEC §2.2 writes
+  it. New: `read_bond_extension(value)`, the amount a `bond:` value gives or
+  None, as `@orangecheck/sdk`'s `readBondExtension`. Held to conformance
+  vector `tv29`.
+
 ## [3.12.0] — 2026-10-25
 
 ### Changed

@@ -152,6 +152,17 @@ export interface BuildOptions {
 }
 
 /**
+ * The amount a `bond:` value gives, or null when SPEC §2.2 does not allow it:
+ * base-10 ASCII digits only, at most 2^53 - 1. parseInt would read "5000abc"
+ * as 5000 and "1e9" as 1.
+ */
+export function readBondExtension(value: string): number | null {
+    if (!/^[0-9]+$/.test(value)) return null;
+    const n = Number(value);
+    return Number.isSafeInteger(n) ? n : null;
+}
+
+/**
  * Build a canonical message following OrangeCheck Protocol v0 specification
  * @param input - Canonical input with address and identities
  * @param extensions - Optional extension key-value pairs
@@ -190,6 +201,10 @@ export function buildCanonicalMessage(
             continue;
         }
         const key = k.toLowerCase();
+        // A bond is written as SPEC §2.2 reads it, so no verifier refuses it as bond_malformed.
+        if (key === 'bond' && readBondExtension(String(v)) === null) {
+            throw new Error(`invalid bond: ${String(v)} is not a whole number of sats up to 2^53 - 1`);
+        }
         normExt[key] = String(v);
     }
 

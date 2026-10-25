@@ -138,5 +138,10 @@
     "id": "tv28",
     "category": "bond_floors",
     "description": "floors instead of amount and age (BOND.md §5)"
+  },
+  {
+    "id": "tv29",
+    "category": "bond_extension",
+    "description": "bond: values (SPEC §2.2): base-10 ASCII digits up to 2^53 - 1 give the amount; anything else is bond_malformed"
   }
 ]

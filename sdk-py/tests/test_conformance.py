@@ -193,6 +193,33 @@ def test_bond_signature(vector: dict) -> None:
         )
 
 
+# ─── bond: extension (SPEC §2.2) ──────────────────────────────────────────
+
+
+@pytest.mark.parametrize("vector", vectors_of("bond_extension"), ids=ids_for("bond_extension"))
+def test_bond_extension(vector: dict) -> None:
+    from orangecheck import read_bond_extension
+
+    values, bonds = vector["input"]["values"], vector["expected"]["bonds"]
+    assert [read_bond_extension(v) for v in values] == bonds
+    # A signer writes only the values that give an amount.
+    for value, bond in zip(values, bonds):
+        def build() -> str:
+            return build_canonical_message(
+                address="bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+                identities=[],
+                extensions={"bond": value},
+                nonce="0011223344556677889900aabbccddee",
+                issued_at="2026-04-22T12:00:00Z",
+            )
+
+        if bond is None:
+            with pytest.raises(ValueError):
+                build()
+        else:
+            assert f"\nbond: {value}\n" in build()
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -211,6 +238,7 @@ def test_vector_set_complete() -> None:
         "bond_signature",
         "bond_nullifier",
         "bond_floors",
+        "bond_extension",
     }
     assert len(VECTORS) >= 28
 

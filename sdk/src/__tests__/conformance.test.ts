@@ -32,6 +32,7 @@ import {
     formatIdentities,
     generateAttestationId,
     parseBondMessage,
+    readBondExtension,
     verifyBondSignature,
     type BondFields,
 } from '../index';
@@ -160,6 +161,28 @@ describe('conformance: bip322_signature', () => {
     }
 });
 
+describe('conformance: bond_extension (SPEC §2.2)', () => {
+    for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
+        const values = v.input.values as string[];
+        const bonds = v.expected.bonds as (number | null)[];
+        it(`${v.id}: ${v.description}`, () => {
+            expect(values.map(readBondExtension)).toEqual(bonds);
+        });
+        it(`${v.id}: a signer writes only the values that give an amount`, () => {
+            values.forEach((value, i) => {
+                const build = () =>
+                    buildCanonicalMessage(
+                        { address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', identities: [] },
+                        { bond: value },
+                        { nonce: '0011223344556677889900aabbccddee', issuedAt: '2026-04-22T12:00:00Z' }
+                    );
+                if (bonds[i] === null) expect(build, value).toThrow(/invalid bond/);
+                else expect(build()).toContain(`\nbond: ${value}\n`);
+            });
+        });
+    }
+});
+
 describe('conformance: bonds (BOND.md)', () => {
     const of = (c: string) => vectors.filter((x) => x.category === c);
 
@@ -230,6 +253,7 @@ describe('conformance: vector index loaded', () => {
                 'bond_signature',
                 'bond_nullifier',
                 'bond_floors',
+                'bond_extension',
             ])
         );
     });

@@ -25,7 +25,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Mapping, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
 from . import types as _types
 from ._text import js_strip
@@ -136,6 +136,21 @@ def _now_rfc3339_utc() -> str:
 # ─── Canonical message ─────────────────────────────────────────────────────
 
 
+_MAX_SAFE_INTEGER = 2**53 - 1
+
+
+def read_bond_extension(value: str) -> Optional[int]:
+    """The amount a ``bond:`` value gives, or None when SPEC §2.2 does not allow it:
+    base-10 ASCII digits only, at most 2^53 - 1. As ``@orangecheck/sdk``'s
+    ``readBondExtension``; ``int()`` would read " 5", "1_0" and other digits."""
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+", value):
+        return None
+    significant = value.lstrip("0") or "0"
+    if len(significant) > 16 or int(significant) > _MAX_SAFE_INTEGER:
+        return None
+    return int(significant)
+
+
 def build_canonical_message(
     *,
     address: str,
@@ -190,6 +205,9 @@ def build_canonical_message(
     for k, v in (extensions or {}).items():
         if v is None or v == "":
             continue
+        # A bond is written as SPEC §2.2 reads it, so no verifier refuses it as bond_malformed.
+        if k.lower() == "bond" and (isinstance(v, bool) or read_bond_extension(str(v)) is None):
+            raise ValueError(f"invalid bond: {v!r} is not a whole number of sats up to 2^53 - 1")
         norm_ext[k.lower()] = str(v)
     ext_lines = [f"{k}: {norm_ext[k]}" for k in sorted(norm_ext.keys())]
 

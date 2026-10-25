@@ -49,6 +49,11 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
         detail: 'The confirmed balance is less than the declared bond amount. The bond extension requires the address to hold at least the specified amount in confirmed UTXOs.',
         severity: 'error',
     },
+    bond_malformed: {
+        label: 'Bond amount not readable',
+        detail: 'The signed bond line is not a whole number of sats written in plain digits, so the attestation does not say how much it bonds.',
+        severity: 'error',
+    },
     aud_mismatch: {
         label: 'Audience mismatch',
         detail: 'The message was signed for a different audience than expected. This may be intentional or indicate the signature is being used in the wrong context.',

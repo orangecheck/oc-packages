@@ -19,7 +19,7 @@ import type {
 
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
-import { generateAttestationId, parseIdentities, readMessageValue } from './canonical';
+import { generateAttestationId, parseIdentities, readBondExtension, readMessageValue } from './canonical';
 import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
@@ -131,9 +131,9 @@ export function parseCanonicalMessage(msg: string) {
 
     const network = (extensions['network'] || 'mainnet') as Network;
 
-    // Parse bond extension if present (integer satoshis)
+    // Parse bond extension if present (integer satoshis, SPEC §2.2)
     const bondStr = extensions['bond'];
-    const bond = bondStr ? parseInt(bondStr, 10) : undefined;
+    const bond = bondStr ? readBondExtension(bondStr) : undefined;
 
     return {
         core: { address, identities, issued_at },
@@ -141,7 +141,8 @@ export function parseCanonicalMessage(msg: string) {
         repeated,
         network,
         extensions,
-        bond: bond !== undefined && !isNaN(bond) && bond > 0 ? bond : undefined,
+        bond: bond !== undefined && bond !== null && bond > 0 ? bond : undefined,
+        bondMalformed: bond === null,
     };
 }
 
@@ -462,6 +463,18 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
 
         const sigOk = sigCode === 'sig_ok_bip322' || sigCode === 'sig_ok_legacy';
         if (!sigOk) {
+            return {
+                ok: false,
+                codes,
+                network,
+                attestation_id,
+                identities: parsed.core.identities,
+            };
+        }
+
+        // A bond: value SPEC §2.2 does not allow is a failed attestation, never "no bond".
+        if (parsed.bondMalformed) {
+            codes.push('bond_malformed');
             return {
                 ok: false,
                 codes,

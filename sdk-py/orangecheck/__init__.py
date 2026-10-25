@@ -41,6 +41,7 @@ from .canonical import (
     format_identities,
     parse_identities,
     random_nonce,
+    read_bond_extension,
     score_v0,
 )
 
@@ -142,6 +143,7 @@ __all__ = [
     "attestation_id",
     "format_identities",
     "parse_identities",
+    "read_bond_extension",
     "random_nonce",
     "score_v0",
     "CanonicalIdentityBinding",
@@ -223,7 +225,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.12.0"
+__version__ = "3.13.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:
