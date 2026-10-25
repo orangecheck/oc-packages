@@ -27,8 +27,9 @@ function standing(records: readonly ParsedDeviceEvent[]): ParsedDeviceEvent[] {
     const revokedAt = new Map<string, number>();
     for (const r of records) {
         if (!r.revoked) continue;
-        const at = signedTime(r.bindingStatement, 'revoked_at');
-        if (at !== null) revokedAt.set(key(r), Math.max(revokedAt.get(key(r)) ?? at, at));
+        // One that signs no readable revoked_at bounds nothing: it retires every bind (SPEC §3.5).
+        const at = signedTime(r.bindingStatement, 'revoked_at') ?? Infinity;
+        revokedAt.set(key(r), Math.max(revokedAt.get(key(r)) ?? at, at));
     }
     return records.filter((r) => {
         if (r.revoked) return false;

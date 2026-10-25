@@ -105,14 +105,16 @@ describe('parseDeviceEvent trusts the signed statement, not the tags', () => {
         expect(p.device_pk).toBe('revoked');
     });
 
-    // A revocation statement smuggled in under a live-looking key tag would
-    // otherwise read as an active device.
-    it('REJECTS a revocation statement whose device_pk tag claims a live key', () => {
+    // The signed statement decides: a revocation under a live-looking key tag is
+    // still a revocation, never an active device (SPEC §3.5).
+    it('reads a revocation statement whose device_pk tag claims a live key as a revocation', () => {
         const revoke = buildRevocationStatement({
             address: VICTIM,
             device_id: DEVICE,
             revoked_at: '2026-09-02T00:00:00Z',
         });
-        expect(() => parseDeviceEvent(event(honestTags, revoke))).toThrow(/not "revoked"/i);
+        const p = parseDeviceEvent(event(honestTags, revoke));
+        expect(p.revoked).toBe(true);
+        expect(p.device_pk).toBe('revoked');
     });
 });

@@ -30,6 +30,6 @@ This package is WebCrypto-free: it works in Node and in the browser.
 - `buildRevocationStatement({ address, device_id, revoked_at })` — for explicit revocation.
 - `deriveNostrKey(deviceSk)` — deterministic `nostr_sk` from `device_sk` (HKDF).
 - `finalizeDeviceEvent({ ... bindingSigBase64, ... })` — returns a fully signed kind-30078 `NostrEvent`.
-- `parseDeviceEvent(event)` — extracts `{ address, device_pk, device_id, bindingStatement, bindingSigBase64, revoked }`.
+- `parseDeviceEvent(event)` — extracts `{ address, device_pk, device_id, bindingStatement, bindingSigBase64, revoked }`. A bind's tags must agree with its signed statement; a revocation is read from its statement alone.
 
 The caller is responsible for obtaining the BIP-322 signature from the user's wallet and for publishing / querying Nostr relays. See [`SPEC.md`](https://github.com/orangecheck/oc-lock-protocol/blob/main/SPEC.md) §3 for the normative device-binding rules.

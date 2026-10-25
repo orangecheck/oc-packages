@@ -8,6 +8,20 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.7.0] — 2026-10-24
+
+### Changed — a revocation is read from its signed statement (OC Lock SPEC 2.4.0 §3.5)
+
+- `parseDeviceEvent` reads a revocation's address and `device_id` from its
+  signed statement and needs only its `binding_sig` tag. Its `addr`,
+  `device_id`, `device_pk` and `d` tags may be missing or say something else.
+  A bind is checked against its tags as before.
+- `liveDevices` and `pendingDevices`: a revocation that signs no readable
+  `revoked_at` retires every bind of its device, whatever that bind's
+  `created_at`.
+- Test vector `r03` (oc-lock-protocol `device-binding/`), copied to
+  `test-vectors/`.
+
 ## [0.6.0] — 2026-10-23
 
 ### Changed — v2 records stop naming an inbox (OC Lock SPEC 2.3.0 §3.4)

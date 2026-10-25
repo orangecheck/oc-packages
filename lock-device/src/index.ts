@@ -223,13 +223,8 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
         }
         return null;
     };
-    const address = tag('addr');
-    const device_id = tag('device_id');
-    const device_pk = tag('device_pk');
     const binding_sig = tag('binding_sig');
-    if (!address || !device_id || !device_pk || !binding_sig) {
-        throw new Error('device event missing required tags');
-    }
+    if (!binding_sig) throw new Error('device event has no binding_sig tag');
 
     // The BIP-322 signature covers `event.content` — the statement — and nothing
     // else. Tags are an index the relay lets anyone write, so a value read from a
@@ -243,34 +238,42 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
     // the recipient record was built from the tag. Proven against the published
     // package before this existed.
     //
-    // So the statement is the source of truth and the tags must agree with it.
+    // So the statement is the source of truth and a bind's tags must agree with
+    // it. A revocation reads nothing from a tag, so it is taken whatever they say
+    // (SPEC §3.5): its authority is the address's signature over the statement.
     const signed = parseBindingStatement(event.content);
     if (!signed) {
         throw new Error('device event content is not a v2/v3 bind or revoke statement');
     }
-    if (signed.address !== address) {
-        throw new Error(
-            `device event addr tag (${address}) does not match the signed statement (${signed.address})`,
-        );
-    }
-    // SPEC §3.3 / §3.6: the record lives at `oc-lock:device:<addr>` or the
-    // per-device `oc-lock:device:<addr>:<device_id>`. Lookups filter on `d`, so a
-    // record for one address filed under another's slot must not parse.
-    const d = tag('d');
-    if (
-        d !== `oc-lock:device:${signed.address}` &&
-        d !== `oc-lock:device:${signed.address}:${signed.device_id}`
-    ) {
-        throw new Error(
-            `device event d tag (${d}) is not the slot for the signed address (${signed.address})`,
-        );
-    }
-    if (signed.device_id !== device_id) {
-        throw new Error(
-            `device event device_id tag (${device_id}) does not match the signed statement (${signed.device_id})`,
-        );
-    }
     if (signed.kind === 'bind') {
+        const address = tag('addr');
+        const device_id = tag('device_id');
+        const device_pk = tag('device_pk');
+        if (!address || !device_id || !device_pk) {
+            throw new Error('device event missing required tags');
+        }
+        if (signed.address !== address) {
+            throw new Error(
+                `device event addr tag (${address}) does not match the signed statement (${signed.address})`,
+            );
+        }
+        // SPEC §3.3 / §3.6: the record lives at `oc-lock:device:<addr>` or the
+        // per-device `oc-lock:device:<addr>:<device_id>`. Lookups filter on `d`, so a
+        // record for one address filed under another's slot must not parse.
+        const d = tag('d');
+        if (
+            d !== `oc-lock:device:${signed.address}` &&
+            d !== `oc-lock:device:${signed.address}:${signed.device_id}`
+        ) {
+            throw new Error(
+                `device event d tag (${d}) is not the slot for the signed address (${signed.address})`,
+            );
+        }
+        if (signed.device_id !== device_id) {
+            throw new Error(
+                `device event device_id tag (${device_id}) does not match the signed statement (${signed.device_id})`,
+            );
+        }
         if (signed.device_pk !== device_pk) {
             throw new Error(
                 `device event device_pk tag does not match the signed statement — ` +
@@ -283,10 +286,6 @@ export function parseDeviceEvent(event: NostrEvent): ParsedDeviceEvent {
                 `device event pubkey (${event.pubkey}) does not match the signed nostr_pk (${signed.nostr_pk})`,
             );
         }
-    } else if (device_pk !== 'revoked') {
-        throw new Error(
-            `device event carries a revocation statement but its device_pk tag is ${device_pk}, not "revoked"`,
-        );
     }
 
     return {
