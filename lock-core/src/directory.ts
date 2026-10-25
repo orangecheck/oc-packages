@@ -3,7 +3,7 @@
 // resolution walk. Pure over a reader: the caller checks event signatures,
 // computes anchors (directoryAnchor) and answers binding and coin reads.
 
-import { hexEncode, sha256Bytes } from '@orangecheck/lock-crypto';
+import { b64urlEncode, hexEncode, sha256Bytes, utf8Encode } from '@orangecheck/lock-crypto';
 
 import { canonicalBytes } from './canonical.js';
 import type { JsonValue } from './canonical.js';
@@ -55,6 +55,16 @@ export function listingId(content: JsonValue): string {
     return sha256Hex(content);
 }
 
+/** A person's listing d-tag (§8.2.1): "oc-lock-chat-dir:" || base64url(SHA-256("oc-lock-chat-dir/v1:" || lower(handle))). */
+export function directoryDtag(handle: string): string {
+    return 'oc-lock-chat-dir:' + b64urlEncode(sha256Bytes(utf8Encode('oc-lock-chat-dir/v1:' + handle.toLowerCase())));
+}
+
+/** A channel listing's d-tag (§8.3.6), the same over "oc-lock-chat-chdir/v1:". */
+export function channelDirectoryDtag(handle: string): string {
+    return 'oc-lock-chat-chdir:' + b64urlEncode(sha256Bytes(utf8Encode('oc-lock-chat-chdir/v1:' + handle.toLowerCase())));
+}
+
 /** A re-point as it rides in a listing. */
 export interface DirectoryRepoint {
     prev: string;
@@ -78,26 +88,31 @@ export type ParsedDirectoryContent =
 const isObj = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/**
- * §8.2.5 (1): a record's content, kept only if it is `v: 2` for `handle`, and,
- * for a live listing, carries a claim of the §8.2.1 / §8.2.9 shape whose re-points
- * form one chain from the claim's own coin (at most 16). Null drops it before any read.
- */
-export function parseDirectoryContent(content: unknown, handle: string): ParsedDirectoryContent | null {
-    if (!isObj(content) || content.v !== 2) return null;
+/** The fields every v2 record shares, under the names a person's listing uses (§8.2.1, §8.3.6). */
+interface RecordFields {
+    handle: unknown;
+    address: unknown;
+    inboxPubkey: unknown;
+    createdAt: unknown;
+    optedIn: unknown;
+    ends: unknown;
+    claim: unknown;
+}
+
+function parseRecord(f: RecordFields, handle: string): ParsedDirectoryContent | null {
     const h = handle.toLowerCase();
-    if (!HANDLE_RE.test(h) || typeof content.handle !== 'string' || content.handle.toLowerCase() !== h) return null;
-    const { address, created_at: createdAt } = content;
+    if (!HANDLE_RE.test(h) || typeof f.handle !== 'string' || f.handle.toLowerCase() !== h) return null;
+    const { address, createdAt } = f;
     if (typeof address !== 'string' || address.length === 0 || address.length > 128) return null;
     if (typeof createdAt !== 'number' || !Number.isSafeInteger(createdAt) || createdAt < 0) return null;
-    if (content.opted_in === false) {
-        if (typeof content.ends !== 'string' || !HEX64_RE.test(content.ends)) return null;
-        return { kind: 'tombstone', address, createdAt, ends: content.ends };
+    if (f.optedIn === false) {
+        if (typeof f.ends !== 'string' || !HEX64_RE.test(f.ends)) return null;
+        return { kind: 'tombstone', address, createdAt, ends: f.ends };
     }
-    if (content.opted_in !== true) return null;
-    const inboxPubkey = content.inbox_pubkey;
+    if (f.optedIn !== true) return null;
+    const inboxPubkey = f.inboxPubkey;
     if (typeof inboxPubkey !== 'string' || !HEX64_RE.test(inboxPubkey)) return null;
-    const claim = content.claim;
+    const claim = f.claim;
     if (!isObj(claim)) return null;
     const { outpoint, nonce, ots } = claim;
     if (typeof outpoint !== 'string' || !OUTPOINT_RE.test(outpoint)) return null;
@@ -124,6 +139,61 @@ export function parseDirectoryContent(content: unknown, handle: string): ParsedD
         claim: { outpoint, nonce, ots, repoints },
         claimId: claimId({ handle: h, address, outpoint, nonce }),
     };
+}
+
+/**
+ * §8.2.5 (1): a record's content, kept only if it is `v: 2` for `handle`, and,
+ * for a live listing, carries a claim of the §8.2.1 / §8.2.9 shape whose re-points
+ * form one chain from the claim's own coin (at most 16). Null drops it before any read.
+ */
+export function parseDirectoryContent(content: unknown, handle: string): ParsedDirectoryContent | null {
+    if (!isObj(content) || content.v !== 2) return null;
+    return parseRecord(
+        {
+            handle: content.handle,
+            address: content.address,
+            inboxPubkey: content.inbox_pubkey,
+            createdAt: content.created_at,
+            optedIn: content.opted_in,
+            ends: content.ends,
+            claim: content.claim,
+        },
+        handle
+    );
+}
+
+/** §8.3.1: channel_id = SHA-256("oc-lock-chat-ch/v1:" || founder_address || ":" || lower(slug)). */
+export function channelId(founderAddress: string, slug: string): string {
+    return hexEncode(sha256Bytes(utf8Encode('oc-lock-chat-ch/v1:' + founderAddress + ':' + slug.toLowerCase())));
+}
+
+/**
+ * A channel listing's content (§8.3.6), read as parseDirectoryContent reads a
+ * person's: `founder_address` and `founder_inbox_pubkey` stand for `address` and
+ * `inbox_pubkey`. A live listing's `channel_id` must derive from its founder and
+ * `slug`; a did:oc founder lists nothing. A tombstone is kept whatever its slug says.
+ */
+export function parseChannelDirectoryContent(content: unknown, handle: string): ParsedDirectoryContent | null {
+    if (!isObj(content) || content.v !== 2) return null;
+    const founder = content.founder_address;
+    if (typeof founder !== 'string' || founder.startsWith('did:oc:')) return null;
+    if (content.opted_in === true) {
+        const { slug, channel_id: cid } = content;
+        if (typeof slug !== 'string' || slug.length === 0 || typeof cid !== 'string') return null;
+        if (cid !== channelId(founder, slug)) return null;
+    }
+    return parseRecord(
+        {
+            handle: content.handle,
+            address: founder,
+            inboxPubkey: content.founder_inbox_pubkey,
+            createdAt: content.created_at,
+            optedIn: content.opted_in,
+            ends: content.ends,
+            claim: content.claim,
+        },
+        handle
+    );
 }
 
 /**
