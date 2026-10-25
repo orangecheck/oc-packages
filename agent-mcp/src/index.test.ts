@@ -161,15 +161,15 @@ describe('the default exercised scope', () => {
         return { action, ok: r.ok };
     };
 
-    it('quotes the tool name', async () => {
+    it('quotes the server and the tool name', async () => {
         const { action, ok } = await stamp(`mcp:invoke(server=${SERVER},tool=search)`, 'search');
-        expect(action.scope_exercised).toBe(`mcp:invoke(server=${SERVER},tool="search")`);
+        expect(action.scope_exercised).toBe(`mcp:invoke(server="${SERVER}",tool="search")`);
         expect(ok).toBe(true);
     });
 
     it('stamps a tool called "*" as that tool, not every tool', async () => {
         const { action, ok } = await stamp(`mcp:invoke(server=${SERVER},tool="*")`, '*');
-        expect(action.scope_exercised).toBe(`mcp:invoke(server=${SERVER},tool="*")`);
+        expect(action.scope_exercised).toBe(`mcp:invoke(server="${SERVER}",tool="*")`);
         expect(ok).toBe(true);
     });
 
@@ -178,5 +178,19 @@ describe('the default exercised scope', () => {
         const tool = parseScope(action.scope_exercised).constraints.find((c) => c.key === 'tool');
         expect(tool).toEqual({ key: 'tool', op: '=', value: 'a,b', quoted: true });
         expect(ok).toBe(true);
+    });
+
+    it('keeps a server URL with a query whole, under a grant that names it', async () => {
+        const server = 'https://mcp.example.com/sse?key=x';
+        const delegation = await grant(`mcp:invoke(server="${server}",tool=search)`);
+        const action = await stampInvocation({
+            agent: { address: AGENT, signMessage: fakeSign(AGENT) },
+            delegation,
+            invocation: { server, tool: 'search', arguments: {} },
+        });
+        const s = parseScope(action.scope_exercised).constraints.find((c) => c.key === 'server');
+        expect(s?.value).toBe(server);
+        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify, skipRevocationCheck: true });
+        expect(r.ok).toBe(true);
     });
 });

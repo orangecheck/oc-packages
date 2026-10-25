@@ -71,7 +71,7 @@ The stamp's `content.hash` is a SHA-256 of the RFC-8785-canonicalized JSON, foll
 
 This shape is minimal by design — a verifier reconstructs it from the three fields without knowing anything MCP-server-specific.
 
-The action's `scope_exercised` defaults to `mcp:invoke(server=<server>,tool="<tool>")`, with the tool name quoted so it is read as written, which is the tightest scope that exactly identifies the call. Callers who want a narrower or different scope can pass `scopeExercised` explicitly; `stampInvocation` pre-flights sub-scope containment against the delegation.
+The action's `scope_exercised` defaults to `mcp:invoke(server="<server>",tool="<tool>")`, with both values quoted so they are read as written, which is the tightest scope that exactly identifies the call. Callers who want a narrower or different scope can pass `scopeExercised` explicitly; `stampInvocation` pre-flights sub-scope containment against the delegation.
 
 ## API
 

@@ -16,10 +16,10 @@ this file tracks the package's TS / Node / runtime API surface.
 ### Changed
 
 - `stampInvocation` and `invokeWithStamp` default the exercised scope to
-  `mcp:invoke(server=<server>,tool="<tool>")`, written through agent-core's
-  `canonicalizeScope` with the tool name as a quoted value. A tool name is read
-  as written, so a tool called `"*"` exercises that tool. The quoted form is a
-  sub-scope of the same grants as before.
+  `mcp:invoke(server="<server>",tool="<tool>")`, written through agent-core's
+  `canonicalizeScope` with both as quoted values. They are read as written: a
+  tool called `"*"` exercises that tool, and a server URL with a query stays
+  whole. The quoted form is a sub-scope of the same grants as before.
 - README: the server-side example pins the called tool by value.
 
 ## [0.5.2] — 2026-10-25
