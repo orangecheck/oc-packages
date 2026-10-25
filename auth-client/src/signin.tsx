@@ -325,6 +325,19 @@ const SUBMIT_ERRORS: Record<string, string> = {
     bad_request: "That signature couldn't be read. Copy it again, whole.",
 };
 
+/**
+ * A network past its hour of sign-in codes (`otp_network_cap`, ochk.io #344):
+ * its next code frees only as the hour rolls, so "wait a minute" would be
+ * false. Says when, at `retryAt` (unix seconds), in the reader's own time.
+ */
+export function otpNetworkCapText(retryAt: unknown, instead = 'Sign in another way'): string {
+    const at =
+        typeof retryAt === 'number' && Number.isFinite(retryAt)
+            ? `after ${new Date(retryAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : 'within the hour';
+    return `Too many codes were sent from your network in the last hour. ${instead}, or try again ${at}.`;
+}
+
 /** The auth host by name, so an outage reads as theirs and not the page's. */
 export function networkError(authOrigin: string): string {
     let host = authOrigin;
@@ -1405,7 +1418,13 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: address }),
             });
-            const json = (await res.json()) as { ok?: boolean; token?: string; reason?: string };
+            const json = (await res.json()) as {
+                ok?: boolean;
+                token?: string;
+                reason?: string;
+                retry_at?: unknown;
+            };
+            if (json.reason === 'otp_network_cap') return otpNetworkCapText(json.retry_at);
             if (!res.ok || !json.token) return humanSigninError(json.reason ?? 'server_error', 'email');
             setToken(json.token);
             return null;

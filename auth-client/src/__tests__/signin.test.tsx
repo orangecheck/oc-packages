@@ -15,7 +15,7 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
 }));
 
 import { inputStyle as linkedInputStyle, LinkPromptStep } from '../linked-identities';
-import { humanSigninError, looksLikeBitcoinAddress, OcSignIn } from '../signin';
+import { humanSigninError, looksLikeBitcoinAddress, OcSignIn, otpNetworkCapText } from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
 
@@ -193,6 +193,36 @@ describe('OcSignIn · email path', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Send a new code' }));
         });
         expect(screen.getByText(/Sent a new code to/)).toBeTruthy();
+    });
+});
+
+describe('OcSignIn · a network past its hour of codes', () => {
+    it('says so, and when the next code frees, never "wait a minute"', async () => {
+        const retryAt = Math.floor(Date.UTC(2026, 9, 25, 4, 30) / 1000);
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.endsWith('/email-otp/start'))
+                return { status: 429, body: { ok: false, reason: 'otp_network_cap', retry_at: retryAt } };
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), {
+            target: { value: 'a@example.com' },
+        });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        const at = new Date(retryAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        expect(screen.getByRole('alert').textContent).toBe(
+            `Too many codes were sent from your network in the last hour. Sign in another way, or try again after ${at}.`
+        );
+    });
+
+    it('says "within the hour" when the time is unreadable', () => {
+        expect(otpNetworkCapText(undefined, 'Confirm with your wallet')).toBe(
+            'Too many codes were sent from your network in the last hour. Confirm with your wallet, or try again within the hour.'
+        );
+        expect(otpNetworkCapText('1761366600')).toMatch(/try again within the hour\.$/);
     });
 });
 

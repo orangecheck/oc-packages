@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.40.0] — 2026-10-25
+
+### Added
+
+- `otpNetworkCapText(retryAt, instead?)`: the sentence for ochk.io's
+  `otp_network_cap` answer (429, `retry_at`, Retry-After). A network that has
+  had its hour of sign-in codes waits until the hour rolls, so OcSignIn now says
+  that and when, in the reader's own time, instead of "wait a minute". Other
+  sites that send codes can say the same thing with it.
+
 ## [2.39.0] — 2026-10-25
 
 ### Changed
