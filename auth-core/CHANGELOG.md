@@ -22,6 +22,8 @@ this file tracks the package's TS / Node / runtime API surface.
   every family repo already does. The entry imports nothing, so a browser
   bundle can take it; both are also exported from the package root. The rules
   are pinned by `test-vectors/identifiers.json`, which sdk-py's twins read too.
+  `isDidOc` narrows to `DidOc` (`did:oc:${string}`), not to `string`, so a
+  `string` it refuses is still a `string` on the other branch.
 
 ## [2.21.0] — 2026-10-24
 

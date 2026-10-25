@@ -4,12 +4,15 @@
 
 const DID_OC = /^did:oc:[0-9a-f]{32}$/;
 
+/** A string isDidOc has accepted. Narrower than string, so a string it refuses stays a string. */
+export type DidOc = `did:oc:${string}`;
+
 /**
  * Is `value` a did:oc: `did:oc:` and 32 lowercase hex digits, with nothing
  * before or after it? Upper case, surrounding space and a trailing newline are
  * all refused; trim or lower-case first only where you mean to.
  */
-export function isDidOc(value: unknown): value is string {
+export function isDidOc(value: unknown): value is DidOc {
   return typeof value === "string" && DID_OC.test(value);
 }
 
