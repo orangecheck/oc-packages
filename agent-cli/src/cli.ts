@@ -19,6 +19,7 @@ import {
     parseScope,
     REGISTERED_SCOPES,
     revocationCanonicalMessage,
+    shownReason,
     validateScope,
     verifyAction,
     verifyActionAsOfSignedAt,
@@ -204,7 +205,7 @@ program
         } else if (env.kind === 'agent-revocation') {
             console.log(`signer:        ${env.signer.address}`);
             console.log(`delegation_id: ${env.delegation_id}`);
-            console.log(`reason:        ${env.reason || '(none)'}`);
+            console.log(`reason:        ${shownReason(env.reason) || '(none)'}`);
             console.log(`signed_at:     ${env.signed_at}`);
             console.log(`ots:           ${env.ots?.status ?? 'none'}`);
         }
