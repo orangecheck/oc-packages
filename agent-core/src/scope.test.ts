@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     canonicalizeScope,
     canonicalizeScopeString,
+    contentBoundScope,
     isSubScope,
     parseScope,
     ScopeParseError,
@@ -506,5 +507,47 @@ describe('a prefix key is granted with = and means "starts with" (SPEC §7.4)', 
     it('a != grant on a prefix key admits nothing', () => {
         const notAb = parseScope('stamp:sign(content_hash_prefix!=ab)');
         expect(isSubScope(parseScope('stamp:sign(content_hash_prefix=ac)'), notAb)).toBe(false);
+    });
+});
+
+// SPEC §7.2 rule 5: only a registered prefix key reads as "starts with".
+describe('prefix keys come from the registry, not the name', () => {
+    it('an unregistered *_prefix key compares exactly in permissive mode', () => {
+        const granted = parseScope('lock:seal(path_prefix=/a)');
+        expect(() => validateScope(granted, { mode: 'permissive' })).not.toThrow();
+        expect(isSubScope(parseScope('lock:seal(path_prefix=/admin)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('lock:seal(path_prefix=/a)'), granted)).toBe(true);
+    });
+});
+
+// SPEC §8.3 step 12a: content-bound keys are read from the action's signed content.
+describe('contentBoundScope', () => {
+    const content = { hash: 'sha256:' + 'AB'.repeat(32), length: 12, mime: 'Text/Plain; charset=utf-8' };
+    const valueOf = (s: string, key: string) =>
+        contentBoundScope(parseScope(s), content).constraints.find((c) => c.key === key)?.value;
+
+    it('replaces the claimed values with the content’s own', () => {
+        const s = 'stamp:sign(content_hash_prefix=ff,max_bytes<=1,mime=image/png)';
+        expect(valueOf(s, 'mime')).toBe('text/plain');
+        expect(valueOf(s, 'max_bytes')).toBe('12');
+        expect(valueOf(s, 'content_hash_prefix')).toBe('ab'.repeat(32));
+    });
+
+    it('adds them when the claim leaves them out, and keeps every other constraint', () => {
+        const out = contentBoundScope(parseScope('stamp:sign'), content);
+        expect(out.constraints.map((c) => c.key).sort()).toEqual(['content_hash_prefix', 'max_bytes', 'mime']);
+    });
+
+    it('leaves a scope with no content-bound keys as it is', () => {
+        const lock = parseScope('lock:seal(mime=text/plain,recipient=bc1qalice)');
+        expect(contentBoundScope(lock, content)).toBe(lock);
+    });
+
+    it('meets a grant only when the content itself does', () => {
+        const granted = parseScope('stamp:sign(content_hash_prefix=ab,max_bytes<=12,mime=text/plain)');
+        expect(isSubScope(contentBoundScope(parseScope('stamp:sign'), content), granted)).toBe(true);
+        expect(isSubScope(contentBoundScope(parseScope('stamp:sign'), { ...content, length: 13 }), granted)).toBe(false);
+        expect(isSubScope(contentBoundScope(parseScope('stamp:sign'), { ...content, mime: 'text/html' }), granted)).toBe(false);
+        expect(isSubScope(contentBoundScope(parseScope('stamp:sign'), { ...content, hash: 'sha256:' + 'c'.repeat(64) }), granted)).toBe(false);
     });
 });

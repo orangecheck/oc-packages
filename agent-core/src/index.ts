@@ -32,8 +32,16 @@ export {
     isSubScope,
     ScopeParseError,
     REGISTERED_SCOPES,
+    contentBoundScope,
 } from './scope.js';
-export type { Scope, ScopeConstraint, ScopeOp, ValidationOptions } from './scope.js';
+export type {
+    ActionContentFacts,
+    RegisteredScope,
+    Scope,
+    ScopeConstraint,
+    ScopeOp,
+    ValidationOptions,
+} from './scope.js';
 export {
     verifyDelegation,
     verifyAction,

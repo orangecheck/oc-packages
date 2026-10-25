@@ -25,10 +25,22 @@ export interface Scope {
 // Registered products/verbs (SPEC §7.3) and constraint keys (SPEC §7.6).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const REGISTERED_SCOPES: Record<string, { keys: string[] }> = {
+export interface RegisteredScope {
+    keys: string[];
+    /** Keys that name a prefix: granted with `=`, meaning "starts with" (SPEC §7.2 rule 5). */
+    prefixKeys?: string[];
+    /** Keys whose value a verifier derives from the action's own signed content (SPEC §8.3 step 12a). */
+    contentKeys?: string[];
+}
+
+export const REGISTERED_SCOPES: Record<string, RegisteredScope> = {
     'lock:seal': { keys: ['recipient', 'mime', 'max_bytes'] },
     'lock:chat': { keys: ['recipient', 'max_bytes_per_msg', 'max_msgs'] },
-    'stamp:sign': { keys: ['mime', 'max_bytes', 'content_hash_prefix'] },
+    'stamp:sign': {
+        keys: ['mime', 'max_bytes', 'content_hash_prefix'],
+        prefixKeys: ['content_hash_prefix'],
+        contentKeys: ['mime', 'max_bytes', 'content_hash_prefix'],
+    },
     'vote:cast': { keys: ['poll_id', 'choice'] },
     'nostr:publish': { keys: ['kind', 'relay', 'max_bytes'] },
     'http:request': { keys: ['origin', 'method', 'max_rps', 'max_bytes_out'] },
@@ -66,8 +78,10 @@ const HEX_RE = /^[0-9a-f]+$/;
 /** Keys whose value is a MIME type and subtype, in lower case, without parameters (SPEC §7.2 rule 4). */
 const MIME_KEYS = new Set<string>(['mime']);
 const MIME_RE = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/;
-/** A `*_prefix` key means "starts with": granted with `=`, never `!=` (SPEC §7.2 rule 5, §7.4). */
-const isPrefixKey = (key: string): boolean => key.endsWith('_prefix');
+/** Whether `key` is a registered prefix key of `scope`'s product and verb (SPEC §7.2 rule 5). */
+function isPrefixKey(scope: Scope, key: string): boolean {
+    return REGISTERED_SCOPES[`${scope.product}:${scope.verb}`]?.prefixKeys?.includes(key) ?? false;
+}
 /** Keys whose value is a Bitcoin address: bech32 in lower case, base58 as written (SPEC §7.2 rule 4). */
 const ADDRESS_KEYS = new Set<string>(['recipient', 'counterparty']);
 const BECH32_HRP_RE = /^(bc|tb|bcrt)1/i;
@@ -300,7 +314,7 @@ export function validateScope(scope: Scope, options: ValidationOptions = {}): vo
     }
     const registered = new Set(reg.keys);
     for (const c of scope.constraints) {
-        if (isPrefixKey(c.key) && c.op === '!=') {
+        if (isPrefixKey(scope, c.key) && c.op === '!=') {
             throw new ScopeParseError(`${c.key} is a prefix and takes = ("starts with"), never !=`);
         }
         if (!registered.has(c.key)) {
@@ -339,7 +353,7 @@ export function isSubScope(exercised: Scope, granted: Scope): boolean {
 
         if (g.op === '=') {
             if (!ex || ex.op !== '=' || ex.value === undefined || g.value === undefined) return false;
-            if (isPrefixKey(g.key)) {
+            if (isPrefixKey(granted, g.key)) {
                 if (valueProblem(g.key, ex.value) || !ex.value.startsWith(g.value)) return false;
                 continue;
             }
@@ -350,7 +364,7 @@ export function isSubScope(exercised: Scope, granted: Scope): boolean {
         if (g.op === '!=') {
             if (!ex || ex.value === undefined || g.value === undefined) return false;
             if (valueProblem(g.key, ex.value) || valueProblem(g.key, g.value)) return false;
-            if (isPrefixKey(g.key)) return false;
+            if (isPrefixKey(granted, g.key)) return false;
             const same = NUMERIC_KEYS.has(g.key)
                 ? parseDecimalInteger(ex.value) === parseDecimalInteger(g.value)
                 : ex.value === g.value;
@@ -412,4 +426,37 @@ function opToRange(c: ScopeConstraint): { lo: number; hi: number } | null {
         default:
             return null;
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content-bound keys (SPEC §8.3 step 12a)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The parts of a signed action that describe its own content. */
+export interface ActionContentFacts {
+    hash: string;
+    length: number;
+    mime: string;
+}
+
+/**
+ * `exercised` with each content-bound key (SPEC §7.6) set from the action's own
+ * signed content instead of the agent's claim: `mime` to its type/subtype in
+ * lower case, `max_bytes` to its length, `content_hash_prefix` to the hex of
+ * its hash. A scope with no content-bound keys comes back unchanged.
+ */
+export function contentBoundScope(exercised: Scope, content: ActionContentFacts): Scope {
+    const keys = REGISTERED_SCOPES[`${exercised.product}:${exercised.verb}`]?.contentKeys ?? [];
+    if (keys.length === 0) return exercised;
+    const hex = /^sha256:([0-9a-fA-F]{64})$/.exec(content.hash)?.[1]?.toLowerCase() ?? content.hash;
+    const derived: Record<string, string> = {
+        mime: content.mime.split(';')[0]!.trim().toLowerCase(),
+        max_bytes: String(content.length),
+        content_hash_prefix: hex,
+    };
+    const rest = exercised.constraints.filter((c) => !keys.includes(c.key));
+    const bound = keys.map(
+        (key): ScopeConstraint => ({ key, op: '=', value: derived[key], quoted: true })
+    );
+    return { ...exercised, constraints: [...rest, ...bound] };
 }

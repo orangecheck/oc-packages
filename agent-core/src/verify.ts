@@ -27,6 +27,7 @@ import { unsealScopes } from './private-scope.js';
 import { revocationFlags } from './reason.js';
 import {
     canonicalizeScope,
+    contentBoundScope,
     isSubScope,
     parseScope,
     ScopeParseError,
@@ -539,18 +540,27 @@ async function verifyActionAt(
     if (!leaf.scopes) {
         return err('E_SCOPES_NEITHER_PROVIDED', 'leaf has no plaintext scopes after hydration');
     }
-    let exercised, accepted;
+    let exercised, accepted, contentAccepted;
     try {
         exercised = canonicalizeScope(parseScope(a.scope_exercised));
         const granted = leaf.scopes.map((s) => parseScope(s));
         const exercisedParsed = parseScope(a.scope_exercised);
         validateScope(exercisedParsed, { mode: input.scopeMode ?? 'strict' });
+        // §8.3 step 12a: content-bound keys are read from the signed content, never the claim.
+        const fromContent = contentBoundScope(exercisedParsed, a.content);
         accepted = granted.some((g) => isSubScope(exercisedParsed, g));
+        contentAccepted = granted.some((g) => isSubScope(exercisedParsed, g) && isSubScope(fromContent, g));
     } catch (e) {
         const msg = e instanceof ScopeParseError ? e.message : (e as Error).message;
         return err('E_BAD_SCOPE_GRAMMAR', msg);
     }
     if (!accepted) return err('E_SCOPE_DENIED', `scope_exercised (${exercised}) not a sub-scope of any granted scope`);
+    if (!contentAccepted) {
+        return err(
+            'E_SCOPE_DENIED',
+            `the action's own content (mime ${a.content.mime}, ${a.content.length} bytes, ${a.content.hash}) is outside every granted scope that admits ${exercised}`
+        );
+    }
 
     // 6. Revocation check — applies per-link to ALL envelopes in the chain
     //    (root + every subdelegation). Per SUB-DELEGATION.md §2.2 step 5, a

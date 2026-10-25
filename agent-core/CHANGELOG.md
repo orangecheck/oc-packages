@@ -24,9 +24,15 @@ this file tracks the package's TS / Node / runtime API surface.
   `E_BAD_SCOPE_GRAMMAR` for them.
 - `isSubScope` under `!=` compares integer keys as integers (`kind=00` does
   not meet `kind!=0`) and is false for a value `validateScope` refuses.
-- A `*_prefix` key (`content_hash_prefix`) means "starts with": `isSubScope`
-  admits `=abc` under `=ab`, and `validateScope` refuses `!=` on one in either
-  mode.
+- A registered prefix key (`content_hash_prefix` of `stamp:sign`, listed in
+  `REGISTERED_SCOPES[…].prefixKeys`) means "starts with": `isSubScope` admits
+  `=abc` under `=ab`, and `validateScope` refuses `!=` on one in either mode.
+- `verifyAction` and `verifyActionAsOfSignedAt` read content-bound keys from
+  the action's own signed content (SPEC §8.3 step 12a): for `stamp:sign`,
+  `mime`, `max_bytes` and `content_hash_prefix` come from `content.mime`,
+  `content.length` and `content.hash`, and must meet a grant that admits the
+  exercised scope, else `E_SCOPE_DENIED`. New export `contentBoundScope` does
+  the derivation; `REGISTERED_SCOPES[…].contentKeys` lists the keys.
 - `assertScopeGranted` refuses, with reason `malformed`, an exercised scope a
   strict verifier refuses, so an adapter signs nothing every verifier rejects.
 - Permissive mode still accepts an unregistered key and applies it as a
