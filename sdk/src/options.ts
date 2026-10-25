@@ -1,4 +1,6 @@
+import type { IssueChallengeOptions } from './challenge';
 import type { CheckParams } from './check';
+import type { ScoringConfig } from './scoring';
 import type { VerifyOptions } from './types';
 
 /** The options `check()` reads. */
@@ -53,4 +55,25 @@ export function checkCheckParams(params: CheckParams): void {
 
 export function checkVerifyOptions(opts: VerifyOptions, where = 'verify()'): void {
     refuseUnknown(where, opts, VERIFY_OPTIONS);
+}
+
+/** The options `issueChallenge()` reads. */
+const CHALLENGE_OPTIONS: ReadonlySet<string> = new Set<keyof IssueChallengeOptions>([
+    'address',
+    'ttlSeconds',
+    'nonce',
+    'audience',
+    'purpose',
+    'now',
+]);
+
+export function checkChallengeOptions(opts: IssueChallengeOptions): void {
+    refuseUnknown('issueChallenge()', opts, CHALLENGE_OPTIONS);
+}
+
+/** The keys `computeScore()` reads from its config. */
+const SCORING_OPTIONS: ReadonlySet<string> = new Set<keyof ScoringConfig>(['algorithm']);
+
+export function checkScoringConfig(config: ScoringConfig): void {
+    refuseUnknown('computeScore()', config, SCORING_OPTIONS);
 }

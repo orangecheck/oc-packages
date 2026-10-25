@@ -1,38 +1,45 @@
 {
-    "description": "An option bag reads only the keys its caller set. A known option that would be read through the prototype, from the bag's own prototype or from Object.prototype, is refused as an unknown one is; one the caller set is read whatever the prototype holds. Each package's tests apply these cases to every option check it has, with a key that check reads. Refused means the call throws an error saying the option is inherited.",
+    "description": "An option bag reads only the keys its caller set. A known option that would be read through the prototype chain, at any depth or from Object.prototype, is refused as an unknown one is; one the caller set is read whatever the prototype holds. prototype_depth is how many objects up the chain the key sits (0: not on the chain). Each package's tests apply these cases to every option check it has, with a key that check reads. Refused means the call throws an error saying the option is inherited.",
     "cases": [
         {
             "name": "set by the caller",
             "own": true,
-            "on_prototype": false,
+            "prototype_depth": 0,
             "on_object_prototype": false,
             "refused": false
         },
         {
             "name": "only on the bag's prototype",
             "own": false,
-            "on_prototype": true,
+            "prototype_depth": 1,
+            "on_object_prototype": false,
+            "refused": true
+        },
+        {
+            "name": "only on the prototype's prototype",
+            "own": false,
+            "prototype_depth": 2,
             "on_object_prototype": false,
             "refused": true
         },
         {
             "name": "only on Object.prototype",
             "own": false,
-            "on_prototype": false,
+            "prototype_depth": 0,
             "on_object_prototype": true,
             "refused": true
         },
         {
             "name": "set by the caller and on the bag's prototype",
             "own": true,
-            "on_prototype": true,
+            "prototype_depth": 1,
             "on_object_prototype": false,
             "refused": false
         },
         {
             "name": "set by the caller and on Object.prototype",
             "own": true,
-            "on_prototype": false,
+            "prototype_depth": 0,
             "on_object_prototype": true,
             "refused": false
         }

@@ -28,6 +28,7 @@ import type { Scheme } from './types';
 
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
+import { checkChallengeOptions } from './options';
 import { signatureScheme, toBase64Maybe } from './utils/signature';
 
 const AUTH_HEADER = 'orangecheck-auth';
@@ -83,6 +84,7 @@ export interface Challenge {
  * replay or a different nonce coming back on verify.
  */
 export function issueChallenge(opts: IssueChallengeOptions): Challenge {
+    checkChallengeOptions(opts);
     const now = opts.now ?? new Date();
     const ttl = opts.ttlSeconds ?? 300;
     const expiresAt = new Date(now.getTime() + ttl * 1000);

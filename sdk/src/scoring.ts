@@ -9,6 +9,8 @@
  * See: docs/oc-protocol/registry/scoring.md
  */
 
+import { checkScoringConfig } from './options';
+
 export type ScoringAlgorithm = 'v0' | 'tier' | 'none';
 export type Tier = 'platinum' | 'gold' | 'silver' | 'bronze' | 'none';
 export type ScoreResult = number | Tier | null;
@@ -31,6 +33,7 @@ function scoreTier(sats: number, days: number): Tier {
 }
 
 export function computeScore(sats: number, days: number, config: ScoringConfig): ScoreResult {
+    checkScoringConfig(config);
     switch (config.algorithm) {
         case 'v0':
             return scoreV0(sats, days);

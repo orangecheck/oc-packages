@@ -15,6 +15,10 @@ this file tracks the package's TS / Node / runtime API surface.
   throw a `TypeError` when an option they read is only inherited: set on the
   options' prototype (`Object.create({ minSats })`) or on `Object.prototype`.
   Held, with every option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+- `issueChallenge()` and `computeScore()` check their options, which they did
+  not before: an option they do not read, or an inherited one, throws a
+  `TypeError`. `issueChallenge()` reads only `address`, `ttlSeconds`, `nonce`,
+  `audience`, `purpose` and `now`; `computeScore()` reads only `algorithm`.
 
 ## [1.18.0] — 2026-10-25
 

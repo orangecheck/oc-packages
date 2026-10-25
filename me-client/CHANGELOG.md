@@ -21,6 +21,10 @@ this file tracks the package's TS / Node / runtime API surface.
   options' prototype (`Object.create({ audience })`) or on `Object.prototype`.
   `exchangeNativeCode` refuses a `projectKey` the input itself carries, as
   before. Held, with every option check in oc-packages, to auth-core's `test-vectors/option-bags.json`.
+- `signInWithOc` and `signInWithOcOutcome` check their options, which they
+  did not before: an option they do not read, or an inherited one, throws a
+  `TypeError`. They read only `popupOrigin`, `popupPath`, `features` and
+  `signal`.
 
 ## [0.53.0] — 2026-10-25
 

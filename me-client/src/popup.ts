@@ -33,6 +33,8 @@
  * server bundle.
  */
 
+import { inheritedKeys } from './own-options';
+
 const DEFAULT_POPUP_ORIGIN = 'https://me.ochk.io';
 const DEFAULT_POPUP_PATH = '/popup/signin';
 const DEFAULT_FEATURES = 'width=480,height=720,resizable=yes,scrollbars=yes';
@@ -103,6 +105,28 @@ export type OcPopupOutcome =
     | { status: 'aborted' }
     | { status: 'failed' };
 
+const POPUP_OPTIONS: ReadonlySet<string> = new Set<keyof SignInWithOcOptions>(['popupOrigin', 'popupPath', 'features', 'signal']);
+
+/** Throw on a mistake in the call: the popup's origin decides whose answer is trusted, so it must be the caller's own. */
+function checkPopupOptions(options: SignInWithOcOptions): void {
+    if (options === null || typeof options !== 'object') {
+        throw new TypeError('@orangecheck/me-client: signInWithOc: options must be an object');
+    }
+    const unknown = Object.keys(options).filter((k) => !POPUP_OPTIONS.has(k));
+    if (unknown.length > 0) {
+        throw new TypeError(
+            `@orangecheck/me-client: signInWithOc: unknown option ${unknown.join(', ')}. ` +
+                `It reads only ${[...POPUP_OPTIONS].join(', ')}.`
+        );
+    }
+    const inherited = inheritedKeys(options, POPUP_OPTIONS);
+    if (inherited.length > 0) {
+        throw new TypeError(
+            `@orangecheck/me-client: signInWithOc: option ${inherited.join(', ')} is inherited, not set by the caller`
+        );
+    }
+}
+
 /**
  * Open the OC signin popup and resolve with how it ended (OcPopupOutcome),
  * so a blocked window and a closed one can be told apart.
@@ -111,6 +135,7 @@ export type OcPopupOutcome =
  * Browsers block `window.open` outside of user gestures.
  */
 export function signInWithOcOutcome(options: SignInWithOcOptions = {}): Promise<OcPopupOutcome> {
+    checkPopupOptions(options);
     const popupOrigin = options.popupOrigin ?? DEFAULT_POPUP_ORIGIN;
     const popupPath = options.popupPath ?? DEFAULT_POPUP_PATH;
     const features = options.features ?? DEFAULT_FEATURES;
