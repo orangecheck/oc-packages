@@ -769,9 +769,8 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
     const d = input.delegation;
     if (!isPlainObject(env)) return err('E_MALFORMED', 'the revocation must be an object');
 
-    if (env.v !== ENVELOPE_VERSION) {
-        return err('E_UNSUPPORTED_VERSION', `revocation version ${shown(env.v)} not supported`);
-    }
+    // Only the signed bytes decide: `v`, `sig.pubkey` and the reason's content
+    // are not read (SPEC §9.1), so no copy defect keeps a revoked delegation alive.
     const shape = checkRevocationShape(env);
     if (shape) return shape;
     const target = checkChainLinkShape(d, 'the revoked delegation');
@@ -794,7 +793,7 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
     const canonInput = {
         address: env.signer.address,
         delegation_id: env.delegation_id,
-        reason: env.reason,
+        reason: env.reason ?? '',
         signed_at: env.signed_at,
     };
     const reconstructedMessage = revocationCanonicalMessage(canonInput);
@@ -919,11 +918,11 @@ function checkRevocationShape(env: RevocationEnvelope): VerifyRevocationResult |
     if (env.kind !== 'agent-revocation') return err('E_MALFORMED', 'kind must be "agent-revocation"');
     if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
     if (!isHex64(env.delegation_id)) return err('E_MALFORMED', 'delegation_id must be 64-hex');
-    if (!env.signer?.address || env.signer.alg !== 'bip322') return err('E_MALFORMED', 'signer invalid');
-    if (typeof env.reason !== 'string' || env.reason.length > 128) return err('E_MALFORMED', 'reason must be a string <=128 bytes');
+    if (!isText(env.signer?.address)) return err('E_MALFORMED', 'signer.address must be text');
+    // "" when omitted; any text otherwise, whatever it holds (SPEC §9.1).
+    if (env.reason !== undefined && typeof env.reason !== 'string') return err('E_MALFORMED', 'reason must be text');
     if (!isIsoUtc(env.signed_at)) return err('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
-    if (env.sig?.alg !== 'bip322' || typeof env.sig.value !== 'string') return err('E_MALFORMED', 'sig invalid');
-    if (env.sig.pubkey !== env.signer.address) return err('E_MALFORMED', 'sig.pubkey must equal signer.address');
+    if (typeof env.sig?.value !== 'string') return err('E_MALFORMED', 'sig.value must be text');
     return null;
 }
 

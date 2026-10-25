@@ -99,6 +99,28 @@ d('federation delegation vectors (v19–v24, v26)', () => {
     }
 });
 
+// v39 arrives with oc-agent-protocol 1.9.0, which lands after this release.
+const dV39 = existsSync(resolve(VECTORS_DIR, 'v39-federation-revocation-extra-bad-entries.json')) ? describe : describe.skip;
+
+dV39('federation revocation with extra bad entries (v39)', () => {
+    // The vector's harness: every signature value verifies except "BAD".
+    const verifyBip322 = async (_m: string, sig: string) => sig !== 'BAD';
+    it('M valid signatures from distinct guardians revoke, whatever sits beside them', async () => {
+        const v = await load('v39-federation-revocation-extra-bad-entries.json');
+        const dv = await load('v19-federation-delegation-3of5-valid.json');
+        const rev = v.expected.envelope as FederationRevocationEnvelope;
+        const del = dv.expected.envelope as FederationDelegationEnvelope;
+        expect((await verifyFederationRevocation({ envelope: rev, delegation: del, verifyBip322 })).ok).toBe(true);
+        const r = await verifyFederationDelegation({
+            envelope: del,
+            revocations: [rev],
+            verifyBip322,
+            skipTemporalCheck: true,
+        });
+        expect(r.ok ? 'ok' : r.code).toBe(v.expected.delegation_outcome);
+    });
+});
+
 d('federation revocation (v25)', () => {
     it('3-of-5 threshold met → valid', async () => {
         const v = await load('v25-federation-revocation-3of5-valid.json');

@@ -158,7 +158,8 @@ async function checkFederationQuorum(
     principal: FederationPrincipal,
     sig: FederationSignature,
     reconstructedId: string,
-    input: VerifyFederationBase
+    input: VerifyFederationBase,
+    purpose: 'grant' | 'revocation' = 'grant'
 ): Promise<{ ok: true } | { ok: false; code: AgentErrorCode; message: string }> {
     // §3.3.2 — principal alg.
     if (principal?.alg !== 'federation') {
@@ -185,6 +186,8 @@ async function checkFederationQuorum(
             `declared descriptor_id (${principal.descriptor_id}) != canonical hash (${computedDescId})`
         );
     }
+
+    if (purpose === 'revocation') return revocationQuorum(descriptor, parsed.m, sig, reconstructedId, input);
 
     // §3.3.4 — sig.threshold equals descriptor.threshold.
     if (sig?.alg !== 'federation-bip322') {
@@ -234,6 +237,39 @@ async function checkFederationQuorum(
         }
     }
     return { ok: true };
+}
+
+/**
+ * A revocation's quorum: M signatures that verify, each from a distinct declared
+ * guardian. Entries that are malformed, unknown, repeated or do not verify are
+ * passed over, and `sig.alg` / `sig.threshold` sit outside the signed bytes, so
+ * none of them can void a revocation the federation did sign. A grant stays strict.
+ */
+async function revocationQuorum(
+    descriptor: FederationDescriptor,
+    m: number,
+    sig: FederationSignature | undefined,
+    reconstructedId: string,
+    input: VerifyFederationBase
+): Promise<{ ok: true } | { ok: false; code: AgentErrorCode; message: string }> {
+    if (!input.skipSignatureVerification && !input.verifyBip322) {
+        return fail('E_BAD_SIG', 'no BIP-322 verifier supplied');
+    }
+    const guardians = new Set(descriptor.guardians.map((g) => g.address));
+    const counted = new Set<string>();
+    for (const s of Array.isArray(sig?.signatures) ? sig.signatures : []) {
+        if (!isPlainObject(s) || !isText(s.guardian_address) || typeof s.value !== 'string') continue;
+        if (!guardians.has(s.guardian_address) || counted.has(s.guardian_address)) continue;
+        if (
+            !input.skipSignatureVerification &&
+            !(await signatureVerifies(input.verifyBip322!, reconstructedId, s.value, s.guardian_address))
+        ) {
+            continue;
+        }
+        counted.add(s.guardian_address);
+        if (counted.size >= m) return { ok: true };
+    }
+    return fail('E_THRESHOLD_NOT_MET', `${counted.size} valid guardian signature(s), below threshold M=${m}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -379,13 +415,13 @@ async function verifyRevocationOf(
     if (v1.kind !== 'agent-revocation' || v1.signer?.address !== d.agent.address) {
         return fail('E_REVOKER_UNAUTHORIZED', 'a single-address revocation must be signed by the agent');
     }
-    if (typeof v1.reason !== 'string' || !isIsoUtc(v1.signed_at)) {
+    if ((v1.reason !== undefined && typeof v1.reason !== 'string') || !isIsoUtc(v1.signed_at)) {
         return fail('E_MALFORMED', 'revocation reason / signed_at invalid');
     }
     const canonInput = {
         address: v1.signer.address,
         delegation_id: v1.delegation_id,
-        reason: v1.reason,
+        reason: v1.reason ?? '',
         signed_at: v1.signed_at,
     };
     const id = computeRevocationId(canonInput);
@@ -421,8 +457,9 @@ export async function verifyFederationRevocation(
     if (env.kind !== 'agent-revocation') return fail('E_MALFORMED', 'kind must be "agent-revocation"');
     if (!isHex64(env.id)) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
     if (!isHex64(env.delegation_id)) return fail('E_MALFORMED', 'delegation_id must be 64-hex');
-    if (typeof env.reason !== 'string' || env.reason.length > 128) {
-        return fail('E_MALFORMED', 'reason must be a string ≤128 bytes');
+    // "" when omitted; any text otherwise, whatever it holds (SPEC §9.1).
+    if (env.reason !== undefined && typeof env.reason !== 'string') {
+        return fail('E_MALFORMED', 'reason must be text');
     }
     if (!isIsoUtc(env.signed_at)) return fail('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
     if (!isHex64(env.signer?.descriptor_id)) return fail('E_MALFORMED', 'signer.descriptor_id must be 64-hex');
@@ -444,7 +481,7 @@ export async function verifyFederationRevocation(
     const canonInput = {
         address: `federation:${env.signer.descriptor_id}`,
         delegation_id: env.delegation_id,
-        reason: env.reason,
+        reason: env.reason ?? '',
         signed_at: env.signed_at,
     };
     const reconstructedId = computeRevocationId(canonInput);
@@ -452,7 +489,9 @@ export async function verifyFederationRevocation(
         return fail('E_BAD_ID', `reconstructed id (${reconstructedId}) != envelope.id (${env.id})`);
     }
 
-    const quorum = await checkFederationQuorum(env.signer, env.sig, env.id, input);
+    // A revocation stands on M valid signatures from distinct guardians; an
+    // extra bad or repeated entry beside them does not void it (FEDERATION.md §4).
+    const quorum = await checkFederationQuorum(env.signer, env.sig, env.id, input, 'revocation');
     if (!quorum.ok) return quorum;
 
     return { ok: true, id: env.id, canonicalMessage: revocationCanonicalMessage(canonInput) };

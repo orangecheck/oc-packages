@@ -120,10 +120,11 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 - `verifyRevocation({ envelope, delegation, verifyBip322 })` — the principal and the agent may always revoke; `revocation.holders` is informational
 - `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
 - `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`
-- Revocation reasons. SPEC §9.1 says a reason is ASCII, at most `REVOCATION_REASON_MAX_BYTES` = 128 bytes, `""` when there is none. We accept any ASCII and write printable ASCII only:
-  - `reasonProblem(reason)` applies the spec exactly: `null`, or `'not_text'`, `'not_ascii'`, `'too_long'`. It is the rule a verifier applies, and it refuses nothing the spec allows.
-  - `authoredReasonProblem(reason)` is stricter on purpose: it also refuses a control character (`'control_character'`), since a line break or another control changes the shape of the signed message. Check a reason with it before you sign one.
+- Revocation reasons. SPEC §9.1: a signer writes printable ASCII, at most `REVOCATION_REASON_MAX_BYTES` = 128 bytes, `""` when there is none. A verifier never reads the reason to decide; a validly signed revocation revokes whatever it holds.
+  - `authoredReasonProblem(reason)` is the signer's rule: `null`, or `'not_text'`, `'not_ascii'`, `'control_character'`, `'too_long'`. Check a reason with it before you sign one. No verifier uses it.
   - `shownReason(reason)` writes each control character and the backslash as an escape (`\n`, `\t`, `\x07`, `\\`) for a person to read. It drops nothing.
+
+A revocation revokes when its signature and its revoker check out against the signed bytes. Nothing outside them decides: not the reason's content, not `v`, `sig.pubkey` or `sig.alg`, and, for a federation, not an extra bad or repeated entry beside M valid signatures from distinct guardians. A federation's grant stays strict.
 
 `verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when a relay answered with EOSE and nothing matched. You may pass what the relays sent unfiltered: an entry that is not an object, or that cites the envelope and fails its own check, revokes nothing and is counted in `revocationsSkipped` on an `ok` result.
 

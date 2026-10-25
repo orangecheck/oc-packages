@@ -89,7 +89,11 @@ interface RevocationVector extends BaseVector {
         reason: string;
         signed_at: string;
     };
-    expected: BaseVector['expected'] & { envelope: RevocationEnvelope };
+    expected: BaseVector['expected'] & {
+        envelope: RevocationEnvelope;
+        /** What the cited delegation verifies to once this revocation is passed in (v34–v38). */
+        delegation_outcome?: AgentErrorCode;
+    };
 }
 
 interface SubdelegationVector extends BaseVector {
@@ -310,6 +314,15 @@ describe('oc-agent-protocol test vectors', () => {
                     skipSignatureVerification: true,
                 });
                 expect(r.ok).toBe(true);
+                if (data.expected.delegation_outcome) {
+                    const d = await verifyDelegation({
+                        envelope: delegation,
+                        revocations: [data.expected.envelope],
+                        skipSignatureVerification: true,
+                        skipTemporalCheck: true,
+                    });
+                    expect(d.ok ? 'ok' : d.code).toBe(data.expected.delegation_outcome);
+                }
             } else {
                 // subdelegation — parent may be a root delegation or another subdelegation.
                 const parentId = data.inputs.parent_id;

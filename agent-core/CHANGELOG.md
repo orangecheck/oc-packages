@@ -9,20 +9,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [2.9.0] — 2026-10-24
 
-### Added — the revocation reason rule
+### Fixed — a validly signed revocation revokes, whatever is outside its signature
 
-SPEC §9.1 says a reason is ASCII, at most 128 bytes, `""` when there is none.
-We accept any ASCII and write printable ASCII only.
+`verifyRevocation`, `verifyFederationRevocation`, and the revocation checks in
+`verifyDelegation`, `verifyAction`, `verifyActionAsOfSignedAt` and
+`verifyFederationDelegation` decide on the signed bytes only
+(oc-agent-protocol 1.9.0):
 
-- `reasonProblem(reason)` applies the spec exactly, and verifiers will use it.
-- `authoredReasonProblem(reason)` is deliberately stricter: it also refuses a
-  control character, since a line break above all changes the shape of the
-  signed message. A signer checks a reason with it before signing;
-  `@orangecheck/agent-signer` does from 0.5.2.
+- The reason's content is not read: a reason outside ASCII, holding a control
+  character, or longer than 128 bytes no longer leaves the revocation skipped.
+  A reason left out is `""`.
+- `v`, `sig.pubkey` and `sig.alg` are not read; the signature is checked
+  against `signer.address`, which is signed.
+- A federation revocation stands on M signatures that verify from distinct
+  declared guardians. An extra entry that is malformed, unknown, repeated or
+  does not verify is passed over, as are `sig.alg` and `sig.threshold`. A
+  federation's grant (`verifyFederationDelegation`'s own quorum) stays strict.
+
+### Added — the reason a signer writes, and how a reason is shown
+
+- `authoredReasonProblem(reason)`: SPEC §9.1's rule for signers, printable
+  ASCII of at most `REVOCATION_REASON_MAX_BYTES` (128) bytes.
+  `@orangecheck/agent-signer` applies it from 0.5.2. No verifier uses it.
 - `shownReason(reason)` escapes control characters for display and drops none.
-- `REVOCATION_REASON_MAX_BYTES` (128).
-
-Verification is unchanged in this release.
 
 ## [2.8.0] — 2026-10-24
 

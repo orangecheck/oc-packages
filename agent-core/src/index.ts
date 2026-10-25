@@ -84,13 +84,8 @@ export type {
     UnsealedScopes,
 } from './private-scope.js';
 
-export {
-    authoredReasonProblem,
-    reasonProblem,
-    REVOCATION_REASON_MAX_BYTES,
-    shownReason,
-} from './reason.js';
-export type { AuthoredReasonProblem, ReasonProblem } from './reason.js';
+export { authoredReasonProblem, REVOCATION_REASON_MAX_BYTES, shownReason } from './reason.js';
+export type { AuthoredReasonProblem } from './reason.js';
 
 export { assertScopeGranted, ScopeNotGrantedError } from './assert-scope.js';
 export type { ScopeBearingDelegation } from './assert-scope.js';
