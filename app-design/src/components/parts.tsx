@@ -1,6 +1,6 @@
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import Link from 'next/link';
-import { createContext, useContext, type HTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, useId, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
@@ -335,6 +335,7 @@ export function ChoiceGroup<T extends string>({
     value,
     onValueChange,
     label,
+    error,
     columns = 1,
     size = 'md',
     disabled,
@@ -345,23 +346,34 @@ export function ChoiceGroup<T extends string>({
     onValueChange: (value: T) => void;
     /** What is being chosen, for a screen reader. */
     label: string;
+    /** Why the choice was refused: shown under the group, which it describes and marks invalid. */
+    error?: ReactNode;
     columns?: 1 | 2 | 3;
     size?: 'md' | 'sm';
     disabled?: boolean;
     className?: string;
     children: ReactNode;
 }) {
+    const errorId = `${useId()}-error`;
     return (
         <ChoiceSize.Provider value={size}>
             <RadioGroupPrimitive.Root
                 value={value ?? ''}
                 onValueChange={(v) => onValueChange(v as T)}
                 aria-label={label}
+                aria-describedby={error ? errorId : undefined}
+                aria-invalid={error ? true : undefined}
                 disabled={disabled}
                 className={cn('grid', size === 'sm' ? 'gap-1.5' : 'gap-3', COLUMNS[columns], className)}
             >
                 {children}
             </RadioGroupPrimitive.Root>
+            {/* After the group, in the parent's flow, as a Field's error sits after its control. */}
+            {error ? (
+                <p id={errorId} role="alert" className="text-[0.8125rem] leading-snug text-destructive">
+                    {error}
+                </p>
+            ) : null}
         </ChoiceSize.Provider>
     );
 }

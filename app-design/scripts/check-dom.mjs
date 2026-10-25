@@ -237,6 +237,20 @@ for (const mode of ['dark', 'light']) {
     await unmount();
 }
 
+// ChoiceGroup error: the group names its error, by id, and is marked invalid; without one, neither.
+{
+    const group = (error) => h(C.ChoiceGroup, { label: 'Posture', value: 'a', onValueChange: () => {}, error }, h(C.ChoiceCard, { value: 'a', title: 'A' }), h(C.ChoiceCard, { value: 'b', title: 'B' }));
+    const { host, unmount } = await mount(group('Choose forming or bounded test.'));
+    const g = host.querySelector('[role="radiogroup"]');
+    const said = (g.getAttribute('aria-describedby') ?? '').split(' ').map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
+    check(said === 'Choose forming or bounded test.' && g.getAttribute('aria-invalid') === 'true', `ChoiceGroup: the group reads ${show(said)}, invalid ${g.getAttribute('aria-invalid')}`);
+    await unmount();
+    const ok = await mount(group(undefined));
+    const g2 = ok.host.querySelector('[role="radiogroup"]');
+    check(!g2.hasAttribute('aria-describedby') && !g2.hasAttribute('aria-invalid') && !ok.host.querySelector('[role="alert"]'), 'ChoiceGroup: a group with no error is described or marked invalid');
+    await ok.unmount();
+}
+
 // Avatar: a picture that fails to load gives way to the initials.
 {
     const { host, unmount } = await mount(h(C.Avatar, { seed: 'bc1q', name: 'Hal Finney', src: 'https://invalid.example/hal.png' }));
@@ -269,8 +283,29 @@ for (const mode of ['dark', 'light']) {
     const { host, unmount } = await mount(h(C.CopyButton, { value: 'x', onError: (e) => errors.push(e?.name) }));
     await act(async () => host.querySelector('button').click());
     navigator.clipboard.writeText = write;
-    check(errors.join() === 'NotAllowedError' && host.textContent.includes('Could not copy'), `CopyButton: a refused copy is not reported (${errors.join()}, "${host.textContent}")`);
+    await act(() => new Promise((r) => setTimeout(r, 150)));
+    const said = document.getElementById('oca-announcer')?.textContent;
+    check(errors.join() === 'NotAllowedError' && said === 'Could not copy', `CopyButton: a refused copy is not reported (${errors.join()}, said ${show(said)})`);
     await unmount();
+}
+
+// CopyButton: every button speaks through the page's one polite region, there before the first press; the same words twice are said twice.
+{
+    const { host, unmount } = await mount(h('div', null, ...['a', 'b', 'c'].map((v) => h(C.CopyButton, { key: v, value: v, label: `Copy ${v}` }))));
+    const regions = [...document.querySelectorAll('[aria-live]')];
+    const region = document.getElementById('oca-announcer');
+    check(regions.length === 1 && region && regions[0] === region && region.getAttribute('aria-live') === 'polite' && !host.contains(region), `CopyButton: ${regions.length} live regions for three buttons, not the page's one (${show(regions.map((r) => r.id || r.outerHTML.slice(0, 40)))})`);
+    const press = async (i) => {
+        await act(async () => host.querySelectorAll('button')[i].click());
+        const now = region?.textContent;
+        await act(() => new Promise((r) => setTimeout(r, 150)));
+        return [now, region?.textContent];
+    };
+    const first = await press(0);
+    const again = await press(1);
+    check(first[1] === 'Copied' && again[0] === '' && again[1] === 'Copied', `CopyButton: the region read ${show(first)} then ${show(again)}, not "Copied" twice with a gap between`);
+    await unmount();
+    check(document.querySelectorAll('[aria-live]').length === 1, 'CopyButton: the region went with a button, or another was added');
 }
 
 // A dialog's and a sheet's dimmed layer take a class: a page with its own layers can set its z-index.
@@ -426,5 +461,5 @@ if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields`);
 process.exit(0);

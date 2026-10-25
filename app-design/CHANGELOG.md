@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [1.25.0] — 2026-10-25
+
+- `CopyButton` speaks through the page's one polite live region, made by the
+  design system the first time a copy button mounts, in place of a region
+  inside every button: ochk.app's audit log carried 670. `announce(message)`
+  (primitives) says a short status the same way; the same words twice are
+  said twice.
+- `ChoiceGroup` takes `error`: shown under the group, which names it with
+  `aria-describedby` and is marked invalid. A page's own message beside the
+  group was not tied to it.
+- `AppShell` (sidebar) puts the desk's account bar before the sidebar in the
+  page, so Tab reaches it first, the skip link still first of all. It draws
+  where it did: a grid from lg, the sidebar sticky beside it.
+- check-dom asserts the one region, the words and the group's error;
+  check-focus the Tab order; check-layout that the account bar and sidebar
+  draw where they did.
+
 ## [1.24.0] — 2026-10-24
 
 - `useRefusals()` (primitives): a refused submit said on its fields rather

@@ -66,5 +66,6 @@ export type { ConfirmOptions, PromptOptions } from './dialogs';
 export { Pagination } from './pagination';
 export { QrCode } from './qr-code';
 export type { ScrollFadeProps } from './scroll-fade';
+export { announce } from '../lib/announce';
 export { cn } from '../lib/cn';
 export { hotkeyBlocked, useHotkey } from '../lib/hotkey';

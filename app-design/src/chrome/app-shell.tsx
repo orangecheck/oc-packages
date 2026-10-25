@@ -371,7 +371,7 @@ function SidebarShell({
                     className
                 )}
             >
-                {/* Past the bar, the sidebar and the account: 8 to 11 stops before the page without it. */}
+                {/* Past the bar, the account and the sidebar: 8 to 11 stops before the page without it. */}
                 <SkipLink />
                 {/* A header, so the bar and the place strip sit in a landmark; the desk's header below is hidden here. */}
                 <header data-oca-sticky="app-bar" className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
@@ -418,8 +418,10 @@ function SidebarShell({
                         </div>
                     ) : null}
                 </header>
-                <div className="mx-auto flex w-full max-w-[90rem]">
-                    <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
+                {/* From lg a grid, so the account bar comes before the sidebar in the page (Tab reaches it first) and still draws top right. */}
+                <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
+                    <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">{account}</header>
+                    <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
                         <div className="flex items-center gap-1">
                             <Link href={home} className="min-w-0 px-2">
                                 <ProductLockup size={product ? 24 : 26} product={product} />
@@ -431,8 +433,7 @@ function SidebarShell({
                         <SideNav groups={groups} />
                         <div className="mt-auto flex flex-col gap-3">{footer}</div>
                     </aside>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                        <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:flex">{account}</header>
+                    <div className="flex min-w-0 flex-1 flex-col lg:col-start-2 lg:row-start-2">
                         {banner ? <div className="px-4 pb-2 pt-4 md:px-8 lg:pt-0">{banner}</div> : null}
                         <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-16 pt-6 outline-none md:px-8 lg:pt-2">
                             {/* One width for every signed-in page. */}

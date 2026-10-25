@@ -18,7 +18,8 @@
  * - A DataTable row with a link opens from any of its cells, and a control
  *   in another cell stays its own; a compact HashChip sits in a line under
  *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
- *   lockup and product word fit its sidebar.
+ *   lockup and product word fit its sidebar, and its account bar, first in
+ *   the page, still draws top right with the sidebar sticky beside it.
  * - The family footer fits a phone in 600px, its meta line included, each
  *   link group a disclosure with a 44px summary, every link still there; a
  *   desk sees the columns. A product's footer with seven groups fits too.
@@ -296,6 +297,13 @@ try {
     const productShell = page(
         'product-shell',
         renderToStaticMarkup(h(Ch.AppShell, { product: 'vault', family: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')))
+    );
+    // The account bar first in the page, drawn top right; a page long enough to scroll the sidebar's stickiness.
+    const deskShell = page(
+        'desk-shell',
+        renderToStaticMarkup(
+            h(Ch.AppShell, { product: 'ochk.app', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }], account: h('button', { type: 'button', 'data-account': '' }, 'Account'), banner: h('p', { 'data-banner': '' }, 'banner') }, h('div', { style: { height: '3000px' } }, 'page'))
+        )
     );
     const footer = page('footer', renderToStaticMarkup(h(Ch.OchkIoFooter)));
     // A product's footer as vault draws it: three columns of its own, the family's four, the legal row.
@@ -639,6 +647,35 @@ try {
                     return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
                 });
                 check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);
+                await p.goto(deskShell);
+                const desk = await p.evaluate(async () => {
+                    const box = (el) => el.getBoundingClientRect();
+                    const aside = document.querySelector('aside');
+                    // The phone bar holds the account too, hidden here: the one drawn.
+                    const bar = [...document.querySelectorAll('[data-account]')].find((el) => el.getClientRects().length > 0).closest('header');
+                    const main = document.querySelector('main');
+                    const banner = document.querySelector('[data-banner]');
+                    const out = { aside: box(aside).toJSON(), bar: box(bar).toJSON(), main: box(main).toJSON(), banner: box(banner).toJSON(), barFirst: !!(bar.compareDocumentPosition(aside) & Node.DOCUMENT_POSITION_FOLLOWING) };
+                    scrollTo(0, 1200);
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+                    out.asideTopScrolled = box(aside).top;
+                    scrollTo(0, 0);
+                    return out;
+                });
+                check(
+                    desk.barFirst &&
+                        desk.aside.left < 1 &&
+                        Math.abs(desk.aside.top) < 1 &&
+                        Math.abs(desk.aside.height - height) < 1 &&
+                        desk.bar.left >= desk.aside.right - 0.5 &&
+                        Math.abs(desk.bar.top) < 1 &&
+                        Math.abs(desk.bar.height - 72) < 1 &&
+                        desk.banner.top >= desk.bar.bottom - 0.5 &&
+                        desk.main.top >= desk.banner.bottom - 0.5 &&
+                        desk.main.left >= desk.aside.right - 0.5 &&
+                        Math.abs(desk.asideTopScrolled) < 1,
+                    `[${width}] AppShell: the account bar is first in the page ${desk.barFirst} but drawn at ${JSON.stringify(desk.bar)}, the sidebar at ${JSON.stringify(desk.aside)} (scrolled top ${desk.asideTopScrolled}), main at ${JSON.stringify(desk.main)}`
+                );
             }
             // The family footer: a phone gets folded groups in 600px; a desk the columns.
             await p.goto(footer);

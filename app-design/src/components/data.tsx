@@ -16,6 +16,7 @@ import {
 } from 'react';
 
 import { explorerUrl, shortenMiddle, type ExplorerKind, type Network } from '../format';
+import { announce, announcer } from '../lib/announce';
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 import { useDensity } from '../lib/density';
@@ -760,32 +761,28 @@ export interface CopyButtonProps {
 export function CopyButton({ value, label = 'Copy', showLabel = false, variant = 'secondary', clearAfter, onCopied, onError, className }: CopyButtonProps) {
     const { copied, copy } = useCopy();
     const [failed, setFailed] = useState(false);
-    const done = copied
-        ? clearAfter
-            ? `Copied. Cleared in ${Math.round(clearAfter / 1000)} seconds`
-            : 'Copied'
-        : failed
-          ? 'Could not copy'
-          : '';
+    // The page's one live region, in place before the first press: a list of 600 copy buttons is one region, not 600.
+    useEffect(() => void announcer(), []);
     const onClick = async () => {
         setFailed(false);
         const ok = await copy(typeof value === 'function' ? value() : value, {
             clearAfter,
             onError: (e) => {
                 setFailed(true);
+                announce('Could not copy');
                 onError?.(e);
             },
         });
-        if (ok) onCopied?.();
+        if (ok) {
+            announce(clearAfter ? `Copied. Cleared in ${Math.round(clearAfter / 1000)} seconds` : 'Copied');
+            onCopied?.();
+        }
     };
     if (showLabel) {
         return (
             <Button type="button" size="sm" variant={variant} onClick={onClick} className={className}>
                 {copied ? <Check /> : <Copy />}
                 {copied ? 'Copied' : failed ? 'Could not copy' : label}
-                <span aria-live="polite" className="sr-only">
-                    {done}
-                </span>
             </Button>
         );
     }
@@ -802,9 +799,6 @@ export function CopyButton({ value, label = 'Copy', showLabel = false, variant =
             )}
         >
             {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
-            <span aria-live="polite" className="sr-only">
-                {done}
-            </span>
         </button>
     );
 }

@@ -10,7 +10,8 @@
  * - On the orange closing band the focus ring is ink, not orange on orange.
  * - The sign-in page's first stop skips to the ceremony; every shell's skip
  *   link (AppShell's too) puts focus on its main, and so does a site's own
- *   plain <main>, even on a page that handles its own hash.
+ *   plain <main>, even on a page that handles its own hash. On a desk,
+ *   AppShell's next stop is the account bar, then the sidebar.
  * - A code block's scroll area and a tab's panel ring when reached; a
  *   focused control never sits under a sticky bar.
  * - The docs sidebar's open section closes from its own button.
@@ -248,6 +249,7 @@ try {
         ['AppShell', ssr('appshell', h(Ch.AppShell, { product: 'ochk.app', nav: appNav }, h('p', null, 'page')))],
         ['AppShell rail', ssr('apprail', h(Ch.AppShell, { variant: 'rail', header: h('header', null, h('a', { href: '/' }, 'chat')), nav: appNav }, h('p', null, 'page')))],
     ];
+    const deskShell = ssr('appshell-desk', h(Ch.AppShell, { product: 'ochk.app', nav: appNav, account: h('button', { type: 'button', 'data-account': '' }, 'Account') }, h('p', null, 'page')));
     // A long tool page: every control further down than the window, under a sticky bar.
     const tall = ssr('tall', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
     const tallDocs = ssr('tall-docs', h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }], current: '/docs', toc: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
@@ -374,6 +376,23 @@ try {
             await p.keyboard.press('Enter');
             const got = await p.evaluate(() => ({ main: document.activeElement?.tagName === 'MAIN', ring: getComputedStyle(document.activeElement).outlineStyle }));
             check(skip === '#main-content' && got.main && got.ring === 'none', `${name}: the skip link (${skip}) leaves focus ${got.main ? 'on main' : 'off main'}, outline ${got.ring}`);
+        }
+
+        // AppShell on a desk: the skip link, then the account bar, then the sidebar's first link.
+        {
+            await p.goto(deskShell);
+            await p.waitForSelector('main', { state: 'attached' });
+            const stops = [];
+            for (let i = 0; i < 3; i++) {
+                await p.keyboard.press('Tab');
+                stops.push(
+                    await p.evaluate(() => {
+                        const el = document.activeElement;
+                        return el.hasAttribute('data-account') ? 'account' : el.closest('aside') ? `aside ${el.getAttribute('href')}` : (el.getAttribute('href') ?? el.tagName);
+                    })
+                );
+            }
+            check(stops.join() === '#main-content,account,aside /', `AppShell: Tab goes ${show(stops)}, not the skip link, the account bar, then the sidebar`);
         }
 
         // A code block's scroll area and a tab's panel: each draws a ring when the keyboard reaches it, inside its own edge.
