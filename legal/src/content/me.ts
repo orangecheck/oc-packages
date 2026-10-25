@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-24',
+    updated: '2026-10-25',
     preamble: [
         {
             kind: 'callout',
@@ -276,6 +276,10 @@ const privacy: DocSpec = {
                             v: 'a record of each federation ⇄ self-custody transition (graduation), surfaced on your own identity timeline.',
                         },
                         {
+                            k: 'site sign-ins',
+                            v: 'which live sites you signed in to or shared data with through orangecheck, and when. A site can name you as the person who earned for an event only once this record exists. No site sees it, and it is erased with your account or with that site\'s project.',
+                        },
+                        {
                             k: 'public anchors',
                             v: 'an OpenTimestamps proof over each envelope’s hash, and a salted commitment to each envelope on Nostr. Public by design, and neither names you, the site or the amount. The envelope itself is served only to whoever holds its id. Drop manifests, which name no one, are published in full.',
                         },
@@ -293,7 +297,7 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'Integrators never receive your event history with other sites, your wallet balance, your connected-sites list, or any cross-integrator data, regardless of scopes granted.',
+                    text: 'Integrators never receive your event history with other sites, your wallet balance, your site sign-ins, or any cross-integrator data, regardless of scopes granted.',
                 },
             ],
         },

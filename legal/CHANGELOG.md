@@ -8,6 +8,19 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.19] — 2026-10-25
+
+### Added — the record of which sites you sign in to
+
+The ochk.app Privacy policy's list of what orangecheck stores did not mention
+that me.ochk.io records which live sites a person signed in to or shared data
+with, and when. It now does: a site can name the person as the one who earned
+for an event only once that record exists, no site sees it, and it is erased
+with the account or with that site's project. The sentence on what
+integrators never receive called the same record "your connected-sites list";
+it now uses the one name, "your site sign-ins". The Privacy policy's updated
+date moves to 2026-10-25.
+
 ## [0.7.18] — 2026-10-24
 
 ### Changed — what sites learn when you sign in

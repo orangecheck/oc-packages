@@ -130,6 +130,23 @@ test('the ochk.app privacy policy says what a site-made account keeps, and how i
 });
 
 
+// Site sign-ins (me.ochk.io records which live sites a person signed in to or
+// shared data with): stored, never shown to a site, erased with the account or
+// the site's project, and the gate before a site can name the person as earner.
+test('the ochk.app privacy policy says what it keeps about the sites you sign in to', () => {
+    const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(text, 'me/privacy renders');
+    for (const fact of [
+        'site sign-ins which live sites you signed in to or shared data with through orangecheck, and when',
+        'A site can name you as the person who earned for an event only once this record exists',
+        "No site sees it, and it is erased with your account or with that site's project",
+        'your wallet balance, your site sign-ins, or any cross-integrator data',
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+    assert.ok(!text.includes('connected-sites list'), 'one name for the record');
+});
+
 // A guardian operator's deletion (#302): when it can happen, and what the
 // operator key's signed records keep after it.
 test('the ochk.app privacy policy says when an operator can delete, and what the key keeps', () => {
