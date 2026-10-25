@@ -4,6 +4,7 @@ export default defineConfig({
     entry: {
         index: 'src/index.ts',
         canonical: 'src/canonical.ts',
+        directory: 'src/directory-entry.ts',
         seal: 'src/seal.ts',
         types: 'src/types.ts',
     },
@@ -14,5 +15,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['@orangecheck/lock-crypto'],
+    external: ['@orangecheck/lock-crypto', '@orangecheck/stamp-ots'],
 });

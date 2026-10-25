@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.3.0] — unreleased
+
+### Added — `@orangecheck/lock-core/directory`
+
+The OC Chat directory rule (oc-chat-protocol SPEC §8.2, 0.4.0), for the
+directory relay's write gate and the chat client alike: `claimId`,
+`repointId` and `listingId`; `parseDirectoryContent`, the shape a record must
+have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
+(bound keys and coin facts), with its bounds, and a read without an answer
+before the holder answering `E_DIR_UNRESOLVED`; `directoryAnchor`, the anchor
+from an OpenTimestamps proof through `@orangecheck/stamp-ots`; and
+`esploraCoinReader`. Tested against the spec's vectors vc22 to vc25.
+
 ## [1.2.0] — 2026-09-24
 
 ### Added — `unseal` requires `sig.pubkey` to equal `from.address`
