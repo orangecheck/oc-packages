@@ -11,6 +11,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.23.0] — 2026-10-25
+
+### Changed
+
+- A revocation list the check cannot read in full is a failed read, never
+  "nothing ended". A token key that is not a string, an `accounts` or
+  `handles` value that is not a finite number (a cutoff past a double parses
+  as Infinity), or an `accounts` that is not a map now fail the whole read,
+  where the entry used to be dropped and the session it ended stayed live.
+  `integratorRevocationCheck` also needs `handles`: a list without that map
+  is a failed read. A failed read keeps the last good copy; with none, writes
+  are refused, as through any outage.
+
 ## [2.22.0] — 2026-10-24
 
 ### Added

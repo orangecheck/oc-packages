@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.11.0] — 2026-10-25
+
+### Changed
+
+- The integrator revocation list is read as auth-core 2.23.0 reads it: a
+  list it cannot read in full is a failed read, never "nothing ended". A
+  missing or malformed `handles` map, a token key that is not a string, or a
+  cutoff that is not a finite number fails the read, where entries used to be
+  dropped. NaN and Infinity are refused as JSON, as Node's parser refuses
+  them, and a cutoff past a double is a failed read instead of an
+  OverflowError.
+
 ## [3.10.0] — 2026-10-25
 
 ### Changed

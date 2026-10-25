@@ -117,8 +117,30 @@ def _since(mono: float, wall: float) -> float:
 
 
 def _finite(v: Any) -> bool:
-    """A JSON number Node reads as one: not a bool, not NaN, not infinite."""
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+    """A JSON number Node reads as one: not a bool, not NaN, not infinite, not past a double."""
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(v)
+    except OverflowError:
+        return False
+
+
+def _no_constant(name: str) -> Any:
+    """NaN and Infinity are not JSON; Node's parser refuses them, so this one does too."""
+    raise ValueError(f"not JSON: {name}")
+
+
+def _cutoffs(raw: Any, name: str) -> dict[str, float]:
+    """A map of key to cutoff, every cutoff a finite number, or a ValueError: never a partial map."""
+    if not isinstance(raw, dict):
+        raise ValueError(f"revocations: {name} is not a map")
+    out: dict[str, float] = {}
+    for k, v in raw.items():
+        if not _finite(v):
+            raise ValueError(f"revocations: a cutoff in {name} is not a number")
+        out[k] = float(v)
+    return out
 
 
 def _failure_reason(err: BaseException) -> str:
@@ -399,20 +421,21 @@ class _AudienceList:
                 timeout=3.0,
             )
             r.raise_for_status()
-            doc = r.json()
-            # The shape auth-core's parseFeed takes, and nothing looser.
+            doc = json.loads(r.content, parse_constant=_no_constant)
+            # The shape auth-core's parseFeed takes, and nothing looser. Anything
+            # it cannot read in full is a failed read, never "nothing ended".
             if (
                 not isinstance(doc, dict)
                 or not _finite(doc.get("v"))
                 or doc.get("v") != 1
                 or not isinstance(doc.get("tokens"), list)
-                or not isinstance(doc.get("accounts"), dict)
             ):
                 raise ValueError("revocations: unexpected body")
-            raw = doc.get("handles")
-            handles: dict[str, Any] = raw if isinstance(raw, dict) else {}
-            self._handles = {k: float(v) for k, v in handles.items() if _finite(v)}
-            self._tokens = frozenset(t for t in doc["tokens"] if isinstance(t, str))
+            if not all(isinstance(t, str) for t in doc["tokens"]):
+                raise ValueError("revocations: a token key is not a string")
+            _cutoffs(doc.get("accounts"), "accounts")
+            self._handles = _cutoffs(doc.get("handles"), "handles")
+            self._tokens = frozenset(doc["tokens"])
             at: Any = doc.get("at")
             self._at = float(at) if _finite(at) else None
             self._age_at_fetch = float("inf") if self._at is None else time.time() - self._at

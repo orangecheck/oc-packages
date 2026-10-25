@@ -172,6 +172,24 @@ describe("createRevocationCheck", () => {
     }
   });
 
+  it("never reads a list it cannot read in full as nothing ended", async () => {
+    const t = nowSec();
+    const sub = await revocationKey("sub", SUB);
+    const bodies = [
+      // An account ended with a cutoff that is not a number: dropping it would keep the session live.
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: { [sub]: String(t) } }),
+      // A cutoff too large for a double parses as Infinity.
+      `{"v":1,"at":${t},"tokens":[],"accounts":{"${sub}":1${"0".repeat(400)}}}`,
+      JSON.stringify({ v: 1, at: t, tokens: [42], accounts: {} }),
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: [] }),
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: {}, handles: "x" }),
+    ];
+    for (const body of bodies) {
+      const c = check({ fetch: (async () => new Response(body)) as unknown as typeof fetch });
+      expect(await c.refuses(session(), "POST"), body.slice(0, 80)).toBe(true);
+    }
+  });
+
   it("gives up on a host that does not answer in time", async () => {
     const hang = (async (_u: unknown, init?: RequestInit) =>
       new Promise((_, reject) =>
@@ -423,6 +441,26 @@ describe("integratorRevocationCheck", () => {
       expect(await check.refuses(tok(over), "GET")).toBe(true);
     }
     expect(seen).toHaveLength(0);
+  });
+
+  it("never reads a list without a full handles map as nothing ended", async () => {
+    const t = nowSec();
+    const bodies = [
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: {} }),
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: {}, handles: null }),
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: {}, handles: ["rh-site"] }),
+      JSON.stringify({ v: 1, at: t, tokens: [], accounts: {}, handles: { "rh-site": String(t) } }),
+      `{"v":1,"at":${t},"tokens":[],"accounts":{},"handles":{"rh-site":1${"0".repeat(400)}}}`,
+    ];
+    for (const body of bodies) {
+      const c = integratorRevocationCheck({
+        projectKey: PROJECT,
+        signingSecret: SECRET,
+        fetch: (async () => new Response(body)) as unknown as typeof fetch,
+        now,
+      })!;
+      expect(await c.refuses(tok(), "POST"), body.slice(0, 80)).toBe(true);
+    }
   });
 
   it("still refuses a string-aud session whose handle the list ends", async () => {

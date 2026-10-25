@@ -603,12 +603,22 @@ def test_a_revocation_list_shaped_unlike_the_node_feed_cannot_vouch(body: dict[s
 
 
 @respx.mock
-def test_a_handle_whose_cutoff_is_not_a_finite_number_is_skipped_as_node_skips_it() -> None:
+@pytest.mark.parametrize("content", [
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":Infinity,"c":%d}}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":NaN,"c":%d}}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":1' + "0" * 400 + ',"c":%d}}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":"1","c":%d}}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{"x":"1"},"handles":{"c":%d}}',
+    '{"v":1,"at":%d,"tokens":[42],"accounts":{},"handles":{"c":%d}}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":null,"c":%d}',
+    '{"v":1,"at":%d,"tokens":[],"accounts":{},"c":%d}',
+], ids=["infinity", "nan", "past a double", "string cutoff", "string account cutoff", "number token", "null handles", "no handles"])
+def test_a_list_it_cannot_read_in_full_cannot_vouch_as_node_refuses_it(content: str) -> None:
     respx.get(R["request"]["url"]).mock(return_value=httpx.Response(200, content=(
-        '{"v":1,"at":%d,"tokens":[],"accounts":{},"handles":{"a":Infinity,"b":NaN,"c":%d}}' % (V["now"], V["now"] + 1)
+        content % (V["now"], V["now"] + 1)
     ).encode(), headers={"content-type": "application/json"}))
     rl = _revocations()
-    assert [rl.status(h, R["request"]["aud"], V["now"]) for h in ("a", "b", "c")] == ["live", "live", "revoked"]
+    assert [rl.status(h, R["request"]["aud"], V["now"]) for h in ("a", "c")] == ["unverified", "unverified"]
 
 
 @pytest.mark.parametrize("bond", [

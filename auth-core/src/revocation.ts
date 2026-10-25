@@ -131,23 +131,40 @@ export async function revocationKey(
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function parseFeed(body: unknown, fetchedAt: number, wallAtFetch: number): Snapshot {
+/** A map of feed key to cutoff, every cutoff a finite number, or a thrown feed error. */
+function cutoffs(raw: unknown, name: string): Map<string, number> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error(`revocation feed: ${name} is not a map`);
+  }
+  const out = new Map<string, number>();
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      throw new Error(`revocation feed: a cutoff in ${name} is not a number`);
+    }
+    out.set(k, v);
+  }
+  return out;
+}
+
+// Anything it cannot read in full is a feed error, never "nothing ended": an
+// entry dropped here would leave a session it ended live.
+function parseFeed(
+  body: unknown,
+  fetchedAt: number,
+  wallAtFetch: number,
+  needHandles: boolean,
+): Snapshot {
   const b = body as { v?: unknown; at?: unknown; tokens?: unknown; accounts?: unknown; handles?: unknown } | null;
-  if (!b || b.v !== 1 || !Array.isArray(b.tokens) || typeof b.accounts !== "object" || !b.accounts) {
+  if (!b || b.v !== 1 || !Array.isArray(b.tokens)) {
     throw new Error("revocation feed: unexpected body");
   }
-  const tokens = new Set<string>();
-  for (const t of b.tokens) if (typeof t === "string") tokens.add(t);
-  const accounts = new Map<string, number>();
-  for (const [k, v] of Object.entries(b.accounts as Record<string, unknown>)) {
-    if (typeof v === "number" && Number.isFinite(v)) accounts.set(k, v);
+  if (!b.tokens.every((t) => typeof t === "string")) {
+    throw new Error("revocation feed: a token key is not a string");
   }
-  const handles = new Map<string, number>();
-  if (typeof b.handles === "object" && b.handles) {
-    for (const [k, v] of Object.entries(b.handles as Record<string, unknown>)) {
-      if (typeof v === "number" && Number.isFinite(v)) handles.set(k, v);
-    }
-  }
+  const tokens = new Set<string>(b.tokens as string[]);
+  const accounts = cutoffs(b.accounts, "accounts");
+  // The family list carries no handles; an integrator's list always does.
+  const handles = b.handles === undefined && !needHandles ? new Map<string, number>() : cutoffs(b.handles, "handles");
   const at = typeof b.at === "number" && Number.isFinite(b.at) ? b.at : null;
   const ageAtFetch = at === null ? Infinity : wallAtFetch - at * 1000;
   return { tokens, accounts, handles, at, fetchedAt, wallAtFetch, ageAtFetch };
@@ -192,6 +209,10 @@ const INTEGRATOR_REVOCATION_OPTIONS: ReadonlySet<string> = new Set<keyof Integra
 
 export function createRevocationCheck(opts: RevocationCheckOptions = {}): RevocationCheck {
   refuseUnknownOptions("createRevocationCheck", opts, REVOCATION_CHECK_OPTIONS);
+  return buildRevocationCheck(opts, false);
+}
+
+function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean): RevocationCheck {
   const issuer = (env("OC_AUTH_ISSUER") ?? "https://ochk.io").replace(/\/$/, "");
   const url = opts.url ?? env("OC_REVOCATION_FEED_URL") ?? `${issuer}/api/auth/revocations`;
   const token = opts.token ?? env("OC_REVOCATION_FEED_TOKEN")?.trim();
@@ -231,7 +252,7 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
         signal: ctl.signal,
       });
       if (!res.ok) throw new Error(`revocation feed answered ${res.status}`);
-      snapshot = parseFeed(await res.json(), clock(), now());
+      snapshot = parseFeed(await res.json(), clock(), now(), needHandles);
       warned = false;
     } finally {
       clearTimeout(timer);
@@ -356,7 +377,7 @@ export function integratorRevocationCheck(
     let check = lists.get(aud);
     if (!check) {
       const path = `/api/integrator/revocations?project_key=${encodeURIComponent(projectKey)}&aud=${encodeURIComponent(aud)}`;
-      check = createRevocationCheck({
+      check = buildRevocationCheck({
         ...rest,
         url: `${origin}${path}`,
         headers: async () => {
@@ -365,7 +386,7 @@ export function integratorRevocationCheck(
         },
         developing: false,
         staleFrom: "at",
-      });
+      }, true);
       lists.set(aud, check);
     }
     return check;
