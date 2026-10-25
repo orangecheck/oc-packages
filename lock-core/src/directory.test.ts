@@ -141,6 +141,23 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         }
     }
 
+    it('a holding claim names the coin it stands on: its own, or the last valid re-point', async () => {
+        const at = async (file: string, name: string) => {
+            const v = vector(file);
+            const c = (v.cases as VCase[]).find((x) => x.name === name) as VCase;
+            const { records, reader } = fromVector(c, v.inputs.tip);
+            return { c, out: await resolveDirectory(records, v.inputs.tip, reader) };
+        };
+        const own = await at('vc24-directory-resolution.json', 'later funded claimant ignored');
+        const ownRec = own.c.records.find((r) => r.kind === 'listing' && r.address === own.c.expected.holder);
+        expect(own.out.result === 'holds' && own.out.coin).toBe(ownRec?.outpoint ?? `own:${ownRec?.claim_id}`);
+        const two = await at('vc25-directory-repoints.json', 'a chain of two re-points');
+        const twoRec = two.c.records.find((r) => r.kind === 'listing' && r.address === two.c.expected.holder && r.repoints?.length);
+        expect(two.out.result === 'holds' && two.out.coin).toBe(twoRec?.repoints?.[1]?.outpoint);
+        const early = await at('vc25-directory-repoints.json', 'a re-point too early for its coin ends the chain where it stands');
+        expect(early.out.result).toBe('holds');
+    });
+
     it('vc25: repoint_id', () => {
         const v = vector('vc25-directory-repoints.json');
         const r = v.inputs.repoint_id;
