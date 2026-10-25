@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { verifyAction } from '@orangecheck/agent-core';
+import { parseScope, verifyAction } from '@orangecheck/agent-core';
 import { createDelegation } from '@orangecheck/agent-signer';
 
 import {
@@ -136,5 +136,47 @@ describe('invokeWithStamp', () => {
         expect(sent).toEqual([
             { name: 'search', arguments: { q: 'bitcoin' }, _meta: { 'io.ochk/agent-action': action } },
         ]);
+    });
+});
+
+// The default exercised scope names the tool as a quoted value, so the name is
+// read as written: a tool called "*" is that tool, not every tool.
+describe('the default exercised scope', () => {
+    const SERVER = 'https://mcp.example.com';
+    const grant = (scope: string) =>
+        createDelegation({
+            principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+            agentAddress: AGENT,
+            scopes: [scope],
+            ttlMs: 60 * 60 * 1000,
+        });
+    const stamp = async (scope: string, tool: string) => {
+        const delegation = await grant(scope);
+        const action = await stampInvocation({
+            agent: { address: AGENT, signMessage: fakeSign(AGENT) },
+            delegation,
+            invocation: { server: SERVER, tool, arguments: {} },
+        });
+        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify, skipRevocationCheck: true });
+        return { action, ok: r.ok };
+    };
+
+    it('quotes the tool name', async () => {
+        const { action, ok } = await stamp(`mcp:invoke(server=${SERVER},tool=search)`, 'search');
+        expect(action.scope_exercised).toBe(`mcp:invoke(server=${SERVER},tool="search")`);
+        expect(ok).toBe(true);
+    });
+
+    it('stamps a tool called "*" as that tool, not every tool', async () => {
+        const { action, ok } = await stamp(`mcp:invoke(server=${SERVER},tool="*")`, '*');
+        expect(action.scope_exercised).toBe(`mcp:invoke(server=${SERVER},tool="*")`);
+        expect(ok).toBe(true);
+    });
+
+    it('keeps scope punctuation in a tool name as part of the name', async () => {
+        const { action, ok } = await stamp(`mcp:invoke(server=${SERVER},tool="a,b")`, 'a,b');
+        const tool = parseScope(action.scope_exercised).constraints.find((c) => c.key === 'tool');
+        expect(tool).toEqual({ key: 'tool', op: '=', value: 'a,b', quoted: true });
+        expect(ok).toBe(true);
     });
 });

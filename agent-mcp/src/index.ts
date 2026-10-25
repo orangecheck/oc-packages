@@ -3,7 +3,7 @@
 // An MCP client calls tools on an MCP server: { server, name, arguments }.
 // This module stamps each invocation as an `agent-action` whose `content.hash`
 // is a SHA-256 of the canonicalized (server, name, arguments) tuple, scoped
-// as `mcp:invoke(server=<url>,tool=<name>)`. The server — or any counterparty
+// as `mcp:invoke(server=<url>,tool="<name>")`. The server — or any counterparty
 // — verifies the action before trusting the call.
 //
 // The wrapper is transport-agnostic. Wire it into whatever MCP client you use
@@ -14,6 +14,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import {
     assertScopeGranted,
     canonicalize,
+    canonicalizeScope,
     computeActionId,
     hexEncode,
     type DelegationEnvelope,
@@ -103,7 +104,7 @@ export interface StampInvocationInput {
     agent: SignerRef;
     delegation: DelegationEnvelope;
     invocation: McpInvocation;
-    /** Defaults to `mcp:invoke(server=<server>,tool=<tool>)` — the tightest admissible sub-scope. */
+    /** Defaults to `mcp:invoke(server=<server>,tool="<tool>")` — the tightest admissible sub-scope. */
     scopeExercised?: string;
     signedAt?: Date;
 }
@@ -114,9 +115,17 @@ export interface StampInvocationInput {
  * running the tool.
  */
 export async function stampInvocation(input: StampInvocationInput): Promise<ActionEnvelope> {
+    // The tool name is a quoted value, so it is read as written: "*" is that tool.
     const scopeExercised =
         input.scopeExercised ??
-        `mcp:invoke(server=${input.invocation.server.trim()},tool=${input.invocation.tool})`;
+        canonicalizeScope({
+            product: 'mcp',
+            verb: 'invoke',
+            constraints: [
+                { key: 'server', op: '=', value: input.invocation.server.trim(), quoted: false },
+                { key: 'tool', op: '=', value: input.invocation.tool, quoted: true },
+            ],
+        });
 
     assertScopeGranted(input.delegation, scopeExercised, 'stampInvocation');
 
