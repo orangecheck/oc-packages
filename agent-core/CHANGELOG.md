@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.10.0] — 2026-10-25
+
+### Changed — numbers and methods have one reading (oc-agent-protocol 1.10.0)
+
+- `validateScope`, in strict and permissive mode, refuses a registered integer
+  key (`kind`, the `max_*` keys) whose value is not a decimal integer, and a
+  `method` value with a lower-case letter. `verifyDelegation`, `verifyAction`,
+  `verifyActionAsOfSignedAt` and `verifySubdelegation` return
+  `E_BAD_SCOPE_GRAMMAR` for them.
+- `isSubScope` compares an integer key's values as integers under `!=`, so
+  `kind=00` does not meet `kind!=0`, and returns false under `!=` for a value
+  `validateScope` refuses.
+- Permissive mode is unchanged: it accepts an unregistered key and applies it
+  as a constraint, which SPEC §7.6 now says.
+
 ## [2.9.0] — 2026-10-24
 
 ### Fixed — a validly signed revocation revokes, whatever is outside its signature

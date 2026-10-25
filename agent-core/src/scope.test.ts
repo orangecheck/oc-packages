@@ -277,3 +277,79 @@ describe('scope values keep their case (SPEC §7.2)', () => {
         expect(isSubScope(parseScope('mcp:invoke(tool=GetWeather)'), granted)).toBe(false);
     });
 });
+
+// SPEC §7.2 rule 4 and §7.4 (1.10.0): an integer key's value is a decimal
+// integer and `!=` compares it as one; a method holds no lower-case letter.
+// Otherwise `kind!=0` would be met by `kind=00` and `method!=POST` by `post`.
+describe('a number or a method has one meaning under != (SPEC §7.2, §7.4)', () => {
+    const notZero = parseScope('nostr:publish(kind!=0)');
+    const notPost = parseScope('http:request(method!=POST)');
+
+    it('kind!=0 is not met by another spelling of 0', () => {
+        expect(isSubScope(parseScope('nostr:publish(kind=0)'), notZero)).toBe(false);
+        expect(isSubScope(parseScope('nostr:publish(kind=00)'), notZero)).toBe(false);
+        expect(isSubScope(parseScope('nostr:publish(kind="0")'), notZero)).toBe(false);
+    });
+
+    it('kind!=0 is met by another number, however it is spelled', () => {
+        expect(isSubScope(parseScope('nostr:publish(kind=1)'), notZero)).toBe(true);
+        expect(isSubScope(parseScope('nostr:publish(kind=01)'), notZero)).toBe(true);
+        expect(isSubScope(parseScope('nostr:publish(kind!=00)'), notZero)).toBe(true);
+        expect(isSubScope(parseScope('nostr:publish(kind!=1)'), notZero)).toBe(false);
+    });
+
+    it('kind!=0 is not met by a value that is not a number', () => {
+        expect(isSubScope(parseScope('nostr:publish(kind=abc)'), notZero)).toBe(false);
+        expect(isSubScope(parseScope('ln:send(max_sats=x)'), parseScope('ln:send(max_sats!=0)'))).toBe(false);
+    });
+
+    it('method!=POST is not met by a lower-case method', () => {
+        expect(isSubScope(parseScope('http:request(method=post)'), notPost)).toBe(false);
+        expect(isSubScope(parseScope('http:request(method=Post)'), notPost)).toBe(false);
+        expect(isSubScope(parseScope('http:request(method=GET)'), notPost)).toBe(true);
+    });
+
+    for (const mode of ['strict', 'permissive'] as const) {
+        for (const s of [
+            'nostr:publish(kind=abc)',
+            'nostr:publish(kind=1.5)',
+            'ln:send(max_sats<=1e3)',
+            'http:request(method=post)',
+            'http:request(method!=Post)',
+        ]) {
+            it(`${mode} mode refuses ${s}`, () => {
+                expect(() => validateScope(parseScope(s), { mode })).toThrow(ScopeParseError);
+            });
+        }
+    }
+
+    for (const s of [
+        'nostr:publish(kind=0)',
+        'nostr:publish(kind=00)',
+        'nostr:publish(kind=*)',
+        'http:request(method=GET)',
+        'http:request(method=M-SEARCH)',
+        'http:request(method=*)',
+    ]) {
+        it(`strict mode accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+});
+
+// SPEC §7.6 (1.10.0): permissive mode accepts a key it does not know, and the
+// key still binds. §7.4 applies to every granted constraint.
+describe('an unregistered granted key binds in both modes (SPEC §7.6)', () => {
+    const granted = parseScope('http:request(origin=https://a.example,zzz=1)');
+
+    it('strict mode refuses the grant; permissive mode reads it', () => {
+        expect(() => validateScope(granted, { mode: 'strict' })).toThrow(ScopeParseError);
+        expect(() => validateScope(granted, { mode: 'permissive' })).not.toThrow();
+    });
+
+    it('an exercised scope must meet it', () => {
+        expect(isSubScope(parseScope('http:request(origin=https://a.example)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('http:request(origin=https://a.example,zzz=2)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('http:request(origin=https://a.example,zzz=1)'), granted)).toBe(true);
+    });
+});

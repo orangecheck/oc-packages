@@ -57,6 +57,20 @@ const NUMERIC_KEYS = new Set<string>([
     'kind',
 ]);
 
+/** Keys whose value is an HTTP method: case-sensitive, never lower case (SPEC §7.2 rule 4). */
+const METHOD_KEYS = new Set<string>(['method']);
+
+/** Why `value` is not a value `key` can take (SPEC §7.2 rule 4), or null. */
+function valueProblem(key: string, value: string): string | null {
+    if (NUMERIC_KEYS.has(key) && parseDecimalInteger(value) === null) {
+        return `${key} takes a decimal integer, got ${JSON.stringify(value)}`;
+    }
+    if (METHOD_KEYS.has(key) && /[a-z]/.test(value)) {
+        return `${key} is an HTTP method and holds no lower-case letter, got ${JSON.stringify(value)}`;
+    }
+    return null;
+}
+
 const IDENT_RE = /^[a-z][a-z0-9_]*$/;
 const BARE_TOKEN_RE = /^[A-Za-z0-9_.:/@+\-]+$/;
 
@@ -259,8 +273,11 @@ export function validateScope(scope: Scope, options: ValidationOptions = {}): vo
                     `unregistered constraint key for ${scope.product}:${scope.verb}: ${c.key}`
                 );
             }
-            // permissive: ignore
+            // permissive: accepted, and it still binds as a constraint (§7.4)
+            continue;
         }
+        const problem = c.value === undefined ? null : valueProblem(c.key, c.value);
+        if (problem) throw new ScopeParseError(problem);
     }
 }
 
@@ -291,9 +308,13 @@ export function isSubScope(exercised: Scope, granted: Scope): boolean {
         }
 
         if (g.op === '!=') {
-            if (!ex) return false;
-            if (ex.op === '=' && ex.value !== g.value) continue;
-            if (ex.op === '!=' && ex.value === g.value) continue;
+            if (!ex || ex.value === undefined || g.value === undefined) return false;
+            if (valueProblem(g.key, ex.value) || valueProblem(g.key, g.value)) return false;
+            const same = NUMERIC_KEYS.has(g.key)
+                ? parseDecimalInteger(ex.value) === parseDecimalInteger(g.value)
+                : ex.value === g.value;
+            if (ex.op === '=' && !same) continue;
+            if (ex.op === '!=' && same) continue;
             return false;
         }
 

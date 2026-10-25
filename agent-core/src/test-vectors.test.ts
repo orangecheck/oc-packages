@@ -64,8 +64,14 @@ interface DelegationVector extends BaseVector {
         issued_at: string;
         expires_at: string;
         nonce: string;
+        /** The §7.6 mode the vector is read in (v48); strict when absent. */
+        scope_mode?: 'strict' | 'permissive';
     };
-    expected: BaseVector['expected'] & { envelope: DelegationEnvelope };
+    expected: BaseVector['expected'] & {
+        envelope: DelegationEnvelope;
+        /** What a strict verifier returns for a vector read in permissive mode (v48). */
+        strict_outcome?: AgentErrorCode;
+    };
 }
 
 interface ActionVector extends BaseVector {
@@ -146,6 +152,8 @@ interface NegativeActionVector extends NegativeVectorBase {
         max_skew_seconds?: number;
         /** Revocations of the cited delegation, as the inputs of each envelope. */
         revocations?: { address: string; reason: string; signed_at: string }[];
+        /** The §7.6 mode the vector is read in (v49); strict when absent. */
+        scope_mode?: 'strict' | 'permissive';
     };
 }
 
@@ -294,8 +302,19 @@ describe('oc-agent-protocol test vectors', () => {
                     envelope: data.expected.envelope,
                     skipSignatureVerification: true,
                     skipTemporalCheck: true,
+                    scopeMode: data.inputs.scope_mode,
                 });
                 expect(r.ok).toBe(true);
+                if (data.expected.strict_outcome) {
+                    const strict = await verifyDelegation({
+                        skipRevocationCheck: true,
+                        envelope: data.expected.envelope,
+                        skipSignatureVerification: true,
+                        skipTemporalCheck: true,
+                        scopeMode: 'strict',
+                    });
+                    expect(strict.ok ? 'ok' : strict.code).toBe(data.expected.strict_outcome);
+                }
             } else if (data.kind === 'action') {
                 const delegation = delegationEnvelopes.get(data.inputs.delegation_id);
                 if (!delegation) {
@@ -518,12 +537,14 @@ describe('oc-agent-protocol negative test vectors', () => {
                           revocations,
                           now: new Date(v.inputs.verified_at),
                           maxSkewMs: (v.inputs.max_skew_seconds ?? 120) * 1000,
+                          scopeMode: v.inputs.scope_mode,
                       })
                     : await verifyActionAsOfSignedAt({
                           skipRevocationCheck: true,
                           action,
                           delegation,
                           skipSignatureVerification: true,
+                          scopeMode: v.inputs.scope_mode,
                       });
                 expect(r.ok).toBe(false);
                 if (!r.ok) {
