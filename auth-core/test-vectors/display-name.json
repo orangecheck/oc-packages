@@ -41,22 +41,42 @@
         "\u039f\u0421\u0397\u041a.\u0399\u039f",
         "ochk.\ud835\udeb0o"
     ],
-    "allowed": [
-        "Brickworks",
+    "contains": [
+        "OrangeCheck Support",
+        "ochk.io team",
+        "\u041erangecheck Help",
         "orangecheck demo",
         "orangecheck.dev",
         "ochk.iox",
         "my ochk app",
+        "ochk.i",
+        "MyOrangeCheck",
+        "OCHKTeam",
+        "Team OCHK",
+        "Lumen-ochk",
+        "the ochk.app",
+        "Orange Check Labs",
+        "0rangecheck labs",
+        "o\u0441\u04bb\u043a support"
+    ],
+    "allowed": [
+        "Brickworks",
         "OC",
         "L\u00fcmen \u30ce\u30fc\u30c8 \u0639\u0631\u0628\u064a",
         "Brickworks \u2764\ufe0f",
         "ochk1",
         "orangechecks",
         "0range",
-        "ochk.i",
         "orangech\u00e9ck",
         "\u041c\u043e\u0441\u043a\u0432\u0430",
-        "\u0391\u03b8\u03ae\u03bd\u03b1"
+        "\u0391\u03b8\u03ae\u03bd\u03b1",
+        "orangecheckers",
+        "Brochk",
+        "theorangecheck",
+        "ochkers",
+        "Orangechecked",
+        "Brochk Labs",
+        "Br\ufe0fochk"
     ],
     "hidden": [
         "orange\u00adcheck",
