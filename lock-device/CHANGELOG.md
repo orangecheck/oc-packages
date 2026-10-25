@@ -8,6 +8,21 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [0.8.0] — unreleased
+
+### Added — which keys an address binds, from relay events
+
+- `verifyDeviceRecords(events, address, { verifyBip322 })`: the device records
+  among `events` with a valid Nostr event, a statement that names `address`, and
+  a BIP-322 signature by that address over it. The verifier is passed in, so the
+  package keeps no wallet dependency. A verifier that throws counts as no.
+- `boundNostrKeys(verified, { now? })`: the keys those records bind, after
+  revocations and the v2 rule (`liveDevices`, then `authorizedDevices`).
+- `verifyNostrEvent(event)`: NIP-01 id and Schnorr signature.
+
+OC Chat's client and its directory relay both read bindings this way; it was
+one copy in the client.
+
 ## [0.7.0] — 2026-10-24
 
 ### Changed — a revocation is read from its signed statement (OC Lock SPEC 2.4.0 §3.5)
