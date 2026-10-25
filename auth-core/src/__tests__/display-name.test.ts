@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { CONFUSABLE_ALPHABET, CONFUSABLE_PROTOTYPES } from "../confusables";
 import { HIDDEN_TEXT_CHARS, isReservedName, nameProblem } from "../index";
 import vectors from "./display-name.vectors.json";
 
@@ -11,6 +12,29 @@ describe("the family name rule", () => {
       expect(isReservedName(name), JSON.stringify(name)).toBe(true);
       expect(nameProblem(name, 80), JSON.stringify(name)).toBe("reserved");
     }
+  });
+
+  it("refuses a name drawn like one of them in another script's letters or in digits (UTS #39)", () => {
+    for (const name of vectors.confusable) {
+      expect(isReservedName(name), JSON.stringify(name)).toBe(true);
+      expect(nameProblem(name, 80), JSON.stringify(name)).toBe("reserved");
+    }
+  });
+
+  // The table keeps only what can spell a reserved name; a new name with a new letter needs it regenerated.
+  it("holds a prototype only from the reserved names' letters, and every letter of theirs", () => {
+    for (const [prototype] of CONFUSABLE_PROTOTYPES) {
+      expect([...prototype].every((ch) => CONFUSABLE_ALPHABET.includes(ch)), prototype).toBe(true);
+    }
+    for (const name of vectors.reserved) {
+      const letters = name.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}.]/gu, "");
+      expect([...letters].every((ch) => CONFUSABLE_ALPHABET.includes(ch)), JSON.stringify(name)).toBe(true);
+    }
+  });
+
+  it("keeps the generated table to visible ASCII", () => {
+    const source = readFileSync(new URL("../confusables.ts", import.meta.url), "utf8");
+    expect([...source].filter((c) => c > "~").map((c) => c.codePointAt(0)!.toString(16))).toEqual([]);
   });
 
   it("allows a name that only contains or resembles one of them", () => {
