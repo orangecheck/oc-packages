@@ -43,6 +43,7 @@ from orangecheck.pledge import (
     verify_pledge,
 )
 from orangecheck.pledge.bond import AttestationLookupResult
+from orangecheck.pledge.delegation import DelegationLookupResult, check_pledge_create_scope
 from orangecheck.pledge.envelopes import PledgeError
 
 
@@ -98,6 +99,8 @@ def test_vector(name: str, data: dict[str, Any]) -> None:
         _run_state(data)
     elif kind == "malformed-input":
         _run_malformed(data)
+    elif kind == "scope-check":
+        _run_scope_check(data)
     else:
         pytest.fail(f"unknown vector kind in {name}: {kind}")
 
@@ -367,7 +370,32 @@ def _outcome_stub(pledge_id: str, outcome: str, resolved_at: str) -> dict[str, A
     }
 
 
-# ─── Shape C — malformed-input (v28, v33, v41-v44) ─────────────────────────
+# ─── Shape B — delegation scope check (v46) ────────────────────────────────
+
+
+def _run_scope_check(vec: dict[str, Any]) -> None:
+    cases = vec["inputs"]["cases"]
+    expected = vec["expected"]["cases"]
+    assert len(cases) == len(expected)
+    for c, want in zip(cases, expected):
+        r = check_pledge_create_scope(
+            c["pledge"],
+            DelegationLookupResult(
+                principal="bc1qprincipal",
+                agent="bc1qagent",
+                scopes=tuple(c["scopes"]),
+                expires_at="2027-01-01T00:00:00Z",
+            ),
+        )
+        got = (
+            {"ok": True, "matched_scope": r.matched_scope}
+            if r.ok
+            else {"ok": False, "code": r.code}
+        )
+        assert got == want, c["note"]
+
+
+# ─── Shape C — malformed-input (v28, v33, v41-v45) ─────────────────────────
 
 
 def _run_malformed(vec: dict[str, Any]) -> None:

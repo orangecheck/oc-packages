@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from orangecheck._text import JS_WHITESPACE, NOT_WS, WS, js_strip
+from orangecheck._text import JS_WHITESPACE, NOT_WS, WS, js_pattern, js_strip
 from orangecheck.pledge import (
     DelegationLookupResult,
     check_pledge_create_scope,
@@ -22,7 +22,6 @@ from orangecheck.pledge import (
     validate_pledge_input,
     validate_resolution_query,
 )
-from orangecheck.pledge.resolution import _js
 
 VECTORS_PATH = (
     Path(__file__).resolve().parents[3] / "pledge-core" / "test-vectors" / "text-classes.json"
@@ -65,7 +64,7 @@ def test_whitespace_is_the_listed_code_points() -> None:
 
 
 def test_only_ascii_digits_are_digits() -> None:
-    digit = re.compile(_js(r"\d"))
+    digit = re.compile(js_pattern(r"\d"))
     matched = "".join(chr(cp) for cp in _CODE_POINTS if digit.fullmatch(chr(cp)))
     assert matched == V["digits"]
     assert all(chr(cp) not in matched for cp in V["not_digits"])

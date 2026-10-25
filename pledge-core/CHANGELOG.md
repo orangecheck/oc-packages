@@ -20,6 +20,10 @@ fields, so `createPledge` will not sign it and `verifyPledge` answers
 envelope's twin has the same id and verifies. Vectors `v42`–`v45` (`v45`, the
 string `"null"` as `dispute.mechanism`, was already refused).
 
+`checkPledgeCreateScope` fails a `max_bond_sats` ceiling when the pledge it is
+given has no whole, non-negative `bond.min_sats` to compare. The vector harness
+runs the scope-check vector `v46` (SPEC §7.3).
+
 ### Added
 
 - `test-vectors/text-classes.json`: the whitespace and digits pledge-core reads

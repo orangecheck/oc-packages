@@ -141,8 +141,13 @@ function pledgeFailsConstraint(
         // Pledge's bond.min_sats is the floor it commits to; the delegation
         // permits up to max_bond_sats. A pledge with min_sats > max_bond_sats
         // exceeds the delegation's authorisation.
-        if (pledge.bond.min_sats > max) {
-            return `pledge.bond.min_sats (${pledge.bond.min_sats}) exceeds delegation's max_bond_sats (${max})`;
+        const bond = (pledge as { bond?: { min_sats?: unknown } }).bond;
+        const minSats = bond?.min_sats;
+        if (typeof minSats !== 'number' || !Number.isInteger(minSats) || minSats < 0) {
+            return 'pledge.bond.min_sats is not a non-negative integer';
+        }
+        if (minSats > max) {
+            return `pledge.bond.min_sats (${minSats}) exceeds delegation's max_bond_sats (${max})`;
         }
     }
     if ('mechanism' in constraints) {

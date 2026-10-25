@@ -1,21 +1,23 @@
 """
 OC Agent §7.3 delegation checks for agent-delegated pledges.
 
-Mirrors @orangecheck/pledge-core@0.2.0's src/delegation.ts. Same scope
-grammar, same constraint-matching semantics. The fetch + verifyDelegation
-side is the caller's responsibility (typically delegated to the OC Agent
-Python SDK or the hosted resolver); this module does the pledge-specific
-scope-matching against the resolved delegation result.
+Mirrors @orangecheck/pledge-core's src/delegation.ts: same scope grammar,
+same constraint matching, held to the same vectors. The fetch +
+verifyDelegation side is the caller's responsibility (typically delegated to
+the OC Agent Python SDK or the hosted resolver); this module does the
+pledge-specific scope matching against the resolved delegation result.
 
 The pledge:create scope grammar (SPEC §7.3):
 
     pledge:create
-    pledge:create(max_bond_sats=<N>)
+    pledge:create(max_bond_sats<=<N>)
     pledge:create(mechanism=<m>)
     pledge:create(counterparty=<addr>)
-    pledge:create(max_bond_sats=<N>,mechanism=<m>)
+    pledge:create(max_bond_sats<=<N>,mechanism=<m>)
 
-Multiple constraints comma-separated; AND-joined.
+Multiple constraints comma-separated; AND-joined. ``max_bond_sats=<N>`` is
+read as the same ceiling. A key, operator or value this module does not
+recognise fails the check.
 """
 
 from __future__ import annotations
@@ -24,7 +26,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional, Union
 
-from .._text import js_strip
+from .._text import JS_DOT, js_regex, js_strip
+from .canonical import _is_count, _json_int
 from .envelopes import PledgeError, PledgeErrorCode
 
 #: JavaScript's Number.MAX_SAFE_INTEGER: pledge-core refuses a larger ceiling.
@@ -62,15 +65,20 @@ DelegationLookup = Callable[
 # ─── Scope parsing + matching ─────────────────────────────────────────────
 
 
+_PLEDGE_CREATE_KEYS = frozenset({"max_bond_sats", "mechanism", "counterparty"})
 _PLEDGE_CREATE_RE = re.compile(r"^pledge:create\(([^)]*)\)$")
+_CONSTRAINT_RE = js_regex(r"^([a-z][a-z0-9_]*)\s*(<=|=)\s*(" + JS_DOT + r"+)$")
 
 
 def parse_pledge_create_scope(scope: str) -> Optional[dict[str, str]]:
     """Parse a single scope string. Returns the constraint map iff the
     product:verb is ``pledge:create``; ``None`` for any other scope (caller
-    skips those). Tolerates whitespace inside parens; rejects malformed
-    syntax by returning ``None`` (the scope is treated as non-matching
-    rather than raising — matches OC Agent's permissive scope mode)."""
+    skips those) and for a malformed one, which is treated as non-matching
+    rather than raising.
+
+    ``max_bond_sats`` is a ceiling, written ``max_bond_sats<=N`` (OC Agent's
+    range operator); ``max_bond_sats=N`` means the same. Every other key takes
+    ``=`` only. A duplicate key makes the scope malformed."""
     trimmed = js_strip(scope)
     if trimmed == "pledge:create":
         return {}
@@ -82,15 +90,20 @@ def parse_pledge_create_scope(scope: str) -> Optional[dict[str, str]]:
         return {}
     out: dict[str, str] = {}
     for pair in inside.split(","):
-        eq = pair.find("=")
-        if eq == -1:
+        c = _CONSTRAINT_RE.fullmatch(js_strip(pair))
+        if not c:
+            return None  # malformed or an unsupported operator
+        key, op, raw = c.group(1), c.group(2), c.group(3)
+        if op == "<=" and key != "max_bond_sats":
             return None
-        key = js_strip(pair[:eq])
-        val = js_strip(pair[eq + 1 :])
-        if not key:
+        if key in out:
             return None
-        out[key] = val
+        out[key] = _unquote(js_strip(raw))
     return out
+
+
+def _unquote(v: str) -> str:
+    return v[1:-1] if len(v) >= 2 and v.startswith('"') and v.endswith('"') else v
 
 
 @dataclass(frozen=True)
@@ -143,14 +156,20 @@ def _pledge_fails_constraint(
 ) -> Optional[str]:
     """Returns ``None`` if the pledge satisfies every constraint; otherwise
     a human-readable reason naming the first failed constraint."""
+    # A constraint this verifier does not understand cannot be shown to hold.
+    for key in constraints:
+        if key not in _PLEDGE_CREATE_KEYS:
+            return f'delegation constraint "{key}" is not a pledge:create constraint'
+
     if "max_bond_sats" in constraints:
         raw = constraints["max_bond_sats"]
         # ASCII digits and a safe integer, as pledge-core reads it: int() would take " 5", "1_0" and Arabic-Indic digits.
         if not re.fullmatch(r"[0-9]+", raw) or int(raw) > _MAX_SAFE_INTEGER:
             return f'delegation max_bond_sats="{raw}" is not a valid integer'
         max_sats = int(raw)
-        bond = pledge.get("bond") or {}
-        min_sats = int(bond.get("min_sats", 0))
+        min_sats = _json_int((pledge.get("bond") or {}).get("min_sats"))
+        if not _is_count(min_sats):
+            return "pledge.bond.min_sats is not a non-negative integer"
         if min_sats > max_sats:
             return (
                 f"pledge.bond.min_sats ({min_sats}) exceeds delegation's "
@@ -167,7 +186,8 @@ def _pledge_fails_constraint(
             )
 
     if "counterparty" in constraints:
-        want = constraints["counterparty"]
+        # REGISTRY.md: `counterparty=null` restricts the agent to pledges with none.
+        want = None if constraints["counterparty"] == "null" else constraints["counterparty"]
         cp = pledge.get("counterparty")
         if cp != want:
             cp_repr = "null" if cp is None else f'"{cp}"'

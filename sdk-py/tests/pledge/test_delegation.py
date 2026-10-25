@@ -128,6 +128,15 @@ def test_check_fails_max_bond_sats_exceeded():
     assert "max_bond_sats" in r.reason
 
 
+def test_check_fails_a_ceiling_without_a_whole_min_sats():
+    for bond in ({}, {"min_sats": "5"}, {"min_sats": 1.5}, {"min_sats": True}):
+        r = check_pledge_create_scope(
+            {**_pledge(), "bond": bond},
+            _delegation({"scopes": ("pledge:create(max_bond_sats<=1000000)",)}),
+        )
+        assert not r.ok
+
+
 def test_check_fails_mechanism_mismatch():
     r = check_pledge_create_scope(
         _pledge({"resolution": {"mechanism": "http_get_hash", "query": "q"}}),

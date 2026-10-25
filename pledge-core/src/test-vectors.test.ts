@@ -30,6 +30,7 @@ import { verifyOutcome } from './outcome.js';
 import { verifyAbandonment } from './abandonment.js';
 import { classifyState } from './state.js';
 import { verifyBond } from './bond.js';
+import { checkPledgeCreateScope } from './delegation.js';
 import {
     ENVELOPE_VERSION,
     type AbandonmentCanonicalInput,
@@ -96,6 +97,7 @@ async function runVector(name: string, vec: AnyVector) {
     if (vec.kind === 'bond-verification') return runBondVector(vec);
     if (vec.kind === 'state-transition') return runStateTransitionVector(vec);
     if (vec.kind === 'malformed-input') return runMalformedVector(vec);
+    if (vec.kind === 'scope-check') return runScopeCheckVector(vec);
     throw new Error(`unknown vector kind in ${name}: ${vec.kind}`);
 }
 
@@ -501,6 +503,30 @@ function outcomeStub(
         dispute_window_ends_at: resolvedAt,
         sig: null,
     };
+}
+
+// ─── Shape B — delegation scope check (v46) ──────────────────────────────────
+
+function runScopeCheckVector(vec: AnyVector) {
+    const cases = vec.inputs['cases'] as {
+        note: string;
+        pledge: PledgeEnvelope;
+        scopes: string[];
+    }[];
+    const expected = vec.expected['cases'] as Record<string, unknown>[];
+    expect(cases.length).toBe(expected.length);
+    cases.forEach((c, i) => {
+        const r = checkPledgeCreateScope(c.pledge, {
+            principal: 'bc1qprincipal',
+            agent: 'bc1qagent',
+            scopes: c.scopes,
+            expires_at: '2027-01-01T00:00:00Z',
+        });
+        const got = r.ok
+            ? { ok: true, matched_scope: r.matched_scope }
+            : { ok: false, code: r.code };
+        expect(got, c.note).toEqual(expected[i]);
+    });
 }
 
 // ─── Shape C — malformed-input vectors ───────────────────────────────────────

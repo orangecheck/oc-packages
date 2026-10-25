@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal, Union
 
-from .._text import NOT_WS, WS, js_strip
+from .._text import JS_DOT, js_pattern, js_regex, js_strip
 from .canonical import utf8_bytes
 
 ResolutionMechanism = Literal[
@@ -41,20 +41,7 @@ _ALLOWED: tuple[ResolutionMechanism, ...] = (
 _REFUSED = ("self_proof",)
 
 
-def _js(pattern: str) -> str:
-    r"""``pattern`` with ``\d``, ``\s`` and ``\S`` read as pledge-core's JavaScript reads them."""
-    return pattern.replace(r"\d", "[0-9]").replace(r"\s", WS).replace(r"\S", NOT_WS)
-
-
-def _jsre(pattern: str) -> re.Pattern[str]:
-    return re.compile(_js(pattern))
-
-
-#: What JavaScript's ``.`` matches: anything but a line terminator.
-_JS_DOT = "[^\n\r\u2028\u2029]"
-
-
-_CHAIN_STATE_ATOM = _jsre(
+_CHAIN_STATE_ATOM = js_regex(
     "|".join(
         [
             r"block\(\d+\)\.hash\.startsWith\([0-9a-fA-F]+\)",
@@ -66,25 +53,25 @@ _CHAIN_STATE_ATOM = _jsre(
         ]
     )
 )
-_CHAIN_STATE_ATOM_FULL = _jsre(rf"^(?:{_CHAIN_STATE_ATOM.pattern})$")
+_CHAIN_STATE_ATOM_FULL = js_regex(rf"^(?:{_CHAIN_STATE_ATOM.pattern})$")
 
-_COUNTERPARTY_SIGNS_RE = _jsre(
+_COUNTERPARTY_SIGNS_RE = js_regex(
     r"^counterparty\([^)]+\)\s+signs\s+outcome\s+over\s+pledge_id$"
 )
 
-_NOSTR_EVENT_EXISTS_RE = _jsre(
+_NOSTR_EVENT_EXISTS_RE = js_regex(
     r"^kind=\d+\s+author=\S+(?:\s+tag\([^)]+\)=\S+)?\s+created_at_before=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
 )
 
-_STAMP_PUBLISHED_RE = _jsre(
+_STAMP_PUBLISHED_RE = js_regex(
     r"^stamp\(content_hash=sha256:[0-9a-f]{64},\s*signer=\S+\)$"
 )
 
-_HTTP_GET_HASH_RE = _jsre(r"^GET\s+https://\S+\s+body_sha256\s*==\s*[0-9a-f]{64}$")
+_HTTP_GET_HASH_RE = js_regex(r"^GET\s+https://\S+\s+body_sha256\s*==\s*[0-9a-f]{64}$")
 
-_DNS_RECORD_RE = _jsre(r"^(?:A|AAAA|TXT|CAA|MX|CNAME)\s+\S+\s*==\s*\S" + _JS_DOT + "*$")
+_DNS_RECORD_RE = js_regex(r"^(?:A|AAAA|TXT|CAA|MX|CNAME)\s+\S+\s*==\s*\S" + JS_DOT + "*$")
 
-_VOTE_RESOLVES_RE = _jsre(
+_VOTE_RESOLVES_RE = js_regex(
     r"^poll_id=[0-9a-f]{64}\s+option=\S+\s+threshold=(?:0(?:\.\d+)?|1(?:\.0+)?)$"
 )
 
@@ -136,7 +123,7 @@ def validate_resolution_query(mechanism: str, query: str) -> ResolutionValidateR
     # passes the matching Literal value directly. mypy on any supported
     # version is happy; no cast / narrowing helper needed.
     if mechanism == "chain_state":
-        for part in re.split(_js(r"\s+AND\s+"), query):
+        for part in re.split(js_pattern(r"\s+AND\s+"), query):
             if not _CHAIN_STATE_ATOM_FULL.fullmatch(js_strip(part)):
                 return _non_det(f'chain_state predicate not in §3.4.1 grammar: "{part}"')
         return ResolutionOk(ok=True, mechanism="chain_state")

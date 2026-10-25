@@ -178,6 +178,15 @@ describe('checkPledgeCreateScope', () => {
         );
         expect(r.ok).toBe(false);
     });
+    it('fails a ceiling when the pledge has no whole min_sats to compare', () => {
+        for (const bond of [{}, { min_sats: '5' }, { min_sats: 1.5 }]) {
+            const r = checkPledgeCreateScope(
+                { ...pledge(), bond } as unknown as PledgeEnvelope,
+                delegation({ scopes: ['pledge:create(max_bond_sats<=1000000)'] }),
+            );
+            expect(r.ok).toBe(false);
+        }
+    });
     it('fails when mechanism does not match', () => {
         const r = checkPledgeCreateScope(
             pledge({ resolution: { mechanism: 'http_get_hash', query: 'q' } }),
