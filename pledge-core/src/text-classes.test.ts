@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { verifyBond } from './bond.js';
 import { validatePledgeInput } from './canonical.js';
 import { checkPledgeCreateScope } from './delegation.js';
 import { validateResolutionQuery } from './resolution.js';
@@ -21,6 +22,11 @@ interface TextClasses {
     resolution_queries: { mechanism: string; query: string; ok: boolean }[];
     times: { value: string; ok: boolean }[];
     counts: { field: 'min_sats' | 'min_days' | 'block'; value: unknown; ok: boolean }[];
+    bond_floors: {
+        sats_bonded: number;
+        days_unspent: number;
+        cases: { bond: Record<string, unknown>; ok: boolean; code?: string }[];
+    };
     scopes: { min_sats: number; cases: { scope: string; ok: boolean }[] };
 }
 
@@ -93,6 +99,29 @@ describe('text classes (test-vectors/text-classes.json)', () => {
                 : { ...PLEDGE, bond: { ...PLEDGE.bond, [c.field]: c.value as number } };
         expect(validatePledgeInput(input).ok).toBe(c.ok);
     });
+
+    it.each(V.bond_floors.cases.map((c, i) => [i, c] as const))(
+        'bond floor %i gives the listed answer',
+        async (_i, c) => {
+            const pledge = {
+                swearer: { address: PLEDGE.swearer },
+                bond: { attestation_id: 'c'.repeat(64), ...c.bond },
+            } as unknown as PledgeEnvelope;
+            const r = await verifyBond({
+                pledge,
+                now: '2026-11-01T00:00:00Z',
+                lookup: async () => ({
+                    address: PLEDGE.swearer,
+                    sats_bonded: V.bond_floors.sats_bonded,
+                    days_unspent: V.bond_floors.days_unspent,
+                    utxo_spent_at_or_before_now: false,
+                }),
+            });
+            expect(r.ok ? { ok: true } : { ok: false, code: r.code }).toEqual(
+                c.ok ? { ok: true } : { ok: false, code: c.code },
+            );
+        },
+    );
 
     it.each(V.scopes.cases.map((c, i) => [i, c] as const))(
         'delegation scope %i gives the listed answer',

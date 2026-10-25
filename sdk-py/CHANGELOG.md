@@ -19,7 +19,9 @@ All notable changes to the **`orangecheck`** Python package. Follows
   is refused. Both SDKs are held to `pledge-core/test-vectors/text-classes.json`.
 - A pledge's `bond.min_sats`, `bond.min_days` or `resolves_at.block` must be a
   JSON integer; `true` and the string `"5"` are refused, and `1000.0` reads as
-  1000.
+  1000. `verify_bond` fails a floor that is not one with
+  `E_BOND_INSUFFICIENT_SATS` or `E_BOND_INSUFFICIENT_DAYS`, as pledge-core's
+  `verifyBond` does.
 - `parse_pledge_create_scope` and `check_pledge_create_scope` read a
   delegation scope as `@orangecheck/pledge-core` does (OC Pledge SPEC §7.3):
   each constraint is a lowercase key, `=` or `<=` (`<=` on `max_bond_sats`

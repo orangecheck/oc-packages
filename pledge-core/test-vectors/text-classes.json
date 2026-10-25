@@ -1,5 +1,5 @@
 {
-  "description": "Whitespace, digits and JSON integers as pledge-core (JavaScript) reads them, which sdk-py must match. whitespace lists every code point that ECMAScript \\s matches and trim removes; no other code point is whitespace, so not_whitespace (which Python's \\s and str.strip() take) is not. Digits are ASCII 0-9 only. A count (bond.min_sats, bond.min_days, resolves_at.block) is a JSON number with no fraction, not a boolean or a string. Each case gives the answer both SDKs MUST give.",
+  "description": "Whitespace, digits and JSON integers as pledge-core (JavaScript) reads them, which sdk-py must match. whitespace lists every code point that ECMAScript \\s matches and trim removes; no other code point is whitespace, so not_whitespace (which Python's \\s and str.strip() take) is not. Digits are ASCII 0-9 only. A count (bond.min_sats, bond.min_days, resolves_at.block) is a JSON number with no fraction, not a boolean or a string; verifyBond fails a floor that is not one. Each case gives the answer both SDKs MUST give.",
   "whitespace": [
     9,
     10,
@@ -197,6 +197,104 @@
       "ok": false
     }
   ],
+  "bond_floors": {
+    "sats_bonded": 5000,
+    "days_unspent": 400,
+    "cases": [
+      {
+        "bond": {
+          "min_sats": 1000,
+          "min_days": 30
+        },
+        "ok": true
+      },
+      {
+        "bond": {
+          "min_sats": 1000.0,
+          "min_days": 30.0
+        },
+        "ok": true
+      },
+      {
+        "bond": {
+          "min_sats": 6000,
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": "1000",
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": "\u0661\u0660\u0660\u0660",
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": 1000.5,
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": null,
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": true,
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_days": 30
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_SATS"
+      },
+      {
+        "bond": {
+          "min_sats": 1000,
+          "min_days": "30"
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_DAYS"
+      },
+      {
+        "bond": {
+          "min_sats": 1000,
+          "min_days": -1
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_DAYS"
+      },
+      {
+        "bond": {
+          "min_sats": 1000
+        },
+        "ok": false,
+        "code": "E_BOND_INSUFFICIENT_DAYS"
+      }
+    ]
+  },
   "scopes": {
     "min_sats": 1000,
     "cases": [

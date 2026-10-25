@@ -16,11 +16,13 @@ import pytest
 
 from orangecheck._text import JS_WHITESPACE, NOT_WS, WS, js_pattern, js_strip
 from orangecheck.pledge import (
+    AttestationLookupResult,
     DelegationLookupResult,
     check_pledge_create_scope,
     pledge_input_from_dict,
     validate_pledge_input,
     validate_resolution_query,
+    verify_bond,
 )
 
 VECTORS_PATH = (
@@ -88,6 +90,23 @@ def test_count(case: dict[str, Any]) -> None:
     else:
         d["bond"][case["field"]] = case["value"]
     assert validate_pledge_input(pledge_input_from_dict(d)).ok is case["ok"]
+
+
+@pytest.mark.parametrize("case", V["bond_floors"]["cases"])
+def test_bond_floor(case: dict[str, Any]) -> None:
+    swearer = PLEDGE_DICT["swearer"]
+    r = verify_bond(
+        pledge={"swearer": {"address": swearer}, "bond": {"attestation_id": "c" * 64, **case["bond"]}},
+        now="2026-11-01T00:00:00Z",
+        attestation=AttestationLookupResult(
+            address=swearer,
+            sats_bonded=V["bond_floors"]["sats_bonded"],
+            days_unspent=V["bond_floors"]["days_unspent"],
+            utxo_spent_at_or_before_now=False,
+        ),
+    )
+    got = {"ok": True} if r.ok else {"ok": False, "code": r.code}
+    assert got == ({"ok": True} if case["ok"] else {"ok": False, "code": case["code"]})
 
 
 @pytest.mark.parametrize("case", V["scopes"]["cases"])

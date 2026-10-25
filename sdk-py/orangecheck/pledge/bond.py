@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional, Union
 
+from .canonical import _is_count, _json_int
+
 
 @dataclass(frozen=True)
 class AttestationLookupResult:
@@ -69,8 +71,17 @@ def verify_bond(
     callers can keep their lookup synchronous OR pre-resolve it. The
     decision tree (§8) is identical.
     """
+    bond = pledge["bond"]
+    # A floor that is not a whole number cannot be shown to be met (int() would read "5" or Arabic-Indic digits).
+    min_sats = _json_int(bond.get("min_sats"))
+    if not _is_count(min_sats):
+        return _err("E_BOND_INSUFFICIENT_SATS", "pledge.bond.min_sats is not a non-negative integer")
+    min_days = _json_int(bond.get("min_days"))
+    if not _is_count(min_days):
+        return _err("E_BOND_INSUFFICIENT_DAYS", "pledge.bond.min_days is not a non-negative integer")
+
     if attestation is None:
-        return _err("E_BOND_NOT_FOUND", f"attestation {pledge['bond']['attestation_id']} not found")
+        return _err("E_BOND_NOT_FOUND", f"attestation {bond['attestation_id']} not found")
 
     swearer_address: str = pledge["swearer"]["address"]
     if attestation.address != swearer_address:
@@ -82,14 +93,13 @@ def verify_bond(
     if attestation.utxo_spent_at_or_before_now:
         return _err("E_BOND_SPENT", "bonded UTXO spent at or before verifier now")
 
-    bond = pledge["bond"]
-    if attestation.sats_bonded < int(bond["min_sats"]):
+    if attestation.sats_bonded < min_sats:
         return _err(
             "E_BOND_INSUFFICIENT_SATS",
             f"sats_bonded ({attestation.sats_bonded}) < min_sats ({bond['min_sats']})",
         )
 
-    if attestation.days_unspent < int(bond["min_days"]):
+    if attestation.days_unspent < min_days:
         return _err(
             "E_BOND_INSUFFICIENT_DAYS",
             f"days_unspent ({attestation.days_unspent}) < min_days ({bond['min_days']})",

@@ -24,6 +24,9 @@ import type {
  *     - E_BOND_INSUFFICIENT_SATS  sats_bonded < pledge.bond.min_sats
  *     - E_BOND_INSUFFICIENT_DAYS  days_unspent < pledge.bond.min_days
  *
+ * A `min_sats` or `min_days` that is not a non-negative integer cannot be
+ * shown to be met, so it fails with E_BOND_INSUFFICIENT_SATS or _DAYS.
+ *
  * The lookup receives `pledge.bond.min_sats` and must return the age of the
  * coins that cover it (SPEC §8), not the age of the oldest coin.
  *
@@ -33,6 +36,22 @@ import type {
  */
 export async function verifyBond(input: VerifyBondInput): Promise<VerifyBondResult> {
     const { pledge, now, lookup } = input;
+
+    const floors = pledge.bond as { min_sats: unknown; min_days: unknown };
+    if (!isCount(floors.min_sats)) {
+        return {
+            ok: false,
+            code: 'E_BOND_INSUFFICIENT_SATS',
+            message: 'pledge.bond.min_sats is not a non-negative integer',
+        };
+    }
+    if (!isCount(floors.min_days)) {
+        return {
+            ok: false,
+            code: 'E_BOND_INSUFFICIENT_DAYS',
+            message: 'pledge.bond.min_days is not a non-negative integer',
+        };
+    }
 
     const attestation = await lookup(pledge.bond.attestation_id, now, pledge.bond.min_sats);
     if (attestation === null) {
@@ -97,4 +116,8 @@ export function bondConstraints(pledge: PledgeEnvelope): {
         min_sats: pledge.bond.min_sats,
         min_days: pledge.bond.min_days,
     };
+}
+
+function isCount(v: unknown): v is number {
+    return typeof v === 'number' && Number.isInteger(v) && v >= 0;
 }

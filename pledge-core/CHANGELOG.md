@@ -24,12 +24,16 @@ string `"null"` as `dispute.mechanism`, was already refused).
 given has no whole, non-negative `bond.min_sats` to compare. The vector harness
 runs the scope-check vector `v46` (SPEC §7.3).
 
+`verifyBond` fails with `E_BOND_INSUFFICIENT_SATS` or `E_BOND_INSUFFICIENT_DAYS`,
+before it calls the lookup, when the pledge's `bond.min_sats` or
+`bond.min_days` is not a non-negative integer.
+
 ### Added
 
 - `test-vectors/text-classes.json`: the whitespace and digits pledge-core reads
   (JavaScript's `\s`, `trim()` and `\d`) and what it takes as a count, with
-  cases for resolution queries, times, counts and delegation scopes. sdk-py's
-  tests give the same answers.
+  cases for resolution queries, times, counts, bond floors and delegation
+  scopes. sdk-py's tests give the same answers.
 
 ## [3.4.0] — 2026-10-24
 
