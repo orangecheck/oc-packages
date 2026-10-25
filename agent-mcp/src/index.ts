@@ -40,8 +40,9 @@ export interface McpInvocation {
     /**
      * The MCP server's endpoint URL, exactly as the delegation's
      * `mcp:invoke(server=…)` scope names it. Only surrounding whitespace is
-     * trimmed. A scope holds the scheme and host in lower case (OC Agent §7.2
-     * rule 4); the path and a trailing slash count as written.
+     * trimmed. A scope holds the scheme and authority in lower case (OC Agent
+     * §7.2 rule 4); the path, a query and a trailing slash count as written. The
+     * default exercised scope quotes it, so a `?` or `=` stays part of it.
      */
     server: string;
     /** Tool name (method) being invoked. */
