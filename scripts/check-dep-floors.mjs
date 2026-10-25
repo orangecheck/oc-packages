@@ -6,19 +6,25 @@
 //   1. every @orangecheck import is declared (dependency, peer or dev);
 //   2. at the floor of every declared range, the subpath is exported and each
 //      named import is exported from it (read from the published .d.ts);
-//   3. what an installed @orangecheck dependency imports from a package it does
-//      not bring along (a peer) is installed here, and exported both by the
-//      version this package's yarn.lock resolves for its own range and by that
-//      range's floor. Every locked copy of the dependency is read, plus the
-//      newest in range. yarn 1 installs no peers, and a peer range can be wider
-//      than its imports allow (auth-client 2.37).
+//   3. what an installed @orangecheck dependency imports from another
+//      @orangecheck package, subpaths and names, is there in every version it
+//      can meet: for a peer, the version this package's yarn.lock resolves for
+//      its own range and that range's floor; for the dependency's own
+//      dependency, the version the lock resolves for the dependency's range.
+//      Every locked copy of the dependency is read, plus the newest in range.
+//      yarn 1 installs no peers, and a peer range can be wider than its
+//      imports allow (auth-client 2.37).
+// Imports and exports are read with TypeScript's parser, so a string or a
+// comment never hides or invents one. An export this check cannot read is a
+// problem, never a pass.
 //
 //   node scripts/check-dep-floors.mjs [--root <dir>]
 //
 // --root reads another tree of packages (the tests build fixtures with it).
 //
-// Reads the npm registry; a floor not yet published is read from this
-// repository when its package.json carries that version.
+// Reads the npm registry, and TypeScript from the repository root's install;
+// a floor not yet published is read from this repository when its
+// package.json carries that version.
 import { execFileSync } from 'node:child_process';
 import {
     existsSync,
@@ -34,11 +40,13 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import ts from 'typescript';
+
 const at = process.argv.indexOf('--root');
 const ROOT = at > 0 ? resolve(process.argv[at + 1]) : resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SCOPE = '@orangecheck/';
 // Deprecated on npm and never released again, so a floor here protects nobody.
-const FROZEN = new Map([['@orangecheck/ui', 'unmaintained; use @orangecheck/app-design']]);
+const FROZEN = new Set(['@orangecheck/ui']);
 const FIELDS = ['dependencies', 'peerDependencies', 'devDependencies'];
 
 // --- versions ---------------------------------------------------------------
@@ -73,13 +81,7 @@ function readRange(range) {
     return null;
 }
 
-// --- this repository ----------------------------------------------------------
-
-const packages = readdirSync(ROOT)
-    .filter((d) => existsSync(join(ROOT, d, 'package.json')))
-    .map((d) => ({ dir: d, json: JSON.parse(readFileSync(join(ROOT, d, 'package.json'), 'utf8')) }))
-    .filter((p) => typeof p.json.name === 'string' && p.json.name.startsWith(SCOPE) && !FROZEN.has(p.json.name));
-const local = new Map(packages.map((p) => [p.json.name, p]));
+// --- reading source -------------------------------------------------------------
 
 function sourceFiles(dir) {
     const out = [];
@@ -95,57 +97,71 @@ function sourceFiles(dir) {
     return out;
 }
 
-/** Names a specifier list imports: `{ a, b as c, type D }` gives a, b, D; a default import gives "default". */
-function importedNames(clause) {
+function parsed(file) {
+    const kind = /\.tsx$/.test(file)
+        ? ts.ScriptKind.TSX
+        : /\.jsx$/.test(file)
+          ? ts.ScriptKind.JSX
+          : /\.[mc]?ts$/.test(file)
+            ? ts.ScriptKind.TS
+            : ts.ScriptKind.JS;
+    return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, false, kind);
+}
+
+/** Names an import or export clause takes: `{ a, b as c }` gives a and b, a default import "default", `* as x` none. */
+function clauseNames(node) {
     const names = [];
-    const braces = /\{([\s\S]*?)\}/.exec(clause);
-    if (braces) {
-        for (const part of braces[1].split(',')) {
-            const name = part
-                .trim()
-                .replace(/^type\s+/, '')
-                .split(/\s+as\s+/)[0]
-                .trim();
-            if (name) names.push(name);
+    if (ts.isImportDeclaration(node)) {
+        const clause = node.importClause;
+        if (clause?.name) names.push('default');
+        const bindings = clause?.namedBindings;
+        if (bindings && ts.isNamedImports(bindings)) {
+            for (const e of bindings.elements) names.push((e.propertyName ?? e.name).text);
         }
+    } else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+        for (const e of node.exportClause.elements) names.push((e.propertyName ?? e.name).text);
     }
-    const head = clause
-        .replace(/\{[\s\S]*?\}/, '')
-        .replace(/^type\s+/, '')
-        .trim();
-    if (head && !head.startsWith('*') && /^[A-Za-z_$][\w$]*/.test(head)) names.push('default');
     return names;
 }
 
-/** Every @orangecheck import in a file, with its subpath and named imports. Comments and doc examples don't count. */
-function importsOf(file) {
-    // Template literals and block comments hold code samples, not imports.
-    const text = readFileSync(file, 'utf8')
-        .replace(/`(?:\\[\s\S]|[^\\`])*`/g, '``')
-        .replace(/\/\*[\s\S]*?\*\//g, '');
+/** Every @orangecheck import in a file: declarations, re-exports, import types, import() and require(). */
+export function importsIn(file) {
     const found = [];
-    const spec = (s) => {
-        const m = new RegExp(`^(${SCOPE.replace('/', '\\/')}[a-z0-9-]+)(/.+)?$`).exec(s);
-        return m ? { pkg: m[1], sub: m[2] ? `.${m[2]}` : '.' } : null;
+    const add = (specifier, names) => {
+        const m = /^(@orangecheck\/[a-z0-9-]+)(\/.+)?$/.exec(specifier);
+        if (m) found.push({ pkg: m[1], sub: m[2] ? `.${m[2]}` : '.', names, at: file });
     };
-    // An import clause only: a default name, a `{ ... }` list, or `* as x`, never a declaration that a later `from` follows.
-    const statement =
-        /^[ \t]*(import|export)\s+((?:type\s+)?(?:[A-Za-z_$][\w$]*\s*,?\s*)?(?:\{[^}]*\}|\*(?:\s*as\s+[A-Za-z_$][\w$]*)?)?)\s*from\s*["']([^"']+)["']/gm;
-    for (const m of text.matchAll(statement)) {
-        const s = spec(m[3]);
-        if (s) found.push({ ...s, names: m[2].startsWith('*') ? [] : importedNames(m[2]), at: file });
-    }
-    for (const m of text.matchAll(/^[ \t]*import\s*["']([^"']+)["']/gm)) {
-        const s = spec(m[1]);
-        if (s) found.push({ ...s, names: [], at: file });
-    }
-    for (const line of text.split('\n')) {
-        if (/^\s*(\*|\/\/|\/\*)/.test(line)) continue;
-        for (const m of line.matchAll(/(?:import|require)\(\s*["']([^"']+)["']\s*\)/g)) {
-            const s = spec(m[1]);
-            if (s) found.push({ ...s, names: [], at: file });
+    const visit = (node) => {
+        if (
+            (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+            node.moduleSpecifier &&
+            ts.isStringLiteral(node.moduleSpecifier)
+        ) {
+            add(node.moduleSpecifier.text, clauseNames(node));
+        } else if (
+            ts.isCallExpression(node) &&
+            node.arguments.length > 0 &&
+            ts.isStringLiteralLike(node.arguments[0]) &&
+            (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+                (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
+        ) {
+            add(node.arguments[0].text, []);
+        } else if (
+            ts.isImportEqualsDeclaration(node) &&
+            ts.isExternalModuleReference(node.moduleReference) &&
+            ts.isStringLiteral(node.moduleReference.expression)
+        ) {
+            add(node.moduleReference.expression.text, []);
+        } else if (
+            ts.isImportTypeNode(node) &&
+            ts.isLiteralTypeNode(node.argument) &&
+            ts.isStringLiteral(node.argument.literal)
+        ) {
+            add(node.argument.literal.text, []);
         }
-    }
+        ts.forEachChild(node, visit);
+    };
+    visit(parsed(file));
     return found;
 }
 
@@ -162,6 +178,7 @@ async function registry(name) {
     return meta.get(name);
 }
 
+let local = new Map();
 /** The manifest a version shipped with, from npm, or from this repository when it is the unreleased one here. */
 async function manifest(name, version) {
     const m = await registry(name);
@@ -182,10 +199,13 @@ async function newestIn(name, range) {
 
 // --- exports ----------------------------------------------------------------------
 
-/** The `types` file a subpath resolves to, or undefined when the subpath is not exported. */
-function exportTarget(json, sub) {
+/**
+ * The types file a subpath's export resolves to; undefined when the subpath is
+ * not exported, null when it is but no .d.ts can be read from its entry.
+ */
+export function exportTarget(json, sub) {
     const ex = json.exports;
-    if (ex === undefined) return sub === '.' ? (json.types ?? json.typings ?? '') : undefined;
+    if (ex === undefined) return sub === '.' ? (json.types ?? json.typings ?? null) : undefined;
     const map = typeof ex === 'string' || !Object.keys(ex).some((k) => k.startsWith('.')) ? { '.': ex } : ex;
     let entry = map[sub];
     if (entry === undefined) {
@@ -199,20 +219,27 @@ function exportTarget(json, sub) {
         }
     }
     if (entry === undefined || entry === null) return undefined;
-    const pick = (e) =>
+    const types = (e) =>
         typeof e === 'string'
-            ? e
-            : (e && (pick(e.types) ?? pick(e.import) ?? pick(e.default) ?? pick(e.require))) || null;
-    return typeof entry === 'string' ? (entry.endsWith('.d.ts') ? entry : '') : (pick(entry.types) ?? '');
+            ? /\.d\.[mc]?ts$/.test(e)
+                ? e
+                : null
+            : e && typeof e === 'object'
+              ? (types(e.types) ?? types(e.import) ?? types(e.default) ?? types(e.require) ?? types(e.node))
+              : null;
+    return types(entry) ?? (sub === '.' ? (json.types ?? json.typings ?? null) : null);
 }
 
+let TMP = null;
 const unpacked = new Map();
-const TMP = mkdtempSync(join(tmpdir(), 'dep-floors-'));
-process.on('exit', () => rmSync(TMP, { recursive: true, force: true }));
 /** A version's published files, unpacked once per run. */
 async function unpack(name, version, json) {
     const key = `${name}@${version}`;
     if (!unpacked.has(key)) {
+        if (!TMP) {
+            TMP = mkdtempSync(join(tmpdir(), 'dep-floors-'));
+            process.on('exit', () => rmSync(TMP, { recursive: true, force: true }));
+        }
         const dir = join(TMP, String(unpacked.size));
         mkdirSync(dir);
         const r = await fetch(json.dist.tarball);
@@ -225,38 +252,67 @@ async function unpack(name, version, json) {
     return unpacked.get(key);
 }
 
-/** Names a .d.ts exports, following `export * from` into sibling files. Null when the file is missing. */
-function dtsExports(file, seen = new Set()) {
-    if (seen.has(file)) return new Set();
+const hasModifier = (node, kind) =>
+    ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === kind);
+
+/**
+ * The names a .d.ts exports, following `export * from` into sibling files, or
+ * null when the file is missing. `open` names a package it re-exports
+ * everything from, whose names this check does not read.
+ */
+export function dtsExports(file, seen = new Set()) {
+    if (seen.has(file)) return { names: new Set(), open: [] };
     seen.add(file);
     const candidates = [file, `${file}.d.ts`, file.replace(/\.(m|c)?js$/, '.d.ts'), join(file, 'index.d.ts')];
     const path = candidates.find((c) => existsSync(c) && statSync(c).isFile());
     if (!path) return null;
-    const text = readFileSync(path, 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/^\s*\/\/.*$/gm, '');
     const names = new Set();
-    for (const m of text.matchAll(/export\s+(?:type\s+)?\{([\s\S]*?)\}/g)) {
-        for (const part of m[1].split(',')) {
-            const bits = part
-                .trim()
-                .replace(/^type\s+/, '')
-                .split(/\s+as\s+/);
-            const name = (bits[1] ?? bits[0]).trim();
-            if (name) names.add(name);
+    const open = [];
+    const bind = (n) => {
+        if (ts.isIdentifier(n)) names.add(n.text);
+        else for (const e of n.elements) if (!ts.isOmittedExpression(e)) bind(e.name);
+    };
+    for (const st of parsed(path).statements) {
+        if (ts.isExportDeclaration(st)) {
+            const from = st.moduleSpecifier && ts.isStringLiteral(st.moduleSpecifier) ? st.moduleSpecifier.text : null;
+            if (!st.exportClause) {
+                if (from?.startsWith('.')) {
+                    const inner = dtsExports(resolve(dirname(path), from), seen);
+                    for (const n of inner?.names ?? []) if (n !== 'default') names.add(n);
+                    open.push(...(inner?.open ?? []));
+                } else if (from) open.push(from);
+            } else if (ts.isNamespaceExport(st.exportClause)) names.add(st.exportClause.name.text);
+            else for (const e of st.exportClause.elements) names.add(e.name.text);
+        } else if (ts.isExportAssignment(st)) {
+            names.add('default');
+        } else if (hasModifier(st, ts.SyntaxKind.ExportKeyword)) {
+            if (hasModifier(st, ts.SyntaxKind.DefaultKeyword)) names.add('default');
+            else if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) bind(d.name);
+            else if (st.name && ts.isIdentifier(st.name)) names.add(st.name.text);
+            else if (st.name && ts.isStringLiteral(st.name)) names.add(st.name.text);
         }
     }
-    for (const m of text.matchAll(
-        /export\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(?:async\s+)?(?:function\*?|const|let|var|class|interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)/g,
-    ))
-        names.add(m[1]);
-    if (/export\s+default\b|export\s*\{[^}]*\bas\s+default\b/.test(text)) names.add('default');
-    for (const m of text.matchAll(/export\s+\*\s+from\s+["'](\.[^"']+)["']/g)) {
-        const inner = dtsExports(resolve(dirname(path), m[1]), seen);
-        for (const n of inner ?? []) if (n !== 'default') names.add(n);
-    }
-    for (const m of text.matchAll(/export\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from/g)) names.add(m[1]);
-    return names;
+    return { names, open };
+}
+
+/**
+ * Why `dep`@`version` does not hold `sub` and the `names` imported from it, or
+ * nothing when it does. A shape this check cannot read is a reason, never a pass.
+ */
+export async function missing(dep, version, json, sub, names, from) {
+    const target = exportTarget(json, sub);
+    if (target === undefined) return [`${dep} ${version} does not export "${sub}"`];
+    if (!names.length || from !== 'npm') return [];
+    if (target === null) return [`${dep} ${version} "${sub}": no .d.ts this check can read in its export entry`];
+    const found = dtsExports(join(await unpack(dep, version, json), target));
+    if (!found) return [`${dep} ${version} "${sub}": its types file ${target} is not in the package`];
+    return names
+        .filter((n) => !found.names.has(n))
+        .map((n) =>
+            found.open.length
+                ? `${dep} ${version} "${sub}" has no export ${n} this check can read (it re-exports * from ${found.open.join(', ')})`
+                : `${dep} ${version} "${sub}" has no export ${n}`,
+        );
 }
 
 /** What a yarn 1 lockfile resolves for each @orangecheck package, by the range asked for. */
@@ -283,7 +339,7 @@ function lockedVersions(file) {
     return out;
 }
 
-/** The @orangecheck subpaths a published package's files import, by package. */
+/** What a published package's files import from other @orangecheck packages: package, then subpath, then names. */
 function distImports(root, self) {
     const out = new Map();
     const walk = (d) => {
@@ -292,13 +348,12 @@ function distImports(root, self) {
             if (statSync(p).isDirectory()) {
                 if (name !== 'node_modules') walk(p);
             } else if (/\.(m|c)?js$|\.d\.(m|c)?ts$/.test(name)) {
-                const text = readFileSync(p, 'utf8');
-                const re =
-                    /(?:from\s*|import\(\s*|require\(\s*|import\s+)["'](@orangecheck\/[a-z0-9-]+)(\/[^"']+)?["']/g;
-                for (const m of text.matchAll(re)) {
-                    if (m[1] === self) continue;
-                    if (!out.has(m[1])) out.set(m[1], new Set());
-                    out.get(m[1]).add(m[2] ? `.${m[2]}` : '.');
+                for (const use of importsIn(p)) {
+                    if (use.pkg === self) continue;
+                    if (!out.has(use.pkg)) out.set(use.pkg, new Map());
+                    const subs = out.get(use.pkg);
+                    if (!subs.has(use.sub)) subs.set(use.sub, new Set());
+                    for (const n of use.names) subs.get(use.sub).add(n);
                 }
             }
         }
@@ -309,113 +364,127 @@ function distImports(root, self) {
 
 // --- the check ------------------------------------------------------------------
 
-const problems = [];
-const say = (pkg, text) => problems.push(`${pkg}: ${text}`);
+async function main() {
+    const packages = readdirSync(ROOT)
+        .filter((d) => existsSync(join(ROOT, d, 'package.json')))
+        .map((d) => ({ dir: d, json: JSON.parse(readFileSync(join(ROOT, d, 'package.json'), 'utf8')) }))
+        .filter((p) => typeof p.json.name === 'string' && p.json.name.startsWith(SCOPE) && !FROZEN.has(p.json.name));
+    local = new Map(packages.map((p) => [p.json.name, p]));
+    const problems = [];
+    const say = (pkg, text) => problems.push(`${pkg}: ${text}`);
 
-async function checkFloor(pkg, field, dep, range, uses) {
-    const r = readRange(range);
-    if (!r) return say(pkg, `${field} ${dep} "${range}" is not a range this check reads (^, ~, >= or exact)`);
-    const m = await manifest(dep, r.floor);
-    if (!m)
-        return say(
-            pkg,
-            `${field} ${dep} ${range}: its floor ${r.floor} is not published and not this repository's version`,
-        );
-    for (const use of uses) {
-        const target = exportTarget(m.json, use.sub);
-        if (target === undefined) {
-            say(
-                pkg,
-                `${field} ${dep} ${range}: ${r.floor} does not export "${use.sub}", imported in ${relative(ROOT, use.at)}`,
-            );
-            continue;
-        }
-        if (m.from !== 'npm' || !use.names.length || !target) continue;
-        const root = await unpack(dep, r.floor, m.json);
-        const names = dtsExports(join(root, target));
-        if (!names) continue;
-        for (const n of use.names) {
-            if (!names.has(n)) {
-                say(
-                    pkg,
-                    `${field} ${dep} ${range}: ${r.floor} "${use.sub}" has no export ${n}, imported in ${relative(ROOT, use.at)}`,
-                );
+    for (const p of packages) {
+        const name = p.json.name;
+        const declared = [];
+        for (const f of FIELDS) {
+            for (const [dep, range] of Object.entries(p.json[f] ?? {})) {
+                if (dep.startsWith(SCOPE)) declared.push({ field: f, dep, range });
             }
         }
-    }
-}
-
-for (const p of packages) {
-    const name = p.json.name;
-    const declared = new Map();
-    for (const f of FIELDS) {
-        for (const [dep, range] of Object.entries(p.json[f] ?? {})) {
-            if (dep.startsWith(SCOPE)) declared.set(`${f}:${dep}`, { field: f, dep, range });
+        const uses = new Map();
+        for (const file of sourceFiles(join(ROOT, p.dir, 'src'))) {
+            for (const use of importsIn(file)) {
+                if (use.pkg === name) continue;
+                if (!uses.has(use.pkg)) uses.set(use.pkg, []);
+                uses.get(use.pkg).push(use);
+            }
         }
-    }
-    const uses = new Map();
-    for (const file of sourceFiles(join(ROOT, p.dir, 'src'))) {
-        for (const use of importsOf(file)) {
-            if (use.pkg === name) continue;
-            if (!uses.has(use.pkg)) uses.set(use.pkg, []);
-            uses.get(use.pkg).push(use);
-        }
-    }
-    // 1 and 2: what it imports, at every floor it declares.
-    for (const [dep, list] of uses) {
-        const ranges = [...declared.values()].filter((d) => d.dep === dep);
-        if (!ranges.length) {
-            say(name, `imports ${dep} (${relative(ROOT, list[0].at)}) but declares no range for it`);
-            continue;
-        }
-        for (const d of ranges) await checkFloor(name, d.field, dep, d.range, list);
-    }
-    // 3: what an installed dependency imports from outside itself is here, at every version this package can hold.
-    const lock = lockedVersions(join(ROOT, p.dir, 'yarn.lock'));
-    const installed = [...declared.values()].filter((d) => d.field !== 'peerDependencies');
-    for (const d of installed) {
-        const r = readRange(d.range);
-        if (!r) continue;
-        // Every copy of the dependency, nested ones included, resolves what it imports from this package's own install.
-        for (const version of new Set([...(lock.get(d.dep)?.values() ?? []), await newestIn(d.dep, r)])) {
-            if (!version) continue;
-            const m = await manifest(d.dep, version);
-            if (!m || m.from !== 'npm') continue;
-            const own = new Set(Object.keys(m.json.dependencies ?? {}));
-            const wants = distImports(await unpack(d.dep, version, m.json), d.dep);
-            for (const [needed, subs] of wants) {
-                if (needed === name || own.has(needed)) continue;
-                const mine = installed.filter((x) => x.dep === needed);
-                const held = new Set(
-                    mine.flatMap((x) => [lock.get(needed)?.get(x.range), readRange(x.range)?.floor].filter(Boolean)),
-                );
-                if (!held.size) {
+        // 1 and 2: what it imports, at every floor it declares.
+        for (const [dep, list] of uses) {
+            const ranges = declared.filter((d) => d.dep === dep);
+            if (!ranges.length) {
+                say(name, `imports ${dep} (${relative(ROOT, list[0].at)}) but declares no range for it`);
+                continue;
+            }
+            for (const d of ranges) {
+                const r = readRange(d.range);
+                if (!r) {
+                    say(name, `${d.field} ${dep} "${d.range}" is not a range this check reads (^, ~, >= or exact)`);
+                    continue;
+                }
+                const m = await manifest(dep, r.floor);
+                if (!m) {
                     say(
                         name,
-                        `${d.dep}@${version} imports ${needed}, which ${name} does not install (add it to devDependencies)`,
+                        `${d.field} ${dep} ${d.range}: its floor ${r.floor} is not published and not this repository's version`,
                     );
                     continue;
                 }
-                for (const v of held) {
-                    const hm = await manifest(needed, v);
-                    if (!hm) continue;
-                    for (const sub of subs) {
-                        if (exportTarget(hm.json, sub) === undefined) {
+                for (const use of list) {
+                    for (const why of await missing(dep, r.floor, m.json, use.sub, use.names, m.from)) {
+                        say(name, `${d.field} ${dep} ${d.range}: ${why}, imported in ${relative(ROOT, use.at)}`);
+                    }
+                }
+            }
+        }
+        // 3: what an installed dependency imports is there, in every version it can meet here.
+        const lock = lockedVersions(join(ROOT, p.dir, 'yarn.lock'));
+        const installed = declared.filter((d) => d.field !== 'peerDependencies');
+        for (const d of installed) {
+            const r = readRange(d.range);
+            if (!r) continue;
+            for (const version of new Set([...(lock.get(d.dep)?.values() ?? []), await newestIn(d.dep, r)])) {
+                if (!version) continue;
+                const m = await manifest(d.dep, version);
+                if (!m || m.from !== 'npm') continue;
+                const wants = distImports(await unpack(d.dep, version, m.json), d.dep);
+                for (const [needed, subs] of wants) {
+                    if (needed === name) continue;
+                    const ownRange = m.json.dependencies?.[needed];
+                    let held;
+                    if (ownRange !== undefined) {
+                        // Its own copy: the one the lock resolves for its range, or the newest that range admits.
+                        const rr = readRange(ownRange);
+                        const v = lock.get(needed)?.get(ownRange) ?? (rr ? await newestIn(needed, rr) : null);
+                        if (!v) {
                             say(
                                 name,
-                                `${needed} ${v} (locked or declared floor) does not export "${sub}", which ${d.dep}@${version} imports`,
+                                `${d.dep}@${version} depends on ${needed} "${ownRange}", which this check cannot resolve`,
                             );
+                            continue;
+                        }
+                        held = [v];
+                    } else {
+                        // A peer resolves to this package's own install: its locked version and its floor.
+                        held = [
+                            ...new Set(
+                                installed
+                                    .filter((x) => x.dep === needed)
+                                    .flatMap((x) => [lock.get(needed)?.get(x.range), readRange(x.range)?.floor])
+                                    .filter(Boolean),
+                            ),
+                        ];
+                        if (!held.length) {
+                            say(
+                                name,
+                                `${d.dep}@${version} imports ${needed}, which ${name} does not install (add it to devDependencies)`,
+                            );
+                            continue;
+                        }
+                    }
+                    for (const v of held) {
+                        const hm = await manifest(needed, v);
+                        if (!hm) {
+                            say(name, `${needed} ${v} is not published, and ${d.dep}@${version} imports it`);
+                            continue;
+                        }
+                        for (const [sub, names] of subs) {
+                            for (const why of await missing(needed, v, hm.json, sub, [...names], hm.from)) {
+                                say(name, `${why}, which ${d.dep}@${version} imports`);
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    if (problems.length) {
+        console.error(`dep floors: ${problems.length} problem(s)`);
+        for (const p of problems) console.error(`  ${p}`);
+        process.exit(1);
+    }
+    console.log(`dep floors: ${packages.length} packages, every @orangecheck floor holds what it imports`);
 }
 
-if (problems.length) {
-    console.error(`dep floors: ${problems.length} problem(s)`);
-    for (const p of problems) console.error(`  ${p}`);
-    process.exit(1);
-}
-console.log(`dep floors: ${packages.length} packages, every @orangecheck floor holds what it imports`);
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) await main();

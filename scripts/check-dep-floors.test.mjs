@@ -11,6 +11,8 @@ import { join } from 'node:path';
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { exportTarget, missing } from './check-dep-floors.mjs';
+
 const SCRIPT = new URL('./check-dep-floors.mjs', import.meta.url).pathname;
 const roots = [];
 after(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })));
@@ -77,7 +79,10 @@ test("site-kit's shape fails: a devDependency floor below what auth-client 2.40 
         }),
     );
     assert.equal(r.ok, false, r.out);
-    assert.match(r.out, /auth-core 2\.21\.0 \(locked or declared floor\) does not export "\.\/identifiers"/);
+    assert.match(
+        r.out,
+        /auth-core 2\.21\.0 does not export "\.\/identifiers", which @orangecheck\/auth-client@2\.40\.0 imports/,
+    );
 });
 
 test('site-kit passes on auth-core ^2.24.0', () => {
@@ -129,4 +134,74 @@ test('doc examples in comments and template strings are not imports', () => {
         '/**\n * import { verify } from "@orangecheck/sdk";\n */\n/*\nimport { check } from "@orangecheck/sdk";\n*/\n// import "@orangecheck/sdk";\n';
     const r = run(tree({ source: `${commented}${sample}` }));
     assert.equal(r.ok, true, r.out);
+});
+
+test('a quoted backtick does not hide the import() after it', () => {
+    const source =
+        "const tick = '`';\nexport const lazy = () => import('@orangecheck/lock-crypto');\nexport const t = `x${tick}`;\n";
+    const r = run(tree({ source }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /imports @orangecheck\/lock-crypto .* but declares no range for it/);
+});
+
+test('a quoted /* does not hide the import() after it', () => {
+    const source =
+        "const glob = 'src/*';\nexport const lazy = () => import('@orangecheck/lock-crypto');\n/** doc */\nexport { glob };\n";
+    const r = run(tree({ source }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /imports @orangecheck\/lock-crypto .* but declares no range for it/);
+});
+
+test('a quoted backtick does not hide a static import after it', () => {
+    const source =
+        "const tick = '`';\nimport { verify } from '@orangecheck/sdk';\nexport const t = `x${tick}`;\nexport { verify };\n";
+    const r = run(tree({ source }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /imports @orangecheck\/sdk .* but declares no range for it/);
+});
+
+test('the newest dependency in range is read, not only the locked one', () => {
+    const fields = { devDependencies: { '@orangecheck/auth-client': '^2.36.0', '@orangecheck/auth-core': '^2.19.0' } };
+    const lock = { '@orangecheck/auth-client@^2.36.0': '2.36.1', '@orangecheck/auth-core@^2.19.0': '2.19.0' };
+    const r = run(tree({ fields, lock }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(
+        r.out,
+        /auth-core 2\.19\.0 does not export "\.\/family-origins", which @orangecheck\/auth-client@2\.40\.\d+ imports/,
+    );
+    assert.doesNotMatch(r.out, /auth-client@2\.36\.1 imports/);
+});
+
+test('the declared floor is read, not only the locked version above it', () => {
+    const fields = { devDependencies: { '@orangecheck/auth-client': '^2.40.0', '@orangecheck/auth-core': '^2.21.0' } };
+    const lock = { '@orangecheck/auth-client@^2.40.0': '2.40.0', '@orangecheck/auth-core@^2.21.0': '2.24.0' };
+    const r = run(tree({ fields, lock }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /auth-core 2\.21\.0 does not export "\.\/identifiers"/);
+    assert.doesNotMatch(r.out, /auth-core 2\.24\.0 does not export/);
+});
+
+test("a dependency's own dependency is read at the version the lock gives it, names included", () => {
+    const fields = { devDependencies: { '@orangecheck/me-client': '^0.47.0' } };
+    const lock = { '@orangecheck/me-client@^0.47.0': '0.47.0', '@orangecheck/auth-core@^2.17.0': '2.10.0' };
+    const r = run(tree({ fields, lock }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /auth-core 2\.10\.0 "\." has no export \w+, which @orangecheck\/me-client@0\.47\.0 imports/);
+});
+
+test('an export entry with no .d.ts it can read is a problem, never a pass', async () => {
+    const json = { exports: { '.': { import: './i.mjs', require: './i.js' }, './t': { types: './t.d.ts' } } };
+    assert.equal(exportTarget(json, '.'), null);
+    assert.equal(exportTarget(json, './t'), './t.d.ts');
+    assert.equal(exportTarget(json, './none'), undefined);
+    assert.equal(exportTarget({ exports: { '.': { import: { types: './i.d.mts' } } } }, '.'), './i.d.mts');
+    assert.match(
+        (await missing('@orangecheck/z', '1.0.0', json, '.', ['a'], 'npm'))[0],
+        /no \.d\.ts this check can read/,
+    );
+    assert.deepEqual(await missing('@orangecheck/z', '1.0.0', json, '.', [], 'npm'), []);
+    assert.match(
+        (await missing('@orangecheck/z', '1.0.0', json, './none', [], 'npm'))[0],
+        /does not export "\.\/none"/,
+    );
 });

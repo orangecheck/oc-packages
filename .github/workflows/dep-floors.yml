@@ -1,8 +1,8 @@
 name: Dependency floors
 
 # Every @orangecheck range a package declares must hold what it imports at its
-# floor (scripts/check-dep-floors.mjs). Runs only when a manifest, a lockfile
-# or a source file changes, since nothing else can move a floor or an import.
+# floor (scripts/check-dep-floors.mjs). Runs when a manifest, a lockfile or a
+# source file changes, and daily, since a release in range is read too.
 
 on:
     push:
@@ -11,6 +11,8 @@ on:
             - '*/package.json'
             - '*/yarn.lock'
             - '*/src/**'
+            - 'package.json'
+            - 'yarn.lock'
             - 'scripts/check-dep-floors*.mjs'
             - '.github/workflows/dep-floors.yml'
     pull_request:
@@ -19,8 +21,16 @@ on:
             - '*/package.json'
             - '*/yarn.lock'
             - '*/src/**'
+            - 'package.json'
+            - 'yarn.lock'
             - 'scripts/check-dep-floors*.mjs'
             - '.github/workflows/dep-floors.yml'
+    schedule:
+        - cron: '17 6 * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
 
 concurrency:
     group: dep-floors-${{ github.ref }}
@@ -36,5 +46,7 @@ jobs:
             - uses: actions/setup-node@v5
               with:
                   node-version: '24'
+            # TypeScript's parser, from the root's own lockfile.
+            - run: yarn install --frozen-lockfile
             - run: node --test scripts/check-dep-floors.test.mjs
             - run: node scripts/check-dep-floors.mjs
