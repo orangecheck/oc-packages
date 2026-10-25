@@ -89,6 +89,22 @@
             "out": "\u001c\u001d\u001e\u001f\u0085\u180e\u200buma@example.com\u001c\u001d\u001e\u001f\u0085\u180e\u200b"
         },
         {
+            "in": "STRA\u1e9eE@Example.com",
+            "out": "stra\u00dfe@example.com"
+        },
+        {
+            "in": "\u039f\u0394\u03a5\u03a3\u03a3\u0395\u03a5\u03a3@EXAMPLE.COM",
+            "out": "\u03bf\u03b4\u03c5\u03c3\u03c3\u03b5\u03c5\u03c2@example.com"
+        },
+        {
+            "in": "\uff21\uff22@\uff25\uff38.COM",
+            "out": "\uff41\uff42@\uff45\uff58.com"
+        },
+        {
+            "in": "A\u030asa@Example.com",
+            "out": "a\u030asa@example.com"
+        },
+        {
             "in": "",
             "out": ""
         },

@@ -27,5 +27,9 @@ def is_did_oc(value: object) -> TypeGuard[str]:
 
 
 def normalize_email(value: str) -> str:
-    """Trimmed of surrounding whitespace, then lower-cased, as auth-core's ``normalizeEmail``."""
+    """Trimmed of surrounding whitespace, then lower-cased, as auth-core's ``normalizeEmail``.
+
+    Lower-casing follows Python's Unicode version, so a letter cased only in a
+    newer Unicode than this Python knows can lower differently in Node.
+    """
     return value.strip(_JS_TRIM).lower()

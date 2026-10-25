@@ -20,6 +20,8 @@ export function isDidOc(value: unknown): value is DidOc {
  * The form an email address is stored, hashed and looked up in: trimmed of
  * surrounding whitespace, then lower-cased. Every sign-in code, linked address
  * and Connect claim uses it, so a change here moves every stored lookup.
+ * Lower-casing follows the runtime's Unicode version: a letter cased only in a
+ * newer Unicode lowers here before it does in an older Node or Python.
  */
 export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
