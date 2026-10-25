@@ -57,36 +57,49 @@ const NUMERIC_KEYS = new Set<string>([
     'kind',
 ]);
 
-/** Keys whose value is an HTTP method: case-sensitive, never lower case (SPEC §7.2 rule 4). */
+/** Keys whose value is an HTTP method: an RFC 9110 token with no lower-case letter (SPEC §7.2 rule 4). */
 const METHOD_KEYS = new Set<string>(['method']);
-/** Keys whose value is hex or a MIME type: written in lower case (SPEC §7.2 rule 4). */
-const LOWER_CASE_KEYS = new Set<string>(['content_hash_prefix', 'poll_id', 'node', 'mime']);
+const METHOD_RE = /^[!#$%&'*+\-.^_`|~0-9A-Z]+$/;
+/** Keys whose value is hex, in lower case (SPEC §7.2 rule 4). */
+const HEX_KEYS = new Set<string>(['content_hash_prefix', 'poll_id', 'node']);
+const HEX_RE = /^[0-9a-f]+$/;
+/** Keys whose value is a MIME type and subtype, in lower case, without parameters (SPEC §7.2 rule 4). */
+const MIME_KEYS = new Set<string>(['mime']);
+const MIME_RE = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/;
+/** Keys whose value is a prefix of a hash: `!=` withholds every hash that starts with it (SPEC §7.4). */
+const PREFIX_KEYS = new Set<string>(['content_hash_prefix']);
 /** Keys whose value is a Bitcoin address: bech32 in lower case, base58 as written (SPEC §7.2 rule 4). */
 const ADDRESS_KEYS = new Set<string>(['recipient', 'counterparty']);
 const BECH32_HRP_RE = /^(bc|tb|bcrt)1/i;
-/** Keys whose value is a URL: scheme and host in lower case, the rest as written (SPEC §7.2 rule 4). */
+/** Keys whose value is a URL: scheme and authority in lower case, the rest as written (SPEC §7.2 rule 4). */
 const URL_KEYS = new Set<string>(['origin', 'server', 'relay']);
 
-/** The scheme and host of a URL value: what comes before its path, query or fragment. */
+/** The scheme and authority of a URL value, or without `//` everything before its path, query or fragment. */
 function urlHead(value: string): string {
-    const m = /^(?:[^:/?#]*:)?(?:\/\/[^/?#]*)?/.exec(value)![0];
-    return m || value.split(/[/?#]/)[0]!;
+    const authority = /^[^:/?#]*:\/\/[^/?#]*/.exec(value);
+    return authority ? authority[0] : value.split(/[/?#]/)[0]!;
 }
 
 /** Why `value` is not a value `key` can take (SPEC §7.2 rule 4), or null. */
 function valueProblem(key: string, value: string): string | null {
+    const got = JSON.stringify(value);
     if (NUMERIC_KEYS.has(key) && parseDecimalInteger(value) === null) {
-        return `${key} takes a decimal integer, got ${JSON.stringify(value)}`;
+        return `${key} takes a decimal integer, got ${got}`;
     }
-    if (METHOD_KEYS.has(key) && /[a-z]/.test(value)) {
-        return `${key} is an HTTP method and holds no lower-case letter, got ${JSON.stringify(value)}`;
+    if (METHOD_KEYS.has(key) && !METHOD_RE.test(value)) {
+        return `${key} is an HTTP method: an ASCII token with no lower-case letter, got ${got}`;
     }
-    const lowerOnly = LOWER_CASE_KEYS.has(key) || (ADDRESS_KEYS.has(key) && BECH32_HRP_RE.test(value));
-    if (lowerOnly && /[A-Z]/.test(value)) {
-        return `${key} is written in lower case, got ${JSON.stringify(value)}`;
+    if (HEX_KEYS.has(key) && !HEX_RE.test(value)) {
+        return `${key} is hex in lower case, got ${got}`;
     }
-    if (URL_KEYS.has(key) && /[A-Z]/.test(urlHead(value))) {
-        return `${key} has its scheme and host in lower case, got ${JSON.stringify(value)}`;
+    if (MIME_KEYS.has(key) && !MIME_RE.test(value)) {
+        return `${key} is a type/subtype in lower case with no parameters, got ${got}`;
+    }
+    if (ADDRESS_KEYS.has(key) && BECH32_HRP_RE.test(value) && /[A-Z]/.test(value)) {
+        return `${key} is a bech32 address, written in lower case, got ${got}`;
+    }
+    if (URL_KEYS.has(key) && (value.includes('\\') || /[A-Z]/.test(urlHead(value)))) {
+        return `${key} has its scheme and authority in lower case and no backslash, got ${got}`;
     }
     return null;
 }
@@ -330,6 +343,13 @@ export function isSubScope(exercised: Scope, granted: Scope): boolean {
         if (g.op === '!=') {
             if (!ex || ex.value === undefined || g.value === undefined) return false;
             if (valueProblem(g.key, ex.value) || valueProblem(g.key, g.value)) return false;
+            if (PREFIX_KEYS.has(g.key)) {
+                // Admitted only when no hash can start with both: neither value is a prefix of the other.
+                if (ex.op === '=' && !ex.value.startsWith(g.value) && !g.value.startsWith(ex.value)) continue;
+                // Withholding a shorter prefix withholds every hash the grant withholds.
+                if (ex.op === '!=' && g.value.startsWith(ex.value)) continue;
+                return false;
+            }
             const same = NUMERIC_KEYS.has(g.key)
                 ? parseDecimalInteger(ex.value) === parseDecimalInteger(g.value)
                 : ex.value === g.value;

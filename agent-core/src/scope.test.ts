@@ -436,3 +436,67 @@ describe('a URL value has its scheme and host in lower case (SPEC §7.2 rule 4)'
         expect(isSubScope(parseScope('http:request(origin=https://good.example)'), notEvil)).toBe(true);
     });
 });
+
+// SPEC §7.2 rule 4 and §7.4 (1.10.0, review): one spelling per value, in ASCII.
+describe('values with one spelling, in ASCII (SPEC §7.2 rule 4)', () => {
+    for (const s of [
+        'stamp:sign(mime="text/html;charset=utf-8")',
+        'stamp:sign(mime="text/html;")',
+        'stamp:sign(mime=text)',
+        'http:request(method="\u0420OST")',
+        'http:request(method="GE T")',
+        'ln:send(node=03xyz)',
+        'vote:cast(poll_id="\u0430b12")',
+        'stamp:sign(content_hash_prefix=sha256:ab)',
+        'http:request(origin="https:\\\\api.example.com")',
+        'mcp:invoke(server=stdio:Local/tool)',
+    ]) {
+        it(`refuses ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).toThrow(ScopeParseError);
+        });
+    }
+
+    for (const s of [
+        'stamp:sign(mime=application/vnd.oc-lock+json)',
+        'http:request(method=M-SEARCH)',
+        'stamp:sign(content_hash_prefix=ab12)',
+        'mcp:invoke(server=stdio:oc-agent-examples/Verifying-Server)',
+    ]) {
+        it(`accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+
+    it('mime!= is not met by the same type with parameters', () => {
+        const notHtml = parseScope('stamp:sign(mime!=text/html)');
+        expect(isSubScope(parseScope('stamp:sign(mime="text/html;charset=utf-8")'), notHtml)).toBe(false);
+        expect(isSubScope(parseScope('stamp:sign(mime=text/plain)'), notHtml)).toBe(true);
+    });
+
+    it('method!= is not met by a look-alike letter', () => {
+        expect(isSubScope(parseScope('http:request(method="\u0420OST")'), parseScope('http:request(method!=POST)'))).toBe(false);
+    });
+});
+
+// SPEC §7.4 (1.10.0): content_hash_prefix!=v withholds every hash starting with v.
+describe('!= on a hash prefix withholds every hash that starts with it (SPEC §7.4)', () => {
+    const notAb = parseScope('stamp:sign(content_hash_prefix!=ab)');
+    const sub = (s: string) => isSubScope(parseScope(s), notAb);
+
+    it('is not met by a longer prefix, the same prefix, or a shorter one', () => {
+        expect(sub('stamp:sign(content_hash_prefix=abc)')).toBe(false);
+        expect(sub('stamp:sign(content_hash_prefix=ab)')).toBe(false);
+        expect(sub('stamp:sign(content_hash_prefix=a)')).toBe(false);
+    });
+
+    it('is met by a prefix no withheld hash can start with', () => {
+        expect(sub('stamp:sign(content_hash_prefix=ac)')).toBe(true);
+        expect(sub('stamp:sign(content_hash_prefix=b)')).toBe(true);
+    });
+
+    it('is met by withholding a shorter prefix of it, not a longer one', () => {
+        expect(sub('stamp:sign(content_hash_prefix!=a)')).toBe(true);
+        expect(sub('stamp:sign(content_hash_prefix!=ab)')).toBe(true);
+        expect(sub('stamp:sign(content_hash_prefix!=abc)')).toBe(false);
+    });
+});

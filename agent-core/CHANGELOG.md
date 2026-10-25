@@ -9,23 +9,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [2.10.0] — 2026-10-25
 
-### Changed — numbers and methods have one reading (oc-agent-protocol 1.10.0)
+### Changed — scope values have one spelling (oc-agent-protocol 1.10.0)
 
-- `validateScope`, in strict and permissive mode, refuses a registered integer
-  key (`kind`, the `max_*` keys) whose value is not a decimal integer, and a
-  `method` value with a lower-case letter, and hex (`node`, `poll_id`,
-  `content_hash_prefix`), a MIME type (`mime`) or a bech32 address
-  (`recipient`, `counterparty` starting `bc1`, `tb1` or `bcrt1`) with an
-  upper-case letter; a base58 address keeps its case. A URL value (`origin`,
-  `server`, `relay`) with an upper-case letter in its scheme or host is refused;
-  its path keeps its case. `verifyDelegation`, `verifyAction`,
+- `validateScope`, in strict and permissive mode, refuses a registered key whose
+  value has another spelling: an integer key (`kind`, the `max_*` keys) that is
+  not a decimal integer; a `method` that is not an ASCII token without
+  lower-case letters; `node`, `poll_id` or `content_hash_prefix` that is not
+  lower-case hex; a `mime` that is not a lower-case type/subtype without
+  parameters; a bech32 `recipient` or `counterparty` (`bc1`, `tb1`, `bcrt1`)
+  with an upper-case letter; and an `origin`, `server` or `relay` with a
+  backslash or an upper-case scheme or authority. A base58 address and a URL
+  path keep their case. `verifyDelegation`, `verifyAction`,
   `verifyActionAsOfSignedAt` and `verifySubdelegation` return
   `E_BAD_SCOPE_GRAMMAR` for them.
-- `isSubScope` compares an integer key's values as integers under `!=`, so
-  `kind=00` does not meet `kind!=0`, and returns false under `!=` for a value
-  `validateScope` refuses.
-- Permissive mode is unchanged: it accepts an unregistered key and applies it
-  as a constraint, which SPEC §7.6 now says.
+- `isSubScope` under `!=` compares integer keys as integers (`kind=00` does
+  not meet `kind!=0`), reads `content_hash_prefix!=v` as withholding every
+  hash that starts with `v`, and is false for a value `validateScope` refuses.
+- `assertScopeGranted` refuses, with reason `malformed`, an exercised scope a
+  strict verifier refuses, so an adapter signs nothing every verifier rejects.
+- Permissive mode still accepts an unregistered key and applies it as a
+  constraint, which SPEC §7.6 now says.
 
 ## [2.9.0] — 2026-10-24
 

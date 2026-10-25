@@ -1,5 +1,5 @@
 import { hasPrivateScopes } from './private-scope.js';
-import { isSubScope, parseScope } from './scope.js';
+import { isSubScope, parseScope, ScopeParseError, validateScope } from './scope.js';
 import type { ScopesEncryptedEnvelope } from './types.js';
 
 /**
@@ -12,9 +12,9 @@ export interface ScopeBearingDelegation {
     scopes_encrypted?: ScopesEncryptedEnvelope;
 }
 
-/** Distinguishes the three reasons a stamp can be refused. */
+/** Distinguishes the reasons a stamp can be refused. */
 export class ScopeNotGrantedError extends Error {
-    readonly reason: 'not_subscope' | 'scopes_encrypted' | 'no_scopes';
+    readonly reason: 'not_subscope' | 'scopes_encrypted' | 'no_scopes' | 'malformed';
     constructor(reason: ScopeNotGrantedError['reason'], message: string) {
         super(message);
         this.name = 'ScopeNotGrantedError';
@@ -70,6 +70,16 @@ export function assertScopeGranted(
     }
 
     const exercised = parseScope(scopeExercised);
+    // A signer is strict: it signs nothing a strict verifier refuses.
+    try {
+        validateScope(exercised, { mode: 'strict' });
+    } catch (e) {
+        if (!(e instanceof ScopeParseError)) throw e;
+        throw new ScopeNotGrantedError(
+            'malformed',
+            `${fnName}: scope_exercised (${scopeExercised}) is refused by a strict verifier: ${e.message}`
+        );
+    }
     if (!scopes.map(parseScope).some((g) => isSubScope(exercised, g))) {
         throw new ScopeNotGrantedError(
             'not_subscope',

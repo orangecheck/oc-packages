@@ -21,6 +21,22 @@ function reasonOf(fn: () => void): string {
 }
 
 describe('assertScopeGranted', () => {
+    it('refuses to stamp a scope a strict verifier would refuse, even under a grant that admits it', () => {
+        expect(
+            reasonOf(() =>
+                assertScopeGranted({ scopes: ['stamp:sign'] }, 'stamp:sign(mime=Text/Plain)', 'f')
+            )
+        ).toBe('malformed');
+        expect(
+            reasonOf(() =>
+                assertScopeGranted({ scopes: ['http:request'] }, 'http:request(zzz=1)', 'f')
+            )
+        ).toBe('malformed');
+        expect(() =>
+            assertScopeGranted({ scopes: ['stamp:sign'] }, 'stamp:sign(mime=text/plain)', 'f')
+        ).not.toThrow();
+    });
+
     it('permits an exact grant and a sub-scope of one', () => {
         expect(() =>
             assertScopeGranted({ scopes: ['mcp:invoke(server=s,tool=t)'] }, 'mcp:invoke(server=s,tool=t)', 'f')
