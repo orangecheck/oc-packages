@@ -635,8 +635,10 @@ def test_a_bond_claim_node_refuses_is_refused_here(bond: dict[str, Any]) -> None
 
 def test_bond_age_is_counted_as_node_counts_it() -> None:
     claim = {"v": 1, "sats_floor": 1, "days_floor": 0, "height": 1, "checked_at": V["now"] - 99.5, "nullifier": "ab" * 32}
-    assert bond_meets({"oc_bond": claim}, max_age_secs=99.6)  # type: ignore[arg-type]
+    assert bond_meets({"oc_bond": claim}, max_age_secs=100)
     assert not bond_meets({"oc_bond": claim}, max_age_secs=99)
+    # A fraction is no floor, as auth-core's readBondNeed reads it (bond-need.json).
+    assert not bond_meets({"oc_bond": claim}, max_age_secs=99.6)  # type: ignore[arg-type]
 
 
 @respx.mock

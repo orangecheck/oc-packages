@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.24.0] — 2026-10-25
+
+### Changed
+
+- `bondMeets(payload, need)` is false when `need` is not a floor: an object of
+  `minSats`, `minDays` and `maxAgeSecs` only, each left out or a whole number
+  of 0 or more (a safe integer). NaN, an infinity, a negative, a fraction, a
+  string, a boolean, null or a misspelt key no longer reads as no floor.
+
+### Added
+
+- `readBondNeed(need)`: the floor `bondMeets` applies, or null when it is not
+  one, so a caller can refuse a bad floor when it is configured.
+  `test-vectors/bond-need.json` holds auth-core, me-client and sdk-py to the
+  same answers.
+
 ## [2.23.0] — 2026-10-25
 
 ### Changed

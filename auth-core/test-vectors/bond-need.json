@@ -1,0 +1,251 @@
+{
+    "description": "Bond floors (requireBond / require_bond) as every SDK reads them: a floor names min_sats, min_days and max_age_secs only (minSats, minDays and maxAgeSecs in TypeScript), each left out or a whole number of 0 or more no larger than 2^53 - 1. Anything else (NaN, an infinity, a negative, a fraction, a string, a boolean, null, a larger integer, an unknown key) is no floor: auth-core readBondNeed returns null and bondMeets false, me-client refuses the option when it is set, and sdk-py raises TypeError. {\"$number\": \"NaN\"} and {\"$number\": \"Infinity\"} stand for the numbers JSON cannot write. claim is the account backing every case is checked against, checked checked_ago_secs before now.",
+    "claim": {
+        "sats_floor": 10000,
+        "days_floor": 30,
+        "checked_ago_secs": 100
+    },
+    "cases": [
+        {
+            "need": {},
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "min_sats": 10000
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "min_sats": 10001
+            },
+            "valid": true,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 0
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "min_days": 30
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "min_days": 31
+            },
+            "valid": true,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 10000,
+                "min_days": 30
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "max_age_secs": 600
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "max_age_secs": 60
+            },
+            "valid": true,
+            "meets": false
+        },
+        {
+            "need": {
+                "max_age_secs": 0
+            },
+            "valid": true,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 10000.0
+            },
+            "valid": true,
+            "meets": true
+        },
+        {
+            "need": {
+                "min_sats": 9007199254740991
+            },
+            "valid": true,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": {
+                    "$number": "NaN"
+                }
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": {
+                    "$number": "NaN"
+                }
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "max_age_secs": {
+                    "$number": "NaN"
+                }
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": {
+                    "$number": "Infinity"
+                }
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "max_age_secs": {
+                    "$number": "Infinity"
+                }
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": -1
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": -1
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "max_age_secs": -1
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": 29.9
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 0.5
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": "5"
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": "3_0"
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": "\u0663\u0660"
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": ""
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": true
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_days": false
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": null
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "max_age_secs": null
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 9007199254740992
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_satz": 5
+            },
+            "valid": false,
+            "meets": false
+        },
+        {
+            "need": {
+                "min_sats": 1000,
+                "maxAge": 60
+            },
+            "valid": false,
+            "meets": false
+        }
+    ]
+}

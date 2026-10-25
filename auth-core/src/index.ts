@@ -234,23 +234,47 @@ export function readBondClaim(payload: SessionPayload): BondClaim | null {
   return b as BondClaim;
 }
 
+/** A floor on an account's backing: the least `sats_floor` and `days_floor`, and the oldest check. */
+export interface BondNeed {
+  minSats?: number;
+  minDays?: number;
+  maxAgeSecs?: number;
+}
+
+const BOND_NEED_KEYS: ReadonlySet<string> = new Set(["minSats", "minDays", "maxAgeSecs"]);
+
+/**
+ * `need` when it is a floor `bondMeets` can apply, else null: an object of
+ * `minSats`, `minDays` and `maxAgeSecs` only, each left out or a whole number
+ * of 0 or more (a safe integer). NaN, a string, a fraction or a misspelt key
+ * is no floor at all, so it never reads as 0.
+ */
+export function readBondNeed(need: unknown): BondNeed | null {
+  if (need === null || typeof need !== "object" || Array.isArray(need)) return null;
+  for (const [key, value] of Object.entries(need)) {
+    if (!BOND_NEED_KEYS.has(key)) return null;
+    if (value !== undefined && !(Number.isSafeInteger(value) && (value as number) >= 0)) return null;
+  }
+  return need as BondNeed;
+}
+
 /**
  * True when the account is backed by a coin whose floors reach `minSats`
  * and `minDays`, and the issuer checked it within
  * `maxAgeSecs` (default: no limit). Compare against the floor ladder: a
- * `minSats` of 50000 is met by a `sats_floor` of 100000, not 10000.
+ * `minSats` of 50000 is met by a `sats_floor` of 100000, not 10000. A `need`
+ * that `readBondNeed` refuses is never met.
  */
-export function bondMeets(
-  payload: SessionPayload,
-  need: { minSats?: number; minDays?: number; maxAgeSecs?: number },
-): boolean {
+export function bondMeets(payload: SessionPayload, need: BondNeed): boolean {
+  const n = readBondNeed(need);
+  if (!n) return false;
   const b = readBondClaim(payload);
   if (!b) return false;
-  if (b.sats_floor < (need.minSats ?? 0)) return false;
-  if (b.days_floor < (need.minDays ?? 0)) return false;
-  if (need.maxAgeSecs !== undefined) {
+  if (b.sats_floor < (n.minSats ?? 0)) return false;
+  if (b.days_floor < (n.minDays ?? 0)) return false;
+  if (n.maxAgeSecs !== undefined) {
     const age = Math.floor(Date.now() / 1000) - b.checked_at;
-    if (age < 0 || age > need.maxAgeSecs) return false;
+    if (age < 0 || age > n.maxAgeSecs) return false;
   }
   return true;
 }

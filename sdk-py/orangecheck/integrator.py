@@ -570,6 +570,18 @@ _POLICY_RETRY_SECONDS = 10
 #: How long the last requirement read stands while it can't be read again.
 _POLICY_MAX_STALE_SECONDS = 600
 _NULLIFIER = re.compile(r"[0-9a-f]{64}")
+_BOND_NEED_KEYS = ("min_sats", "min_days", "max_age_secs")
+_MAX_SAFE_INTEGER = 2**53 - 1
+
+
+def _floor(v: Any) -> Optional[int]:
+    """``v`` as a floor: a whole number of 0 to 2^53 - 1, as auth-core's ``readBondNeed`` takes one, else None.
+    An integral float counts, as it does in JavaScript; a bool, a string, NaN or 29.9 does not."""
+    if isinstance(v, float) and v.is_integer():
+        v = int(v)
+    if isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= _MAX_SAFE_INTEGER:
+        return v
+    return None
 
 
 class BondRequired(InvalidSession):
@@ -609,6 +621,9 @@ def bond_meets(
     age). As auth-core's ``bondMeets``: compare against the floor ladder, so
     ``min_sats=50000`` is met by a ``sats_floor`` of 100000, not 10000.
     """
+    floors = (_floor(min_sats), _floor(min_days))
+    if None in floors or (max_age_secs is not None and _floor(max_age_secs) is None):
+        return False
     b = read_bond_claim(claims)
     if b is None:
         return False
@@ -705,10 +720,22 @@ def _read_requirement(doc: Any) -> Optional[dict[str, int]]:
     return {"min_sats": floors[0], "min_days": floors[1]}
 
 
-def _need_from(require_bond: Mapping[str, Any]) -> dict[str, int]:
-    need = {"min_sats": int(require_bond.get("min_sats", 0)), "min_days": int(require_bond.get("min_days", 0))}
-    if require_bond.get("max_age_secs") is not None:
-        need["max_age_secs"] = int(require_bond["max_age_secs"])
+def _need_from(require_bond: Any) -> dict[str, int]:
+    """``require_bond`` as a floor. TypeError unless it is a mapping of ``min_sats``, ``min_days`` and
+    ``max_age_secs`` only, each left out or a whole number of 0 or more: a misspelt key or a bad value
+    must not read as no floor."""
+    if not isinstance(require_bond, Mapping):
+        raise TypeError("require_bond must be a mapping of min_sats, min_days and max_age_secs")
+    extra = sorted(str(k) for k in require_bond if k not in _BOND_NEED_KEYS)
+    if extra:
+        raise TypeError(f"require_bond: unknown key {', '.join(extra)}; it reads only {', '.join(_BOND_NEED_KEYS)}")
+    need = {"min_sats": 0, "min_days": 0}
+    for key in _BOND_NEED_KEYS:
+        if key in require_bond:
+            value = _floor(require_bond[key])
+            if value is None:
+                raise TypeError(f"require_bond.{key} must be a whole number of 0 or more, got {require_bond[key]!r}")
+            need[key] = value
     return need
 
 
@@ -828,6 +855,8 @@ def verify_session(
     """
     if not isinstance(require_handle, bool):
         raise TypeError("require_handle must be True or False")
+    if require_bond is not None:
+        _need_from(require_bond)
     parts = token.split(".") if isinstance(token, str) else []
     if len(parts) != 3:
         raise InvalidSession("malformed")
@@ -1040,6 +1069,8 @@ def check_oc_session(
     """
     if not isinstance(require_handle, bool):
         raise TypeError("require_handle must be True or False")
+    if require_bond is not None:
+        _need_from(require_bond)
     if jwks is None:
         _issuer_url(issuer)
     if not isinstance(token, str) or not token:
@@ -1119,6 +1150,8 @@ def check_sign_in_rule(
         raise TypeError("project_key must be your project's key")
     if project_key is None and policy is None and require_bond is None:
         raise TypeError("check_sign_in_rule needs project_key, policy or require_bond")
+    if require_bond is not None:
+        _need_from(require_bond)
     if project_key is not None:
         policy = _policy_for(project_key, me_origin)
     try:

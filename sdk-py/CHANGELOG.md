@@ -4,6 +4,19 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.12.0] — 2026-10-25
+
+### Changed
+
+- `require_bond` (in `verify_session`, `check_oc_session` and
+  `check_sign_in_rule`) is a mapping of `min_sats`, `min_days` and
+  `max_age_secs` only, each left out or a whole number of 0 to 2^53 - 1. Any
+  other key or value raises TypeError when the call is made, before the token
+  is read: NaN, a string such as `"3_0"`, a fraction such as `29.9` (no longer
+  truncated) or None. An integral float such as `30.0` counts. `bond_meets` is
+  false for a floor that is not one. As auth-core 2.24.0, held to
+  `auth-core/test-vectors/bond-need.json`.
+
 ## [3.11.0] — 2026-10-25
 
 ### Changed
