@@ -44,30 +44,71 @@ function readings(ch: string): string[] {
   );
 }
 
-/** Drops spacing and variation selectors, which change no letter. */
-function unspaced(value: string): string {
-  return value.replace(/[\s\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu, "");
+/** Spacing, which ends a word, and variation selectors, which change no letter. */
+const SPACING = /[\s\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/u;
+const SPACE = /\s/u;
+const IN_WORD = /[\p{L}\p{N}\p{M}]/u;
+const UPPER = /\p{Lu}/u;
+const LOWER = /\p{Ll}/u;
+
+/**
+ * A name's characters, spacing dropped, each marked where a reader sees a
+ * word begin: after spacing, at and after punctuation, at a small letter
+ * followed by a capital ("myOrange"), and at the last capital of a run before
+ * a small letter ("OCHKTeam").
+ */
+function words(value: string): Array<{ ch: string; starts: boolean }> {
+  const kept: Array<{ ch: string; spaced: boolean }> = [];
+  let spaced = false;
+  for (const ch of value) {
+    if (SPACING.test(ch)) {
+      spaced ||= SPACE.test(ch);
+      continue;
+    }
+    kept.push({ ch, spaced });
+    spaced = false;
+  }
+  return kept.map(({ ch, spaced }, i) => {
+    const prev = kept[i - 1]?.ch;
+    const next = kept[i + 1]?.ch;
+    const starts =
+      prev === undefined ||
+      spaced ||
+      !IN_WORD.test(prev) ||
+      !IN_WORD.test(ch) ||
+      (LOWER.test(prev) && UPPER.test(ch)) ||
+      (UPPER.test(prev) && UPPER.test(ch) && next !== undefined && LOWER.test(next));
+    return { ch, starts };
+  });
 }
 
 /**
- * True when a name reads as one of orangecheck's own, whatever its case,
- * width, spacing or variation selectors, or when it is drawn with letters
- * from another script or digits that look like ours: Cyrillic or Greek o, a,
- * e, c, 0 for o. Read a character at a time, so one script's capitals and
- * another's small letters cannot hide a name between them. Always false
- * with `allowReserved`.
+ * True when a name holds one of orangecheck's own as a whole word, whatever
+ * its case, width, spacing or variation selectors, or drawn with letters from
+ * another script or digits that look like ours: Cyrillic or Greek o, a, e, c,
+ * 0 for o. "OrangeCheck Support" and "ochk.io team" read as ours;
+ * "orangecheckers" and "Brochk" do not. Read a character at a time, so one
+ * script's capitals and another's small letters cannot hide a name between
+ * them, and spacing inside a name does not break it. Always false with
+ * `allowReserved`.
  */
 export function isReservedName(value: string, options?: NameRuleOptions): boolean {
   if (readNameOptions("isReservedName", options).allowReserved) return false;
-  let spelt: ReadonlySet<string> = new Set([""]);
-  for (const ch of unspaced(value)) {
-    const next = new Set<string>();
-    for (const head of spelt) {
-      for (const reading of readings(ch)) if (RESERVED_PREFIXES.has(head + reading)) next.add(head + reading);
+  const chars = words(value);
+  for (let start = 0; start < chars.length; start++) {
+    if (!chars[start]!.starts) continue;
+    let spelt: ReadonlySet<string> = new Set([""]);
+    for (let i = start; i < chars.length && spelt.size > 0; i++) {
+      const next = new Set<string>();
+      for (const head of spelt) {
+        for (const reading of readings(chars[i]!.ch)) if (RESERVED_PREFIXES.has(head + reading)) next.add(head + reading);
+      }
+      spelt = next;
+      const wordEnds = i + 1 === chars.length || chars[i + 1]!.starts;
+      if (wordEnds && [...spelt].some((name) => RESERVED_NAMES.has(name))) return true;
     }
-    spelt = next;
   }
-  return [...spelt].some((name) => RESERVED_NAMES.has(name));
+  return false;
 }
 
 export type NameProblem = "required" | "too_long" | "hidden_characters" | "reserved";

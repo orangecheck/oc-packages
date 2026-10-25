@@ -46,10 +46,25 @@ describe("the family name rule", () => {
     expect([...source].filter((c) => c > "~").map((c) => c.codePointAt(0)!.toString(16))).toEqual([]);
   });
 
-  it("allows a name that only contains or resembles one of them", () => {
+  it("refuses a name that holds one of them as a whole word", () => {
+    for (const name of vectors.contains) {
+      expect(isReservedName(name), JSON.stringify(name)).toBe(true);
+      expect(nameProblem(name, 80), JSON.stringify(name)).toBe("reserved");
+    }
+  });
+
+  it("allows a name that only resembles one of them, or holds it inside a longer word", () => {
     for (const name of vectors.allowed) {
       expect(nameProblem(name, 80), JSON.stringify(name)).toBeNull();
     }
+  });
+
+  // Every word start begins a read, so a read must stop where nothing can still spell a name.
+  it("reads a long name in time linear in its length", () => {
+    const name = "orange chec ".repeat(2000);
+    const started = performance.now();
+    expect(isReservedName(name)).toBe(false);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("refuses what hides or reorders text, before it can hide a reserved name", () => {
