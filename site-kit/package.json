@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/site-kit",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "OrangeCheck family-internal site scaffolding for the .ochk.io Next.js sites: SEO and JSON-LD, security headers and CSP, the local /api/auth/me and session gate, the OG card route, the build-time sitemap, and analytics that never report a page's query or fragment. Not for third-party use.",
   "keywords": [
     "orangecheck",
@@ -50,6 +50,11 @@
       "types": "./dist/analytics.d.ts",
       "import": "./dist/analytics.mjs",
       "require": "./dist/analytics.js"
+    },
+    "./rate": {
+      "types": "./dist/rate.d.ts",
+      "import": "./dist/rate.mjs",
+      "require": "./dist/rate.js"
     },
     "./package.json": "./package.json"
   },

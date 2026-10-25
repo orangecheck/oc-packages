@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0
+
+New entry `@orangecheck/site-kit/rate`, server only: `networkOf(ip)`,
+`keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`,
+the rule each site's network caps count by. An IPv4 address is its /24 and so
+is an IPv4-mapped IPv6 address, written dotted or in hex; any other IPv6
+address is its /48. An octet past 255 or with a leading zero, a second `::`, a
+group of more than four digits, a zone id or a port is no address, and counts
+as its own network. Held to `test-vectors/network-key.json`, written by an
+independent reference.
+
 ## 0.5.4
 
 `FAMILY_ORIGINS` and `isFamilyOrigin` in `@orangecheck/site-kit/auth` are now

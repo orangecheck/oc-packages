@@ -1,0 +1,223 @@
+{
+    "description": "networkOf(ip): the network a request comes from, for caps a neighbour should not share with a stranger. An IPv4 address, or an IPv4-mapped IPv6 address in either spelling, is its /24 written \"a.b.c.0/24\"; any other IPv6 address is its /48, written as its first three groups in lower-case hex without leading zeros and \"::/48\". Octets are decimal 0-255 without leading zeros; a zone id, brackets, a port or any other text is its own network, \"other:\" and the trimmed text. keyedId(secret, purpose, kind, value) is the first 32 hex digits of HMAC-SHA256(HKDF-SHA256(ikm=secret, salt=purpose, info=kind, 32 bytes), value). networkKey(ip, secret, purpose) is keyedId(secret, purpose, \"net\", networkOf(ip)).",
+    "network_of": [
+        {
+            "ip": "203.0.113.77",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": " 203.0.113.77 ",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "0.0.0.0",
+            "network": "0.0.0.0/24"
+        },
+        {
+            "ip": "255.255.255.255",
+            "network": "255.255.255.0/24"
+        },
+        {
+            "ip": "203.0.113.256",
+            "network": "other:203.0.113.256"
+        },
+        {
+            "ip": "203.0.113",
+            "network": "other:203.0.113"
+        },
+        {
+            "ip": "203.0.113.77.1",
+            "network": "other:203.0.113.77.1"
+        },
+        {
+            "ip": "010.0.113.77",
+            "network": "other:010.0.113.77"
+        },
+        {
+            "ip": "1.2.3.4:80",
+            "network": "other:1.2.3.4:80"
+        },
+        {
+            "ip": "1.2.3.4.5",
+            "network": "other:1.2.3.4.5"
+        },
+        {
+            "ip": "::ffff:203.0.113.77",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "::FFFF:203.0.113.77",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "0:0:0:0:0:ffff:203.0.113.77",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "::ffff:cb00:714d",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "0:0:0:0:0:ffff:cb00:714d",
+            "network": "203.0.113.0/24"
+        },
+        {
+            "ip": "2001:db8:1:2::1",
+            "network": "2001:db8:1::/48"
+        },
+        {
+            "ip": "2001:0DB8:0001:0002:ffff:0:0:9",
+            "network": "2001:db8:1::/48"
+        },
+        {
+            "ip": "2001:db8:1:2:a:b:c:d",
+            "network": "2001:db8:1::/48"
+        },
+        {
+            "ip": "2001:db8:1:ffff::1",
+            "network": "2001:db8:1::/48"
+        },
+        {
+            "ip": "2001:db8::1",
+            "network": "2001:db8:0::/48"
+        },
+        {
+            "ip": "::1",
+            "network": "0:0:0::/48"
+        },
+        {
+            "ip": "::",
+            "network": "0:0:0::/48"
+        },
+        {
+            "ip": "fe80::1",
+            "network": "fe80:0:0::/48"
+        },
+        {
+            "ip": "64:ff9b::203.0.113.77",
+            "network": "64:ff9b:0::/48"
+        },
+        {
+            "ip": "::203.0.113.77",
+            "network": "0:0:0::/48"
+        },
+        {
+            "ip": "unknown",
+            "network": "other:unknown"
+        },
+        {
+            "ip": "",
+            "network": "other:"
+        },
+        {
+            "ip": "1:2:3",
+            "network": "other:1:2:3"
+        },
+        {
+            "ip": "1::2::3",
+            "network": "other:1::2::3"
+        },
+        {
+            "ip": "12345::1",
+            "network": "other:12345::1"
+        },
+        {
+            "ip": "2001:db8::1%eth0",
+            "network": "other:2001:db8::1%eth0"
+        },
+        {
+            "ip": "[2001:db8::1]",
+            "network": "other:[2001:db8::1]"
+        },
+        {
+            "ip": "2001:db8:1:2:3:4:5:6:7",
+            "network": "other:2001:db8:1:2:3:4:5:6:7"
+        },
+        {
+            "ip": "g::1",
+            "network": "other:g::1"
+        },
+        {
+            "ip": ":::",
+            "network": "other::::"
+        },
+        {
+            "ip": "1:2:3:4:5:6:7:8::",
+            "network": "other:1:2:3:4:5:6:7:8::"
+        }
+    ],
+    "keyed_id": [
+        {
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-cosign-write-cap-v1",
+            "kind": "net",
+            "value": "203.0.113.0/24",
+            "id": "f1e8863272ef8a27338f3a2a2a5d0d31"
+        },
+        {
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-cosign-write-cap-v1",
+            "kind": "ip",
+            "value": "203.0.113.77",
+            "id": "979a711f63cae767b27bd55821d2333e"
+        },
+        {
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-chat-inbox-sender-v1",
+            "kind": "did",
+            "value": "did:oc:0123456789abcdef0123456789abcdef",
+            "id": "0590ee845500d87ffe8ec7a69a776095"
+        },
+        {
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "kind": "net",
+            "value": "2001:db8:1::/48",
+            "id": "d8bf43bc8ae630b8fe58fd061e2ad2a5"
+        }
+    ],
+    "network_key": [
+        {
+            "ip": "203.0.113.77",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "3a22caa70462bc9ecebbf0cfaf6c62c6"
+        },
+        {
+            "ip": "203.0.113.1",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "3a22caa70462bc9ecebbf0cfaf6c62c6"
+        },
+        {
+            "ip": "::ffff:203.0.113.77",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "3a22caa70462bc9ecebbf0cfaf6c62c6"
+        },
+        {
+            "ip": "::ffff:cb00:714d",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "3a22caa70462bc9ecebbf0cfaf6c62c6"
+        },
+        {
+            "ip": "2001:db8:1:2::1",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "d8bf43bc8ae630b8fe58fd061e2ad2a5"
+        },
+        {
+            "ip": "2001:db8:1:ffff::9",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "d8bf43bc8ae630b8fe58fd061e2ad2a5"
+        },
+        {
+            "ip": "unknown",
+            "secret": "site-kit-test-secret-0001",
+            "purpose": "oc-www-rate-v1",
+            "id": "1f66f146f51ea864b4c35f39249d9658"
+        }
+    ]
+}

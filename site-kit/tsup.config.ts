@@ -8,6 +8,7 @@ export default defineConfig({
         og: 'src/og/index.tsx',
         sitemap: 'src/sitemap/index.ts',
         analytics: 'src/analytics/index.tsx',
+        rate: 'src/rate/index.ts',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],
