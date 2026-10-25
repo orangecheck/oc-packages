@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.39.0] — 2026-10-25
+
+### Changed
+
+- The did in an `#oc-as=` tab hint, and the email typed into sign-in and into
+  linking, now go through `isDidOc` and `normalizeEmail` from
+  `@orangecheck/auth-core/identifiers` instead of local copies. Same behaviour.
+  The peer and dev dependency on `@orangecheck/auth-core` is `^2.22.0`.
+
 ## [2.38.0] — 2026-10-24
 
 ### Changed

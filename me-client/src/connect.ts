@@ -17,11 +17,12 @@
  * reaches a client bundle.
  */
 
+import { isDidOc } from '@orangecheck/auth-core/identifiers';
+
 /** The only place a call goes: the key never travels anywhere else. */
 const ORIGIN = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_TIMEOUT_MS = 30_000;
-const DID_OC = /^did:oc:[0-9a-f]{32}$/;
 
 export interface ConnectOptions {
     /** Your Connect API key (ochk.app → your project → Sign-in → Your own login). Server only. */
@@ -239,8 +240,7 @@ export function connectProvision(
             if (answer.status !== 200) return refused(answer, PROVISION_REASONS);
             const good =
                 b?.ok === true &&
-                typeof b.did_oc === 'string' &&
-                DID_OC.test(b.did_oc) &&
+                isDidOc(b.did_oc) &&
                 typeof b.is_new === 'boolean';
             return good
                 ? { ok: true, did_oc: b.did_oc as string, is_new: b.is_new as boolean }

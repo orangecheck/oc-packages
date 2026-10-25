@@ -327,6 +327,16 @@ describe('consumeTabAccountHint', () => {
         expect(calls.length).toBe(0);
     });
 
+    it('no-ops (no fetch) on a marker whose did is not a did:oc', async () => {
+        const calls = setupFetch(() => jsonResponse({ ok: true }));
+        const notDids = [DID_B.toUpperCase(), `${DID_B}0`, 'did:oc:', `did:oc:${'g'.repeat(32)}`];
+        for (const did of notDids) {
+            window.history.replaceState(null, '', `/page#oc-as=${did}`);
+            expect(await consumeTabAccountHint('https://ochk.io'), did).toBeNull();
+        }
+        expect(calls.length).toBe(0);
+    });
+
     it('does not re-mint when already pinned to the hinted account', async () => {
         writeTabSession({ token: 'tok-b', didOc: DID_B });
         const calls = setupFetch(() => jsonResponse({ ok: true }));
