@@ -29,10 +29,14 @@ export function isReservedName(value: string): boolean {
 
 export type NameProblem = "required" | "too_long" | "hidden_characters" | "reserved";
 
-/** Why a name (already trimmed) cannot be stored, or null when it can. */
+/**
+ * Why a name (already trimmed) cannot be stored, or null when it can. `max`
+ * counts code points, as a reader counts characters and Postgres counts a
+ * text column: an emoji is one, not two UTF-16 units.
+ */
 export function nameProblem(value: string, max: number): NameProblem | null {
   if (!value) return "required";
-  if (value.length > max) return "too_long";
+  if (value.length > max && [...value].length > max) return "too_long";
   if (HIDDEN_TEXT_CHARS.test(value)) return "hidden_characters";
   if (isReservedName(value)) return "reserved";
   return null;

@@ -23,6 +23,11 @@ this file tracks the package's TS / Node / runtime API surface.
   `integratorRevocationCheck` also needs `handles`: a list without that map
   is a failed read. A failed read keeps the last good copy; with none, writes
   are refused, as through any outage.
+- `nameProblem(value, max)` counts `max` in code points, not UTF-16 units, so
+  an emoji is one character, not two: 25 emoji now fit a 32-character name,
+  where they read as `too_long`. That is how a reader counts, how chat's
+  `shownText` already cut, and how Postgres counts a text column. A combining
+  mark still counts on its own.
 
 ## [2.22.0] — 2026-10-24
 

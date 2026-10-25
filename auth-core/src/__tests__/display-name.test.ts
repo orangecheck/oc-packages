@@ -52,4 +52,11 @@ describe("the family name rule", () => {
     expect(nameProblem("x".repeat(81), 80)).toBe("too_long");
     expect(nameProblem("x".repeat(80), 80)).toBeNull();
   });
+
+  // Code points, not UTF-16 units: 25 emoji fit under 32; a combining mark is its own.
+  it("counts a name's length in code points", () => {
+    for (const { name, max, problem } of vectors.lengths) {
+      expect(nameProblem(name, max), `${[...name].length} code points under ${max}`).toBe(problem);
+    }
+  });
 });
