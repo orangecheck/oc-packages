@@ -59,6 +59,11 @@ const NUMERIC_KEYS = new Set<string>([
 
 /** Keys whose value is an HTTP method: case-sensitive, never lower case (SPEC §7.2 rule 4). */
 const METHOD_KEYS = new Set<string>(['method']);
+/** Keys whose value is hex or a MIME type: written in lower case (SPEC §7.2 rule 4). */
+const LOWER_CASE_KEYS = new Set<string>(['content_hash_prefix', 'poll_id', 'node', 'mime']);
+/** Keys whose value is a Bitcoin address: bech32 in lower case, base58 as written (SPEC §7.2 rule 4). */
+const ADDRESS_KEYS = new Set<string>(['recipient', 'counterparty']);
+const BECH32_HRP_RE = /^(bc|tb|bcrt)1/i;
 
 /** Why `value` is not a value `key` can take (SPEC §7.2 rule 4), or null. */
 function valueProblem(key: string, value: string): string | null {
@@ -67,6 +72,10 @@ function valueProblem(key: string, value: string): string | null {
     }
     if (METHOD_KEYS.has(key) && /[a-z]/.test(value)) {
         return `${key} is an HTTP method and holds no lower-case letter, got ${JSON.stringify(value)}`;
+    }
+    const lowerOnly = LOWER_CASE_KEYS.has(key) || (ADDRESS_KEYS.has(key) && BECH32_HRP_RE.test(value));
+    if (lowerOnly && /[A-Z]/.test(value)) {
+        return `${key} is written in lower case, got ${JSON.stringify(value)}`;
     }
     return null;
 }

@@ -353,3 +353,50 @@ describe('an unregistered granted key binds in both modes (SPEC §7.6)', () => {
         expect(isSubScope(parseScope('http:request(origin=https://a.example,zzz=1)'), granted)).toBe(true);
     });
 });
+
+// SPEC §7.2 rule 4 (1.10.0): hex, MIME types and bech32 addresses have one
+// spelling, lower case; a base58 address is case-sensitive and kept as written.
+describe('hex, MIME and bech32 values are lower case (SPEC §7.2 rule 4)', () => {
+    for (const mode of ['strict', 'permissive'] as const) {
+        for (const s of [
+            'ln:send(node=03ABCDEF)',
+            'vote:cast(poll_id=AB12)',
+            'stamp:sign(content_hash_prefix=sha256:AB)',
+            'stamp:sign(mime=Text/Markdown)',
+            'lock:seal(recipient=BC1QALICE)',
+            'lock:chat(recipient=bc1qAlice)',
+            'pledge:create(counterparty=TB1QBOB)',
+        ]) {
+            it(`${mode} mode refuses ${s}`, () => {
+                expect(() => validateScope(parseScope(s), { mode })).toThrow(ScopeParseError);
+            });
+        }
+    }
+
+    for (const s of [
+        'ln:send(node=03abcdef)',
+        'stamp:sign(mime=text/markdown)',
+        'lock:seal(recipient=bc1qalice)',
+        'lock:seal(recipient=1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2)',
+        'lock:seal(recipient=3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy)',
+        'pledge:create(counterparty=null)',
+    ]) {
+        it(`strict mode accepts ${s}`, () => {
+            expect(() => validateScope(parseScope(s), { mode: 'strict' })).not.toThrow();
+        });
+    }
+
+    it('!= is not met by the upper-case spelling of the value it withholds', () => {
+        const notBob = parseScope('lock:seal(recipient!=bc1qbob)');
+        expect(isSubScope(parseScope('lock:seal(recipient=BC1QBOB)'), notBob)).toBe(false);
+        expect(isSubScope(parseScope('lock:seal(recipient=bc1qcarol)'), notBob)).toBe(true);
+        const notPdf = parseScope('stamp:sign(mime!=application/pdf)');
+        expect(isSubScope(parseScope('stamp:sign(mime=Application/PDF)'), notPdf)).toBe(false);
+    });
+
+    it('a base58 address keeps its case under !=', () => {
+        const granted = parseScope('lock:seal(recipient!=1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2)');
+        expect(isSubScope(parseScope('lock:seal(recipient=1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2)'), granted)).toBe(false);
+        expect(isSubScope(parseScope('lock:seal(recipient=3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy)'), granted)).toBe(true);
+    });
+});
