@@ -20,6 +20,7 @@
  */
 
 import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
+import { isDidOc } from '@orangecheck/auth-core/identifiers';
 
 /** Header carrying the tab-pinned session JWT. Mirrors `@orangecheck/auth-core`'s `TAB_SESSION_HEADER`. */
 export const TAB_SESSION_HEADER = 'x-oc-tab-session';
@@ -188,7 +189,7 @@ export function consumeTabAdoptMarker(): boolean {
 // tab mints its own pin for that account via the host (which re-checks
 // roster membership). The did is a selector, not a credential.
 
-const OC_AS_HINT_RE = /^oc-as=(did:oc:[0-9a-f]{32})$/;
+const OC_AS_HINT_RE = /^oc-as=(.*)$/;
 
 /** The auth host's own origin, e.g. `https://ochk.io`. Null if unparseable. */
 function authHostOrigin(authOrigin: string): string | null {
@@ -300,8 +301,8 @@ export async function consumeTabAccountHint(authOrigin: string): Promise<string 
     if (typeof window === 'undefined') return null;
     const frag = window.location.hash.replace(/^#/, '');
     const m = OC_AS_HINT_RE.exec(frag);
-    if (!m) return null;
-    const did = m[1]!;
+    if (!m || !isDidOc(m[1])) return null;
+    const did = m[1];
     // Strip the fragment regardless of what happens next.
     try {
         const url = new URL(window.location.href);

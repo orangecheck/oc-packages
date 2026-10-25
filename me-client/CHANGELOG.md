@@ -8,6 +8,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.52.0] — 2026-10-25
+
+### Changed
+
+- `connectProvision` checks the returned did with `isDidOc` from
+  `@orangecheck/auth-core/identifiers` (now `^2.22.0`) instead of a local copy.
+  `test-vectors/connect.json` adds a did with a trailing newline and one in
+  upper case; both answer `unavailable`, in sdk-py too.
+
 ## [0.51.0] — 2026-10-24
 
 ### Added

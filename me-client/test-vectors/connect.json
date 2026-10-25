@@ -156,6 +156,20 @@
             "result": { "ok": false, "reason": "unavailable", "status": 200 }
         },
         {
+            "name": "provision: 200 with a did:oc and a trailing newline",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "did_oc": "did:oc:0123456789abcdef0123456789abcdef\n", "is_new": true },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
+            "name": "provision: 200 with a did:oc in upper case",
+            "call": "provision",
+            "status": 200,
+            "body": { "ok": true, "did_oc": "DID:OC:0123456789ABCDEF0123456789ABCDEF", "is_new": true },
+            "result": { "ok": false, "reason": "unavailable", "status": 200 }
+        },
+        {
             "name": "provision: 200 that says not ok",
             "call": "provision",
             "status": 200,

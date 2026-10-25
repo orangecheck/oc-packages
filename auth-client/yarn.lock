@@ -271,10 +271,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/auth-core@^2.21.0":
-  version "2.21.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.21.0.tgz#c71a6c314b348fc294ba762a2387f795c807bb45"
-  integrity sha512-W3JZpd20EkYXZz0/PQNsJjCY6844G7kjkR2OJM0wiA0JxIsIcO++kX/vZAzYFQducO99pOTU3l4Z9YwEFoqCgw==
+"@orangecheck/auth-core@^2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.22.0.tgz#e78d68e928b1419bf79fe51fe28dc19e1ee22192"
+  integrity sha512-DYPwOTtMfxn1gFMwaORTN0zNNwkypLfJBa02KUSExfL+y8n6GpH7Dt3D1cipGLDV52JP5QKHhHrbqBu81XL+1A==
   dependencies:
     jose "^6.2.2"
 

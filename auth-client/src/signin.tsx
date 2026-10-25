@@ -38,6 +38,7 @@
  */
 
 import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
+import { normalizeEmail } from '@orangecheck/auth-core/identifiers';
 import * as React from 'react';
 
 import { addressInputValue } from './address';
@@ -1415,7 +1416,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
 
     async function start(e: React.FormEvent): Promise<void> {
         e.preventDefault();
-        const trimmed = email.trim().toLowerCase();
+        const trimmed = normalizeEmail(email);
         if (!trimmed || !/.+@.+\..+/.test(trimmed)) {
             setEmailError(humanSigninError('invalid_email', 'email'));
             return;

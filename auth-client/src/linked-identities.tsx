@@ -27,6 +27,7 @@
  * override via its own stylesheet.
  */
 
+import { normalizeEmail } from '@orangecheck/auth-core/identifiers';
 import * as React from 'react';
 import {
     handleSudoRequired,
@@ -600,7 +601,7 @@ function EmailLinkForm({
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email.trim().toLowerCase() }),
+                body: JSON.stringify({ email: normalizeEmail(email) }),
             });
             const j = (await r.json()) as { ok?: boolean; token?: string; reason?: string };
             if (!r.ok || !j.token) throw new Error(j.reason ?? `http_${r.status}`);
@@ -622,7 +623,7 @@ function EmailLinkForm({
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: email.trim().toLowerCase(),
+                    email: normalizeEmail(email),
                     code: code.trim(),
                     token,
                     ...(confirmTransfer ? { confirm_transfer: true } : {}),
