@@ -101,6 +101,7 @@ from .integrator import (
     verify_webhook,
     warm_session,
 )
+from .identifiers import is_did_oc, normalize_email
 from .native import NativeRefusal, NativeSignIn, exchange_native_code
 from .return_path import safe_return_path
 from .tokens import (
@@ -126,6 +127,8 @@ from .types import (
 __all__ = [
     # Top-level functions (sync)
     "safe_return_path",
+    "is_did_oc",
+    "normalize_email",
     "check",
     "verify",
     "discover",
@@ -220,7 +223,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.7.0"
+__version__ = "3.8.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

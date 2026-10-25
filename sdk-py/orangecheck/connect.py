@@ -20,12 +20,13 @@ The same requests and results as ``@orangecheck/me-client/server``, held to
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, Union
 from urllib.parse import urlsplit
 
 import httpx
+
+from .identifiers import is_did_oc
 
 #: The checkbox label for an optional "also make me an orangecheck account" box.
 CONNECT_CONSENT_LABEL = "Also create my orangecheck account"
@@ -39,7 +40,6 @@ CONNECT_CONSENT_BLURB = (
 _ORIGIN = "https://ochk.io"
 _DEFAULT_TIMEOUT = 5.0
 _MAX_TIMEOUT = 30.0
-_DID_OC = re.compile(r"^did:oc:[0-9a-f]{32}$")
 
 _PROVISION_REASONS = frozenset(
     {"account_deleted", "daily_limit", "rate_limited", "invalid_api_key", "app_suspended", "bad_request"}
@@ -173,7 +173,7 @@ def connect_provision(
         return _refused(status, data, _PROVISION_REASONS)
     did = data.get("did_oc") if data else None
     is_new = data.get("is_new") if data else None
-    if data and data.get("ok") is True and isinstance(did, str) and _DID_OC.match(did) and isinstance(is_new, bool):
+    if data and data.get("ok") is True and is_did_oc(did) and isinstance(is_new, bool):
         return ConnectAccount(did_oc=did, is_new=is_new)
     return ConnectRefusal(reason="unavailable", status=200)
 

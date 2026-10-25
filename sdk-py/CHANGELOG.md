@@ -4,6 +4,21 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.8.0] — 2026-10-25
+
+### Added
+
+- `is_did_oc(value)` and `normalize_email(value)`: what a did:oc is (`did:oc:`
+  and 32 lowercase hex digits, nothing before or after it, so a trailing
+  newline is refused where a `$` regex would take it), and the form an email
+  is stored and looked up in (trimmed of exactly the characters JavaScript's
+  `trim` removes, then lower-cased). As `@orangecheck/auth-core/identifiers`
+  2.22.0, held to the same vectors (`auth-core/test-vectors/identifiers.json`).
+
+### Changed
+
+- `connect_provision` checks the returned did with `is_did_oc`.
+
 ## [3.7.0] — 2026-10-24
 
 ### Added
