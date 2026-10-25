@@ -31,6 +31,7 @@ import type {
     DelegationBond,
     DelegationRevocationRef,
     RevocationEnvelope,
+    RevocationFlag,
     RevocationsRead,
 } from './types.js';
 import {
@@ -42,6 +43,7 @@ import {
     shown,
     signatureVerifies,
 } from './guards.js';
+import { revocationFlags } from './reason.js';
 import { delegationWindowError } from './verify.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,7 +107,7 @@ export interface FederationRevocationEnvelope {
 }
 
 export type FederationVerifyResult =
-    | ({ ok: true; id: string; canonicalMessage: string } & RevocationsRead)
+    | ({ ok: true; id: string; canonicalMessage: string; flags?: RevocationFlag[] } & RevocationsRead)
     | { ok: false; code: AgentErrorCode; message: string };
 
 export interface VerifyFederationBase {
@@ -412,10 +414,10 @@ async function verifyRevocationOf(
         });
     }
     const v1 = rev as RevocationEnvelope;
-    if (v1.kind !== 'agent-revocation' || v1.signer?.address !== d.agent.address) {
+    if (v1.signer?.address !== d.agent.address) {
         return fail('E_REVOKER_UNAUTHORIZED', 'a single-address revocation must be signed by the agent');
     }
-    if ((v1.reason !== undefined && typeof v1.reason !== 'string') || !isIsoUtc(v1.signed_at)) {
+    if ((v1.reason != null && typeof v1.reason !== 'string') || !isIsoUtc(v1.signed_at)) {
         return fail('E_MALFORMED', 'revocation reason / signed_at invalid');
     }
     const canonInput = {
@@ -424,18 +426,18 @@ async function verifyRevocationOf(
         reason: v1.reason ?? '',
         signed_at: v1.signed_at,
     };
+    // Signed over the id of the signed fields; the envelope's `id` and `kind` are copies.
     const id = computeRevocationId(canonInput);
-    if (id !== v1.id) return fail('E_BAD_ID', `reconstructed id (${id}) != revocation.id (${shown(v1.id)})`);
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return fail('E_BAD_SIG', 'no BIP-322 verifier supplied');
         if (
             typeof v1.sig?.value !== 'string' ||
-            !(await signatureVerifies(input.verifyBip322, v1.id, v1.sig.value, v1.signer.address))
+            !(await signatureVerifies(input.verifyBip322, id, v1.sig.value, v1.signer.address))
         ) {
             return fail('E_BAD_SIG', 'revocation BIP-322 signature did not verify');
         }
     }
-    return { ok: true, id: v1.id, canonicalMessage: revocationCanonicalMessage(canonInput) };
+    return { ok: true, id, canonicalMessage: revocationCanonicalMessage(canonInput), flags: revocationFlags(v1, id) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -454,11 +456,9 @@ export async function verifyFederationRevocation(
     if (!isPlainObject(input)) return fail('E_MALFORMED', 'verifyFederationRevocation takes an options object');
     const env = input.envelope;
     if (!isPlainObject(env)) return fail('E_MALFORMED', 'the revocation must be an object');
-    if (env.kind !== 'agent-revocation') return fail('E_MALFORMED', 'kind must be "agent-revocation"');
-    if (!isHex64(env.id)) return fail('E_MALFORMED', 'id must be 64 lowercase hex chars');
     if (!isHex64(env.delegation_id)) return fail('E_MALFORMED', 'delegation_id must be 64-hex');
-    // "" when omitted; any text otherwise, whatever it holds (SPEC §9.1).
-    if (env.reason !== undefined && typeof env.reason !== 'string') {
+    // "" when omitted or null; any text otherwise, whatever it holds (SPEC §9.1).
+    if (env.reason != null && typeof env.reason !== 'string') {
         return fail('E_MALFORMED', 'reason must be text');
     }
     if (!isIsoUtc(env.signed_at)) return fail('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
@@ -484,17 +484,20 @@ export async function verifyFederationRevocation(
         reason: env.reason ?? '',
         signed_at: env.signed_at,
     };
+    // Signed over the id of the signed fields; the envelope's `id` and `kind` are copies.
     const reconstructedId = computeRevocationId(canonInput);
-    if (reconstructedId !== env.id) {
-        return fail('E_BAD_ID', `reconstructed id (${reconstructedId}) != envelope.id (${env.id})`);
-    }
 
     // A revocation stands on M valid signatures from distinct guardians; an
     // extra bad or repeated entry beside them does not void it (FEDERATION.md §4).
-    const quorum = await checkFederationQuorum(env.signer, env.sig, env.id, input, 'revocation');
+    const quorum = await checkFederationQuorum(env.signer, env.sig, reconstructedId, input, 'revocation');
     if (!quorum.ok) return quorum;
 
-    return { ok: true, id: env.id, canonicalMessage: revocationCanonicalMessage(canonInput) };
+    return {
+        ok: true,
+        id: reconstructedId,
+        canonicalMessage: revocationCanonicalMessage(canonInput),
+        flags: revocationFlags(env, reconstructedId),
+    };
 }
 
 function fail(code: AgentErrorCode, message: string): { ok: false; code: AgentErrorCode; message: string } {

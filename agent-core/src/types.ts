@@ -287,7 +287,11 @@ export interface RevocationsRead {
 }
 
 export type VerifyDelegationResult = (VerifyOk<DelegationEnvelope> & RevocationsRead) | VerifyErr;
-export type VerifyRevocationResult = VerifyOk<RevocationEnvelope> | VerifyErr;
+/** What a verifier notes about a revocation it accepts. A flag never voids one (SPEC §9.1). */
+export type RevocationFlag = 'id_mismatch' | 'kind_nonconforming' | 'reason_nonconforming';
+
+/** `id` is computed from the signed fields; the envelope's own `id` is a copy, and `flags` say where copies differ. */
+export type VerifyRevocationResult = (VerifyOk<RevocationEnvelope> & { flags: RevocationFlag[] }) | VerifyErr;
 export type VerifySubdelegationResult = VerifyOk<SubdelegationEnvelope> | VerifyErr;
 
 export interface VerifyActionOkExtra {

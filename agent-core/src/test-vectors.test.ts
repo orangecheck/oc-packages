@@ -30,6 +30,7 @@ import type {
     AgentErrorCode,
     DelegationEnvelope,
     RevocationEnvelope,
+    RevocationFlag,
     SubdelegationEnvelope,
 } from './types.js';
 
@@ -91,8 +92,10 @@ interface RevocationVector extends BaseVector {
     };
     expected: BaseVector['expected'] & {
         envelope: RevocationEnvelope;
-        /** What the cited delegation verifies to once this revocation is passed in (v34–v38). */
+        /** What the cited delegation verifies to once this revocation is passed in (v34–v42). */
         delegation_outcome?: AgentErrorCode;
+        /** Where the envelope's copies differ from its signed fields (v40–v42). */
+        flags?: RevocationFlag[];
     };
 }
 
@@ -278,7 +281,10 @@ describe('oc-agent-protocol test vectors', () => {
         it(`${name} — id equals sha256(canonical_message)`, () => {
             const id = reconstructId(data);
             expect(id).toBe(data.expected.id);
-            expect(id).toBe(data.expected.envelope.id);
+            // A stated id that differs is a copy the verifier flags (v41).
+            const statedDiffers = data.kind === 'revocation' && data.expected.flags?.includes('id_mismatch');
+            if (statedDiffers) expect(data.expected.envelope.id).not.toBe(id);
+            else expect(id).toBe(data.expected.envelope.id);
         });
 
         it(`${name} — declared envelope passes verify() with skipSignatureVerification`, async () => {
@@ -314,6 +320,10 @@ describe('oc-agent-protocol test vectors', () => {
                     skipSignatureVerification: true,
                 });
                 expect(r.ok).toBe(true);
+                if (r.ok && data.expected.flags) {
+                    expect(r.id).toBe(data.expected.id);
+                    expect(r.flags).toEqual(data.expected.flags);
+                }
                 if (data.expected.delegation_outcome) {
                     const d = await verifyDelegation({
                         envelope: delegation,

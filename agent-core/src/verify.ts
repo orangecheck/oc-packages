@@ -24,6 +24,7 @@ import {
     signatureVerifies,
 } from './guards.js';
 import { unsealScopes } from './private-scope.js';
+import { revocationFlags } from './reason.js';
 import {
     canonicalizeScope,
     isSubScope,
@@ -565,7 +566,7 @@ async function verifyActionAt(
     // envelope's own id; `ots` is outside the signature.
     let actionAnchor: number | null;
     try {
-        actionAnchor = await verifiedAnchorHeight(a, input);
+        actionAnchor = await verifiedAnchorHeight(a, a.id, input);
     } catch (e) {
         return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
     }
@@ -593,17 +594,17 @@ async function verifyActionAt(
                 }
                 let revAnchor: number | null;
                 try {
-                    revAnchor = await verifiedAnchorHeight(rev, input);
+                    revAnchor = await verifiedAnchorHeight(rev, rr.id, input);
                 } catch (e) {
                     return err('E_MALFORMED', `anchor verifier threw: ${(e as Error).message}`);
                 }
                 if (revocationPrecedes(rev, revAnchor, a, actionAnchor)) {
-                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id} before action was signed`);
+                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rr.id} before action was signed`);
                 }
                 // Live: a revocation already in effect refuses the action, however
                 // early its signed_at claims to be.
                 if (now && (revAnchor !== null || new Date(rev.signed_at).getTime() <= now.getTime())) {
-                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rev.id}`);
+                    return err('E_REVOKED', `chain link ${link.id} was revoked by ${rr.id}`);
                 }
             }
         }
@@ -797,18 +798,23 @@ export async function verifyRevocation(input: VerifyRevocationInput): Promise<Ve
         signed_at: env.signed_at,
     };
     const reconstructedMessage = revocationCanonicalMessage(canonInput);
+    // The signature is over the id of the signed fields; the envelope's `id` and
+    // `kind` are copies, noted when they differ and never read to decide.
     const reconstructedId = hexEncode(sha256(revocationCanonicalBytes(canonInput)));
-    if (reconstructedId !== env.id) {
-        return err('E_BAD_ID', `reconstructed id (${reconstructedId}) does not match revocation.id (${env.id})`);
-    }
 
     if (!input.skipSignatureVerification) {
         if (!input.verifyBip322) return err('E_BAD_SIG', 'no BIP-322 verifier supplied');
-        const ok = await signatureVerifies(input.verifyBip322, env.id, env.sig.value, env.signer.address);
+        const ok = await signatureVerifies(input.verifyBip322, reconstructedId, env.sig.value, env.signer.address);
         if (!ok) return err('E_BAD_SIG', 'revocation BIP-322 signature did not verify');
     }
 
-    return { ok: true, envelope: env, canonicalMessage: reconstructedMessage, id: env.id };
+    return {
+        ok: true,
+        envelope: env,
+        canonicalMessage: reconstructedMessage,
+        id: reconstructedId,
+        flags: revocationFlags(env, reconstructedId),
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -915,12 +921,10 @@ function checkActionShape(a: ActionEnvelope): VerifyActionResult | null {
 }
 
 function checkRevocationShape(env: RevocationEnvelope): VerifyRevocationResult | null {
-    if (env.kind !== 'agent-revocation') return err('E_MALFORMED', 'kind must be "agent-revocation"');
-    if (!isHex64(env.id)) return err('E_MALFORMED', 'id must be 64 lowercase hex chars');
     if (!isHex64(env.delegation_id)) return err('E_MALFORMED', 'delegation_id must be 64-hex');
     if (!isText(env.signer?.address)) return err('E_MALFORMED', 'signer.address must be text');
-    // "" when omitted; any text otherwise, whatever it holds (SPEC §9.1).
-    if (env.reason !== undefined && typeof env.reason !== 'string') return err('E_MALFORMED', 'reason must be text');
+    // "" when omitted or null; any text otherwise, whatever it holds (SPEC §9.1).
+    if (env.reason != null && typeof env.reason !== 'string') return err('E_MALFORMED', 'reason must be text');
     if (!isIsoUtc(env.signed_at)) return err('E_MALFORMED', 'signed_at must be ISO 8601 UTC');
     if (typeof env.sig?.value !== 'string') return err('E_MALFORMED', 'sig.value must be text');
     return null;
@@ -1158,17 +1162,18 @@ export async function verifySubdelegation(
 
 /**
  * The block height of an envelope's OTS anchor, or null unless the proof has
- * been verified to commit this envelope's id at that height.
+ * been verified to commit `id`, the id of its signed fields, at that height.
  */
 async function verifiedAnchorHeight(
     env: ActionEnvelope | RevocationEnvelope,
+    id: string,
     input: Pick<VerifyActionInput, 'verifyOtsAnchor' | 'resolveAnchorBlockHeight'>
 ): Promise<number | null> {
     if (env.ots?.status !== 'confirmed' || !input.verifyOtsAnchor) return null;
     const h = input.resolveAnchorBlockHeight ? input.resolveAnchorBlockHeight(env) : env.ots.block_height;
     const hash = env.ots.block_hash;
     if (h === null || h === undefined || !Number.isInteger(h) || !hash) return null;
-    return (await input.verifyOtsAnchor(env.ots.proof, h, hash, env.id)) ? h : null;
+    return (await input.verifyOtsAnchor(env.ots.proof, h, hash, id)) ? h : null;
 }
 
 /**

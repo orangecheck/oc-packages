@@ -230,6 +230,23 @@ describe('revocation priority uses only verified anchors', () => {
         expect(r.ok).toBe(true);
     });
 
+    it("a revocation's anchor is checked against the id of its signed fields, not a stated copy", async () => {
+        const a = action(d, later, confirmed(100));
+        const real = revocation(d, PRINCIPAL, '2026-04-23T00:00:00Z', confirmed(50));
+        const seen: string[] = [];
+        await verifyActionAsOfSignedAt({
+            action: a,
+            delegation: d,
+            revocations: [{ ...real, id: 'f'.repeat(64) }],
+            skipSignatureVerification: true,
+            verifyOtsAnchor: async (_p, _h, _b, id) => {
+                seen.push(id);
+                return true;
+            },
+        });
+        expect(seen).toEqual([a.id, real.id]);
+    });
+
     it('a verified action anchor against an unanchored revocation falls back to signed times', async () => {
         const r = await verifyActionAsOfSignedAt({
             action: action(d, later, confirmed(1)),

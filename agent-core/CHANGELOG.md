@@ -18,9 +18,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - The reason's content is not read: a reason outside ASCII, holding a control
   character, or longer than 128 bytes no longer leaves the revocation skipped.
-  A reason left out is `""`.
+  A reason left out, or `null`, is `""`.
 - `v`, `sig.pubkey` and `sig.alg` are not read; the signature is checked
   against `signer.address`, which is signed.
+- The id is computed from the signed fields and the signature checked against
+  it. A stated `id` that differs, or a `kind` other than `agent-revocation`, is
+  a copy: it is flagged and the revocation still revokes. A signature over the
+  stated id instead revokes nothing. A revocation's anchor is checked against
+  the computed id too.
 - A federation revocation stands on M signatures that verify from distinct
   declared guardians. An extra entry that is malformed, unknown, repeated or
   does not verify is passed over, as are `sig.alg` and `sig.threshold`. A
@@ -31,7 +36,14 @@ this file tracks the package's TS / Node / runtime API surface.
 - `authoredReasonProblem(reason)`: SPEC §9.1's rule for signers, printable
   ASCII of at most `REVOCATION_REASON_MAX_BYTES` (128) bytes.
   `@orangecheck/agent-signer` applies it from 0.5.2. No verifier uses it.
-- `shownReason(reason)` escapes control characters for display and drops none.
+- `shownReason(reason)` writes, for display, each control, bidi, invisible or
+  line-separating character as an escape (`\n`, `\x07`, `\u{202e}`) and
+  drops none. It takes any value: no reason, or one that is not text, reads
+  `no reason given`.
+- `verifyRevocation` and `verifyFederationRevocation` return `flags`
+  (`RevocationFlag[]`): `id_mismatch`, `kind_nonconforming` or
+  `reason_nonconforming` where the copy is not as a signer writes it. A flag
+  never voids a revocation.
 
 ## [2.8.0] — 2026-10-24
 
