@@ -9,7 +9,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Changed — a signer signs only what a strict verifier accepts (oc-agent-protocol 1.10.0)
+
+- `signAsAgent` refuses content outside the scope it exercises: a verifier
+  reads `mime`, `max_bytes` and `content_hash_prefix` from the action's own
+  content (SPEC §8.3 step 12a), so an action whose content the claim does not
+  cover would only be refused there.
+- `createDelegation` always checks scopes strictly. `scopeMode: 'permissive'`
+  is refused: an adapter's `assertScopeGranted` is strict, so nothing could be
+  stamped under such a delegation.
+- Requires `@orangecheck/agent-core` `^2.10.0`.
 
 ## [0.5.2] — 2026-10-24
 

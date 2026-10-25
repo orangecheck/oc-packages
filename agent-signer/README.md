@@ -89,7 +89,7 @@ interface CreateDelegationInput {
     nonce?: string;                    // default: random 32-hex
     revocationHolders?: ('principal' | 'agent')[]; // default: ['principal']
     revocationRef?: string | null;
-    scopeMode?: 'strict' | 'permissive'; // default: 'strict'
+    // Scopes are checked strictly, as a strict verifier checks them; 'permissive' is refused.
 }
 ```
 

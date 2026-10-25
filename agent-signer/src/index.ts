@@ -15,18 +15,17 @@ import {
     computeActionId,
     computeDelegationId,
     computeRevocationId,
+    contentBoundScope,
     ENVELOPE_VERSION,
     hexEncode,
     authoredReasonProblem,
+    isSubScope,
     parseScope,
     REVOCATION_REASON_MAX_BYTES,
     sealScopes,
     validateScope,
 } from '@orangecheck/agent-core';
-import type {
-    ScopesEncryptedEnvelope,
-    ValidationOptions,
-} from '@orangecheck/agent-core';
+import type { ScopesEncryptedEnvelope } from '@orangecheck/agent-core';
 import type {
     ActionEnvelope,
     ActionOts,
@@ -66,8 +65,8 @@ export interface CreateDelegationInput {
     revocationHolders?: RevocationHolder[];
     /** Optional Nostr pointer to a revocation event. Non-cryptographic. */
     revocationRef?: string | null;
-    /** Default 'strict'. 'permissive' allows unregistered scopes / constraint keys. */
-    scopeMode?: ValidationOptions['mode'];
+    /** A signer is strict (SPEC §7.6): scopes are always checked as a strict verifier checks them. */
+    scopeMode?: 'strict';
     /**
      * v1.2 private-scope (PRIVATE-SCOPE.md). When supplied, the resulting
      * delegation envelope omits the public `scopes` field and instead carries
@@ -107,8 +106,10 @@ export async function createDelegation(input: CreateDelegationInput): Promise<De
     if (!input.scopes || input.scopes.length === 0) {
         throw new Error('createDelegation: at least one scope is required');
     }
-    const mode = input.scopeMode ?? 'strict';
-    for (const s of input.scopes) validateScope(parseScope(s), { mode });
+    if (input.scopeMode !== undefined && input.scopeMode !== 'strict') {
+        throw new Error('createDelegation: a signer is strict; scopeMode "permissive" is not offered');
+    }
+    for (const s of input.scopes) validateScope(parseScope(s), { mode: 'strict' });
     const scopes = canonicalizeScopes(input.scopes);
 
     const issuedAt = isoUtcSeconds(input.issuedAt ?? new Date());
@@ -244,6 +245,21 @@ export async function signAsAgent(input: SignAsAgentInput): Promise<ActionEnvelo
         if (!Number.isInteger(contentLength) || contentLength < 0) {
             throw new Error('signAsAgent: content.length must be a non-negative integer');
         }
+    }
+
+    // A verifier reads content-bound keys from the content (SPEC §8.3 step 12a);
+    // sign nothing whose content falls outside the scope it claims.
+    const exercised = parseScope(input.scopeExercised);
+    const fromContent = contentBoundScope(exercised, {
+        hash: contentHash,
+        length: contentLength,
+        mime: input.mime,
+    });
+    if (!isSubScope(fromContent, exercised)) {
+        throw new Error(
+            `signAsAgent: the content (${input.mime}, ${contentLength} bytes, ${contentHash}) is outside ` +
+                `scope_exercised ${input.scopeExercised}`
+        );
     }
 
     const signedAt = isoUtcSeconds(input.signedAt ?? new Date());

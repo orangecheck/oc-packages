@@ -290,3 +290,64 @@ describe('re-exported verifiers', () => {
         expect(guard.firstUse(action, at)).toBe(false);
     });
 });
+
+// SPEC §8.3 step 12a: a verifier reads content-bound keys from the content, so the
+// signer refuses content its own claim, or the grant, does not cover.
+describe('signAsAgent and content-bound keys', () => {
+    const GRANT = 'stamp:sign(content_hash_prefix=ab,max_bytes<=10,mime=text/plain)';
+    const grant = () =>
+        createDelegation({
+            principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+            agentAddress: AGENT,
+            scopes: [GRANT],
+            ttlMs: 60 * 60 * 1000,
+        });
+    const sign = async (content: { hash: string; length: number }, mime: string, scopeExercised = GRANT) =>
+        signAsAgent({
+            agent: { address: AGENT, signMessage: fakeSign(AGENT) },
+            delegation: await grant(),
+            content,
+            mime,
+            scopeExercised,
+        });
+    const AB = 'sha256:ab' + 'e'.repeat(62);
+
+    it('signs content the claim and the grant cover, and it verifies', async () => {
+        const delegation = await grant();
+        const action = await signAsAgent({
+            agent: { address: AGENT, signMessage: fakeSign(AGENT) },
+            delegation,
+            content: { hash: AB, length: 5 },
+            mime: 'text/plain',
+            scopeExercised: GRANT,
+        });
+        const r = await verifyAction({ action, delegation, verifyBip322: fakeVerify, skipRevocationCheck: true });
+        expect(r.ok).toBe(true);
+    });
+
+    it('refuses oversize content, another mime, or a hash outside the prefix', async () => {
+        await expect(sign({ hash: AB, length: 999999 }, 'text/plain')).rejects.toThrow(/outside/);
+        await expect(sign({ hash: AB, length: 5 }, 'text/html')).rejects.toThrow(/outside/);
+        await expect(sign({ hash: 'sha256:' + '9'.repeat(64), length: 5 }, 'text/plain')).rejects.toThrow(/outside/);
+    });
+
+    it('refuses content outside a narrower claim it makes', async () => {
+        await expect(
+            sign({ hash: AB, length: 8 }, 'text/plain', 'stamp:sign(content_hash_prefix=abe,max_bytes<=5,mime=text/plain)')
+        ).rejects.toThrow(/outside/);
+    });
+});
+
+describe('createDelegation is strict', () => {
+    it('refuses scopeMode "permissive"', async () => {
+        await expect(
+            createDelegation({
+                principal: { address: PRINCIPAL, signMessage: fakeSign(PRINCIPAL) },
+                agentAddress: AGENT,
+                scopes: ['acme:deploy(region=eu)'],
+                ttlMs: 60_000,
+                scopeMode: 'permissive' as never,
+            })
+        ).rejects.toThrow(/strict/);
+    });
+});
