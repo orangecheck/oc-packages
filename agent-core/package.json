@@ -68,6 +68,7 @@
     "@orangecheck/stamp-core": "^1.0.0"
   },
   "devDependencies": {
+    "@orangecheck/lock-crypto": "^0.1.0",
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",

@@ -154,7 +154,7 @@
   },
   "devDependencies": {
     "@orangecheck/auth-client": "^2.32.3",
-    "@orangecheck/auth-core": "^2.5.0",
+    "@orangecheck/auth-core": "^2.24.0",
     "@orangecheck/me-client": "^0.50.0",
     "@orangecheck/wallet-adapter": "^0.7.0",
     "@storybook/react": "^10",

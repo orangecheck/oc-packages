@@ -1,0 +1,40 @@
+name: Dependency floors
+
+# Every @orangecheck range a package declares must hold what it imports at its
+# floor (scripts/check-dep-floors.mjs). Runs only when a manifest, a lockfile
+# or a source file changes, since nothing else can move a floor or an import.
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - '*/package.json'
+            - '*/yarn.lock'
+            - '*/src/**'
+            - 'scripts/check-dep-floors*.mjs'
+            - '.github/workflows/dep-floors.yml'
+    pull_request:
+        branches: [main]
+        paths:
+            - '*/package.json'
+            - '*/yarn.lock'
+            - '*/src/**'
+            - 'scripts/check-dep-floors*.mjs'
+            - '.github/workflows/dep-floors.yml'
+
+concurrency:
+    group: dep-floors-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    floors:
+        name: Dependency floors hold what each package imports
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node --test scripts/check-dep-floors.test.mjs
+            - run: node scripts/check-dep-floors.mjs
