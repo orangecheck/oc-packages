@@ -182,10 +182,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.4.0.tgz#e6a3e98edbed3c8659b28bb8f9b18ca02ec8ea4b"
   integrity sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==
 
-"@orangecheck/auth-core@^2.15.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.19.0.tgz#84a62e74e2fcab8590eca3fd4e594a0b220ced29"
-  integrity sha512-Mp8Lo2mFDMMBW5z69QgbRPuk2kxaCjf+eRQZuJkYzmixkMSprl4s4pRtMtUEJ6CYTKIqwC7eY6aO5rr20WpguA==
+"@orangecheck/auth-core@^2.17.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.22.0.tgz#e78d68e928b1419bf79fe51fe28dc19e1ee22192"
+  integrity sha512-DYPwOTtMfxn1gFMwaORTN0zNNwkypLfJBa02KUSExfL+y8n6GpH7Dt3D1cipGLDV52JP5QKHhHrbqBu81XL+1A==
   dependencies:
     jose "^6.2.2"
 
@@ -198,12 +198,12 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/me-client@^0.40.0":
-  version "0.40.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.40.1.tgz#17a9b7a994108682b2de18ba6f609a42aa04c055"
-  integrity sha512-Aa4wpHsFw9JegaM9BAoh3hN6GFA+j26ZnZrOb+5jXhgslnUZNxB5MTgJ/B9QlE/8FCzc3mV53f4mI6kxQYWaNA==
+"@orangecheck/me-client@^0.42.0":
+  version "0.42.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.42.1.tgz#c5704979adc2f3ddc339965e802a89054946100b"
+  integrity sha512-fQ4L4IkN3FtavparGrgwyZnH/9UMY1BouLXT6341FnNgsgYjko6Tk9OwosbYg9DQjJ3RMCKlmjYiIu2/ZMMf5g==
   dependencies:
-    "@orangecheck/auth-core" "^2.15.0"
+    "@orangecheck/auth-core" "^2.17.0"
 
 "@orangecheck/sdk@^1.7.0":
   version "1.17.0"
