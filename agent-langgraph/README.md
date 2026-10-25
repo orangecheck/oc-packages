@@ -65,7 +65,7 @@ Stamp's `content.hash` is a SHA-256 of:
 
 The `graph_state_hash` is itself a `sha256:<64-hex>` over the canonicalized graph state object. Two replays against the same persisted state produce the same hash; a divergent state (extra messages, mutated step counter, anything) produces a different hash and the action envelope will not match.
 
-Default `scope_exercised` is `langgraph:tool(verb=<verb>)`. Override via `scopeExercised`.
+Default `scope_exercised` is `langgraph:tool(verb="<verb>")`, the name quoted so it is read as written. Override via `scopeExercised`.
 
 ## API
 

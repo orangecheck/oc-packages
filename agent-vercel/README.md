@@ -12,7 +12,7 @@ The Vercel AI SDK has converged on a clean `tool({description, parameters, execu
 
 This module wraps `execute` so every successful call produces a signed `agent-action` envelope citing the active delegation:
 
-- Pre-call: scope check (`vercel:tool(verb=<verb>)` against the delegation; refuses if not admissible).
+- Pre-call: scope check (`vercel:tool(verb="<verb>")` against the delegation; refuses if not admissible).
 - Canonicalize the `(verb, args, callId)` tuple, BIP-322 sign as the agent address, emit envelope.
 - Run the real handler.
 - Return both the result (back to the model via the SDK) and the envelope (for your audit pipeline).
@@ -77,7 +77,7 @@ Stamp's `content.hash` is a SHA-256 of:
 }
 ```
 
-Default `scope_exercised` is `vercel:tool(verb=<verb>)`. Override via `scopeExercised`.
+Default `scope_exercised` is `vercel:tool(verb="<verb>")`, the name quoted so it is read as written. Override via `scopeExercised`.
 
 ## API
 

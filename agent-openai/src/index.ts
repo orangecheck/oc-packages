@@ -15,6 +15,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import {
     assertScopeGranted,
     canonicalize,
+    canonicalizeScope,
     computeActionId,
     hexEncode,
     type DelegationEnvelope,
@@ -145,7 +146,7 @@ export interface StampFunctionCallInput {
     delegation: DelegationEnvelope;
     /** Either a normalized `OpenAiFunctionCall` or a raw OpenAI tool_call / function_call object. */
     call: OpenAiFunctionCall | unknown;
-    /** Defaults to `openai:function(name=<name>)` — the tightest admissible sub-scope. */
+    /** Defaults to `openai:function(name="<name>")` — the tightest admissible sub-scope. */
     scopeExercised?: string;
     signedAt?: Date;
 }
@@ -162,7 +163,12 @@ export async function stampFunctionCall(
             : parseFunctionCall(input.call);
 
     const scopeExercised =
-        input.scopeExercised ?? `openai:function(name=${fc.name})`;
+        input.scopeExercised ?? canonicalizeScope({
+            product: 'openai',
+            verb: 'function',
+            // A quoted value, read as written: a tool called "*" is that tool.
+            constraints: [{ key: 'name', op: '=', value: fc.name, quoted: true }],
+        });
 
     assertScopeGranted(input.delegation, scopeExercised, 'stampFunctionCall');
 

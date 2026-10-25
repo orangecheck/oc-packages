@@ -5,12 +5,13 @@
 // blocks: { type: 'tool_use', id, name, input }. This module canonicalizes
 // each tool_use, hashes it, and produces an agent-action envelope binding
 // the BIP-322-authenticated agent to the (tool_name, input) tuple — at a
-// scope of `anthropic:tool(name=<tool>)`.
+// scope of `anthropic:tool(name="<tool>")`.
 
 import { sha256 } from '@noble/hashes/sha256';
 import {
     assertScopeGranted,
     canonicalize,
+    canonicalizeScope,
     computeActionId,
     hexEncode,
     type DelegationEnvelope,
@@ -85,7 +86,7 @@ export interface StampToolUseInput {
     agent: SignerRef;
     delegation: DelegationEnvelope;
     toolUse: AnthropicToolUse;
-    /** Defaults to `anthropic:tool(name=<tool>)` — the tightest admissible sub-scope. */
+    /** Defaults to `anthropic:tool(name="<tool>")` — the tightest admissible sub-scope. */
     scopeExercised?: string;
     signedAt?: Date;
 }
@@ -96,7 +97,12 @@ export interface StampToolUseInput {
  */
 export async function stampToolUse(input: StampToolUseInput): Promise<ActionEnvelope> {
     const scopeExercised =
-        input.scopeExercised ?? `anthropic:tool(name=${input.toolUse.name})`;
+        input.scopeExercised ?? canonicalizeScope({
+            product: 'anthropic',
+            verb: 'tool',
+            // A quoted value, read as written: a tool called "*" is that tool.
+            constraints: [{ key: 'name', op: '=', value: input.toolUse.name, quoted: true }],
+        });
 
     assertScopeGranted(input.delegation, scopeExercised, 'stampToolUse');
 

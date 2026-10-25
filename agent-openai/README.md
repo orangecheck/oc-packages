@@ -56,7 +56,7 @@ The stamp's `content.hash` is a SHA-256 of the RFC-8785-canonicalized JSON:
 }
 ```
 
-The action's `scope_exercised` defaults to `openai:function(name=<name>)`. Override via `scopeExercised`.
+The action's `scope_exercised` defaults to `openai:function(name="<name>")` (the name quoted, so it is read as written). Override via `scopeExercised`.
 
 ## API
 

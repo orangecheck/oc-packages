@@ -17,6 +17,7 @@ import { sha256 } from '@noble/hashes/sha256';
 import {
     assertScopeGranted,
     canonicalize,
+    canonicalizeScope,
     computeActionId,
     hexEncode,
     type DelegationEnvelope,
@@ -115,14 +116,19 @@ export interface AgentContext {
 
 export interface StampToolCallInput extends AgentContext {
     call: LangGraphToolCall;
-    /** Defaults to `langgraph:tool(verb=<verb>)` — the tightest admissible sub-scope. */
+    /** Defaults to `langgraph:tool(verb="<verb>")` — the tightest admissible sub-scope. */
     scopeExercised?: string;
     signedAt?: Date;
 }
 
 export async function stampToolCall(input: StampToolCallInput): Promise<ActionEnvelope> {
     const scopeExercised =
-        input.scopeExercised ?? `langgraph:tool(verb=${input.call.verb})`;
+        input.scopeExercised ?? canonicalizeScope({
+            product: 'langgraph',
+            verb: 'tool',
+            // A quoted value, read as written: a tool called "*" is that tool.
+            constraints: [{ key: 'verb', op: '=', value: input.call.verb, quoted: true }],
+        });
 
     assertScopeGranted(input.delegation, scopeExercised, 'stampToolCall');
 

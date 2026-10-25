@@ -68,7 +68,7 @@ The stamp's `content.hash` is a SHA-256 of the RFC-8785-canonicalized JSON:
 
 This shape is minimal by design — a verifier reconstructs it from the three fields without knowing anything Anthropic-SDK-specific.
 
-The action's `scope_exercised` defaults to `anthropic:tool(name=<tool>)`, which is the tightest scope that exactly identifies the call. Callers who want a narrower scope can pass `scopeExercised` explicitly; `stampToolUse` pre-flights sub-scope containment against the delegation.
+The action's `scope_exercised` defaults to `anthropic:tool(name="<tool>")` (the name quoted, so it is read as written), which is the tightest scope that exactly identifies the call. Callers who want a narrower scope can pass `scopeExercised` explicitly; `stampToolUse` pre-flights sub-scope containment against the delegation.
 
 ## API
 

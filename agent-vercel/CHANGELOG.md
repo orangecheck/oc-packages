@@ -6,7 +6,12 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Changed
+
+- `stampToolCall` defaults the exercised scope to `vercel:tool(verb="<verb>")`, written
+  through agent-core's `canonicalizeScope` with the name as a quoted value. A
+  name is read as written, so a tool called `"*"` exercises that tool. The
+  quoted form is a sub-scope of the same grants as before.
 
 ## [1.1.3] — 2026-10-25
 
