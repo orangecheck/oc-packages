@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.5.2] — 2026-10-25
+
+### Changed
+
+- Requires `@orangecheck/agent-core` `^2.9.0` and `@orangecheck/agent-signer`
+  `^0.5.2`. A validly signed revocation revokes whatever its reason or its
+  unsigned copy fields hold, and a federation revocation stands on M valid
+  signatures from distinct guardians (oc-agent-protocol 1.9.0).
+
 ## [0.5.1] — 2026-10-23
 
 ### Changed
