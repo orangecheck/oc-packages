@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+`hostOf(ip)` in `@orangecheck/site-kit/rate`: the one requester behind an
+address, for a per-person cap under a network's. An IPv4 address is itself, and
+so is an IPv4-mapped IPv6 address, written dotted or in hex; any other IPv6
+address is its /64. It reads the address as `networkOf` does, so a host always
+lies inside its network, and text that is no address is `other:` and the
+trimmed text under both. Held to `host_of` in `test-vectors/network-key.json`,
+from the same independent reference.
+
 ## 0.6.0
 
 New entry `@orangecheck/site-kit/rate`, server only: `networkOf(ip)`,

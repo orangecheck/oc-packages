@@ -18,7 +18,7 @@ Each site keeps its own deploy and passes its own values.
 | `./auth` | `createSessionReader`, `createMeHandler`, `refuseCookieSession` (same-site only from a listed family site), `FAMILY_ORIGINS`. |
 | `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime. It draws only cards the site issues: `?page=<key>` from its `cards` map (a title, or `{ title, eyebrow }`), the default card for anything else. A request's own text is never drawn. Needs `@orangecheck/app-design` ^1.10.1. |
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
-| `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
+| `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `hostOf(ip)`: the one requester behind it, an IPv4 address itself or an IPv6 /64, always inside its `networkOf`. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
 | `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`. Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
 
 ## Usage
@@ -107,6 +107,13 @@ an address is its own network, `other:` and the text, so a cap keyed on a header
 the client writes would give each junk string a bucket of its own. NAT64
 (`64:ff9b::/96`) and the old `::a.b.c.d` form each fall in one /48, as any IPv6
 address of that /48 does.
+
+A per-person cap sits under the network's: `hostOf(ip)` is an IPv4 address
+itself or an IPv6 /64 (one subscriber's LAN), read with the same parser, so a
+host always lies inside its network, malformed text included. Count the person
+under `keyedId(secret, purpose, 'host', hostOf(ip))` and set the network's cap
+above it, or one person behind a shared address (CGNAT, a campus) stops
+everyone else there.
 
 `purpose` names the site and the use, so one site's ids never match another's,
 and `keyedId` with another `kind` (`'ip'`, `'did'`) counts other subjects under

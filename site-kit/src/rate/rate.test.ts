@@ -2,11 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { keyedId, networkKey, networkOf } from './index';
+import { hostOf, keyedId, networkKey, networkOf } from './index';
 
 // Written by an independent reference (Python's ipaddress, RFC 5869 by hand).
 const V = JSON.parse(readFileSync(new URL('../../test-vectors/network-key.json', import.meta.url), 'utf8')) as {
     network_of: { ip: string; network: string }[];
+    host_of: { ip: string; host: string }[];
     keyed_id: { secret: string; purpose: string; kind: string; value: string; id: string }[];
     network_key: { ip: string; secret: string; purpose: string; id: string }[];
 };
@@ -14,6 +15,52 @@ const V = JSON.parse(readFileSync(new URL('../../test-vectors/network-key.json',
 describe('networkOf (test-vectors/network-key.json)', () => {
     it.each(V.network_of.map((c) => [c.ip, c.network] as const))('%j is %s', (ip, network) => {
         expect(networkOf(ip)).toBe(network);
+    });
+});
+
+describe('hostOf (test-vectors/network-key.json)', () => {
+    it.each(V.host_of.map((c) => [c.ip, c.host] as const))('%j is %s', (ip, host) => {
+        expect(hostOf(ip)).toBe(host);
+    });
+});
+
+/** Whether `host` lies inside `network`, read from the two strings alone. */
+function inside(host: string, network: string): boolean {
+    if (network.startsWith('other:')) return host === network;
+    if (network.endsWith('.0/24')) {
+        return /^\d+\.\d+\.\d+\.\d+$/.test(host) && `${host.split('.').slice(0, 3).join('.')}.0/24` === network;
+    }
+    if (network.endsWith('::/48')) {
+        return host.endsWith('::/64') && `${host.slice(0, -5).split(':').slice(0, 3).join(':')}::/48` === network;
+    }
+    return false;
+}
+
+describe('a host lies inside its network', () => {
+    it.each(V.host_of.map((c) => c.ip))('%j', (ip) => {
+        expect(inside(hostOf(ip), networkOf(ip))).toBe(true);
+    });
+
+    it('for well-formed, mapped and broken text alike', () => {
+        let seed = 7;
+        const r = (n: number) => ((seed = (seed * 1103515245 + 12345) % 2 ** 31), seed % n);
+        const hex = () => r(0x10000).toString(16);
+        const noise = ['', ' ', '0', ':', '.', '::', '%1', 'x'];
+        for (let i = 0; i < 4000; i++) {
+            const g = Array.from({ length: 8 }, hex);
+            const cut = r(8);
+            const forms = [
+                `${r(256)}.${r(256)}.${r(256)}.${r(256)}`,
+                `::ffff:${r(256)}.${r(256)}.${r(256)}.${r(256)}`,
+                `::ffff:${hex()}:${hex()}`,
+                g.join(':'),
+                `${g.slice(0, cut).join(':')}::${g.slice(cut + 1).join(':')}`,
+            ];
+            for (const f of forms) {
+                const ip = r(4) === 0 ? f + noise[r(noise.length)]! : f;
+                expect(inside(hostOf(ip), networkOf(ip)), ip).toBe(true);
+            }
+        }
     });
 });
 

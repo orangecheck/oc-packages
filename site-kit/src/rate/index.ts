@@ -40,6 +40,25 @@ function ipv6Groups(s: string): number[] | null {
     return [...head.map((g) => parseInt(g, 16)), ...zeros, ...rest.map((g) => parseInt(g, 16)), ...tail];
 }
 
+/** An address as its IPv4 octets (an IPv4-mapped IPv6 address included) or its eight IPv6 groups, or null. */
+function parse(s: string): { v4: number[] } | { v6: number[] } | null {
+    const v4 = ipv4Octets(s);
+    if (v4) return { v4 };
+    if (!/^[0-9a-f:.]+$/i.test(s) || !s.includes(':')) return null;
+    const g = ipv6Groups(s.toLowerCase());
+    if (!g) return null;
+    if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) {
+        return { v4: [g[6]! >> 8, g[6]! & 0xff, g[7]! >> 8, g[7]! & 0xff] };
+    }
+    return { v6: g };
+}
+
+const groups = (g: number[], n: number) =>
+    g
+        .slice(0, n)
+        .map((x) => x.toString(16))
+        .join(':');
+
 /**
  * The network an address belongs to: an IPv4 address, or an IPv4-mapped IPv6
  * address in either spelling, is its /24 ("203.0.113.0/24"); any other IPv6
@@ -49,19 +68,25 @@ function ipv6Groups(s: string): number[] | null {
  */
 export function networkOf(ip: string): string {
     const s = ip.trim();
-    const other = `other:${s}`;
-    const v4 = ipv4Octets(s);
-    if (v4) return `${v4[0]}.${v4[1]}.${v4[2]}.0/24`;
-    if (!/^[0-9a-f:.]+$/i.test(s) || !s.includes(':')) return other;
-    const g = ipv6Groups(s.toLowerCase());
-    if (!g) return other;
-    if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) {
-        return `${g[6]! >> 8}.${g[6]! & 0xff}.${g[7]! >> 8}.0/24`;
-    }
-    return `${g
-        .slice(0, 3)
-        .map((x) => x.toString(16))
-        .join(':')}::/48`;
+    const a = parse(s);
+    if (!a) return `other:${s}`;
+    if ('v4' in a) return `${a.v4[0]}.${a.v4[1]}.${a.v4[2]}.0/24`;
+    return `${groups(a.v6, 3)}::/48`;
+}
+
+/**
+ * The one requester behind an address, for a per-person cap under a network's:
+ * an IPv4 address itself ("203.0.113.77"), an IPv4-mapped one included, or an
+ * IPv6 /64 ("2001:db8:1:2::/64", one subscriber's LAN). Anything else is
+ * "other:" and the trimmed text. It reads the address as networkOf does, so a
+ * host always lies inside its network.
+ */
+export function hostOf(ip: string): string {
+    const s = ip.trim();
+    const a = parse(s);
+    if (!a) return `other:${s}`;
+    if ('v4' in a) return a.v4.join('.');
+    return `${groups(a.v6, 4)}::/64`;
 }
 
 /**
