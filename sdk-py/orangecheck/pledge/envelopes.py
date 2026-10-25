@@ -19,6 +19,7 @@ from .canonical import (
     ENVELOPE_VERSION,
     OutcomeCanonicalInput,
     PledgeCanonicalInput,
+    _json_int,
     canonical_abandonment_message,
     canonical_outcome_message,
     canonical_pledge_message,
@@ -170,7 +171,7 @@ def create_pledge(
     resolves_at_typed = (
         ResolvesAtTime(time=resolves_at["time"])
         if "time" in resolves_at
-        else ResolvesAtBlock(block=int(resolves_at["block"]))
+        else ResolvesAtBlock(block=_json_int(resolves_at["block"]))
     )
     canon = PledgeCanonicalInput(
         swearer=swearer,
@@ -183,8 +184,8 @@ def create_pledge(
         expires_at=expires_at,
         bond=PledgeBond(
             attestation_id=bond["attestation_id"],
-            min_sats=int(bond["min_sats"]),
-            min_days=int(bond["min_days"]),
+            min_sats=_json_int(bond["min_sats"]),
+            min_days=_json_int(bond["min_days"]),
         ),
         counterparty=counterparty,
         dispute=PledgeDispute(
@@ -249,7 +250,7 @@ def create_pledge(
             "mechanism": canon.resolution.mechanism,
             "query": canon.resolution.query,
         },
-        "resolves_at": {"time": resolves_at["time"]} if "time" in resolves_at else {"block": int(resolves_at["block"])},
+        "resolves_at": {"time": resolves_at["time"]} if "time" in resolves_at else {"block": _json_int(resolves_at["block"])},
         "expires_at": expires_at,
         "bond": {
             "attestation_id": canon.bond.attestation_id,

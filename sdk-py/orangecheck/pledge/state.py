@@ -26,7 +26,7 @@ PledgeState = Literal[
     "expired_unresolved",
 ]
 
-_ISO_UTC_STRICT = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$")
+_ISO_UTC_STRICT = re.compile(r"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$")
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,12 @@ def _normalize_resolves_at(
     if "block" in r:
         if chain is None:
             return None  # +infinity — pledge stays pending without chain context
-        block = int(r["block"])
+        block = r["block"]
+        # A height that is not a JSON integer is no block (int() would read "5" or an Arabic-Indic digit).
+        if isinstance(block, float) and block.is_integer():
+            block = int(block)
+        if not isinstance(block, int) or isinstance(block, bool):
+            return None
         if chain.block_times and block in chain.block_times:
             return _parse_utc(chain.block_times[block])
         if chain.tip_height >= block:

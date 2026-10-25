@@ -8,6 +8,25 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.5.0] — 2026-10-25
+
+### Changed — `"null"` is not a counterparty or dispute parameter
+
+SPEC §3.6. The canonical message writes a null `counterparty` or
+`dispute.params` as `null`, so the string `"null"` signs the same bytes and
+gives the same id. `validatePledgeInput` now refuses that string in both
+fields, so `createPledge` will not sign it and `verifyPledge` answers
+`E_PLEDGE_MALFORMED` for it. The vector harness checks that a Shape C
+envelope's twin has the same id and verifies. Vectors `v42`–`v45` (`v45`, the
+string `"null"` as `dispute.mechanism`, was already refused).
+
+### Added
+
+- `test-vectors/text-classes.json`: the whitespace and digits pledge-core reads
+  (JavaScript's `\s`, `trim()` and `\d`) and what it takes as a count, with
+  cases for resolution queries, times, counts and delegation scopes. sdk-py's
+  tests give the same answers.
+
 ## [3.4.0] — 2026-10-24
 
 ### Changed — a verifier counts an outcome or abandonment whatever its free text

@@ -14,6 +14,8 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from ._text import js_strip
+
 _BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 _BECH32M_CONST = 0x2BC830A3
 _B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -124,7 +126,7 @@ def normalize_address(text: str) -> Optional[str]:
     result is not an address ``decode_address`` reads, mixed-case bech32
     included. Store, key and compare addresses in this form only.
     """
-    address = text.strip()
+    address = js_strip(text)
     if re.fullmatch(r"(BC|TB|BCRT)1[^a-z]*", address):
         address = address.lower()
     return address if decode_address(address) else None

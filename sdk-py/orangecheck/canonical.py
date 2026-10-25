@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from typing import Mapping, Sequence, Union
 
 from . import types as _types
+from ._text import js_strip
 
 # ─── Identity safety rules ─────────────────────────────────────────────────
 
@@ -94,7 +95,7 @@ def format_identities(identities: Sequence[IdentityLike]) -> str:
 
 def parse_identities(identities_str: str) -> list[IdentityBinding]:
     """Reverse of ``format_identities``. Rejects the same unsafe shapes."""
-    if not identities_str or not identities_str.strip():
+    if not identities_str or not js_strip(identities_str):
         return []
     # A bare newline inside the identities field means either corruption or
     # an attempted line-smuggling attack — refuse either way.
@@ -106,8 +107,8 @@ def parse_identities(identities_str: str) -> list[IdentityBinding]:
         if idx == -1:
             raise ValueError(f"invalid identity binding format: {chunk!r}")
         b = IdentityBinding(
-            protocol=chunk[:idx].strip(),
-            identifier=chunk[idx + 1 :].strip(),
+            protocol=js_strip(chunk[:idx]),
+            identifier=js_strip(chunk[idx + 1 :]),
         )
         if not b.protocol or not b.identifier:
             raise ValueError(f"invalid identity binding: {b.protocol!r}:{b.identifier!r}")

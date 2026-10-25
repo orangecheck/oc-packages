@@ -534,15 +534,27 @@ async function runMalformedVector(vec: AnyVector) {
         return;
     }
 
-    // v33: a whole envelope that verification MUST refuse.
+    // v33, v42-v44: a whole envelope that verification MUST refuse, and for
+    // v42/v43 its twin with the same bytes that verifies.
     if (i['envelope']) {
+        const env = i['envelope'] as PledgeEnvelope;
         const r = await verifyPledge({
-            envelope: i['envelope'] as PledgeEnvelope,
+            envelope: env,
             skipSignatureVerification: true,
             skipDelegationVerification: true,
         });
         expect(r.ok).toBe(false);
         if (!r.ok) expect(r.code).toBe(expectedError);
+        const twin = i['twin'] as PledgeEnvelope | undefined;
+        if (twin) {
+            expect(twin.id).toBe(env.id);
+            const t = await verifyPledge({
+                envelope: twin,
+                skipSignatureVerification: true,
+                skipDelegationVerification: true,
+            });
+            expect(t.ok).toBe(expected['twin_verifies']);
+        }
         return;
     }
 

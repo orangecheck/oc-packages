@@ -41,6 +41,7 @@ import httpx
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from ._text import js_strip
 from .errors import OrangeCheckError
 
 #: The auth host. Sign-in tokens name it as ``iss``; its key set signs them.
@@ -488,7 +489,7 @@ class RevocationList:
         # An empty key or secret signs requests me.ochk.io refuses, so every write
         # would be refused for as long as the process runs. Say so here instead.
         for name, value in (("project_key", project_key), ("signing_secret", signing_secret)):
-            if not isinstance(value, str) or not value.strip():
+            if not isinstance(value, str) or not js_strip(value):
                 raise ValueError(f"RevocationList: {name} must be one non-empty string")
         self._project_key = project_key
         self._secret = signing_secret
@@ -1167,7 +1168,7 @@ def verify_webhook(
     if not sig_hex or not kid:
         raise InvalidWebhook("missing")
     try:
-        signature = bytes.fromhex(sig_hex.strip())
+        signature = bytes.fromhex(js_strip(sig_hex))
     except ValueError as err:
         raise InvalidWebhook("malformed") from err
     if len(signature) != 64:

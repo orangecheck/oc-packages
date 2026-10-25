@@ -26,6 +26,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from ._text import js_strip
 from .identifiers import is_did_oc
 
 #: The checkbox label for an optional "also make me an orangecheck account" box.
@@ -96,7 +97,7 @@ def _utf16_units(s: str) -> int:
 
 
 def _check_call(api_key: Any, user_id: Any, timeout: Any) -> None:
-    if not isinstance(api_key, str) or not api_key.strip():
+    if not isinstance(api_key, str) or not js_strip(api_key):
         raise ValueError("api_key is required (your Connect API key)")
     if not isinstance(user_id, str) or not 1 <= _utf16_units(user_id) <= 256:
         raise ValueError("user_id must be your user's id, 1 to 256 characters")

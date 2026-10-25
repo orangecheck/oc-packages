@@ -4,6 +4,26 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.10.0] — 2026-10-25
+
+### Changed
+
+- OC Pledge reads whitespace and digits as `@orangecheck/pledge-core` does.
+  A digit is ASCII `0`–`9` in times, block heights, resolution queries and a
+  delegation's `max_bond_sats`, which is also at most 2^53 - 1 (SPEC §0).
+  Whitespace is JavaScript's set: U+FEFF counts, and U+001C–U+001F and U+0085
+  do not, in resolution queries, delegation scopes, the swearer, counterparty
+  and resolver checks, and the trimming of addresses, attestation identities,
+  keys and signatures. `.` in a DNS record query stops at U+2028 and U+2029,
+  and an account bond's outpoint, nonce or subject with a trailing line break
+  is refused. Both SDKs are held to `pledge-core/test-vectors/text-classes.json`.
+- A pledge's `bond.min_sats`, `bond.min_days` or `resolves_at.block` must be a
+  JSON integer; `true` and the string `"5"` are refused, and `1000.0` reads as
+  1000.
+- `counterparty` and `dispute.params` may not be the string `"null"`, which
+  signs the same bytes as null (SPEC §3.6, vectors `v42`, `v43`; `v45` holds
+  `dispute.mechanism` to the same rule, which was already refused).
+
 ## [3.9.0] — 2026-10-25
 
 ### Changed

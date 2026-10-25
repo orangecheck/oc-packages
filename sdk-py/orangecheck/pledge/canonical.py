@@ -18,6 +18,8 @@ import secrets
 from dataclasses import dataclass
 from typing import Any, Final, Literal, Optional, Union
 
+from .._text import JS_WHITESPACE
+
 ENVELOPE_VERSION: Final[int] = 1
 
 # ─── Domain separators (SPEC §3.1, §4.1, §5.1) ────────────────────────────
@@ -245,9 +247,11 @@ def compute_abandonment_id(input: AbandonmentCanonicalInput) -> str:
 # SPEC §0: ISO 8601 UTC means YYYY-MM-DDTHH:MM:SSZ — no fractional seconds,
 # no offsets other than the literal capital-Z suffix. Stricter than the
 # OC Attest ISO regex.
-_ISO_UTC_STRICT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_ISO_UTC_STRICT = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 _HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 _HEX_32 = re.compile(r"^[0-9a-f]{32}$")
+# JavaScript's whitespace and the C0 controls, as pledge-core's /[\s\x00-\x1f]/ reads them.
+_SPACE_OR_CONTROL = re.compile(f"[{JS_WHITESPACE}\\x00-\\x1f]")
 
 
 @dataclass(frozen=True)
@@ -269,7 +273,7 @@ def _r(reason: str) -> ValidateErr:
 
 
 def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
-    if not input.swearer or re.search(r"[\s\x00-\x1f]", input.swearer):
+    if not input.swearer or _SPACE_OR_CONTROL.search(input.swearer):
         return _r("swearer must be non-empty with no whitespace or control chars")
     if not input.proposition or re.search(r"[\n\r]", input.proposition):
         return _r("proposition must be non-empty and a single line (no LF or CR)")
@@ -289,7 +293,7 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
                 "resolves_at.time must be ISO 8601 UTC ending in Z (no fractional seconds)"
             )
     elif isinstance(input.resolves_at, ResolvesAtBlock):
-        if not isinstance(input.resolves_at.block, int) or input.resolves_at.block < 0:
+        if not _is_count(input.resolves_at.block):
             return _r("resolves_at.block must be a non-negative integer")
     else:
         return _r("resolves_at must contain exactly one of {time} or {block}")
@@ -297,12 +301,15 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
         return _r("expires_at must be ISO 8601 UTC ending in Z (no fractional seconds)")
     if not _HEX_64.fullmatch(input.bond.attestation_id):
         return _r("bond.attestation_id must be 64 lowercase hex chars")
-    if not isinstance(input.bond.min_sats, int) or input.bond.min_sats < 0:
+    if not _is_count(input.bond.min_sats):
         return _r("bond.min_sats must be a non-negative integer")
-    if not isinstance(input.bond.min_days, int) or input.bond.min_days < 0:
+    if not _is_count(input.bond.min_days):
         return _r("bond.min_days must be a non-negative integer")
-    if input.counterparty is not None and re.search(r"[\s\x00-\x1f]", input.counterparty):
+    if input.counterparty is not None and _SPACE_OR_CONTROL.search(input.counterparty):
         return _r("counterparty must be a Bitcoin address or null")
+    # The canonical message writes null as "null", so that string signs null's bytes (SPEC §3.6).
+    if input.counterparty == "null":
+        return _r('counterparty must not be the string "null": it signs the same bytes as null')
     if input.resolution.mechanism == "counterparty_signs" and input.counterparty is None:
         return _r("counterparty MUST be non-null when resolution.mechanism == counterparty_signs")
     if input.dispute.mechanism is not None and input.dispute.mechanism not in (
@@ -312,6 +319,8 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
         return _r('dispute.mechanism must be null, "vote_resolves", or "named_oracle"')
     if input.dispute.params is not None and re.search(r"[\n\r]", input.dispute.params):
         return _r("dispute.params must be a single line or null")
+    if input.dispute.params == "null":
+        return _r('dispute.params must not be the string "null": it signs the same bytes as null')
     if input.remediation != "breach_recorded":
         return _r('remediation must equal "breach_recorded" in v0.1')
     if not _ISO_UTC_STRICT.fullmatch(input.sworn_at):
@@ -352,7 +361,7 @@ def read_outcome_input(input: OutcomeCanonicalInput) -> ValidateResult:
     if input.resolved_by != "deterministic" and (
         not isinstance(input.resolved_by, str)
         or not input.resolved_by
-        or re.search(r"[\s\x00-\x1f]", input.resolved_by)
+        or _SPACE_OR_CONTROL.search(input.resolved_by)
     ):
         return _r('resolved_by must be "deterministic" or a Bitcoin address')
     if input.evidence.mechanism not in RESOLUTION_MECHANISMS:
@@ -403,6 +412,20 @@ def _one_line(v: str) -> bool:
     return bool(v) and not re.search(r"[\n\r]", v)
 
 
+def _is_count(v: Any) -> bool:
+    """A non-negative integer, as Number.isInteger reads one: a bool is not one."""
+    return isinstance(v, int) and not isinstance(v, bool) and v >= 0
+
+
+def _json_int(v: Any) -> Any:
+    """An integral JSON number as an int (JavaScript has one number type, so 1000.0
+    is 1000 there). Anything else is returned as it came, for the validator to refuse:
+    ``int()`` would read "5", " 5" and Unicode digits as numbers."""
+    if isinstance(v, float) and v.is_integer():
+        return int(v)
+    return v
+
+
 def _is_iso(v: Any) -> bool:
     return isinstance(v, str) and _ISO_UTC_STRICT.fullmatch(v) is not None
 
@@ -420,7 +443,7 @@ def pledge_input_from_dict(d: dict[str, Any]) -> PledgeCanonicalInput:
     ``time`` or ``block`` is present."""
     rd = d["resolves_at"]
     resolves_at: PledgeResolvesAt = (
-        ResolvesAtTime(time=rd["time"]) if "time" in rd else ResolvesAtBlock(block=int(rd["block"]))
+        ResolvesAtTime(time=rd["time"]) if "time" in rd else ResolvesAtBlock(block=_json_int(rd["block"]))
     )
     bond_d = d["bond"]
     dispute_d = d["dispute"]
@@ -435,8 +458,8 @@ def pledge_input_from_dict(d: dict[str, Any]) -> PledgeCanonicalInput:
         expires_at=d["expires_at"],
         bond=PledgeBond(
             attestation_id=bond_d["attestation_id"],
-            min_sats=int(bond_d["min_sats"]),
-            min_days=int(bond_d["min_days"]),
+            min_sats=_json_int(bond_d["min_sats"]),
+            min_days=_json_int(bond_d["min_days"]),
         ),
         counterparty=d.get("counterparty"),
         dispute=PledgeDispute(

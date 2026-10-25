@@ -24,7 +24,11 @@ import re
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Literal, Optional, Union
 
+from .._text import js_strip
 from .envelopes import PledgeError, PledgeErrorCode
+
+#: JavaScript's Number.MAX_SAFE_INTEGER: pledge-core refuses a larger ceiling.
+_MAX_SAFE_INTEGER = 2**53 - 1
 
 
 @dataclass(frozen=True)
@@ -67,13 +71,13 @@ def parse_pledge_create_scope(scope: str) -> Optional[dict[str, str]]:
     skips those). Tolerates whitespace inside parens; rejects malformed
     syntax by returning ``None`` (the scope is treated as non-matching
     rather than raising — matches OC Agent's permissive scope mode)."""
-    trimmed = scope.strip()
+    trimmed = js_strip(scope)
     if trimmed == "pledge:create":
         return {}
     m = _PLEDGE_CREATE_RE.fullmatch(trimmed)
     if not m:
         return None
-    inside = m.group(1).strip()
+    inside = js_strip(m.group(1))
     if inside == "":
         return {}
     out: dict[str, str] = {}
@@ -81,8 +85,8 @@ def parse_pledge_create_scope(scope: str) -> Optional[dict[str, str]]:
         eq = pair.find("=")
         if eq == -1:
             return None
-        key = pair[:eq].strip()
-        val = pair[eq + 1 :].strip()
+        key = js_strip(pair[:eq])
+        val = js_strip(pair[eq + 1 :])
         if not key:
             return None
         out[key] = val
@@ -140,10 +144,11 @@ def _pledge_fails_constraint(
     """Returns ``None`` if the pledge satisfies every constraint; otherwise
     a human-readable reason naming the first failed constraint."""
     if "max_bond_sats" in constraints:
-        try:
-            max_sats = int(constraints["max_bond_sats"])
-        except ValueError:
-            return f'delegation max_bond_sats="{constraints["max_bond_sats"]}" is not a valid integer'
+        raw = constraints["max_bond_sats"]
+        # ASCII digits and a safe integer, as pledge-core reads it: int() would take " 5", "1_0" and Arabic-Indic digits.
+        if not re.fullmatch(r"[0-9]+", raw) or int(raw) > _MAX_SAFE_INTEGER:
+            return f'delegation max_bond_sats="{raw}" is not a valid integer'
+        max_sats = int(raw)
         bond = pledge.get("bond") or {}
         min_sats = int(bond.get("min_sats", 0))
         if min_sats > max_sats:

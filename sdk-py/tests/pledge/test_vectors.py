@@ -367,7 +367,7 @@ def _outcome_stub(pledge_id: str, outcome: str, resolved_at: str) -> dict[str, A
     }
 
 
-# ─── Shape C — malformed-input (v28, v33) ──────────────────────────────────
+# ─── Shape C — malformed-input (v28, v33, v41-v44) ─────────────────────────
 
 
 def _run_malformed(vec: dict[str, Any]) -> None:
@@ -393,7 +393,8 @@ def _run_malformed(vec: dict[str, Any]) -> None:
             assert t.ok == vec["expected"]["twin_verifies"]
         return
 
-    # v33: a whole envelope that verification MUST refuse.
+    # v33, v42-v44: a whole envelope that verification MUST refuse, and for
+    # v42/v43 its twin with the same bytes that verifies.
     if "envelope" in inputs:
         r = verify_pledge(
             inputs["envelope"],
@@ -402,6 +403,13 @@ def _run_malformed(vec: dict[str, Any]) -> None:
         )
         assert not r.ok
         assert r.code == expected_error
+        twin = inputs.get("twin")
+        if twin is not None:
+            assert twin["id"] == inputs["envelope"]["id"]
+            t = verify_pledge(
+                twin, skip_signature_verification=True, skip_delegation_verification=True
+            )
+            assert t.ok == vec["expected"]["twin_verifies"]
         return
 
     class _NoopSigner:

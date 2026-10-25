@@ -34,7 +34,7 @@ BOND_MAX_WINDOW_SECONDS = 3600
 
 _OUTPOINT = re.compile(r"^[0-9a-f]{64}:(0|[1-9][0-9]{0,9})$")
 _NONCE = re.compile(r"^[0-9a-f]{32}$")
-_TIME = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 _SUBJECT = re.compile(r"^[\x21-\x7e]{1,256}$")
 
 @dataclass(frozen=True)
@@ -55,11 +55,11 @@ def _when(s: str) -> datetime:
 def _well_formed(f: BondFields) -> bool:
     return bool(
         decode_address(f.address)
-        and _OUTPOINT.match(f.outpoint)
-        and _SUBJECT.match(f.subject)
-        and _NONCE.match(f.nonce)
-        and _TIME.match(f.issued_at)
-        and _TIME.match(f.expires_at)
+        and _OUTPOINT.fullmatch(f.outpoint)
+        and _SUBJECT.fullmatch(f.subject)
+        and _NONCE.fullmatch(f.nonce)
+        and _TIME.fullmatch(f.issued_at)
+        and _TIME.fullmatch(f.expires_at)
         and _when(f.expires_at) > _when(f.issued_at)
     )
 

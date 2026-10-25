@@ -36,6 +36,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed, encode_dss_signature
 
+from ._text import WS
 from .address import DecodedAddress, decode_address
 
 try:
@@ -193,7 +194,7 @@ def _compact_size(n: int) -> bytes:
 
 def _decode_base64(s: str) -> bytes:
     """Standard or URL-safe, padded or not; empty when it is not base64."""
-    clean = re.sub(r"\s+", "", s).replace("-", "+").replace("_", "/").rstrip("=")
+    clean = re.sub(WS + "+", "", s).replace("-", "+").replace("_", "/").rstrip("=")
     if not re.fullmatch(r"[A-Za-z0-9+/]*", clean) or len(clean) % 4 == 1:
         return b""
     return base64.b64decode(clean + "=" * (-len(clean) % 4))

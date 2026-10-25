@@ -1,0 +1,241 @@
+{
+  "description": "Whitespace, digits and JSON integers as pledge-core (JavaScript) reads them, which sdk-py must match. whitespace lists every code point that ECMAScript \\s matches and trim removes; no other code point is whitespace, so not_whitespace (which Python's \\s and str.strip() take) is not. Digits are ASCII 0-9 only. A count (bond.min_sats, bond.min_days, resolves_at.block) is a JSON number with no fraction, not a boolean or a string. Each case gives the answer both SDKs MUST give.",
+  "whitespace": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    32,
+    160,
+    5760,
+    8192,
+    8193,
+    8194,
+    8195,
+    8196,
+    8197,
+    8198,
+    8199,
+    8200,
+    8201,
+    8202,
+    8232,
+    8233,
+    8239,
+    8287,
+    12288,
+    65279
+  ],
+  "not_whitespace": [
+    28,
+    29,
+    30,
+    31,
+    133,
+    6158,
+    8203
+  ],
+  "digits": "0123456789",
+  "not_digits": [
+    1632,
+    1641,
+    1776,
+    2406,
+    65296,
+    120782
+  ],
+  "resolution_queries": [
+    {
+      "mechanism": "chain_state",
+      "query": "block(900000).exists AND block(900001).exists",
+      "ok": true
+    },
+    {
+      "mechanism": "chain_state",
+      "query": "block(900000).exists\ufeffAND\ufeffblock(900001).exists",
+      "ok": true
+    },
+    {
+      "mechanism": "chain_state",
+      "query": "block(900000).exists\u0085AND\u0085block(900001).exists",
+      "ok": false
+    },
+    {
+      "mechanism": "chain_state",
+      "query": "block(\u0669\u0660\u0660\u0660\u0660\u0660).exists",
+      "ok": false
+    },
+    {
+      "mechanism": "chain_state",
+      "query": "\ufeffblock(900000).exists\ufeff",
+      "ok": true
+    },
+    {
+      "mechanism": "chain_state",
+      "query": "\u0085block(900000).exists",
+      "ok": false
+    },
+    {
+      "mechanism": "counterparty_signs",
+      "query": "counterparty(bc1qx)\u00a0signs outcome over pledge_id",
+      "ok": true
+    },
+    {
+      "mechanism": "counterparty_signs",
+      "query": "counterparty(bc1qx)\u001csigns outcome over pledge_id",
+      "ok": false
+    },
+    {
+      "mechanism": "dns_record",
+      "query": "TXT example.com == hello",
+      "ok": true
+    },
+    {
+      "mechanism": "dns_record",
+      "query": "TXT example.com == hel\u2028lo",
+      "ok": false
+    },
+    {
+      "mechanism": "vote_resolves",
+      "query": "poll_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa option=yes threshold=0.5",
+      "ok": true
+    },
+    {
+      "mechanism": "vote_resolves",
+      "query": "poll_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa option=yes threshold=0.\u0665",
+      "ok": false
+    },
+    {
+      "mechanism": "nostr_event_exists",
+      "query": "kind=1 author=npub1x\u3000created_at_before=2027-01-01T00:00:00Z",
+      "ok": true
+    },
+    {
+      "mechanism": "nostr_event_exists",
+      "query": "kind=1 author=npub1x\u001fcreated_at_before=2027-01-01T00:00:00Z",
+      "ok": false
+    }
+  ],
+  "times": [
+    {
+      "value": "2026-04-24T18:30:00Z",
+      "ok": true
+    },
+    {
+      "value": "\u0662\u0660\u0662\u0666-04-24T18:30:00Z",
+      "ok": false
+    },
+    {
+      "value": "2026-04-24T18:30:0\uff10Z",
+      "ok": false
+    },
+    {
+      "value": "2026-04-24T18:30:00Z\n",
+      "ok": false
+    }
+  ],
+  "counts": [
+    {
+      "field": "min_sats",
+      "value": 1000,
+      "ok": true
+    },
+    {
+      "field": "min_sats",
+      "value": 1000.0,
+      "ok": true
+    },
+    {
+      "field": "min_sats",
+      "value": 1000.5,
+      "ok": false
+    },
+    {
+      "field": "min_sats",
+      "value": -1,
+      "ok": false
+    },
+    {
+      "field": "min_sats",
+      "value": true,
+      "ok": false
+    },
+    {
+      "field": "min_sats",
+      "value": "1000",
+      "ok": false
+    },
+    {
+      "field": "min_days",
+      "value": false,
+      "ok": false
+    },
+    {
+      "field": "min_days",
+      "value": 1.0,
+      "ok": true
+    },
+    {
+      "field": "block",
+      "value": 900000,
+      "ok": true
+    },
+    {
+      "field": "block",
+      "value": 900000.0,
+      "ok": true
+    },
+    {
+      "field": "block",
+      "value": "900000",
+      "ok": false
+    },
+    {
+      "field": "block",
+      "value": true,
+      "ok": false
+    }
+  ],
+  "scopes": {
+    "min_sats": 1000,
+    "cases": [
+      {
+        "scope": "pledge:create(max_bond_sats=1000)",
+        "ok": true
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=\u0661\u0660\u0660\u0660)",
+        "ok": false
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=1_000)",
+        "ok": false
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=+1000)",
+        "ok": false
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=9007199254740991)",
+        "ok": true
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=9007199254740992)",
+        "ok": false
+      },
+      {
+        "scope": "\ufeffpledge:create(max_bond_sats=\ufeff1000)",
+        "ok": true
+      },
+      {
+        "scope": "\u0085pledge:create(max_bond_sats=1000)",
+        "ok": false
+      },
+      {
+        "scope": "pledge:create(max_bond_sats=\u00851000)",
+        "ok": false
+      }
+    ]
+  }
+}

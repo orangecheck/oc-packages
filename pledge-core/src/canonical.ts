@@ -274,6 +274,10 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
     if (input.counterparty !== null && /[\s\x00-\x1f]/.test(input.counterparty)) {
         return r('counterparty must be a Bitcoin address or null');
     }
+    // The canonical message writes null as "null", so that string signs null's bytes (SPEC §3.6).
+    if (input.counterparty === 'null') {
+        return r('counterparty must not be the string "null": it signs the same bytes as null');
+    }
     if (input.resolution.mechanism === 'counterparty_signs' && input.counterparty === null) {
         return r('counterparty MUST be non-null when resolution.mechanism == counterparty_signs');
     }
@@ -286,6 +290,9 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
     }
     if (input.dispute.params !== null && /[\n\r]/.test(input.dispute.params)) {
         return r('dispute.params must be a single line or null');
+    }
+    if (input.dispute.params === 'null') {
+        return r('dispute.params must not be the string "null": it signs the same bytes as null');
     }
     if (input.remediation !== 'breach_recorded') {
         return r('remediation must equal "breach_recorded" in v0.1');
