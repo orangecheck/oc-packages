@@ -9,11 +9,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
+    channelDirectoryDtag,
+    channelId,
     type CoinFacts,
     claimId,
     directoryAnchor,
+    directoryDtag,
     type DirectoryRecord,
     esploraCoinReader,
+    parseChannelDirectoryContent,
     parseDirectoryContent,
     repointId,
     resolveDirectory,
@@ -103,6 +107,15 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         expect(claimId({ handle: 'alice', address: claim.address, outpoint: claim.outpoint, nonce: legacy_v1_listing_id })).toBe(
             v.expected.legacy_claim_id
         );
+        const ch = v.inputs.channel_listing;
+        expect(channelId(ch.founder_address, ch.slug)).toBe(v.expected.channel_id);
+        const parsed = parseChannelDirectoryContent(ch, ch.handle);
+        expect(parsed && parsed.kind === 'listing' && parsed.claimId).toBe(v.expected.channel_claim_id);
+    });
+
+    it('vc07: the d-tag is a salted hash of the handle', () => {
+        const v = vector('vc07-directory-dtag.json');
+        expect(directoryDtag(v.inputs.handle.toUpperCase())).toBe(v.expected.d_tag);
     });
 
     it('vc23: the anchor is the lowest attestation whose header matches', async () => {
@@ -185,6 +198,53 @@ describe('parseDirectoryContent (§8.2.5 (1))', () => {
             ends: NONCE,
         });
         expect(parseDirectoryContent({ v: 2, handle: 'alice', address: ADDR, opted_in: false, created_at: 1 }, 'alice')).toBeNull();
+    });
+});
+
+const channel = (extra: Record<string, unknown> = {}) => {
+    const { address: _a, inbox_pubkey: _i, ...rest } = listing();
+    return {
+        ...rest,
+        slug: 'Bitcoin-Talk',
+        channel_id: channelId(ADDR, 'bitcoin-talk'),
+        founder_address: ADDR,
+        founder_inbox_pubkey: 'ef'.repeat(32),
+        title: 'Bitcoin talk',
+        ...extra,
+    };
+};
+
+describe('parseChannelDirectoryContent (§8.3.6)', () => {
+    it('reads the founder fields as the address and inbox key, with the same claim', () => {
+        const p = parseChannelDirectoryContent(channel(), 'alice');
+        expect(p).toEqual(parseDirectoryContent(listing(), 'alice'));
+        expect(parseChannelDirectoryContent(channel({ inbox_pubkey: '11'.repeat(32), address: 'bc1qother' }), 'alice')).toEqual(p);
+        expect(parseChannelDirectoryContent(listing(), 'alice')).toBeNull();
+        expect(parseDirectoryContent(channel(), 'alice')).toBeNull();
+    });
+
+    it('drops a live listing whose channel_id is not its founder and slug, and any did:oc founder', () => {
+        expect(parseChannelDirectoryContent(channel({ channel_id: channelId(ADDR, 'other') }), 'alice')).toBeNull();
+        expect(parseChannelDirectoryContent(channel({ slug: undefined }), 'alice')).toBeNull();
+        const did = 'did:oc:' + 'a'.repeat(32);
+        expect(parseChannelDirectoryContent(channel({ founder_address: did, channel_id: channelId(did, 'bitcoin-talk') }), 'alice')).toBeNull();
+        expect(
+            parseChannelDirectoryContent({ v: 2, handle: 'alice', founder_address: did, opted_in: false, ends: NONCE, created_at: 1 }, 'alice')
+        ).toBeNull();
+    });
+
+    it('keeps a tombstone whatever its slug and channel_id say', () => {
+        expect(
+            parseChannelDirectoryContent(
+                { v: 2, handle: 'alice', founder_address: ADDR, opted_in: false, ends: NONCE, created_at: 1, channel_id: 'x' },
+                'alice'
+            )
+        ).toEqual({ kind: 'tombstone', address: ADDR, createdAt: 1, ends: NONCE });
+    });
+
+    it('lives under its own d-tag namespace', () => {
+        expect(channelDirectoryDtag('Alice')).toMatch(/^oc-lock-chat-chdir:[A-Za-z0-9_-]{43}$/);
+        expect(channelDirectoryDtag('alice').slice(19)).not.toBe(directoryDtag('alice').slice(17));
     });
 });
 

@@ -13,12 +13,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 The OC Chat directory rule (oc-chat-protocol SPEC §8.2, 0.4.0), for the
 directory relay's write gate and the chat client alike: `claimId`,
-`repointId` and `listingId`; `parseDirectoryContent`, the shape a record must
-have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
+`repointId` and `listingId`; `directoryDtag` and `channelDirectoryDtag`;
+`parseDirectoryContent` and `parseChannelDirectoryContent` (§8.3.6, with
+`channelId`), the shape a record must have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
 (bound keys and coin facts), with its bounds, and a read without an answer
 before the holder answering `E_DIR_UNRESOLVED`; `directoryAnchor`, the anchor
 from an OpenTimestamps proof through `@orangecheck/stamp-ots`; and
-`esploraCoinReader`. Tested against the spec's vectors vc22 to vc25.
+`esploraCoinReader`. Tested against the spec's vectors vc07 and vc22 to vc25.
 
 ## [1.2.0] — 2026-09-24
 
