@@ -5,6 +5,8 @@
  * another. The vectors in __tests__/display-name.vectors.json are the test.
  */
 
+import { CONFUSABLE_PROTOTYPES } from "./confusables";
+
 /**
  * What can hide or reorder part of a text on a consent screen or in a notice:
  * control and format characters (bidi embeddings, overrides and isolates,
@@ -17,14 +19,51 @@ export const HIDDEN_TEXT_CHARS =
 /** Names only orangecheck itself goes by. */
 const RESERVED_NAMES: ReadonlySet<string> = new Set(["orangecheck", "ochk", "ochk.io", "ochk.app"]);
 
-/** True when a name reads as one of orangecheck's own, whatever its case, width, spacing or variation selectors. */
+/** Every start of a reserved name, the whole name included. */
+const RESERVED_PREFIXES: ReadonlySet<string> = new Set(
+  [...RESERVED_NAMES].flatMap((name) => [...name].map((_, i) => name.slice(0, i + 1))),
+);
+
+/** Each character drawn like a letter of a reserved name, to that letter (UTS #39 confusables). */
+const PROTOTYPE: ReadonlyMap<string, string> = new Map(
+  CONFUSABLE_PROTOTYPES.flatMap(([prototype, sources]) => [...sources].map((ch) => [ch, prototype] as const)),
+);
+
+/**
+ * The letters one character can read as: its UTS #39 prototype as written,
+ * and after NFKC and lower case. As written keeps a capital that lower case
+ * would turn into another letter (Greek capital eta is drawn as H, its small
+ * form is not). The table holds only look-alikes of the reserved names'
+ * letters, which is all a comparison with them needs.
+ */
+function readings(ch: string): string[] {
+  return [ch, ch.normalize("NFKC").toLowerCase()].map((form) =>
+    [...form].map((c) => PROTOTYPE.get(c) ?? c).join(""),
+  );
+}
+
+/** Drops spacing and variation selectors, which change no letter. */
+function unspaced(value: string): string {
+  return value.replace(/[\s\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu, "");
+}
+
+/**
+ * True when a name reads as one of orangecheck's own, whatever its case,
+ * width, spacing or variation selectors, or when it is drawn with letters
+ * from another script or digits that look like ours: Cyrillic or Greek o, a,
+ * e, c, 0 for o. Read a character at a time, so one script's capitals and
+ * another's small letters cannot hide a name between them.
+ */
 export function isReservedName(value: string): boolean {
-  const key = value
-    .normalize("NFKC")
-    .toLowerCase()
-    .normalize("NFKC")
-    .replace(/[\s\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu, "");
-  return RESERVED_NAMES.has(key);
+  let spelt: ReadonlySet<string> = new Set([""]);
+  for (const ch of unspaced(value)) {
+    const next = new Set<string>();
+    for (const head of spelt) {
+      for (const reading of readings(ch)) if (RESERVED_PREFIXES.has(head + reading)) next.add(head + reading);
+    }
+    spelt = next;
+  }
+  return [...spelt].some((name) => RESERVED_NAMES.has(name));
 }
 
 export type NameProblem = "required" | "too_long" | "hidden_characters" | "reserved";

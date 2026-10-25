@@ -12,8 +12,8 @@ import { describe, expect, it } from "vitest";
 const ENTRIES = [
   {
     name: "display-name",
-    probe: 'const names = ["och\\ufe0fk", "Lumen\\u00adNotes", "Lumen Notes"]; return names.map((n) => m.nameProblem(n, 80));',
-    answer: ["reserved", "hidden_characters", null],
+    probe: 'const names = ["och\\ufe0fk", "Lumen\\u00adNotes", "Lumen Notes", "0chk"]; return names.map((n) => m.nameProblem(n, 80));',
+    answer: ["reserved", "hidden_characters", null, "reserved"],
   },
   {
     name: "family-origins",
