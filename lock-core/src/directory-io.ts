@@ -14,13 +14,14 @@ import {
 import { type AnchorAnswer, type CoinFacts, MAX_ATTESTATIONS } from './directory.js';
 
 /**
- * The anchor of a proof over `idHex` (§8.2.1): the lowest Bitcoin attestation whose
- * header has the attested Merkle root. Attestations are taken lowest first; one whose
- * header carries another root, or whose source answers null (no block at that height,
- * as mempoolHeaderSource answers only a 404), is passed over. A header that cannot be
- * read (the source throws, or answers anything but 80 bytes) answers `{ unread: height }`
- * for the lowest attestation not passed over (§8.2.5 (4)). A source must never turn a
- * failed read into null. Confirmations are the walk's to count.
+ * The anchor of a proof over `idHex` (§8.2.1): the height of its lowest Bitcoin
+ * attestation, when the header there has the attested Merkle root. The lowest
+ * attestation alone decides and is the only header read: one whose header carries
+ * another root, or whose source answers null (no block at that height, as
+ * mempoolHeaderSource answers only a 404), leaves the proof unanchored, never passed
+ * over to a higher one. A header that cannot be read (the source throws, or answers
+ * anything but 80 bytes) answers `{ unread: height }` (§8.2.5 (4)). A source must
+ * never turn a failed read into null. Confirmations are the walk's to count.
  */
 export async function directoryAnchor(
     proofB64: string,
@@ -35,18 +36,17 @@ export async function directoryAnchor(
     }
     // More than MAX_ATTESTATIONS anchors nothing, before any header is read (§8.2.1).
     if (anchors.length > MAX_ATTESTATIONS) return null;
-    for (const a of anchors) {
-        let header: unknown;
-        try {
-            header = await headers.getHeaderAt(a.blockHeight);
-        } catch {
-            return { unread: a.blockHeight };
-        }
-        if (header === null) continue;
-        if (!(header instanceof Uint8Array) || header.byteLength !== 80) return { unread: a.blockHeight };
-        if (equal(header.subarray(36, 68), a.merkleRoot)) return a.blockHeight;
+    const lowest = anchors[0];
+    if (!lowest) return null;
+    let header: unknown;
+    try {
+        header = await headers.getHeaderAt(lowest.blockHeight);
+    } catch {
+        return { unread: lowest.blockHeight };
     }
-    return null;
+    if (header === null) return null;
+    if (!(header instanceof Uint8Array) || header.byteLength !== 80) return { unread: lowest.blockHeight };
+    return equal(header.subarray(36, 68), lowest.merkleRoot) ? lowest.blockHeight : null;
 }
 
 function equal(a: Uint8Array, b: Uint8Array): boolean {

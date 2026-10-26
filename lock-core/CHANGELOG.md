@@ -7,7 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [1.3.0] — unreleased
+## [1.4.0] — 2026-10-26
+
+### Changed — `directoryAnchor`
+
+- The anchor is the proof's lowest Bitcoin attestation, read alone (oc-chat-protocol
+  SPEC §8.2.1, 0.4.0 draft of 2026-10-26). When its header has another Merkle root,
+  or the source answers null (no block at that height), the proof is unanchored:
+  `null`, and no higher attestation is read. A header that cannot be read still
+  answers `{ unread: height }`. Each proof costs a reader one header read.
+  1.3.0 passed over such a lowest attestation to the next. Held to vector `vc23`.
+
+## [1.3.0] — 2026-10-26
 
 ### Added — `@orangecheck/lock-core/directory`
 

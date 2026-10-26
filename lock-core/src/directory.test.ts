@@ -122,17 +122,23 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         expect(directoryDtag(v.inputs.handle.toUpperCase())).toBe(v.expected.d_tag);
     });
 
-    it('vc23: the anchor is the lowest attestation whose header matches', async () => {
+    it('vc23: the lowest attestation alone decides the anchor, with one header read', async () => {
         const v = vector('vc23-directory-claim-anchor.json');
+        let reads: number[] = [];
         const source = (hs: Record<string, string>) => ({
-            getHeaderAt: async (h: number) => (hs[h] ? Uint8Array.from(Buffer.from(hs[h], 'hex')) : null),
+            getHeaderAt: async (h: number) => (reads.push(h), hs[h] ? Uint8Array.from(Buffer.from(hs[h], 'hex')) : null),
         });
+        const [low, high] = v.expected.attestation_heights as number[];
         expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, source(v.inputs.headers))).toBe(v.expected.anchor_height);
+        expect(reads).toEqual([low]);
+        // Another root at the lowest attestation leaves the claim unanchored; the higher header is never read.
+        reads = [];
         expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, source(v.inputs.headers_with_wrong_low_root))).toBe(
             v.expected.anchor_height_when_low_header_mismatches
         );
+        expect(reads).toEqual([low]);
         expect(await directoryAnchor(v.inputs.ots, v.inputs.other_digest, source(v.inputs.headers))).toBeNull();
-        // The lower attestation is passed over; the higher one's header cannot be read.
+        // The higher header's read would fail, and is never made.
         const unread = new Set<number>(v.inputs.unread_heights_with_wrong_low_root);
         const partly = {
             getHeaderAt: async (h: number) => {
@@ -144,16 +150,12 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, partly)).toEqual(
             v.expected.anchor_when_low_header_mismatches_and_high_unread
         );
-        // No block at the lowest attestation's height (null) passes it over to the next one that matches.
-        const [low, high] = v.expected.attestation_heights as number[];
+        // No block at the lowest attestation's height (null) leaves it unanchored too, though the higher one matches.
         const noLowBlock = {
-            getHeaderAt: async (h: number) => {
-                if (h === low) return null;
-                const hex = v.inputs.headers_with_wrong_low_root[h];
-                return hex ? Uint8Array.from(Buffer.from(hex, 'hex')) : null;
-            },
+            getHeaderAt: async (h: number) => (h === low ? null : Uint8Array.from(Buffer.from(v.inputs.headers[h], 'hex'))),
         };
-        expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, noLowBlock)).toBe(high);
+        expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, noLowBlock)).toBe(v.expected.anchor_when_low_height_has_no_block);
+        expect(high).toBeGreaterThan(low);
         // At most 8 Bitcoin attestations anchor; with 9, no header is even read.
         const capHeaders = v.inputs.headers_for_8_and_9 as Record<string, string>;
         let headerReads = 0;
