@@ -19,11 +19,12 @@
       "enabled": false
     },
     {
-      "description": "@orangecheck/* patch and minor: one PR per repo on renovate/@orangecheck-(family), one day after the publish. Renovate does not merge it (its token cannot read check runs); the repo's own CI does, in its merge-renovate job, once the gating jobs pass.",
+      "description": "@orangecheck/* patch and minor: one PR per repo on renovate/@orangecheck-(family), one day after the publish. Renovate does not merge it (its token cannot read check runs); the repo's own CI does, in its merge-renovate job, once the gating jobs pass. No PR limit applies to it, so PRs waiting for a person never hold back the one that carries security patches.",
       "matchPackageNames": ["/^@orangecheck//"],
       "matchUpdateTypes": ["patch", "minor"],
       "enabled": true,
       "groupName": "@orangecheck/* (family)",
+      "prConcurrentLimit": 0,
       "minimumReleaseAge": "1 day"
     },
     {
@@ -36,12 +37,12 @@
       "labels": ["renovate", "major-bump"]
     },
     {
-      "description": "Below 1.0 a minor can break (semver promises nothing there, and Renovate marks it breaking). It leaves the family group for a PR of its own, labelled major-bump and merged by a person, like a major. A 0.x patch stays in the family group.",
+      "description": "Below 1.0 a minor can break (semver promises nothing there, and Renovate marks it breaking). Every such minor in a repo goes into one PR of its own, labelled major-bump, which no merge-renovate job matches: a person reads each CHANGELOG against what the repo imports and merges it. A 0.x patch stays in the family group.",
       "matchPackageNames": ["/^@orangecheck//"],
       "matchUpdateTypes": ["minor"],
       "matchIsBreaking": true,
       "enabled": true,
-      "groupName": null,
+      "groupName": "@orangecheck/* 0.x minors",
       "automerge": false,
       "minimumReleaseAge": "1 day",
       "labels": ["renovate", "major-bump"]
