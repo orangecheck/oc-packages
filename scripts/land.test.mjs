@@ -18,9 +18,15 @@ const read = (state, inQueue, auto, entry = '-', merged = '-', head = 'h'.repeat
 
 /**
  * Runs the script on PR 7 with gh answering `reads` in turn (the last repeats) and `compare` for main...head,
- * from `cwd` (a checkout whose origin names the repository). Every gh call's arguments land in `calls`.
+ * from `cwd`, a scratch checkout whose origin names the repository, so the test needs no checkout of its own.
+ * Every gh call's arguments land in `calls`.
  */
-function land(reads, compare = 'diverged', timeout = '30', cwd = process.cwd()) {
+function land(
+    reads,
+    compare = 'diverged',
+    timeout = '30',
+    cwd = checkout('git@github.com:orangecheck/oc-packages.git'),
+) {
     const dir = mkdtempSync(join(tmpdir(), 'land-'));
     writeFileSync(join(dir, 'reads'), reads.join('\n') + '\n');
     writeFileSync(join(dir, 'compare'), compare + '\n');
