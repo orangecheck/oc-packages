@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.26.0] — 2026-10-25
+
+- `LoadError` (components): a read that failed, as a danger notice with its
+  title, why, and Try again when the page passes `onRetry`. ochk.app wrote it
+  three times and cosign once (`LoadFailed`); each adopts this one.
+- check-dom asserts the notice, the callback, and no button without one.
+
 ## [1.25.0] — 2026-10-25
 
 - `CopyButton` speaks through the page's one polite live region, made by the

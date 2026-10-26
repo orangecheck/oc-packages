@@ -684,6 +684,43 @@ export function LoadingBlock({
     );
 }
 
+/**
+ * A read that failed: what did not load, why if known, and a way to try
+ * again. Never an empty list or a "none" in its place.
+ */
+export function LoadError({
+    title = 'This did not load.',
+    children,
+    onRetry,
+    retryLabel = 'Try again',
+    className,
+}: {
+    title?: ReactNode;
+    /** Why, as a sentence; failureText() turns a caught error into one. */
+    children?: ReactNode;
+    /** With none, the notice offers no button: the page retries by itself, and says so. */
+    onRetry?: () => void;
+    retryLabel?: string;
+    className?: string;
+}) {
+    return (
+        <Notice
+            tone="danger"
+            title={title}
+            className={className}
+            action={
+                onRetry ? (
+                    <Button size="sm" variant="secondary" onClick={onRetry}>
+                        {retryLabel}
+                    </Button>
+                ) : undefined
+            }
+        >
+            {children}
+        </Notice>
+    );
+}
+
 /* ── Hashes, addresses, ids ──────────────────────────────────────────── */
 
 /** Wipe the clipboard if it still holds `expected`, and only then. */

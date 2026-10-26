@@ -24,6 +24,7 @@ export {
     EmptyState,
     HashChip,
     KeyValueList,
+    LoadError,
     LoadingBlock,
     Notice,
     PageHeader,

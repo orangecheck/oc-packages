@@ -12,6 +12,7 @@ import {
     EmptyState,
     HashChip,
     KeyValueList,
+    LoadError,
     LoadingBlock,
     Monogram,
     Notice,
@@ -350,6 +351,9 @@ export const CodeAndStates: StoryObj = {
                 Events stop billing when it runs out.
             </Notice>
             <Notice tone="danger" title="That key was rejected">The signature did not match the address.</Notice>
+            <LoadError title="Webhooks did not load." onRetry={() => {}}>
+                The server could not read them just now.
+            </LoadError>
             <LoadingDemo />
         </div>
     ),

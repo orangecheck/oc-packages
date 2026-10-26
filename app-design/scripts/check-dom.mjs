@@ -457,9 +457,24 @@ for (const mode of ['dark', 'light']) {
     await f.unmount();
 }
 
+// LoadError: the failure as a danger notice; Try again calls back, and with no callback there is no button.
+{
+    let tries = 0;
+    const l = await mount(h(C.LoadError, { title: 'Webhooks did not load.', onRetry: () => tries++ }, 'The server could not read them.'));
+    const note = l.host.querySelector('[role="alert"]');
+    check(note?.textContent.includes('Webhooks did not load.') && note?.textContent.includes('The server could not read them.'), `LoadError: the notice reads ${show(note?.textContent)}`);
+    const retry = [...l.host.querySelectorAll('button')].find((b) => b.textContent === 'Try again');
+    await act(async () => retry?.click());
+    check(tries === 1, `LoadError: Try again called back ${tries} times`);
+    await l.unmount();
+    const bare = await mount(h(C.LoadError, null, 'Trying again in a minute.'));
+    check(bare.host.querySelectorAll('button').length === 0 && bare.host.textContent.includes('This did not load.'), 'LoadError: with no callback, no button and the default title');
+    await bare.unmount();
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read`);
 process.exit(0);
