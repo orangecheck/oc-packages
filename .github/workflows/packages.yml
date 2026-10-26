@@ -278,6 +278,14 @@ jobs:
             - name: Build
               run: yarn build
 
+            # TypeScript's parser for the next step, from the root's own lockfile.
+            - name: Install root tooling
+              working-directory: ${{ github.workspace }}
+              run: yarn install --frozen-lockfile
+
+            - name: Packed files load only what installing the package brings
+              run: node "$GITHUB_WORKSPACE/scripts/check-packed-imports.mjs" .
+
             - name: Test (if present)
               run: |
                   if grep -q '"test":' package.json; then

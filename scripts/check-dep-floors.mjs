@@ -126,7 +126,7 @@ function clauseNames(node) {
 }
 
 /** Every module a file names: declarations, re-exports, import types, import() and require(). */
-function specifiersIn(file) {
+export function specifiersIn(file) {
     const found = [];
     const add = (spec, names) => found.push({ spec, names });
     const visit = (node) => {

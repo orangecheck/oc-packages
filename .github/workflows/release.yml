@@ -202,6 +202,15 @@ jobs:
               working-directory: ${{ steps.parse.outputs.dir }}
               run: yarn build
 
+            # The tarball may load only what installing it brings: me-client
+            # 0.53.1's types named mark, which is only a devDependency.
+            - name: Install root tooling
+              run: yarn install --frozen-lockfile
+
+            - name: Packed files load only what installing the package brings
+              working-directory: ${{ steps.parse.outputs.dir }}
+              run: node "$GITHUB_WORKSPACE/scripts/check-packed-imports.mjs" .
+
             # A plain `npm publish` points `latest` at whatever published last,
             # so a late or re-run release of an older version would take it from
             # a newer one. Prereleases go to `next`; a version at or below the

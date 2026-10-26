@@ -8,6 +8,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.53.2] — 2026-10-26
+
+### Fixed
+
+- **`/button` and `/react` carry their own types.** Their declaration files
+  named `@orangecheck/mark` for `MarkVariant`, but mark is bundled into the
+  code and is not a dependency, so installing this package left that import
+  unresolved: `MarkVariant` read as `any`, or TS2307 without `skipLibCheck`.
+  The type is now written into the declarations. The code is unchanged.
+
 ## [0.53.1] — 2026-10-25
 
 ### Changed

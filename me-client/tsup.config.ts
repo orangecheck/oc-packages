@@ -12,7 +12,8 @@ export default defineConfig({
         react: 'src/react.tsx',
     },
     format: ['cjs', 'esm'],
-    dts: true,
+    // Its types too: mark is a devDependency, so an import of it in a .d.ts would reach nothing once installed.
+    dts: { resolve: ['@orangecheck/mark'] },
     splitting: false,
     sourcemap: true,
     clean: true,
