@@ -75,7 +75,8 @@ export interface VerifyOptions {
 type AuthKey = CryptoKey | KeyObject;
 
 interface JwksCacheEntry {
-    keys: Record<string, AuthKey>;
+    /** kid → key. A Map, so a kid is only ever one of the set's own entries. */
+    keys: Map<string, AuthKey>;
     fetchedAt: number;
 }
 
@@ -101,11 +102,11 @@ async function fetchJwks(
             if (!json || !Array.isArray(json.keys)) {
                 throw new Error(`JWKS at ${url} did not return {keys:[…]}`);
             }
-            const keys: Record<string, AuthKey> = {};
+            const keys = new Map<string, AuthKey>();
             for (const k of json.keys) {
                 if (typeof k.kid !== 'string') continue;
                 try {
-                    keys[k.kid] = (await importJWK(k, 'EdDSA')) as AuthKey;
+                    keys.set(k.kid, (await importJWK(k, 'EdDSA')) as AuthKey);
                 } catch {
                     /* skip keys that won't import */
                 }
@@ -218,12 +219,12 @@ export async function verify(
         const maxStale = options.jwksMaxStaleMs ?? DEFAULT_MAX_STALE_MS;
         try {
             let entry = await fetchJwks(issuer, ttl, maxStale);
-            key = entry.keys[kid];
+            key = entry.keys.get(kid);
             if (!key && Date.now() - (lastForcedRefresh.get(issuer) ?? 0) >= FORCED_REFRESH_MIN_INTERVAL_MS) {
                 // Likely a rotation. Refetch, at most once a minute.
                 lastForcedRefresh.set(issuer, Date.now());
                 entry = await fetchJwks(issuer, 0, maxStale);
-                key = entry.keys[kid];
+                key = entry.keys.get(kid);
             }
         } catch (err) {
             return { ok: false, reason: `jwks unavailable: ${(err as Error).message}` };
