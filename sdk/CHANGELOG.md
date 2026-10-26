@@ -7,6 +7,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.18.2] — 2026-10-25
+
+### Changed
+
+- Needs `@orangecheck/bip322` ^1.1.3, whose `decodeAddress` returns null for
+  text longer than any address before decoding it. `verifyChallenge`,
+  `verify()` and the bond reader read addresses through it, so a server can
+  pass request input in as it arrives.
+
 ## [1.18.1] — 2026-10-25
 
 ### Changed
