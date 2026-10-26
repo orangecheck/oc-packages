@@ -14,9 +14,9 @@ name: Packages
 
 on:
     push:
-        branches: [main, develop]
+        branches: [main]
     pull_request:
-        branches: [main, develop]
+        branches: [main]
     # The merge queue tests each group on top of main before main moves to it.
     merge_group:
 

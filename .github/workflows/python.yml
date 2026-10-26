@@ -4,7 +4,7 @@ name: Python SDK
 
 on:
     push:
-        branches: [main, develop]
+        branches: [main]
         paths:
             - 'sdk-py/**'
             # Vectors sdk-py's tests read from its TypeScript twins.
@@ -13,7 +13,7 @@ on:
             - 'pledge-core/test-vectors/**'
             - '.github/workflows/python.yml'
     pull_request:
-        branches: [main, develop]
+        branches: [main]
         paths:
             - 'sdk-py/**'
             # Vectors sdk-py's tests read from its TypeScript twins.
