@@ -8,6 +8,22 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.21] — 2026-10-26
+
+### Added — what relay.ochk.io keeps
+
+The ochk.io Privacy policy did not mention relays at all, though every family
+site reads and publishes signed records through relay.ochk.io, which
+orangecheck runs. Its "sent from your browser to others" list now names
+relay.ochk.io: the records it keeps (public, archived daily, replaced by a
+newer version from the same key or removed at their own expiry, otherwise
+deleted only on a lawful takedown), that each is stored with our host's proxy address rather
+than the visitor's and that this is never served, that Fly.io carries each
+connection for its own short retention window, and that our host's connection
+logs for the relay can hold the visitor's IP address and connection times for
+7 days. The retention list says the same. Third-party relays stay covered by
+the Terms.
+
 ## [0.7.20] — 2026-10-26
 
 ### Changed — a session no longer keeps an IP address

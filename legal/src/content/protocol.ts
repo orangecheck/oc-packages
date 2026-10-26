@@ -341,6 +341,10 @@ const privacy: DocSpec = {
                             k: 'an OC Chat @handle claim',
                             v: "your browser sends the claim's fingerprint (a SHA-256 hash) to the OpenTimestamps calendars at alice.btc.calendar.opentimestamps.org, bob.btc.calendar.opentimestamps.org and finney.calendar.eternitywall.com, and reads your address's coins and block headers from mempool.space; each of these sees your IP address and when you asked. We send them nothing about you ourselves.",
                         },
+                        {
+                            k: 'relay.ochk.io',
+                            v: "the Nostr relay we run (strfry on Fly.io, in Frankfurt). Your browser connects to it to read and publish signed records; our sites also publish the same records to public relays run by others (see the Terms). It keeps each record it accepts until the same key replaces it with a newer version or the record's own expiry passes: records are public, copied each day to a public archive on GitHub (where earlier versions stay), and otherwise deleted only after a lawful takedown request, which does not remove the copies elsewhere. Each record is stored with the address of the connection it arrived on, which is our host's proxy, not yours, and is never served or archived. Our hosting provider (Fly.io) carries each connection to it and handles your IP address to do so, for its own short retention window; we keep no separate copy. Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days.",
+                        },
                     ],
                 },
                 { kind: 'subhead', text: 'cookies & analytics' },
@@ -397,6 +401,10 @@ const privacy: DocSpec = {
                         {
                             k: 'request logs',
                             v: 'held by our hosting provider (Vercel) for its own short retention window; we keep no separate copy',
+                        },
+                        {
+                            k: 'relay.ochk.io connections',
+                            v: 'handled by our hosting provider (Fly.io) for its own short retention window; its connection logs for the relay can hold your IP address and connection times for 7 days, and we keep no separate copy',
                         },
                         {
                             k: 'sessions',

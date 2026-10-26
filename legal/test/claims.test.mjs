@@ -211,3 +211,12 @@ test('the ochk.app terms and privacy say sites that compare ids can tell it is y
         );
     }
 });
+
+test('ochk.io privacy names relay.ochk.io, the address its records keep, and its 7-day connection logs', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    assert.match(text, /relay\.ochk\.io[^.]*the Nostr relay we run/i);
+    assert.match(text, /stored with the address of the connection it arrived on, which is our host's proxy, not yours, and is never served or archived/);
+    assert.match(text, /Our hosting provider \(Fly\.io\) carries each connection to it and handles your IP address to do so, for its own short retention window; we keep no separate copy/);
+    assert.match(text, /Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days/);
+    assert.match(text, /relay\.ochk\.io connections[^;]*Fly\.io\) for its own short retention window; its connection logs for the relay can hold your IP address and connection times for 7 days/i);
+});
