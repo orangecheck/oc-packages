@@ -41,7 +41,8 @@
  *   screen), a 36px small button, a 40px icon button and the theme switch
  *   are 44px targets; a mouse sees them unchanged. A small field is drawn
  *   44px tall to a thumb and 36px to a mouse. A HashChip's link is a 44px
- *   target to a thumb, at least 44px wide, and its line keeps its height.
+ *   target to a thumb, at least 44px wide, and its line keeps its height; so
+ *   is a standalone TextLink, and a TextLink in a sentence is not.
  * - SignInFrame holds still while its ceremony grows past the window: the
  *   title stays put, and the ink column is one screen tall with its art in
  *   place.
@@ -404,7 +405,10 @@ try {
                     // A HashChip's explorer link is a line of text: 44px to a thumb, its line unchanged.
                     { className: 'flex flex-col items-start gap-6 p-6' },
                     h('p', { 'data-t': 'hash' }, h(C.HashChip, { value: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t', explorer: 'address', copy: false })),
-                    h('p', { 'data-t': 'hash-short' }, h(C.HashChip, { value: 'ab12', head: 2, tail: 2, explorer: 'tx', copy: false }))
+                    h('p', { 'data-t': 'hash-short' }, h(C.HashChip, { value: 'ab12', head: 2, tail: 2, explorer: 'tx', copy: false })),
+                    // A link standing alone after a "·" is a 44px target to a thumb; the same link in a sentence is not.
+                    h('p', { 'data-t': 'link-alone', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x', standalone: true }, 'Your public record')),
+                    h('p', { 'data-t': 'link-prose', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x' }, 'Your public record'))
                 )
             )
     );
@@ -1029,6 +1033,23 @@ try {
                     if (width < 768) check(l.reach && drawn, `[${width} touch] HashChip ${l.k}: link ${l.w}×${Math.round(l.h)}px in a ${Math.round(l.line)}px line, 44px target ${l.reach}`);
                     else check(!l.reach && drawn, `[${width} mouse] HashChip ${l.k}: link ${Math.round(l.h)}px, or its target grew past the text (${l.reach})`);
                 }
+                // TextLink standalone: the same reach test; its line is as tall as the sentence link's.
+                const text = await t.evaluate(() =>
+                    ['link-alone', 'link-prose'].map((k) => {
+                        const line = document.querySelector(`[data-t="${k}"]`);
+                        const el = line.querySelector('a');
+                        const r = el.getBoundingClientRect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                        return { k, w: Math.round(r.width), h: Math.round(r.height), line: line.getBoundingClientRect().height, reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) };
+                    })
+                );
+                const [alone, prose] = text;
+                check(alone.line === prose.line, `[${width}] TextLink standalone: its line is ${alone.line}px, the sentence link's ${prose.line}px`);
+                check(!prose.reach, `[${width}] TextLink in a sentence: its target grew to 44px`);
+                if (width < 768) check(alone.reach, `[${width} touch] TextLink standalone: link ${alone.w}×${alone.h}px, 44px target ${alone.reach}`);
+                else check(!alone.reach, `[${width} mouse] TextLink standalone: its target grew past the text`);
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
                 await t.goto(fields);
                 const fh = await t.$$eval('[data-f]', (els) => Object.fromEntries(els.map((el) => [el.dataset.f, el.getBoundingClientRect().height])));
