@@ -138,3 +138,22 @@ describe.each(builds)('integrator config shape vectors (%s)', (_name, load) => {
         }
     });
 });
+
+describe.each(builds)('numbers JSON cannot carry (%s)', (_name, load) => {
+    const raw = (event: unknown) =>
+        ({ ...V.base, events: Object.fromEntries([['note', event]]) }) as unknown as IntegratorPriceConfig;
+    const NOTE = V.shape.accept[0]!.event as Record<string, unknown>;
+
+    it.each([
+        ['sats NaN', { ...NOTE, site_pays: { kind: 'fixed_sats', sats: Number.NaN } }, 'site_pays sats must be a number'],
+        ['pct Infinity', { ...NOTE, site_pays: { kind: 'percent_of_amount', pct: Infinity } }, 'site_pays pct must be a number'],
+        ['user_share_pct NaN', { ...NOTE, user_share_pct: Number.NaN }, 'user_share_pct must be a number'],
+        ['agent user_share_pct -Infinity', { ...NOTE, agent: { user_share_pct: -Infinity } }, 'agent.user_share_pct must be a number'],
+    ])('refuses %s', async (_n, event, message) => {
+        const m = await load();
+        expect(m.validateIntegratorConfig(raw(event))).toEqual({
+            ok: false,
+            errors: [{ subtype: 'note', message }],
+        });
+    });
+});
