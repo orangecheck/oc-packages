@@ -4,6 +4,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.15.0] — 2026-10-26
+
+### Changed
+
+- `is_reserved_name` and `name_problem` refuse a name that holds one of
+  orangecheck's own as a whole word, as `@orangecheck/auth-core` 2.27.0 does,
+  held to the same `contains` and `allowed` vectors. `allow_reserved` lifts
+  it, as before.
+
 ## [3.14.1] — 2026-10-25
 
 ### Changed
