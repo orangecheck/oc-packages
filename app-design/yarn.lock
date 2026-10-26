@@ -885,9 +885,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.32.3":
-  version "2.37.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.37.0.tgz#20cf16e6400160a450d60eff0025164cf26b03be"
-  integrity sha512-+n55KADNFme44T8zEoaawQvVZaE52MCVA7fvLuMOKVBxXVpJlocFG00InMHdJ355+9kcgUGMqOv8KJEMN0NuXw==
+  version "2.40.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.40.0.tgz#a58e2f8a56a5882fac1021d29a24f42ca652d1e7"
+  integrity sha512-2/8/u2lK3Ivoo4hA40A8U2quJo3rndF/GjQhma8MvJ2FNVC/jI333mcjcCe0ZyC2dmJwyrqf18MYPS8VN4uRhQ==
   dependencies:
     "@orangecheck/bip322" "^1.1.2"
     "@orangecheck/wallet-adapter" "^0.7.0"
@@ -901,9 +901,9 @@
     jose "^6.2.2"
 
 "@orangecheck/auth-core@^2.5.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.19.0.tgz#84a62e74e2fcab8590eca3fd4e594a0b220ced29"
-  integrity sha512-Mp8Lo2mFDMMBW5z69QgbRPuk2kxaCjf+eRQZuJkYzmixkMSprl4s4pRtMtUEJ6CYTKIqwC7eY6aO5rr20WpguA==
+  version "2.26.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.26.0.tgz#c3f25f06464ef5405352b75e1e86aaf740156544"
+  integrity sha512-3SYQ/WKbAk6woLEfQVrXPUGV0PQNB1v1L2jNW8c/dwjQqNoQfJIAjUQOnUCqHNwkNZMT5vNGSefFgLNT1p1otA==
   dependencies:
     jose "^6.2.2"
 
@@ -916,15 +916,15 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/mark@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.1.0.tgz#6b5fcef88f2893888589933ea856ceb7c1a7be5e"
-  integrity sha512-2PBA4sMt0g3lGSvmWLXZIVU2cTEcgwbzZdH2PtRlr1wk6pcaVrZjsTnRY39yc3CBQ8isJ4ggKOyAPG4b6ICIBw==
+"@orangecheck/mark@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.3.0.tgz#ce818f7370b83e1c085766d4926fde2a757f9e84"
+  integrity sha512-CaDeuDSoxMFawdGLQR9C4tiY3gUze/fsX25g56FJu20Z0Y2GeU+9g6Y5zFpAP1N91XbR9rpUGe7wsBF/hy/3gA==
 
-"@orangecheck/me-client@^0.47.0":
-  version "0.47.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.47.0.tgz#005b5bde202259185999274bf523698f9e9d05ae"
-  integrity sha512-vsM1/GR4Z/ryVHoEDRrolPNLKn/4l+jbUJIU7bDMSU8VlBRCaeegN++JJu3Zw0fEZupaGzj0mjXaJESBB5mvew==
+"@orangecheck/me-client@^0.50.0":
+  version "0.50.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.50.0.tgz#c426fa2f3f57b703d9dd50f565c6ad3e2087cc4f"
+  integrity sha512-ajUO7aseNUq/9/OhuX1vHz+GpgQ9yU5j6kb3Jup0XtHbsXzBoGsRLIGZ8AQTXxZks5YmoTVwykCkI7rO+aUDfA==
   dependencies:
     "@orangecheck/auth-core" "^2.17.0"
 
