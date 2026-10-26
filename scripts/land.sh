@@ -11,14 +11,14 @@
 #
 # Refuses when a check fails on the PR, when the queue drops it, or when the PR
 # is closed. Rebase isn't needed first: the queue rebases onto main itself, so
-# the commits main takes are new ones. Tag what main holds, not the branch:
-# after a fetch, `git log -1 --format=%H origin/main -- <package>/package.json`.
+# the commits main takes are new ones; a release tag goes on the commit main
+# holds, never the branch's.
 # Before it says a PR was dropped, it reads the PR again: one the queue has just
 # merged can still read as open for a moment, and main may already hold it.
-# LAND_GH and LAND_POLL (seconds) are for scripts/land.test.mjs.
+# The repository is the one origin names, so oc-docs and oc-packages run the
+# same file. LAND_GH and LAND_POLL (seconds) are for the script's tests.
 set -euo pipefail
 
-repo=orangecheck/oc-packages
 poll=${LAND_POLL:-20}
 # A stale GITHUB_TOKEN in the environment answers "Bad credentials".
 gh() { env -u GITHUB_TOKEN "${LAND_GH:-gh}" "$@"; }
@@ -26,6 +26,10 @@ refuse() {
     echo "land: $*" >&2
     exit 1
 }
+
+origin=$(git remote get-url origin)
+repo=$(sed -E 's#^(git@github\.com:|ssh://git@github\.com/|https://github\.com/)##; s#\.git$##; s#/$##' <<< "$origin")
+[[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || refuse "origin is not a GitHub repository: $origin"
 
 if [ -n "${LAND_PR:-}" ]; then
     number=$LAND_PR
@@ -42,12 +46,12 @@ else
 fi
 
 # shellcheck disable=SC2016 # GraphQL variables, not shell ones
-query='query($n: Int!) { repository(owner: "orangecheck", name: "oc-packages") { pullRequest(number: $n) {
+query='query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { pullRequest(number: $n) {
     state isInMergeQueue autoMergeRequest { enabledAt } mergeQueueEntry { state } mergeCommit { oid } headRefOid
     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } }'
 read_pr() {
     local line
-    line=$(gh api graphql -f query="$query" -F n="$number" --jq '.data.repository.pullRequest
+    line=$(gh api graphql -f query="$query" -f o="${repo%/*}" -f r="${repo#*/}" -F n="$number" --jq '.data.repository.pullRequest
         | [.state, .isInMergeQueue, (.autoMergeRequest != null), (.mergeQueueEntry.state // "-"),
            (.commits.nodes[0].commit.statusCheckRollup.state // "-"), (.mergeCommit.oid // "-"), .headRefOid] | @tsv')
     IFS=$'\t' read -r state in_queue auto entry checks merged head <<< "$line"
