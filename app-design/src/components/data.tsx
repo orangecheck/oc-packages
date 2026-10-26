@@ -642,9 +642,13 @@ export function Notice({
     );
 }
 
+/** The height of a LoadingBlock's rows, which what replaces them keeps. */
+const rowsHeight = (rows: number) => (rows > 0 ? `calc(${rows} * 4rem + ${rows - 1} * 0.75rem)` : undefined);
+
 /**
  * Placeholder rows while something loads, and a way out if it never does:
- * after `timeoutMs` the skeleton turns into a message with a retry.
+ * after `timeoutMs` the skeleton turns into a message with a retry, in the
+ * rows' height.
  */
 export function LoadingBlock({
     rows = 3,
@@ -662,17 +666,19 @@ export function LoadingBlock({
     const timedOut = useTimedOut(true, timeoutMs);
     if (timedOut) {
         return (
-            <Notice
-                className={className}
-                title="This is taking longer than it should."
-                action={
-                    <Button size="sm" variant="secondary" onClick={onRetry ?? (() => window.location.reload())}>
-                        Try again
-                    </Button>
-                }
-            >
-                Check your connection, then try again.
-            </Notice>
+            <div style={{ minHeight: rowsHeight(rows) }}>
+                <Notice
+                    className={className}
+                    title="This is taking longer than it should."
+                    action={
+                        <Button size="sm" variant="secondary" onClick={onRetry ?? (() => window.location.reload())}>
+                            Try again
+                        </Button>
+                    }
+                >
+                    Check your connection, then try again.
+                </Notice>
+            </div>
         );
     }
     return (
@@ -693,6 +699,7 @@ export function LoadError({
     children,
     onRetry,
     retryLabel = 'Try again',
+    rows = 0,
     className,
 }: {
     title?: ReactNode;
@@ -701,9 +708,11 @@ export function LoadError({
     /** With none, the notice offers no button: the page retries by itself, and says so. */
     onRetry?: () => void;
     retryLabel?: string;
+    /** The rows of the LoadingBlock it replaces: it keeps their height, so nothing under it moves. */
+    rows?: number;
     className?: string;
 }) {
-    return (
+    const notice = (
         <Notice
             tone="danger"
             title={title}
@@ -719,6 +728,7 @@ export function LoadError({
             {children}
         </Notice>
     );
+    return rows > 0 ? <div style={{ minHeight: rowsHeight(rows) }}>{notice}</div> : notice;
 }
 
 /* ── Hashes, addresses, ids ──────────────────────────────────────────── */

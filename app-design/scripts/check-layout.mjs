@@ -58,6 +58,9 @@
  * - On a phone the small controls are a thumb's 44px: the compact footer's
  *   lockup, an artifact's Download, Copy and view switch, filter chips, a
  *   menu's items, a row in a pane. A row's actions keep clear of its time.
+ * - A read that fails moves nothing: a LoadError given the rows of the
+ *   LoadingBlock it replaces keeps their height, and a LoadingBlock that
+ *   times out keeps its own, so the line under either stays where it was.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -132,6 +135,7 @@ try {
             `@source '${join(dir, 'client.js')}';\n` +
             `@source '${join(dir, 'menu.js')}';\n` +
             `@source '${join(dir, 'toolmenu.js')}';\n` +
+            `@source '${join(dir, 'loaderr.js')}';\n` +
             `@import '${join(pkg, 'src/styles.css')}';\n`
     );
 
@@ -163,6 +167,35 @@ try {
             `const tools = ['Create', 'Verify', 'Playground'].map((label) => ({ href: '/' + label.toLowerCase(), label, icon: <i /> }));\n` +
             `createRoot(document.getElementById('root')).render(<ToolShell protocol="stamp" tools={tools}><p>page</p></ToolShell>);\n`
     );
+    // A read that fails after a moment, and one that never answers: each swaps on the client.
+    writeFileSync(
+        join(dir, 'loaderr.jsx'),
+        `import { useEffect, useState } from 'react';\n` +
+            `import { createRoot } from 'react-dom/client';\n` +
+            `import { LoadError, LoadingBlock } from '${join(pkg, 'src/components/data.tsx')}';\n` +
+            `import { failureText } from '${join(pkg, 'src/format/index.ts')}';\n` +
+            `function Fails() {\n` +
+            `  const [failed, setFailed] = useState(false);\n` +
+            `  useEffect(() => { const t = setTimeout(() => setFailed(true), 400); return () => clearTimeout(t); }, []);\n` +
+            `  return failed ? <LoadError title="Your balance did not load." rows={3} onRetry={() => {}}>{failureText(new TypeError('Failed to fetch'))}</LoadError> : <LoadingBlock />;\n` +
+            `}\n` +
+            `const below = <p data-below="">Under the read</p>;\n` +
+            `createRoot(document.getElementById('root')).render(\n` +
+            `  <div className="flex flex-col gap-10 p-4"><div data-case="fails"><Fails />{below}</div><div data-case="late"><LoadingBlock timeoutMs={400} onRetry={() => {}} />{below}</div></div>\n` +
+            `);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'loaderr.jsx')],
+        outfile: join(dir, 'loaderr.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'toolmenu.jsx')],
         outfile: join(dir, 'toolmenu.js'),
@@ -501,6 +534,7 @@ try {
     );
     const menu = page('menu', '<div id="root" class="p-4"></div>', '<script src="menu.js"></script>');
     const toolMenu = page('toolmenu', '<div id="root"></div>', '<script src="toolmenu.js"></script>');
+    const loadErr = page('loaderr', '<div id="root"></div>', '<script src="loaderr.js"></script>');
     // Rows in a pane, each with a picture, a time and a menu button.
     const paneRows = page(
         'pane-rows',
@@ -1095,6 +1129,23 @@ try {
                 // A desk keeps the compact sizes.
                 check(reach.download.height <= 28.5 && reach.chip.height <= 36.5, `[${width}] the bar and chips grew on a desk (download ${reach.download.height}, chip ${reach.chip.height})`);
             }
+            // A failed read and one that never answers: the line under each stays put, and nothing shifts.
+            const q = await browser.newPage({ viewport: { width, height } });
+            await q.addInitScript(() => {
+                window.__shift = 0;
+                new PerformanceObserver((l) => l.getEntries().forEach((e) => (window.__shift += e.value))).observe({ type: 'layout-shift', buffered: true });
+            });
+            await q.goto(loadErr);
+            await q.waitForSelector('[data-case="fails"] [role="status"]');
+            const under = () => q.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-case]')].map((c) => [c.dataset.case, c.querySelector('[data-below]').getBoundingClientRect().top - c.getBoundingClientRect().top])));
+            const held = await under();
+            await q.waitForSelector('[data-case="fails"] [role="alert"]');
+            await q.waitForSelector('[data-case="late"] [role="note"]');
+            const swapped = await under();
+            const shift = await q.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => done(window.__shift), 50)))));
+            for (const k of ['fails', 'late']) check(Math.abs(swapped[k] - held[k]) < 0.5, `[${width}] ${k === 'fails' ? 'LoadError' : 'a timed-out LoadingBlock'} moved the line under it ${(swapped[k] - held[k]).toFixed(1)}px`);
+            check(shift < 0.001, `[${width}] a failed read shifted the page by ${shift.toFixed(4)}`);
+            await q.close();
             await p.close();
         }
     } finally {
@@ -1108,4 +1159,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read`);

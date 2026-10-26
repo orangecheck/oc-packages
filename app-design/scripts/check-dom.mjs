@@ -469,7 +469,13 @@ for (const mode of ['dark', 'light']) {
     await l.unmount();
     const bare = await mount(h(C.LoadError, null, 'Trying again in a minute.'));
     check(bare.host.querySelectorAll('button').length === 0 && bare.host.textContent.includes('This did not load.'), 'LoadError: with no callback, no button and the default title');
+    check(bare.host.firstElementChild?.getAttribute('role') === 'alert', 'LoadError: with no rows the notice is no longer the outermost element');
     await bare.unmount();
+    // rows keeps the LoadingBlock's height around the notice; check-layout measures it in Chrome.
+    const held = await mount(h(C.LoadError, { rows: 3 }, 'Trying again in a minute.'));
+    const box = held.host.firstElementChild;
+    check(box?.getAttribute('role') !== 'alert' && box?.firstElementChild?.getAttribute('role') === 'alert' && box.getAttribute('style')?.includes('min-height'), `LoadError rows: the notice is not held in a box with a min-height (${show(box?.outerHTML.slice(0, 80))})`);
+    await held.unmount();
 }
 
 if (failures) {

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- `LoadError` takes `rows`: the rows of the LoadingBlock it replaces, whose
+  height it keeps, so nothing under a failed read moves. 0, the default,
+  keeps none, as before.
+- `LoadingBlock` keeps its rows' height when it times out; the line under it
+  moved up when the shorter notice took the rows' place (131px at 1440 for
+  three rows).
+- check-layout asserts that a failed read and a timed-out one move nothing
+  at 390 and 1440; check-dom that `rows` holds the notice in a box with a
+  min-height and that without it the notice is unwrapped.
+
 ## [1.26.0] — 2026-10-25
 
 - `LoadError` (components): a read that failed, as a danger notice with its

@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
+import { failureText } from '../format';
 import { Button, StatusPill } from '../primitives';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
     ActivityList,
@@ -326,8 +327,30 @@ function LoadingDemo() {
     return <LoadingBlock key={key} timeoutMs={3000} onRetry={() => setKey((k) => k + 1)} />;
 }
 
+// A read that fails after a moment: the error keeps the skeleton's height, and the line under it stays put.
+function LoadErrorDemo() {
+    const [failed, setFailed] = useState(false);
+    useEffect(() => {
+        if (failed) return;
+        const t = setTimeout(() => setFailed(true), 1500);
+        return () => clearTimeout(t);
+    }, [failed]);
+    return (
+        <div className="flex flex-col gap-3">
+            {failed ? (
+                <LoadError title="Your balance did not load." rows={3} onRetry={() => setFailed(false)}>
+                    {failureText(new TypeError('Failed to fetch'))}
+                </LoadError>
+            ) : (
+                <LoadingBlock label="Loading your balance" />
+            )}
+            <p className="text-sm text-muted-foreground">Under the read, where it was.</p>
+        </div>
+    );
+}
+
 export const CodeAndStates: StoryObj = {
-    name: 'Code, notices, loading',
+    name: 'Code, notices, loading, a failed read',
     render: () => (
         <div className="flex max-w-3xl flex-col gap-8">
             <CodeBlock
@@ -355,6 +378,7 @@ export const CodeAndStates: StoryObj = {
                 The server could not read them just now.
             </LoadError>
             <LoadingDemo />
+            <LoadErrorDemo />
         </div>
     ),
 };
