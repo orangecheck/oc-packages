@@ -1,66 +1,98 @@
 #!/usr/bin/env bash
-# Land a branch on main without bypassing the required checks.
+# Land a branch on main through the merge queue.
 #
-# A direct push to main reaches it before the required checks have run on that
-# commit, and an admin push goes through anyway ("Bypassed rule violations"):
-# three times on 2026-10-24. This opens (or reuses) a PR so CI runs on the
-# branch's exact head, waits for every check on that sha, and only then
-# fast-forwards main to it, so the statuses already exist when main moves.
+# main takes no direct push: the queue tests each PR on top of main and the
+# ones queued ahead of it, then moves main to the exact commit it tested, so
+# two lanes landing at once never race. This pushes the branch, opens (or
+# reuses) its PR, queues it, and waits until main holds it.
 #
-#   scripts/land.sh <branch>          LAND_TIMEOUT=<seconds> (default 2700)
+#   bash scripts/land.sh <branch>          LAND_TIMEOUT=<seconds> (default 3600)
+#   LAND_PR=<number> bash scripts/land.sh   only watch PR <number>: did it land?
 #
-# Refuses when the branch is not on top of origin/main, when main moves while CI
-# runs, when a required check is missing, or when any check on the sha fails.
-# Tag only after it prints "land: main is now <sha>".
+# Refuses when a check fails on the PR, when the queue drops it, or when the PR
+# is closed. Rebase isn't needed first: the queue rebases onto main itself, so
+# the commits main takes are new ones. Tag what main holds, not the branch:
+# after a fetch, `git log -1 --format=%H origin/main -- <package>/package.json`.
+# Before it says a PR was dropped, it reads the PR again: one the queue has just
+# merged can still read as open for a moment, and main may already hold it.
+# LAND_GH and LAND_POLL (seconds) are for scripts/land.test.mjs.
 set -euo pipefail
 
-branch=${1:?usage: scripts/land.sh <branch>}
 repo=orangecheck/oc-packages
+poll=${LAND_POLL:-20}
 # A stale GITHUB_TOKEN in the environment answers "Bad credentials".
-gh() { env -u GITHUB_TOKEN gh "$@"; }
+gh() { env -u GITHUB_TOKEN "${LAND_GH:-gh}" "$@"; }
 refuse() {
     echo "land: $*" >&2
     exit 1
 }
 
-git fetch -q origin
-main=$(git rev-parse origin/main)
-sha=$(git rev-parse --verify "$branch^{commit}")
-[ "$sha" != "$main" ] || refuse "$branch is already main"
-git merge-base --is-ancestor "$main" "$sha" || refuse "$branch is not on top of origin/main; rebase it first"
-
-required=$(gh api "repos/$repo/rules/branches/main" \
-    --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context')
-[ -n "$required" ] || refuse "main has no required checks to wait for; read the ruleset before landing"
-
-git push -q origin "$sha:refs/heads/$branch"
-if ! gh pr view "$branch" -R "$repo" --json number > /dev/null 2>&1; then
-    gh pr create -R "$repo" --base main --head "$branch" --title "$(git log -1 --format=%s "$sha")" \
-        --body "Landed by scripts/land.sh: main fast-forwards to this head once every check on it passes." > /dev/null
+if [ -n "${LAND_PR:-}" ]; then
+    number=$LAND_PR
+else
+    branch=${1:?usage: bash scripts/land.sh <branch>}
+    sha=$(git rev-parse --verify "$branch^{commit}")
+    git push -q origin "$sha:refs/heads/$branch"
+    if ! gh pr view "$branch" -R "$repo" --json number > /dev/null 2>&1; then
+        gh pr create -R "$repo" --base main --head "$branch" --title "$(git log -1 --format=%s "$sha")" \
+            --body "Landed by scripts/land.sh through the merge queue." > /dev/null
+    fi
+    gh pr merge "$branch" -R "$repo" --auto > /dev/null
+    number=$(gh pr view "$branch" -R "$repo" --json number --jq .number)
 fi
 
-deadline=$((SECONDS + ${LAND_TIMEOUT:-2700}))
-while :; do
-    runs=$(gh api "repos/$repo/commits/$sha/check-runs?per_page=100" \
-        --jq '.check_runs[] | [.name, .status, (.conclusion // "")] | @tsv')
-    failed=$(printf '%s\n' "$runs" | awk -F'\t' '$2 == "completed" && $3 != "success" && $3 != "skipped" && $3 != "neutral" { print $1 }')
-    [ -z "$failed" ] || refuse "a check failed on $sha: $(printf '%s\n' "$failed" | paste -sd, -)"
-    waiting=$(printf '%s\n' "$runs" | awk -F'\t' 'NF && $2 != "completed" { print $1 }')
-    while IFS= read -r check; do
-        printf '%s\n' "$runs" | awk -F'\t' -v c="$check" '$1 == c && $3 == "success" { ok = 1 } END { exit !ok }' \
-            || waiting="${waiting:+$waiting$'\n'}$check"
-    done <<< "$required"
-    [ -n "$waiting" ] || break
-    ((SECONDS < deadline)) || refuse "timed out waiting on $sha for: $(printf '%s\n' "$waiting" | sort -u | paste -sd, -)"
-    sleep 20
-done
-
-git fetch -q origin
-[ "$(git rev-parse origin/main)" = "$main" ] || refuse "main moved while CI ran; rebase $branch on it and run again"
-out=$(git push origin "$sha:refs/heads/main" 2>&1) || {
-    echo "$out" >&2
-    refuse "the push to main failed"
+# shellcheck disable=SC2016 # GraphQL variables, not shell ones
+query='query($n: Int!) { repository(owner: "orangecheck", name: "oc-packages") { pullRequest(number: $n) {
+    state isInMergeQueue autoMergeRequest { enabledAt } mergeQueueEntry { state } mergeCommit { oid } headRefOid
+    commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } }'
+read_pr() {
+    local line
+    line=$(gh api graphql -f query="$query" -F n="$number" --jq '.data.repository.pullRequest
+        | [.state, .isInMergeQueue, (.autoMergeRequest != null), (.mergeQueueEntry.state // "-"),
+           (.commits.nodes[0].commit.statusCheckRollup.state // "-"), (.mergeCommit.oid // "-"), .headRefOid] | @tsv')
+    IFS=$'\t' read -r state in_queue auto entry checks merged head <<< "$line"
 }
-echo "$out"
-! grep -q "Bypassed rule" <<< "$out" || refuse "main took the push only by bypassing a rule: tell the lead before tagging"
-echo "land: main is now $sha"
+verb='is now'
+finish() {
+    echo "land: merged; main $verb $merged (PR #$number)"
+    exit 0
+}
+# Whether the PR landed after all: merged on a fresh read, or main holds its head.
+landed() {
+    local i status
+    for i in 1 2 3; do
+        read_pr
+        [ "$state" != MERGED ] || return 0
+        status=$(gh api "repos/$repo/compare/main...$head" --jq .status 2> /dev/null || echo unknown)
+        if [ "$status" = behind ] || [ "$status" = identical ]; then
+            merged="$head, the PR's head"
+            verb=holds
+            return 0
+        fi
+        [ "$i" = 3 ] || sleep "$poll"
+    done
+    return 1
+}
+# Refuse with the reason, unless a fresh read shows the PR landed.
+dropped() {
+    landed || refuse "$1"
+    finish
+}
+
+deadline=$((SECONDS + ${LAND_TIMEOUT:-3600}))
+queued=
+while :; do
+    read_pr
+    case $state in
+        MERGED) finish ;;
+        CLOSED) refuse "PR #$number was closed" ;;
+    esac
+    case $checks in FAILURE | ERROR) refuse "a check failed on PR #$number: gh pr checks $number -R $repo" ;; esac
+    [ "$entry" != UNMERGEABLE ] || dropped "the queue can't merge PR #$number: its group run failed or it conflicts with main"
+    [ "$in_queue" = true ] && queued=1
+    # A failed group run drops the PR from the queue and turns auto-merge off.
+    [ -z "$queued" ] || [ "$in_queue" = true ] || [ "$auto" = true ] \
+        || dropped "the queue dropped PR #$number: its group run failed or main changed under it"
+    ((SECONDS < deadline)) || dropped "timed out waiting for the queue to merge PR #$number"
+    sleep "$poll"
+done
