@@ -40,7 +40,8 @@
  * - On a touch screen a 32px icon button (icon-sm, Copy, a Panel's full
  *   screen), a 36px small button, a 40px icon button and the theme switch
  *   are 44px targets; a mouse sees them unchanged. A small field is drawn
- *   44px tall to a thumb and 36px to a mouse.
+ *   44px tall to a thumb and 36px to a mouse. A HashChip's link is a 44px
+ *   target to a thumb, at least 44px wide, and its line keeps its height.
  * - SignInFrame holds still while its ceremony grows past the window: the
  *   title stays put, and the ink column is one screen tall with its art in
  *   place.
@@ -396,7 +397,16 @@ try {
                 h(Ch.ThemeToggle, {}),
                 h(C.Panel, { title: 'Hash rate', expandable: true }, h('p', null, 'chart'))
             )
-        )
+        ) +
+            renderToStaticMarkup(
+                h(
+                    'div',
+                    // A HashChip's explorer link is a line of text: 44px to a thumb, its line unchanged.
+                    { className: 'flex flex-col items-start gap-6 p-6' },
+                    h('p', { 'data-t': 'hash' }, h(C.HashChip, { value: 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t', explorer: 'address', copy: false })),
+                    h('p', { 'data-t': 'hash-short' }, h(C.HashChip, { value: 'ab12', head: 2, tail: 2, explorer: 'tx', copy: false }))
+                )
+            )
     );
     const LONG = 'pledge.query(address="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t", status="open", window_blocks=4320) — every open pledge from this address in the last month, newest first';
     const wrapRows = page(
@@ -1000,6 +1010,24 @@ try {
                     const drawn = DRAWN[r.sel] ?? 32;
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);
                     else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
+                }
+                // A HashChip link keeps its line's height; a thumb gets 44px, at least 44px wide when the value is short.
+                const links = await t.evaluate(() =>
+                    ['hash', 'hash-short'].map((k) => {
+                        const line = document.querySelector(`[data-t="${k}"]`);
+                        const el = line.querySelector('a');
+                        const r = el.getBoundingClientRect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                        const across = r.width >= 44 || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy));
+                        return { k, h: r.height, w: Math.round(r.width), line: line.getBoundingClientRect().height, reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && across };
+                    })
+                );
+                for (const l of links) {
+                    const drawn = l.h < 30 && Math.abs(l.line - l.h) < 6;
+                    if (width < 768) check(l.reach && drawn, `[${width} touch] HashChip ${l.k}: link ${l.w}×${Math.round(l.h)}px in a ${Math.round(l.line)}px line, 44px target ${l.reach}`);
+                    else check(!l.reach && drawn, `[${width} mouse] HashChip ${l.k}: link ${Math.round(l.h)}px, or its target grew past the text (${l.reach})`);
                 }
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
                 await t.goto(fields);

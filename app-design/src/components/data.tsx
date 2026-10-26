@@ -20,7 +20,7 @@ import { announce, announcer } from '../lib/announce';
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 import { useDensity } from '../lib/density';
-import { HIT_32 } from '../lib/hit';
+import { HIT_32, HIT_LINK } from '../lib/hit';
 import { useShellPlace } from '../lib/shell-context';
 import { Button } from '../primitives/button';
 import { Skeleton, useTimedOut } from '../primitives/feedback';
@@ -890,7 +890,7 @@ export function HashChip({
                 <a
                     href={link}
                     {...(offsite ? { target: '_blank', rel: 'noreferrer' } : {})}
-                    className="underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground"
+                    className={cn('underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', HIT_LINK)}
                 >
                     {text}
                     {offsite ? <span className="sr-only"> (opens in a new tab)</span> : null}
