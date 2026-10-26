@@ -139,13 +139,17 @@ opens the PR, queues it, and returns once main holds it. The queue rebases, so
 main's commits are not the branch's. Tag the newest commit on main that touches
 the package, not the one that changed its version: a branch can carry more
 commits for the package after the bump. Check that its `package.json` carries
-the version, wait for its checks to be green (the queue's run on that commit
-counts; a later push to main can cancel the push run), and push the tag by name:
+the version and that the package is exactly the tree that was reviewed, wait for
+its checks to be green (the queue's run on that commit counts; a later push to
+main can cancel the push run), and push the tag by name. If another lane changed
+the package after yours landed, the diff shows it: that change needs its own
+version bump and review before a tag.
 
 ```bash
 git fetch origin
 sha=$(git log -1 --format=%H origin/main -- sdk)
 git show "$sha:sdk/package.json" | grep '"version"'   # must print 0.2.0
+git diff <reviewed branch tip> "$sha" -- sdk           # must print nothing
 git tag sdk-v0.2.0 "$sha" && git push origin sdk-v0.2.0
 ```
 
