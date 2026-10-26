@@ -8,6 +8,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.55.0] — 2026-10-26
+
+### Changed
+
+- `validateIntegratorConfig` refuses an enabled event whose fields the fee code
+  cannot read, naming the field, as me.ochk.io does: `site_pays` must be an
+  object of kind `fixed_sats` with a numeric `sats` or `percent_of_amount` with
+  a numeric `pct`; `user_share_pct` must be a number; an `agent` override must
+  be an object whose `site_pays` and `user_share_pct`, when given, follow the
+  same rules. An event that is not an object, and `events` that is not an
+  object, are refused too. A disabled event is still checked only for its key
+  and class.
+
+### Added
+
+- `test-vectors/integrator-config.json` carries the shape cases under `shape`,
+  each with the exact error me.ochk.io and this package give.
+
 ## [0.54.0] — 2026-10-26
 
 ### Changed
