@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.27.0] — 2026-10-26
+
 - `LoadError` takes `rows`: the rows of the LoadingBlock it replaces. It
   holds at least their height, so nothing under a failed read moves while
   the notice fits (two rows are 140px; the offline notice is 157px at 390).
