@@ -647,8 +647,8 @@ const rowsHeight = (rows: number) => (rows > 0 ? `calc(${rows} * 4rem + ${rows -
 
 /**
  * Placeholder rows while something loads, and a way out if it never does:
- * after `timeoutMs` the skeleton turns into a message with a retry, in the
- * rows' height.
+ * after `timeoutMs` the skeleton turns into a message with a retry, holding
+ * at least the rows' height.
  */
 export function LoadingBlock({
     rows = 3,
@@ -708,7 +708,7 @@ export function LoadError({
     /** With none, the notice offers no button: the page retries by itself, and says so. */
     onRetry?: () => void;
     retryLabel?: string;
-    /** The rows of the LoadingBlock it replaces: it keeps their height, so nothing under it moves. */
+    /** The rows of the LoadingBlock it replaces: it holds at least their height, so nothing under it moves while the notice fits. */
     rows?: number;
     className?: string;
 }) {

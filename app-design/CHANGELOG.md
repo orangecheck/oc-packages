@@ -2,12 +2,14 @@
 
 ## [Unreleased]
 
-- `LoadError` takes `rows`: the rows of the LoadingBlock it replaces, whose
-  height it keeps, so nothing under a failed read moves. 0, the default,
-  keeps none, as before.
-- `LoadingBlock` keeps its rows' height when it times out; the line under it
-  moved up when the shorter notice took the rows' place (131px at 1440 for
-  three rows).
+- `LoadError` takes `rows`: the rows of the LoadingBlock it replaces. It
+  holds at least their height, so nothing under a failed read moves while
+  the notice fits (two rows are 140px; the offline notice is 157px at 390).
+  0, the default, holds none and leaves the notice unwrapped, as before.
+- `LoadingBlock` holds at least its rows' height when it times out; the line
+  under it moved up when the shorter notice took the rows' place (131px at
+  1440 for three rows). The notice now sits in that box, so a flex-item
+  class passed as `className` no longer reaches the parent's flex layout.
 - check-layout asserts that a failed read and a timed-out one move nothing
   at 390 and 1440; check-dom that `rows` holds the notice in a box with a
   min-height and that without it the notice is unwrapped.
