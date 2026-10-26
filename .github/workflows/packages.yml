@@ -66,6 +66,17 @@ jobs:
                   node-version: '24'
             - run: node --test scripts/check-renovate-roster.test.mjs
 
+    land-script:
+        # scripts/land.sh against a scripted gh: what it reports merged, dropped or failed.
+        name: land.sh reports what the merge queue did
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node --test scripts/land.test.mjs
+
     home-paths:
         # A /Users/<name>/ fallback sat in six test files of this public repo,
         # naming a person and working on one laptop only. Fail on any.
@@ -429,7 +440,19 @@ jobs:
     # legs included. A job skipped by its own condition counts as passed.
     all-pass:
         name: All checks pass
-        needs: [release-triggers, dist-tag, renovate-roster, home-paths, id-coverage, build, python, conformance, dep-floors]
+        needs:
+            [
+                release-triggers,
+                dist-tag,
+                renovate-roster,
+                land-script,
+                home-paths,
+                id-coverage,
+                build,
+                python,
+                conformance,
+                dep-floors,
+            ]
         if: always()
         runs-on: ubuntu-latest
         steps:
