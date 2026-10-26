@@ -351,6 +351,27 @@ def _retired_at(doc: Any) -> dict[str, float]:
     return out
 
 
+#: The longest any token ochk.io signs is valid, ``exp - iat``: a session's 30 days.
+TOKEN_MAX_LIFETIME_SEC = 30 * 24 * 60 * 60
+
+
+def retired_key_vouches(claims: Mapping[str, Any], retired_at: float) -> bool:
+    """Does a key retired at ``retired_at`` (unix seconds) still vouch for a token with these claims?
+
+    Only for one it signed before it retired, valid for no longer than
+    ochk.io lets any token live. ``iat`` and ``exp`` are both the signer's own
+    word, so the lifetime bound is what ends a retired key's tokens: none
+    outlives ``retired_at + TOKEN_MAX_LIFETIME_SEC``. auth-core's
+    ``retiredKeyVouches``, held to ``auth-core/test-vectors/retired-key.json``.
+    """
+    iat: Any = claims.get("iat")
+    exp: Any = claims.get("exp")
+    if not _finite(iat) or not _finite(exp):
+        return False
+    lifetime = exp - iat
+    return bool(iat < retired_at and 0 < lifetime <= TOKEN_MAX_LIFETIME_SEC)
+
+
 def _import_jwks(doc: Any) -> dict[str, Ed25519PublicKey]:
     if not isinstance(doc, dict) or not isinstance(doc.get("keys"), list):
         raise ValueError("JWKS did not return {keys: [...]}")
@@ -911,8 +932,8 @@ def verify_session(
     iat = payload.get("iat")
     if iat is not None and not isinstance(iat, (int, float)):
         raise InvalidSession("claims")
-    # A retired key vouches only for what it signed before it retired.
-    if retired_at is not None and not (iat is not None and iat < retired_at):
+    # A retired key vouches only for what it signed before it retired, for at most a token's lifetime.
+    if retired_at is not None and not retired_key_vouches(payload, retired_at):
         raise InvalidSession("retired_key")
     for claim in ("sub", "did_oc", "jti"):
         if not isinstance(payload.get(claim), str) or not payload[claim]:

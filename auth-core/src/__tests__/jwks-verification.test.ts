@@ -5,6 +5,7 @@ import {
   _resetJwksCachesForTests,
   getOcSession,
   JWT_ALG,
+  TOKEN_MAX_LIFETIME_SEC,
   verifyOcToken,
 } from "../index";
 
@@ -179,6 +180,38 @@ describe("verifyOcToken · keys rotated out", () => {
     expect(await verifyOcToken(await mintAt(retiredAt), { issuer: ISSUER })).toBeNull();
     _resetJwksCachesForTests();
     expect(await verifyOcToken(await mintAt(nowSec()), { issuer: ISSUER })).toBeNull();
+  });
+
+  it("honours a retired key's token for at most 30 days from its iat", async () => {
+    const retiredAt = nowSec() - 600;
+    jwks = { keys: [{ ...jwks.keys[0]!, status: "retired", retired_at: retiredAt }] };
+    stubJwks();
+    const mintFor = (iat: number, exp: number) =>
+      new SignJWT({ did_oc: "did:oc:abc" })
+        .setProtectedHeader({ alg: JWT_ALG, kid: KID })
+        .setSubject("acct-1")
+        .setJti("jti-1")
+        .setIssuer(ISSUER)
+        .setIssuedAt(iat)
+        .setExpirationTime(exp)
+        .sign(privateKey);
+    const iat = retiredAt - 60;
+    expect(await verifyOcToken(await mintFor(iat, iat + TOKEN_MAX_LIFETIME_SEC), { issuer: ISSUER })).not.toBeNull();
+    _resetJwksCachesForTests();
+    expect(await verifyOcToken(await mintFor(iat, iat + TOKEN_MAX_LIFETIME_SEC + 1), { issuer: ISSUER })).toBeNull();
+    _resetJwksCachesForTests();
+    // Backdated iat, an exp years ahead: a retired key's tokens all end within 30 days of its retirement.
+    const backdated = await mintFor(retiredAt - 86_400 * 365, nowSec() + 86_400 * 3650);
+    expect(await verifyOcToken(backdated, { issuer: ISSUER })).toBeNull();
+    _resetJwksCachesForTests();
+    const noExp = await new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: KID })
+      .setSubject("acct-1")
+      .setJti("jti-1")
+      .setIssuer(ISSUER)
+      .setIssuedAt(iat)
+      .sign(privateKey);
+    expect(await verifyOcToken(noExp, { issuer: ISSUER })).toBeNull();
   });
 
   it("uses a stale key list through an outage only up to the cap", async () => {

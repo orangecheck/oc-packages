@@ -13,6 +13,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
   `@orangecheck/auth-core` 2.27.0, digits and runs of capitals included, held
   to the same `contains` and `allowed` vectors. `allow_reserved` lifts it, as
   before.
+- `verify_session` accepts a token signed by a retired key only when the
+  token's `exp` is at most 30 days after its `iat`, as well as its `iat` being
+  before the key's `retired_at`; anything else is refused with reason
+  `retired_key`, as before. ochk.io signs no token for longer than 30 days.
+  `@orangecheck/auth-core` 2.27.0 applies the same rule.
+
+### Added
+
+- `retired_key_vouches(claims, retired_at)` and `TOKEN_MAX_LIFETIME_SEC`, held
+  to `auth-core/test-vectors/retired-key.json`.
 
 ## [3.14.1] — 2026-10-25
 
