@@ -25,6 +25,19 @@ this file tracks the package's TS / Node / runtime API surface.
   capitals ("OCHKsupport"). `allowReserved` lifts it, as before.
   Held to the `contains` and `allowed` vectors in
   `test-vectors/display-name.json`.
+- A key the JWKS marks retired verifies a token only when the token's `exp`
+  is at most 30 days after its `iat`, as well as its `iat` being before the
+  key's `retired_at`. ochk.io signs no token for longer than 30 days, so no
+  token a retired key verifies is valid more than 30 days past `retired_at`,
+  and a retired key no longer verifies a token with no `exp`. A key that is
+  not retired is checked as before.
+
+### Added
+
+- `retiredKeyVouches(claims, retiredAt)` and `TOKEN_MAX_LIFETIME_SEC`: the
+  rule `verifyOcToken` applies to a retired key, for a verifier that reads
+  ochk.io's key set itself. Held to `test-vectors/retired-key.json`, which
+  sdk-py's tests read too.
 
 ## [2.26.1] — 2026-10-26
 

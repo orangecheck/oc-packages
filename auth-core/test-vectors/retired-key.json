@@ -1,0 +1,111 @@
+{
+    "description": "When a key the JWKS marks retired (status \"retired\", retired_at in unix seconds) still vouches for a token: only for one whose iat is a number before retired_at and whose exp is a number later than iat by at most max_lifetime_sec, the longest ochk.io signs any token for (a session's 30 days). A missing iat or exp, or one that is not a number (a boolean included), vouches for nothing, and so does NaN or an infinity, which {\"$number\": \"NaN\"} and {\"$number\": \"Infinity\"} stand for since JSON cannot write them. auth-core retiredKeyVouches and sdk-py's verify_session read these; a key that is not retired is not judged by them.",
+    "retired_at": 1800000000,
+    "max_lifetime_sec": 2592000,
+    "cases": [
+        {
+            "name": "signed before retiring, valid 30 days",
+            "iat": 1799999999,
+            "exp": 1802591999,
+            "vouches": true
+        },
+        {
+            "name": "signed before retiring, valid 10 minutes",
+            "iat": 1799996400,
+            "exp": 1799997000,
+            "vouches": true
+        },
+        {
+            "name": "signed half a second before retiring",
+            "iat": 1799999999.5,
+            "exp": 1802591999.5,
+            "vouches": true
+        },
+        {
+            "name": "valid one second longer than 30 days",
+            "iat": 1799999999,
+            "exp": 1802592000,
+            "vouches": false
+        },
+        {
+            "name": "issued long before retiring, valid until far after",
+            "iat": 1768464000,
+            "exp": 2115360000,
+            "vouches": false
+        },
+        {
+            "name": "signed at the moment of retiring",
+            "iat": 1800000000,
+            "exp": 1800000600,
+            "vouches": false
+        },
+        {
+            "name": "signed after retiring",
+            "iat": 1800000060,
+            "exp": 1800000660,
+            "vouches": false
+        },
+        {
+            "name": "valid for no time",
+            "iat": 1799999940,
+            "exp": 1799999940,
+            "vouches": false
+        },
+        {
+            "name": "expiring before it was issued",
+            "iat": 1799999940,
+            "exp": 1799999880,
+            "vouches": false
+        },
+        {
+            "name": "no iat",
+            "exp": 1800000600,
+            "vouches": false
+        },
+        {
+            "name": "no exp",
+            "iat": 1799999940,
+            "vouches": false
+        },
+        {
+            "name": "iat as text",
+            "iat": "1799999940",
+            "exp": 1800000600,
+            "vouches": false
+        },
+        {
+            "name": "exp as a boolean",
+            "iat": 1799999940,
+            "exp": true,
+            "vouches": false
+        },
+        {
+            "name": "iat as a boolean",
+            "iat": true,
+            "exp": 2,
+            "vouches": false
+        },
+        {
+            "name": "exp centuries away",
+            "iat": 1799999940,
+            "exp": 1e+300,
+            "vouches": false
+        },
+        {
+            "name": "exp an infinity",
+            "iat": 1799999940,
+            "exp": {
+                "$number": "Infinity"
+            },
+            "vouches": false
+        },
+        {
+            "name": "iat not a number (NaN)",
+            "iat": {
+                "$number": "NaN"
+            },
+            "exp": 1800000600,
+            "vouches": false
+        }
+    ]
+}

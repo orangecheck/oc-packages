@@ -23,6 +23,7 @@ import {
 } from "jose";
 
 import { refuseUnknownOptions } from "./options";
+import { retiredKeyVouches } from "./retired-key";
 
 export const JWT_ALG = "EdDSA" as const;
 export const SESSION_COOKIE = "oc_session" as const;
@@ -959,11 +960,9 @@ export async function checkOcToken(
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return INVALID;
-    // A retired key vouches only for what it signed before it retired.
+    // A retired key vouches only for what it signed before it retired, for at most a token's lifetime.
     const retiredAt = entry.retiredAt.get(kid);
-    if (retiredAt !== undefined && !(typeof p.iat === "number" && p.iat < retiredAt)) {
-      return INVALID;
-    }
+    if (retiredAt !== undefined && !retiredKeyVouches(p, retiredAt)) return INVALID;
     if (!audienceSatisfied(p.aud, options.audience)) return INVALID;
     if (!handleBoundToOneAudience(p)) return INVALID;
     return { status: "valid", session: p };
@@ -985,9 +984,10 @@ export async function checkOcToken(
  * Integrators don't need to handle JWKs, env vars, or rotation — the
  * cache picks up new keys automatically when they appear in the JWKS
  * response. A key published with `status: "retired"` verifies only tokens
- * issued before its `retired_at`; a key removed from the JWKS stops
- * verifying once the cache refreshes, and an unreachable JWKS is stood in
- * for by the last one fetched for at most `jwksMaxStaleMs`.
+ * issued before its `retired_at` and valid for at most 30 days
+ * ({@link retiredKeyVouches}); a key removed from the JWKS stops verifying
+ * once the cache refreshes, and an unreachable JWKS is stood in for by the
+ * last one fetched for at most `jwksMaxStaleMs`.
  */
 export async function verifyOcToken(
   token: string,
@@ -1075,3 +1075,4 @@ export * from "./revocation";
 export * from "./display-name";
 export * from "./family-origins";
 export * from "./identifiers";
+export * from "./retired-key";
