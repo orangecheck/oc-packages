@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2] — 2026-10-26
+
+### Fixed
+
+- `resolveSecretRef` reads an entry type's primary field from the table's
+  own keys only. A reference to an entry whose type has no primary field
+  throws `SecretRefError`, as other unresolvable references do.
+
 ## [0.3.1] — 2026-10-07
 
 ### Changed

@@ -8,6 +8,14 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.5.1] — 2026-10-26
+
+### Fixed
+
+- `parsePledgeCreateScope` finds a duplicate constraint by the map's own
+  keys. A constraint named after an inherited key, such as `constructor`,
+  is parsed as written, so the scope check's refusal names it.
+
 ## [3.5.0] — 2026-10-25
 
 ### Changed — `"null"` is not a counterparty or dispute parameter

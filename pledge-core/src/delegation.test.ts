@@ -434,3 +434,15 @@ describe('verifyPledgeAsOfSwornAt — an audit as of the time the pledge claims'
         if (!r.ok) expect(r.code).toBe('E_DELEGATION_EXPIRED');
     });
 });
+
+describe('a constraint named after an inherited key', () => {
+    it('is parsed as written, so the refusal names it', () => {
+        expect(parsePledgeCreateScope('pledge:create(constructor=1)')).toEqual({
+            constructor: '1',
+        });
+        expect(parsePledgeCreateScope('pledge:create(tostring=1,mechanism=bond)')).toEqual({
+            tostring: '1',
+            mechanism: 'bond',
+        });
+    });
+});

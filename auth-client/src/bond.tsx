@@ -15,6 +15,7 @@
 import * as React from 'react';
 
 import { addressInputValue } from './address';
+import { ownWord } from './own-word';
 import { SIGNIN_FONT } from './appearance';
 import {
     bodyStyle,
@@ -113,7 +114,7 @@ const REFUSAL: Record<string, string> = {
 
 /** A refusal from /api/auth/bond, in the component's voice. Not exported from the index. */
 export const bondRefusal = (reason?: string): string =>
-    (reason && REFUSAL[reason]) || "your backing didn't save · nothing changed, try again";
+    (reason && ownWord(REFUSAL, reason)) || "your backing didn't save · nothing changed, try again";
 
 /* Small print stays legible: 12px or more, and never dimmed below the muted tone. */
 const smallStyle: React.CSSProperties = { ...bodyStyle, fontSize: 12, margin: 0 };
