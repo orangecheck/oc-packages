@@ -7,7 +7,16 @@ new version lands on every subdomain.
 
 ## What it does
 
-- Runs Renovate every 30 minutes (self-hosted via GitHub Actions).
+- Runs Renovate every 30 minutes (self-hosted via GitHub Actions), but
+  it opens and updates branches only from 02:00 to 09:59 UTC
+  (`schedule` and `updateNotScheduled: false` in
+  [`renovate-global.json`](./renovate-global.json)). Every push to a
+  family branch runs the consumer's paid CI with a build, and each
+  release used to push it again, about three times a day per repo. Now
+  the pushes fall in one window, usually one run. GitHub starts the cron
+  only every 2.5 to 5 hours, hence the 8-hour window. Merging is
+  unaffected: `merge-renovate` runs in the consumer's CI whenever its
+  checks pass.
 - Reads one rule set, [`renovate-family.json`](./renovate-family.json),
   which every repo's `renovate.json` extends as
   `github>orangecheck/oc-packages:renovate-family`. A repo's own
@@ -108,7 +117,8 @@ every repo reads it on the next run (land it like any change here).
   release, and restore it after. A repo's own `renovate.json` does not
   need touching. That speeds only patches and minors at or above 1.0: a
   hotfix shipped as a 0.x minor or a major still waits on its own rule's
-  window, and on a person.
+  window, and on a person. Either way the branch waits for the daily
+  window; a hotfix that cannot wait is bumped by hand in the repo.
 
 Tweak one repo's behaviour in that repo's `renovate.json`:
 
