@@ -721,9 +721,10 @@ const DEFAULT_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
 const DEFAULT_JWKS_MAX_STALE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 interface JwksCacheEntry {
-  keys: Record<string, AuthKey>;
+  /** kid → key. A Map, so a kid is only ever one of the set's own entries. */
+  keys: Map<string, AuthKey>;
   /** kid → unix seconds, for keys published as `status: "retired"`. */
-  retiredAt: Record<string, number>;
+  retiredAt: Map<string, number>;
   fetchedAt: number;
 }
 
@@ -782,24 +783,23 @@ async function fetchJwks(
           `[@orangecheck/auth-core] JWKS at ${url} did not return {keys:[…]}`,
         );
       }
-      const keys: Record<string, AuthKey> = {};
-      const retiredAt: Record<string, number> = {};
+      const keys = new Map<string, AuthKey>();
+      const retiredAt = new Map<string, number>();
       for (const k of json.keys) {
         if (typeof k.kid !== "string") continue;
         try {
-          keys[k.kid] = (await importJWK(k, JWT_ALG)) as AuthKey;
+          keys.set(k.kid, (await importJWK(k, JWT_ALG)) as AuthKey);
         } catch {
           /* skip keys that won't import for our alg */
           continue;
         }
         if (k.status === "retired") {
           // A retired key with no readable retirement time signs nothing.
-          retiredAt[k.kid] =
-            typeof k.retired_at === "number" ? k.retired_at : 0;
+          retiredAt.set(k.kid, typeof k.retired_at === "number" ? k.retired_at : 0);
         }
       }
       // No key this verifier can use is a misdeploy at the host, not a reason to refuse every token.
-      if (Object.keys(keys).length === 0) {
+      if (keys.size === 0) {
         throw new Error(
           `[@orangecheck/auth-core] JWKS at ${url} has no ${JWT_ALG} key`,
         );
@@ -926,9 +926,10 @@ export async function checkOcToken(
       typeof Buffer !== "undefined"
         ? Buffer.from(headerB64, "base64url").toString("utf8")
         : new TextDecoder().decode(base64UrlDecode(headerB64));
-    const header = JSON.parse(headerJson) as { kid?: string; alg?: string };
-    if (!header.kid) return INVALID;
-    let key = entry.keys[header.kid];
+    const header = JSON.parse(headerJson) as { kid?: unknown; alg?: string };
+    const kid = header.kid;
+    if (typeof kid !== "string" || !kid) return INVALID;
+    let key = entry.keys.get(kid);
     if (!key) {
       // Force a fresh JWKS fetch in case the integrator's cache is older
       // than the active key set on the auth host — but at most once a
@@ -944,7 +945,7 @@ export async function checkOcToken(
         } catch {
           return { status: "unavailable" };
         }
-        key = entry.keys[header.kid];
+        key = entry.keys.get(kid);
       }
     }
     // A key may have rotated in while the key set can't be fetched: that is an
@@ -959,7 +960,7 @@ export async function checkOcToken(
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return INVALID;
     // A retired key vouches only for what it signed before it retired.
-    const retiredAt = entry.retiredAt[header.kid];
+    const retiredAt = entry.retiredAt.get(kid);
     if (retiredAt !== undefined && !(typeof p.iat === "number" && p.iat < retiredAt)) {
       return INVALID;
     }
