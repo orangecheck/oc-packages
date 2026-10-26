@@ -473,13 +473,24 @@ jobs:
         needs: [all-pass]
         if: github.event_name == 'pull_request' && github.head_ref == 'renovate/@orangecheck-(family)'
         runs-on: ubuntu-latest
+        timeout-minutes: 40
         permissions:
-            contents: write
-            pull-requests: write
+            contents: read
         steps:
+            - uses: actions/checkout@v5
             # main takes changes only through its merge queue, which retests the PR
-            # on top of main and rebases it in; --auto puts it in the queue.
+            # on top of main and rebases it in; --auto puts it in the queue. Queued
+            # with Renovate's own token, which pushes the branch: an entry made with
+            # GITHUB_TOKEN may start no merge_group run.
             - name: Queue the PR
               env:
-                  GH_TOKEN: ${{ github.token }}
+                  GH_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
               run: gh pr merge ${{ github.event.pull_request.number }} --auto --repo ${{ github.repository }}
+            # Red unless main holds the bump within 30 minutes. A bump that never
+            # merges must show, not sit: that is how Renovate went unseen June to September.
+            - name: Wait until main holds it
+              env:
+                  GH_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+                  LAND_PR: ${{ github.event.pull_request.number }}
+                  LAND_TIMEOUT: '1800'
+              run: bash scripts/land.sh
