@@ -10,10 +10,11 @@
 
 import { execFileSync } from 'node:child_process';
 
-// A home path. In text it must not follow a host or path character, so URLs don't match.
-// A colon is no boundary: a URL's is followed by "//", and a PATH list's entries count.
+// A home path. In text it must not follow a host name or a path segment, so a URL's
+// /home/ page doesn't match. A colon or a slash is no boundary: a PATH list's entries
+// and a file:/// URL point into a home directory as surely as a bare path.
 const HOME = '/(Users|home)/[A-Za-z0-9_.-]+/';
-const PATTERN = `(^|[^A-Za-z0-9_./-])${HOME}`;
+const PATTERN = `(^|[^A-Za-z0-9_.-])${HOME}`;
 
 // git grep exits 1 when nothing matches; that is an empty answer, not a failure.
 function grep(flags, pattern = PATTERN) {

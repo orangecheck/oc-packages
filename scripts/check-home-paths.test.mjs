@@ -15,6 +15,7 @@ after(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true 
 
 // Built here, so this file holds no home path of its own.
 const HOME = ['', 'home', 'someone', ''].join('/');
+const MAC = ['', 'Users', 'someone', ''].join('/');
 
 /** A repository whose tracked files are `files`, each a string or a Buffer. */
 function repo(files) {
@@ -42,6 +43,20 @@ test('a home path in a text file fails', () => {
     const r = run(repo({ 'a.ts': `const dir = '${HOME}work';\n` }));
     assert.equal(r.ok, false, r.out);
     assert.match(r.out, /a\.ts:1:/);
+});
+
+test('a macOS home path fails, in text and in a binary', () => {
+    const text = run(repo({ 'a.ts': `const dir = '${MAC}work';\n` }));
+    assert.equal(text.ok, false, text.out);
+    const binary = run(repo({ 'm.pyc': compiled(`${MAC}work/m.py`) }));
+    assert.equal(binary.ok, false, binary.out);
+    assert.match(binary.out, /m\.pyc: binary file/);
+});
+
+test('a home path in a file URL fails', () => {
+    const r = run(repo({ 'a.md': `Open file://${HOME}notes.txt to read it.\n` }));
+    assert.equal(r.ok, false, r.out);
+    assert.match(r.out, /a\.md:1:/);
 });
 
 test('a home path in a PATH list fails', () => {
