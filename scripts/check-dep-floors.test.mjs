@@ -257,3 +257,22 @@ test("a dependency's imports are followed through the files its entry loads, and
     );
     assert.deepEqual([...distImports(root, '@orangecheck/r', ['./other'], json).keys()], ['@orangecheck/mark']);
 });
+
+test('a dependency importing itself by name is followed through its own exports', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dep-floors-test-'));
+    roots.push(root);
+    mkdirSync(join(root, 'dist'));
+    const json = {
+        name: '@orangecheck/r',
+        exports: { '.': './dist/index.mjs', './core': { types: './dist/core.d.ts', import: './dist/core.mjs' } },
+    };
+    writeFileSync(join(root, 'dist', 'index.mjs'), "export { f } from '@orangecheck/r/core';\n");
+    writeFileSync(
+        join(root, 'dist', 'core.mjs'),
+        "import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';\nexport const f = isFamilyOrigin;\n",
+    );
+    writeFileSync(join(root, 'dist', 'core.d.ts'), 'export declare const f: (o: string) => boolean;\n');
+    const got = distImports(root, '@orangecheck/r', ['.'], json);
+    assert.deepEqual([...got.keys()], ['@orangecheck/auth-core']);
+    assert.deepEqual([...got.get('@orangecheck/auth-core').keys()], ['./family-origins']);
+});

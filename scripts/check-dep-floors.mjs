@@ -389,7 +389,8 @@ function resolveLocal(from, spec) {
 /**
  * What a published package imports from other @orangecheck packages, through
  * the subpaths `subs` this package imports from it: every file their exports
- * name, and every file those load in turn. Package, then subpath, then names.
+ * name, and every file those load in turn, by a relative path or by the
+ * package's own name. Package, then subpath, then names.
  */
 export function distImports(root, self, subs, json) {
     const out = new Map();
@@ -407,10 +408,15 @@ export function distImports(root, self, subs, json) {
                 continue;
             }
             const m = /^(@orangecheck\/[a-z0-9-]+)(\/.+)?$/.exec(spec);
-            if (!m || m[1] === self) continue;
+            if (!m) continue;
+            const sub = m[2] ? `.${m[2]}` : '.';
+            // The package importing itself by name loads its own export, so read that file too.
+            if (m[1] === self) {
+                queue.push(...entryFiles(json, sub).map((f) => resolve(root, f)));
+                continue;
+            }
             if (!out.has(m[1])) out.set(m[1], new Map());
             const bySub = out.get(m[1]);
-            const sub = m[2] ? `.${m[2]}` : '.';
             if (!bySub.has(sub)) bySub.set(sub, new Set());
             for (const n of names) bySub.get(sub).add(n);
         }
