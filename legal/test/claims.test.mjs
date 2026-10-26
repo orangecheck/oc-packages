@@ -91,7 +91,11 @@ test('ochk.io and ochk.app privacy say the sign-in log keeps the IP, for 90 days
             /sign-in log each sign-in and each identity you link or remove, with the IP address[^.]*the IP address is cleared after 90 days/i,
             name,
         );
-        assert.match(text, /IP addresses in the sign-in log cleared after 90 days/i, name);
+        assert.match(
+            text,
+            /IP addresses in the sign-in log cleared after 90 days; the entries themselves stay until your account is deleted/i,
+            name,
+        );
     }
 });
 
