@@ -8,6 +8,17 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.20] — 2026-10-26
+
+### Changed — a session no longer keeps an IP address
+
+ochk.io stopped writing the IP address to a session's row; the sign-in log
+still records it for each sign-in and each identity linked or removed. The
+ochk.io Privacy policy's "each session" line and the ochk.app Privacy policy's
+"session record" line no longer name an IP address, and the ochk.app list now
+names the sign-in log as the ochk.io list does. Both Privacy policies' updated
+dates move to 2026-10-26.
+
 ## [0.7.19] — 2026-10-25
 
 ### Added — the record of which sites you sign in to

@@ -1,8 +1,9 @@
 // The rendered Terms and Privacy text must say what the code stores. Each
 // banned phrase below was live and false (October 2026): the auth host stores
-// the email for email/Google/GitHub sign-in and the raw user-agent and IP per
-// session, sets oc_session SameSite=None, deletes nothing on a timer, and vault
-// stores its key sealed on the server. Runs against the built dist, whitespace
+// the email for email/Google/GitHub sign-in, the raw user-agent per session and
+// the IP per sign-in (not on the session row since #357), sets oc_session
+// SameSite=None, deletes nothing on a timer, and vault stores its key sealed
+// on the server. Runs against the built dist, whitespace
 // collapsed, so a line-wrap in the source cannot hide a phrase.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -32,6 +33,7 @@ const BANNED = [
     [/no password,? no email/i, 'email, Google and GitHub sign-in store the email'],
     [/Sign in with Bitcoin\*?\*? flow/i, 'sign-in is Bitcoin, email, Google or GitHub'],
     [/user-agent hash/i, 'session rows store the raw user-agent'],
+    [/(each session|session record) a hash of the session token[^.]{0,60}\bIP\b/i, 'session rows hold no IP; the sign-in log does'],
     // The family cookie. ochk.app's own __Host-oc_session is a different cookie and is Lax.
     [/(?<!__Host-)oc_session[^;]{0,140}?SameSite=Lax/i, 'oc_session is SameSite=None in production'],
     [/httpOnly \+ Secure \+ SameSite=Lax/i, 'oc_session is SameSite=None in production'],
@@ -78,6 +80,13 @@ test('ochk.io privacy names what sign-in stores', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
     for (const rx of [/user-agent string/i, /SameSite=None/i, /encrypted at rest/i, /no automatic deletion yet/i]) {
         assert.match(text, rx);
+    }
+});
+
+test('ochk.io and ochk.app privacy say the sign-in log keeps the IP', () => {
+    for (const name of ['www/privacy', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        assert.match(text, /sign-in log each sign-in and each identity you link or remove, with the IP address/i, name);
     }
 });
 
