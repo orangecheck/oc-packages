@@ -1,0 +1,71 @@
+{
+    "description": "validateIntegratorConfig cases for an event's class and a custom event key, read by me-client (src/__tests__/integrator-config-vectors.test.ts) and checked against me.ochk.io's validator (oc-me-web src/lib/events/types.ts). Each case puts one event under one key in `base`; `accept` must validate, `refuse` must not, under `event` and under `event_disabled` alike.",
+    "base": {
+        "project_key": "pk_test_vectors",
+        "display_name": "Vectors",
+        "domain": "vectors.example",
+        "updated_at": "2026-10-26T00:00:00.000Z"
+    },
+    "event": {
+        "enabled": true,
+        "site_pays": {
+            "kind": "fixed_sats",
+            "sats": 10
+        },
+        "user_share_pct": 0.5
+    },
+    "event_disabled": {
+        "enabled": false,
+        "site_pays": {
+            "kind": "fixed_sats",
+            "sats": 10
+        },
+        "user_share_pct": 0.5
+    },
+    "class": {
+        "accept": [
+            "A",
+            "B",
+            "C",
+            null
+        ],
+        "refuse": [
+            "Z",
+            "a",
+            "b",
+            "AB",
+            "",
+            1,
+            true,
+            "constructor",
+            "toString",
+            "__proto__",
+            {}
+        ]
+    },
+    "key": {
+        "accept": [
+            "note",
+            "note_published",
+            "Note.v2",
+            "a",
+            "account_creation",
+            "session_creation"
+        ],
+        "refuse": [
+            "constructor",
+            "toString",
+            "valueOf",
+            "hasOwnProperty",
+            "ToString",
+            "__proto__",
+            "isPrototypeOf",
+            "__defineGetter__",
+            "note published",
+            "-note",
+            "note-",
+            "",
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ]
+    }
+}
