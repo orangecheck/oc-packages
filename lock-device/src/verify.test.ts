@@ -107,6 +107,15 @@ describe('verifyDeviceRecords + boundNostrKeys', () => {
         expect(boundNostrKeys(copied, { now: NOW })).toEqual([]);
     });
 
+    it('only a verifier answering true counts', async () => {
+        for (const answer of [1, 'yes', {}, undefined]) {
+            const v = await verifyDeviceRecords([bindEvent(1)], ADDR, {
+                verifyBip322: () => answer as unknown as boolean,
+            });
+            expect(v).toEqual([]);
+        }
+    });
+
     it('a verifier that throws counts as no', async () => {
         const v = await verifyDeviceRecords([bindEvent(1)], ADDR, {
             verifyBip322: () => {
