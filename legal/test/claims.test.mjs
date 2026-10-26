@@ -83,10 +83,15 @@ test('ochk.io privacy names what sign-in stores', () => {
     }
 });
 
-test('ochk.io and ochk.app privacy say the sign-in log keeps the IP', () => {
+test('ochk.io and ochk.app privacy say the sign-in log keeps the IP, for 90 days', () => {
     for (const name of ['www/privacy', 'me/privacy']) {
         const text = DOCS.find(([n]) => n === name)[1];
-        assert.match(text, /sign-in log each sign-in and each identity you link or remove, with the IP address/i, name);
+        assert.match(
+            text,
+            /sign-in log each sign-in and each identity you link or remove, with the IP address[^.]*the IP address is cleared after 90 days/i,
+            name,
+        );
+        assert.match(text, /IP addresses in the sign-in log cleared after 90 days/i, name);
     }
 });
 
