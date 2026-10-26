@@ -134,7 +134,18 @@ The `packages.yml` CI workflow enforces this ordering.
 
 ## Releases
 
-Tag the commit with the canonical form `<pkg>-v<version>`:
+A change reaches main only through its merge queue: `bash scripts/land.sh <branch>`
+opens the PR, queues it, and returns once main holds it. The queue rebases, so
+main's commits are not the branch's. Tag the commit on main that carries the
+version, once main's checks on it are green, and push the tag by name:
+
+```bash
+git fetch origin
+sha=$(git log -1 --format=%H origin/main -- sdk/package.json)
+git tag sdk-v0.2.0 "$sha" && git push origin sdk-v0.2.0
+```
+
+Each tag takes the canonical form `<pkg>-v<version>`:
 
 ```bash
 git tag sdk-v0.2.0           && git push --tags   # → @orangecheck/sdk
