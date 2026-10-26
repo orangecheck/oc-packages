@@ -51,6 +51,19 @@ jobs:
                   node-version: '24'
             - run: node scripts/check-dist-tag.mjs
 
+    renovate-roster:
+        # The roster check itself reads the sibling repos, so it runs on a full
+        # workspace only. Its test runs here: a worktree or a retired repo is
+        # never taken for a consumer missing from the roster.
+        name: Renovate roster check counts only real consumers
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node --test scripts/check-renovate-roster.test.mjs
+
     home-paths:
         # A /Users/<name>/ fallback sat in six test files of this public repo,
         # naming a person and working on one laptop only. Fail on any.

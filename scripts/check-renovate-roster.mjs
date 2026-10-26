@@ -14,17 +14,27 @@
  * Runs from oc-packages, and reads the sibling repos from the parent workspace
  * directory. Skips silently when the siblings are not present (a CI checkout of
  * this repo alone), because failing there would only teach people to ignore it.
+ * A git worktree (its .git is a file) is a branch of a repo already counted, not
+ * a consumer of its own, so it is skipped.
  *
- * Usage: node scripts/check-renovate-roster.mjs
+ * Usage: node scripts/check-renovate-roster.mjs [--workspace <dir>] [--roster <file>]
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const HERE = new URL('.', import.meta.url).pathname;
-const WORKSPACE = join(HERE, '..', '..');
+const arg = (name) => {
+    const i = process.argv.indexOf(name);
+    return i > 0 ? process.argv[i + 1] : undefined;
+};
+const WORKSPACE = arg('--workspace') ?? join(HERE, '..', '..');
+const ROSTER = arg('--roster') ?? join(HERE, '..', 'renovate-global.json');
+
+// Archived repos take no bumps by design: oc-fleet-web was retired on 2026-09-04.
+const RETIRED = new Set(['oc-fleet-web']);
 
 const roster = new Set(
-    JSON.parse(readFileSync(join(HERE, '..', 'renovate-global.json'), 'utf8')).repositories.map(
+    JSON.parse(readFileSync(ROSTER, 'utf8')).repositories.map(
         (r) => r.split('/').pop()
     )
 );
@@ -32,7 +42,11 @@ const roster = new Set(
 let siblings;
 try {
     siblings = readdirSync(WORKSPACE).filter(
-        (d) => d.startsWith('oc-') && statSync(join(WORKSPACE, d)).isDirectory()
+        (d) =>
+            d.startsWith('oc-') &&
+            !RETIRED.has(d) &&
+            statSync(join(WORKSPACE, d)).isDirectory() &&
+            !(existsSync(join(WORKSPACE, d, '.git')) && statSync(join(WORKSPACE, d, '.git')).isFile())
     );
 } catch {
     console.log('renovate roster: sibling repos not present, skipping');
