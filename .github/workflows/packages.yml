@@ -477,7 +477,9 @@ jobs:
             contents: write
             pull-requests: write
         steps:
-            - name: Rebase-merge the PR
+            # main takes changes only through its merge queue, which retests the PR
+            # on top of main and rebases it in; --auto puts it in the queue.
+            - name: Queue the PR
               env:
                   GH_TOKEN: ${{ github.token }}
-              run: gh pr merge ${{ github.event.pull_request.number }} --rebase --repo ${{ github.repository }}
+              run: gh pr merge ${{ github.event.pull_request.number }} --auto --repo ${{ github.repository }}
