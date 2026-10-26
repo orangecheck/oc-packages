@@ -311,7 +311,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'sign-in log',
-                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time — kept for security',
+                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time — kept for security; the IP address is cleared after 90 days',
                         },
                         {
                             k: 'when you first sign in',
@@ -387,6 +387,10 @@ const privacy: DocSpec = {
                         {
                             k: 'sessions',
                             v: 'deleted when you sign out. A session that simply expires after 30 days is not yet deleted automatically.',
+                        },
+                        {
+                            k: 'IP addresses in the sign-in log',
+                            v: 'cleared after 90 days; the entries themselves stay until your account is deleted',
                         },
                         {
                             k: 'account, sign-in identities, passkeys and sign-in log',

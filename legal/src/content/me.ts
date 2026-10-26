@@ -269,7 +269,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'sign-in log',
-                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time, kept for security.',
+                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time, kept for security; the IP address is cleared after 90 days.',
                         },
                         {
                             k: 'event envelopes',
@@ -365,8 +365,12 @@ const privacy: DocSpec = {
                             v: 'retained until the session is revoked or expires',
                         },
                         {
+                            k: 'IP addresses in the sign-in log',
+                            v: 'cleared after 90 days; the entries themselves stay until your account is deleted',
+                        },
+                        {
                             k: 'account row',
-                            v: 'deleted, with your sign-in identities, passkeys and sessions, when your account-deletion request completes; anchored and published data cannot be deleted by anyone',
+                            v: 'deleted, with your sign-in identities, passkeys, sessions and sign-in log, when your account-deletion request completes; anchored and published data cannot be deleted by anyone',
                         },
                     ],
                 },
