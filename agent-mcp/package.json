@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-mcp",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Wrap Model Context Protocol tool invocations in OC Agent envelopes — every call produces a signed, scope-constrained, verifiable agent-action stamp.",
   "keywords": [
     "bitcoin",
@@ -51,7 +51,7 @@
   "dependencies": {
     "@noble/hashes": "^1.5.0",
     "@orangecheck/agent-core": "^2.10.0",
-    "@orangecheck/agent-signer": "^0.5.2"
+    "@orangecheck/agent-signer": "^0.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

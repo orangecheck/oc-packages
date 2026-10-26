@@ -8,6 +8,14 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 - _(no pending changes)_
 
+## [1.1.5] — 2026-10-26
+
+### Changed
+
+- Requires `@orangecheck/agent-signer` `^0.6.0`. The previous release still
+  allowed only 0.5.x, so it signed with agent-signer 0.5.2 and installed a
+  second agent-core (2.9.0) beside 2.10.0.
+
 ## [1.1.4] — 2026-10-25
 
 ### Changed
