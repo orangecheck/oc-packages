@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'The terms and conditions for using OrangeCheck. Non-custodial service provided as-is. You are responsible for your wallet and private keys.',
     effective: '2025-09-30',
-    updated: '2026-10-20',
+    updated: '2026-10-26',
     preamble: [
         {
             kind: 'callout',
@@ -138,6 +138,10 @@ const terms: DocSpec = {
                         {
                             k: 'blockchain data',
                             v: 'verification relies on third-party APIs (mempool.space, Esplora, or your own node). we do not guarantee accuracy or availability.',
+                        },
+                        {
+                            k: 'opentimestamps calendars',
+                            v: "when you claim an OC Chat @handle, your browser sends the claim's fingerprint (a SHA-256 hash) to the OpenTimestamps calendars at alice.btc.calendar.opentimestamps.org, bob.btc.calendar.opentimestamps.org and finney.calendar.eternitywall.com, and reads your address's coins and block headers from mempool.space; each of these sees your IP address and when you asked.",
                         },
                         {
                             k: 'nostr network',
@@ -327,6 +331,16 @@ const privacy: DocSpec = {
                         { k: 'ip address', v: 'security, rate limiting, service delivery' },
                         { k: 'browser/device', v: 'compatibility and UX optimization' },
                         { k: 'pages visited', v: 'aggregate, to improve the Service' },
+                    ],
+                },
+                { kind: 'subhead', text: 'sent from your browser to others' },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'an OC Chat @handle claim',
+                            v: "your browser sends the claim's fingerprint (a SHA-256 hash) to the OpenTimestamps calendars at alice.btc.calendar.opentimestamps.org, bob.btc.calendar.opentimestamps.org and finney.calendar.eternitywall.com, and reads your address's coins and block headers from mempool.space; each of these sees your IP address and when you asked. We send them nothing about you ourselves.",
+                        },
                     ],
                 },
                 { kind: 'subhead', text: 'cookies & analytics' },
