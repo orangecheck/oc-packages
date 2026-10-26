@@ -10,24 +10,29 @@
 
 import { execFileSync } from 'node:child_process';
 
-// A home path not preceded by a host or path character, so URLs don't match.
-const PATTERN = '(^|[^A-Za-z0-9_.:/-])/(Users|home)/[A-Za-z0-9_.-]+/';
+// A home path. In text it must not follow a host or path character, so URLs don't match.
+// A colon is no boundary: a URL's is followed by "//", and a PATH list's entries count.
+const HOME = '/(Users|home)/[A-Za-z0-9_.-]+/';
+const PATTERN = `(^|[^A-Za-z0-9_./-])${HOME}`;
 
 // git grep exits 1 when nothing matches; that is an empty answer, not a failure.
-function grep(flags) {
+function grep(flags, pattern = PATTERN) {
     try {
-        return execFileSync('git', ['grep', ...flags, PATTERN, '--', '.', ':!*.lock'], { encoding: 'utf8' });
+        return execFileSync('git', ['grep', ...flags, pattern, '--', '.', ':!*.lock'], { encoding: 'utf8' });
     } catch (e) {
         if (e.status === 1) return '';
         throw e;
     }
 }
 
-// Text files by line; every file by name, binaries included, since a compiled file
-// (a .pyc holds its source's path) is as public as the source.
+const names = (out) => out.split('\n').filter(Boolean);
+
+// Text files by line. A binary by name, with no boundary: a compiled file (a .pyc holds
+// its source's path) puts a length byte before the path, and that byte can be any
+// character the boundary refuses.
 const lines = grep(['-nIE']);
-const text = new Set(grep(['-lIE']).split('\n').filter(Boolean));
-const binaries = grep(['-laE']).split('\n').filter((f) => f && !text.has(f));
+const text = new Set(names(grep(['-lIE'], HOME)));
+const binaries = names(grep(['-laE'], HOME)).filter((f) => !text.has(f));
 if (lines || binaries.length) {
     process.stderr.write(lines + binaries.map((f) => `${f}: binary file\n`).join(''));
     console.error('::error::absolute home-directory path in a tracked file; use a repo-relative path or an env var');
