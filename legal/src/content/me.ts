@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-25',
+    updated: '2026-10-26',
     preamble: [
         {
             kind: 'callout',
@@ -265,7 +265,11 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'session record',
-                            v: 'a hash of the session token, the account id, the IP address and user-agent of the device that opened it, and timestamps. The token itself lives only in your browser.',
+                            v: 'a hash of the session token, the account id, the user-agent of the device that opened it, and timestamps. The token itself lives only in your browser.',
+                        },
+                        {
+                            k: 'sign-in log',
+                            v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time, kept for security.',
                         },
                         {
                             k: 'event envelopes',

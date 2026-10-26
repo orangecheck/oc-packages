@@ -227,7 +227,7 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-20',
+    updated: '2026-10-26',
     preamble: [
         {
             kind: 'callout',
@@ -307,7 +307,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'each session',
-                            v: 'a hash of the session token, the IP address and full user-agent string of the device that opened it, and timestamps',
+                            v: 'a hash of the session token, the full user-agent string of the device that opened it, and timestamps',
                         },
                         {
                             k: 'sign-in log',
