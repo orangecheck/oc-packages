@@ -27,9 +27,11 @@ new version lands on every subdomain.
   `major-bump` for human review (these change wire shape).
 - A **minor below 1.0** (`0.6.x` → `0.7.0`) is treated like a major: semver
   promises nothing there and Renovate marks it breaking (`matchIsBreaking`).
-  It gets a PR of its own (`renovate/orangecheck-<name>-0.x`), labelled
-  `major-bump`, which no `merge-renovate` job matches. A 0.x patch stays in
-  the family PR.
+  Every such minor in a repo goes into one PR of its own
+  (`renovate/@orangecheck-0.x-minors`), labelled `major-bump`, which no
+  `merge-renovate` job matches: a person reads each CHANGELOG against what
+  the repo imports and merges it. A 0.x patch stays in the family PR, and the
+  family PR has no PR limit, so waiting PRs never hold it back.
 - 1-day **stability window** — Renovate waits 24 h after a publish
   before opening any PR, family, 0.x minor or major. A
   yanked-within-24h publish never reaches a consumer.
@@ -104,7 +106,9 @@ every repo reads it on the next run (land it like any change here).
 
 - Hotfix: lower `"minimumReleaseAge"` in its family rule, for the one
   release, and restore it after. A repo's own `renovate.json` does not
-  need touching.
+  need touching. That speeds only patches and minors at or above 1.0: a
+  hotfix shipped as a 0.x minor or a major still waits on its own rule's
+  window, and on a person.
 
 Tweak one repo's behaviour in that repo's `renovate.json`:
 
