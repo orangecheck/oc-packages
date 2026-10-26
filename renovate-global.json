@@ -5,6 +5,10 @@
   "onboarding": false,
   "requireConfig": "optional",
   "autodiscover": false,
+  "description": "Branches open and update only from 02:00 to 09:59 UTC. Each push to a family branch runs the consumer's paid CI with a build, and about 50 releases a day reached each consumer as about three pushes a day; one window makes it about one. Set here, not in renovate-family.json, so it holds in every listed repo whether or not its renovate.json extends the preset. The window is 8 hours because GitHub starts the half-hourly cron only every 2.5 to 5 hours. A dispatch outside it changes no branch.",
+  "schedule": ["* 2-9 * * *"],
+  "timezone": "UTC",
+  "updateNotScheduled": false,
   "repositories": [
     "orangecheck/oc-agent-web",
     "orangecheck/oc-analytics-web",
