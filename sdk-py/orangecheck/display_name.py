@@ -73,9 +73,11 @@ def _allowed(allow_reserved: object, where: str) -> bool:
 def _words(value: str) -> list[tuple[str, bool]]:
     """Its characters, spacing dropped, each marked where a reader sees a word begin.
 
-    After spacing, at and after punctuation, at a small letter followed by a
-    capital ("myOrange"), and at the last capital of a run before a small
-    letter ("OCHKTeam").
+    After spacing, at and after punctuation, where letters meet digits
+    ("OrangeCheck2026", "x0chk"), at a small letter followed by a capital
+    ("myOrange"), at the last capital of a run before a small letter
+    ("OCHKTeam"), and at the small letter after a run of capitals
+    ("OCHKsupport").
     """
     kept: list[tuple[str, bool]] = []
     spaced = False
@@ -88,6 +90,7 @@ def _words(value: str) -> list[tuple[str, bool]]:
     cat = unicodedata.category
     out = []
     for i, (ch, spaced_before) in enumerate(kept):
+        before = kept[i - 2][0] if i > 1 else None
         prev = kept[i - 1][0] if i > 0 else None
         nxt = kept[i + 1][0] if i + 1 < len(kept) else None
         starts = (
@@ -95,8 +98,11 @@ def _words(value: str) -> list[tuple[str, bool]]:
             or spaced_before
             or cat(prev)[0] not in "LNM"
             or cat(ch)[0] not in "LNM"
+            or (cat(prev)[0] == "L" and cat(ch)[0] == "N")
+            or (cat(prev)[0] == "N" and cat(ch)[0] == "L")
             or (cat(prev) == "Ll" and cat(ch) == "Lu")
             or (cat(prev) == "Lu" and cat(ch) == "Lu" and nxt is not None and cat(nxt) == "Ll")
+            or (before is not None and cat(before) == "Lu" and cat(prev) == "Lu" and cat(ch) == "Ll")
         )
         out.append((ch, starts))
     return out

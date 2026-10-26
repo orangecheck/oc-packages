@@ -50,12 +50,16 @@ const SPACE = /\s/u;
 const IN_WORD = /[\p{L}\p{N}\p{M}]/u;
 const UPPER = /\p{Lu}/u;
 const LOWER = /\p{Ll}/u;
+const LETTER = /\p{L}/u;
+const DIGIT = /\p{N}/u;
 
 /**
  * A name's characters, spacing dropped, each marked where a reader sees a
- * word begin: after spacing, at and after punctuation, at a small letter
- * followed by a capital ("myOrange"), and at the last capital of a run before
- * a small letter ("OCHKTeam").
+ * word begin: after spacing, at and after punctuation, where letters meet
+ * digits ("OrangeCheck2026", "x0chk"), at a small letter followed by a capital
+ * ("myOrange"), at the last capital of a run before a small letter
+ * ("OCHKTeam"), and at the small letter after a run of capitals
+ * ("OCHKsupport").
  */
 function words(value: string): Array<{ ch: string; starts: boolean }> {
   const kept: Array<{ ch: string; spaced: boolean }> = [];
@@ -69,6 +73,7 @@ function words(value: string): Array<{ ch: string; starts: boolean }> {
     spaced = false;
   }
   return kept.map(({ ch, spaced }, i) => {
+    const before = kept[i - 2]?.ch;
     const prev = kept[i - 1]?.ch;
     const next = kept[i + 1]?.ch;
     const starts =
@@ -76,8 +81,11 @@ function words(value: string): Array<{ ch: string; starts: boolean }> {
       spaced ||
       !IN_WORD.test(prev) ||
       !IN_WORD.test(ch) ||
+      (LETTER.test(prev) && DIGIT.test(ch)) ||
+      (DIGIT.test(prev) && LETTER.test(ch)) ||
       (LOWER.test(prev) && UPPER.test(ch)) ||
-      (UPPER.test(prev) && UPPER.test(ch) && next !== undefined && LOWER.test(next));
+      (UPPER.test(prev) && UPPER.test(ch) && next !== undefined && LOWER.test(next)) ||
+      (before !== undefined && UPPER.test(before) && UPPER.test(prev) && LOWER.test(ch));
     return { ch, starts };
   });
 }
