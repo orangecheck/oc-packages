@@ -14,6 +14,8 @@
  * events never instantiate a BillableEvent.
  */
 
+import { EVENT_SUBTYPES } from './subtypes';
+
 // ── platform constants (fixed by OC) ──────────────────────────────────────
 
 export const PLATFORM_FEE_POLICY = {
@@ -59,6 +61,13 @@ export const MAX_DROP_WINDOW_DAYS = 92;
 
 export type EventClass = 'A' | 'B' | 'C';
 
+const EVENT_CLASSES: ReadonlySet<unknown> = new Set<EventClass>(['A', 'B', 'C']);
+
+/** Whether a value is one of the three billing classes. */
+export function isEventClass(value: unknown): value is EventClass {
+    return EVENT_CLASSES.has(value);
+}
+
 export type ClassASubtype =
     | 'account_creation'
     | 'account_recovery'
@@ -88,6 +97,20 @@ export type EventSubtype = ClassASubtype | ClassBSubtype | ClassCSubtype;
  * custom keys.
  */
 export type EventKey = EventSubtype | (string & {});
+
+/** Slug shape a custom event key must satisfy: 1 to 64 letters, digits or `_.:-`,
+ *  starting and ending with a letter or digit. */
+export const CUSTOM_EVENT_KEY_RE = /^[a-z0-9](?:[a-z0-9_.:-]{0,62}[a-z0-9])?$/i;
+
+const INHERITED_NAMES: ReadonlySet<string> = new Set(
+    [...Object.getOwnPropertyNames(Object.prototype), '__proto__'].map((n) => n.toLowerCase())
+);
+
+/** Whether a plain object answers this name without holding it ("constructor",
+ *  "toString"), in any case. me.ochk.io refuses such a custom event key. */
+export function isInheritedName(key: string): boolean {
+    return INHERITED_NAMES.has(key.toLowerCase());
+}
 
 /** AttestTier · what an integrator's gate can read about an oc identity.
  *
@@ -135,6 +158,13 @@ export interface IntegratorEventConfig {
     /** Optional per-agent-class pricing override applied when an event
      *  fires with is_agent=true. */
     agent?: AgentClassOverride;
+    /** Custom events only: a human-readable label. Built-ins ignore it. */
+    label?: string;
+    /** Custom events only: a description for the dashboard and docs. */
+    description?: string;
+    /** Custom events only: A, B or C. Built-ins take their class from the
+     *  taxonomy; a custom event without one is billed as class B. */
+    class?: EventClass;
 }
 
 /** A complete integrator pricing config. Posted to me.ochk.io once at
@@ -243,6 +273,24 @@ export function validateIntegratorConfig(cfg: IntegratorPriceConfig): Validation
     for (const [key, eventCfg] of Object.entries(cfg.events)) {
         if (!eventCfg) continue;
         const subtype = key as EventKey;
+        const builtin = Object.prototype.hasOwnProperty.call(EVENT_SUBTYPES, key);
+        if (!builtin && !CUSTOM_EVENT_KEY_RE.test(key)) {
+            errors.push({
+                subtype,
+                message: `custom event key "${key}" must match ${CUSTOM_EVENT_KEY_RE} (1–64 chars, letters/digits/_.:- )`,
+            });
+        } else if (!builtin && isInheritedName(key)) {
+            errors.push({
+                subtype,
+                message: `custom event key "${key}" is a name every object already has; pick another`,
+            });
+        }
+        if (eventCfg.class != null && !isEventClass(eventCfg.class)) {
+            errors.push({
+                subtype,
+                message: `class must be A, B or C (got ${JSON.stringify(eventCfg.class)})`,
+            });
+        }
         if (!eventCfg.enabled) continue;
 
         if (eventCfg.site_pays.kind === 'fixed_sats') {

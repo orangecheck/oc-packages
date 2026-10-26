@@ -21,6 +21,9 @@ export {
     MIN_INTEGRATOR_PRICE_SATS,
     computeFees,
     validateIntegratorConfig,
+    isEventClass,
+    isInheritedName,
+    CUSTOM_EVENT_KEY_RE,
 } from './types';
 
 export type {

@@ -109,6 +109,9 @@ export {
     MAX_DROP_WINDOW_DAYS,
     computeFees,
     validateIntegratorConfig,
+    isEventClass,
+    isInheritedName,
+    CUSTOM_EVENT_KEY_RE,
 } from './types';
 
 export type {
