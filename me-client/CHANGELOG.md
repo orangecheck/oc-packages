@@ -8,6 +8,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.53.3] — 2026-10-26
+
+### Fixed
+
+- The webhook verifier and `verifyActivityAttestation` look a `kid` up only
+  among the fetched key set's own entries. Any string is a usable `kid`, and a
+  `kid` that names no key in the set is refused.
+
 ## [0.53.2] — 2026-10-26
 
 ### Fixed
