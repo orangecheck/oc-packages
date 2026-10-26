@@ -436,8 +436,9 @@ jobs:
             - run: node --test scripts/check-dep-floors.test.mjs scripts/check-packed-imports.test.mjs
             - run: node scripts/check-dep-floors.mjs
 
-    # The one check the merge queue requires: every job above passed, matrix
-    # legs included. A job skipped by its own condition counts as passed.
+    # The one check the merge queue requires: every job above succeeded, matrix
+    # legs included. A skipped job fails it too, so a gating job given an `if:`
+    # later cannot pass unseen; one that may skip must be named here.
     all-pass:
         name: All checks pass
         needs:
@@ -460,7 +461,7 @@ jobs:
                   NEEDS: ${{ toJSON(needs) }}
               run: |
                   node -e '
-                  const bad = Object.entries(JSON.parse(process.env.NEEDS)).filter(([, j]) => !["success", "skipped"].includes(j.result));
+                  const bad = Object.entries(JSON.parse(process.env.NEEDS)).filter(([, j]) => j.result !== "success");
                   for (const [name, j] of bad) console.error(`${name}: ${j.result}`);
                   process.exit(bad.length ? 1 : 0);
                   '
