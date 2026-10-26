@@ -1,5 +1,5 @@
 {
-    "description": "validateIntegratorConfig cases for an event's class and a custom event key, read by me-client (src/__tests__/integrator-config-vectors.test.ts) and checked against me.ochk.io's validator (oc-me-web src/lib/events/types.ts). Each case puts one event under one key in `base`; `accept` must validate, `refuse` must not, under `event` and under `event_disabled` alike.",
+    "description": "validateIntegratorConfig cases for an event's class, a custom event key and an event's shape, read by me-client (src/__tests__/integrator-config-vectors.test.ts) and checked against me.ochk.io's validator (oc-me-web src/lib/events/types.ts). Each case puts one event under one key in `base`; `accept` must validate, `refuse` must not, under `event` and under `event_disabled` alike. `shape` puts each `event` under the key `note` as it is: a `refuse` case gives exactly one error, `{subtype: 'note', message}`; an `accept` case none; an `events_refuse` value given as `events` gives the error `events must be an object`.",
     "base": {
         "project_key": "pk_test_vectors",
         "display_name": "Vectors",
@@ -66,6 +66,314 @@
             "note-",
             "",
             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ]
+    },
+    "shape": {
+        "refuse": [
+            {
+                "name": "no site_pays",
+                "event": {
+                    "enabled": true,
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays must be an object"
+            },
+            {
+                "name": "site_pays null",
+                "event": {
+                    "enabled": true,
+                    "site_pays": null,
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays must be an object"
+            },
+            {
+                "name": "site_pays text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": "fixed_sats",
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays must be an object"
+            },
+            {
+                "name": "site_pays a list",
+                "event": {
+                    "enabled": true,
+                    "site_pays": [],
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays must be an object"
+            },
+            {
+                "name": "an unknown kind",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "free"
+                    },
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays kind must be fixed_sats or percent_of_amount (got \"free\")"
+            },
+            {
+                "name": "no kind",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays kind must be fixed_sats or percent_of_amount (got undefined)"
+            },
+            {
+                "name": "sats as text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": "10"
+                    },
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays sats must be a number"
+            },
+            {
+                "name": "no pct",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "percent_of_amount"
+                    },
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays pct must be a number"
+            },
+            {
+                "name": "pct as text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "percent_of_amount",
+                        "pct": "0.1"
+                    },
+                    "user_share_pct": 0.5
+                },
+                "message": "site_pays pct must be a number"
+            },
+            {
+                "name": "no user_share_pct",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    }
+                },
+                "message": "user_share_pct must be a number"
+            },
+            {
+                "name": "user_share_pct as text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": "0.5"
+                },
+                "message": "user_share_pct must be a number"
+            },
+            {
+                "name": "agent as text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": "yes"
+                },
+                "message": "agent must be an object"
+            },
+            {
+                "name": "agent a list",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": []
+                },
+                "message": "agent must be an object"
+            },
+            {
+                "name": "agent site_pays of an unknown kind",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": {
+                        "site_pays": {
+                            "kind": "x"
+                        }
+                    }
+                },
+                "message": "agent.site_pays kind must be fixed_sats or percent_of_amount (got \"x\")"
+            },
+            {
+                "name": "agent site_pays text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": {
+                        "site_pays": "fixed_sats"
+                    }
+                },
+                "message": "agent.site_pays must be an object"
+            },
+            {
+                "name": "agent user_share_pct as text",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": {
+                        "user_share_pct": "x"
+                    }
+                },
+                "message": "agent.user_share_pct must be a number"
+            },
+            {
+                "name": "the event a number",
+                "event": 5,
+                "message": "must be an object"
+            },
+            {
+                "name": "the event text",
+                "event": "note",
+                "message": "must be an object"
+            },
+            {
+                "name": "the event a list",
+                "event": [
+                    {
+                        "enabled": true,
+                        "site_pays": {
+                            "kind": "fixed_sats",
+                            "sats": 10
+                        },
+                        "user_share_pct": 0.5
+                    }
+                ],
+                "message": "must be an object"
+            }
+        ],
+        "accept": [
+            {
+                "name": "a fixed price",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5
+                }
+            },
+            {
+                "name": "a percentage",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "percent_of_amount",
+                        "pct": 0.1
+                    },
+                    "user_share_pct": 0.5
+                }
+            },
+            {
+                "name": "an empty agent override",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": {}
+                }
+            },
+            {
+                "name": "a null agent override",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": null
+                }
+            },
+            {
+                "name": "a full agent override",
+                "event": {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5,
+                    "agent": {
+                        "site_pays": {
+                            "kind": "fixed_sats",
+                            "sats": 10
+                        },
+                        "user_share_pct": 0.5
+                    }
+                }
+            },
+            {
+                "name": "a disabled event of any shape",
+                "event": {
+                    "enabled": false,
+                    "site_pays": "fixed_sats"
+                }
+            },
+            {
+                "name": "a null event",
+                "event": null
+            }
+        ],
+        "events_refuse": [
+            [
+                {
+                    "enabled": true,
+                    "site_pays": {
+                        "kind": "fixed_sats",
+                        "sats": 10
+                    },
+                    "user_share_pct": 0.5
+                }
+            ],
+            "note",
+            7,
+            null
         ]
     }
 }

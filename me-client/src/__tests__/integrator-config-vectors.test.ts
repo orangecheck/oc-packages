@@ -21,6 +21,11 @@ const V = JSON.parse(
     event_disabled: Record<string, unknown>;
     class: { accept: unknown[]; refuse: unknown[] };
     key: { accept: string[]; refuse: string[] };
+    shape: {
+        refuse: { name: string; event: unknown; message: string }[];
+        accept: { name: string; event: unknown }[];
+        events_refuse: unknown[];
+    };
 };
 
 const DIST = join(__dirname, '..', '..', 'dist', 'index.mjs');
@@ -102,5 +107,34 @@ describe.each(builds)('integrator config vectors (%s)', (_name, load) => {
             expect(m.isInheritedName(key), key).toBe(true);
         }
         for (const key of V.key.accept) expect(m.isInheritedName(key), key).toBe(false);
+    });
+});
+
+describe.each(builds)('integrator config shape vectors (%s)', (_name, load) => {
+    const raw = (events: unknown) => ({ ...V.base, events }) as unknown as IntegratorPriceConfig;
+
+    it.each(V.shape.refuse.map((c) => [c.name, c] as const))('refuses %s, naming the field', async (_n, c) => {
+        const m = await load();
+        expect(m.validateIntegratorConfig(raw(Object.fromEntries([['note', c.event]])))).toEqual({
+            ok: false,
+            errors: [{ subtype: 'note', message: c.message }],
+        });
+    });
+
+    it.each(V.shape.accept.map((c) => [c.name, c] as const))('takes %s', async (_n, c) => {
+        const m = await load();
+        expect(m.validateIntegratorConfig(raw(Object.fromEntries([['note', c.event]])))).toEqual({
+            ok: true,
+            errors: [],
+        });
+    });
+
+    it('refuses events that are not an object', async () => {
+        const m = await load();
+        for (const events of V.shape.events_refuse) {
+            expect(m.validateIntegratorConfig(raw(events)).errors, JSON.stringify(events)).toEqual([
+                { message: 'events must be an object' },
+            ]);
+        }
     });
 });

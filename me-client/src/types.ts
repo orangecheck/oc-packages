@@ -263,6 +263,37 @@ export interface ValidationResult {
  * non-negotiable rules. Run client-side before posting; the server runs
  * the same checks and rejects anything that fails.
  */
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Why a fee shape cannot be read, or null: a known kind and a finite number. */
+function siteFeeShapeProblem(v: unknown): string | null {
+    if (!isRecord(v)) return 'must be an object';
+    if (v.kind === 'fixed_sats') return Number.isFinite(v.sats) ? null : 'sats must be a number';
+    if (v.kind === 'percent_of_amount') {
+        return Number.isFinite(v.pct) ? null : 'pct must be a number';
+    }
+    return `kind must be fixed_sats or percent_of_amount (got ${JSON.stringify(v.kind)})`;
+}
+
+/** Why an enabled event's config cannot be priced, or null: every field the
+ *  fee code reads is present and of its type. me.ochk.io applies the same rule. */
+function eventShapeProblem(e: Record<string, unknown>): string | null {
+    const fee = siteFeeShapeProblem(e.site_pays);
+    if (fee) return `site_pays ${fee}`;
+    if (!Number.isFinite(e.user_share_pct)) return 'user_share_pct must be a number';
+    if (e.agent == null) return null;
+    if (!isRecord(e.agent)) return 'agent must be an object';
+    if (e.agent.site_pays != null) {
+        const agentFee = siteFeeShapeProblem(e.agent.site_pays);
+        if (agentFee) return `agent.site_pays ${agentFee}`;
+    }
+    if (e.agent.user_share_pct != null && !Number.isFinite(e.agent.user_share_pct)) {
+        return 'agent.user_share_pct must be a number';
+    }
+    return null;
+}
+
 export function validateIntegratorConfig(cfg: IntegratorPriceConfig): ValidationResult {
     const errors: ValidationResult['errors'] = [];
 
@@ -270,9 +301,14 @@ export function validateIntegratorConfig(cfg: IntegratorPriceConfig): Validation
     if (!cfg.display_name) errors.push({ message: 'display_name is required' });
     if (!cfg.domain) errors.push({ message: 'domain is required' });
 
-    for (const [key, eventCfg] of Object.entries(cfg.events)) {
+    if (!isRecord(cfg.events)) errors.push({ message: 'events must be an object' });
+    for (const [key, eventCfg] of Object.entries(isRecord(cfg.events) ? cfg.events : {})) {
         if (!eventCfg) continue;
         const subtype = key as EventKey;
+        if (!isRecord(eventCfg)) {
+            errors.push({ subtype, message: 'must be an object' });
+            continue;
+        }
         const builtin = Object.prototype.hasOwnProperty.call(EVENT_SUBTYPES, key);
         if (!builtin && !CUSTOM_EVENT_KEY_RE.test(key)) {
             errors.push({
@@ -292,6 +328,11 @@ export function validateIntegratorConfig(cfg: IntegratorPriceConfig): Validation
             });
         }
         if (!eventCfg.enabled) continue;
+        const shape = eventShapeProblem(eventCfg as unknown as Record<string, unknown>);
+        if (shape) {
+            errors.push({ subtype, message: shape });
+            continue;
+        }
 
         if (eventCfg.site_pays.kind === 'fixed_sats') {
             if (eventCfg.site_pays.sats < MIN_INTEGRATOR_PRICE_SATS) {
