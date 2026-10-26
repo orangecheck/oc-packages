@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "The family's one Renovate rule set. Every repo in renovate-global.json extends it as github>orangecheck/oc-packages:renovate-family, so a change here reaches all of them on the next run. A repo's own packageRules come after these and win.",
+  "packageRules": [
+    {
+      "description": "Third-party updates are off: this config tracks the @orangecheck/* family only. Every update type is listed, because a rule naming only patch, minor and major let lockFileMaintenance open third-party PRs that sat for months.",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "pin",
+        "digest",
+        "pinDigest",
+        "lockFileMaintenance",
+        "rollback",
+        "bump",
+        "replacement"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "@orangecheck/* patch and minor: one PR per repo on renovate/@orangecheck-(family), one day after the publish. Renovate does not merge it (its token cannot read check runs); the repo's own CI does, in its merge-renovate job, once the gating jobs pass.",
+      "matchPackageNames": ["/^@orangecheck//"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "enabled": true,
+      "groupName": "@orangecheck/* (family)",
+      "minimumReleaseAge": "1 day"
+    },
+    {
+      "description": "@orangecheck/* majors change wire shape: a PR of their own, labelled major-bump, merged by a person, one day after the publish.",
+      "matchPackageNames": ["/^@orangecheck//"],
+      "matchUpdateTypes": ["major"],
+      "enabled": true,
+      "automerge": false,
+      "minimumReleaseAge": "1 day",
+      "labels": ["renovate", "major-bump"]
+    },
+    {
+      "description": "Below 1.0 a minor can break (semver promises nothing there, and Renovate marks it breaking). It leaves the family group for a PR of its own, labelled major-bump and merged by a person, like a major. A 0.x patch stays in the family group.",
+      "matchPackageNames": ["/^@orangecheck//"],
+      "matchUpdateTypes": ["minor"],
+      "matchIsBreaking": true,
+      "enabled": true,
+      "groupName": null,
+      "automerge": false,
+      "minimumReleaseAge": "1 day",
+      "labels": ["renovate", "major-bump"]
+    }
+  ]
+}

@@ -8,7 +8,11 @@ new version lands on every subdomain.
 ## What it does
 
 - Runs Renovate every 30 minutes (self-hosted via GitHub Actions).
-- Reads the per-repo rules in each consumer's `renovate.json`.
+- Reads one rule set, [`renovate-family.json`](./renovate-family.json),
+  which every repo's `renovate.json` extends as
+  `github>orangecheck/oc-packages:renovate-family`. A repo's own
+  `packageRules` come after it and win, so only a real difference lives
+  in a repo (oc-docs' merge queue, the onboarding examples' PyPI SDK).
 - For `@orangecheck/*` **patch + minor** bumps: opens one PR on
   `renovate/@orangecheck-(family)`. Renovate does **not** merge it. The
   consumer's own CI does: its `merge-renovate` job `needs` the gating jobs
@@ -21,9 +25,14 @@ new version lands on every subdomain.
   bypass lets its merge through.
 - For `@orangecheck/*` **major** bumps: opens a PR labelled
   `major-bump` for human review (these change wire shape).
+- A **minor below 1.0** (`0.6.x` → `0.7.0`) is treated like a major: semver
+  promises nothing there and Renovate marks it breaking (`matchIsBreaking`).
+  It gets a PR of its own (`renovate/orangecheck-<name>-0.x`), labelled
+  `major-bump`, which no `merge-renovate` job matches. A 0.x patch stays in
+  the family PR.
 - 1-day **stability window** — Renovate waits 24 h after a publish
-  before opening any PR. A yanked-within-24h publish never reaches a
-  consumer.
+  before opening any PR, family, 0.x minor or major. A
+  yanked-within-24h publish never reaches a consumer.
 - Bundles every `@orangecheck/*` update visible at run time into one
   PR per consumer (`groupName: "@orangecheck/* (family)"`).
 
@@ -34,12 +43,13 @@ Result: net manual work on a routine publish — **zero**.
 The 13 consumer surfaces listed in [`renovate-global.json`](./renovate-global.json) —
 every site that pins `@orangecheck/*` via npm. Add a new site by
 appending it to that file _and_ dropping a `renovate.json` in its
-repo (copy any existing one), _and_ adding the `merge-renovate` job to the
+repo (copy any existing one: it is the four `extends` and three limits),
+_and_ adding the `merge-renovate` job to the
 end of its CI workflow with `needs` naming its gating jobs. Without that
 job the family PR opens and never merges.
 
-`oc-packages` itself is also under management, but with the **stricter
-rule set** in its own [`renovate.json`](./renovate.json). Its family PR
+`oc-packages` itself is also under management, and extends the same
+rule set from its own [`renovate.json`](./renovate.json). Its family PR
 is merged by `packages.yml`'s `merge-renovate` job after every package
 builds; anything else opens for visibility and waits for a human. A
 third-party bump that lands here propagates to every consumer via the
@@ -89,7 +99,14 @@ unless it stops succeeding.
 
 ## Tuning
 
-Tweak per-repo behaviour in that repo's `renovate.json`:
+Change the family's behaviour in [`renovate-family.json`](./renovate-family.json):
+every repo reads it on the next run (land it like any change here).
+
+- Hotfix: lower `"minimumReleaseAge"` in its family rule, for the one
+  release, and restore it after. A repo's own `renovate.json` does not
+  need touching.
+
+Tweak one repo's behaviour in that repo's `renovate.json`:
 
 - Stop merging family bumps in one repo: delete that repo's
   `merge-renovate` job. (Renovate's own `automerge` is `false` everywhere
