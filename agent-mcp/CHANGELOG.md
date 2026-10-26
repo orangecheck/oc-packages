@@ -15,6 +15,7 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Changed
 
+- Requires `@orangecheck/agent-core` `^2.10.0` (OC Agent 1.10.0).
 - `stampInvocation` and `invokeWithStamp` default the exercised scope to
   `mcp:invoke(server="<server>",tool="<tool>")`, written through agent-core's
   `canonicalizeScope` with both as quoted values. They are read as written: a

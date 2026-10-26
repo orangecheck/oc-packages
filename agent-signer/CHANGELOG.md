@@ -9,6 +9,10 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+- _(no pending changes)_
+
+## [0.6.0] — 2026-10-25
+
 ### Changed — a signer signs only what a strict verifier accepts (oc-agent-protocol 1.10.0)
 
 - `signAsAgent` refuses content outside the scope it exercises: a verifier

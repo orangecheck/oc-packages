@@ -6,12 +6,18 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+- _(no pending changes)_
+
+## [1.1.4] — 2026-10-25
+
 ### Changed
 
 - `stampFunctionCall` defaults the exercised scope to `openai:function(name="<name>")`, written
   through agent-core's `canonicalizeScope` with the name as a quoted value. A
   name is read as written, so a tool called `"*"` exercises that tool. The
   quoted form is a sub-scope of the same grants as before.
+- Requires `@orangecheck/agent-core` `^2.10.0` (OC Agent 1.10.0): stamping refuses a
+  scope a strict verifier refuses.
 
 ## [1.1.3] — 2026-10-25
 
