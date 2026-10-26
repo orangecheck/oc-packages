@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.28.0] — 2026-10-26
+
+- A bordered `Button` (`secondary`, `onInkOutline`) in `sm`, `icon` or
+  `icon-sm` is a 44px target on a touch screen again. The target is drawn
+  from inside the border, so the 1px border took 2px off it: a small
+  secondary button reached 42px (run 10). The bordered variants set
+  `--hit-b`, and each size adds it back. Nothing changes to a mouse.
+- check-layout measures a bordered `sm`, `icon` and `icon-sm` button too.
+
 ## [1.27.0] — 2026-10-26
 
 - `LoadError` takes `rows`: the rows of the LoadingBlock it replaces. It

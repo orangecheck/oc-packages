@@ -25,23 +25,25 @@ export const buttonVariants = cva(
         variants: {
             variant: {
                 primary: 'bg-primary text-primary-foreground hover:bg-primary/85',
+                // A border's width, so the touch target below is measured from the border box.
                 secondary:
-                    'border border-border bg-secondary text-secondary-foreground hover:border-oca-hairline-strong hover:bg-accent',
+                    'border border-border bg-secondary text-secondary-foreground hover:border-oca-hairline-strong hover:bg-accent [--hit-b:1px]',
                 brand: 'bg-brand text-brand-foreground hover:bg-oca-orange-deep',
                 ghost: 'text-foreground hover:bg-accent',
                 danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                 link: 'h-auto rounded-none px-0 text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground',
                 onInk: 'bg-white text-oca-ink hover:bg-white/90',
-                onInkOutline: 'border border-white/20 text-white hover:bg-white/10',
+                onInkOutline: 'border border-white/20 text-white hover:bg-white/10 [--hit-b:1px]',
             },
             size: {
-                // 36px drawn, 44px to a thumb.
-                sm: 'relative h-9 px-4 text-sm pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-1',
+                // 36px drawn, 44px to a thumb. The target is positioned from inside the
+                // border, so a bordered button adds the border back.
+                sm: 'relative h-9 px-4 text-sm pointer-coarse:before:absolute pointer-coarse:before:-inset-x-[var(--hit-b,0px)] pointer-coarse:before:-inset-y-[calc(0.25rem+var(--hit-b,0px))]',
                 md: 'h-11 px-5 text-[0.9375rem]',
                 lg: 'h-14 px-7 text-[1.0625rem]',
-                icon: 'relative size-10 pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
+                icon: 'relative size-10 pointer-coarse:before:absolute pointer-coarse:before:-inset-[calc(0.125rem+var(--hit-b,0px))]',
                 // 32px drawn, 44px to a thumb (HIT_32).
-                'icon-sm': 'relative size-8 pointer-coarse:before:absolute pointer-coarse:before:-inset-1.5',
+                'icon-sm': 'relative size-8 pointer-coarse:before:absolute pointer-coarse:before:-inset-[calc(0.375rem+var(--hit-b,0px))]',
             },
         },
         compoundVariants: [{ variant: 'link', className: 'h-auto px-0' }],

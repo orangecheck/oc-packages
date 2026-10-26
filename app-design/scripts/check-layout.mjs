@@ -387,6 +387,10 @@ try {
                 { className: 'flex items-center gap-4 p-6' },
                 h(P.Button, { size: 'icon-sm', variant: 'ghost', 'aria-label': 'Generate another', 'data-t': 'icon-sm' }, 'G'),
                 h(P.Button, { size: 'sm', 'data-t': 'sm' }, 'Get an account'),
+                // Bordered: the target counts from the border box, not from inside it.
+                h(P.Button, { size: 'sm', variant: 'secondary', 'data-t': 'sm-b' }, 'Add address'),
+                h(P.Button, { size: 'icon-sm', variant: 'secondary', 'aria-label': 'Refresh', 'data-t': 'icon-sm-b' }, 'R'),
+                h(P.Button, { size: 'icon', variant: 'secondary', 'aria-label': 'Close', 'data-t': 'icon-b' }, 'X'),
                 h(P.Button, { size: 'icon', variant: 'ghost', 'aria-label': 'Menu', 'data-t': 'icon' }, 'M'),
                 h(C.CopyButton, { value: 'x', label: 'Copy passphrase' }),
                 h(Ch.ThemeToggle, {}),
@@ -980,7 +984,7 @@ try {
                 const t = await ctx.newPage();
                 await t.goto(icons);
                 const reach = await t.evaluate(() =>
-                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
+                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', '[data-t="sm-b"]', '[data-t="icon-sm-b"]', '[data-t="icon-b"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
                         const el = document.querySelector(sel);
                         const r = el.getBoundingClientRect();
                         const cx = r.left + r.width / 2;
@@ -991,7 +995,7 @@ try {
                         return { sel, size: Math.round(r.height), w: Math.round(r.width), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
-                const DRAWN = { '[data-t="sm"]': 36, '[data-t="icon"]': 40, 'button[aria-label^="Theme:"]': 40 };
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 40 };
                 for (const r of reach) {
                     const drawn = DRAWN[r.sel] ?? 32;
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);
