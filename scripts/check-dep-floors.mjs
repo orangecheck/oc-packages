@@ -7,8 +7,9 @@
 //   2. at the floor of every declared range, the subpath is exported and each
 //      named import is exported from it (read from the published .d.ts);
 //   3. what an installed @orangecheck dependency imports from another
-//      @orangecheck package, subpaths and names, is there in every version it
-//      can meet: for a peer, the version this package's yarn.lock resolves for
+//      @orangecheck package, through the subpaths this package's source
+//      imports from it (their files and every file those load), subpaths and
+//      names, is there in every version it can meet: for a peer, the version this package's yarn.lock resolves for
 //      its own range and that range's floor; for the dependency's own
 //      dependency, the version the lock resolves for the dependency's range.
 //      Every locked copy of the dependency is read, plus the newest in range.
@@ -124,13 +125,10 @@ function clauseNames(node) {
     return names;
 }
 
-/** Every @orangecheck import in a file: declarations, re-exports, import types, import() and require(). */
-export function importsIn(file) {
+/** Every module a file names: declarations, re-exports, import types, import() and require(). */
+function specifiersIn(file) {
     const found = [];
-    const add = (specifier, names) => {
-        const m = /^(@orangecheck\/[a-z0-9-]+)(\/.+)?$/.exec(specifier);
-        if (m) found.push({ pkg: m[1], sub: m[2] ? `.${m[2]}` : '.', names, at: file });
-    };
+    const add = (spec, names) => found.push({ spec, names });
     const visit = (node) => {
         if (
             (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -163,6 +161,14 @@ export function importsIn(file) {
     };
     visit(parsed(file));
     return found;
+}
+
+/** Every @orangecheck import in a file, with its subpath and the names it takes. */
+export function importsIn(file) {
+    return specifiersIn(file).flatMap(({ spec, names }) => {
+        const m = /^(@orangecheck\/[a-z0-9-]+)(\/.+)?$/.exec(spec);
+        return m ? [{ pkg: m[1], sub: m[2] ? `.${m[2]}` : '.', names, at: file }] : [];
+    });
 }
 
 // --- the registry ---------------------------------------------------------------
@@ -204,8 +210,23 @@ async function newestIn(name, range) {
  * not exported, null when it is but no .d.ts can be read from its entry.
  */
 export function exportTarget(json, sub) {
+    if (json.exports === undefined) return sub === '.' ? (json.types ?? json.typings ?? null) : undefined;
+    const entry = exportEntry(json, sub);
+    if (entry === undefined) return undefined;
+    const types = (e) =>
+        typeof e === 'string'
+            ? /\.d\.[mc]?ts$/.test(e)
+                ? e
+                : null
+            : e && typeof e === 'object'
+              ? (types(e.types) ?? types(e.import) ?? types(e.default) ?? types(e.require) ?? types(e.node))
+              : null;
+    return types(entry) ?? (sub === '.' ? (json.types ?? json.typings ?? null) : null);
+}
+
+/** A subpath's entry in an exports map (patterns filled in), or undefined when it is not exported. */
+function exportEntry(json, sub) {
     const ex = json.exports;
-    if (ex === undefined) return sub === '.' ? (json.types ?? json.typings ?? null) : undefined;
     const map = typeof ex === 'string' || !Object.keys(ex).some((k) => k.startsWith('.')) ? { '.': ex } : ex;
     let entry = map[sub];
     if (entry === undefined) {
@@ -218,16 +239,24 @@ export function exportTarget(json, sub) {
             }
         }
     }
-    if (entry === undefined || entry === null) return undefined;
-    const types = (e) =>
-        typeof e === 'string'
-            ? /\.d\.[mc]?ts$/.test(e)
-                ? e
-                : null
-            : e && typeof e === 'object'
-              ? (types(e.types) ?? types(e.import) ?? types(e.default) ?? types(e.require) ?? types(e.node))
-              : null;
-    return types(entry) ?? (sub === '.' ? (json.types ?? json.typings ?? null) : null);
+    return entry === null ? undefined : entry;
+}
+
+/** Every file a subpath's export names, code and types alike. */
+function entryFiles(json, sub) {
+    const entry =
+        json.exports === undefined
+            ? sub === '.'
+                ? [json.main, json.module, json.types, json.typings]
+                : undefined
+            : exportEntry(json, sub);
+    const out = [];
+    const walk = (e) => {
+        if (typeof e === 'string') out.push(e);
+        else if (e && typeof e === 'object') Object.values(e).forEach(walk);
+    };
+    walk(entry);
+    return out;
 }
 
 let TMP = null;
@@ -339,26 +368,53 @@ function lockedVersions(file) {
     return out;
 }
 
-/** What a published package's files import from other @orangecheck packages: package, then subpath, then names. */
-function distImports(root, self) {
+/** A relative import from `from`, resolved to the published file it loads, or null. */
+function resolveLocal(from, spec) {
+    const base = resolve(dirname(from), spec);
+    const stem = base.replace(/\.(m|c)?js$/, '');
+    const candidates = [
+        base,
+        `${base}.js`,
+        `${base}.mjs`,
+        `${base}.cjs`,
+        `${base}.d.ts`,
+        `${stem}.d.ts`,
+        `${stem}.d.mts`,
+        `${stem}.d.cts`,
+    ];
+    candidates.push(join(base, 'index.js'), join(base, 'index.mjs'), join(base, 'index.d.ts'));
+    return candidates.find((c) => existsSync(c) && statSync(c).isFile()) ?? null;
+}
+
+/**
+ * What a published package imports from other @orangecheck packages, through
+ * the subpaths `subs` this package imports from it: every file their exports
+ * name, and every file those load in turn. Package, then subpath, then names.
+ */
+export function distImports(root, self, subs, json) {
     const out = new Map();
-    const walk = (d) => {
-        for (const name of readdirSync(d)) {
-            const p = join(d, name);
-            if (statSync(p).isDirectory()) {
-                if (name !== 'node_modules') walk(p);
-            } else if (/\.(m|c)?js$|\.d\.(m|c)?ts$/.test(name)) {
-                for (const use of importsIn(p)) {
-                    if (use.pkg === self) continue;
-                    if (!out.has(use.pkg)) out.set(use.pkg, new Map());
-                    const subs = out.get(use.pkg);
-                    if (!subs.has(use.sub)) subs.set(use.sub, new Set());
-                    for (const n of use.names) subs.get(use.sub).add(n);
-                }
+    const seen = new Set();
+    const queue = subs.flatMap((sub) => entryFiles(json, sub)).map((f) => resolve(root, f));
+    while (queue.length) {
+        const file = queue.pop();
+        if (seen.has(file) || !existsSync(file) || !statSync(file).isFile()) continue;
+        seen.add(file);
+        if (!/\.(m|c)?js$|\.d\.(m|c)?ts$/.test(file)) continue;
+        for (const { spec, names } of specifiersIn(file)) {
+            if (spec.startsWith('.')) {
+                const next = resolveLocal(file, spec);
+                if (next) queue.push(next);
+                continue;
             }
+            const m = /^(@orangecheck\/[a-z0-9-]+)(\/.+)?$/.exec(spec);
+            if (!m || m[1] === self) continue;
+            if (!out.has(m[1])) out.set(m[1], new Map());
+            const bySub = out.get(m[1]);
+            const sub = m[2] ? `.${m[2]}` : '.';
+            if (!bySub.has(sub)) bySub.set(sub, new Set());
+            for (const n of names) bySub.get(sub).add(n);
         }
-    };
-    walk(root);
+    }
     return out;
 }
 
@@ -422,12 +478,14 @@ async function main() {
         const installed = declared.filter((d) => d.field !== 'peerDependencies');
         for (const d of installed) {
             const r = readRange(d.range);
-            if (!r) continue;
+            // Only what this package loads from it: the subpaths its own source imports.
+            const subs = [...new Set((uses.get(d.dep) ?? []).map((u) => u.sub))];
+            if (!r || subs.length === 0) continue;
             for (const version of new Set([...(lock.get(d.dep)?.values() ?? []), await newestIn(d.dep, r)])) {
                 if (!version) continue;
                 const m = await manifest(d.dep, version);
                 if (!m || m.from !== 'npm') continue;
-                const wants = distImports(await unpack(d.dep, version, m.json), d.dep);
+                const wants = distImports(await unpack(d.dep, version, m.json), d.dep, subs, m.json);
                 for (const [needed, subs] of wants) {
                     if (needed === name) continue;
                     const ownRange = m.json.dependencies?.[needed];

@@ -11,9 +11,11 @@ import { join } from 'node:path';
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { exportTarget, missing } from './check-dep-floors.mjs';
+import { distImports, exportTarget, missing } from './check-dep-floors.mjs';
 
 const SCRIPT = new URL('./check-dep-floors.mjs', import.meta.url).pathname;
+// A package that loads auth-client, so what auth-client imports is read.
+const CLIENT = "import * as client from '@orangecheck/auth-client';\nexport { client };\n";
 const roots = [];
 after(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })));
 
@@ -75,6 +77,7 @@ test("site-kit's shape fails: a devDependency floor below what auth-client 2.40 
     const r = run(
         tree({
             fields,
+            source: CLIENT,
             lock: { '@orangecheck/auth-client@^2.40.0': '2.40.0', '@orangecheck/auth-core@^2.21.0': '2.21.0' },
         }),
     );
@@ -90,6 +93,7 @@ test('site-kit passes on auth-core ^2.24.0', () => {
     const r = run(
         tree({
             fields,
+            source: CLIENT,
             lock: { '@orangecheck/auth-client@^2.40.0': '2.40.0', '@orangecheck/auth-core@^2.24.0': '2.24.0' },
         }),
     );
@@ -103,7 +107,7 @@ test("a nested copy another dependency locks lower does not count: auth-client r
         '@orangecheck/auth-core@^2.24.0': '2.24.0',
         '@orangecheck/auth-core@^2.17.0': '2.18.0',
     };
-    const r = run(tree({ fields, lock }));
+    const r = run(tree({ fields, source: CLIENT, lock }));
     assert.equal(r.ok, true, r.out);
 });
 
@@ -111,6 +115,7 @@ test("design's shape fails: auth-client 2.40 with no auth-core installed (yarn 1
     const r = run(
         tree({
             fields: { devDependencies: { '@orangecheck/auth-client': '^2.40.0' } },
+            source: CLIENT,
             lock: { '@orangecheck/auth-client@^2.40.0': '2.40.0' },
         }),
     );
@@ -163,7 +168,7 @@ test('a quoted backtick does not hide a static import after it', () => {
 test('the newest dependency in range is read, not only the locked one', () => {
     const fields = { devDependencies: { '@orangecheck/auth-client': '^2.36.0', '@orangecheck/auth-core': '^2.19.0' } };
     const lock = { '@orangecheck/auth-client@^2.36.0': '2.36.1', '@orangecheck/auth-core@^2.19.0': '2.19.0' };
-    const r = run(tree({ fields, lock }));
+    const r = run(tree({ fields, source: CLIENT, lock }));
     assert.equal(r.ok, false, r.out);
     assert.match(
         r.out,
@@ -175,7 +180,7 @@ test('the newest dependency in range is read, not only the locked one', () => {
 test('the declared floor is read, not only the locked version above it', () => {
     const fields = { devDependencies: { '@orangecheck/auth-client': '^2.40.0', '@orangecheck/auth-core': '^2.21.0' } };
     const lock = { '@orangecheck/auth-client@^2.40.0': '2.40.0', '@orangecheck/auth-core@^2.21.0': '2.24.0' };
-    const r = run(tree({ fields, lock }));
+    const r = run(tree({ fields, source: CLIENT, lock }));
     assert.equal(r.ok, false, r.out);
     assert.match(r.out, /auth-core 2\.21\.0 does not export "\.\/identifiers"/);
     assert.doesNotMatch(r.out, /auth-core 2\.24\.0 does not export/);
@@ -184,9 +189,31 @@ test('the declared floor is read, not only the locked version above it', () => {
 test("a dependency's own dependency is read at the version the lock gives it, names included", () => {
     const fields = { devDependencies: { '@orangecheck/me-client': '^0.47.0' } };
     const lock = { '@orangecheck/me-client@^0.47.0': '0.47.0', '@orangecheck/auth-core@^2.17.0': '2.10.0' };
-    const r = run(tree({ fields, lock }));
+    const source = "import * as server from '@orangecheck/me-client/server';\nexport { server };\n";
+    const r = run(tree({ fields, source, lock }));
     assert.equal(r.ok, false, r.out);
     assert.match(r.out, /auth-core 2\.10\.0 "\." has no export \w+, which @orangecheck\/me-client@0\.47\.0 imports/);
+});
+
+test('a dependency is read only through the subpaths this package imports', () => {
+    // me-client 0.50.0's button types name @orangecheck/mark; its integrator entry does not.
+    const fields = { devDependencies: { '@orangecheck/me-client': '^0.50.0' } };
+    const lock = { '@orangecheck/me-client@^0.50.0': '0.50.0', '@orangecheck/auth-core@^2.17.0': '2.26.0' };
+    const via = (sub) => `import * as me from '@orangecheck/me-client/${sub}';\nexport { me };\n`;
+    const integrator = run(tree({ fields, source: via('integrator'), lock }));
+    assert.equal(integrator.ok, true, integrator.out);
+    const button = run(tree({ fields, source: via('button'), lock }));
+    assert.equal(button.ok, false, button.out);
+    assert.match(
+        button.out,
+        /me-client@0\.50\.0 imports @orangecheck\/mark, which @orangecheck\/fixture does not install/,
+    );
+});
+
+test('a dependency this package never imports is not read', () => {
+    const fields = { devDependencies: { '@orangecheck/auth-client': '^2.40.0' } };
+    const r = run(tree({ fields, lock: { '@orangecheck/auth-client@^2.40.0': '2.40.0' } }));
+    assert.equal(r.ok, true, r.out);
 });
 
 test('an export entry with no .d.ts it can read is a problem, never a pass', async () => {
@@ -204,4 +231,29 @@ test('an export entry with no .d.ts it can read is a problem, never a pass', asy
         (await missing('@orangecheck/z', '1.0.0', json, './none', [], 'npm'))[0],
         /does not export "\.\/none"/,
     );
+});
+
+test("a dependency's imports are followed through the files its entry loads, and no further", () => {
+    const root = mkdtempSync(join(tmpdir(), 'dep-floors-test-'));
+    roots.push(root);
+    mkdirSync(join(root, 'dist'));
+    const json = {
+        name: '@orangecheck/r',
+        exports: { '.': { types: './dist/index.d.ts', import: './dist/index.mjs' }, './other': './dist/other.mjs' },
+    };
+    writeFileSync(join(root, 'dist', 'index.mjs'), "export * from './inner.mjs';\n");
+    writeFileSync(join(root, 'dist', 'index.d.ts'), "export * from './inner';\n");
+    writeFileSync(
+        join(root, 'dist', 'inner.mjs'),
+        "import { isDidOc } from '@orangecheck/auth-core/identifiers';\nexport const f = isDidOc;\n",
+    );
+    writeFileSync(join(root, 'dist', 'inner.d.ts'), 'export declare const f: (v: string) => boolean;\n');
+    writeFileSync(join(root, 'dist', 'other.mjs'), "import '@orangecheck/mark';\n");
+    const got = distImports(root, '@orangecheck/r', ['.'], json);
+    assert.deepEqual([...got.keys()], ['@orangecheck/auth-core']);
+    assert.deepEqual(
+        [...got.get('@orangecheck/auth-core').entries()].map(([k, v]) => [k, [...v]]),
+        [['./identifiers', ['isDidOc']]],
+    );
+    assert.deepEqual([...distImports(root, '@orangecheck/r', ['./other'], json).keys()], ['@orangecheck/mark']);
 });
