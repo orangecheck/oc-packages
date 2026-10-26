@@ -81,6 +81,15 @@ export function formatBytes(bytes: number): string {
     return `${v < 10 ? v.toFixed(1).replace(/\.0$/, '') : Math.round(v)} ${units[u]}`;
 }
 
+/**
+ * What a map says for a code from outside the app (a server's reason, a link's
+ * fragment), read from the map's own keys only. Anything else, `constructor`
+ * and `__proto__` included, is the fallback, never what the lookup returns.
+ */
+export function wordFor<V, F>(map: Readonly<Record<string, V>>, code: unknown, fallback: F): V | F {
+    return typeof code === 'string' && Object.prototype.hasOwnProperty.call(map, code) ? (map[code] as V) : fallback;
+}
+
 /** What a person reads when a request got no answer: offline, a dropped connection, a blocked request. */
 export const OFFLINE_TEXT = 'Check your connection, then try again.';
 
