@@ -11,7 +11,7 @@ import {
     parseProof,
 } from '@orangecheck/stamp-ots';
 
-import type { AnchorAnswer, CoinFacts } from './directory.js';
+import { type AnchorAnswer, type CoinFacts, MAX_ATTESTATIONS } from './directory.js';
 
 /**
  * The anchor of a proof over `idHex` (§8.2.1): the lowest Bitcoin attestation whose
@@ -33,6 +33,8 @@ export async function directoryAnchor(
     } catch {
         return null;
     }
+    // More than MAX_ATTESTATIONS anchors nothing, before any header is read (§8.2.1).
+    if (anchors.length > MAX_ATTESTATIONS) return null;
     for (const a of anchors) {
         let header: unknown;
         try {

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
+    channelClaimId,
     channelDirectoryDtag,
     channelId,
     type CoinFacts,
@@ -143,6 +144,19 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, partly)).toEqual(
             v.expected.anchor_when_low_header_mismatches_and_high_unread
         );
+        // At most 8 Bitcoin attestations anchor; with 9, no header is even read.
+        const capHeaders = v.inputs.headers_for_8_and_9 as Record<string, string>;
+        let headerReads = 0;
+        const counted = {
+            getHeaderAt: async (h: number) => {
+                headerReads++;
+                return capHeaders[h] ? Uint8Array.from(Buffer.from(capHeaders[h], 'hex')) : null;
+            },
+        };
+        expect(await directoryAnchor(v.inputs.ots_with_8_attestations, v.inputs.claim_id, counted)).toBe(v.expected.anchor_with_8_attestations);
+        headerReads = 0;
+        expect(await directoryAnchor(v.inputs.ots_with_9_attestations, v.inputs.claim_id, counted)).toBe(v.expected.anchor_with_9_attestations);
+        expect(headerReads).toBe(0);
         // A header of any other length, or not bytes at all, is a read without an answer.
         for (const bad of [new Uint8Array(79), new Uint8Array(81), 'header']) {
             const odd = { getHeaderAt: async () => bad as unknown as Uint8Array };
@@ -270,9 +284,11 @@ const channel = (extra: Record<string, unknown> = {}) => {
 };
 
 describe('parseChannelDirectoryContent (§8.3.6)', () => {
-    it('reads the founder fields as the address and inbox key, with the same claim', () => {
+    it('reads the founder fields as the address and inbox key, with the claim in its own namespace', () => {
         const p = parseChannelDirectoryContent(channel(), 'alice');
-        expect(p).toEqual(parseDirectoryContent(listing(), 'alice'));
+        const person = parseDirectoryContent(listing(), 'alice');
+        expect(p).toEqual({ ...person, claimId: channelClaimId({ handle: 'alice', address: ADDR, outpoint: `${TX}:0`, nonce: NONCE }) });
+        expect(p && p.kind === 'listing' && p.claimId).not.toBe(person && person.kind === 'listing' && person.claimId);
         expect(parseChannelDirectoryContent(channel({ inbox_pubkey: '11'.repeat(32), address: 'bc1qother' }), 'alice')).toEqual(p);
         expect(parseChannelDirectoryContent(listing(), 'alice')).toBeNull();
         expect(parseDirectoryContent(channel(), 'alice')).toBeNull();
