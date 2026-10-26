@@ -103,7 +103,7 @@
     },
     "devDependencies": {
         "@orangecheck/auth-client": "^2.6.0",
-        "@orangecheck/mark": "^0.2.0",
+        "@orangecheck/mark": "^0.3.0",
         "@testing-library/react": "^16.3.2",
         "@types/node": "^22.0.0",
         "@types/react": "^18.3.12",
