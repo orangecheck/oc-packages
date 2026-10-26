@@ -10,13 +10,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [0.54.0] — 2026-10-26
 
-### Added
+### Changed
 
 - `validateIntegratorConfig` refuses what me.ochk.io refuses: an event `class`
   other than `A`, `B` or `C`, and a custom event key that is not a slug
   (`CUSTOM_EVENT_KEY_RE`) or that names something every object already has
   (`"constructor"`, `"toString"`, in any case). Both checks run whether the
   event is enabled or not.
+
+### Added
+
 - `isEventClass`, `isInheritedName` and `CUSTOM_EVENT_KEY_RE` are exported from
   the package and from `/integrator`.
 - `IntegratorEventConfig` carries the custom-event fields me.ochk.io stores:

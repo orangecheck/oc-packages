@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import * as source from '../index';
+import * as integrator from '../integrator';
 import type { IntegratorPriceConfig } from '../types';
 
 /**
@@ -10,7 +11,7 @@ import type { IntegratorPriceConfig } from '../types';
  * A, B or C, and a custom event key that is not a slug or that names something
  * every object already has. Cases come from test-vectors/integrator-config.json,
  * which me.ochk.io's validator is held to as well. Run against the source and
- * the built package.
+ * the built package, through the main entry and through /integrator.
  */
 const V = JSON.parse(
     readFileSync(join(__dirname, '..', '..', 'test-vectors', 'integrator-config.json'), 'utf8')
@@ -23,6 +24,7 @@ const V = JSON.parse(
 };
 
 const DIST = join(__dirname, '..', '..', 'dist', 'index.mjs');
+const INTEGRATOR_DIST = join(__dirname, '..', '..', 'dist', 'integrator.mjs');
 
 function config(key: string, event: Record<string, unknown>): IntegratorPriceConfig {
     // fromEntries makes "__proto__" an own key, as JSON.parse does on the server.
@@ -37,10 +39,13 @@ type Mod = Pick<
 const builds: Array<[string, () => Promise<Mod>]> = [
     ['source', async () => source],
     ['build', async () => (await import(DIST)) as Mod],
+    ['source /integrator', async () => integrator],
+    ['build /integrator', async () => (await import(INTEGRATOR_DIST)) as Mod],
 ];
 
 it('the built package exists to be tested', () => {
     expect(existsSync(DIST)).toBe(true);
+    expect(existsSync(INTEGRATOR_DIST)).toBe(true);
 });
 
 describe.each(builds)('integrator config vectors (%s)', (_name, load) => {
