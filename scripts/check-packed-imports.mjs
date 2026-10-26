@@ -5,7 +5,9 @@
 // as any, or failed with TS2307. For each package directory given, this reads
 // every code and declaration file `npm pack` would ship and refuses a bare
 // import that is not a Node builtin, the package itself, or one of its
-// dependencies, peers or optional dependencies. Type references count too.
+// dependencies, peers or optional dependencies. Type references count too. A
+// relative import must load a file the tarball ships, so a narrowed "files"
+// list cannot drop a chunk.
 //
 //   node scripts/check-packed-imports.mjs <package dir>...
 //
@@ -20,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import ts from 'typescript';
 
-import { specifiersIn } from './check-dep-floors.mjs';
+import { localCandidates, specifiersIn } from './check-dep-floors.mjs';
 
 const CODE = /\.(?:[mc]?js|d\.[mc]?ts)$/;
 const BUILTIN = new Set(builtinModules);
@@ -51,7 +53,8 @@ function packedFiles(dir) {
     return JSON.parse(out)[0].files.map((f) => f.path);
 }
 
-export function problemsIn(dir, files = packedFiles(dir)) {
+export function problemsIn(at, files = packedFiles(at)) {
+    const dir = resolve(at);
     const json = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
     const installed = new Set(
         [json.dependencies, json.peerDependencies, json.optionalDependencies].flatMap((f) => Object.keys(f ?? {})),
@@ -59,8 +62,15 @@ export function problemsIn(dir, files = packedFiles(dir)) {
     const code = files.filter((f) => CODE.test(f));
     if (!code.length) return [`${json.name}: packs no code or declaration file; build it first`];
     const problems = [];
+    const shipped = new Set(files.map((f) => join(dir, f)));
     for (const file of code) {
         const path = join(dir, file);
+        for (const { spec } of specifiersIn(path)) {
+            if (!spec.startsWith('./') && !spec.startsWith('../') && spec !== '.' && spec !== '..') continue;
+            if (!localCandidates(path, spec).some((c) => shipped.has(c))) {
+                problems.push(`${json.name}: ${file} loads ${spec}, which the tarball does not ship`);
+            }
+        }
         const specs = [
             ...specifiersIn(path).map((s) => s.spec),
             ...typeReferences(path).map((t) => (t.startsWith('@types/') ? t : `@types/${t}`)),

@@ -6,7 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -82,9 +82,36 @@ test('what installing brings passes: dependencies, peers, optional ones, itself,
                 "require('dep/sub');\nrequire('@scope/peer/x');\nrequire('opt');\nrequire('@orangecheck/fixture/core');\n" +
                 "require('fs');\nrequire('node:crypto');\nrequire('fs/promises');\nrequire('./chunk.js');\nrequire('../up');\n",
             'dist/index.d.ts': '/// <reference types="node" />\nexport * from \'./types\';\n',
+            'dist/chunk.js': '',
+            'up.js': '',
+            'dist/types.d.ts': '',
         },
     );
     assert.deepEqual(problems, []);
+});
+
+test('a relative import must load a file the tarball ships, however it is spelled', () => {
+    assert.deepEqual(check({}, { 'dist/index.js': "require('./chunk-abc.js');\n" }), [
+        '@orangecheck/fixture: dist/index.js loads ./chunk-abc.js, which the tarball does not ship',
+    ]);
+    assert.deepEqual(check({}, { 'dist/index.d.ts': "export * from './types';\n" }), [
+        '@orangecheck/fixture: dist/index.d.ts loads ./types, which the tarball does not ship',
+    ]);
+    // A directory named relative to where the check runs reads the same.
+    const files = { 'dist/index.js': "require('./chunk.js');\n", 'dist/chunk.js': '' };
+    assert.deepEqual(problemsIn(relative(process.cwd(), fixture({}, files)), Object.keys(files)), []);
+    // Declarations name the code file; its .d.ts is what ships. A directory loads its index.
+    assert.deepEqual(
+        check(
+            {},
+            {
+                'dist/index.d.ts': "export * from './x.js';\nexport * from './lib';\n",
+                'dist/x.d.ts': '',
+                'dist/lib/index.d.ts': '',
+            },
+        ),
+        [],
+    );
 });
 
 test('a type reference to a package not installed fails, and one to an installed package passes', () => {
@@ -136,7 +163,7 @@ test('packageOf reads the package a specifier loads', () => {
 test('the command reads what npm would pack, so a file outside "files" is not read', () => {
     const dir = fixture(
         { files: ['dist'], devDependencies: { left: '^1.0.0' } },
-        { 'dist/index.js': "require('./x');\n", 'scripts/dev.mjs': "import 'left';\n" },
+        { 'dist/index.js': "require('./x');\n", 'dist/x.js': '', 'scripts/dev.mjs': "import 'left';\n" },
     );
     const ok = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8', timeout: 120_000 });
     assert.equal(ok.status, 0, `${ok.stdout}${ok.stderr}`);
@@ -144,4 +171,14 @@ test('the command reads what npm would pack, so a file outside "files" is not re
     const bad = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8', timeout: 120_000 });
     assert.equal(bad.status, 1, `${bad.stdout}${bad.stderr}`);
     assert.match(bad.stderr, /dist\/index\.js loads left, a devDependency only/);
+});
+
+test('a "files" list narrower than the build drops a chunk, and the command says so', () => {
+    const dir = fixture(
+        { files: ['dist/index.js'] },
+        { 'dist/index.js': "require('./chunk.js');\n", 'dist/chunk.js': 'module.exports = 1;\n' },
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8', timeout: 120_000 });
+    assert.equal(r.status, 1, `${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /dist\/index\.js loads \.\/chunk\.js, which the tarball does not ship/);
 });

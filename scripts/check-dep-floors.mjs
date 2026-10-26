@@ -370,9 +370,14 @@ function lockedVersions(file) {
 
 /** A relative import from `from`, resolved to the published file it loads, or null. */
 function resolveLocal(from, spec) {
+    return localCandidates(from, spec).find((c) => existsSync(c) && statSync(c).isFile()) ?? null;
+}
+
+/** The files a relative import from `from` may load, code and declarations, in the order a loader tries them. */
+export function localCandidates(from, spec) {
     const base = resolve(dirname(from), spec);
     const stem = base.replace(/\.(m|c)?js$/, '');
-    const candidates = [
+    return [
         base,
         `${base}.js`,
         `${base}.mjs`,
@@ -381,9 +386,10 @@ function resolveLocal(from, spec) {
         `${stem}.d.ts`,
         `${stem}.d.mts`,
         `${stem}.d.cts`,
+        join(base, 'index.js'),
+        join(base, 'index.mjs'),
+        join(base, 'index.d.ts'),
     ];
-    candidates.push(join(base, 'index.js'), join(base, 'index.mjs'), join(base, 'index.d.ts'));
-    return candidates.find((c) => existsSync(c) && statSync(c).isFile()) ?? null;
 }
 
 /**
