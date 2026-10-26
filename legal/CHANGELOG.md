@@ -20,6 +20,17 @@ address; both sign-in log lines and both retention lists say the IP is cleared
 after 90 days, and the ochk.app list now names the sign-in log as the ochk.io
 list does. Both Privacy policies' updated dates move to 2026-10-26.
 
+### Added — the calendars an OC Chat handle claim reaches
+
+Neither the ochk.io Terms nor its Privacy policy said that claiming an OC
+Chat @handle sends anything outside orangecheck. The Terms' third-party list,
+and a new "sent from your browser to others" list in the Privacy policy, now
+name the three OpenTimestamps calendars the browser sends the claim's SHA-256
+fingerprint to, and mempool.space, which it reads the address's coins and
+block headers from, and say each sees the visitor's IP address and when they
+asked. The Privacy policy has no single list of recipients, so the line sits
+in both. Both documents' updated dates move to 2026-10-26.
+
 ## [0.7.19] — 2026-10-25
 
 ### Added — the record of which sites you sign in to

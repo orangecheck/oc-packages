@@ -99,6 +99,19 @@ test('ochk.io and ochk.app privacy say the sign-in log keeps the IP, for 90 days
     }
 });
 
+test('ochk.io terms and privacy name the calendars an OC Chat handle claim reaches, and that they see the IP', () => {
+    const calendars = [
+        'alice.btc.calendar.opentimestamps.org',
+        'bob.btc.calendar.opentimestamps.org',
+        'finney.calendar.eternitywall.com',
+    ];
+    for (const name of ['www/terms', 'www/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        for (const host of calendars) assert.ok(text.includes(host), `${name}: ${host}`);
+        assert.match(text, /each of these sees your IP address and when you asked/i, name);
+    }
+});
+
 test('vault privacy says the key is stored sealed', () => {
     const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
     assert.match(text, /sealed vault key/i);
