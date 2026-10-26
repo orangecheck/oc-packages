@@ -471,13 +471,23 @@ jobs:
     merge-renovate:
         name: Merge family bump
         needs: [all-pass]
-        if: github.event_name == 'pull_request' && github.head_ref == 'renovate/@orangecheck-(family)'
+        # RENOVATE_TOKEN can push to every family repo, so it runs only for Renovate's
+        # own branch in this repository (Xaxis is the account the token belongs to),
+        # and only main's scripts: never the PR's.
+        if: >-
+            github.event_name == 'pull_request' &&
+            github.head_ref == 'renovate/@orangecheck-(family)' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            github.event.pull_request.user.login == 'Xaxis'
         runs-on: ubuntu-latest
         timeout-minutes: 40
         permissions:
             contents: read
         steps:
             - uses: actions/checkout@v5
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+                  persist-credentials: false
             # main takes changes only through its merge queue, which retests the PR
             # on top of main and rebases it in; --auto puts it in the queue. Queued
             # with Renovate's own token, which pushes the branch: an entry made with
