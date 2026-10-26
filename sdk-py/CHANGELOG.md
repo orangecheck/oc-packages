@@ -9,9 +9,10 @@ All notable changes to the **`orangecheck`** Python package. Follows
 ### Changed
 
 - `is_reserved_name` and `name_problem` refuse a name that holds one of
-  orangecheck's own as a whole word, as `@orangecheck/auth-core` 2.27.0 does,
-  held to the same `contains` and `allowed` vectors. `allow_reserved` lifts
-  it, as before.
+  orangecheck's own as a whole word, with the same word starts as
+  `@orangecheck/auth-core` 2.27.0, digits and runs of capitals included, held
+  to the same `contains` and `allowed` vectors. `allow_reserved` lifts it, as
+  before.
 
 ## [3.14.1] — 2026-10-25
 

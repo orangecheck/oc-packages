@@ -18,9 +18,11 @@ this file tracks the package's TS / Node / runtime API surface.
 - `isReservedName` and `nameProblem` refuse a name that holds one of
   orangecheck's own as a whole word, not only a name that is one:
   "OrangeCheck Support" and "ochk.io team" are refused, "orangecheckers" and
-  "Brochk" are not. A word begins after spacing, at punctuation, at a capital
-  after a small letter ("myOrangecheck"), and at the last capital of a run
-  before a small letter ("OCHKTeam"). `allowReserved` lifts it, as before.
+  "Brochk" are not. A word begins after spacing, at punctuation, where
+  letters meet digits ("OrangeCheck2026", "ochk1", "x0chk"), at a capital
+  after a small letter ("myOrangecheck"), at the last capital of a run before
+  a small letter ("OCHKTeam"), and at the small letter after a run of
+  capitals ("OCHKsupport"). `allowReserved` lifts it, as before.
   Held to the `contains` and `allowed` vectors in
   `test-vectors/display-name.json`.
 
