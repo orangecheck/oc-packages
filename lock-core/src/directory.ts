@@ -27,6 +27,8 @@ export const DIRECTORY_PARAMS: DirectoryParams = {
 export const ANCHOR_CONFS = 6;
 /** Re-points one claim may carry (§8.2.9). */
 export const MAX_REPOINTS = 16;
+/** Bitcoin attestations a proof may carry and still anchor (§8.2.1). */
+export const MAX_ATTESTATIONS = 8;
 
 const HANDLE_RE = /^[a-z0-9_]{3,32}$/;
 const SLUG_RE = /^[a-z0-9-]{3,48}$/;
@@ -39,6 +41,18 @@ const sha256Hex = (value: JsonValue): string => hexEncode(sha256Bytes(canonicalB
 export function claimId(c: { handle: string; address: string; outpoint: string; nonce: string }): string {
     return sha256Hex({
         v: 1,
+        handle: c.handle.toLowerCase(),
+        address: c.address,
+        outpoint: c.outpoint,
+        nonce: c.nonce,
+    });
+}
+
+/** A channel's claim_id names its namespace (§8.3.6): {v:1, ns:"channel", handle, address: founder_address, outpoint, nonce}. */
+export function channelClaimId(c: { handle: string; address: string; outpoint: string; nonce: string }): string {
+    return sha256Hex({
+        v: 1,
+        ns: 'channel',
         handle: c.handle.toLowerCase(),
         address: c.address,
         outpoint: c.outpoint,
@@ -100,7 +114,7 @@ interface RecordFields {
     claim: unknown;
 }
 
-function parseRecord(f: RecordFields, handle: string): ParsedDirectoryContent | null {
+function parseRecord(f: RecordFields, handle: string, idOf: typeof claimId): ParsedDirectoryContent | null {
     const h = handle.toLowerCase();
     if (!HANDLE_RE.test(h) || f.handle !== h) return null;
     const { address, createdAt } = f;
@@ -139,7 +153,7 @@ function parseRecord(f: RecordFields, handle: string): ParsedDirectoryContent | 
         inboxPubkey,
         createdAt,
         claim: { outpoint, nonce, ots, repoints },
-        claimId: claimId({ handle: h, address, outpoint, nonce }),
+        claimId: idOf({ handle: h, address, outpoint, nonce }),
     };
 }
 
@@ -160,7 +174,8 @@ export function parseDirectoryContent(content: unknown, handle: string): ParsedD
             ends: content.ends,
             claim: content.claim,
         },
-        handle
+        handle,
+        claimId
     );
 }
 
@@ -194,7 +209,8 @@ export function parseChannelDirectoryContent(content: unknown, handle: string): 
             ends: content.ends,
             claim: content.claim,
         },
-        handle
+        handle,
+        channelClaimId
     );
 }
 
@@ -363,9 +379,10 @@ export async function resolveDirectory(
         c.confirmedAt <= anchor - params.floorConfs &&
         c.value >= params.floorSats &&
         sameAddress(c.paysTo, address);
+    // §8.2.5 (3): the state is read only from records step 1 kept, tombstones and anchored listings.
     const stateOf = (address: string, keys: readonly string[]): DirectoryRecord | null =>
         records
-            .filter((x) => x.address === address && keys.includes(x.key))
+            .filter((x) => x.address === address && keys.includes(x.key) && (x.kind === 'tombstone' || anchored(x.anchor)))
             .reduce<DirectoryRecord | null>((best, x) => (!best || x.createdAt > best.createdAt ? x : best), null);
 
     // §8.2.2 (3) and §8.2.9: the current coin it stands on, 'fail', or 'stop' (a read without an answer, or a bound).

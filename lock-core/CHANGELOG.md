@@ -15,11 +15,14 @@ The OC Chat directory rule (oc-chat-protocol SPEC §8.2, 0.4.0), for the
 directory relay's write gate and the chat client alike: `claimId`,
 `repointId` and `listingId`; `directoryDtag` and `channelDirectoryDtag`;
 `parseDirectoryContent` and `parseChannelDirectoryContent` (§8.3.6, with
-`channelId`), the shape a record must have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
+`channelId`, and `channelClaimId`, whose claim names its namespace), the shape
+a record must have before any read; `resolveDirectory`, the walk over a `DirectoryReader`
 (bound keys and coin facts), with its bounds, and a read without an answer
 before the holder answering `E_DIR_UNRESOLVED`; a holding claim names the coin
 it stands on; `directoryAnchor`, the anchor
-from an OpenTimestamps proof through `@orangecheck/stamp-ots`; and
+from an OpenTimestamps proof through `@orangecheck/stamp-ots` (a proof with
+more than `MAX_ATTESTATIONS`, 8, anchors nothing and reads no header); an
+address's state read only from records the walk keeps; and
 `esploraCoinReader`, which reads Esplora answers strictly (anything out of
 shape is no answer). `resolveDirectory` refuses params that are not exactly
 `DirectoryParams`, and treats a reader that throws or answers out of shape as
