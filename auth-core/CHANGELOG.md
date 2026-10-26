@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.26.1] — 2026-10-26
+
+### Fixed
+
+- `verifyOcToken`, `checkOcToken` and `getOcSession` look a token's `kid` up
+  only among the fetched key set's own entries, and a `kid` that is not a
+  string is invalid. Any string is a usable `kid` for a key, including a
+  retired one, and a `kid` that names no key in the set is invalid.
+
 ## [2.26.0] — 2026-10-25
 
 ### Added
