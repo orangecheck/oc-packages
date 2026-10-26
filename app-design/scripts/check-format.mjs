@@ -69,8 +69,27 @@ for (const [what, e, opts, want] of cases) {
     }
 }
 
+// wordFor: a code read from the map's own keys, the fallback for anything else.
+if (typeof F.wordFor !== 'function') {
+    check(false, 'wordFor is not exported');
+} else {
+    const WORDS = { known: 'Known.' };
+    check(F.wordFor(WORDS, 'known', 'Fallback.') === 'Known.', 'wordFor: a known code reads its word');
+    for (const code of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'no_such_code']) {
+        check(F.wordFor(WORDS, code, 'Fallback.') === 'Fallback.', `wordFor: ${code} reads ${String(F.wordFor(WORDS, code, 'Fallback.'))}, not the fallback`);
+    }
+    for (const code of [undefined, null, 7, {}]) {
+        check(F.wordFor(WORDS, code, null) === null, `wordFor: a ${typeof code} code is not a key`);
+    }
+    // A map with no prototype, or with its own __proto__ key, still reads what it holds.
+    const bare = Object.assign(Object.create(null), { known: 'Known.' });
+    check(F.wordFor(bare, 'known', null) === 'Known.' && F.wordFor(bare, 'toString', null) === null, 'wordFor: a map with no prototype');
+    const own = JSON.parse('{"__proto__": "Own."}');
+    check(F.wordFor(own, '__proto__', null) === 'Own.', 'wordFor: a map\'s own __proto__ key');
+}
+
 if (failures) {
     console.error(`\n${failures} format failure(s)`);
     process.exit(1);
 }
-console.log(`✓ format: ${checks} checks; no answer names its source, every browser's words and codes stay off the screen, a site's own sentence only when kept`);
+console.log(`✓ format: ${checks} checks; no answer names its source, every browser's words and codes stay off the screen, a site's own sentence only when kept, a code reads only a map's own keys`);

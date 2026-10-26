@@ -10,6 +10,11 @@
   secondary button reached 42px (run 10). The bordered variants set
   `--hit-b`, and each size adds it back. Nothing changes to a mouse.
 - check-layout measures a bordered `sm`, `icon` and `icon-sm` button too.
+- `wordFor(map, code, fallback)` in `./format`: what a map says for a code
+  from outside the app, a server's reason or a link's fragment, read from
+  the map's own keys only. `constructor`, `__proto__`, `toString` and a code
+  nobody mapped give the fallback, never what a plain lookup returns (a
+  function, an object). check-format asserts each, and a known code.
 
 ## [1.27.0] — 2026-10-26
 
