@@ -144,6 +144,16 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
         expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, partly)).toEqual(
             v.expected.anchor_when_low_header_mismatches_and_high_unread
         );
+        // No block at the lowest attestation's height (null) passes it over to the next one that matches.
+        const [low, high] = v.expected.attestation_heights as number[];
+        const noLowBlock = {
+            getHeaderAt: async (h: number) => {
+                if (h === low) return null;
+                const hex = v.inputs.headers_with_wrong_low_root[h];
+                return hex ? Uint8Array.from(Buffer.from(hex, 'hex')) : null;
+            },
+        };
+        expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, noLowBlock)).toBe(high);
         // At most 8 Bitcoin attestations anchor; with 9, no header is even read.
         const capHeaders = v.inputs.headers_for_8_and_9 as Record<string, string>;
         let headerReads = 0;
