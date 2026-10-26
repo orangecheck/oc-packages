@@ -17,6 +17,8 @@ on:
         branches: [main, develop]
     pull_request:
         branches: [main, develop]
+    # The merge queue tests each group on top of main before main moves to it.
+    merge_group:
 
 concurrency:
     group: packages-${{ github.ref }}
@@ -406,11 +408,45 @@ jobs:
               run: |
                   python -m pytest tests/pledge/test_vectors.py -q
 
+    # Every @orangecheck range must hold what the package imports at its floor
+    # (scripts/check-dep-floors.mjs). dep-floors.yml reruns it daily, since a
+    # release in range is read too.
+    dep-floors:
+        name: Dependency floors hold what each package imports
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            # TypeScript's parser, from the root's own lockfile.
+            - run: yarn install --frozen-lockfile
+            - run: node --test scripts/check-dep-floors.test.mjs scripts/check-packed-imports.test.mjs
+            - run: node scripts/check-dep-floors.mjs
+
+    # The one check the merge queue requires: every job above passed, matrix
+    # legs included. A job skipped by its own condition counts as passed.
+    all-pass:
+        name: All checks pass
+        needs: [release-triggers, dist-tag, renovate-roster, home-paths, id-coverage, build, python, conformance, dep-floors]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - env:
+                  NEEDS: ${{ toJSON(needs) }}
+              run: |
+                  node -e '
+                  const bad = Object.entries(JSON.parse(process.env.NEEDS)).filter(([, j]) => !["success", "skipped"].includes(j.result));
+                  for (const [name, j] of bad) console.error(`${name}: ${j.result}`);
+                  process.exit(bad.length ? 1 : 0);
+                  '
+
     # Renovate cannot read check runs, so it cannot tell whether CI passed.
     # This job can: it runs only after the gating jobs above succeed.
     merge-renovate:
         name: Merge family bump
-        needs: [release-triggers, id-coverage, build, python, conformance]
+        needs: [all-pass]
         if: github.event_name == 'pull_request' && github.head_ref == 'renovate/@orangecheck-(family)'
         runs-on: ubuntu-latest
         permissions:
