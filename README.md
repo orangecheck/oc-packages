@@ -136,42 +136,46 @@ The `packages.yml` CI workflow enforces this ordering.
 
 A change reaches main only through its merge queue: `bash scripts/land.sh <branch>`
 opens the PR, queues it, and returns once main holds it. The queue rebases, so
-main's commits are not the branch's. Tag the commit on main that carries the
-version, once main's checks on it are green, and push the tag by name:
+main's commits are not the branch's. Tag the newest commit on main that touches
+the package, not the one that changed its version: a branch can carry more
+commits for the package after the bump. Check that its `package.json` carries
+the version, wait for its checks to be green (the queue's run on that commit
+counts; a later push to main can cancel the push run), and push the tag by name:
 
 ```bash
 git fetch origin
-sha=$(git log -1 --format=%H origin/main -- sdk/package.json)
+sha=$(git log -1 --format=%H origin/main -- sdk)
+git show "$sha:sdk/package.json" | grep '"version"'   # must print 0.2.0
 git tag sdk-v0.2.0 "$sha" && git push origin sdk-v0.2.0
 ```
 
 Each tag takes the canonical form `<pkg>-v<version>`:
 
-```bash
-git tag sdk-v0.2.0           && git push --tags   # → @orangecheck/sdk
-git tag gate-v0.1.5          && git push --tags   # → @orangecheck/gate
-git tag cli-v0.3.0           && git push --tags   # → @orangecheck/cli
-git tag react-v0.2.0         && git push --tags   # → @orangecheck/react
-git tag wallet-adapter-v0.1.0 && git push --tags  # → @orangecheck/wallet-adapter
-git tag relay-filter-v0.1.1  && git push --tags   # → @orangecheck/relay-filter
-git tag airdrop-gate-v0.1.1  && git push --tags   # → @orangecheck/airdrop-gate
-git tag auth-core-v0.1.0     && git push --tags   # → @orangecheck/auth-core
-git tag auth-client-v0.1.0   && git push --tags   # → @orangecheck/auth-client
-git tag ui-v0.1.0            && git push --tags   # → @orangecheck/ui
-git tag sdk-py-v0.1.0        && git push --tags   # → orangecheck (PyPI)
-git tag lock-crypto-v0.1.0   && git push --tags   # → @orangecheck/lock-crypto
-git tag lock-core-v0.1.0     && git push --tags   # → @orangecheck/lock-core
-git tag lock-device-v0.1.0   && git push --tags   # → @orangecheck/lock-device
-git tag vote-core-v0.1.0     && git push --tags   # → @orangecheck/vote-core
-git tag vote-cli-v0.1.0      && git push --tags   # → @orangecheck/vote-cli
-git tag vote-react-v0.1.0    && git push --tags   # → @orangecheck/vote-react
-git tag stamp-core-v0.1.0    && git push --tags   # → @orangecheck/stamp-core
-git tag stamp-ots-v0.1.0     && git push --tags   # → @orangecheck/stamp-ots
-git tag stamp-cli-v0.1.0     && git push --tags   # → @orangecheck/stamp-cli
-git tag agent-core-v0.1.0    && git push --tags   # → @orangecheck/agent-core
-git tag agent-signer-v0.1.0  && git push --tags   # → @orangecheck/agent-signer
-git tag agent-mcp-v0.1.0     && git push --tags   # → @orangecheck/agent-mcp
-git tag agent-cli-v0.1.0     && git push --tags   # → @orangecheck/agent-cli
+```text
+sdk-v0.2.0             → @orangecheck/sdk
+gate-v0.1.5            → @orangecheck/gate
+cli-v0.3.0             → @orangecheck/cli
+react-v0.2.0           → @orangecheck/react
+wallet-adapter-v0.1.0  → @orangecheck/wallet-adapter
+relay-filter-v0.1.1    → @orangecheck/relay-filter
+airdrop-gate-v0.1.1    → @orangecheck/airdrop-gate
+auth-core-v0.1.0       → @orangecheck/auth-core
+auth-client-v0.1.0     → @orangecheck/auth-client
+ui-v0.1.0              → @orangecheck/ui
+sdk-py-v0.1.0          → orangecheck (PyPI)
+lock-crypto-v0.1.0     → @orangecheck/lock-crypto
+lock-core-v0.1.0       → @orangecheck/lock-core
+lock-device-v0.1.0     → @orangecheck/lock-device
+vote-core-v0.1.0       → @orangecheck/vote-core
+vote-cli-v0.1.0        → @orangecheck/vote-cli
+vote-react-v0.1.0      → @orangecheck/vote-react
+stamp-core-v0.1.0      → @orangecheck/stamp-core
+stamp-ots-v0.1.0       → @orangecheck/stamp-ots
+stamp-cli-v0.1.0       → @orangecheck/stamp-cli
+agent-core-v0.1.0      → @orangecheck/agent-core
+agent-signer-v0.1.0    → @orangecheck/agent-signer
+agent-mcp-v0.1.0       → @orangecheck/agent-mcp
+agent-cli-v0.1.0       → @orangecheck/agent-cli
 ```
 
 The `release.yml` workflow picks up the tag, parses the package name and
