@@ -28,6 +28,7 @@ import * as sdk from '@orangecheck/sdk';
 import { runCheck } from '../commands/check';
 import { runChallengeIssue } from '../commands/challenge';
 import { runDiscover } from '../commands/discover';
+import { runMeTestFire } from '../commands/me';
 import { runVerify } from '../commands/verify';
 
 class ExitCalled extends Error {
@@ -212,5 +213,21 @@ describe('oc discover', () => {
         const code = await expectExit(() => runDiscover({ addr: 'bc1qtest' }));
         expect(code).toBe(0);
         expect(stdout).toMatch(/no attestations found/);
+    });
+});
+
+describe('oc me test-fire', () => {
+    it('refuses a subtype named after an inherited key locally, before any request', async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+        for (const subtype of ['constructor', 'toString', '__proto__']) {
+            stderr = '';
+            const code = await expectExit(() =>
+                runMeTestFire({ projectKey: 'pk_test_x', subtype })
+            );
+            expect(code).toBe(1);
+            expect(stderr).toMatch(new RegExp(`unknown subtype "${subtype}"`));
+        }
+        expect(fetchSpy).not.toHaveBeenCalled();
+        fetchSpy.mockRestore();
     });
 });

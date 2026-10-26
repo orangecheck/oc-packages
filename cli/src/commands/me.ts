@@ -176,7 +176,9 @@ interface TestFireOpts {
 export async function runMeTestFire(opts: TestFireOpts): Promise<void> {
     if (!opts.projectKey) die('project_key required');
     if (!opts.subtype) die('subtype required (run `oc me subtypes` to list)');
-    const meta = EVENT_SUBTYPES[opts.subtype as keyof typeof EVENT_SUBTYPES];
+    const meta = Object.hasOwn(EVENT_SUBTYPES, opts.subtype)
+        ? EVENT_SUBTYPES[opts.subtype as keyof typeof EVENT_SUBTYPES]
+        : undefined;
     if (!meta) {
         die(`unknown subtype "${opts.subtype}" · run \`oc me subtypes\` to list valid options`);
     }

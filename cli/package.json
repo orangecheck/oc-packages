@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Command-line tool for OrangeCheck — check, verify, create, challenge, discover from your shell.",
   "keywords": [
     "orangecheck",

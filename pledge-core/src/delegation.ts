@@ -108,7 +108,7 @@ export function parsePledgeCreateScope(scope: string): Record<string, string> | 
         if (!c) return null; // malformed or an unsupported operator
         const [, key, op, raw] = c as unknown as [string, string, string, string];
         if (op === '<=' && key !== 'max_bond_sats') return null;
-        if (key in out) return null; // duplicate key
+        if (Object.prototype.hasOwnProperty.call(out, key)) return null; // duplicate key
         out[key] = unquote(raw.trim());
     }
     return out;

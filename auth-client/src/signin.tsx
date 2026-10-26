@@ -44,6 +44,7 @@ import * as React from 'react';
 import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
 import { LinkPromptStep } from './linked-identities';
+import { ownWord } from './own-word';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
@@ -352,10 +353,12 @@ export function humanSigninError(
 ): string {
     // A reason that is not a code is already a sentence.
     if (!/^[a-z0-9_]+$/.test(reason)) return reason;
-    if (path === 'wallet' && step === 'submit' && SUBMIT_ERRORS[reason]) return SUBMIT_ERRORS[reason];
-    if (path === 'email' && EMAIL_ERRORS[reason]) return EMAIL_ERRORS[reason];
+    const own =
+        (path === 'wallet' && step === 'submit' && ownWord(SUBMIT_ERRORS, reason)) ||
+        (path === 'email' && ownWord(EMAIL_ERRORS, reason));
+    if (own) return own;
     return (
-        SIGNIN_ERRORS[reason] ??
+        ownWord(SIGNIN_ERRORS, reason) ??
         (path === 'email'
             ? "That didn't work. Try again, or send a new code."
             : "That didn't work. Try again.")

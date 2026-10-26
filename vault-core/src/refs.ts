@@ -144,7 +144,15 @@ export function resolveSecretRef(
         return totp(seed, { digits, period });
     }
 
-    const field = parsed.field ?? PRIMARY_FIELD[entry.type];
+    // entry.type comes from the decrypted blob, unchecked: only the table's own keys name a field.
+    const field =
+        parsed.field ??
+        (Object.prototype.hasOwnProperty.call(PRIMARY_FIELD, entry.type)
+            ? PRIMARY_FIELD[entry.type]
+            : undefined);
+    if (field === undefined) {
+        throw new SecretRefError(`${parsed.raw} — an entry of this type has no primary field`);
+    }
     const value = fieldValue(fields, field);
     if (value === undefined) {
         throw new SecretRefError(`${parsed.raw} — entry has no field "${field}"`);

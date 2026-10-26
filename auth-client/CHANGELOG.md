@@ -7,6 +7,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.40.1] — 2026-10-26
+
+### Fixed
+
+- Sign-in and backing refusals read a reason code from their word tables'
+  own keys only. A code named after an inherited key, such as
+  `constructor`, now gets the general sentence.
+
 ## [2.40.0] — 2026-10-25
 
 ### Added
