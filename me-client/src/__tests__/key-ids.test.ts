@@ -74,6 +74,7 @@ describe('webhook key ids', () => {
         serve([inSet.jwk]);
         const r = await verify(body, await outside.sign(bytes), kid, { issuer: `https://wh-none-${kid}.test` });
         expect(r.ok).toBe(false);
+        expect(r.reason).toBe(`kid ${kid} not in JWKS`);
     });
 
     it.each(NAMES)('a set may name its own key %s, and that key verifies', async (kid) => {
@@ -116,6 +117,7 @@ describe('activity attestation key ids', () => {
             issuer: `https://id-none-${kid}.test`,
         });
         expect(r.ok).toBe(false);
+        expect(r.reason).toBe(`kid ${kid} not in envelope JWKS`);
     });
 
     it.each(NAMES)('a set may name its own key %s, and that key verifies', async (kid) => {
