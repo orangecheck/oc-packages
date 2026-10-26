@@ -20,7 +20,14 @@ directory relay's write gate and the chat client alike: `claimId`,
 before the holder answering `E_DIR_UNRESOLVED`; a holding claim names the coin
 it stands on; `directoryAnchor`, the anchor
 from an OpenTimestamps proof through `@orangecheck/stamp-ots`; and
-`esploraCoinReader`. Tested against the spec's vectors vc07 and vc22 to vc25.
+`esploraCoinReader`, which reads Esplora answers strictly (anything out of
+shape is no answer). `resolveDirectory` refuses params that are not exactly
+`DirectoryParams`, and treats a reader that throws or answers out of shape as
+no answer. An audit claim's reads count against the audit's bounds alone. A
+record whose bech32 address is not lowercase (`canonicalAddress`), a re-point
+chain that names a coin twice, and a channel slug outside `[a-z0-9-]{3,48}`
+are dropped before any read. Tested against the spec's vectors vc07 and vc22
+to vc25.
 
 ## [1.2.0] — 2026-09-24
 

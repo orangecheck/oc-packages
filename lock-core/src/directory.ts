@@ -29,6 +29,7 @@ export const ANCHOR_CONFS = 6;
 export const MAX_REPOINTS = 16;
 
 const HANDLE_RE = /^[a-z0-9_]{3,32}$/;
+const SLUG_RE = /^[a-z0-9-]{3,48}$/;
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const OUTPOINT_RE = /^[0-9a-f]{64}:(0|[1-9][0-9]{0,9})$/;
 
@@ -101,9 +102,9 @@ interface RecordFields {
 
 function parseRecord(f: RecordFields, handle: string): ParsedDirectoryContent | null {
     const h = handle.toLowerCase();
-    if (!HANDLE_RE.test(h) || typeof f.handle !== 'string' || f.handle.toLowerCase() !== h) return null;
+    if (!HANDLE_RE.test(h) || f.handle !== h) return null;
     const { address, createdAt } = f;
-    if (typeof address !== 'string' || address.length === 0 || address.length > 128) return null;
+    if (typeof address !== 'string' || address.length === 0 || address.length > 128 || !canonicalAddress(address)) return null;
     if (typeof createdAt !== 'number' || !Number.isSafeInteger(createdAt) || createdAt < 0) return null;
     if (f.optedIn === false) {
         if (typeof f.ends !== 'string' || !HEX64_RE.test(f.ends)) return null;
@@ -126,6 +127,7 @@ function parseRecord(f: RecordFields, handle: string): ParsedDirectoryContent | 
         if (!isObj(r)) return null;
         if (typeof r.prev !== 'string' || r.prev !== prevCoin) return null;
         if (typeof r.outpoint !== 'string' || !OUTPOINT_RE.test(r.outpoint)) return null;
+        if (r.outpoint === outpoint || repoints.some((x) => x.outpoint === r.outpoint)) return null;
         if (typeof r.nonce !== 'string' || !HEX64_RE.test(r.nonce)) return null;
         if (typeof r.ots !== 'string' || r.ots.length === 0) return null;
         repoints.push({ prev: r.prev, outpoint: r.outpoint, nonce: r.nonce, ots: r.ots });
@@ -179,7 +181,7 @@ export function parseChannelDirectoryContent(content: unknown, handle: string): 
     if (typeof founder !== 'string' || founder.startsWith('did:oc:')) return null;
     if (content.opted_in === true) {
         const { slug, channel_id: cid } = content;
-        if (typeof slug !== 'string' || slug.length === 0 || typeof cid !== 'string') return null;
+        if (typeof slug !== 'string' || !SLUG_RE.test(slug) || typeof cid !== 'string') return null;
         if (cid !== channelId(founder, slug)) return null;
     }
     return parseRecord(
@@ -204,6 +206,11 @@ export function parseChannelDirectoryContent(content: unknown, handle: string): 
 export type AnchorAnswer = number | null | { unread: number };
 
 const anchorHeight = (a: AnchorAnswer): number | null => (a === null ? null : typeof a === 'number' ? a : a.unread);
+
+/** An address in its canonical form (§8.2.5 (1)): a bech32 address only in lowercase. */
+export function canonicalAddress(a: string): boolean {
+    return !/^(bc1|tb1|bcrt1)/i.test(a) || a === a.toLowerCase();
+}
 
 /** Whether two addresses are the same: bech32 compares without case, base58 exactly. */
 export function sameAddress(a: string, b: string): boolean {
@@ -258,6 +265,29 @@ export type DirectoryResolution =
     | { result: 'holds'; holder: string; claimId: string; /** The claim's current coin (§8.2.9). */ coin: string; reads: string[] }
     | { result: 'E_DIR_UNRESOLVED' | 'E_DIR_REVOKED' | 'E_DIR_UNVERIFIED'; holder: null; reads: string[] };
 
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
+const isHeight = (v: unknown): v is number | null => v === null || isCount(v);
+
+function isCoinFacts(c: unknown): c is CoinFacts {
+    if (!isObj(c)) return false;
+    return isHeight(c.confirmedAt) && isCount(c.value) && typeof c.paysTo === 'string' && isHeight(c.spendHeight);
+}
+
+/** Refuse params that are not exactly DirectoryParams' shape, with whole non-negative numbers. */
+function checkParams(p: DirectoryParams): void {
+    const exact = (o: unknown, keys: string[], what: string): Record<string, unknown> => {
+        if (!isObj(o)) throw new TypeError(`${what} must be an object`);
+        for (const k of Object.keys(o)) if (!keys.includes(k)) throw new TypeError(`${what} has no option "${k}"`);
+        for (const k of keys) if (!(k in o)) throw new TypeError(`${what} needs "${k}"`);
+        return o;
+    };
+    const top = exact(p, ['floorSats', 'floorConfs', 'repointBlocks', 'bounds'], 'directory params');
+    const b = exact(top.bounds, ['bindingReads', 'coinReads', 'auditBindingReads', 'auditCoinReads'], 'directory params bounds');
+    for (const v of [top.floorSats, top.floorConfs, top.repointBlocks, ...Object.values(b)]) {
+        if (!isCount(v)) throw new TypeError('directory params must be whole non-negative numbers');
+    }
+}
+
 /**
  * The walk of §8.2.5–§8.2.6 and §8.2.9. Live listings are walked in (anchor,
  * claim_id) order; an address's bound keys are read once, the first time the walk
@@ -273,13 +303,33 @@ export async function resolveDirectory(
     reader: DirectoryReader,
     params: DirectoryParams = DIRECTORY_PARAMS
 ): Promise<DirectoryResolution> {
-    // §8.2.5 (1) for re-points: at most 16, one chain from the claim's own coin.
+    checkParams(params);
+    // §8.2.5 (1): a canonical address, and re-points at most 16, one chain from the claim's own coin, no coin twice.
     const records = all.filter(
         (r) =>
-            r.kind !== 'listing' ||
-            (r.repoints.length <= MAX_REPOINTS &&
-                r.repoints.every((p, i) => p.prev === (i === 0 ? r.outpoint : r.repoints[i - 1]!.outpoint)))
+            canonicalAddress(r.address) &&
+            (r.kind !== 'listing' ||
+                (r.repoints.length <= MAX_REPOINTS &&
+                    new Set([r.outpoint, ...r.repoints.map((p) => p.outpoint)]).size === r.repoints.length + 1 &&
+                    r.repoints.every((p, i) => p.prev === (i === 0 ? r.outpoint : r.repoints[i - 1]!.outpoint))))
     );
+    // A reader that throws, or answers out of shape, has not answered (§8.2.5 (4)).
+    const boundKeysOf = async (address: string): Promise<string[] | 'no-answer'> => {
+        try {
+            const keys = await reader.boundKeys(address);
+            return Array.isArray(keys) && keys.every((k) => typeof k === 'string') ? keys : 'no-answer';
+        } catch {
+            return 'no-answer';
+        }
+    };
+    const coinOf = async (outpoint: string): Promise<CoinFacts | 'no-answer'> => {
+        try {
+            const c = await reader.coin(outpoint);
+            return isCoinFacts(c) ? c : 'no-answer';
+        } catch {
+            return 'no-answer';
+        }
+    };
     const reads: string[] = [];
     const anchored = (a: AnchorAnswer): boolean => {
         const h = anchorHeight(a);
@@ -301,10 +351,11 @@ export async function resolveDirectory(
     let auditOn = true;
     const { bounds } = params;
 
+    // An audit claim's reads count against the audit's bounds alone (§8.2.5 (5), §8.2.6).
     const takeCoinRead = (audit: boolean): boolean => {
-        if (n.coin >= bounds.coinReads || (audit && n.auCoin >= bounds.auditCoinReads)) return false;
-        n.coin++;
+        if (audit ? n.auCoin >= bounds.auditCoinReads : n.coin >= bounds.coinReads) return false;
         if (audit) n.auCoin++;
+        else n.coin++;
         return true;
     };
     const clears = (c: CoinFacts, anchor: number, address: string): boolean =>
@@ -328,7 +379,7 @@ export async function resolveDirectory(
         const anchor = rec.anchor;
         if (!takeCoinRead(audit)) return 'stop';
         reads.push('coin ' + rec.claimId.slice(0, 12));
-        const own = await reader.coin(rec.outpoint);
+        const own = await coinOf(rec.outpoint);
         if (own === 'no-answer') return 'stop';
         if (!clears(own, anchor, rec.address)) return 'fail';
         // One chain in list order; the first link that is not valid ends it where it stands.
@@ -340,7 +391,7 @@ export async function resolveDirectory(
             if (current.spendHeight !== null && r.anchor > current.spendHeight + params.repointBlocks) break;
             if (!takeCoinRead(audit)) return 'stop';
             reads.push('repoint ' + r.repointId.slice(0, 12));
-            const next = await reader.coin(r.outpoint);
+            const next = await coinOf(r.outpoint);
             if (next === 'no-answer') return 'stop';
             if (!clears(next, r.anchor, rec.address)) break;
             current = next;
@@ -356,17 +407,17 @@ export async function resolveDirectory(
         const audit = !onDirectory.has(rec.claimId);
         if (audit && !auditOn) continue;
         if (!bound.has(rec.address)) {
-            if (n.binding >= bounds.bindingReads || (audit && n.auBinding >= bounds.auditBindingReads)) {
+            if (audit ? n.auBinding >= bounds.auditBindingReads : n.binding >= bounds.bindingReads) {
                 if (audit) {
                     auditOn = false;
                     continue;
                 }
                 return unresolved();
             }
-            n.binding++;
             if (audit) n.auBinding++;
+            else n.binding++;
             reads.push('binding ' + rec.address);
-            const keys = await reader.boundKeys(rec.address);
+            const keys = await boundKeysOf(rec.address);
             if (keys === 'no-answer') {
                 if (audit) {
                     auditOn = false;
