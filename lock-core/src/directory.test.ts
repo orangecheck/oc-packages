@@ -15,6 +15,7 @@ import {
     claimId,
     directoryAnchor,
     directoryDtag,
+    DIRECTORY_PARAMS,
     type DirectoryRecord,
     esploraCoinReader,
     parseChannelDirectoryContent,
@@ -34,6 +35,8 @@ function vectorsDir(): string | null {
     return existsSync(join(sibling, 'vc25-directory-repoints.json')) ? sibling : null;
 }
 const DIR = vectorsDir();
+// In CI the vectors are checked out (OC_CHAT_VECTORS_DIR); a missing set must fail, not skip.
+if (!DIR && process.env.CI) throw new Error('oc-chat-protocol test vectors not found: set OC_CHAT_VECTORS_DIR');
 const vector = (name: string) => JSON.parse(readFileSync(join(DIR as string, name), 'utf8'));
 
 type VCoin = { confirmed_at: number; value: number; pays_to?: string; spend: { confirmations: number } | null } | 'no-answer';
@@ -128,6 +131,23 @@ describe.skipIf(!DIR)('the spec vectors (oc-chat-protocol test-vectors)', () => 
             v.expected.anchor_height_when_low_header_mismatches
         );
         expect(await directoryAnchor(v.inputs.ots, v.inputs.other_digest, source(v.inputs.headers))).toBeNull();
+        // The lower attestation is passed over; the higher one's header cannot be read.
+        const unread = new Set<number>(v.inputs.unread_heights_with_wrong_low_root);
+        const partly = {
+            getHeaderAt: async (h: number) => {
+                if (unread.has(h)) throw new Error('rate limited');
+                const hex = v.inputs.headers_with_wrong_low_root[h];
+                return hex ? Uint8Array.from(Buffer.from(hex, 'hex')) : null;
+            },
+        };
+        expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, partly)).toEqual(
+            v.expected.anchor_when_low_header_mismatches_and_high_unread
+        );
+        // A header of any other length, or not bytes at all, is a read without an answer.
+        for (const bad of [new Uint8Array(79), new Uint8Array(81), 'header']) {
+            const odd = { getHeaderAt: async () => bad as unknown as Uint8Array };
+            expect(await directoryAnchor(v.inputs.ots, v.inputs.claim_id, odd)).toEqual({ unread: v.expected.attestation_heights[0] });
+        }
     });
 
     for (const file of ['vc24-directory-resolution.json', 'vc25-directory-repoints.json']) {
@@ -199,6 +219,24 @@ describe('parseDirectoryContent (§8.2.5 (1))', () => {
         expect(parseDirectoryContent(listing({ opted_in: 'yes' }), 'alice')).toBeNull();
     });
 
+    it('takes the content handle only in its own shape, and an address only in canonical form', () => {
+        expect(parseDirectoryContent(listing({ handle: 'ALICE' }), 'alice')).toBeNull();
+        expect(parseDirectoryContent(listing({ address: ADDR.toUpperCase() }), 'alice')).toBeNull();
+        expect(parseDirectoryContent(listing({ address: 'bc1Q' + ADDR.slice(4) }), 'alice')).toBeNull();
+        expect(parseDirectoryContent(listing({ address: '1BoatSLRHtKNngkdXEeobR76b53LETtpyT' }), 'alice')).not.toBeNull();
+    });
+
+    it('drops a chain that names a coin twice', () => {
+        const link = (prev: string, to: string) => ({ prev, outpoint: to, nonce: NONCE, ots: 'AQ==' });
+        expect(parseDirectoryContent(listing({}, { repoints: [link(`${TX}:0`, `${TX}:0`)] }), 'alice')).toBeNull();
+        expect(
+            parseDirectoryContent(listing({}, { repoints: [link(`${TX}:0`, `${TX}:1`), link(`${TX}:1`, `${TX}:0`)] }), 'alice')
+        ).toBeNull();
+        expect(
+            parseDirectoryContent(listing({}, { repoints: [link(`${TX}:0`, `${TX}:1`), link(`${TX}:1`, `${TX}:2`)] }), 'alice')
+        ).not.toBeNull();
+    });
+
     it('keeps re-points only as one chain from the claim coin, at most 16', () => {
         const link = (prev: string, i: number) => ({ prev, outpoint: `${TX}:${i}`, nonce: NONCE, ots: 'AQ==' });
         const chain = (n: number) => Array.from({ length: n }, (_, i) => link(`${TX}:${i}`, i + 1));
@@ -222,7 +260,7 @@ const channel = (extra: Record<string, unknown> = {}) => {
     const { address: _a, inbox_pubkey: _i, ...rest } = listing();
     return {
         ...rest,
-        slug: 'Bitcoin-Talk',
+        slug: 'bitcoin-talk',
         channel_id: channelId(ADDR, 'bitcoin-talk'),
         founder_address: ADDR,
         founder_inbox_pubkey: 'ef'.repeat(32),
@@ -243,6 +281,9 @@ describe('parseChannelDirectoryContent (§8.3.6)', () => {
     it('drops a live listing whose channel_id is not its founder and slug, and any did:oc founder', () => {
         expect(parseChannelDirectoryContent(channel({ channel_id: channelId(ADDR, 'other') }), 'alice')).toBeNull();
         expect(parseChannelDirectoryContent(channel({ slug: undefined }), 'alice')).toBeNull();
+        // §8.3.1's slug shape: [a-z0-9-]{3,48}.
+        expect(parseChannelDirectoryContent(channel({ slug: 'Bitcoin-Talk' }), 'alice')).toBeNull();
+        expect(parseChannelDirectoryContent(channel({ slug: 'bt', channel_id: channelId(ADDR, 'bt') }), 'alice')).toBeNull();
         const did = 'did:oc:' + 'a'.repeat(32);
         expect(parseChannelDirectoryContent(channel({ founder_address: did, channel_id: channelId(did, 'bitcoin-talk') }), 'alice')).toBeNull();
         expect(
@@ -319,7 +360,7 @@ describe('esploraCoinReader', () => {
             return new Response(a.body === undefined ? null : JSON.stringify(a.body), { status: a.status });
         }) as typeof fetch;
     const B = 'https://esplora.test/api';
-    const tx = { status: { confirmed: true, block_height: 920374 }, vout: [{ value: 546, scriptpubkey_address: ADDR }] };
+    const tx = { txid: TX, status: { confirmed: true, block_height: 920374 }, vout: [{ value: 546, scriptpubkey_address: ADDR }] };
 
     it('reads confirmation, value, address and a confirmed spend', async () => {
         const read = esploraCoinReader({
@@ -347,5 +388,101 @@ describe('esploraCoinReader', () => {
         expect(await down(`${TX}:0`)).toBe('no-answer');
         const noSpendRead = esploraCoinReader({ baseUrl: B, fetch: answers({ [`${B}/tx/${TX}`]: { status: 200, body: tx } }) });
         expect(await noSpendRead(`${TX}:0`)).toBe('no-answer');
+        const spend404 = esploraCoinReader({
+            baseUrl: B,
+            fetch: answers({ [`${B}/tx/${TX}`]: { status: 200, body: tx }, [`${B}/tx/${TX}/outspend/0`]: { status: 404 } }),
+        });
+        expect(await spend404(`${TX}:0`)).toBe('no-answer');
+    });
+
+    it('an answer out of shape is no-answer, never a coin', async () => {
+        const read = (txBody: unknown, spendBody: unknown) =>
+            esploraCoinReader({
+                baseUrl: B,
+                fetch: answers({
+                    [`${B}/tx/${TX}`]: { status: 200, body: txBody },
+                    [`${B}/tx/${TX}/outspend/0`]: { status: 200, body: spendBody },
+                }),
+            })(`${TX}:0`);
+        const unspent = { spent: false };
+        for (const [txBody, spendBody] of [
+            [{}, unspent],
+            [null, unspent],
+            [{ ...tx, txid: 'ff'.repeat(32) }, unspent],
+            [{ ...tx, status: { confirmed: true } }, unspent],
+            [{ ...tx, status: { confirmed: 'true', block_height: 1 } }, unspent],
+            [{ ...tx, vout: {} }, unspent],
+            [{ ...tx, vout: [{ value: '546', scriptpubkey_address: ADDR }] }, unspent],
+            [{ ...tx, vout: [null] }, unspent],
+            [tx, {}],
+            [tx, null],
+            [tx, { spent: 'true' }],
+            [tx, { spent: 1, status: { confirmed: true, block_height: 930000 } }],
+            [tx, { spent: true }],
+            [tx, { spent: true, status: { confirmed: true } }],
+        ] as const) {
+            expect(await read(txBody, spendBody), JSON.stringify([txBody, spendBody])).toBe('no-answer');
+        }
+        expect(await read({ ...tx, vout: [] }, unspent)).toEqual({ confirmedAt: null, value: 0, paysTo: '', spendHeight: null });
+        expect(await read({ ...tx, status: { confirmed: false } }, unspent)).toEqual({ confirmedAt: null, value: 546, paysTo: ADDR, spendHeight: null });
+    });
+
+    it('refuses option keys it does not read', () => {
+        expect(() => esploraCoinReader({ baseURL: B } as never)).toThrow(/does not read option "baseURL"/);
+    });
+});
+
+describe('resolveDirectory at its edges', () => {
+    const tip = 930000;
+    const BOB = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
+    const rec = (address: string, key: string, id: string, anchor: number, outpoint = `own:${id}`): DirectoryRecord => ({
+        kind: 'listing',
+        address,
+        key,
+        createdAt: 1,
+        claimId: id,
+        outpoint,
+        anchor,
+        repoints: [],
+        source: 'directory',
+    });
+    const coin: CoinFacts = { confirmedAt: 900000, value: 5000, paysTo: '', spendHeight: null };
+    const okReader = {
+        boundKeys: async (a: string) => (a === ADDR ? ['ka'] : ['kb']),
+        coin: async (o: string) => ({ ...coin, paysTo: o.endsWith('bob') ? BOB : ADDR }),
+    };
+
+    it('refuses params that are not exactly its shape', async () => {
+        const run = (p: unknown) => resolveDirectory([], tip, okReader, p as never);
+        await expect(run({ ...DIRECTORY_PARAMS, floor_sats: 1 })).rejects.toThrow(/no option "floor_sats"/);
+        await expect(run({ ...DIRECTORY_PARAMS, bounds: { bindingReads: 256 } })).rejects.toThrow(/needs "coinReads"/);
+        await expect(run({ ...DIRECTORY_PARAMS, floorConfs: 1.5 })).rejects.toThrow(/whole non-negative/);
+        await expect(run({ ...DIRECTORY_PARAMS, repointBlocks: -1 })).rejects.toThrow(/whole non-negative/);
+        expect((await run(DIRECTORY_PARAMS)).result).toBe('E_DIR_UNVERIFIED');
+    });
+
+    it('a reader that throws or answers out of shape has not answered', async () => {
+        const recs = [rec(ADDR, 'ka', 'aa'.repeat(32), 925000, 'own:alice'), rec(BOB, 'kb', 'bb'.repeat(32), 925010, 'own:bob')];
+        for (const reader of [
+            { ...okReader, coin: async () => Promise.reject(new Error('down')) },
+            { ...okReader, coin: async () => ({ confirmedAt: '900000' }) as never },
+            { ...okReader, coin: async () => null as never },
+            { ...okReader, boundKeys: async () => Promise.reject(new Error('down')) },
+            { ...okReader, boundKeys: async () => 'ka' as never },
+        ]) {
+            expect((await resolveDirectory(recs, tip, reader)).result).toBe('E_DIR_UNRESOLVED');
+        }
+        expect(await resolveDirectory(recs, tip, okReader)).toMatchObject({ result: 'holds', holder: ADDR });
+    });
+
+    it('drops, before any read, a record whose bech32 address is not lowercase, and a chain that names a coin twice', async () => {
+        const upper = rec(ADDR.toUpperCase(), 'ka', 'aa'.repeat(32), 925000, 'own:alice');
+        const loop: DirectoryRecord = {
+            ...rec(ADDR, 'ka', 'cc'.repeat(32), 925001, 'own:alice2'),
+            repoints: [{ repointId: 'dd'.repeat(32), prev: 'own:alice2', outpoint: 'own:alice2', anchor: 925002 }],
+        };
+        const out = await resolveDirectory([upper, loop, rec(BOB, 'kb', 'bb'.repeat(32), 925010, 'own:bob')], tip, okReader);
+        expect(out).toMatchObject({ result: 'holds', holder: BOB });
+        expect(out.reads).toEqual(['binding ' + BOB, 'coin ' + 'bb'.repeat(6)]);
     });
 });

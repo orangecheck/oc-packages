@@ -15,9 +15,12 @@ import type { AnchorAnswer, CoinFacts } from './directory.js';
 
 /**
  * The anchor of a proof over `idHex` (§8.2.1): the lowest Bitcoin attestation whose
- * header has the attested Merkle root. A header the source cannot read answers
- * `{ unread: height }` for that attestation, since a lower verified one decides the
- * order. Confirmations are the walk's to count.
+ * header has the attested Merkle root. Attestations are taken lowest first; one whose
+ * header carries another root, or whose source answers null (no block at that height,
+ * as mempoolHeaderSource answers only a 404), is passed over. A header that cannot be
+ * read (the source throws, or answers anything but 80 bytes) answers `{ unread: height }`
+ * for the lowest attestation not passed over (§8.2.5 (4)). A source must never turn a
+ * failed read into null. Confirmations are the walk's to count.
  */
 export async function directoryAnchor(
     proofB64: string,
@@ -31,15 +34,15 @@ export async function directoryAnchor(
         return null;
     }
     for (const a of anchors) {
-        let header: Uint8Array | null;
+        let header: unknown;
         try {
             header = await headers.getHeaderAt(a.blockHeight);
         } catch {
             return { unread: a.blockHeight };
         }
-        if (header && header.byteLength === 80 && equal(header.subarray(36, 68), a.merkleRoot)) {
-            return a.blockHeight;
-        }
+        if (header === null) continue;
+        if (!(header instanceof Uint8Array) || header.byteLength !== 80) return { unread: a.blockHeight };
+        if (equal(header.subarray(36, 68), a.merkleRoot)) return a.blockHeight;
     }
     return null;
 }
@@ -57,13 +60,31 @@ export interface EsploraCoinReaderOptions {
     timeoutMs?: number;
 }
 
+const height = (v: unknown): number | undefined =>
+    typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : undefined;
+
+/** An Esplora `status`: confirmed with a height, or not confirmed. Anything else is undefined. */
+function statusHeight(st: unknown): number | null | undefined {
+    if (typeof st !== 'object' || st === null) return undefined;
+    const { confirmed, block_height } = st as { confirmed?: unknown; block_height?: unknown };
+    if (confirmed === false) return null;
+    if (confirmed === true) return height(block_height);
+    return undefined;
+}
+
 /**
- * Coin facts for an outpoint from an Esplora-style API. An outpoint the API says does
- * not exist answers as a coin that clears nothing; any other failure is 'no-answer'.
+ * Coin facts for an outpoint from an Esplora-style API, read strictly: a transaction the
+ * API says does not exist (404), or an output index past its outputs, answers as a coin
+ * that clears nothing. Any other failure, or an answer out of shape, is 'no-answer'.
  */
 export function esploraCoinReader(
     opts: EsploraCoinReaderOptions = {}
 ): (outpoint: string) => Promise<CoinFacts | 'no-answer'> {
+    for (const k of Object.keys(opts)) {
+        if (k !== 'baseUrl' && k !== 'fetch' && k !== 'timeoutMs') {
+            throw new TypeError(`esploraCoinReader does not read option "${k}"`);
+        }
+    }
     const base = (opts.baseUrl ?? 'https://mempool.space/api').replace(/\/+$/, '');
     const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
     const timeoutMs = opts.timeoutMs ?? 10_000;
@@ -73,7 +94,8 @@ export function esploraCoinReader(
             const r = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
             if (r.status === 404) return 'missing';
             if (!r.ok) return 'no-answer';
-            return await r.json();
+            const body: unknown = await r.json();
+            return typeof body === 'object' && body !== null && !Array.isArray(body) ? body : 'no-answer';
         } catch {
             return 'no-answer';
         }
@@ -86,19 +108,27 @@ export function esploraCoinReader(
         const tx = await get(`${base}/tx/${txid}`);
         if (tx === 'no-answer') return 'no-answer';
         if (tx === 'missing') return none;
-        const t = tx as { status?: { confirmed?: unknown; block_height?: unknown }; vout?: unknown };
-        const out = Array.isArray(t.vout) ? (t.vout[vout] as { value?: unknown; scriptpubkey_address?: unknown } | undefined) : undefined;
-        if (!out) return none;
+        const t = tx as { txid?: unknown; status?: unknown; vout?: unknown };
+        const confirmedAt = statusHeight(t.status);
+        if (t.txid !== txid || !Array.isArray(t.vout) || confirmedAt === undefined) return 'no-answer';
+        if (vout >= t.vout.length) return none;
+        const out = t.vout[vout] as { value?: unknown; scriptpubkey_address?: unknown } | null;
+        if (typeof out !== 'object' || out === null) return 'no-answer';
+        const value = height(out.value);
+        if (value === undefined) return 'no-answer';
+        const paysTo = out.scriptpubkey_address === undefined ? '' : out.scriptpubkey_address;
+        if (typeof paysTo !== 'string') return 'no-answer';
         const spend = await get(`${base}/tx/${txid}/outspend/${vout}`);
         if (spend === 'no-answer' || spend === 'missing') return 'no-answer';
-        const s = spend as { spent?: unknown; status?: { confirmed?: unknown; block_height?: unknown } };
-        const height = (st: { confirmed?: unknown; block_height?: unknown } | undefined): number | null =>
-            st?.confirmed === true && typeof st.block_height === 'number' ? st.block_height : null;
-        return {
-            confirmedAt: height(t.status),
-            value: typeof out.value === 'number' ? out.value : 0,
-            paysTo: typeof out.scriptpubkey_address === 'string' ? out.scriptpubkey_address : '',
-            spendHeight: s.spent === true ? height(s.status) : null,
-        };
+        const sp = spend as { spent?: unknown; status?: unknown };
+        let spendHeight: number | null;
+        if (sp.spent === false) spendHeight = null;
+        else if (sp.spent === true) {
+            // A spend in the mempool has no height yet; a confirmed one must carry it.
+            const h = statusHeight(sp.status);
+            if (h === undefined) return 'no-answer';
+            spendHeight = h;
+        } else return 'no-answer';
+        return { confirmedAt, value, paysTo, spendHeight };
     };
 }
