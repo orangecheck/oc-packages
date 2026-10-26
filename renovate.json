@@ -1,44 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "github>orangecheck/oc-packages:renovate-family"
+  ],
   "description": "prConcurrentLimit was 5. Three PRs stuck since 2026-05-20 — all checks green, automerge on, unmergeable because a 3.5-month-old lockfile branch conflicts — held 3 of those 5 slots, so the family's own bumps stayed permanently rate-limited and 18 inter-package pins drifted. @orangecheck/agent-core reached 1.1.0 while six adapters still pinned ^0.1.0 or ^0.3.0, and a caret on a 0.x version locks the MINOR, so those ranges could never have reached it even unblocked.",
   "labels": ["renovate"],
   "prConcurrentLimit": 12,
-  "prHourlyLimit": 10,
-  "packageRules": [
-    {
-      "description": "Disabled by default — this Renovate config is scoped to the @orangecheck/* family ONLY. Third-party deps (next, react, tailwind, etc.) are NOT auto-tracked here; bump them by hand when you choose to. EVERY update type is listed deliberately: this rule originally named only patch/minor/major, so lockFileMaintenance slipped past it and opened third-party PRs (jose, ws) that no later rule then enabled for automerge — they sat open for 3.5 months holding concurrency slots.",
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch",
-        "pin",
-        "digest",
-        "pinDigest",
-        "lockFileMaintenance",
-        "rollback",
-        "bump",
-        "replacement"
-      ],
-      "enabled": false
-    },
-    {
-      "description": "@orangecheck/* patch + minor, bundled into one PR per consumer after a 1-day stability window. Renovate does not merge it: its fine-grained token cannot read GitHub Actions check runs, so it would merge on Vercel's status alone. This repo's own CI merges the PR once its gating jobs pass (merge-renovate).",
-      "matchPackageNames": ["/^@orangecheck//"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "enabled": true,
-      "groupName": "@orangecheck/* (family)",
-      "automerge": false,
-      "automergeType": "pr",
-      "minimumReleaseAge": "1 day"
-    },
-    {
-      "description": "Human-review @orangecheck/* major bumps — these change wire shape.",
-      "matchPackageNames": ["/^@orangecheck//"],
-      "matchUpdateTypes": ["major"],
-      "enabled": true,
-      "automerge": false,
-      "labels": ["renovate", "major-bump"]
-    }
-  ]
+  "prHourlyLimit": 10
 }
