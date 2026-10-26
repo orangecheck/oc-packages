@@ -484,7 +484,8 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@v5
+            # Pinned by commit: RENOVATE_TOKEN is in this job's environment.
+            - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
               with:
                   ref: ${{ github.event.pull_request.base.sha }}
                   persist-credentials: false
