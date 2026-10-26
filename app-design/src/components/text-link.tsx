@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
 
 // Padding above and below an inline link grows what a finger can press without moving its line: 24px or more
 // at any size, the text's own 1.21em (Inter's ascent and descent) plus what it lacks, and never under 0.25em.
@@ -33,26 +34,30 @@ export function TextLink({
     href: written,
     children,
     external,
+    standalone,
     className,
 }: {
     href: string;
     children: ReactNode;
     /** Force a new tab (true) or keep it in this one (false). Default: by the address. */
     external?: boolean;
+    /** Not part of a sentence (after a "·" in a line of facts): a 44px target to a thumb, its line unchanged. */
+    standalone?: boolean;
     className?: string;
 }) {
     const href = useResolved(written);
     const internal = href.startsWith('/') && !href.startsWith('/api/') && !href.startsWith('/.well-known/');
     const offsite = external ?? /^https?:\/\//.test(href);
+    const look = cn(LINK, standalone && HIT_LINK, className);
     if (internal && !offsite) {
         return (
-            <Link href={href} className={cn(LINK, className)}>
+            <Link href={href} className={look}>
                 {children}
             </Link>
         );
     }
     return (
-        <a href={href} className={cn(LINK, className)} {...(offsite ? { target: '_blank', rel: 'noreferrer' } : {})}>
+        <a href={href} className={look} {...(offsite ? { target: '_blank', rel: 'noreferrer' } : {})}>
             {children}
             {offsite ? <span className="sr-only"> (opens in a new tab)</span> : null}
         </a>

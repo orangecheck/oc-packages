@@ -2,14 +2,19 @@
 
 ## [Unreleased]
 
-## [1.28.1] — 2026-10-26
+## [1.29.0] — 2026-10-26
 
 - A `HashChip` link (`href` or `explorer`) is a 44px target on a touch
   screen, at least 44px wide for a short value. A pseudo-element draws the
   target around the text, so the line keeps its height and a mouse sees no
   change. Before, the link was its text's height, 24px. A site that grew the
   link itself (`[&_a]:min-h-11`) can drop that when it bumps.
-- check-layout measures a HashChip link, long and short, at 390 and 1440.
+- `TextLink` takes `standalone`, for a link that is not part of a sentence,
+  such as one after a "·" in a line of facts: on a touch screen it is a 44px
+  target drawn the same way, and its line keeps its height. A link in a
+  sentence leaves it off.
+- check-layout measures a HashChip link, long and short, and a standalone
+  TextLink beside one in a sentence, at 390 and 1440.
 
 ## [1.28.0] — 2026-10-26
 
