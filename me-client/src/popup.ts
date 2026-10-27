@@ -39,34 +39,24 @@ const DEFAULT_POPUP_ORIGIN = 'https://me.ochk.io';
 const DEFAULT_POPUP_PATH = '/popup/signin';
 const DEFAULT_FEATURES = 'width=480,height=720,resizable=yes,scrollbars=yes';
 
+/** The account the sign-in popup hands your page, the same on every way of
+ *  signing in: who signed in, and nothing more. An email or a Bitcoin address
+ *  is never in it; your server reads those through the API, with a scope the
+ *  person grants and proves again. */
 export interface OcPopupAccount {
-    id?: string;
-    /** Opaque public identity · `did:oc:<32-hex>`. Stable across linking
-     *  events. The canonical identifier post auth-refactor (Dec 2025
-     *  +). */
-    did_oc?: string;
-    /** Primary linked Bitcoin address, if the user has one and is
-     *  surfacing it (same-origin family integrators get it inline;
-     *  cross-domain integrators need the bitcoin_address scope). */
-    primary_btc?: string | null;
-    /** Whether the user has a primary email linked (plaintext stays
-     *  on auth host; only the boolean reaches integrators). */
-    has_email?: boolean;
-    /** Legacy fields kept for back-compat with pre-refactor consumers.
-     *  Prefer did_oc + primary_btc. Removed in a future major. */
-    address?: string;
-    btc_address?: string;
-    display_name?: string | null;
-    nostr_npub?: string | null;
-    wallet_provisioned?: boolean;
-    email?: string;
+    /** The account's id at me.ochk.io. */
+    id: string;
+    /** Opaque public identity, `did:oc:<32-hex>`: the same at every site and
+     *  stable across linking. */
+    did_oc: string;
+    display_name: string | null;
+    nostr_npub: string | null;
 }
 
 export interface OcPopupResult {
     /** Account payload from the auth host, unsigned: trust only the
      *  verified token. `did_oc` is the account's opaque identifier, the
-     *  same at every site; the email and Bitcoin address stay private
-     *  unless the user grants a scope. */
+     *  same at every site. */
     account: OcPopupAccount;
     /** The session JWT, bound to your origin. Hand it once to your own
      *  server, which verifies it and keeps it in an httpOnly cookie; never
