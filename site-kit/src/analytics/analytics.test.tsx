@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
     familyPageUrl,
     FamilyAnalytics,
+    onlyOnOrigins,
     plausibleSenderScript,
     useFamilyPageviews,
 } from './index';
@@ -139,6 +140,84 @@ describe('FamilyAnalytics', () => {
             <FamilyAnalytics enabled domain={'ochk.io"</script><script>alert(1)'} pulseSrc="javascript:alert(1)" />
         );
         expect(html).toBe('');
+    });
+});
+
+describe('onlyOnOrigins', () => {
+    // This page is https://vault.ochk.io (the environment's url).
+    const run = (origins: readonly string[]) => {
+        delete (window as { ran?: boolean }).ran;
+        const text = onlyOnOrigins(origins, 'window.ran = true;');
+        if (text) new Function(text)();
+        return (window as { ran?: boolean }).ran === true;
+    };
+
+    it('runs the script only on a listed origin, compared exactly', () => {
+        expect(run(['https://vault.ochk.io'])).toBe(true);
+        expect(run(['https://ochk.io', 'https://vault.ochk.io'])).toBe(true);
+        expect(run(['https://ochk.io'])).toBe(false);
+        // Neither a prefix nor a suffix of the page's origin counts.
+        expect(run(['https://vault.ochk.i'])).toBe(false);
+        expect(run(['https://ault.ochk.io'])).toBe(false);
+        expect(run(['https://vault.ochk.io.evil.example'])).toBe(false);
+    });
+
+    it('runs nowhere for an empty list or anything that is not an origin', () => {
+        const bad: string[][] = [
+            [],
+            ['https://vault.ochk.io/'],
+            ['http://vault.ochk.io'],
+            ['https://Vault.ochk.io'],
+            ['https://vault.ochk.io:443'],
+            ['vault.ochk.io'],
+            ['https://vault.ochk.io"];alert(1);//'],
+            ['https://vault.ochk.io', 'https://ochk.io/'],
+        ];
+        for (const origins of bad) expect(onlyOnOrigins(origins, 'window.ran = true;')).toBe('');
+    });
+});
+
+describe('FamilyAnalytics on its production origins only', () => {
+    const scripts = (origins: readonly string[]) => {
+        const host = document.createElement('div');
+        host.innerHTML = renderToStaticMarkup(<FamilyAnalytics enabled origins={origins} />);
+        return [...host.querySelectorAll('script')].map((s) => s.textContent ?? '');
+    };
+
+    it('sends from a listed origin and from no other', async () => {
+        beacons = [];
+        Object.defineProperty(navigator, 'sendBeacon', {
+            configurable: true,
+            value: (url: string, data: Blob) => {
+                void data.text().then((t) => beacons.push({ url, body: JSON.parse(t) }));
+                return true;
+            },
+        });
+        const [elsewhere] = scripts(['https://ochk.io']);
+        new Function(elsewhere!)();
+        expect(window.plausible).toBeUndefined();
+        const [here] = scripts(['https://vault.ochk.io']);
+        new Function(here!)();
+        window.plausible!('pageview');
+        await flush();
+        expect(beacons).toHaveLength(1);
+    });
+
+    it('loads oc-pulse on a listed origin and not on another', () => {
+        const pulse = (origins: readonly string[]) => {
+            document.head.querySelectorAll('script[src*="oc-pulse"]').forEach((s) => s.remove());
+            delete (window as { ocpulse?: unknown }).ocpulse;
+            new Function(scripts(origins)[1]!)();
+            return document.head.querySelectorAll('script[src*="oc-pulse"]').length;
+        };
+        expect(pulse(['https://ochk.io'])).toBe(0);
+        expect((window as { ocpulse?: unknown }).ocpulse).toBeUndefined();
+        expect(pulse(['https://vault.ochk.io'])).toBe(1);
+    });
+
+    it('renders nothing when an origin is not one, and as before without the list', () => {
+        expect(renderToStaticMarkup(<FamilyAnalytics enabled origins={['https://ochk.io/']} />)).toBe('');
+        expect(renderToStaticMarkup(<FamilyAnalytics enabled />)).toContain('data-oc-analytics="ocpulse"');
     });
 });
 
