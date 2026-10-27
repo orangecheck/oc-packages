@@ -3,8 +3,9 @@
  * `ocv://` secret-reference resolver, and transport-agnostic API client for
  * OC Vault (vault.ochk.io).
  *
- * Zero-knowledge by construction: the vault key is derived in-process from
- * the passphrase and never transmitted. See VAULT-DEVELOPER-PLATFORM.md.
+ * The vault key is 32 random bytes. It is stored and sent only sealed: under
+ * the passphrase and the recovery code, to a device, or in a backup file.
+ * See VAULT-DEVELOPER-PLATFORM.md.
  */
 
 export {
@@ -24,6 +25,33 @@ export {
     type VaultEntryType,
     type WrappedKey,
 } from './crypto';
+
+export {
+    SCRYPT_PARAMS,
+    generateRecoveryCode,
+    normalizeRecoveryCode,
+    unwrapKeyUnderKey,
+    wrapKeyUnderKey,
+    wrapVaultKey,
+    type KeyWrappedUnderKey,
+} from './keys';
+
+export {
+    deviceFingerprint,
+    openDeviceGrant,
+    sealKeyToDevice,
+    type DeviceGrant,
+} from './device-grant';
+
+export {
+    BACKUP_FORMAT,
+    BACKUP_VERSION,
+    createEncryptedBackup,
+    isEncryptedBackup,
+    restoreEncryptedBackup,
+    type EncryptedBackup,
+    type RestoredBackup,
+} from './backup';
 
 export {
     PRIMARY_FIELD,

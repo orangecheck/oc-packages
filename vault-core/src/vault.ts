@@ -3,7 +3,7 @@
  *
  * Holds the unwrapped key and the decrypted entries in process memory, and
  * answers the two questions a developer integration asks: "list what's
- * here" and "resolve this `ocv://` reference." The key is derived here from
+ * here" and "resolve this `ocv://` reference." The key is unwrapped here with
  * the passphrase and never leaves the process.
  */
 
