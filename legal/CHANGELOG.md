@@ -18,14 +18,15 @@ name, government ID, or physical address", with no limit. Both now say this of
 people who sign in, use apps or get paid, which is true on every path. The
 Privacy policy's list of what orangecheck stores gains "guardian applications":
 an application to run a guardian, through ochk.app or by email to
-apply@ochk.io, holds the answers to the operator questionnaire and, through
-ochk.app, an optional handle and email address for the decision. The
-questionnaire asks for the name of the person or organisation that will run the
-guardian, its jurisdiction, a public contact channel, a key fingerprint and two
-references. The handle, name, jurisdiction, contact channel and fingerprint are
-published in the federation charter, as the questionnaire (E1) and the charter
-format say, because guardians are named trust anchors; nothing is checked
-against an ID and nothing else is published. Both documents are dated
+apply@ochk.io, holds the answers to the operator questionnaire, which asks,
+among other things, for a public handle, the name of the person or organisation
+that will run the guardian, its jurisdiction, a public contact channel, a key
+fingerprint and two references. Through ochk.app it can also hold an optional
+handle and email address that only the reviewer sees, for the decision. The
+questionnaire's handle, name, jurisdiction, contact channel and fingerprint are
+published in the federation charter, as the questionnaire (A1, E1) and the
+charter format say, because guardians are named trust anchors; nothing is
+checked against an ID and nothing else is published. Both documents are dated
 2026-10-27.
 
 The owner may still decide that operators are not named. In that case this
