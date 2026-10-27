@@ -13,8 +13,8 @@
  *
  * Zero-knowledge: nothing here decrypts anything the caller did not already
  * authorize. `unwrapVaultKey` needs the passphrase; `decryptFields` and
- * `unpackEntryFromCloud` need the key. The key is derived in-process and is
- * never transmitted.
+ * `unpackEntryFromCloud` need the key. The key is 32 random bytes; it leaves
+ * the process only sealed (see keys.ts, device-grant.ts, backup.ts).
  */
 
 import { scrypt } from '@noble/hashes/scrypt';

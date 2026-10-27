@@ -9,3 +9,7 @@ paths = ['''^me-client/test-vectors/''', '''^me-client/scripts/gen-integrator-ve
 [[allowlists]]
 description = "Project keys (pk_test_, pk_live_) identify a project in public pages; they are not secrets"
 regexes = ['''^pk_(?:test|live)_[A-Za-z0-9_-]+(?:\.\.\.|…)?$''']
+
+[[allowlists]]
+description = "vault-core's blob-format vectors: a throwaway vault key, passphrases and a device key that open only the test blobs beside them"
+paths = ['''^vault-core/vectors/''']

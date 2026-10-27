@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0] — 2026-10-27
+
+### Added
+
+- The write side of blob format v1, so every OC Vault client runs one
+  implementation: `wrapVaultKey` and `SCRYPT_PARAMS` (N = 2^17, r = 8, p = 1),
+  `generateRecoveryCode` / `normalizeRecoveryCode`, `wrapKeyUnderKey` /
+  `unwrapKeyUnderKey` (team keys), `sealKeyToDevice` / `openDeviceGrant` /
+  `deviceFingerprint` (handing the key to another device), and
+  `createEncryptedBackup` / `restoreEncryptedBackup` / `isEncryptedBackup`.
+  A backup file's work factors pass `assertAcceptableKdfParams` before use.
+- `vectors/blob-v1.json`, shipped with the package: a passphrase wrap, a
+  recovery wrap, a key under a key, entry fields, a cloud blob, a device grant,
+  a backup file, an export, and the accepted work-factor grid, as vault.ochk.io
+  writes them. `src/vectors.test.ts` reads every one and writes the same shapes.
+
+### Changed
+
+- The package description and docs say what the key is: 32 random bytes,
+  stored only sealed under the passphrase and recovery code, and unwrapped
+  in-process. They said it was derived from the passphrase.
+
 ## [0.3.2] — 2026-10-26
 
 ### Fixed
