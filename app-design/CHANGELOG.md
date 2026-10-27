@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.29.1] — 2026-10-27
+
+- The family registry's line for chat reads "Encrypted messages to a Bitcoin
+  address or an orangecheck account." It covers both ways to sign in to
+  OC Chat: a Bitcoin address, and an orangecheck account without one.
+
 ## [1.29.0] — 2026-10-26
 
 - A `HashChip` link (`href` or `explorer`) is a 44px target on a touch

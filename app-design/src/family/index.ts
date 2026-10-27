@@ -157,7 +157,7 @@ export const FAMILY: readonly FamilySite[] = [
         label: 'chat',
         href: 'https://chat.ochk.io',
         group: 'app',
-        line: 'Messages only the holder of a Bitcoin address can read.',
+        line: 'Encrypted messages to a Bitcoin address or an orangecheck account.',
         status: 'testing',
         protocols: ['lock'],
     },
