@@ -8,6 +8,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.56.0] — 2026-10-27
+
+### Changed
+
+- `OcPopupAccount` is the account the sign-in popup hands the page on every
+  way of signing in: `id`, `did_oc`, `display_name` and `nostr_npub`, all
+  present. It carries no email and no Bitcoin address; a server reads those
+  through the API, with a scope the person grants and proves again. The
+  fields it no longer lists (`primary_btc`, `has_email`, `address`,
+  `btc_address`, `wallet_provisioned`, `email`) are a compile error for code
+  that still reads them.
+
 ## [0.55.0] — 2026-10-26
 
 ### Changed
