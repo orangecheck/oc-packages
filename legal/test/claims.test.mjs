@@ -220,3 +220,23 @@ test('ochk.io privacy names relay.ochk.io, the address its records keep, and its
     assert.match(text, /Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days/);
     assert.match(text, /relay\.ochk\.io connections[^;]*Fly\.io\) for its own short retention window; its connection logs for the relay can hold your IP address and connection times for 7 days/i);
 });
+
+// No legal name for people who sign in, use apps or get paid; a guardian application names its operator.
+test('the ochk.app terms and privacy scope the no-legal-name claim and say what a guardian application asks', () => {
+    const [, terms] = DOCS.find(([name]) => name === 'me/terms') ?? [];
+    const [, privacy] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(terms && privacy, 'me/terms and me/privacy render');
+    assert.ok(terms.includes('does not require your legal name, government ID, or physical address to sign in, use apps or get paid'));
+    assert.ok(privacy.includes('never collects your legal name, government ID, or physical address from people who sign in, use apps or get paid'));
+    for (const fact of [
+        'made through ochk.app or by email to apply@ochk.io',
+        'asks for the name of the person or organisation that will run it, its jurisdiction and two references',
+        'The name and jurisdiction are published in the federation charter, because guardians are named trust anchors',
+        'Nothing is checked against an ID, and nothing else is published',
+    ]) {
+        assert.ok(privacy.includes(fact), fact);
+    }
+    for (const text of [terms, privacy]) {
+        assert.ok(!/physical address\.|physical address['"]/.test(text), 'no unscoped no-legal-name claim');
+    }
+});
