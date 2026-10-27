@@ -285,7 +285,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'guardian applications',
-                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, asks for the name of the person or organisation that will run it, its jurisdiction and two references. The name and jurisdiction are published in the federation charter, because guardians are named trust anchors. Nothing is checked against an ID, and nothing else is published.',
+                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire and, through ochk.app, an optional handle and email address for the decision. The questionnaire asks for the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. The handle, name, jurisdiction, contact channel and fingerprint are published in the federation charter, because guardians are named trust anchors. Nothing is checked against an ID, and nothing else is published.',
                         },
                         {
                             k: 'public anchors',
