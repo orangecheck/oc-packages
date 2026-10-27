@@ -39,6 +39,8 @@ jobs:
               with:
                   node-version: '24'
             - run: node scripts/check-release-triggers.mjs
+            # The same gap for the build matrix: a package off it is never tested.
+            - run: node scripts/check-build-matrix.mjs
 
     dist-tag:
         # release.yml picks the npm dist-tag with scripts/dist-tag.mjs so that a
@@ -139,12 +141,15 @@ jobs:
                     - lock-crypto
                     - lock-core
                     - lock-device
+                    - nostr-core
                     - stamp-core
                     - stamp-ots
                     - stamp-cli
                     - vote-core
                     - vote-cli
                     - vote-react
+                    - vault-core
+                    - vault-cli
                     - pledge-core
                     - agent-core
                     - agent-signer
