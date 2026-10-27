@@ -8,6 +8,25 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.22] — 2026-10-27
+
+### Changed — what ochk.app asks of a guardian operator
+
+ochk.app's Terms said it "does not require your legal name, government ID, or
+physical address", and its Privacy policy said it "never collects your legal
+name, government ID, or physical address", with no limit. Both now say this of
+people who sign in, use apps or get paid, which is true on every path. The
+Privacy policy's list of what orangecheck stores gains "guardian applications":
+an application to run a guardian, through ochk.app or by email to
+apply@ochk.io, asks for the name of the person or organisation that will run
+it, its jurisdiction and two references; the name and jurisdiction are
+published in the federation charter, because guardians are named trust anchors;
+nothing is checked against an ID and nothing else is published. Both documents
+are dated 2026-10-27.
+
+The owner may still decide that operators are not named. In that case this
+item and the questionnaire's question come out together.
+
 ## [0.7.21] — 2026-10-26
 
 ### Added — what relay.ochk.io keeps

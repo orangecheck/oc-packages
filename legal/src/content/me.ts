@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for ochk.app: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-24',
+    updated: '2026-10-27',
     preamble: [
         {
             kind: 'callout',
@@ -121,7 +121,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'ochk.app **does not perform Know-Your-Customer checks** and does not require your legal name, government ID, or physical address. Sybil resistance is achieved through protocol composition — BIP-322 sat-bond attestation, paid-action history, and integrator-defined gates — not identity verification. You must not use ochk.app to evade a KYC, AML, or sanctions obligation that applies to you elsewhere.',
+                    text: 'ochk.app **does not perform Know-Your-Customer checks** and does not require your legal name, government ID, or physical address to sign in, use apps or get paid. Sybil resistance is achieved through protocol composition — BIP-322 sat-bond attestation, paid-action history, and integrator-defined gates — not identity verification. You must not use ochk.app to evade a KYC, AML, or sanctions obligation that applies to you elsewhere.',
                 },
             ],
         },
@@ -207,7 +207,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-26',
+    updated: '2026-10-27',
     preamble: [
         {
             kind: 'callout',
@@ -225,7 +225,7 @@ const privacy: DocSpec = {
                     items: [
                         {
                             k: 'no kyc',
-                            v: 'ochk.app never collects your legal name, government ID, or physical address',
+                            v: 'ochk.app never collects your legal name, government ID, or physical address from people who sign in, use apps or get paid',
                         },
                         {
                             k: 'little pii at signup',
@@ -282,6 +282,10 @@ const privacy: DocSpec = {
                         {
                             k: 'site sign-ins',
                             v: 'which live sites you signed in to or shared data with through orangecheck, and when. A site can name you as the person who earned for an event only once this record exists. No site sees it, and it is erased with your account or with that site\'s project.',
+                        },
+                        {
+                            k: 'guardian applications',
+                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, asks for the name of the person or organisation that will run it, its jurisdiction and two references. The name and jurisdiction are published in the federation charter, because guardians are named trust anchors. Nothing is checked against an ID, and nothing else is published.',
                         },
                         {
                             k: 'public anchors',
