@@ -241,3 +241,10 @@ test('the ochk.app terms and privacy scope the no-legal-name claim and say what 
         assert.ok(!/physical address\.|physical address['"]/.test(text), 'no unscoped no-legal-name claim');
     }
 });
+
+// A deletion's leftovers: backups and the CDN's cached copies, worded as the erasure email words them.
+test('the ochk.app privacy policy says how long backups and cached copies of a deleted account last', () => {
+    const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(text, 'me/privacy renders');
+    assert.ok(text.includes('Backups roll off within 30 days, and copies cached by our CDN expire within a day.'));
+});

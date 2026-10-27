@@ -32,6 +32,13 @@ checked against an ID and nothing else is published. Both documents are dated
 The owner may still decide that operators are not named. In that case this
 item and the questionnaire's question come out together.
 
+### Changed — how long a deleted account's copies last
+
+The Privacy policy's deletion section said backups roll off within 30 days. It
+now adds that copies cached by our CDN expire within a day: ochk.app's cache
+holds some me.ochk.io answers for up to a day. The erasure email and ochk.app's
+deletion page say the same.
+
 ## [0.7.21] — 2026-10-26
 
 ### Added — what relay.ochk.io keeps
