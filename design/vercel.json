@@ -1,4 +1,5 @@
 {
+    "git": { "deploymentEnabled": { "main": true, "**": false } },
     "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- ./ ../app-design || exit 1",
     "installCommand": "yarn install --frozen-lockfile && yarn --cwd ../app-design install --frozen-lockfile",
     "headers": [
