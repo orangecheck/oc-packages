@@ -893,10 +893,10 @@
     "@orangecheck/wallet-adapter" "^0.7.0"
     "@simplewebauthn/browser" "^13.3.0"
 
-"@orangecheck/auth-core@^2.24.0":
-  version "2.26.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.26.0.tgz#c3f25f06464ef5405352b75e1e86aaf740156544"
-  integrity sha512-3SYQ/WKbAk6woLEfQVrXPUGV0PQNB1v1L2jNW8c/dwjQqNoQfJIAjUQOnUCqHNwkNZMT5vNGSefFgLNT1p1otA==
+"@orangecheck/auth-core@^2.24.0", "@orangecheck/auth-core@^2.26.1":
+  version "2.27.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.27.0.tgz#02569bc54958089bb66d017a2ef8ccaf1f639a54"
+  integrity sha512-kf+5qNDG9hSgmR3PKk88EgHrxGEF95jNeKjTDri6t0K9PxRBNZTRMEc4bIs8yulp+OS03PH2AS05iij3eI2QOw==
   dependencies:
     jose "^6.2.2"
 
@@ -915,11 +915,11 @@
   integrity sha512-CaDeuDSoxMFawdGLQR9C4tiY3gUze/fsX25g56FJu20Z0Y2GeU+9g6Y5zFpAP1N91XbR9rpUGe7wsBF/hy/3gA==
 
 "@orangecheck/me-client@^0.53.0":
-  version "0.53.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.53.2.tgz#345784dd513cb73f23e2a83d63e877c42ea7549f"
-  integrity sha512-BWpLpnHtrnz+IsX27MJgGwhSjZgoBT364CJecez0FTcr3ZfGIXwfoCWP3tOlWPkMX5spdpJSEA9kOKP/qqY72Q==
+  version "0.53.4"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.53.4.tgz#bbb1b8e8c5aa73dcffa3fa7b0ff654d77a707ef2"
+  integrity sha512-4YZz0IFeDQ5SR/dBn/hKjartPxOKevcH2cfnHSPRf9Ziofl4jAbWXHoSPhz2dcVAtS7mOn5xHP+33Y0A3EReuA==
   dependencies:
-    "@orangecheck/auth-core" "^2.24.0"
+    "@orangecheck/auth-core" "^2.26.1"
 
 "@orangecheck/wallet-adapter@^0.7.0":
   version "0.7.2"
