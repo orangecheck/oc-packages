@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.1
+
+`FamilyAnalytics` takes `origins`, the production origins a site reports from.
+Each beacon then runs only when the page's origin is one of them, compared
+exactly, so a test or preview deployment of the same build sends nothing to
+Plausible or oc-pulse. Without it every host reports, as before.
+`onlyOnOrigins(origins, script)` is the same gate for a site's own beacon
+script. An empty list, or an entry that is not `https://` plus a lowercase
+host, runs nowhere.
+
 ## 0.7.0
 
 `hostOf(ip)` in `@orangecheck/site-kit/rate`: the one requester behind an

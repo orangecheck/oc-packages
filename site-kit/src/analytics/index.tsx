@@ -52,6 +52,21 @@ const SAFE_URL_RE = /^https:\/\/[a-z0-9.-]+(:\d+)?(\/[\w./+%@~,!$&'()*-]*)?$/i;
 // A first-party proxy path (a site rewrites it to plausible.io).
 const SAFE_PATH_RE = /^\/[\w./-]*$/;
 const safeRef = (v: string | undefined) => (v && (SAFE_URL_RE.test(v) || SAFE_PATH_RE.test(v)) ? v : '');
+// An origin as `location.origin` reads it: https, a lowercase host, no port, path or slash.
+const ORIGIN_RE = /^https:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
+/**
+ * `script` as script text that runs only on a page whose origin is one of
+ * `origins`, compared exactly, never as a prefix. A test or preview deployment
+ * of the same build runs none of it. An empty list, or any entry that is not
+ * an origin, and it runs nowhere.
+ */
+export function onlyOnOrigins(origins: readonly string[], script: string): string {
+    if (origins.length === 0 || !origins.every((o) => ORIGIN_RE.test(o))) return '';
+    return `if (${JSON.stringify(origins)}.indexOf(window.location.origin) !== -1) {
+${script}
+}`;
+}
 
 /**
  * Plausible's sender, as script text. It reads `location.origin`,
@@ -128,6 +143,13 @@ export interface FamilyAnalyticsProps {
     pulseApi?: string;
     /** Default: in production only. */
     enabled?: boolean;
+    /**
+     * The production origins this site reports from (`https://ochk.io`). Each
+     * beacon runs only when the page's origin is one of them, so a test or
+     * preview deployment of the same build reports nothing. Absent: every host
+     * reports.
+     */
+    origins?: readonly string[];
 }
 
 /**
@@ -141,23 +163,21 @@ export function FamilyAnalytics({
     pulseSrc = process.env.NEXT_PUBLIC_OCPULSE_SRC ?? 'https://insights.ochk.io/oc-pulse.js',
     pulseApi = process.env.NEXT_PUBLIC_OCPULSE_API ?? 'https://insights.ochk.io/oc-pulse/event',
     enabled = process.env.NODE_ENV === 'production',
+    origins,
 }: FamilyAnalyticsProps) {
     if (!enabled) return null;
+    const gate = (script: string) => (origins ? onlyOnOrigins(origins, script) : script);
     const plausibleApi = DOMAIN_RE.test(domain) ? safeRef(api) : '';
     const src = safeRef(pulseSrc);
+    const sender = plausibleApi ? gate(plausibleSenderScript(domain, plausibleApi)) : '';
+    const loader = src ? gate(pulseLoaderScript(src, safeRef(pulseApi))) : '';
     return (
         <>
-            {plausibleApi ? (
-                <script
-                    data-oc-analytics="plausible"
-                    dangerouslySetInnerHTML={{ __html: plausibleSenderScript(domain, plausibleApi) }}
-                />
+            {sender ? (
+                <script data-oc-analytics="plausible" dangerouslySetInnerHTML={{ __html: sender }} />
             ) : null}
-            {src ? (
-                <script
-                    data-oc-analytics="ocpulse"
-                    dangerouslySetInnerHTML={{ __html: pulseLoaderScript(src, safeRef(pulseApi)) }}
-                />
+            {loader ? (
+                <script data-oc-analytics="ocpulse" dangerouslySetInnerHTML={{ __html: loader }} />
             ) : null}
         </>
     );
