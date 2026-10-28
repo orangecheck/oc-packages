@@ -1,6 +1,7 @@
 // What a verdict needs from a relay or the chain, and what to say when it is missing.
 
 import type { NostrEvent } from '@orangecheck/lock-device';
+import { DEFAULT_RELAYS } from '@orangecheck/nostr-core';
 
 /**
  * A read the verdict depends on got no complete answer, so the empty result
@@ -52,8 +53,16 @@ export function meetsReadFloor(status: readonly { eose: boolean }[]): boolean {
 }
 
 /**
- * The reference relay set (§8.7): the relays the reference reader asks, and so the only
- * relays a write counts on toward WRITE_QUORUM. A write elsewhere reaches no reader.
+ * The reference set for OC Lock device records and revocations, OC Chat's session
+ * records included (§8.7): nostr-core's DEFAULT_RELAYS, the set OC Lock and OC Vault
+ * count their quorum over. Re-exported, never copied, so every family reader and
+ * writer of those records counts over one set.
+ */
+export const DEVICE_RECORD_RELAYS: readonly string[] = DEFAULT_RELAYS;
+
+/**
+ * The reference set for OC Chat's own records, its channel versions (§8.7): the relays
+ * the reference client reads them from. A write elsewhere reaches no reader.
  */
 export const CHAT_RELAYS: readonly string[] = [
     'wss://relay.ochk.io',
@@ -89,7 +98,8 @@ export async function publishToQuorum(
     publish: (relays: readonly string[]) => Promise<readonly WriteAck[]>,
     to: readonly string[],
     opts: {
-        /** The relays readers ask. Defaults to CHAT_RELAYS. */
+        /** The relays readers ask: DEVICE_RECORD_RELAYS (the default) for a binding or
+         *  revocation, CHAT_RELAYS for a channel version. */
         reference?: readonly string[];
         /** Whether `relay` serves the write back, asked of one relay at a time. */
         readBack?: (relay: string) => Promise<boolean>;
@@ -98,7 +108,7 @@ export async function publishToQuorum(
         wait?: (ms: number) => Promise<void>;
     } = {}
 ): Promise<WriteOutcome> {
-    const reference = opts.reference ?? CHAT_RELAYS;
+    const reference = opts.reference ?? DEVICE_RECORD_RELAYS;
     const attempts = opts.attempts ?? 3;
     const wait = opts.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
     const held = new Set<string>();

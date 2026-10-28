@@ -44,8 +44,11 @@ at chat.ochk.io runs them:
   (`unanswered: 'throw'` for a verifier that must say it could not tell).
 - The relay floor and write quorum (SPEC §8.7): `WRITE_QUORUM` (2),
   `readFloor(asked)` (`asked - WRITE_QUORUM + 1`, at least 1), `meetsReadFloor`,
-  `CHAT_RELAYS` (the reference set readers ask), and `publishToQuorum`, which
-  writes to the given relays and the reference set and reports a binding or
+  `DEVICE_RECORD_RELAYS` (nostr-core's `DEFAULT_RELAYS`, re-exported: the
+  reference set for device records and revocations, shared with OC Lock),
+  `CHAT_RELAYS` (the reference set for channel versions), and `publishToQuorum`, which
+  writes to the given relays and the reference set (the device-record set by
+  default) and reports a binding or
   revocation published only once `WRITE_QUORUM` reference relays hold it (on
   their OK, or with `readBack` only once they serve it back), retrying the rest,
   and otherwise "not yet published". An OK from any other relay counts for

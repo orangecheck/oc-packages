@@ -42,10 +42,12 @@ silence as "no".
 A record is on whichever relays its publisher reached, so an answer that rests
 on something not being there ("live", "bound now", "not bound", "no newer
 version") is drawn only from a read that met the floor: `readFloor(asked)`, which
-is `asked - WRITE_QUORUM + 1`, at least 1, so 3 of the 4 relays a reader asks by
-default. What a read returned needs one relay. A binding or revocation write
+is `asked - WRITE_QUORUM + 1`, at least 1. What a read returned needs one relay. A binding or revocation write
 counts as published only once `WRITE_QUORUM` (2) relays of the reference set
-readers ask (`CHAT_RELAYS`) hold it; a relay outside that set counts for nothing.
+readers ask hold it; a relay outside that set counts for nothing. For device
+records and revocations that set is `DEVICE_RECORD_RELAYS`, nostr-core's five
+`DEFAULT_RELAYS` that OC Lock and OC Vault count over (floor 4 of 5); for OC
+Chat's channel versions it is `CHAT_RELAYS` (floor 3 of 4).
 `publishToQuorum` writes to the given relays and the reference set, counts a
 reference relay on its OK or, given `readBack`, only once it serves the write
 back, and retries until then, or reports "not yet published".
