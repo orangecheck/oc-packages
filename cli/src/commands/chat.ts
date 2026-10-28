@@ -253,17 +253,22 @@ async function resolveChannel(cid: string, net: ChatNet, founder?: string, given
     return { resolved, read };
 }
 
-function chainDetail(c: ResolvedChannel | null) {
+/** Whether the channel resolves and, when it does, its chain. No detail value is null
+ *  except one a missed read left unknown (runChatVerify). */
+function chainDetail(c: ResolvedChannel | null): Record<string, unknown> {
     return c
         ? {
-              tip: c.descriptorId,
-              epochs: c.epochs,
-              status: c.descriptor.status ?? 'active',
-              founder: c.descriptor.founder_address,
-              write_policy: c.descriptor.write.policy,
-              rooted: c.descriptor.write.rooted,
+              resolves: true,
+              channel: {
+                  tip: c.descriptorId,
+                  epochs: c.epochs,
+                  status: c.descriptor.status ?? 'active',
+                  founder: c.descriptor.founder_address,
+                  write_policy: c.descriptor.write.policy,
+                  rooted: c.descriptor.write.rooted,
+              },
           }
-        : null;
+        : { resolves: false };
 }
 
 /** A kind-30110 version. */
@@ -320,7 +325,7 @@ async function verifyVersion(ev: NostrEvent, net: ChatNet | null, founder?: stri
         on_relays: read.events.some((e) => e.id === ev.id),
         on_resolved_chain: standing?.onChain ?? false,
         is_tip: standing?.isTip ?? false,
-        channel: chainDetail(resolved),
+        ...chainDetail(resolved),
     });
 }
 
@@ -341,7 +346,7 @@ async function verifyChannelPost(ev: NostrEvent, net: ChatNet | null): Promise<R
     }
     const { resolved } = await resolveChannel(p.channel_id, net);
     checks.push({ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true });
-    if (!resolved) return report('channel post', checks, [], { post_id: pid });
+    if (!resolved) return report('channel post', checks, [], { post_id: pid, ...chainDetail(null) });
     const r = reads(net);
     const controlSig = ev.tags.find((t) => t[0] === 'control_sig')?.[1];
     const v = await verifyPost(p, resolved.descriptor, {
@@ -358,7 +363,7 @@ async function verifyChannelPost(ev: NostrEvent, net: ChatNet | null): Promise<R
         absence: true,
         ...(v.ok ? { detail: v.isTombstone ? `removal by ${v.role}` : v.role } : { detail: v.error }),
     });
-    return report('channel post', checks, [], { post_id: pid, channel: chainDetail(resolved) });
+    return report('channel post', checks, [], { post_id: pid, ...chainDetail(resolved) });
 }
 
 /** Who holds a handle, and whether `ev` (if given) is the holder's listing. */
@@ -412,7 +417,7 @@ export async function verifyChat(opts: ChatVerifyOpts, input: unknown, net: Chat
     if (opts.channel) {
         if (!net) die('--channel reads the relays; it has no offline form');
         const { resolved } = await resolveChannel(opts.channel, net, opts.founder);
-        return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true }], [], { channel: chainDetail(resolved) });
+        return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true }], [], chainDetail(resolved));
     }
     if (opts.handle) return verifyHandle(opts.handle, opts.channelHandle ? 'channel' : 'people', net);
     const ev = input as NostrEvent;
@@ -438,7 +443,11 @@ export function render(r: Report): string {
     const lines = [`${r.subject}:`];
     for (const c of r.checks) lines.push(`  ${c.ok ? 'ok  ' : 'FAIL'}  ${c.check}${c.detail ? ` (${c.detail})` : ''}`);
     for (const n of r.not_checked) lines.push(`  not checked  ${n}`);
-    if (r.detail) for (const [k, v] of Object.entries(r.detail)) lines.push(`  ${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    if (r.detail) {
+        for (const [k, v] of Object.entries(r.detail)) {
+            lines.push(`  ${k}: ${v === null ? 'unknown' : typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+        }
+    }
     const answered = r.relays ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read)` : '';
     const verdict = {
         verified: `VERIFIED${answered}`,
@@ -497,8 +506,9 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         if (tally.silent.length > 0 && restsOnAbsence) {
             r.verdict = 'unread';
             // What the relays were read for rests on the missed read too; only the
-            // event's own ids are known.
-            if (r.detail) for (const k of Object.keys(r.detail)) if (!EVENT_OWN.has(k)) r.detail[k] = 'unknown';
+            // event's own ids are known. null, not a word: a script that tests a key
+            // without reading the verdict must not find it truthy.
+            if (r.detail) for (const k of Object.keys(r.detail)) if (!EVENT_OWN.has(k)) r.detail[k] = null;
         }
     }
     process.stdout.write((opts.json ? JSON.stringify(r, null, 2) : render(r)) + '\n');
