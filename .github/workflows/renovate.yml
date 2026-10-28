@@ -2,16 +2,22 @@ name: Renovate
 
 # Self-hosted Renovate — the family-wide auto-bumper.
 #
-# Every 30 minutes, this job runs Renovate against the consumer repos
-# listed in renovate-global.json. Per-repo rules (auto-merge of
+# Every 30 minutes from 02:00 to 09:59 UTC, this job runs Renovate
+# against the consumer repos listed in renovate-global.json. Per-repo rules (auto-merge of
 # @orangecheck/* patch+minor, 1-day stability window, etc.) live in
 # each repo's `renovate.json`. See RENOVATE.md for the why + how.
 
 on:
     schedule:
-        # Every 30 minutes. Fast enough that a publish lands across the
-        # family within ~1 hour past its 1-day stability window.
-        - cron: '*/30 * * * *'
+        # Every 30 minutes from 02:00 to 09:59 UTC, the branch window in
+        # renovate-global.json. Renovate checks the window by the clock when
+        # it runs, so a run outside it, even a late start, re-read 22 repos
+        # and changed nothing: about 30 runs and 200 minutes a day.
+        # Renovate's vulnerability PRs ignore the schedule, so they now wait
+        # for the next window, up to about 16.5 hours; renovate-family.json
+        # turns off every third-party update, which stops those PRs for
+        # third-party packages anyway.
+        - cron: '*/30 2-9 * * *'
     workflow_dispatch:
         inputs:
             logLevel:

@@ -7,14 +7,22 @@ new version lands on every subdomain.
 
 ## What it does
 
-- Runs Renovate every 30 minutes (self-hosted via GitHub Actions), but
-  it opens and updates branches only from 02:00 to 09:59 UTC
+- Runs Renovate every 30 minutes from 02:00 to 09:59 UTC (self-hosted
+  via GitHub Actions), and it opens and updates branches only in that
+  window
   (`schedule` and `updateNotScheduled: false` in
   [`renovate-global.json`](./renovate-global.json)). Every push to a
   family branch runs the consumer's paid CI with a build, and each
   release used to push it again, about three times a day per repo. Now
   the pushes fall in one window, usually one run. GitHub starts the cron
-  only every 2.5 to 5 hours, hence the 8-hour window. Merging is
+  only every 2.5 to 5 hours, hence the 8-hour window. Renovate checks
+  the window by the clock when it runs, so a run outside it, even a late
+  start, changed nothing, and none is scheduled there. Two things bypass
+  `schedule` and so now wait for the next window, up to about 16.5
+  hours: a vulnerability PR (third-party packages raise none, since
+  every third-party update is off in `renovate-family.json`), and a box
+  ticked on the Dependency Dashboard or on a PR. Run the workflow by hand
+  to act on a ticked box sooner. Merging is
   unaffected: `merge-renovate` runs in the consumer's CI whenever its
   checks pass.
 - Reads one rule set, [`renovate-family.json`](./renovate-family.json),
