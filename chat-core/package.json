@@ -1,0 +1,75 @@
+{
+  "name": "@orangecheck/chat-core",
+  "version": "0.1.0",
+  "description": "Verify OC Chat's public artifacts: channel descriptors and posts, directory listings and did:oc session devices. See https://github.com/orangecheck/oc-chat-protocol.",
+  "keywords": [
+    "bitcoin",
+    "bip322",
+    "nostr",
+    "oc-chat",
+    "oc-lock",
+    "orangecheck"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "chat-core"
+  },
+  "homepage": "https://github.com/orangecheck/oc-chat-protocol",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-chat-protocol/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./io": {
+      "types": "./dist/io.d.ts",
+      "import": "./dist/io.mjs",
+      "require": "./dist/io.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "@orangecheck/auth-core": "^2.27.0",
+    "@orangecheck/lock-core": "^1.4.0",
+    "@orangecheck/lock-crypto": "^0.1.0",
+    "@orangecheck/lock-device": "^0.8.0",
+    "@orangecheck/stamp-ots": "^0.6.1"
+  },
+  "devDependencies": {
+    "@orangecheck/bip322": "^1.1.3",
+    "@orangecheck/nostr-core": "^0.8.0",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

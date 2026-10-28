@@ -139,6 +139,7 @@ jobs:
                     - lock-crypto
                     - lock-core
                     - lock-device
+                    - chat-core
                     - stamp-core
                     - stamp-ots
                     - stamp-cli
@@ -237,16 +238,17 @@ jobs:
               run: echo "OC_LOCK_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-lock-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
-            # lock-core/directory runs the OC Chat directory vectors (vc22-vc25).
-            - name: Checkout oc-chat-protocol (for lock-core/directory conformance)
-              if: matrix.pkg == 'lock-core'
+            # lock-core/directory runs the OC Chat directory vectors (vc22-vc25);
+            # chat-core runs vc07, vc08 and vc14-vc20. A missing checkout fails both.
+            - name: Checkout oc-chat-protocol (for lock-core/directory and chat-core conformance)
+              if: matrix.pkg == 'lock-core' || matrix.pkg == 'chat-core'
               uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-chat-protocol
                   path: .oc-chat-protocol
 
             - name: Set OC_CHAT_VECTORS_DIR for conformance test
-              if: matrix.pkg == 'lock-core'
+              if: matrix.pkg == 'lock-core' || matrix.pkg == 'chat-core'
               run: echo "OC_CHAT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-chat-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
