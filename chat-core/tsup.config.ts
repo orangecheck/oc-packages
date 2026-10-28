@@ -21,6 +21,7 @@ export default defineConfig({
         '@orangecheck/lock-core',
         '@orangecheck/lock-crypto',
         '@orangecheck/lock-device',
+        '@orangecheck/nostr-core',
         '@orangecheck/stamp-ots',
     ],
 });
