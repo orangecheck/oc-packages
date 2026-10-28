@@ -17,11 +17,14 @@ this file tracks the package's TS / Node / runtime API surface.
   keys and the chain. A version counts only as one of its version's
   authorized copies: the same content under another key fails. The given
   version is judged with what the relays hold, so one they lack stands by its
-  binding, and `on_relays` says whether a relay holds it. The output names
-  every relay that missed a read, and VERIFIED says how many of how many
-  relays answered every read. A verdict that rests on something not being on
-  the relays (no revocation, no newer version, no earlier claim) is NOT READ
-  while a relay missed a read; a failure the event itself shows stands.
+  binding, and `on_relays` says whether a relay holds it. A verdict that
+  rests on something not being on the relays (no revocation, no newer
+  version, no earlier claim) needs every read to meet chat-core's read floor
+  (OC Chat SPEC §8.7): 3 of the 4 default relays, `readFloor(asked)` for
+  `--relays`. Below it the verdict is NOT READ; a failure the event itself
+  shows stands. The output names every relay that missed a read, the reads
+  below the floor, and in VERIFIED how many relays answered every read and
+  what the floor was.
   `resolves` says whether the channel resolves, and `channel` is its chain when
   it does. A NOT READ report always carries `detail`, with the same keys for its
   subject whether a read failed outright or the verdict rested on it: the

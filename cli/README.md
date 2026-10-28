@@ -94,6 +94,12 @@ utxo floor, ochk.io's keys); it never prints VERIFIED. Exit codes: 0 verified,
 1 failed, 2 a read got no answer (nothing concluded), 3 passed the offline
 checks only. Reading relays needs Node 22 or later.
 
+An answer that rests on something being absent (a key is live or not bound, a
+version has no newer one) needs each read to reach the read floor: the relays
+asked, minus the write quorum of 2, plus one. That is 3 of the 4 defaults. A
+revocation published to 2 of them is then always among what answered. Below the
+floor the result is NOT READ (exit 2).
+
 ---
 
 ## Scripting examples
