@@ -23,8 +23,10 @@ this file tracks the package's TS / Node / runtime API surface.
   the relays (no revocation, no newer version, no earlier claim) is NOT READ
   while a relay missed a read; a failure the event itself shows stands.
   `resolves` says whether the channel resolves, and `channel` is its chain when
-  it does. Under NOT READ, every detail but the event's own id (`is_tip`,
-  `on_resolved_chain`, `on_relays`, `resolves`, `channel`, the holder) is null
+  it does. A NOT READ report always carries `detail`, with the same keys for its
+  subject whether a read failed outright or the verdict rested on it: the
+  event's own id, and every key a relay read decides (`is_tip`,
+  `on_resolved_chain`, `on_relays`, `resolves`, `channel`, the holder) as null
   in `--json` and `unknown` in the text. `--offline` reads nothing and lists
   what it skipped. Exit 0 verified, 1 failed, 2 not
   read (a relay, ochk.io's keys or the chain did not answer), 3 offline
