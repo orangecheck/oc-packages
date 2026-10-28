@@ -59,11 +59,11 @@
     "@orangecheck/lock-core": "^1.4.0",
     "@orangecheck/lock-crypto": "^0.1.0",
     "@orangecheck/lock-device": "^0.8.0",
+    "@orangecheck/nostr-core": "^0.8.0",
     "@orangecheck/stamp-ots": "^0.6.1"
   },
   "devDependencies": {
     "@orangecheck/bip322": "^1.1.3",
-    "@orangecheck/nostr-core": "^0.8.0",
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",

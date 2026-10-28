@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { CHAT_RELAYS, meetsReadFloor, publishToQuorum, readFloor, WRITE_QUORUM, type WriteAck } from './read';
+import { DEFAULT_RELAYS } from '@orangecheck/nostr-core';
+
+import { CHAT_RELAYS, DEVICE_RECORD_RELAYS, meetsReadFloor, publishToQuorum, readFloor, WRITE_QUORUM, type WriteAck } from './read';
 
 const st = (...eose: boolean[]) => eose.map((e) => ({ eose: e }));
 
@@ -49,14 +51,27 @@ describe('publishToQuorum: published once WRITE_QUORUM of the reference set hold
         waits.push(ms);
     };
 
-    it('the reference set is the four relays the reference reader asks', () => {
+    it('device records count over nostr-core’s five, the set OC Lock counts over; chat’s own records over its four', () => {
+        expect(DEVICE_RECORD_RELAYS).toBe(DEFAULT_RELAYS);
+        expect(DEVICE_RECORD_RELAYS).toHaveLength(5);
+        expect(DEVICE_RECORD_RELAYS).toContain('wss://nostr.oxtr.dev');
+        expect(readFloor(DEVICE_RECORD_RELAYS.length)).toBe(4);
         expect(CHAT_RELAYS).toEqual(['wss://relay.ochk.io', 'wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net']);
+        for (const r of CHAT_RELAYS) expect(DEVICE_RECORD_RELAYS).toContain(r);
+    });
+
+    it('by default a write counts over the device-record set: oxtr and one other publish it', async () => {
+        const { publish } = relays({ 'wss://nostr.oxtr.dev': 1, 'wss://nos.lol': 1 });
+        expect(await publishToQuorum(publish, [], { wait })).toMatchObject({ state: 'published', held: ['wss://nos.lol', 'wss://nostr.oxtr.dev'] });
+        // Over chat's own four, oxtr does not count.
+        const again = relays({ 'wss://nostr.oxtr.dev': 1, 'wss://nos.lol': 1 });
+        expect((await publishToQuorum(again.publish, [], { reference: CHAT_RELAYS, wait })).state).toBe('not yet published');
     });
 
     it('two OKs from relays outside the reference set leave it not yet published', async () => {
         const { publish } = relays({ 'wss://mine-1': 1, 'wss://mine-2': 1 });
         expect(await publishToQuorum(publish, MINE, { reference: R, wait })).toEqual({ state: 'not yet published', held: [], missing: R });
-        // The default reference set is CHAT_RELAYS, so the writer's own relays never count there either.
+        // The default reference set is DEVICE_RECORD_RELAYS, so the writer's own relays never count there either.
         expect((await publishToQuorum(relays({ 'wss://mine-1': 1, 'wss://mine-2': 1 }).publish, MINE, { wait })).state).toBe('not yet published');
     });
 
