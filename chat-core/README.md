@@ -44,12 +44,17 @@ on something not being there ("live", "bound now", "not bound", "no newer
 version") is drawn only from a read that met the floor: `readFloor(asked)`, which
 is `asked - WRITE_QUORUM + 1`, at least 1, so 3 of the 4 relays a reader asks by
 default. What a read returned needs one relay. A binding or revocation write
-counts as published only once `WRITE_QUORUM` (2) relays sent OK;
-`publishToQuorum` writes and retries until then, or reports "not yet published".
+counts as published only once `WRITE_QUORUM` (2) relays of the reference set
+readers ask (`CHAT_RELAYS`) hold it; a relay outside that set counts for nothing.
+`publishToQuorum` writes to the given relays and the reference set, counts a
+reference relay on its OK or, given `readBack`, only once it serves the write
+back, and retries until then, or reports "not yet published".
 The two together are what make a revocation hold: the floor plus the quorum
 exceeds the relays asked, so a revocation is missed only when every relay that
 sent OK for it is silent in the same read, and that read does not meet the
-floor. Neither rule alone is enough.
+floor. Neither rule alone is enough. The floor also applies to the reads that
+find a channel's role holders' keys, so no key that signs a newer version is
+missed.
 
 From a shell, `oc chat verify` in [`@orangecheck/cli`](https://www.npmjs.com/package/@orangecheck/cli)
 runs these checks against live relays and the chain.

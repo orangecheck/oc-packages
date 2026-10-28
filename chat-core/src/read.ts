@@ -51,44 +51,71 @@ export function meetsReadFloor(status: readonly { eose: boolean }[]): boolean {
     return completeAnswers(status) >= readFloor(status.length);
 }
 
+/**
+ * The reference relay set (§8.7): the relays the reference reader asks, and so the only
+ * relays a write counts on toward WRITE_QUORUM. A write elsewhere reaches no reader.
+ */
+export const CHAT_RELAYS: readonly string[] = [
+    'wss://relay.ochk.io',
+    'wss://relay.damus.io',
+    'wss://nos.lol',
+    'wss://relay.primal.net',
+];
+
 /** One relay's answer to a write: whether it sent OK. */
 export interface WriteAck {
     relay: string;
     ok: boolean;
 }
 
-/** A binding or revocation write: published once WRITE_QUORUM relays sent OK, else not yet. */
+/** A binding or revocation write: published once WRITE_QUORUM reference relays hold it, else not yet. */
 export interface WriteOutcome {
     state: 'published' | 'not yet published';
-    /** The relays that sent OK. */
-    ok: string[];
-    /** The relays written to that have not. */
+    /** The reference relays that hold it. */
+    held: string[];
+    /** The reference relays that do not, yet. */
     missing: string[];
 }
 
 /**
- * Writes with `publish` until WRITE_QUORUM of `relays` have sent OK, or
- * `attempts` run out; each retry goes only to the relays that have not. The
- * quorum is not capped at the relays given: a write to fewer is never published.
+ * Writes with `publish` to `to` and to every relay of the reference set, until
+ * WRITE_QUORUM of the reference set hold it, or `attempts` run out. Only the
+ * reference set counts: an OK from any other relay, the writer's own included,
+ * reaches no reader. With `readBack`, a reference relay counts only once it serves
+ * the write back; without it, on its OK. Each retry goes only to the reference
+ * relays that do not hold it yet.
  */
 export async function publishToQuorum(
     publish: (relays: readonly string[]) => Promise<readonly WriteAck[]>,
-    relays: readonly string[],
-    opts: { attempts?: number; backoffMs?: number; wait?: (ms: number) => Promise<void> } = {}
+    to: readonly string[],
+    opts: {
+        /** The relays readers ask. Defaults to CHAT_RELAYS. */
+        reference?: readonly string[];
+        /** Whether `relay` serves the write back, asked of one relay at a time. */
+        readBack?: (relay: string) => Promise<boolean>;
+        attempts?: number;
+        backoffMs?: number;
+        wait?: (ms: number) => Promise<void>;
+    } = {}
 ): Promise<WriteOutcome> {
+    const reference = opts.reference ?? CHAT_RELAYS;
     const attempts = opts.attempts ?? 3;
     const wait = opts.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-    const ok = new Set<string>();
+    const held = new Set<string>();
     for (let i = 0; i < attempts; i++) {
         if (i > 0) await wait((opts.backoffMs ?? 2000) * 2 ** (i - 1));
-        const left = relays.filter((r) => !ok.has(r));
-        for (const a of await publish(left)) if (a.ok && left.includes(a.relay)) ok.add(a.relay);
-        if (ok.size >= WRITE_QUORUM) break;
+        const left = reference.filter((r) => !held.has(r));
+        const acks = await publish(i === 0 ? [...new Set([...to, ...reference])] : left);
+        const ok = new Set(acks.filter((a) => a.ok).map((a) => a.relay));
+        for (const r of left) {
+            if (opts.readBack ? await opts.readBack(r).catch(() => false) : ok.has(r)) held.add(r);
+        }
+        if (held.size >= WRITE_QUORUM) break;
     }
     return {
-        state: ok.size >= WRITE_QUORUM ? 'published' : 'not yet published',
-        ok: relays.filter((r) => ok.has(r)),
-        missing: relays.filter((r) => !ok.has(r)),
+        state: held.size >= WRITE_QUORUM ? 'published' : 'not yet published',
+        held: reference.filter((r) => held.has(r)),
+        missing: reference.filter((r) => !held.has(r)),
     };
 }
 
