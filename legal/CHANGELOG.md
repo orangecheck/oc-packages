@@ -8,6 +8,23 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.23] — 2026-10-28
+
+### Changed — what a deletion keeps
+
+ochk.app's Privacy policy said completing a deletion erases your data on
+ochk.io, me.ochk.io, vault, chat and cosign, with payment receipts kept for
+accounting, and that a person reviews the request within 48 hours. It now says
+which records stay: payment records keep their amounts and times for
+accounting; the audit log and the deletion request stay, without the reason
+you gave; each keeps the account only as a keyed id, or not at all; and on
+cosign, your messages in other people's threads and the reports you filed stay,
+with your account taken off them. It says a person completes the request and
+that we aim to do that within 48 hours, with an alert when one has waited a
+day. The "at a glance" line on deletion now points to that section. The erasure
+email and ochk.app's deletion page say the same. The Privacy policy is dated
+2026-10-28.
+
 ## [0.7.22] — 2026-10-27
 
 ### Changed — what ochk.app asks of a guardian operator
