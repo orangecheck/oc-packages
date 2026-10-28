@@ -96,9 +96,11 @@ checks only. Reading relays needs Node 22 or later.
 
 An answer that rests on something being absent (a key is live or not bound, a
 version has no newer one) needs each read to reach the read floor: the relays
-asked, minus the write quorum of 2, plus one. That is 3 of the 4 defaults. A
-revocation published to 2 of them is then always among what answered. Below the
-floor the result is NOT READ (exit 2).
+asked, minus the write quorum of 2, plus one. Device records and revocations are
+read from nostr-core's five relays, the set OC Lock counts over, so 4 of 5;
+channel versions and posts from chat's four, so 3 of 4. A revocation published
+to 2 of the five is then always among what answered. Below the floor the result
+is NOT READ (exit 2). `--relays` replaces both sets.
 
 ---
 
