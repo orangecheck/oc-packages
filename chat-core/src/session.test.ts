@@ -236,3 +236,23 @@ describe('which session keys bind (§8.6)', () => {
         await expect(reads(false).isBound(d.nostrPk, DID)).rejects.toThrow('no relay sent a complete answer');
     });
 });
+
+describe('recordReads.isBound with a relay that did not answer (complete: false)', () => {
+    const reads = (events: NostrEvent[], complete: boolean | undefined) =>
+        recordReads(async () => ({ events, answered: true, ...(complete === undefined ? {} : { complete }) }), {
+            hostKeys: async () => [HOST_KEY],
+            verifyBip322: () => true,
+        });
+
+    it('a key the answering relays bind is bound, whatever another relay did', async () => {
+        const d = device();
+        expect(await reads([d.record], false).isBound(d.nostrPk, DID)).toBe(true);
+    });
+
+    it('a key they do not bind is not read while another relay was silent, and unbound once every relay answered', async () => {
+        const d = device();
+        await expect(reads([], false).isBound(d.nostrPk, DID)).rejects.toThrow('a relay that did not answer may bind this key');
+        expect(await reads([], true).isBound(d.nostrPk, DID)).toBe(false);
+        expect(await reads([], undefined).isBound(d.nostrPk, DID)).toBe(false);
+    });
+});
