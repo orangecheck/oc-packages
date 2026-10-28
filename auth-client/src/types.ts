@@ -128,6 +128,16 @@ export interface OcAccountSummary {
  */
 export type OcSignOutScope = 'all' | 'current';
 
+/**
+ * What `signOut()` did. `ok: false` means the session may still be live: the
+ * auth host did not answer (`'unreachable'`) or refused (`'refused'`, with its
+ * HTTP status). The provider then changes nothing, so the page still shows the
+ * signed-in account; tell the person it did not work and let them try again.
+ */
+export type OcSignOutResult =
+    | { ok: true }
+    | { ok: false; reason: 'unreachable' | 'refused'; status?: number };
+
 export interface OcSessionState {
     status: OcSessionStatus;
     account: OcAccount | null;
@@ -154,9 +164,17 @@ export interface OcSessionState {
     /**
      * Trigger a sign-out. By default signs out of EVERY account in the
      * roster (back-compat); pass `{ scope: 'current' }` to sign out of
-     * just the active account and stay logged into the next peer.
+     * just the active account and stay logged into the next peer. When the
+     * auth host does not end the session (no answer, or an error status),
+     * nothing changes locally and the account stays shown; it never rejects.
+     * Use {@link trySignOut} to learn which, and tell the person.
      */
     signOut: (opts?: { scope?: OcSignOutScope }) => Promise<void>;
+    /**
+     * `signOut`, resolving to what the auth host did: `{ ok: true }` once the
+     * session has ended, else `{ ok: false, reason }` with the session still live.
+     */
+    trySignOut: (opts?: { scope?: OcSignOutScope }) => Promise<OcSignOutResult>;
     /**
      * Multi-account · flip the active session to a different account
      * in the roster. Resolves once the new cookie has been set and

@@ -39,6 +39,7 @@ export type {
     OcAccountSummary,
     OcSessionStatus,
     OcSessionState,
+    OcSignOutResult,
     OcSignOutScope,
     OcAuthConfig,
     DisplayIdentity,
