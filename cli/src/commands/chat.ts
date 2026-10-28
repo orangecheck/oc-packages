@@ -99,8 +99,39 @@ export interface Check {
     absence?: true;
 }
 
+/** The detail keys a relay read decides, by subject. A NOT READ report sets each to null. */
+const READ_KEYS = {
+    'channel version': ['on_relays', 'on_resolved_chain', 'is_tip', 'resolves', 'channel'],
+    'channel post': ['resolves', 'channel'],
+    channel: ['resolves', 'channel'],
+    'directory listing': ['result', 'holder', 'claim_id', 'anchor', 'coin', 'tip'],
+    'channel listing': ['result', 'holder', 'claim_id', 'anchor', 'coin', 'tip'],
+} as const;
+type Subject = keyof typeof READ_KEYS;
+
+/** Detail keys computed from the event alone, which no relay read changes. */
+const EVENT_OWN = new Set(['descriptor_id', 'post_id']);
+
+/** A NOT READ report's detail, one shape for its subject however the read was missed: the
+ *  event's own id, and every key a relay read decides as null. null, not a word: a script
+ *  that tests a key without reading the verdict must not find it truthy. */
+function notReadDetail(subject: Subject, detail: Record<string, unknown> | undefined): Record<string, unknown> {
+    const own = Object.entries(detail ?? {}).filter(([k]) => EVENT_OWN.has(k));
+    return Object.fromEntries([...own, ...READ_KEYS[subject].map((k) => [k, null])]);
+}
+
+/** Runs `run`; a read that got no answer ends it NOT READ, in its subject's one shape. */
+async function orNotRead(subject: Subject, own: Record<string, unknown>, run: () => Promise<Report>): Promise<Report> {
+    try {
+        return await run();
+    } catch (e) {
+        if (!(e instanceof UnansweredReadError)) throw e;
+        return { subject, checks: [], not_checked: [e.message], verdict: 'unread', detail: notReadDetail(subject, own) };
+    }
+}
+
 export interface Report {
-    subject: string;
+    subject: Subject;
     checks: Check[];
     /** What this run did not check. Never empty under --offline. */
     not_checked: string[];
@@ -225,7 +256,7 @@ const SKIPPED = {
     utxo: 'the utxo floor: a write proof was not matched to an unspent coin',
 };
 
-function report(subject: string, checks: Check[], notChecked: string[], extra?: Record<string, unknown>): Report {
+function report(subject: Subject, checks: Check[], notChecked: string[], extra?: Record<string, unknown>): Report {
     const failed = checks.some((c) => !c.ok);
     return {
         subject,
@@ -366,10 +397,12 @@ async function verifyChannelPost(ev: NostrEvent, net: ChatNet | null): Promise<R
     return report('channel post', checks, [], { post_id: pid, ...chainDetail(resolved) });
 }
 
+const LISTING = { people: 'directory listing', channel: 'channel listing' } as const satisfies Record<DirectoryNamespace, Subject>;
+
 /** Who holds a handle, and whether `ev` (if given) is the holder's listing. */
 async function verifyHandle(handle: string, ns: DirectoryNamespace, net: ChatNet | null, ev?: NostrEvent): Promise<Report> {
     const checks: Check[] = [];
-    const subject = ns === 'people' ? 'directory listing' : 'channel listing';
+    const subject = LISTING[ns];
     checks.push({ check: 'the handle is 3 to 32 of a-z, 0-9 and _', ok: isValidHandle(handle.toLowerCase()) });
     if (ev) {
         checks.push({ check: 'the event id and Schnorr signature hold (NIP-01)', ok: verifyNostrEvent(ev) });
@@ -416,16 +449,28 @@ async function verifyHandle(handle: string, ns: DirectoryNamespace, net: ChatNet
 export async function verifyChat(opts: ChatVerifyOpts, input: unknown, net: ChatNet | null): Promise<Report> {
     if (opts.channel) {
         if (!net) die('--channel reads the relays; it has no offline form');
-        const { resolved } = await resolveChannel(opts.channel, net, opts.founder);
-        return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true }], [], chainDetail(resolved));
+        const cid = opts.channel;
+        return orNotRead('channel', {}, async () => {
+            const { resolved } = await resolveChannel(cid, net, opts.founder);
+            return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true }], [], chainDetail(resolved));
+        });
     }
-    if (opts.handle) return verifyHandle(opts.handle, opts.channelHandle ? 'channel' : 'people', net);
+    if (opts.handle) {
+        const ns: DirectoryNamespace = opts.channelHandle ? 'channel' : 'people';
+        return orNotRead(LISTING[ns], {}, () => verifyHandle(opts.handle as string, ns, net));
+    }
     const ev = input as NostrEvent;
     if (!ev || typeof ev !== 'object' || typeof ev.kind !== 'number' || !Array.isArray(ev.tags)) {
         die('input is not a Nostr event');
     }
-    if (ev.kind === CHANNEL_DESCRIPTOR_KIND) return verifyVersion(ev, net, opts.founder);
-    if (ev.kind === CHANNEL_POST_KIND) return verifyChannelPost(ev, net);
+    if (ev.kind === CHANNEL_DESCRIPTOR_KIND) {
+        const c = parseDescriptor(ev);
+        return orNotRead('channel version', c ? { descriptor_id: descriptorId(c) } : {}, () => verifyVersion(ev, net, opts.founder));
+    }
+    if (ev.kind === CHANNEL_POST_KIND) {
+        const p = parsePost(ev);
+        return orNotRead('channel post', p ? { post_id: postId(p) } : {}, () => verifyChannelPost(ev, net));
+    }
     if (ev.kind === 30114) {
         let handle = '';
         try {
@@ -434,7 +479,7 @@ export async function verifyChat(opts: ChatVerifyOpts, input: unknown, net: Chat
             /* checked below */
         }
         const ns: DirectoryNamespace = ev.tags.some((t) => t[0] === 'd' && t[1]?.startsWith('oc-lock-chat-chdir:')) ? 'channel' : 'people';
-        return verifyHandle(handle, ns, net, ev);
+        return orNotRead(LISTING[ns], {}, () => verifyHandle(handle, ns, net, ev));
     }
     die(`kind ${ev.kind} is not an OC Chat artifact this command verifies (30110, 30111, 30114)`);
 }
@@ -459,9 +504,6 @@ export function render(r: Report): string {
     return lines.join('\n');
 }
 
-/** Detail keys computed from the event alone, which no relay read changes. */
-const EVENT_OWN = new Set(['descriptor_id', 'post_id']);
-
 export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null): Promise<void> {
     let input: unknown = null;
     if (!opts.channel && !opts.handle) {
@@ -478,13 +520,7 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         die('reading the relays needs a WebSocket global (Node 22 or later); run with --offline, or upgrade Node');
     }
     const n = opts.offline ? null : (net ?? liveNet(relays, opts.esplora ?? ESPLORA));
-    let r: Report;
-    try {
-        r = await verifyChat(opts, input, n);
-    } catch (e) {
-        if (!(e instanceof UnansweredReadError)) throw e;
-        r = { subject: 'read', checks: [], not_checked: [e.message], verdict: 'unread' };
-    }
+    const r = await verifyChat(opts, input, n);
     // Name each relay that missed a read: a revocation, a newer version or a record
     // only it holds was not seen. A verdict that rests on such an absence is then not
     // read (until a relay floor is decided): VERIFIED never stands on a missed read.
@@ -505,10 +541,8 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
             r.verdict === 'verified' || (r.verdict === 'failed' && failed.every((c) => c.absence));
         if (tally.silent.length > 0 && restsOnAbsence) {
             r.verdict = 'unread';
-            // What the relays were read for rests on the missed read too; only the
-            // event's own ids are known. null, not a word: a script that tests a key
-            // without reading the verdict must not find it truthy.
-            if (r.detail) for (const k of Object.keys(r.detail)) if (!EVENT_OWN.has(k)) r.detail[k] = null;
+            // What the relays were read for rests on the missed read too.
+            r.detail = notReadDetail(r.subject, r.detail);
         }
     }
     process.stdout.write((opts.json ? JSON.stringify(r, null, 2) : render(r)) + '\n');

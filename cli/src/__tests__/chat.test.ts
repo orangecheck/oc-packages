@@ -506,16 +506,17 @@ describe('oc chat verify: relays that do not answer', () => {
         vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
         return liveNet([A, B], 'https://esplora.test/api', relaysOf(byRelay));
     };
-    /** Two relays, B answering the kind-30078 reads (so every binding read is complete) and silent on the kind-30110 reads. */
-    const versionsMissedByB = (held: Record<string, NostrEvent[]>) => {
+    /** Two relays, B silent on the reads of one kind and answering the rest: by default it misses
+     *  the kind-30110 version reads and answers the kind-30078 record reads, so every binding read is complete. */
+    const missedByB = (held: Record<string, NostrEvent[]>, kind = 30110) => {
         const raw: RawQuery = async (filter, relays) => {
-            const versions = (filter.kinds as number[]).includes(30110);
+            const missed = (filter.kinds as number[]).includes(kind);
             const seen = new Map<string, NostrEvent>();
             for (const r of relays) {
-                if (r === B && versions) continue;
+                if (r === B && missed) continue;
                 for (const e of held[r] ?? []) if (matchFilter(e, filter as never)) seen.set(e.id, e);
             }
-            return { events: [...seen.values()], relayStatus: relays.map((r) => ({ relay: r, eose: !(r === B && versions) })) };
+            return { events: [...seen.values()], relayStatus: relays.map((r) => ({ relay: r, eose: !(r === B && missed) })) };
         };
         vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
         return liveNet([A, B], 'https://esplora.test/api', raw);
@@ -573,7 +574,7 @@ describe('oc chat verify: relays that do not answer', () => {
 
     it('"no newer version": a relay that answers the device records but misses the version reads leaves the tip NOT READ', async () => {
         const v2 = versionBy(founder.nostrSk, founder.nostrPk, { ...genesis, title: 'Town, newer', created_at: 1780000150, supersedes: descriptorId(genesis) }, founder.record);
-        const split = () => versionsMissedByB({ [A]: [version, founder.record], [B]: [v2, founder.record] });
+        const split = () => missedByB({ [A]: [version, founder.record], [B]: [v2, founder.record] });
         expect(await run({ file: file(version), json: true }, split())).toBe(2);
         const r = JSON.parse(stdout);
         expect(r.verdict).toBe('unread');
@@ -589,10 +590,10 @@ describe('oc chat verify: relays that do not answer', () => {
     it('a channel whose versions only the silent relay holds is NOT READ, by --channel and for a post; answered, it stands or fails', async () => {
         const cid = genesis.channel_id;
         expect(await run({ channel: cid, json: true }, over({ [A]: [founder.record], [B]: null }))).toBe(2);
-        expect(JSON.parse(stdout)).toEqual(expect.objectContaining({ verdict: 'unread', detail: { resolves: null } }));
+        expect(JSON.parse(stdout)).toEqual(expect.objectContaining({ verdict: 'unread', detail: { resolves: null, channel: null } }));
         stdout = '';
         expect(await run({ file: file(post), json: true }, over({ [A]: [founder.record, post], [B]: null }))).toBe(2);
-        expect(JSON.parse(stdout)).toEqual(expect.objectContaining({ verdict: 'unread', detail: { post_id: postId(postContent), resolves: null } }));
+        expect(JSON.parse(stdout)).toEqual(expect.objectContaining({ verdict: 'unread', detail: { post_id: postId(postContent), resolves: null, channel: null } }));
         // B answers with the version: the channel resolves. Both answer without it: it does not.
         stdout = '';
         expect(await run({ channel: cid, json: true }, over({ [A]: [founder.record], [B]: [version] }))).toBe(0);
@@ -628,12 +629,12 @@ describe('oc chat verify: relays that do not answer', () => {
         const held = { [A]: [version, founder.record, post], [B]: [founder.record] };
         for (const [, opts, want] of cases) {
             stdout = '';
-            expect(await run({ ...opts, json: true }, versionsMissedByB(held))).toBe(2);
+            expect(await run({ ...opts, json: true }, missedByB(held))).toBe(2);
             const r = JSON.parse(stdout);
             expect(r.verdict).toBe('unread');
             expect(r.detail).toEqual(want);
             stdout = '';
-            expect(await run(opts, versionsMissedByB(held))).toBe(2);
+            expect(await run(opts, missedByB(held))).toBe(2);
             for (const k of Object.keys(want)) if (want[k] === null) expect(stdout).toContain(`  ${k}: unknown`);
             expect(stdout).not.toMatch(/: (true|false|null)$/m);
             // B answering too: VERIFIED, and the same keys carry values.
@@ -643,6 +644,45 @@ describe('oc chat verify: relays that do not answer', () => {
             expect(Object.keys(v).sort()).toEqual(Object.keys(want).sort());
             expect(v).toMatchObject({ resolves: true, channel: { tip: did } });
         }
+    });
+
+    it('NOT READ has one shape whether a read threw or the verdict rested on a missed read', async () => {
+        /** The verdict, subject and detail of a NOT READ run, and which path it took. */
+        const notRead = async (opts: Parameters<typeof runChatVerify>[0], n: ChatNet) => {
+            stdout = '';
+            expect(await run({ ...opts, json: true }, n)).toBe(2);
+            const r = JSON.parse(stdout);
+            expect(r.verdict).toBe('unread');
+            return { path: r.checks.length === 0 ? 'threw' : 'rested', shape: { subject: r.subject, detail: r.detail } };
+        };
+        const all = { [A]: [version, founder.record, post], [B]: [version, founder.record, post] };
+        const recordsMissed = () => missedByB(all, 30078);
+        const versionsMissed = () => missedByB({ [A]: [version, founder.record, post], [B]: [founder.record] });
+        const keysRefused = () => ({ ...chainNet(answers({ jwks: refused })), ...pick(net([version, founder.record])) });
+
+        const v = {
+            subject: 'channel version',
+            detail: { descriptor_id: descriptorId(genesis), on_relays: null, on_resolved_chain: null, is_tip: null, resolves: null, channel: null },
+        };
+        expect(await notRead({ file: file(version) }, recordsMissed())).toEqual({ path: 'threw', shape: v });
+        expect(await notRead({ file: file(version) }, keysRefused())).toEqual({ path: 'threw', shape: v });
+        expect(await notRead({ file: file(version) }, versionsMissed())).toEqual({ path: 'rested', shape: v });
+
+        const p = { subject: 'channel post', detail: { post_id: postId(postContent), resolves: null, channel: null } };
+        expect(await notRead({ file: file(post) }, recordsMissed())).toEqual({ path: 'threw', shape: p });
+        expect(await notRead({ file: file(post) }, versionsMissed())).toEqual({ path: 'rested', shape: p });
+
+        const c = { subject: 'channel', detail: { resolves: null, channel: null } };
+        expect(await notRead({ channel: genesis.channel_id }, recordsMissed())).toEqual({ path: 'threw', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, versionsMissed())).toEqual({ path: 'rested', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, over({ [A]: [founder.record], [B]: null }))).toEqual({ path: 'rested', shape: c });
+
+        const nulls = { result: null, holder: null, claim_id: null, anchor: null, coin: null, tip: null };
+        expect(await notRead({ handle: 'alice' }, over({ [A]: null, [B]: null }))).toEqual({ path: 'threw', shape: { subject: 'directory listing', detail: nulls } });
+        expect(await notRead({ handle: 'alice', channelHandle: true }, over({ [A]: null, [B]: null }))).toEqual({
+            path: 'threw',
+            shape: { subject: 'channel listing', detail: nulls },
+        });
     });
 
     it('a failure seen on an answering relay stands though another relay was silent', async () => {
