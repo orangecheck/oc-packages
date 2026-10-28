@@ -22,14 +22,17 @@ at chat.ochk.io runs them:
   `authorizedCopy`, whether one event is an authorized copy of a resolved
   version (the same content under another key or event is not);
   `readChannelVersions` (the open read, the per-key reads, the walk forward by
-  `s` and back by exact d-tag); `checkWritePolicy`, `verifyPost` and
+  `s` and back by exact d-tag, and `complete` when every relay answered
+  every read, so "no newer version" can be said); `checkWritePolicy`, `verifyPost` and
   `verifyChannelPosts` (authorship, the write gate, tombstones, feed order).
 - Session devices (§8.6): `verifySessionVouch`, `verifyHostRevocation`,
   `parseSessionDeviceEvent`, `sessionRevocations`, `liveSessionDevices`,
   `sessionKeysEverBound`, `stepUpAddress`.
 - Bindings: `readVersionBinding`, `recordBinding`, `recordReads` (which keys a
-  principal's records bind, liveness, every key ever bound; a lookup that
-  reports `complete: false` cannot make a key unbound, it is not read) and
+  principal's records bind, liveness, every key ever bound). A conclusion
+  that rests on a record not being there needs every relay asked: with a
+  lookup's `complete: false`, "bound now", "not bound" and "live" are not
+  read, while a revocation seen is revoked on any answer. And
   `addressKeysEverBound`, over OC Lock's rule in `@orangecheck/lock-device`.
 - Directory (§8.2.5–§8.2.6): `resolveDirectoryHandle`, `resolveWithState` and
   `readAddressState` over `@orangecheck/lock-core/directory`'s walk, with the
