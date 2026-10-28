@@ -44,9 +44,13 @@ at chat.ochk.io runs them:
   (`unanswered: 'throw'` for a verifier that must say it could not tell).
 - The relay floor and write quorum (SPEC §8.7): `WRITE_QUORUM` (2),
   `readFloor(asked)` (`asked - WRITE_QUORUM + 1`, at least 1), `meetsReadFloor`,
-  and `publishToQuorum`, which reports a binding or revocation write published
-  only once `WRITE_QUORUM` relays sent OK, retrying the rest, and otherwise
-  "not yet published". Together they make a revocation hold; neither alone does.
+  `CHAT_RELAYS` (the reference set readers ask), and `publishToQuorum`, which
+  writes to the given relays and the reference set and reports a binding or
+  revocation published only once `WRITE_QUORUM` reference relays hold it (on
+  their OK, or with `readBack` only once they serve it back), retrying the rest,
+  and otherwise "not yet published". An OK from any other relay counts for
+  nothing. Together the floor and the quorum make a revocation hold; neither
+  alone does.
 - A read that gets no answer reaches the caller as `UnansweredReadError`: the
   host's keys while reading a version's binding (`readVersionBinding`,
   `resolveChannelChain`), and the chain through `esploraWriteProofCheck` when
