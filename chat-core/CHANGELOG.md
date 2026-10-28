@@ -28,7 +28,8 @@ at chat.ochk.io runs them:
   `parseSessionDeviceEvent`, `sessionRevocations`, `liveSessionDevices`,
   `sessionKeysEverBound`, `stepUpAddress`.
 - Bindings: `readVersionBinding`, `recordBinding`, `recordReads` (which keys a
-  principal's records bind, liveness, every key ever bound) and
+  principal's records bind, liveness, every key ever bound; a lookup that
+  reports `complete: false` cannot make a key unbound, it is not read) and
   `addressKeysEverBound`, over OC Lock's rule in `@orangecheck/lock-device`.
 - Directory (§8.2.5–§8.2.6): `resolveDirectoryHandle`, `resolveWithState` and
   `readAddressState` over `@orangecheck/lock-core/directory`'s walk, with the
