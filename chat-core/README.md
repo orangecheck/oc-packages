@@ -32,9 +32,24 @@ const channel = await resolveChannelChain(events, channelId, { ...reads, hostKey
 ```
 
 `lookupDeviceRecords(principal)` returns the kind-30078 records under the
-principal's d-tag (`deviceDtag(principal)`) and whether a relay finished
-answering. `query(filter)` makes one relay request. A read that got no answer
-throws `UnansweredReadError`; a verifier never reads silence as "no".
+principal's d-tag (`deviceDtag(principal)`) and, per relay asked, whether it
+finished answering (`relayStatus`). `query(filter)` makes one relay request. A
+read that got no answer throws `UnansweredReadError`; a verifier never reads
+silence as "no".
+
+### Relay floor and write quorum (SPEC §8.7)
+
+A record is on whichever relays its publisher reached, so an answer that rests
+on something not being there ("live", "bound now", "not bound", "no newer
+version") is drawn only from a read that met the floor: `readFloor(asked)`, which
+is `asked - WRITE_QUORUM + 1`, at least 1, so 3 of the 4 relays a reader asks by
+default. What a read returned needs one relay. A binding or revocation write
+counts as published only once `WRITE_QUORUM` (2) relays sent OK;
+`publishToQuorum` writes and retries until then, or reports "not yet published".
+The two together are what make a revocation hold: the floor plus the quorum
+exceeds the relays asked, so a revocation is missed only when every relay that
+sent OK for it is silent in the same read, and that read does not meet the
+floor. Neither rule alone is enough.
 
 From a shell, `oc chat verify` in [`@orangecheck/cli`](https://www.npmjs.com/package/@orangecheck/cli)
 runs these checks against live relays and the chain.

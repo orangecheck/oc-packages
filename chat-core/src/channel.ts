@@ -29,7 +29,7 @@ import { hexEncode, utf8Encode } from '@orangecheck/lock-crypto';
 import { isValidAttachment, type Attachment } from './attachment';
 import { b64urlNoPad, canonicalBytes } from './canonical';
 import { signedBy, verifyNostrEvent, type NostrEvent } from './event';
-import { answeredEvents, UnansweredReadError, type Query, type VerifyBip322 } from './read';
+import { answeredEvents, meetsReadFloor, UnansweredReadError, type Query, type VerifyBip322 } from './read';
 import type { AuthHostKey } from './session';
 import {
     hasBindingTag,
@@ -898,8 +898,9 @@ export function authorizedCopy(resolved: ResolvedChannel | null, ev: NostrEvent)
 export interface VersionReads {
     /** One REQ to the reader's relays. */
     query: Query;
-    /** Every key a principal's device records have bound, revoked ones too (§8.3.1), and whether a relay answered. */
-    everBoundKeys: (principal: string) => Promise<{ keys: string[]; answered: boolean }>;
+    /** Every key a principal's device records have bound, revoked ones too (§8.3.1); whether a
+     *  relay answered; and whether the read met the floor (§8.7), so that no key is missing. */
+    everBoundKeys: (principal: string) => Promise<{ keys: string[]; answered: boolean; floor: boolean }>;
 }
 
 /** Events asked for per page: relays commonly cap one REQ at 500. */
@@ -932,17 +933,20 @@ function founderFrom(e: NostrEvent, cid: string): string | null {
  * keys signed, then forward by `s` from each of those, by the keys of the role
  * holders that version names. Then back by exact d-tag to any version a
  * `supersedes` names, the parents role holders named first. Every copy is
- * kept. Throws UnansweredReadError when no read was answered. `complete` is
- * false when any relay asked missed any read, so a newer version may exist.
+ * kept. Throws UnansweredReadError when no read was answered. `floorMet` is
+ * false when any read, of versions or of a role holder's keys, fell below the
+ * read floor (§8.7), so a newer version may exist.
  */
 export async function readChannelVersions(
     cid: string,
     reads: VersionReads,
     founderHint?: string
-): Promise<{ events: NostrEvent[]; truncated: boolean; incomplete: boolean; complete: boolean }> {
+): Promise<{ events: NostrEvent[]; truncated: boolean; incomplete: boolean; floorMet: boolean }> {
     const queryEvents = reads.query;
     const merged = new Map<string, NostrEvent>();
     const status: { eose: boolean }[] = [];
+    // A read without relay statuses is taken as it is, as answeredEvents takes it.
+    let floorMet = true;
     // Versions a role holder's key signed: the only ones the walk goes forward from.
     const walkable = new Set<string>();
     const roleKeys = new Set<string>();
@@ -951,6 +955,7 @@ export async function readChannelVersions(
         byRole = false
     ) => {
         status.push(...(res.relayStatus ?? []));
+        if (res.relayStatus && !meetsReadFloor(res.relayStatus)) floorMet = false;
         let fresh = 0;
         for (const e of res.events ?? []) {
             if (byRole) walkable.add(e.id);
@@ -998,9 +1003,10 @@ export async function readChannelVersions(
                     p,
                     reads
                         .everBoundKeys(p)
-                        .catch(() => ({ keys: [] as string[], answered: false }))
-                        .then(({ keys, answered }) => {
+                        .catch(() => ({ keys: [] as string[], answered: false, floor: false }))
+                        .then(({ keys, answered, floor }) => {
                             if (!answered || keys.length > VERSION_MAX_KEYS) incomplete = true;
+                            if (!floor) floorMet = false;
                             const used = keys.slice(0, VERSION_MAX_KEYS);
                             for (const k of used) roleKeys.add(k);
                             return used;
@@ -1076,8 +1082,8 @@ export async function readChannelVersions(
         events: answeredEvents({ events: [...merged.values()], relayStatus: status }),
         truncated,
         incomplete,
-        // Every relay asked finished every read: only then can "no newer version" be said.
-        complete: status.every((s) => s.eose),
+        // Every read met the floor: only then can "no newer version" be said.
+        floorMet,
     };
 }
 
