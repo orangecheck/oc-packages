@@ -509,16 +509,78 @@ describe('oc chat verify: relays that do not answer', () => {
     // The founder's version without its binding tag, as a version from before 0.3.0: its key is bound only by records on the relays.
     const legacy = versionBy(founder.nostrSk, founder.nostrPk, { ...genesis, title: 'Town, before 0.3.0' });
 
-    it('names each relay that missed a read, and says how many answered, without changing the verdict', async () => {
-        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: null }))).toBe(0);
+    // The founder's own revocation of its session device, at its record's coordinate.
+    const revocation = signNostrEvent(
+        {
+            pubkey: founder.nostrPk,
+            kind: 30078,
+            created_at: 1780000300,
+            content: 'revoked\n',
+            tags: [
+                ['d', `oc-chat:device:${FOUNDER}`],
+                ['addr', FOUNDER],
+                ['device_id', founder.kp.device_id],
+                ['device_pk', 'revoked'],
+                ['auth', 'session'],
+                ['binding_sig', ''],
+            ],
+        },
+        founder.nostrSk
+    );
+
+    it('names each relay that missed a read; a verdict resting on what was not seen is NOT READ', async () => {
+        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: null }))).toBe(2);
         const r = JSON.parse(stdout);
-        expect(r.verdict).toBe('verified');
+        expect(r.verdict).toBe('unread');
         expect(r.relays).toMatchObject({ asked: 2, answered: 1, silent: [{ relay: B }] });
         expect(r.not_checked.join('\n')).toMatch(/relay wss:\/\/b\.example did not answer \d+ of \d+ reads/);
         stdout = '';
-        expect(await run({ file: file(version) }, over({ [A]: [version, founder.record], [B]: null }))).toBe(0);
-        expect(stdout).toContain('VERIFIED (1 of 2 relays answered every read)');
+        expect(await run({ file: file(version) }, over({ [A]: [version, founder.record], [B]: null }))).toBe(2);
+        expect(stdout).toContain('NOT READ');
+        expect(stdout).not.toMatch(/^VERIFIED/m);
         expect(stdout).toContain('not checked  relay wss://b.example did not answer');
+    });
+
+    it('a current version whose signer’s revocation only the silent relay holds is NOT READ; answered, it FAILS', async () => {
+        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: null }))).toBe(2);
+        stdout = '';
+        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: [revocation] }))).toBe(1);
+        expect(JSON.parse(stdout).verdict).toBe('failed');
+    });
+
+    it('an older copy whose key’s revocation only the silent relay holds is NOT READ; answered, it FAILS', async () => {
+        expect(await run({ file: file(legacy), json: true }, over({ [A]: [founder.record], [B]: null }))).toBe(2);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('unread');
+        expect(r.not_checked.join('\n')).toContain('a relay that did not answer may hold a record that binds or revokes this key');
+        stdout = '';
+        expect(await run({ file: file(legacy), json: true }, over({ [A]: [founder.record], [B]: [revocation] }))).toBe(1);
+    });
+
+    it('"no newer version": a relay that answers the device records but misses the version reads leaves the tip NOT READ', async () => {
+        const v2 = versionBy(founder.nostrSk, founder.nostrPk, { ...genesis, title: 'Town, newer', created_at: 1780000150, supersedes: descriptorId(genesis) }, founder.record);
+        // B answers kind-30078 reads (so every binding read is complete) and is silent on kind-30110 reads.
+        const raw: RawQuery = async (filter, relays) => {
+            const versions = (filter.kinds as number[]).includes(30110);
+            const held: Record<string, NostrEvent[]> = { [A]: [version, founder.record], [B]: [v2, founder.record] };
+            const seen = new Map<string, NostrEvent>();
+            for (const r of relays) {
+                if (r === B && versions) continue;
+                for (const e of held[r] ?? []) if (matchFilter(e, filter as never)) seen.set(e.id, e);
+            }
+            return { events: [...seen.values()], relayStatus: relays.map((r) => ({ relay: r, eose: !(r === B && versions) })) };
+        };
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        expect(await run({ file: file(version), json: true }, liveNet([A, B], 'https://esplora.test/api', raw))).toBe(2);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('unread');
+        expect(r.detail.is_tip).toBe(true);
+    });
+
+    it('a failure seen on an answering relay stands though another relay was silent', async () => {
+        const tampered = { ...version, content: version.content.replace('Town', 'T0wn') };
+        expect(await run({ file: file(tampered), json: true }, over({ [A]: [version, founder.record], [B]: null }))).toBe(1);
+        expect(JSON.parse(stdout).verdict).toBe('failed');
     });
 
     it('with every relay answering, nothing is left unchecked', async () => {
@@ -526,6 +588,9 @@ describe('oc chat verify: relays that do not answer', () => {
         const r = JSON.parse(stdout);
         expect(r.relays).toMatchObject({ asked: 2, answered: 2, silent: [] });
         expect(r.not_checked).toEqual([]);
+        stdout = '';
+        expect(await run({ file: file(version) }, over({ [A]: [version, founder.record], [B]: [] }))).toBe(0);
+        expect(stdout).toContain('VERIFIED (2 of 2 relays answered every read)');
     });
 
     it('an older copy whose binding only a silent relay holds is NOT READ, not FAILED', async () => {

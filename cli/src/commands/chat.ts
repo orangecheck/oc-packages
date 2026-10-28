@@ -94,6 +94,9 @@ export interface Check {
     check: string;
     ok: boolean;
     detail?: string;
+    /** The answer rests on something not being on the relays (no revocation, no
+     *  newer version, no earlier claim), so a relay that missed a read can change it. */
+    absence?: true;
 }
 
 export interface Report {
@@ -302,14 +305,16 @@ async function verifyVersion(ev: NostrEvent, net: ChatNet | null, founder?: stri
         notChecked.push('binding: the version carries no binding tag (published before 0.3.0); its key is bound only by records on the relays');
     }
     if (!net) return report('channel version', checks, [...notChecked, SKIPPED.relays]);
+    // Failed on what the event itself shows: no relay read can change that.
+    if (checks.some((c) => !c.ok)) return report('channel version', checks, [], { descriptor_id: did });
     // The event is judged by the rules with what the relays hold: authorship rests on
     // its binding (§8.3.1), not on a relay keeping it, so one the relays lack can stand.
     const { resolved, read } = await resolveChannel(c.channel_id, net, founder, ev);
     // This event, not just its content: the same content under another key is
     // another event, and the descriptor id does not tell them apart.
     const standing = authorizedCopy(resolved, ev);
-    checks.push({ check: 'the channel resolves from what the relays hold and this event', ok: resolved !== null });
-    checks.push({ check: 'this event is an authorized copy of a version (§8.3.1)', ok: standing !== null });
+    checks.push({ check: 'the channel resolves from what the relays hold and this event', ok: resolved !== null, absence: true });
+    checks.push({ check: 'this event is an authorized copy of a version (§8.3.1)', ok: standing !== null, absence: true });
     return report('channel version', checks, notChecked.filter((n) => !n.startsWith('binding')), {
         descriptor_id: did,
         on_relays: read.events.some((e) => e.id === ev.id),
@@ -328,13 +333,14 @@ async function verifyChannelPost(ev: NostrEvent, net: ChatNet | null): Promise<R
     const pid = postId(p);
     checks.push({ check: 'the event is signed by author_inbox_pubkey', ok: ev.pubkey === p.author_inbox_pubkey });
     checks.push({ check: 'the d-tag is the post coordinate', ok: ev.tags.find((t) => t[0] === 'd')?.[1] === postDtag(p.channel_id, pid) });
+    if (net && checks.some((c) => !c.ok)) return report('channel post', checks, [], { post_id: pid });
     if (!net) {
         const skipped = [SKIPPED.relays, 'the write gate: the channel was not resolved, so its policy was not applied'];
         if (p.write_proof) skipped.push(SKIPPED.utxo, SKIPPED.chain);
         return report('channel post', checks, skipped, { post_id: pid });
     }
     const { resolved } = await resolveChannel(p.channel_id, net);
-    checks.push({ check: 'the channel resolves from what the relays hold', ok: resolved !== null });
+    checks.push({ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true });
     if (!resolved) return report('channel post', checks, [], { post_id: pid });
     const r = reads(net);
     const controlSig = ev.tags.find((t) => t[0] === 'control_sig')?.[1];
@@ -349,6 +355,7 @@ async function verifyChannelPost(ev: NostrEvent, net: ChatNet | null): Promise<R
     checks.push({
         check: 'authorship and the write gate (§8.3.2, §8.3.3)',
         ok: v.ok,
+        absence: true,
         ...(v.ok ? { detail: v.isTombstone ? `removal by ${v.role}` : v.role } : { detail: v.error }),
     });
     return report('channel post', checks, [], { post_id: pid, channel: chainDetail(resolved) });
@@ -373,6 +380,7 @@ async function verifyHandle(handle: string, ns: DirectoryNamespace, net: ChatNet
         checks.push({ check: 'the content is a v2 listing or tombstone (§8.2.5 (1))', ok: parsed !== null });
     }
     if (!net) return report(subject, checks, [SKIPPED.relays, SKIPPED.chain, 'the claim: its anchor, coin and order were not read']);
+    if (checks.some((c) => !c.ok)) return report(subject, checks, []);
     const r = reads(net);
     const answer = await resolveDirectoryHandle(handle.toLowerCase(), ns, {
         ...net.walk,
@@ -385,10 +393,11 @@ async function verifyHandle(handle: string, ns: DirectoryNamespace, net: ChatNet
         checks.push({
             check: 'this listing is the holder’s state',
             ok: holds && answer.listing.event.id === ev.id,
+            absence: true,
             ...(holds ? { detail: answer.holder } : { detail: answer.result }),
         });
     } else {
-        checks.push({ check: 'a claim holds the handle', ok: holds, detail: holds ? answer.holder : answer.result });
+        checks.push({ check: 'a claim holds the handle', ok: holds, detail: holds ? answer.holder : answer.result, absence: true });
     }
     return report(
         subject,
@@ -403,7 +412,7 @@ export async function verifyChat(opts: ChatVerifyOpts, input: unknown, net: Chat
     if (opts.channel) {
         if (!net) die('--channel reads the relays; it has no offline form');
         const { resolved } = await resolveChannel(opts.channel, net, opts.founder);
-        return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null }], [], { channel: chainDetail(resolved) });
+        return report('channel', [{ check: 'the channel resolves from what the relays hold', ok: resolved !== null, absence: true }], [], { channel: chainDetail(resolved) });
     }
     if (opts.handle) return verifyHandle(opts.handle, opts.channelHandle ? 'channel' : 'people', net);
     const ev = input as NostrEvent;
@@ -464,16 +473,22 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         if (!(e instanceof UnansweredReadError)) throw e;
         r = { subject: 'read', checks: [], not_checked: [e.message], verdict: 'unread' };
     }
-    // One answering relay settles a read, so name each relay that missed one: a
-    // revocation or record only it holds was not seen. The verdict stands.
+    // Name each relay that missed a read: a revocation, a newer version or a record
+    // only it holds was not seen. A verdict that rests on such an absence is then not
+    // read (until a relay floor is decided): VERIFIED never stands on a missed read,
+    // and FAILED stands only on something seen (a bad signature, a revocation).
     const tally = n?.relays?.();
     if (tally && tally.asked > 0) {
         r.relays = tally;
         for (const s of tally.silent) {
             r.not_checked.push(
-                `relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads: a revocation or record only it holds was not seen`
+                `relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads: a revocation, newer version or record only it holds was not seen`
             );
         }
+        const failed = r.checks.filter((c) => !c.ok);
+        const restsOnAbsence =
+            r.verdict === 'verified' || (r.verdict === 'failed' && failed.every((c) => c.absence));
+        if (tally.silent.length > 0 && restsOnAbsence) r.verdict = 'unread';
     }
     process.stdout.write((opts.json ? JSON.stringify(r, null, 2) : render(r)) + '\n');
     process.exit({ verified: 0, failed: 1, unread: 2, 'passed-offline': 3 }[r.verdict]);
