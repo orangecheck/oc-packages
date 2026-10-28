@@ -867,7 +867,6 @@ export async function resolveChannelChain(
     return best;
 }
 
-/** The open read of a channel stopped at its bound with no chain resolved: the
 /** Where one version event stands in a resolved channel. */
 export interface CopyStanding {
     descriptorId: string;
