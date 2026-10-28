@@ -258,7 +258,7 @@ test('the ochk.app privacy policy says what a deletion keeps, and that 48 hours 
         'and erases your data on ochk.io, me.ochk.io, vault, chat and cosign, except a few records.',
         'Payment records keep their amounts and times for accounting, and our audit log and your deletion request stay, without the reason you gave.',
         "Each keeps your account only as a keyed id, or not at all, so the record by itself doesn't say whose account it was.",
-        "On cosign, your messages in other people's threads and the reports you filed stay, with your account taken off them.",
+        "On cosign, your messages in conversations with other people and the reports you filed stay, with your account taken off them.",
         'A person completes the request, and we aim to do that within 48 hours: an alert tells us when one has waited a day.',
         'your data is erased, except the few records named under identity & account deletion',
     ]) {
