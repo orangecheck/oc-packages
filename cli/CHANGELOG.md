@@ -15,7 +15,9 @@ this file tracks the package's TS / Node / runtime API surface.
   or stdin, a channel by `--channel`, or a handle by `--handle`, checked with
   `@orangecheck/chat-core` against the relays, the device records, ochk.io's
   keys and the chain. A version counts only as one of its version's
-  authorized copies: the same content under another key fails. `--offline`
+  authorized copies: the same content under another key fails. The given
+  version is judged with what the relays hold, so one they lack stands by its
+  binding, and `on_relays` says whether a relay holds it. `--offline`
   reads nothing and lists what it skipped. Exit 0 verified, 1 failed, 2 not
   read (a relay, ochk.io's keys or the chain did not answer), 3 offline
   checks only.
