@@ -17,6 +17,7 @@ import { readFile } from 'node:fs/promises';
 import { verifySignature } from '@orangecheck/bip322';
 import {
     AUTH_HOST_JWKS_URL,
+    authorizedCopy,
     CHANNEL_DESCRIPTOR_KIND,
     CHANNEL_POST_KIND,
     channelId,
@@ -120,20 +121,34 @@ export function liveNet(relays: readonly string[], esplora = ESPLORA): ChatNet {
             const res = await queryEvents({ kinds: [30078], '#d': [deviceDtag(principal)] } as never, relays, TIMEOUT_MS);
             return { events: res.events, answered: res.relayStatus.some((r) => r.eose) };
         },
+        // A JWKS that answers with no keys binds nothing; one that does not answer is not read.
         hostKeys: () =>
             (keys ??= (async () => {
-                const res = await timed(AUTH_HOST_JWKS_URL);
-                if (!res.ok) return [];
-                const j = (await res.json()) as { keys?: AuthHostKey[] };
+                const unread = new UnansweredReadError("ochk.io's keys could not be read");
+                let j: { keys?: AuthHostKey[] };
+                try {
+                    const res = await timed(AUTH_HOST_JWKS_URL);
+                    if (!res.ok) throw unread;
+                    j = (await res.json()) as { keys?: AuthHostKey[] };
+                } catch {
+                    throw unread;
+                }
                 return Array.isArray(j.keys) ? j.keys : [];
-            })().catch(() => [])),
+            })()),
         tip: async () => {
-            const res = await timed(`${esplora}/blocks/tip/height`);
-            const n = Number.parseInt((await res.text()).trim(), 10);
-            if (!res.ok || !Number.isFinite(n)) throw new UnansweredReadError('the chain tip could not be read');
+            const unread = new UnansweredReadError('the chain tip could not be read');
+            let n: number;
+            try {
+                const res = await timed(`${esplora}/blocks/tip/height`);
+                if (!res.ok) throw unread;
+                n = Number.parseInt((await res.text()).trim(), 10);
+            } catch {
+                throw unread;
+            }
+            if (!Number.isFinite(n)) throw unread;
             return n;
         },
-        verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, fetch: timed }),
+        verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, fetch: timed, unanswered: 'throw' }),
         walk: {
             page: async (relay, filter) => {
                 const res = await queryEvents(filter as never, [relay], TIMEOUT_MS);
@@ -238,14 +253,15 @@ async function verifyVersion(ev: NostrEvent, net: ChatNet | null, founder?: stri
     }
     if (!net) return report('channel version', checks, [...notChecked, SKIPPED.relays]);
     const { resolved } = await resolveChannel(c.channel_id, net, founder);
-    const on = resolved?.chain.some((v) => v.descriptorId === did) ?? false;
-    const authorized = resolved?.versions.some((v) => v.descriptorId === did) ?? false;
+    // This event, not just its content: the same content under another key is
+    // another event, and the descriptor id does not tell them apart.
+    const standing = authorizedCopy(resolved, ev);
     checks.push({ check: 'the channel resolves from what the relays hold', ok: resolved !== null });
-    checks.push({ check: 'this version is authorized (§8.3.1)', ok: authorized });
+    checks.push({ check: 'this event is an authorized copy of a version (§8.3.1)', ok: standing !== null });
     return report('channel version', checks, notChecked.filter((n) => !n.startsWith('binding')), {
         descriptor_id: did,
-        on_resolved_chain: on,
-        is_tip: resolved?.descriptorId === did,
+        on_resolved_chain: standing?.onChain ?? false,
+        is_tip: standing?.isTip ?? false,
         channel: chainDetail(resolved),
     });
 }

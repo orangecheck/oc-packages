@@ -9,9 +9,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { ed25519 } from '@noble/curves/ed25519';
+import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import {
     channelId,
     descriptorId,
+    deviceDtag,
     postDtag,
     postId,
     versionDtag,
@@ -19,11 +21,17 @@ import {
     type NostrEvent,
     type PostContent,
 } from '@orangecheck/chat-core';
-import { deriveNostrKey, generateDeviceKey, signNostrEvent } from '@orangecheck/lock-device';
+import {
+    buildBindingStatement,
+    deriveNostrKey,
+    finalizeDeviceEvent,
+    generateDeviceKey,
+    signNostrEvent,
+} from '@orangecheck/lock-device';
 import { matchFilter } from '@orangecheck/nostr-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runChatVerify, type ChatNet } from '../commands/chat';
+import { liveNet, runChatVerify, type ChatNet } from '../commands/chat';
 
 class ExitCalled extends Error {
     constructor(public code: number) {
@@ -132,7 +140,7 @@ function net(events: NostrEvent[], silent = false): ChatNet {
             relayStatus: [{ eose: !silent }],
         }),
         records: async (p) => ({
-            events: silent ? [] : events.filter((e) => e.kind === 30078 && e.tags.some((t) => t[0] === 'd' && t[1] === `oc-chat:device:${p}`)),
+            events: silent ? [] : events.filter((e) => e.kind === 30078 && e.tags.some((t) => t[0] === 'd' && t[1] === deviceDtag(p))),
             answered: !silent,
         }),
         hostKeys: async () => [HOST],
@@ -246,3 +254,194 @@ describe('oc chat verify', () => {
         expect(JSON.parse(stdout).verdict).toBe('unread');
     });
 });
+
+/** A version event of `content` signed by `sk`, optionally carrying a binding record. */
+function versionBy(nostrSk: string, nostrPk: string, content: DescriptorContent, binding?: NostrEvent): NostrEvent {
+    return signNostrEvent(
+        {
+            pubkey: nostrPk,
+            kind: 30110,
+            created_at: content.created_at,
+            content: JSON.stringify(content),
+            tags: [
+                ['d', versionDtag(descriptorId(content))],
+                ['t', content.channel_id],
+                ...(binding ? [['binding', JSON.stringify(binding)]] : []),
+            ],
+        },
+        nostrSk
+    );
+}
+
+describe('oc chat verify: a version event is checked as this event, not its content (§8.3.1)', () => {
+    it('the genesis content re-signed by a fresh key FAILS, beside the founder’s copy or alone', async () => {
+        const kp = generateDeviceKey();
+        const { nostrSk, nostrPk } = deriveNostrKey(kp.device_sk);
+        const forged = versionBy(nostrSk, nostrPk, genesis);
+        expect(await run({ file: file(forged), json: true }, net([version, founder.record, forged]))).toBe(1);
+        let r = JSON.parse(stdout);
+        expect(r.verdict).toBe('failed');
+        expect(r.checks.find((c: { check: string }) => /authorized copy/.test(c.check)).ok).toBe(false);
+        expect(r.detail.is_tip).toBe(false);
+        expect(r.detail.on_resolved_chain).toBe(false);
+        stdout = '';
+        expect(await run({ file: file(forged), json: true }, net([forged]))).toBe(1);
+        r = JSON.parse(stdout);
+        expect(r.verdict).toBe('failed');
+    });
+
+    it('the same content signed by another did:oc’s vouched device FAILS', async () => {
+        const other = sessionDevice('did:oc:' + 'b'.repeat(32));
+        const copy = versionBy(other.nostrSk, other.nostrPk, genesis, other.record);
+        expect(await run({ file: file(copy), json: true }, net([version, founder.record, copy, other.record]))).toBe(1);
+        const r = JSON.parse(stdout);
+        expect(r.checks.find((c: { check: string }) => /authorized copy/.test(c.check)).ok).toBe(false);
+    });
+
+    it('a post by a key no record binds to its author FAILS', async () => {
+        const kp = generateDeviceKey();
+        const { nostrSk, nostrPk } = deriveNostrKey(kp.device_sk);
+        const content = { ...postContent, author_inbox_pubkey: nostrPk, body: 'not mine' };
+        const forged = signNostrEvent(
+            {
+                pubkey: nostrPk,
+                kind: 30111,
+                created_at: 1780000300,
+                content: JSON.stringify(content),
+                tags: [
+                    ['d', postDtag(genesis.channel_id, postId(content))],
+                    ['t', genesis.channel_id],
+                ],
+            },
+            nostrSk
+        );
+        expect(await run({ file: file(forged), json: true }, net([version, founder.record, forged]))).toBe(1);
+        expect(JSON.parse(stdout).checks.at(-1).detail).toBe('E_CH_UNAUTHORIZED');
+    });
+});
+
+/** A utxo-floor channel and a post by a Bitcoin address that BIP-322 binds and signs. */
+const BTC_SK = new Uint8Array(32).fill(21);
+const AUTHOR = addressFromPrivateKey(BTC_SK, 'p2wpkh');
+const authorDevice = (() => {
+    const kp = generateDeviceKey();
+    const { nostrSk, nostrPk } = deriveNostrKey(kp.device_sk);
+    const statement = buildBindingStatement({
+        address: AUTHOR,
+        device_pk: kp.device_pk,
+        device_id: kp.device_id,
+        created_at: '2026-09-01T00:00:00.000Z',
+        nostr_pk: nostrPk,
+    });
+    const record = finalizeDeviceEvent({
+        deviceSk: kp.device_sk,
+        address: AUTHOR,
+        device_id: kp.device_id,
+        device_pk: kp.device_pk,
+        bindingStatement: statement,
+        bindingSigBase64: signMessage(AUTHOR, statement, BTC_SK),
+    });
+    return { nostrSk, nostrPk, record };
+})();
+const gated: DescriptorContent = {
+    ...genesis,
+    slug: 'gated',
+    channel_id: channelId(FOUNDER, 'gated'),
+    write: { policy: 'utxo-floor', utxo_floor_confs: 144, utxo_floor_sats: 0, allowlist_root: null, rooted: true },
+};
+const gatedVersion = versionBy(founder.nostrSk, founder.nostrPk, gated, founder.record);
+const PROOF = {
+    outpoint: `${'ab'.repeat(32)}:0`,
+    value_sats: 50000,
+    anchor_block_height: 900000,
+    anchor_block_hash: '00'.repeat(32),
+};
+const gatedContent: PostContent = {
+    ...postContent,
+    channel_id: gated.channel_id,
+    author_address: AUTHOR,
+    author_inbox_pubkey: authorDevice.nostrPk,
+    body: 'priced in coin age',
+    write_proof: PROOF,
+};
+const gatedPost = signNostrEvent(
+    {
+        pubkey: authorDevice.nostrPk,
+        kind: 30111,
+        created_at: 1780000400,
+        content: JSON.stringify(gatedContent),
+        tags: [
+            ['d', postDtag(gated.channel_id, postId(gatedContent))],
+            ['t', gated.channel_id],
+            ['control_sig', signMessage(AUTHOR, postId(gatedContent), BTC_SK)],
+        ],
+    },
+    authorDevice.nostrSk
+);
+const COIN = {
+    txid: 'ab'.repeat(32),
+    vout: 0,
+    value: 50000,
+    status: { confirmed: true, block_height: 900000, block_hash: '00'.repeat(32) },
+};
+
+/** The in-memory relays, with ochk.io and the chain read by liveNet over a stubbed fetch. */
+function chainNet(answer: (url: string) => Response | Promise<Response>): ChatNet {
+    vi.stubGlobal('fetch', (async (url: string) => answer(String(url))) as unknown as typeof fetch);
+    const live = liveNet([], 'https://esplora.test/api');
+    return {
+        ...net([gatedVersion, founder.record, gatedPost, authorDevice.record]),
+        hostKeys: live.hostKeys,
+        tip: live.tip,
+        verifyOnChain: live.verifyOnChain,
+    };
+}
+const json = (body: unknown) => ({ ok: true, json: async () => body, text: async () => String(body) }) as unknown as Response;
+const refused = () => Promise.reject(new TypeError('fetch failed'));
+const answers = (over: Partial<Record<'jwks' | 'tip' | 'utxo', () => Response | Promise<Response>>>) => (url: string) =>
+    url.includes('jwks')
+        ? (over.jwks ?? (() => json({ keys: [HOST] })))()
+        : url.endsWith('/blocks/tip/height')
+          ? (over.tip ?? (() => json(930000)))()
+          : (over.utxo ?? (() => json([COIN])))();
+
+describe('oc chat verify: the write gate, and reads that get no answer', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('a utxo-floor post whose coin is on chain is VERIFIED', async () => {
+        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({})))).toBe(0);
+        expect(JSON.parse(stdout).verdict).toBe('verified');
+    });
+
+    it('a utxo-floor post whose coin is not there FAILS (E_CHAN_FLOOR)', async () => {
+        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ utxo: () => json([]) })))).toBe(1);
+        expect(JSON.parse(stdout).checks.at(-1).detail).toBe('E_CHAN_FLOOR');
+    });
+
+    it('an Esplora outputs read that fails is NOT READ, exit 2', async () => {
+        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ utxo: refused })))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+
+    it('a tip read that is refused is NOT READ, exit 2', async () => {
+        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: refused })))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+
+    it('a JWKS read that fails, or answers non-ok, is NOT READ for a did:oc version, exit 2', async () => {
+        const notOk = () => ({ ok: false, json: async () => ({}) }) as unknown as Response;
+        for (const jwks of [refused, notOk]) {
+            stdout = '';
+            expect(await run({ file: file(version), json: true }, { ...chainNet(answers({ jwks })), ...pick(net([version, founder.record])) })).toBe(2);
+            expect(JSON.parse(stdout).verdict).toBe('unread');
+        }
+    });
+
+    it('a JWKS that answers with no keys binds nothing: the did:oc version FAILS', async () => {
+        const n = { ...chainNet(answers({ jwks: () => json({ keys: [] }) })), ...pick(net([version, founder.record])) };
+        expect(await run({ file: file(version), json: true }, n)).toBe(1);
+    });
+});
+
+/** The relay reads of one network, to lay over another's ochk.io and chain reads. */
+const pick = (n: ChatNet) => ({ query: n.query, records: n.records });
