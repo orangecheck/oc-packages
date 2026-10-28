@@ -28,7 +28,7 @@ import { hexEncode, utf8Encode } from '@orangecheck/lock-crypto';
 
 import { isValidAttachment, type Attachment } from './attachment';
 import { b64urlNoPad, canonicalBytes } from './canonical';
-import { signedBy, type NostrEvent } from './event';
+import { signedBy, verifyNostrEvent, type NostrEvent } from './event';
 import { answeredEvents, UnansweredReadError, type Query, type VerifyBip322 } from './read';
 import type { AuthHostKey } from './session';
 import {
@@ -580,6 +580,17 @@ async function checkWritePermission(
 
 // ───────────────────── the governance chain ─────────────────────
 
+/** A version of a channel the resolution authorized (§8.3.1). */
+export interface ResolvedVersion {
+    descriptorId: string;
+    descriptor: DescriptorContent;
+    /** The keys of its authorized copies, the founder's first. */
+    signers: string[];
+    /** The event ids of its authorized copies. A copy of the same content under any
+     *  other key or event is not one: the id covers the content, not the signer. */
+    copies: string[];
+}
+
 export interface ResolvedChannel {
     descriptor: DescriptorContent;
     descriptorId: string;
@@ -588,10 +599,10 @@ export interface ResolvedChannel {
     /** The key that signed the copy of the tip the channel resolved by. */
     tipPubkey: string;
     /** The resolved chain from the genesis to the tip, with every key that signed
-     *  an authorized copy of each version. */
-    chain: { descriptorId: string; descriptor: DescriptorContent; signers: string[] }[];
+     *  an authorized copy of each version, and those copies' event ids. */
+    chain: ResolvedVersion[];
     /** Every authorized version, on any branch, with every key that signed a copy. */
-    versions: { descriptorId: string; descriptor: DescriptorContent; signers: string[] }[];
+    versions: ResolvedVersion[];
     /** Every closed tip, overruled ones included: a re-open supersedes each (§8.3.8). */
     closedTips: { descriptorId: string; descriptor: DescriptorContent }[];
 }
@@ -796,8 +807,13 @@ export async function resolveChannelChain(
     const chainTo = (id: string): ResolvedChannel['chain'] => {
         const out: ResolvedChannel['chain'] = [];
         for (let cur: string | null = id; cur; cur = nodes.get(cur)!.content.supersedes) {
-            const signers = (copies.get(cur) ?? []).map((c) => c.ev.pubkey);
-            out.unshift({ descriptorId: cur, descriptor: nodes.get(cur)!.content, signers });
+            const cs = copies.get(cur) ?? [];
+            out.unshift({
+                descriptorId: cur,
+                descriptor: nodes.get(cur)!.content,
+                signers: cs.map((c) => c.ev.pubkey),
+                copies: cs.map((c) => c.ev.id),
+            });
         }
         return out;
     };
@@ -841,6 +857,7 @@ export async function resolveChannelChain(
                     descriptorId: vid,
                     descriptor: nodes.get(vid)!.content,
                     signers: cs.map((c) => c.ev.pubkey),
+                    copies: cs.map((c) => c.ev.id),
                 })),
                 closedTips,
             };
@@ -851,6 +868,33 @@ export async function resolveChannelChain(
 }
 
 /** The open read of a channel stopped at its bound with no chain resolved: the
+/** Where one version event stands in a resolved channel. */
+export interface CopyStanding {
+    descriptorId: string;
+    /** Its version is on the chain from the genesis to the tip. */
+    onChain: boolean;
+    /** Its version is the tip the channel resolved to. */
+    isTip: boolean;
+}
+
+/**
+ * Is this event an authorized copy of a version of `resolved` (§8.3.1)? A version
+ * stands when any copy of it is authorized, but an event is authorized only when
+ * it is one of those copies: the same content signed by another key, or carried
+ * by another event, is not, though its descriptor_id is the same. Null when the
+ * event is not an authorized copy, or does not verify (NIP-01).
+ */
+export function authorizedCopy(resolved: ResolvedChannel | null, ev: NostrEvent): CopyStanding | null {
+    if (!resolved || !verifyNostrEvent(ev)) return null;
+    const v = resolved.versions.find((x) => x.copies.includes(ev.id));
+    if (!v) return null;
+    return {
+        descriptorId: v.descriptorId,
+        onChain: resolved.chain.some((c) => c.descriptorId === v.descriptorId),
+        isTip: resolved.descriptorId === v.descriptorId,
+    };
+}
+
 /** The reads readChannelVersions makes: one relay query, and every inbox key a principal's records have ever bound. */
 export interface VersionReads {
     /** One REQ to the reader's relays. */
