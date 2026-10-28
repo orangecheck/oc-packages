@@ -14,6 +14,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import {
+    authorizedCopy,
     channelId,
     descriptorId,
     resolveChannelChain,
@@ -204,5 +205,78 @@ describe('stepUpAddress (§8.6)', () => {
         const notAa = async (_pk: string, a: string) => a !== 'bc1qaa';
         expect(await stepUpAddress(d.nostrPk, authored, notAa)).toBe('bc1qmm');
         expect(await stepUpAddress('ee'.repeat(32), authored, bindsAll)).toBeNull();
+    });
+});
+
+describe('authorizedCopy: an event counts only as one of its version’s authorized copies (§8.3.1)', () => {
+    const genuine = version(founderKey, genesis);
+    /** The genesis content, signed by a fresh key with no binding tag, at the version's own coordinate. */
+    const fresh = (() => {
+        const kp = generateDeviceKey();
+        const { nostrSk, nostrPk } = deriveNostrKey(kp.device_sk);
+        return signNostrEvent(
+            {
+                pubkey: nostrPk,
+                kind: 30110,
+                created_at: genesis.created_at,
+                content: JSON.stringify(genesis),
+                tags: [
+                    ['d', versionDtag(descriptorId(genesis))],
+                    ['t', genesis.channel_id],
+                ],
+            },
+            nostrSk
+        );
+    })();
+    /** The same content, signed by another did:oc's vouched device carrying its own binding tag. */
+    const other = version(sessionDevice('did:oc:' + 'c'.repeat(32)), genesis);
+    const live = async () => 'live' as const;
+
+    it('the founder’s own copy is authorized, on the chain and the tip', async () => {
+        const r = await resolve([genuine], live);
+        expect(authorizedCopy(r, genuine)).toEqual({ descriptorId: descriptorId(genesis), onChain: true, isTip: true });
+    });
+
+    it('a fresh key’s copy of the same content is not, with or without the founder’s copy beside it', async () => {
+        const both = await resolve([genuine, fresh], live);
+        expect(both?.descriptorId).toBe(descriptorId(genesis));
+        expect(authorizedCopy(both, fresh)).toBeNull();
+        const alone = await resolve([fresh], live);
+        expect(alone).toBeNull();
+        expect(authorizedCopy(alone, fresh)).toBeNull();
+    });
+
+    it('another did:oc’s vouched copy, carrying its own binding, is not', async () => {
+        const r = await resolve([genuine, other], live);
+        expect(r?.versions[0]?.signers).toEqual([founderKey.nostrPk]);
+        expect(authorizedCopy(r, other)).toBeNull();
+    });
+
+    it('another event by the founder’s own key counts only if that copy is itself authorized', async () => {
+        // The same content and key, published again without its binding tag: a copy
+        // the relays no longer bind (this resolver's isBound answers false).
+        const unbound = signNostrEvent(
+            {
+                pubkey: founderKey.nostrPk,
+                kind: 30110,
+                created_at: genesis.created_at + 1,
+                content: JSON.stringify(genesis),
+                tags: [
+                    ['d', versionDtag(descriptorId(genesis))],
+                    ['t', genesis.channel_id],
+                ],
+            },
+            founderKey.nostrSk
+        );
+        const r = await resolve([genuine, unbound], live);
+        expect(r?.versions[0]?.copies).toEqual([genuine.id]);
+        expect(authorizedCopy(r, genuine)).not.toBeNull();
+        expect(authorizedCopy(r, unbound)).toBeNull();
+    });
+
+    it('an event that borrows an authorized copy’s id but not its bytes is not', async () => {
+        const r = await resolve([genuine], live);
+        expect(authorizedCopy(r, { ...fresh, id: genuine.id })).toBeNull();
+        expect(authorizedCopy(r, { ...genuine, content: genuine.content.replace('Town', 'T0wn') })).toBeNull();
     });
 });
