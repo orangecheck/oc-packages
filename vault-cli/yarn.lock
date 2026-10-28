@@ -190,9 +190,9 @@
     "@noble/hashes" "^1.5.0"
 
 "@orangecheck/vault-core@^0.3.0":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/vault-core/-/vault-core-0.3.1.tgz#1b649bc1a28817d5c95d1bd9371ffa2b088b3ccf"
-  integrity sha512-h7R9u4od2ku0QkT1osfUbt87dnXzmEsvtCz1qioQmq4Dp7XxLXth69/rHwAbem4b/Glc6oPLpPAha3Uychdmhw==
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vault-core/-/vault-core-0.3.2.tgz#24ef704529d0bd34b560e6342aeab82452481b56"
+  integrity sha512-nR34/IXlQh9wJ48/LKV0cbbIh4HtBjuZ+ggKzxC9tga0a9FN7FAuh6Fg/Rn3hUg3afQBs/LcK50YwG0ZsRI6DA==
   dependencies:
     "@noble/hashes" "^1.5.0"
     "@orangecheck/lock-crypto" "^0.1.0"
