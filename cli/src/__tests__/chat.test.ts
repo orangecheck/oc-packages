@@ -574,7 +574,42 @@ describe('oc chat verify: relays that do not answer', () => {
         expect(await run({ file: file(version), json: true }, liveNet([A, B], 'https://esplora.test/api', raw))).toBe(2);
         const r = JSON.parse(stdout);
         expect(r.verdict).toBe('unread');
-        expect(r.detail.is_tip).toBe(true);
+        // Both rest on the version read B missed; the event's own id does not.
+        expect(r.detail).toMatchObject({ descriptor_id: descriptorId(genesis), is_tip: 'unknown', on_resolved_chain: 'unknown', channel: 'unknown' });
+        stdout = '';
+        expect(await run({ file: file(version) }, liveNet([A, B], 'https://esplora.test/api', raw))).toBe(2);
+        expect(stdout).toContain('is_tip: unknown');
+        expect(stdout).toContain('on_resolved_chain: unknown');
+        expect(stdout).not.toMatch(/is_tip: (true|false)/);
+    });
+
+    it('a channel whose versions only the silent relay holds is NOT READ, by --channel and for a post; answered, it stands or fails', async () => {
+        const cid = genesis.channel_id;
+        expect(await run({ channel: cid, json: true }, over({ [A]: [founder.record], [B]: null }))).toBe(2);
+        expect(JSON.parse(stdout)).toMatchObject({ verdict: 'unread', detail: { channel: 'unknown' } });
+        stdout = '';
+        expect(await run({ file: file(post), json: true }, over({ [A]: [founder.record, post], [B]: null }))).toBe(2);
+        expect(JSON.parse(stdout)).toMatchObject({ verdict: 'unread', detail: { post_id: postId(postContent) } });
+        // B answers with the version: the channel resolves. Both answer without it: it does not.
+        stdout = '';
+        expect(await run({ channel: cid, json: true }, over({ [A]: [founder.record], [B]: [version] }))).toBe(0);
+        stdout = '';
+        expect(await run({ file: file(post), json: true }, over({ [A]: [founder.record, post], [B]: [version] }))).toBe(0);
+        stdout = '';
+        expect(await run({ channel: cid, json: true }, over({ [A]: [founder.record], [B]: [] }))).toBe(1);
+        expect(JSON.parse(stdout).detail).toEqual({ channel: null });
+        stdout = '';
+        expect(await run({ file: file(post), json: true }, over({ [A]: [founder.record, post], [B]: [] }))).toBe(1);
+    });
+
+    it('a later version whose genesis only the silent relay holds is NOT READ; answered, it stands or fails', async () => {
+        const v2 = versionBy(founder.nostrSk, founder.nostrPk, { ...genesis, title: 'Town, edited', created_at: 1780000150, supersedes: descriptorId(genesis) }, founder.record);
+        expect(await run({ file: file(v2), json: true }, over({ [A]: [founder.record], [B]: null }))).toBe(2);
+        expect(JSON.parse(stdout).detail).toMatchObject({ is_tip: 'unknown', on_resolved_chain: 'unknown', on_relays: 'unknown' });
+        stdout = '';
+        expect(await run({ file: file(v2), json: true }, over({ [A]: [founder.record], [B]: [version] }))).toBe(0);
+        stdout = '';
+        expect(await run({ file: file(v2), json: true }, over({ [A]: [founder.record], [B]: [] }))).toBe(1);
     });
 
     it('a failure seen on an answering relay stands though another relay was silent', async () => {

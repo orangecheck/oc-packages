@@ -21,7 +21,9 @@ this file tracks the package's TS / Node / runtime API surface.
   every relay that missed a read, and VERIFIED says how many of how many
   relays answered every read. A verdict that rests on something not being on
   the relays (no revocation, no newer version, no earlier claim) is NOT READ
-  while a relay missed a read; a failure the event itself shows stands. `--offline`
+  while a relay missed a read; a failure the event itself shows stands. Under
+  NOT READ, every detail but the event's own id (`is_tip`, `on_resolved_chain`,
+  `on_relays`, the channel, the holder) is `unknown`, in `--json` too. `--offline`
   reads nothing and lists what it skipped. Exit 0 verified, 1 failed, 2 not
   read (a relay, ochk.io's keys or the chain did not answer), 3 offline
   checks only.

@@ -450,6 +450,9 @@ export function render(r: Report): string {
     return lines.join('\n');
 }
 
+/** Detail keys computed from the event alone, which no relay read changes. */
+const EVENT_OWN = new Set(['descriptor_id', 'post_id']);
+
 export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null): Promise<void> {
     let input: unknown = null;
     if (!opts.channel && !opts.handle) {
@@ -475,8 +478,11 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
     }
     // Name each relay that missed a read: a revocation, a newer version or a record
     // only it holds was not seen. A verdict that rests on such an absence is then not
-    // read (until a relay floor is decided): VERIFIED never stands on a missed read,
-    // and FAILED stands only on something seen (a bad signature, a revocation).
+    // read (until a relay floor is decided): VERIFIED never stands on a missed read.
+    // FAILED stands only when a check that rests on no absence failed (the event's own
+    // id, signature, coordinate or binding). A failed check marked `absence` turns
+    // NOT READ too, even when a revocation the answering relay holds failed it: the
+    // check does not tell a seen revocation from a record not read.
     const tally = n?.relays?.();
     if (tally && tally.asked > 0) {
         r.relays = tally;
@@ -488,7 +494,12 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         const failed = r.checks.filter((c) => !c.ok);
         const restsOnAbsence =
             r.verdict === 'verified' || (r.verdict === 'failed' && failed.every((c) => c.absence));
-        if (tally.silent.length > 0 && restsOnAbsence) r.verdict = 'unread';
+        if (tally.silent.length > 0 && restsOnAbsence) {
+            r.verdict = 'unread';
+            // What the relays were read for rests on the missed read too; only the
+            // event's own ids are known.
+            if (r.detail) for (const k of Object.keys(r.detail)) if (!EVENT_OWN.has(k)) r.detail[k] = 'unknown';
+        }
     }
     process.stdout.write((opts.json ? JSON.stringify(r, null, 2) : render(r)) + '\n');
     process.exit({ verified: 0, failed: 1, unread: 2, 'passed-offline': 3 }[r.verdict]);
