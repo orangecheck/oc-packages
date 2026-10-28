@@ -2,6 +2,7 @@
 // chat-core leaves to its caller. Public chain data only.
 
 import type { VerifyOnChain, WriteProof } from './channel';
+import { UnansweredReadError } from './read';
 
 /** One output from Esplora's /address/<addr>/utxo. */
 export interface MempoolUtxo {
@@ -44,20 +45,20 @@ async function addressUtxos(
 }
 
 /**
- * Bind a utxo-floor write proof to current chain state (§8.3.3), the
+ * Does a utxo-floor write proof match current chain state (§8.3.3), the
  * Bitcoin-load-bearing leg: the proof's outpoint is an unspent output of the
  * author's address with exactly the value, confirmation height and block hash
- * the proof states. Fail-closed: an unanswered read is false.
+ * the proof states? 'no-answer' when the address's outputs could not be read.
  */
-export async function verifyWriteProofOnChain(
+export async function writeProofOnChain(
     proof: WriteProof,
     authorAddress: string,
     opts: EsploraOptions = {}
-): Promise<boolean> {
+): Promise<boolean | 'no-answer'> {
     const base = (opts.baseUrl ?? 'https://mempool.space/api').replace(/\/+$/, '');
     const f = opts.fetch ?? globalThis.fetch.bind(globalThis);
     const utxos = await addressUtxos(authorAddress, base, f, opts.utxoCache);
-    if (!utxos) return false;
+    if (!utxos) return 'no-answer';
     const sep = proof.outpoint.lastIndexOf(':');
     if (sep <= 0) return false;
     const txid = proof.outpoint.slice(0, sep);
@@ -73,8 +74,30 @@ export async function verifyWriteProofOnChain(
     );
 }
 
-/** A VerifyOnChain over Esplora, with one cache for the batch it is made for. */
-export function esploraWriteProofCheck(opts: EsploraOptions = {}): VerifyOnChain {
+/** writeProofOnChain, fail-closed: an unanswered read is false, so the post does not render. */
+export async function verifyWriteProofOnChain(
+    proof: WriteProof,
+    authorAddress: string,
+    opts: EsploraOptions = {}
+): Promise<boolean> {
+    return (await writeProofOnChain(proof, authorAddress, opts)) === true;
+}
+
+/**
+ * A VerifyOnChain over Esplora, with one cache for the batch it is made for. An
+ * unanswered read is false (a feed hides the post), or with `unanswered: 'throw'`
+ * an UnansweredReadError, for a verifier that must say it could not tell.
+ */
+export function esploraWriteProofCheck(
+    opts: EsploraOptions & { unanswered?: 'false' | 'throw' } = {}
+): VerifyOnChain {
     const utxoCache = opts.utxoCache ?? new Map();
-    return (proof, address) => verifyWriteProofOnChain(proof, address, { ...opts, utxoCache });
+    return async (proof, address) => {
+        const r = await writeProofOnChain(proof, address, { ...opts, utxoCache });
+        if (r === 'no-answer') {
+            if (opts.unanswered === 'throw') throw new UnansweredReadError('the chain could not be read');
+            return false;
+        }
+        return r;
+    };
 }

@@ -34,5 +34,11 @@ at chat.ochk.io runs them:
   `readAddressState` over `@orangecheck/lock-core/directory`'s walk, with the
   deployment's directory and audit relays and §8.2.8 legacy claims as options
   (the reference deployment's by default); `isValidHandle`, `safeAvatar`.
-- `./io`: `verifyWriteProofOnChain` and `esploraWriteProofCheck`.
+- `./io`: `writeProofOnChain` ('no-answer' when the outputs cannot be read),
+  `verifyWriteProofOnChain` (fail-closed) and `esploraWriteProofCheck`
+  (`unanswered: 'throw'` for a verifier that must say it could not tell).
+- A read that gets no answer reaches the caller as `UnansweredReadError`: the
+  host's keys while reading a version's binding (`readVersionBinding`,
+  `resolveChannelChain`), and the chain through `esploraWriteProofCheck` when
+  asked. The entries share one copy of that class.
 - Vectors `vc07`, `vc08`, `vc14`–`vc20` run in CI against the spec checkout.

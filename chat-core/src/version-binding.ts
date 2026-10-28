@@ -12,7 +12,7 @@ import {
 } from '@orangecheck/lock-device';
 
 import { verifyNostrEvent } from './event';
-import type { VerifyBip322 } from './read';
+import { UnansweredReadError, type VerifyBip322 } from './read';
 import {
     parseSessionDeviceEvent,
     sessionDeviceRevoked,
@@ -38,6 +38,7 @@ export type Liveness = 'live' | 'revoked' | 'unknown';
 
 /** What reading a `binding` record needs: the host's keys (retired ones included) and a BIP-322 verifier. */
 export interface BindingVerifiers {
+    /** Throw UnansweredReadError when they could not be read; an empty list binds nothing. */
     hostKeys: () => Promise<readonly AuthHostKey[]>;
     verifyBip322: VerifyBip322;
 }
@@ -60,22 +61,25 @@ export async function readVersionBinding(
 ): Promise<VersionBinding | null> {
     const raw = bindingTag(ev);
     if (!raw) return null;
+    let rec: NostrEvent;
     try {
-        return await recordBinding(JSON.parse(raw) as NostrEvent, ev.pubkey, v);
+        rec = JSON.parse(raw) as NostrEvent;
     } catch {
         return null;
     }
+    return recordBinding(rec, ev.pubkey, v);
 }
 
-/** The principal a kind-30078 record binds `pubkey` to, or null. */
+/** The principal a kind-30078 record binds `pubkey` to, or null. Throws
+ *  UnansweredReadError when the host's keys could not be read. */
 export async function recordBinding(
     rec: NostrEvent,
     pubkey: string,
     v: BindingVerifiers
 ): Promise<VersionBinding | null> {
-    if (rec.kind !== 30078 || rec.pubkey !== pubkey || !verifyNostrEvent(rec)) return null;
-    const auth = rec.tags.find((t) => t[0] === 'auth')?.[1];
     try {
+        if (!rec || rec.kind !== 30078 || rec.pubkey !== pubkey || !verifyNostrEvent(rec)) return null;
+        const auth = rec.tags.find((t) => t[0] === 'auth')?.[1];
         if (auth === 'session') {
             const p = parseSessionDeviceEvent(rec);
             if (p.revoked || !p.vouch) return null;
@@ -104,7 +108,9 @@ export async function recordBinding(
             signature: p.bindingSigBase64,
         });
         return ok === true ? { kind: 'btc', principal: p.address, pubkey, record: p } : null;
-    } catch {
+    } catch (e) {
+        // A read with no answer (the host's keys) proves nothing: the caller hears it.
+        if (e instanceof UnansweredReadError) throw e;
         return null;
     }
 }
