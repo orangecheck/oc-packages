@@ -17,13 +17,14 @@ import {
     authorizedCopy,
     channelId,
     descriptorId,
+    readChannelVersions,
     resolveChannelChain,
     versionDtag,
     type DescriptorContent,
 } from './channel';
 import type { NostrEvent } from './event';
 import { UnansweredReadError } from './read';
-import { stepUpAddress } from './records';
+import { recordReads, stepUpAddress } from './records';
 import { VOUCH_JWS_TYP, type AuthHostKey } from './session';
 import { readVersionBinding, recordBinding, type VersionBinding } from './version-binding';
 
@@ -308,5 +309,64 @@ describe('a read of the host keys that gets no answer is not a missing binding',
     it('a binding tag that is not a record binds nothing', async () => {
         const bad = { ...version(founderKey, genesis), tags: [['binding', 'null']] };
         expect(await readVersionBinding(bad, { hostKeys, verifyBip322: never })).toBeNull();
+    });
+});
+
+describe('readChannelVersions: complete only when every relay asked answered every read', () => {
+    const ev = version(founderKey, genesis);
+    const queryWith = (eose: boolean[]) => async () => ({ events: [ev], relayStatus: eose.map((e) => ({ eose: e })) });
+    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true });
+
+    it('one relay silent: complete is false, so "no newer version" cannot be said', async () => {
+        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, false]), everBoundKeys: keys }, FOUNDER);
+        expect(r.events.map((e) => e.id)).toEqual([ev.id]);
+        expect(r.complete).toBe(false);
+    });
+
+    it('every relay answering: complete', async () => {
+        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, true]), everBoundKeys: keys }, FOUNDER);
+        expect(r.complete).toBe(true);
+    });
+});
+
+describe('recordReads.liveness for an address binding with a relay that did not answer', () => {
+    const ADDR = 'bc1qmr7qn2t0ahj56ztpdswt54kn2r863ukd8wadj8';
+    const kp = generateDeviceKey();
+    const { nostrPk } = deriveNostrKey(kp.device_sk);
+    const bind = finalizeDeviceEvent({
+        deviceSk: kp.device_sk,
+        address: ADDR,
+        device_id: kp.device_id,
+        device_pk: kp.device_pk,
+        bindingStatement: buildBindingStatement({
+            address: ADDR,
+            device_pk: kp.device_pk,
+            device_id: kp.device_id,
+            created_at: '2026-09-01T00:00:00.000Z',
+            nostr_pk: nostrPk,
+        }),
+        bindingSigBase64: 'c2ln',
+    });
+    const revoke = finalizeDeviceEvent({
+        deviceSk: kp.device_sk,
+        address: ADDR,
+        device_id: kp.device_id,
+        device_pk: 'revoked',
+        bindingStatement: `oc-lock:device-revoke:v2\naddress: ${ADDR}\ndevice_id: ${kp.device_id}\nrevoked_at: 2026-10-01T00:00:00.000Z\n`,
+        bindingSigBase64: 'c2ln',
+    });
+    const reads = (events: NostrEvent[], complete: boolean) =>
+        recordReads(async () => ({ events, answered: true, complete }), {
+            hostKeys,
+            verifyBip322: () => true,
+            now: () => new Date('2026-10-20T00:00:00Z'),
+        });
+
+    it('live needs every relay; a revocation seen is revoked on any answer', async () => {
+        const b = await recordBinding(bind, nostrPk, { hostKeys, verifyBip322: () => true });
+        expect(b?.kind).toBe('btc');
+        expect(await reads([bind], false).liveness(b!)).toBe('unknown');
+        expect(await reads([bind], true).liveness(b!)).toBe('live');
+        expect(await reads([bind, revoke], false).liveness(b!)).toBe('revoked');
     });
 });
