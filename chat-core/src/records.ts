@@ -46,8 +46,10 @@ export function addressKeysEverBound(verified: readonly ParsedDeviceEvent[], now
 /**
  * The kind-30078 records the relays hold under a principal's d-tag; whether one
  * finished answering; and, when the caller knows, whether every relay asked did
- * (`complete`). A bind seen on any relay counts, but "this key is not bound"
- * needs every relay's answer.
+ * (`complete`). A record seen on any relay counts. A conclusion that rests on a
+ * record not being there needs every relay's answer: "bound now" and "live"
+ * (no revocation seen), and "not bound". With `complete: false` those are not
+ * read.
  */
 export type RecordLookup = (
     principal: string
@@ -63,10 +65,10 @@ export interface RecordReadOptions {
 
 /** The binding reads a resolver needs, answered from looked-up records. */
 export interface RecordReads {
-    /** The keys a principal's records bind now, or 'no-answer'. */
+    /** The keys a principal's records bind now, or 'no-answer' (also when a relay asked did not answer). */
     boundKeys(principal: string): Promise<string[] | 'no-answer'>;
-    /** Throws UnansweredReadError when no relay answered, and when the key is not
-     *  bound by the relays that answered while another did not (`complete: false`). */
+    /** Throws UnansweredReadError when no relay answered, or when one asked did not
+     *  (`complete: false`): "bound now" and "not bound" both rest on what was not seen. */
     isBound: IsBound;
     liveness(b: VersionBinding): Promise<Liveness>;
     everBoundKeys(principal: string): Promise<{ keys: string[]; answered: boolean }>;
@@ -81,48 +83,59 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
         return looked.get(p)!;
     };
     const verified = async (address: string) => {
-        const { events, answered } = await records(address);
-        return { answered, verified: await verifyDeviceRecords(events, address, { verifyBip322: opts.verifyBip322 }) };
+        const { events, answered, complete } = await records(address);
+        return {
+            answered,
+            complete: complete !== false,
+            verified: await verifyDeviceRecords(events, address, { verifyBip322: opts.verifyBip322 }),
+        };
     };
     const sessionEvents = async (didOc: string) => {
-        const { events, answered } = await records(didOc);
+        const { events, answered, complete } = await records(didOc);
         // Only records signed by the key they name count for anything (§8.6).
-        return { answered, events: events.filter(verifyNostrEvent) };
+        return { answered, complete: complete !== false, events: events.filter(verifyNostrEvent) };
     };
+    // Which keys are bound now rests on no revocation being seen: every relay asked must answer.
     const boundKeys = async (principal: string): Promise<string[] | 'no-answer'> => {
         if (isDidOc(principal)) {
-            const { events, answered } = await sessionEvents(principal);
-            if (!answered) return 'no-answer';
+            const { events, answered, complete } = await sessionEvents(principal);
+            if (!answered || !complete) return 'no-answer';
             const keys = events.length > 0 ? await opts.hostKeys() : [];
             return liveSessionDevices(events, principal, keys).map((d) => d.nostrPubkey);
         }
         const v = await verified(principal);
-        if (!v.answered) return 'no-answer';
+        if (!v.answered || !v.complete) return 'no-answer';
         return boundNostrKeys(v.verified, { now: now() });
     };
     return {
         boundKeys,
         async isBound(pubkey, principal) {
             const keys = await boundKeys(principal);
-            if (keys === 'no-answer') throw new UnansweredReadError();
-            if (keys.includes(pubkey)) return true;
-            // A relay that did not answer may hold the record that binds it.
-            if ((await records(principal)).complete === false) {
-                throw new UnansweredReadError('a relay that did not answer may bind this key');
+            if (keys === 'no-answer') {
+                const { answered } = await records(principal);
+                throw new UnansweredReadError(
+                    answered
+                        ? 'a relay that did not answer may hold a record that binds or revokes this key'
+                        : undefined
+                );
             }
-            return false;
+            return keys.includes(pubkey);
         },
+        // A revocation seen settles 'revoked' on any answer; 'live' rests on none being
+        // seen, so it needs every relay asked.
         async liveness(b) {
             if (b.kind === 'btc') {
                 const v = await verified(b.principal);
                 if (!v.answered) return 'unknown';
-                return btcBindingLive(b, v.verified, now()) ? 'live' : 'revoked';
+                if (!btcBindingLive(b, v.verified, now())) return 'revoked';
+                return v.complete ? 'live' : 'unknown';
             }
-            const { events, answered } = await sessionEvents(b.principal);
+            const { events, answered, complete } = await sessionEvents(b.principal);
             if (!answered) return 'unknown';
             const keys = await opts.hostKeys();
             if (keys.length === 0) return 'unknown';
-            return sessionBindingRevoked(b, events, keys) ? 'revoked' : 'live';
+            if (sessionBindingRevoked(b, events, keys)) return 'revoked';
+            return complete ? 'live' : 'unknown';
         },
         async everBoundKeys(principal) {
             if (isDidOc(principal)) {

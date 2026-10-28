@@ -932,13 +932,14 @@ function founderFrom(e: NostrEvent, cid: string): string | null {
  * keys signed, then forward by `s` from each of those, by the keys of the role
  * holders that version names. Then back by exact d-tag to any version a
  * `supersedes` names, the parents role holders named first. Every copy is
- * kept. Throws UnansweredReadError when no read was answered.
+ * kept. Throws UnansweredReadError when no read was answered. `complete` is
+ * false when any relay asked missed any read, so a newer version may exist.
  */
 export async function readChannelVersions(
     cid: string,
     reads: VersionReads,
     founderHint?: string
-): Promise<{ events: NostrEvent[]; truncated: boolean; incomplete: boolean }> {
+): Promise<{ events: NostrEvent[]; truncated: boolean; incomplete: boolean; complete: boolean }> {
     const queryEvents = reads.query;
     const merged = new Map<string, NostrEvent>();
     const status: { eose: boolean }[] = [];
@@ -1075,6 +1076,8 @@ export async function readChannelVersions(
         events: answeredEvents({ events: [...merged.values()], relayStatus: status }),
         truncated,
         incomplete,
+        // Every relay asked finished every read: only then can "no newer version" be said.
+        complete: status.every((s) => s.eose),
     };
 }
 

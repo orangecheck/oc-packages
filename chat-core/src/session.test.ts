@@ -237,22 +237,33 @@ describe('which session keys bind (§8.6)', () => {
     });
 });
 
-describe('recordReads.isBound with a relay that did not answer (complete: false)', () => {
+describe('recordReads with a relay that did not answer (complete: false)', () => {
     const reads = (events: NostrEvent[], complete: boolean | undefined) =>
         recordReads(async () => ({ events, answered: true, ...(complete === undefined ? {} : { complete }) }), {
             hostKeys: async () => [HOST_KEY],
             verifyBip322: () => true,
         });
+    const binding = (d: ReturnType<typeof device>) =>
+        ({ kind: 'session', principal: DID, pubkey: d.nostrPk, deviceId: d.kp.device_id, issuedAt: 1780000000 }) as const;
 
-    it('a key the answering relays bind is bound, whatever another relay did', async () => {
+    it('"bound now" and "not bound" are not read: the silent relay may hold a revocation or a bind', async () => {
         const d = device();
-        expect(await reads([d.record], false).isBound(d.nostrPk, DID)).toBe(true);
+        await expect(reads([d.record], false).isBound(d.nostrPk, DID)).rejects.toThrow(/did not answer/);
+        await expect(reads([], false).isBound(d.nostrPk, DID)).rejects.toThrow(/did not answer/);
+        expect(await reads([d.record], false).boundKeys(DID)).toBe('no-answer');
     });
 
-    it('a key they do not bind is not read while another relay was silent, and unbound once every relay answered', async () => {
+    it('with every relay answering, or completeness not reported, they decide', async () => {
         const d = device();
-        await expect(reads([], false).isBound(d.nostrPk, DID)).rejects.toThrow('a relay that did not answer may bind this key');
+        expect(await reads([d.record], true).isBound(d.nostrPk, DID)).toBe(true);
         expect(await reads([], true).isBound(d.nostrPk, DID)).toBe(false);
-        expect(await reads([], undefined).isBound(d.nostrPk, DID)).toBe(false);
+        expect(await reads([d.record], undefined).isBound(d.nostrPk, DID)).toBe(true);
+    });
+
+    it('liveness: a revocation seen is revoked on any answer; live needs every relay', async () => {
+        const d = device();
+        expect(await reads([d.record, ownRevocation(d)], false).liveness(binding(d))).toBe('revoked');
+        expect(await reads([d.record], false).liveness(binding(d))).toBe('unknown');
+        expect(await reads([d.record], true).liveness(binding(d))).toBe('live');
     });
 });
