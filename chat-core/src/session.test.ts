@@ -195,6 +195,35 @@ describe('which session keys bind (§8.6)', () => {
         expect(new Set(keys)).toEqual(new Set([d.nostrPk, e.nostrPk, f.nostrPk]));
     });
 
+    it('recordReads.everBoundKeys reads a did:oc by §8.6: vouched keys, revoked ones included, and whether a relay answered', async () => {
+        const d = device();
+        const e = device();
+        const f = device();
+        const held = [ownRevocation(d), hostRevocation(e), f.record];
+        const lookups: string[] = [];
+        const reads = (answered: boolean) =>
+            recordReads(
+                async (p) => {
+                    lookups.push(p);
+                    return { events: held, answered };
+                },
+                { hostKeys: async () => [HOST_KEY], verifyBip322: () => true }
+            );
+        const got = await reads(true).everBoundKeys(DID);
+        expect(new Set(got.keys)).toEqual(new Set([d.nostrPk, e.nostrPk, f.nostrPk]));
+        expect(got.answered).toBe(true);
+        expect(lookups).toEqual([DID]);
+        expect((await reads(false).everBoundKeys(DID)).answered).toBe(false);
+        // Only the vouched keys: a record without a vouch binds nothing, ever.
+        const kp = generateDeviceKey();
+        const bare = record(kp.device_sk, { device_id: kp.device_id, device_pk: kp.device_pk, binding_sig: '' });
+        const unvouched = recordReads(async () => ({ events: [bare], answered: true }), {
+            hostKeys: async () => [HOST_KEY],
+            verifyBip322: () => true,
+        });
+        expect((await unvouched.everBoundKeys(DID)).keys).toEqual([]);
+    });
+
     it('recordReads answers isBound from the records, and refuses to guess when no relay answered', async () => {
         const d = device();
         const reads = (answered: boolean) =>
