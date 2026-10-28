@@ -18,10 +18,10 @@ accounting, and that a person reviews the request within 48 hours. It now says
 which records stay: payment records keep their amounts and times for
 accounting; the audit log and the deletion request stay, without the reason
 you gave; each keeps the account only as a keyed id, or not at all; and on
-cosign, your messages in other people's threads and the reports you filed stay,
-with your account taken off them. It says a person completes the request and
-that we aim to do that within 48 hours, with an alert when one has waited a
-day. The "at a glance" line on deletion now points to that section. The erasure
+cosign, your messages in conversations with other people and the reports you
+filed stay, with your account taken off them. It says a person completes the
+request and that we aim to do that within 48 hours, with an alert when one has
+waited a day. The "at a glance" line on deletion now points to that section. The erasure
 email and ochk.app's deletion page say the same. The Privacy policy is dated
 2026-10-28.
 
