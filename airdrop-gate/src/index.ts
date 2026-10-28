@@ -28,8 +28,10 @@ export interface FilterAllowlistOptions {
     minDays?: number;
 
     /**
-     * How many concurrent `check()` calls to run. Default 4 — tune up to the
-     * hosted API's rate budget. The free /api/check tier allows 60 req/min/IP.
+     * How many concurrent `check()` calls to run. Default 4. Each call runs in
+     * this process and reads the Nostr relays and the SDK's default Esplora API
+     * (mempool.space), so their rate limits set the ceiling; there is no
+     * OrangeCheck-hosted service in the path.
      */
     concurrency?: number;
 

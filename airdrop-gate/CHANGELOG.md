@@ -9,7 +9,11 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Docs
+
+- The `concurrency` option's comment and the README's Rate limits section say
+  what sets the ceiling: the Nostr relays and the Esplora API that `check()`
+  reads from your process. No OrangeCheck-hosted tier is in the path.
 
 ## [0.2.3] — 2026-10-25
 

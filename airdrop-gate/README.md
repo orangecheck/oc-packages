@@ -37,7 +37,7 @@ const { ok, rejected } = await filterAllowlist(candidates, {
 | --------------- | ------------ | ---------------------------------------------------------------------------------------- |
 | `minSats`       | `0`          | Minimum sats bonded.                                                                     |
 | `minDays`       | `0`          | Minimum days unspent.                                                                    |
-| `concurrency`   | `4`          | Parallel `check()` calls. Tune up to your hosted-API rate budget (60/min/IP on ochk.io — self-host for higher). |
+| `concurrency`   | `4`          | Parallel `check()` calls. The relays' and Esplora's rate limits set the ceiling (see Rate limits). |
 | `onProgress`    | —            | `(done, total, last?) => void` — fires after every candidate.                            |
 | `relays`        | SDK defaults | Override Nostr discovery relays.                                                         |
 | `rejectOnError` | `true`       | Treat SDK failures as rejection. Set `false` to surface errors to the caller.            |
@@ -147,7 +147,7 @@ console.log(`${ok.length} qualify; ${rejected.length} rejected`);
 
 ## Rate limits
 
-The free hosted `/api/check` tier allows 60 requests per minute per IP. That's 3 600 candidates/hour. For larger drops, deploy your own verifier (the whole SDK is open source — point `filterAllowlist()`'s `relays` at your own Nostr + the SDK at your own Esplora) or contact us for a higher-tier hosted key.
+`filterAllowlist()` calls no OrangeCheck-hosted service. Each candidate is a `check()` run in your process: it reads the Nostr relays (the SDK's defaults, or your own through `relays`) and the SDK's default Esplora API (mempool.space). Their rate limits are the ceiling, so keep `concurrency` modest for a large list, or point `relays` at relays you run.
 
 ---
 
