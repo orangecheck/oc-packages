@@ -189,7 +189,8 @@ test('the ochk.app privacy policy says when an operator can delete, and what the
         'stay public under the key, with what you wrote in them',
         "exit records and machine reports stay visible to that federation's guardians and to us",
         'We keep a record that your account was deleted, out of public view',
-        "Receipts and that record are kept under a keyed id, so the record by itself doesn't say whose account it was",
+        // Receipts, the request and that record: each named once, under the deletion's own sentence.
+        "Each keeps your account only as a keyed id, or not at all, so the record by itself doesn't say whose account it was",
     ]) {
         assert.ok(text.includes(fact), fact);
     }
@@ -247,4 +248,22 @@ test('the ochk.app privacy policy says how long backups and cached copies of a d
     const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
     assert.ok(text, 'me/privacy renders');
     assert.ok(text.includes('Backups roll off within 30 days, and copies cached by our CDN expire within a day.'));
+});
+
+// What a deletion keeps, in the words the erasure email and ochk.app's deletion page use.
+test('the ochk.app privacy policy says what a deletion keeps, and that 48 hours is an aim', () => {
+    const [, text] = DOCS.find(([name]) => name === 'me/privacy') ?? [];
+    assert.ok(text, 'me/privacy renders');
+    for (const said of [
+        'and erases your data on ochk.io, me.ochk.io, vault, chat and cosign, except a few records.',
+        'Payment records keep their amounts and times for accounting, and our audit log and your deletion request stay, without the reason you gave.',
+        "Each keeps your account only as a keyed id, or not at all, so the record by itself doesn't say whose account it was.",
+        "On cosign, your messages in other people's threads and the reports you filed stay, with your account taken off them.",
+        'A person completes the request, and we aim to do that within 48 hours: an alert tells us when one has waited a day.',
+        'your data is erased, except the few records named under identity & account deletion',
+    ]) {
+        assert.ok(text.includes(said), said);
+    }
+    assert.ok(!text.includes('reviews the request within 48 hours'), 'no 48-hour promise');
+    assert.ok(!/your data is erased and your sign-in closes/.test(text), 'no unqualified erasure');
 });
