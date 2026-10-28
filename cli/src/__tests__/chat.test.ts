@@ -445,3 +445,47 @@ describe('oc chat verify: the write gate, and reads that get no answer', () => {
 
 /** The relay reads of one network, to lay over another's ochk.io and chain reads. */
 const pick = (n: ChatNet) => ({ query: n.query, records: n.records });
+
+describe('oc chat verify: where a version event stands', () => {
+    // G, then the founder's edit V2 on it; G2 another genesis of the founder's, on a branch V2 outgrows.
+    const v2Content: DescriptorContent = { ...genesis, title: 'Town, edited', created_at: 1780000150, supersedes: descriptorId(genesis) };
+    const v2 = versionBy(founder.nostrSk, founder.nostrPk, v2Content, founder.record);
+    const g2Content: DescriptorContent = { ...genesis, title: 'Town, again', created_at: 1780000120 };
+    const g2 = versionBy(founder.nostrSk, founder.nostrPk, g2Content, founder.record);
+    const relays = () => net([version, v2, g2, founder.record]);
+    const detail = async (ev: NostrEvent) => {
+        stdout = '';
+        const code = await run({ file: file(ev), json: true }, relays());
+        return { code, ...JSON.parse(stdout).detail };
+    };
+
+    it('the tip is on the chain and is the tip', async () => {
+        expect(await detail(v2)).toMatchObject({ code: 0, on_resolved_chain: true, is_tip: true, on_relays: true });
+    });
+
+    it('an earlier version is on the chain and is not the tip', async () => {
+        expect(await detail(version)).toMatchObject({ code: 0, on_resolved_chain: true, is_tip: false });
+    });
+
+    it('an authorized version on a branch the chain does not take is neither', async () => {
+        expect(await detail(g2)).toMatchObject({ code: 0, on_resolved_chain: false, is_tip: false });
+    });
+
+    it('a genuine founder copy the relays do not hold stands by its binding, and says it is not on the relays', async () => {
+        stdout = '';
+        expect(await run({ file: file(version), json: true }, net([founder.record]))).toBe(0);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('verified');
+        expect(r.detail).toMatchObject({ on_relays: false, is_tip: true });
+    });
+});
+
+describe('oc chat verify: a tip answer that is not a number', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('is NOT READ, exit 2', async () => {
+        const text = () => ({ ok: true, text: async () => 'not a height', json: async () => ({}) }) as unknown as Response;
+        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: text })))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+});

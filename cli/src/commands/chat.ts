@@ -188,10 +188,12 @@ function report(subject: string, checks: Check[], notChecked: string[], extra?: 
 const reads = (net: ChatNet) =>
     recordReads(net.records, { hostKeys: net.hostKeys, verifyBip322 });
 
-async function resolveChannel(cid: string, net: ChatNet, founder?: string) {
+/** Resolve a channel from what the relays hold, plus `given` when the caller holds an event of it. */
+async function resolveChannel(cid: string, net: ChatNet, founder?: string, given?: NostrEvent) {
     const r = reads(net);
     const read = await readChannelVersions(cid, { query: net.query, everBoundKeys: r.everBoundKeys }, founder);
-    const resolved = await resolveChannelChain(read.events, cid, {
+    const events = given && !read.events.some((e) => e.id === given.id) ? [...read.events, given] : read.events;
+    const resolved = await resolveChannelChain(events, cid, {
         isBound: r.isBound,
         liveness: r.liveness,
         hostKeys: net.hostKeys,
@@ -252,14 +254,17 @@ async function verifyVersion(ev: NostrEvent, net: ChatNet | null, founder?: stri
         notChecked.push('binding: the version carries no binding tag (published before 0.3.0); its key is bound only by records on the relays');
     }
     if (!net) return report('channel version', checks, [...notChecked, SKIPPED.relays]);
-    const { resolved } = await resolveChannel(c.channel_id, net, founder);
+    // The event is judged by the rules with what the relays hold: authorship rests on
+    // its binding (§8.3.1), not on a relay keeping it, so one the relays lack can stand.
+    const { resolved, read } = await resolveChannel(c.channel_id, net, founder, ev);
     // This event, not just its content: the same content under another key is
     // another event, and the descriptor id does not tell them apart.
     const standing = authorizedCopy(resolved, ev);
-    checks.push({ check: 'the channel resolves from what the relays hold', ok: resolved !== null });
+    checks.push({ check: 'the channel resolves from what the relays hold and this event', ok: resolved !== null });
     checks.push({ check: 'this event is an authorized copy of a version (§8.3.1)', ok: standing !== null });
     return report('channel version', checks, notChecked.filter((n) => !n.startsWith('binding')), {
         descriptor_id: did,
+        on_relays: read.events.some((e) => e.id === ev.id),
         on_resolved_chain: standing?.onChain ?? false,
         is_tip: standing?.isTip ?? false,
         channel: chainDetail(resolved),
