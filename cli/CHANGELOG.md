@@ -20,11 +20,12 @@ this file tracks the package's TS / Node / runtime API surface.
   binding, and `on_relays` says whether a relay holds it. A verdict that
   rests on something not being on the relays (no revocation, no newer
   version, no earlier claim) needs every read to meet chat-core's read floor
-  (OC Chat SPEC §8.7): 3 of the 4 default relays, `readFloor(asked)` for
-  `--relays`. Below it the verdict is NOT READ; a failure the event itself
+  (OC Chat SPEC §8.7): device records and revocations are read from
+  nostr-core's five relays, the set OC Lock counts over (4 of 5 must answer),
+  and channel versions and posts from chat's four (3 of 4); `--relays` sets
+  both, with `readFloor(asked)`. Below it the verdict is NOT READ; a failure the event itself
   shows stands. The output names every relay that missed a read, the reads
-  below the floor, and in VERIFIED how many relays answered every read and
-  what the floor was.
+  below their floor, and in VERIFIED how many relays answered every read.
   `resolves` says whether the channel resolves, and `channel` is its chain when
   it does. A NOT READ report always carries `detail`, with the same keys for its
   subject whether a read failed outright or the verdict rested on it: the

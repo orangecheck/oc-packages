@@ -23,7 +23,9 @@ import {
     channelId,
     descriptorDtag,
     descriptorId,
+    CHAT_RELAYS,
     deviceDtag,
+    DEVICE_RECORD_RELAYS,
     isValidHandle,
     parseDescriptor,
     parsePost,
@@ -63,8 +65,6 @@ import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 import { die, readStdin } from '../util';
 
-/** chat.ochk.io's relays. */
-export const CHAT_RELAYS = ['wss://relay.ochk.io', 'wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net'];
 const ESPLORA = 'https://mempool.space/api';
 const TIMEOUT_MS = 8000;
 
@@ -163,8 +163,8 @@ export interface RelayReport {
     asked: number;
     answered: number;
     reads: number;
-    /** What a read of every relay asked needs: `readFloor(asked)`. */
-    floor: number;
+    /** Each floor the reads below it needed, as "4 of 5": `readFloor` of the relays that read asked. */
+    floors_missed: string[];
     below_floor: number;
     silent: { relay: string; missed: number }[];
 }
@@ -174,10 +174,14 @@ export function relayTally() {
     const missed = new Map<string, number>();
     let reads = 0;
     let below = 0;
+    const floorsMissed = new Set<string>();
     return {
         note(status: readonly { relay: string; eose: boolean }[]) {
             reads++;
-            if (!meetsReadFloor(status)) below++;
+            if (!meetsReadFloor(status)) {
+                below++;
+                floorsMissed.add(`${readFloor(status.length)} of ${status.length}`);
+            }
             for (const s of status) missed.set(s.relay, (missed.get(s.relay) ?? 0) + (s.eose ? 0 : 1));
         },
         report(): RelayReport {
@@ -186,7 +190,7 @@ export function relayTally() {
                 asked: missed.size,
                 answered: missed.size - silent.length,
                 reads,
-                floor: readFloor(missed.size),
+                floors_missed: [...floorsMissed],
                 below_floor: below,
                 silent,
             };
@@ -196,7 +200,13 @@ export function relayTally() {
 
 const rawQuery: RawQuery = async (filter, relays) => queryEvents(filter as never, relays, TIMEOUT_MS);
 
-export function liveNet(relays: readonly string[], esplora = ESPLORA, raw: RawQuery = rawQuery): ChatNet {
+export function liveNet(
+    relays: readonly string[],
+    esplora = ESPLORA,
+    raw: RawQuery = rawQuery,
+    // Device records and revocations: the set OC Lock counts over (chat-core DEVICE_RECORD_RELAYS).
+    recordRelays: readonly string[] = relays
+): ChatNet {
     const timed: typeof fetch = (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
     const tally = relayTally();
     const ask: RawQuery = async (filter, to) => {
@@ -210,7 +220,7 @@ export function liveNet(relays: readonly string[], esplora = ESPLORA, raw: RawQu
         query,
         // A bind any answering relay holds counts; "not bound" needs the floor (chat-core recordReads).
         records: async (principal) => {
-            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)] }, relays);
+            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)] }, recordRelays);
             return { events: res.events, relayStatus: res.relayStatus };
         },
         relays: () => tally.report(),
@@ -511,7 +521,7 @@ export function render(r: Report): string {
         }
     }
     const answered = r.relays
-        ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read; the floor is ${r.relays.floor})`
+        ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read; every read met its floor)`
         : '';
     const verdict = {
         verified: `VERIFIED${answered}`,
@@ -521,6 +531,15 @@ export function render(r: Report): string {
     }[r.verdict];
     lines.push(verdict);
     return lines.join('\n');
+}
+
+/**
+ * The relays a run reads: channel versions and posts from OC Chat's four, device records
+ * and revocations from the set OC Lock counts over (SPEC §8.7). `--relays` replaces both.
+ */
+export function relaySets(given?: string): { relays: readonly string[]; recordRelays: readonly string[] } {
+    const list = given ? given.split(',').map((s) => s.trim()).filter(Boolean) : null;
+    return list ? { relays: list, recordRelays: list } : { relays: CHAT_RELAYS, recordRelays: DEVICE_RECORD_RELAYS };
 }
 
 export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null): Promise<void> {
@@ -534,11 +553,11 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
             die('input is not JSON');
         }
     }
-    const relays = opts.relays ? opts.relays.split(',').map((s) => s.trim()).filter(Boolean) : CHAT_RELAYS;
+    const { relays, recordRelays } = relaySets(opts.relays);
     if (!opts.offline && net === undefined && typeof (globalThis as { WebSocket?: unknown }).WebSocket !== 'function') {
         die('reading the relays needs a WebSocket global (Node 22 or later); run with --offline, or upgrade Node');
     }
-    const n = opts.offline ? null : (net ?? liveNet(relays, opts.esplora ?? ESPLORA));
+    const n = opts.offline ? null : (net ?? liveNet(relays, opts.esplora ?? ESPLORA, rawQuery, recordRelays));
     const r = await verifyChat(opts, input, n);
     // A verdict that rests on something being absent stands only on reads that met the
     // read floor (chat-core readFloor, SPEC §8.7): a revocation, binding or version
@@ -553,7 +572,7 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         r.relays = tally;
         if (tally.below_floor > 0) {
             r.not_checked.push(
-                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering than the floor (${tally.floor} of ${tally.asked}): a revocation, newer version or record may not have been seen`
+                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering than their floor (${tally.floors_missed.join(', ')}): a revocation, newer version or record may not have been seen`
             );
             for (const s of tally.silent) r.not_checked.push(`relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads`);
         }

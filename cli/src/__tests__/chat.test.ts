@@ -11,8 +11,10 @@ import { join } from 'node:path';
 import { ed25519 } from '@noble/curves/ed25519';
 import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import {
+    CHAT_RELAYS,
     channelId,
     descriptorId,
+    DEVICE_RECORD_RELAYS,
     deviceDtag,
     postDtag,
     postId,
@@ -28,10 +30,10 @@ import {
     generateDeviceKey,
     signNostrEvent,
 } from '@orangecheck/lock-device';
-import { matchFilter } from '@orangecheck/nostr-core';
+import { DEFAULT_RELAYS, matchFilter } from '@orangecheck/nostr-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { liveNet, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
+import { liveNet, relaySets, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
 
 class ExitCalled extends Error {
     constructor(public code: number) {
@@ -553,22 +555,22 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(await run({ file: file(version), json: true }, four([version, founder.record], {}, [D]))).toBe(0);
         const r = JSON.parse(stdout);
         expect(r.verdict).toBe('verified');
-        expect(r.relays).toMatchObject({ asked: 4, answered: 3, floor: 3, below_floor: 0, silent: [{ relay: D }] });
+        expect(r.relays).toMatchObject({ asked: 4, answered: 3, floors_missed: [], below_floor: 0, silent: [{ relay: D }] });
         expect(r.not_checked).toEqual([]);
         stdout = '';
         expect(await run({ file: file(version) }, four([version, founder.record], {}, [D]))).toBe(0);
         expect(stdout).toContain('relay  wss://d.example did not answer');
-        expect(stdout).toContain('VERIFIED (3 of 4 relays answered every read; the floor is 3)');
+        expect(stdout).toContain('VERIFIED (3 of 4 relays answered every read; every read met its floor)');
     });
 
     it('below the floor (2 of 4) a verdict that rests on an absence is NOT READ, naming the short reads and the silent relays', async () => {
         expect(await run({ file: file(version), json: true }, four([version, founder.record], {}, [C, D]))).toBe(2);
         const r = JSON.parse(stdout);
         expect(r.verdict).toBe('unread');
-        expect(r.relays).toMatchObject({ asked: 4, answered: 2, floor: 3 });
+        expect(r.relays).toMatchObject({ asked: 4, answered: 2, floors_missed: ['3 of 4'] });
         expect(r.relays.below_floor).toBeGreaterThan(0);
         const why = r.not_checked.join('\n');
-        expect(why).toMatch(/\d+ of \d+ reads had fewer relays answering than the floor \(3 of 4\)/);
+        expect(why).toMatch(/\d+ of \d+ reads had fewer relays answering than their floor \(3 of 4\)/);
         expect(why).toMatch(/relay wss:\/\/c\.example did not answer \d+ of \d+ reads/);
         expect(why).toMatch(/relay wss:\/\/d\.example did not answer/);
         stdout = '';
@@ -724,17 +726,40 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
     it('with every relay answering, nothing is left unchecked', async () => {
         expect(await run({ file: file(version), json: true }, four([version, founder.record]))).toBe(0);
         const r = JSON.parse(stdout);
-        expect(r.relays).toMatchObject({ asked: 4, answered: 4, floor: 3, below_floor: 0, silent: [] });
+        expect(r.relays).toMatchObject({ asked: 4, answered: 4, floors_missed: [], below_floor: 0, silent: [] });
         expect(r.not_checked).toEqual([]);
         stdout = '';
         expect(await run({ file: file(version) }, four([version, founder.record]))).toBe(0);
-        expect(stdout).toContain('VERIFIED (4 of 4 relays answered every read; the floor is 3)');
+        expect(stdout).toContain('VERIFIED (4 of 4 relays answered every read; every read met its floor)');
         expect(stdout).not.toContain('  relay  ');
+    });
+
+    it('by default device records are read from nostr-core’s five and versions from chat’s four; --relays sets both', () => {
+        expect(relaySets()).toEqual({ relays: CHAT_RELAYS, recordRelays: DEVICE_RECORD_RELAYS });
+        expect(DEVICE_RECORD_RELAYS).toEqual(DEFAULT_RELAYS);
+        expect(relaySets(`${A}, ${B}`)).toEqual({ relays: [A, B], recordRelays: [A, B] });
+    });
+
+    it('device records over five relays: one silent meets their floor of 4, two do not', async () => {
+        const E = 'wss://e.example';
+        const versionsOn4 = (silent: string[]) => {
+            const byRelay = Object.fromEntries([...FOUR, E].map((r) => [r, silent.includes(r) ? null : [version, founder.record]]));
+            vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+            return liveNet(FOUR, 'https://esplora.test/api', relaysOf(byRelay), [...FOUR, E]);
+        };
+        // E is asked only for device records; silent, the records read still meets 4 of 5.
+        expect(await run({ file: file(version), json: true }, versionsOn4([E]))).toBe(0);
+        stdout = '';
+        // D silent too: the records read (3 of 5) falls below 4; the version reads (3 of 4) do not.
+        expect(await run({ file: file(version), json: true }, versionsOn4([D, E]))).toBe(2);
+        const r = JSON.parse(stdout);
+        expect(r.relays.floors_missed).toEqual(['4 of 5']);
+        expect(r.not_checked.join('\n')).toMatch(/fewer relays answering than their floor \(4 of 5\)/);
     });
 
     it('one relay asked: its answer is the floor, and its silence is NOT READ', async () => {
         expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record] }))).toBe(0);
-        expect(JSON.parse(stdout).relays).toMatchObject({ asked: 1, floor: 1, below_floor: 0 });
+        expect(JSON.parse(stdout).relays).toMatchObject({ asked: 1, floors_missed: [], below_floor: 0 });
         stdout = '';
         expect(await run({ file: file(version), json: true }, over({ [A]: null }))).toBe(2);
     });
