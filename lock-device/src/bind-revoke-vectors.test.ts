@@ -1,6 +1,7 @@
 // OC Lock test vectors b01, r01 and r02 (oc-lock-protocol test-vectors/device-binding at
 // 103ff4b, vendored byte for byte): this package's builders reproduce each statement, tag
-// list and event id, and its readers judge each case as the vector does.
+// list and event id, and its readers (verifyDeviceRecords, then liveDevices and
+// pendingDevices) judge each case as the vector does.
 import { readFileSync } from 'node:fs';
 
 import { x25519 } from '@noble/curves/ed25519';
@@ -20,9 +21,9 @@ import {
     pendingDevices,
     revokedAtFor,
     signNostrEvent,
+    verifyDeviceRecords,
     verifyNostrEvent,
     type NostrEvent,
-    type ParsedDeviceEvent,
 } from './index.js';
 
 const load = (name: string) =>
@@ -100,9 +101,8 @@ function matches(
     expect(verifyNostrEvent(built)).toBe(true);
 }
 
-// This package carries no BIP-322 verifier; readers verify before they call liveDevices.
-// The vectors name the signatures that verify (expected.*) and one that does not
-// (reject.revocation_bad_sig), so a record counts here exactly when the vector says it does.
+// This package takes its BIP-322 verifier from the caller. The vectors name the
+// signatures that verify (expected.*), so this one answers yes to exactly those.
 const verifies = new Set(
     [
         b01.expected,
@@ -113,15 +113,26 @@ const verifies = new Set(
         r02.expected.revocation_now,
     ].map((e) => `${e.statement}\u0000${e.binding_sig}`)
 );
-const named = (events: Record<string, Omit<NostrEvent, 'id' | 'sig'>>) => (name: string) =>
-    Object.assign(
-        parseDeviceEvent({ ...events[name]!, id: '0'.repeat(64), sig: '0'.repeat(128) }),
-        { name }
+const verifyBip322 = (a: { address: string; message: string; signature: string }) =>
+    a.address === b01.inputs.address && verifies.has(`${a.message}\u0000${a.signature}`);
+
+/** A case as a reader judges it: signed events, verifyDeviceRecords, then live and pending. */
+async function judge(events: Record<string, NostrEvent>, records: string[], now: Date) {
+    const name = new Map(Object.entries(events).map(([n, e]) => [e.id, n]));
+    const verified = await verifyDeviceRecords(
+        records.map((r) => events[r]!),
+        b01.inputs.address,
+        { verifyBip322 }
     );
-const verified = (records: (ParsedDeviceEvent & { name: string })[]) =>
-    records.filter((r) => verifies.has(`${r.bindingStatement}\u0000${r.bindingSigBase64}`));
-const names = (records: ParsedDeviceEvent[]) =>
-    records.map((r) => (r as ParsedDeviceEvent & { name: string }).name).sort();
+    const names = (rs: { eventId: string }[]) => rs.map((r) => name.get(r.eventId)!).sort();
+    return {
+        live: names(liveDevices(verified, { now })),
+        pending: names(pendingDevices(verified, { now })),
+    };
+}
+
+const b01Event = () =>
+    bindFrom(b01.inputs.device_sk, b01.inputs, b01.expected, b01.inputs.event_created_at);
 
 describe('test vector b01: a v3 bind', () => {
     it('derives the Nostr key from the device secret', () => {
@@ -132,12 +143,7 @@ describe('test vector b01: a v3 bind', () => {
     });
 
     it('builds the statement, tags and event id byte for byte', () => {
-        const ev = bindFrom(
-            b01.inputs.device_sk,
-            b01.inputs,
-            b01.expected,
-            b01.inputs.event_created_at
-        );
+        const ev = b01Event();
         matches(ev, b01.expected);
         expect(parseDeviceEvent(ev)).toMatchObject({
             address: b01.inputs.address,
@@ -161,24 +167,24 @@ describe('test vector b01: a v3 bind', () => {
 });
 
 describe('test vector r01: a revocation carried by another key', () => {
-    const events = {
-        b01: b01.expected.event,
-        revocation: r01.expected.revocation.event,
-        rebind: r01.expected.rebind.event,
-        revocation_bad_sig: r01.reject.revocation_bad_sig.event,
-    };
-
-    it('builds the revocation under the carrier key, byte for byte', () => {
-        const ev = carried(
+    const fields = { address: r01.inputs.address, device_id: r01.inputs.device_id };
+    const revocation = (bindingSig = r01.expected.revocation.binding_sig) =>
+        carried(
             r01.inputs.carrier_nostr_sk,
-            {
-                address: r01.inputs.address,
-                device_id: r01.inputs.device_id,
-                revoked_at: r01.inputs.revoked_at,
-            },
-            r01.expected.revocation,
+            { ...fields, revoked_at: r01.inputs.revoked_at },
+            { ...r01.expected.revocation, binding_sig: bindingSig },
             r01.inputs.revocation_event_created_at
         );
+    const rebind = () =>
+        bindFrom(
+            r01.inputs.rebind_device_sk,
+            { ...fields, created_at: r01.inputs.rebind_created_at },
+            r01.expected.rebind,
+            r01.inputs.rebind_event_created_at
+        );
+
+    it('builds the revocation under the carrier key, byte for byte', () => {
+        const ev = revocation();
         matches(ev, r01.expected.revocation);
         expect(ev.pubkey).not.toBe(b01.expected.nostr_pk);
         expect(parseDeviceEvent(ev)).toMatchObject({
@@ -188,17 +194,7 @@ describe('test vector r01: a revocation carried by another key', () => {
     });
 
     it('builds the re-bind signed after it, byte for byte', () => {
-        const ev = bindFrom(
-            r01.inputs.rebind_device_sk,
-            {
-                address: r01.inputs.address,
-                device_id: r01.inputs.device_id,
-                created_at: r01.inputs.rebind_created_at,
-            },
-            r01.expected.rebind,
-            r01.inputs.rebind_event_created_at
-        );
-        matches(ev, r01.expected.rebind);
+        matches(rebind(), r01.expected.rebind);
     });
 
     it('computes the id of the record whose signature does not verify', () => {
@@ -208,34 +204,54 @@ describe('test vector r01: a revocation carried by another key', () => {
         expect(bad.binding_sig).not.toBe(r01.expected.revocation.binding_sig);
     });
 
-    it.each(r01.expected.live.cases as { records: string[]; live: string[] }[])('$records', (c) => {
-        const records = verified(c.records.map(named(events)));
-        expect(names(liveDevices(records))).toEqual([...c.live].sort());
-    });
+    it.each(r01.expected.live.cases as { records: string[]; live: string[] }[])(
+        '$records',
+        async (c) => {
+            const events = {
+                b01: b01Event(),
+                revocation: revocation(),
+                rebind: rebind(),
+                // The vector does not give its carrier key, so its statement and
+                // binding_sig ride the r01 carrier: a valid event, a signature that is not.
+                revocation_bad_sig: revocation(r01.reject.revocation_bad_sig.binding_sig),
+            };
+            const now = new Date(r01.inputs.rebind_created_at);
+            expect((await judge(events, c.records, now)).live).toEqual([...c.live].sort());
+        }
+    );
 });
 
 describe('test vector r02: a bind dated ahead of the clock', () => {
-    const events = {
-        b01: b01.expected.event,
-        ahead: r02.expected.ahead.event,
-        revocation: r02.expected.revocation.event,
-        revocation_now: r02.expected.revocation_now.event,
-    };
     const fields = { address: r02.inputs.address, device_id: r02.inputs.device_id };
-
-    it('builds the bind dated ahead, byte for byte', () => {
-        const ev = bindFrom(
+    const ahead = () =>
+        bindFrom(
             r02.inputs.ahead_device_sk,
             { ...fields, created_at: r02.inputs.ahead_created_at },
             r02.expected.ahead,
             r02.inputs.event_created_at
         );
-        matches(ev, r02.expected.ahead);
+    const revocation = () =>
+        carried(
+            r02.inputs.carrier_nostr_sk,
+            { ...fields, revoked_at: r02.inputs.ahead_created_at },
+            r02.expected.revocation,
+            r02.inputs.event_created_at
+        );
+    const revocationNow = () =>
+        carried(
+            r02.inputs.carrier_now_nostr_sk,
+            { ...fields, revoked_at: r02.inputs.revoked_now_at },
+            r02.expected.revocation_now,
+            r02.inputs.event_created_at
+        );
+
+    it('builds the bind dated ahead, byte for byte', () => {
+        matches(ahead(), r02.expected.ahead);
     });
 
     it('dates the revocation at the bind, not at the clock, and builds it byte for byte', () => {
         const revokedAt = revokedAtFor(
-            [named(events)('ahead')],
+            [parseDeviceEvent(ahead())],
             r02.inputs.address,
             r02.inputs.device_id,
             new Date(r02.inputs.revoked_now_at)
@@ -251,13 +267,7 @@ describe('test vector r02: a bind dated ahead of the clock', () => {
     });
 
     it('builds the revocation dated at the clock, byte for byte', () => {
-        const ev = carried(
-            r02.inputs.carrier_now_nostr_sk,
-            { ...fields, revoked_at: r02.inputs.revoked_now_at },
-            r02.expected.revocation_now,
-            r02.inputs.event_created_at
-        );
-        matches(ev, r02.expected.revocation_now);
+        matches(revocationNow(), r02.expected.revocation_now);
     });
 
     it('judges with the skew the vector names', () => {
@@ -265,10 +275,16 @@ describe('test vector r02: a bind dated ahead of the clock', () => {
     });
 
     type Case = { records: string[]; verified_at: string; live: string[]; pending: string[] };
-    it.each(r02.expected.live.cases as Case[])('$records at $verified_at', (c) => {
-        const records = verified(c.records.map(named(events)));
-        const now = new Date(c.verified_at);
-        expect(names(liveDevices(records, { now }))).toEqual([...c.live].sort());
-        expect(names(pendingDevices(records, { now }))).toEqual([...c.pending].sort());
+    it.each(r02.expected.live.cases as Case[])('$records at $verified_at', async (c) => {
+        const events = {
+            b01: b01Event(),
+            ahead: ahead(),
+            revocation: revocation(),
+            revocation_now: revocationNow(),
+        };
+        expect(await judge(events, c.records, new Date(c.verified_at))).toEqual({
+            live: [...c.live].sort(),
+            pending: [...c.pending].sort(),
+        });
     });
 });
