@@ -8,7 +8,7 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
-## [0.8.0] — unreleased
+## [0.8.0] — 2026-10-26
 
 ### Added — which keys an address binds, from relay events
 
