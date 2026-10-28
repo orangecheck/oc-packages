@@ -14,8 +14,11 @@ this file tracks the package's TS / Node / runtime API surface.
 - `oc chat verify`: a channel version, post or directory listing from a file
   or stdin, a channel by `--channel`, or a handle by `--handle`, checked with
   `@orangecheck/chat-core` against the relays, the device records, ochk.io's
-  keys and the chain. `--offline` reads nothing and lists what it skipped.
-  Exit 0 verified, 1 failed, 2 not read, 3 offline checks only.
+  keys and the chain. A version counts only as one of its version's
+  authorized copies: the same content under another key fails. `--offline`
+  reads nothing and lists what it skipped. Exit 0 verified, 1 failed, 2 not
+  read (a relay, ochk.io's keys or the chain did not answer), 3 offline
+  checks only.
 
 ## [0.3.2] — 2026-10-26
 
