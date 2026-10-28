@@ -112,7 +112,10 @@ useOcSession(): {
     account: OcAccount | null;
     error: Error | null;
     refresh(): Promise<void>;
-    signOut(): Promise<void>;
+    // Ends the session; a refusal or no answer changes nothing locally.
+    signOut(opts?: { scope?: 'all' | 'current' }): Promise<void>;
+    // The same, resolving to { ok: true } or { ok: false, reason, status? }.
+    trySignOut(opts?: { scope?: 'all' | 'current' }): Promise<OcSignOutResult>;
     signInUrl: string;
 }
 

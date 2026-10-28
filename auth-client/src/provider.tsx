@@ -12,6 +12,7 @@ import {
     type OcAccountSummary,
     type OcAuthConfig,
     type OcSessionState,
+    type OcSignOutResult,
     type OcSignOutScope,
 } from './types';
 import { keepFragmentOnReturnLinks, restoreReturnFragment } from './return-to';
@@ -415,13 +416,14 @@ export function OcSessionProvider({
         [cfg.authOrigin, cfg.multiAccount]
     );
 
-    const signOut = React.useCallback(
-        async (opts?: { scope?: OcSignOutScope }) => {
+    const trySignOut = React.useCallback(
+        async (opts?: { scope?: OcSignOutScope }): Promise<OcSignOutResult> => {
             const scope: OcSignOutScope = opts?.scope ?? 'all';
+            let res: Response;
             try {
                 const url = new URL(`${cfg.authOrigin}${cfg.logoutPath}`);
                 if (scope === 'current') url.searchParams.set('scope', 'current');
-                const res = await fetch(url.toString(), {
+                res = await fetch(url.toString(), {
                     method: 'POST',
                     credentials: 'include',
                     // Per-tab · carry the pin so scope='current' signs out
@@ -435,32 +437,42 @@ export function OcSessionProvider({
                     // and the `.ochk.io` cookie may never get cleared.
                     keepalive: true,
                 });
-                // The signed-out account's token is dead either way — the
-                // pin must not outlive it.
-                clearTabSession();
-                setTabPinned(false);
-                // Multi-account: with scope='current', the server may have
-                // switched the active session to a roster peer instead of
-                // clearing the cookie. Re-fetch /api/auth/me so this
-                // provider reflects the new active account; if the body
-                // says `switched_to !== null`, refresh resolves to the
-                // peer, otherwise it resolves to anonymous and the
-                // setState below is redundant-but-harmless.
-                if (scope === 'current' && res.ok) {
-                    await refresh();
-                    return;
-                }
             } catch {
-                // fall through — we still clear local state so the UI reflects
-                // the user's intent even if the server round-trip fails.
-                clearTabSession();
-                setTabPinned(false);
+                // The auth host never answered, so the session may well live on.
+                // Nothing local changes: showing "signed out" here would be false.
+                return { ok: false, reason: 'unreachable' };
+            }
+            // 401: no session reached the host, so there is none to end.
+            if (!res.ok && res.status !== 401) {
+                return { ok: false, reason: 'refused', status: res.status };
+            }
+            // The signed-out account's token is dead — the pin must not outlive it.
+            clearTabSession();
+            setTabPinned(false);
+            // Multi-account: with scope='current', the server may have
+            // switched the active session to a roster peer instead of
+            // clearing the cookie. Re-fetch /api/auth/me so this
+            // provider reflects the new active account; if the body
+            // says `switched_to !== null`, refresh resolves to the
+            // peer, otherwise it resolves to anonymous.
+            if (scope === 'current' && res.ok) {
+                await refresh();
+                return { ok: true };
             }
             setAccount(null);
             setRoster([]);
             setStatus('anonymous');
+            return { ok: true };
         },
         [cfg.authOrigin, cfg.logoutPath, refresh]
+    );
+    // The long-standing call: same type, but it no longer reports "signed out" when
+    // the auth host did not end the session. trySignOut says what happened.
+    const signOut = React.useCallback(
+        async (opts?: { scope?: OcSignOutScope }): Promise<void> => {
+            await trySignOut(opts);
+        },
+        [trySignOut]
     );
 
     const switchAccount = React.useCallback(
@@ -579,6 +591,7 @@ export function OcSessionProvider({
             error,
             refresh,
             signOut,
+            trySignOut,
             switchAccount,
             addAccountUrl,
             setDisplayIdentity,
@@ -592,6 +605,7 @@ export function OcSessionProvider({
         error,
         refresh,
         signOut,
+        trySignOut,
         switchAccount,
         addAccountUrl,
         setDisplayIdentity,

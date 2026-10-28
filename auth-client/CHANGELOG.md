@@ -7,6 +7,24 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.41.0] — 2026-10-28
+
+### Added
+
+- `trySignOut(opts?)` on the session: `signOut` that resolves to what the auth
+  host did, `{ ok: true }` once the session has ended, or
+  `{ ok: false, reason: 'unreachable' | 'refused', status? }` with the session
+  still live. `OcSignOutResult` is exported.
+
+### Fixed
+
+- `signOut()` changes the local state only when the auth host ended the
+  session. A refusal or no answer leaves the account shown and the tab pin
+  kept, since the session is still live. A 401 counts as signed out, since no
+  session reached the host. Its type is unchanged, and it never rejects.
+- `OcAccountChip` and `OcAccountPill` say "Couldn’t sign out. You’re still
+  signed in; try again." when the sign-out did not happen.
+
 ## [2.40.1] — 2026-10-26
 
 ### Fixed
