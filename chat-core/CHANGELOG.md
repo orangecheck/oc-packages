@@ -17,7 +17,10 @@ at chat.ochk.io runs them:
   `parseDescriptor`, `parsePost`; `verifyDescriptor` (founder and prior-epoch
   admin authority, founder-only close, re-open and successor);
   `resolveChannelChain` (every authorized copy counts, earlier versions stand
-  on their `binding`, the last needs a live one, the fork rank, closed tips);
+  on their `binding`, the last needs a live one, the fork rank, closed tips;
+  each version lists its authorized copies' keys and event ids);
+  `authorizedCopy`, whether one event is an authorized copy of a resolved
+  version (the same content under another key or event is not);
   `readChannelVersions` (the open read, the per-key reads, the walk forward by
   `s` and back by exact d-tag); `checkWritePolicy`, `verifyPost` and
   `verifyChannelPosts` (authorship, the write gate, tombstones, feed order).
