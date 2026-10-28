@@ -7,11 +7,13 @@
  *   oc discover --identity github:alice
  *   oc challenge issue --addr bc1q... --audience https://example.com
  *   oc challenge verify < signed.json
+ *   oc chat verify event.json | --channel <id> | --handle <h> [--offline]
  */
 
 import { Command } from 'commander';
 
 import { runChallengeIssue, runChallengeVerify } from './commands/challenge';
+import { runChatVerify } from './commands/chat';
 import { runCheck } from './commands/check';
 import { runDiscover } from './commands/discover';
 import {
@@ -204,6 +206,33 @@ me.command('test-fire')
             paymentAmountSats: opts.paymentAmountSats,
             origin: opts.origin,
             token: opts.token,
+            json: Boolean(opts.json),
+        });
+    });
+
+const chat = program.command('chat').description('OC Chat — channels, posts and directory handles');
+
+chat.command('verify')
+    .description('Verify a channel version, post or listing (file or - for stdin), a channel, or a handle')
+    .argument('[file]', 'A Nostr event as JSON: kind 30110, 30111 or 30114 (- for stdin)')
+    .option('--channel <id>', 'Resolve a channel by its channel_id')
+    .option('--founder <address>', "The channel founder's address, if the relays may not name it")
+    .option('--handle <handle>', 'Who holds a directory handle')
+    .option('--channel-handle', 'With --handle: a channel handle, not a person')
+    .option('--relays <csv>', "Relays to read (default: chat.ochk.io's)")
+    .option('--esplora <url>', 'Esplora API for chain reads (default https://mempool.space/api)')
+    .option('--offline', 'Only checks that read nothing; says what it did not check')
+    .option('--json', 'Emit JSON instead of human-readable output')
+    .action(async (file, opts) => {
+        await runChatVerify({
+            file,
+            channel: opts.channel,
+            founder: opts.founder,
+            handle: opts.handle,
+            channelHandle: Boolean(opts.channelHandle),
+            relays: opts.relays,
+            esplora: opts.esplora,
+            offline: Boolean(opts.offline),
             json: Boolean(opts.json),
         });
     });

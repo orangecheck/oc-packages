@@ -75,6 +75,25 @@ oc challenge verify \
 cat signed.json | oc challenge verify --expected-nonce a1b2c3d4...
 ```
 
+### `oc chat verify` — check an OC Chat artifact
+
+Verifies a channel version (kind 30110), a channel post (30111) or a directory
+listing (30114) by the [OC Chat](https://github.com/orangecheck/oc-chat-protocol)
+rules in [`@orangecheck/chat-core`](https://www.npmjs.com/package/@orangecheck/chat-core),
+reading the relays, the device records, ochk.io's keys and the chain.
+
+```sh
+oc chat verify event.json          # or - for stdin
+oc chat verify --channel <channel_id>
+oc chat verify --handle alice      # --channel-handle for a channel's handle
+oc chat verify event.json --offline
+```
+
+`--offline` reads nothing and lists what it did not check (relays, the chain, the
+utxo floor, ochk.io's keys); it never prints VERIFIED. Exit codes: 0 verified,
+1 failed, 2 a read got no answer (nothing concluded), 3 passed the offline
+checks only. Reading relays needs Node 22 or later.
+
 ---
 
 ## Scripting examples

@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.4.0] — 2026-10-28
+
+### Added
+
+- `oc chat verify`: a channel version, post or directory listing from a file
+  or stdin, a channel by `--channel`, or a handle by `--handle`, checked with
+  `@orangecheck/chat-core` against the relays, the device records, ochk.io's
+  keys and the chain. `--offline` reads nothing and lists what it skipped.
+  Exit 0 verified, 1 failed, 2 not read, 3 offline checks only.
+
 ## [0.3.2] — 2026-10-26
 
 ### Fixed
