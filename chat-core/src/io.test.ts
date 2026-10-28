@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { WriteProof } from './channel';
 import { esploraWriteProofCheck, verifyWriteProofOnChain } from './io';
+import { UnansweredReadError } from './read';
 
 const AUTHOR = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
 const PROOF: WriteProof = {
@@ -66,5 +67,22 @@ describe('verifyWriteProofOnChain', () => {
         expect(await check(PROOF, AUTHOR)).toBe(true);
         expect(await check({ ...PROOF, value_sats: 1 }, AUTHOR)).toBe(false);
         expect(seen).toEqual([`https://esplora.test/api/address/${AUTHOR}/utxo`]);
+    });
+});
+
+describe('esploraWriteProofCheck on a read that gets no answer', () => {
+    const down = (async () => {
+        throw new Error('offline');
+    }) as unknown as typeof fetch;
+
+    it('is false by default, so a feed hides the post', async () => {
+        expect(await esploraWriteProofCheck({ fetch: down })(PROOF, AUTHOR)).toBe(false);
+    });
+
+    it('throws UnansweredReadError when asked to, and still answers false for a coin that does not match', async () => {
+        await expect(esploraWriteProofCheck({ fetch: down, unanswered: 'throw' })(PROOF, AUTHOR)).rejects.toBeInstanceOf(
+            UnansweredReadError
+        );
+        expect(await esploraWriteProofCheck({ fetch: serving([]), unanswered: 'throw' })(PROOF, AUTHOR)).toBe(false);
     });
 });

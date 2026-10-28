@@ -7,7 +7,9 @@ export default defineConfig({
     },
     format: ['cjs', 'esm'],
     dts: true,
-    splitting: false,
+    // One copy of each module across the entries, so ./io throws the same
+    // UnansweredReadError class the main entry exports.
+    splitting: true,
     sourcemap: true,
     clean: true,
     treeshake: true,

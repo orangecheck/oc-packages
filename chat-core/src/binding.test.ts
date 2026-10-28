@@ -25,7 +25,7 @@ import type { NostrEvent } from './event';
 import { UnansweredReadError } from './read';
 import { stepUpAddress } from './records';
 import { VOUCH_JWS_TYP, type AuthHostKey } from './session';
-import { recordBinding, type VersionBinding } from './version-binding';
+import { readVersionBinding, recordBinding, type VersionBinding } from './version-binding';
 
 const b64url = (b: Uint8Array) => Buffer.from(b).toString('base64url');
 const HOST_SK = new Uint8Array(32).fill(42);
@@ -278,5 +278,35 @@ describe('authorizedCopy: an event counts only as one of its version’s authori
         const r = await resolve([genuine], live);
         expect(authorizedCopy(r, { ...fresh, id: genuine.id })).toBeNull();
         expect(authorizedCopy(r, { ...genuine, content: genuine.content.replace('Town', 'T0wn') })).toBeNull();
+    });
+});
+
+describe('a read of the host keys that gets no answer is not a missing binding', () => {
+    it('readVersionBinding throws it, and a resolution stops with it', async () => {
+        const silent = async (): Promise<never> => {
+            throw new UnansweredReadError('ochk.io could not be read');
+        };
+        const ev = version(founderKey, genesis);
+        await expect(readVersionBinding(ev, { hostKeys: silent, verifyBip322: never })).rejects.toBeInstanceOf(
+            UnansweredReadError
+        );
+        await expect(
+            resolveChannelChain([ev], genesis.channel_id, {
+                isBound: async () => false,
+                hostKeys: silent,
+                liveness: async () => 'live',
+                verifyBip322: never,
+            })
+        ).rejects.toBeInstanceOf(UnansweredReadError);
+    });
+
+    it('a host that answers with no keys binds nothing, and the version does not stand', async () => {
+        const ev = version(founderKey, genesis);
+        expect(await readVersionBinding(ev, { hostKeys: async () => [], verifyBip322: never })).toBeNull();
+    });
+
+    it('a binding tag that is not a record binds nothing', async () => {
+        const bad = { ...version(founderKey, genesis), tags: [['binding', 'null']] };
+        expect(await readVersionBinding(bad, { hostKeys, verifyBip322: never })).toBeNull();
     });
 });
