@@ -56,7 +56,7 @@ function readsOver(held: readonly NostrEvent[], keys: readonly AuthHostKey[], no
     return recordReads(
         async (p) => ({
             events: held.filter((e) => e.tags.some((t) => t[0] === 'd' && t[1] === deviceDtag(p))),
-            answered: true,
+            relayStatus: [{ eose: true }],
         }),
         { hostKeys: async () => keys, verifyBip322, now: () => now }
     );

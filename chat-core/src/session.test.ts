@@ -7,6 +7,7 @@ import { deriveNostrKey, generateDeviceKey, signNostrEvent } from '@orangecheck/
 import { describe, expect, it } from 'vitest';
 
 import type { NostrEvent } from './event';
+import { UnansweredReadError } from './read';
 import { recordReads } from './records';
 import {
     liveSessionDevices,
@@ -205,19 +206,19 @@ describe('which session keys bind (§8.6)', () => {
             recordReads(
                 async (p) => {
                     lookups.push(p);
-                    return { events: held, answered };
+                    return { events: held, relayStatus: [{ eose: answered }] };
                 },
                 { hostKeys: async () => [HOST_KEY], verifyBip322: () => true }
             );
         const got = await reads(true).everBoundKeys(DID);
         expect(new Set(got.keys)).toEqual(new Set([d.nostrPk, e.nostrPk, f.nostrPk]));
-        expect(got.answered).toBe(true);
+        expect(got).toMatchObject({ answered: true, floor: true });
         expect(lookups).toEqual([DID]);
-        expect((await reads(false).everBoundKeys(DID)).answered).toBe(false);
+        expect(await reads(false).everBoundKeys(DID)).toMatchObject({ answered: false, floor: false });
         // Only the vouched keys: a record without a vouch binds nothing, ever.
         const kp = generateDeviceKey();
         const bare = record(kp.device_sk, { device_id: kp.device_id, device_pk: kp.device_pk, binding_sig: '' });
-        const unvouched = recordReads(async () => ({ events: [bare], answered: true }), {
+        const unvouched = recordReads(async () => ({ events: [bare], relayStatus: [{ eose: true }] }), {
             hostKeys: async () => [HOST_KEY],
             verifyBip322: () => true,
         });
@@ -227,7 +228,7 @@ describe('which session keys bind (§8.6)', () => {
     it('recordReads answers isBound from the records, and refuses to guess when no relay answered', async () => {
         const d = device();
         const reads = (answered: boolean) =>
-            recordReads(async () => ({ events: [d.record], answered }), {
+            recordReads(async () => ({ events: [d.record], relayStatus: [{ eose: answered }] }), {
                 hostKeys: async () => [HOST_KEY],
                 verifyBip322: () => false,
             });
@@ -237,33 +238,70 @@ describe('which session keys bind (§8.6)', () => {
     });
 });
 
-describe('recordReads with a relay that did not answer (complete: false)', () => {
-    const reads = (events: NostrEvent[], complete: boolean | undefined) =>
-        recordReads(async () => ({ events, answered: true, ...(complete === undefined ? {} : { complete }) }), {
+describe('recordReads below the read floor (§8.7): what rests on a record not being there', () => {
+    /** Records read from relays that each finished (true) or did not (false). */
+    const reads = (events: NostrEvent[], eose: boolean[]) =>
+        recordReads(async () => ({ events, relayStatus: eose.map((e) => ({ eose: e })) }), {
             hostKeys: async () => [HOST_KEY],
             verifyBip322: () => true,
         });
+    const [ALL, ONE_SILENT, TWO_SILENT] = [[true, true, true, true], [true, true, true, false], [true, true, false, false]];
     const binding = (d: ReturnType<typeof device>) =>
         ({ kind: 'session', principal: DID, pubkey: d.nostrPk, deviceId: d.kp.device_id, issuedAt: 1780000000 }) as const;
 
-    it('"bound now" and "not bound" are not read: the silent relay may hold a revocation or a bind', async () => {
+    it('"bound now" and "not bound" are not read with 2 of 4 relays answering: a silent one may hold a revocation or a bind', async () => {
         const d = device();
-        await expect(reads([d.record], false).isBound(d.nostrPk, DID)).rejects.toThrow(/did not answer/);
-        await expect(reads([], false).isBound(d.nostrPk, DID)).rejects.toThrow(/did not answer/);
-        expect(await reads([d.record], false).boundKeys(DID)).toBe('no-answer');
+        await expect(reads([d.record], TWO_SILENT).isBound(d.nostrPk, DID)).rejects.toThrow('fewer than 3 of 4 relays answered');
+        await expect(reads([], TWO_SILENT).isBound(d.nostrPk, DID)).rejects.toBeInstanceOf(UnansweredReadError);
+        expect(await reads([d.record], TWO_SILENT).boundKeys(DID)).toBe('no-answer');
     });
 
-    it('with every relay answering, or completeness not reported, they decide', async () => {
+    it('at the floor they decide: 3 of 4, 4 of 4, or the one relay asked', async () => {
         const d = device();
-        expect(await reads([d.record], true).isBound(d.nostrPk, DID)).toBe(true);
-        expect(await reads([], true).isBound(d.nostrPk, DID)).toBe(false);
-        expect(await reads([d.record], undefined).isBound(d.nostrPk, DID)).toBe(true);
+        for (const eose of [ONE_SILENT, ALL, [true]]) {
+            expect(await reads([d.record], eose).isBound(d.nostrPk, DID)).toBe(true);
+            expect(await reads([], eose).isBound(d.nostrPk, DID)).toBe(false);
+        }
     });
 
-    it('liveness: a revocation seen is revoked on any answer; live needs every relay', async () => {
+    it('a revocation published to WRITE_QUORUM of 4 relays never reads as live or bound, whichever relays are silent', async () => {
+        const R = ['r0', 'r1', 'r2', 'r3'];
         const d = device();
-        expect(await reads([d.record, ownRevocation(d)], false).liveness(binding(d))).toBe('revoked');
-        expect(await reads([d.record], false).liveness(binding(d))).toBe('unknown');
-        expect(await reads([d.record], true).liveness(binding(d))).toBe('live');
+        const revoked = ownRevocation(d);
+        /** Each relay holds the record, and those in `holders` its revocation; `silent` answer nothing. */
+        const over = (holders: string[], silent: Set<string>) =>
+            recordReads(
+                async () => ({
+                    events: R.filter((r) => !silent.has(r)).some((r) => holders.includes(r)) ? [d.record, revoked] : [d.record],
+                    relayStatus: R.map((r) => ({ eose: !silent.has(r) })),
+                }),
+                { hostKeys: async () => [HOST_KEY], verifyBip322: () => true }
+            );
+        const subsets = Array.from({ length: 16 }, (_, m) => new Set(R.filter((_, i) => m & (1 << i))));
+        const pairs = R.flatMap((a, i) => R.slice(i + 1).map((b) => [a, b]));
+        expect(pairs).toHaveLength(6);
+        for (const holders of pairs) {
+            for (const silent of subsets) {
+                const reads = over(holders, silent);
+                const live = await reads.liveness(binding(d));
+                expect(live, `holders ${holders} silent ${[...silent]}`).not.toBe('live');
+                // At the floor the revocation is always among what answered.
+                if (R.length - silent.size >= 3) expect(live).toBe('revoked');
+                const bound = await reads.isBound(d.nostrPk, DID).catch((e) => e);
+                expect(bound === true, `holders ${holders} silent ${[...silent]}`).toBe(false);
+            }
+        }
+        // Held by one relay only (a write the quorum never reached): when it is silent and the
+        // other three answer, the key reads live. That is why the writer reports it not yet published.
+        expect(await over(['r0'], new Set(['r0'])).liveness(binding(d))).toBe('live');
+        expect(await over(['r0'], new Set(['r0', 'r1'])).liveness(binding(d))).toBe('unknown');
+    });
+
+    it('liveness: a revocation seen is revoked on any answer; live needs the floor', async () => {
+        const d = device();
+        expect(await reads([d.record, ownRevocation(d)], [true, false, false, false]).liveness(binding(d))).toBe('revoked');
+        expect(await reads([d.record], TWO_SILENT).liveness(binding(d))).toBe('unknown');
+        expect(await reads([d.record], ONE_SILENT).liveness(binding(d))).toBe('live');
+        expect(await reads([d.record], [false, false, false, false]).liveness(binding(d))).toBe('unknown');
     });
 });

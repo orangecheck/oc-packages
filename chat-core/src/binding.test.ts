@@ -312,20 +312,28 @@ describe('a read of the host keys that gets no answer is not a missing binding',
     });
 });
 
-describe('readChannelVersions: complete only when every relay asked answered every read', () => {
+describe('readChannelVersions: "no newer version" only when every read met the floor (§8.7)', () => {
     const ev = version(founderKey, genesis);
     const queryWith = (eose: boolean[]) => async () => ({ events: [ev], relayStatus: eose.map((e) => ({ eose: e })) });
-    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true });
+    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
 
-    it('one relay silent: complete is false, so "no newer version" cannot be said', async () => {
-        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, false]), everBoundKeys: keys }, FOUNDER);
+    it('2 of 4 relays answering is below the floor: floorMet is false', async () => {
+        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, true, false, false]), everBoundKeys: keys }, FOUNDER);
         expect(r.events.map((e) => e.id)).toEqual([ev.id]);
-        expect(r.complete).toBe(false);
+        expect(r.floorMet).toBe(false);
     });
 
-    it('every relay answering: complete', async () => {
-        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, true]), everBoundKeys: keys }, FOUNDER);
-        expect(r.complete).toBe(true);
+    it('3 of 4, or every relay, meets it', async () => {
+        for (const eose of [[true, true, true, false], [true, true, true, true]]) {
+            const r = await readChannelVersions(genesis.channel_id, { query: queryWith(eose), everBoundKeys: keys }, FOUNDER);
+            expect(r.floorMet).toBe(true);
+        }
+    });
+
+    it('a role holder\'s keys read below the floor leaves it unmet: a key bound only on silent relays signs versions not read', async () => {
+        const short = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: false });
+        const r = await readChannelVersions(genesis.channel_id, { query: queryWith([true, true, true, true]), everBoundKeys: short }, FOUNDER);
+        expect(r.floorMet).toBe(false);
     });
 });
 
@@ -355,18 +363,28 @@ describe('recordReads.liveness for an address binding with a relay that did not 
         bindingStatement: `oc-lock:device-revoke:v2\naddress: ${ADDR}\ndevice_id: ${kp.device_id}\nrevoked_at: 2026-10-01T00:00:00.000Z\n`,
         bindingSigBase64: 'c2ln',
     });
-    const reads = (events: NostrEvent[], complete: boolean) =>
-        recordReads(async () => ({ events, answered: true, complete }), {
+    const reads = (events: NostrEvent[], eose: boolean[]) =>
+        recordReads(async () => ({ events, relayStatus: eose.map((e) => ({ eose: e })) }), {
             hostKeys,
             verifyBip322: () => true,
             now: () => new Date('2026-10-20T00:00:00Z'),
         });
 
-    it('live needs every relay; a revocation seen is revoked on any answer', async () => {
+    it('live needs the floor; a revocation seen is revoked on any answer', async () => {
         const b = await recordBinding(bind, nostrPk, { hostKeys, verifyBip322: () => true });
         expect(b?.kind).toBe('btc');
-        expect(await reads([bind], false).liveness(b!)).toBe('unknown');
-        expect(await reads([bind], true).liveness(b!)).toBe('live');
-        expect(await reads([bind, revoke], false).liveness(b!)).toBe('revoked');
+        expect(await reads([bind], [true, true, false, false]).liveness(b!)).toBe('unknown');
+        expect(await reads([bind], [true, true, true, false]).liveness(b!)).toBe('live');
+        expect(await reads([bind, revoke], [true, false, false, false]).liveness(b!)).toBe('revoked');
+    });
+
+    it('bound now, not bound and every key ever bound: below the floor, not read', async () => {
+        await expect(reads([bind], [true, true, false, false]).isBound(nostrPk, ADDR)).rejects.toThrow('fewer than 3 of 4 relays answered');
+        await expect(reads([], [true, true, false, false]).isBound(nostrPk, ADDR)).rejects.toBeInstanceOf(UnansweredReadError);
+        expect(await reads([bind], [true, true, true, false]).isBound(nostrPk, ADDR)).toBe(true);
+        expect(await reads([], [true, true, true, false]).isBound(nostrPk, ADDR)).toBe(false);
+        // "Ever bound" stands on what was returned, but the floor says whether a key may be missing.
+        expect(await reads([bind], [true, true, false, false]).everBoundKeys(ADDR)).toEqual({ keys: [nostrPk], answered: true, floor: false });
+        expect(await reads([bind], [true, true, true, false]).everBoundKeys(ADDR)).toEqual({ keys: [nostrPk], answered: true, floor: true });
     });
 });

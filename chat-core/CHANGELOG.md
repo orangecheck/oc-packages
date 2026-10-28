@@ -22,17 +22,18 @@ at chat.ochk.io runs them:
   `authorizedCopy`, whether one event is an authorized copy of a resolved
   version (the same content under another key or event is not);
   `readChannelVersions` (the open read, the per-key reads, the walk forward by
-  `s` and back by exact d-tag, and `complete` when every relay answered
-  every read, so "no newer version" can be said); `checkWritePolicy`, `verifyPost` and
+  `s` and back by exact d-tag, and `floorMet` when every read, of versions
+  and of role holders' keys, met the read floor, so "no newer version" can be
+  said); `checkWritePolicy`, `verifyPost` and
   `verifyChannelPosts` (authorship, the write gate, tombstones, feed order).
 - Session devices (§8.6): `verifySessionVouch`, `verifyHostRevocation`,
   `parseSessionDeviceEvent`, `sessionRevocations`, `liveSessionDevices`,
   `sessionKeysEverBound`, `stepUpAddress`.
 - Bindings: `readVersionBinding`, `recordBinding`, `recordReads` (which keys a
-  principal's records bind, liveness, every key ever bound). A conclusion
-  that rests on a record not being there needs every relay asked: with a
-  lookup's `complete: false`, "bound now", "not bound" and "live" are not
-  read, while a revocation seen is revoked on any answer. And
+  principal's records bind, liveness, every key ever bound). A lookup reports
+  each relay's answer (`relayStatus`). A conclusion that rests on a record
+  not being there needs the read floor: below it "bound now", "not bound" and
+  "live" are not read, while a revocation seen is revoked on any answer. And
   `addressKeysEverBound`, over OC Lock's rule in `@orangecheck/lock-device`.
 - Directory (§8.2.5–§8.2.6): `resolveDirectoryHandle`, `resolveWithState` and
   `readAddressState` over `@orangecheck/lock-core/directory`'s walk, with the
@@ -41,6 +42,11 @@ at chat.ochk.io runs them:
 - `./io`: `writeProofOnChain` ('no-answer' when the outputs cannot be read),
   `verifyWriteProofOnChain` (fail-closed) and `esploraWriteProofCheck`
   (`unanswered: 'throw'` for a verifier that must say it could not tell).
+- The relay floor and write quorum (SPEC §8.7): `WRITE_QUORUM` (2),
+  `readFloor(asked)` (`asked - WRITE_QUORUM + 1`, at least 1), `meetsReadFloor`,
+  and `publishToQuorum`, which reports a binding or revocation write published
+  only once `WRITE_QUORUM` relays sent OK, retrying the rest, and otherwise
+  "not yet published". Together they make a revocation hold; neither alone does.
 - A read that gets no answer reaches the caller as `UnansweredReadError`: the
   host's keys while reading a version's binding (`readVersionBinding`,
   `resolveChannelChain`), and the chain through `esploraWriteProofCheck` when
