@@ -27,10 +27,12 @@ import {
     isValidHandle,
     parseDescriptor,
     parsePost,
+    meetsReadFloor,
     policyRootedMatches,
     postDtag,
     postId,
     readChannelVersions,
+    readFloor,
     readVersionBinding,
     recordReads,
     resolveChannelChain,
@@ -155,26 +157,39 @@ export type RawQuery = (
     relays: readonly string[]
 ) => Promise<{ events: NostrEvent[]; relayStatus: readonly { relay: string; eose: boolean }[] }>;
 
-/** How the relays answered over one run: how many there were, and which missed a read. */
+/** How the relays answered over one run: how many there were, which missed a read, and how
+ *  many reads fell below the read floor (chat-core `readFloor`, SPEC §8.7). */
 export interface RelayReport {
     asked: number;
     answered: number;
     reads: number;
+    /** What a read of every relay asked needs: `readFloor(asked)`. */
+    floor: number;
+    below_floor: number;
     silent: { relay: string; missed: number }[];
 }
 
-/** Counts, per relay, the reads it did not finish answering. */
+/** Counts, per relay, the reads it did not finish answering, and the reads below the floor. */
 export function relayTally() {
     const missed = new Map<string, number>();
     let reads = 0;
+    let below = 0;
     return {
         note(status: readonly { relay: string; eose: boolean }[]) {
             reads++;
+            if (!meetsReadFloor(status)) below++;
             for (const s of status) missed.set(s.relay, (missed.get(s.relay) ?? 0) + (s.eose ? 0 : 1));
         },
         report(): RelayReport {
             const silent = [...missed].filter(([, n]) => n > 0).map(([relay, n]) => ({ relay, missed: n }));
-            return { asked: missed.size, answered: missed.size - silent.length, reads, silent };
+            return {
+                asked: missed.size,
+                answered: missed.size - silent.length,
+                reads,
+                floor: readFloor(missed.size),
+                below_floor: below,
+                silent,
+            };
         },
     };
 }
@@ -193,14 +208,10 @@ export function liveNet(relays: readonly string[], esplora = ESPLORA, raw: RawQu
     let keys: Promise<AuthHostKey[]> | null = null;
     return {
         query,
-        // A bind any answering relay holds counts; "not bound" needs them all (chat-core recordReads).
+        // A bind any answering relay holds counts; "not bound" needs the floor (chat-core recordReads).
         records: async (principal) => {
             const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)] }, relays);
-            return {
-                events: res.events,
-                answered: res.relayStatus.some((r) => r.eose),
-                complete: res.relayStatus.every((r) => r.eose),
-            };
+            return { events: res.events, relayStatus: res.relayStatus };
         },
         relays: () => tally.report(),
         // A JWKS that answers with no keys binds nothing; one that does not answer is not read.
@@ -493,7 +504,15 @@ export function render(r: Report): string {
             lines.push(`  ${k}: ${v === null ? 'unknown' : typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
         }
     }
-    const answered = r.relays ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read)` : '';
+    // Relays that missed reads the floor did not need: named, but nothing rests on them.
+    if (r.relays && r.relays.below_floor === 0) {
+        for (const s of r.relays.silent) {
+            lines.push(`  relay  ${s.relay} did not answer ${s.missed} of ${r.relays.reads} reads; every read met the floor`);
+        }
+    }
+    const answered = r.relays
+        ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read; the floor is ${r.relays.floor})`
+        : '';
     const verdict = {
         verified: `VERIFIED${answered}`,
         failed: 'FAILED',
@@ -521,25 +540,27 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
     }
     const n = opts.offline ? null : (net ?? liveNet(relays, opts.esplora ?? ESPLORA));
     const r = await verifyChat(opts, input, n);
-    // Name each relay that missed a read: a revocation, a newer version or a record
-    // only it holds was not seen. A verdict that rests on such an absence is then not
-    // read (until a relay floor is decided): VERIFIED never stands on a missed read.
-    // FAILED stands only when a check that rests on no absence failed (the event's own
-    // id, signature, coordinate or binding). A failed check marked `absence` turns
-    // NOT READ too, even when a revocation the answering relay holds failed it: the
-    // check does not tell a seen revocation from a record not read.
+    // A verdict that rests on something being absent stands only on reads that met the
+    // read floor (chat-core readFloor, SPEC §8.7): a revocation, binding or version
+    // written to WRITE_QUORUM of these relays is then among what answered. A read below
+    // the floor turns such a verdict NOT READ. FAILED stands only when a check that rests
+    // on no absence failed (the event's own id, signature, coordinate or binding). A
+    // failed check marked `absence` turns NOT READ too, even when a revocation an
+    // answering relay holds failed it: the check does not tell a seen revocation from a
+    // record not read.
     const tally = n?.relays?.();
     if (tally && tally.asked > 0) {
         r.relays = tally;
-        for (const s of tally.silent) {
+        if (tally.below_floor > 0) {
             r.not_checked.push(
-                `relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads: a revocation, newer version or record only it holds was not seen`
+                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering than the floor (${tally.floor} of ${tally.asked}): a revocation, newer version or record may not have been seen`
             );
+            for (const s of tally.silent) r.not_checked.push(`relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads`);
         }
         const failed = r.checks.filter((c) => !c.ok);
         const restsOnAbsence =
             r.verdict === 'verified' || (r.verdict === 'failed' && failed.every((c) => c.absence));
-        if (tally.silent.length > 0 && restsOnAbsence) {
+        if (tally.below_floor > 0 && restsOnAbsence) {
             r.verdict = 'unread';
             // What the relays were read for rests on the missed read too.
             r.detail = notReadDetail(r.subject, r.detail);
