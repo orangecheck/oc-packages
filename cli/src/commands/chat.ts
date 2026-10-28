@@ -86,6 +86,8 @@ export interface ChatNet {
     tip(): Promise<number>;
     verifyOnChain: VerifyOnChain;
     walk: Omit<WalkDeps, 'boundKeys' | 'verifyEvent'>;
+    /** How the relays answered this run, when the network can tell. */
+    relays?: () => RelayReport;
 }
 
 export interface Check {
@@ -101,6 +103,8 @@ export interface Report {
     not_checked: string[];
     verdict: 'verified' | 'failed' | 'unread' | 'passed-offline';
     detail?: Record<string, unknown>;
+    /** How the relays answered, for an online run. */
+    relays?: RelayReport;
 }
 
 const verifyBip322 = ({ address, message, signature }: { address: string; message: string; signature: string }) => {
@@ -111,16 +115,60 @@ const verifyBip322 = ({ address, message, signature }: { address: string; messag
     }
 };
 
-export function liveNet(relays: readonly string[], esplora = ESPLORA): ChatNet {
+/** One REQ to some relays: the events, and per relay whether it finished answering (EOSE). */
+export type RawQuery = (
+    filter: Record<string, unknown>,
+    relays: readonly string[]
+) => Promise<{ events: NostrEvent[]; relayStatus: readonly { relay: string; eose: boolean }[] }>;
+
+/** How the relays answered over one run: how many there were, and which missed a read. */
+export interface RelayReport {
+    asked: number;
+    answered: number;
+    reads: number;
+    silent: { relay: string; missed: number }[];
+}
+
+/** Counts, per relay, the reads it did not finish answering. */
+export function relayTally() {
+    const missed = new Map<string, number>();
+    let reads = 0;
+    return {
+        note(status: readonly { relay: string; eose: boolean }[]) {
+            reads++;
+            for (const s of status) missed.set(s.relay, (missed.get(s.relay) ?? 0) + (s.eose ? 0 : 1));
+        },
+        report(): RelayReport {
+            const silent = [...missed].filter(([, n]) => n > 0).map(([relay, n]) => ({ relay, missed: n }));
+            return { asked: missed.size, answered: missed.size - silent.length, reads, silent };
+        },
+    };
+}
+
+const rawQuery: RawQuery = async (filter, relays) => queryEvents(filter as never, relays, TIMEOUT_MS);
+
+export function liveNet(relays: readonly string[], esplora = ESPLORA, raw: RawQuery = rawQuery): ChatNet {
     const timed: typeof fetch = (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
-    const query: Query = async (filter) => queryEvents(filter as never, relays, TIMEOUT_MS);
+    const tally = relayTally();
+    const ask: RawQuery = async (filter, to) => {
+        const res = await raw(filter, to);
+        tally.note(res.relayStatus);
+        return res;
+    };
+    const query: Query = async (filter) => ask(filter, relays);
     let keys: Promise<AuthHostKey[]> | null = null;
     return {
         query,
+        // A bind any answering relay holds counts; "not bound" needs them all (chat-core recordReads).
         records: async (principal) => {
-            const res = await queryEvents({ kinds: [30078], '#d': [deviceDtag(principal)] } as never, relays, TIMEOUT_MS);
-            return { events: res.events, answered: res.relayStatus.some((r) => r.eose) };
+            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)] }, relays);
+            return {
+                events: res.events,
+                answered: res.relayStatus.some((r) => r.eose),
+                complete: res.relayStatus.every((r) => r.eose),
+            };
         },
+        relays: () => tally.report(),
         // A JWKS that answers with no keys binds nothing; one that does not answer is not read.
         hostKeys: () =>
             (keys ??= (async () => {
@@ -151,7 +199,7 @@ export function liveNet(relays: readonly string[], esplora = ESPLORA): ChatNet {
         verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, fetch: timed, unanswered: 'throw' }),
         walk: {
             page: async (relay, filter) => {
-                const res = await queryEvents(filter as never, [relay], TIMEOUT_MS);
+                const res = await ask(filter, [relay]);
                 return { events: res.events, complete: res.relayStatus.some((r) => r.eose) };
             },
             tip: async () => {
@@ -382,8 +430,9 @@ export function render(r: Report): string {
     for (const c of r.checks) lines.push(`  ${c.ok ? 'ok  ' : 'FAIL'}  ${c.check}${c.detail ? ` (${c.detail})` : ''}`);
     for (const n of r.not_checked) lines.push(`  not checked  ${n}`);
     if (r.detail) for (const [k, v] of Object.entries(r.detail)) lines.push(`  ${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    const answered = r.relays ? ` (${r.relays.answered} of ${r.relays.asked} relays answered every read)` : '';
     const verdict = {
-        verified: 'VERIFIED',
+        verified: `VERIFIED${answered}`,
         failed: 'FAILED',
         unread: 'NOT READ: a read got no answer, so nothing is concluded',
         'passed-offline': 'PASSED OFFLINE CHECKS ONLY: not verified (see "not checked")',
@@ -414,6 +463,17 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
     } catch (e) {
         if (!(e instanceof UnansweredReadError)) throw e;
         r = { subject: 'read', checks: [], not_checked: [e.message], verdict: 'unread' };
+    }
+    // One answering relay settles a read, so name each relay that missed one: a
+    // revocation or record only it holds was not seen. The verdict stands.
+    const tally = n?.relays?.();
+    if (tally && tally.asked > 0) {
+        r.relays = tally;
+        for (const s of tally.silent) {
+            r.not_checked.push(
+                `relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads: a revocation or record only it holds was not seen`
+            );
+        }
     }
     process.stdout.write((opts.json ? JSON.stringify(r, null, 2) : render(r)) + '\n');
     process.exit({ verified: 0, failed: 1, unread: 2, 'passed-offline': 3 }[r.verdict]);
