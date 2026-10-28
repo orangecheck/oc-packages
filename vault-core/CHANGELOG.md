@@ -15,6 +15,11 @@
   recovery wrap, a key under a key, entry fields, a cloud blob, a device grant,
   a backup file, an export, and the accepted work-factor grid, as vault.ochk.io
   writes them. `src/vectors.test.ts` reads every one and writes the same shapes.
+  `scripts/gen-blob-v1.vault-web.ts` is the generator that wrote it, run in
+  oc-vault-web; its keys, salts and nonces are random, so the committed file
+  is the pin and a rerun writes an equivalent one.
+- `src/kdf-guard.test.ts`: `unwrapVaultKey` and `restoreEncryptedBackup`
+  refuse out-of-range work factors before scrypt runs (a spy counts the calls).
 
 ### Changed
 

@@ -12,4 +12,4 @@ regexes = ['''^pk_(?:test|live)_[A-Za-z0-9_-]+(?:\.\.\.|…)?$''']
 
 [[allowlists]]
 description = "vault-core's blob-format vectors: a throwaway vault key, passphrases and a device key that open only the test blobs beside them"
-paths = ['''^vault-core/vectors/''']
+paths = ['''^vault-core/vectors/blob-v1\.json$''']
