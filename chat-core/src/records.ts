@@ -43,8 +43,15 @@ export function addressKeysEverBound(verified: readonly ParsedDeviceEvent[], now
     return [...new Set([...authorizedDevices(binds, { now }).map((d) => d.nostrPubkey), ...replaced])];
 }
 
-/** The kind-30078 records the relays hold under a principal's d-tag, and whether one finished answering. */
-export type RecordLookup = (principal: string) => Promise<{ events: NostrEvent[]; answered: boolean }>;
+/**
+ * The kind-30078 records the relays hold under a principal's d-tag; whether one
+ * finished answering; and, when the caller knows, whether every relay asked did
+ * (`complete`). A bind seen on any relay counts, but "this key is not bound"
+ * needs every relay's answer.
+ */
+export type RecordLookup = (
+    principal: string
+) => Promise<{ events: NostrEvent[]; answered: boolean; complete?: boolean }>;
 
 export interface RecordReadOptions {
     /** The auth host's published keys, retired ones included (§8.6). Read only for a did:oc. */
@@ -58,7 +65,8 @@ export interface RecordReadOptions {
 export interface RecordReads {
     /** The keys a principal's records bind now, or 'no-answer'. */
     boundKeys(principal: string): Promise<string[] | 'no-answer'>;
-    /** Throws UnansweredReadError when no relay answered. */
+    /** Throws UnansweredReadError when no relay answered, and when the key is not
+     *  bound by the relays that answered while another did not (`complete: false`). */
     isBound: IsBound;
     liveness(b: VersionBinding): Promise<Liveness>;
     everBoundKeys(principal: string): Promise<{ keys: string[]; answered: boolean }>;
@@ -67,7 +75,7 @@ export interface RecordReads {
 /** Binding reads over `lookup`, one lookup per principal for the life of the object. */
 export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): RecordReads {
     const now = () => (opts.now ? opts.now() : new Date());
-    const looked = new Map<string, Promise<{ events: NostrEvent[]; answered: boolean }>>();
+    const looked = new Map<string, ReturnType<RecordLookup>>();
     const records = (p: string) => {
         if (!looked.has(p)) looked.set(p, lookup(p));
         return looked.get(p)!;
@@ -97,7 +105,12 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
         async isBound(pubkey, principal) {
             const keys = await boundKeys(principal);
             if (keys === 'no-answer') throw new UnansweredReadError();
-            return keys.includes(pubkey);
+            if (keys.includes(pubkey)) return true;
+            // A relay that did not answer may hold the record that binds it.
+            if ((await records(principal)).complete === false) {
+                throw new UnansweredReadError('a relay that did not answer may bind this key');
+            }
+            return false;
         },
         async liveness(b) {
             if (b.kind === 'btc') {
