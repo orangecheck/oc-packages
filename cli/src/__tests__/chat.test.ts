@@ -31,7 +31,7 @@ import {
 import { matchFilter } from '@orangecheck/nostr-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { liveNet, runChatVerify, type ChatNet } from '../commands/chat';
+import { liveNet, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
 
 class ExitCalled extends Error {
     constructor(public code: number) {
@@ -487,5 +487,54 @@ describe('oc chat verify: a tip answer that is not a number', () => {
         const text = () => ({ ok: true, text: async () => 'not a height', json: async () => ({}) }) as unknown as Response;
         expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: text })))).toBe(2);
         expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+});
+
+describe('oc chat verify: relays that do not answer', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const A = 'wss://a.example';
+    const B = 'wss://b.example';
+    /** Two relays: each holds its events, or is silent (null). */
+    const relaysOf =
+        (byRelay: Record<string, NostrEvent[] | null>): RawQuery =>
+        async (filter, relays) => {
+            const seen = new Map<string, NostrEvent>();
+            for (const r of relays) for (const e of byRelay[r] ?? []) if (matchFilter(e, filter as never)) seen.set(e.id, e);
+            return { events: [...seen.values()], relayStatus: relays.map((r) => ({ relay: r, eose: byRelay[r] !== null })) };
+        };
+    const over = (byRelay: Record<string, NostrEvent[] | null>) => {
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        return liveNet([A, B], 'https://esplora.test/api', relaysOf(byRelay));
+    };
+    // The founder's version without its binding tag, as a version from before 0.3.0: its key is bound only by records on the relays.
+    const legacy = versionBy(founder.nostrSk, founder.nostrPk, { ...genesis, title: 'Town, before 0.3.0' });
+
+    it('names each relay that missed a read, and says how many answered, without changing the verdict', async () => {
+        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: null }))).toBe(0);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('verified');
+        expect(r.relays).toMatchObject({ asked: 2, answered: 1, silent: [{ relay: B }] });
+        expect(r.not_checked.join('\n')).toMatch(/relay wss:\/\/b\.example did not answer \d+ of \d+ reads/);
+        stdout = '';
+        expect(await run({ file: file(version) }, over({ [A]: [version, founder.record], [B]: null }))).toBe(0);
+        expect(stdout).toContain('VERIFIED (1 of 2 relays answered every read)');
+        expect(stdout).toContain('not checked  relay wss://b.example did not answer');
+    });
+
+    it('with every relay answering, nothing is left unchecked', async () => {
+        expect(await run({ file: file(version), json: true }, over({ [A]: [version, founder.record], [B]: [] }))).toBe(0);
+        const r = JSON.parse(stdout);
+        expect(r.relays).toMatchObject({ asked: 2, answered: 2, silent: [] });
+        expect(r.not_checked).toEqual([]);
+    });
+
+    it('an older copy whose binding only a silent relay holds is NOT READ, not FAILED', async () => {
+        expect(await run({ file: file(legacy), json: true }, over({ [A]: [], [B]: null }))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+        // B answers and holds the record: it stands. Both answer and none holds it: it fails.
+        stdout = '';
+        expect(await run({ file: file(legacy), json: true }, over({ [A]: [], [B]: [founder.record] }))).toBe(0);
+        stdout = '';
+        expect(await run({ file: file(legacy), json: true }, over({ [A]: [], [B]: [] }))).toBe(1);
     });
 });
