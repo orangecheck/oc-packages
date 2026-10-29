@@ -343,7 +343,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'when you first sign in',
-                            v: 'OrangeCheck’s operators get an email, sent through our email provider (Resend), naming your `did:oc` and the kind of sign-in you used (a Bitcoin wallet, an email code, Google or GitHub). Notices sent before 2026-10-29 also named the identity itself: your Bitcoin address or your email address',
+                            v: 'OrangeCheck’s operators get an email, sent through our email provider (Resend), naming your `did:oc` and the kind of sign-in you used (a Bitcoin wallet, an email code, Google or GitHub). Notices sent before 21:48 UTC on 29 October 2026 also named the identity itself: your Bitcoin address or your email address',
                         },
                         { k: 'never', v: 'a password, a private key, or a seed phrase' },
                     ],
@@ -538,7 +538,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'account, sign-in identities, passkeys, sign-in log, coin backings, OC Chat device records and btc.ochk.io alerts',
-                            v: 'deleted when your account-deletion request completes. File one in [your account on ochk.app](https://ochk.app/me/account), or ask at [[PRIVACY_CONTACT]]. A person completes the request, and we aim to do that within 48 hours. Nothing is erased while a blocker remains: sats you are owed or payouts still pending on ochk.app, live guardian-operator duties, developer projects or an OC Connect app you own, or a vault team you own that still has other members. What stays: the email our operators received when you first signed in, which names your `did:oc` and the kind of sign-in you used, and, if it was sent before 2026-10-29, the identity itself; a revocation already published to Nostr relays, and anything else you published there or anchored to Bitcoin; a marker under a hash of your account id that refuses your old sessions until they would have expired, about 30 days; and, if a site made an account for you, a hashed record of it, so that site is told the account was deleted instead of making a new one',
+                            v: 'deleted when your account-deletion request completes. File one in [your account on ochk.app](https://ochk.app/me/account), or ask at [[PRIVACY_CONTACT]]. A person completes the request, and we aim to do that within 48 hours. Nothing is erased while a blocker remains: sats you are owed or payouts still pending on ochk.app, live guardian-operator duties, developer projects or an OC Connect app you own, or a vault team you own that still has other members. What stays: the email our operators received when you first signed in, which names your `did:oc` and the kind of sign-in you used, and, if it was sent before 21:48 UTC on 29 October 2026, the identity itself; a revocation already published to Nostr relays, and anything else you published there or anchored to Bitcoin; a marker under a hash of your account id that refuses your old sessions until they would have expired, about 30 days; and, if a site made an account for you, a hashed record of it, so that site is told the account was deleted instead of making a new one',
                         },
                         {
                             k: 'support emails',
