@@ -351,7 +351,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'who at OrangeCheck can see it' },
                 {
                     kind: 'para',
-                    text: "OrangeCheck's operators can see your account, including your email address decrypted, in an owner-only console: its account list shows each account's email, and looking up one account asks for a written reason, which is recorded with the lookup. The lookup record's details about you are cleared after 90 days; the reason stays.",
+                    text: "OrangeCheck's operators can see your account, including your email address decrypted, in an owner-only console: its account list shows each account's email, and looking up one account asks for a written reason. A lookup's record has its details about you cleared after 90 days; the reason stays.",
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {
@@ -465,7 +465,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'abuse limits',
-                            v: 'counts of writes per IP address and per network, under keyed hashes, dropped after 2 days. No IP address is stored',
+                            v: 'counts of writes per account, per IP address and per network, under keyed ids, dropped after 2 days. No IP address is stored',
                         },
                         {
                             k: 'deletion',
@@ -476,7 +476,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'btc.ochk.io' },
                 {
                     kind: 'para',
-                    text: 'btc.ochk.io keeps only the alert thresholds you save, with your account, and deletes them when your account is deleted. Its planner and paper desk stay in your browser. Its market commentary is written each hour by an AI model provider (Anthropic) from market data alone; nothing about you is sent.',
+                    text: 'btc.ochk.io keeps only the alert thresholds you save, with your account, and deletes them when your account is deleted. Its planner and paper desk stay in your browser. Its market commentary is written each hour by an AI model provider (Anthropic) from market data and the web searches it runs; nothing about you is sent.',
                 },
                 { kind: 'subhead', text: 'globe.ochk.io' },
                 {
@@ -534,7 +534,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'email sign-in codes',
-                            v: 'the code itself is never stored; the record that it was used lasts at most 10 minutes, and per-address and per-network send counts, kept as keyed hashes, are dropped after a day',
+                            v: 'the code itself is never stored and expires after 10 minutes; the record that it was used is deleted when it is spent, or with the next code anyone asks for after it expires; per-address and per-network send counts, kept as keyed hashes, are dropped after a day',
                         },
                         {
                             k: 'account, sign-in identities, passkeys, sign-in log, coin backings, OC Chat device records and btc.ochk.io alerts',

@@ -22,7 +22,8 @@ commentary, some of it written by an AI model, are not advice. The Privacy
 policy has a section on what each of the four keeps: chat holds only
 encrypted messages awaiting pickup (14 days, or 365 on Personal) and no IP
 address; cosign's messages are not end-to-end encrypted and its operators can
-read them; btc keeps only the alert thresholds you save; globe keeps nothing.
+read them; btc keeps only the alert thresholds you save, and its hourly commentary uses
+market data and web searches, nothing about you; globe keeps nothing.
 
 ### Changed — what ochk.io stores, and who can read it
 
@@ -34,7 +35,7 @@ message, and earlier backings), OC Chat device vouches and revocations
 (revocations are also published to Nostr relays), and btc.ochk.io alert
 thresholds. It also says that OrangeCheck's operators can see an account's
 decrypted email in an owner-only console, and that a lookup of one account
-asks for a recorded reason.
+asks for a written reason.
 
 ### Changed — the relay and retention clauses
 
