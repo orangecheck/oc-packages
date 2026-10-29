@@ -51,7 +51,7 @@ const _RELAYS: ValidRelaySet<
   readonly [
     "wss://nos.lol",
     "wss://relay.primal.net",
-    "wss://relay.damus.io",
+    "wss://nostr.mom",
     "wss://nostr.oxtr.dev",
     "wss://relay.ochk.io",
   ]
@@ -62,9 +62,13 @@ const _RELAYS: ValidRelaySet<
   // relay.snort.social (in memory since 2026-10: OK true, then nothing) and
   // offchain.pub (web of trust refuses fresh keys) left on 2026-10-21;
   // relay.nostr.band left on 2026-09-03 when it stopped answering at all.
+  // relay.damus.io left on 2026-10-29: from 2026-10-28 it answered about half
+  // of the family's device-record reads and from 10:45Z on 10-29 none, a 503
+  // at the handshake or an open socket that never answers. nostr.mom took its
+  // place; it kept all 37 rebroadcast family events on 2026-10-21.
   "wss://nos.lol",
   "wss://relay.primal.net",
-  "wss://relay.damus.io",
+  "wss://nostr.mom",
   "wss://nostr.oxtr.dev",
   // First-party family relay — kind allowlist 30078-30087 + 30110-30114 + canonical
   // OC d-tag prefixes. Always co-published with public relays; never
@@ -394,8 +398,9 @@ const poolOptions: RelayPoolOptions = {
   // The smallest max_subscriptions in the family's relays is 20 (relay.ochk.io,
   // primal); 10 leaves room for long-lived subscriptions on the same socket.
   maxSubscriptions: 10,
-  // relay.damus.io refuses about one handshake in seven with a 503, unrelated
-  // to load from us; a second try half a second later usually gets through.
+  // A public relay can refuse one handshake with a 503, unrelated to load from
+  // us (relay.damus.io did about one in seven); a second try half a second
+  // later usually gets through.
   redialMs: 500,
   backoffMs: 10_000,
   idleMs: 30_000,

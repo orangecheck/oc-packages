@@ -12,6 +12,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.8.1] — 2026-10-29
+
+### Changed
+
+- **`DEFAULT_RELAYS`**: `wss://nostr.mom` replaces `wss://relay.damus.io`. From
+  2026-10-28 damus answered about half of the family's device-record reads, and
+  from 10:45Z on 2026-10-29 none, which left readers that need 4 of the 5 with
+  no slack. nostr.mom accepts the family's kinds from a fresh key and still
+  served every one of them an hour later in the 2026-10-21 coverage check.
+  Records a writer confirmed on damus and one other relay are held by one of the
+  five until they are published again.
+
 ## [0.8.0] — 2026-10-21
 
 ### Added

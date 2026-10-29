@@ -75,7 +75,7 @@ Five relays, in order:
 
 1. `wss://nos.lol`
 2. `wss://relay.primal.net`
-3. `wss://relay.damus.io`
+3. `wss://nostr.mom`
 4. `wss://nostr.oxtr.dev`
 5. `wss://relay.ochk.io` — the OC family's first-party kind-allowlisted relay (see [`oc-relay-infra`](https://github.com/orangecheck/oc-relay-infra))
 
