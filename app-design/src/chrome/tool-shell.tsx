@@ -42,6 +42,7 @@ export function SessionAccountView({
     accountHref = OCHK_APP_ACCOUNT,
     onSignOut,
     signOutRefused = false,
+    onMenuOpenChange,
     nameFrom = 'lg',
 }: {
     state: SessionState;
@@ -63,6 +64,8 @@ export function SessionAccountView({
     onSignOut?: () => void;
     /** The last sign-out was refused, so the person is still signed in: said under the menu. */
     signOutRefused?: boolean;
+    /** Called as the account menu opens and closes. */
+    onMenuOpenChange?: (open: boolean) => void;
     nameFrom?: 'sm' | 'lg';
 }) {
     const inPlace = useSignInHref(signInPath);
@@ -73,6 +76,7 @@ export function SessionAccountView({
                 name={name || 'Your account'}
                 detail={detail}
                 nameFrom={nameFrom}
+                onOpenChange={onMenuOpenChange}
                 items={[
                     ...items,
                     ...(items.length > 0 ? (['separator'] as const) : []),

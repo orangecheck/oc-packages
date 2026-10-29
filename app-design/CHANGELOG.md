@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.29.3] — 2026-10-29
+
+- `SessionAccount`'s "still signed in" notice goes once the account menu opens
+  again, as `@orangecheck/design`'s and `@orangecheck/ui`'s menus drop theirs.
+  `AccountMenu` takes `onOpenChange`, and `SessionAccountView` passes
+  `onMenuOpenChange` to it.
+
 ## [1.29.2] — 2026-10-29
 
 - `SessionAccount` signs out through auth-client's `trySignOut()` when it has
