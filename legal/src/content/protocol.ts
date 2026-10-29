@@ -465,7 +465,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'abuse limits',
-                            v: 'counts of writes per account, per IP address and per network, under keyed ids, dropped after 2 days. No IP address is stored',
+                            v: 'counts of writes per account, per IP address and per network, under keyed ids, dropped after 2 days; and your account\'s counts for the last ten minutes, kept with your account. No IP address is stored',
                         },
                         {
                             k: 'deletion',
@@ -534,11 +534,11 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'email sign-in codes',
-                            v: 'the code itself is never stored and expires after 10 minutes; the record that it was used is deleted when it is spent, or with the next code anyone asks for after it expires; per-address and per-network send counts, kept as keyed hashes, are dropped after a day',
+                            v: 'the code itself is never stored and expires after 10 minutes; the record that lets it be used once is deleted when it is spent, or with the next code anyone asks for after it expires; per-address and per-network send counts, kept as keyed hashes, are dropped after a day',
                         },
                         {
                             k: 'account, sign-in identities, passkeys, sign-in log, coin backings, OC Chat device records and btc.ochk.io alerts',
-                            v: 'deleted when your account-deletion request completes. File one in [your settings on ochk.app](https://ochk.app/me/settings), or ask at [[PRIVACY_CONTACT]]. A person completes the request, and we aim to do that within 48 hours. Nothing is erased while a blocker remains: sats you are owed or payouts still pending on ochk.app, live guardian-operator duties, developer projects or an OC Connect app you own, or a vault team you own that still has other members. What stays: the email our operators received when you first signed in, which names your `did:oc` and the identity you used; a revocation already published to Nostr relays, and anything else you published there or anchored to Bitcoin; a marker under a hash of your account id that refuses your old sessions until they would have expired, about 30 days; and, if a site made an account for you, a hashed record of it, so that site is told the account was deleted instead of making a new one',
+                            v: 'deleted when your account-deletion request completes. File one in [your account on ochk.app](https://ochk.app/me/account), or ask at [[PRIVACY_CONTACT]]. A person completes the request, and we aim to do that within 48 hours. Nothing is erased while a blocker remains: sats you are owed or payouts still pending on ochk.app, live guardian-operator duties, developer projects or an OC Connect app you own, or a vault team you own that still has other members. What stays: the email our operators received when you first signed in, which names your `did:oc` and the identity you used; a revocation already published to Nostr relays, and anything else you published there or anchored to Bitcoin; a marker under a hash of your account id that refuses your old sessions until they would have expired, about 30 days; and, if a site made an account for you, a hashed record of it, so that site is told the account was deleted instead of making a new one',
                         },
                         {
                             k: 'support emails',
