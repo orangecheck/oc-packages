@@ -517,6 +517,12 @@ for (const mode of ['dark', 'light']) {
         if (logout === 503) {
             check(alert?.textContent === 'Couldn’t sign out. You’re still signed in; try again.', `SessionAccount: a refused sign-out says ${show(alert?.textContent)}`);
             check(host.querySelector('[aria-label="Alice, account menu"]'), 'SessionAccount: a refused sign-out dropped the account');
+            // Opening the menu again drops the notice, as design's and ui's menus do.
+            await act(async () => {
+                host.querySelector('[aria-label="Alice, account menu"]')?.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+            });
+            await settle();
+            check(!host.querySelector('[role="alert"]'), 'SessionAccount: the refusal notice stays once the menu opens again');
         } else {
             check(!alert, 'SessionAccount: a sign-out that worked says it was refused');
             check(!host.querySelector('[aria-label="Alice, account menu"]') && host.textContent.includes('Sign in'), 'SessionAccount: a sign-out that worked still shows the account');

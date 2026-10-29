@@ -545,6 +545,7 @@ export function AccountMenu({
     detail,
     items,
     nameFrom = 'sm',
+    onOpenChange,
 }: {
     name: string;
     /** A second line: the short did, an address. */
@@ -553,10 +554,12 @@ export function AccountMenu({
     /** The width from which the name shows beside the initial. A header with
      *  navigation beside it needs the room until lg. */
     nameFrom?: 'sm' | 'lg';
+    /** Called as the menu opens and closes. */
+    onOpenChange?: (open: boolean) => void;
 }) {
     const initial = name.trim().charAt(0).toUpperCase() || '·';
     return (
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={onOpenChange}>
             <DropdownMenuTrigger
                 className={cn(
                     'inline-flex h-10 items-center gap-2.5 rounded-full border border-border bg-card pl-1 pr-1 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',

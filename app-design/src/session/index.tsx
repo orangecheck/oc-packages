@@ -74,6 +74,10 @@ export function SessionAccount({
                 void signOut?.().then((outcome: unknown) => setSignOutRefused(refused(outcome)));
             }}
             signOutRefused={signOutRefused}
+            // The notice has been read once the menu opens again, as design's and ui's menus drop it.
+            onMenuOpenChange={(open) => {
+                if (open) setSignOutRefused(false);
+            }}
             nameFrom={nameFrom}
         />
     );
