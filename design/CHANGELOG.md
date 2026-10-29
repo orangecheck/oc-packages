@@ -9,6 +9,15 @@ bump that silently moves a colour is worse than a breaking one.
 
 ## [Unreleased]
 
+## [0.35.3] — 2026-10-29
+
+The classic system is frozen; this is a fix. A sign-out the auth host refuses no longer looks like it worked.
+`OcAccountMenu` signs out through auth-client's `trySignOut()` when it has one
+(2.41.0 and later). On `{ ok: false }` the menu stays open, says "Couldn’t sign
+out. You’re still signed in; try again." and does not navigate. "Leave this
+account" does the same. A `signOut` given to `OcAccountMenuView` may answer
+`{ ok }` too; one that answers nothing works as before.
+
 ## [0.35.2] — 2026-10-20
 
 The classic system is frozen; this is a fix. Every docs link, including the
