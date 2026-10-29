@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 
 const here = dirname(fileURLToPath(import.meta.url));
-for (const f of ['components', 'primitives', 'chrome', 'mdx', 'code']) {
+for (const f of ['components', 'primitives', 'chrome', 'mdx', 'code', 'session']) {
     if (!existsSync(join(here, `../dist/${f}.js`))) {
         console.error(`✗ dom: dist/${f}.js is missing; run yarn build first`);
         process.exit(1);
@@ -52,6 +52,8 @@ const P = require(join(here, '../dist/primitives.js'));
 const Ch = require(join(here, '../dist/chrome.js'));
 const { mdxComponents } = require(join(here, '../dist/mdx.js'));
 const { rehypeCode } = require(join(here, '../dist/code.js'));
+const { SessionAccount } = require(join(here, '../dist/session.js'));
+const { OcSessionProvider } = require('@orangecheck/auth-client');
 
 let failures = 0;
 let checks = 0;
@@ -478,9 +480,55 @@ for (const mode of ['dark', 'light']) {
     await held.unmount();
 }
 
+// SessionAccount: a sign-out the auth host refuses keeps the account and says so; one it does ends the session quietly.
+{
+    const account = {
+        id: 'acc-a',
+        did_oc: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        display_name: 'Alice',
+        primary_btc: null,
+        has_email: false,
+        display_identity: { kind: 'did', value: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
+    };
+    const settle = () => act(async () => new Promise((r) => setTimeout(r, 20)));
+    for (const logout of [503, 200]) {
+        const realFetch = globalThis.fetch;
+        globalThis.fetch = window.fetch = async (url) => {
+            const u = String(url);
+            if (u.includes('/api/auth/logout')) return new Response(JSON.stringify({ ok: logout === 200 }), { status: logout });
+            if (u.endsWith('/api/auth/me')) return new Response(JSON.stringify({ account, roster: [] }), { status: 200 });
+            return new Response('{}', { status: 404 });
+        };
+        const { host, unmount } = await mount(h(OcSessionProvider, null, h(SessionAccount, null)));
+        let trigger = null;
+        for (let i = 0; i < 50 && !trigger; i++) {
+            await settle();
+            trigger = host.querySelector('[aria-label="Alice, account menu"]');
+        }
+        check(trigger, `SessionAccount (${logout}): no signed-in menu`);
+        await act(async () => {
+            trigger?.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+        });
+        const item = [...document.querySelectorAll('[role="menuitem"]')].find((e) => e.textContent.includes('Sign out'));
+        check(item, `SessionAccount (${logout}): the menu has no Sign out`);
+        await act(async () => item?.click());
+        await settle();
+        const alert = host.querySelector('[role="alert"]');
+        if (logout === 503) {
+            check(alert?.textContent === 'Couldn’t sign out. You’re still signed in; try again.', `SessionAccount: a refused sign-out says ${show(alert?.textContent)}`);
+            check(host.querySelector('[aria-label="Alice, account menu"]'), 'SessionAccount: a refused sign-out dropped the account');
+        } else {
+            check(!alert, 'SessionAccount: a sign-out that worked says it was refused');
+            check(!host.querySelector('[aria-label="Alice, account menu"]') && host.textContent.includes('Sign in'), 'SessionAccount: a sign-out that worked still shows the account');
+        }
+        await unmount();
+        globalThis.fetch = window.fetch = realFetch;
+    }
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a refused sign-out`);
 process.exit(0);

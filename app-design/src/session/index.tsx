@@ -1,4 +1,5 @@
 import { useOptionalOcSession, type OcAccount } from '@orangecheck/auth-client';
+import { useState } from 'react';
 
 import { OCHK_APP_ACCOUNT, SessionAccountView, type SessionState } from '../chrome/tool-shell';
 import { returningTo, useHereHref } from '../lib/sign-in';
@@ -45,6 +46,7 @@ export function SessionAccount({
     nameFrom?: 'sm' | 'lg';
 }) {
     const session = useOptionalOcSession();
+    const [signOutRefused, setSignOutRefused] = useState(false);
     // The session's sign-in, returning to the page the viewer is on now, not the one it was first read on.
     const here = useHereHref();
     const status = session?.status ?? 'anonymous';
@@ -65,10 +67,21 @@ export function SessionAccount({
             signInLabel={signInLabel}
             signInVariant={signInVariant}
             accountHref={accountHref}
-            onSignOut={() => void session?.signOut()}
+            onSignOut={() => {
+                setSignOutRefused(false);
+                // auth-client 2.41 answers whether the auth host ended the session; an older one only signs out.
+                const signOut = session?.trySignOut ?? session?.signOut;
+                void signOut?.().then((outcome: unknown) => setSignOutRefused(refused(outcome)));
+            }}
+            signOutRefused={signOutRefused}
             nameFrom={nameFrom}
         />
     );
+}
+
+/** True when a sign-out answered that the auth host did not end the session. */
+function refused(outcome: unknown): boolean {
+    return typeof outcome === 'object' && outcome !== null && (outcome as { ok?: unknown }).ok === false;
 }
 
 export { SessionAccountView };
