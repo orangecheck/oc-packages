@@ -333,7 +333,8 @@ function daysCovering(utxos: VectorUtxo[], cover: number, nowIso: string): numbe
 //   1. Bilateral (v21, v22): inputs.outcomes is an array of
 //      { author, outcome, resolved_at } shorthands. Synthesize OutcomeEnvelope
 //      stubs and feed first as primary, rest as contradictoryOutcomes.
-//   2. Standard (v23-v27): inputs.pledge + inputs.outcome_envelope (or null) +
+//   2. Standard (v23-v27, v47-v50): inputs.pledge + inputs.outcome_envelope (or
+//      null) or inputs.outcome_envelopes (several, in any order) +
 //      inputs.abandonment_envelope (or null) + inputs.now.
 
 async function runStateTransitionVector(vec: AnyVector) {
@@ -376,7 +377,15 @@ async function runStateTransitionVector(vec: AnyVector) {
     const pledge = pledgeEnvelopeFromInputs(pledgeInputs);
 
     const outcomeInputs = i['outcome_envelope'] as Record<string, unknown> | null;
-    const outcome = outcomeInputs ? outcomeEnvelopeFromInputs(outcomeInputs) : null;
+    const manyOutcomes = (i['outcome_envelopes'] as Record<string, unknown>[] | undefined)?.map(
+        outcomeEnvelopeFromInputs,
+    );
+    const outcome = manyOutcomes
+        ? (manyOutcomes[0] ?? null)
+        : outcomeInputs
+          ? outcomeEnvelopeFromInputs(outcomeInputs)
+          : null;
+    const contradictoryOutcomes = manyOutcomes?.slice(1);
 
     const abandonmentInputs = i['abandonment_envelope'] as Record<string, unknown> | null;
     const built = abandonmentInputs
@@ -402,8 +411,22 @@ async function runStateTransitionVector(vec: AnyVector) {
             ? { tip_height: chainHeight, tip_time: now }
             : undefined;
 
-    const state = classifyState({ pledge, outcome, abandonment, now, chain });
+    const state = classifyState({ pledge, outcome, abandonment, now, chain, contradictoryOutcomes });
     expect(state).toBe(expectedState);
+    // The order outcomes arrive in does not change the state (§4.4).
+    if (manyOutcomes && manyOutcomes.length > 1) {
+        const reversed = [...manyOutcomes].reverse();
+        expect(
+            classifyState({
+                pledge,
+                outcome: reversed[0]!,
+                abandonment,
+                now,
+                chain,
+                contradictoryOutcomes: reversed.slice(1),
+            }),
+        ).toBe(expectedState);
+    }
 }
 
 function pledgeEnvelopeFromInputs(p: Record<string, unknown>): PledgeEnvelope {
@@ -500,7 +523,8 @@ function outcomeStub(
         resolved_at: resolvedAt,
         resolved_by: 'deterministic',
         evidence: { mechanism: 'chain_state', result: 'synthetic', witness: 'synthetic' },
-        dispute_window_ends_at: resolvedAt,
+        // The shorthand names no window; its outcomes meet inside one (§4.4).
+        dispute_window_ends_at: '2099-01-01T00:00:00Z',
         sig: null,
     };
 }
