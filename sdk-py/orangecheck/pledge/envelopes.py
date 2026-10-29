@@ -108,6 +108,11 @@ class VerifyOk:
     # from verify_pledge, {"basis": "sworn_at", "sworn_at": ..., "anchored": False}
     # from verify_pledge_as_of_sworn_at. None for outcomes and abandonments.
     as_of: Optional[dict[str, Any]] = None
+    # True for the swearer's own outcome on a counterparty_signs pledge: a
+    # counter-claim (§4.5). It can contradict the counterparty's outcome, making
+    # the pledge disputed, but never settles the pledge by itself. Always False
+    # when verify_outcome was not given the pledge.
+    counter_claim: bool = False
 
 
 @dataclass(frozen=True)
@@ -655,6 +660,9 @@ def verify_outcome(
     ``pledge`` is the pledge's canonical input or its envelope dict. Without
     it the result says nothing about who may resolve, so the call fails
     closed unless ``skip_resolver_authorization=True`` says so explicitly.
+    On a counterparty_signs pledge the swearer's own outcome verifies with
+    ``counter_claim=True``: it can dispute the counterparty's outcome but
+    never settles the pledge (§4.5). Anyone else's is refused.
     """
     if envelope.get("v") != ENVELOPE_VERSION:
         return _err("E_UNSUPPORTED_VERSION", f"outcome envelope v={envelope.get('v')!r} not supported")
@@ -669,6 +677,7 @@ def verify_outcome(
             "verify_outcome requires the pledge this outcome resolves, or an explicit "
             "skip_resolver_authorization=True to state that authority is not being checked",
         )
+    counter_claim = False
     if pledge is not None:
         pledge_canon = _as_pledge_canon(pledge)
         if isinstance(pledge_canon, VerifyErr):
@@ -676,6 +685,7 @@ def verify_outcome(
         authz = _check_resolver_authorized(envelope, pledge_canon)
         if authz:
             return authz
+        counter_claim = _is_counter_claim(envelope, pledge_canon)
 
     from .canonical import outcome_input_from_dict
 
@@ -727,6 +737,16 @@ def verify_outcome(
         canonical_message=canonical_message,
         id=envelope["id"],
         recompute_required=not requires_sig,
+        counter_claim=counter_claim,
+    )
+
+
+def _is_counter_claim(env: dict[str, Any], pledge: PledgeCanonicalInput) -> bool:
+    """A swearer's counter-claim under counterparty_signs: it contradicts, never settles (§4.5)."""
+    return (
+        pledge.resolution.mechanism == "counterparty_signs"
+        and env.get("resolved_by") == pledge.swearer
+        and env.get("resolved_by") != pledge.counterparty
     )
 
 
@@ -750,8 +770,9 @@ def _check_resolver_authorized(
 ) -> Optional[VerifyErr]:
     """SPEC §1 (Resolver) and SECURITY §6: the outcome names THIS pledge
     (pledge_id recomputed, not trusted), and its resolver is the one §1 names
-    for the pledge's mechanism — the counterparty for counterparty_signs, the
-    literal "deterministic" for everything else."""
+    for the pledge's mechanism — the counterparty for counterparty_signs (or
+    the swearer, whose outcome is only a counter-claim, §4.5), the literal
+    "deterministic" for everything else."""
     from .state import _parse_utc
 
     expected_pledge_id = compute_pledge_id(pledge)
@@ -774,13 +795,15 @@ def _check_resolver_authorized(
                 "E_OUTCOME_RESOLVER_UNAUTHORIZED",
                 "counterparty_signs pledge names no counterparty, so no resolver is authorized",
             )
-        if resolved_by != pledge.counterparty:
+        # The counterparty settles; the swearer may only counter-claim (§4.5).
+        if resolved_by != pledge.counterparty and resolved_by != pledge.swearer:
             return _err(
                 "E_OUTCOME_RESOLVER_UNAUTHORIZED",
-                f"resolved_by ({resolved_by}) is not the pledge's counterparty ({pledge.counterparty})",
+                f"resolved_by ({resolved_by}) is neither the pledge's counterparty "
+                f"({pledge.counterparty}) nor its swearer",
             )
         # A signed outcome comes within the pledge's window (§3.4.2, §11.10).
-        # resolved_at is the counterparty's own claim, so this catches only an
+        # resolved_at is its signer's own claim, so this catches only an
         # honestly dated late one.
         try:
             late = _parse_utc(env.get("resolved_at")) >= _parse_utc(pledge.expires_at)  # type: ignore[arg-type]
