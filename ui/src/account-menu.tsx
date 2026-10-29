@@ -17,6 +17,20 @@ import type { EcosystemSlug } from './ecosystem-switcher';
 import { findFamilyProperty, type SiteState } from './family-properties';
 
 /**
+ * What a sign-out answers: auth-client's `trySignOut()` reports whether the
+ * auth host ended the session, a plain `signOut()` nothing.
+ */
+type SignOutOutcome = void | { ok: boolean };
+
+/** Said when the auth host did not end the session, as auth-client's own chip says it. */
+const SIGN_OUT_REFUSED = 'Couldn’t sign out. You’re still signed in; try again.';
+
+/** True when a sign-out answered that the auth host did not end the session. */
+function refused(outcome: unknown): boolean {
+    return typeof outcome === 'object' && outcome !== null && (outcome as { ok?: unknown }).ok === false;
+}
+
+/**
  * `<OcAccountMenu>` — the canonical top-right account affordance for
  * every family site. Replaces the older inline-styled `OcAccountChip`
  * from `@orangecheck/auth-client` with a Tailwind-styled, fully
@@ -100,9 +114,11 @@ export interface OcAccountMenuSession {
     /**
      * Sign out. Accepts an optional `{ scope }` so the multi-account
      * "leave this account" affordance can route through the same hook.
-     * Defaults to `'all'` for back-compat.
+     * Defaults to `'all'` for back-compat. It may answer `{ ok }`, as
+     * auth-client's `trySignOut()` does: on `{ ok: false }` the menu stays
+     * open, says the person is still signed in, and does not navigate.
      */
-    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<void>;
+    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<SignOutOutcome>;
     refresh: () => void | Promise<void>;
     /**
      * Promote a linked identity to be the badge label across every
@@ -583,7 +599,9 @@ export function OcAccountMenu(props: OcAccountMenuProps) {
                           nostrNpub: session.account.nostrNpub ?? null,
                       }
                     : null,
-                signOut: session.signOut,
+                // auth-client 2.41 answers whether the auth host ended the
+                // session; an older one only signs out.
+                signOut: session.trySignOut ?? session.signOut,
                 refresh: session.refresh,
                 setDisplayIdentity: session.setDisplayIdentity,
                 // Multi-account · the connected variant always forwards
@@ -641,7 +659,12 @@ export function OcAccountMenuView({
     } = session;
     const [hydrated, setHydrated] = useState(false);
     const [open, setOpen] = useState(false);
+    const [signOutRefused, setSignOutRefused] = useState(false);
     const wrapRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!open) setSignOutRefused(false);
+    }, [open]);
 
     const property = findFamilyProperty(current);
     const hostname = property?.hostname ?? `${current}.ochk.io`;
@@ -878,7 +901,7 @@ export function OcAccountMenuView({
                             type="button"
                             role="menuitem"
                             onClick={() => {
-                                setOpen(false);
+                                setSignOutRefused(false);
                                 // Await the logout round-trip — its response is
                                 // what clears the `.ochk.io` cookie — and only
                                 // THEN hard-navigate home. Navigating first
@@ -890,7 +913,12 @@ export function OcAccountMenuView({
                                 // so it still wins over any auth-gated page's
                                 // redirect-to-sign-in effect.
                                 void (async () => {
-                                    await signOut();
+                                    // Refused: still signed in, so stay and say so.
+                                    if (refused(await signOut())) {
+                                        setSignOutRefused(true);
+                                        return;
+                                    }
+                                    setOpen(false);
                                     if (typeof window !== 'undefined') {
                                         window.location.assign(signOutRedirect);
                                     }
@@ -905,6 +933,15 @@ export function OcAccountMenuView({
                             </span>
                             <span className="flex-1">sign out</span>
                         </button>
+                        {signOutRefused ? (
+                            <div
+                                role="alert"
+                                data-oc-account-menu-signout-refused=""
+                                className="text-destructive px-3 pt-1 pb-2 font-mono text-[10px]"
+                            >
+                                {SIGN_OUT_REFUSED}
+                            </div>
+                        ) : null}
                     </div>
 
                     {secondaryNavLinks && secondaryNavLinks.length > 0 ? (
@@ -947,7 +984,7 @@ function AccountsSection({
     roster: OcAccountSummary[];
     switchAccount: ((didOc: string) => Promise<void>) | undefined;
     addAccountUrl: ((returnTo?: string) => string) | undefined;
-    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<void>;
+    signOut: (opts?: { scope?: OcSignOutScope }) => void | Promise<SignOutOutcome>;
     onActionStart: () => void;
 }) {
     const [switching, setSwitching] = useState<string | null>(null);
@@ -1007,13 +1044,20 @@ function AccountsSection({
                     type="button"
                     role="menuitem"
                     onClick={() => {
-                        onActionStart();
+                        setErr(null);
                         void (async () => {
+                            let outcome: unknown;
                             try {
-                                await signOut({ scope: 'current' });
+                                outcome = await signOut({ scope: 'current' });
                             } catch {
                                 // local state still flips · cookie may not
                             }
+                            // Refused: still in this account, so stay and say so.
+                            if (refused(outcome)) {
+                                setErr(SIGN_OUT_REFUSED);
+                                return;
+                            }
+                            onActionStart();
                             // No hard-nav · `scope: 'current'` with peers
                             // in the roster keeps the browser signed-in to
                             // the next-best account; the refresh() inside
