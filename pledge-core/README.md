@@ -161,6 +161,8 @@ const state = classifyState({
 
 For block-typed `resolves_at`, supply `chain.tip_height` and `chain.tip_time` so the SDK can decide whether the pledge's resolves block has been mined yet. Without `chain`, block-typed pledges stay `pending` until `expires_at` passes.
 
+Pass every outcome you verified, in any order: the first as `outcome`, the rest as `contradictoryOutcomes`. Only the pledge's resolver settles it (the counterparty under `counterparty_signs`, else the deterministic computation). On a `counterparty_signs` pledge the swearer may counter-claim (`verifyOutcome` marks it `counterClaim: true`): it can make the pledge `disputed`, never settle it. A contradiction counts only when dated before the earliest settling outcome's `dispute_window_ends_at`. With no dispute mechanism, a dispute times out to `expired_unresolved` at `expires_at`.
+
 ## Bond verification
 
 ```ts

@@ -109,6 +109,55 @@ describe('classifyState', () => {
         expect(r).toBe('disputed');
     });
 
+    describe('a swearer counter-claim under counterparty_signs (§4.3, §4.5)', () => {
+        const bilateral = pledge({
+            resolution: { mechanism: 'counterparty_signs', query: 'q' },
+            counterparty: 'bc1qbob',
+        });
+        const by = (resolved_by: string, o: Partial<OutcomeEnvelope>) =>
+            outcome({ resolved_by, evidence: { mechanism: 'counterparty_signs', result: 'r', witness: 'w' }, ...o });
+        const claim = (o: Partial<OutcomeEnvelope>) => by('bc1qalice', { id: 'c'.repeat(64), ...o });
+        const counterparty = (o: Partial<OutcomeEnvelope>) => by('bc1qbob', o);
+        const at = (now: string, outcomes: OutcomeEnvelope[]) =>
+            classifyState({
+                pledge: bilateral,
+                outcome: outcomes[0] ?? null,
+                abandonment: null,
+                now,
+                contradictoryOutcomes: outcomes.slice(1),
+            });
+
+        it('alone never settles the pledge, kept or broken', () => {
+            for (const result of ['kept', 'broken'] as const) {
+                expect(at('2026-10-01T00:00:00Z', [claim({ outcome: result })])).toBe('resolvable');
+                expect(at('2027-01-01T00:00:00Z', [claim({ outcome: result })])).toBe('expired_unresolved');
+            }
+        });
+
+        it("disputes the counterparty's outcome inside its window", () => {
+            const broken = counterparty({ outcome: 'broken', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-09T00:00:00Z' });
+            // Dated before the counterparty's outcome, or inside its window.
+            expect(at('2026-10-01T00:00:00Z', [claim({ outcome: 'kept', resolved_at: '2026-09-01T00:00:00Z' }), broken])).toBe('disputed');
+            expect(at('2026-10-01T00:00:00Z', [broken, claim({ outcome: 'kept', resolved_at: '2026-09-05T00:00:00Z' })])).toBe('disputed');
+        });
+
+        it("comes too late after the counterparty's window, which then stands", () => {
+            const broken = counterparty({ outcome: 'broken', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-09T00:00:00Z' });
+            expect(at('2026-10-01T00:00:00Z', [broken, claim({ outcome: 'kept', resolved_at: '2026-09-10T00:00:00Z' })])).toBe('broken');
+        });
+
+        it('agreeing with the counterparty changes nothing', () => {
+            const kept = counterparty({ outcome: 'kept' });
+            expect(at('2026-10-01T00:00:00Z', [claim({ outcome: 'kept' }), kept])).toBe('kept');
+        });
+
+        it("a stranger's envelope neither settles nor disputes", () => {
+            const stranger = by('bc1qmallory', { id: 'd'.repeat(64), outcome: 'kept' });
+            expect(at('2026-10-01T00:00:00Z', [stranger])).toBe('resolvable');
+            expect(at('2026-10-01T00:00:00Z', [counterparty({ outcome: 'broken' }), stranger])).toBe('broken');
+        });
+    });
+
     describe('a dispute (§4.4, §4.5)', () => {
         // kept on 09-01 with its window to 09-08; the pledge expires 12-31.
         const kept = outcome({ outcome: 'kept' });

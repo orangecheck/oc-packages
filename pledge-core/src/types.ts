@@ -469,6 +469,13 @@ export interface VerifyOutcomeOk {
      * before treating it as final (SPEC §9.1 step 8, §11.4).
      */
     recomputeRequired: boolean;
+    /**
+     * True for the swearer's own outcome on a `counterparty_signs` pledge: a
+     * counter-claim (SPEC §4.5). It can contradict the counterparty's outcome,
+     * making the pledge `disputed`, but never settles the pledge by itself.
+     * Always false when verifyOutcome was not given the pledge.
+     */
+    counterClaim: boolean;
 }
 
 export interface VerifyAbandonmentOk {
