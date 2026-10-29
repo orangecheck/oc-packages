@@ -11,6 +11,15 @@ small and the API may evolve quickly.
 
 - _(no pending changes)_
 
+## [0.15.3] — 2026-10-29 · a refused sign-out says so
+
+A sign-out the auth host refuses no longer looks like it worked.
+`OcAccountMenu` signs out through auth-client's `trySignOut()` when it has one
+(2.41.0 and later). On `{ ok: false }` the menu stays open, says "Couldn’t sign
+out. You’re still signed in; try again." and does not navigate. "Leave this
+account" does the same. A `signOut` given to `OcAccountMenuView` may answer
+`{ ok }` too; one that answers nothing works as before.
+
 ## [0.14.0] — 2026-05-18 · sign-out clears the session before navigating
 
 - `<OcAccountMenu>` / `<OcAccountMenuView>` — the sign-out menu item now
