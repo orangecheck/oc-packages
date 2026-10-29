@@ -165,15 +165,26 @@ test('a quoted backtick does not hide a static import after it', () => {
     assert.match(r.out, /imports @orangecheck\/sdk .* but declares no range for it/);
 });
 
-test('the newest dependency in range is read, not only the locked one', () => {
+test('the newest dependency in range is read, not only the locked one', async () => {
+    // The newest 2.x auth-client on the registry, compared numerically: the one a
+    // reader of ^2.36.0 must pick, whichever release that is today.
+    const res = await fetch('https://registry.npmjs.org/@orangecheck%2fauth-client');
+    assert.equal(res.ok, true, `registry answered ${res.status}`);
+    const want = Object.keys((await res.json()).versions)
+        .filter((v) => /^2\.\d+\.\d+$/.test(v))
+        .map((v) => v.split('.').map(Number))
+        .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2])
+        .at(-1)
+        .join('.');
+    // The fixture's premise: from 2.40.0 on, auth-client imports ./family-origins.
+    assert.ok(Number(want.split('.')[1]) >= 40, want);
+
     const fields = { devDependencies: { '@orangecheck/auth-client': '^2.36.0', '@orangecheck/auth-core': '^2.19.0' } };
     const lock = { '@orangecheck/auth-client@^2.36.0': '2.36.1', '@orangecheck/auth-core@^2.19.0': '2.19.0' };
     const r = run(tree({ fields, source: CLIENT, lock }));
     assert.equal(r.ok, false, r.out);
-    assert.match(
-        r.out,
-        /auth-core 2\.19\.0 does not export "\.\/family-origins", which @orangecheck\/auth-client@2\.40\.\d+ imports/,
-    );
+    assert.match(r.out, /auth-core 2\.19\.0 does not export "\.\/family-origins"/);
+    assert.ok(r.out.includes(`which @orangecheck/auth-client@${want} imports`), r.out);
     assert.doesNotMatch(r.out, /auth-client@2\.36\.1 imports/);
 });
 
