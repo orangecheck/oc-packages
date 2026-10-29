@@ -4,8 +4,13 @@ Pure-function state machine — SPEC §4.4.
 Mirrors the TS SDK's classifyState in src/state.ts. Same transition rules:
 
     abandonment present      → broken (always; no honorable exit, §5.4)
-    contradictory outcomes   → disputed (§4.5)
-    outcome present          → outcome.outcome
+    contradictory outcomes   → disputed (§4.5): the resolver's own contradiction
+                               dated before the earliest settling outcome's
+                               dispute_window_ends_at, or any swearer counter-claim
+                               in force; with no dispute mechanism it times out to
+                               expired_unresolved at expires_at
+    outcome present          → the earliest settling outcome's outcome; a swearer
+                               counter-claim alone settles nothing
     now >= expires_at        → expired_unresolved
     now >= resolves_at       → resolvable
     else                     → pending
@@ -50,6 +55,13 @@ def classify_state(
     state for block-typed resolves_at, optional contradictory outcomes).
 
     All envelope arguments are JSON-shaped dicts (matching the wire form).
+    ``outcome`` and ``contradictory_outcomes`` are outcomes from authorized
+    resolvers, verified by the caller (verify_outcome), in any order: the
+    earliest settling one in force classifies the pledge. The resolver's own
+    contradiction counts only when dated before that outcome's
+    ``dispute_window_ends_at``; a swearer counter-claim in force always counts
+    (→ ``disputed``). With no ``dispute.mechanism``, such a dispute times out
+    to ``expired_unresolved`` at ``expires_at``.
     """
     now_ms = _parse_utc(now)
 
@@ -71,8 +83,33 @@ def classify_state(
             and (o.get("resolved_by") == "deterministic" or _dated_before(o.get("resolved_at"), expires_at_ms))
         )
 
-    if outcome is not None and not in_force(outcome):
-        outcome = None
+    # Only the pledge's resolver settles it (§4.3): the counterparty under
+    # counterparty_signs, else the deterministic computation. Under
+    # counterparty_signs the swearer may counter-claim (§4.5): that contradicts
+    # the counterparty's outcome but never settles the pledge alone.
+    bilateral = (pledge.get("resolution") or {}).get("mechanism") == "counterparty_signs"
+    counterparty = pledge.get("counterparty")
+
+    def settles(o: dict[str, Any]) -> bool:
+        if bilateral:
+            return counterparty is not None and o.get("resolved_by") == counterparty
+        return o.get("resolved_by") == "deterministic"
+
+    def counter_claims(o: dict[str, Any]) -> bool:
+        return bilateral and o.get("resolved_by") == swearer and not settles(o)
+
+    # Every outcome in force, earliest first: the order the caller passes them in
+    # must not change the state (§4.4: same inputs, same classification).
+    # sorted() is stable, so outcomes dated alike keep the caller's order.
+    outcomes = sorted(
+        (
+            o
+            for o in [outcome, *(contradictory_outcomes or [])]
+            if o is not None and in_force(o) and (settles(o) or counter_claims(o))
+        ),
+        key=lambda o: _parse_utc(o["resolved_at"]),
+    )
+    outcome = next((o for o in outcomes if settles(o)), None)
     if abandonment is not None and (
         abandonment.get("pledge_id") != pledge_id
         or (abandonment.get("sig") or {}).get("pubkey") != swearer
@@ -83,11 +120,27 @@ def classify_state(
     if abandonment is not None:
         return "broken"
 
-    # Contradictory outcome envelopes from authorized resolvers → disputed.
-    if outcome is not None and contradictory_outcomes:
-        for other in contradictory_outcomes:
-            if in_force(other) and other.get("outcome") != outcome.get("outcome"):
-                return "disputed"
+    # The earliest settling outcome's window bounds only the resolver's own later
+    # contradictions (§4.4). A swearer counter-claim contradicts whenever it is in
+    # force: every date in an outcome is its signer's own claim, so a window the
+    # counterparty sets and dates cannot bound the swearer (§4.5). A window that
+    # cannot be read never closes.
+    if outcome is not None:
+        window_ends_ms = _parse_utc_or(outcome.get("dispute_window_ends_at"), None)
+        contradicted = any(
+            other.get("outcome") != outcome.get("outcome")
+            and (
+                counter_claims(other)
+                or window_ends_ms is None
+                or _dated_before(other.get("resolved_at"), window_ends_ms)
+            )
+            for other in outcomes
+        )
+        if contradicted:
+            # §4.5: with no dispute mechanism, a dispute times out at expires_at.
+            if (pledge.get("dispute") or {}).get("mechanism") is None and now_ms >= expires_at_ms:
+                return "expired_unresolved"
+            return "disputed"
 
     if outcome is not None:
         return outcome.get("outcome")  # type: ignore[return-value]
@@ -124,6 +177,14 @@ def _normalize_resolves_at(
             return _parse_utc(chain.tip_time)
         return None  # not yet mined
     return None
+
+
+def _parse_utc_or(iso: Any, fallback: Optional[int]) -> Optional[int]:
+    """``iso`` in epoch ms, or ``fallback`` when it is not a timestamp."""
+    try:
+        return _parse_utc(iso)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def _dated_before(iso: Any, ms: int) -> bool:

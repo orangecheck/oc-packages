@@ -4,6 +4,34 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.16.0] — 2026-10-29
+
+### Changed
+
+- **Disputes follow OC Pledge §4.3–§4.5**, as `@orangecheck/pledge-core`
+  3.6.0 does. `classify_state` reads every outcome in force, earliest first,
+  so the order you pass them in no longer changes the state. Only the
+  pledge's resolver settles it: the counterparty under `counterparty_signs`,
+  else the deterministic computation. The resolver's own contradiction counts
+  only when dated before the earliest settling outcome's
+  `dispute_window_ends_at`; after it, that outcome stands. A swearer
+  counter-claim contradicts whenever it is in force (dated before
+  `expires_at` and not after `now`): every date in an outcome is its signer's
+  own claim, so a window the counterparty sets cannot bound the swearer. A
+  dispute on a pledge with no dispute mechanism times out to
+  `expired_unresolved` at `expires_at`; one that names a mechanism stays
+  `disputed`.
+
+### Added
+
+- **Swearer counter-claims.** On a `counterparty_signs` pledge,
+  `verify_outcome` accepts an outcome the swearer signs and marks it
+  `counter_claim=True`. It can contradict the counterparty's outcome, which
+  makes the pledge `disputed`, but `classify_state` never lets it settle the
+  pledge alone. Only a named dispute mechanism gives the counterparty's
+  outcome finality against it. An envelope from anyone else is still refused
+  (`E_OUTCOME_RESOLVER_UNAUTHORIZED`).
+
 ## [3.15.0] — 2026-10-26
 
 ### Changed

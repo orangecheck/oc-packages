@@ -195,6 +195,53 @@ def test_outcome_skips_authorization_only_when_told_to() -> None:
     assert r.ok
 
 
+# ─── verify_outcome: a swearer counter-claim (SPEC §4.5) ─────────────────
+
+
+def test_counter_claim_verifies_marked_as_one() -> None:
+    env = _outcome(BILATERAL, resolved_by=SWEARER)
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BILATERAL))
+    assert r.ok and r.counter_claim is True
+
+
+def test_counter_claim_leaves_the_counterparty_outcome_a_settling_one() -> None:
+    env = _outcome(BILATERAL, resolved_by=COUNTERPARTY)
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BILATERAL))
+    assert r.ok and r.counter_claim is False
+
+
+def test_counter_claim_unmarked_when_the_swearer_is_its_own_counterparty() -> None:
+    own = {
+        **BILATERAL,
+        "counterparty": SWEARER,
+        "resolution": {
+            "mechanism": "counterparty_signs",
+            "query": f"counterparty({SWEARER}) signs outcome over pledge_id",
+        },
+    }
+    env = _outcome(own, resolved_by=SWEARER)
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(own))
+    assert r.ok and r.counter_claim is False
+
+
+def test_counter_claim_unmarked_when_authority_is_not_checked() -> None:
+    env = _outcome(BILATERAL, resolved_by=SWEARER)
+    r = verify_outcome(env, skip_signature_verification=True, skip_resolver_authorization=True)
+    assert r.ok and r.counter_claim is False
+
+
+def test_counter_claim_refused_when_dated_at_or_after_expires_at() -> None:
+    env = _outcome(BILATERAL, resolved_by=SWEARER, resolved_at="2026-06-15T00:00:00Z")
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BILATERAL))
+    assert not r.ok and r.code == "E_OUTCOME_MALFORMED"
+
+
+def test_counter_claim_not_open_to_a_swearer_on_a_deterministic_pledge() -> None:
+    env = _outcome(BASE, resolved_by=SWEARER)
+    r = verify_outcome(env, skip_signature_verification=True, pledge=pledge_input_from_dict(BASE))
+    assert not r.ok and r.code == "E_OUTCOME_RESOLVER_UNAUTHORIZED"
+
+
 # ─── verify_abandonment: bound to the pledge (SPEC §5.3) ─────────────────
 
 

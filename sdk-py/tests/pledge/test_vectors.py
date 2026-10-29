@@ -254,7 +254,8 @@ def _run_state(vec: dict[str, Any]) -> None:
             contradictory_outcomes=stub_outcomes[1:] if len(stub_outcomes) > 1 else None,
         )
     else:
-        # Standard sub-shape (v23-v27).
+        # Standard sub-shape (v23-v27, v47-v54): outcome_envelope (or null), or
+        # outcome_envelopes (several, in any order).
         pledge_inputs = inputs["pledge"]
         pledge_canon = pledge_input_from_dict(pledge_inputs)
         pledge_id = compute_pledge_id(pledge_canon)
@@ -286,18 +287,12 @@ def _run_state(vec: dict[str, Any]) -> None:
             "sig": {"alg": "bip322", "pubkey": pledge_canon.swearer, "value": "AAAA"},
         }
 
-        outcome_d = inputs.get("outcome_envelope")
-        outcome_env = (
-            None
-            if outcome_d is None
-            else {
-                "v": 1,
-                "kind": "pledge-outcome",
-                "id": "0" * 64,
-                **outcome_d,
-                "sig": None,
-            }
-        )
+        def outcome_from(d: dict[str, Any]) -> dict[str, Any]:
+            return {"v": 1, "kind": "pledge-outcome", "id": "0" * 64, **d, "sig": None}
+
+        many = inputs.get("outcome_envelopes")
+        outcome_ds = many if many is not None else [inputs.get("outcome_envelope")]
+        outcome_envs = [outcome_from(d) for d in outcome_ds if d is not None]
 
         abandonment_d = inputs.get("abandonment_envelope")
         abandonment_env = (
@@ -324,13 +319,19 @@ def _run_state(vec: dict[str, Any]) -> None:
 
             chain = ChainState(tip_height=int(chain_height), tip_time=inputs["now"])
 
-        state = classify_state(
-            pledge=pledge,
-            outcome=outcome_env,
-            abandonment=abandonment_env,
-            now=inputs["now"],
-            chain=chain,
-        )
+        def classify(envs: list[dict[str, Any]]) -> str:
+            return classify_state(
+                pledge=pledge,
+                outcome=envs[0] if envs else None,
+                abandonment=abandonment_env,
+                now=inputs["now"],
+                chain=chain,
+                contradictory_outcomes=envs[1:],
+            )
+
+        state = classify(outcome_envs)
+        # The order outcomes arrive in does not change the state (§4.4).
+        assert classify(outcome_envs[::-1]) == state
 
     assert state == expected_state
 
@@ -365,7 +366,8 @@ def _outcome_stub(pledge_id: str, outcome: str, resolved_at: str) -> dict[str, A
         "resolved_at": resolved_at,
         "resolved_by": "deterministic",
         "evidence": {"mechanism": "chain_state", "result": "synthetic", "witness": "synthetic"},
-        "dispute_window_ends_at": resolved_at,
+        # The shorthand names no window; its outcomes meet inside one (§4.4).
+        "dispute_window_ends_at": "2099-01-01T00:00:00Z",
         "sig": None,
     }
 
