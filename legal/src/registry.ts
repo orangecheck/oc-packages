@@ -1,8 +1,9 @@
 /**
  * @orangecheck/legal — site registry.
  *
- * Maps each consuming site to its legal profile and token context. The nine
- * `protocol`-profile sites (ochk.io umbrella, six verb sites, docs, analytics)
+ * Maps each consuming site to its legal profile and token context. The
+ * `protocol`-profile sites (ochk.io umbrella, six verb sites, docs, analytics,
+ * chat, cosign, btc, globe)
  * deliberately do NOT host their own pages — their footers link to ochk.io,
  * and the protocol document on ochk.io is authored to govern the whole
  * non-custodial family. Only the three commercial products self-host, because
@@ -55,6 +56,10 @@ export const PROTOCOL_LINKED_SITES = [
     'pledge',
     'docs',
     'analytics',
+    'chat',
+    'cosign',
+    'btc',
+    'globe',
 ] as const;
 
 export function getSiteContext(slug: string): SiteContext {

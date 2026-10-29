@@ -26,7 +26,7 @@ import {
 } from './clauses';
 
 const COMMERCIAL_SCOPE_NOTE =
-    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), and the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge. The commercial products **ochk.app** and **vault.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
+    'These Terms govern the **non-custodial** OrangeCheck family: [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs); the verb sites — OC Attest, OC Lock, OC Vote, OC Stamp, OC Agent, OC Pledge; and [chat.ochk.io](https://chat.ochk.io), [cosign.ochk.io](https://cosign.ochk.io), [btc.ochk.io](https://btc.ochk.io) and [globe.ochk.io](https://globe.ochk.io). The commercial products **ochk.app** and **vault.ochk.io** each publish their own Terms; these Terms do not govern your use of those products.';
 
 const terms: DocSpec = {
     kind: 'terms',
@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'The terms and conditions for using OrangeCheck. Non-custodial service provided as-is. You are responsible for your wallet and private keys.',
     effective: '2025-09-30',
-    updated: '2026-10-26',
+    updated: '2026-10-29',
     preamble: [
         {
             kind: 'callout',
@@ -57,6 +57,10 @@ const terms: DocSpec = {
                 {
                     kind: 'para',
                     text: 'OrangeCheck is a family of **non-custodial** protocols and reference tools that let you create cryptographic proof-of-stake artifacts using Bitcoin message signatures (BIP-322), bind self-asserted handles to them, optionally publish them to decentralized Nostr relays, and discover and verify artifacts created by others.',
+                },
+                {
+                    kind: 'para',
+                    text: 'OrangeCheck also runs **chat.ochk.io**, an end-to-end-encrypted messenger; **cosign.ochk.io**, where builders post projects and others join or back them, with any payment going directly from one person to another; **btc.ochk.io**, a read-only Bitcoin market desk; and **globe.ochk.io**, a read-only view of the Bitcoin network.',
                 },
                 { kind: 'subhead', text: 'what orangecheck does not' },
                 {
@@ -144,6 +148,10 @@ const terms: DocSpec = {
                             v: "when you claim an OC Chat @handle, your browser sends the claim's fingerprint (a SHA-256 hash) to the OpenTimestamps calendars at alice.btc.calendar.opentimestamps.org, bob.btc.calendar.opentimestamps.org and finney.calendar.eternitywall.com, and reads your address's coins and block headers from mempool.space; each of these sees your IP address and when you asked.",
                         },
                         {
+                            k: 'payments between people',
+                            v: "postage on chat.ochk.io, and backing, zaps and bounties on cosign.ochk.io, are Lightning payments you make directly to the other person's wallet. OrangeCheck never holds them, cannot reverse them, and is not a party to them.",
+                        },
+                        {
                             k: 'nostr network',
                             v: 'decentralized relays operated by third parties. published data is replicated outside our control and may persist indefinitely.',
                         },
@@ -170,7 +178,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The protocol sites and documentation are free to use. You are responsible for Bitcoin network fees on any transactions you initiate and for your own ISP and wallet-provider costs. Paid functionality, if introduced, will be announced with advance notice; the commercial products **ochk.app** and **vault.ochk.io** carry their own pricing and Terms.',
+                    text: 'The protocol sites, the documentation, cosign.ochk.io, btc.ochk.io and globe.ochk.io are free to use, and so is chat.ochk.io. chat.ochk.io also lists an optional paid plan, Personal: when its checkout is open, you pay the price shown before you pay, in advance, for a fixed period, and it does not renew on its own. You are responsible for Bitcoin network fees on any transactions you initiate and for your own ISP and wallet-provider costs. Other paid functionality, if introduced, will be announced with advance notice; the commercial products **ochk.app** and **vault.ochk.io** carry their own pricing and Terms.',
                 },
             ],
         },
@@ -187,7 +195,7 @@ const terms: DocSpec = {
                 { kind: 'subhead', text: 'not financial, legal, or compliance advice' },
                 {
                     kind: 'para',
-                    text: 'Nothing OrangeCheck provides — artifacts, metrics, scores, identity bindings, or other output — is financial, investment, legal, tax, KYC, AML, sanctions, or regulatory-compliance advice. Obtain independent professional advice before relying on the Service for any decision.',
+                    text: "Nothing OrangeCheck provides — artifacts, metrics, scores, identity bindings, btc.ochk.io's market data, charts and written market commentary (some of it written by an AI model), or other output — is financial, investment, legal, tax, KYC, AML, sanctions, or regulatory-compliance advice. Obtain independent professional advice before relying on the Service for any decision.",
                 },
                 { kind: 'subhead', text: 'regulatory status · not a money services business' },
                 {
@@ -231,11 +239,11 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-26',
+    updated: '2026-10-29',
     preamble: [
         {
             kind: 'callout',
-            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), and the six verb sites. The commercial products ochk.app and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
+            text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), the six verb sites, and [chat.ochk.io](https://chat.ochk.io), [cosign.ochk.io](https://cosign.ochk.io), [btc.ochk.io](https://btc.ochk.io) and [globe.ochk.io](https://globe.ochk.io). The commercial products ochk.app and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
         },
     ],
     sections: [
@@ -303,7 +311,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'how you sign in',
-                            v: 'a Bitcoin address you prove with a signature (stored as is — it is public on-chain anyway); or, for an email code, Google or GitHub, the verified email address — encrypted at rest, plus a one-way hash of it so we can find your account',
+                            v: 'a Bitcoin address you prove with a signature (stored as is — it is public on-chain anyway); or, for an email code, Google or GitHub, the verified email address — encrypted at rest, plus a one-way hash of it so we can find your account. For Google or GitHub we also store that provider\'s id for your account, unencrypted, so a changed email still reaches the same account',
                         },
                         {
                             k: 'passkeys',
@@ -318,11 +326,32 @@ const privacy: DocSpec = {
                             v: 'each sign-in and each identity you link or remove, with the IP address and user-agent at the time — kept for security; the IP address is cleared after 90 days',
                         },
                         {
+                            k: 'accounts in one browser',
+                            v: 'sessions opened in the same browser share a roster id, so we can tell which of your accounts were signed in from it; and which of our sites you first signed up through',
+                        },
+                        {
+                            k: 'a coin backing your account',
+                            v: "if you back your account with a coin: its address, outpoint and amount, the backing message you signed, and when we last found it unspent, or saw it released or spent. We read the coin from mempool.space. Earlier backings stay with your account. Sites you sign in to get only amount and age floors and a number that differs from site to site (all *.ochk.io sites share one), never the coin",
+                        },
+                        {
+                            k: 'OC Chat devices',
+                            v: "for each chat.ochk.io device we vouch for: its device and Nostr public keys, when we vouched, and the sign-in that asked; for a device you revoke, the signed revocation, which we also publish to Nostr relays",
+                        },
+                        {
+                            k: 'btc.ochk.io alerts',
+                            v: 'the market thresholds you save on btc.ochk.io (up to 25), stored with your account',
+                        },
+                        {
                             k: 'when you first sign in',
                             v: 'OrangeCheck’s operators get an email, sent through our email provider (Resend), naming your `did:oc` and the identity you signed in with: your Bitcoin address or your email address',
                         },
                         { k: 'never', v: 'a password, a private key, or a seed phrase' },
                     ],
+                },
+                { kind: 'subhead', text: 'who at OrangeCheck can see it' },
+                {
+                    kind: 'para',
+                    text: "OrangeCheck's operators can see your account, including your email address decrypted, in an owner-only console: its account list shows each account's email, and looking up one account asks for a written reason, which is recorded with the lookup. The lookup record's details about you are cleared after 90 days; the reason stays.",
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {
@@ -343,7 +372,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'relay.ochk.io',
-                            v: "the Nostr relay we run (strfry on Fly.io, in Frankfurt). Your browser connects to it to read and publish signed records; our sites also publish the same records to public relays run by others (see the Terms). It keeps each record it accepts until the same key replaces it with a newer version or the record's own expiry passes: records are public, copied each day to a public archive on GitHub (where earlier versions stay), and otherwise deleted only after a lawful takedown request, which does not remove the copies elsewhere. Each record is stored with the address of the connection it arrived on, which is our host's proxy, not yours, and is never served or archived. Our hosting provider (Fly.io) carries each connection to it and handles your IP address to do so, for its own short retention window; we keep no separate copy. Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days.",
+                            v: "the Nostr relay we run (strfry on Fly.io, in Frankfurt). Your browser connects to it to read and publish signed records; our sites also publish the same records to public relays run by others (see the Terms). It keeps each record it accepts until the same key replaces it with a newer version or the record's own expiry passes: records are public, copied each day to a public archive on GitHub (where earlier versions stay), and otherwise deleted only after a lawful takedown request, which does not remove the copies elsewhere. Each record is stored with a pseudonym of the IP address it came from, made with a key that is kept only in memory and replaced each UTC day, so the relay can limit how much one source writes; your IP address itself is never stored, and the pseudonym is never served or archived. Our hosting provider (Fly.io) carries each connection to it and handles your IP address to do so, for its own short retention window; we keep no separate copy. Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days.",
                         },
                     ],
                 },
@@ -372,6 +401,95 @@ const privacy: DocSpec = {
             ],
         },
         {
+            id: 'chat-cosign-btc-globe',
+            heading: 'chat, cosign, btc and globe',
+            hint: 'what each of these sites keeps',
+            blocks: [
+                { kind: 'subhead', text: 'chat.ochk.io' },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'messages',
+                            v: 'end-to-end encrypted. Our server holds a message only as ciphertext, under a per-conversation id that names neither person, until the recipient picks it up: for up to 14 days, or 365 days on the Personal plan. A delivered message is deleted 24 hours after the recipient confirms it. We cannot read message content',
+                        },
+                        {
+                            k: 'on your device',
+                            v: 'your messages, contacts and settings are kept in your browser. Lock this device with a passphrase to encrypt your device key and messages there',
+                        },
+                        {
+                            k: 'sending limits',
+                            v: 'a count of messages sent per hour, under a keyed id made from your account, dropped after a day. chat.ochk.io stores no IP address',
+                        },
+                        {
+                            k: 'the Personal plan',
+                            v: 'if you buy it: your account id, the plan, when you paid and until when, the amount and the invoice id. The invoice our payment processor (BTCPay) holds says what was sold, not who bought it',
+                        },
+                        {
+                            k: 'published to Nostr',
+                            v: 'your device records, public channel posts (which are not encrypted), and a directory listing if you choose to be listed are public and stay on the relays. Direct messages travel encrypted',
+                        },
+                        {
+                            k: 'sent from your browser',
+                            v: 'chain data from mempool.space and blockstream.info, the drand network for messages that open at a future block, the OpenTimestamps calendars named above for a handle claim, and the Nostr relays you use; each sees your IP address',
+                        },
+                        {
+                            k: 'analytics',
+                            v: 'none',
+                        },
+                        {
+                            k: 'deletion',
+                            v: 'deleting your account deletes chat.ochk.io\'s other records of you; Personal plan payment records stay for accounting under a keyed id, not your account id. Messages waiting for pickup expire on their own, and what is on Nostr relays stays',
+                        },
+                    ],
+                },
+                { kind: 'subhead', text: 'cosign.ochk.io' },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'what you post',
+                            v: 'your profile, projects, updates, cosigns and vouches are public on cosign.ochk.io',
+                        },
+                        {
+                            k: 'messages',
+                            v: "**not end-to-end encrypted.** They are stored on our servers, and OrangeCheck's operators can read them",
+                        },
+                        {
+                            k: 'reports and notifications',
+                            v: 'a report you file keeps you as its reporter, the subject and your reason. Notifications are shown in the app only; a read one is deleted after 30 days and any after 90',
+                        },
+                        {
+                            k: 'payments between people',
+                            v: 'we record each Lightning payment for display (amount, time, status and the receiving Lightning address); the money goes directly between people and cosign never holds it',
+                        },
+                        {
+                            k: 'abuse limits',
+                            v: 'counts of writes per IP address and per network, under keyed hashes, dropped after 2 days. No IP address is stored',
+                        },
+                        {
+                            k: 'deletion',
+                            v: 'deleting your account deletes your profile, projects and the rest, except that your messages in conversations with other people, the reports you filed, and payment records stay, with your account taken off them',
+                        },
+                    ],
+                },
+                { kind: 'subhead', text: 'btc.ochk.io' },
+                {
+                    kind: 'para',
+                    text: 'btc.ochk.io keeps only the alert thresholds you save, with your account, and deletes them when your account is deleted. Its planner and paper desk stay in your browser. Its market commentary is written each hour by an AI model provider (Anthropic) from market data alone; nothing about you is sent.',
+                },
+                { kind: 'subhead', text: 'globe.ochk.io' },
+                {
+                    kind: 'para',
+                    text: 'globe.ochk.io stores nothing about you. Your browser fetches live network data directly from mempool.space, which sees your IP address.',
+                },
+                {
+                    kind: 'para',
+                    text: 'cosign.ochk.io, btc.ochk.io and globe.ochk.io use the cookie-free analytics described below.',
+                },
+            ],
+        },
+        {
             id: 'how-we-use',
             heading: 'how we use information',
             blocks: [
@@ -389,7 +507,7 @@ const privacy: DocSpec = {
         {
             id: 'retention',
             heading: 'data retention',
-            hint: 'no automatic deletion yet · permanent public artifacts',
+            hint: 'scheduled and on-write deletion · permanent public artifacts',
             blocks: [
                 {
                     kind: 'bullets',
@@ -408,15 +526,19 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'sessions',
-                            v: 'deleted when you sign out. A session that simply expires after 30 days is not yet deleted automatically.',
+                            v: 'deleted when you sign out; a session that expires after 30 days is deleted the next time anyone signs in',
                         },
                         {
                             k: 'IP addresses in the sign-in log',
                             v: 'cleared after 90 days; the entries themselves stay until your account is deleted',
                         },
                         {
-                            k: 'account, sign-in identities, passkeys and sign-in log',
-                            v: 'deleted when your account-deletion request completes; file one in your account settings, or ask at [[PRIVACY_CONTACT]]',
+                            k: 'email sign-in codes',
+                            v: 'the code itself is never stored; the record that it was used lasts at most 10 minutes, and per-address and per-network send counts, kept as keyed hashes, are dropped after a day',
+                        },
+                        {
+                            k: 'account, sign-in identities, passkeys, sign-in log, coin backings, OC Chat device records and btc.ochk.io alerts',
+                            v: 'deleted when your account-deletion request completes; file one in your account settings, or ask at [[PRIVACY_CONTACT]]. A revocation already published to Nostr relays stays there, and a marker under a hash of your account id, which refuses your old sessions, lasts until they would have expired',
                         },
                         {
                             k: 'support emails',
