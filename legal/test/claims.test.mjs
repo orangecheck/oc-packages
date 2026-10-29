@@ -58,6 +58,8 @@ const BANNED = [
     [/unlinkable across sites/i, 'signing in gives every site the same did:oc'],
     [/cannot collude/i, 'signing in gives every site the same did:oc'],
     [/cannot correlate you/i, 'signing in gives every site the same did:oc'],
+    [/not yet deleted automatically|no automatic deletion yet/i, 'expired sessions are deleted on the next sign-in'],
+    [/our host's proxy, not yours/i, 'the relay stores a daily pseudonym of the IP, not the proxy address'],
 ];
 
 test('every doc renders', () => {
@@ -78,7 +80,7 @@ test('ochk.io privacy names the signup email to operators', () => {
 
 test('ochk.io privacy names what sign-in stores', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
-    for (const rx of [/user-agent string/i, /SameSite=None/i, /encrypted at rest/i, /no automatic deletion yet/i]) {
+    for (const rx of [/user-agent string/i, /SameSite=None/i, /encrypted at rest/i, /a session that expires after 30 days is deleted the next time anyone signs in/i]) {
         assert.match(text, rx);
     }
 });
@@ -213,10 +215,10 @@ test('the ochk.app terms and privacy say sites that compare ids can tell it is y
     }
 });
 
-test('ochk.io privacy names relay.ochk.io, the address its records keep, and its 7-day connection logs', () => {
+test('ochk.io privacy names relay.ochk.io, the pseudonym its records keep, and its 7-day connection logs', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
     assert.match(text, /relay\.ochk\.io[^.]*the Nostr relay we run/i);
-    assert.match(text, /stored with the address of the connection it arrived on, which is our host's proxy, not yours, and is never served or archived/);
+    assert.match(text, /stored with a pseudonym of the IP address it came from, made with a key that is kept only in memory and replaced each UTC day[^;]*; your IP address itself is never stored, and the pseudonym is never served or archived/);
     assert.match(text, /Our hosting provider \(Fly\.io\) carries each connection to it and handles your IP address to do so, for its own short retention window; we keep no separate copy/);
     assert.match(text, /Our host's connection logs for the relay can hold your IP address and connection times; they are kept for 7 days/);
     assert.match(text, /relay\.ochk\.io connections[^;]*Fly\.io\) for its own short retention window; its connection logs for the relay can hold your IP address and connection times for 7 days/i);
@@ -266,4 +268,41 @@ test('the ochk.app privacy policy says what a deletion keeps, and that 48 hours 
     }
     assert.ok(!text.includes('reviews the request within 48 hours'), 'no 48-hour promise');
     assert.ok(!/your data is erased and your sign-in closes/.test(text), 'no unqualified erasure');
+});
+
+// chat, cosign, btc and globe link ochk.io/privacy and /terms, so both must cover them.
+test('ochk.io terms and privacy cover chat, cosign, btc and globe', () => {
+    for (const name of ['www/terms', 'www/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        for (const host of ['chat.ochk.io', 'cosign.ochk.io', 'btc.ochk.io', 'globe.ochk.io']) {
+            assert.ok(text.includes(host), `${name}: ${host}`);
+        }
+    }
+});
+
+test('ochk.io privacy says what sign-in stores beyond the account, and who can read the email', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    for (const fact of [
+        "that provider's id for your account, unencrypted",
+        'sessions opened in the same browser share a roster id',
+        'its address, outpoint and amount, the backing message you signed',
+        'the signed revocation, which we also publish to Nostr relays',
+        'the market thresholds you save on btc.ochk.io (up to 25)',
+        "OrangeCheck's operators can see your account, including your email address decrypted, in an owner-only console",
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+});
+
+test('ochk.io privacy says cosign messages are not end-to-end encrypted, and chat messages are', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    assert.match(text, /cosign\.ochk\.io[^]*messages not end-to-end encrypted\. They are stored on our servers, and OrangeCheck's operators can read them/);
+    assert.match(text, /chat\.ochk\.io[^]*messages end-to-end encrypted\. Our server holds a message only as ciphertext/);
+});
+
+test('the ochk.app terms say when a payout is held and what releases it', () => {
+    const text = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.match(text, /We hold a payout, and do not send it, when an earlier attempt to send it may already have gone through/);
+    assert.match(text, /never retried on its own: we check the payment node, then either mark it paid with the payment's proof or release it to be sent again/);
+    assert.match(text, /A hold does not cancel what you are owed/);
 });

@@ -8,6 +8,59 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.24] — 2026-10-29
+
+### Changed — ochk.io's Terms and Privacy cover chat, cosign, btc and globe
+
+chat.ochk.io, cosign.ochk.io, btc.ochk.io and globe.ochk.io link to ochk.io's
+Terms and Privacy policy, which named only ochk.io, its docs and the six verb
+sites. Both now name all four. The Terms say what each site is, that cosign,
+btc and globe are free and that chat's optional Personal plan is prepaid for a
+fixed period and does not renew, that payments between people on chat and
+cosign go directly between them, and that btc.ochk.io's market data and
+commentary, some of it written by an AI model, are not advice. The Privacy
+policy has a section on what each of the four keeps: chat holds only
+encrypted messages awaiting pickup (14 days, or 365 on Personal) and no IP
+address; cosign's messages are not end-to-end encrypted and its operators can
+read them; btc keeps only the alert thresholds you save; globe keeps nothing.
+
+### Changed — what ochk.io stores, and who can read it
+
+The list of what signing in stores left out several things ochk.io keeps. It
+now also names a Google or GitHub account id (stored unencrypted), the roster
+id that links accounts signed in from one browser and the site you signed up
+through, a coin that backs your account (address, outpoint, amount, the signed
+message, and earlier backings), OC Chat device vouches and revocations
+(revocations are also published to Nostr relays), and btc.ochk.io alert
+thresholds. It also says that OrangeCheck's operators can see an account's
+decrypted email in an owner-only console, and that a lookup of one account
+asks for a recorded reason.
+
+### Changed — the relay and retention clauses
+
+The Privacy policy said relay.ochk.io stores each record with the address of
+its host's proxy. It now says each record is stored with a pseudonym of the
+sender's IP address, keyed in memory and replaced each UTC day, used for write
+limits, and that the IP address itself is never stored. It said an expired
+session "is not yet deleted automatically"; it now says one is deleted the
+next time anyone signs in. It adds what email sign-in codes keep, and that
+coin backings, OC Chat device records and btc alerts are deleted with the
+account. Terms and Privacy are dated 2026-10-29.
+
+### Added — when ochk.app holds a payout
+
+ochk.app's Terms said nothing about held payouts. A new paragraph under
+"fees, payouts & taxes" says when a payout is held (an earlier attempt may
+have gone through; payouts are paused, limited or not yet open to you; the
+paying node cannot cover what is owed or its fee limit is unknown; the
+destination is invalid; or the records disagree), what releases each hold,
+that an uncertain payout is never retried on its own, and that a hold does
+not cancel what you are owed. ochk.app's Terms are dated 2026-10-29.
+
+### Added
+
+- `PROTOCOL_LINKED_SITES` includes chat, cosign, btc and globe.
+
 ## [0.7.23] — 2026-10-28
 
 ### Changed — what a deletion keeps

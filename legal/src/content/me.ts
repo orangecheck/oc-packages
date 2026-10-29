@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for ochk.app: a Bitcoin-backed identity that pays users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-27',
+    updated: '2026-10-29',
     preamble: [
         {
             kind: 'callout',
@@ -112,6 +112,11 @@ const terms: DocSpec = {
                 {
                     kind: 'stub',
                     text: 'Platform fees, payout mechanics and minimums, supported payout rails, currency-conversion handling, and the allocation of tax-reporting and tax-payment responsibility for sats you receive are being finalized for publication before general availability. You are advised that cashback received may be taxable income in your jurisdiction and that you are responsible for your own tax compliance. This section will be completed following review by counsel.',
+                },
+                { kind: 'subhead', text: 'when a payout is held' },
+                {
+                    kind: 'para',
+                    text: 'We hold a payout, and do not send it, when an earlier attempt to send it may already have gone through; while payouts are paused by a halt, a federation migration or a payout ceiling, or are not yet open to you; while the node that pays cannot cover everything owed, or its fee limit is unknown; when your payout destination is no longer valid; or when our records disagree about what is owed. A paused or limited payout goes out on its own once the pause, ceiling or shortfall clears; setting a new destination clears a destination hold; and a disagreement clears when we correct the record. A payout whose earlier attempt may have gone through is never retried on its own: we check the payment node, then either mark it paid with the payment\'s proof or release it to be sent again. A hold does not cancel what you are owed.',
                 },
             ],
         },
