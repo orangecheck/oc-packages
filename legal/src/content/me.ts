@@ -293,6 +293,10 @@ const privacy: DocSpec = {
                             v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The questionnaire’s handle, name, jurisdiction, contact channel and fingerprint are published in the federation charter, because guardians are named trust anchors. Nothing is checked against an ID, and nothing else is published.',
                         },
                         {
+                            k: 'messages you send us',
+                            v: 'the contact form at ochk.app/contact sends your email address, an optional name, the topic you pick and your message to our inbox through our email provider (Resend). They are kept only as long as we need them to reply',
+                        },
+                        {
                             k: 'public anchors',
                             v: 'an OpenTimestamps proof over each envelope’s hash, and a salted commitment to each envelope on Nostr. Public by design, and neither names you, the site or the amount. The envelope itself is served only to whoever holds its id. Drop manifests, which name no one, are published in full.',
                         },
