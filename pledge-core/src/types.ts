@@ -529,8 +529,10 @@ export interface ClassifyStateInput {
     /**
      * Further outcome envelopes from authorized resolvers, verified by the
      * caller (verifyOutcome). With `outcome` they may come in any order: the
-     * earliest in force classifies the pledge, and one that contradicts it
-     * counts only when dated before its `dispute_window_ends_at` (→ `disputed`).
+     * earliest settling one in force classifies the pledge. The resolver's own
+     * contradiction counts only when dated before that outcome's
+     * `dispute_window_ends_at`; a swearer counter-claim in force always counts
+     * (→ `disputed`).
      * With no `dispute.mechanism`, such a dispute times out to
      * `expired_unresolved` at `expires_at`.
      */

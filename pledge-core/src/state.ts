@@ -3,10 +3,10 @@
 // Transition table (paraphrased):
 //
 //   abandonment present      → broken (always; no honorable exit, §5.4)
-//   contradictory outcomes   → disputed (§4.5): a contradiction dated before the
-//                              earliest settling outcome's dispute_window_ends_at,
-//                              from the resolver or a swearer counter-claim; with
-//                              no dispute mechanism it times out to
+//   contradictory outcomes   → disputed (§4.5): the resolver's own contradiction
+//                              dated before the earliest settling outcome's
+//                              dispute_window_ends_at, or any swearer counter-claim
+//                              in force; with no dispute mechanism it times out to
 //                              expired_unresolved at expires_at
 //   outcome present          → the earliest settling outcome's outcome; a swearer
 //                              counter-claim alone settles nothing
@@ -79,13 +79,17 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         return 'broken';
     }
 
-    // A contradiction, settling or counter-claimed, counts only when dated before
-    // the earliest settling outcome's dispute window ends (§4.4); after it, that
-    // outcome is final. A window that cannot be read never closes.
+    // The earliest settling outcome's window bounds only the resolver's own later
+    // contradictions (§4.4). A swearer counter-claim contradicts whenever it is in
+    // force: every date in an outcome is its signer's own claim, so a window the
+    // counterparty sets and dates cannot bound the swearer (§4.5). A window that
+    // cannot be read never closes.
     if (outcome !== null) {
         const windowEndsMs = parseUtcOr(outcome.dispute_window_ends_at, Infinity);
         const contradicted = outcomes.some(
-            (other) => other.outcome !== outcome.outcome && datedBefore(other.resolved_at, windowEndsMs),
+            (other) =>
+                other.outcome !== outcome.outcome &&
+                (counterClaims(other) || datedBefore(other.resolved_at, windowEndsMs)),
         );
         if (contradicted) {
             // §4.5: with no dispute mechanism, a dispute times out at expires_at.

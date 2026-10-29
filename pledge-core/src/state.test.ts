@@ -141,9 +141,29 @@ describe('classifyState', () => {
             expect(at('2026-10-01T00:00:00Z', [broken, claim({ outcome: 'kept', resolved_at: '2026-09-05T00:00:00Z' })])).toBe('disputed');
         });
 
-        it("comes too late after the counterparty's window, which then stands", () => {
+        it("contradicts even after the counterparty's window: the counterparty's dates cannot bound the swearer", () => {
             const broken = counterparty({ outcome: 'broken', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-09T00:00:00Z' });
-            expect(at('2026-10-01T00:00:00Z', [broken, claim({ outcome: 'kept', resolved_at: '2026-09-10T00:00:00Z' })])).toBe('broken');
+            expect(at('2026-10-01T00:00:00Z', [broken, claim({ outcome: 'kept', resolved_at: '2026-09-10T00:00:00Z' })])).toBe('disputed');
+        });
+
+        it('a zero-length counterparty window does not shut out an honest counter-claim an hour later', () => {
+            const shut = counterparty({ outcome: 'broken', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-02T00:00:00Z' });
+            const honest = claim({ outcome: 'kept', resolved_at: '2026-09-02T01:00:00Z' });
+            expect(at('2026-10-01T00:00:00Z', [shut, honest])).toBe('disputed');
+            // No dispute mechanism: it times out at expires_at (12-31).
+            expect(at('2026-12-31T00:00:00Z', [shut, honest])).toBe('expired_unresolved');
+        });
+
+        it('a counter-claim dated at or after expires_at does not enter, and the counterparty outcome stands', () => {
+            const broken = counterparty({ outcome: 'broken', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-09T00:00:00Z' });
+            const late = claim({ outcome: 'kept', resolved_at: '2026-12-31T00:00:00Z' });
+            expect(at('2027-01-02T00:00:00Z', [broken, late])).toBe('broken');
+        });
+
+        it("the counterparty's own contradiction after its window still leaves its first outcome standing", () => {
+            const kept = counterparty({ outcome: 'kept', resolved_at: '2026-09-02T00:00:00Z', dispute_window_ends_at: '2026-09-09T00:00:00Z' });
+            const later = counterparty({ id: 'e'.repeat(64), outcome: 'broken', resolved_at: '2026-09-10T00:00:00Z' });
+            expect(at('2026-10-01T00:00:00Z', [kept, later])).toBe('kept');
         });
 
         it('agreeing with the counterparty changes nothing', () => {
