@@ -103,10 +103,48 @@ describe('classifyState', () => {
             pledge: pledge(),
             outcome: outcome({ outcome: 'kept' }),
             abandonment: null,
-            now: '2027-01-01T00:00:00Z',
+            now: '2026-10-01T00:00:00Z',
             contradictoryOutcomes: [outcome({ outcome: 'broken' })],
         });
         expect(r).toBe('disputed');
+    });
+
+    describe('a dispute (§4.4, §4.5)', () => {
+        // kept on 09-01 with its window to 09-08; the pledge expires 12-31.
+        const kept = outcome({ outcome: 'kept' });
+        const brokenIn = outcome({ id: 'b'.repeat(64), outcome: 'broken', resolved_at: '2026-09-05T00:00:00Z' });
+        const brokenAfter = outcome({ id: 'c'.repeat(64), outcome: 'broken', resolved_at: '2026-09-10T00:00:00Z' });
+        const at = (now: string, others: OutcomeEnvelope[], p = pledge()) =>
+            classifyState({ pledge: p, outcome: kept, abandonment: null, now, contradictoryOutcomes: others });
+
+        it('counts a contradiction dated inside the earliest outcome window', () => {
+            expect(at('2026-10-01T00:00:00Z', [brokenIn])).toBe('disputed');
+        });
+
+        it('ignores one dated after that window: the earliest outcome is final', () => {
+            expect(at('2026-10-01T00:00:00Z', [brokenAfter])).toBe('kept');
+        });
+
+        it('times out to expired_unresolved at expires_at when the pledge names no dispute mechanism', () => {
+            expect(at('2026-12-30T23:59:59Z', [brokenIn])).toBe('disputed');
+            expect(at('2026-12-31T00:00:00Z', [brokenIn])).toBe('expired_unresolved');
+        });
+
+        it('stays disputed after expires_at when a dispute mechanism is named', () => {
+            const withVote = pledge({ dispute: { mechanism: 'vote_resolves', params: 'poll_id=p;option=kept;threshold=0.5' } });
+            expect(at('2027-01-01T00:00:00Z', [brokenIn], withVote)).toBe('disputed');
+        });
+
+        it('reads the same whatever order the outcomes come in', () => {
+            const r = classifyState({
+                pledge: pledge(),
+                outcome: brokenAfter,
+                abandonment: null,
+                now: '2026-10-01T00:00:00Z',
+                contradictoryOutcomes: [kept],
+            });
+            expect(r).toBe('kept');
+        });
     });
 
     it('an outcome dated after now does not classify the pledge yet', () => {

@@ -520,9 +520,12 @@ export interface ClassifyStateInput {
         blockTimes?: Record<number, string>;
     };
     /**
-     * Optional list of additional outcome envelopes from authorized resolvers
-     * (e.g. swearer + counterparty in a bilateral pledge). Used to detect
-     * contradictory outcomes → `disputed`.
+     * Further outcome envelopes from authorized resolvers, verified by the
+     * caller (verifyOutcome). With `outcome` they may come in any order: the
+     * earliest in force classifies the pledge, and one that contradicts it
+     * counts only when dated before its `dispute_window_ends_at` (→ `disputed`).
+     * With no `dispute.mechanism`, such a dispute times out to
+     * `expired_unresolved` at `expires_at`.
      */
     contradictoryOutcomes?: OutcomeEnvelope[];
 }

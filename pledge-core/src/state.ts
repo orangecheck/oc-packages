@@ -3,8 +3,11 @@
 // Transition table (paraphrased):
 //
 //   abandonment present      → broken (always; no honorable exit, §5.4)
-//   contradictory outcomes   → disputed (§4.5)
-//   outcome present          → outcome.outcome   (after dispute window passes)
+//   contradictory outcomes   → disputed (§4.5): a contradiction dated before the
+//                              earliest outcome's dispute_window_ends_at; with
+//                              no dispute mechanism it times out to
+//                              expired_unresolved at expires_at
+//   outcome present          → the earliest outcome's outcome
 //   now >= expires_at        → expired_unresolved
 //   now >= resolves_at       → resolvable
 //   else                     → pending
@@ -24,7 +27,7 @@ import type {
 } from './types.js';
 
 export function classifyState(input: ClassifyStateInput): PledgeState {
-    const { pledge, now, contradictoryOutcomes } = input;
+    const { pledge, now } = input;
     const nowMs = parseUtc(now);
 
     // Envelopes about another pledge say nothing about this one, and only the
@@ -39,7 +42,14 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         o.pledge_id === pledge.id &&
         !datedAfter(o.resolved_at, nowMs) &&
         (o.resolved_by === 'deterministic' || datedBefore(o.resolved_at, expiresAtMs));
-    const outcome = input.outcome && inForce(input.outcome) ? input.outcome : null;
+    // Every outcome in force, earliest first: the order the caller passes them in
+    // must not change the state (§4.4: same inputs, same classification).
+    const outcomes = [input.outcome, ...(input.contradictoryOutcomes ?? [])]
+        .filter((o): o is OutcomeEnvelope => o !== null && o !== undefined && inForce(o))
+        .map((o, i) => ({ o, i, at: parseUtc(o.resolved_at) }))
+        .sort((a, b) => a.at - b.at || a.i - b.i)
+        .map(({ o }) => o);
+    const outcome = outcomes[0] ?? null;
     const abandonment =
         input.abandonment &&
         input.abandonment.pledge_id === pledge.id &&
@@ -52,12 +62,20 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         return 'broken';
     }
 
-    // Contradictory outcome envelopes from authorized resolvers → disputed.
-    if (outcome !== null && contradictoryOutcomes && contradictoryOutcomes.length > 0) {
-        for (const other of contradictoryOutcomes) {
-            if (inForce(other) && other.outcome !== outcome.outcome) {
-                return 'disputed';
+    // A contradiction counts only within the earliest outcome's dispute window
+    // (§4.4); after it, that outcome is final. A window that cannot be read
+    // never closes.
+    if (outcome !== null) {
+        const windowEndsMs = parseUtcOr(outcome.dispute_window_ends_at, Infinity);
+        const contradicted = outcomes.some(
+            (other) => other.outcome !== outcome.outcome && datedBefore(other.resolved_at, windowEndsMs),
+        );
+        if (contradicted) {
+            // §4.5: with no dispute mechanism, a dispute times out at expires_at.
+            if (pledge.dispute.mechanism === null && nowMs >= expiresAtMs) {
+                return 'expired_unresolved';
             }
+            return 'disputed';
         }
     }
 
@@ -121,6 +139,15 @@ function parseUtc(s: string): number {
         Number(mi),
         Number(se),
     );
+}
+
+/** `iso` in epoch ms, or `fallback` when it is not a timestamp. */
+function parseUtcOr(iso: string, fallback: number): number {
+    try {
+        return parseUtc(iso);
+    } catch {
+        return fallback;
+    }
 }
 
 /** True when `iso` is a timestamp earlier than `ms`. */
