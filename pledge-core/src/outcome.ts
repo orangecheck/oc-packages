@@ -250,6 +250,7 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
         canonicalMessage: reconstructed,
         id: env.id,
         recomputeRequired: !requiresSig,
+        counterClaim: input.pledge ? isCounterClaim(env, input.pledge) : false,
     };
     return result;
 }
@@ -272,6 +273,15 @@ export async function verifyOutcome(input: VerifyOutcomeInput): Promise<VerifyOu
  *      the counterparty for `counterparty_signs`, the literal "deterministic"
  *      for the five deterministic mechanisms and `vote_resolves`.
  */
+/** A swearer's counter-claim under counterparty_signs: it contradicts, never settles (§4.5). */
+function isCounterClaim(env: OutcomeEnvelope, pledge: PledgeCanonicalInput): boolean {
+    return (
+        pledge.resolution.mechanism === 'counterparty_signs' &&
+        env.resolved_by === pledge.swearer &&
+        env.resolved_by !== pledge.counterparty
+    );
+}
+
 function checkResolverAuthorized(
     env: OutcomeEnvelope,
     pledge: PledgeCanonicalInput,
@@ -298,14 +308,15 @@ function checkResolverAuthorized(
                 'counterparty_signs pledge names no counterparty, so no resolver is authorized',
             );
         }
-        if (env.resolved_by !== pledge.counterparty) {
+        // The counterparty settles; the swearer may only counter-claim (§4.5).
+        if (env.resolved_by !== pledge.counterparty && env.resolved_by !== pledge.swearer) {
             return err(
                 'E_OUTCOME_RESOLVER_UNAUTHORIZED',
-                `resolved_by (${env.resolved_by}) is not the pledge's counterparty (${pledge.counterparty})`,
+                `resolved_by (${env.resolved_by}) is neither the pledge's counterparty (${pledge.counterparty}) nor its swearer`,
             );
         }
         // A signed outcome comes within the pledge's window (§3.4.2, §11.10).
-        // resolved_at is the counterparty's own claim, so this catches only an
+        // resolved_at is its signer's own claim, so this catches only an
         // honestly dated late one.
         if (!(Date.parse(env.resolved_at) < Date.parse(pledge.expires_at))) {
             return err(

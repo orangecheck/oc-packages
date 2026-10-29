@@ -8,6 +8,27 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.6.0] — 2026-10-29
+
+### Changed
+
+- **Disputes follow OC Pledge §4.3–§4.5.** `classifyState` reads every outcome
+  in force, earliest first, so the order you pass them in no longer changes
+  the state. Only the pledge's resolver settles it: the counterparty under
+  `counterparty_signs`, else the deterministic computation. A contradiction
+  counts only when dated before the earliest settling outcome's
+  `dispute_window_ends_at`; after it, that outcome is final. A dispute on a
+  pledge with no dispute mechanism times out to `expired_unresolved` at
+  `expires_at`; one that names a mechanism stays `disputed`.
+
+### Added
+
+- **Swearer counter-claims.** On a `counterparty_signs` pledge, `verifyOutcome`
+  accepts an outcome the swearer signs and marks it `counterClaim: true`. It
+  can contradict the counterparty's outcome, which makes the pledge `disputed`,
+  but `classifyState` never lets it settle the pledge alone. An envelope from
+  anyone else is still refused (`E_OUTCOME_RESOLVER_UNAUTHORIZED`).
+
 ## [3.5.1] — 2026-10-26
 
 ### Fixed

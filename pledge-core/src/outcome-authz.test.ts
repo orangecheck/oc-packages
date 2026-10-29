@@ -63,6 +63,48 @@ function outcome(
     } as unknown as OutcomeEnvelope;
 }
 
+describe('a swearer counter-claim on a counterparty_signs pledge (SPEC §4.5)', () => {
+    const SWEARER = 'bc1qcarol000000000000000000000000000000000';
+    const signed = (by: string) => ({ alg: 'bip322', pubkey: by, value: 'AkcwRAIg' }) as OutcomeEnvelope['sig'];
+
+    it('verifies, marked as a counter-claim that cannot settle', async () => {
+        const r = await verifyOutcome({
+            envelope: outcome(bilateral, SWEARER, signed(SWEARER)),
+            pledge: bilateral,
+            skipSignatureVerification: true,
+        });
+        expect(r.ok).toBe(true);
+        expect(r.ok && r.counterClaim).toBe(true);
+    });
+
+    it("leaves the counterparty's outcome a settling one", async () => {
+        const r = await verifyOutcome({
+            envelope: outcome(bilateral, COUNTERPARTY, signed(COUNTERPARTY)),
+            pledge: bilateral,
+            skipSignatureVerification: true,
+        });
+        expect(r.ok && r.counterClaim).toBe(false);
+    });
+
+    it('is refused when dated at or after expires_at, as the counterparty is', async () => {
+        const r = await verifyOutcome({
+            envelope: outcome(bilateral, SWEARER, signed(SWEARER), '2026-06-15T00:00:00Z'),
+            pledge: bilateral,
+            skipSignatureVerification: true,
+        });
+        expect(r.ok === false && r.code).toBe('E_OUTCOME_MALFORMED');
+    });
+
+    it('is not open to a swearer on a deterministic pledge', async () => {
+        const r = await verifyOutcome({
+            envelope: outcome(deterministic, SWEARER, signed(SWEARER)),
+            pledge: deterministic,
+            skipSignatureVerification: true,
+        });
+        expect(r.ok === false && r.code).toBe('E_OUTCOME_RESOLVER_UNAUTHORIZED');
+    });
+});
+
 describe('verifyOutcome refuses a resolver the pledge did not name', () => {
     it('rejects a stranger who names themselves and self-signs', async () => {
         const env = outcome(bilateral, MALLORY, {

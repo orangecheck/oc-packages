@@ -4,10 +4,12 @@
 //
 //   abandonment present      → broken (always; no honorable exit, §5.4)
 //   contradictory outcomes   → disputed (§4.5): a contradiction dated before the
-//                              earliest outcome's dispute_window_ends_at; with
+//                              earliest settling outcome's dispute_window_ends_at,
+//                              from the resolver or a swearer counter-claim; with
 //                              no dispute mechanism it times out to
 //                              expired_unresolved at expires_at
-//   outcome present          → the earliest outcome's outcome
+//   outcome present          → the earliest settling outcome's outcome; a swearer
+//                              counter-claim alone settles nothing
 //   now >= expires_at        → expired_unresolved
 //   now >= resolves_at       → resolvable
 //   else                     → pending
@@ -42,14 +44,29 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         o.pledge_id === pledge.id &&
         !datedAfter(o.resolved_at, nowMs) &&
         (o.resolved_by === 'deterministic' || datedBefore(o.resolved_at, expiresAtMs));
+    // Only the pledge's resolver settles it (§4.3): the counterparty under
+    // counterparty_signs, else the deterministic computation. Under
+    // counterparty_signs the swearer may counter-claim (§4.5): that contradicts
+    // the counterparty's outcome but never settles the pledge alone.
+    const settles = (o: OutcomeEnvelope) =>
+        pledge.resolution.mechanism === 'counterparty_signs'
+            ? pledge.counterparty !== null && o.resolved_by === pledge.counterparty
+            : o.resolved_by === 'deterministic';
+    const counterClaims = (o: OutcomeEnvelope) =>
+        pledge.resolution.mechanism === 'counterparty_signs' &&
+        o.resolved_by === pledge.swearer.address &&
+        !settles(o);
     // Every outcome in force, earliest first: the order the caller passes them in
     // must not change the state (§4.4: same inputs, same classification).
     const outcomes = [input.outcome, ...(input.contradictoryOutcomes ?? [])]
-        .filter((o): o is OutcomeEnvelope => o !== null && o !== undefined && inForce(o))
+        .filter(
+            (o): o is OutcomeEnvelope =>
+                o !== null && o !== undefined && inForce(o) && (settles(o) || counterClaims(o)),
+        )
         .map((o, i) => ({ o, i, at: parseUtc(o.resolved_at) }))
         .sort((a, b) => a.at - b.at || a.i - b.i)
         .map(({ o }) => o);
-    const outcome = outcomes[0] ?? null;
+    const outcome = outcomes.find(settles) ?? null;
     const abandonment =
         input.abandonment &&
         input.abandonment.pledge_id === pledge.id &&
@@ -62,9 +79,9 @@ export function classifyState(input: ClassifyStateInput): PledgeState {
         return 'broken';
     }
 
-    // A contradiction counts only within the earliest outcome's dispute window
-    // (§4.4); after it, that outcome is final. A window that cannot be read
-    // never closes.
+    // A contradiction, settling or counter-claimed, counts only when dated before
+    // the earliest settling outcome's dispute window ends (§4.4); after it, that
+    // outcome is final. A window that cannot be read never closes.
     if (outcome !== null) {
         const windowEndsMs = parseUtcOr(outcome.dispute_window_ends_at, Infinity);
         const contradicted = outcomes.some(
