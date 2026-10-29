@@ -58,6 +58,30 @@ destination is invalid; or the records disagree), what releases each hold,
 that an uncertain payout is never retried on its own, and that a hold does
 not cancel what you are owed. ochk.app's Terms are dated 2026-10-29.
 
+### Changed — who completes an ochk.io deletion, what blocks it, what stays
+
+ochk.io's Privacy policy said account data is deleted when your
+account-deletion request completes. It now says a person completes the
+request, aiming for 48 hours; that nothing is erased while sats are owed or
+payouts are pending on ochk.app, guardian-operator duties are live, you own
+developer projects or an OC Connect app, or you own a vault team that still
+has other members; and what stays: the first-sign-in email our operators
+received, anything published to Nostr or anchored to Bitcoin, a hashed
+marker that refuses old sessions for about 30 days, and a hashed record of
+an account a site made for you.
+
+### Changed — OC Vault's Privacy policy on the extension and on deletion
+
+vault.ochk.io's Privacy policy said there is no OC Vault browser extension
+yet and that the sealed vault key stays until you ask us to remove it. It now
+says the extension is built for Chrome and Firefox, is not yet in a store, and
+has public source, and describes it in the present tense: ciphertext cache,
+key in RAM only except an opt-in passkey seal, a fill that carries only a
+username and password, and network access to vault.ochk.io and ochk.io only.
+Deleting your account removes the sealed key and the rest of your vault data,
+is refused while you own a team that still has other members, and keeps
+payment records under a keyed id. vault's Privacy policy is dated 2026-10-29.
+
 ### Added
 
 - `PROTOCOL_LINKED_SITES` includes chat, cosign, btc and globe.

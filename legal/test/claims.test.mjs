@@ -60,6 +60,8 @@ const BANNED = [
     [/cannot correlate you/i, 'signing in gives every site the same did:oc'],
     [/not yet deleted automatically|no automatic deletion yet/i, 'expired sessions are deleted on the next sign-in'],
     [/our host's proxy, not yours/i, 'the relay stores a daily pseudonym of the IP, not the proxy address'],
+    [/There is no OC Vault browser extension yet/i, 'the extension is built and public, not yet in a store'],
+    [/does not remove it — ask us/i, 'deleting the account removes the sealed vault key'],
 ];
 
 test('every doc renders', () => {
@@ -305,4 +307,23 @@ test('the ochk.app terms say when a payout is held and what releases it', () => 
     assert.match(text, /We hold a payout, and do not send it, when an earlier attempt to send it may already have gone through/);
     assert.match(text, /never retried on its own: we check the payment node, then either mark it paid with the payment's proof or release it to be sent again/);
     assert.match(text, /A hold does not cancel what you are owed/);
+});
+
+test('ochk.io privacy says who completes a deletion, what blocks it, and what stays', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    for (const fact of [
+        'A person completes the request, and we aim to do that within 48 hours',
+        'Nothing is erased while a blocker remains',
+        'the email our operators received when you first signed in',
+        'a hashed record of it, so that site is told the account was deleted',
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+});
+
+test('vault privacy says the extension exists and that deleting the account removes the sealed key', () => {
+    const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
+    assert.match(text, /extension is built for Chrome and Firefox but is not yet in either browser's store/);
+    assert.match(text, /deleting the cloud copy does not remove it, and deleting your account does/);
+    assert.match(text, /refused while you own a team that still has other members/);
 });

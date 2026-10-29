@@ -223,7 +223,7 @@ const privacy: DocSpec = {
     metaDescription:
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
-    updated: '2026-10-08',
+    updated: '2026-10-29',
     sections: [
         {
             id: 'principles',
@@ -301,12 +301,12 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The same encrypted vault is reachable from the web app and from the CLI and SDK; a browser extension is planned. The zero-knowledge guarantee — that OrangeCheck only ever holds ciphertext — applies to all of them.',
+                    text: 'The same encrypted vault is reachable from the web app, the browser extension, and the CLI and SDK. The zero-knowledge guarantee — that OrangeCheck only ever holds ciphertext — applies to all of them.',
                 },
-                { kind: 'subhead', text: 'browser extension (not released yet)' },
+                { kind: 'subhead', text: 'browser extension (not in a store yet)' },
                 {
                     kind: 'para',
-                    text: 'There is no OC Vault browser extension yet. When one ships, it is designed to work this way: the extension fetches the same encrypted blobs the web app does, caches them **as ciphertext** in browser-extension storage, and decrypts in the service worker only after you enter your passphrase. The vault key lives in memory and a RAM-only `storage.session` slot — it is never written to disk. The content script that offers autofill receives **one entry\'s field values at fill time** and nothing else; it never receives the vault key or the entry index. The extension talks only to your own `vault.ochk.io` account: no analytics, no telemetry, no remote code.',
+                    text: 'The OC Vault browser extension is built for Chrome and Firefox but is not yet in either browser\'s store; its source is public at [github.com/orangecheck/oc-vault-extension](https://github.com/orangecheck/oc-vault-extension), and you can build and load it yourself. It fetches the same encrypted blobs the web app does, may cache them **as ciphertext** in extension storage, and decrypts in its service worker only after you unlock it. The vault key lives in memory and a RAM-only `storage.session` slot and is never written to disk in the clear; if you turn on passkey unlock, it is also stored sealed to your passkey. The content script that offers autofill receives only **one entry\'s username and password at fill time**; it never receives the vault key or the entry index. The extension talks only to vault.ochk.io, and to ochk.io for sign-in: no analytics, no telemetry, no remote code.',
                 },
                 { kind: 'subhead', text: 'developer platform — access tokens, CLI, SDK, GitHub Action' },
                 {
@@ -338,11 +338,15 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'sealed vault key',
-                            v: 'kept so a new device can unlock; deleting the cloud copy does not remove it — ask us at [[PRIVACY_CONTACT]] and we will',
+                            v: 'kept so a new device can unlock; deleting the cloud copy does not remove it, and deleting your account does',
                         },
                         {
                             k: 'payment records',
-                            v: 'retained as required for accounting and entitlement verification',
+                            v: 'retained as required for accounting and entitlement verification; when your account is deleted they stay under a keyed id, not your account id',
+                        },
+                        {
+                            k: 'deleting your account',
+                            v: 'removes your encrypted blobs, devices and grants, sealed vault key, access tokens, one-time shares, the teams you own alone, and your seats and invites in other teams. It is refused while you own a team that still has other members',
                         },
                         {
                             k: 'request logs',
