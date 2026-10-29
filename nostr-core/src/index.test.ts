@@ -259,7 +259,8 @@ describe("queryEvents", () => {
     const start = Date.now();
     const result = await queryEvents({ kinds: [30078] }, ["wss://hang"], 200);
     const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(200);
+    // libuv keeps loop time in whole milliseconds, so a 200 ms timer can fire up to 1 ms early.
+    expect(elapsed).toBeGreaterThanOrEqual(199);
     expect(elapsed).toBeLessThan(500);
     expect(result.relayStatus[0]!.reason).toBe("timeout");
     expect(result.relayStatus[0]!.eose).toBe(false);
