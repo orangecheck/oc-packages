@@ -63,7 +63,7 @@ const BANNED = [
     [/There is no OC Vault browser extension yet/i, 'the extension is built and public, not yet in a store'],
     [/does not remove it — ask us/i, 'deleting the account removes the sealed vault key'],
     [/account list shows each account's email/i, 'the Users panel masks every email; a reveal or lookup asks for a reason recorded first'],
-    [/naming your did:oc and the identity you signed in with/i, 'sign-up notices since 2026-10-29 name only the account id and the kind of sign-in'],
+    [/naming your did:oc and the identity you signed in with/i, 'sign-up notices since 21:48 UTC on 2026-10-29 name only the account id and the kind of sign-in'],
     [/from market data alone/i, "btc's commentary also uses the model's web searches"],
 ];
 
@@ -332,8 +332,8 @@ test('vault privacy says the extension exists and that deleting the account remo
     assert.match(text, /refused while you own a team that still has other members/);
 });
 
-test('ochk.io privacy says what the first-sign-in notice names, before and after 2026-10-29', () => {
+test('ochk.io privacy says what the first-sign-in notice names, before and after 21:48 UTC on 2026-10-29', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
-    assert.match(text, /naming your did:oc and the kind of sign-in you used[^.]*\. Notices sent before 2026-10-29 also named the identity itself/);
-    assert.match(text, /names your did:oc and the kind of sign-in you used, and, if it was sent before 2026-10-29, the identity itself/);
+    assert.match(text, /naming your did:oc and the kind of sign-in you used[^.]*\. Notices sent before 21:48 UTC on 29 October 2026 also named the identity itself/);
+    assert.match(text, /names your did:oc and the kind of sign-in you used, and, if it was sent before 21:48 UTC on 29 October 2026, the identity itself/);
 });

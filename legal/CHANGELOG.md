@@ -20,9 +20,9 @@ written reason that is recorded before the email is shown.
 ### Changed — what the first-sign-in notice names
 
 The Privacy policy said the operators' first-sign-in email names your `did:oc`
-and your Bitcoin address or email address. Since 2026-10-29 it names your
-`did:oc` and the kind of sign-in only; notices sent before then also named the
-identity. The deletion section's "what stays" says the same.
+and your Bitcoin address or email address. Since 21:48 UTC on 29 October 2026
+it names your `did:oc` and the kind of sign-in only; notices sent before then
+also named the identity. The deletion section's "what stays" says the same.
 
 ### Changed — a payout waits 24 hours after a destination change
 
