@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Requires `@orangecheck/vault-core@^0.3.2`, so every install has its checks:
+  a vault blob's scrypt work factors are checked before anything is derived
+  (0.3.1), and an `ocv://` reference reads an entry type's primary field from
+  the type table's own keys only (0.3.2).
+
 ## 0.3.0
 
 - Picks up the **`env` entry type** from `@orangecheck/vault-core@^0.2.0`:

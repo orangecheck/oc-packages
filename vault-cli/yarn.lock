@@ -189,7 +189,7 @@
     "@noble/curves" "^1.6.0"
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/vault-core@^0.3.0":
+"@orangecheck/vault-core@^0.3.2":
   version "0.3.2"
   resolved "https://registry.yarnpkg.com/@orangecheck/vault-core/-/vault-core-0.3.2.tgz#24ef704529d0bd34b560e6342aeab82452481b56"
   integrity sha512-nR34/IXlQh9wJ48/LKV0cbbIh4HtBjuZ+ggKzxC9tga0a9FN7FAuh6Fg/Rn3hUg3afQBs/LcK50YwG0ZsRI6DA==
