@@ -62,6 +62,8 @@ const BANNED = [
     [/our host's proxy, not yours/i, 'the relay stores a daily pseudonym of the IP, not the proxy address'],
     [/There is no OC Vault browser extension yet/i, 'the extension is built and public, not yet in a store'],
     [/does not remove it — ask us/i, 'deleting the account removes the sealed vault key'],
+    [/which is recorded with the lookup/i, 'the lookup audit row is written best-effort'],
+    [/from market data alone/i, "btc's commentary also uses the model's web searches"],
 ];
 
 test('every doc renders', () => {
