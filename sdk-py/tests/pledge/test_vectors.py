@@ -49,8 +49,8 @@ from orangecheck.pledge.envelopes import PledgeError
 
 def locate_vectors_dir() -> Path | None:
     env = os.environ.get("OC_PLEDGE_VECTORS_DIR")
-    if env and Path(env).is_dir():
-        return Path(env)
+    if env:
+        return Path(env) if Path(env).is_dir() else None
     # A clone of oc-pledge-protocol next to oc-packages.
     sibling = Path(__file__).resolve().parents[4] / "oc-pledge-protocol" / "test-vectors"
     if sibling.is_dir():
@@ -73,11 +73,17 @@ VECTORS = load_vectors()
 
 @pytest.fixture(autouse=True, scope="module")
 def _vectors_present() -> None:
-    if not VECTORS:
+    if not VECTORS and not os.environ.get("OC_PLEDGE_VECTORS_DIR"):
         pytest.skip(
             "no test-vectors directory found — set OC_PLEDGE_VECTORS_DIR or "
             "sibling-clone oc-pledge-protocol"
         )
+
+
+def test_vectors_found_where_ci_points() -> None:
+    # CI names the directory: a checkout that left it empty fails here instead of skipping.
+    env = os.environ.get("OC_PLEDGE_VECTORS_DIR")
+    assert VECTORS, f"OC_PLEDGE_VECTORS_DIR={env} holds no vectors"
 
 
 def _ids() -> list[str]:
