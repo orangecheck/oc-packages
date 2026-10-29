@@ -20,9 +20,16 @@ written reason that is recorded before the email is shown.
 ### Changed — what the first-sign-in notice names
 
 The Privacy policy said the operators' first-sign-in email names your `did:oc`
-and your Bitcoin address or email address. Since 21:48 UTC on 29 October 2026
-it names your `did:oc` and the kind of sign-in only; notices sent before then
-also named the identity. The deletion section's "what stays" says the same.
+and your Bitcoin address or email address. It now names your `did:oc` and the
+kind of sign-in only; notices sent up to and including 29 October 2026 also
+named the identity. The deletion section's "what stays" says the same.
+
+### Added — ochk.app's contact form
+
+ochk.app's Privacy policy did not mention its contact form. It now says the
+form sends your email address, an optional name, the topic and your message to
+our inbox through our email provider (Resend), kept only as long as we need
+them to reply.
 
 ### Changed — a payout waits 24 hours after a destination change
 
