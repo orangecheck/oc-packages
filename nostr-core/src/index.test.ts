@@ -49,6 +49,21 @@ describe("DEFAULT_RELAYS", () => {
     // nostr.band is down too. A dead relay in a default set is worse than a
     // missing one — fan-outs wait on it. Re-add it only after checking.
     expect(DEFAULT_RELAYS).not.toContain("wss://relay.nostr.band");
+    // relay.damus.io: from 2026-10-28 it answered about half of the family's
+    // device-record probes and from 10:45Z on 10-29 none (a 503 at the
+    // handshake, or an open socket that never answers a REQ). With it in the
+    // five, a reader that needs 4 of 5 fell below its floor on one more miss.
+    expect(DEFAULT_RELAYS).not.toContain("wss://relay.damus.io");
+  });
+
+  it("lists the five the family reads and writes device records on", () => {
+    expect([...DEFAULT_RELAYS]).toEqual([
+      "wss://nos.lol",
+      "wss://relay.primal.net",
+      "wss://nostr.mom",
+      "wss://nostr.oxtr.dev",
+      "wss://relay.ochk.io",
+    ]);
   });
 
   it("lists no relay that failed the publish rule", () => {
