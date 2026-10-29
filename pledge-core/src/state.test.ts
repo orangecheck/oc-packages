@@ -178,6 +178,43 @@ describe('classifyState', () => {
         });
     });
 
+    describe('edges of the window and of who settles (§4.4, §4.5)', () => {
+        it('an unreadable dispute_window_ends_at never closes', () => {
+            const kept = outcome({ outcome: 'kept', dispute_window_ends_at: 'not a date' });
+            const muchLater = outcome({ id: 'f'.repeat(64), outcome: 'broken', resolved_at: '2026-12-01T00:00:00Z' });
+            const r = classifyState({
+                pledge: pledge(),
+                outcome: kept,
+                abandonment: null,
+                now: '2026-12-15T00:00:00Z',
+                contradictoryOutcomes: [muchLater],
+            });
+            expect(r).toBe('disputed');
+        });
+
+        it('a swearer named as their own counterparty settles, and is held to the window', () => {
+            const self = pledge({
+                resolution: { mechanism: 'counterparty_signs', query: 'q' },
+                counterparty: 'bc1qalice',
+            });
+            const evidence = { mechanism: 'counterparty_signs', result: 'r', witness: 'w' } as const;
+            const kept = outcome({ resolved_by: 'bc1qalice', evidence, outcome: 'kept' });
+            const afterWindow = outcome({
+                id: 'f'.repeat(64),
+                resolved_by: 'bc1qalice',
+                evidence,
+                outcome: 'broken',
+                resolved_at: '2026-09-10T00:00:00Z',
+            });
+            const at = (others: OutcomeEnvelope[]) =>
+                classifyState({ pledge: self, outcome: kept, abandonment: null, now: '2026-10-01T00:00:00Z', contradictoryOutcomes: others });
+            // Settles: alone, the outcome is kept, not resolvable.
+            expect(at([])).toBe('kept');
+            // Held to the window like any resolver: its own contradiction after 09-08 does not count.
+            expect(at([afterWindow])).toBe('kept');
+        });
+    });
+
     describe('a dispute (§4.4, §4.5)', () => {
         // kept on 09-01 with its window to 09-08; the pledge expires 12-31.
         const kept = outcome({ outcome: 'kept' });
