@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/app-design",
-  "version": "1.29.1",
+  "version": "1.29.2",
   "description": "The ochk.app design system: tokens, type, the isometric check, halftone photography, primitives and app chrome. Its own system, scoped under data-oc-app=\"ochk\" so it never reaches the .ochk.io family sites.",
   "keywords": [
     "orangecheck",
@@ -153,7 +153,7 @@
     }
   },
   "devDependencies": {
-    "@orangecheck/auth-client": "^2.32.3",
+    "@orangecheck/auth-client": "^2.41.0",
     "@orangecheck/auth-core": "^2.24.0",
     "@orangecheck/me-client": "^0.55.0",
     "@orangecheck/wallet-adapter": "^0.7.0",

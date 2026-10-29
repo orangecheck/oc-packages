@@ -345,6 +345,11 @@ const html = (el) => renderToStaticMarkup(el);
     check(given.includes('href="https://ochk.io/signin"'), 'Session: signInHref does not win over signInPath');
     const unknown = html(h(Ch.SessionAccountView, { state: 'unknown', signInHref: '/signin' }));
     check(unknown.includes('https://ochk.app/me/account'), 'Session: a failed check does not offer the account page');
+    // A refused sign-out leaves the person signed in, and the header says so under the menu.
+    const signedIn = html(h(Ch.SessionAccountView, { state: 'in', name: 'Alice' }));
+    check(!signedIn.includes('role="alert"'), 'Session: signed in, a notice shows with no refused sign-out');
+    const refusedOut = html(h(Ch.SessionAccountView, { state: 'in', name: 'Alice', signOutRefused: true }));
+    check(refusedOut.includes('role="alert"') && refusedOut.includes('Couldn’t sign out. You’re still signed in; try again.') && refusedOut.includes('Alice, account menu'), 'Session: a refused sign-out is not said beside the menu');
 }
 
 // A Field labels a control inside a box of its own (an input with a popover under it) without taking the box.

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.29.2] — 2026-10-29
+
+- `SessionAccount` signs out through auth-client's `trySignOut()` when it has
+  one (2.41.0 and later). A sign-out the auth host refuses keeps the account
+  menu and says "Couldn’t sign out. You’re still signed in; try again." under
+  it. `SessionAccountView` takes `signOutRefused` to say the same.
+
 ## [1.29.1] — 2026-10-27
 
 - The family registry's line for chat reads "Encrypted messages to a Bitcoin

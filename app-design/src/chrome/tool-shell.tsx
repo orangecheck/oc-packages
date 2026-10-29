@@ -20,6 +20,9 @@ export type SessionState = 'checking' | 'in' | 'out' | 'unknown';
 
 export const OCHK_APP_ACCOUNT = 'https://ochk.app/me/account';
 
+/** Said when the auth host did not end the session, as auth-client's own chip says it. */
+const SIGN_OUT_REFUSED = 'Couldn’t sign out. You’re still signed in; try again.';
+
 /**
  * The header's account control, for any session source: the account menu
  * when signed in, "Sign in" when not. While the check runs, the button holds
@@ -38,6 +41,7 @@ export function SessionAccountView({
     signInVariant,
     accountHref = OCHK_APP_ACCOUNT,
     onSignOut,
+    signOutRefused = false,
     nameFrom = 'lg',
 }: {
     state: SessionState;
@@ -57,12 +61,14 @@ export function SessionAccountView({
     /** Where "Your account" goes: ochk.app. */
     accountHref?: string;
     onSignOut?: () => void;
+    /** The last sign-out was refused, so the person is still signed in: said under the menu. */
+    signOutRefused?: boolean;
     nameFrom?: 'sm' | 'lg';
 }) {
     const inPlace = useSignInHref(signInPath);
     const family = useFamilySignInHref();
     if (state === 'in') {
-        return (
+        const menu = (
             <AccountMenu
                 name={name || 'Your account'}
                 detail={detail}
@@ -75,6 +81,19 @@ export function SessionAccountView({
                     { label: 'Sign out', onSelect: onSignOut, icon: <LogOut /> },
                 ]}
             />
+        );
+        if (!signOutRefused) return menu;
+        // Under the chip, out of the header's flow, so nothing beside it moves.
+        return (
+            <span className="relative inline-flex">
+                {menu}
+                <span
+                    role="alert"
+                    className="absolute right-0 top-full z-50 mt-1.5 w-max max-w-[16rem] rounded-md border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] leading-snug text-destructive shadow-sm"
+                >
+                    {SIGN_OUT_REFUSED}
+                </span>
+            </span>
         );
     }
     if (state === 'unknown') {
