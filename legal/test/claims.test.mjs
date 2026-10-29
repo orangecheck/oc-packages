@@ -62,7 +62,8 @@ const BANNED = [
     [/our host's proxy, not yours/i, 'the relay stores a daily pseudonym of the IP, not the proxy address'],
     [/There is no OC Vault browser extension yet/i, 'the extension is built and public, not yet in a store'],
     [/does not remove it — ask us/i, 'deleting the account removes the sealed vault key'],
-    [/which is recorded with the lookup/i, 'the lookup audit row is written best-effort'],
+    [/account list shows each account's email/i, 'the Users panel masks every email; a reveal or lookup asks for a reason recorded first'],
+    [/naming your did:oc and the identity you signed in with/i, 'sign-up notices since 2026-10-29 name only the account id and the kind of sign-in'],
     [/from market data alone/i, "btc's commentary also uses the model's web searches"],
 ];
 
@@ -292,7 +293,7 @@ test('ochk.io privacy says what sign-in stores beyond the account, and who can r
         'its address, outpoint and amount, the backing message you signed',
         'the signed revocation, which we also publish to Nostr relays',
         'the market thresholds you save on btc.ochk.io (up to 25)',
-        "OrangeCheck's operators can see your account, including your email address decrypted, in an owner-only console",
+        "Its account list shows each email address masked. Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
     ]) {
         assert.ok(text.includes(fact), fact);
     }
@@ -309,6 +310,7 @@ test('the ochk.app terms say when a payout is held and what releases it', () => 
     assert.match(text, /We hold a payout, and do not send it, when an earlier attempt to send it may already have gone through/);
     assert.match(text, /never retried on its own: we check the payment node, then either mark it paid with the payment's proof or release it to be sent again/);
     assert.match(text, /A hold does not cancel what you are owed/);
+    assert.match(text, /for 24 hours after you change your payout destination/);
 });
 
 test('ochk.io privacy says who completes a deletion, what blocks it, and what stays', () => {
@@ -328,4 +330,10 @@ test('vault privacy says the extension exists and that deleting the account remo
     assert.match(text, /extension is built for Chrome and Firefox but is not yet in either browser's store/);
     assert.match(text, /deleting the cloud copy does not remove it, and deleting your account does/);
     assert.match(text, /refused while you own a team that still has other members/);
+});
+
+test('ochk.io privacy says what the first-sign-in notice names, before and after 2026-10-29', () => {
+    const text = DOCS.find(([n]) => n === 'www/privacy')[1];
+    assert.match(text, /naming your did:oc and the kind of sign-in you used[^.]*\. Notices sent before 2026-10-29 also named the identity itself/);
+    assert.match(text, /names your did:oc and the kind of sign-in you used, and, if it was sent before 2026-10-29, the identity itself/);
 });

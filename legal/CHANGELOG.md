@@ -8,6 +8,28 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.25] — 2026-10-29
+
+### Changed — who can see an email in the owner console
+
+ochk.io's Privacy policy said the owner console's account list shows each
+account's email and that a lookup asks for a written reason. The list now
+shows each email masked; revealing one, or looking up one account, asks for a
+written reason that is recorded before the email is shown.
+
+### Changed — what the first-sign-in notice names
+
+The Privacy policy said the operators' first-sign-in email names your `did:oc`
+and your Bitcoin address or email address. Since 2026-10-29 it names your
+`did:oc` and the kind of sign-in only; notices sent before then also named the
+identity. The deletion section's "what stays" says the same.
+
+### Changed — a payout waits 24 hours after a destination change
+
+ochk.app's Terms listed when a payout is held but not the hold after you change
+your payout destination. They now say a payout waits for 24 hours after that
+change and then goes out on its own.
+
 ## [0.7.24] — 2026-10-29
 
 ### Changed — ochk.io's Terms and Privacy cover chat, cosign, btc and globe
