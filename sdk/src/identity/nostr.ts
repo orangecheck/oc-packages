@@ -166,8 +166,8 @@ async function queryNostrEvents(options: {
  *   check = schnorr_verify(id, pubkey, sig)
  *
  * Fails closed on any shape problem, decoding error, or mismatch. A true
- * return from this function is the ONLY thing that should be treated as
- * proof the event really came from the claimed pubkey.
+ * return proves the event came from its own `pubkey`, not from the identity
+ * being verified: the caller still checks that `pubkey` is that identity.
  */
 async function verifyNostrEventSignature(event: NostrEvent): Promise<boolean> {
     return nostrEventSignatureValid(event);
@@ -221,8 +221,10 @@ function nostrEventSignatureValid(event: NostrEvent): boolean {
  *
  * Verification method:
  * 1. Query Nostr relays for kind 1 (text note) events from the claimed npub
- * 2. Check if any event content contains the attestation ID
- * 3. Verify the event signature
+ * 2. Keep only kind 1 events whose pubkey is the claimed npub's: a relay may
+ *    return notes by other keys
+ * 3. Check if any event content contains the attestation ID
+ * 4. Verify the event signature
  *
  * @param attestationId - The attestation ID to look for
  * @param npub - The Nostr public key (npub format or hex)
@@ -256,9 +258,14 @@ export async function verifyNostrIdentity(
             };
         }
 
-        // Check each event for attestation ID and verify signature
+        // A relay can answer with any author's note, whatever the filter asked
+        // for; only this npub's own kind-1 counts (as oc-attest-web's verifier).
         for (const event of events) {
-            if (event.content.includes(attestationId)) {
+            if (
+                event.pubkey === pubkeyHex &&
+                event.kind === 1 &&
+                event.content.includes(attestationId)
+            ) {
                 // Verify event signature
                 const isValid = await verifyNostrEventSignature(event);
 
