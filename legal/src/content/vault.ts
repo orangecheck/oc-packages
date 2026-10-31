@@ -224,6 +224,12 @@ const privacy: DocSpec = {
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
     updated: '2026-10-31',
+    preamble: [
+        {
+            kind: 'callout',
+            text: "**What changed, 8 to 31 October 2026.** On 31 October this policy added emailed team invites: the invitee's address is kept on the invite and shown to the team's managers, and the link carries the team key only sealed under a one-time code. On 29 October it began to describe the browser extension, and to say that deleting your account removes the sealed vault key. On 8 October it began to say that the vault key is stored on our server, sealed under your passphrase and your recovery code. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+        },
+    ],
     sections: [
         {
             id: 'principles',
