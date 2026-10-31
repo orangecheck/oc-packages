@@ -243,7 +243,16 @@ const privacy: DocSpec = {
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 to 31 October 2026.** On 31 October: the owner consoles, analytics.ochk.io and vault.ochk.io's, show every email address masked, refuse an email as a search or action subject, and show a whole address only after a written reason is recorded. From 8 to 29 October we corrected this policy where it did not match what our code stores. It now names the email and the Google or GitHub id an account keeps, the IP address the sign-in log keeps for 90 days, what the sign-up notice to our operators names, what chat, cosign, btc, globe and relay.ochk.io keep, and what a deletion keeps and who completes it. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+            text: "**What changed, 8 to 31 October 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+        },
+        {
+            kind: 'bullets',
+            items: [
+                { k: "31 October", v: "the owner consoles, analytics.ochk.io and vault.ochk.io's, show every email address masked, refuse an email as a search or action subject, and show a whole address only after a written reason is recorded." },
+                { k: "29 October", v: "an account also keeps its Google or GitHub id, the roster id that links accounts signed in from one browser, the site you signed up through, a coin that backs it (its address, outpoint and amount, and the message you signed), and OC Chat device vouches and revocations, which are also published to Nostr relays. Our operators' first-sign-in email names only your did:oc and the kind of sign-in. The policy says what chat, cosign, btc and globe keep, who completes a deletion, and what stays." },
+                { k: "26 October", v: "a session row keeps no IP address, and the sign-in log keeps it for 90 days. relay.ochk.io and what it keeps are named. Claiming an OC Chat handle sends its fingerprint to three OpenTimestamps calendars and reads mempool.space, and each sees your IP address." },
+                { k: "8 and 9 October", v: "the email is stored, encrypted. Each session and the sign-in log keep the full user-agent. Our operators get an email when a new account first signs in." },
+            ],
         },
         {
             kind: 'callout',

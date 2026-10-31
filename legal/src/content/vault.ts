@@ -227,7 +227,15 @@ const privacy: DocSpec = {
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 to 31 October 2026.** On 31 October this policy added emailed team invites: the invitee's address is kept on the invite and shown to the team's managers, and the link carries the team key only sealed under a one-time code. On 29 October it began to describe the browser extension, and to say that deleting your account removes the sealed vault key. On 8 October it began to say that the vault key is stored on our server, sealed under your passphrase and your recovery code. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+            text: "**What changed, 8 to 31 October 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+        },
+        {
+            kind: 'bullets',
+            items: [
+                { k: "31 October", v: "an emailed team invite keeps the invitee's address on the invite and shows it to the team's managers, and its link carries the team key only sealed under a one-time code." },
+                { k: "29 October", v: "the browser extension is described. Deleting your account removes the sealed vault key and the rest of your vault data, keeps payment records under a keyed id, and is refused while you own a team that still has other members." },
+                { k: "8 October", v: "your vault is filed under your did:oc, and the vault key is stored on our server, sealed under your passphrase and your recovery code." },
+            ],
         },
     ],
     sections: [

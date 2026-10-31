@@ -329,19 +329,51 @@ test('ochk.io privacy says who completes a deletion, what blocks it, and what st
     }
 });
 
-test('each privacy policy opens with a dated note of what changed, led by the latest change', () => {
+test('each privacy policy opens with a dated note of what changed, newest first', () => {
     // The policy promises prominent notice of material changes; the October corrections were material.
-    const lead = {
-        www: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 31 October: the owner consoles/,
-        me: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 29 October this policy added what ochk\.app's contact form sends/,
-        vault: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 31 October this policy added emailed team invites/,
+    // Each note names every change to what is kept or who sees it (site-attest, 2026-10-31).
+    const notes = {
+        www: {
+            first: '31 October',
+            facts: [
+                'the owner consoles, analytics.ochk.io and vault.ochk.io',
+                'the roster id that links accounts signed in from one browser, the site you signed up through',
+                'a coin that backs it (its address, outpoint and amount, and the message you signed)',
+                'OC Chat device vouches and revocations, which are also published to Nostr relays',
+                'the sign-in log keeps it for 90 days',
+                'three OpenTimestamps calendars and reads mempool.space, and each sees your IP address',
+                'Each session and the sign-in log keep the full user-agent',
+            ],
+        },
+        me: {
+            first: '29 October',
+            facts: [
+                'the contact form sends your email address',
+                'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
+                'me.ochk.io records which sites you sign in to or share data with, and when',
+                'a keyed hash of your email if the site sent one',
+                "ochk.app's own cookies are listed",
+                'a session record keeps your user-agent',
+            ],
+        },
+        vault: {
+            first: '31 October',
+            facts: [
+                'an emailed team invite keeps the invitee',
+                'keeps payment records under a keyed id, and is refused while you own a team that still has other members',
+            ],
+        },
     };
-    for (const [site, re] of Object.entries(lead)) {
+    for (const [site, { first, facts }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
-        const first = doc.preamble?.[0];
-        assert.equal(first?.kind, 'callout', site);
-        assert.match(first.text, re, site);
-        assert.match(first.text, /\[changelog\]\(https:\/\/github\.com\/orangecheck\/oc-packages\/blob\/main\/legal\/CHANGELOG\.md\) lists each change\.$/, site);
+        const [lead, list] = doc.preamble ?? [];
+        assert.equal(lead?.kind, 'callout', site);
+        assert.match(lead.text, /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./, site);
+        assert.match(lead.text, /the \[changelog\]\(https:\/\/github\.com\/orangecheck\/oc-packages\/blob\/main\/legal\/CHANGELOG\.md\) lists every change\.$/, site);
+        assert.equal(list?.kind, 'bullets', site);
+        assert.equal(list.items[0].k, first, site);
+        const text = list.items.map((it) => `${it.k} ${it.v}`).join(' ');
+        for (const f of facts) assert.ok(text.includes(f), `${site}: ${f}`);
         assert.equal(doc.updated, '2026-10-31', site);
     }
 });
