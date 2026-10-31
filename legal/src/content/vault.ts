@@ -232,7 +232,7 @@ const privacy: DocSpec = {
         {
             kind: 'bullets',
             items: [
-                { k: "31 October", v: "an emailed team invite keeps the invitee's address on the invite and shows it to the team's managers, and its link carries the team key only sealed under a one-time code." },
+                { k: "31 October", v: "an emailed team invite keeps the invitee's address on the invite and shows it to the team's managers, the email goes through our email provider (Resend), and its link carries the team key only sealed under a one-time code." },
                 { k: "29 October", v: "the browser extension is described. Deleting your account removes the sealed vault key and the rest of your vault data, keeps payment records under a keyed id, and is refused while you own a team that still has other members." },
                 { k: "8 October", v: "your vault is filed under your did:oc, and the vault key is stored on our server, sealed under your passphrase and your recovery code." },
             ],
