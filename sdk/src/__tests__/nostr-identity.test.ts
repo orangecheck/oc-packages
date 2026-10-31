@@ -9,7 +9,7 @@
 
 import { schnorr } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // NOTE: Not exported from the public index (internal helper). We deliberately
 // import from the source to exercise the real implementation.
@@ -109,5 +109,77 @@ describe('verifyNostrIdentity schnorr wiring', () => {
 describe('verifyNostrIdentity public API surface', () => {
     it('is exported and callable (shape check only; no network)', () => {
         expect(typeof verifyNostrIdentity).toBe('function');
+    });
+});
+
+/** A note signed by `secret`, of any kind. */
+function signNote(secret: Uint8Array, content: string, kind = 1): NostrEvent {
+    const pubkey = toHex(schnorr.getPublicKey(secret));
+    const created_at = Math.floor(Date.now() / 1000);
+    const tags: string[][] = [];
+    const preimage = JSON.stringify([0, pubkey, created_at, kind, tags, content]);
+    const id = toHex(sha256(new TextEncoder().encode(preimage)));
+    const sig = toHex(schnorr.sign(fromHex(id), secret));
+    return { id, pubkey, created_at, kind, tags, content, sig };
+}
+
+/** A relay that answers every REQ with `served`, whatever its filter asks. */
+class FilterIgnoringRelay {
+    static readonly CLOSED = 3;
+    static served: NostrEvent[] = [];
+    readyState = 1;
+    onopen: (() => void) | null = null;
+    onmessage: ((msg: { data: string }) => void) | null = null;
+    onerror: ((err: unknown) => void) | null = null;
+    onclose: (() => void) | null = null;
+    constructor(readonly url: string) {
+        queueMicrotask(() => this.onopen?.());
+    }
+    send(raw: string) {
+        const [, sub] = JSON.parse(raw) as [string, string];
+        for (const ev of FilterIgnoringRelay.served) {
+            this.onmessage?.({ data: JSON.stringify(['EVENT', sub, ev]) });
+        }
+        this.onmessage?.({ data: JSON.stringify(['EOSE', sub]) });
+    }
+    close() {
+        this.readyState = FilterIgnoringRelay.CLOSED;
+        this.onclose?.();
+    }
+}
+
+describe('verifyNostrIdentity counts only the claimed npub\'s own note', () => {
+    const ATTESTATION = 'a'.repeat(64);
+    const victim = schnorr.utils.randomSecretKey();
+    const victimHex = toHex(schnorr.getPublicKey(victim));
+    const attacker = schnorr.utils.randomSecretKey();
+    const verify = (served: NostrEvent[]) => {
+        FilterIgnoringRelay.served = served;
+        vi.stubGlobal('WebSocket', FilterIgnoringRelay);
+        return verifyNostrIdentity(ATTESTATION, victimHex, ['wss://relay.test']);
+    };
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it("refuses another key's validly signed note, though a relay serves it for the npub", async () => {
+        const forged = signNote(attacker, `claiming ${ATTESTATION}`);
+        const result = await verify([forged]);
+        expect(result.verified).toBe(false);
+        expect(result.event).toBeUndefined();
+    });
+
+    it("refuses the npub's own event of another kind", async () => {
+        const result = await verify([signNote(victim, `reacting ${ATTESTATION}`, 7)]);
+        expect(result.verified).toBe(false);
+    });
+
+    it("verifies the npub's own note, and returns it rather than another key's", async () => {
+        const forged = signNote(attacker, `claiming ${ATTESTATION}`);
+        const genuine = signNote(victim, `verifying ${ATTESTATION}`);
+        const result = await verify([forged, genuine]);
+        expect(result.verified).toBe(true);
+        expect(result.event?.id).toBe(genuine.id);
+        expect(result.event?.pubkey).toBe(victimHex);
     });
 });

@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.18.3] — 2026-10-31
+
+### Fixed
+
+- `verifyNostrIdentity` (and so `verifyIdentity` and `verifyAllIdentities` for
+  `nostr:` identities) counts only a kind-1 note whose `pubkey` is the npub
+  being verified. It asked relays for that author's notes but accepted any
+  validly signed note a relay returned, so a note by another key containing the
+  attestation id verified the npub. `isNostrIdentityVerified` already checked this.
+
 ## [1.18.2] — 2026-10-25
 
 ### Changed
