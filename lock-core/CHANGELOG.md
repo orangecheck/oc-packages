@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.5.0] — 2026-10-31
+
+### Added — `computeEnvelopeId`
+
+- The id `unseal` checks, exported: SHA-256 of the canonical envelope with `id` and
+  `sig.value` blank. The sender's BIP-322 signature covers this id, not the content,
+  so a reader re-checking a kept envelope offline (OC Lock's web inbox does, for rows
+  stored before it recorded the result) recomputes the id before trusting the
+  signature. No wire change.
+
 ## [1.4.0] — 2026-10-26
 
 ### Changed — `directoryAnchor`

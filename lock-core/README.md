@@ -39,6 +39,7 @@ const plaintext = new TextDecoder().decode(result.payload);
 
 - `seal(input)` → `LockEnvelope`
 - `unseal(input)` → `{ payload, envelopeId, sender, matchedDeviceId }`
+- `computeEnvelopeId(envelope)` → the id bytes `unseal` checks and the signature covers (hex-encode to compare with `envelope.id`)
 - `canonicalize(value)` / `canonicalBytes(value)` — RFC 8785 JSON canonicalization with OC Lock's `recipients[]` sort rule
 - `LockError` — typed error class with protocol-defined `code`
 - Full type definitions: `LockEnvelope`, `EnvelopeRecipient`, `DeviceRecord`, etc.

@@ -59,9 +59,11 @@ function computeDraftId(env: LockEnvelope): Uint8Array {
 /**
  * Compute the final envelope id: SHA-256 of the canonical envelope with
  * `sig.value` stripped to empty. The `id` field itself is excluded from the
- * hash input (we set it to empty before hashing).
+ * hash input (we set it to empty before hashing). This is the id `unseal`
+ * checks and the sender's BIP-322 signature covers, so a reader holding a
+ * kept envelope can check its content still matches the id it signed.
  */
-function computeEnvelopeId(env: LockEnvelope): Uint8Array {
+export function computeEnvelopeId(env: LockEnvelope): Uint8Array {
     const clone: LockEnvelope = {
         ...env,
         id: '',

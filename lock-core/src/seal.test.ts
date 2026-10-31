@@ -6,7 +6,7 @@ import {
     utf8Encode,
 } from '@orangecheck/lock-crypto';
 import { canonicalBytes } from './canonical.js';
-import { LockError, seal, unseal } from './seal.js';
+import { computeEnvelopeId, LockError, seal, unseal } from './seal.js';
 import type { DeviceRecord } from './types.js';
 
 const FAKE_SIG = 'ZmFrZS1zaWduYXR1cmU=';
@@ -351,5 +351,30 @@ describe('unseal ties the signature to from.address (SPEC §4.3, §7.1)', () => 
         });
         expect(out.authenticated).toBe(false);
         expect(out.sender.address).toBe('bc1qalice');
+    });
+});
+
+describe('computeEnvelopeId is the id unseal checks', () => {
+    const sealed = () =>
+        seal({
+            payload: utf8Encode('hello bob'),
+            sender: { address: 'bc1qalice', signMessage: fakeSign },
+            recipients: [makeDevice('bc1qbob', 'bob-laptop').record],
+            hint: 'greeting',
+        });
+
+    it("equals a sealed envelope's id, whatever its signature value", async () => {
+        const env = await sealed();
+        expect(hexEncode(computeEnvelopeId(env))).toBe(env.id);
+        expect(hexEncode(computeEnvelopeId({ ...env, sig: { ...env.sig, value: '' } }))).toBe(env.id);
+        expect(hexEncode(computeEnvelopeId({ ...env, id: '' }))).toBe(env.id);
+    });
+
+    it('changes when a field the id covers changes, so a kept signature cannot vouch for altered content', async () => {
+        const env = await sealed();
+        expect(hexEncode(computeEnvelopeId({ ...env, hint: 'changed after signing' }))).not.toBe(env.id);
+        expect(
+            hexEncode(computeEnvelopeId({ ...env, from: { ...env.from, address: 'bc1qmallory' } }))
+        ).not.toBe(env.id);
     });
 });
