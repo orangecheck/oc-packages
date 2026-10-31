@@ -212,8 +212,12 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-28',
+    updated: '2026-10-31',
     preamble: [
+        {
+            kind: 'callout',
+            text: "**What changed, 8 to 31 October 2026.** On 29 October this policy added what ochk.app's contact form sends. From 8 to 28 October we corrected it where it did not match the Service. It now says that ochk.app is the Service and me.ochk.io its API, that every site you sign in to gets the same did:oc, that a session record keeps no IP address, what a guardian application holds and which of its answers the charter publishes, and which records a deletion keeps and how long cached copies last. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+        },
         {
             kind: 'callout',
             text: 'This policy covers the Service at both of its addresses, ochk.app and its API at me.ochk.io: one account, one store of records, one operator; “ochk.app” below means both. Its product is identity that pays you; its privacy posture is what makes it distinct from Sign in with Google. For a side-by-side comparison you can falsify, see [the privacy comparison](/privacy-compare).',

@@ -329,6 +329,23 @@ test('ochk.io privacy says who completes a deletion, what blocks it, and what st
     }
 });
 
+test('each privacy policy opens with a dated note of what changed, led by the latest change', () => {
+    // The policy promises prominent notice of material changes; the October corrections were material.
+    const lead = {
+        www: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 31 October: the owner consoles/,
+        me: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 29 October this policy added what ochk\.app's contact form sends/,
+        vault: /^\*\*What changed, 8 to 31 October 2026\.\*\* On 31 October this policy added emailed team invites/,
+    };
+    for (const [site, re] of Object.entries(lead)) {
+        const doc = buildDoc(site, 'privacy');
+        const first = doc.preamble?.[0];
+        assert.equal(first?.kind, 'callout', site);
+        assert.match(first.text, re, site);
+        assert.match(first.text, /\[changelog\]\(https:\/\/github\.com\/orangecheck\/oc-packages\/blob\/main\/legal\/CHANGELOG\.md\) lists each change\.$/, site);
+        assert.equal(doc.updated, '2026-10-31', site);
+    }
+});
+
 test('vault privacy says an emailed invite keeps your address and carries the team key only sealed', () => {
     const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
     assert.match(text, /emailed team invite if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider \(Resend\)/);

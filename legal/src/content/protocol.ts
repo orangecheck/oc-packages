@@ -243,6 +243,10 @@ const privacy: DocSpec = {
     preamble: [
         {
             kind: 'callout',
+            text: "**What changed, 8 to 31 October 2026.** On 31 October: the owner consoles, analytics.ochk.io and vault.ochk.io's, show every email address masked, refuse an email as a search or action subject, and show a whole address only after a written reason is recorded. From 8 to 29 October we corrected this policy where it did not match what our code stores. It now names the email and the Google or GitHub id an account keeps, the IP address the sign-in log keeps for 90 days, what the sign-up notice to our operators names, what chat, cosign, btc, globe and relay.ochk.io keep, and what a deletion keeps and who completes it. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+        },
+        {
+            kind: 'callout',
             text: 'This policy covers the **non-custodial** OrangeCheck family — [ochk.io](https://ochk.io), including its documentation at [ochk.io/docs](https://ochk.io/docs), the six verb sites, and [chat.ochk.io](https://chat.ochk.io), [cosign.ochk.io](https://cosign.ochk.io), [btc.ochk.io](https://btc.ochk.io) and [globe.ochk.io](https://globe.ochk.io). The commercial products ochk.app and vault.ochk.io publish their own privacy policies covering the additional data their products handle.',
         },
     ],
