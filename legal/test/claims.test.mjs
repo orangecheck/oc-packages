@@ -293,7 +293,8 @@ test('ochk.io privacy says what sign-in stores beyond the account, and who can r
         'its address, outpoint and amount, the backing message you signed',
         'the signed revocation, which we also publish to Nostr relays',
         'the market thresholds you save on btc.ochk.io (up to 25)',
-        "Its account list shows each email address masked. Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
+        "Its account list shows each email address masked, and its search refuses an email address: an account is found by email only through a lookup",
+        "Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
     ]) {
         assert.ok(text.includes(fact), fact);
     }
@@ -334,8 +335,8 @@ test('vault privacy says the extension exists and that deleting the account remo
 
 test('ochk.io privacy says what the first-sign-in notice names, up to and after 29 October 2026', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
-    assert.match(text, /naming your did:oc and the kind of sign-in you used[^.]*\. Notices sent up to and including 29 October 2026 also named the identity itself/);
-    assert.match(text, /names your did:oc and the kind of sign-in you used, and, if it was sent up to and including 29 October 2026, the identity itself/);
+    assert.match(text, /naming your did:oc and the kind of sign-in you used[^.]*\. Notices sent up to and including 29 October 2026 \(UTC\) also named the identity itself/);
+    assert.match(text, /names your did:oc and the kind of sign-in you used, and, if it was sent up to and including 29 October 2026 \(UTC\), the identity itself/);
 });
 
 test('the ochk.app privacy policy says what its contact form sends', () => {
