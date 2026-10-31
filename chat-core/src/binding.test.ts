@@ -337,6 +337,25 @@ describe('readChannelVersions: "no newer version" only when every read met the f
     });
 });
 
+describe('readChannelVersions: a page it cannot read past is a cut-off read (§8.3.1)', () => {
+    const ev = version(founderKey, genesis);
+    // 600 events under the channel's tag in one second, newer than the genesis: a
+    // page with \`until\` at that second brings back the same 500 every time.
+    const junk = Array.from({ length: 600 }, (_, i) => ({ ...ev, id: `junk-${i}`, created_at: ev.created_at + 86400, content: 'x' }));
+    const query = async (f: Record<string, unknown>) => {
+        const tagged = f['#t'] ? [...junk, ev].filter((e) => f.until === undefined || e.created_at <= (f.until as number)).slice(0, (f.limit as number) ?? Infinity) : [];
+        const byKey = Array.isArray(f.authors) && f.authors.includes(ev.pubkey) ? [ev] : [];
+        return { events: [...tagged, ...byKey], relayStatus: [{ eose: true }, { eose: true }, { eose: true }, { eose: true }] };
+    };
+    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
+
+    it('600 events in one second stall the open read: it is truncated, not complete', async () => {
+        const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: keys }, FOUNDER);
+        expect(r.events.map((e) => e.id)).toContain(ev.id);
+        expect(r.truncated).toBe(true);
+    });
+});
+
 describe('recordReads.liveness for an address binding with a relay that did not answer', () => {
     const ADDR = 'bc1qmr7qn2t0ahj56ztpdswt54kn2r863ukd8wadj8';
     const kp = generateDeviceKey();

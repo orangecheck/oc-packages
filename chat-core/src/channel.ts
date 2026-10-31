@@ -979,9 +979,13 @@ export async function readChannelVersions(
         });
         const fresh = add(res);
         for (const e of res.events ?? []) until = Math.min(until ?? Infinity, e.created_at);
-        // A full page that brought something new may have more behind it.
-        if ((res.events ?? []).length < VERSION_PAGE_LIMIT || fresh === 0) break;
-        if (page === VERSION_MAX_PAGES - 1) truncated = true;
+        // A full page may have more behind it. One that brought nothing new is
+        // stuck on a second it cannot page past: the read stops there, cut off.
+        if ((res.events ?? []).length < VERSION_PAGE_LIMIT) break;
+        if (fresh === 0 || page === VERSION_MAX_PAGES - 1) {
+            truncated = true;
+            break;
+        }
     }
     add(await legacy);
 

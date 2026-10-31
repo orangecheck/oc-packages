@@ -6,6 +6,15 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [Unreleased]
+
+### Fixed
+
+- `readChannelVersions` reports the read as `truncated` when a full page of
+  the open read brings nothing new. 500 or more events in one second under a
+  channel's tag stopped that read without saying so, so a caller could take
+  "nothing resolves" or "no newer version" from a read that was cut off.
+
 ## [0.1.0] — 2026-10-28
 
 ### Added
