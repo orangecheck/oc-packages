@@ -8,6 +8,17 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.26] — 2026-10-31
+
+### Changed — the console's search, and the notice date's time zone
+
+ochk.io's Privacy policy said the owner console shows each email masked and
+that a reveal or lookup asks for a recorded reason. It now also says the
+console's search refuses an email address, so an account is found by email
+only through a lookup. The first-sign-in notice's boundary, "up to and
+including 29 October 2026", now says it is a UTC date, in both places it
+appears.
+
 ## [0.7.25] — 2026-10-29
 
 ### Changed — who can see an email in the owner console
