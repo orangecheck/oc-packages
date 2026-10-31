@@ -239,7 +239,7 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-29',
+    updated: '2026-10-31',
     preamble: [
         {
             kind: 'callout',
@@ -351,7 +351,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'who at OrangeCheck can see it' },
                 {
                     kind: 'para',
-                    text: "OrangeCheck's operators can see your account in an owner-only console. Its account list shows each email address masked, and its account search refuses an email address. Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown. A lookup's record has its details about you cleared after 90 days; the reason stays.",
+                    text: "OrangeCheck's operators can see your account in owner-only consoles: analytics.ochk.io and, for a vault account, vault.ochk.io's. Their account lists show each email address masked: the first character of the part before the @ when that part has three or more characters, and none of it otherwise. Their account searches and actions refuse an email address: an account is found by email only through a lookup. Revealing one address, or looking up one account, asks for a written reason, which is recorded before your email address is shown. A lookup's record has its details about you cleared after 90 days; the reason stays.",
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {

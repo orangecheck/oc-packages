@@ -8,6 +8,27 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.27] — 2026-10-31
+
+### Changed — vault's owner console
+
+ochk.io's Privacy policy named one owner console. It now names two:
+analytics.ochk.io and, for a vault account, vault.ochk.io's. Both list each
+email address masked, and the policy now says how: the first character of the
+part before the @ when that part has three or more characters, and none of it
+otherwise. Their account searches and actions refuse an email address, so the
+policy again says an account is found by email only through a lookup. 0.7.26
+dropped that clause because vault's actions still took an email; they no longer
+do.
+
+### Added — emailed team invites in the vault Privacy policy
+
+The vault policy never mentioned emailed invites. It now says a manager's
+emailed invite keeps your email address on the invite, shows it to the team's
+managers, and sends it with the link through Resend. It also says the link
+carries the team key only sealed under a one-time code the manager gives you,
+which OrangeCheck never sees, and when the invite is deleted.
+
 ## [0.7.26] — 2026-10-31
 
 ### Changed — the console's search, and the notice date's time zone
