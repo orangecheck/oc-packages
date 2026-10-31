@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/chat-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Verify OC Chat's public artifacts: channel descriptors and posts, directory listings and did:oc session devices. See https://github.com/orangecheck/oc-chat-protocol.",
   "keywords": [
     "bitcoin",

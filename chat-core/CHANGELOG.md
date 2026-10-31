@@ -6,7 +6,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
-## [Unreleased]
+## [0.1.1] — 2026-10-31
 
 ### Fixed
 
