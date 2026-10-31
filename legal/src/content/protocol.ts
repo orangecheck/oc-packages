@@ -351,7 +351,7 @@ const privacy: DocSpec = {
                 { kind: 'subhead', text: 'who at OrangeCheck can see it' },
                 {
                     kind: 'para',
-                    text: "OrangeCheck's operators can see your account in an owner-only console. Its account list shows each email address masked, and its search refuses an email address: an account is found by email only through a lookup. Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown. A lookup's record has its details about you cleared after 90 days; the reason stays.",
+                    text: "OrangeCheck's operators can see your account in an owner-only console. Its account list shows each email address masked, and its account search refuses an email address. Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown. A lookup's record has its details about you cleared after 90 days; the reason stays.",
                 },
                 { kind: 'subhead', text: 'automatically collected' },
                 {

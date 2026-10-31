@@ -65,6 +65,7 @@ const BANNED = [
     [/account list shows each account's email/i, 'the Users panel masks every email; a reveal or lookup asks for a reason recorded first'],
     [/naming your did:oc and the identity you signed in with/i, 'sign-up notices after 29 October 2026 name only the account id and the kind of sign-in'],
     [/from market data alone/i, "btc's commentary also uses the model's web searches"],
+    [/found by email only through a lookup/i, 'vault operate actions still resolve an email subject without a lookup row'],
 ];
 
 test('every doc renders', () => {
@@ -293,7 +294,7 @@ test('ochk.io privacy says what sign-in stores beyond the account, and who can r
         'its address, outpoint and amount, the backing message you signed',
         'the signed revocation, which we also publish to Nostr relays',
         'the market thresholds you save on btc.ochk.io (up to 25)',
-        "Its account list shows each email address masked, and its search refuses an email address: an account is found by email only through a lookup",
+        "Its account list shows each email address masked, and its account search refuses an email address",
         "Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
     ]) {
         assert.ok(text.includes(fact), fact);
