@@ -14,8 +14,7 @@ plainly what was claimed before and what is claimed now.
 
 ochk.io's Privacy policy said the owner console shows each email masked and
 that a reveal or lookup asks for a recorded reason. It now also says the
-console's search refuses an email address, so an account is found by email
-only through a lookup. The first-sign-in notice's boundary, "up to and
+console's account search refuses an email address. The first-sign-in notice's boundary, "up to and
 including 29 October 2026", now says it is a UTC date, in both places it
 appears.
 
