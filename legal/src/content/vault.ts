@@ -257,7 +257,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'emailed team invite',
-                            v: "if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider (Resend). The link carries the team key only sealed under a one-time code the manager gives you themselves; OrangeCheck never sees the code or the key. The invite is deleted with the team, or when the account that sent or claimed it is deleted",
+                            v: "if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider (Resend). The link carries the team key only sealed under a one-time code the manager gives you themselves; OrangeCheck never sees the code or the key. The invite is deleted when a manager revokes it, with the team, or when the account that sent or claimed it is deleted",
                         },
                         {
                             k: 'payment records',

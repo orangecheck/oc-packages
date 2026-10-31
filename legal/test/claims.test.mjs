@@ -333,7 +333,7 @@ test('vault privacy says an emailed invite keeps your address and carries the te
     const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
     assert.match(text, /emailed team invite if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider \(Resend\)/);
     assert.match(text, /The link carries the team key only sealed under a one-time code the manager gives you themselves; OrangeCheck never sees the code or the key/);
-    assert.match(text, /The invite is deleted with the team, or when the account that sent or claimed it is deleted/);
+    assert.match(text, /The invite is deleted when a manager revokes it, with the team, or when the account that sent or claimed it is deleted/);
 });
 
 test('vault privacy says the extension exists and that deleting the account removes the sealed key', () => {
