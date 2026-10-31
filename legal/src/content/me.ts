@@ -226,7 +226,7 @@ const privacy: DocSpec = {
                 { k: "26 October", v: "a session record keeps no IP address, and the sign-in log keeps it for 90 days." },
                 { k: "25 October", v: "me.ochk.io records which sites you sign in to or share data with, and when. No site sees that record." },
                 { k: "24 October", v: "signing in gives every site the same did:oc." },
-                { k: "23 October", v: "an account a site makes for you through OrangeCheck Connect keeps a hash of the site's id for you, and a keyed hash of your email if the site sent one." },
+                { k: "23 October", v: "an account a site makes for you through OrangeCheck Connect keeps a hash of the site's id for you, a keyed hash of your email if the site sent one, when it was made, whether you agreed to earn, and what it earned." },
                 { k: "19 October", v: "ochk.app is the Service, and me.ochk.io is its API." },
                 { k: "15 October", v: "ochk.app's own cookies are listed: __Host-oc_session, and __Host-oc_oauth for at most ten minutes during a Google or GitHub sign-in." },
                 { k: "8 October", v: "a session record keeps your user-agent, and an email is personal data." },

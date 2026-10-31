@@ -343,6 +343,8 @@ test('each privacy policy opens with a dated note of what changed, newest first'
                 'the sign-in log keeps it for 90 days',
                 'three OpenTimestamps calendars and reads mempool.space, and each sees your IP address',
                 'Each session and the sign-in log keep the full user-agent',
+                "relay.ochk.io keeps each record with a pseudonym of the sender's IP address, replaced each UTC day, and never the address itself",
+                "our host's connection logs for it hold your IP address and connection times for 7 days",
             ],
         },
         me: {
@@ -360,6 +362,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             first: '31 October',
             facts: [
                 'an emailed team invite keeps the invitee',
+                'the email goes through our email provider (Resend)',
                 'keeps payment records under a keyed id, and is refused while you own a team that still has other members',
             ],
         },
