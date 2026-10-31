@@ -71,8 +71,35 @@ export function openDeviceGrant(
     );
 }
 
-/** A short fingerprint of a device public key for people to compare: `ABCD-1234`. */
+/** How much of sha256(device key) a person compares: 80 bits. */
+export const FINGERPRINT_BYTES = 10;
+
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+/**
+ * The fingerprint a person compares before a vault key is sealed to a device:
+ * the first 10 bytes of sha256(device public key) in Crockford base32, as four
+ * groups of four (`XVER-GFD0-N52H-B4YW`). Show this same form on both devices.
+ *
+ * The key being checked usually comes from a server, so the comparison is all
+ * that stands between the vault key and a key the server chose. Matching 4
+ * bytes, the length before 0.5.0, takes about 2^32 tries; 10 bytes take about
+ * 2^80. Crockford's alphabet has no I, L, O or U.
+ */
 export function deviceFingerprint(devicePkHex: string): string {
-    const fp = hexEncode(sha256Bytes(hexDecode(devicePkHex)).slice(0, 4));
-    return fp.replace(/(.{4})(.{4})/, '$1-$2').toUpperCase();
+    const digest = sha256Bytes(hexDecode(devicePkHex)).slice(0, FINGERPRINT_BYTES);
+    let out = '';
+    let value = 0;
+    let bits = 0;
+    for (const byte of digest) {
+        value = (value << 8) | byte;
+        bits += 8;
+        while (bits >= 5) {
+            bits -= 5;
+            out += CROCKFORD[(value >>> bits) & 31];
+        }
+        value &= (1 << bits) - 1;
+    }
+    // 80 bits are exactly 16 characters, so no bits are left over.
+    return out.match(/.{4}/g)!.join('-');
 }

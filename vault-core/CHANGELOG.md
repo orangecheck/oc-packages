@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0] — 2026-10-31
+
+### Changed
+
+- `deviceFingerprint` compares 10 bytes of sha256(device key), not 4, in
+  Crockford base32 as four groups of four: `XVER-GFD0-N52H-B4YW`, not
+  `EEDD-883D`. The key a person checks before a vault key is sealed to a
+  device usually comes from a server, and a server could find a key of its
+  own with the same 4-byte fingerprint in about 2^32 tries; 10 bytes take
+  about 2^80. Both devices must show the new form, so a device on 0.4.x and
+  one on 0.5.0 show different fingerprints and the check fails safe.
+  `FINGERPRINT_BYTES` is exported. `vectors/blob-v1.json`'s device-grant
+  fingerprint is the new form.
+
 ## [0.4.0] — 2026-10-27
 
 ### Added

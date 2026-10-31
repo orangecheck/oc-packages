@@ -23,7 +23,8 @@ import { it } from 'vitest';
 import { hexEncode, randomBytesN, x25519PublicFromSecret } from '@orangecheck/lock-crypto';
 
 import { createEncryptedBackup } from '@/lib/backup';
-import { deviceFingerprint, wrapVaultKey as sealToDevice } from '@/lib/devicesync';
+import { wrapVaultKey as sealToDevice } from '@/lib/devicesync';
+import { deviceFingerprint } from '@/lib/fingerprint';
 import { buildExport } from '@/lib/export';
 import { assertAcceptableScryptParams } from '@/lib/kdf-params';
 import { packEntryForCloud } from '@/lib/sync';

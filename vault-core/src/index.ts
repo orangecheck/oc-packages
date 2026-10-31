@@ -38,6 +38,7 @@ export {
 
 export {
     deviceFingerprint,
+    FINGERPRINT_BYTES,
     openDeviceGrant,
     sealKeyToDevice,
     type DeviceGrant,
