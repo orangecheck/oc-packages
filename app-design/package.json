@@ -155,7 +155,7 @@
   "devDependencies": {
     "@orangecheck/auth-client": "^2.41.0",
     "@orangecheck/auth-core": "^2.24.0",
-    "@orangecheck/me-client": "^0.55.0",
+    "@orangecheck/me-client": "^0.56.0",
     "@orangecheck/wallet-adapter": "^0.7.0",
     "@storybook/react": "^10",
     "@tailwindcss/cli": "^4.3.0",

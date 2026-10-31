@@ -923,10 +923,10 @@
   resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.3.0.tgz#ce818f7370b83e1c085766d4926fde2a757f9e84"
   integrity sha512-CaDeuDSoxMFawdGLQR9C4tiY3gUze/fsX25g56FJu20Z0Y2GeU+9g6Y5zFpAP1N91XbR9rpUGe7wsBF/hy/3gA==
 
-"@orangecheck/me-client@^0.55.0":
-  version "0.55.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.55.0.tgz#ed953585b2cdaf15703548f50810a90439f23f4f"
-  integrity sha512-Ra/WJ1J9L9ngyTa52SbAUneT9arDNk8ZjnE9lPk7EFYgL8m5WJwtUAP1wwIskGZ7Pr7mkBy6AvQFDO8rK5THeQ==
+"@orangecheck/me-client@^0.56.0":
+  version "0.56.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.56.0.tgz#27ec9f2792e97e7c1574c074eac6bb0fa5a264fc"
+  integrity sha512-aLnzQ6a8rr9ZwoZTd3GA+883/3YHQhFXIy8QSg2K2Qlmp5pEtY9CFHeZqtNxZrbmqEfei7E9PpPOZRPbPtnKnw==
   dependencies:
     "@orangecheck/auth-core" "^2.26.1"
 
