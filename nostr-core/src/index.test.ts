@@ -138,6 +138,7 @@ beforeEach(() => {
 
 afterEach(() => {
   closeRelayPool();
+  vi.useRealTimers();
   restoreWebSocket();
 });
 
@@ -270,15 +271,19 @@ describe("queryEvents", () => {
   });
 
   it("respects timeoutMs when relay never sends EOSE", async () => {
+    // Fake timers, not Date.now(). Date.now() is the wall clock, not a
+    // stopwatch: in two merge-queue runs it counted 199 and 198 ms while vitest
+    // timed this test at 203 and 204 ms, so no elapsed lower bound holds. The
+    // mock socket answers on microtasks, which stay real.
+    vi.useFakeTimers();
     mockNextQuery("hang");
-    const start = Date.now();
-    const result = await queryEvents({ kinds: [30078] }, ["wss://hang"], 200);
-    const elapsed = Date.now() - start;
-    // libuv keeps loop time in whole milliseconds, so a 200 ms timer can fire up to 1 ms early.
-    expect(elapsed).toBeGreaterThanOrEqual(199);
-    expect(elapsed).toBeLessThan(500);
-    expect(result.relayStatus[0]!.reason).toBe("timeout");
-    expect(result.relayStatus[0]!.eose).toBe(false);
+    let result: Awaited<ReturnType<typeof queryEvents>> | undefined;
+    void queryEvents({ kinds: [30078] }, ["wss://hang"], 200).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(199);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(result!.relayStatus[0]!.reason).toBe("timeout");
+    expect(result!.relayStatus[0]!.eose).toBe(false);
   });
 
   it("reports eose only for a relay that finished, even when it returned nothing", async () => {
