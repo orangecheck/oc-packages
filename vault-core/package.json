@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/vault-core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "sideEffects": false,
   "description": "The conformance-pinned crypto, entry model, ocv:// secret-reference resolver, and transport-agnostic API client for OC Vault (vault.ochk.io). End-to-end encrypted: the vault key is random and is stored only sealed under the passphrase and recovery code.",
   "keywords": [
