@@ -65,7 +65,7 @@ const BANNED = [
     [/account list shows each account's email/i, 'the Users panel masks every email; a reveal or lookup asks for a reason recorded first'],
     [/naming your did:oc and the identity you signed in with/i, 'sign-up notices after 29 October 2026 name only the account id and the kind of sign-in'],
     [/from market data alone/i, "btc's commentary also uses the model's web searches"],
-    [/found by email only through a lookup/i, 'vault operate actions still resolve an email subject without a lookup row'],
+    [/in an owner-only console\./i, "vault's owner console lists accounts too"],
 ];
 
 test('every doc renders', () => {
@@ -294,8 +294,10 @@ test('ochk.io privacy says what sign-in stores beyond the account, and who can r
         'its address, outpoint and amount, the backing message you signed',
         'the signed revocation, which we also publish to Nostr relays',
         'the market thresholds you save on btc.ochk.io (up to 25)',
-        "Its account list shows each email address masked, and its account search refuses an email address",
-        "Revealing one, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
+        "in owner-only consoles: analytics.ochk.io and, for a vault account, vault.ochk.io's",
+        'the first character of the part before the @ when that part has three or more characters, and none of it otherwise',
+        'Their account searches and actions refuse an email address: an account is found by email only through a lookup',
+        "Revealing one address, or looking up one account, asks for a written reason, which is recorded before your email address is shown",
     ]) {
         assert.ok(text.includes(fact), fact);
     }
@@ -325,6 +327,13 @@ test('ochk.io privacy says who completes a deletion, what blocks it, and what st
     ]) {
         assert.ok(text.includes(fact), fact);
     }
+});
+
+test('vault privacy says an emailed invite keeps your address and carries the team key only sealed', () => {
+    const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
+    assert.match(text, /emailed team invite if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider \(Resend\)/);
+    assert.match(text, /The link carries the team key only sealed under a one-time code the manager gives you themselves; OrangeCheck never sees the code or the key/);
+    assert.match(text, /The invite is deleted with the team, or when the account that sent or claimed it is deleted/);
 });
 
 test('vault privacy says the extension exists and that deleting the account removes the sealed key', () => {

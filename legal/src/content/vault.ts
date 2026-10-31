@@ -223,7 +223,7 @@ const privacy: DocSpec = {
     metaDescription:
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
-    updated: '2026-10-29',
+    updated: '2026-10-31',
     sections: [
         {
             id: 'principles',
@@ -254,6 +254,10 @@ const privacy: DocSpec = {
                         {
                             k: 'team email (optional)',
                             v: 'if you choose to show teammates an email address in a team vault, that address',
+                        },
+                        {
+                            k: 'emailed team invite',
+                            v: "if a team manager emails you an invite: your email address, which is kept on the invite and shown to the team's managers, and sent with the invite link through our email provider (Resend). The link carries the team key only sealed under a one-time code the manager gives you themselves; OrangeCheck never sees the code or the key. The invite is deleted with the team, or when the account that sent or claimed it is deleted",
                         },
                         {
                             k: 'payment records',
