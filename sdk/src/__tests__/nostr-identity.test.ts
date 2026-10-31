@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // NOTE: Not exported from the public index (internal helper). We deliberately
 // import from the source to exercise the real implementation.
-import { verifyNostrIdentity } from '../identity/nostr';
+import { isNostrIdentityVerified, verifyNostrIdentity } from '../identity/nostr';
 import type { NostrEvent } from '../types';
 
 function toHex(bytes: Uint8Array): string {
@@ -123,6 +123,17 @@ function signNote(secret: Uint8Array, content: string, kind = 1): NostrEvent {
     return { id, pubkey, created_at, kind, tags, content, sig };
 }
 
+/** An event that names `pubkeyHex` as its author, with a correct id, but is
+ *  signed by `signer`: the signature does not hold for the pubkey it names. */
+function forgeAs(pubkeyHex: string, signer: Uint8Array, content: string): NostrEvent {
+    const created_at = Math.floor(Date.now() / 1000);
+    const tags: string[][] = [];
+    const preimage = JSON.stringify([0, pubkeyHex, created_at, 1, tags, content]);
+    const id = toHex(sha256(new TextEncoder().encode(preimage)));
+    const sig = toHex(schnorr.sign(fromHex(id), signer));
+    return { id, pubkey: pubkeyHex, created_at, kind: 1, tags, content, sig };
+}
+
 /** A relay that answers every REQ with `served`, whatever its filter asks. */
 class FilterIgnoringRelay {
     static readonly CLOSED = 3;
@@ -174,6 +185,13 @@ describe('verifyNostrIdentity counts only the claimed npub\'s own note', () => {
         expect(result.verified).toBe(false);
     });
 
+    it('refuses a note that names the npub as its author but is signed by another key', async () => {
+        // event.pubkey is only what the relay says; the signature binds the note to it.
+        const result = await verify([forgeAs(victimHex, attacker, `claiming ${ATTESTATION}`)]);
+        expect(result.verified).toBe(false);
+        expect(result.event).toBeUndefined();
+    });
+
     it("verifies the npub's own note, and returns it rather than another key's", async () => {
         const forged = signNote(attacker, `claiming ${ATTESTATION}`);
         const genuine = signNote(victim, `verifying ${ATTESTATION}`);
@@ -181,5 +199,29 @@ describe('verifyNostrIdentity counts only the claimed npub\'s own note', () => {
         expect(result.verified).toBe(true);
         expect(result.event?.id).toBe(genuine.id);
         expect(result.event?.pubkey).toBe(victimHex);
+    });
+});
+
+describe('isNostrIdentityVerified, over cached notes, counts only the npub\'s own note', () => {
+    const ATTESTATION = 'b'.repeat(64);
+    const owner = schnorr.utils.randomSecretKey();
+    const ownerHex = toHex(schnorr.getPublicKey(owner));
+    const other = schnorr.utils.randomSecretKey();
+    const cached = (events: NostrEvent[]) => isNostrIdentityVerified(ATTESTATION, ownerHex, events);
+
+    it("refuses another key's validly signed note", () => {
+        expect(cached([signNote(other, `claiming ${ATTESTATION}`)])).toBe(false);
+    });
+
+    it("refuses the npub's own event of another kind", () => {
+        expect(cached([signNote(owner, `reacting ${ATTESTATION}`, 7)])).toBe(false);
+    });
+
+    it('refuses a note that names the npub but is signed by another key', () => {
+        expect(cached([forgeAs(ownerHex, other, `claiming ${ATTESTATION}`)])).toBe(false);
+    });
+
+    it("verifies the npub's own note", () => {
+        expect(cached([signNote(owner, `verifying ${ATTESTATION}`)])).toBe(true);
     });
 });
