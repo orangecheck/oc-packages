@@ -137,8 +137,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  closeRelayPool();
+  // Real timers first, so a throw in closeRelayPool() can't leave fake ones on.
   vi.useRealTimers();
+  closeRelayPool();
   restoreWebSocket();
 });
 

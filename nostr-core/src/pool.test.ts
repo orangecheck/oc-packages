@@ -20,6 +20,7 @@ import {
   queryEvents,
   subscribe,
   type NostrEvent,
+  type QueryResult,
   type SubscriptionState,
 } from "./index";
 
@@ -169,6 +170,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Real timers first, so a throw in closeRelayPool() can't leave fake ones on.
+  vi.useRealTimers();
   closeRelayPool();
   vi.unstubAllGlobals();
 });
@@ -387,19 +390,25 @@ describe("one bounded redial after a refused handshake", () => {
   });
 
   it("never redials when the earliest waiting call would expire first", async () => {
+    // Fake timers, not a wall-clock bound of 40 ms, which a loaded runner can
+    // pass. The fake socket refuses on a microtask, which stays real.
+    vi.useFakeTimers();
     const r = relay("wss://r", { refuseFirst: 1 });
     configureRelayPool({ redialMs: 50 });
-    const start = Date.now();
-    const [short, long] = await Promise.all([
+    let results: QueryResult[] | undefined;
+    void Promise.all([
       queryEvents({ kinds: [30078] }, ["wss://r"], 40), // shorter than the redial
       queryEvents({ kinds: [30078] }, ["wss://r"], 1000),
-    ]);
-    expect(Date.now() - start).toBeLessThan(40);
+    ]).then((rs) => (results = rs));
+    // Both settle on the refusal itself, before any timer could fire.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(results).toBeDefined();
+    const [short, long] = results!;
     expect(r.connections).toBe(1);
-    expect(short.relayStatus[0]!.reason).toBe("ws_error");
-    expect(long.relayStatus[0]!.reason).toBe("ws_error");
+    expect(short!.relayStatus[0]!.reason).toBe("ws_error");
+    expect(long!.relayStatus[0]!.reason).toBe("ws_error");
     // And the relay is backing off, not redialled later.
-    await tick(80);
+    await vi.advanceTimersByTimeAsync(80);
     expect(r.connections).toBe(1);
   });
 
