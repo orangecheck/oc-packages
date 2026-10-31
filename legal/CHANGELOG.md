@@ -14,9 +14,10 @@ plainly what was claimed before and what is claimed now.
 
 Each Privacy policy promises prominent notice of material changes, and the
 corrections from 8 to 31 October were material, but they were listed only
-here. ochk.io's, ochk.app's and OC Vault's Privacy policies now open with a
-short note, "What changed, 8 to 31 October 2026", led by the latest change and
-linking this changelog. ochk.app's Privacy policy is dated 2026-10-31; its date
+here. ochk.io's, ochk.app's and OC Vault's Privacy policies now open with
+"What changed, 8 to 31 October 2026": a line linking this changelog, then a
+dated list, newest first, of every change to what is kept or who sees it.
+Corrections that only removed a claim are left to this changelog. ochk.app's Privacy policy is dated 2026-10-31; its date
 had stayed at 2026-10-28 when 0.7.25 added the contact form.
 
 ## [0.7.27] — 2026-10-31

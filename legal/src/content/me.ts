@@ -216,7 +216,21 @@ const privacy: DocSpec = {
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 to 31 October 2026.** On 29 October this policy added what ochk.app's contact form sends. From 8 to 28 October we corrected it where it did not match the Service. It now says that ochk.app is the Service and me.ochk.io its API, that every site you sign in to gets the same did:oc, that a session record keeps no IP address, what a guardian application holds and which of its answers the charter publishes, and which records a deletion keeps and how long cached copies last. The [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists each change.",
+            text: "**What changed, 8 to 31 October 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+        },
+        {
+            kind: 'bullets',
+            items: [
+                { k: "29 October", v: "the contact form sends your email address, an optional name, the topic and your message to our inbox through our email provider (Resend)." },
+                { k: "27 and 28 October", v: "a guardian application holds the questionnaire's answers, and the charter publishes its handle, name, jurisdiction, contact channel and fingerprint. The policy says which records a deletion keeps, and that cached copies expire within a day." },
+                { k: "26 October", v: "a session record keeps no IP address, and the sign-in log keeps it for 90 days." },
+                { k: "25 October", v: "me.ochk.io records which sites you sign in to or share data with, and when. No site sees that record." },
+                { k: "24 October", v: "signing in gives every site the same did:oc." },
+                { k: "23 October", v: "an account a site makes for you through OrangeCheck Connect keeps a hash of the site's id for you, and a keyed hash of your email if the site sent one." },
+                { k: "19 October", v: "ochk.app is the Service, and me.ochk.io is its API." },
+                { k: "15 October", v: "ochk.app's own cookies are listed: __Host-oc_session, and __Host-oc_oauth for at most ten minutes during a Google or GitHub sign-in." },
+                { k: "8 October", v: "a session record keeps your user-agent, and an email is personal data." },
+            ],
         },
         {
             kind: 'callout',
