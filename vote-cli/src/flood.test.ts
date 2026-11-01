@@ -118,6 +118,15 @@ const filler = Array.from({ length: 100 }, (_, i) =>
     signAt({ kind: 30081, tags: [['d', `oc-vote:ballot:${pid}:filler-${i}`], ['t', pid]], content: '{}' }, FLOOD_AT, flooder)
 );
 const keptCopies = [asEvent(aliceYes, FLOOD_AT + 1), asEvent(carolYes, FLOOD_AT + 1)];
+/** 150 newer events from one key, a second apart: one page and half of the next. */
+const staggered = Array.from({ length: 150 }, (_, i) =>
+    signAt({ kind: 30081, tags: [['d', `oc-vote:ballot:${pid}:staggered-${i}`], ['t', pid]], content: '{}' }, FLOOD_AT + 10 + i, flooder)
+);
+/** 100 newer events whose signatures fail: a relay sends them, nostr-core rejects them. */
+const badSig = (e: NostrEvent): NostrEvent => ({ ...e, sig: e.sig.slice(0, -2) + (e.sig.endsWith('00') ? '11' : '00') });
+const rejected = Array.from({ length: 100 }, (_, i) =>
+    badSig(signAt({ kind: 30081, tags: [['d', `oc-vote:ballot:${pid}:junk-${i}`], ['t', pid]], content: '{}' }, FLOOD_AT + 5, flooder))
+);
 
 /** What the poll's ballots say: Alice's re-vote, Bob and Carol. */
 const TRUTH = {
@@ -149,10 +158,13 @@ function held(events: NostrEvent[]): NostrEvent[] {
     return [...latest.values()];
 }
 
-type RelaySpec = NostrEvent[] | 'down' | 'hang';
+/** How a relay stops answering: it goes quiet, drops the socket, or sends CLOSED. */
+type Stop = 'hang' | 'drop' | 'closed';
+/** A relay's events, 'hang' (never answers), 'down' (refuses), or events it stops answering for on a ballot page. */
+type RelaySpec = NostrEvent[] | 'down' | 'hang' | { events: NostrEvent[]; stopOnBallotPage: number; partial: number; stop: Stop };
 const closers: Array<() => Promise<void>> = [];
 
-/** A relay at 127.0.0.1: serves `spec`'s events, never answers ('hang'), or refuses the connection ('down'). */
+/** A relay at 127.0.0.1, as `spec` says. */
 async function relay(spec: RelaySpec): Promise<string> {
     if (spec === 'down') {
         const s = createNetServer();
@@ -161,7 +173,9 @@ async function relay(spec: RelaySpec): Promise<string> {
         await new Promise((r) => s.close(r));
         return `ws://127.0.0.1:${port}`;
     }
-    const events = spec === 'hang' ? [] : held(spec);
+    const stop = spec !== 'hang' && !Array.isArray(spec) ? spec : null;
+    const events = spec === 'hang' ? [] : held(Array.isArray(spec) ? spec : spec.events);
+    let ballotPages = 0;
     const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
     await new Promise((r) => wss.once('listening', r));
     wss.on('connection', (ws) => {
@@ -171,11 +185,19 @@ async function relay(spec: RelaySpec): Promise<string> {
             const [, sub, ...filters] = msg as [string, string, ...Record<string, unknown>[]];
             for (const f of filters) {
                 const cap = Math.min(typeof f.limit === 'number' ? f.limit : CAP, CAP);
-                events
+                const out = events
                     .filter((e) => matches(e, f))
                     .sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1))
-                    .slice(0, cap)
-                    .forEach((e) => ws.send(JSON.stringify(['EVENT', sub, e])));
+                    .slice(0, cap);
+                const page = Array.isArray(f.kinds) && f.kinds.includes(30081) ? ++ballotPages : 0;
+                if (stop && page >= stop.stopOnBallotPage) {
+                    // Stops answering: some of this page, then no EOSE.
+                    out.slice(0, stop.partial).forEach((e) => ws.send(JSON.stringify(['EVENT', sub, e])));
+                    if (stop.stop === 'closed') ws.send(JSON.stringify(['CLOSED', sub, 'error: shutting down']));
+                    if (stop.stop === 'drop') ws.terminate();
+                    return;
+                }
+                out.forEach((e) => ws.send(JSON.stringify(['EVENT', sub, e])));
             }
             ws.send(JSON.stringify(['EOSE', sub]));
         });
@@ -286,6 +308,28 @@ describe('oc-vote tally over strfry-like relays (clock-dated poll)', { timeout: 
         const r = await tallyOver([honest(), honest(), honest(), honest(), [...genuine, ...filler]]);
         expect(r).toEqual({
             error: expect.stringMatching(/^can't count: the ballot lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so ballots/),
+            stdout: '',
+        });
+    });
+
+    // The re-vote sits behind 150 newer events on one relay alone; the other
+    // four read to the end, so the floor alone would pass this read.
+    for (const [stop, partial] of [['hang', 20], ['drop', 10], ['closed', 0]] as const) {
+        it(`a relay that alone holds a re-vote and stops on page 2 (${stop}, after ${partial} events) holds the count`, async () => {
+            const stops = { events: [...genuine, ...staggered], stopOnBallotPage: 2, partial, stop };
+            const r = await tallyOver([withoutRevote(), withoutRevote(), withoutRevote(), withoutRevote(), stops]);
+            expect(r).toEqual({
+                error: expect.stringMatching(/^can't count: the ballot lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so ballots/),
+                stdout: '',
+            });
+        });
+    }
+
+    it("a page of 100 events nostr-core rejects, newer than the ballots, on every relay: can't count, not zero ballots", async () => {
+        const junked = () => [...genuine, ...rejected];
+        const r = await tallyOver([junked(), junked(), junked(), junked(), junked()]);
+        expect(r).toEqual({
+            error: expect.stringMatching(/^can't count: the ballot lookup was cut short on (ws:\/\/127\.0\.0\.1:\d+(, )?){5}, so ballots/),
             stdout: '',
         });
     });

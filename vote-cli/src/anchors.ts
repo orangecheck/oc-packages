@@ -144,7 +144,7 @@ export async function anchoredChain(
     );
     if (!close.ok) throw new Error(`the block at the deadline could not be read (${close.code}): ${close.reason}`);
     const read = await fetchBallotStamps(ballotIds, opts.relays ?? DEFAULT_RELAYS, opts.queryFn);
-    // A stamp lookup cut short holds the count below; only no EOSE at all refuses it.
+    // A stamp lookup cut short holds the count below; only one no relay answered at all refuses it.
     if (!read.relays.some((r) => r.answered || r.truncated)) {
         throw new Error('no relay finished answering the stamp query; try again');
     }

@@ -13,6 +13,8 @@ export { DEFAULT_RELAYS, publishEvent } from '@orangecheck/nostr-core';
 export type { NostrEvent, PublishResult } from '@orangecheck/nostr-core';
 
 const QUERY_TIMEOUT_MS = 8000;
+/** The whole of one relay's paged read, every page together. */
+const PAGED_READ_DEADLINE_MS = 2 * QUERY_TIMEOUT_MS;
 
 export interface EventsFetch {
     events: NostrEvent[];
@@ -81,7 +83,8 @@ export interface RelayRead {
     relay: string;
     /** Finished: EOSE for every page, down to a short page. */
     answered: boolean;
-    /** Cut off: EOSE, but more events exist than were paged through. Not an answer. */
+    /** Cut off: it sent events but not to the end (a full page from one second,
+     *  MAX_PAGES, or it stopped answering). Not an answer. */
     truncated: boolean;
 }
 
@@ -114,16 +117,31 @@ async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn) {
         read: { relay, answered, truncated },
     });
     let until: number | undefined;
+    // One deadline for the whole read, not a fresh timeout per page: a relay that
+    // answers every page slowly would otherwise hold the read for MAX_PAGES of them.
+    const deadlineAt = Date.now() + PAGED_READ_DEADLINE_MS;
     for (let page = 0; page < MAX_PAGES; page++) {
+        const budget = Math.min(QUERY_TIMEOUT_MS, deadlineAt - Date.now());
+        // Out of time after a full page: cut off.
+        if (budget <= 0) return done(false, true);
         const { events, relayStatus } = await queryFn(
             { ...filter, limit: PAGE_SIZE, ...(until !== undefined ? { until } : {}) },
             [relay],
-            QUERY_TIMEOUT_MS
+            budget
         );
         const status = relayStatus.find((s) => s.relay === relay) ?? relayStatus[0];
-        if (!status?.eose) return done(false);
+        // Everything the relay sent on this page, what nostr-core rejected included.
+        const sent = (status?.events ?? 0) + (status?.rejected ?? 0);
+        const known = byId.size;
+        // A page that stopped short still counts what it sent.
         for (const e of events) byId.set(e.id, e);
-        if (events.length < PAGE_SIZE) return done(true);
+        // A relay that sent anything and then stopped is cut off, not silent: the
+        // rest of its answer may be what decides the count.
+        if (!status?.eose) return done(false, page > 0 || sent > 0);
+        // Short only by the relay's count: rejected events fill a page as much as any.
+        if (sent < PAGE_SIZE) return done(true);
+        // A full page that adds no verified event cannot be paged past.
+        if (byId.size === known) return done(false, true);
         const oldest = Math.min(...events.map((e) => e.created_at));
         // A whole page from one second cannot be paged past with `until`.
         if (events.every((e) => e.created_at === oldest)) return done(false, true);

@@ -1,6 +1,6 @@
 // Absence is only evidence once a relay has finished answering (EOSE).
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { fetchBallotEvents, reachedEose, readFloor, type NostrEvent, type QueryFn } from './nostr.js';
 import { ballotsToCount, findPoll, requireComplete } from './select.js';
@@ -124,5 +124,114 @@ describe('ballotsToCount: what a tally counts from', () => {
         expect(ballotsToCount(cut, true)).toEqual(cut.events);
         expect(ballotsToCount(short, true)).toEqual(short.events);
         expect(() => ballotsToCount(silent, true)).toThrow(/no relay finished answering the ballot query/);
+    });
+});
+
+/**
+ * One relay answering like strfry: newest first, `until` and `limit`, at most
+ * 500. Events in `bad` are sent but rejected, as nostr-core counts them. From
+ * page `stopAt` it sends `partial` of the page and no EOSE (a timeout, a
+ * dropped socket and CLOSED all reach pageRelay so). `ignoreUntil` sends the
+ * same newest page every time.
+ */
+function relayStub(all: NostrEvent[], o: { bad?: Set<NostrEvent>; stopAt?: number; partial?: number; ignoreUntil?: boolean } = {}) {
+    let pages = 0;
+    const fn = (async (filter, relays) => {
+        const relay = relays[0]!;
+        const page = all
+            .filter((e) => o.ignoreUntil || filter.until === undefined || e.created_at <= filter.until)
+            .sort((a, b) => b.created_at - a.created_at)
+            .slice(0, Math.min(filter.limit ?? 500, 500));
+        const stopped = ++pages >= (o.stopAt ?? Infinity);
+        const sent = stopped ? page.slice(0, o.partial ?? 0) : page;
+        const kept = sent.filter((e) => !o.bad?.has(e));
+        const status = { relay, ok: kept.length > 0, eose: !stopped, events: kept.length, rejected: sent.length - kept.length };
+        return { events: kept, relayStatus: [stopped ? { ...status, reason: 'timeout' } : status] };
+    }) as QueryFn;
+    return { fn, pages: () => pages };
+}
+
+describe('a relay that sent anything and then stopped is cut off, not silent', () => {
+    const stopsOn = (all: NostrEvent[], stopAt: number, partial: number, bad?: Set<NostrEvent>) => relayStub(all, { stopAt, partial, ...(bad ? { bad } : {}) }).fn;
+    const many = () => Array.from({ length: 150 }, (_, i) => at(10_000 + i));
+
+    it('a full page, then page 2 stops after 20 events: cut off, and the 20 count', async () => {
+        const r = await fetchBallotEvents(PID, ['wss://a'], stopsOn(many(), 2, 20));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        // Page 2 re-reads the boundary second, so 19 of its 20 are new.
+        expect(r.events).toHaveLength(119);
+        expect(r.complete).toBe(false);
+    });
+
+    it('page 1 stops after 5 events: cut off', async () => {
+        const r = await fetchBallotEvents(PID, ['wss://a'], stopsOn(many(), 1, 5));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        expect(r.events).toHaveLength(5);
+    });
+
+    it('page 1 sends 5 events nostr-core rejects, then stops: cut off', async () => {
+        const all = many();
+        const r = await fetchBallotEvents(PID, ['wss://a'], stopsOn(all, 1, 5, new Set(all)));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        expect(r.events).toEqual([]);
+    });
+
+    it('a full page, then page 2 sends nothing and stops: cut off', async () => {
+        const r = await fetchBallotEvents(PID, ['wss://a'], stopsOn(many(), 2, 0));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        expect(r.events).toHaveLength(100);
+    });
+
+    it('a relay that sent nothing is silent: no answer, not cut off', async () => {
+        const r = await fetchBallotEvents(PID, ['wss://a'], stopsOn(many(), 1, 0));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: false }]);
+    });
+
+    it('one deadline covers every page: a relay that answers each page slowly is cut off, not waited on 20 times', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        try {
+            const budgets: number[] = [];
+            let t = 100_000;
+            const slow = (async (_filter, relays, timeoutMs) => {
+                budgets.push(timeoutMs!);
+                vi.setSystemTime(Date.now() + 5_000); // each page takes 5 s
+                const events = Array.from({ length: 100 }, () => at(t--));
+                return { events, relayStatus: [{ relay: relays[0]!, ok: true, eose: true, events: 100, rejected: 0 }] };
+            }) as QueryFn;
+            const r = await fetchBallotEvents(PID, ['wss://a'], slow);
+            // 16 s for the whole read, 8 s at most a page.
+            expect(budgets).toEqual([8_000, 8_000, 6_000, 1_000]);
+            expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});
+
+describe('a full page counts every event the relay sent, rejected ones too', () => {
+    const ballots3 = () => [at(100), at(200), at(300)];
+
+    it('100 events nostr-core rejects make a full page, cut off: not the end of the answer', async () => {
+        const junk = Array.from({ length: 100 }, () => at(50_000));
+        const r = await fetchBallotEvents(PID, ['wss://a'], relayStub([...ballots3(), ...junk], { bad: new Set(junk) }).fn);
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        expect(r.complete).toBe(false);
+    });
+
+    it('a page short only by rejected events is full: the read goes on to the older ballots', async () => {
+        const junk = Array.from({ length: 50 }, (_, i) => at(20_000 + i));
+        const newer = Array.from({ length: 50 }, (_, i) => at(10_000 + i));
+        const older = ballots3();
+        const r = await fetchBallotEvents(PID, ['wss://a'], relayStub([...older, ...newer, ...junk], { bad: new Set(junk) }).fn);
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: true, truncated: false }]);
+        expect(r.events).toEqual(expect.arrayContaining(older));
+        expect(r.events).toHaveLength(53);
+    });
+
+    it('a full page that adds no new verified event is cut off at once, not after 20 pages', async () => {
+        const stub = relayStub(Array.from({ length: 100 }, (_, i) => at(10_000 + i)), { ignoreUntil: true });
+        const r = await fetchBallotEvents(PID, ['wss://a'], stub.fn);
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
+        expect(stub.pages()).toBe(2);
     });
 });
