@@ -12,7 +12,7 @@
 // node/bitcoin source. This hook trusts vote.ochk.io (or whatever baseUrl
 // you pass).
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DEFAULT_API_BASE, POLL_ID_RE } from './types.js';
 import type { TallyResponse } from './types.js';
@@ -72,9 +72,14 @@ export function useTally(
         loading: !opts.initialData,
     }));
 
+    // Only the latest request writes: an answer that lands after a newer request
+    // (an earlier refresh, or the poll before a pollId change) is dropped.
+    const latest = useRef(0);
+
     const fetchOnce = useCallback(async () => {
         // The poll this fetch is for; a later pollId keeps an answer for this one off screen.
         const pid = pollId;
+        const seq = ++latest.current;
         const kept = (prev: Entry) => (prev.pollId === pid ? prev.poll : null);
         if (!POLL_ID_RE.test(pid)) {
             setEntry({ pollId: pid, data: null, poll: null, error: new Error('pollId must be 64 hex chars'), loading: false });
@@ -84,8 +89,10 @@ export function useTally(
             const res = await fetch(`${baseUrl}/api/tally?poll=${pid}`);
             const body = (await res.json()) as TallyResponse;
             if (!res.ok) throw new Error(body.error ?? `http ${res.status}`);
+            if (seq !== latest.current) return;
             setEntry((prev) => ({ pollId: pid, data: body, poll: contentOf(body) ?? kept(prev), error: null, loading: false }));
         } catch (err) {
+            if (seq !== latest.current) return;
             // The last tally is no longer the answer: never show it beside the error.
             const error = err instanceof Error ? err : new Error(String(err));
             setEntry((prev) => ({ pollId: pid, data: null, poll: kept(prev), error, loading: false }));
