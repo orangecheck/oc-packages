@@ -64,7 +64,9 @@ export interface CheckResult {
      * `not_found`, `below_min_sats`, `below_min_days`, `stake_shared` (the
      * address also backs another identity on the protocol) and `stake_unread`
      * (the address's other attestations could not be read in full, so one
-     * address, one bond was not checked; ask again).
+     * address, one bond was not checked; ask again). The stake is read only
+     * when everything else passed, so `stake_shared` and `stake_unread` only
+     * ever come alone.
      */
     reasons?: string[];
 }
@@ -120,14 +122,6 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         }
     }
 
-    // SECURITY.md §3: one address, one bond. An address that also backs a
-    // different identity on the same protocol is lending one stake to several.
-    // "Not shared" rests on no such attestation being there, so it needs a read
-    // of the address that a flood could not cut off; without one it is unread.
-    const stake = identity ? await backsOtherIdentity(env, identity, relays) : 'not_shared';
-    const shared = stake === 'shared';
-    const unread = stake === 'unread';
-
     const outcome = await verify(
         {
             addr: env.address,
@@ -144,12 +138,22 @@ export async function check(params: CheckParams): Promise<CheckResult> {
 
     const reasons: string[] = [];
     if (!outcome.ok) reasons.push(...outcome.codes);
-    if (shared) reasons.push('stake_shared');
-    if (unread) reasons.push('stake_unread');
     if (sats < minSats) reasons.push('below_min_sats');
     if (days < minDays) reasons.push('below_min_days');
 
-    const ok = outcome.ok && !shared && !unread && sats >= minSats && days >= minDays;
+    // SECURITY.md §3: one address, one bond. An address that also backs a
+    // different identity on the same protocol is lending one stake to several.
+    // Read only once everything else has passed, so stake_shared and
+    // stake_unread are each ever the one reason, and a failing check costs no
+    // paged read. "Not shared" rests on no such attestation being there, so it
+    // needs a read of the address a flood could not cut off; else it is unread.
+    if (outcome.ok && reasons.length === 0 && identity) {
+        const stake = await backsOtherIdentity(env, identity, relays);
+        if (stake === 'shared') reasons.push('stake_shared');
+        if (stake === 'unread') reasons.push('stake_unread');
+    }
+
+    const ok = outcome.ok && reasons.length === 0;
 
     return {
         ok,
