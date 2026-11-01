@@ -91,7 +91,7 @@ oc chat verify event.json --offline
 
 `--offline` reads nothing and lists what it did not check (relays, the chain, the
 utxo floor, ochk.io's keys); it never prints VERIFIED. Exit codes: 0 verified,
-1 failed, 2 a read got no answer (nothing concluded), 3 passed the offline
+1 failed, 2 a read got no answer or was cut off (nothing concluded), 3 passed the offline
 checks only. Reading relays needs Node 22 or later.
 
 An answer that rests on something being absent (a key is live or not bound, a

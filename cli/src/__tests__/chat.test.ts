@@ -35,6 +35,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { liveNet, relaySets, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
 
+// Off unless a test sets it: the version read's flags as a test needs them, over
+// what chat-core's real read returned.
+const forceRead = vi.hoisted(() => ({ truncated: undefined as boolean | undefined, incomplete: undefined as boolean | undefined }));
+vi.mock('@orangecheck/chat-core', async (importOriginal) => {
+    const real = await importOriginal<typeof import('@orangecheck/chat-core')>();
+    return {
+        ...real,
+        readChannelVersions: async (...args: Parameters<typeof real.readChannelVersions>) => {
+            const r = await real.readChannelVersions(...args);
+            return {
+                ...r,
+                ...(forceRead.truncated !== undefined ? { truncated: forceRead.truncated } : {}),
+                ...(forceRead.incomplete !== undefined ? { incomplete: forceRead.incomplete } : {}),
+            };
+        },
+    };
+});
+
 class ExitCalled extends Error {
     constructor(public code: number) {
         super(`process.exit(${code})`);
@@ -186,7 +204,11 @@ beforeEach(() => {
         return true;
     }) as never);
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+    vi.restoreAllMocks();
+    forceRead.truncated = undefined;
+    forceRead.incomplete = undefined;
+});
 
 describe('oc chat verify', () => {
     it('a version on the resolved chain is VERIFIED, exit 0', async () => {
@@ -773,5 +795,68 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         // A binding write that reached one relay: with that relay silent, the floor is met without it.
         stdout = '';
         expect(await run({ file: file(legacy), json: true }, four([], { [B]: [founder.record] }, [B]))).toBe(1);
+    });
+});
+
+/**
+ * `events` behind a relay that answers a limited read with the newest `limit`
+ * matches, as relays do, so a flood under a channel's tag pushes older versions
+ * out of the open read.
+ */
+function limitedNet(events: NostrEvent[]): ChatNet {
+    const base = net(events);
+    return {
+        ...base,
+        query: async (filter) => {
+            const all = events.filter((e) => matchFilter(e, filter as never)).sort((a, b) => b.created_at - a.created_at);
+            const limit = (filter as { limit?: number }).limit;
+            return { events: limit ? all.slice(0, limit) : all, relayStatus: [{ eose: true }] };
+        },
+    };
+}
+
+/** 2,500 junk events under the channel's tag, each newer than its genesis. */
+const flood: NostrEvent[] = Array.from({ length: 2500 }, (_, i) => ({
+    id: i.toString(16).padStart(64, '0'),
+    pubkey: 'f'.repeat(64),
+    created_at: genesis.created_at + 1000 + i,
+    kind: 30110,
+    tags: [
+        ['d', `junk-${i}`],
+        ['t', genesis.channel_id],
+    ],
+    content: 'junk',
+    sig: '0'.repeat(128),
+}));
+
+describe('oc chat verify: a version read cut off at its bound is not an answer (SPEC §8.3.1)', () => {
+    it("a flood that hides the genesis, with no founder named: can't tell, NOT READ, exit 2, never FAILED", async () => {
+        expect(await run({ channel: genesis.channel_id }, limitedNet([version, founder.record, ...flood]))).toBe(2);
+        expect(stdout).toContain("can't tell");
+        expect(stdout).toContain('NOT READ');
+        expect(stdout).not.toContain('FAILED');
+    });
+
+    it('the same flood with the founder named: the founder’s keys were read in full, so the answer stands', async () => {
+        expect(await run({ channel: genesis.channel_id, founder: FOUNDER, json: true }, limitedNet([version, founder.record, ...flood]))).toBe(0);
+        expect(JSON.parse(stdout).verdict).toBe('verified');
+    });
+
+    it("a cut-off read whose role holders' keys were not all read: can't tell, though a chain resolves", async () => {
+        forceRead.truncated = true;
+        forceRead.incomplete = true;
+        expect(await run({ file: file(version) }, net([version, founder.record]))).toBe(2);
+        expect(stdout).toContain("can't tell");
+        expect(stdout).not.toMatch(/^VERIFIED/m);
+        stdout = '';
+        expect(await run({ file: file(post), json: true }, net([version, founder.record, post]))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+
+    it('key reads left incomplete after an open read that was not cut off: every version was read, so the answer stands', async () => {
+        forceRead.truncated = false;
+        forceRead.incomplete = true;
+        expect(await run({ file: file(version), json: true }, net([version, founder.record]))).toBe(0);
+        expect(JSON.parse(stdout).verdict).toBe('verified');
     });
 });
