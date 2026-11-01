@@ -34,7 +34,7 @@ import { OcTallyBadge } from '@orangecheck/vote-react';
 
 ### `useTally(pollId, opts?)`
 
-The underlying hook, for custom rendering.
+The underlying hook, for custom rendering. When a fetch fails, `data` is `null` until the next good answer, so an error never shows beside an earlier tally.
 
 ```tsx
 import { useTally } from '@orangecheck/vote-react';

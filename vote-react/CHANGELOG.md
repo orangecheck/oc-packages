@@ -11,6 +11,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.1.1] — 2026-11-01
+
+### Fixed
+
+- `useTally` clears `data` when a fetch fails, so `OcPoll` and anything built
+  on the hook no longer show an earlier tally beside the error. Before, the
+  last good numbers stayed on screen after a refresh failed or the tally
+  service refused to count. The next good answer shows a tally again.
+
 ## [0.1.0] — Initial published state
 
 Initial public release. React components for OC Vote poll creation, ballot casting, and tally rendering.

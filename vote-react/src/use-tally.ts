@@ -47,6 +47,7 @@ export function useTally(
     const fetchOnce = useCallback(async () => {
         const pid = pollIdRef.current;
         if (!POLL_ID_RE.test(pid)) {
+            setData(null);
             setError(new Error('pollId must be 64 hex chars'));
             setLoading(false);
             return;
@@ -58,6 +59,8 @@ export function useTally(
             setData(body);
             setError(null);
         } catch (err) {
+            // The last tally is no longer the answer: never show it beside the error.
+            setData(null);
             setError(err instanceof Error ? err : new Error(String(err)));
         } finally {
             setLoading(false);
