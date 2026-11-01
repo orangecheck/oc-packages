@@ -8,7 +8,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@orangecheck/sdk', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@orangecheck/sdk')>()),
     queryByIdentity: vi.fn(async () => []),
-    queryByAddress: vi.fn(async () => []),
+}));
+// The address and backlog reads: answered in full and empty unless a test says otherwise.
+vi.mock('../paged-read', () => ({
+    readSubject: vi.fn(async () => ({ events: [], complete: true })),
 }));
 
 import { createAttestationEnvelope, createAttestationEvent, nostrIdentifierForms } from '@orangecheck/sdk';

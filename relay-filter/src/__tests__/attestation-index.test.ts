@@ -11,7 +11,10 @@ vi.mock('@orangecheck/sdk', async (importOriginal) => ({
     signatureIsValid: vi.fn(async ({ sig }: { sig: string }) => sig !== 'forged'),
     verify: vi.fn(),
     queryByIdentity: vi.fn(async () => []),
-    queryByAddress: vi.fn(async () => []),
+}));
+// The address and backlog reads: answered in full and empty unless a test says otherwise.
+vi.mock('../paged-read', () => ({
+    readSubject: vi.fn(async () => ({ events: [], complete: true })),
 }));
 
 import {
@@ -19,13 +22,13 @@ import {
     createAttestationEnvelope,
     createAttestationEvent,
     nostrIdentifierForms,
-    queryByAddress,
     queryByIdentity,
     verify,
 } from '@orangecheck/sdk';
 import type { IdentityBinding } from '@orangecheck/sdk';
 
 import { AttestationIndex, parseAttestationEvent } from '../attestation-index';
+import { readSubject } from '../paged-read';
 import { handleLine } from '../strfry-line';
 
 const ADDR = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq';
@@ -63,7 +66,7 @@ let index: AttestationIndex;
 beforeEach(() => {
     vi.mocked(verify).mockReset();
     vi.mocked(queryByIdentity).mockReset().mockResolvedValue([]);
-    vi.mocked(queryByAddress).mockReset().mockResolvedValue([]);
+    vi.mocked(readSubject).mockReset().mockResolvedValue({ events: [], complete: true });
     index = new AttestationIndex();
     index.markSynced();
 });
@@ -200,12 +203,45 @@ describe('AttestationIndex.decide', () => {
         bond(500_000);
         const second = await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_B! }]);
         second.tags = second.tags.filter((t) => !(t[0] === 't' && t[1] === 'oc-attest'));
-        vi.mocked(queryByAddress).mockResolvedValue([second as never]);
+        vi.mocked(readSubject).mockResolvedValue({ events: [second], complete: true });
         index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
         await flush();
         await flush();
-        expect(queryByAddress).toHaveBeenCalledTimes(1);
+        expect(readSubject).toHaveBeenCalledWith({ kinds: [30078], '#t': [ADDR] }, expect.any(Array));
         expect(index.decide(ev(HEX_A!)).reason).toBe('stake_shared');
+    });
+
+    it("holds a key while its address's read is cut off, never admitting it, even with failOpen", async () => {
+        // A flood under the address may hide the attestation backing a second key.
+        bond(500_000);
+        vi.mocked(readSubject).mockResolvedValue({ events: [], complete: false });
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        await flush();
+        expect(index.decide(ev(HEX_A!))).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+    });
+
+    it('admits the key once a later read of its address finishes', async () => {
+        bond(500_000);
+        vi.mocked(readSubject).mockResolvedValueOnce({ events: [], complete: false });
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        await flush();
+        expect(index.decide(ev(HEX_A!)).reason).toBe('lookup_error');
+        await (index as unknown as { readAddress(a: string): Promise<void> }).readAddress(ADDR);
+        expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
+    });
+
+    it('is synced only by a backlog read that finished', async () => {
+        vi.mocked(readSubject).mockResolvedValue({ events: [], complete: false });
+        const cold = new AttestationIndex();
+        (cold as unknown as { startedAt: number }).startedAt = Date.now();
+        await (cold as unknown as { loadBacklog(): Promise<void> }).loadBacklog();
+        expect(cold.decide(ev(STRANGER)).reason).toBe('lookup_error');
+        vi.mocked(readSubject).mockResolvedValue({ events: [], complete: true });
+        await (cold as unknown as { loadBacklog(): Promise<void> }).loadBacklog();
+        expect(cold.decide(ev(STRANGER)).reason).toBe('no_attestation');
     });
 
     it('bounds background lookups when senders rotate keys', () => {
