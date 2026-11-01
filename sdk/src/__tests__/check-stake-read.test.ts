@@ -24,14 +24,17 @@ vi.mock('../verify', async (importOriginal) => {
     return {
         ...actual,
         signatureIsValid: vi.fn(async ({ sig }: { sig: string }) => sig !== 'forged'),
-        verify: vi.fn(async () => ({
-            ok: true,
-            codes: ['sig_ok_bip322', 'bond_confirmed'],
-            network: 'mainnet',
-            metrics: { sats_bonded: 5_000_000, days_unspent: 400, score: 90 },
-        })),
+        verify: vi.fn(async () => verdict.outcome),
     };
 });
+
+const GOOD = {
+    ok: true,
+    codes: ['sig_ok_bip322', 'bond_confirmed'],
+    network: 'mainnet',
+    metrics: { sats_bonded: 5_000_000, days_unspent: 400, score: 90 },
+};
+const verdict = vi.hoisted(() => ({ outcome: null as unknown }));
 
 const ADDR = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq';
 const KEY_A = nostrIdentifierForms('7e7e9c42a91bfef19fa929e5fda1b72e0ebc1a4c1141673e2794234d86addf4e');
@@ -41,7 +44,7 @@ const NOW = Math.floor(Date.now() / 1000);
 
 /** What each relay holds, and how it answers a read of the address (`#t`). */
 let held: Record<string, NostrEvent[]> = {};
-let addressMode: Record<string, 'ok' | 'closed' | 'silent'> = {};
+let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop'> = {};
 
 function matches(ev: NostrEvent, f: Record<string, unknown>): boolean {
     if (Array.isArray(f.kinds) && !f.kinds.includes(ev.kind)) return false;
@@ -81,6 +84,10 @@ class FakeRelay {
                 .sort((a, b) => b.created_at - a.created_at)
                 .slice(0, limit);
             for (const ev of answer) this.onmessage?.({ data: JSON.stringify(['EVENT', sub, ev]) });
+            // Some events, then no EOSE: it hangs past the deadline, errs or drops.
+            if (mode === 'hang') return;
+            if (mode === 'error') return this.onerror?.(new Error('reset'));
+            if (mode === 'drop') return this.onclose?.();
             this.onmessage?.({ data: JSON.stringify(['EOSE', sub]) });
         });
     }
@@ -128,6 +135,7 @@ beforeEach(async () => {
     sibling = await attest([{ protocol: 'nostr', identifier: KEY_B[0]! }], '2026-02-01T00:00:00Z', NOW - 1000);
     held = {};
     addressMode = {};
+    verdict.outcome = GOOD;
     realWs = globalThis.WebSocket;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     globalThis.WebSocket = FakeRelay as any;
@@ -205,4 +213,37 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
         expect(r.reasons).toContain('stake_shared');
         expect(r.reasons).not.toContain('stake_unread');
     });
+
+    for (const mode of ['hang', 'error', 'drop'] as const) {
+        it(`a relay that sends some events and then stops (${mode}) is cut off, not silent: stake_unread`, async () => {
+            // What that relay did not finish sending may hold the other attestation.
+            held = {
+                [RELAYS[0]!]: [mine, ...junk(300, false)],
+                [RELAYS[1]!]: [mine],
+                [RELAYS[2]!]: [mine],
+                [RELAYS[3]!]: [mine],
+            };
+            addressMode = { [RELAYS[0]!]: mode };
+            const r = await checkA();
+            expect(r.ok).toBe(false);
+            expect(r.reasons).toEqual(['stake_unread']);
+        }, 10_000);
+    }
+});
+
+describe('the stake is read only once everything else passed, so stake_unread only comes alone', () => {
+    const failing: Array<[string, unknown, Record<string, number>, string[]]> = [
+        ['a signature that does not verify', { ok: false, codes: ['sig_invalid'], network: 'mainnet' }, {}, ['sig_invalid']],
+        ['a bond below min_sats', GOOD, { minSats: 10_000_000 }, ['below_min_sats']],
+        ['a bond younger than min_days', GOOD, { minDays: 1000 }, ['below_min_days']],
+    ];
+    for (const [what, outcome, mins, reasons] of failing) {
+        it(`${what}, under a flood: that reason alone, and no read of the stake`, async () => {
+            onEvery([mine, sibling], junk(501, true));
+            verdict.outcome = outcome;
+            const r = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays: RELAYS, ...mins });
+            expect(r.ok).toBe(false);
+            expect(r.reasons).toEqual(reasons);
+        });
+    }
 });

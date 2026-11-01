@@ -30,7 +30,9 @@ this file tracks the package's TS / Node / runtime API surface.
   is found, the answer stands only if the read floor of relays (those asked,
   less 2, plus 1) finished with a short page and none was cut off. Otherwise
   `ok` is false with the new reason `stake_unread`: ask again. One found is
-  `stake_shared` whatever the read.
+  `stake_shared` whatever the read. The stake is read only once every other
+  check has passed, so `stake_shared` and `stake_unread` only ever come alone,
+  and a failing check costs no paged read.
 
 ## [1.18.2] — 2026-10-25
 
