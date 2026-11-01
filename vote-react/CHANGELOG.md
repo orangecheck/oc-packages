@@ -27,7 +27,9 @@ this file tracks the package's TS / Node / runtime API surface.
 - `useTally` reads the new poll when `pollId` changes. Before, it kept
   fetching the first poll, so a re-rendered widget showed that poll's
   question and tallies under the new id. Nothing of one poll is returned
-  under another's id.
+  under another's id, and only the latest request writes: an answer that
+  lands after a newer one (an earlier refresh, or the poll before a switch)
+  is dropped.
 
 ### Added
 

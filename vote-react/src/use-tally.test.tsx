@@ -86,4 +86,57 @@ describe('useTally', () => {
         await waitFor(() => expect(result.current.data?.poll_id).toBe(B));
         expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining(`poll=${B}`));
     });
+
+    it('ignores an answer for the poll before a pollId change, whichever lands last', async () => {
+        const B = 'ef'.repeat(32);
+        let answerA: (v: unknown) => void = () => {};
+        let answerB: (v: unknown) => void = () => {};
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockReturnValueOnce(new Promise((r) => (answerA = r)))
+                .mockReturnValueOnce(new Promise((r) => (answerB = r)))
+        );
+        const { result, rerender } = renderHook(({ id }) => useTally(id, { refreshMs: 0 }), {
+            initialProps: { id: PID },
+        });
+        rerender({ id: B });
+        await act(async () => answerB(answer(200, { ...tally(0, 2), poll_id: B })));
+        await act(async () => answerA(answer(200, tally(3, 1))));
+        expect(result.current.loading).toBe(false);
+        expect(result.current.data?.poll_id).toBe(B);
+    });
+
+    it('lets a newer refusal stand over an older success that lands after it', async () => {
+        let first: (v: unknown) => void = () => {};
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockReturnValueOnce(new Promise((r) => (first = r)))
+                .mockResolvedValueOnce(answer(503, { poll_id: PID, error: 'not counted: too few relays' }))
+        );
+        const { result } = renderHook(() => useTally(PID, { refreshMs: 0 }));
+        await act(() => result.current.refetch());
+        await act(async () => first(answer(200, tally(9, 0))));
+        expect(result.current.error?.message).toBe('not counted: too few relays');
+        expect(result.current.data).toBeNull();
+    });
+
+    it('lets a newer success stand over an older failure that lands after it', async () => {
+        let first: (v: unknown) => void = () => {};
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockReturnValueOnce(new Promise((r) => (first = r)))
+                .mockResolvedValueOnce(answer(200, tally(4, 1)))
+        );
+        const { result } = renderHook(() => useTally(PID, { refreshMs: 0 }));
+        await act(() => result.current.refetch());
+        await act(async () => first(answer(503, { poll_id: PID, error: 'an older refusal' })));
+        expect(result.current.error).toBeNull();
+        expect(result.current.data).toEqual(tally(4, 1));
+    });
 });
