@@ -22,6 +22,18 @@ this file tracks the package's TS / Node / runtime API surface.
 - `OcPoll` keeps the poll's question as its heading after a failed refresh,
   and puts the error in the status pill (its title and accessible label) and
   the body. Before, the error message replaced the question as the heading.
+  Without a tally its footer shows no voter count, and no ballot link while
+  the deadline is unknown.
+- `useTally` reads the new poll when `pollId` changes. Before, it kept
+  fetching the first poll, so a re-rendered widget showed that poll's
+  question and tallies under the new id. Nothing of one poll is returned
+  under another's id.
+
+### Added
+
+- `useTally` returns `poll`: the question and deadline last read for this
+  `pollId`. They name the poll rather than count it, so they stay after a
+  failed refresh.
 
 ## [0.1.0] — Initial published state
 

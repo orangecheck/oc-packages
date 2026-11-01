@@ -69,4 +69,21 @@ describe('useTally', () => {
         await waitFor(() => expect(result.current.error?.message).toBe('upstream'));
         expect(result.current.data).toBeNull();
     });
+
+    it('reads the new poll when pollId changes, and never shows the old one meanwhile', async () => {
+        const B = 'ef'.repeat(32);
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(answer(200, tally(3, 1)))
+            .mockResolvedValueOnce(answer(200, { ...tally(0, 2), poll_id: B }));
+        vi.stubGlobal('fetch', fetchMock);
+        const { result, rerender } = renderHook(({ id }) => useTally(id, { refreshMs: 0 }), {
+            initialProps: { id: PID },
+        });
+        await waitFor(() => expect(result.current.data).toEqual(tally(3, 1)));
+        rerender({ id: B });
+        expect(result.current.data).toBeNull();
+        await waitFor(() => expect(result.current.data?.poll_id).toBe(B));
+        expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining(`poll=${B}`));
+    });
 });

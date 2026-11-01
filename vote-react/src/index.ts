@@ -10,7 +10,7 @@
 
 export { OcPoll, type OcPollProps } from './poll.js';
 export { OcTallyBadge, type OcTallyBadgeProps } from './badge.js';
-export { useTally, type UseTallyOptions, type UseTallyState } from './use-tally.js';
+export { useTally, type PollContent, type UseTallyOptions, type UseTallyState } from './use-tally.js';
 export {
     DEFAULT_API_BASE,
     POLL_ID_RE,
