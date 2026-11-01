@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { anchoredChain, stampAnchorVerifier } from './anchors.js';
 import { computeTally } from './commands/tally.js';
-import type { NostrEvent, QueryFn, RelayRead } from './nostr.js';
+import { fetchBallotEvents, type NostrEvent, type QueryFn, type RelayRead } from './nostr.js';
 
 const KEY = new Uint8Array(32).fill(5);
 const SIGNER = addressFromPrivateKey(KEY, 'p2wpkh');
@@ -167,7 +167,10 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
     });
     afterEach(() => vi.useRealTimers());
 
-    async function run(tip: number, opts: { junk?: number; silent?: string[]; ballotRelays?: RelayRead[] } = {}) {
+    async function run(
+        tip: number,
+        opts: { junk?: number; silent?: string[]; ballotRelays?: RelayRead[]; relays?: string[] } = {}
+    ) {
         const headers = new Headers();
         const s = await anchoredStamp(early, CLOSE - 3, headers);
         const pending = { ...s, ots: { ...s.ots, status: 'pending' as const, proof: '' } };
@@ -177,7 +180,7 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
         }
         const chain = await anchoredChain(poll, [ballotId(early), ballotId(late)], {
             ballotRelays: opts.ballotRelays ?? answered,
-            relays: RELAYS,
+            relays: opts.relays ?? RELAYS,
             blockTimes: blockTimes(tip),
             headers,
             queryFn: relaysHolding(events, opts.silent),
@@ -228,6 +231,38 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
         const cut = [answered[0]!, { ...answered[1]!, truncated: true }];
         const { chain, result } = await run(CLOSE + 36 + 6, { ballotRelays: cut });
         expect(chain?.finalBlocked).toMatch(/ballot lookup was cut short/);
+        expect(result.state).toBe('provisional');
+    });
+
+    // The ballot lookup over five relays, as fetchBallotEvents pages it.
+    const FIVE = ['wss://a', 'wss://b', 'wss://c', 'wss://d', 'wss://e'];
+    async function ballotReads(opts: { silent?: string[]; sameSecond?: number } = {}) {
+        const tag = [['t', pollId(poll)]];
+        const events = [early, late].map(
+            (b, i) => ({ id: `ballot-${seq++}`, created_at: 1_000 + i, kind: 30081, tags: tag, content: JSON.stringify(b) }) as unknown as NostrEvent
+        );
+        for (let i = 0; i < (opts.sameSecond ?? 0); i++) {
+            events.push({ id: `filler-${seq++}`, created_at: 5_000, kind: 30081, tags: tag, content: '{}' } as unknown as NostrEvent);
+        }
+        return (await fetchBallotEvents(pollId(poll), FIVE, relaysHolding(events, opts.silent))).relays;
+    }
+
+    it('is final when 4 of 5 relays finished the ballot lookup, the floor', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { relays: FIVE, ballotRelays: await ballotReads({ silent: ['wss://e'] }) });
+        expect(chain?.finalBlocked).toBeNull();
+        expect(result).toMatchObject({ state: 'tallied', counted: [ballotId(early)] });
+    });
+
+    it('holds the count short of final when only 3 of 5 relays finished the ballot lookup', async () => {
+        const ballotRelays = await ballotReads({ silent: ['wss://d', 'wss://e'] });
+        const { chain, result } = await run(CLOSE + 36 + 6, { relays: FIVE, ballotRelays });
+        expect(chain?.finalBlocked).toBe('the ballot lookup finished on 3 of 5 relays, fewer than the 4 a count needs');
+        expect(result.state).toBe('provisional');
+    });
+
+    it('holds the count short of final when 100 same-second events cut the ballot lookup short', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { relays: FIVE, ballotRelays: await ballotReads({ sameSecond: 100 }) });
+        expect(chain?.finalBlocked).toMatch(/^the ballot lookup was cut short on wss:\/\/a, /);
         expect(result.state).toBe('provisional');
     });
 

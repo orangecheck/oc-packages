@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.5] — 2026-11-01
+
+### Changed
+
+- `tally` counts a clock-dated poll only from a complete ballot read: all but
+  one of the relays asked (4 of the 5 defaults) finished it, and no relay's
+  answer was cut short. An answer cut short (a full page from one second, or
+  the page limit reached) is no answer. Otherwise `tally` says it can't count,
+  names the relays, and exits non-zero. Before, one relay finishing was enough
+  and an answer cut short counted as finished, so ballots a relay did not
+  return could be missing from a count reported as `tallied`. `verify` and
+  `show` apply the same rule to the ballots they report.
+- An anchored poll's count needs the same floor to be final. Below it the
+  count is held provisional and `not_final_because` says why, as it already
+  was for a ballot answer cut short.
+
 ## [0.7.4] — 2026-10-25
 
 ### Changed

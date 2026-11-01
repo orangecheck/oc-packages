@@ -13,7 +13,7 @@ import {
     type SignatureVerifier,
 } from '@orangecheck/vote-core';
 
-import type { EventsFetch, NostrEvent } from './nostr.js';
+import { readShortfall, type EventsFetch, type NostrEvent, type PagedFetch } from './nostr.js';
 
 function parse<T>(ev: NostrEvent): T | null {
     try {
@@ -56,10 +56,27 @@ export async function findPoll(
     );
 }
 
-/** Refuse to draw a conclusion from a set no relay finished sending. */
-export function requireComplete(fetched: EventsFetch, what: string): NostrEvent[] {
-    if (!fetched.complete) throw new Error(`no relay finished answering the ${what} query; try again`);
-    return fetched.events;
+/** Refuse to draw a conclusion from a set that does not stand for what the relays hold. */
+export function requireComplete(fetched: EventsFetch | PagedFetch, what: string): NostrEvent[] {
+    if (fetched.complete) return fetched.events;
+    const short = 'relays' in fetched ? readShortfall(fetched.relays) : null;
+    throw new Error(
+        short
+            ? `can't count: the ${what} lookup ${short}, so ${what}s may be missing; try again`
+            : `no relay finished answering the ${what} query; try again`
+    );
+}
+
+/**
+ * The ballots a tally counts. A clock-dated count rests on the ballot read
+ * alone, so a read that was cut short or is below the floor can't be counted.
+ * An anchored count is held provisional instead (anchoredChain, the same
+ * `readShortfall`), so it needs only a relay that sent EOSE.
+ */
+export function ballotsToCount(fetched: PagedFetch, anchored: boolean): NostrEvent[] {
+    if (!anchored) return requireComplete(fetched, 'ballot');
+    if (fetched.relays.some((r) => r.answered || r.truncated)) return fetched.events;
+    throw new Error('no relay finished answering the ballot query; try again');
 }
 
 /**

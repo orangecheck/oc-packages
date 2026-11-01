@@ -20,7 +20,7 @@ import {
 } from '@orangecheck/vote-core';
 import type { Ballot, BlockTimeSource, Poll } from '@orangecheck/vote-core';
 
-import { DEFAULT_RELAYS, queryPaged, type QueryFn, type RelayRead } from './nostr.js';
+import { DEFAULT_RELAYS, queryPaged, readShortfall, type QueryFn, type RelayRead } from './nostr.js';
 
 export const STAMP_KIND = 30083;
 /** Ballot ids per REQ: fewer per filter, so one ballot's flood pages alone. */
@@ -144,23 +144,27 @@ export async function anchoredChain(
     );
     if (!close.ok) throw new Error(`the block at the deadline could not be read (${close.code}): ${close.reason}`);
     const read = await fetchBallotStamps(ballotIds, opts.relays ?? DEFAULT_RELAYS, opts.queryFn);
-    if (!read.relays.some((r) => r.answered)) throw new Error('no relay finished answering the stamp query; try again');
+    // A stamp lookup cut short holds the count below; only no EOSE at all refuses it.
+    if (!read.relays.some((r) => r.answered || r.truncated)) {
+        throw new Error('no relay finished answering the stamp query; try again');
+    }
     const headers =
         opts.headers ?? cachedHeaders(mempoolHeaderSource(opts.mempoolBase ? { baseUrl: opts.mempoolBase } : {}));
     const verify = stampAnchorVerifier(headers);
     const heights = new Map<string, number | null>();
     for (const [id, copies] of read.stamps) heights.set(id, await anchorHeightFromStamps(id, copies, (s) => verify(s)));
 
-    // A final count rests on the relays the ballots came from: each must have
-    // answered the stamp lookup to the end, and none may have cut the ballot
-    // lookup short. A stamp a relay did not send is not evidence of none.
+    // A final count rests on the relays the ballots came from: the ballot
+    // lookup must meet the floor with none cut short (`readShortfall`, as for a
+    // clock-dated poll), and each relay that finished it must have answered the
+    // stamp lookup to the end. A stamp a relay did not send is not evidence of none.
     const stampsDone = read.relays.filter((r) => r.answered && !r.truncated).map((r) => r.relay);
-    const ballotsCut = opts.ballotRelays.filter((r) => r.truncated).map((r) => r.relay);
+    const ballotsShort = readShortfall(opts.ballotRelays);
     const stampsMissing = opts.ballotRelays
         .filter((r) => r.answered && !stampsDone.includes(r.relay))
         .map((r) => r.relay);
-    const incomplete = ballotsCut.length
-        ? `the ballot lookup was cut short on ${ballotsCut.join(', ')}`
+    const incomplete = ballotsShort
+        ? `the ballot lookup ${ballotsShort}`
         : stampsMissing.length
           ? `the stamp lookup did not finish on ${stampsMissing.join(', ')}`
           : null;
