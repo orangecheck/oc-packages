@@ -161,6 +161,37 @@ describe('failOpen', () => {
         expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
     });
 
+    it('treats a stake the SDK could not read (stake_unread, alone) as a closed lookup failure, never fail_open', async () => {
+        // sdk 1.18.3 reads the stake only after everything else passed, and the
+        // flood that cuts the read is the subject's own to make.
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 5_000_000,
+            days: 400,
+            score: 90,
+            reasons: ['stake_unread'],
+        } as never);
+        const id = { identity: { from: 'header', name: 'x-oc-identity' }, trustUnsafeSources: true } as const;
+        const r = () => req({ headers: { 'x-oc-identity': 'nostr:npub1example' } });
+        expect(await assertOc(r(), id)).toMatchObject({ ok: false, reason: 'lookup_error' });
+        expect(await assertOc(r(), id)).toMatchObject({ ok: false, reason: 'lookup_error' });
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+        expect(await assertOc(r(), { ...id, failOpen: true })).toMatchObject({ ok: false, reason: 'lookup_error' });
+    });
+
+    // review-me's probe case: beside a definitive failure, the failure decides.
+    it('a bond below the threshold, beside stake_unread, stays below threshold under failOpen', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 1_000,
+            days: 400,
+            score: 10,
+            reasons: ['below_min_sats', 'stake_unread'],
+        } as never);
+        const d = await assertOc(req({ headers: { 'x-oc-address': 'bc1qthin' } }), { ...opts, failOpen: true });
+        expect(d).toMatchObject({ ok: false, reason: 'below_threshold' });
+    });
+
     it('never opens for a signature that did not verify', async () => {
         vi.mocked(check).mockResolvedValue({
             ok: false,

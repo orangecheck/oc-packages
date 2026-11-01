@@ -95,6 +95,13 @@ export function checkGateOptions(opts: GateOptions): void {
 /** Our own deadline expired. Never treated as an outage, so never fails open. */
 class LookupTimeout extends Error {}
 
+/**
+ * Everything else passed and the SDK's shared-stake read was cut off. The flood
+ * that cuts it is the key holder's to make, so, like LookupTimeout, it never
+ * fails open: failOpen there would admit the hidden shared stake it hides.
+ */
+class LookupIncomplete extends Error {}
+
 /** The signature verified but no Esplora endpoint answered: the bond is unknown, not absent. */
 export function chainUnreachable(result: CheckResult): boolean {
     const reasons = result.reasons ?? [];
@@ -103,6 +110,16 @@ export function chainUnreachable(result: CheckResult): boolean {
         reasons.includes('bad_request') &&
         reasons.some((r) => r === 'sig_ok_bip322' || r === 'sig_ok_legacy')
     );
+}
+
+/**
+ * The SDK could not read what its verdict rests on, and nothing else failed:
+ * `stake_unread` (sdk 1.18.3) as the one reason. Beside any other reason the
+ * proof has failed on that reason, and is judged by it.
+ */
+export function readIncomplete(result: CheckResult): boolean {
+    const reasons = result.reasons ?? [];
+    return !result.ok && reasons.length === 1 && reasons[0]!.endsWith('_unread');
 }
 
 /** Subject strings > this length are almost certainly garbage — reject at
@@ -294,6 +311,9 @@ export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<Gate
         ]).finally(() => clearTimeout(timer));
 
         if (chainUnreachable(result)) throw new Error('chain API unreachable');
+        // The shared-stake read was cut off (sdk stake_unread, alone): a closed
+        // lookup failure, never fail_open, and not cached.
+        if (readIncomplete(result)) throw new LookupIncomplete('lookup incomplete');
 
         let reason: GateDecision['reason'];
         if (result.ok) reason = 'ok';
@@ -312,11 +332,13 @@ export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<Gate
         cache.set(cacheKey, decision);
         return decision;
     } catch (err) {
-        // failOpen covers an upstream that failed, never a lookup we abandoned.
-        const outage = !(err instanceof LookupTimeout);
+        // failOpen covers an upstream that failed, never a lookup we abandoned and
+        // never a read the subject's own flood cut off.
+        const timedOut = err instanceof LookupTimeout;
+        const outage = !timedOut && !(err instanceof LookupIncomplete);
         const decision: GateDecision = {
             ok: outage && Boolean(opts.failOpen),
-            reason: !outage ? 'lookup_timeout' : opts.failOpen ? 'fail_open' : 'lookup_error',
+            reason: timedOut ? 'lookup_timeout' : outage && opts.failOpen ? 'fail_open' : 'lookup_error',
             subject,
             subjectKind,
         };

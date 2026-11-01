@@ -11,6 +11,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.3] — 2026-11-01
+
+### Fixed
+
+- A check whose only reason is `stake_unread` (`@orangecheck/sdk` 1.18.3:
+  everything else passed, and a flood cut off the read of the address's other
+  attestations) is a closed lookup failure: `lookup_error`, not cached, and
+  never `fail_open`, as for `lookup_timeout`, since the subject can make that
+  flood at will. It used to fall through to `invalid_proof`, cached for
+  `cacheTtlMs`. Beside any other reason, that reason decides.
+
 ## [0.3.2] — 2026-10-25
 
 ### Changed

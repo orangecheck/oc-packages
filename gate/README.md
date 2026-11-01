@@ -199,7 +199,8 @@ interface GateOptions {
 
     // Let requests through when the upstream fails: relays throw, or the
     // signature verified but no Esplora endpoint answered. Never for a lookup
-    // the gate itself abandoned, and never for a signature that did not verify.
+    // the gate itself abandoned, never for a signature that did not verify, and
+    // never for a shared-stake read a flood cut off (sdk stake_unread).
     failOpen?: boolean; // default false — closed by default
 
     // `header` / `query` / `cookie` / `body` sources are caller-supplied
