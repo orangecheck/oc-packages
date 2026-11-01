@@ -21,6 +21,16 @@ this file tracks the package's TS / Node / runtime API surface.
   only that the id is the message's hash and that the relay's index tags agree,
   so a message naming any address beside a junk signature came back as that
   address's attestation. A valid attestation comes back as before.
+- `check({ identity })` holds one address to one bond (SECURITY.md §3) only on
+  a read of the address that a flood could not cut off. The by-address read
+  stopped silently on a page stuck on one second, at its 4-page bound, on a
+  timeout and on a CLOSED, so 501 events under the address's `t` tag hid its
+  other attestation and `stake_shared` never fired. Each relay's read now ends
+  complete, cut off or unanswered. When no attestation backing another identity
+  is found, the answer stands only if the read floor of relays (those asked,
+  less 2, plus 1) finished with a short page and none was cut off. Otherwise
+  `ok` is false with the new reason `stake_unread`: ask again. One found is
+  `stake_shared` whatever the read.
 
 ## [1.18.2] — 2026-10-25
 

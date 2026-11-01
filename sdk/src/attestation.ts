@@ -214,6 +214,19 @@ function eventIndexesEnvelope(event: NostrEvent, envelope: AttestationEnvelope):
 }
 
 /**
+ * Every relay holding an attestation returns it. One envelope per id, its
+ * fields read from the signed message, and only where the relay's index tags
+ * agree with it.
+ */
+export function envelopesFromEvents(events: NostrEvent[]): Promise<AttestationEnvelope[]> {
+    return collectSignedEnvelopes(events, (event, envelope) => {
+        if (eventIndexesEnvelope(event, envelope)) return true;
+        log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
+        return false;
+    });
+}
+
+/**
  * Discover attestations from Nostr relays
  */
 export async function discoverAttestations(
@@ -236,14 +249,7 @@ export async function discoverAttestations(
         throw new Error('Must provide attestationId, address, or identity');
     }
 
-    // Every relay holding an attestation returns it. One envelope per id, its
-    // fields read from the signed message, and only where the relay's index tags
-    // agree with it.
-    const envelopes = await collectSignedEnvelopes(events, (event, envelope) => {
-        if (eventIndexesEnvelope(event, envelope)) return true;
-        log.warn({ eventId: event.id }, 'Skipping event whose index tags disagree with its envelope');
-        return false;
-    });
+    const envelopes = await envelopesFromEvents(events);
 
     log.info({ eventCount: events.length, validCount: envelopes.length }, 'Discovery complete');
 
