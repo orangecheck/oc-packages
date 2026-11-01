@@ -132,6 +132,60 @@ describe('threshold decisions', () => {
     });
 });
 
+describe('a stake the SDK could not read (stake_unread) is a closed lookup failure', () => {
+    // sdk 1.18.3 reads the stake only after everything else passed, so
+    // stake_unread alone means the shared-stake read was cut off by a flood
+    // the key holder can make at will. failOpen never covers it, and the
+    // decision is held only for the short circuit breaker.
+    const result = (reasons: string[]) =>
+        ({ ok: false, sats: 5_000_000, days: 400, score: 90, reasons }) as never;
+
+    it('rejects as lookup_error, with or without failOpen', async () => {
+        vi.mocked(check).mockResolvedValue(result(['stake_unread']));
+        expect(await filterEvent(evt(), {})).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        __clearFilterCachesForTests();
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({
+            action: 'reject',
+            reason: 'lookup_error',
+        });
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+    });
+
+    it('is held only for the short lookup-error TTL, then looked up again', async () => {
+        vi.useFakeTimers();
+        try {
+            vi.mocked(check).mockResolvedValue(result(['stake_unread']));
+            const opts: FilterOptions = {};
+            await filterEvent(evt(), opts);
+            await filterEvent(evt(), opts);
+            expect(vi.mocked(check)).toHaveBeenCalledTimes(1);
+            vi.advanceTimersByTime(5_001);
+            vi.mocked(check).mockResolvedValue({ ok: true, sats: 5_000_000, days: 400, score: 90 } as never);
+            expect(await filterEvent(evt(), opts)).toMatchObject({ action: 'accept', reason: 'ok' });
+            expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    // review-me's probe cases: beside a definitive failure, the failure decides.
+    it("a signature that did not verify, beside stake_unread, stays invalid under failOpen", async () => {
+        vi.mocked(check).mockResolvedValue(result(['sig_invalid', 'stake_unread']));
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({
+            action: 'reject',
+            reason: 'invalid_proof',
+        });
+    });
+
+    it('a bond below min_sats, beside stake_unread, stays below threshold under failOpen', async () => {
+        vi.mocked(check).mockResolvedValue(result(['below_min_sats', 'stake_unread']));
+        expect(await filterEvent(evt(), { failOpen: true, minSats: 10_000_000 })).toMatchObject({
+            action: 'reject',
+            reason: 'below_threshold',
+        });
+    });
+});
+
 describe('lookup error handling — fail-closed default, fail-open opt-in', () => {
     it('rejects (fail-closed) when check() throws, by default', async () => {
         vi.mocked(check).mockRejectedValue(new Error('network down'));
