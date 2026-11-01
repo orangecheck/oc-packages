@@ -19,6 +19,9 @@ this file tracks the package's TS / Node / runtime API surface.
   on the hook no longer show an earlier tally beside the error. Before, the
   last good numbers stayed on screen after a refresh failed or the tally
   service refused to count. The next good answer shows a tally again.
+- `OcPoll` keeps the poll's question as its heading after a failed refresh,
+  and puts the error in the status pill (its title and accessible label) and
+  the body. Before, the error message replaced the question as the heading.
 
 ## [0.1.0] — Initial published state
 
