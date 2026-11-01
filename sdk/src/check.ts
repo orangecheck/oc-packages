@@ -14,10 +14,11 @@ import type { AttestationEnvelope, IdentityBinding, Network, VerifyOptions } fro
 
 import {
     discoverAttestations,
+    envelopesFromEvents,
     getAttestationsForAddress,
     getAttestationsForIdentity,
 } from './attestation';
-import { DEFAULT_RELAYS, signedEnvelope } from './nostr';
+import { DEFAULT_RELAYS, readByAddress, signedEnvelope, subjectReadComplete } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
 import { checkCheckParams } from './options';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
@@ -58,7 +59,13 @@ export interface CheckResult {
     identities?: IdentityBinding[];
     /** Network the address belongs to. */
     network?: Network;
-    /** Present when `ok === false`. Codes explain why. */
+    /**
+     * Present when `ok === false`. Codes explain why: verify()'s codes, and
+     * `not_found`, `below_min_sats`, `below_min_days`, `stake_shared` (the
+     * address also backs another identity on the protocol) and `stake_unread`
+     * (the address's other attestations could not be read in full, so one
+     * address, one bond was not checked; ask again).
+     */
     reasons?: string[];
 }
 
@@ -115,7 +122,11 @@ export async function check(params: CheckParams): Promise<CheckResult> {
 
     // SECURITY.md §3: one address, one bond. An address that also backs a
     // different identity on the same protocol is lending one stake to several.
-    const shared = identity ? await backsOtherIdentity(env, identity, relays) : false;
+    // "Not shared" rests on no such attestation being there, so it needs a read
+    // of the address that a flood could not cut off; without one it is unread.
+    const stake = identity ? await backsOtherIdentity(env, identity, relays) : 'not_shared';
+    const shared = stake === 'shared';
+    const unread = stake === 'unread';
 
     const outcome = await verify(
         {
@@ -134,10 +145,11 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     const reasons: string[] = [];
     if (!outcome.ok) reasons.push(...outcome.codes);
     if (shared) reasons.push('stake_shared');
+    if (unread) reasons.push('stake_unread');
     if (sats < minSats) reasons.push('below_min_sats');
     if (days < minDays) reasons.push('below_min_days');
 
-    const ok = outcome.ok && !shared && sats >= minSats && days >= minDays;
+    const ok = outcome.ok && !shared && !unread && sats >= minSats && days >= minDays;
 
     return {
         ok,
@@ -195,21 +207,30 @@ function signedBy(e: AttestationEnvelope): Promise<boolean> {
     return signatureIsValid({ addr: e.address, msg: e.message, sig: e.signature, scheme: e.scheme });
 }
 
+/**
+ * Whether the address that signed `env` also backs another identity on the
+ * same protocol. Anyone can publish under the address's `t` tag, and relays
+ * answer newest first up to their cap, so a flood dated after the address's
+ * other attestation pushes it out of a read. One found is shared whatever the
+ * read; none found is not_shared only when subjectReadComplete holds, and
+ * unread otherwise.
+ */
 async function backsOtherIdentity(
     env: AttestationEnvelope,
     identity: Identity,
     relays: string[]
-): Promise<boolean> {
+): Promise<'shared' | 'not_shared' | 'unread'> {
     const want = identityKey(identity);
     const protocol = identity.protocol.trim().toLowerCase();
-    const siblings = await getAttestationsForAddress(env.address, relays);
+    const read = await readByAddress(env.address, relays);
+    const siblings = await envelopesFromEvents(read.events);
     for (const e of [env, ...siblings]) {
         if (!signedMatch(e, { addr: env.address })) continue;
         const other = signedIdentities(e).some(
             (b) => b.protocol.trim().toLowerCase() === protocol && identityKey(b) !== want
         );
         // Only the address's own signature can lend its stake to another identity.
-        if (other && (e === env || (await signedBy(e)))) return true;
+        if (other && (e === env || (await signedBy(e)))) return 'shared';
     }
-    return false;
+    return subjectReadComplete(read) ? 'not_shared' : 'unread';
 }

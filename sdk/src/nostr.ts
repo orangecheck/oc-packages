@@ -335,55 +335,96 @@ const PAGE_LIMIT = 500;
  */
 const MAX_PAGES = 4;
 
-/** Every event matching `filter` on each relay, paged by `until`, within the shared deadline. */
-async function querySubject(
+/**
+ * How one relay's read of a subject ended. complete: its last page came back
+ * short, so it sent every event it holds there. cut_off: it sent a full page
+ * that could not be read past (a page that added nothing, which is stuck on one
+ * second, or the page bound), or it stopped (a timeout, a CLOSED, a dropped
+ * socket) after sending something. no_answer: it sent nothing.
+ *
+ * Anyone can publish under a subject's tags, and relays answer newest first up
+ * to their cap, so only a complete read says what a relay does not hold.
+ */
+export type SubjectReadState = 'complete' | 'cut_off' | 'no_answer';
+
+export interface SubjectRead {
+    /** Every event any relay sent, as sent (one entry per relay that sent it). */
+    events: NostrEvent[];
+    relays: { relay: string; state: SubjectReadState }[];
+}
+
+/** Relays a write is in effect on, as OC Chat SPEC §8.7 and oc-lock-web count it. */
+const WRITE_QUORUM = 2;
+
+/**
+ * Whether an absence in `read` counts: at least the read floor of the relays
+ * asked (those asked, less the write quorum, plus one) finished with a short
+ * page, and none was cut off. The rule oc-lock-web and oc-www read revocations by.
+ */
+export function subjectReadComplete(read: Pick<SubjectRead, 'relays'>): boolean {
+    const floor = Math.max(1, read.relays.length - WRITE_QUORUM + 1);
+    const complete = read.relays.filter((r) => r.state === 'complete').length;
+    return complete >= floor && !read.relays.some((r) => r.state === 'cut_off');
+}
+
+/** Every event matching `filter` on each relay, paged by `until`, with how each relay's read ended. */
+export async function readSubject(
     filter: Record<string, unknown>,
     relays: string[],
     label: string
-): Promise<NostrEvent[]> {
+): Promise<SubjectRead> {
     const events: NostrEvent[] = [];
     const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
 
-    await Promise.allSettled(
-        relays.map(async (relayUrl) => {
+    const states = await Promise.all(
+        relays.map(async (relayUrl): Promise<SubjectReadState> => {
             let ws: WebSocket | null = null;
+            let sent = 0;
+            const stopped = (): SubjectReadState => (sent > 0 ? 'cut_off' : 'no_answer');
             try {
                 ws = new WebSocket(relayUrl);
                 const wsRef = ws;
-                await new Promise<void>((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        wsRef.close();
-                        reject(new Error('Query timeout'));
-                    }, budgetFor(deadlineAt));
+                return await new Promise<SubjectReadState>((resolve) => {
+                    let settled = false;
+                    const finish = (state: SubjectReadState) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timeout);
+                        try {
+                            wsRef.close();
+                        } catch {
+                            // already closed
+                        }
+                        resolve(state);
+                    };
+                    const timeout = setTimeout(() => finish(stopped()), budgetFor(deadlineAt));
                     const seen = new Set<string>();
                     let page = 0;
                     let inPage = 0;
                     let newInPage = 0;
                     let oldest = Infinity;
+                    let sub = '';
 
                     const ask = () => {
                         page++;
                         inPage = 0;
                         newInPage = 0;
+                        sub = `ochk_${label}_${Date.now()}_${page}`;
                         // `until` is inclusive; events already read are skipped by id.
                         const until = Number.isFinite(oldest) ? { until: oldest } : {};
-                        wsRef.send(
-                            JSON.stringify([
-                                'REQ',
-                                `ochk_${label}_${Date.now()}_${page}`,
-                                { ...filter, ...until, limit: PAGE_LIMIT },
-                            ])
-                        );
+                        wsRef.send(JSON.stringify(['REQ', sub, { ...filter, ...until, limit: PAGE_LIMIT }]));
                     };
 
                     wsRef.onopen = ask;
                     wsRef.onmessage = (msg) => {
                         try {
                             const data = JSON.parse(msg.data);
+                            if (data[1] !== sub) return;
                             if (data[0] === 'EVENT') {
                                 const event = data[2] as NostrEvent;
                                 const key = event.id ?? JSON.stringify(event);
                                 inPage++;
+                                sent++;
                                 if (!seen.has(key)) {
                                     seen.add(key);
                                     newInPage++;
@@ -392,29 +433,31 @@ async function querySubject(
                                 if (typeof event.created_at === 'number') {
                                     oldest = Math.min(oldest, event.created_at);
                                 }
+                            } else if (data[0] === 'CLOSED') {
+                                // Refused or ended (a rate limit, too many filters): not an answer.
+                                finish(stopped());
                             } else if (data[0] === 'EOSE') {
-                                wsRef.send(JSON.stringify(['CLOSE', data[1]]));
-                                // A full page that brought something new may have more behind it.
-                                if (inPage >= PAGE_LIMIT && newInPage > 0 && page < MAX_PAGES) {
-                                    ask();
-                                } else {
-                                    clearTimeout(timeout);
-                                    wsRef.close();
-                                    resolve();
-                                }
+                                wsRef.send(JSON.stringify(['CLOSE', sub]));
+                                // A short page is the end of the subject on this relay.
+                                if (inPage < PAGE_LIMIT) return finish('complete');
+                                // A full page that added nothing is stuck on one second; the
+                                // page bound leaves older events unread. Either is cut off.
+                                if (newInPage === 0 || page >= MAX_PAGES) return finish('cut_off');
+                                ask();
                             }
                         } catch (err) {
                             log.error({ relay: relayUrl, error: err }, 'Failed to parse event');
                         }
                     };
                     wsRef.onerror = (err) => {
-                        clearTimeout(timeout);
                         log.error({ relay: relayUrl, error: err }, 'WebSocket error during query');
-                        reject(err);
+                        finish(stopped());
                     };
+                    wsRef.onclose = () => finish(stopped());
                 });
             } catch (err) {
                 log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
+                return stopped();
             } finally {
                 if (ws && ws.readyState !== WebSocket.CLOSED) ws.close();
             }
@@ -422,7 +465,16 @@ async function querySubject(
     );
 
     log.info({ label, eventCount: events.length }, 'Query complete');
-    return events;
+    return { events, relays: relays.map((relay, i) => ({ relay, state: states[i]! })) };
+}
+
+/** Every event matching `filter` on each relay, paged by `until`, within the shared deadline. */
+async function querySubject(
+    filter: Record<string, unknown>,
+    relays: string[],
+    label: string
+): Promise<NostrEvent[]> {
+    return (await readSubject(filter, relays, label)).events;
 }
 
 /**
@@ -446,8 +498,19 @@ export async function queryByAddress(
     address: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
+    return (await readByAddress(address, relays)).events;
+}
+
+/**
+ * queryByAddress, with how each relay's read ended: what a decision resting on
+ * an attestation NOT being there reads, under subjectReadComplete.
+ */
+export async function readByAddress(
+    address: string,
+    relays: string[] = DEFAULT_RELAYS
+): Promise<SubjectRead> {
     log.info({ address, relayCount: relays.length }, 'Querying relays for address');
-    return querySubject({ kinds: [30078], '#t': [address] }, relays, 'addr');
+    return readSubject({ kinds: [30078], '#t': [address] }, relays, 'addr');
 }
 
 /**
