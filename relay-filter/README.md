@@ -64,9 +64,12 @@ writePolicy = {
 
 Strfry asks the plugin about one event at a time and waits for the answer, so
 the plugin never touches the network on that path. It holds every OC
-attestation that binds a Nostr key in memory, kept current by one standing
-subscription (`kinds: [30078], #t: ["oc-attest"]`), and re-reads each bond from
-the chain in the background. Measured on the built binary against live relays:
+attestation that binds a Nostr key in memory: the `oc-attest` backlog read
+paged on every relay, kept current by one standing subscription for new events
+(`kinds: [30078], #t: ["oc-attest"]`), and re-reads each bond from the chain in
+the background. Each new address's own attestations are read too, paged, and
+its keys wait until a read of 4 of 5 relays finishes with none cut off, so a
+flood under the address cannot hide a second key it backs. Measured on the built binary against live relays:
 **p50 0.06 ms, max 1.6 ms** per decision for 50 fresh pubkeys. A lookup per
 event took about 6 s, which would let anyone rotating pubkeys stall your relay.
 

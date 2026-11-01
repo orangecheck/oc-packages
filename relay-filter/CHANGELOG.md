@@ -21,6 +21,14 @@ this file tracks the package's TS / Node / runtime API surface.
   lookup-error TTL like an outage, and never `fail_open`, since the key holder
   can make that flood at will. It used to fall through to `invalid_proof`,
   cached for the decision TTL. Beside any other reason, that reason decides.
+- `AttestationIndex` reads the `oc-attest` backlog, and each new address's own
+  attestations, paged per relay (500 a page, 4 pages, one deadline per relay).
+  A read is an answer only when 4 of 5 relays finished with a short page and
+  none was cut off. The backlog used to be one standing read, synced at the
+  first EOSE after a relay's newest 500, and an address read could be cut off
+  without notice. A key whose address's read has not finished now waits
+  (`lookup_error`, never `fail_open`) instead of being admitted beside a second
+  key the flood hid. The standing subscription reads new events only.
 
 ## [0.5.5] — 2026-10-25
 

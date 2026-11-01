@@ -7,7 +7,6 @@ import {
     DEFAULT_RELAYS,
     nostrPubkeyToHex,
     parseIdentities,
-    queryByAddress,
     queryByIdentity,
     signatureIsValid,
     verify,
@@ -15,6 +14,7 @@ import {
 
 import { checkFilterOptions, checkIndexOptions } from './options';
 import { chainUnreachable } from './outage';
+import { readSubject } from './paged-read';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002];
 const DEFAULT_REFRESH_MS = 10 * 60_000;
@@ -124,6 +124,12 @@ export class AttestationIndex {
     private readonly lookedUp = new Map<string, number>();
     private lookupsInFlight = 0;
     private synced = false;
+    /**
+     * Addresses whose own read, of everything they signed, has not finished:
+     * read cut off, unanswered below the floor, or still running. Another key
+     * an address backs may be behind what was not read, so its keys wait.
+     */
+    private readonly unread = new Set<string>();
     private stopped = false;
     private cover: number;
 
@@ -134,6 +140,7 @@ export class AttestationIndex {
 
     start(): void {
         this.startedAt = Date.now();
+        void this.loadBacklog();
         for (const url of this.options.relays ?? DEFAULT_RELAYS) this.connect(url, 1_000);
         this.timer = setInterval(() => void this.refreshAll(), this.options.refreshMs ?? DEFAULT_REFRESH_MS);
         this.timer.unref?.();
@@ -153,9 +160,8 @@ export class AttestationIndex {
         this.byId.set(copyKey(att), att);
         // Everything this address signed, marker or not, so a second key it backs is seen.
         if (newAddress) {
-            void queryByAddress(att.address, this.options.relays ?? DEFAULT_RELAYS)
-                .then((events) => events.forEach((e) => this.ingest(e)))
-                .catch(() => {});
+            this.unread.add(att.address);
+            void this.readAddress(att.address);
         }
         void this.refresh(att.address);
         return true;
@@ -204,6 +210,11 @@ export class AttestationIndex {
         for (const address of addresses) {
             if (this.keysFor(address).size > 1) {
                 shared = true;
+                continue;
+            }
+            // Not shared only once the address's own read finished.
+            if (this.unread.has(address)) {
+                unverified = true;
                 continue;
             }
             const bond = this.bonds.get(address);
@@ -343,8 +354,36 @@ export class AttestationIndex {
     }
 
     private async refreshAll(): Promise<void> {
+        if (!this.synced) void this.loadBacklog();
+        for (const address of [...this.unread]) void this.readAddress(address);
         const addresses = new Set([...this.byId.values()].map((a) => a.address));
         for (const address of addresses) await this.refresh(address);
+    }
+
+    /**
+     * The marked backlog, paged on every relay. Synced only on a read the floor
+     * finished with none cut off; until then unknown keys are "not yet" during
+     * warm-up, and the next refresh reads it again.
+     */
+    private async loadBacklog(): Promise<void> {
+        try {
+            const r = await readSubject({ kinds: [30078], '#t': ['oc-attest'] }, this.options.relays ?? DEFAULT_RELAYS);
+            for (const e of r.events) this.ingest(e as { tags?: string[][]; content?: string });
+            if (r.complete) this.markSynced();
+        } catch {
+            // read again on the next refresh
+        }
+    }
+
+    /** Everything one address signed, paged; its keys wait until a read finishes. */
+    private async readAddress(address: string): Promise<void> {
+        try {
+            const r = await readSubject({ kinds: [30078], '#t': [address] }, this.options.relays ?? DEFAULT_RELAYS);
+            for (const e of r.events) this.ingest(e as { tags?: string[][]; content?: string });
+            if (r.complete) this.unread.delete(address);
+        } catch {
+            // stays unread; read again on the next refresh
+        }
     }
 
     private connect(url: string, backoffMs: number): void {
@@ -357,14 +396,16 @@ export class AttestationIndex {
             return;
         }
         this.sockets.push(ws);
+        // New events only: the backlog is read paged (loadBacklog), since a
+        // standing read's EOSE comes after the relay's newest 500, not after all.
+        const since = Math.floor(this.startedAt / 1000) - 60;
         ws.onopen = () => {
-            ws.send(JSON.stringify(['REQ', 'oc-index', { kinds: [30078], '#t': ['oc-attest'] }]));
+            ws.send(JSON.stringify(['REQ', 'oc-index', { kinds: [30078], '#t': ['oc-attest'], since }]));
         };
         ws.onmessage = (m: MessageEvent) => {
             try {
                 const frame = JSON.parse(String(m.data));
                 if (frame[0] === 'EVENT' && frame[2]) this.ingest(frame[2]);
-                else if (frame[0] === 'EOSE') this.markSynced();
             } catch {
                 // ignore malformed frames
             }
