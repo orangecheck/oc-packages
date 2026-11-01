@@ -214,6 +214,15 @@ function signedBy(e: AttestationEnvelope): Promise<boolean> {
  * other attestation pushes it out of a read. One found is shared whatever the
  * read; none found is not_shared only when subjectReadComplete holds, and
  * unread otherwise.
+ *
+ * Why one cut-off relay blocks, though the floor is met: the floor forces a
+ * holder of a record among the complete reads only for a record written to at
+ * least the write quorum of the relays asked. The other attestation is written
+ * by the address holder, the party who gains from hiding it, and nothing makes
+ * a publisher wait for a quorum (attest.ochk.io and publishAttestation succeed
+ * on one relay). So it may sit on the one relay the holder then floods. The
+ * cost is availability: a flood under an address on one relay makes its
+ * identity checks unread until the flood is gone.
  */
 async function backsOtherIdentity(
     env: AttestationEnvelope,
