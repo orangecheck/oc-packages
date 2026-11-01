@@ -8,7 +8,7 @@
  *
  * Online by default: it reads the relays, the device records, ochk.io's keys and
  * the chain. --offline runs only what needs no read, and says what it skipped.
- * Exit 0 verified, 1 failed, 2 could not be read (a read got no answer), 3 passed
+ * Exit 0 verified, 1 failed, 2 could not be read (a read got no answer or was cut off), 3 passed
  * the offline checks only, which is not verified.
  */
 
@@ -302,6 +302,17 @@ async function resolveChannel(cid: string, net: ChatNet, founder?: string, given
         hostKeys: net.hostKeys,
         verifyBip322,
     });
+    // A cut-off read is not an answer (SPEC §8.3.1): anyone can fill the bound. It
+    // proves nothing about a channel it did not find and, unless the founder's and
+    // role holders' keys were read in full, nothing about a version newer than the
+    // one it found.
+    if (read.truncated && (!resolved || read.incomplete)) {
+        throw new UnansweredReadError(
+            resolved
+                ? "can't tell: the read of this channel's versions stopped at its bound, and its role holders' keys were not all read, so a newer version may exist"
+                : "can't tell: the read of this channel's versions stopped at its bound, so the channel may exist though it did not resolve"
+        );
+    }
     return { resolved, read };
 }
 
@@ -526,7 +537,7 @@ export function render(r: Report): string {
     const verdict = {
         verified: `VERIFIED${answered}`,
         failed: 'FAILED',
-        unread: 'NOT READ: a read got no answer, so nothing is concluded',
+        unread: 'NOT READ: a read got no answer or was cut off, so nothing is concluded',
         'passed-offline': 'PASSED OFFLINE CHECKS ONLY: not verified (see "not checked")',
     }[r.verdict];
     lines.push(verdict);

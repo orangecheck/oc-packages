@@ -33,8 +33,13 @@ this file tracks the package's TS / Node / runtime API surface.
   `on_resolved_chain`, `on_relays`, `resolves`, `channel`, the holder) as null
   in `--json` and `unknown` in the text. `--offline` reads nothing and lists
   what it skipped. Exit 0 verified, 1 failed, 2 not
-  read (a relay, ochk.io's keys or the chain did not answer), 3 offline
-  checks only.
+  read (a relay, ochk.io's keys or the chain did not answer, or a read was
+  cut off), 3 offline checks only.
+- A read of a channel's versions that stopped at its bound is not an answer
+  (OC Chat SPEC §8.3.1): when the channel did not resolve, or the founder's and
+  role holders' keys were not all read, the verdict is NOT READ and says it
+  can't tell, never FAILED or VERIFIED. Anyone can fill the bound by publishing
+  under the channel's tag.
 
 ## [0.3.2] — 2026-10-26
 
