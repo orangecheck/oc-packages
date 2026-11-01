@@ -124,13 +124,13 @@ const asEvent = (stamp: { content: { hash: string } }, at = 1_000): NostrEvent =
  */
 const relaysHolding = (events: NostrEvent[], silent: string[] = []) =>
     (async (filter: { limit?: number; until?: number; '#t'?: string[] }, relays: readonly string[]) => {
-        const relayStatus = relays.map((relay) => ({ relay, ok: !silent.includes(relay), eose: !silent.includes(relay), events: 0 }));
         const sent = relays.some((r) => !silent.includes(r))
             ? events
                   .filter((e) => (filter.until === undefined || e.created_at <= filter.until) && e.tags.some((t) => t[0] === 't' && filter['#t']?.includes(t[1]!)))
                   .sort((a, b) => b.created_at - a.created_at)
                   .slice(0, Math.min(filter.limit ?? Infinity, 500))
             : [];
+        const relayStatus = relays.map((relay) => ({ relay, ok: !silent.includes(relay), eose: !silent.includes(relay), events: sent.length, rejected: 0 }));
         return { events: sent, relayStatus };
     }) as unknown as QueryFn;
 const answered: RelayRead[] = RELAYS.map((relay) => ({ relay, answered: true, truncated: false }));
@@ -169,7 +169,7 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
 
     async function run(
         tip: number,
-        opts: { junk?: number; silent?: string[]; ballotRelays?: RelayRead[]; relays?: string[] } = {}
+        opts: { junk?: number; sameSecondJunk?: number; silent?: string[]; ballotRelays?: RelayRead[]; relays?: string[] } = {}
     ) {
         const headers = new Headers();
         const s = await anchoredStamp(early, CLOSE - 3, headers);
@@ -177,6 +177,9 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
         const events = [asEvent(pending, 900), asEvent(s, 1_000)];
         for (let i = 0; i < (opts.junk ?? 0); i++) {
             events.push({ ...asEvent(s, 2_000 + i), content: '{}' } as NostrEvent);
+        }
+        for (let i = 0; i < (opts.sameSecondJunk ?? 0); i++) {
+            events.push({ ...asEvent(s, 3_000), content: '{}' } as NostrEvent);
         }
         const chain = await anchoredChain(poll, [ballotId(early), ballotId(late)], {
             ballotRelays: opts.ballotRelays ?? answered,
@@ -263,6 +266,12 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
     it('holds the count short of final when 100 same-second events cut the ballot lookup short', async () => {
         const { chain, result } = await run(CLOSE + 36 + 6, { relays: FIVE, ballotRelays: await ballotReads({ sameSecond: 100 }) });
         expect(chain?.finalBlocked).toMatch(/^the ballot lookup was cut short on wss:\/\/a, /);
+        expect(result.state).toBe('provisional');
+    });
+
+    it('holds the count, and does not refuse it, when every relay cut the stamp lookup short', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { sameSecondJunk: 100 });
+        expect(chain?.finalBlocked).toBe('the stamp lookup did not finish on wss://a, wss://b');
         expect(result.state).toBe('provisional');
     });
 

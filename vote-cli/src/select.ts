@@ -71,7 +71,7 @@ export function requireComplete(fetched: EventsFetch | PagedFetch, what: string)
  * The ballots a tally counts. A clock-dated count rests on the ballot read
  * alone, so a read that was cut short or is below the floor can't be counted.
  * An anchored count is held provisional instead (anchoredChain, the same
- * `readShortfall`), so it needs only a relay that sent EOSE.
+ * `readShortfall`), so it needs only a relay that answered at all.
  */
 export function ballotsToCount(fetched: PagedFetch, anchored: boolean): NostrEvent[] {
     if (!anchored) return requireComplete(fetched, 'ballot');
