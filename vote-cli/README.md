@@ -18,6 +18,8 @@ npx -y @orangecheck/vote-cli tally <poll_id>
 
 Fetch the poll and all ballots from Nostr, verify every BIP-322 signature, look up UTXO state at the declared snapshot block from mempool.space, and run the pure tally function. In an anchored poll (deadline on or after 2026-11-15T00:00:00Z) it also reads every OC Stamp over each ballot and checks each anchor against block headers itself, and says whether the count is final or provisional. Output matches what any conforming implementation produces.
 
+It counts only from a complete ballot read: all but one of the relays asked (4 of the 5 defaults) must finish it, and none may cut its answer short. Otherwise a clock-dated poll's tally says it can't count and exits non-zero, and an anchored poll's count stays provisional and says why.
+
 ```
 $ oc-vote tally 3054390f047f2703186943a41178bc15931500b5139229517f26e56282026ee5
 
@@ -41,7 +43,7 @@ $ oc-vote tally 3054390f047f2703186943a41178bc15931500b5139229517f26e56282026ee5
 
 Flags:
 
-- `--relay wss://...` (repeatable) — custom relay set. Defaults to the canonical four.
+- `--relay wss://...` (repeatable) — custom relay set. Defaults to the five in `@orangecheck/nostr-core`'s `DEFAULT_RELAYS`.
 - `--mempool-base https://...` — UTXO source. Defaults to `https://mempool.space/api`.
 - `--snapshot <height>` — pin a specific snapshot block (overrides `poll.snapshot_block`).
 - `--no-verify` — skip BIP-322 checks (faster, less safe — use only for sanity probes).

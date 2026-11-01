@@ -16,8 +16,9 @@ const QUERY_TIMEOUT_MS = 8000;
 
 export interface EventsFetch {
     events: NostrEvent[];
-    /** At least one relay reached EOSE. Without that, an empty or short
-     *  result says nothing about what exists. */
+    /** The result stands for what exists. For `query`, a relay reached EOSE:
+     *  without that, an empty or short result says nothing. For `queryPaged`,
+     *  see `readShortfall`. */
     complete: boolean;
 }
 
@@ -56,15 +57,48 @@ export function fetchBallotEvents(pollId: string, relays?: readonly string[], qu
 
 /** Events per page: below every reference relay's cap, so a short page means the end. */
 export const PAGE_SIZE = 100;
-/** Pages per relay before the read is reported as cut short. */
+/** Pages per relay before the read is cut off. */
 export const MAX_PAGES = 20;
+
+/**
+ * Relays a ballot must reach for every read at the floor to hear it: the
+ * family's rule (chat-core `readFloor`, OC Chat SPEC §8.7), the one the lock,
+ * vault and ochk.io device and revocation reads use.
+ */
+export const WRITE_QUORUM = 2;
+
+/**
+ * How many of `asked` relays must finish a read in full before a count rests
+ * on it: `asked - WRITE_QUORUM + 1`, at least 1. Five asked (DEFAULT_RELAYS):
+ * four. The floor plus the quorum exceeds the relays asked, so a ballot two of
+ * them hold is in every read that meets the floor.
+ */
+export function readFloor(asked: number): number {
+    return Math.max(1, asked - WRITE_QUORUM + 1);
+}
 
 export interface RelayRead {
     relay: string;
-    /** Sent EOSE for every page. */
+    /** Finished: EOSE for every page, down to a short page. */
     answered: boolean;
-    /** Answered, but more events exist than were paged through. */
+    /** Cut off: EOSE, but more events exist than were paged through. Not an answer. */
     truncated: boolean;
+}
+
+/**
+ * Why a paged read does not stand for everything the relays hold, or null when
+ * it does. A relay that was cut off holds the count: what it did not send may
+ * be what decides it. Below the floor, a ballot only the silent relays hold
+ * may be missing.
+ */
+export function readShortfall(reads: readonly RelayRead[]): string | null {
+    const cut = reads.filter((r) => r.truncated).map((r) => r.relay);
+    if (cut.length) return `was cut short on ${cut.join(', ')}`;
+    const finished = reads.filter((r) => r.answered).length;
+    const floor = readFloor(reads.length);
+    return finished < floor
+        ? `finished on ${finished} of ${reads.length} relays, fewer than the ${floor} a count needs`
+        : null;
 }
 
 export interface PagedFetch extends EventsFetch {
@@ -92,14 +126,17 @@ async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn) {
         if (events.length < PAGE_SIZE) return done(true);
         const oldest = Math.min(...events.map((e) => e.created_at));
         // A whole page from one second cannot be paged past with `until`.
-        if (events.every((e) => e.created_at === oldest)) return done(true, true);
+        if (events.every((e) => e.created_at === oldest)) return done(false, true);
         // Inclusive: the boundary second is read again, so none of it is skipped.
         until = oldest;
     }
-    return done(true, true);
+    return done(false, true);
 }
 
-/** Every event each relay holds for `filter`, paged per relay; `complete` when any relay answered. */
+/**
+ * Every event each relay holds for `filter`, paged per relay. `complete` when
+ * no relay was cut off and at least the floor finished (`readShortfall`).
+ */
 export async function queryPaged(
     filter: Filter,
     relays: readonly string[] = DEFAULT_RELAYS,
@@ -110,7 +147,7 @@ export async function queryPaged(
     for (const r of results) for (const e of r.events) byId.set(e.id, e);
     return {
         events: [...byId.values()].sort((a, b) => b.created_at - a.created_at),
-        complete: results.some((r) => r.read.answered),
+        complete: readShortfall(results.map((r) => r.read)) === null,
         relays: results.map((r) => r.read),
     };
 }

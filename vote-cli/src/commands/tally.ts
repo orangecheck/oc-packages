@@ -5,6 +5,7 @@ import { unseal } from '@orangecheck/lock-core';
 import {
     ANCHOR_FINAL_CONFIRMATIONS,
     ballotId,
+    isAnchoredPoll,
     lastAnchorHeight,
     mempoolBlockTimeSource,
     resolvePollSnapshot,
@@ -27,7 +28,7 @@ import {
     fetchPollEvents,
     fetchRevealEvents,
 } from '../nostr.js';
-import { findPoll, requireComplete, selectReveal } from '../select.js';
+import { ballotsToCount, findPoll, requireComplete, selectReveal } from '../select.js';
 import { buildLookup, mempoolSource } from '../utxos.js';
 
 export interface TallyOptions {
@@ -158,7 +159,9 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     const poll = selected.poll;
 
     // Every copy: the tally verifies each before it picks one ballot per voter.
-    const ballots = ballotCopiesFromEvents(requireComplete(ballotFetch, 'ballot'), pid);
+    // A clock-dated poll is not counted from a ballot read cut short or below
+    // the floor; an anchored one is counted, and held provisional (anchoredChain).
+    const ballots = ballotCopiesFromEvents(ballotsToCount(ballotFetch, isAnchoredPoll(poll)), pid);
 
     // An anchored poll is counted against the chain (SPEC §4.6): the tip,
     // H_close, and each ballot's anchor from every stamp the relays hold.
