@@ -170,9 +170,14 @@ export async function queryPaged(
     };
 }
 
-/** Every event under the poll's reveal d-tag; same reasoning as `fetchPollEvents`. */
-export function fetchRevealEvents(pollId: string, relays?: readonly string[]) {
-    return query({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays);
+/**
+ * Every event under the poll's reveal d-tag, paged per relay like the ballot
+ * read. Anyone can publish under that d-tag from fresh keys, so a flood dated
+ * after the reveal pushes it out of a single read; "no reveal" stands only on
+ * a read that is `complete` (`readShortfall`).
+ */
+export function fetchRevealEvents(pollId: string, relays?: readonly string[], queryFn?: QueryFn) {
+    return queryPaged({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays, queryFn);
 }
 
 // `oc-vote-poll` marker: kind 30080 is shared with other Nostr applications.

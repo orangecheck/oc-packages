@@ -15,12 +15,13 @@ import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { closeRelayPool } from '@orangecheck/nostr-core';
-import { ballotId, pollId, type Ballot, type Poll } from '@orangecheck/vote-core';
+import { x25519 } from '@noble/curves/ed25519';
+import { ballotId, pollId, revealId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 
 import { runTally } from './commands/tally.js';
-import { buildBallotEvent, buildPollEvent } from './events.js';
+import { buildBallotEvent, buildPollEvent, buildRevealEvent } from './events.js';
 import type { NostrEvent } from './nostr.js';
 
 const CAP = 500;
@@ -341,5 +342,67 @@ describe('oc-vote tally over strfry-like relays (clock-dated poll)', { timeout: 
             error: expect.stringMatching(/^can't count: the ballot lookup finished on 3 of 5 relays, fewer than the 4 a count needs/),
             stdout: '',
         });
+    });
+});
+
+// A secret poll whose creator revealed after the deadline, and junk under the
+// reveal's d-tag from fresh keys, dated after the reveal: a read that cannot
+// get past the junk did not see the reveal, so it is no answer, never
+// "awaiting reveal" as if the creator had not revealed.
+const REVEAL_SK = '55'.repeat(32);
+const secretPoll: Poll = {
+    ...poll,
+    question: 'Ship it, secretly?',
+    mode: 'secret',
+    reveal_pk: bytesToHex(x25519.getPublicKey(hexToBytes(REVEAL_SK))),
+    sig: { alg: 'bip322', pubkey: CREATOR, value: '' },
+};
+secretPoll.sig.value = signMessage(CREATOR, pollId(secretPoll), kCreator);
+const spid = pollId(secretPoll);
+const reveal: Reveal = {
+    v: 0,
+    kind: 'oc-vote/reveal',
+    poll_id: spid,
+    reveal_sk: REVEAL_SK,
+    revealed_at: '2026-10-22T00:00:00Z',
+    sig: { alg: 'bip322', pubkey: CREATOR, value: '' },
+};
+reveal.sig.value = signMessage(CREATOR, revealId(reveal), kCreator);
+const secretPollEvent = buildPollEvent(secretPoll);
+const revealEvent = signAt(buildRevealEvent(reveal), T0 + 12 * DAY);
+/** n events under the reveal's d-tag, each from its own key, all in one second after the reveal. */
+const revealJunk = (n: number) =>
+    Array.from({ length: n }, () =>
+        signAt({ kind: 30082, tags: [['d', `oc-vote:reveal:${spid}`], ['t', spid]], content: '{}' }, FLOOD_AT)
+    );
+
+async function secretTallyOver(specs: RelaySpec[]) {
+    const relays = await Promise.all(specs.map(relay));
+    const out: string[] = [];
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        out.push(String(chunk));
+        return true;
+    });
+    try {
+        await runTally({ pollId: spid, relays, mempoolBase, json: true });
+        const r = JSON.parse(out.join('')) as { state: string; reveal_present: boolean };
+        return { state: r.state, reveal_present: r.reveal_present };
+    } catch (e) {
+        return { error: (e as Error).message };
+    } finally {
+        spy.mockRestore();
+    }
+}
+
+describe('oc-vote tally reads the reveal in full, or says it cannot count', { timeout: 60_000 }, () => {
+    it('a reveal read in full is counted', async () => {
+        const r = await secretTallyOver(Array.from({ length: 5 }, () => [secretPollEvent, revealEvent]));
+        expect(r).toEqual({ state: 'tallied', reveal_present: true });
+    });
+
+    it("500 junk events in one second after the reveal, on every relay: can't count, never awaiting reveal", async () => {
+        const junk = revealJunk(500);
+        const r = await secretTallyOver(Array.from({ length: 5 }, () => [secretPollEvent, revealEvent, ...junk]));
+        expect(r).toEqual({ error: expect.stringMatching(/^can't count: the reveal lookup was cut short on /) });
     });
 });
