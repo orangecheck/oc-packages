@@ -4,7 +4,7 @@ import { check, nostrPubkeyToHex } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
 import { checkFilterOptions } from './options';
-import { chainUnreachable } from './outage';
+import { chainUnreachable, readIncomplete } from './outage';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
 
@@ -126,6 +126,22 @@ export async function filterEvent(
 
         // Signature fine, chain API silent: an outage, handled like a throw below.
         if (chainUnreachable(result.reasons)) throw new Error('chain API unreachable');
+
+        // Everything else passed and the shared-stake read was cut off. The flood
+        // that cuts it is the key holder's to make, so failOpen never covers it:
+        // a closed lookup failure, cached only as the short circuit breaker.
+        if (readIncomplete(result.reasons)) {
+            console.warn(
+                '[orangecheck/relay-filter] lookup incomplete:',
+                (result.reasons ?? []).join(', ')
+            );
+            decision = reject('lookup_error', `orangecheck: lookup incomplete, try again later`, {
+                check: result,
+                pubkey: event.pubkey,
+            });
+            cache.set(key, decision, LOOKUP_ERROR_TTL_MS);
+            return finish(event, decision, options);
+        }
 
         if (result.ok) {
             decision = accept('ok', { check: result, pubkey: event.pubkey });
