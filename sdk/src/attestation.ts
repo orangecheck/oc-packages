@@ -19,6 +19,7 @@ import {
 } from './nostr';
 import { isNip07Available, signNostrEvent } from './nostr-crypto';
 import { createLogger } from './utils/logger';
+import { signatureIsValid } from './verify';
 
 const log = createLogger('ocp/attestation');
 
@@ -250,7 +251,11 @@ export async function discoverAttestations(
 }
 
 /**
- * Verify an attestation by fetching it from Nostr and checking integrity
+ * Fetch an attestation from Nostr and verify it: its id is the hash of its
+ * message, and its signature verifies for the address the message names
+ * (BIP-322 or legacy, no chain lookup). Null when no copy's signature
+ * verifies. The id and index tags alone prove nothing about who signed:
+ * anyone can publish a message naming any address beside a junk signature.
  */
 export async function verifyAttestationById(
     attestationId: string,
@@ -265,14 +270,17 @@ export async function verifyAttestationById(
         return null;
     }
 
-    if (envelopes.length > 1) {
-        log.warn(
-            { attestationId, count: envelopes.length },
-            'Multiple attestations found with same ID - using first'
-        );
+    for (const e of envelopes) {
+        const valid = await signatureIsValid({
+            addr: e.address,
+            msg: e.message,
+            sig: e.signature,
+            scheme: e.scheme,
+        });
+        if (valid) return e;
     }
-
-    return envelopes[0] || null;
+    log.warn({ attestationId }, 'Attestation found, but its signature does not verify');
+    return null;
 }
 
 /**
