@@ -29,7 +29,7 @@ import {
     type RevocationEnvelope,
 } from '@orangecheck/agent-core';
 import { verifySignature } from '@orangecheck/bip322';
-import { queryEvents } from '@orangecheck/nostr-core';
+import { DEFAULT_RELAYS, queryEvents, type NostrEvent } from '@orangecheck/nostr-core';
 
 // 1. Build a delegation's canonical fields and id.
 const iso = (d: Date) => d.toISOString().replace(/\.\d+Z$/, 'Z');
@@ -66,11 +66,35 @@ const envelope: DelegationEnvelope = {
 };
 
 // 4. Fetch its revocations: kind 30085 by `#t` (SPEC §9.4). Relays do not
-//    index the multi-letter `delegation` tag. Only a relay that sent EOSE
-//    can show that none exists (SPEC §10.4).
-const feed = await queryEvents({ kinds: [30085], '#t': [id] });
-if (!feed.relayStatus.some((r) => r.eose)) throw new Error('no relay answered');
-const revocations = feed.events.flatMap((e): RevocationEnvelope[] => {
+//    index the multi-letter `delegation` tag. One REQ is not enough: anyone
+//    can publish under the tag, and a relay answers newest first up to its
+//    cap, so page each relay with `until` until a page comes back short. "No
+//    revocation" stands only when at least the read floor of the relays asked
+//    (those asked, less 2, plus 1: four of five) answered in full and none was
+//    cut off (SPEC §10.4); otherwise the check is unchecked, never unrevoked.
+const PAGE = 500;
+const reads = await Promise.all(
+    DEFAULT_RELAYS.map(async (relay) => {
+        const seen = new Map<string, NostrEvent>();
+        let until: number | undefined;
+        for (let page = 0; page < 4; page++) {
+            const r = await queryEvents({ kinds: [30085], '#t': [id], limit: PAGE, ...(until ? { until } : {}) }, [relay]);
+            const s = r.relayStatus[0];
+            const before = seen.size;
+            for (const e of r.events) seen.set(e.id, e);
+            if (!s?.eose) return { events: [...seen.values()], cutOff: s ? s.events + s.rejected > 0 || seen.size > 0 : false, full: false };
+            if (s.events + s.rejected < PAGE) return { events: [...seen.values()], cutOff: false, full: true };
+            if (seen.size === before) break; // a full page stuck on one second
+            until = Math.min(...r.events.map((e) => e.created_at));
+        }
+        return { events: [...seen.values()], cutOff: true, full: false };
+    })
+);
+const floor = Math.max(1, DEFAULT_RELAYS.length - 2 + 1);
+if (reads.filter((r) => r.full).length < floor || reads.some((r) => r.cutOff)) {
+    throw new Error('revocations unchecked: too few relays answered in full, or one was cut off');
+}
+const revocations = reads.flatMap((r) => r.events).flatMap((e): RevocationEnvelope[] => {
     try {
         const r = JSON.parse(e.content);
         return r?.kind === 'agent-revocation' && r.delegation_id === id ? [r] : [];
@@ -126,7 +150,7 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 
 A revocation revokes when its signature and its revoker check out against the signed bytes. Nothing outside them decides: not the reason's content, not `v`, `id`, `kind`, `sig.pubkey` or `sig.alg`, and, for a federation, not an extra bad or repeated entry beside M valid signatures from distinct guardians. The id is computed from the signed fields; `verifyRevocation` returns it, with `flags` naming any copy that differs. A federation's grant stays strict.
 
-`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when a relay answered with EOSE and nothing matched. You may pass what the relays sent unfiltered: an entry that is not an object, or that cites the envelope and fails its own check, revokes nothing and is counted in `revocationsSkipped` on an `ok` result.
+`verifyDelegation`, `verifyAction` and `verifyFederationDelegation` refuse with `E_MALFORMED` unless you pass `revocations` or `skipRevocationCheck: true`. Fetch revocations with `{ kinds: [30085], "#t": [<delegation id>] }`; for an action under a sub-delegation chain, list every link's id. Pass `[]` only when at least the read floor of the relays asked (those asked, less 2, plus 1: four of five) answered in full, each read paged with `until` to a page shorter than its `limit`, no relay was cut off, and nothing matched (SPEC §10.4). EOSE after a full page is no answer. Otherwise the revocation check has not been performed: report it as unchecked, never as unrevoked. You may pass what the relays sent unfiltered: an entry that is not an object, or that cites the envelope and fails its own check, revokes nothing and is counted in `revocationsSkipped` on an `ok` result.
 
 Every verifier answers with a result whatever it is given, and does not throw: an input of the wrong shape is `E_MALFORMED`, and a `verifyBip322` callback that throws counts as a signature that does not verify.
 
