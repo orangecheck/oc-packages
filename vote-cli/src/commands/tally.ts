@@ -176,7 +176,8 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         poll.mode === 'secret'
             ? await selectReveal(revealFetch.events, poll, bip322Verify, chain ?? undefined)
             : null;
-    // No reveal found is only "awaiting reveal" if a relay finished answering.
+    // No reveal found is "awaiting reveal" only on a reveal read that finished:
+    // no relay cut off, and the floor answered in full. Otherwise it can't count.
     if (poll.mode === 'secret' && !reveal) requireComplete(revealFetch, 'reveal');
 
     const source = mempoolSource(opts.mempoolBase);
