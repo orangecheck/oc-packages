@@ -16,6 +16,11 @@ this file tracks the package's TS / Node / runtime API surface.
   being verified. It asked relays for that author's notes but accepted any
   validly signed note a relay returned, so a note by another key containing the
   attestation id verified the npub. `isNostrIdentityVerified` already checked this.
+- `verifyAttestationById` returns an attestation only when its signature
+  verifies for the address its message names, and null otherwise. It checked
+  only that the id is the message's hash and that the relay's index tags agree,
+  so a message naming any address beside a junk signature came back as that
+  address's attestation. A valid attestation comes back as before.
 
 ## [1.18.2] — 2026-10-25
 
