@@ -4,14 +4,17 @@
 // query returns, and that is Nostr events, the revocation envelope inside
 // `content`. agent-core reads envelopes: an entry with no `delegation_id`
 // reads as one about another delegation, so a raw event never revoked
-// anything and a revoked delegation verified OK. Each event whose content is
-// an agent-revocation is unwrapped to it here.
+// anything and a revoked delegation verified OK. Each kind-30085 event whose
+// content is a JSON object is unwrapped to it here, whatever its unsigned
+// `kind` says: agent-core decides by `delegation_id` and the signed bytes
+// (SPEC §9.1), never by that field.
 //
-// Every other entry goes to agent-core as it is: a relay can send anything
-// under a delegation's tag, and one junk entry must not stop an honest
-// verify. agent-core counts a non-object in `revocationsSkipped`, but reads an
-// object with no `delegation_id` as about another delegation and counts
-// nothing, so such objects are counted here (`unread`) for the output to add.
+// Every entry goes on to agent-core: a relay can send anything under a
+// delegation's tag, and one junk entry must not stop an honest verify.
+// agent-core counts a non-object, and an entry naming this delegation that
+// does not verify, in `revocationsSkipped`. An object with no `delegation_id`
+// it reads as about another delegation and counts nothing, so those are
+// counted here (`unread`) for the output to add.
 
 import type { RevocationEnvelope } from '@orangecheck/agent-core';
 
@@ -21,21 +24,23 @@ export const REVOCATION_KIND = 30085;
 const isObject = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** The envelope inside a kind-30085 event, or null when it carries none. */
-function carried(entry: Record<string, unknown>): Record<string, unknown> | null {
-    if (entry.kind !== REVOCATION_KIND || typeof entry.content !== 'string') return null;
+/** A kind-30085 event's content when it is a JSON object, else the entry as it came. */
+function unwrapped(entry: unknown): unknown {
+    if (!isObject(entry) || entry.kind !== REVOCATION_KIND || typeof entry.content !== 'string') {
+        return entry;
+    }
     try {
         const inner: unknown = JSON.parse(entry.content);
-        return isObject(inner) && inner.kind === 'agent-revocation' ? inner : null;
+        return isObject(inner) ? inner : entry;
     } catch {
-        return null;
+        return entry;
     }
 }
 
 /**
- * The entries of a `--revocations` file for agent-core: kind-30085 events
- * carrying an agent-revocation unwrapped to it, everything else as it is.
- * `unread` counts the objects that are neither a revocation nor carry one.
+ * The entries of a `--revocations` file for agent-core, each kind-30085 event
+ * unwrapped to its content. `unread` counts the objects that, unwrapped, name
+ * no delegation (no string `delegation_id`), which agent-core does not count.
  */
 export function readRevocations(
     input: unknown,
@@ -48,13 +53,9 @@ export function readRevocations(
             message: '--revocations must be a JSON array of revocations or kind-30085 events',
         };
     }
-    let unread = 0;
-    const revocations = input.map((entry: unknown) => {
-        if (!isObject(entry) || entry.kind === 'agent-revocation') return entry;
-        const inner = carried(entry);
-        if (inner) return inner;
-        unread++;
-        return entry;
-    });
+    const revocations = input.map(unwrapped);
+    const unread = revocations.filter(
+        (e) => isObject(e) && typeof e.delegation_id !== 'string',
+    ).length;
     return { ok: true, revocations: revocations as RevocationEnvelope[], unread };
 }

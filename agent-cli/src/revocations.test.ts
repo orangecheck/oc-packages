@@ -183,6 +183,39 @@ describe('oc-agent verify --revocations', () => {
         expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 1 });
     });
 
+    // review-me's probe: the unsigned `kind` field decides nothing (SPEC §9.1).
+    describe('a revocation is applied whatever its unsigned kind field says', () => {
+        const { kind: _kind, ...noKind } = rev as unknown as Record<string, unknown>;
+        const otherKind = { ...rev, kind: 'revocation' };
+        it.each([
+            ['an event carrying a revocation with no kind', [asEvent(noKind as never)]],
+            [
+                'an event carrying a revocation with kind "revocation"',
+                [asEvent(otherKind as never)],
+            ],
+            ['a bare revocation with no kind', [noKind]],
+            [
+                'junk beside a real event',
+                [{ kind: REVOCATION_KIND, content: 'not json' }, asEvent(rev)],
+            ],
+        ])('%s: E_REVOKED', (_what, revs) => {
+            const r = verify(d, revs);
+            expect(r.status, r.out).toBe(1);
+            expect(r.out).toContain('E_REVOKED');
+        });
+        it.each([
+            ['a junk object naming this delegation', [{ kind: 'junk', delegation_id: d.id }]],
+            [
+                'a kind-30085 event whose content is not JSON',
+                [{ kind: REVOCATION_KIND, content: 'not json' }],
+            ],
+        ])('%s: OK, counted once', (_what, revs) => {
+            const r = verify(d, revs);
+            expect(r.status, r.out).toBe(0);
+            expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 1 });
+        });
+    });
+
     it('refuses only a file that is not a JSON array', () => {
         const r = verify(d, { not: 'an array' });
         expect(r.status, r.out).toBe(1);
