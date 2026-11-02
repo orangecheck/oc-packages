@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0] — 2026-11-02
+
+### Changed
+
+- `VaultClient.fetchBlob` answers `null` only for a 404, a blob deleted since
+  the listing. Any other failure (a refusal, an outage, a network error)
+  throws; it is not an absence.
+- `VaultClient.fetchBlobs` throws `BlobsUnread` when any blob couldn't be
+  read, once every fetch has settled. It returned the blobs it did read
+  before, which a caller took for the whole vault. `BlobsUnread` carries
+  `fetched`, `failed` (each ref with why) and `listed`. A gone blob is still
+  left out. `OcVault.open` therefore never opens with entries missing.
+
 ## [0.5.0] — 2026-10-31
 
 ### Changed

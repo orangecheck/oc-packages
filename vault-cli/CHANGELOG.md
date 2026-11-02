@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4
+
+- `sync` and `login` write the cache only when every listed entry was
+  fetched. A blob that couldn't be read (a 401, 402, 429, 5xx or network
+  error) was left out before, and `Synced · N entries.` then replaced the
+  cache with the shorter set, so those entries were gone offline. Now `sync`
+  keeps the cache it had, `login` caches nothing, and each exits 1 saying how
+  many entries were missed.
+
 ## 0.3.3
 
 - **Security:** `oc-vault export --github` masks every line of a multi-line

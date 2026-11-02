@@ -32,6 +32,27 @@ export class SyncNotPaid extends Error {
     }
 }
 
+/** A 404 from the API: the thing asked for is not there (a blob deleted since the listing). */
+class Gone extends Error {}
+
+/**
+ * Thrown by `fetchBlobs` when some blobs could not be read (a refusal, an
+ * outage, a network error; not a blob that is gone). `fetched` holds the ones
+ * that were read and `failed` the rest with why, so a caller never mistakes a
+ * partial pull for the whole vault.
+ */
+export class BlobsUnread extends Error {
+    constructor(
+        readonly fetched: FetchedBlob[],
+        readonly failed: { ref: BlobRef; reason: string }[],
+        readonly listed: number
+    ) {
+        const why = failed[0]?.reason ?? 'unknown';
+        super(`${failed.length} of ${listed} vault entries couldn't be fetched (${why})`);
+        this.name = 'BlobsUnread';
+    }
+}
+
 /** A change-manifest entry — an envelope id and when it last changed. */
 export interface BlobRef {
     envelope_id: string;
@@ -95,6 +116,7 @@ export class VaultClient {
         }
         if (res.status === 401) throw new NotSignedIn();
         if (res.status === 402) throw new SyncNotPaid();
+        if (res.status === 404) throw new Gone(`not found · ${path}`);
         const json = (await res.json().catch(() => ({}))) as {
             ok?: boolean;
             reason?: string;
@@ -131,30 +153,42 @@ export class VaultClient {
         return blobs ?? [];
     }
 
-    /** One blob's packed ciphertext, or null when it is gone. */
+    /**
+     * One blob's packed ciphertext, or null when it is gone (a 404: deleted
+     * since the listing). Any other failure throws: it is not an absence.
+     */
     async fetchBlob(envelopeId: string): Promise<string | null> {
         try {
             const { ciphertext } = await this.api<{ ciphertext: string }>(
                 `/api/blobs/${encodeURIComponent(envelopeId)}`
             );
             return ciphertext ?? null;
-        } catch {
-            return null;
+        } catch (err) {
+            if (err instanceof Gone) return null;
+            throw err;
         }
     }
 
     /**
      * Fetch many blobs with bounded concurrency — fast, but not a thundering
-     * herd against the rate limiter. A blob that fails transiently is
-     * omitted; the next sync re-fetches it.
+     * herd against the rate limiter. A blob that is gone is left out. If any
+     * other blob could not be read, this throws `BlobsUnread` once every fetch
+     * has settled, so a partial pull is never returned as the whole vault.
      */
     async fetchBlobs(refs: BlobRef[], concurrency = 8): Promise<FetchedBlob[]> {
         const out: FetchedBlob[] = [];
+        const failed: { ref: BlobRef; reason: string }[] = [];
         let cursor = 0;
         const worker = async (): Promise<void> => {
             while (cursor < refs.length) {
                 const ref = refs[cursor++]!;
-                const ciphertext = await this.fetchBlob(ref.envelope_id);
+                let ciphertext: string | null;
+                try {
+                    ciphertext = await this.fetchBlob(ref.envelope_id);
+                } catch (err) {
+                    failed.push({ ref, reason: err instanceof Error ? err.message : String(err) });
+                    continue;
+                }
                 if (ciphertext) {
                     out.push({
                         envelope_id: ref.envelope_id,
@@ -167,6 +201,7 @@ export class VaultClient {
         await Promise.all(
             Array.from({ length: Math.min(concurrency, refs.length || 1) }, () => worker())
         );
+        if (failed.length) throw new BlobsUnread(out, failed, refs.length);
         return out;
     }
 
