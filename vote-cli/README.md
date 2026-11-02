@@ -49,6 +49,16 @@ Flags:
 - `--no-verify` — skip BIP-322 checks (faster, less safe — use only for sanity probes).
 - `--json` — JSON output instead of the human-readable bar chart.
 
+### `oc-vote vote --poll <poll_id> --voter <address> --option <id>`
+
+Build the ballot, have it signed (`--sig`, or paste a BIP-322 signature of the printed ballot_id), publish it, then ask each relay alone for it back. The ballot is in only once at least 2 relays serve a copy whose ballot signature and Nostr signature both hold; an OK from a relay is not enough. Below that it says the ballot isn't in yet, prints the signed event, and exits 2.
+
+- `--json` — `in`, `served_by`, `asked`, `quorum` and the signed `event`.
+
+### `oc-vote republish <file>`
+
+Send a signed ballot event again, as it is, from the `event:` line `vote` printed or its `--json` output. Nothing new is signed. Same read-back, same exit status: 0 once the ballot is in, 2 while it isn't.
+
 ### `oc-vote verify <poll_id>`
 
 Verify every BIP-322 signature on the poll and on each ballot. Prints a short summary; `--json` gives per-ballot details.

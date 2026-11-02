@@ -10,6 +10,7 @@
  *   write (headless — signature via --sig or interactive paste):
  *     oc-vote create                      build + sign + publish a poll
  *     oc-vote vote                        cast a ballot (public or secret)
+ *     oc-vote republish <file>            send a signed ballot event again
  *     oc-vote reveal                      publish the reveal event
  *
  *   utility:
@@ -19,12 +20,15 @@
  * Swap via --relay wss://... (repeatable) and --mempool-base https://...
  */
 
+import { createRequire } from 'node:module';
+
 import { Command, Option } from 'commander';
 import WebSocket from 'ws';
 
 import { runCreate } from './commands/create.js';
 import { runDiscover } from './commands/discover.js';
 import { runGenRevealKey } from './commands/gen-reveal-key.js';
+import { runRepublish } from './commands/republish.js';
 import { runReveal } from './commands/reveal.js';
 import { runShow } from './commands/show.js';
 import { runTally } from './commands/tally.js';
@@ -35,6 +39,9 @@ import { runVote } from './commands/vote.js';
 if (typeof globalThis.WebSocket === 'undefined') {
     (globalThis as { WebSocket?: unknown }).WebSocket = WebSocket;
 }
+
+// The installed package's own version, so `--version` can't drift from a release.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
 
 const program = new Command();
 
@@ -73,7 +80,7 @@ function parseSnapshot(raw: string): number | 'deadline' {
 program
     .name('oc-vote')
     .description('OC Vote — sovereign signaling for the open web')
-    .version('0.2.0');
+    .version(version);
 
 // ── read ──────────────────────────────────────────────────────────────────
 
@@ -201,7 +208,9 @@ program
 
 program
     .command('vote')
-    .description('Cast a ballot on a poll')
+    .description(
+        'Cast a ballot on a poll. It is in once 2 relays, each asked alone, serve it back; below that it exits 2 (see republish)'
+    )
     .requiredOption('--poll <poll_id>', '64-hex poll id')
     .requiredOption('--voter <btc-addr>', 'voter Bitcoin address')
     .requiredOption('--option <id>', 'chosen option id')
@@ -217,6 +226,21 @@ program
             sig: opts.sig ? String(opts.sig) : undefined,
             relays: (opts.relay as string[] | undefined)?.length ? (opts.relay as string[]) : undefined,
             dryRun: Boolean(opts.dryRun),
+            json: Boolean(opts.json),
+        });
+    });
+
+program
+    .command('republish <file>')
+    .description(
+        'Send a signed ballot event again, as it is (from vote --json, or its event: line), and ask each relay for it back'
+    )
+    .option('--relay <url>', 'Nostr relay (repeatable)', collectRelay, [] as string[])
+    .option('--json', 'Emit JSON')
+    .action(async (file: string, opts: Record<string, unknown>) => {
+        await runRepublish({
+            file,
+            relays: (opts.relay as string[] | undefined)?.length ? (opts.relay as string[]) : undefined,
             json: Boolean(opts.json),
         });
     });

@@ -110,7 +110,11 @@ export interface PagedFetch extends EventsFetch {
 
 export type QueryFn = (filter: Filter, relays: readonly string[], timeoutMs?: number) => Promise<QueryResult>;
 
-async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn) {
+/**
+ * Every event one relay holds for `filter`, that relay asked alone, page by page
+ * under one deadline for the whole read.
+ */
+export async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn) {
     const byId = new Map<string, NostrEvent>();
     const done = (answered: boolean, truncated = false) => ({
         events: [...byId.values()],
