@@ -1,7 +1,7 @@
 // oc-vote vote — build + sign + publish a ballot, then ask each relay alone for
 // it back. It is in only once min(2, asked) relays serve a valid copy (quorum.ts);
 // below that it says so and exits 2, and `oc-vote republish` sends the same
-// signed event again.
+// signed event again. An anchored poll's ballot stamp is read back the same way.
 //
 // Public mode: just --poll --voter --option --sig.
 // Secret mode: additionally --reveal-pk (from the poll); we seal the option
@@ -16,8 +16,9 @@ import { bip322Verify } from '../bip322.js';
 
 import { stampBallot } from '../anchors.js';
 import { buildBallotEvent, buildStampEvent } from '../events.js';
-import { DEFAULT_RELAYS, fetchPollEvents, publishEvent, type NostrEvent } from '../nostr.js';
-import { ballotIsIn, castBallot, writeQuorum } from '../quorum.js';
+import { DEFAULT_RELAYS, fetchPollEvents } from '../nostr.js';
+import { castBallot, castEvent, relaysServingStamp } from '../quorum.js';
+import { report, type Standing } from '../report.js';
 import { findPoll } from '../select.js';
 import { promptForSignature } from '../sig.js';
 
@@ -98,109 +99,30 @@ export async function runVote(opts: VoteOptions): Promise<void> {
     const serving = await castBallot(pub, draft, [], { relays });
 
     // SPEC §4.6: in an anchored poll the voter's client stamps the ballot it
-    // publishes, once a relay serves it back.
-    let stamped: { relays: number; total: number } | { error: string } | null = null;
+    // publishes, once a relay serves it back. A final count reads stamps at the
+    // read floor, so the stamp is read back the same way as the ballot.
+    let stamp: Standing | { error: string } | null = null;
     if (serving.length > 0 && isAnchoredPoll(poll)) {
         try {
             const env = await stampBallot(draft);
-            const sent = await publishEvent(buildStampEvent(env), relays);
-            stamped = { relays: sent.filter((r) => r.ok).length, total: sent.length };
+            const event = buildStampEvent(env);
+            const on = await castEvent(event, [], () => relaysServingStamp(env, { relays }), { relays });
+            stamp = { kind: 'stamp', event, relays, serving: on };
         } catch (e) {
-            stamped = { error: (e as Error).message };
+            stamp = { error: (e as Error).message };
         }
     }
 
-    reportCast({
-        ballot: draft,
-        event: pub,
-        relays,
-        serving,
-        json: Boolean(opts.json),
+    report({
+        id: ['ballot_id', bid],
         heading: [
             ['poll', poll.question],
             ['voter', opts.voter],
             ['option', `${opts.option}${poll.mode === 'secret' ? ' (sealed)' : ''}`],
         ],
-        stamped,
+        main: { kind: 'ballot', event: pub, relays, serving },
+        stamp,
+        json: Boolean(opts.json),
+        jsonExtra: { ballot: draft },
     });
-}
-
-/** Exit status when the ballot is published but not in yet. */
-export const NOT_IN_YET = 2;
-
-export interface CastReport {
-    ballot: Ballot;
-    event: NostrEvent;
-    relays: readonly string[];
-    serving: readonly string[];
-    json: boolean;
-    heading?: [string, string][];
-    stamped?: { relays: number; total: number } | { error: string } | null;
-    /** The file the signed event came from, for the "again" line. */
-    file?: string;
-}
-
-/**
- * Where a published ballot stands, from the relays that serve it back, each
- * asked alone. Never more than the read-back showed. Below min(2, asked) it
- * says the ballot isn't in yet, gives the signed event to send again, and sets
- * the exit status to NOT_IN_YET.
- */
-export function reportCast(r: CastReport): void {
-    const asked = r.relays.length;
-    const isIn = ballotIsIn(r.serving.length, asked);
-    if (!isIn) process.exitCode = NOT_IN_YET;
-    const bid = ballotId(r.ballot);
-
-    if (r.json) {
-        process.stdout.write(
-            JSON.stringify(
-                {
-                    ballot_id: bid,
-                    in: isIn,
-                    served_by: r.serving,
-                    asked,
-                    quorum: writeQuorum(asked),
-                    ...(r.stamped ? { stamp: r.stamped } : {}),
-                    ballot: r.ballot,
-                    event: r.event,
-                },
-                null,
-                2
-            ) + '\n'
-        );
-        return;
-    }
-
-    const w = (s: string) => process.stdout.write(s);
-    w(`\n  ballot_id:  ${bid}\n`);
-    for (const [k, v] of r.heading ?? []) w(`  ${`${k}:`.padEnd(12)}${v}\n`);
-    if (isIn) {
-        w(`  in:         yes, ${r.serving.length} of ${asked} relays serve it back\n`);
-    } else if (r.serving.length === 0) {
-        w(`  in:         not yet: no relay serves it back, so a count would not see it\n`);
-    } else {
-        w(
-            `  in:         not yet: only ${r.serving.length} of ${asked} relays serves it back, ` +
-                `and a count is sure to see it only once ${writeQuorum(asked)} do\n`
-        );
-    }
-    for (const relay of r.relays) w(`    ${r.serving.includes(relay) ? '✓' : '✗'} ${relay}\n`);
-    if (!isIn) {
-        if (r.file) {
-            w(`  again:      oc-vote republish ${r.file}\n`);
-            w(`              sends the same signed ballot, with nothing new to sign\n`);
-        } else {
-            w(`  again:      save the signed event below to a file and run oc-vote republish <file>;\n`);
-            w(`              it sends the same signed ballot, with nothing new to sign\n`);
-            w(`  event:      ${JSON.stringify(r.event)}\n`);
-        }
-    }
-    const stamped = r.stamped;
-    if (stamped && 'error' in stamped) {
-        w(`  stamp:      not made here (${stamped.error}); vote.ochk.io's anchorer stamps every ballot it sees\n`);
-    } else if (stamped) {
-        w(`  stamp:      published to ${stamped.relays}/${stamped.total} relays; a Bitcoin block usually anchors it within an hour or two\n`);
-    }
-    w(`\n`);
 }

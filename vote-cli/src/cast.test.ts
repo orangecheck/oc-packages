@@ -1,11 +1,12 @@
-// `oc-vote vote` and `oc-vote republish` end to end, over relays on 127.0.0.1
-// that say OK to every EVENT and keep it, keep nothing, or keep a forged copy.
-// Real WebSockets, real Nostr signatures and BIP-322 ballots; the wallet is a
-// stand-in that signs with a throwaway key. Nothing leaves 127.0.0.1.
+// `oc-vote create`, `vote`, `reveal` and `republish` end to end, over relays on
+// 127.0.0.1 that say OK to every EVENT and keep it, keep nothing, or keep a
+// forged copy. Real WebSockets, real Nostr signatures, BIP-322 polls, ballots and
+// reveals, and OC Stamps; the wallet is a stand-in that signs with throwaway
+// keys. Nothing leaves 127.0.0.1.
 //
-// A ballot is in only once min(2, asked) relays, each asked alone, serve a
-// valid copy back. Below that the command says so, exits 2, and gives the
-// signed event, which `republish` sends again as it is.
+// A poll, ballot, reveal or ballot stamp is in only once min(2, asked) relays,
+// each asked alone, serve a valid copy back. Below that the command says so,
+// exits 2, and gives the signed event, which `republish` sends again as it is.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,11 +15,13 @@ import type { AddressInfo } from 'node:net';
 
 import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { closeRelayPool } from '@orangecheck/nostr-core';
-import { ballotId, pollId, type Ballot, type Poll } from '@orangecheck/vote-core';
+import { hexEncode, generateX25519KeyPair } from '@orangecheck/lock-crypto';
+import type { StampEnvelope } from '@orangecheck/stamp-core';
+import { ballotId, pollId, revealId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 
-import { buildBallotEvent, buildPollEvent } from './events.js';
+import { buildBallotEvent, buildPollEvent, buildRevealEvent, buildStampEvent } from './events.js';
 import type { NostrEvent } from './nostr.js';
 
 const kCreator = '11'.repeat(32);
@@ -28,26 +31,44 @@ const CREATOR = addressFromPrivateKey(kCreator, 'p2wpkh');
 const VOTER = addressFromPrivateKey(kVoter, 'p2wpkh');
 const STRANGER = addressFromPrivateKey(kStranger, 'p2wpkh');
 
-// The wallet: signs what it is shown with the voter's throwaway key, and counts.
-const wallet = vi.hoisted(() => ({ signs: 0 }));
+// The wallet: signs what it is shown with that address's throwaway key, and counts.
+const wallet = vi.hoisted(() => ({ signs: 0, keys: {} as Record<string, string> }));
 vi.mock('./sig.js', () => ({
     promptForSignature: async (address: string, id: string) => {
         wallet.signs++;
-        return signMessage(address, id, '22'.repeat(32));
+        return signMessage(address, id, wallet.keys[address]!);
     },
 }));
+wallet.keys[CREATOR] = kCreator;
+wallet.keys[VOTER] = kVoter;
 
-// An anchored poll's ballot is stamped by the voter's client; here the stamp
-// is only counted, and no calendar is reached.
-const stamping = vi.hoisted(() => ({ calls: 0 }));
-vi.mock('./anchors.js', async (actual) => ({
-    ...(await actual<typeof import('./anchors.js')>()),
-    stampBallot: async () => {
-        stamping.calls++;
-        throw new Error('no calendar here');
-    },
-}));
+// An anchored poll's ballot is stamped by the voter's client. No calendar is
+// reached: the stamp is counted, and either fails or is made without a proof.
+const stamping = vi.hoisted(() => ({ calls: 0, make: false }));
+vi.mock('./anchors.js', async (actual) => {
+    const real = await actual<typeof import('./anchors.js')>();
+    const { stamp } = await import('@orangecheck/stamp-core');
+    const { ballotStampContent } = await import('@orangecheck/vote-core');
+    const bip322 = await import('@orangecheck/bip322');
+    return {
+        ...real,
+        stampBallot: async (ballot: Ballot) => {
+            stamping.calls++;
+            if (!stamping.make) throw new Error('no calendar here');
+            const key = '77'.repeat(32);
+            const address = bip322.addressFromPrivateKey(key, 'p2wpkh');
+            const c = ballotStampContent(ballot);
+            return stamp({
+                content: { hash: c.hash, length: c.length },
+                mime: c.mime,
+                signer: { address, signMessage: async (m: string) => bip322.signMessage(address, m, key) },
+            });
+        },
+    };
+});
 
+import { runCreate } from './commands/create.js';
+import { runReveal } from './commands/reveal.js';
 import { runVote } from './commands/vote.js';
 
 // Clock-dated (before the 2026-11-15 cutover), so no stamp is made.
@@ -77,22 +98,31 @@ poll.sig.value = signMessage(CREATOR, pollId(poll), kCreator);
 const pid = pollId(poll);
 const pollEvent = buildPollEvent(poll);
 
-/** What a relay does with a ballot it is sent; it says OK either way. */
+/** What a relay does with an event it is sent; it says OK either way. */
 type Mode = 'keep' | 'drop' | 'junk-sig' | 'bad-nostr';
 
 interface Relay {
     url: string;
     mode: Mode;
+    /** For stamps (kind 30083), when it differs from `mode`. */
+    stampMode?: Mode;
     store: NostrEvent[];
     received: NostrEvent[];
 }
 
-/** The ballot in `ev` signed by someone else, under the same ballot_id, in a fresh event. */
+/** The object in `ev` signed by someone else, under the same id, in a fresh event. */
 function junkSig(ev: NostrEvent): NostrEvent {
-    const b = JSON.parse(ev.content) as Ballot;
-    const junk = { ...b, sig: { ...b.sig, value: signMessage(STRANGER, ballotId(b), kStranger) } };
-    expect(ballotId(junk)).toBe(ballotId(b));
-    return buildBallotEvent(junk);
+    const o = JSON.parse(ev.content);
+    const by = (id: string) => signMessage(STRANGER, id, kStranger);
+    if (ev.kind === 30080) return buildPollEvent({ ...o, sig: { ...o.sig, value: by(pollId(o)) } });
+    if (ev.kind === 30081) {
+        const junk = { ...o, sig: { ...o.sig, value: by(ballotId(o)) } };
+        expect(ballotId(junk)).toBe(ballotId(o));
+        return buildBallotEvent(junk);
+    }
+    if (ev.kind === 30082) return buildRevealEvent({ ...o, sig: { ...o.sig, value: by(revealId(o)) } });
+    const env = o as StampEnvelope;
+    return buildStampEvent({ ...env, sig: { ...env.sig, value: by(env.id) } });
 }
 
 /** `ev` with its Nostr signature broken: id and content unchanged. */
@@ -113,7 +143,7 @@ function matches(e: NostrEvent, f: Record<string, unknown>): boolean {
 
 const closers: Array<() => Promise<void>> = [];
 
-/** A relay at 127.0.0.1 holding `polls`, answering like strfry, doing `mode` with ballots. */
+/** A relay at 127.0.0.1 holding `polls`, answering like strfry, doing `mode` with what it is sent. */
 async function relay(mode: Mode, polls: NostrEvent[] = [pollEvent]): Promise<Relay> {
     const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
     await new Promise((r) => wss.once('listening', r));
@@ -124,11 +154,10 @@ async function relay(mode: Mode, polls: NostrEvent[] = [pollEvent]): Promise<Rel
             if (msg[0] === 'EVENT') {
                 const ev = msg[1] as NostrEvent;
                 r.received.push(ev);
-                if (ev.kind === 30081) {
-                    if (r.mode === 'keep') r.store.push(ev);
-                    if (r.mode === 'junk-sig') r.store.push(junkSig(ev));
-                    if (r.mode === 'bad-nostr') r.store.push(badNostr(ev));
-                } else r.store.push(ev);
+                const mode = ev.kind === 30083 ? (r.stampMode ?? r.mode) : r.mode;
+                if (mode === 'keep') r.store.push(ev);
+                if (mode === 'junk-sig') r.store.push(junkSig(ev));
+                if (mode === 'bad-nostr') r.store.push(badNostr(ev));
                 ws.send(JSON.stringify(['OK', ev.id, true, '']));
                 return;
             }
@@ -177,6 +206,7 @@ afterEach(async () => {
     process.exitCode = undefined;
     wallet.signs = 0;
     stamping.calls = 0;
+    stamping.make = false;
     vi.restoreAllMocks();
     closeRelayPool();
     await Promise.all(closers.splice(0).map((c) => c()));
@@ -342,5 +372,239 @@ describe('oc-vote republish', () => {
         writeFileSync(broken, JSON.stringify(badNostr(real)));
         await expect(republish(rs, broken)).rejects.toThrow(/id or signature doesn't hold/);
         expect(rs.flatMap((r) => r.received)).toEqual([]);
+    });
+});
+
+/** Five relays doing `modes` with what they are sent, each holding `polls`. */
+const five = (modes: Mode[], polls: NostrEvent[] = [pollEvent]) => Promise.all(modes.map((m) => relay(m, polls)));
+const sent = (rs: Relay[], kind: number) => rs.flatMap((r) => r.received.filter((e) => e.kind === kind));
+
+const create = (rs: Relay[], json = true) =>
+    captured(() =>
+        runCreate({
+            creator: CREATOR,
+            question: 'Merge it?',
+            options: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No' },
+            ],
+            deadline: '2026-11-10T00:00:00Z',
+            snapshotBlock: 'deadline',
+            weightMode: 'one_per_address',
+            minSats: 0,
+            minDays: 0,
+            tiebreak: 'latest',
+            mode: 'public',
+            relays: rs.map((r) => r.url),
+            json,
+        })
+    );
+
+describe('oc-vote create', () => {
+    it('publishes a poll only once 2 relays serve it back; below that it exits 2', async () => {
+        for (const n of [0, 1, 2]) {
+            const rs = await five([0, 1, 2, 3, 4].map((i) => (i < n ? 'keep' : 'drop')), []);
+            const { out, exit } = await create(rs);
+            const got = JSON.parse(out);
+            expect(sent(rs, 30080)).toHaveLength(5);
+            expect(got.in).toBe(n >= 2);
+            expect(got.served_by).toEqual(rs.slice(0, n).map((r) => r.url));
+            expect(got.event.kind).toBe(30080);
+            expect(got).not.toHaveProperty('published');
+            expect(exit).toBe(n >= 2 ? 0 : 2);
+        }
+    });
+
+    it('does not count a copy under the poll id signed by someone else, or one whose Nostr signature fails', async () => {
+        const rs = await five(['keep', 'junk-sig', 'bad-nostr', 'drop', 'drop'], []);
+        const got = JSON.parse((await create(rs)).out);
+        expect(rs[1]!.store.some((e) => e.kind === 30080 && pollId(JSON.parse(e.content)) === got.poll_id)).toBe(true);
+        expect(rs[2]!.store.some((e) => e.id === got.event.id && e.sig !== got.event.sig)).toBe(true);
+        expect(got.served_by).toEqual([rs[0]!.url]);
+    });
+
+    it('says plainly what the read-back showed; republish sends the same poll, so its id and ballots stay', async () => {
+        const rs = await five(['keep', 'drop', 'drop', 'drop', 'drop'], []);
+        const first = await create(rs, false);
+        expect(first.exit).toBe(2);
+        expect(first.out).toContain(
+            'published:  not yet: only 1 of 5 relays serves it back, and it is sure to be found only once 2 do'
+        );
+        expect(first.out).toContain('it sends the same signed poll, with nothing new to sign');
+        const line = /^ {2}event: {6}(.+)$/m.exec(first.out)![1]!;
+        const id = /^ {2}poll_id: {4}([0-9a-f]{64})$/m.exec(first.out)![1]!;
+        const file = join(dir, 'poll.json');
+        writeFileSync(file, line);
+        rs[1]!.mode = 'keep';
+        const again = await republish(rs, file);
+        const got = JSON.parse(again.out);
+        expect([got.poll_id, got.in, again.exit]).toEqual([id, true, 0]);
+        expect(got.served_by).toEqual([rs[0]!.url, rs[1]!.url]);
+        expect(new Set(sent(rs, 30080).map((e) => e.id))).toEqual(new Set([JSON.parse(line).id]));
+        expect(wallet.signs).toBe(1);
+
+        const none = await create(await five(['drop', 'drop', 'drop', 'drop', 'drop'], []), false);
+        expect(none.out).toContain('published:  not yet: no relay serves it back, so no one can find it');
+    });
+});
+
+// A secret poll whose clock-dated deadline has passed, so its reveal counts now.
+const keys = generateX25519KeyPair();
+const secretPoll: Poll = {
+    ...poll,
+    question: 'Sealed?',
+    deadline: '2026-10-21T00:00:00Z',
+    mode: 'secret',
+    reveal_pk: hexEncode(keys.public),
+    sig: { ...poll.sig },
+};
+secretPoll.sig.value = signMessage(CREATOR, pollId(secretPoll), kCreator);
+const spid = pollId(secretPoll);
+const secretEvent = buildPollEvent(secretPoll);
+
+const reveal = (rs: Relay[], json = true) =>
+    captured(() =>
+        runReveal({ pollId: spid, revealSk: hexEncode(keys.secret), creator: CREATOR, relays: rs.map((r) => r.url), json })
+    );
+
+describe('oc-vote reveal', () => {
+    it('publishes a reveal only once 2 relays serve it back; below that it exits 2', async () => {
+        for (const n of [0, 1, 2]) {
+            const rs = await five([0, 1, 2, 3, 4].map((i) => (i < n ? 'keep' : 'drop')), [secretEvent]);
+            const { out, exit } = await reveal(rs);
+            const got = JSON.parse(out);
+            expect(sent(rs, 30082)).toHaveLength(5);
+            expect([got.in, exit]).toEqual([n >= 2, n >= 2 ? 0 : 2]);
+            expect(got.served_by).toEqual(rs.slice(0, n).map((r) => r.url));
+            expect(got).not.toHaveProperty('published');
+        }
+    });
+
+    it('does not count a copy under the reveal id signed by someone else, or one whose Nostr signature fails', async () => {
+        const rs = await five(['keep', 'junk-sig', 'bad-nostr', 'drop', 'drop'], [secretEvent]);
+        const got = JSON.parse((await reveal(rs)).out);
+        expect(rs[1]!.store.some((e) => e.kind === 30082 && revealId(JSON.parse(e.content)) === got.reveal_id)).toBe(true);
+        expect(got.served_by).toEqual([rs[0]!.url]);
+        expect(got.in).toBe(false);
+    });
+
+    it('run again, sends the reveal already signed, as it is, to the relays that lack it', async () => {
+        const rs = await five(['keep', 'drop', 'drop', 'drop', 'drop'], [secretEvent]);
+        const first = JSON.parse((await reveal(rs)).out);
+        expect(first.in).toBe(false);
+        rs[1]!.mode = 'keep';
+        const again = await reveal(rs, false);
+        expect(again.exit).toBe(0);
+        expect(again.out).toContain('published:  yes, 2 of 5 relays serve it back');
+        expect(again.out).toContain('signed earlier and found on the relays');
+        expect(wallet.signs).toBe(1);
+        expect(new Set(sent(rs, 30082).map((e) => e.id))).toEqual(new Set([first.event.id]));
+        // Only the relays that did not serve it were sent it again.
+        expect(rs[0]!.received.filter((e) => e.kind === 30082)).toHaveLength(1);
+    });
+
+    it('republish sends a saved reveal again, checked against its poll', async () => {
+        const rs = await five(['keep', 'drop', 'drop', 'drop', 'drop'], [secretEvent]);
+        const first = await reveal(rs);
+        const file = join(dir, 'reveal.json');
+        writeFileSync(file, first.out);
+        rs[2]!.mode = 'keep';
+        const again = await republish(rs, file);
+        const got = JSON.parse(again.out);
+        expect([got.in, again.exit]).toEqual([true, 0]);
+        expect(got.served_by).toEqual([rs[0]!.url, rs[2]!.url]);
+    });
+});
+
+describe('oc-vote republish refuses', () => {
+    it('a poll, reveal or stamp that does not verify, and sends nothing', async () => {
+        const rs = await five(['keep', 'keep', 'keep', 'keep', 'keep'], [secretEvent]);
+        const forged = async (name: string, ev: NostrEvent) => {
+            const file = join(dir, name);
+            writeFileSync(file, JSON.stringify(junkSig(ev)));
+            return republish(rs, file);
+        };
+        await expect(forged('poll.json', secretEvent)).rejects.toThrow(/poll's signature doesn't verify/);
+        const r: Reveal = {
+            v: 0,
+            kind: 'oc-vote/reveal',
+            poll_id: spid,
+            reveal_sk: hexEncode(keys.secret),
+            revealed_at: '2026-10-22T00:00:00Z',
+            sig: { alg: 'bip322', pubkey: CREATOR, value: '' },
+        };
+        r.sig.value = signMessage(CREATOR, revealId(r), kCreator);
+        await expect(forged('reveal.json', buildRevealEvent(r))).rejects.toThrow(/reveal doesn't verify against its poll/);
+        stamping.make = true;
+        const { stampBallot } = await import('./anchors.js');
+        const b: Ballot = {
+            v: 0,
+            kind: 'oc-vote/ballot',
+            poll_id: spid,
+            voter: VOTER,
+            option: null,
+            attestation_id: null,
+            secret: null,
+            created_at: '2026-10-20T00:00:00Z',
+            sig: { alg: 'bip322', pubkey: VOTER, value: '' },
+        };
+        b.sig.value = signMessage(VOTER, ballotId(b), kVoter);
+        const real = await stampBallot(b);
+        await expect(forged('stamp.json', buildStampEvent(real))).rejects.toThrow(/stamp's signature doesn't verify/);
+        expect(rs.flatMap((x) => x.received)).toEqual([]);
+    });
+});
+
+describe('an anchored poll’s ballot stamp', () => {
+    const anchored: Poll = { ...poll, question: 'Anchored stamp?', deadline: '2026-12-01T00:00:00Z', sig: { ...poll.sig } };
+    anchored.sig.value = signMessage(CREATOR, pollId(anchored), kCreator);
+    const apid = pollId(anchored);
+    const anchoredEvent = buildPollEvent(anchored);
+    const voteOn = (rs: Relay[], json = true) =>
+        captured(() => runVote({ pollId: apid, voter: VOTER, option: 'yes', relays: rs.map((r) => r.url), json }));
+
+    it('is read back like the ballot: below 2 relays the command exits 2, though the ballot is in', async () => {
+        stamping.make = true;
+        const rs = await five(['keep', 'keep', 'drop', 'drop', 'drop'], [anchoredEvent]);
+        rs[1]!.stampMode = 'drop';
+        const { out, exit } = await voteOn(rs, false);
+        expect(exit).toBe(2);
+        expect(out).toContain('in:         yes, 2 of 5 relays serve it back');
+        expect(out).toContain(
+            'stamp:      not yet: only 1 of 5 relays serves it back, and a final count is sure to see it only once 2 do'
+        );
+        expect(out).toContain("vote.ochk.io's anchorer also stamps every ballot it sees");
+        expect(out).toContain('it sends the same signed stamp, with nothing new to sign');
+        expect(sent(rs, 30083)).toHaveLength(5);
+    });
+
+    it('counts only copies of this stamp whose signature holds; at 2 it is stamped', async () => {
+        stamping.make = true;
+        const rs = await five(['keep', 'keep', 'keep', 'drop', 'drop'], [anchoredEvent]);
+        rs[1]!.stampMode = 'junk-sig';
+        rs[2]!.stampMode = 'bad-nostr';
+        const got = JSON.parse((await voteOn(rs)).out);
+        expect(got.in).toBe(true);
+        expect(got.stamp.served_by).toEqual([rs[0]!.url]);
+        expect(got.stamp.in).toBe(false);
+
+        const both = await five(['keep', 'keep', 'drop', 'drop', 'drop'], [anchoredEvent]);
+        const ok = await voteOn(both);
+        const json = JSON.parse(ok.out);
+        expect([json.stamp.in, json.stamp.served_by.length, ok.exit]).toEqual([true, 2, 0]);
+    });
+
+    it('republish sends a saved stamp again', async () => {
+        stamping.make = true;
+        const rs = await five(['keep', 'keep', 'drop', 'drop', 'drop'], [anchoredEvent]);
+        rs[1]!.stampMode = 'drop';
+        const got = JSON.parse((await voteOn(rs)).out);
+        const file = join(dir, 'stamp.json');
+        writeFileSync(file, JSON.stringify(got.stamp.event));
+        rs[3]!.stampMode = 'keep';
+        const again = await republish(rs, file);
+        const st = JSON.parse(again.out);
+        expect([st.stamp_id, st.in, again.exit]).toEqual([JSON.parse(got.stamp.event.content).id, true, 0]);
+        expect(st.served_by).toEqual([rs[0]!.url, rs[3]!.url]);
     });
 });

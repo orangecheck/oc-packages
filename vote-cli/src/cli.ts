@@ -10,7 +10,7 @@
  *   write (headless — signature via --sig or interactive paste):
  *     oc-vote create                      build + sign + publish a poll
  *     oc-vote vote                        cast a ballot (public or secret)
- *     oc-vote republish <file>            send a signed ballot event again
+ *     oc-vote republish <file>            send a signed poll, ballot, reveal or stamp again
  *     oc-vote reveal                      publish the reveal event
  *
  *   utility:
@@ -149,7 +149,9 @@ program
 
 program
     .command('create')
-    .description('Build + sign + publish a poll')
+    .description(
+        'Build + sign + publish a poll. It is published once 2 relays, each asked alone, serve it back; below that it exits 2 (see republish)'
+    )
     .requiredOption('--creator <btc-addr>', 'Bitcoin address of the poll creator')
     .requiredOption('--question <text>', 'poll question')
     .requiredOption(
@@ -233,7 +235,7 @@ program
 program
     .command('republish <file>')
     .description(
-        'Send a signed ballot event again, as it is (from vote --json, or its event: line), and ask each relay for it back'
+        'Send a signed poll, ballot, reveal or ballot stamp again, as it is (from --json output, or an event: line), and ask each relay for it back'
     )
     .option('--relay <url>', 'Nostr relay (repeatable)', collectRelay, [] as string[])
     .option('--json', 'Emit JSON')
@@ -247,13 +249,15 @@ program
 
 program
     .command('reveal')
-    .description('Publish the reveal event for a secret-mode poll')
+    .description(
+        'Publish the reveal for a secret-mode poll, or send the one already signed again. It is published once 2 relays serve it back; below that it exits 2'
+    )
     .requiredOption('--poll <poll_id>', '64-hex poll id')
     .requiredOption('--reveal-sk <hex>', '64-hex X25519 secret key')
     .requiredOption('--creator <btc-addr>', 'poll creator address (must match the poll)')
     .option('--sig <base64>', 'BIP-322 signature of reveal_id; prompts if omitted')
     .option('--relay <url>', 'Nostr relay (repeatable)', collectRelay, [] as string[])
-    .option('--force', 'publish even before deadline / even if a reveal exists')
+    .option('--force', 'publish before the deadline, or sign a new reveal when one is already on the relays')
     .option('--dry-run', 'print reveal + id; do not sign or publish')
     .option('--json', 'Emit JSON')
     .action(async (opts: Record<string, unknown>) => {

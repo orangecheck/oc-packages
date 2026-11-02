@@ -51,13 +51,17 @@ Flags:
 
 ### `oc-vote vote --poll <poll_id> --voter <address> --option <id>`
 
-Build the ballot, have it signed (`--sig`, or paste a BIP-322 signature of the printed ballot_id), publish it, then ask each relay alone for it back. The ballot is in only once at least 2 relays serve a copy whose ballot signature and Nostr signature both hold; an OK from a relay is not enough. Below that it says the ballot isn't in yet, prints the signed event, and exits 2.
+Build the ballot, have it signed (`--sig`, or paste a BIP-322 signature of the printed ballot_id), publish it, then ask each relay alone for it back. The ballot is in only once at least 2 relays serve a copy whose ballot signature and Nostr signature both hold; an OK from a relay is not enough. Below that it says the ballot isn't in yet, prints the signed event, and exits 2. In an anchored poll its stamp is read back the same way.
 
 - `--json` — `in`, `served_by`, `asked`, `quorum` and the signed `event`.
 
+### `oc-vote create` and `oc-vote reveal`
+
+The same read-back for a poll and a reveal: published only once at least 2 relays serve back a copy that verifies. Below that each says so, prints the signed event, and exits 2. `reveal` run again sends a reveal already signed and on a relay to the relays that lack it, with nothing new to sign.
+
 ### `oc-vote republish <file>`
 
-Send a signed ballot event again, as it is, from the `event:` line `vote` printed or its `--json` output. Nothing new is signed. Same read-back, same exit status: 0 once the ballot is in, 2 while it isn't.
+Send a signed poll, ballot, reveal or ballot stamp again, as it is, from an `event:` line or `--json` output. Nothing new is signed, so a poll keeps its id. Same read-back, same exit status: 0 once it is in, 2 while it isn't.
 
 ### `oc-vote verify <poll_id>`
 
