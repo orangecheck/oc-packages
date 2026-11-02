@@ -80,14 +80,14 @@ export interface VerifyBase {
      * link in its chain). Fetch kind-30085 events with `"#t": [<delegation id>]`
      * (SPEC §9.4); relays do not index the multi-letter `delegation` tag. Pass
      * `[]` only when at least the read floor of the relays asked (those asked,
-     * less the write quorum of 2, plus one: four of five) answered in full, no
-     * relay asked was cut off, and none matched (SPEC §10.4). A relay answered
-     * in full when its read, paged with `until`, ended on a page shorter than
-     * the `limit` asked; EOSE alone is no answer, since anyone can publish under
-     * the delegation's tag and a relay answers newest first up to its cap. A
-     * read that stopped at a full page, or stopped answering, is cut off.
-     * Otherwise the revocation check has not been performed: report it as
-     * unchecked, never as unrevoked.
+     * less the write quorum of 2, plus one, and never fewer than one: four of
+     * five) answered in full, no relay asked was cut off, and none matched
+     * (SPEC §10.4). A relay answered in full when its read, paged with `until`,
+     * ended on a page shorter than the `limit` asked; EOSE alone is no answer,
+     * since anyone can publish under the delegation's tag and a relay answers
+     * newest first up to its cap. A read that stopped at a full page, or
+     * stopped answering, is cut off. Otherwise the revocation check has not
+     * been performed: report it as unchecked, never as unrevoked.
      */
     revocations?: RevocationEnvelope[];
 }
