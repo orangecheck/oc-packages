@@ -37,6 +37,17 @@ vi.mock('./sig.js', () => ({
     },
 }));
 
+// An anchored poll's ballot is stamped by the voter's client; here the stamp
+// is only counted, and no calendar is reached.
+const stamping = vi.hoisted(() => ({ calls: 0 }));
+vi.mock('./anchors.js', async (actual) => ({
+    ...(await actual<typeof import('./anchors.js')>()),
+    stampBallot: async () => {
+        stamping.calls++;
+        throw new Error('no calendar here');
+    },
+}));
+
 import { runVote } from './commands/vote.js';
 
 // Clock-dated (before the 2026-11-15 cutover), so no stamp is made.
@@ -102,11 +113,11 @@ function matches(e: NostrEvent, f: Record<string, unknown>): boolean {
 
 const closers: Array<() => Promise<void>> = [];
 
-/** A relay at 127.0.0.1 holding the poll, answering like strfry, doing `mode` with ballots. */
-async function relay(mode: Mode): Promise<Relay> {
+/** A relay at 127.0.0.1 holding `polls`, answering like strfry, doing `mode` with ballots. */
+async function relay(mode: Mode, polls: NostrEvent[] = [pollEvent]): Promise<Relay> {
     const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
     await new Promise((r) => wss.once('listening', r));
-    const r: Relay = { url: `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`, mode, store: [pollEvent], received: [] };
+    const r: Relay = { url: `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`, mode, store: [...polls], received: [] };
     wss.on('connection', (ws) => {
         ws.on('message', (raw) => {
             const msg = JSON.parse(String(raw)) as unknown[];
@@ -165,6 +176,7 @@ beforeAll(() => {
 afterEach(async () => {
     process.exitCode = undefined;
     wallet.signs = 0;
+    stamping.calls = 0;
     vi.restoreAllMocks();
     closeRelayPool();
     await Promise.all(closers.splice(0).map((c) => c()));
@@ -249,6 +261,26 @@ describe('oc-vote vote', () => {
         expect(got.served_by).toEqual([rs[0]!.url]);
         expect(got.in).toBe(false);
         expect(exit).toBe(2);
+    });
+    it('stamps an anchored poll’s ballot only once a relay serves it back, not on OKs', async () => {
+        // Anchored: the deadline is on or after the 2026-11-15 cutover.
+        const anchored: Poll = { ...poll, question: 'Anchored?', deadline: '2026-12-01T00:00:00Z', sig: { ...poll.sig } };
+        anchored.sig.value = signMessage(CREATOR, pollId(anchored), kCreator);
+        const apid = pollId(anchored);
+        const voteOn = (rs: Relay[]) =>
+            captured(() => runVote({ pollId: apid, voter: VOTER, option: 'yes', relays: rs.map((r) => r.url), json: true }));
+
+        const none = await Promise.all([0, 1, 2, 3, 4].map(() => relay('drop', [buildPollEvent(anchored)])));
+        const unserved = JSON.parse((await voteOn(none)).out);
+        expect(unserved.served_by).toEqual([]);
+        expect(stamping.calls).toBe(0);
+        expect(unserved).not.toHaveProperty('stamp');
+
+        const one = await Promise.all(['keep', 'drop', 'drop', 'drop', 'drop'].map((m) => relay(m as Mode, [buildPollEvent(anchored)])));
+        const served = JSON.parse((await voteOn(one)).out);
+        expect(served.served_by).toEqual([one[0]!.url]);
+        expect(stamping.calls).toBe(1);
+        expect(served.stamp).toEqual({ error: 'no calendar here' });
     });
 });
 
