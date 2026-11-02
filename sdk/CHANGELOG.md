@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.19.0] — 2026-11-02
+
+### Changed
+
+- `check()` answers `not_found` only when the relays finished the read: the
+  read floor of them sent a short page and none was cut off, the rule the
+  stake read already uses. When none was found on a read that didn't finish
+  (relays refusing, dropping or cut off), it answers `attestation_unread`, so
+  an outage is no longer read as an address with no attestation. The `_unread`
+  suffix is what relay-filter 0.5.6 and gate 0.3.3 already read as an
+  incomplete lookup, never a bad proof. `readByAttestationId` and
+  `readByIdentity` sit beside `readByAddress` (internal); `queryByAttestationId`
+  and `queryByIdentity` are unchanged.
+
 ## [1.18.4] — 2026-11-02
 
 ### Fixed

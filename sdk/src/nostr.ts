@@ -469,15 +469,6 @@ export async function readSubject(
     return { events, relays: relays.map((relay, i) => ({ relay, state: states[i]! })) };
 }
 
-/** Every event matching `filter` on each relay, paged by `until`, within the shared deadline. */
-async function querySubject(
-    filter: Record<string, unknown>,
-    relays: string[],
-    label: string
-): Promise<NostrEvent[]> {
-    return (await readSubject(filter, relays, label)).events;
-}
-
 /**
  * Query relays for every event under an attestation id's `d` tag. Anyone can
  * publish an event with that tag, so the copies are read and the signature
@@ -487,8 +478,16 @@ export async function queryByAttestationId(
     attestationId: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
+    return (await readByAttestationId(attestationId, relays)).events;
+}
+
+/** queryByAttestationId, with how each relay's read ended (see readByAddress). */
+export async function readByAttestationId(
+    attestationId: string,
+    relays: string[] = DEFAULT_RELAYS
+): Promise<SubjectRead> {
     log.info({ attestationId, relayCount: relays.length }, 'Querying relays for attestation');
-    return querySubject({ kinds: [30078], '#d': [attestationId] }, relays, 'id');
+    return readSubject({ kinds: [30078], '#d': [attestationId] }, relays, 'id');
 }
 
 /**
@@ -522,12 +521,21 @@ export async function queryByIdentity(
     identifier: string,
     relays: string[] = DEFAULT_RELAYS
 ): Promise<NostrEvent[]> {
+    return (await readByIdentity(protocol, identifier, relays)).events;
+}
+
+/** queryByIdentity, with how each relay's read ended (see readByAddress). */
+export async function readByIdentity(
+    protocol: string,
+    identifier: string,
+    relays: string[] = DEFAULT_RELAYS
+): Promise<SubjectRead> {
     const identityTags =
         protocol === 'nostr'
             ? nostrIdentifierForms(identifier).map((f) => `nostr:${f}`)
             : [`${protocol}:${identifier}`];
     log.info({ protocol, identifier, relayCount: relays.length }, 'Querying relays for identity');
-    return querySubject({ kinds: [30078], '#i': identityTags }, relays, 'identity');
+    return readSubject({ kinds: [30078], '#i': identityTags }, relays, 'identity');
 }
 
 /**

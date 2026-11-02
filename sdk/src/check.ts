@@ -12,13 +12,16 @@
 
 import type { AttestationEnvelope, IdentityBinding, Network, VerifyOptions } from './types';
 
+import { envelopesFromEvents } from './attestation';
 import {
-    discoverAttestations,
-    envelopesFromEvents,
-    getAttestationsForAddress,
-    getAttestationsForIdentity,
-} from './attestation';
-import { DEFAULT_RELAYS, readByAddress, signedEnvelope, subjectReadComplete } from './nostr';
+    DEFAULT_RELAYS,
+    readByAddress,
+    readByAttestationId,
+    readByIdentity,
+    signedEnvelope,
+    subjectReadComplete,
+    type SubjectRead,
+} from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
 import { checkCheckParams } from './options';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
@@ -61,7 +64,9 @@ export interface CheckResult {
     network?: Network;
     /**
      * Present when `ok === false`. Codes explain why: verify()'s codes, and
-     * `not_found`, `below_min_sats`, `below_min_days`, `stake_shared` (the
+     * `not_found` (no attestation, on a read the relays finished),
+     * `attestation_unread` (none found, but too few relays finished the read, so
+     * one may be there; ask again), `below_min_sats`, `below_min_days`, `stake_shared` (the
      * address also backs another identity on the protocol) and `stake_unread`
      * (the address's other attestations could not be read in full, so one
      * address, one bond was not checked; ask again). The stake is read only
@@ -87,14 +92,12 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['bad_request'] };
     }
 
-    let found: AttestationEnvelope[] = [];
-    if (id) {
-        found = await discoverAttestations({ attestationId: id, relays });
-    } else if (addr) {
-        found = await getAttestationsForAddress(addr, relays);
-    } else if (identity) {
-        found = await getAttestationsForIdentity(identity.protocol, identity.identifier, relays);
-    }
+    const read: SubjectRead = id
+        ? await readByAttestationId(id, relays)
+        : addr
+          ? await readByAddress(addr, relays)
+          : await readByIdentity(identity!.protocol, identity!.identifier, relays);
+    const found: AttestationEnvelope[] = await envelopesFromEvents(read.events);
 
     // Every field used, ordered by or returned comes from the signed message.
     // Relays match on unsigned tags, so keep only envelopes whose message says
@@ -110,7 +113,11 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         .sort((a, b) => b.at - a.at || (a.e.attestation_id < b.e.attestation_id ? -1 : 1))
         .map(({ e }) => e);
     if (envelopes.length === 0) {
-        return { ok: false, sats: 0, days: 0, score: 0, reasons: ['not_found'] };
+        // Absent only on a read the relays finished: a relay that didn't answer,
+        // refused, or was cut off may hold it. The `_unread` suffix is what
+        // relay-filter and gate read as an incomplete lookup, never a bad proof.
+        const reason = subjectReadComplete(read) ? 'not_found' : 'attestation_unread';
+        return { ok: false, sats: 0, days: 0, score: 0, reasons: [reason] };
     }
 
     // The newest whose signature holds (SPEC §7.2).
