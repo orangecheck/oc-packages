@@ -9,7 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+## [0.3.5] — 2026-11-02
+
+### Fixed
+
+- `verify --revocations` unwraps an event whose kind is the string `"30085"`
+  as it does the number, so a real revocation inside it revokes. It was read
+  around before. An event whose content is a JSON array or a JSON string is
+  still read around and counted, now pinned by tests.
 
 ## [0.3.4] — 2026-11-02
 

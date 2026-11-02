@@ -24,9 +24,13 @@ export const REVOCATION_KIND = 30085;
 const isObject = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/** 30085, or "30085": a relay or a hand-made file may carry the event kind as a string. */
+const isRevocationKind = (kind: unknown) =>
+    kind === REVOCATION_KIND || kind === String(REVOCATION_KIND);
+
 /** A kind-30085 event's content when it is a JSON object, else the entry as it came. */
 function unwrapped(entry: unknown): unknown {
-    if (!isObject(entry) || entry.kind !== REVOCATION_KIND || typeof entry.content !== 'string') {
+    if (!isObject(entry) || !isRevocationKind(entry.kind) || typeof entry.content !== 'string') {
         return entry;
     }
     try {
