@@ -66,13 +66,15 @@ type Mode = 'keep' | 'drop' | 'down';
 /**
  * Five relays. On publish each one keeps the event, says OK and keeps nothing
  * (`drop`), or is down. `held` is what each serves; a relay in `silent` never
- * answers a read. Each read's relays and budget are logged.
+ * answers a read, and one in `ignoresFilter` sends all it holds whatever it is
+ * asked. Each read's relays and budget are logged.
  */
 function relays(modes: Partial<Record<string, Mode>> = {}) {
     const r = {
         modes,
         held: new Map<string, NostrEvent[]>(RELAYS.map((u) => [u, []])),
         silent: new Set<string>(),
+        ignoresFilter: new Set<string>(),
         published: [] as { relay: string; event: NostrEvent }[],
         reads: [] as { relays: readonly string[]; timeoutMs?: number }[],
         publish: async (ev: NostrEvent, asked: readonly string[]): Promise<PublishResult[]> =>
@@ -89,7 +91,7 @@ function relays(modes: Partial<Record<string, Mode>> = {}) {
             const relayStatus = asked.map((relay) => {
                 if (r.silent.has(relay)) return { relay, ok: false, eose: false, events: 0, rejected: 0, reason: 'timeout' };
                 const sent = (r.held.get(relay) ?? [])
-                    .filter((e) => matchFilter(e, filter))
+                    .filter((e) => r.ignoresFilter.has(relay) || matchFilter(e, filter))
                     .sort((x, y) => y.created_at - x.created_at)
                     .slice(0, filter.limit ?? Infinity);
                 for (const e of sent) byId.set(`${relay} ${e.id} ${e.sig}`, e);
@@ -144,6 +146,19 @@ describe('the read-back after publishing a ballot', () => {
         expect(ballotId(earlier)).not.toBe(ballotId(ballot));
         const r = relays({ [A]: 'keep' });
         r.held.get(B)!.push(buildBallotEvent(earlier));
+        expect(await castBallot(event, ballot, [], opts(r))).toEqual([A]);
+    });
+
+    it('does not count a valid copy outside the query a count makes, whatever a relay sends', async () => {
+        // B sends everything it holds: the ballot, validly signed, in an event
+        // without the poll's `t` tag, which a count reading by `t` never sees.
+        const offTag = signAt(
+            { ...event, tags: event.tags.filter((t) => !(t[0] === 't' && t[1] === PID)) },
+            event.created_at
+        );
+        const r = relays({ [A]: 'keep' });
+        r.ignoresFilter.add(B);
+        r.held.get(B)!.push(offTag);
         expect(await castBallot(event, ballot, [], opts(r))).toEqual([A]);
     });
 
