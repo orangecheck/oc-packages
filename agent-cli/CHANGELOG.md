@@ -13,10 +13,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Fixed
 
-- `verify --revocations` unwraps an event whose kind is the string `"30085"`
-  as it does the number, so a real revocation inside it revokes. It was read
-  around before. An event whose content is a JSON array or a JSON string is
-  still read around and counted, now pinned by tests.
+- `verify --revocations` reads each event by its content, never its unsigned
+  `kind`: an object with no `delegation_id` whose `content` is a JSON object is
+  unwrapped to it. A real revocation inside an event whose kind was anything
+  but the number 30085 (`"30085"`, `" 30085"`, `"0x7555"`, `30085.5`, `null`,
+  `[30085]`, none) was read around and the delegation verified OK.
+- What revokes nothing is counted in two kinds: `not_a_revocation`, and
+  `names_this_delegation_unverifiable` (a revocation naming this delegation
+  that does not verify, or content that mentions its id but does not parse to
+  an envelope). When the second is above zero, `revocation_checked` is
+  `false`; `ok` is unchanged, so junk under the tag cannot block a verify.
+  `revocations_skipped` stays as their sum.
 
 ## [0.3.4] — 2026-11-02
 
