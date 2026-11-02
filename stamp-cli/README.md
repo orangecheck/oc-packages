@@ -51,7 +51,7 @@ $ git-stamp verify v2.1.0 --require-anchor
 
 The stamp is stored at `.git/stamps/<tag>.stamp` — co-located with the repo, discoverable by `git-stamp verify` without a separate config.
 
-The signing domain covers the tag's tree hash, the tag object id, and the tag name. Changing any of them invalidates the stamp.
+The signing domain covers the tag's tree hash, the tag object id, and the tag name. Changing any of them invalidates the stamp: `git-stamp verify` reads the tag as it is now and checks the stamp against it (`content_checked: true`), so a tag moved after stamping, or a `.stamp` copied from another tag, fails with exit 2.
 
 ## `stamp verify` — full SPEC §8 checks
 

@@ -9,7 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+## [0.3.2] — 2026-11-02
+
+### Fixed
+
+- `git-stamp verify <tag>` checks the stamp against the tag as it is now:
+  its name, tag object id and tree, the bytes `git-stamp tag` signs. It
+  checked only the stamp's own signature before (`content_checked: false`),
+  so a tag moved after stamping, or a `.stamp` copied from another tag,
+  printed `ok: true`. Both now fail with exit 2.
 
 ## [0.3.1] — 2026-10-22
 

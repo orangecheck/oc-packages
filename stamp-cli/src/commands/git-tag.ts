@@ -18,6 +18,32 @@ import { die, emit, signatureForId } from '../util.js';
 
 const exec = promisify(execFile);
 
+/**
+ * What a git tag's stamp covers, read from the repository now. `git-stamp tag`
+ * signs these bytes and `git-stamp verify` checks the stamp against them, so a
+ * tag moved to another object, or a stamp copied to another tag, does not
+ * verify.
+ */
+export async function gitTagContent(
+    tag: string
+): Promise<{ treeId: string; tagObjectId: string; contentBytes: Uint8Array }> {
+    // Resolve the tag to its commit + tree, and the tag object itself.
+    let treeId: string;
+    let tagObjectId: string;
+    try {
+        treeId = await gitCapture(['rev-parse', `${tag}^{tree}`]);
+        tagObjectId = await gitCapture(['rev-parse', tag]);
+    } catch (e) {
+        die(`cannot resolve git tag ${tag}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // Canonical content = "oc-stamp/git-tag:v1\n" + tag + "\n" + object_id + "\n" + tree_id.
+    // Hashed into content.hash; the whole thing is what the stamp commits to.
+    const contentBytes = new TextEncoder().encode(
+        `oc-stamp/git-tag:v1\ntag: ${tag}\nobject: ${tagObjectId}\ntree: ${treeId}\n`
+    );
+    return { treeId, tagObjectId, contentBytes };
+}
+
 export interface GitTagOptions {
     tag: string;
     address: string;
@@ -41,21 +67,7 @@ export async function runGitTag(opts: GitTagOptions): Promise<void> {
         die('not inside a git work tree');
     }
 
-    // Resolve the tag to its commit + tree, and the tag object itself.
-    let treeId: string;
-    let tagObjectId: string;
-    try {
-        treeId = await gitCapture(['rev-parse', `${opts.tag}^{tree}`]);
-        tagObjectId = await gitCapture(['rev-parse', opts.tag]);
-    } catch (e) {
-        die(`cannot resolve git tag ${opts.tag}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
-    // Canonical content = "oc-stamp/git-tag:v1\n" + tag + "\n" + object_id + "\n" + tree_id.
-    // Hashed into content.hash; the whole thing is what the stamp commits to.
-    const contentBytes = new TextEncoder().encode(
-        `oc-stamp/git-tag:v1\ntag: ${opts.tag}\nobject: ${tagObjectId}\ntree: ${treeId}\n`
-    );
+    const { treeId, tagObjectId, contentBytes } = await gitTagContent(opts.tag);
     const contentHash = 'sha256:' + createHash('sha256').update(contentBytes).digest('hex');
     const contentLength = contentBytes.byteLength;
     const mime = 'application/x-git-tag';
@@ -128,9 +140,13 @@ export interface GitVerifyOptions {
 export async function runGitVerify(opts: GitVerifyOptions): Promise<void> {
     const gitDir = await gitCapture(['rev-parse', '--git-dir']);
     const stampPath = `${gitDir}/stamps/${opts.tag}.stamp`;
+    // The tag as it is now: a stamp checked only for its own signature would
+    // pass for a tag re-pointed after stamping, or a .stamp copied from another.
+    const { contentBytes } = await gitTagContent(opts.tag);
     const { runVerify } = await import('./verify.js');
     await runVerify({
         stampPath,
+        content: contentBytes,
         requireAnchor: opts.requireAnchor,
         skipSignature: false,
         json: opts.json,
