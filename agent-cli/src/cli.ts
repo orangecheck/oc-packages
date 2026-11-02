@@ -58,7 +58,7 @@ program
     .option('--skip-temporal', 'skip issued_at / expires_at checks', false)
     .option(
         '--revocations <file>',
-        'a JSON array of the revocations fetched for the delegation (envelopes, or the kind-30085 events a relay returns); without it, revocation is not checked'
+        'a JSON array of the revocations fetched for the delegation (envelopes, or the kind-30085 events a relay returns); without it, revocation is not checked. Counted in the output: not_a_revocation, and names_this_delegation_unverifiable (an entry naming this delegation that could not be read or verified), which leaves revocation_checked false'
     )
     .option(
         '--as-of-signed-at',
@@ -78,13 +78,17 @@ program
         ) => {
         const parsed = JSON.parse(await read(file));
         let revocations: RevocationEnvelope[] | undefined;
-        // Entries agent-core will not count: objects that are not revocations.
-        let unread = 0;
+        // What revoked nothing that agent-core does not count itself.
+        let unread: Unread = { notARevocation: 0, unreadableNamingThis: 0 };
         if (opts.revocations) {
-            const read_ = readRevocations(JSON.parse(await read(opts.revocations)));
+            const delegation = (Array.isArray(parsed) ? parsed[0] : parsed) as { id?: unknown };
+            const read_ = readRevocations(
+                JSON.parse(await read(opts.revocations)),
+                typeof delegation?.id === 'string' ? delegation.id : null
+            );
             if (!read_.ok) die(opts.json, 'BAD_REVOCATIONS', read_.message);
             revocations = read_.revocations;
-            unread = read_.unread;
+            unread = read_;
         }
         // This CLI has no relay access by design, so it cannot query the
         // kind-30085 feed itself: the caller passes what they fetched, or the
@@ -390,16 +394,38 @@ function canonicalMessageFor(env: AnyEnvelope): string {
     });
 }
 
-/** agent-core's count of entries that revoked nothing, plus the objects it never counts. */
-function counted<T extends { ok: boolean; revocationsSkipped?: number }>(r: T, unread: number): T {
-    return r.ok ? { ...r, revocationsSkipped: (r.revocationsSkipped ?? 0) + unread } : r;
+interface Unread {
+    notARevocation: number;
+    unreadableNamingThis: number;
+}
+
+interface Skipped {
+    notARevocation: number;
+    namesThisDelegationUnverifiable: number;
+}
+
+/** What revoked nothing, in its two kinds. agent-core is given only objects naming a
+ *  delegation, so what it counts are revocations naming this one that did not verify. */
+function counted<T extends { ok: boolean; revocationsSkipped?: number }>(
+    r: T,
+    unread: Unread
+): T & Partial<Skipped> {
+    if (!r.ok) return r;
+    const namesThisDelegationUnverifiable =
+        (r.revocationsSkipped ?? 0) + unread.unreadableNamingThis;
+    return {
+        ...r,
+        notARevocation: unread.notARevocation,
+        namesThisDelegationUnverifiable,
+        revocationsSkipped: unread.notARevocation + namesThisDelegationUnverifiable,
+    };
 }
 
 type AsOf = { basis: 'now'; now: string } | { basis: 'signed_at'; signedAt: string; anchored: boolean };
 
 function report(
     result:
-        | { ok: true; id: string; revocationsSkipped?: number }
+        | ({ ok: true; id: string; revocationsSkipped?: number } & Partial<Skipped>)
         | { ok: false; code: string; message: string },
     asJson: boolean,
     what: string,
@@ -408,23 +434,28 @@ function report(
     asOf?: AsOf
 ): void {
     if (result.ok) {
+        // Something naming this delegation could not be read or verified: a
+        // revocation of it may exist, so revocation is not shown as checked.
+        // Not refused, or junk published under the tag would block every verify.
+        const unverifiable = result.namesThisDelegationUnverifiable ?? 0;
+        revocationChecked = revocationChecked && unverifiable === 0;
         // Unless the caller passed what they fetched, revocation is NOT part
         // of this verdict: the CLI has no relay. "This envelope is authentic"
         // and "this grant is still in force" are not the same claim.
         const notes: string[] = [];
-        if (!revocationChecked) {
+        const entries = (n: number) => `${n} entr${n === 1 ? 'y' : 'ies'}`;
+        if (unverifiable > 0) {
+            notes.push(
+                `${entries(unverifiable)} in --revocations name this delegation but could not be read or verified: a revocation may exist, so revocation is not checked`
+            );
+        } else if (!revocationChecked) {
             notes.push(
                 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id] and pass --revocations'
             );
         }
-        // An entry that is not a revocation, or one that does not verify, revokes nothing (SPEC §9),
-        // but the caller should know it was passed.
-        const skipped = result.revocationsSkipped ?? 0;
-        if (skipped > 0) {
-            notes.push(
-                `${skipped} entr${skipped === 1 ? 'y' : 'ies'} in --revocations revoked nothing: not a revocation, or one that does not verify`
-            );
-        }
+        // What is not a revocation revokes nothing (SPEC §9), but the caller should know it was passed.
+        const notA = result.notARevocation ?? 0;
+        if (notA > 0) notes.push(`${entries(notA)} in --revocations are not revocations`);
         if (asOf?.basis === 'signed_at') {
             notes.push(
                 asOf.anchored
@@ -441,6 +472,8 @@ function report(
                     signature_checked: signatureChecked,
                     revocation_checked: revocationChecked,
                     revocations_skipped: result.revocationsSkipped ?? 0,
+                    not_a_revocation: result.notARevocation ?? 0,
+                    names_this_delegation_unverifiable: unverifiable,
                     ...(asOf ? { as_of: asOf } : {}),
                     notes,
                 }),

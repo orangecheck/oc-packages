@@ -158,6 +158,8 @@ describe('oc-agent verify --revocations', () => {
             ok: true,
             revocation_checked: true,
             revocations_skipped: 0,
+            not_a_revocation: 0,
+            names_this_delegation_unverifiable: 0,
         });
     });
 
@@ -180,7 +182,37 @@ describe('oc-agent verify --revocations', () => {
         };
         const r = verify(d, [asEvent(forged)]);
         expect(r.status, r.out).toBe(0);
-        expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 1 });
+        // A revocation of this delegation may exist that could not be read: not "checked".
+        expect(JSON.parse(r.out)).toMatchObject({
+            ok: true,
+            revocation_checked: false,
+            revocations_skipped: 1,
+            names_this_delegation_unverifiable: 1,
+            not_a_revocation: 0,
+        });
+    });
+
+    // review-me's probe on de00140e: every way of writing the kind, and none.
+    describe('the envelope decides, never the event kind', () => {
+        const withKind = (kind: unknown) => ({ ...asEvent(rev), kind });
+        const { kind: _k, ...kindless } = asEvent(rev);
+        it.each([
+            ['"30085 "', [withKind('30085 ')]],
+            ['" 30085"', [withKind(' 30085')]],
+            ['"030085"', [withKind('030085')]],
+            ['"0x7555"', [withKind('0x7555')]],
+            ['"30085.0"', [withKind('30085.0')]],
+            ['"3.0085e4"', [withKind('3.0085e4')]],
+            ['30085.5', [withKind(30085.5)]],
+            ['1', [withKind(1)]],
+            ['null', [withKind(null)]],
+            ['[30085]', [withKind([30085])]],
+            ['no kind at all', [kindless]],
+        ])('an event whose kind is %s carrying a real revocation: E_REVOKED', (_k2, revs) => {
+            const r = verify(d, revs);
+            expect(r.status, r.out).toBe(1);
+            expect(r.out).toContain('E_REVOKED');
+        });
     });
 
     // review-me's probe: the unsigned `kind` field decides nothing (SPEC §9.1).
@@ -208,23 +240,33 @@ describe('oc-agent verify --revocations', () => {
             expect(r.out).toContain('E_REVOKED');
         });
         it.each([
-            ['a junk object naming this delegation', [{ kind: 'junk', delegation_id: d.id }]],
             [
-                'a kind-30085 event whose content is not JSON',
-                [{ kind: REVOCATION_KIND, content: 'not json' }],
+                'a junk object naming this delegation',
+                [{ kind: 'junk', delegation_id: d.id }],
+                'names_this_delegation_unverifiable',
             ],
             [
                 'a kind-30085 event whose content is a JSON array',
                 [{ ...asEvent(rev), content: JSON.stringify([rev]) }],
+                'names_this_delegation_unverifiable',
             ],
             [
                 'a kind-30085 event whose content is a JSON string',
                 [{ ...asEvent(rev), content: JSON.stringify(JSON.stringify(rev)) }],
+                'names_this_delegation_unverifiable',
             ],
-        ])('%s: OK, counted once', (_what, revs) => {
+            [
+                'a kind-30085 event whose content is not JSON',
+                [{ kind: REVOCATION_KIND, content: 'not json' }],
+                'not_a_revocation',
+            ],
+        ])('%s: OK, counted once as %s', (_what, revs, kind) => {
             const r = verify(d, revs);
             expect(r.status, r.out).toBe(0);
-            expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 1 });
+            const out = JSON.parse(r.out);
+            expect(out).toMatchObject({ ok: true, revocations_skipped: 1, [kind]: 1 });
+            // Something naming this delegation could not be read: revocation is not shown as checked.
+            expect(out.revocation_checked).toBe(kind === 'not_a_revocation');
         });
     });
 
@@ -243,7 +285,13 @@ describe('oc-agent verify --revocations', () => {
         ];
         const r = verify(d, junk);
         expect(r.status, r.out).toBe(0);
-        expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 4 });
+        expect(JSON.parse(r.out)).toMatchObject({
+            ok: true,
+            revocation_checked: true,
+            revocations_skipped: 4,
+            not_a_revocation: 4,
+            names_this_delegation_unverifiable: 0,
+        });
     });
 
     it('a junk entry beside a real revocation does not stop it revoking', () => {
@@ -265,12 +313,20 @@ describe('oc-agent verify --revocations', () => {
 
 describe('readRevocations', () => {
     const rev = revocation(delegation());
-    it('unwraps an event, keeps an envelope, and passes anything else through, counting the objects', () => {
+    it('unwraps an event whatever its kind, keeps an envelope, and counts the rest in two kinds', () => {
         const other = { kind: 1, content: '{}' };
-        expect(readRevocations([asEvent(rev), rev, other, 'x'])).toEqual({
+        const stringKind = { ...asEvent(rev), kind: 'x' };
+        const arrayNamingIt = { ...asEvent(rev), content: JSON.stringify([rev]) };
+        expect(
+            readRevocations(
+                [asEvent(rev), rev, stringKind, other, 'x', arrayNamingIt],
+                rev.delegation_id,
+            ),
+        ).toEqual({
             ok: true,
-            revocations: [rev, rev, other, 'x'],
-            unread: 1,
+            revocations: [rev, rev, rev],
+            notARevocation: 2,
+            unreadableNamingThis: 1,
         });
     });
 });
