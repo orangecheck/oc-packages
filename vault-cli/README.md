@@ -26,7 +26,7 @@ The passphrase is read from `$OCV_PASSPHRASE` (for CI) or a hidden prompt.
 | Command | What it does |
 |---|---|
 | `login` | Authenticate to vault.ochk.io; cache the escrow + ciphertext. |
-| `sync` | Refresh the cached ciphertext. |
+| `sync` | Refresh the cached ciphertext. If any entry can't be fetched, the cache it had is kept and it exits 1. |
 | `read <ref>` | Resolve one `ocv://` reference, print its value. |
 | `run [--env-file f] -- <cmd>` | Run a command with `ocv://` references resolved into its environment. |
 | `export [--env-file f]` | Resolve `ocv://` references and emit `KEY=value` — or load them into a CI job (`--github`). |

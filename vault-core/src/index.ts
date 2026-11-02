@@ -99,6 +99,7 @@ export {
 } from './export';
 
 export {
+    BlobsUnread,
     NotSignedIn,
     SyncNotPaid,
     VaultClient,

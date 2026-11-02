@@ -41,7 +41,8 @@ export class OcVault {
 
     /**
      * Open a live vault over a `VaultClient`: fetch the escrow, unwrap the
-     * key with the passphrase, pull every blob, decrypt.
+     * key with the passphrase, pull every blob, decrypt. A blob that could not
+     * be read throws `BlobsUnread`; the vault never opens with entries missing.
      */
     static async open(opts: { client: VaultClient; passphrase: string }): Promise<OcVault> {
         const escrow = await opts.client.fetchEscrow();

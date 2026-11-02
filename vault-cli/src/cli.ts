@@ -47,13 +47,26 @@ function makeClient(baseUrl: string, token?: string, cookie?: string): VaultClie
     });
 }
 
-/** Fetch the escrow + every ciphertext blob and assemble a fresh cache. */
-async function pullCache(client: VaultClient, baseUrl: string, token?: string): Promise<VaultCache> {
+/**
+ * Fetch the escrow + every ciphertext blob and assemble a fresh cache, or say
+ * why not. vault-core 0.4's fetchBlobs leaves out a blob it couldn't read, so
+ * fewer blobs than were listed is a pull that came up short: `failed` says so,
+ * and the caller writes nothing, rather than a cache missing those entries.
+ */
+async function pullCache(
+    client: VaultClient,
+    baseUrl: string,
+    failed: (short: string) => never,
+    token?: string
+): Promise<VaultCache> {
     const escrow = await client.fetchEscrow();
     if (!escrow) fail('no vault is set up for this identity — create one at vault.ochk.io');
     const identity = await client.fetchIdentity();
     const refs = await client.listBlobs();
     const blobs = await client.fetchBlobs(refs);
+    if (blobs.length < refs.length) {
+        failed(`${refs.length - blobs.length} of ${refs.length} entries couldn't be fetched`);
+    }
     return {
         baseUrl,
         identity,
@@ -101,7 +114,12 @@ program
             fail('pass --token <ocv_…> or --cookie <oc_session value>');
         }
         const client = makeClient(opts.url, opts.token, opts.cookie);
-        const cache = await pullCache(client, opts.url, opts.token);
+        const cache = await pullCache(
+            client,
+            opts.url,
+            (short) => fail(`${short}, so nothing was cached. Try again.`),
+            opts.token
+        );
         writeCache(cache);
         console.log(
             `Logged in${cache.identity ? ` as ${cache.identity}` : ''} · ` +
@@ -121,7 +139,16 @@ program
             fail('this session needs auth again — pass --token or --cookie');
         }
         const client = makeClient(prev.baseUrl, token, opts.cookie);
-        const cache = await pullCache(client, prev.baseUrl, token);
+        const cache = await pullCache(
+            client,
+            prev.baseUrl,
+            (short) =>
+                fail(
+                    `${short}; the cache from ${prev.synced_at} (${prev.blobs.length} entries) is kept. ` +
+                        'Run oc-vault sync again.'
+                ),
+            token
+        );
         writeCache(cache);
         console.log(`Synced · ${cache.blobs.length} entries.`);
     });
