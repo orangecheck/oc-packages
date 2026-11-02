@@ -34,6 +34,17 @@ The passphrase is read from `$OCV_PASSPHRASE` (for CI) or a hidden prompt.
 | `item list` / `item get <name>` | Browse entries (secrets masked unless `--reveal`). |
 | `whoami` | Show the cached identity. No passphrase needed. |
 
+### `export`
+
+Without `--github`, `export` prints `KEY=value` lines to stdout with the
+values in clear, for `eval`, `source` or a file. Don't run it where stdout
+is logged.
+
+With `--github`, or whenever `$GITHUB_ENV` is set, it appends each value to
+`$GITHUB_ENV` and prints only `::add-mask::` commands: one for each non-empty
+line of every value, since GitHub masks a multi-line value line by line. It
+prints nothing else of a value.
+
 ## Auth
 
 `login` takes `--token <ocv_…>` (long-lived access tokens — vault.ochk.io
