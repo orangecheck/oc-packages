@@ -4,9 +4,14 @@
 // query returns, and that is Nostr events, the revocation envelope inside
 // `content`. agent-core reads envelopes: an entry with no `delegation_id`
 // reads as one about another delegation, so a raw event never revoked
-// anything and a revoked delegation verified OK. Each event is unwrapped to
-// its envelope here, and an entry that is neither is refused, never read
-// around.
+// anything and a revoked delegation verified OK. Each event whose content is
+// an agent-revocation is unwrapped to it here.
+//
+// Every other entry goes to agent-core as it is: a relay can send anything
+// under a delegation's tag, and one junk entry must not stop an honest
+// verify. agent-core counts a non-object in `revocationsSkipped`, but reads an
+// object with no `delegation_id` as about another delegation and counts
+// nothing, so such objects are counted here (`unread`) for the output to add.
 
 import type { RevocationEnvelope } from '@orangecheck/agent-core';
 
@@ -16,52 +21,40 @@ export const REVOCATION_KIND = 30085;
 const isObject = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/** The envelope inside a kind-30085 event, or null when it carries none. */
+function carried(entry: Record<string, unknown>): Record<string, unknown> | null {
+    if (entry.kind !== REVOCATION_KIND || typeof entry.content !== 'string') return null;
+    try {
+        const inner: unknown = JSON.parse(entry.content);
+        return isObject(inner) && inner.kind === 'agent-revocation' ? inner : null;
+    } catch {
+        return null;
+    }
+}
+
 /**
- * The revocation envelopes in a `--revocations` file: each entry is an
- * `agent-revocation` envelope, or a kind-30085 event whose content is one.
+ * The entries of a `--revocations` file for agent-core: kind-30085 events
+ * carrying an agent-revocation unwrapped to it, everything else as it is.
+ * `unread` counts the objects that are neither a revocation nor carry one.
  */
 export function readRevocations(
     input: unknown,
-): { ok: true; revocations: RevocationEnvelope[] } | { ok: false; message: string } {
+):
+    | { ok: true; revocations: RevocationEnvelope[]; unread: number }
+    | { ok: false; message: string } {
     if (!Array.isArray(input)) {
         return {
             ok: false,
             message: '--revocations must be a JSON array of revocations or kind-30085 events',
         };
     }
-    const revocations: RevocationEnvelope[] = [];
-    for (const [i, entry] of input.entries()) {
-        if (isObject(entry) && entry.kind === 'agent-revocation') {
-            revocations.push(entry as unknown as RevocationEnvelope);
-            continue;
-        }
-        if (
-            isObject(entry) &&
-            entry.kind === REVOCATION_KIND &&
-            typeof entry.content === 'string'
-        ) {
-            let inner: unknown;
-            try {
-                inner = JSON.parse(entry.content);
-            } catch {
-                return {
-                    ok: false,
-                    message: `--revocations entry ${i}: a kind-${REVOCATION_KIND} event whose content is not JSON`,
-                };
-            }
-            if (!isObject(inner) || inner.kind !== 'agent-revocation') {
-                return {
-                    ok: false,
-                    message: `--revocations entry ${i}: a kind-${REVOCATION_KIND} event whose content is not an agent-revocation`,
-                };
-            }
-            revocations.push(inner as unknown as RevocationEnvelope);
-            continue;
-        }
-        return {
-            ok: false,
-            message: `--revocations entry ${i} is neither an agent-revocation envelope nor a kind-${REVOCATION_KIND} event`,
-        };
-    }
-    return { ok: true, revocations };
+    let unread = 0;
+    const revocations = input.map((entry: unknown) => {
+        if (!isObject(entry) || entry.kind === 'agent-revocation') return entry;
+        const inner = carried(entry);
+        if (inner) return inner;
+        unread++;
+        return entry;
+    });
+    return { ok: true, revocations: revocations as RevocationEnvelope[], unread };
 }

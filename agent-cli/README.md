@@ -28,7 +28,7 @@ oc-agent verify pair.json            # [delegation, action]
 
 An action is checked live, as of now (SPEC §8): the delegation in force now and `signed_at` within 120 seconds of your clock, or `E_STALE`. To audit a past action as of its own `signed_at`, add `--as-of-signed-at`; the output says that time is the agent's claim unless a verified anchor fixes it.
 
-The CLI has no relay access. Pass the revocations you fetched (`{ kinds: [30085], "#t": [<delegation id>] }`) as a JSON array with `--revocations`: the events as the relay returned them, or the revocation envelopes from their `content`. An entry that is neither is refused. Without `--revocations`, the output says revocation was not checked. A revocation that does not verify revokes nothing, and the output counts it (`revocations_skipped`).
+The CLI has no relay access. Pass the revocations you fetched (`{ kinds: [30085], "#t": [<delegation id>] }`) as a JSON array with `--revocations`: the events as the relay returned them, or the revocation envelopes from their `content`. Without `--revocations`, the output says revocation was not checked. An entry that is not a revocation, or one that does not verify, revokes nothing, and the output counts it (`revocations_skipped`). Only a file that isn't a JSON array is refused.
 
 Flags:
 - `--revocations <file>` — the revocations fetched for the delegation, as a JSON array of kind-30085 events or revocation envelopes

@@ -10,8 +10,10 @@ import { fileURLToPath } from 'node:url';
 
 import {
     canonicalizeScopes,
+    computeActionId,
     computeDelegationId,
     computeRevocationId,
+    type ActionEnvelope,
     type DelegationEnvelope,
     type RevocationEnvelope,
 } from '@orangecheck/agent-core';
@@ -83,6 +85,38 @@ function revocation(d: DelegationEnvelope): RevocationEnvelope {
     };
 }
 
+/** An action the agent signs under `d`, now. */
+function action(d: DelegationEnvelope): ActionEnvelope {
+    const content = {
+        hash: 'sha256:' + '3'.repeat(64),
+        length: 1024,
+        mime: 'text/plain',
+        ref: null,
+    };
+    const fields = {
+        address: AGENT,
+        content_hash: content.hash,
+        content_length: content.length,
+        content_mime: content.mime,
+        signed_at: new Date(Date.now() - 10_000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
+        delegation_id: d.id,
+        scope_exercised: d.scopes![0]!,
+    };
+    const id = computeActionId(fields);
+    return {
+        v: 1,
+        kind: 'agent-action',
+        id,
+        content,
+        signer: { address: AGENT, alg: 'bip322' },
+        signed_at: fields.signed_at,
+        delegation_id: d.id,
+        scope_exercised: fields.scope_exercised,
+        ots: null,
+        sig: { alg: 'bip322', pubkey: AGENT, value: signMessage(AGENT, id, agentKey) },
+    } as ActionEnvelope;
+}
+
 /** As a relay returns it: the envelope in `content`. The event's own signature is not what revokes. */
 const asEvent = (rev: RevocationEnvelope) => ({
     id: 'e'.repeat(64),
@@ -94,7 +128,10 @@ const asEvent = (rev: RevocationEnvelope) => ({
     sig: '0'.repeat(128),
 });
 
-function verify(d: DelegationEnvelope, revocations?: unknown) {
+function verify(
+    d: DelegationEnvelope | [DelegationEnvelope, ActionEnvelope],
+    revocations?: unknown,
+) {
     const dir = mkdtempSync(join(tmpdir(), 'oc-agent-cli-'));
     writeFileSync(join(dir, 'd.json'), JSON.stringify(d));
     const args = [bin, 'verify', join(dir, 'd.json'), '--json'];
@@ -146,23 +183,49 @@ describe('oc-agent verify --revocations', () => {
         expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 1 });
     });
 
-    it('refuses a file it cannot read as revocations, instead of reading around it', () => {
-        for (const bad of [
-            { not: 'an array' },
-            [{ kind: 1, content: '{}' }],
-            [{ kind: REVOCATION_KIND, content: '{"kind":"agent-delegation"}' }],
-            [{ kind: REVOCATION_KIND, content: 'not json' }],
-        ]) {
-            const r = verify(d, bad);
-            expect(r.status, JSON.stringify(bad)).toBe(1);
-            expect(r.out).toContain('BAD_REVOCATIONS');
-        }
+    it('refuses only a file that is not a JSON array', () => {
+        const r = verify(d, { not: 'an array' });
+        expect(r.status, r.out).toBe(1);
+        expect(r.out).toContain('BAD_REVOCATIONS');
+    });
+
+    it('reads around entries that are not revocations, and counts them', () => {
+        const junk = [
+            { kind: 1, content: '{}' },
+            { kind: REVOCATION_KIND, content: '{"kind":"agent-delegation"}' },
+            { kind: REVOCATION_KIND, content: 'not json' },
+            42,
+        ];
+        const r = verify(d, junk);
+        expect(r.status, r.out).toBe(0);
+        expect(JSON.parse(r.out)).toMatchObject({ ok: true, revocations_skipped: 4 });
+    });
+
+    it('a junk entry beside a real revocation does not stop it revoking', () => {
+        const r = verify(d, [{ kind: REVOCATION_KIND, content: 'not json' }, asEvent(rev)]);
+        expect(r.status, r.out).toBe(1);
+        expect(r.out).toContain('E_REVOKED');
+    });
+
+    it('an action under a revoked delegation is refused, given the relay events', () => {
+        const pair: [DelegationEnvelope, ActionEnvelope] = [d, action(d)];
+        const ok = verify(pair, []);
+        expect(ok.status, ok.out).toBe(0);
+        expect(JSON.parse(ok.out)).toMatchObject({ ok: true, verified: 'action + delegation' });
+        const revoked = verify(pair, [asEvent(rev)]);
+        expect(revoked.status, revoked.out).toBe(1);
+        expect(revoked.out).toContain('E_REVOKED');
     });
 });
 
 describe('readRevocations', () => {
     const rev = revocation(delegation());
-    it('unwraps an event and keeps an envelope', () => {
-        expect(readRevocations([asEvent(rev), rev])).toEqual({ ok: true, revocations: [rev, rev] });
+    it('unwraps an event, keeps an envelope, and passes anything else through, counting the objects', () => {
+        const other = { kind: 1, content: '{}' };
+        expect(readRevocations([asEvent(rev), rev, other, 'x'])).toEqual({
+            ok: true,
+            revocations: [rev, rev, other, 'x'],
+            unread: 1,
+        });
     });
 });
