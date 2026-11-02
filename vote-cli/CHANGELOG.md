@@ -11,6 +11,36 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.6] — 2026-11-02
+
+### Changed
+
+- `vote` says a ballot is in only once at least 2 relays (min(2, asked)), each
+  asked alone, serve it back. A copy counts only if its Nostr id and signature
+  hold, it carries the ballot's ballot_id, and the ballot's own signature
+  verifies, since ballot_id leaves out sig.value. Before, it printed
+  "published: N/M relays" from the relays' OKs and exited 0 even when none had
+  said OK. A relay can say OK and keep nothing, and a count reads all but one
+  relay to the end, so a ballot only one relay holds is lost whenever that relay
+  is the one the count goes without.
+- Below that, `vote` says the ballot isn't in yet, prints the signed event, and
+  exits 2. An anchored poll's ballot is stamped once a relay serves it back,
+  not on an OK.
+- `vote --json` reports `in`, `served_by`, `asked`, `quorum` and the signed
+  `event`, in place of `published`, `total` and the per-relay OKs.
+
+### Fixed
+
+- `oc-vote --version` prints the package's version, read from its
+  package.json. It had said 0.2.0 since 0.2.0.
+
+### Added
+
+- `oc-vote republish <file>` sends a signed ballot event again, as it is (the
+  `event:` line `vote` prints, or its `--json` output), with nothing new to
+  sign, and asks every relay for it back under the same rule. It refuses an
+  event whose Nostr signature or ballot signature doesn't hold.
+
 ## [0.7.5] — 2026-11-01
 
 ### Changed
