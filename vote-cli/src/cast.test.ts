@@ -633,6 +633,17 @@ describe('an anchored poll’s ballot stamp', () => {
         expect(sent(rs, 30083)).toHaveLength(5);
     });
 
+    it('a stamp that could not be made exits 2, though the ballot is in', async () => {
+        const rs = await five(['keep', 'keep', 'drop', 'drop', 'drop'], [anchoredEvent]);
+        const { out, exit } = await voteOn(rs, false);
+        expect(exit).toBe(2);
+        expect(out).toContain('in:         yes, 2 of 5 relays serve it back');
+        expect(out).toContain("stamp:      not made here (no calendar here), so a final count can't see this ballot yet");
+        const json = await voteOn(rs);
+        expect(json.exit).toBe(2);
+        expect(JSON.parse(json.out).stamp).toEqual({ error: 'no calendar here' });
+    });
+
     it('counts only copies of this stamp whose signature holds; at 2 it is stamped', async () => {
         stamping.make = true;
         const rs = await five(['keep', 'keep', 'keep', 'drop', 'drop'], [anchoredEvent]);
