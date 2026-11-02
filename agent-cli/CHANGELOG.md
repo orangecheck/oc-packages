@@ -21,8 +21,10 @@ this file tracks the package's TS / Node / runtime API surface.
 - What revokes nothing is counted in two kinds: `not_a_revocation`, and
   `names_this_delegation_unverifiable` (a revocation naming this delegation
   that does not verify, or content that mentions its id but does not parse to
-  an envelope). When the second is above zero, `revocation_checked` is
-  `false`; `ok` is unchanged, so junk under the tag cannot block a verify.
+  an envelope). The second is a signal, not a verdict: anyone who can publish
+  under the tag can raise it, and a forged or unreadable envelope revokes
+  nothing, so it changes neither `revocation_checked` (revocations were
+  supplied and read) nor `ok`. A strict caller reads the count itself.
   `revocations_skipped` stays as their sum.
 
 ## [0.3.4] — 2026-11-02
