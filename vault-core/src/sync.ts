@@ -173,11 +173,15 @@ export class VaultClient {
      * Fetch many blobs with bounded concurrency — fast, but not a thundering
      * herd against the rate limiter. A blob that is gone is left out. If any
      * other blob could not be read, this throws `BlobsUnread` once every fetch
-     * has settled, so a partial pull is never returned as the whole vault.
+     * has settled, so a partial pull is never returned as the whole vault. A
+     * session that ended (`NotSignedIn`) or sync that isn't paid
+     * (`SyncNotPaid`) partway through is thrown as itself, so a caller that
+     * asks for a new sign-in on those still sees them.
      */
     async fetchBlobs(refs: BlobRef[], concurrency = 8): Promise<FetchedBlob[]> {
         const out: FetchedBlob[] = [];
         const failed: { ref: BlobRef; reason: string }[] = [];
+        let refused: NotSignedIn | SyncNotPaid | null = null;
         let cursor = 0;
         const worker = async (): Promise<void> => {
             while (cursor < refs.length) {
@@ -186,6 +190,7 @@ export class VaultClient {
                 try {
                     ciphertext = await this.fetchBlob(ref.envelope_id);
                 } catch (err) {
+                    if (err instanceof NotSignedIn || err instanceof SyncNotPaid) refused ??= err;
                     failed.push({ ref, reason: err instanceof Error ? err.message : String(err) });
                     continue;
                 }
@@ -201,6 +206,7 @@ export class VaultClient {
         await Promise.all(
             Array.from({ length: Math.min(concurrency, refs.length || 1) }, () => worker())
         );
+        if (refused) throw refused;
         if (failed.length) throw new BlobsUnread(out, failed, refs.length);
         return out;
     }
