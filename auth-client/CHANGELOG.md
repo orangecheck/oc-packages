@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Docs
+
+- The `useStepUpAuth` doc taught `if (!r) return;` after `stepUp`. Since
+  2.1.1 a failure resolves `{ ok: false, reason }`, which is never falsy, so
+  a caller copying the doc went on after a cancelled or failed step-up. The
+  doc now tests `r.ok`, says `stepUp` never throws, and drops the extra
+  `refresh()`, since `stepUp` refreshes the session itself on success.
+  Code is unchanged. The built types carry no comments, so this reaches
+  integrators through the TypeDoc pages, not a release.
+
 ## [2.41.0] — 2026-10-28
 
 ### Added
