@@ -41,6 +41,11 @@ this file tracks the package's TS / Node / runtime API surface.
   can't tell, never FAILED or VERIFIED. Anyone can fill the bound by publishing
   under the channel's tag.
 
+### Fixed
+
+- `oc --version` prints the package's version, read from its package.json. It
+  had said 0.1.0 since 0.1.0.
+
 ## [0.3.2] — 2026-10-26
 
 ### Fixed
