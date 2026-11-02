@@ -146,17 +146,20 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
     const verify = opts.verify !== false ? bip322Verify : null;
-    const [pollFetch, ballotFetch, revealFetch] = await Promise.all([
-        fetchPollEvents(pid, relays),
-        fetchBallotEvents(pid, relays),
-        fetchRevealEvents(pid, relays),
-    ]);
-
-    const selected = await findPoll(pollFetch, pid, verify ?? bip322Verify);
+    // The ballot read starts with the poll's; the reveal is read only once the
+    // poll is known to be secret, so junk under a public poll's reveal tag
+    // cannot hold its count up.
+    const ballotRead = fetchBallotEvents(pid, relays);
+    ballotRead.catch(() => undefined);
+    const selected = await findPoll(await fetchPollEvents(pid, relays), pid, verify ?? bip322Verify);
     if (verify && !selected.signatureValid) {
         throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
     const poll = selected.poll;
+    const [ballotFetch, revealFetch] = await Promise.all([
+        ballotRead,
+        poll.mode === 'secret' ? fetchRevealEvents(pid, relays) : null,
+    ]);
 
     // Every copy: the tally verifies each before it picks one ballot per voter.
     // A clock-dated poll is not counted from a ballot read cut short or below
@@ -172,13 +175,12 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     });
 
     // Only a reveal signed by the creator, once the poll has closed, opens ballots.
-    const reveal: Reveal | null =
-        poll.mode === 'secret'
-            ? await selectReveal(revealFetch.events, poll, bip322Verify, chain ?? undefined)
-            : null;
+    const reveal: Reveal | null = revealFetch
+        ? await selectReveal(revealFetch.events, poll, bip322Verify, chain ?? undefined)
+        : null;
     // No reveal found is "awaiting reveal" only on a reveal read that finished:
     // no relay cut off, and the floor answered in full. Otherwise it can't count.
-    if (poll.mode === 'secret' && !reveal) requireComplete(revealFetch, 'reveal');
+    if (revealFetch && !reveal) requireComplete(revealFetch, 'reveal');
 
     const source = mempoolSource(opts.mempoolBase);
     const utxosAt = buildLookup(source);

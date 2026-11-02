@@ -19,7 +19,9 @@ this file tracks the package's TS / Node / runtime API surface.
   relay. "Awaiting reveal" stands only on a complete reveal read; a read that
   was cut short or is below the floor can't count, and says so. Before, any
   relay's EOSE was enough, so junk under the reveal's d-tag from fresh keys,
-  dated after the reveal, made a revealed poll read as awaiting reveal.
+  dated after the reveal, made a revealed poll read as awaiting reveal. A
+  public poll's tally sends no reveal read at all, so junk under its reveal tag
+  cannot hold the count up.
 - `tally` counts a clock-dated poll only from a complete ballot read: all but
   one of the relays asked (4 of the 5 defaults) finished it, and no relay's
   answer was cut short. An answer cut short (a full page from one second, the
