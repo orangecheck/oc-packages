@@ -10,6 +10,8 @@ import { die, emit, hashFile, pathExists, readBytes, readStamp } from '../util.j
 export interface VerifyOptions {
     stampPath: string;
     contentPath?: string;
+    /** The content's bytes, when the caller has them rather than a file (git-stamp verify). */
+    content?: Uint8Array;
     requireAnchor: boolean;
     /**
      * If set, skip the BIP-322 signature verification. Mostly useful for CI
@@ -27,7 +29,7 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
 
     const envelope = await readStamp(opts.stampPath);
 
-    let contentBytes: Uint8Array | undefined;
+    let contentBytes: Uint8Array | undefined = opts.content;
     if (opts.contentPath) {
         if (!(await pathExists(opts.contentPath))) die(`no such file: ${opts.contentPath}`);
         contentBytes = await readBytes(opts.contentPath);
