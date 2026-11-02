@@ -4,6 +4,8 @@
 // multi-line value masks only its first line, and the rest print into the job
 // log in clear. Each non-empty line of every value is masked on its own line,
 // before the value is written anywhere. Nothing else of a value is printed.
+// The runner ends a log line at \r\n, \n or a lone \r (.NET ReadLine), so a
+// value is split at each of those, the way it would be logged.
 
 import { randomUUID } from 'node:crypto';
 
@@ -18,7 +20,7 @@ function escapeCommandData(s: string): string {
 /** One `::add-mask::` per non-empty line of `value`. */
 export function maskCommands(value: string): string[] {
     return value
-        .split(/\r?\n/)
+        .split(/\r\n|\r|\n/)
         .filter((line) => line.trim() !== '')
         .map((line) => `::add-mask::${escapeCommandData(line)}`);
 }
