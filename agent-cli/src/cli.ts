@@ -78,10 +78,13 @@ program
         ) => {
         const parsed = JSON.parse(await read(file));
         let revocations: RevocationEnvelope[] | undefined;
+        // Entries agent-core will not count: objects that are not revocations.
+        let unread = 0;
         if (opts.revocations) {
             const read_ = readRevocations(JSON.parse(await read(opts.revocations)));
             if (!read_.ok) die(opts.json, 'BAD_REVOCATIONS', read_.message);
             revocations = read_.revocations;
+            unread = read_.unread;
         }
         // This CLI has no relay access by design, so it cannot query the
         // kind-30085 feed itself: the caller passes what they fetched, or the
@@ -112,7 +115,14 @@ program
                 if (!r.ok && r.code === 'E_STALE') {
                     die(opts.json, r.code, `${r.message}. To audit a past action, add --as-of-signed-at.`);
                 }
-                report(r, opts.json, 'action + delegation', !opts.skipSig, !!revocations, r.ok ? r.asOf : undefined);
+                report(
+                    counted(r, unread),
+                    opts.json,
+                    'action + delegation',
+                    !opts.skipSig,
+                    !!revocations,
+                    r.ok ? r.asOf : undefined
+                );
                 return;
             }
             if (a.kind === 'agent-revocation') {
@@ -137,7 +147,7 @@ program
                 skipTemporalCheck: opts.skipTemporal,
                 ...revocationInput,
             });
-            report(r, opts.json, 'delegation', !opts.skipSig, !!revocations);
+            report(counted(r, unread), opts.json, 'delegation', !opts.skipSig, !!revocations);
             return;
         }
         if (env.kind === 'agent-action') {
@@ -380,6 +390,11 @@ function canonicalMessageFor(env: AnyEnvelope): string {
     });
 }
 
+/** agent-core's count of entries that revoked nothing, plus the objects it never counts. */
+function counted<T extends { ok: boolean; revocationsSkipped?: number }>(r: T, unread: number): T {
+    return r.ok ? { ...r, revocationsSkipped: (r.revocationsSkipped ?? 0) + unread } : r;
+}
+
 type AsOf = { basis: 'now'; now: string } | { basis: 'signed_at'; signedAt: string; anchored: boolean };
 
 function report(
@@ -402,11 +417,12 @@ function report(
                 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id] and pass --revocations'
             );
         }
-        // A revocation that does not verify revokes nothing (SPEC §9), but the caller should know one was passed.
+        // An entry that is not a revocation, or one that does not verify, revokes nothing (SPEC §9),
+        // but the caller should know it was passed.
         const skipped = result.revocationsSkipped ?? 0;
         if (skipped > 0) {
             notes.push(
-                `${skipped} revocation${skipped === 1 ? '' : 's'} passed did not verify for this delegation and revoked nothing`
+                `${skipped} entr${skipped === 1 ? 'y' : 'ies'} in --revocations revoked nothing: not a revocation, or one that does not verify`
             );
         }
         if (asOf?.basis === 'signed_at') {

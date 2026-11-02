@@ -20,14 +20,16 @@ this file tracks the package's TS / Node / runtime API surface.
   `--revocations` came in, through 0.3.3, those entries were passed through
   as they were. agent-core read each one as a revocation of some other
   delegation, so a revoked delegation verified OK with
-  `revocation_checked: true`. Each event is now unwrapped to its envelope. A
-  file entry that is neither an `agent-revocation` envelope nor a kind-30085
-  event carrying one is refused (`BAD_REVOCATIONS`, exit 1), not read
-  around. **Anything that admitted on `oc-agent verify … --revocations` with
-  0.3.0–0.3.3 and relay events should be checked again.**
-- When a revocation passed for the delegation does not verify, the output
-  says so: `revocations_skipped` in `--json`, and a note otherwise. Such a
-  revocation still revokes nothing (SPEC §9).
+  `revocation_checked: true`. Each event whose content is an
+  `agent-revocation` is now unwrapped to it. Any other entry goes to
+  agent-core as it is and revokes nothing, so one junk entry under a
+  delegation's tag can't stop an honest verify. Only a file that isn't a
+  JSON array is refused (`BAD_REVOCATIONS`, exit 1). **Anything that
+  admitted on `oc-agent verify … --revocations` with 0.3.0–0.3.3 and relay
+  events should be checked again.**
+- The output counts the entries that revoked nothing, because they were not
+  revocations or did not verify: `revocations_skipped` in `--json`, and a
+  note otherwise.
 
 ## [0.3.3] — 2026-10-24
 
