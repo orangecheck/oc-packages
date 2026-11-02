@@ -1,4 +1,7 @@
-// oc-vote create — build + sign + publish a poll.
+// oc-vote create — build + sign + publish a poll, then ask each relay alone for
+// it back. It is published only once min(2, asked) relays serve a valid copy
+// (OC Vote SPEC §3.4, quorum.ts); below that it says so and exits 2, and
+// `oc-vote republish` sends the same signed event again.
 
 import { hexEncode } from '@orangecheck/lock-crypto';
 import { generateX25519KeyPair } from '@orangecheck/lock-crypto';
@@ -6,7 +9,9 @@ import { canonicalBytes, pollId } from '@orangecheck/vote-core';
 import type { Poll, PollMode, Tiebreak, WeightMode } from '@orangecheck/vote-core';
 
 import { buildPollEvent } from '../events.js';
-import { DEFAULT_RELAYS, publishEvent } from '../nostr.js';
+import { DEFAULT_RELAYS } from '../nostr.js';
+import { castEvent, relaysServingPoll } from '../quorum.js';
+import { report } from '../report.js';
 import { promptForSignature } from '../sig.js';
 
 export interface CreateOptions {
@@ -84,44 +89,31 @@ export async function runCreate(opts: CreateOptions): Promise<void> {
     const sigValue = await promptForSignature(opts.creator, pid, opts.sig);
     draft.sig.value = sigValue;
 
+    // Built once: `oc-vote republish` sends this same event, so a poll that isn't
+    // published yet keeps its id, and ballots cast against it stay its own.
     const event = buildPollEvent(draft);
-    const results = await publishEvent(event, opts.relays ?? DEFAULT_RELAYS);
-    const okCount = results.filter((r) => r.ok).length;
+    const relays = opts.relays ?? DEFAULT_RELAYS;
+    const serving = await castEvent(event, [], () => relaysServingPoll(draft, { relays }), { relays });
+    const url = `https://vote.ochk.io/p/${pid}`;
 
-    if (opts.json) {
-        process.stdout.write(
-            JSON.stringify(
-                {
-                    poll_id: pid,
-                    published: okCount,
-                    total: results.length,
-                    relays: results,
-                    poll: draft,
-                    ...(reveal_sk ? { reveal_sk, reveal_pk } : {}),
-                    url: `https://vote.ochk.io/p/${pid}`,
-                },
-                null,
-                2
-            ) + '\n'
-        );
-        return;
-    }
-
-    const w = (s: string) => process.stdout.write(s);
-    w(`\n  poll_id:    ${pid}\n`);
-    w(`  published:  ${okCount}/${results.length} relays\n`);
-    for (const r of results) {
-        w(`    ${r.ok ? '✓' : '✗'} ${r.relay}${r.reason ? ` (${r.reason})` : ''}\n`);
-    }
-    w(`  url:        https://vote.ochk.io/p/${pid}\n`);
+    const tail = [`  url:        ${url}`];
     if (reveal_sk) {
-        w(`\n  SECRET MODE — save these or the poll is abandoned at deadline:\n`);
-        w(`    reveal_pk:  ${reveal_pk}\n`);
-        w(`    reveal_sk:  ${reveal_sk}\n`);
-        w(`  to publish the reveal:\n`);
-        w(`    oc-vote reveal --poll ${pid} --reveal-sk ${reveal_sk} --creator ${opts.creator}\n`);
+        tail.push(
+            '',
+            '  SECRET MODE — save these or the poll is abandoned at deadline:',
+            `    reveal_pk:  ${reveal_pk}`,
+            `    reveal_sk:  ${reveal_sk}`,
+            '  to publish the reveal:',
+            `    oc-vote reveal --poll ${pid} --reveal-sk ${reveal_sk} --creator ${opts.creator}`
+        );
     }
-    w(`\n  canonical bytes:\n`);
-    w(canonicalBytes({ ...draft, sig: { ...draft.sig, value: '' } }));
-    w(`\n`);
+    tail.push('', '  canonical bytes:', canonicalBytes({ ...draft, sig: { ...draft.sig, value: '' } }).trimEnd());
+
+    report({
+        id: ['poll_id', pid],
+        main: { kind: 'poll', event, relays, serving },
+        json: Boolean(opts.json),
+        jsonExtra: { poll: draft, ...(reveal_sk ? { reveal_sk, reveal_pk } : {}), url },
+        tail,
+    });
 }

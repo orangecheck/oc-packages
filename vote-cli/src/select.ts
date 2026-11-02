@@ -90,9 +90,19 @@ export async function selectReveal(
     verify: SignatureVerifier,
     chain?: { tipHeight: number; closeHeight: number | null }
 ): Promise<Reveal | null> {
-    for (const ev of events) {
-        const r = parse<Reveal>(ev);
-        if (r && (await verifyReveal(r, poll, verify, Date.now(), chain)).ok) return r;
+    return (await findReveal(events, poll, verify, chain))?.reveal ?? null;
+}
+
+/** `selectReveal`, with the event that carried it. */
+export async function findReveal(
+    events: readonly NostrEvent[],
+    poll: Poll,
+    verify: SignatureVerifier,
+    chain?: { tipHeight: number; closeHeight: number | null }
+): Promise<{ event: NostrEvent; reveal: Reveal } | null> {
+    for (const event of events) {
+        const reveal = parse<Reveal>(event);
+        if (reveal && (await verifyReveal(reveal, poll, verify, Date.now(), chain)).ok) return { event, reveal };
     }
     return null;
 }

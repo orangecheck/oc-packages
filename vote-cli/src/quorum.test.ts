@@ -10,12 +10,22 @@ import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { matchFilter, type Filter, type QueryResult } from '@orangecheck/nostr-core';
-import { ballotId, type Ballot } from '@orangecheck/vote-core';
+import { generateX25519KeyPair, hexEncode } from '@orangecheck/lock-crypto';
+import { stamp, type StampEnvelope } from '@orangecheck/stamp-core';
+import { ballotId, ballotStampContent, pollId, revealId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildBallotEvent } from './events.js';
+import { buildBallotEvent, buildPollEvent, buildRevealEvent, buildStampEvent } from './events.js';
 import type { NostrEvent, PublishResult } from './nostr.js';
-import { ballotIsIn, castBallot, relaysServingBallot, writeQuorum } from './quorum.js';
+import {
+    castBallot,
+    isIn,
+    relaysServingBallot,
+    relaysServingPoll,
+    relaysServingReveal,
+    relaysServingStamp,
+    writeQuorum,
+} from './quorum.js';
 
 const [A, B, C, D] = ['wss://a', 'wss://b', 'wss://c', 'wss://d'];
 const RELAYS = [A, B, C, D, 'wss://e'];
@@ -114,7 +124,7 @@ describe('the read-back after publishing a ballot', () => {
             const serving = await castBallot(event, ballot, [], opts(r));
             expect(r.published).toHaveLength(5);
             expect(serving).toEqual(RELAYS.slice(0, n));
-            expect(ballotIsIn(serving.length, RELAYS.length)).toBe(n >= 2);
+            expect(isIn(serving.length, RELAYS.length)).toBe(n >= 2);
         }
     });
 
@@ -123,8 +133,8 @@ describe('the read-back after publishing a ballot', () => {
         const r = relays({ [A]: 'keep' });
         const serving = await castBallot(event, ballot, [], { ...opts(r), relays: [A] });
         expect(serving).toEqual([A]);
-        expect(ballotIsIn(serving.length, 1)).toBe(true);
-        expect(ballotIsIn(0, 0)).toBe(false);
+        expect(isIn(serving.length, 1)).toBe(true);
+        expect(isIn(0, 0)).toBe(false);
     });
 
     it('does not count a copy under the ballot’s id with a junk signature', async () => {
@@ -177,7 +187,7 @@ describe('the read-back after publishing a ballot', () => {
         const sent = r.published.length;
         const second = await castBallot(event, ballot, first, opts(r));
         expect(second).toEqual([A, B]);
-        expect(ballotIsIn(second.length, RELAYS.length)).toBe(true);
+        expect(isIn(second.length, RELAYS.length)).toBe(true);
         expect(r.published.slice(sent).map((p) => p.relay)).toEqual(RELAYS.filter((u) => u !== A));
         // One event, sent again as it was: nothing new to sign.
         expect(new Set(r.published.map((p) => JSON.stringify(p.event)))).toEqual(new Set([JSON.stringify(event)]));
@@ -191,7 +201,7 @@ describe('the read-back after publishing a ballot', () => {
         r.modes = { [B]: 'keep' };
         const second = await castBallot(event, ballot, first, opts(r));
         expect(second).toEqual([B]);
-        expect(ballotIsIn(second.length, RELAYS.length)).toBe(false);
+        expect(isIn(second.length, RELAYS.length)).toBe(false);
     });
 
     it('asks each relay alone: one relay’s answer never speaks for another', async () => {
@@ -229,5 +239,111 @@ describe('the read-back after publishing a ballot', () => {
         // The others each get their own, and A holding on does not cost them.
         for (const u of RELAYS.slice(1)) expect(budgets.get(u)).toEqual([8000]);
         expect(serving).toEqual([B, C]);
+    });
+});
+
+describe('the read-back of a poll, a reveal and a stamp', () => {
+    const keys = generateX25519KeyPair();
+    const signedPoll = (question: string): Poll => {
+        const p: Poll = {
+            v: 0,
+            kind: 'oc-vote/poll',
+            creator: VOTER,
+            question,
+            options: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No' },
+            ],
+            deadline: '2026-10-21T00:00:00Z',
+            snapshot_block: 'deadline',
+            weight_mode: 'one_per_address',
+            weight_params: null,
+            min_sats: 0,
+            min_days: 0,
+            mode: 'secret',
+            reveal_pk: hexEncode(keys.public),
+            tiebreak: 'latest',
+            notes: null,
+            created_at: '2026-10-01T00:00:00Z',
+            sig: { alg: 'bip322', pubkey: VOTER, value: '' },
+        };
+        p.sig.value = signMessage(VOTER, pollId(p), kVoter);
+        return p;
+    };
+    const poll = signedPoll('Sealed?');
+    /** `ev` re-signed under another object's d-tag, as anyone can publish it. */
+    const under = (ev: NostrEvent, d: string) =>
+        signAt({ ...ev, tags: [['d', d], ...ev.tags.filter((t) => t[0] !== 'd')] }, ev.created_at);
+    const read = (r: ReturnType<typeof relays>) => ({ relays: RELAYS, query: r.query });
+
+    it('counts a poll copy only with this poll id and a creator signature that verifies', async () => {
+        const d = `oc-vote:poll:${pollId(poll)}`;
+        const r = relays();
+        r.held.get(A)!.push(buildPollEvent(poll));
+        // B: another poll, validly signed, under this poll's d-tag. C: this poll signed by someone else.
+        r.held.get(B)!.push(under(buildPollEvent(signedPoll('Another?')), d));
+        r.held.get(C)!.push(buildPollEvent({ ...poll, sig: { ...poll.sig, value: signMessage(STRANGER, pollId(poll), kStranger) } }));
+        r.held.get(D)!.push(buildPollEvent(poll));
+        expect(await relaysServingPoll(poll, read(r))).toEqual([A, D]);
+    });
+
+    it('counts a reveal copy only with this reveal id and a signature that verifies against the poll', async () => {
+        const signedReveal = (at: string): Reveal => {
+            const x: Reveal = {
+                v: 0,
+                kind: 'oc-vote/reveal',
+                poll_id: pollId(poll),
+                reveal_sk: hexEncode(keys.secret),
+                revealed_at: at,
+                sig: { alg: 'bip322', pubkey: VOTER, value: '' },
+            };
+            x.sig.value = signMessage(VOTER, revealId(x), kVoter);
+            return x;
+        };
+        const reveal = signedReveal('2026-10-22T00:00:00Z');
+        const r = relays();
+        r.held.get(A)!.push(buildRevealEvent(reveal));
+        // B: the creator's other reveal, validly signed. C: this reveal signed by someone else.
+        r.held.get(B)!.push(buildRevealEvent(signedReveal('2026-10-23T00:00:00Z')));
+        r.held.get(C)!.push(
+            buildRevealEvent({ ...reveal, sig: { ...reveal.sig, value: signMessage(STRANGER, revealId(reveal), kStranger) } })
+        );
+        r.held.get(D)!.push(buildRevealEvent(reveal));
+        expect(await relaysServingReveal(reveal, poll, read(r))).toEqual([A, D]);
+    });
+
+    it('counts a stamp copy only when it is this stamp and its signature holds', async () => {
+        const kStamp = '77'.repeat(32);
+        const address = addressFromPrivateKey(kStamp, 'p2wpkh');
+        const stampOver = (b: Ballot) => {
+            const c = ballotStampContent(b);
+            return stamp({
+                content: { hash: c.hash, length: c.length },
+                mime: c.mime,
+                signer: { address, signMessage: async (m: string) => signMessage(address, m, kStamp) },
+            });
+        };
+        const env = await stampOver(ballot);
+        const other: Ballot = { ...ballot, option: 'no', sig: { ...ballot.sig } };
+        other.sig.value = signMessage(VOTER, ballotId(other), kVoter);
+        const d = `oc-stamp:${env.id}`;
+        const r = relays();
+        r.held.get(A)!.push(buildStampEvent(env));
+        // B: another stamp over this ballot, signed by its own key, under this stamp's d-tag.
+        // E: a stamp over another ballot, the same way. C: this stamp signed by someone else.
+        const kOther = '88'.repeat(32);
+        const otherAddress = addressFromPrivateKey(kOther, 'p2wpkh');
+        const c = ballotStampContent(ballot);
+        const sameBallot = await stamp({
+            content: { hash: c.hash, length: c.length },
+            mime: c.mime,
+            signer: { address: otherAddress, signMessage: async (m: string) => signMessage(otherAddress, m, kOther) },
+        });
+        r.held.get(B)!.push(under(buildStampEvent(sameBallot), d));
+        r.held.get('wss://e')!.push(under(buildStampEvent(await stampOver(other)), d));
+        const forged: StampEnvelope = { ...env, sig: { ...env.sig, value: signMessage(STRANGER, env.id, kStranger) } };
+        r.held.get(C)!.push(buildStampEvent(forged));
+        r.held.get(D)!.push(buildStampEvent(env));
+        expect(await relaysServingStamp(env, read(r))).toEqual([A, D]);
     });
 });

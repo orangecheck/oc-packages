@@ -28,6 +28,18 @@ this file tracks the package's TS / Node / runtime API surface.
   not on an OK.
 - `vote --json` reports `in`, `served_by`, `asked`, `quorum` and the signed
   `event`, in place of `published`, `total` and the per-relay OKs.
+- `create` and `reveal` follow the same rule (OC Vote §3.4): a poll or reveal
+  is published only once 2 relays, each asked alone, serve back a copy with its
+  id that verifies (a reveal as a count checks it now). Below that they say so,
+  print the signed event, and exit 2. Before, they printed "published: N/M"
+  from OKs and exited 0 at 0 of 5. Their `--json` carries `in`, `served_by`,
+  `asked`, `quorum` and `event` in place of `published`, `total` and `relays`.
+- An anchored poll's ballot stamp is read back the same way, and `vote` exits 2
+  while it is on fewer than 2 relays, since a final count reads stamps at the
+  read floor. vote.ochk.io's anchorer also stamps every ballot it sees.
+- `reveal` run again, when a reveal that verifies is already on a relay, sends
+  that same signed reveal to the relays that lack it instead of refusing.
+  `--force` still signs a new one.
 
 ### Fixed
 
@@ -36,10 +48,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Added
 
-- `oc-vote republish <file>` sends a signed ballot event again, as it is (the
-  `event:` line `vote` prints, or its `--json` output), with nothing new to
-  sign, and asks every relay for it back under the same rule. It refuses an
-  event whose Nostr signature or ballot signature doesn't hold.
+- `oc-vote republish <file>` sends a signed poll, ballot, reveal or ballot
+  stamp again, as it is (an `event:` line `create`, `vote` or `reveal` prints,
+  or their `--json` output), with nothing new to sign, and asks every relay for
+  it back under the same rule. A poll keeps its id, so ballots cast against it
+  stay its own. It refuses an event whose Nostr signature doesn't hold, or
+  whose poll, ballot or stamp signature doesn't verify, or a reveal that doesn't
+  verify against its poll.
 
 ## [0.7.5] — 2026-11-01
 
