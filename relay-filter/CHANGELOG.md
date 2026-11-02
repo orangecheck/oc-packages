@@ -28,7 +28,8 @@ this file tracks the package's TS / Node / runtime API surface.
   first EOSE after a relay's newest 500, and an address read could be cut off
   without notice. A key whose address's read has not finished now waits
   (`lookup_error`, never `fail_open`) instead of being admitted beside a second
-  key the flood hid. The standing subscription reads new events only.
+  key the flood hid, and each refresh (every `refreshMs`, 10 minutes by
+  default) reads it again. The standing subscription reads new events only.
 
 ## [0.5.5] — 2026-10-25
 

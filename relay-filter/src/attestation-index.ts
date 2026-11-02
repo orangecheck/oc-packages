@@ -353,6 +353,7 @@ export class AttestationIndex {
         }
     }
 
+    /** Every refreshMs (10 minutes by default): also the retry for reads that did not finish. */
     private async refreshAll(): Promise<void> {
         if (!this.synced) void this.loadBacklog();
         for (const address of [...this.unread]) void this.readAddress(address);
