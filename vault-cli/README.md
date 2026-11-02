@@ -45,6 +45,10 @@ With `--github`, or whenever `$GITHUB_ENV` is set, it appends each value to
 line of every value, since GitHub masks a multi-line value line by line. It
 prints nothing else of a value.
 
+`oc-vault read`, and `inject` without `-o`, print values to stdout with no
+masking in any mode, by design. In an Actions job, their output is in the
+job log in clear unless you mask it yourself.
+
 ## Auth
 
 `login` takes `--token <ocv_…>` (long-lived access tokens — vault.ochk.io

@@ -7,11 +7,12 @@
   0.3.1 masked only the first line of a value such as a PEM or SSH key, and
   printed the rest into the job log in clear. Each non-empty line now gets
   its own mask, escaped as the runner reads command data, before anything is
-  written. **If you ran `export --github` (or `export` in a GitHub Actions
+  written. A line ends where the runner ends a log line: at `\r\n`, `\n` or a
+  lone `\r`. **If you ran `export --github` (or `export` in a GitHub Actions
   job) on 0.2.0–0.3.1 with a multi-line secret, rotate that secret and
   delete the affected run logs.**
-- The README says what `export` prints in each mode: without `--github`,
-  `KEY=value` with the values in clear.
+- The README says what prints values unmasked: `export` without `--github`
+  (`KEY=value`), and `read` and `inject` to stdout, in any mode.
 - Includes 0.3.2's change, which was never published.
 
 ## 0.3.2 (not published; ships in 0.3.3)
