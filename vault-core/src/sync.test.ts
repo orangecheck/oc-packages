@@ -68,6 +68,19 @@ describe('VaultClient.fetchBlobs', () => {
         expect(err).not.toBeInstanceOf(BlobsUnread);
     });
 
+    it('a 401 beside a 500 is still thrown as NotSignedIn, the one the caller can act on', async () => {
+        const err = await client((id) =>
+            id === 'a'
+                ? Response.json({ ok: false, reason: 'storage down' }, { status: 500 })
+                : id === 'b'
+                  ? Response.json({ ok: false }, { status: 401 })
+                  : blob(id),
+        )
+            .fetchBlobs(refs)
+            .catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(NotSignedIn);
+    });
+
     it('fetchBlob answers null only for a 404', async () => {
         const c = client((id) =>
             id === 'gone' ? Response.json({}, { status: 404 }) : Response.json({}, { status: 503 }),
