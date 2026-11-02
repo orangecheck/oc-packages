@@ -198,6 +198,10 @@ describe('oc-agent verify --revocations', () => {
                 'junk beside a real event',
                 [{ kind: REVOCATION_KIND, content: 'not json' }, asEvent(rev)],
             ],
+            [
+                'an event whose kind is the string "30085"',
+                [{ ...asEvent(rev), kind: String(REVOCATION_KIND) }],
+            ],
         ])('%s: E_REVOKED', (_what, revs) => {
             const r = verify(d, revs);
             expect(r.status, r.out).toBe(1);
@@ -208,6 +212,14 @@ describe('oc-agent verify --revocations', () => {
             [
                 'a kind-30085 event whose content is not JSON',
                 [{ kind: REVOCATION_KIND, content: 'not json' }],
+            ],
+            [
+                'a kind-30085 event whose content is a JSON array',
+                [{ ...asEvent(rev), content: JSON.stringify([rev]) }],
+            ],
+            [
+                'a kind-30085 event whose content is a JSON string',
+                [{ ...asEvent(rev), content: JSON.stringify(JSON.stringify(rev)) }],
             ],
         ])('%s: OK, counted once', (_what, revs) => {
             const r = verify(d, revs);
