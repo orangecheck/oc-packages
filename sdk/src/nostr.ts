@@ -6,6 +6,7 @@
 
 import type { AttestationEnvelope, IdentityBinding, NostrEvent } from './types';
 
+import { nostrEventSignatureValid } from './nostr-crypto';
 import { nostrIdentifierForms } from './nostr-pubkey';
 import { createLogger } from './utils/logger';
 import { rfc3339Ms } from './utils/time';
@@ -535,9 +536,11 @@ export async function queryByIdentity(
  * For aggregate views (network stats, a recent-activity feed), not per-subject
  * lookups. Filters on the `#t=["oc-attest"]` family marker because kind 30078
  * is shared by every NIP-78 app: an unfiltered window fills with other apps'
- * data. Returns envelopes whose attestation_id matches their message,
- * deduplicated by attestation_id. Signatures are not checked — call verify()
- * on anything you act on.
+ * data. Each event is checked under NIP-01 before anything is merged (OC Attest
+ * §7.2). Returns one envelope per attestation_id: the first copy whose
+ * signature verifies for the address its message names (§6.1 rule 4). An id
+ * with no such copy is left out, so a copy with a junk signature is never
+ * counted. Bond and score are not checked: call check() before acting on one.
  */
 export async function queryRecent(
     relays: string[] = DEFAULT_RELAYS,
@@ -576,6 +579,14 @@ export async function queryRecent(
                         const data = JSON.parse(msg.data);
                         if (data[0] === 'EVENT') {
                             const ev = data[2] as NostrEvent;
+                            // A relay can send anything under any id: only an event that is
+                            // what it claims, of the kind and marker asked for, is kept.
+                            if (
+                                !nostrEventSignatureValid(ev) ||
+                                ev.kind !== ATTESTATION_EVENT_KIND ||
+                                !ev.tags.some((t) => t[0] === 't' && t[1] === 'oc-attest')
+                            )
+                                return;
                             const scheme = ev.tags?.find((t) => t[0] === 'scheme')?.[1];
                             const dTag = ev.tags?.find((t) => t[0] === 'd')?.[1];
                             if ((scheme === 'bip322' || scheme === 'legacy') && dTag) {
@@ -604,7 +615,7 @@ export async function queryRecent(
 
     await Promise.allSettled(queryPromises);
 
-    const envelopes = await collectSignedEnvelopes(events);
+    const envelopes = await collectSignedEnvelopes(events, undefined, { validOnly: true });
 
     log.info({ eventCount: events.length, unique: envelopes.length }, 'Recent query complete');
 
@@ -669,11 +680,13 @@ export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelo
  *
  * Anyone can publish a copy of an attestation under their own Nostr key, with
  * any signature beside the message. When copies of one id disagree on the
- * signature, the first whose signature is valid is kept.
+ * signature, the first whose signature is valid is kept. With `validOnly`,
+ * every id's copy is checked, and an id with no valid copy is left out.
  */
 export async function collectSignedEnvelopes(
     events: NostrEvent[],
-    accept: (event: NostrEvent, envelope: AttestationEnvelope) => boolean = () => true
+    accept: (event: NostrEvent, envelope: AttestationEnvelope) => boolean = () => true,
+    opts: { validOnly?: boolean } = {}
 ): Promise<AttestationEnvelope[]> {
     const copies = new Map<string, AttestationEnvelope[]>();
     for (const event of events) {
@@ -689,7 +702,7 @@ export async function collectSignedEnvelopes(
     }
     const kept: AttestationEnvelope[] = [];
     for (const same of copies.values()) {
-        if (same.length === 1) {
+        if (same.length === 1 && !opts.validOnly) {
             kept.push(same[0]!);
             continue;
         }
@@ -700,7 +713,8 @@ export async function collectSignedEnvelopes(
                 break;
             }
         }
-        kept.push(valid ?? same[0]!);
+        if (valid) kept.push(valid);
+        else if (!opts.validOnly) kept.push(same[0]!);
     }
     return kept;
 }

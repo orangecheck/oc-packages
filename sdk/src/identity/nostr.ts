@@ -19,31 +19,13 @@
 
 import type { NostrEvent } from '../types';
 
-import { schnorr } from '@noble/curves/secp256k1.js';
-import { sha256 } from '@noble/hashes/sha2.js';
 
 import { DEFAULT_RELAYS } from '../nostr';
+import { nostrEventSignatureValid } from '../nostr-crypto';
 import { nostrPubkeyToHex } from '../nostr-pubkey';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('identity-verification/nostr');
-
-const HEX_64_RE = /^[0-9a-f]{64}$/;
-
-function toHex(bytes: Uint8Array): string {
-    let out = '';
-    for (const b of bytes) out += b.toString(16).padStart(2, '0');
-    return out;
-}
-
-function fromHex(hex: string): Uint8Array {
-    if (hex.length % 2 !== 0) throw new Error('odd-length hex');
-    const out = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < out.length; i++) {
-        out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    }
-    return out;
-}
 
 /**
  * Verification result for Nostr identity
@@ -173,48 +155,6 @@ async function verifyNostrEventSignature(event: NostrEvent): Promise<boolean> {
     return nostrEventSignatureValid(event);
 }
 
-function nostrEventSignatureValid(event: NostrEvent): boolean {
-    try {
-        if (
-            !event.id ||
-            !event.sig ||
-            !event.pubkey ||
-            typeof event.id !== 'string' ||
-            typeof event.sig !== 'string' ||
-            typeof event.pubkey !== 'string' ||
-            event.sig.length !== 128 ||
-            !HEX_64_RE.test(event.id) ||
-            !HEX_64_RE.test(event.pubkey)
-        ) {
-            return false;
-        }
-
-        // Recompute the event id from the canonical NIP-01 preimage. If the
-        // relay (or an attacker) altered any field since signing, id won't
-        // match and we reject.
-        const preimage = JSON.stringify([
-            0,
-            event.pubkey,
-            event.created_at,
-            event.kind,
-            event.tags ?? [],
-            event.content ?? '',
-        ]);
-        const computedId = toHex(sha256(new TextEncoder().encode(preimage)));
-        if (computedId !== event.id.toLowerCase()) {
-            log.warn(
-                { eventId: event.id, computedId },
-                'nostr event id does not match its content'
-            );
-            return false;
-        }
-
-        return schnorr.verify(fromHex(event.sig), fromHex(event.id), fromHex(event.pubkey));
-    } catch (err) {
-        log.warn({ err }, 'schnorr verify threw');
-        return false;
-    }
-}
 
 /**
  * Verify that a user controls a Nostr identity

@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.18.4] — 2026-11-02
+
+### Fixed
+
+- `queryRecent` returns an attestation only when one of its copies has a
+  signature that verifies for the address its message names (OC Attest §6.1
+  rule 4). It returned one envelope per `attestation_id` whatever the
+  signature, and an id with a single copy was never checked, so a message
+  naming any address beside a junk signature counted in aggregate views (such
+  as attest.ochk.io's `/api/stats` and its featured attestation). Each event is
+  also checked under NIP-01 before anything is merged (§7.2): an event whose id
+  is not its hash, whose signature fails, or that is not a kind-30078
+  `oc-attest` event is dropped. `collectSignedEnvelopes` takes `{ validOnly }`
+  for this; `check()`'s lookups are unchanged.
+
 ## [1.18.3] — 2026-10-31
 
 ### Fixed
