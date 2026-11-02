@@ -58,7 +58,7 @@ program
     .option('--skip-temporal', 'skip issued_at / expires_at checks', false)
     .option(
         '--revocations <file>',
-        'a JSON array of the revocations fetched for the delegation (envelopes, or the kind-30085 events a relay returns); without it, revocation is not checked. Counted in the output: not_a_revocation, and names_this_delegation_unverifiable (an entry naming this delegation that could not be read or verified), which leaves revocation_checked false'
+        'a JSON array of the revocations fetched for the delegation (envelopes, or the kind-30085 events a relay returns); without it, revocation is not checked. Counted in the output: not_a_revocation, and names_this_delegation_unverifiable (an entry naming this delegation that could not be read or verified). The second is a signal, not a verdict: anyone who can publish under the tag can raise it, and revocation_checked stays true. A strict caller reads the count itself'
     )
     .option(
         '--as-of-signed-at',
@@ -434,11 +434,11 @@ function report(
     asOf?: AsOf
 ): void {
     if (result.ok) {
-        // Something naming this delegation could not be read or verified: a
-        // revocation of it may exist, so revocation is not shown as checked.
-        // Not refused, or junk published under the tag would block every verify.
+        // Entries naming this delegation that could not be read or verified.
+        // A signal, not a verdict: anyone who can publish under the tag can
+        // raise it, and a forged or unreadable envelope revokes nothing, so it
+        // never changes revocation_checked (revocations were supplied and read).
         const unverifiable = result.namesThisDelegationUnverifiable ?? 0;
-        revocationChecked = revocationChecked && unverifiable === 0;
         // Unless the caller passed what they fetched, revocation is NOT part
         // of this verdict: the CLI has no relay. "This envelope is authentic"
         // and "this grant is still in force" are not the same claim.
@@ -446,9 +446,10 @@ function report(
         const entries = (n: number) => `${n} entr${n === 1 ? 'y' : 'ies'}`;
         if (unverifiable > 0) {
             notes.push(
-                `${entries(unverifiable)} in --revocations name this delegation but could not be read or verified: a revocation may exist, so revocation is not checked`
+                `${entries(unverifiable)} in --revocations name this delegation but could not be read or verified; anyone who can publish under the tag can add these, so this is a signal, not a verdict`
             );
-        } else if (!revocationChecked) {
+        }
+        if (!revocationChecked) {
             notes.push(
                 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id] and pass --revocations'
             );

@@ -182,10 +182,10 @@ describe('oc-agent verify --revocations', () => {
         };
         const r = verify(d, [asEvent(forged)]);
         expect(r.status, r.out).toBe(0);
-        // A revocation of this delegation may exist that could not be read: not "checked".
+        // Counted as a signal; revocation_checked still means "supplied and read".
         expect(JSON.parse(r.out)).toMatchObject({
             ok: true,
-            revocation_checked: false,
+            revocation_checked: true,
             revocations_skipped: 1,
             names_this_delegation_unverifiable: 1,
             not_a_revocation: 0,
@@ -242,31 +242,36 @@ describe('oc-agent verify --revocations', () => {
         it.each([
             [
                 'a junk object naming this delegation',
-                [{ kind: 'junk', delegation_id: d.id }],
                 'names_this_delegation_unverifiable',
+                [{ kind: 'junk', delegation_id: d.id }],
             ],
             [
                 'a kind-30085 event whose content is a JSON array',
-                [{ ...asEvent(rev), content: JSON.stringify([rev]) }],
                 'names_this_delegation_unverifiable',
+                [{ ...asEvent(rev), content: JSON.stringify([rev]) }],
             ],
             [
                 'a kind-30085 event whose content is a JSON string',
-                [{ ...asEvent(rev), content: JSON.stringify(JSON.stringify(rev)) }],
                 'names_this_delegation_unverifiable',
+                [{ ...asEvent(rev), content: JSON.stringify(JSON.stringify(rev)) }],
+            ],
+            [
+                'a plain note that names the delegation id',
+                'names_this_delegation_unverifiable',
+                [{ kind: REVOCATION_KIND, content: `see ${d.id}` }],
             ],
             [
                 'a kind-30085 event whose content is not JSON',
-                [{ kind: REVOCATION_KIND, content: 'not json' }],
                 'not_a_revocation',
+                [{ kind: REVOCATION_KIND, content: 'not json' }],
             ],
-        ])('%s: OK, counted once as %s', (_what, revs, kind) => {
+        ])('%s: OK, counted once as %s', (_what, kind, revs) => {
             const r = verify(d, revs);
             expect(r.status, r.out).toBe(0);
             const out = JSON.parse(r.out);
             expect(out).toMatchObject({ ok: true, revocations_skipped: 1, [kind]: 1 });
-            // Something naming this delegation could not be read: revocation is not shown as checked.
-            expect(out.revocation_checked).toBe(kind === 'not_a_revocation');
+            // Anyone can publish these: a signal, never a change to revocation_checked.
+            expect(out.revocation_checked).toBe(true);
         });
     });
 
