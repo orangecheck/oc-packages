@@ -13,7 +13,6 @@
  */
 
 import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -21,6 +20,7 @@ import { VaultClient } from '@orangecheck/vault-core';
 import { Command } from 'commander';
 
 import { parseEnvFile, readCache, scanRefs, writeCache, type VaultCache } from './config';
+import { githubExport } from './github';
 import { openVault, requireCache } from './vault';
 
 const SECRET_FIELDS = new Set([
@@ -190,12 +190,10 @@ program
         const githubEnv = process.env.GITHUB_ENV;
         if (opts.github || githubEnv) {
             if (!githubEnv) fail('--github requires $GITHUB_ENV (GitHub Actions only)');
-            for (const [name, value] of resolved) {
-                // Heredoc form — safe for multi-line secrets.
-                const delim = `OCV_${randomUUID()}`;
-                appendFileSync(githubEnv, `${name}<<${delim}\n${value}\n${delim}\n`);
-                console.log(`::add-mask::${value}`);
-            }
+            // Every line of every value is masked before any of it is written.
+            const out = githubExport(resolved);
+            for (const line of out.stdout) console.log(line);
+            appendFileSync(githubEnv, out.env);
             console.error(`Loaded ${resolved.length} secrets into the job environment.`);
         } else {
             for (const [name, value] of resolved) console.log(`${name}=${value}`);
