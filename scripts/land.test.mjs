@@ -143,3 +143,29 @@ test('refuses an origin that is not a GitHub repository, before it calls gh', ()
     assert.match(r.out, /land: origin is not a GitHub repository: https:\/\/gitlab\.com\/acme\/widgets\.git/);
     assert.equal(r.calls, '');
 });
+
+test('refuses before pushing a branch whose commits add a private-key header', () => {
+    // An origin that does not exist: were the check skipped, the push would fail there, not land.
+    const dir = checkout('https://github.com/orangecheck/does-not-exist.git');
+    const git = (...args) =>
+        spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+            encoding: 'utf8',
+        });
+    writeFileSync(join(dir, 'README.md'), 'base\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'base');
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    git('checkout', '-q', '-b', 'feature');
+    writeFileSync(join(dir, 'fixture.test.ts'), `const K = ['${['-----BEGIN', 'RSA', 'PRIVATE KEY-----'].join(' ')}'];\n`);
+    git('add', '.');
+    git('commit', '-q', '-m', 'fixture');
+    const r = spawnSync('bash', [SCRIPT, 'feature'], {
+        cwd: dir,
+        env: { ...process.env, LAND_GH: '/bin/false', GIT_TERMINAL_PROMPT: '0' },
+        encoding: 'utf8',
+    });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /fixture\.test\.ts/);
+    assert.match(r.stderr, /land: a commit on feature adds a private-key header/);
+});
+

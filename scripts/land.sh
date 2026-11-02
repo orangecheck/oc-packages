@@ -10,7 +10,9 @@
 #   LAND_PR=<number> bash scripts/land.sh   only watch PR <number>: did it land?
 #
 # Refuses when a check fails on the PR, when the queue drops it, or when the PR
-# is closed. Rebase isn't needed first: the queue rebases onto main itself, so
+# is closed. Before it pushes, it refuses a branch whose commits add a
+# private-key header (scripts/check-key-fixtures.mjs): the history secret scan
+# fails on one for good, a fake one in a test included. Rebase isn't needed first: the queue rebases onto main itself, so
 # the commits main takes are new ones; a release tag goes on the commit main
 # holds, never the branch's.
 # Before it says a PR was dropped, it reads the PR again: one the queue has just
@@ -36,6 +38,9 @@ if [ -n "${LAND_PR:-}" ]; then
 else
     branch=${1:?usage: bash scripts/land.sh <branch>}
     sha=$(git rev-parse --verify "$branch^{commit}")
+    # A private-key header in a pushed commit fails the history secret scan for good.
+    node "$(dirname "$0")/check-key-fixtures.mjs" "origin/main..$sha" ||
+        refuse "a commit on $branch adds a private-key header; rewrite it before pushing"
     git push -q origin "$sha:refs/heads/$branch"
     if ! gh pr view "$branch" -R "$repo" --json number > /dev/null 2>&1; then
         gh pr create -R "$repo" --base main --head "$branch" --title "$(git log -1 --format=%s "$sha")" \
