@@ -233,6 +233,32 @@ describe('AttestationIndex.decide', () => {
         expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
     });
 
+    it('a key held by a cut-off address read is admitted after a refresh reads the address in full', async () => {
+        bond(500_000);
+        vi.mocked(readSubject).mockResolvedValueOnce({ events: [], complete: false });
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        await flush();
+        expect(index.decide(ev(HEX_A!)).reason).toBe('lookup_error');
+        // The refresh (every refreshMs, 10 minutes by default) is the retry.
+        await (index as unknown as { refreshAll(): Promise<void> }).refreshAll();
+        await flush();
+        expect(readSubject).toHaveBeenLastCalledWith({ kinds: [30078], '#t': [ADDR] }, expect.any(Array));
+        expect(index.decide(ev(HEX_A!)).reason).toBe('ok');
+    });
+
+    it('a backlog read that was cut off is read again by the refresh, and then syncs', async () => {
+        vi.mocked(readSubject).mockResolvedValueOnce({ events: [], complete: false });
+        const cold = new AttestationIndex();
+        (cold as unknown as { startedAt: number }).startedAt = Date.now();
+        await (cold as unknown as { loadBacklog(): Promise<void> }).loadBacklog();
+        expect(cold.decide(ev(STRANGER)).reason).toBe('lookup_error');
+        await (cold as unknown as { refreshAll(): Promise<void> }).refreshAll();
+        await flush();
+        expect(readSubject).toHaveBeenLastCalledWith({ kinds: [30078], '#t': ['oc-attest'] }, expect.any(Array));
+        expect(cold.decide(ev(STRANGER)).reason).toBe('no_attestation');
+    });
+
     it('is synced only by a backlog read that finished', async () => {
         vi.mocked(readSubject).mockResolvedValue({ events: [], complete: false });
         const cold = new AttestationIndex();
