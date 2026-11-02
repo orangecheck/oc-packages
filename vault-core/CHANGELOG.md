@@ -11,7 +11,10 @@
   read, once every fetch has settled. It returned the blobs it did read
   before, which a caller took for the whole vault. `BlobsUnread` carries
   `fetched`, `failed` (each ref with why) and `listed`. A gone blob is still
-  left out. `OcVault.open` therefore never opens with entries missing.
+  left out. `OcVault.open` therefore never opens with entries missing. A 401
+  or 402 partway through is thrown as `NotSignedIn` or `SyncNotPaid` itself,
+  not inside `BlobsUnread`, so a caller that asks for a new sign-in on those
+  still sees them.
 
 ## [0.5.0] — 2026-10-31
 

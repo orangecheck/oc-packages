@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BlobsUnread, VaultClient, type BlobRef } from './sync';
+import { BlobsUnread, NotSignedIn, SyncNotPaid, VaultClient, type BlobRef } from './sync';
 
 /**
  * Only a 404 is an absent blob. A refusal, an outage or a network error is a
@@ -53,6 +53,19 @@ describe('VaultClient.fetchBlobs', () => {
         expect(u.failed.map((f) => f.ref.envelope_id)).toEqual(['b']);
         expect(u.fetched.map((b) => b.envelope_id).sort()).toEqual(['a', 'c']);
         expect(u.message).toContain("1 of 3 vault entries couldn't be fetched");
+    });
+
+    it.each([
+        [401, NotSignedIn],
+        [402, SyncNotPaid],
+    ])('a %s partway through is thrown as itself, not inside BlobsUnread', async (status, Kind) => {
+        const err = await client((id) =>
+            id === 'b' ? Response.json({ ok: false }, { status }) : blob(id),
+        )
+            .fetchBlobs(refs)
+            .catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(Kind);
+        expect(err).not.toBeInstanceOf(BlobsUnread);
     });
 
     it('fetchBlob answers null only for a 404', async () => {
