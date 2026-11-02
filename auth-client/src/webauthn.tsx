@@ -303,20 +303,23 @@ export interface UseStepUpAuthReturn {
  * carrying `step_up_at = <unix-now>`; the provider re-fetches the
  * session so `verifyStepUpClaim(payload, …)` flips to true immediately.
  *
- * Throws via `error` (not via `throw`) when:
+ * Never throws. It resolves `{ ok: false, reason }`, and sets `error`, when:
  *   - the user has no credentials registered (`no_credentials_registered`)
  *   - the user cancels the platform prompt (`cancelled`)
  *   - the assertion fails verification on the host (`verify_failed`,
  *     `cloned_authenticator`, `credential_outside_allowlist`, …)
  *
- * Caller pattern:
+ * Caller pattern. Test `ok`: the result is an object on failure too, so a
+ * check like `if (!r)` never stops anything.
  *
  *   const { stepUp } = useStepUpAuth();
- *   const { refresh } = useOcSession();
  *   const r = await stepUp({ purpose: 'spend_over_1m' });
- *   if (!r) return; // user cancelled or step-up failed
- *   await refresh(); // pick up the new step_up_at
- *   // …proceed with the sensitive action
+ *   if (!r.ok) return; // r.reason says why: 'cancelled', 'verify_failed', …
+ *   // …proceed with the sensitive action. On success stepUp has already
+ *   // refreshed the session, so it carries the new step_up_at.
+ *
+ * A server still decides with `verifyStepUpClaim`; this check only keeps the
+ * page from going on after a failed step-up.
  */
 export function useStepUpAuth(opts?: UseHostOptions): UseStepUpAuthReturn {
     const authOrigin = resolveAuthOrigin(opts);
