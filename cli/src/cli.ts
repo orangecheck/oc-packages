@@ -10,6 +10,8 @@
  *   oc chat verify event.json | --channel <id> | --handle <h> [--offline]
  */
 
+import { createRequire } from 'node:module';
+
 import { Command } from 'commander';
 
 import { runChallengeIssue, runChallengeVerify } from './commands/challenge';
@@ -25,12 +27,15 @@ import {
 } from './commands/me';
 import { runVerify } from './commands/verify';
 
+// The installed package's own version, so `--version` can't drift from a release.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 const program = new Command();
 
 program
     .name('oc')
     .description('OrangeCheck — proof of Bitcoin stake for the open web')
-    .version('0.1.0');
+    .version(version);
 
 program
     .command('check')
