@@ -47,6 +47,21 @@ describe('export --github masking', () => {
         expect(env).toBe(`DEPLOY_KEY<<OCV_X\n${PEM}\nOCV_X\n`);
     });
 
+    it('masks each side of a lone \\r, as the runner splits log lines there too', () => {
+        // A trailing \r would leave 'tokenXYZ' logged but 'tokenXYZ\r' masked.
+        expect(maskCommands('tokenXYZ\r')).toEqual(['::add-mask::tokenXYZ']);
+        expect(maskCommands('secretA\rsecretB')).toEqual([
+            '::add-mask::secretA',
+            '::add-mask::secretB',
+        ]);
+        expect(maskCommands('a\r\nb\rc\nd')).toEqual([
+            '::add-mask::a',
+            '::add-mask::b',
+            '::add-mask::c',
+            '::add-mask::d',
+        ]);
+    });
+
     it('masks nothing for an empty value, and skips blank lines', () => {
         expect(maskCommands('')).toEqual([]);
         expect(maskCommands('a\n\n  \nb')).toEqual(['::add-mask::a', '::add-mask::b']);
