@@ -15,6 +15,7 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { VaultClient } from '@orangecheck/vault-core';
 import { Command } from 'commander';
@@ -80,11 +81,14 @@ function collectRefs(envFile: string | undefined): [string, string][] {
     return Object.entries(wanted).filter(([, v]) => v.startsWith('ocv://'));
 }
 
+// The installed package's own version, so `--version` can't drift from a release.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 const program = new Command();
 program
     .name('oc-vault')
     .description('OC Vault from the shell — resolve ocv:// secret references, zero-knowledge.')
-    .version('0.2.0');
+    .version(version);
 
 program
     .command('login')
