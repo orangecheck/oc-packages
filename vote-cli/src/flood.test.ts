@@ -164,6 +164,8 @@ type Stop = 'hang' | 'drop' | 'closed';
 /** A relay's events, 'hang' (never answers), 'down' (refuses), or events it stops answering for on a ballot page. */
 type RelaySpec = NostrEvent[] | 'down' | 'hang' | { events: NostrEvent[]; stopOnBallotPage: number; partial: number; stop: Stop };
 const closers: Array<() => Promise<void>> = [];
+/** REQs for reveals (kind 30082) the relays were sent this run. */
+let revealReqs = 0;
 
 /** A relay at 127.0.0.1, as `spec` says. */
 async function relay(spec: RelaySpec): Promise<string> {
@@ -185,6 +187,7 @@ async function relay(spec: RelaySpec): Promise<string> {
             if (spec === 'hang' || msg[0] !== 'REQ') return;
             const [, sub, ...filters] = msg as [string, string, ...Record<string, unknown>[]];
             for (const f of filters) {
+                if (Array.isArray(f.kinds) && f.kinds.includes(30082)) revealReqs++;
                 const cap = Math.min(typeof f.limit === 'number' ? f.limit : CAP, CAP);
                 const out = events
                     .filter((e) => matches(e, f))
@@ -393,6 +396,14 @@ async function secretTallyOver(specs: RelaySpec[]) {
         spy.mockRestore();
     }
 }
+
+describe('oc-vote tally reads the reveal only for a secret poll', { timeout: 60_000 }, () => {
+    it('a public poll sends no reveal read, so junk under its reveal tag cannot slow its count', async () => {
+        revealReqs = 0;
+        expect(await tallyOver([honest(), honest(), honest(), honest(), honest()])).toEqual(TRUTH);
+        expect(revealReqs).toBe(0);
+    });
+});
 
 describe('oc-vote tally reads the reveal in full, or says it cannot count', { timeout: 60_000 }, () => {
     it('a reveal read in full is counted', async () => {
