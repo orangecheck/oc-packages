@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/agent-cli",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Command-line tool for OC Agent — verify, inspect, and canonicalize delegation / action / revocation envelopes from your shell.",
   "keywords": [
     "oc-agent",
@@ -37,6 +37,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
@@ -49,7 +50,8 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
   },
   "publishConfig": {
     "access": "public"

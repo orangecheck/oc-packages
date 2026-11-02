@@ -32,6 +32,8 @@ import {
 import { verifySignature } from '@orangecheck/bip322';
 import { Command } from 'commander';
 
+import { readRevocations } from './revocations.js';
+
 type AnyEnvelope = DelegationEnvelope | ActionEnvelope | RevocationEnvelope;
 
 const program = new Command();
@@ -56,7 +58,7 @@ program
     .option('--skip-temporal', 'skip issued_at / expires_at checks', false)
     .option(
         '--revocations <file>',
-        'a JSON array of the revocations fetched for the delegation; without it, revocation is not checked'
+        'a JSON array of the revocations fetched for the delegation (envelopes, or the kind-30085 events a relay returns); without it, revocation is not checked'
     )
     .option(
         '--as-of-signed-at',
@@ -75,9 +77,12 @@ program
             }
         ) => {
         const parsed = JSON.parse(await read(file));
-        const revocations = opts.revocations
-            ? (JSON.parse(await read(opts.revocations)) as RevocationEnvelope[])
-            : undefined;
+        let revocations: RevocationEnvelope[] | undefined;
+        if (opts.revocations) {
+            const read_ = readRevocations(JSON.parse(await read(opts.revocations)));
+            if (!read_.ok) die(opts.json, 'BAD_REVOCATIONS', read_.message);
+            revocations = read_.revocations;
+        }
         // This CLI has no relay access by design, so it cannot query the
         // kind-30085 feed itself: the caller passes what they fetched, or the
         // verdict says revocation was not checked.
@@ -378,7 +383,9 @@ function canonicalMessageFor(env: AnyEnvelope): string {
 type AsOf = { basis: 'now'; now: string } | { basis: 'signed_at'; signedAt: string; anchored: boolean };
 
 function report(
-    result: { ok: true; id: string } | { ok: false; code: string; message: string },
+    result:
+        | { ok: true; id: string; revocationsSkipped?: number }
+        | { ok: false; code: string; message: string },
     asJson: boolean,
     what: string,
     signatureChecked: boolean,
@@ -393,6 +400,13 @@ function report(
         if (!revocationChecked) {
             notes.push(
                 'revocation not checked (offline) — query kind 30085 with "#t": [delegation id] and pass --revocations'
+            );
+        }
+        // A revocation that does not verify revokes nothing (SPEC §9), but the caller should know one was passed.
+        const skipped = result.revocationsSkipped ?? 0;
+        if (skipped > 0) {
+            notes.push(
+                `${skipped} revocation${skipped === 1 ? '' : 's'} passed did not verify for this delegation and revoked nothing`
             );
         }
         if (asOf?.basis === 'signed_at') {
@@ -410,6 +424,7 @@ function report(
                     id: result.id,
                     signature_checked: signatureChecked,
                     revocation_checked: revocationChecked,
+                    revocations_skipped: result.revocationsSkipped ?? 0,
                     ...(asOf ? { as_of: asOf } : {}),
                     notes,
                 }),
