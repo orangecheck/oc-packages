@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2
+
+- `oc-vault --version` prints the package's version, read from its
+  package.json. It had said 0.2.0 since 0.2.0.
+
 ## 0.3.1
 
 - Requires `@orangecheck/vault-core@^0.3.2`, so every install has its checks:
