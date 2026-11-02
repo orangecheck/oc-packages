@@ -17,7 +17,16 @@ import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { closeRelayPool } from '@orangecheck/nostr-core';
 import { hexEncode, generateX25519KeyPair } from '@orangecheck/lock-crypto';
 import type { StampEnvelope } from '@orangecheck/stamp-core';
-import { ballotId, pollId, revealId, type Ballot, type Poll, type Reveal } from '@orangecheck/vote-core';
+import {
+    ANCHOR_FINAL_CONFIRMATIONS,
+    ballotId,
+    lastAnchorHeight,
+    pollId,
+    revealId,
+    type Ballot,
+    type Poll,
+    type Reveal,
+} from '@orangecheck/vote-core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 
@@ -66,6 +75,14 @@ vi.mock('./anchors.js', async (actual) => {
         },
     };
 });
+
+// The chain an anchored poll's reveal is checked against: the block at the
+// deadline and the tip, set per test; mempool.space is never asked.
+const chainState = vi.hoisted(() => ({ height: 900_000, tip: 900_000 }));
+vi.mock('@orangecheck/vote-core', async (actual) => ({
+    ...(await actual<typeof import('@orangecheck/vote-core')>()),
+    resolveCloseBlock: async () => ({ ok: true as const, height: chainState.height, tip: chainState.tip }),
+}));
 
 import { runCreate } from './commands/create.js';
 import { runReveal } from './commands/reveal.js';
@@ -513,6 +530,44 @@ describe('oc-vote reveal', () => {
         const got = JSON.parse(again.out);
         expect([got.in, again.exit]).toEqual([true, 0]);
         expect(got.served_by).toEqual([rs[0]!.url, rs[2]!.url]);
+    });
+});
+
+describe('an anchored poll’s reveal', () => {
+    // Anchored: the deadline is on or after the 2026-11-15 cutover. A count
+    // accepts its reveal only from block H_close + G + 6 (SPEC §10.3).
+    const sealed: Poll = { ...secretPoll, question: 'Anchored seal?', deadline: '2026-12-01T00:00:00Z', sig: { ...poll.sig } };
+    sealed.sig.value = signMessage(CREATOR, pollId(sealed), kCreator);
+    const sealedEvent = buildPollEvent(sealed);
+    const acceptedFrom = lastAnchorHeight(chainState.height) + ANCHOR_FINAL_CONFIRMATIONS;
+    const revealOn = (rs: Relay[], force = false) =>
+        captured(() =>
+            runReveal({
+                pollId: pollId(sealed),
+                revealSk: hexEncode(keys.secret),
+                creator: CREATOR,
+                relays: rs.map((r) => r.url),
+                force,
+                json: true,
+            })
+        );
+
+    it('reads not in, and exits 2, while the chain is short of the block a count accepts it from', async () => {
+        chainState.tip = acceptedFrom - 1;
+        const rs = await five(['keep', 'keep', 'keep', 'keep', 'keep'], [sealedEvent]);
+        const { out, exit } = await revealOn(rs, true);
+        const got = JSON.parse(out);
+        // Every relay holds it, and none serves a copy a count would accept yet.
+        expect(rs.every((r) => r.store.some((e) => e.kind === 30082))).toBe(true);
+        expect([got.in, got.served_by, exit]).toEqual([false, [], 2]);
+    });
+
+    it('reads in at 2 relays once the chain reaches that block', async () => {
+        chainState.tip = acceptedFrom;
+        const rs = await five(['keep', 'keep', 'drop', 'drop', 'drop'], [sealedEvent]);
+        const { out, exit } = await revealOn(rs);
+        const got = JSON.parse(out);
+        expect([got.in, got.served_by, exit]).toEqual([true, [rs[0]!.url, rs[1]!.url], 0]);
     });
 });
 

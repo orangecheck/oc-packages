@@ -51,7 +51,7 @@ Flags:
 
 ### `oc-vote vote --poll <poll_id> --voter <address> --option <id>`
 
-Build the ballot, have it signed (`--sig`, or paste a BIP-322 signature of the printed ballot_id), publish it, then ask each relay alone for it back. The ballot is in only once at least 2 relays serve a copy whose ballot signature and Nostr signature both hold; an OK from a relay is not enough. Below that it says the ballot isn't in yet, prints the signed event, and exits 2. In an anchored poll its stamp is read back the same way.
+Build the ballot, have it signed (`--sig`, or paste a BIP-322 signature of the printed ballot_id), publish it, then ask each relay alone for it back. The ballot is in only once at least 2 relays serve a copy whose ballot signature and Nostr signature both hold; an OK from a relay is not enough. Below that it says the ballot isn't in yet, prints the signed event, and exits 2. In an anchored poll its stamp is read back the same way, and `vote` exits 2 while the stamp is on fewer than 2 relays, even with the ballot in: a final count needs the stamp.
 
 - `--json` — `in`, `served_by`, `asked`, `quorum` and the signed `event`.
 
