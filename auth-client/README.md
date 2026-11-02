@@ -67,10 +67,12 @@ session. Your app is responsible for implementing that endpoint using
 ## Read the session
 
 ```tsx
+import { useState } from 'react';
 import { useOcSession } from '@orangecheck/auth-client';
 
 function Header() {
-    const { status, account, signOut } = useOcSession();
+    const { status, account, trySignOut } = useOcSession();
+    const [failed, setFailed] = useState(false);
 
     if (status === 'loading') return null;
     if (status === 'anonymous') return <a href="/signin">sign in</a>;
@@ -78,11 +80,16 @@ function Header() {
     return (
         <>
             <span>{account!.address}</span>
-            <button onClick={() => signOut()}>sign out</button>
+            <button onClick={async () => setFailed(!(await trySignOut()).ok)}>sign out</button>
+            {failed ? <span role="alert">Couldn't sign you out. Try again.</span> : null}
         </>
     );
 }
 ```
+
+Use `trySignOut` wherever a person signs out. It resolves to `{ ok: false }`
+when the auth host refused or didn't answer, and the session may then still be
+live, so say so. `signOut` resolves the same way either way and can't tell you.
 
 ## Drop-in components
 
