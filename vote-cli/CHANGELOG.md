@@ -9,7 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+## [0.7.7] — 2026-11-02
+
+### Fixed
+
+- `vote` in an anchored poll exits 2 when the ballot's stamp could not be made,
+  as it already did for a stamp on fewer than 2 relays. It exited 0 before. The
+  line says a final count can't see the ballot yet; `--json` keeps
+  `stamp: { error }`.
 
 ## [0.7.6] — 2026-11-02
 

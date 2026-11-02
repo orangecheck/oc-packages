@@ -93,7 +93,9 @@ export interface Report {
 /** Writes where `r.main` (and its stamp) stand; NOT_IN_YET when either isn't in. */
 export function report(r: Report): void {
     const stamp = r.stamp && 'kind' in r.stamp ? r.stamp : null;
-    if (!standingIsIn(r.main) || (stamp && !standingIsIn(stamp))) process.exitCode = NOT_IN_YET;
+    // A stamp that was never made is on no relay: a final count can't see it either.
+    const unmade = r.stamp && 'error' in r.stamp ? r.stamp : null;
+    if (!standingIsIn(r.main) || (stamp && !standingIsIn(stamp)) || unmade) process.exitCode = NOT_IN_YET;
 
     if (r.json) {
         const stampJson = r.stamp ? ('kind' in r.stamp ? { ...standingJson(r.stamp), event: r.stamp.event } : r.stamp) : null;
@@ -117,8 +119,9 @@ export function report(r: Report): void {
     for (const [k, v] of r.heading ?? []) lines.push(`  ${`${k}:`.padEnd(12)}${v}`);
     lines.push(...standingLines(r.main, r.file));
     if (stamp) lines.push(...standingLines(stamp));
-    else if (r.stamp && 'error' in r.stamp) {
-        lines.push(`  stamp:      not made here (${r.stamp.error}); vote.ochk.io's anchorer stamps every ballot it sees`);
+    else if (unmade) {
+        lines.push(`  stamp:      not made here (${unmade.error}), so a final count can't see this ballot yet`);
+        lines.push(`              vote.ochk.io's anchorer stamps every ballot it sees`);
     }
     lines.push(...(r.tail ?? []));
     process.stdout.write(`\n${lines.join('\n')}\n\n`);
