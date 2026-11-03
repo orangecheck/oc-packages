@@ -100,6 +100,11 @@
       "import": "./dist/og.mjs",
       "require": "./dist/og.js"
     },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.mjs",
+      "require": "./dist/motion.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
   },
