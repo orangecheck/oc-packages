@@ -122,7 +122,7 @@ info = kind), the first 32 hex digits.
 
 ## Peers
 
-`next` 15 or 16, `react` 18 or 19. `@orangecheck/auth-core` ^2.9.0 for `./auth` only.
+`next` 15 or 16, `react` 18 or 19. `@orangecheck/auth-core` ^2.21.0 for `./auth` only.
 
 ## License
 
