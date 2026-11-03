@@ -2,7 +2,8 @@ import { ChevronDown, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
-import { Lockup, Mark } from '../brand/mark';
+import { Lockup } from '../brand/mark';
+import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import type { FooterColumn, NavItem } from '../lib/nav';
@@ -28,9 +29,9 @@ function NavLink({
     line?: boolean;
 }) {
     const cls = cn(
-        'rounded-full px-3 py-2 text-[0.9375rem] transition-colors',
+        'rounded-none px-3 py-2 text-[0.9375rem] transition-colors',
         item.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        line && 'relative after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5 after:rounded-full',
+        line && 'relative after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5',
         line && item.active && 'after:bg-foreground',
         className
     );
@@ -59,7 +60,7 @@ function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }
         </>
     );
     const cls = cn(
-        'flex flex-col gap-0.5 rounded-xl px-3 py-2 transition-colors hover:bg-accent',
+        'flex flex-col gap-0.5 rounded-none px-3 py-2 transition-colors hover:bg-accent',
         item.active && 'bg-muted hover:bg-muted dark:bg-white/[0.06]'
     );
     return item.external ? (
@@ -84,7 +85,7 @@ function NavDropdown({ item }: { item: NavItem }) {
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger
                 className={cn(
-                    'group inline-flex items-center gap-1 rounded-full py-2 pl-3 pr-2.5 text-[0.9375rem] transition-colors md:max-lg:pl-2.5 md:max-lg:pr-2',
+                    'group inline-flex items-center gap-1 rounded-none py-2 pl-3 pr-2.5 text-[0.9375rem] transition-colors md:max-lg:pl-2.5 md:max-lg:pr-2',
                     active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground data-[state=open]:text-foreground'
                 )}
             >
@@ -102,7 +103,7 @@ function NavDropdown({ item }: { item: NavItem }) {
                 <div className="mt-1.5 border-t border-border px-1 pt-1.5">
                     <NavLink
                         item={{ ...item, label: seeAll(item), children: undefined }}
-                        className="block rounded-xl px-2 py-2 text-[0.875rem]"
+                        className="block rounded-none px-2 py-2 text-[0.875rem]"
                         onNavigate={() => setOpen(false)}
                     />
                 </div>
@@ -132,7 +133,25 @@ export interface SiteHeaderProps {
     navOnPhone?: boolean;
     /** At the top of the phone's menu: links the actions hold on a wider screen. */
     menu?: ReactNode;
+    /**
+     * 2.0's page CTA: deep orange, the header's full height, flush right, with
+     * the trailing "+". `site` only. The actions still sit before it.
+     */
+    cta?: { label: ReactNode; href: string };
     className?: string;
+}
+
+/** The trailing "+" of a CTA; it turns as the pointer lands on its link. */
+function CtaPlus() {
+    return (
+        <span
+            aria-hidden
+            className="relative inline-block size-3 shrink-0 transition-transform duration-300 ease-oca-out group-hover/cta:rotate-90 group-active/cta:rotate-90"
+        >
+            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-current" />
+            <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-current" />
+        </span>
+    );
 }
 
 /**
@@ -150,9 +169,11 @@ export function AccountCta({ href, className }: { href?: string; className?: str
 }
 
 /**
- * The header: lockup (and the site's word), navigation, search and actions.
- * Below md the navigation, and the family when it is on, move into one sheet;
- * the actions stay.
+ * The header: lockup (and the site's word), navigation, search, actions and,
+ * in 2.0, a full-height CTA flush right. A thin bar with a hairline under it.
+ * Below 900px (`site`; md for `tool`) the navigation, and the family when it
+ * is on, move into one sheet: focus stays in it, Esc closes it, and the
+ * current page is marked. The actions and the CTA stay.
  */
 export function SiteHeader({
     home = '/',
@@ -165,6 +186,7 @@ export function SiteHeader({
     variant = 'site',
     navOnPhone = true,
     menu: menuExtra,
+    cta,
     className,
 }: SiteHeaderProps) {
     const [open, setOpen] = useState(false);
@@ -174,9 +196,13 @@ export function SiteHeader({
     const phoneNav = navOnPhone ? nav : [];
     const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra);
     const brandNode = brand ?? <ProductLockup size={size} product={product} />;
+    // A site's navigation moves into the sheet below 900px; a tool's below md.
+    const wide = tool ? 'md:flex' : 'min-[900px]:flex';
+    const narrowOnly = tool ? 'md:hidden' : 'min-[900px]:hidden';
+    const headerCta = !tool && cta ? cta : null;
     const navigation =
         nav.length > 0 ? (
-            <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            <nav aria-label="Main" className={cn('hidden items-center gap-1', wide)}>
                 {nav.map((n) =>
                     n.children?.length ? (
                         <NavDropdown key={n.href} item={n} />
@@ -192,40 +218,47 @@ export function SiteHeader({
             // theme.css keeps a focused control clear of it (scroll-padding-top).
             data-oca-sticky={tool ? 'tool' : 'site'}
             className={cn(
-                'sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
-                tool ? 'border-border' : 'border-transparent',
+                'sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
                 className
             )}
         >
             <div
                 className={cn(
                     'flex items-center justify-between gap-4',
-                    tool ? 'h-14 px-4 md:px-6' : 'oca-container h-16 md:h-[4.5rem] md:max-lg:gap-2',
+                    tool
+                        ? 'h-14 px-4 md:px-6'
+                        : headerCta
+                          ? // The CTA runs to the right edge, the header's full height.
+                            'h-14 w-full pl-[clamp(1rem,0.333rem+2.857vw,3rem)] md:max-lg:gap-2'
+                          : 'oca-container h-14 md:max-lg:gap-2',
                     // Three columns, the outer two each at least their content: the
                     // navigation stays centred whatever the actions hold, so it does
                     // not shift when they change (signed out to signed in).
                     !tool &&
                         nav.length > 0 &&
-                        'md:grid md:grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)]'
+                        'min-[900px]:grid min-[900px]:grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)]'
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'justify-self-start')}>
-                    <Link href={home} className="-ml-1 min-w-0 rounded-lg p-1">
+                    <Link href={home} className="-ml-1 min-w-0 rounded-none p-1">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
                     </Link>
-                    {family ? <FamilyMenu current={current} className="max-md:hidden" /> : null}
+                    {family ? <FamilyMenu current={current} className={tool ? 'max-md:hidden' : 'max-[899px]:hidden'} /> : null}
                     {tool && navigation ? <div className="ml-5">{navigation}</div> : null}
                 </div>
                 {!tool ? navigation : null}
-                <div className="flex items-center gap-2 justify-self-end">
+                <div className={cn('flex items-center gap-2 justify-self-end', headerCta && 'self-stretch')}>
                     {search}
                     {actions}
                     {menu ? (
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
-                                className="inline-flex size-10 items-center justify-center rounded-full text-foreground hover:bg-accent md:hidden"
+                                className={cn(
+                                    'inline-flex size-11 items-center justify-center rounded-none text-foreground hover:bg-accent',
+                                    narrowOnly
+                                )}
                                 aria-label="Open menu"
                             >
                                 <Menu className="size-5" />
@@ -247,7 +280,7 @@ export function SiteHeader({
                                                         <NavLink
                                                             key={c.href}
                                                             item={c}
-                                                            className="rounded-xl px-3 py-2.5 text-[1.0625rem]"
+                                                            className={PHONE_ROW}
                                                             onNavigate={() => setOpen(false)}
                                                         />
                                                     ))}
@@ -256,7 +289,7 @@ export function SiteHeader({
                                                 <NavLink
                                                     key={n.href}
                                                     item={n}
-                                                    className="rounded-xl px-3 py-3 text-[1.0625rem]"
+                                                    className={cn(PHONE_ROW, 'py-3')}
                                                     onNavigate={() => setOpen(false)}
                                                 />
                                             )
@@ -265,7 +298,7 @@ export function SiteHeader({
                                 ) : null}
                                 {family ? (
                                     <details className={cn('group', phoneNav.length > 0 && 'mt-2 border-t border-border pt-4')}>
-                                        <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl px-3 py-2.5 text-[1.0625rem] [&::-webkit-details-marker]:hidden">
+                                        <summary className="flex cursor-pointer list-none items-center justify-between rounded-none px-3 py-2.5 text-[1.0625rem] [&::-webkit-details-marker]:hidden">
                                             All orangecheck sites
                                             <ChevronDown aria-hidden className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
                                         </summary>
@@ -275,11 +308,26 @@ export function SiteHeader({
                             </SheetContent>
                         </Sheet>
                     ) : null}
+                    {headerCta ? (
+                        <a
+                            href={headerCta.href}
+                            className="group/cta flex items-center gap-3 self-stretch bg-primary px-4 text-[0.9375rem] font-medium text-primary-foreground outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill min-[900px]:px-7"
+                        >
+                            {headerCta.label}
+                            <CtaPlus />
+                        </a>
+                    ) : null}
                 </div>
             </div>
         </header>
     );
 }
+
+/** A row in the phone's menu; the page you are on carries the ember square. */
+const PHONE_ROW = cn(
+    'flex items-center rounded-none px-3 py-2.5 text-[1.0625rem]',
+    "aria-[current=page]:before:mr-3 aria-[current=page]:before:inline-block aria-[current=page]:before:size-[7px] aria-[current=page]:before:shrink-0 aria-[current=page]:before:bg-oca-accent-display aria-[current=page]:before:content-['']"
+);
 
 /** The first thing a keyboard reaches: a way past the header to the page. */
 export function SkipLink({ href = '#main-content', children = 'Skip to content' }: { href?: string; children?: ReactNode }) {
@@ -293,7 +341,7 @@ export function SkipLink({ href = '#main-content', children = 'Skip to content' 
                 if (!to.hasAttribute('tabindex')) to.setAttribute('tabindex', '-1');
                 to.focus({ preventScroll: true });
             }}
-            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-full focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:text-[0.9375rem] focus:font-medium focus:text-foreground focus:shadow-md"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-none focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:text-[0.9375rem] focus:font-medium focus:text-foreground focus:shadow-md"
         >
             {children}
         </a>
@@ -370,7 +418,7 @@ function LegalRow({ links }: { links: readonly NavItem[] }) {
                     ))}
                 </ul>
             </nav>
-            <p>© {new Date().getFullYear()} OrangeCheck</p>
+            <p>© {new Date().getFullYear()} orangecheck</p>
         </div>
     );
 }
@@ -389,14 +437,22 @@ export interface SiteFooterProps {
     compact?: boolean;
     fineprint?: ReactNode;
     meta?: ReactNode;
-    /** The mark and wordmark at display size, closing the page. */
+    /** The giant lowercase wordmark closing the page; its letters rise centre-out the first time it is seen. */
     signature?: boolean;
     className?: string;
 }
 
+/** The footer's deep ground: it re-points the text, hairline and ring tokens, so everything in it reads white. */
+const FOOTER_GROUND =
+    'bg-oca-footer text-oca-footer-foreground [--foreground:var(--oca-footer-foreground)] [--muted-foreground:var(--oca-footer-muted)] [--oca-subtle-foreground:var(--oca-footer-muted)] [--border:var(--oca-footer-line)] [--oca-accent-display:var(--oca-footer-foreground)] [--ring:var(--oca-ring-on-fill)]';
+
+/** "orangecheck", a letter a span, each delayed by its distance from the middle. */
+const WORDMARK = 'orangecheck';
+
 /**
- * The footer, in the deck's register: a line of fine print, columns of links,
- * the family when it is on, the legal row and the support credit. Any number
+ * The footer, in 2.0's register: the deep orange ground, a line of fine print,
+ * columns of links, the family when it is on, the giant wordmark and the
+ * legal row. Any number
  * of columns: the lockup shares their row up to five, then takes its own.
  * Links are 44px tall on phones. A phone sees the whole footer in 600px, fine
  * print and meta included: six groups leave them about 110px, seven about 65px.
@@ -421,7 +477,7 @@ export function SiteFooter({
                         {/* The lockup keeps its size; its target is 44px tall, clear of the links under it. */}
                         <a
                             href={OCHK_IO}
-                            className="relative rounded-lg text-foreground before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2"
+                            className="relative rounded-none text-foreground before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2"
                         >
                             <Lockup size={22} />
                         </a>
@@ -468,7 +524,7 @@ export function SiteFooter({
             : `repeat(${Math.min(n, 6)}, minmax(0, 1fr))`,
     } as CSSProperties;
     return (
-        <footer className={cn('border-t border-border bg-background', className)}>
+        <footer className={cn(FOOTER_GROUND, className)}>
             <div
                 style={grid}
                 className="oca-container grid grid-cols-1 gap-y-6 pb-6 pt-6 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
@@ -496,7 +552,7 @@ export function SiteFooter({
                 </div>
                 {cols.map((col, i) => (
                     <div key={`${i}:${col.heading}`} className="hidden min-w-0 flex-col gap-1 md:flex">
-                        <p className="mb-2 text-[0.875rem] font-medium">{col.heading}</p>
+                        <p className="oca-label mb-2">{col.heading}</p>
                         <div className="flex flex-col gap-1">
                             {col.links.map((l, j) => (
                                 <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 py-1.5 text-[0.9375rem]" />
@@ -506,13 +562,20 @@ export function SiteFooter({
                 ))}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none overflow-hidden pb-3 md:pb-12">
-                    <div className="flex items-end gap-[0.18em] text-[clamp(3rem,11.5vw,10rem)] leading-[0.78] tracking-[-0.065em] [font-family:var(--oc-font-display)]">
-                        <span className="mb-[0.06em] inline-block w-[1.1em] shrink-0">
-                            <Mark className="block h-auto w-full" />
-                        </span>
-                        <span>orangecheck</span>
-                    </div>
+                <div aria-hidden className="oca-container select-none pb-3 md:pb-12">
+                    {/* Inter 400, lowercase. The letters rise from under the line, the middle first (motion.css). */}
+                    <Reveal className="overflow-hidden" style={{ '--oca-wordmark-mid': (WORDMARK.length - 1) / 2 } as CSSProperties}>
+                        <div
+                            data-oca-wordmark=""
+                            className="flex text-[clamp(3rem,13.5vw,15rem)] font-normal leading-[0.86] tracking-[-0.065em] [font-family:var(--oc-font-display)]"
+                        >
+                            {[...WORDMARK].map((ch, i) => (
+                                <span key={i} className="inline-block" style={{ '--oca-letter': i } as CSSProperties}>
+                                    {ch}
+                                </span>
+                            ))}
+                        </div>
+                    </Reveal>
                 </div>
             ) : null}
             {legalLinks || meta ? (
