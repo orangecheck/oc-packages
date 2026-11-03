@@ -105,16 +105,34 @@ optional. What changes is how things look.
 
 ### Chrome
 
-- `SiteHeader`: a thin bar with a hairline. New `cta` prop
-  (`{ label, href }`): deep, full height, flush right, with the turning "+".
-  The `site` header's links move into its sheet below 900px (they used to
-  move below 768px). The sheet marks the current page. The `tool` header
-  keeps md.
-- `SiteFooter`: deep orange ground, mono column heads, and the giant
-  lowercase wordmark alone, without the mark. Its letters rise centre-out
-  the first time it is seen, and stay still under reduced motion. The
-  `signature` prop keeps its name. The legal row's line reads
-  "© <year> orangecheck".
+- `SiteHeader` (`site`): its row is the frame. It is 82.5rem wide and 68px
+  tall from 900px, with a hairline under it. The brand is the flat check
+  and a 21px wordmark (`Lockup variant="flat"`), and the links follow it,
+  28px apart. New props, both optional:
+  - `signIn` (`true`, or `{ label, href }`) draws "Sign in".
+  - `cta` (`true` for the registry's "Get an account" to the family
+    sign-in, or `{ label, href, pending, reserve }`) draws the deep,
+    full-height CTA flush to the frame's right rule, with the turning "+".
+    While `pending` the CTA keeps its box, shows and names nothing, and takes
+    no focus. `reserve` sizes it for the labels it may take, so the swap
+    moves nothing.
+  - Below 900px the links, Sign in and a full-width CTA move into a paper
+    sheet that marks the current page. They used to move below 768px.
+  - The `tool` header keeps md and its lockup. An active external link
+    carries `aria-current` too.
+- `Lockup` takes `variant`: `icon` (default, the app icon) or `flat` (page
+  chrome).
+- `SiteFooter`: deep orange ground in the 82.5rem frame, with mono column
+  heads. The giant lowercase wordmark stands alone, without the mark:
+  "orange" and "check" at 15vw, set to the frame's edges. Its letters rise
+  from the seam outward the first time it is seen, and stay still under
+  reduced motion. The `signature` prop keeps its name. The legal row's line
+  reads "© <year> orangecheck".
+- New utilities `oca-band-ink`, `oca-band-burnt`, `oca-band-brand` and
+  `oca-band-footer`. Each is a ground plus re-pointed text, hairline, accent
+  and ring tokens, so anything on it reads in its colours: an outline
+  `Button` on orange is ink. `Section`'s band tones and the footer use them,
+  and check-contrast holds each band's text and ring on its ground.
 - `AppShell`, `DocsShell`, `ToolShell` and the family menu keep their
   layouts and go square.
 
