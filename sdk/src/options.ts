@@ -23,6 +23,7 @@ const VERIFY_OPTIONS: ReadonlySet<string> = new Set<keyof VerifyOptions>([
     'esploraSignetBase',
     'esploraTestnetBase',
     'coverSats',
+    'utxoKeepMs',
 ]);
 
 /**

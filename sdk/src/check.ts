@@ -26,6 +26,7 @@ import {
 } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
 import { checkCheckParams } from './options';
+import { reachesCurve, toBase64Maybe } from './utils/signature';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
 
@@ -68,9 +69,12 @@ export interface CheckResult {
      * Present when `ok === false`. Codes explain why: verify()'s codes, and
      * `not_found` (no attestation, on a read the relays finished),
      * `attestation_unread` (none found, but too few relays finished the read, so
-     * one may be there; ask again), `below_min_sats`, `below_min_days`, `stake_shared` (the
+     * one may be there, or more copies whose signature fails came first than
+     * check() verifies, so a real one may be behind them; ask again),
+     * `below_min_sats`, `below_min_days`, `stake_shared` (the
      * address also backs another identity on the protocol) and `stake_unread`
-     * (the address's other attestations could not be read in full, so one
+     * (the address's other attestations could not be read in full, or checked
+     * within the budget, so one
      * address, one bond was not checked; ask again). The stake is read only
      * when everything else passed, so `stake_shared` and `stake_unread` only
      * ever come alone.
@@ -127,14 +131,28 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: [reason] };
     }
 
-    // The newest whose signature holds (SPEC §7.2).
-    let env = envelopes[0]!;
+    // The newest whose signature holds (SPEC §7.2), within the call's budget.
+    const sigs = signatureChecks();
+    let holding: AttestationEnvelope | undefined;
+    let unchecked = false;
     for (const candidate of envelopes) {
-        if (await signedBy(candidate)) {
-            env = candidate;
+        const holds = sigs.check(candidate);
+        if (holds === null) {
+            unchecked = true;
+            break;
+        }
+        if (await holds) {
+            holding = candidate;
             break;
         }
     }
+    // Forged copies past the budget may hide a real one: unread, never the
+    // newest forged copy and never not_found. With every copy checked and none
+    // holding, the newest is answered, and verify() says why it fails.
+    if (!holding && unchecked) {
+        return { ok: false, sats: 0, days: 0, score: 0, reasons: ['attestation_unread'] };
+    }
+    const env = holding ?? envelopes[0]!;
 
     const outcome = await verify(
         {
@@ -162,7 +180,7 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     // paged read. "Not shared" rests on no such attestation being there, so it
     // needs a read of the address a flood could not cut off; else it is unread.
     if (outcome.ok && reasons.length === 0 && identity) {
-        const stake = await backsOtherIdentity(env, identity, relays);
+        const stake = await backsOtherIdentity(env, identity, relays, sigs);
         if (stake === 'shared') reasons.push('stake_shared');
         if (stake === 'unread') reasons.push('stake_unread');
     }
@@ -226,6 +244,34 @@ function signedBy(e: AttestationEnvelope): Promise<boolean> {
 }
 
 /**
+ * At most this many signature checks that reach curve math a check() makes.
+ * Anyone can publish under an address's or a handle's tag beside a signature
+ * that does not hold; one shaped like a real signature costs a few
+ * milliseconds to turn away, and relays return up to a thousand copies. Junk
+ * bytes are turned away before any curve math (see reachesCurve) and are
+ * checked free, so a flood of junk never hides a real attestation. The cost
+ * that stays: about this many well-formed forgeries newer than a real
+ * attestation make its check read attestation_unread (ask again), never
+ * not_found and never the forged copy.
+ */
+export const VERIFY_BUDGET = 64;
+
+/** One check() call's signature checks, VERIFY_BUDGET of them charged. */
+function signatureChecks() {
+    let spent = 0;
+    return {
+        /** Whether `e`'s signature holds; null when it would be charged and the budget is spent. */
+        check(e: AttestationEnvelope): Promise<boolean> | null {
+            if (reachesCurve(e.address, toBase64Maybe(e.signature))) {
+                if (spent >= VERIFY_BUDGET) return null;
+                spent++;
+            }
+            return signedBy(e);
+        },
+    };
+}
+
+/**
  * Whether the address that signed `env` also backs another identity on the
  * same protocol. Anyone can publish under the address's `t` tag, and relays
  * answer newest first up to their cap, so a flood dated after the address's
@@ -240,24 +286,31 @@ function signedBy(e: AttestationEnvelope): Promise<boolean> {
  * a publisher wait for a quorum (attest.ochk.io and publishAttestation succeed
  * on one relay). So it may sit on the one relay the holder then floods. The
  * cost is availability: a flood under an address on one relay makes its
- * identity checks unread until the flood is gone.
+ * identity checks unread until the flood is gone. So does a sibling naming
+ * another identity that the call's signature budget leaves unchecked.
  */
 async function backsOtherIdentity(
     env: AttestationEnvelope,
     identity: Identity,
-    relays: string[]
+    relays: string[],
+    sigs: ReturnType<typeof signatureChecks>
 ): Promise<'shared' | 'not_shared' | 'unread'> {
     const want = identityKey(identity);
     const protocol = identity.protocol.trim().toLowerCase();
     const read = await readByAddress(env.address, relays);
     const siblings = await envelopesFromEvents(read.events);
+    let unchecked = false;
     for (const e of [env, ...siblings]) {
         if (!signedMatch(e, { addr: env.address })) continue;
         const other = signedIdentities(e).some(
             (b) => b.protocol.trim().toLowerCase() === protocol && identityKey(b) !== want
         );
+        if (!other) continue;
+        if (e === env) return 'shared';
         // Only the address's own signature can lend its stake to another identity.
-        if (other && (e === env || (await signedBy(e)))) return 'shared';
+        const holds = sigs.check(e);
+        if (holds === null) unchecked = true;
+        else if (await holds) return 'shared';
     }
-    return subjectReadComplete(read) ? 'not_shared' : 'unread';
+    return subjectReadComplete(read) && !unchecked ? 'not_shared' : 'unread';
 }

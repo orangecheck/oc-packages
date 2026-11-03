@@ -75,6 +75,13 @@ export interface VerifyOptions {
      * fresh deposit. `check()` sets it to `minSats`.
      */
     coverSats?: number;
+    /**
+     * Keep each address's UTXO read this many milliseconds in this process,
+     * and share a read still in flight, so a server answering many checks of
+     * one address reads the chain once a window. Off unless set: a deposit
+     * made inside the window is not seen until it ends.
+     */
+    utxoKeepMs?: number;
 }
 
 /**
