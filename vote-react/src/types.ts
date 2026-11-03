@@ -11,8 +11,10 @@ export interface TallyResponse {
     poll_id: string;
     /** 200: `tallied`, `provisional` (an anchored poll's count before it is
      *  final) or `awaiting_reveal`. 409: `deferred` (the snapshot block is not
-     *  yet buried), which `useTally` reports as an error. */
-    state: 'tallied' | 'provisional' | 'awaiting_reveal' | 'deferred';
+     *  yet buried), which `useTally` reports as an error. `unread` (vote-core
+     *  2.2.0: some voters' coins could not be read, so there is no count)
+     *  comes once vote.ochk.io runs that version. */
+    state: 'tallied' | 'provisional' | 'awaiting_reveal' | 'deferred' | 'unread';
     question?: string;
     creator?: string;
     deadline?: string;
