@@ -7,6 +7,32 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.20.0] — 2026-11-03
+
+### Changed
+
+- `check()` checks at most 64 signatures a call that reach curve math
+  (`VERIFY_BUDGET`). Anyone can publish under an address's or a handle's tag
+  beside a signature that does not hold, newer than the real attestation; one
+  shaped like a real signature costs a few milliseconds to turn away, and a
+  read can return a thousand copies, so a flood bought that much work per
+  lookup. Junk bytes that the verifier turns away before any curve math are
+  checked free, so a flood of junk never hides a real attestation (as since
+  1.16.2). Past 64 well-formed copies that do not hold, `check()` answers
+  `attestation_unread` (ask again): never `not_found` and never the newest
+  forged copy. The stake check shares the budget, and a sibling attestation
+  naming another handle that it could not check makes the stake
+  `stake_unread`. What stays: about 64 well-formed forgeries newer than a real
+  attestation make its check read `attestation_unread` until they are gone.
+
+### Added
+
+- `VerifyOptions.utxoKeepMs`: keep each address's UTXO read that many
+  milliseconds in this process and share a read in flight, so a server
+  answering many checks of one address (thresholds that differ, say) reads the
+  chain once a window. A failed read is not kept. Off unless set: a deposit
+  made inside the window is not seen until it ends.
+
 ## [1.19.1] — 2026-11-03
 
 ### Fixed

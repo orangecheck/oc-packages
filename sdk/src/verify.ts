@@ -260,6 +260,40 @@ async function getAddressUtxos(
     throw new Error(`esplora_all_failed: ${lastError?.message || 'unknown'}`);
 }
 
+/** UTXO reads kept by keptAddressUtxos, by network, endpoints and address. */
+const keptUtxos = new Map<string, { until: number; utxos: Promise<EsploraUtxo[]> }>();
+const KEPT_UTXOS_MAX = 1000;
+
+/**
+ * getAddressUtxos, kept `keepMs` per address when the caller asks for it
+ * (`VerifyOptions.utxoKeepMs`), with a read in flight shared. A read that fails
+ * is not kept: the next caller reads again.
+ */
+function keptAddressUtxos(
+    address: string,
+    network: Network,
+    opts: { esploraMainnetBase?: string; esploraSignetBase?: string },
+    keepMs: number | undefined
+): Promise<EsploraUtxo[]> {
+    if (!keepMs || !Number.isFinite(keepMs) || keepMs <= 0) {
+        return getAddressUtxos(address, network, opts);
+    }
+    const key = JSON.stringify([network, opts.esploraMainnetBase, opts.esploraSignetBase, address]);
+    const now = Date.now();
+    const hit = keptUtxos.get(key);
+    if (hit && hit.until > now) return hit.utxos;
+    if (keptUtxos.size >= KEPT_UTXOS_MAX) {
+        for (const [k, v] of keptUtxos) if (v.until <= now) keptUtxos.delete(k);
+        if (keptUtxos.size >= KEPT_UTXOS_MAX) keptUtxos.delete(keptUtxos.keys().next().value!);
+    }
+    const entry = { until: now + keepMs, utxos: getAddressUtxos(address, network, opts) };
+    keptUtxos.set(key, entry);
+    entry.utxos.catch(() => {
+        if (keptUtxos.get(key) === entry) keptUtxos.delete(key);
+    });
+    return entry.utxos;
+}
+
 /**
  * Enhanced metrics computation per SPEC.md §5.4 and §6.1
  *
@@ -486,10 +520,15 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
 
         // Enhanced UTXO analysis and metrics computation
         try {
-            const utxos = await getAddressUtxos(input.addr, network, {
-                esploraMainnetBase: opts.esploraMainnetBase,
-                esploraSignetBase: opts.esploraSignetBase,
-            });
+            const utxos = await keptAddressUtxos(
+                input.addr,
+                network,
+                {
+                    esploraMainnetBase: opts.esploraMainnetBase,
+                    esploraSignetBase: opts.esploraSignetBase,
+                },
+                opts.utxoKeepMs
+            );
 
             // Compute metrics with bond extension support (SPEC.md §5.4)
             const { sats_bonded, days_unspent, confirmed_balance } = computeMetrics(
