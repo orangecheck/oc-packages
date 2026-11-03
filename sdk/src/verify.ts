@@ -205,6 +205,9 @@ async function getAddressUtxos(
                 ];
 
     let lastError: Error | null = null;
+    // What each endpoint that gave no list said, decided across all of them below.
+    let capped = false;
+    let refusedStatus: number | null = null;
 
     // Try each endpoint in order. Per-endpoint timeout kept tight (5s) so
     // a slow upstream doesn't stack against the next one; callers who want
@@ -220,6 +223,18 @@ async function getAddressUtxos(
                 signal: AbortSignal.timeout(5000),
             });
 
+            // A 4xx other than 429 is the endpoint answering about this address, not an
+            // outage: the ~500-UTXO cap (electrs' "Too many unspent ...", a 400), or a
+            // refusal (a 403, a WAF block, a 404 from a moved endpoint). The address was
+            // checked before any read, so neither is our own bad input.
+            if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) {
+                const body = resp.status === 400 ? await resp.text().catch(() => '') : '';
+                if (/too many unspent/i.test(body.slice(0, 512))) capped = true;
+                else refusedStatus ??= resp.status;
+                lastError = new Error(`HTTP ${resp.status}`);
+                log.warn({ base, status: resp.status, network }, 'Esplora endpoint refused the UTXO lookup');
+                continue;
+            }
             if (!resp.ok) {
                 throw new Error(`HTTP ${resp.status}`);
             }
@@ -255,9 +270,28 @@ async function getAddressUtxos(
         }
     }
 
-    // All endpoints failed
+    // All endpoints failed. A cap or a refusal outranks an outage elsewhere: either
+    // can be had at will (the cap by filling an address with dust), so neither may
+    // ever be read as the outage a caller's failOpen covers.
     log.error({ endpoints, error: lastError?.message, network }, 'All Esplora endpoints failed');
-    throw new Error(`esplora_all_failed: ${lastError?.message || 'unknown'}`);
+    const reason = capped ? 'utxo_cap_unread' : refusedStatus !== null ? 'provider_refused_unread' : 'chain_unread';
+    throw new UtxoReadError(reason, `esplora_all_failed: ${lastError?.message || 'unknown'}`, refusedStatus);
+}
+
+/**
+ * No endpoint listed an address's coins. Unread, never a verdict about them:
+ * `chain_unread` when none answered (429, 5xx, timeout, network, a body that
+ * does not parse), `utxo_cap_unread` when one said the address holds more
+ * coins than it lists, `provider_refused_unread` when one refused the lookup.
+ */
+class UtxoReadError extends Error {
+    constructor(
+        readonly reason: 'chain_unread' | 'utxo_cap_unread' | 'provider_refused_unread',
+        message: string,
+        readonly status: number | null
+    ) {
+        super(message);
+    }
 }
 
 /** UTXO reads kept by keptAddressUtxos, by network, endpoints and address. */
@@ -594,8 +628,24 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
             };
         } catch (utxoError) {
             log.error({ err: utxoError }, 'UTXO fetch failed');
-            codes.push('bad_request');
-            return { ok: false, codes, network, attestation_id };
+            if (!(utxoError instanceof UtxoReadError)) {
+                codes.push('bad_request');
+                return { ok: false, codes, network, attestation_id };
+            }
+            // Unread, not a verdict. An outage keeps bad_request beside chain_unread,
+            // as every decoder before 1.21.0 reads an outage by sig_ok_* + bad_request;
+            // the cap and a refusal never carry it, so none of them can fail those open.
+            if (utxoError.reason === 'chain_unread') codes.push('bad_request');
+            codes.push(utxoError.reason);
+            return {
+                ok: false,
+                codes,
+                network,
+                attestation_id,
+                ...(utxoError.status !== null && utxoError.reason === 'provider_refused_unread'
+                    ? { chain_status: utxoError.status }
+                    : {}),
+            };
         }
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e ?? 'decode_error');

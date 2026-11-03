@@ -29,6 +29,7 @@
 export { check } from './check';
 export type { CheckParams, CheckResult } from './check';
 export { signatureIsValid, verify } from './verify';
+export { unreadReason, type UnreadReason } from './unread';
 export { createAttestation } from './attestation';
 export { nostrIdentifierForms, nostrPubkeyToHex } from './nostr-pubkey';
 

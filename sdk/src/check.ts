@@ -28,6 +28,7 @@ import { nostrPubkeyToHex } from './nostr-pubkey';
 import { checkCheckParams } from './options';
 import { reachesCurve, toBase64Maybe } from './utils/signature';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
+import { unreadReason } from './unread';
 import { parseCanonicalMessage, signatureIsValid, verify } from './verify';
 
 
@@ -51,11 +52,18 @@ export interface CheckParams {
 export interface CheckResult {
     /** True iff signature valid AND thresholds met. */
     ok: boolean;
-    /** Sats bonded on-chain for the bonded UTXO set. */
+    /**
+     * Sats bonded on-chain for the bonded UTXO set. Not a reading when
+     * `reasons` holds any `*_unread` (see `unreadReason`): 0 there means the
+     * coins were not read, never that there are none.
+     */
     sats: number;
-    /** Days since the youngest UTXO in the bonded set was confirmed. */
+    /**
+     * Days since the youngest UTXO in the bonded set was confirmed. Not a
+     * reading when `reasons` holds any `*_unread`.
+     */
     days: number;
-    /** Reference `score_v0` for this attestation. */
+    /** Reference `score_v0` for this attestation. Not a reading when `reasons` holds any `*_unread`. */
     score: number;
     /** Attestation ID (if one was found). */
     attestation_id?: string;
@@ -77,11 +85,24 @@ export interface CheckResult {
      * within the budget, so one
      * address, one bond was not checked; ask again). The stake is read only
      * when everything else passed, so `stake_shared` and `stake_unread` only
-     * ever come alone.
+     * ever come alone. When the coins could not be read (1.21.0): `chain_unread`
+     * beside the signature code and `bad_request` (no chain API answered; ask
+     * again), or `utxo_cap_unread` or `provider_refused_unread` alone (the
+     * address holds more coins than the chain APIs list, or one refused the
+     * lookup). None of these comes with `below_min_*`. Decode with
+     * `unreadReason` before mapping a reason to words.
      */
     reasons?: string[];
+    /** The HTTP status a chain API refused the lookup with, beside `provider_refused_unread` only. */
+    chain_status?: number;
 }
 
+/**
+ * Find the subject's attestation, verify it against live chain state, and
+ * compare it with the thresholds. The result is not a reading when `reasons`
+ * holds any `*_unread` (`unreadReason(result.reasons) !== null`): nothing was
+ * concluded, so say "couldn't check", never "below threshold" or "0 sats".
+ */
 export async function check(params: CheckParams): Promise<CheckResult> {
     checkCheckParams(params);
     const {
@@ -168,10 +189,29 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     const days = outcome.metrics?.days_unspent ?? 0;
     const score = outcome.metrics?.score ?? 0;
 
+    // Coins that were not read are unread, never below a threshold: no
+    // below_min_* beside it. A cap or a refusal is the one reason, so a decoder
+    // that reads a lone *_unread as an incomplete lookup closes it.
+    const unread = unreadReason(outcome.codes);
+    if (unread === 'utxo_cap_unread' || unread === 'provider_refused_unread') {
+        return {
+            ok: false,
+            sats,
+            days,
+            score,
+            attestation_id: env.attestation_id,
+            address: env.address,
+            identities: signedIdentities(env),
+            network: outcome.network,
+            reasons: [unread],
+            ...(outcome.chain_status !== undefined ? { chain_status: outcome.chain_status } : {}),
+        };
+    }
+
     const reasons: string[] = [];
     if (!outcome.ok) reasons.push(...outcome.codes);
-    if (sats < minSats) reasons.push('below_min_sats');
-    if (days < minDays) reasons.push('below_min_days');
+    if (!unread && sats < minSats) reasons.push('below_min_sats');
+    if (!unread && days < minDays) reasons.push('below_min_days');
 
     // SECURITY.md §3: one address, one bond. An address that also backs a
     // different identity on the same protocol is lending one stake to several.
