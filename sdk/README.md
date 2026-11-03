@@ -25,7 +25,7 @@ yarn add @orangecheck/sdk
 ### 1. Gate any action with one call
 
 ```ts
-import { check } from '@orangecheck/sdk';
+import { check, unreadReason } from '@orangecheck/sdk';
 
 // "Only let this user post if they have 100k sats unspent for 30 days."
 const result = await check({
@@ -36,12 +36,17 @@ const result = await check({
 
 if (result.ok) {
     // let them through
+} else if (unreadReason(result.reasons)) {
+    // nothing was concluded: say "couldn't check", not "rejected"
+    console.log('unread:', unreadReason(result.reasons)); // e.g. 'chain_unread'
 } else {
     console.log('rejected:', result.reasons); // e.g. ['below_min_sats']
 }
 ```
 
 `check()` finds the most recent attestation for the subject, verifies the Bitcoin signature, recomputes sats + days from live chain state, and compares against your thresholds. One call.
+
+When it could not read what the answer rests on, `reasons` holds an `*_unread` reason and nothing is concluded: `chain_unread` (no chain API answered; ask again), `utxo_cap_unread` (the address holds more coins than the chain API lists, about 500; asking again does not help), `provider_refused_unread` (a chain API refused the lookup), `attestation_unread` or `stake_unread` (the relays did not finish a read). `ok` is `false` and no `below_min_*` comes with them, and `sats`, `days` and `score` are not a reading. Decode with `unreadReason()` before you map reasons to words, and never let an unread answer through a gate that fails open: anyone can push an address past the UTXO cap by sending it dust.
 
 ### 2. Or call the hosted API — no SDK needed at all
 
