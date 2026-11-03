@@ -363,12 +363,13 @@ export class AttestationIndex {
                 this.chainDown.delete(address);
                 return;
             }
-            this.refused.delete(address);
-            // A chain-API outage is not a verdict: keep the last known bond.
+            // A chain-API outage is not a verdict: keep the last known bond, and a
+            // known refusal, which an outage must never turn into a fail_open.
             if (chainUnreachable(out.codes)) {
                 if (!this.bonds.has(address)) this.chainDown.add(address);
                 return;
             }
+            this.refused.delete(address);
             this.chainDown.delete(address);
             // Never replace a bond read for a larger amount with a lagging one.
             if (cover < (this.bonds.get(address)?.cover ?? 0)) return;
