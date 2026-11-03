@@ -111,7 +111,7 @@ import { OcChallengeButton } from '@orangecheck/react';
 </OcChallengeButton>;
 ```
 
-Because every wallet's signing API is different (UniSat, Xverse, Leather, Alby, paste-from-Sparrow), the component takes a **`sign` prop** — you supply the adapter, the component handles the rest.
+Because every wallet's signing API is different (UniSat, Xverse, Leather, paste-from-Sparrow), the component takes a **`sign` prop** — you supply the adapter, the component handles the rest. The signature must be BIP-322: a WebLN `signMessage` (Alby) never verifies as one, so it is not an adapter here.
 
 Adapter examples:
 
@@ -126,9 +126,6 @@ async (msg) => {
     });
     return r.signature;
 };
-
-// Alby (Liquid Browser)
-(msg) => (window as any).webln.signMessage(msg);
 
 // Manual / hardware wallet — pop a dialog, user pastes a signature
 async (msg) => {

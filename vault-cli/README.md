@@ -56,8 +56,6 @@ developer settings) or, as an interim, `--cookie <oc_session>` — the value
 of your `oc_session` cookie from a browser session. The cached escrow and
 blobs are ciphertext; the passphrase that unwraps them is never stored.
 
-See `VAULT-DEVELOPER-PLATFORM.md` for the design and roadmap.
-
 ## License
 
 MIT © OrangeCheck

@@ -42,7 +42,7 @@ app.post(
 );
 ```
 
-On block: sends `403 { error, subject, subjectKind, orangecheck? }`. Override with `onBlocked`.
+On block: answers 401 for `no_subject`, otherwise 403, with `{ error: 'orangecheck_gate_blocked', reason, reasons? }`, plus `subject` and `subjectKind` when `exposeSubject` is set. Override with `onBlocked`.
 
 ---
 
