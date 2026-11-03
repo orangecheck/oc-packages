@@ -8,9 +8,10 @@
  *   3. POST /api/challenge           → verify; returns proven address
  *   4. onVerified({ address, nonce, expiresAt })
  *
- * Because every wallet's sign API is different (UniSat, Xverse, Leather, Alby,
+ * Because every wallet's sign API is different (UniSat, Xverse, Leather,
  * sparrow-via-paste, etc.), the component takes a `sign` prop — you supply
- * the adapter, we handle everything else.
+ * the adapter, we handle everything else. The signature must be BIP-322: a
+ * WebLN signMessage (Alby) never verifies as one.
  *
  *   <OcChallengeButton
  *     address={userAddr}
