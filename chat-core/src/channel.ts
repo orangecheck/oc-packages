@@ -69,7 +69,8 @@ export type ChannelError =
 export type IsBound = (pubkey: string, principal: string) => Promise<boolean>;
 
 /** Does this utxo-floor write proof match current chain state: an unspent output
- *  of `address` with exactly the proof's value, height and block hash (§8.3.3)? */
+ *  of `address` with exactly the proof's value, height and block hash (§8.3.3)?
+ *  A reader that could not tell throws UnansweredReadError, not false. */
 export type VerifyOnChain = (proof: WriteProof, address: string) => Promise<boolean>;
 
 export type WritePolicy = 'utxo-floor' | 'allowlist' | 'founder' | 'open';
@@ -425,8 +426,10 @@ export async function verifyDescriptor(
 }
 
 export interface VerifyPostOpts {
-    /** Reader's current tip height (one read per render batch). */
-    tipHeight: number;
+    /** Reader's current tip height (one read per render batch), or 'unanswered'
+     *  when it could not be read: a utxo-floor post that needs it then throws
+     *  UnansweredReadError rather than being refused. */
+    tipHeight: number | 'unanswered';
     /** BIP-322 by author_address over post_id — REQUIRED for utxo-floor. */
     controlSig?: string;
     /** The full writer-address list for an allowlist channel (membership proof). */
@@ -441,7 +444,8 @@ export interface VerifyPostOpts {
     /** A non-empty recipients[] on a chat-channel envelope is E_CHANNEL_RECIPIENTS. */
     recipients?: unknown[];
     /** utxo-floor: binds the write_proof to real chain state (io.ts has one
-     *  over an esplora API). Fail-closed: false drops the post. */
+     *  over an esplora API). Fail-closed: false drops the post; a read that got
+     *  no answer throws UnansweredReadError. */
     verifyOnChain: VerifyOnChain;
 }
 
@@ -556,6 +560,10 @@ async function checkWritePermission(
             if (!content.write_proof) return 'E_CHAN_FLOOR';
             if (!opts.controlSig) return 'E_CHAN_FLOOR';
             if (!isBitcoinAddress(content.author_address)) return 'E_CHAN_FLOOR';
+            // With no tip read, the age cannot be told: not a refusal (§8.3.3).
+            if (opts.tipHeight === 'unanswered') {
+                throw new UnansweredReadError('the chain tip could not be read');
+            }
             // Cheap offline gates first (no network): the floor arithmetic + the
             // control_sig (author controls the address, over post_id).
             const v = evaluateWriteProof(content.write_proof, w, opts.tipHeight);
@@ -1098,6 +1106,18 @@ export interface ChannelPost {
     event: NostrEvent;
 }
 
+export interface ChannelPosts {
+    /** The posts that verify, removals applied, in feed order. */
+    posts: ChannelPost[];
+    /** Posts that could not be checked (a binding, coin or tip read with no
+     *  answer): never shown, and counted so a reader can say so and try again
+     *  (§8.3.3). A post shown from another copy is not counted. */
+    unchecked: number;
+    /** False when a removal could not be checked, so a post it names may be
+     *  on show. */
+    removalsChecked: boolean;
+}
+
 /**
  * Deterministic public-feed order (§8.3.2). A public multi-author channel has no
  * single hash-chain (independent broadcasters), so order is the event-level
@@ -1118,24 +1138,36 @@ export function orderChannelPosts(posts: ChannelPost[]): ChannelPost[] {
  * each one authored by a bound key and through the write gate, removal
  * tombstones applied (forward-effective, §8.3.5), copies of one post_id kept
  * once at their lowest created_at, in feed order. A post that fails MUST NOT
- * render, so it is left out.
+ * render, so it is left out. A post whose binding, coin or tip read got no
+ * answer (UnansweredReadError) is not shown either, and is counted unchecked
+ * rather than refused; the rest of the feed still verifies.
  */
 export async function verifyChannelPosts(
     events: readonly NostrEvent[],
     descriptor: DescriptorContent,
     opts: Pick<VerifyPostOpts, 'tipHeight' | 'verifyBip322' | 'verifyOnChain'> & { isBound: IsBound }
-): Promise<ChannelPost[]> {
+): Promise<ChannelPosts> {
     const removed = new Set<string>();
     const byPostId = new Map<string, ChannelPost>();
+    const unchecked = new Set<string>();
+    let removalsUnread = false;
     for (const ev of events) {
         const content = parsePost(ev);
         if (!content || content.channel_id !== descriptor.channel_id) continue;
         const controlSig = ev.tags.find((t) => t[0] === 'control_sig')?.[1];
-        const v = await verifyPost(content, descriptor, {
-            ...opts,
-            event: ev,
-            ...(controlSig ? { controlSig } : {}),
-        });
+        let v: PostVerify;
+        try {
+            v = await verifyPost(content, descriptor, {
+                ...opts,
+                event: ev,
+                ...(controlSig ? { controlSig } : {}),
+            });
+        } catch (e) {
+            if (!(e instanceof UnansweredReadError)) throw e;
+            unchecked.add(postId(content));
+            if (typeof content.removes === 'string') removalsUnread = true;
+            continue;
+        }
         if (!v.ok) continue;
         if (v.isTombstone && content.removes) {
             removed.add(content.removes);
@@ -1146,5 +1178,9 @@ export async function verifyChannelPosts(
             byPostId.set(v.postId, { post: content, postId: v.postId, event: ev });
         }
     }
-    return orderChannelPosts([...byPostId.values()].filter((a) => !removed.has(a.postId)));
+    return {
+        posts: orderChannelPosts([...byPostId.values()].filter((a) => !removed.has(a.postId))),
+        unchecked: [...unchecked].filter((id) => !byPostId.has(id)).length,
+        removalsChecked: !removalsUnread,
+    };
 }

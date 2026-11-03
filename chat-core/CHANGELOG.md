@@ -6,6 +6,42 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [Unreleased]
+
+A channel feed tells a post it could not check from one that failed, and
+checks a write proof by the one coin it names. The API changes below break
+callers of `verifyChannelPosts` and of `EsploraOptions.utxoCache`.
+
+### Changed
+
+- `./io` reads the coin a write proof names (SPEC §8.3.3 (1)): `GET
+  /tx/<txid>` for the output at `vout`, then `GET /tx/<txid>/outspend/<vout>`,
+  once per outpoint. It no longer reads the author's whole UTXO set, which
+  Esplora refuses to list past a few hundred UTXOs, so a large wallet's posts
+  verify, and dust sent to an author cannot stop them. A spend still in the
+  mempool counts as spent. A 404 from either read, or a `vout` the transaction
+  does not have, is false. A 429, a 5xx, a timeout or a body that does not
+  parse is `'no-answer'`, and is not cached.
+- The owner is compared through `@orangecheck/bip322`'s `normalizeAddress`,
+  now a dependency: a bech32 author in capitals matches its coin, and a
+  mixed-case string never does.
+- `EsploraOptions.utxoCache` is now `cache`, a `WriteProofCache` keyed by
+  outpoint. `readOutpoint` and `OutpointRead` are new; `MempoolUtxo` and
+  `WriteProofUtxoCache` are gone.
+- `esploraWriteProofCheck` throws `UnansweredReadError` by default when a read
+  gets no answer, so a verifier never reads silence as "no".
+  `unanswered: 'false'` returns false instead.
+- `VerifyPostOpts.tipHeight` takes `'unanswered'`. A writer's utxo-floor post
+  then throws `UnansweredReadError` once its own checks pass; one with no proof
+  or no `control_sig` is still refused. Founder and admin posts need no tip.
+- `verifyChannelPosts` returns `ChannelPosts`: `{ posts, unchecked,
+  removalsChecked }`. A post whose binding, coin or tip read got no answer is
+  not shown and is counted in `unchecked`, and the rest of the feed still
+  verifies. Before, one such read threw out of the whole feed, or, with the
+  default chain check, dropped the post as if it failed. A removal that could
+  not be checked sets `removalsChecked` false. Any other error still reaches
+  the caller.
+
 ## [0.1.1] — 2026-10-31
 
 ### Fixed
