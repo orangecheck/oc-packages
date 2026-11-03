@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { recorder } from '../auth/fixtures';
+import { defineSite, generateMetaTags } from '../seo/meta';
 import { createOgHandler, ogTitle, type OgCardOptions } from './index';
 
 const STAMP: OgCardOptions = {
@@ -102,6 +103,20 @@ describe('createOgHandler', () => {
         const verify = await handled(KEYED, '/api/og?page=verify');
         expect((verify.body as Buffer).equals(await card({ title: 'Verify a stamp', product: 'stamp', eyebrow: 'Verify', host: 'stamp.ochk.io' }))).toBe(true);
     }, 30_000);
+
+    // generateMetaTags puts a card's key in the share URL as it is, and this handler takes as
+    // canonical only encodeURIComponent(key): the two agree only while defineSite holds keys
+    // to [a-z0-9-], which seo.test.tsx pins.
+    it('answers the URL generateMetaTags shares for each card, not a 308 to another', async () => {
+        const cards = { create: 'Create a stamp', 'how-it-works': 'How it works', v2: 'Version 2' };
+        const site = defineSite({ url: 'https://stamp.ochk.io', name: 'OC Stamp', defaultTitle: 'OC Stamp', defaultDescription: 'x', ogRoute: '/api/og', ogCards: cards });
+        for (const [key, title] of Object.entries(cards)) {
+            const shared = new URL(generateMetaTags(site, { title, canonical: `/${key}` }).openGraph.images[0]!.url);
+            expect(shared.search).toBe(`?page=${encodeURIComponent(key)}`);
+            const out = await handled({ ...STAMP, cards }, shared.pathname + shared.search);
+            expect([out.status, out.headers.location], key).toEqual([200, undefined]);
+        }
+    }, 60_000);
 
     it('takes the card fields when a site names them', async () => {
         const out = await handled({ defaultTitle: 'x', host: 'vault.ochk.io', product: 'vault', eyebrow: 'Vault', tone: 'paper', cards: { hi: 'hi' } }, '/api/og?page=hi');
