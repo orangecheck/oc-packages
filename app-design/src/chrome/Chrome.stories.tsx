@@ -56,9 +56,9 @@ export const PublicFrame: StoryObj = {
                         <Button variant="ghost" className="hidden sm:inline-flex">
                             Sign in
                         </Button>
-                        <Button>Get started</Button>
                     </>
                 }
+                cta={{ label: 'Get started', href: '/signin' }}
             />
             <div className="oca-container py-32 text-center oca-body">Page content</div>
             <SiteFooter
