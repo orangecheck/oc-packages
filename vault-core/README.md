@@ -41,8 +41,6 @@ const vault = OcVault.fromExport(exportJson, escrowWrappedKey, passphrase);
 - **sync** — `VaultClient`, a transport-agnostic vault.ochk.io API client.
 - **`OcVault`** — the facade that ties them together.
 
-See `VAULT-DEVELOPER-PLATFORM.md` for the design and roadmap.
-
 ## License
 
 MIT © OrangeCheck

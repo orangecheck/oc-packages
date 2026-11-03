@@ -21,8 +21,9 @@ import { assertOc, checkGateOptions, sendBlockedDefault } from './core';
  * Fastify's `req` shape differs slightly from Express (`req.query` is always
  * an object, `req.headers` keys are lowercased, `req.body` is parsed per the
  * declared schema). The adapter marshals it into the framework-agnostic
- * MinimalReq shape the gate core expects, then short-circuits with a 403 via
- * Fastify's `reply.code().send()` on block.
+ * MinimalReq shape the gate core expects, then short-circuits on block via
+ * Fastify's `reply.code().send()`: 401 for `no_subject`, otherwise 403, with the
+ * same body as the Express adapter.
  */
 // The Fastify type surface is deliberately not imported — we don't want a
 // hard dependency on fastify just for a ~20-line wrapper. Use `unknown`-typed
