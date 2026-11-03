@@ -1,13 +1,13 @@
 /**
  * @orangecheck/legal — site registry.
  *
- * Maps each consuming site to its legal profile and token context. The
- * `protocol`-profile sites (ochk.io umbrella, six verb sites, docs, analytics,
- * chat, cosign, btc, globe)
- * deliberately do NOT host their own pages — their footers link to ochk.io,
- * and the protocol document on ochk.io is authored to govern the whole
- * non-custodial family. Only the three commercial products self-host, because
- * each describes money flows the protocol document cannot truthfully cover.
+ * Maps each self-hosting site to its legal profile and token context. The
+ * twelve `PROTOCOL_LINKED_SITES` deliberately do NOT host their own pages —
+ * their footers link to ochk.io, and the protocol document on ochk.io is
+ * authored to govern the whole non-custodial family. Three sites self-host:
+ * ochk.io, which hosts that document, and the two commercial products,
+ * ochk.app and vault, because each describes money flows the protocol
+ * document cannot truthfully cover.
  */
 
 import type { SiteContext } from './types';
