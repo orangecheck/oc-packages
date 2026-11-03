@@ -2,7 +2,7 @@
 
 When an `@orangecheck/*` package publishes a new version, this repo's
 **Renovate** workflow fans the bump out to every consumer site in the
-family. No more 13-repo manual sweep — publish, wait one day, and the
+family. No more 22-repo manual sweep — publish, wait one day, and the
 new version lands on every subdomain.
 
 ## What it does
@@ -59,8 +59,8 @@ Result: net manual work on a routine publish — **zero**.
 
 ## Repos under management
 
-The 13 consumer surfaces listed in [`renovate-global.json`](./renovate-global.json) —
-every site that pins `@orangecheck/*` via npm. Add a new site by
+The 22 repos listed in [`renovate-global.json`](./renovate-global.json) —
+every repo that pins `@orangecheck/*` via npm, this one included. Add a new site by
 appending it to that file _and_ dropping a `renovate.json` in its
 repo (copy any existing one: it is the four `extends` and three limits),
 _and_ adding the `merge-renovate` job to the
@@ -81,8 +81,8 @@ Renovate needs cross-repo write access, which the default
 
 1. Mint a fine-grained PAT — https://github.com/settings/personal-access-tokens/new
    - **Resource owner:** `orangecheck`
-   - **Repository access:** _All repositories_ (or just the 13 in
-     `renovate-global.json`, plus this repo)
+   - **Repository access:** _All repositories_ (or just the 22 in
+     `renovate-global.json`, this repo among them)
    - **Repository permissions:**
      - `Contents` → **Read and write**
      - `Issues` → **Read and write** (Renovate's initRepo GraphQL
