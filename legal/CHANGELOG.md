@@ -8,6 +8,37 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.29] — 2026-11-03
+
+### Changed — ochk.app's Terms and Privacy policy say what is true today
+
+Four corrections to ochk.app's documents (the `me` profile), ruled together.
+ochk.io's and OC Vault's documents render exactly as before.
+
+- **Every way to sign in.** Section 02 of the Terms said an identity is made
+  two ways, a Bitcoin wallet or an email code. It now names email, Google,
+  GitHub and a Bitcoin wallet, and the custody lines that say who holds a key
+  name email, Google and GitHub together.
+- **Paying, in the future tense.** Both documents said ochk.app pays you in
+  sats and that a share of each fee flows back to you. No app pays real sats
+  yet, so they now say ochk.app will.
+- **Custody destinations, as far as they are built.** The Terms promised
+  federation custody and self-custody graduation as the destination, a
+  federation run without orangecheck, and graduation to self-custody at any
+  time; the summary said federations would take the balance over; the Privacy
+  policy listed a record of each federation to self-custody move. The planned
+  stage keeps orangecheck's executor holding each claim until it is paid to a
+  Lightning wallet you choose, and both documents now say only that. The
+  custody record entry says none is made while the system is in testing.
+- **orangecheck, lowercase.** Both documents now write the brand lowercase, as
+  ochk.app's pages do. While no entity is registered the party of record goes
+  by the brand, so these documents define it as "orangecheck". A new `BRAND`
+  token carries the site's spelling into the shared clauses; a site sets it
+  with `brand` in the registry. The clauses set in capitals keep ORANGECHECK.
+
+Both documents are dated 2026-11-03. Nothing here changes what is kept or who
+sees it, so the Privacy policy's dated note of what changed stays as it was.
+
 ## [0.7.28] — 2026-10-31
 
 ### Added — a dated note of what changed, at the top of each Privacy policy
