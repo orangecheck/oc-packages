@@ -69,10 +69,13 @@ import { OcGate } from '@orangecheck/react';
     minDays={30}
     loading={<Spinner />}
     fallback={<Callout>You need at least 100k sats bonded for 30 days to post.</Callout>}
+    unread={<Callout>We couldn't check your bond just now. Try again in a minute.</Callout>}
 >
     <CommentForm />
 </OcGate>;
 ```
+
+`unread` renders when nothing could be concluded: no chain API or relay answered, the check threw, or the address holds more coins than the chain API lists. Tell the person you couldn't check, never that they fell short. Without it, the gate stays closed behind `fallback`.
 
 Or pass a render-prop to get the resolved `CheckResult`:
 

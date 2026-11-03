@@ -2,8 +2,8 @@
  * <OcGate />
  *
  * Client-side gate: renders `children` only when the subject's OrangeCheck
- * proof passes the configured thresholds. While loading or on failure, renders
- * `loading` / `fallback` respectively.
+ * proof passes the configured thresholds. While loading, on a failure, or when
+ * nothing could be concluded, renders `loading`, `fallback` or `unread`.
  *
  *   <OcGate address="bc1q..." minSats={100_000} minDays={30}>
  *     <CommentForm />
@@ -39,12 +39,35 @@ export interface OcGateProps {
     loading?: ReactNode;
     /** Rendered when the check fails. Receives the CheckResult so you can explain why. */
     fallback?: ReactNode | ((result: CheckResult | null) => ReactNode);
+    /**
+     * Rendered when nothing could be concluded: no chain API or relay answered,
+     * the check threw (the result is then null), or the address holds more coins
+     * than the chain API lists. Say "couldn't check", never "below threshold":
+     * `sats` and `days` in such a result are not a reading. Default `fallback`,
+     * so the gate stays closed.
+     */
+    unread?: ReactNode | ((result: CheckResult | null) => ReactNode);
 
     /** Optional callback when the check resolves (pass or fail). */
     onResult?: (result: CheckResult) => void;
 
     /** Override discovery relays. */
     relays?: string[];
+}
+
+/** Reads that did not finish, most decisive first (sdk 1.21.0's unreadReason, read here by name). */
+const UNREAD = ['utxo_cap_unread', 'provider_refused_unread', 'chain_unread', 'attestation_unread', 'stake_unread'];
+
+/**
+ * Whether check() concluded nothing. Before sdk 1.21.0, a chain API that never
+ * answered came back as `bad_request` beside a verified signature, with
+ * `below_min_*` on top: that is unread too, never a subject who fell short.
+ */
+function unreadOf(result: CheckResult): boolean {
+    if (result.ok) return false;
+    const reasons = result.reasons ?? [];
+    if (UNREAD.some((u) => reasons.includes(u))) return true;
+    return reasons.includes('bad_request') && reasons.some((r) => r === 'sig_ok_bip322' || r === 'sig_ok_legacy');
 }
 
 export function OcGate({
@@ -56,10 +79,11 @@ export function OcGate({
     children,
     loading = null,
     fallback = null,
+    unread,
     onResult,
     relays,
 }: OcGateProps): ReactNode {
-    const [state, setState] = useState<'pending' | 'ok' | 'fail'>('pending');
+    const [state, setState] = useState<'pending' | 'ok' | 'fail' | 'unread'>('pending');
     const [result, setResult] = useState<CheckResult | null>(null);
 
     // Re-run when the inputs change. Key by stable strings so object identity
@@ -86,11 +110,11 @@ export function OcGate({
                 const r = await check(params);
                 if (cancelled) return;
                 setResult(r);
-                setState(r.ok ? 'ok' : 'fail');
+                setState(r.ok ? 'ok' : unreadOf(r) ? 'unread' : 'fail');
                 onResult?.(r);
             } catch {
                 if (cancelled) return;
-                setState('fail');
+                setState('unread');
             }
         })();
 
@@ -101,7 +125,10 @@ export function OcGate({
     }, [address, attestationId, idKey, minSats, minDays, relayKey]);
 
     if (state === 'pending') return loading;
-    if (state === 'fail') {
+    if (state === 'unread' && unread !== undefined) {
+        return typeof unread === 'function' ? unread(result) : unread;
+    }
+    if (state === 'fail' || state === 'unread') {
         return typeof fallback === 'function' ? fallback(result) : fallback;
     }
     // ok — we know result is not null

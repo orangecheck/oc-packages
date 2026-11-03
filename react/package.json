@@ -1,6 +1,6 @@
 {
   "name": "@orangecheck/react",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "React components for OrangeCheck — render proof-of-Bitcoin-stake badges and run identity checks from the browser.",
   "author": "OrangeCheck",
   "license": "MIT",

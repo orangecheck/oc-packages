@@ -179,6 +179,58 @@ describe('OcGate', () => {
         });
     });
 
+    // chain-read-failures PK4: nothing concluded is its own state, never "below threshold".
+    it.each([
+        ['an sdk before 1.21.0 (bad_request beside the signature)', ['sig_ok_bip322', 'bad_request', 'below_min_sats']],
+        ['sdk 1.21.0 chain_unread', ['sig_ok_bip322', 'bad_request', 'chain_unread']],
+        ['the UTXO cap', ['utxo_cap_unread']],
+        ['a relay read that did not finish', ['attestation_unread']],
+    ])('renders `unread`, not `fallback`, for a chain that did not answer, from %s', async (_w, reasons) => {
+        vi.mocked(check).mockResolvedValue({ ok: false, sats: 0, days: 0, score: 0, reasons } as never);
+
+        render(
+            <OcGate
+                address="bc1qtest"
+                minSats={100_000}
+                fallback={<span data-testid="fail">below</span>}
+                unread={(r) => <span data-testid="unread">couldn't check: {r?.reasons?.at(-1)}</span>}
+            >
+                <span>pass</span>
+            </OcGate>
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('unread')).toBeTruthy();
+        });
+        expect(screen.queryByTestId('fail')).toBeNull();
+        expect(screen.queryByText('pass')).toBeNull();
+    });
+
+    it('renders `unread` with a null result when check() throws', async () => {
+        vi.mocked(check).mockRejectedValue(new Error('network down'));
+        render(
+            <OcGate address="bc1qtest" fallback={<span>below</span>} unread={(r) => <span data-testid="unread">{String(r)}</span>}>
+                <span>pass</span>
+            </OcGate>
+        );
+        await waitFor(() => {
+            expect(screen.queryByTestId('unread')?.textContent).toBe('null');
+        });
+    });
+
+    it('without an `unread` prop, an unread result stays closed behind `fallback`', async () => {
+        vi.mocked(check).mockResolvedValue({ ok: false, sats: 0, days: 0, score: 0, reasons: ['utxo_cap_unread'] } as never);
+        render(
+            <OcGate address="bc1qtest" fallback={<span data-testid="fail">closed</span>}>
+                <span>pass</span>
+            </OcGate>
+        );
+        await waitFor(() => {
+            expect(screen.queryByTestId('fail')).toBeTruthy();
+        });
+        expect(screen.queryByText('pass')).toBeNull();
+    });
+
     it('renders fallback (not children) when check() throws', async () => {
         vi.mocked(check).mockRejectedValue(new Error('network down'));
 
