@@ -13,13 +13,7 @@ import { Reveal } from './motion';
  */
 // overflow-x: clip, not hidden: decoration may not widen the page, and a sticky
 // child still sticks.
-const INK_BAND =
-    '[--foreground:var(--oca-ink-foreground)] [--muted-foreground:var(--oca-ink-muted)] [--oca-subtle-foreground:var(--oca-ink-subtle)] [--border:var(--oca-ink-line)]';
-const BURNT_BAND =
-    '[--foreground:var(--oca-burnt-foreground)] [--muted-foreground:var(--oca-burnt-muted)] [--oca-subtle-foreground:var(--oca-burnt-muted)] [--border:var(--oca-burnt-line)] [--oca-accent-display:var(--oca-burnt-ember)] [--ring:var(--oca-burnt-accent)]';
-const BRAND_BAND =
-    '[--foreground:var(--brand-foreground)] [--muted-foreground:var(--brand-foreground)] [--oca-subtle-foreground:var(--brand-foreground)] [--border:var(--oca-brand-line)] [--oca-accent-display:var(--brand-foreground)] [--ring:var(--brand-foreground)]';
-
+// The bands are theme.css utilities (oca-band-*), so any element can be one.
 export const sectionVariants = cva('relative w-full overflow-x-clip', {
     variants: {
         tone: {
@@ -27,11 +21,11 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             card: 'bg-card text-card-foreground',
             // The band line is transparent in light; in dark it keeps the ink
             // band from melting into the canvas.
-            ink: `border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground ${INK_BAND}`,
+            ink: 'oca-band-ink border-y border-[var(--oca-band-line)]',
             // The dark brown stage: paper text, orange and ember.
-            burnt: `bg-oca-burnt text-oca-burnt-foreground ${BURNT_BAND}`,
+            burnt: 'oca-band-burnt',
             // Focus is drawn in the band's own ink: orange on orange was 1.2:1.
-            brand: `bg-brand text-brand-foreground ${BRAND_BAND}`,
+            brand: 'oca-band-brand',
         },
         /** A full-width hairline under the section, as 2.0 rules one section from the next. */
         rule: {

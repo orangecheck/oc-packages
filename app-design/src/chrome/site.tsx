@@ -37,7 +37,7 @@ function NavLink({
     );
     if (item.external) {
         return (
-            <a href={item.href} className={cls} rel="noreferrer" onClick={onNavigate}>
+            <a href={item.href} className={cls} rel="noreferrer" aria-current={item.active ? 'page' : undefined} onClick={onNavigate}>
                 {item.label}
             </a>
         );
@@ -134,12 +134,39 @@ export interface SiteHeaderProps {
     /** At the top of the phone's menu: links the actions hold on a wider screen. */
     menu?: ReactNode;
     /**
-     * 2.0's page CTA: deep orange, the header's full height, flush right, with
-     * the trailing "+". `site` only. The actions still sit before it.
+     * 2.0's page CTA: deep orange, the header's full height, flush to the
+     * frame's right rule, with the trailing "+". `true` is the registry's
+     * "Get an account" to the family sign-in; an object names its own. `site`
+     * only. In the phone's menu it is a full-width button at the bottom.
+     *
+     * `pending` is the moment a session check runs: the block keeps its width
+     * and ground, its label is hidden, and nothing in it can be focused or
+     * named, so the wrong label never flashes. `reserve` lists the other labels
+     * it may take ("Your account"): the block is as wide as the widest, so the
+     * swap never moves the nav.
      */
-    cta?: { label: ReactNode; href: string };
+    cta?: boolean | { label?: ReactNode; href?: string; pending?: boolean; reserve?: readonly ReactNode[] };
+    /** "Sign in" before the CTA; in the phone's menu, a row. `true` links the family sign-in. `site` only. */
+    signIn?: boolean | { label?: ReactNode; href?: string };
     className?: string;
 }
+
+/** A CTA's label in a one-cell grid with the labels it may become, so its width never changes. */
+function CtaLabel({ label, reserve, hidden }: { label: ReactNode; reserve: readonly ReactNode[]; hidden?: boolean }) {
+    return (
+        <span className="grid [&>*]:[grid-area:1/1]">
+            <span className={cn(hidden && 'invisible')}>{label}</span>
+            {reserve.map((r, i) => (
+                <span key={i} aria-hidden className="invisible">
+                    {r}
+                </span>
+            ))}
+        </span>
+    );
+}
+
+const CTA_BLOCK =
+    'flex items-center gap-3 self-stretch whitespace-nowrap bg-primary px-4 text-[0.9375rem] font-medium text-primary-foreground min-[900px]:px-7';
 
 /** The trailing "+" of a CTA; it turns as the pointer lands on its link. */
 function CtaPlus() {
@@ -187,28 +214,44 @@ export function SiteHeader({
     navOnPhone = true,
     menu: menuExtra,
     cta,
+    signIn,
     className,
 }: SiteHeaderProps) {
     const [open, setOpen] = useState(false);
+    const familySignIn = useFamilySignInHref();
     const tool = variant === 'tool';
-    const size = tool ? 24 : 28;
     const current = typeof family === 'string' ? family : undefined;
     const phoneNav = navOnPhone ? nav : [];
-    const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra);
-    const brandNode = brand ?? <ProductLockup size={size} product={product} />;
     // A site's navigation moves into the sheet below 900px; a tool's below md.
     const wide = tool ? 'md:flex' : 'min-[900px]:flex';
     const narrowOnly = tool ? 'md:hidden' : 'min-[900px]:hidden';
-    const headerCta = !tool && cta ? cta : null;
+    const ctaOwn = typeof cta === 'object' ? cta : {};
+    const signInOwn = typeof signIn === 'object' ? signIn : {};
+    const headerCta =
+        !tool && cta
+            ? {
+                  label: ctaOwn.label ?? GET_AN_ACCOUNT.label,
+                  href: ctaOwn.href ?? familySignIn,
+                  pending: Boolean(ctaOwn.pending),
+                  reserve: ctaOwn.reserve ?? [],
+              }
+            : null;
+    const headerSignIn = !tool && signIn ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
+    // 2.0's site header: the flat mark and the wordmark at 21px in the frame. The tool header keeps its lockup.
+    const brandNode = brand ?? (tool ? <ProductLockup size={24} product={product} /> : <ProductLockup size={30} product={product} flat />);
+    const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta);
+    // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
+    // links follow the brand, and Sign in and the CTA sit at the right rule.
+    const framed = !tool;
     const navigation =
         nav.length > 0 ? (
-            <nav aria-label="Main" className={cn('hidden items-center gap-1', wide)}>
+            <nav aria-label="Main" className={cn('hidden items-center', tool ? 'gap-1' : 'ml-[1.125rem] gap-7', wide)}>
                 {nav.map((n) =>
                     n.children?.length ? (
                         <NavDropdown key={n.href} item={n} />
                     ) : (
-                        // Between md and lg the family menu and the actions share the row: tighter.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'md:max-lg:px-2.5'} />
+                        // The site's links are text, 28px apart; the tool's keep their padding and bar.
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'px-0 hover:text-oca-accent-ink'} />
                     )
                 )}
             </nav>
@@ -227,31 +270,28 @@ export function SiteHeader({
                     'flex items-center justify-between gap-4',
                     tool
                         ? 'h-14 px-4 md:px-6'
-                        : headerCta
-                          ? // The CTA runs to the right edge, the header's full height.
-                            'h-14 w-full pl-[clamp(1rem,0.333rem+2.857vw,3rem)] md:max-lg:gap-2'
-                          : 'oca-container h-14 md:max-lg:gap-2',
-                    // Three columns, the outer two each at least their content: the
-                    // navigation stays centred whatever the actions hold, so it does
-                    // not shift when they change (signed out to signed in).
-                    !tool &&
-                        nav.length > 0 &&
-                        'min-[900px]:grid min-[900px]:grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)]'
+                        : // The frame's column: the page's gutter at left, the CTA at the right rule.
+                          'mx-auto h-14 w-full max-w-[82.5rem] border-border pl-[clamp(1rem,0.333rem+2.857vw,3rem)] min-[900px]:h-[4.25rem] min-[900px]:border-x',
+                    framed && !headerCta && 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
                 )}
             >
-                <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'justify-self-start')}>
+                <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
                     <Link href={home} className="-ml-1 min-w-0 rounded-none p-1">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
                     </Link>
                     {family ? <FamilyMenu current={current} className={tool ? 'max-md:hidden' : 'max-[899px]:hidden'} /> : null}
-                    {tool && navigation ? <div className="ml-5">{navigation}</div> : null}
+                    {tool && navigation ? <div className="ml-5">{navigation}</div> : navigation}
                 </div>
-                {!tool ? navigation : null}
-                <div className={cn('flex items-center gap-2 justify-self-end', headerCta && 'self-stretch')}>
+                <div className={cn('flex items-center gap-2', headerCta && 'self-stretch')}>
                     {search}
                     {actions}
+                    {headerSignIn ? (
+                        <a href={headerSignIn.href} className="hidden px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
+                            {headerSignIn.label}
+                        </a>
+                    ) : null}
                     {menu ? (
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
@@ -263,7 +303,8 @@ export function SiteHeader({
                             >
                                 <Menu className="size-5" />
                             </SheetTrigger>
-                            <SheetContent side="right" className="pt-16">
+                            {/* Page chrome, so paper, not the product surface. */}
+                            <SheetContent side="right" className="flex flex-col bg-background pt-16">
                                 <SheetTitle className="sr-only">Menu</SheetTitle>
                                 {menuExtra ? (
                                     <div className={cn('flex flex-col', (phoneNav.length > 0 || family) && 'border-b border-border pb-3')}>
@@ -305,17 +346,57 @@ export function SiteHeader({
                                         <FamilyList current={current} onNavigate={() => setOpen(false)} stack className="mt-2" />
                                     </details>
                                 ) : null}
+                                {headerSignIn || headerCta ? (
+                                    <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
+                                        {headerSignIn ? (
+                                            <a href={headerSignIn.href} className={PHONE_ROW} onClick={() => setOpen(false)}>
+                                                {headerSignIn.label}
+                                            </a>
+                                        ) : null}
+                                        {headerCta ? (
+                                            <Button asChild size="lg" className="w-full justify-between">
+                                                {headerCta.pending ? (
+                                                    <span data-oca-cta="pending" aria-hidden>
+                                                        <CtaLabel label={headerCta.label} reserve={headerCta.reserve} hidden />
+                                                        <span className="invisible">
+                                                            <CtaPlus />
+                                                        </span>
+                                                    </span>
+                                                ) : (
+                                                    <a data-oca-cta="" href={headerCta.href} onClick={() => setOpen(false)}>
+                                                        <CtaLabel label={headerCta.label} reserve={headerCta.reserve} />
+                                                        <CtaPlus />
+                                                    </a>
+                                                )}
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                ) : null}
                             </SheetContent>
                         </Sheet>
                     ) : null}
                     {headerCta ? (
-                        <a
-                            href={headerCta.href}
-                            className="group/cta flex items-center gap-3 self-stretch bg-primary px-4 text-[0.9375rem] font-medium text-primary-foreground outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill min-[900px]:px-7"
-                        >
-                            {headerCta.label}
-                            <CtaPlus />
-                        </a>
+                        headerCta.pending ? (
+                            // The session check is running: the block holds its place, says nothing, takes no focus.
+                            <span data-oca-cta="pending" aria-hidden className={CTA_BLOCK}>
+                                <CtaLabel label={headerCta.label} reserve={headerCta.reserve} hidden />
+                                <span className="invisible">
+                                    <CtaPlus />
+                                </span>
+                            </span>
+                        ) : (
+                            <a
+                                data-oca-cta=""
+                                href={headerCta.href}
+                                className={cn(
+                                    CTA_BLOCK,
+                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
+                                )}
+                            >
+                                <CtaLabel label={headerCta.label} reserve={headerCta.reserve} />
+                                <CtaPlus />
+                            </a>
+                        )
                     ) : null}
                 </div>
             </div>
@@ -442,12 +523,10 @@ export interface SiteFooterProps {
     className?: string;
 }
 
-/** The footer's deep ground: it re-points the text, hairline and ring tokens, so everything in it reads white. */
-const FOOTER_GROUND =
-    'bg-oca-footer text-oca-footer-foreground [--foreground:var(--oca-footer-foreground)] [--muted-foreground:var(--oca-footer-muted)] [--oca-subtle-foreground:var(--oca-footer-muted)] [--border:var(--oca-footer-line)] [--oca-accent-display:var(--oca-footer-foreground)] [--ring:var(--oca-ring-on-fill)]';
+/** The footer's deep ground (the oca-band-footer utility re-points the tokens) and the frame's width. */
+const FOOTER_GROUND = 'oca-band-footer';
+const FRAME_X = 'mx-auto w-full max-w-[82.5rem] px-[clamp(1rem,0.333rem+2.857vw,3rem)]';
 
-/** "orangecheck", a letter a span, each delayed by its distance from the middle. */
-const WORDMARK = 'orangecheck';
 
 /**
  * The footer, in 2.0's register: the deep orange ground, a line of fine print,
@@ -527,7 +606,7 @@ export function SiteFooter({
         <footer className={cn(FOOTER_GROUND, className)}>
             <div
                 style={grid}
-                className="oca-container grid grid-cols-1 gap-y-6 pb-6 pt-6 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]"
+                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-6 pt-6 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]')}
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}
@@ -562,16 +641,21 @@ export function SiteFooter({
                 ))}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none pb-1 md:pb-12">
-                    {/* Inter 400, lowercase. The letters rise from under the line, the middle first (motion.css). */}
-                    <Reveal className="overflow-hidden" style={{ '--oca-wordmark-mid': (WORDMARK.length - 1) / 2 } as CSSProperties}>
+                <div aria-hidden className={cn(FRAME_X, 'select-none pb-1 md:pb-12')}>
+                    {/* Inter 400, lowercase, "orange" and "check" pushed to the frame's edges.
+                        The letters rise from under the line, from the seam outward (motion.css). */}
+                    <Reveal className="overflow-hidden" style={{ '--oca-wordmark-mid': 5 } as CSSProperties}>
                         <div
                             data-oca-wordmark=""
-                            className="flex pb-[0.14em] text-[clamp(3rem,13.5vw,15rem)] font-normal leading-[0.86] tracking-[-0.065em] [font-family:var(--oc-font-display)]"
+                            className="flex justify-between pb-[0.14em] text-[clamp(3.5rem,15vw,15rem)] font-normal leading-[0.82] tracking-[-0.055em] [font-family:var(--oc-font-display)]"
                         >
-                            {[...WORDMARK].map((ch, i) => (
-                                <span key={i} className="inline-block" style={{ '--oca-letter': i } as CSSProperties}>
-                                    {ch}
+                            {['orange', 'check'].map((word, w) => (
+                                <span key={word} className="flex">
+                                    {[...word].map((ch, i) => (
+                                        <span key={i} className="inline-block" style={{ '--oca-letter': w * 6 + i } as CSSProperties}>
+                                            {ch}
+                                        </span>
+                                    ))}
                                 </span>
                             ))}
                         </div>
@@ -579,7 +663,7 @@ export function SiteFooter({
                 </div>
             ) : null}
             {legalLinks || meta ? (
-                <div className="oca-container">
+                <div className={FRAME_X}>
                     {/* The rule spans the content, not the gutters. */}
                     <div className="flex flex-col gap-3 border-t border-border py-4 text-[0.875rem] text-muted-foreground md:py-6">
                         {legalLinks ? <LegalRow links={legalLinks} /> : null}

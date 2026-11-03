@@ -244,6 +244,57 @@
     padding-block: clamp(4rem, 2.8rem + 5vw, 8rem);
 }
 
+/* ── Bands ───────────────────────────────────────────────────────────────
+   A band is a ground plus the tokens re-pointed for whatever sits on it: text,
+   soft text, hairlines, the accent and the ring. A Button, a MonoLabel or a
+   StatRow on a band reads in its colours with no props. check-contrast reads
+   these blocks and holds each band's text to 4.5:1 on its ground. */
+
+@utility oca-band-ink {
+    background-color: var(--oca-ink);
+    color: var(--oca-ink-foreground);
+    --foreground: var(--oca-ink-foreground);
+    --muted-foreground: var(--oca-ink-muted);
+    --oca-subtle-foreground: var(--oca-ink-subtle);
+    --border: var(--oca-ink-line);
+}
+
+@utility oca-band-burnt {
+    background-color: var(--oca-burnt);
+    color: var(--oca-burnt-foreground);
+    --foreground: var(--oca-burnt-foreground);
+    --muted-foreground: var(--oca-burnt-muted);
+    --oca-subtle-foreground: var(--oca-burnt-muted);
+    --border: var(--oca-burnt-line);
+    --oca-accent-display: var(--oca-burnt-ember);
+    --ring: var(--oca-burnt-accent);
+}
+
+/* Orange: ink text, an ink edge on an outlined button, an ink ring (orange on
+   orange was 1.2:1), never white (2.80:1). */
+@utility oca-band-brand {
+    background-color: var(--brand);
+    color: var(--brand-foreground);
+    --foreground: var(--brand-foreground);
+    --muted-foreground: var(--brand-foreground);
+    --oca-subtle-foreground: var(--brand-foreground);
+    --border: var(--oca-brand-line);
+    --oca-accent-display: var(--brand-foreground);
+    --ring: var(--oca-ring-on-fill);
+}
+
+/* The deep footer: white, one solid tint for secondary text, an ink ring. */
+@utility oca-band-footer {
+    background-color: var(--oca-footer);
+    color: var(--oca-footer-foreground);
+    --foreground: var(--oca-footer-foreground);
+    --muted-foreground: var(--oca-footer-muted);
+    --oca-subtle-foreground: var(--oca-footer-muted);
+    --border: var(--oca-footer-line);
+    --oca-accent-display: var(--oca-footer-foreground);
+    --ring: var(--oca-ring-on-fill);
+}
+
 /* The stadium hairline behind a hero sphere. */
 /* The hairline behind the hero sphere. Its shape is set where it is drawn
    (brand/sphere.tsx): a ring on phones, the deck's rounded square beside it. */
