@@ -2,7 +2,8 @@
 //
 //   createDelegation  — principal signs a scoped grant to an agent address.
 //   signAsAgent       — agent produces an agent-action envelope over content.
-//   revoke            — principal (or agent, if authorized) burns a delegation.
+//   revoke            — principal or agent burns a delegation; either may always
+//                       revoke (SPEC §9.5).
 //
 // Each function wraps @orangecheck/agent-core's canonical-message + id
 // computation with a caller-supplied `signMessage` wallet adapter. Nothing here
