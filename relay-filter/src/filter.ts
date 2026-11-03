@@ -4,7 +4,7 @@ import { check, nostrPubkeyToHex } from '@orangecheck/sdk';
 
 import { TtlLru } from './cache';
 import { checkFilterOptions } from './options';
-import { chainUnreachable, readIncomplete } from './outage';
+import { chainRefused, chainUnreachable, readIncomplete, refusedMessage } from './outage';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002]; // profile meta, contacts, relay list
 
@@ -126,6 +126,20 @@ export async function filterEvent(
 
         // Signature fine, chain API silent: an outage, handled like a throw below.
         if (chainUnreachable(result.reasons)) throw new Error('chain API unreachable');
+
+        // The chain API answered without listing the address's coins: past its
+        // UTXO cap, which anyone can arrange with dust, or a refusal. Closed,
+        // never fail_open, and kept only as long as a lookup error.
+        const refused = chainRefused(result.reasons);
+        if (refused) {
+            decision = reject(
+                refused === 'utxo_cap_unread' ? 'utxo_cap' : 'chain_refused',
+                refusedMessage(refused, (result as { chain_status?: number }).chain_status),
+                { check: result, pubkey: event.pubkey }
+            );
+            cache.set(key, decision, LOOKUP_ERROR_TTL_MS);
+            return finish(event, decision, options);
+        }
 
         // Everything else passed and the shared-stake read was cut off. The flood
         // that cuts it is the key holder's to make, so failOpen never covers it:

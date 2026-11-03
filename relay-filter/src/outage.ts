@@ -1,10 +1,34 @@
 /**
- * The signature verified but neither Esplora endpoint answered (sdk verify()
- * reports `bad_request` after a `sig_ok_*` code). The bond is unknown, not
- * absent: the only state `failOpen` may let through.
+ * A chain API answered about the address without listing its coins (sdk
+ * 1.21.0): past the ~500-UTXO cap (`utxo_cap_unread`), or a refusal such as a
+ * 403 (`provider_refused_unread`). Unread, never an outage: anyone can put an
+ * address past the cap by sending it dust, so `failOpen` never covers either.
+ */
+export function chainRefused(codes: readonly string[] = []): 'utxo_cap_unread' | 'provider_refused_unread' | null {
+    if (codes.includes('utxo_cap_unread')) return 'utxo_cap_unread';
+    if (codes.includes('provider_refused_unread')) return 'provider_refused_unread';
+    return null;
+}
+
+/**
+ * The signature verified but no chain API answered: sdk 1.21.0 says
+ * `chain_unread`; before it, verify() reported `bad_request` after a `sig_ok_*`
+ * code. The bond is unknown, not absent: the only state `failOpen` may let
+ * through.
  */
 export function chainUnreachable(codes: readonly string[] = []): boolean {
-    return codes.includes('bad_request') && codes.some((c) => c === 'sig_ok_bip322' || c === 'sig_ok_legacy');
+    if (chainRefused(codes)) return false;
+    return (
+        codes.includes('chain_unread') ||
+        (codes.includes('bad_request') && codes.some((c) => c === 'sig_ok_bip322' || c === 'sig_ok_legacy'))
+    );
+}
+
+/** What a relay tells a writer whose address's coins a chain API would not list. */
+export function refusedMessage(refused: 'utxo_cap_unread' | 'provider_refused_unread', status?: number): string {
+    return refused === 'utxo_cap_unread'
+        ? 'orangecheck: this Bitcoin address holds more coins than the chain API lists, so its bond cannot be read; bond from an address that holds fewer coins'
+        : `orangecheck: the chain API refused this lookup${status ? ` (HTTP ${status})` : ''}; nothing is concluded`;
 }
 
 /**
