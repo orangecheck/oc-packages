@@ -272,7 +272,11 @@ export function SiteHeader({
                         ? 'h-14 px-4 md:px-6'
                         : // The frame's column: the page's gutter at left, the CTA at the right rule.
                           'mx-auto h-14 w-full max-w-[82.5rem] border-border pl-[clamp(1rem,0.333rem+2.857vw,3rem)] min-[900px]:h-[4.25rem] min-[900px]:border-x',
-                    framed && !headerCta && 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
+                    framed &&
+                        (headerCta
+                            ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
+                              'max-[479px]:pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
+                            : 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]')
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
@@ -378,7 +382,7 @@ export function SiteHeader({
                     {headerCta ? (
                         headerCta.pending ? (
                             // The session check is running: the block holds its place, says nothing, takes no focus.
-                            <span data-oca-cta="pending" aria-hidden className={CTA_BLOCK}>
+                            <span data-oca-cta="pending" aria-hidden className={cn(CTA_BLOCK, 'max-[479px]:hidden')}>
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} hidden />
                                 <span className="invisible">
                                     <CtaPlus />
@@ -390,6 +394,9 @@ export function SiteHeader({
                                 href={headerCta.href}
                                 className={cn(
                                     CTA_BLOCK,
+                                    // Below 480px the bar keeps the brand, the actions and the menu: the CTA
+                                    // is the menu's full-width button there, so nothing overlaps.
+                                    'max-[479px]:hidden',
                                     'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
                                 )}
                             >

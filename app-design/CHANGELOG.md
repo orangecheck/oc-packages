@@ -4,6 +4,17 @@
 
 ## [2.0.0] — unreleased (2.0.0-pre)
 
+### Follow-up (design2-foundation-2)
+
+- Reveal, the halftone, the iso check's tilt, docs' width reader and the
+  theme's scheme listener run in a test DOM with no `matchMedia`,
+  `IntersectionObserver` or `ResizeObserver`: missing reads as still, in view,
+  and measured once.
+- `SiteHeader` on a phone: below 420px a product word replaces the wordmark
+  (still in the link's accessible name), and below 480px the CTA moves from
+  the bar into the menu, where it is the full-width button. A site that hid
+  its wordmark or moved its CTA by hand can drop that.
+
 Design iteration 2: one family system that looks like a specification
 drawing. Warm paper, ink text, light display type, mono labels with square
 bullets, a framed column ruled in hairlines, and square controls. A site

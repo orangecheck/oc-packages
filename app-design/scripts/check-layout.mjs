@@ -401,6 +401,38 @@ try {
             )
         )
     );
+    // A phone's header with the family's longest product word: the site header with Sign in and its CTA,
+    // and the tool header with an account button. Nothing may run off the row or under the next part.
+    const Fam = require(join(pkg, 'dist/family.js'));
+    const longest = Fam.FAMILY.map((s) => s.label)
+        .filter((l) => !l.includes('.'))
+        .sort((a, b) => b.length - a.length)[0];
+    const narrow = page(
+        'header-narrow',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                // As chat and vault compose it: the family menu, an account button among the actions, and the CTA.
+                h(
+                    'div',
+                    { 'data-hdr': 'site' },
+                    h(Ch.SiteHeader, {
+                        product: longest,
+                        family: true,
+                        nav: [{ href: '/how', label: 'How it works' }],
+                        actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account'),
+                        cta: true,
+                    })
+                ),
+                h(
+                    'div',
+                    { 'data-hdr': 'tool' },
+                    h(Ch.SiteHeader, { variant: 'tool', product: longest, family: true, actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account') })
+                )
+            )
+        )
+    );
     // The footer's giant wordmark: one word at its natural spacing, filling the frame, nothing clipped.
     const wordmark = page(
         'wordmark',
@@ -1263,6 +1295,31 @@ try {
                 check(pd.tag === 'SPAN' && pd.hidden === 'true' && !pd.focusable && pd.visibility === 'hidden', `[${width}] a pending CTA is focusable or says its label: ${JSON.stringify(pd)}`);
                 check(rs.tag === 'A' && rs.visibility === 'visible', `[${width}] the resolved CTA is not a visible link`);
                 await c.close();
+            }
+            // The header on a phone, at 390 and the 360 some phones still have.
+            if (width < 768) {
+                for (const w of [390, 360]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
+                    await c.goto(narrow);
+                    await c.evaluate(() => document.fonts.ready);
+                    const rows = await c.evaluate(() =>
+                        [...document.querySelectorAll('[data-hdr]')].map((d) => {
+                            const row = d.querySelector('header > div');
+                            const kids = [...row.children].map((k) => k.getBoundingClientRect());
+                            // The lockup itself: its link may be squeezed narrower than what it draws.
+                            const brand = d.querySelector('header a[href="/"] > span').getBoundingClientRect();
+                            return {
+                                hdr: d.dataset.hdr,
+                                over: row.scrollWidth - row.clientWidth,
+                                right: Math.max(...kids.map((k) => k.right)) - window.innerWidth,
+                                // The brand ends before the next thing in the row starts.
+                                clash: kids.length > 1 ? brand.right - Math.min(...kids.slice(1).map((k) => k.left)) : 0,
+                            };
+                        })
+                    );
+                    for (const r of rows) check(r.over <= 1 && r.right <= 1 && r.clash <= 0, `[${w}] the ${r.hdr} header with the product word "${longest}" overflows: ${JSON.stringify(r)}`);
+                    await c.close();
+                }
             }
             // The wordmark: letters at their natural spacing (no gap past the median by a tenth of
             // an em), every glyph's ink inside the rise's clip, the descender of the g included,
