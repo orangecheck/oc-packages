@@ -79,7 +79,7 @@ Five relays, in order:
 4. `wss://nostr.oxtr.dev`
 5. `wss://relay.ochk.io` — the OC family's first-party kind-allowlisted relay (see [`oc-relay-infra`](https://github.com/orangecheck/oc-relay-infra))
 
-**`DEFAULT_RELAYS` is enforced at the type level to never collapse to `relay.ochk.io` alone or to fewer than two entries.** See the `_ValidRelaySet` invariant in `src/index.ts`. A future change that violates the invariant fails `tsc` at build time.
+**`DEFAULT_RELAYS` is enforced at the type level to never collapse to `relay.ochk.io` alone or to fewer than two entries.** See the `ValidRelaySet` invariant in `src/index.ts`. A future change that violates the invariant fails `tsc` at build time.
 
 ## Why it exists
 
