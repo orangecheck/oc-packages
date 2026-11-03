@@ -100,7 +100,7 @@ import { OcSignInButton, OcAccountPill } from '@orangecheck/auth-client';
 <OcSignInButton className="font-mono text-xs uppercase" />
 
 // Shows the signed-in address pill; nothing when anonymous.
-<OcAccountPill dashboardUrl="https://attest.ochk.io/dashboard" />
+<OcAccountPill dashboardUrl="https://ochk.app/me/account" />
 ```
 
 Both components use CSS classes from the caller — no enforced styling,
