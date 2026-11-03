@@ -9,7 +9,7 @@
  * Auth is injectable: a browser caller passes `credentials: 'include'` to
  * ride the `oc_session` cookie; a headless caller passes an access `token`
  * (the `ocvt_…` bearer). An access token authorizes transport only — it
- * carries no key material (see VAULT-DEVELOPER-PLATFORM.md §1).
+ * carries no key material.
  */
 
 import type { WrappedKey } from './crypto';
