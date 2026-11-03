@@ -349,6 +349,8 @@ test('each privacy policy opens with a dated note of what changed, newest first'
         },
         me: {
             first: '29 October',
+            // 0.7.29 changed wording only (brand, tense, custody destination), not what is kept.
+            updated: '2026-11-03',
             facts: [
                 'the contact form sends your email address',
                 'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
@@ -367,7 +369,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
     };
-    for (const [site, { first, facts }] of Object.entries(notes)) {
+    for (const [site, { first, facts, updated = '2026-10-31' }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
         const [lead, list] = doc.preamble ?? [];
         assert.equal(lead?.kind, 'callout', site);
@@ -377,7 +379,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
         assert.equal(list.items[0].k, first, site);
         const text = list.items.map((it) => `${it.k} ${it.v}`).join(' ');
         for (const f of facts) assert.ok(text.includes(f), `${site}: ${f}`);
-        assert.equal(doc.updated, '2026-10-31', site);
+        assert.equal(doc.updated, updated, site);
     }
 });
 

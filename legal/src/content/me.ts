@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. orangecheck holds what users earn during bring-up and will pay it to a Lightning wallet they choose. No KYC.',
     effective: '2026-05-15',
-    updated: '2026-10-29',
+    updated: '2026-11-03',
     preamble: [
         {
             kind: 'callout',
@@ -212,7 +212,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what orangecheck stores.',
     effective: '2026-05-15',
-    updated: '2026-10-31',
+    updated: '2026-11-03',
     preamble: [
         {
             kind: 'callout',
