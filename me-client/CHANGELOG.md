@@ -17,6 +17,14 @@ this file tracks the package's TS / Node / runtime API surface.
   one on every rejected entry now; an older server sends `reason` alone, so
   `code` is optional.
 
+### Fixed
+
+- A refusal whose words are in `detail` now carries them as the
+  `MeClientError`'s `message`: the event routes' `project_auth_required` 401
+  and any route's `row_busy` 503. The message used to be the bare code.
+  `reason` still comes first, and the code is the fallback when the body has
+  no words.
+
 ## [0.56.0] — 2026-10-27
 
 ### Changed
