@@ -75,7 +75,7 @@ app.post(
 );
 ```
 
-**On block:** sends `403 { error, subject, subjectKind, orangecheck? }`. Override with `onBlocked`.
+**On block:** answers 401 for `no_subject`, otherwise 403, with `{ error: 'orangecheck_gate_blocked', reason, reasons? }`, plus `subject` and `subjectKind` when `exposeSubject` is set. Override with `onBlocked`.
 
 ---
 
@@ -101,7 +101,7 @@ const handler: NextApiHandler = async (req, res) => {
     await new Promise<void>((resolve, reject) => {
         gate(req, res, (err) => (err ? reject(err) : resolve()));
     });
-    if (res.writableEnded) return; // gate already sent 403
+    if (res.writableEnded) return; // gate already answered 401 or 403
     res.status(200).json({ ok: true });
 };
 
@@ -320,7 +320,7 @@ console.log('Published to:', result.success);
 console.log('Failed:', result.failed);
 ```
 
-Events are kind `30078` parameterized replaceable events per NIP-78. The `d` tag is `orangecheck:<attestation_id>` so future events with the same ID replace the old one.
+Events are kind `30078` parameterized replaceable events per NIP-78. The `d` tag is the bare `<attestation_id>` so future events with the same ID replace the old one. Readers also accept the older `orangecheck:<attestation_id>` form.
 
 ### Discovery
 
@@ -343,24 +343,23 @@ Bindings inside a signed message are **claims**, not proofs. If you care about h
 ```ts
 import { verifyIdentity } from '@orangecheck/sdk';
 
-const result = await verifyIdentity({
-    protocol: 'github',
-    identifier: 'alice',
-    attestationId: envelope.attestation_id,
-    proof: 'https://gist.github.com/alice/abc123',
-});
+const result = await verifyIdentity(
+    envelope.attestation_id,
+    { protocol: 'github', identifier: 'alice' }
+    // Optional: pass { relays } for 'nostr', { tweetUrl } for 'twitter'.
+);
 
 if (result.verified) {
-    // the gist contains the attestation ID → handle ownership proven
+    // one of alice's public gists contains the attestation ID → handle ownership proven
 }
 ```
 
 Supported protocols: `nostr`, `github`, `dns`, `twitter`. Each has its own proof shape:
 
 - **`nostr`** — look for a Nostr event from the claimed npub containing the attestation ID.
-- **`github`** — look for a public gist or repo file at the claimed user containing the attestation ID.
-- **`dns`** — look for a TXT record at `_orangecheck.<domain>` containing the attestation ID.
-- **`twitter`** — user supplies a public tweet URL containing the attestation ID.
+- **`github`** — look for a public gist at the claimed user containing the attestation ID.
+- **`dns`** — look for `https://<domain>/.well-known/orangecheck.txt` containing the attestation ID. A DNS TXT record is not checked.
+- **`twitter`** — not verified automatically: the result is always `verified: false`, with the tweet URL you pass in `{ tweetUrl }` for you to check by hand.
 
 ---
 
@@ -374,14 +373,14 @@ The simplest path: just call the hosted endpoints.
 
 ```bash
 # 1. Get a challenge to sign
-curl -s "https://attest.ochk.io/api/challenge?addr=bc1q...&audience=https://example.com&purpose=login"
+curl -s "https://ochk.io/api/challenge?addr=bc1q...&audience=https://example.com&purpose=login"
 # → { "message": "orangecheck-auth\naddress: ...\nnonce: ...\n...",
 #     "nonce": "a1b2...", "expiresAt": 1747584000000 }
 
 # 2. User signs the message in their wallet (BIP-322).
 
 # 3. Send the signature back.
-curl -s -X POST "https://attest.ochk.io/api/challenge" \
+curl -s -X POST "https://ochk.io/api/challenge" \
   -H 'Content-Type: application/json' \
   -d '{"message": "...", "signature": "..."}'
 # → { "ok": true, "address": "bc1q...", "nonce": "a1b2...", "expiresAt": ... }
@@ -527,7 +526,7 @@ const r = await verifyActionAsOfSignedAt({ action, delegation, revocations, veri
 import { revoke } from '@orangecheck/agent-signer';
 
 const rev = await revoke({
-    signer: principal, // or agent, if delegation.revocation.holders includes 'agent'
+    signer: principal, // or agent: either may always revoke (SPEC §9.5)
     delegation,
     reason: 'key rotated',
 });
@@ -554,9 +553,10 @@ const { result, action } = await invokeWithStamp({
 
 ### Scope grammar
 
-Scope strings are `product:verb(key op value, …)`. The MVP registry covers:
+Scope strings are `product:verb(key op value, …)`. The registry covers:
 `lock:seal`, `lock:chat`, `stamp:sign`, `vote:cast`, `nostr:publish`,
-`http:request`, `ln:send`, `mcp:invoke`. Ordered ops (`<`, `<=`, `>`, `>=`)
+`http:request`, `ln:send`, `mcp:invoke`, `pledge:create`, `anthropic:tool`,
+`openai:function`, `vercel:tool`, `langgraph:tool`. Ordered ops (`<`, `<=`, `>`, `>=`)
 apply to registered numeric keys (e.g. `max_sats`, `max_bytes`).
 
 The sub-scope relation is deterministic:
