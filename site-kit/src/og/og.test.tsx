@@ -56,7 +56,7 @@ async function card(props: ComponentProps<typeof OgCard>) {
 
 describe('createOgHandler', () => {
     it('renders a 1200×630 PNG on the node handler contract', async () => {
-        const out = await handled(STAMP, '/api/og?title=hi');
+        const out = await handled(STAMP, '/api/og');
         expect(out.status).toBe(200);
         expect(out.headers['content-type']).toBe('image/png');
         const png = out.body as Buffer;
@@ -71,20 +71,33 @@ describe('createOgHandler', () => {
         expect((plain.body as Buffer).equals(want)).toBe(true);
     }, 30_000);
 
-    it("draws none of a request's own text: title and eyebrow get the default card", async () => {
-        const plain = (await handled(KEYED, '/api/og')).body as Buffer;
-        for (const url of [
-            '/api/og?title=Send%20your%20bitcoin%20to%20bc1qexample',
-            '/api/og?eyebrow=Official%20notice',
-            '/api/og?title=x&eyebrow=y',
-            ...NOT_CARDS.map((k) => `/api/og?page=${k}`),
-        ]) {
-            expect(((await handled(KEYED, url)).body as Buffer).equals(plain), url).toBe(true);
+    it("draws none of a request's own text: it is sent to the card's one URL", async () => {
+        for (const [url, to] of [
+            ['/api/og?title=Send%20your%20bitcoin%20to%20bc1qexample', '/api/og'],
+            ['/api/og?eyebrow=Official%20notice', '/api/og'],
+            ['/api/og?title=x&eyebrow=y', '/api/og'],
+            ['/api/og?page=create&title=ignored', '/api/og?page=create'],
+            ['/api/og?title=ignored&page=verify', '/api/og?page=verify'],
+            ['/api/og?page=create&page=create', '/api/og?page=create'],
+            ['/api/og?page=create&v=2', '/api/og?page=create'],
+            ...NOT_CARDS.map((k) => [`/api/og?page=${k}`, '/api/og']),
+        ] as const) {
+            const out = await handled(KEYED, url);
+            expect([out.status, out.headers.location, out.body], url).toEqual([308, to, undefined]);
+            expect(out.headers['cache-control'], url).toBe('public, max-age=86400, s-maxage=86400');
         }
-    }, 60_000);
+    });
+
+    it('keeps each card a day, browser and edge, so a share renders once per deployment', async () => {
+        for (const url of ['/api/og', '/api/og?page=create']) {
+            const out = await handled(KEYED, url);
+            expect(out.status, url).toBe(200);
+            expect(out.headers['cache-control'], url).toBe('public, max-age=86400, s-maxage=86400');
+        }
+    }, 30_000);
 
     it('?page=<key> draws that card, with its own eyebrow when it names one', async () => {
-        const create = await handled(KEYED, '/api/og?page=create&title=ignored');
+        const create = await handled(KEYED, '/api/og?page=create');
         expect((create.body as Buffer).equals(await card({ title: 'Create a stamp', product: 'stamp', eyebrow: 'OC Stamp', host: 'stamp.ochk.io' }))).toBe(true);
         const verify = await handled(KEYED, '/api/og?page=verify');
         expect((verify.body as Buffer).equals(await card({ title: 'Verify a stamp', product: 'stamp', eyebrow: 'Verify', host: 'stamp.ochk.io' }))).toBe(true);

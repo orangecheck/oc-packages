@@ -68,19 +68,44 @@ function ogCardProps(opts: OgCardOptions, title: string, asked?: string) {
     return { title, product, eyebrow, host: opts.host.toLowerCase(), tone: opts.tone ?? 'ink' } as const;
 }
 
+/** A card is the same for a whole deployment: kept a day by the browser and the edge. */
+const CARD_CACHE = 'public, max-age=86400, s-maxage=86400';
+
+/** The query of a card's one URL, as `generateMetaTags` builds it: `?page=<key>` for a card the site issues, else none. */
+function canonicalQuery(url: URL, cards: OgCardOptions['cards']): string {
+    const key = url.searchParams.get('page');
+    if (!cards || key === null || !Object.prototype.hasOwnProperty.call(cards, key)) return '';
+    return `?page=${encodeURIComponent(key)}`;
+}
+
 /**
  * A Pages API route that renders app-design's share card on the node runtime.
  *
  * next 16 deprecates the edge runtime, and `runtime: 'edge'` selects the
  * handler contract: without it a returned Response is ignored. So the image
- * is rendered as a Response and copied onto `res`, headers included.
+ * is rendered as a Response and copied onto `res`, headers included, with the
+ * card's own Cache-Control over next/og's `max-age=0`.
+ *
+ * Each card has one URL. Any other query is sent there with a 308, so a query
+ * string cannot make the site render a card the edge already holds: a site
+ * renders at most one image per card it issues, plus its default, per edge
+ * region and deployment.
  */
 export function createOgHandler(opts: OgCardOptions) {
     return async function ogHandler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
+        const url = new URL(req.url ?? '/', 'http://og.invalid');
+        const query = canonicalQuery(url, opts.cards);
+        if (url.search !== query) {
+            res.setHeader('Cache-Control', CARD_CACHE);
+            res.setHeader('Location', `${url.pathname}${query}`);
+            res.status(308).end();
+            return;
+        }
         const card = ogCardProps(opts, ogTitle(req.url, opts), issued(req.url, opts.cards)?.eyebrow);
         const image = new ImageResponse(<OgCard {...card} />, { ...OG_SIZE, fonts: ogFonts() });
         const body = Buffer.from(await image.arrayBuffer());
         image.headers.forEach((value, key) => res.setHeader(key, value));
+        res.setHeader('Cache-Control', CARD_CACHE);
         res.status(image.status).send(body);
     };
 }

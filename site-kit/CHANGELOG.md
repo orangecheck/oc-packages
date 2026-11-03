@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.2
+
+`createOgHandler` keeps each card a day, `public, max-age=86400,
+s-maxage=86400`. It used to pass on next/og's `max-age=0, must-revalidate`, so
+every share-card request rendered a fresh image and the edge kept none. Each
+card now has one URL, the route alone or with `?page=<key>` for a card the site
+issues, built as `generateMetaTags` builds it. A request with any other query,
+or a `page` that names no card, gets a 308 there, kept a day too, so a query
+string can no longer make a site render on demand.
+
 ## 0.7.1
 
 `FamilyAnalytics` takes `origins`, the production origins a site reports from.

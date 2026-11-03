@@ -46,6 +46,9 @@ export function recorder() {
             out.body = b;
             return res;
         },
+        end() {
+            return res;
+        },
     };
     return { res, out };
 }
