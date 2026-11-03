@@ -405,3 +405,18 @@ test('the ochk.app privacy policy says what its contact form sends', () => {
     const text = DOCS.find(([n]) => n === 'me/privacy')[1];
     assert.match(text, /contact form at ochk\.app\/contact sends your email address, an optional name, the topic you pick and your message to our inbox through our email provider \(Resend\)/);
 });
+
+// Sign-in is email, Google, GitHub or a Bitcoin wallet (lead ruling, 2026-11-03).
+test('the ochk.app terms name every way to sign in', () => {
+    const accounts = buildDoc('me', 'terms').sections.find((s) => s.id === 'accounts');
+    const text = accounts.blocks.map((b) => b.text ?? '').join(' ').replace(/[*`]/g, '');
+    for (const way of [/\bemail\b/i, /\bGoogle\b/, /\bGitHub\b/, /\ba Bitcoin wallet\b/i]) {
+        assert.match(text, way);
+    }
+    assert.doesNotMatch(text, /two ways/i);
+    assert.doesNotMatch(accounts.hint ?? '', /\btwo\b/i);
+    // Wherever the terms say who holds a key by sign-in, the keyless ways are named together.
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.doesNotMatch(terms, /sign in with email(?!, Google or GitHub)/i);
+    assert.doesNotMatch(terms, /email users/i);
+});

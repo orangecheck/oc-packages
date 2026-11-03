@@ -66,11 +66,11 @@ const terms: DocSpec = {
         {
             id: 'accounts',
             heading: 'accounts & identity',
-            hint: 'two sign-in paths',
+            hint: 'four ways to sign in',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'You may create an identity two ways: **BIP-322** (you sign with your own Bitcoin wallet — full self-custody of your signing key) or **email-OTP** (a one-time code; you hold no key of your own, so OrangeCheck holds your signing key). Either way, during bring-up OrangeCheck holds the cashback you accrue; see custody below. Both produce a stable, opaque `did:oc` identifier. No password is ever stored.',
+                    text: 'You may create an identity four ways: with **email** (a one-time code), **Google**, **GitHub**, or **a Bitcoin wallet** (you sign with BIP-322 — full self-custody of your signing key). With email, Google or GitHub you hold no key of your own, so OrangeCheck holds your signing key. However you sign in, during bring-up OrangeCheck holds the cashback you accrue; see custody below. Each way produces a stable, opaque `did:oc` identifier. No password is ever stored.',
                 },
                 {
                     kind: 'para',
@@ -97,7 +97,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, OrangeCheck currently holds the key that pays you.** The design is that a Fedimint federation — run by independent guardian operators, not OrangeCheck — holds funds under a threshold scheme, and you may **graduate** to full self-custody at any time. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So during this period OrangeCheck is a custodian, of email users’ signing keys and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
+                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, OrangeCheck currently holds the key that pays you.** The design is that a Fedimint federation — run by independent guardian operators, not OrangeCheck — holds funds under a threshold scheme, and you may **graduate** to full self-custody at any time. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So during this period OrangeCheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
                 },
                 {
                     kind: 'stub',
@@ -199,7 +199,7 @@ const terms: DocSpec = {
         miscellaneous,
     ],
     summary:
-        'summary: an identity that pays you in sats. if you sign in with your own bitcoin wallet, you keep your keys; if you sign in with email, orangecheck holds the key that pays you. either way, during bring-up orangecheck holds what you have earned until it is paid out or independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
+        'summary: an identity that pays you in sats. if you sign in with your own bitcoin wallet, you keep your keys; if you sign in with email, google or github, orangecheck holds the key that pays you. either way, during bring-up orangecheck holds what you have earned until it is paid out or independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
 };
 
 const privacy: DocSpec = {
