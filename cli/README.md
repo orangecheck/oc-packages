@@ -1,6 +1,6 @@
 # `@orangecheck/cli`
 
-**Shell interface to OrangeCheck.** Check, verify, create, challenge, and discover from your terminal or a script.
+**Shell interface to OrangeCheck.** Check, verify, challenge and discover from your terminal or a script, set up an ochk.app project (`oc me`), and verify OC Chat artifacts (`oc chat verify`).
 
 ```bash
 yarn global add @orangecheck/cli
@@ -9,7 +9,7 @@ oc check --addr bc1q... --min-sats 100000 --min-days 30
 # ✓ pass
 #   sats:  125,000
 #   days:  47
-#   score: 18.2
+#   score: 30.12
 ```
 
 Exit code `0` on pass, `2` on fail, `3` when nothing could be concluded (the chain or the relays did not answer, or the address holds more coins than the chain API lists), `1` on error. JSON output available on every command with `--json`.
@@ -74,6 +74,19 @@ oc challenge verify \
 # Or pipe a JSON envelope
 cat signed.json | oc challenge verify --expected-nonce a1b2c3d4...
 ```
+
+### `oc me` — set up an ochk.app project
+
+```bash
+oc me archetypes                       # the curated starting configs
+oc me subtypes                         # billable event subtypes, with price hints
+oc me init --archetype saas-paywall --project-key pk_test_yours \
+  --domain yoursite.com --name "Your site"   # writes oc-config.json
+oc me validate-config oc-config.json   # or pipe it on stdin
+oc me test-fire pk_test_yours session_creation   # needs OC_BEARER_TOKEN or --token
+```
+
+`init` writes a price config to review and submit from your project at ochk.app/me/projects. `test-fire` posts one event to me.ochk.io's `/api/integrator/event` with your session as a Bearer token and no `X-OC-Signature`, to smoke-test your webhook handler; me.ochk.io takes an unsigned event only from the project owner's own session, on a test project that does not require signed events.
 
 ### `oc chat verify` — check an OC Chat artifact
 
@@ -145,12 +158,12 @@ curl -s "https://attest.ochk.io/api/discover?identity=nostr:npub1alice..." \
 
 Every command supports `--json` for machine-readable output. Without it you get compact human-readable text on stdout and informational notes on stderr — safe to pipe to `jq` when `--json` is set, or to `grep` / `awk` otherwise.
 
-Exit codes:
+Exit codes (`oc chat verify` has its own, above):
 
 - `0` — success (pass / valid / found)
 - `1` — error (bad flags, network failure, unexpected)
 - `2` — decision is "no" (check failed, verify invalid, challenge rejected)
-- `3` — nothing concluded (`oc check`, `oc verify`): the chain API or the relays did not answer, the address holds more coins than the chain API lists, or the API refused the lookup. Printed as `? unread: …`, with no sats line. Try again, or for a capped address, use one that holds fewer coins. (`oc chat verify` has its own codes, above.)
+- `3` — nothing concluded (`oc check`, `oc verify`): the chain API or the relays did not answer, the address holds more coins than the chain API lists, or the API refused the lookup. Printed as `? unread: …`, with no sats line. Try again, or for a capped address, use one that holds fewer coins.
 
 ---
 
