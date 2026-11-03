@@ -4,6 +4,21 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.17.0] — 2026-11-03
+
+### Changed
+
+- **One spelling per address (OC Pledge §2)**, as `@orangecheck/pledge-core`
+  3.7.0 does. A bech32 or bech32m address (`bc1`, `tb1`, `bcrt1`) is written
+  in lowercase; a base58 address stays as encoded. Discovery tags and every
+  address comparison are by exact string, so the same key in capitals went
+  unlisted, and an agent written as the swearer's key in capitals passed the
+  agent-differs-from-swearer check. `validate_pledge_input` refuses a capital
+  in a bech32 `swearer` or `counterparty`, `read_outcome_input` in a bech32
+  `resolved_by`, and `create_pledge`, `wrap_pledge_envelope` and
+  `verify_pledge` in a bech32 `agent_address`. The check is on case only.
+  Vectors `v55`–`v58`.
+
 ## [3.16.0] — 2026-10-29
 
 ### Changed

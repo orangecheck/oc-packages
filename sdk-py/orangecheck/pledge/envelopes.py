@@ -20,6 +20,7 @@ from .canonical import (
     OutcomeCanonicalInput,
     PledgeCanonicalInput,
     _json_int,
+    bech32_in_capitals,
     canonical_abandonment_message,
     canonical_outcome_message,
     canonical_pledge_message,
@@ -213,6 +214,11 @@ def create_pledge(
             raise PledgeError(
                 "E_PLEDGE_MALFORMED",
                 "via_delegation.delegation_id must be 64 hex chars",
+            )
+        if agent_signer is not None and bech32_in_capitals(agent_signer.address):
+            raise PledgeError(
+                "E_PLEDGE_MALFORMED",
+                "agent_address: a bech32 address MUST be written in lowercase (SPEC §2)",
             )
         if agent_signer is None or agent_signer.address == swearer:
             raise PledgeError(
@@ -536,6 +542,12 @@ def _check_pledge_shape(env: dict[str, Any]) -> Optional[VerifyErr]:
             return _err(
                 "E_PLEDGE_MALFORMED",
                 "envelope.agent_address required when via_delegation present",
+            )
+        # SPEC §2: a capitals spelling of the swearer's key is not another address.
+        if bech32_in_capitals(env["agent_address"]):
+            return _err(
+                "E_PLEDGE_MALFORMED",
+                "envelope.agent_address: a bech32 address MUST be written in lowercase (SPEC §2)",
             )
         # SPEC §7.3: the agent is never the swearer. Neither field is in the id.
         if env.get("agent_address") == swearer.get("address"):
@@ -1063,6 +1075,11 @@ def wrap_pledge_envelope(
             raise PledgeError(
                 "E_PLEDGE_MALFORMED",
                 "via_delegation.delegation_id must be 64 hex chars",
+            )
+        if isinstance(agent_address, str) and bech32_in_capitals(agent_address):
+            raise PledgeError(
+                "E_PLEDGE_MALFORMED",
+                "agent_address: a bech32 address MUST be written in lowercase (SPEC §2)",
             )
         if not isinstance(agent_address, str) or agent_address == input.swearer:
             raise PledgeError(

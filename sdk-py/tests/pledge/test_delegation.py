@@ -148,7 +148,7 @@ def test_check_fails_mechanism_mismatch():
 
 def test_check_fails_counterparty_mismatch():
     r = check_pledge_create_scope(
-        _pledge({"counterparty": "bc1qOTHER"}),
+        _pledge({"counterparty": "bc1qother"}),
         _delegation({"scopes": ("pledge:create(counterparty=bc1qexpected)",)}),
     )
     assert not r.ok

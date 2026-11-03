@@ -233,7 +233,7 @@ __all__ = [
     "VerificationError",
 ]
 
-__version__ = "3.16.0"
+__version__ = "3.17.0"
 
 # OC Pledge submodule — sibling primitive for forward-looking commitments
 # bound to a Bitcoin address. Imported here so consumers can write:

@@ -8,6 +8,21 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [3.7.0] — 2026-11-03
+
+### Changed — one spelling per address
+
+OC Pledge §2. A bech32 or bech32m address (`bc1`, `tb1`, `bcrt1`) is written
+in lowercase; a base58 address stays as encoded. Discovery tags and every
+address comparison are by exact string, so the same key in capitals went
+unlisted under the lowercase tag, and an agent written as the swearer's key in
+capitals passed the agent-differs-from-swearer check (vector `v33`).
+`validatePledgeInput` refuses a capital in a bech32 `swearer` or
+`counterparty`, `readOutcomeInput` in a bech32 `resolved_by`, and
+`createPledge`, `wrapPledgeEnvelope` and `verifyPledge` in a bech32
+`agent_address`, all with `E_PLEDGE_MALFORMED` (an outcome with
+`E_OUTCOME_MALFORMED`). The check is on case only. Vectors `v55`–`v58`.
+
 ## [3.6.0] — 2026-10-29
 
 ### Changed

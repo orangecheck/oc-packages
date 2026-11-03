@@ -1,6 +1,7 @@
 // createPledge() + verifyPledge() — SPEC §3 + §9.
 
 import {
+    bech32InCapitals,
     canonicalPledgeMessage,
     pledgeCanonicalInputFromEnvelope,
     canonicalPledgeMessageBytes,
@@ -79,6 +80,12 @@ export async function createPledge(input: CreatePledgeInput): Promise<PledgeEnve
             throw new PledgeError(
                 'E_PLEDGE_MALFORMED',
                 'viaDelegation.delegation_id must be 64 hex chars',
+            );
+        }
+        if (bech32InCapitals(input.viaDelegation.agent_signer.address)) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'agent_address: a bech32 address MUST be written in lowercase (SPEC §2)',
             );
         }
         if (input.viaDelegation.agent_signer.address === input.swearer) {
@@ -181,6 +188,12 @@ export function wrapPledgeEnvelope(
             throw new PledgeError(
                 'E_PLEDGE_MALFORMED',
                 'viaDelegation.delegationId must be 64 hex chars',
+            );
+        }
+        if (bech32InCapitals(opts.viaDelegation.agentAddress)) {
+            throw new PledgeError(
+                'E_PLEDGE_MALFORMED',
+                'agent_address: a bech32 address MUST be written in lowercase (SPEC §2)',
             );
         }
         if (opts.viaDelegation.agentAddress === input.swearer) {
@@ -417,6 +430,13 @@ function checkPledgeShape(env: PledgeEnvelope): VerifyErr | null {
             return err(
                 'E_PLEDGE_MALFORMED',
                 'envelope.agent_address required when via_delegation present',
+            );
+        }
+        // SPEC §2: a capitals spelling of the swearer's key is not another address.
+        if (bech32InCapitals(env.agent_address)) {
+            return err(
+                'E_PLEDGE_MALFORMED',
+                'envelope.agent_address: a bech32 address MUST be written in lowercase (SPEC §2)',
             );
         }
         // SPEC §7.3: the agent is never the swearer. Neither field is in the id.
