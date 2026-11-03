@@ -28,7 +28,7 @@ import * as sdk from '@orangecheck/sdk';
 import { runCheck } from '../commands/check';
 import { runChallengeIssue } from '../commands/challenge';
 import { runDiscover } from '../commands/discover';
-import { runMeTestFire } from '../commands/me';
+import { runMeInit, runMeTestFire } from '../commands/me';
 import { runVerify } from '../commands/verify';
 
 class ExitCalled extends Error {
@@ -255,6 +255,28 @@ describe('oc discover', () => {
         const code = await expectExit(() => runDiscover({ addr: 'bc1qtest' }));
         expect(code).toBe(0);
         expect(stdout).toMatch(/no attestations found/);
+    });
+});
+
+describe('oc me init', () => {
+    it("points at ochk.app's projects page, where people submit, not the retired me.ochk.io one", async () => {
+        const { mkdtempSync, rmSync } = await import('node:fs');
+        const { tmpdir } = await import('node:os');
+        const { join } = await import('node:path');
+        const dir = mkdtempSync(join(tmpdir(), 'oc-me-init-'));
+        try {
+            await runMeInit({
+                archetype: 'saas-paywall',
+                projectKey: 'pk_test_x',
+                domain: 'example.com',
+                name: 'Example',
+                out: join(dir, 'oc-config.json'),
+            });
+            expect(stdout).toMatch(/then submit it from your project at https:\/\/ochk\.app\/me\/projects\.$/m);
+            expect(stdout).not.toMatch(/me\.ochk\.io\/me\/projects/);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 
