@@ -6,6 +6,19 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [Unreleased]
+
+### Fixed
+
+- The directory walk's reads (`resolveDirectoryHandle`, `resolveWithState`)
+  take a page as full by what the relay sent, not by what the reader kept.
+  `PageRead` may return `sent`, the events the relay sent with the ones it
+  dropped (a bad signature) included. A relay that padded a page with junk
+  ended the directory read as complete, so a handle read as not listed, or a
+  claim behind the junk was missed; it ended an audit relay's read early, so
+  an earlier claim only it held did not count. Without `sent`, the events kept
+  are the count, as before.
+
 ## [0.2.0] — 2026-11-03
 
 A channel feed tells a post it could not check from one that failed, and

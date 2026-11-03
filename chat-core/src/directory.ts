@@ -49,11 +49,21 @@ const AUDIT_PAGES = 2;
 /** Distinct header reads one resolution may make; past this a header is unread. */
 const HEADER_BUDGET = 128;
 
-/** One page from one relay: its events, and whether the relay finished answering (EOSE). */
+/**
+ * One page from one relay: its events, whether the relay finished answering
+ * (EOSE), and `sent`, how many events the relay sent, the ones the reader dropped
+ * (a bad signature) included. A page is full by what the relay sent, not by what
+ * was kept: a relay that pads a page with junk has more behind it. Without
+ * `sent`, the events kept are the count.
+ */
 export type PageRead = (
     relay: string,
     filter: { kinds: number[]; '#d': string[]; limit: number; until?: number }
-) => Promise<{ events: NostrEvent[]; complete: boolean }>;
+) => Promise<{ events: NostrEvent[]; complete: boolean; sent?: number }>;
+
+/** How many events a page's relay sent: `sent`, or the events kept when it is not given. */
+const sentOn = (got: { events: NostrEvent[]; sent?: number }) =>
+    Math.max(got.sent ?? 0, got.events.length);
 
 export interface WalkDeps {
     page: PageRead;
@@ -148,7 +158,7 @@ async function readAll(
             until = until === undefined ? ev.created_at : Math.min(until, ev.created_at);
         }
         // A short page is the end; a full page that adds nothing is a stalled read.
-        if (got.events.length < PAGE) return [...seen.values()];
+        if (sentOn(got) < PAGE) return [...seen.values()];
         if (added === 0) return null;
     }
     return null;
@@ -164,7 +174,7 @@ async function readSome(
     const seen = new Map<string, NostrEvent>();
     let until: number | undefined;
     for (let i = 0; i < pages; i++) {
-        let got: { events: NostrEvent[]; complete: boolean };
+        let got: Awaited<ReturnType<PageRead>>;
         try {
             got = await page(relay, {
                 kinds: [30114],
@@ -179,7 +189,7 @@ async function readSome(
             seen.set(ev.id, ev);
             until = until === undefined ? ev.created_at : Math.min(until, ev.created_at);
         }
-        if (!got.complete || got.events.length < PAGE) break;
+        if (!got.complete || sentOn(got) < PAGE) break;
     }
     return [...seen.values()];
 }
