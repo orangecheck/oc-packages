@@ -86,10 +86,10 @@ Want drop-in route-gating? Use [`@orangecheck/gate`](https://www.npmjs.com/packa
 ```ts
 import { ocGate } from '@orangecheck/gate';
 
-app.post('/post', ocGate({ minSats: 100_000, minDays: 30 }), handler);
+app.post('/post', ocGate({ minSats: 100_000, minDays: 30, address: { from: 'query' } }), handler);
 ```
 
-The gate expects the caller to pass `?ocAddr=...` (or a signed header) carrying their address. See the gate's README for signature schemes.
+`address` says where the caller's address is: `{ from: 'query' }` reads `?ocAddr=...`; a header, a cookie, the body or your own function work too. With no source, every request gets 401 `no_subject`. See the gate's README for subject sources.
 
 ---
 
@@ -238,9 +238,9 @@ await publishAttestation({ envelope, npub: userNpub });
 | You control address `bc1q…`        | Cryptographic       | BIP-322 signature verification         |
 | The address holds `N` sats         | On-chain, trustless | Live query to mempool.space / Esplora  |
 | The bonded UTXO is `N` days old    | On-chain, trustless | Confirmation time compared to now      |
-| You claim to be `@alice` on GitHub | **Self-asserted**   | Out-of-band (gist, DNS TXT, tweet URL) |
+| You claim to be `@alice` on GitHub | **Self-asserted**   | Out-of-band (gist, `.well-known` file) |
 
-`verify()` covers the first three. The fourth is up to the relying party — use `verifyIdentity()` for structured out-of-band checks on Nostr, GitHub, DNS, and Twitter.
+`verify()` covers the first three. The fourth is up to the relying party — use `verifyIdentity()` for structured out-of-band checks on Nostr, GitHub and a domain's `https://<domain>/.well-known/orangecheck.txt` (no DNS TXT lookup). A Twitter binding always comes back `verified: false`: check the tweet yourself.
 
 ---
 
@@ -310,7 +310,7 @@ Full type definitions ship with the package.
 ## Guarantees
 
 - **No custody.** The SDK never touches user funds. It signs messages, it doesn't spend coins.
-- **No telemetry.** The SDK makes network calls only to public Bitcoin explorers (mempool.space, blockstream.info) and Nostr relays you pass in. No OrangeCheck server is in the path for `verify()`.
+- **No telemetry.** The SDK makes network calls only to public Bitcoin explorers (mempool.space, blockstream.info) and Nostr relays: the ones you pass in, or `DEFAULT_RELAYS` (relay.ochk.io among them) when you pass none. `verifyIdentity()` also fetches api.github.com and gist.githubusercontent.com for a GitHub binding, and `https://<domain>/.well-known/orangecheck.txt` for a DNS one. No OrangeCheck server is in the path for `verify()`.
 - **Offline-verifiable.** Given `(addr, msg, sig)`, anyone — including you, sitting on an island with a Raspberry Pi — can verify.
 - **Unknown options throw.** `check()` and `verify()` refuse a key they do not read, so a misspelt `minSats` or `expectedAud` is never ignored.
 
