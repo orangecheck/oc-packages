@@ -109,7 +109,8 @@ export interface GateOptions {
     onDecision?: (req: MinimalReq, decision: GateDecision) => void;
 
     /**
-     * Custom "blocked" handler. If omitted, the gate sends a 403 JSON body.
+     * Custom "blocked" handler. If omitted, the gate sends the default JSON body:
+     * 401 for `no_subject`, otherwise 403.
      */
     onBlocked?: (req: MinimalReq, res: MinimalRes, decision: GateDecision) => void;
 }

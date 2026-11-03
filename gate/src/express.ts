@@ -17,8 +17,10 @@ import { assertOc, checkGateOptions, sendBlockedDefault } from './core';
  *     postHandler,
  *   );
  *
- * On block: sends `403 { error: '<reason>', orangecheck: <CheckResult|null> }`
- * unless `opts.onBlocked` is provided.
+ * On block: answers 401 for `no_subject`, otherwise 403, with
+ * `{ error: 'orangecheck_gate_blocked', reason, reasons? }` (and `subject` /
+ * `subjectKind` when `exposeSubject` is set), unless `opts.onBlocked` is
+ * provided. The body is core.ts's sendBlockedDefault.
  */
 export function ocGate(opts: GateOptions) {
     checkGateOptions(opts);
