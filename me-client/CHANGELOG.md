@@ -8,6 +8,15 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Added
+
+- A rejected entry in `event.fireBatch`'s results can carry `code`, a
+  `BatchRejectCode` to switch on, beside `reason` in words. me.ochk.io sends
+  one on every rejected entry now; an older server sends `reason` alone, so
+  `code` is optional.
+
 ## [0.56.0] — 2026-10-27
 
 ### Changed

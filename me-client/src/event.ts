@@ -251,10 +251,31 @@ export interface BatchEventInput {
  *    payload exactly as a per-event POST would return.
  *  - `duplicate` · idempotency-key matched a prior event; `event` is
  *    the prior payload.
- *  - `rejected` · validation or site-cap failure; `reason` is human-
- *    readable. The other events in the batch are unaffected.
+ *  - `rejected` · validation or site-cap failure; `code` names it, to
+ *    switch on, and `reason` says it in words. A server older than the
+ *    codes sends `reason` alone. The other events in the batch are
+ *    unaffected.
  *  - `not_paying` · the project isn't paying its users now; nothing was
  *    recorded or charged. */
+/** Why me.ochk.io rejected one event in a batch: a rejected entry's `code`. */
+export type BatchRejectCode =
+    | 'subtype_required'
+    | 'invalid_note'
+    | 'invalid_action_label'
+    | 'event_not_enabled'
+    | 'event_class_invalid'
+    | 'payment_amount_sats_required'
+    | 'agent_refused'
+    | 'earning_below_one_sat'
+    | 'site_cap_exceeded'
+    | 'idempotency_key_too_long'
+    | 'duplicate_idempotency_key'
+    | 'idempotency_key_in_flight'
+    | 'identity_cap_reached'
+    | 'escrow_depleted'
+    | 'write_failed'
+    | 'outcome_unknown';
+
 export type BatchEventResult =
     | {
           index: number;
@@ -269,6 +290,8 @@ export type BatchEventResult =
     | {
           index: number;
           status: 'rejected';
+          /** Absent from a server older than the codes. */
+          code?: BatchRejectCode;
           reason: string;
       }
     | {
