@@ -20,6 +20,9 @@
  * — rebuild, and publish. Every Terms/Privacy page family-wide updates.
  */
 export const LEGAL_ENTITY = 'OrangeCheck';
+
+/** How the documents write the brand, unless a site writes it its own way (`SiteContext.brand`). */
+export const BRAND = 'OrangeCheck';
 export const LEGAL_ENTITY_LONG = 'OrangeCheck (OCHK), an unincorporated project';
 
 /** True while no formal entity exists — gates a forward-looking note. */
@@ -35,6 +38,7 @@ export const ARBITRATION_SEAT = 'Wilmington, Delaware, United States';
 
 /** Token table applied by `buildDoc`. Site-specific tokens are merged on top. */
 export const GLOBAL_TOKENS: Record<string, string> = {
+    BRAND,
     ENTITY: LEGAL_ENTITY,
     ENTITY_LONG: LEGAL_ENTITY_LONG,
     // For the clauses set in capitals, so the name does not break their case.

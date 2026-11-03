@@ -139,7 +139,7 @@ test('me terms govern the Service at both addresses', () => {
 
 test('me terms and privacy name ochk.app as the Service', () => {
     const terms = DOCS.find(([n]) => n === 'me/terms')[1];
-    assert.match(terms, /ochk\.app is a commercial product operated by OrangeCheck/);
+    assert.match(terms, /ochk\.app is a commercial product operated by orangecheck/);
     assert.match(terms, /By accessing or using ochk\.app or its API at me\.ochk\.io, you agree/);
     for (const kind of ['terms', 'privacy']) {
         assert.match(buildDoc('me', kind).metaTitle, /— ochk\.app$/);
@@ -460,4 +460,13 @@ test('the ochk.app terms and privacy promise no federation stage that is not bui
         DOCS.find(([n]) => n === 'me/terms')[1],
         /executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose/
     );
+});
+
+// ochk.app writes its brand lowercase, as its pages do, and while no entity is registered the
+// bare name the documents define is that brand (lead ruling, 2026-11-03).
+test('the ochk.app terms and privacy write orangecheck lowercase, the defined name too', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        assert.doesNotMatch(DOCS.find(([n]) => n === name)[1], /OrangeCheck/, name);
+    }
+    assert.match(DOCS.find(([n]) => n === 'me/terms')[1], /the party of record is orangecheck \(OCHK\), an unincorporated project\. References to "orangecheck" mean that party/);
 });

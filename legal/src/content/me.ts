@@ -26,17 +26,17 @@ import {
 } from './clauses';
 
 const COMMERCIAL_NOTE =
-    '**ochk.app is a commercial product operated by OrangeCheck.** It is distinct from the non-custodial OrangeCheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern ochk.app. These Terms do. Its API is served at me.ochk.io, from the same accounts and records: these Terms govern the Service at either address, and “ochk.app” in them means both.';
+    '**ochk.app is a commercial product operated by orangecheck.** It is distinct from the non-custodial orangecheck protocol sites; the Terms at [ochk.io/terms](https://ochk.io/terms) do not govern ochk.app. These Terms do. Its API is served at me.ochk.io, from the same accounts and records: these Terms govern the Service at either address, and “ochk.app” in them means both.';
 
 const terms: DocSpec = {
     kind: 'terms',
     eyebrow: 'terms',
     title: 'Terms of service',
     description:
-        'The terms governing your use of ochk.app and its API at me.ochk.io — a Bitcoin-backed identity that will pay you in sats. OrangeCheck holds what you earn during bring-up and will pay it to a Lightning wallet you choose. No KYC.',
+        'The terms governing your use of ochk.app and its API at me.ochk.io — a Bitcoin-backed identity that will pay you in sats. orangecheck holds what you earn during bring-up and will pay it to a Lightning wallet you choose. No KYC.',
     metaTitle: 'Terms of Service — ochk.app',
     metaDescription:
-        'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. OrangeCheck holds what users earn during bring-up and will pay it to a Lightning wallet they choose. No KYC.',
+        'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. orangecheck holds what users earn during bring-up and will pay it to a Lightning wallet they choose. No KYC.',
     effective: '2026-05-15',
     updated: '2026-10-29',
     preamble: [
@@ -55,11 +55,11 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity is anchored in Bitcoin, verifiable offline, and portable across the OrangeCheck family.',
+                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity is anchored in Bitcoin, verifiable offline, and portable across the orangecheck family.',
                 },
                 {
                     kind: 'para',
-                    text: 'ochk.app is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it will pay you.** That is a stage, not the design — see the custody section below for what holds today.',
+                    text: 'ochk.app is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up orangecheck operates every role in that mechanism, including custody of the balance it will pay you.** That is a stage, not the design — see the custody section below for what holds today.',
                 },
             ],
         },
@@ -70,11 +70,11 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'You may create an identity four ways: with **email** (a one-time code), **Google**, **GitHub**, or **a Bitcoin wallet** (you sign with BIP-322 — full self-custody of your signing key). With email, Google or GitHub you hold no key of your own, so OrangeCheck holds your signing key. However you sign in, during bring-up OrangeCheck holds the cashback you accrue; see custody below. Each way produces a stable, opaque `did:oc` identifier. No password is ever stored.',
+                    text: 'You may create an identity four ways: with **email** (a one-time code), **Google**, **GitHub**, or **a Bitcoin wallet** (you sign with BIP-322 — full self-custody of your signing key). With email, Google or GitHub you hold no key of your own, so orangecheck holds your signing key. However you sign in, during bring-up orangecheck holds the cashback you accrue; see custody below. Each way produces a stable, opaque `did:oc` identifier. No password is ever stored.',
                 },
                 {
                     kind: 'para',
-                    text: 'You are responsible for the security of the wallet, device, email account, or recovery mnemonic associated with your identity. Anyone with your keys or recovery factor can act as you. OrangeCheck cannot recover an account, reverse a sign-in, or restore a lost key or mnemonic.',
+                    text: 'You are responsible for the security of the wallet, device, email account, or recovery mnemonic associated with your identity. Anyone with your keys or recovery factor can act as you. orangecheck cannot recover an account, reverse a sign-in, or restore a lost key or mnemonic.',
                 },
             ],
         },
@@ -86,7 +86,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'stub',
-                    text: 'The economics of earning sats on ochk.app — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and OrangeCheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on [how it works](/how) and [the earn page](/earn). This section will be completed following review by counsel.',
+                    text: 'The economics of earning sats on ochk.app — how billable events generate cashback, the fee split between you, the integrating site, federation operators, and orangecheck, the timing of credits, and the conditions under which earnings may be withheld, delayed, clawed back, or reversed (including for suspected abuse or wash-trading) — are being finalized for publication before general availability. Until then, earning behavior is governed by the published abuse limits in the section below and the descriptions on [how it works](/how) and [the earn page](/earn). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -97,11 +97,11 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, OrangeCheck currently holds the key that will pay you.** The design is a Fedimint federation: independent guardians hold the bitcoin under a threshold scheme, and OrangeCheck’s executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So during this period OrangeCheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
+                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. orangecheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance orangecheck owes you until it is paid out to the destination you bind. During bring-up orangecheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, orangecheck currently holds the key that will pay you.** The design is a Fedimint federation: independent guardians hold the bitcoin under a threshold scheme, and orangecheck’s executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by orangecheck. So during this period orangecheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
                 },
                 {
                     kind: 'stub',
-                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or OrangeCheck ceases operations, the mechanics and timing of graduation, and the allocation of risk between you, the federation, and OrangeCheck — is being finalized for publication before general availability. The honest current-state engineering account is published on the [security page](/security). This section will be completed following review by counsel.',
+                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or orangecheck ceases operations, the mechanics and timing of graduation, and the allocation of risk between you, the federation, and orangecheck — is being finalized for publication before general availability. The honest current-state engineering account is published on the [security page](/security). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -156,7 +156,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Sites that integrate ochk.app through its API at me.ochk.io get their own subject id for the events they report, and your Bitcoin address, email or attestation tier only if you grant that scope. Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. OrangeCheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
+                    text: 'Sites that integrate ochk.app through its API at me.ochk.io get their own subject id for the events they report, and your Bitcoin address, email or attestation tier only if you grant that scope. Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. orangecheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
                 },
             ],
         },
@@ -173,12 +173,12 @@ const terms: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'Nothing ochk.app provides is financial, investment, legal, or tax advice. ochk.app does not guarantee any level of earnings; cashback depends on integrator activity outside OrangeCheck’s control.',
+                    text: 'Nothing ochk.app provides is financial, investment, legal, or tax advice. ochk.app does not guarantee any level of earnings; cashback depends on integrator activity outside orangecheck’s control.',
                 },
                 { kind: 'subhead', text: 'regulatory status' },
                 {
                     kind: 'stub',
-                    text: 'ochk.app is designed so that independent Fedimint federations hold the bitcoin behind the cashback, while OrangeCheck’s executor holds each person’s claim on it and pays it out. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies the cashback every user earns, and will be the one that transmits it**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
+                    text: 'ochk.app is designed so that independent Fedimint federations hold the bitcoin behind the cashback, while orangecheck’s executor holds each person’s claim on it and pays it out. **Those federations do not exist yet. During bring-up orangecheck itself custodies the cashback every user earns, and will be the one that transmits it**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which orangecheck never holds; the cashback they accrue is held by orangecheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including orangecheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -190,7 +190,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using ochk.app at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance OrangeCheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by OrangeCheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using ochk.app at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance orangecheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by orangecheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },
@@ -207,10 +207,10 @@ const privacy: DocSpec = {
     eyebrow: 'privacy',
     title: 'Privacy policy',
     description:
-        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, and a documented, falsifiable account of every record OrangeCheck stores.',
+        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, and a documented, falsifiable account of every record orangecheck stores.',
     metaTitle: 'Privacy Policy — ochk.app',
     metaDescription:
-        'ochk.app privacy policy. No KYC, no PII required, and a full account of what OrangeCheck stores.',
+        'ochk.app privacy policy. No KYC, no PII required, and a full account of what orangecheck stores.',
     effective: '2026-05-15',
     updated: '2026-10-31',
     preamble: [
@@ -226,7 +226,7 @@ const privacy: DocSpec = {
                 { k: "26 October", v: "a session record keeps no IP address, and the sign-in log keeps it for 90 days." },
                 { k: "25 October", v: "me.ochk.io records which sites you sign in to or share data with, and when. No site sees that record." },
                 { k: "24 October", v: "signing in gives every site the same did:oc." },
-                { k: "23 October", v: "an account a site makes for you through OrangeCheck Connect keeps a hash of the site's id for you, a keyed hash of your email if the site sent one, when it was made, whether you agreed to earn, and what it earned." },
+                { k: "23 October", v: "an account a site makes for you through orangecheck Connect keeps a hash of the site's id for you, a keyed hash of your email if the site sent one, when it was made, whether you agreed to earn, and what it earned." },
                 { k: "19 October", v: "ochk.app is the Service, and me.ochk.io is its API." },
                 { k: "15 October", v: "ochk.app's own cookies are listed: __Host-oc_session, and __Host-oc_oauth for at most ten minutes during a Google or GitHub sign-in." },
                 { k: "8 October", v: "a session record keeps your user-agent, and an email is personal data." },
@@ -277,7 +277,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The list below is what an auditor would find in OrangeCheck’s production infrastructure. Every item is metadata; none of it lets OrangeCheck sign on your behalf.',
+                    text: 'The list below is what an auditor would find in orangecheck’s production infrastructure. Every item is metadata; none of it lets orangecheck sign on your behalf.',
                 },
                 {
                     kind: 'bullets',
@@ -343,7 +343,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'OrangeCheck’s billing engine necessarily knows which user earned which cashback across integrating sites — that join is how the right wallet is credited. Today that linkage exists in plain storage on me.ochk.io infrastructure; OrangeCheck commits, as a **policy** matter enforced by access controls and audit logging, not to build cross-site behavioural profiles. A per-integrator blinded-identifier design that removes the linkage architecturally is active research and not yet shipped. We disclose this honestly rather than overclaim.',
+                    text: 'orangecheck’s billing engine necessarily knows which user earned which cashback across integrating sites — that join is how the right wallet is credited. Today that linkage exists in plain storage on me.ochk.io infrastructure; orangecheck commits, as a **policy** matter enforced by access controls and audit logging, not to build cross-site behavioural profiles. A per-integrator blinded-identifier design that removes the linkage architecturally is active research and not yet shipped. We disclose this honestly rather than overclaim.',
                 },
             ],
         },
@@ -370,7 +370,7 @@ const privacy: DocSpec = {
                     items: [
                         'Route cashback to the correct identity and wallet',
                         'Detect and prevent sybil farming, wash-trading, and abuse',
-                        'Operate sign-in and verification across the OrangeCheck family',
+                        'Operate sign-in and verification across the orangecheck family',
                         'Fix bugs, improve the Service, and respond to support requests',
                     ],
                 },
@@ -424,7 +424,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'In [your settings](/me/settings) you can delete your account. A person completes the request, and we aim to do that within 48 hours: an alert tells us when one has waited a day. Completing it closes your sign-in, so signing in again starts a new account, and erases your data on ochk.io, me.ochk.io, vault, chat and cosign, except a few records. Payment records keep their amounts and times for accounting, and our audit log and your deletion request stay, without the reason you gave. We keep a record that your account was deleted, out of public view, so sessions you already had stop working and the deletion can be shown. Each keeps your account only as a keyed id, or not at all, so the record by itself doesn\'t say whose account it was. On cosign, your messages in conversations with other people and the reports you filed stay, with your account taken off them. Backups roll off within 30 days, and copies cached by our CDN expire within a day. Deleting does not pay out sats OrangeCheck holds for you: settle a non-zero balance first. If you run a guardian, you can delete only once your operator key holds no seat or hosted guardian, has finished any exit, created no federation that still exists, and is owed nothing. Charter signatures, incidents and amendment proposals the key signed stay public under the key, with what you wrote in them; exit records and machine reports stay visible to that federation\'s guardians and to us. Hashes anchored to Bitcoin and records published to Nostr cannot be deleted by anyone. me.ochk.io\'s own anchors name no one, but attestations, polls, pledges, stamps and a chat listing you published carry your Bitcoin address.',
+                    text: 'In [your settings](/me/settings) you can delete your account. A person completes the request, and we aim to do that within 48 hours: an alert tells us when one has waited a day. Completing it closes your sign-in, so signing in again starts a new account, and erases your data on ochk.io, me.ochk.io, vault, chat and cosign, except a few records. Payment records keep their amounts and times for accounting, and our audit log and your deletion request stay, without the reason you gave. We keep a record that your account was deleted, out of public view, so sessions you already had stop working and the deletion can be shown. Each keeps your account only as a keyed id, or not at all, so the record by itself doesn\'t say whose account it was. On cosign, your messages in conversations with other people and the reports you filed stay, with your account taken off them. Backups roll off within 30 days, and copies cached by our CDN expire within a day. Deleting does not pay out sats orangecheck holds for you: settle a non-zero balance first. If you run a guardian, you can delete only once your operator key holds no seat or hosted guardian, has finished any exit, created no federation that still exists, and is owed nothing. Charter signatures, incidents and amendment proposals the key signed stay public under the key, with what you wrote in them; exit records and machine reports stay visible to that federation\'s guardians and to us. Hashes anchored to Bitcoin and records published to Nostr cannot be deleted by anyone. me.ochk.io\'s own anchors name no one, but attestations, polls, pledges, stamps and a chat listing you published carry your Bitcoin address.',
                 },
             ],
         },
@@ -434,11 +434,11 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'A site that signs you in its own way can use OrangeCheck Connect to make an orangecheck account for you. For that account OrangeCheck keeps a hash of the id the site gave you, never the id; a keyed hash of your email address if the site sent one, never the address; when the account was made; whether the site said you agreed to earn with it; and what it earned, if the site pays. It keeps no sign-in times, because the account has no sign-in of its own. Until you agree, through the site or by claiming it, the account is for sign-in only and earns nothing.',
+                    text: 'A site that signs you in its own way can use orangecheck Connect to make an orangecheck account for you. For that account orangecheck keeps a hash of the id the site gave you, never the id; a keyed hash of your email address if the site sent one, never the address; when the account was made; whether the site said you agreed to earn with it; and what it earned, if the site pays. It keeps no sign-in times, because the account has no sign-in of its own. Until you agree, through the site or by claiming it, the account is for sign-in only and earns nothing.',
                 },
                 {
                     kind: 'para',
-                    text: 'You can claim it on ochk.app with a link the site gives you, or with an email address the site verified and you hold. It then becomes part of your own account, and deleting your account deletes it. The site can delete it too, for example when you close your account with that site, unless it holds earnings: those stay yours until you claim them. After a deletion OrangeCheck keeps only a hash of the id the site gave you, with the site\'s app id, so the site cannot quietly make the account again; it can only when you agree again.',
+                    text: 'You can claim it on ochk.app with a link the site gives you, or with an email address the site verified and you hold. It then becomes part of your own account, and deleting your account deletes it. The site can delete it too, for example when you close your account with that site, unless it holds earnings: those stay yours until you claim them. After a deletion orangecheck keeps only a hash of the id the site gave you, with the site\'s app id, so the site cannot quietly make the account again; it can only when you agree again.',
                 },
             ],
         },
