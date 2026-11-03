@@ -24,12 +24,12 @@ npm install @orangecheck/insights-client
 ```ts
 import { emit } from '@orangecheck/insights-client';
 
-// Long-lived server (Node/Express): ignore the promise; it sends in the background.
+// Fire and forget, anywhere: it sends in the background.
 void emit('attest', 'bip322_success', { scheme: 'p2wpkh' });
 
-// Serverless (Vercel): await it (or hand it to waitUntil) so the function
-// doesn't freeze before the request flushes. `keepalive` is set so a
-// returning function's request still survives.
+// On Vercel, emit hands its request to waitUntil itself (0.1.1), so the
+// function stays alive until it flushes; there is nothing to await.
+// Await it only when you want to know it was sent before you go on.
 await emit('me', 'settlement', { class: 'B' });
 ```
 
