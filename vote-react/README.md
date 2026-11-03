@@ -19,7 +19,7 @@ A full poll card — question, option bars, turnout, status pill, "cast a ballot
 ```tsx
 import { OcPoll } from '@orangecheck/vote-react';
 
-<OcPoll pollId="3054390f047f2703186943a41178bc15931500b5139229517f26e56282026ee5" />
+<OcPoll pollId="9825268c74a3a15baefe8f9705f774cc7bb97205922fc828df3b377e0e158a18" />
 ```
 
 ### `<OcTallyBadge pollId="…" />`
@@ -29,12 +29,12 @@ A compact inline pill showing the top option + its percentage. Use in sidebars, 
 ```tsx
 import { OcTallyBadge } from '@orangecheck/vote-react';
 
-<OcTallyBadge pollId="3054390f…" theme="dark" />
+<OcTallyBadge pollId="9825268c…" theme="dark" />
 ```
 
 ### `useTally(pollId, opts?)`
 
-The underlying hook, for custom rendering. When a fetch fails, `data` is `null` until the next good answer, so an error never shows beside an earlier tally.
+The underlying hook, for custom rendering. When a fetch fails, `data` is `null` until the next good answer, so an error never shows beside an earlier tally. A non-2xx answer is a failed fetch too: a `deferred` tally (409, `http 409`) and a count the relays left short (503, the shortfall in its `error`) come back as `error`. A 200 is `tallied` (final), `provisional` (an anchored poll's count before its tip reaches `H_close + G + 6`, which can still change; `TallyResponse` does not list it yet) or `awaiting_reveal` (no tallies).
 
 ```tsx
 import { useTally } from '@orangecheck/vote-react';
@@ -44,7 +44,7 @@ function MyPoll({ id }: { id: string }) {
     if (loading) return <Spinner />;
     if (error) return <Error msg={error.message} />;
     if (data?.state === 'awaiting_reveal') return <Pending />;
-    return <TallyView tallies={data!.tallies!} />;
+    return <TallyView tallies={data!.tallies!} final={data!.state === 'tallied'} />;
 }
 ```
 
