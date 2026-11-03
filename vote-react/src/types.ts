@@ -1,6 +1,7 @@
-// Wire types for the /api/tally response.
-// Deliberately a subset of what vote.ochk.io returns — we don't re-export
-// every field, just what the components render.
+// Wire types for the /api/tally response, the fields the components render.
+// vote.ochk.io's answer carries poll_id, state, snapshot_block, turnout,
+// tallies, ballot_count, reveal_published and deadline. question, creator,
+// weight_mode and mode come only from initialData or a server that adds them.
 
 export interface TallyTurnout {
     voters: number;
@@ -12,6 +13,7 @@ export interface TallyResponse {
     state: 'tallied' | 'awaiting_reveal';
     question?: string;
     creator?: string;
+    /** The poll's deadline (iso8601_utc), sent by vote.ochk.io since oc-vote-web `8f135c54`. OcPoll reads open or closed by it. */
     deadline?: string;
     weight_mode?: string;
     mode?: 'public' | 'secret';
