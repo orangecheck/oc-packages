@@ -33,10 +33,10 @@ const terms: DocSpec = {
     eyebrow: 'terms',
     title: 'Terms of service',
     description:
-        'The terms governing your use of ochk.app and its API at me.ochk.io — a Bitcoin-backed identity that will pay you in sats. OrangeCheck-custodied during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
+        'The terms governing your use of ochk.app and its API at me.ochk.io — a Bitcoin-backed identity that will pay you in sats. OrangeCheck holds what you earn during bring-up and will pay it to a Lightning wallet you choose. No KYC.',
     metaTitle: 'Terms of Service — ochk.app',
     metaDescription:
-        'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. OrangeCheck custody during bring-up, federation custody and self-custody graduation as the destination, no KYC.',
+        'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. OrangeCheck holds what users earn during bring-up and will pay it to a Lightning wallet they choose. No KYC.',
     effective: '2026-05-15',
     updated: '2026-10-29',
     preamble: [
@@ -59,7 +59,7 @@ const terms: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'ochk.app is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it will pay you.** That is a stage, not the design — see the custody section below for what holds today and what replaces it.',
+                    text: 'ochk.app is **not a bank, exchange, broker, or wallet provider.** It is an identity and reputation service with an attached cashback mechanism. **During bring-up OrangeCheck operates every role in that mechanism, including custody of the balance it will pay you.** That is a stage, not the design — see the custody section below for what holds today.',
                 },
             ],
         },
@@ -93,11 +93,11 @@ const terms: DocSpec = {
         {
             id: 'custody',
             heading: 'custody & graduation',
-            hint: 'orangecheck-held during bring-up · federation custody and self-custody exit next',
+            hint: 'orangecheck-held during bring-up · paid out to a wallet you choose',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, OrangeCheck currently holds the key that will pay you.** The design is that a Fedimint federation — run by independent guardian operators, not OrangeCheck — holds funds under a threshold scheme, and you may **graduate** to full self-custody at any time. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So during this period OrangeCheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
+                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. OrangeCheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance OrangeCheck owes you until it is paid out to the destination you bind. During bring-up OrangeCheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, OrangeCheck currently holds the key that will pay you.** The design is a Fedimint federation: independent guardians hold the bitcoin under a threshold scheme, and OrangeCheck’s executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by OrangeCheck. So during this period OrangeCheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
                 },
                 {
                     kind: 'stub',
@@ -178,7 +178,7 @@ const terms: DocSpec = {
                 { kind: 'subhead', text: 'regulatory status' },
                 {
                     kind: 'stub',
-                    text: 'ochk.app is designed so that cashback is custodied and disbursed by independent Fedimint federations. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies the cashback every user earns, and will be the one that transmits it**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
+                    text: 'ochk.app is designed so that independent Fedimint federations hold the bitcoin behind the cashback, while OrangeCheck’s executor holds each person’s claim on it and pays it out. **Those federations do not exist yet. During bring-up OrangeCheck itself custodies the cashback every user earns, and will be the one that transmits it**, because it is operating every role in the system in order to prove it works before third parties take any of them. Self-custody (BIP-322) users keep their own keys, which OrangeCheck never holds; the cashback they accrue is held by OrangeCheck until it is paid out, as it is for every user. The full regulatory analysis of both the bring-up posture and the designed end state — including OrangeCheck’s position under the U.S. Bank Secrecy Act money-transmission rules, the FATF Recommendations, the EU MiCA Regulation, and applicable U.S. state money-transmitter regimes, and the corresponding licensing posture — is being prepared and will be published before general availability. This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -199,7 +199,7 @@ const terms: DocSpec = {
         miscellaneous,
     ],
     summary:
-        'summary: an identity that will pay you in sats. if you sign in with your own bitcoin wallet, you keep your keys; if you sign in with email, google or github, orangecheck holds the key that will pay you. either way, during bring-up orangecheck holds what you have earned until it is paid out or independent federations take it over. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
+        'summary: an identity that will pay you in sats. if you sign in with your own bitcoin wallet, you keep your keys; if you sign in with email, google or github, orangecheck holds the key that will pay you. either way, during bring-up orangecheck holds what you have earned until it is paid out. money, custody, fee, and regulatory terms are being finalized — see the marked sections.',
 };
 
 const privacy: DocSpec = {
@@ -300,7 +300,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'custody-state envelopes',
-                            v: 'a record of each federation ⇄ self-custody transition (graduation), surfaced on your own identity timeline.',
+                            v: 'a record of each change in how your account is custodied, kept on your own identity timeline. None is made while the system is in testing.',
                         },
                         {
                             k: 'site sign-ins',

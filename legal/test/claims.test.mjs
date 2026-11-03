@@ -430,3 +430,34 @@ test('the ochk.app terms and privacy say paying in the future tense', () => {
     }
     assert.match(buildDoc('me', 'terms').description, /identity that will pay you in sats/i);
 });
+
+// While the system is in testing orangecheck holds every key that can move funds, and even
+// the planned federation stage keeps orangecheck's executor holding each claim until it pays
+// out. ochk.app's own words promise no federation stage it has not built (oc-app-web
+// custody-promises.test.ts); its terms and privacy hold to the same list (lead ruling, 2026-11-03).
+const CUSTODY_PROMISES = [
+    [/federation[^.'"`]{0,40}replaces? (it|orangecheck)/i, 'a federation replacing orangecheck'],
+    [/until (a|an independent) federation (runs|settles|holds|takes|replaces)/i, 'custody that ends when a federation arrives'],
+    [/once a federation runs the network/i, 'what a federation will do'],
+    [/federation (next|takes over)|federations take (it )?over|self-custody exit next/i, 'a federation next'],
+    [/today a federation holds/i, 'a federation holding funds today'],
+    [/orangecheck is not one of (them|its guardians)|guardian operators, not orangecheck/i, 'a federation without orangecheck'],
+    [/orangecheck cannot move funds/i, 'orangecheck unable to move funds'],
+    [/keys only you hold|moves? to keys they hold|independent federations, and then your own keys/i, 'own keys'],
+    [/graduat\w*[^.]{0,60}at any time|graduation as the destination/i, 'self-custody on demand'],
+    [/what replaces it/i, 'a federation replacing orangecheck'],
+    [/custodied and disbursed by independent/i, 'a federation paying people'],
+    [/federation ⇄ self-custody transition/i, 'a record per custody move'],
+];
+
+test('the ochk.app terms and privacy promise no federation stage that is not built', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        for (const [rx, what] of CUSTODY_PROMISES) assert.doesNotMatch(text, rx, `${name}: ${what}`);
+    }
+    // The planned stage, in the words ochk.app's custody copy uses.
+    assert.match(
+        DOCS.find(([n]) => n === 'me/terms')[1],
+        /executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose/
+    );
+});
