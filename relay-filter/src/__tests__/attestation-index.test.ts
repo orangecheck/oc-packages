@@ -127,6 +127,60 @@ describe('AttestationIndex.decide', () => {
         });
     });
 
+    it('fails open for sdk 1.21.0 chain_unread, the outage it was meant for', async () => {
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'bad_request', 'chain_unread'],
+            network: 'mainnet',
+        } as never);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({ action: 'accept', reason: 'fail_open' });
+    });
+
+    // FO1: anyone can put an address past the chain APIs' ~500-UTXO cap with dust.
+    it.each([
+        [['sig_ok_bip322', 'utxo_cap_unread'], 'utxo_cap'],
+        [['sig_ok_bip322', 'provider_refused_unread'], 'chain_refused'],
+    ] as const)('never fails open when the coins were not listed (%j)', async (codes, reason) => {
+        vi.mocked(verify).mockResolvedValue({ ok: false, codes, network: 'mainnet', chain_status: 403 } as never);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({ action: 'reject', reason });
+    });
+
+    it('forgets a bond once its address is past the cap, since its coins can be spent unseen', async () => {
+        bond(500_000);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000 }).reason).toBe('ok');
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'utxo_cap_unread'],
+            network: 'mainnet',
+        } as never);
+        await (index as unknown as { refresh(a: string): Promise<void> }).refresh(ADDR);
+        const d = index.decide(ev(HEX_A!), { minSats: 100_000, failOpen: true });
+        expect(d).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+        expect(d.message).toContain('bond from an address that holds fewer coins');
+    });
+
+    it('a bond forgotten at the cap does not come back through a later outage', async () => {
+        bond(500_000);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        const refresh = (index as unknown as { refresh(a: string): Promise<void> }).refresh.bind(index);
+        vi.mocked(verify).mockResolvedValue({ ok: false, codes: ['sig_ok_bip322', 'utxo_cap_unread'], network: 'mainnet' } as never);
+        await refresh(ADDR);
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'bad_request', 'chain_unread'],
+            network: 'mainnet',
+        } as never);
+        await refresh(ADDR);
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000 })).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+    });
+
     it('keeps the last known bond through a chain-API outage', async () => {
         bond(500_000);
         index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));

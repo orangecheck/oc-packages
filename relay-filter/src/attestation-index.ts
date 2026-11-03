@@ -13,7 +13,7 @@ import {
 } from '@orangecheck/sdk';
 
 import { checkFilterOptions, checkIndexOptions } from './options';
-import { chainUnreachable } from './outage';
+import { chainRefused, chainUnreachable, refusedMessage } from './outage';
 import { readSubject } from './paged-read';
 
 const DEFAULT_ALLOW_KINDS = [0, 3, 10002];
@@ -118,6 +118,12 @@ export class AttestationIndex {
     private readonly bonds = new Map<string, Bond>();
     /** Signature verified, but the chain API has not answered yet for this address. */
     private readonly chainDown = new Set<string>();
+    /**
+     * Signature verified, and a chain API answered without listing the
+     * address's coins: past its UTXO cap, or a refusal. No bond is kept for it,
+     * since a capped address's coins can be spent unseen, and it never fails open.
+     */
+    private readonly refused = new Map<string, { reason: 'utxo_cap_unread' | 'provider_refused_unread'; status?: number }>();
     private readonly sockets: WebSocket[] = [];
     private timer: ReturnType<typeof setInterval> | undefined;
     private startedAt = 0;
@@ -206,10 +212,16 @@ export class AttestationIndex {
         let unverified = false;
         let unreadable = false;
         let shared = false;
+        let refusedFor: { reason: 'utxo_cap_unread' | 'provider_refused_unread'; status?: number } | undefined;
         let best: Bond | undefined;
         for (const address of addresses) {
             if (this.keysFor(address).size > 1) {
                 shared = true;
+                continue;
+            }
+            const refused = this.refused.get(address);
+            if (refused) {
+                refusedFor ??= refused;
                 continue;
             }
             // Not shared only once the address's own read finished.
@@ -237,6 +249,14 @@ export class AttestationIndex {
                 action: 'reject',
                 reason: 'lookup_error',
                 message: 'orangecheck: cannot read your bond from the chain right now, try again shortly',
+                pubkey,
+            };
+        }
+        if (refusedFor && !best) {
+            return {
+                action: 'reject',
+                reason: refusedFor.reason === 'utxo_cap_unread' ? 'utxo_cap' : 'chain_refused',
+                message: refusedMessage(refusedFor.reason, refusedFor.status),
                 pubkey,
             };
         }
@@ -334,6 +354,16 @@ export class AttestationIndex {
                 },
                 { coverSats: cover > 0 ? cover : undefined }
             );
+            // The coins were not listed, and asking again will not list them:
+            // forget the bond, which could be spent unseen, and never fail open.
+            const refused = chainRefused(out.codes);
+            if (refused) {
+                this.refused.set(address, { reason: refused, status: (out as { chain_status?: number }).chain_status });
+                this.bonds.delete(address);
+                this.chainDown.delete(address);
+                return;
+            }
+            this.refused.delete(address);
             // A chain-API outage is not a verdict: keep the last known bond.
             if (chainUnreachable(out.codes)) {
                 if (!this.bonds.has(address)) this.chainDown.add(address);

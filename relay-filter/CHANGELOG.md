@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.6.0] — 2026-11-03
+
+### Fixed
+
+- `failOpen` no longer admits a key whose address a chain API would not
+  list. With `@orangecheck/sdk` before 1.21.0, the ~500-UTXO cap read as an
+  outage, so anyone who sent enough dust to their own address was let
+  through on every event. From sdk 1.21.0 the cap is `utxo_cap_unread` and a
+  refusal (a 4xx but 429) `provider_refused_unread`: `filterEvent` rejects them
+  as `utxo_cap` and `chain_refused`, held for the short lookup-error TTL, and
+  the attestation index rejects them too and forgets the address's last bond,
+  since a capped address's coins could be spent unseen. This needs sdk 1.21.0
+  installed: with an older sdk the cap still reads as an outage.
+- sdk 1.21.0's `chain_unread` is an outage, as `bad_request` beside a
+  `sig_ok_*` code was before.
+
+### Changed
+
+- `FilterDecision.reason` gains `utxo_cap` and `chain_refused`.
+
 ## [0.5.6] — 2026-11-01
 
 ### Fixed

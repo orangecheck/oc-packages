@@ -74,7 +74,11 @@ export interface FilterDecision {
         | 'stake_shared'
         | 'invalid_proof'
         | 'lookup_error'
-        | 'fail_open';
+        | 'fail_open'
+        // The address's coins were not listed (sdk 1.21.0). Unread, never
+        // fail_open: past the chain API's ~500-UTXO cap, or the API refused.
+        | 'utxo_cap'
+        | 'chain_refused';
     /** Human-readable message to send the client on reject. */
     message?: string;
     /** Underlying SDK result when a lookup happened. */

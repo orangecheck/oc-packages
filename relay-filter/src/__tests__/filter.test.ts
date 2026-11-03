@@ -302,3 +302,39 @@ describe('TtlLru (real LRU on access, not FIFO)', () => {
         });
     });
 });
+
+describe('coins a chain API would not list (sdk 1.21.0) never fail open (chain-read-failures FO1)', () => {
+    // Anyone can put an address past the chain APIs' ~500-UTXO cap by sending it
+    // dust, so the cap and a refusal are closed reasons of their own, never the
+    // outage failOpen covers. chain_unread stays that outage.
+    const result = (reasons: string[], extra: Record<string, unknown> = {}) =>
+        ({ ok: false, sats: 0, days: 0, score: 0, reasons, ...extra }) as never;
+
+    it('chain_unread is an outage: lookup_error, or fail_open when opted in', async () => {
+        vi.mocked(check).mockResolvedValue(result(['sig_ok_bip322', 'bad_request', 'chain_unread']));
+        expect(await filterEvent(evt(), {})).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        __clearFilterCachesForTests();
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({ action: 'accept', reason: 'fail_open' });
+    });
+
+    it('the cap is utxo_cap, worded, with or without failOpen', async () => {
+        vi.mocked(check).mockResolvedValue(result(['utxo_cap_unread']));
+        const closed = await filterEvent(evt(), {});
+        expect(closed).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+        expect(closed.message).toContain('holds more coins than the chain API lists');
+        __clearFilterCachesForTests();
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+    });
+
+    it('a refusal is chain_refused with its status, with or without failOpen', async () => {
+        vi.mocked(check).mockResolvedValue(result(['provider_refused_unread'], { chain_status: 403 }));
+        const d = await filterEvent(evt(), { failOpen: true });
+        expect(d).toMatchObject({ action: 'reject', reason: 'chain_refused' });
+        expect(d.message).toBe('orangecheck: the chain API refused this lookup (HTTP 403); nothing is concluded');
+    });
+
+    it('a cap beside the signature and bad_request is still never an outage', async () => {
+        vi.mocked(check).mockResolvedValue(result(['sig_ok_bip322', 'bad_request', 'utxo_cap_unread']));
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+    });
+});
