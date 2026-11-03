@@ -16,12 +16,12 @@ export const appColors = {
     light: lightPalette,
     dark: darkPalette,
     brand: {
-        orange: '#F66D36',
-        orangeLight: '#FB933C',
-        orangeDeep: '#EA580B',
+        orange: '#F97316',
+        orangeLight: '#FB923C',
+        orangeDeep: '#C2410C',
         peach: '#FED8AB',
-        ink: '#0A0A0A',
-        inkCard: '#1E1E1E',
+        ink: '#161412',
+        inkCard: '#1C1916',
     },
 } as const;
 
