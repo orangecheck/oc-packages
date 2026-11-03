@@ -77,7 +77,7 @@ export const intellectualProperty: Section = {
         { kind: 'subhead', text: "[[ENTITY]]'s rights" },
         {
             kind: 'para',
-            text: 'The Service and its content (excluding user-generated content) are protected by copyright, trademark, patent, and other IP laws — including the OrangeCheck name, logos, branding, site design, software, code, algorithms, and documentation.',
+            text: 'The Service and its content (excluding user-generated content) are protected by copyright, trademark, patent, and other IP laws — including the [[BRAND]] name, logos, branding, site design, software, code, algorithms, and documentation.',
         },
         { kind: 'subhead', text: 'your license' },
         {
@@ -92,7 +92,7 @@ export const intellectualProperty: Section = {
         { kind: 'subhead', text: 'open source' },
         {
             kind: 'para',
-            text: 'OrangeCheck protocol specifications and the `@orangecheck/*` packages are released under open-source licenses (MIT unless stated otherwise). Those portions are governed by their own license terms; these Terms govern the hosted service.',
+            text: '[[BRAND]] protocol specifications and the `@orangecheck/*` packages are released under open-source licenses (MIT unless stated otherwise). Those portions are governed by their own license terms; these Terms govern the hosted service.',
         },
     ],
 };
@@ -408,7 +408,7 @@ export const privacyTransfers: Section = {
     blocks: [
         {
             kind: 'para',
-            text: 'OrangeCheck is operated from the United States. If you access [[PRODUCT]] from elsewhere, your information may be transferred to, stored, and processed in the US or other countries where our service providers operate. For users in the EEA, UK, or Switzerland, we rely on appropriate safeguards for international transfers.',
+            text: '[[ENTITY]] is operated from the United States. If you access [[PRODUCT]] from elsewhere, your information may be transferred to, stored, and processed in the US or other countries where our service providers operate. For users in the EEA, UK, or Switzerland, we rely on appropriate safeguards for international transfers.',
         },
     ],
 };
