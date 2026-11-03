@@ -65,6 +65,24 @@ describe('check() by address', () => {
         expect(requests).toEqual([]);
     });
 
+    it('takes an empty addr beside an id as no address, and reads by the id as before', async () => {
+        const id = 'a'.repeat(64);
+        const r = await check({ addr: '', id, relays: RELAYS });
+        expect(r.reasons).toEqual(['not_found']);
+        expect(requests.length).toBeGreaterThan(0);
+        for (const f of requests) expect(f['#d']).toEqual([id]);
+    });
+
+    it('refuses a typo beside an id: the id never decides an address it was not asked', async () => {
+        const r = await check({
+            addr: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdp',
+            id: 'a'.repeat(64),
+            relays: RELAYS,
+        });
+        expect(r.reasons).toEqual(['bad_request']);
+        expect(requests).toEqual([]);
+    });
+
     it('reads a capitalised address by the spelling it is tagged under', async () => {
         const r = await check({ addr: ADDR.toUpperCase(), relays: RELAYS });
         expect(r.reasons).toEqual(['not_found']);
