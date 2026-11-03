@@ -12,9 +12,11 @@ import { useOnScreen, usePrefersStill } from './parts';
  * at, and pauses where it was otherwise. It plays through once and rests.
  * The first press, key or focus inside it stops the autoplay for good; then
  * the step buttons under the window drive it, and each step is said once.
- * Under reduced motion it never plays: the first step shows, with the
- * buttons. The window itself is a picture (aria-hidden): the step list is
- * what a screen reader reads. The steps read the ground's tokens, so on an
+ * "Try again", on the last screen, plays it from the start. Under reduced
+ * motion it never plays: the first step shows, with the buttons. The window
+ * itself is a picture (aria-hidden): the step list and Try again are what a
+ * screen reader reaches. A step may hold several screens (the email, then
+ * the code, under one label). The steps read the ground's tokens, so on an
  * ink or burnt band they take its colours; the window keeps the product
  * surface's own.
  */
@@ -28,17 +30,22 @@ export interface SignInDemoScreenState {
     success: ReactNode;
 }
 
+export interface SignInDemoScreen {
+    /** How long autoplay holds the screen, in ms. */
+    duration?: number;
+    /** The window's content. The control the cursor presses carries `data-demo-target`. */
+    render: (state: SignInDemoScreenState) => ReactNode;
+}
+
 export interface SignInDemoStep {
     /** The step's words: under the window, and said when a reader moves to it. */
     label: string;
-    /** How long autoplay holds the step, in ms. */
-    duration?: number;
-    /** The window's content. The control the cursor presses carries `data-demo-target`. */
-    screen: (state: SignInDemoScreenState) => ReactNode;
+    /** Its screens, in turn: a step button opens the first. */
+    screens: SignInDemoScreen[];
 }
 
 export interface SignInDemoProps {
-    /** Default: `signInDemoSteps()`, email → code → in. */
+    /** Default: `signInDemoSteps()`: the app's sign-in, the email and code, you're in. */
     steps?: SignInDemoStep[];
     /** What the last screen shows for success, e.g. a MiniCheck. Default: the mark. */
     success?: (state: { playing: boolean }) => ReactNode;
@@ -50,6 +57,8 @@ export interface SignInDemoProps {
     stepsLabel?: string;
     /** The address in the window's bar; null shows none. */
     url?: string | null;
+    /** The control on the last screen that plays the demo again. */
+    tryAgain?: string;
     className?: string;
 }
 
@@ -68,29 +77,37 @@ export function SignInDemo({
     stepWords = (s, i, n) => `${s.label}, step ${i + 1} of ${n}`,
     stepsLabel = 'Steps',
     url = null,
+    tryAgain = 'Try again',
     className,
 }: SignInDemoProps) {
     const rootRef = useRef<HTMLDivElement>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<HTMLDivElement>(null);
     const fillRef = useRef<HTMLSpanElement>(null);
+    const firstStepRef = useRef<HTMLButtonElement>(null);
     const still = usePrefersStill();
     const onScreen = useOnScreen(rootRef, 0.35);
     const [mode, setMode] = useState<Mode>('auto');
+    // The screen on show, counted across every step's screens.
     const [index, setIndex] = useState(0);
     const [phase, setPhase] = useState<'show' | 'aim' | 'press'>('show');
     const [done, setDone] = useState(false);
     const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
-    // Time spent in a step before a pause, so a resumed step picks up where it stopped.
+    // Time spent on a screen before a pause, so a resumed screen picks up where it stopped.
     const spent = useRef({ index: -1, ms: 0 });
 
+    const scenes = steps.flatMap((s, step) => s.screens.map((screen) => ({ ...screen, step })));
     const effective: Mode = still ? 'still' : mode;
     const active = effective === 'auto' && onScreen && !done;
-    const last = index === steps.length - 1;
-    const step = steps[Math.min(index, steps.length - 1)]!;
-    const duration = step.duration ?? STEP_MS;
+    const last = index === scenes.length - 1;
+    const scene = scenes[Math.min(index, scenes.length - 1)]!;
+    const stepIndex = scene.step;
+    const duration = scene.duration ?? STEP_MS;
+    // A step's bar fills over all its screens.
+    const stepMs = steps[stepIndex]!.screens.reduce((t, sc) => t + (sc.duration ?? STEP_MS), 0);
+    const firstScene = (step: number) => scenes.findIndex((sc) => sc.step === step);
 
-    // The timeline of one step: aim, press, next. Paused, it keeps its place.
+    // The timeline of one screen: aim, press, next. Paused, it keeps its place.
     useEffect(() => {
         if (!active) return;
         const before = spent.current.index === index ? spent.current.ms : 0;
@@ -128,12 +145,12 @@ export function SignInDemo({
     useLayoutEffect(() => {
         const fill = fillRef.current;
         if (!fill || effective !== 'auto' || done || typeof fill.animate !== 'function') return;
-        const a = fill.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration, easing: 'linear', fill: 'forwards' });
+        const a = fill.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: stepMs, easing: 'linear', fill: 'forwards' });
         if (!active) a.pause();
         return () => a.cancel();
-        // Only a new step starts a new fill; pausing is the effect above.
+        // Only a new step starts a new fill (a step's later screens keep it); pausing is the effect above.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [index, effective, done, duration]);
+    }, [stepIndex, effective, done, stepMs]);
 
     // Each new screen fades up, while it plays by itself.
     useLayoutEffect(() => {
@@ -172,23 +189,33 @@ export function SignInDemo({
     const takeOver = () => {
         if (mode === 'auto') setMode('manual');
     };
-    const go = (i: number) => {
+    const show = (sceneIndex: number) => {
         takeOver();
         setDone(false);
         setPhase('show');
-        setIndex(i);
-        const s = steps[i];
-        if (s) announce(stepWords(s, i, steps.length));
+        setIndex(sceneIndex);
+        const step = scenes[sceneIndex]?.step;
+        if (step !== undefined && step !== stepIndex) announce(stepWords(steps[step]!, step, steps.length));
     };
-    // A press on the pictured control does what it says: the next step.
+    // A press on the pictured control does what it says: the next screen.
     const onStageClick = (e: MouseEvent) => {
         const target = viewRef.current?.querySelector('[data-demo-target]');
-        if (target && target.contains(e.target as Node) && !last) go(index + 1);
+        if (target && target.contains(e.target as Node) && !last) show(index + 1);
+    };
+    // Try again: from the start, playing by itself again (the reader asked for it), with focus on the first step.
+    // That focus runs this render's takeOver, which already saw the press on Try again, so autoplay stays on.
+    const replay = () => {
+        spent.current = { index: -1, ms: 0 };
+        setIndex(0);
+        setPhase('show');
+        setDone(false);
+        setMode('auto');
+        firstStepRef.current?.focus({ preventScroll: true });
     };
 
     const playing = active;
     const pressed = effective === 'auto' && phase === 'press';
-    const screen = step.screen({ playing, pressed, success: (success ?? defaultSuccess)({ playing }) });
+    const screen = scene.render({ playing, pressed, success: (success ?? defaultSuccess)({ playing }) });
     const cursorStyle: CSSProperties | undefined = cursor
         ? { transform: `translate(${cursor.x}px, ${cursor.y}px)`, transition: `transform 950ms ${GLIDE}` }
         : undefined;
@@ -199,7 +226,8 @@ export function SignInDemo({
             role="group"
             aria-label={label}
             data-demo-mode={effective}
-            data-demo-step={index}
+            data-demo-step={stepIndex}
+            data-demo-screen={index}
             className={cn('flex w-full flex-col gap-6', className)}
             onPointerDownCapture={takeOver}
             onKeyDownCapture={takeOver}
@@ -207,10 +235,19 @@ export function SignInDemo({
         >
             <div ref={stageRef} className="relative" onClick={onStageClick}>
                 <BrowserFrame variant="paper" glow url={url}>
-                    <div ref={viewRef} aria-hidden className="flex h-[22rem] items-center justify-center bg-oca-surface px-4 text-oca-surface-foreground md:h-[25rem]">
+                    <div ref={viewRef} aria-hidden className="flex h-[25rem] items-center justify-center bg-oca-surface px-4 pb-10 text-oca-surface-foreground md:h-[27rem]">
                         {screen}
                     </div>
                 </BrowserFrame>
+                {last ? (
+                    <button
+                        type="button"
+                        onClick={replay}
+                        className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-foreground/70 underline underline-offset-4 outline-none hover:text-oca-surface-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    >
+                        {tryAgain}
+                    </button>
+                ) : null}
                 {effective === 'auto' && cursor ? (
                     <span aria-hidden data-demo-cursor="" className="pointer-events-none absolute left-0 top-0 z-10 will-change-transform" style={cursorStyle}>
                         <Cursor pressed={pressed} />
@@ -219,14 +256,15 @@ export function SignInDemo({
             </div>
             <ol aria-label={stepsLabel} className="grid gap-2.5 md:gap-5" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
                 {steps.map((s, i) => {
-                    const state = i < index || (i === index && done) ? 'done' : i === index ? 'current' : 'upcoming';
+                    const state = i < stepIndex || (i === stepIndex && done) ? 'done' : i === stepIndex ? 'current' : 'upcoming';
                     return (
                         <li key={i} className="min-w-0">
                             <button
+                                ref={i === 0 ? firstStepRef : undefined}
                                 type="button"
-                                aria-current={i === index ? 'step' : undefined}
+                                aria-current={i === stepIndex ? 'step' : undefined}
                                 data-state={state}
-                                onClick={() => go(i)}
+                                onClick={() => show(firstScene(i))}
                                 className={cn(
                                     'group flex min-h-11 w-full flex-col items-stretch gap-2.5 pt-1 text-left outline-none',
                                     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
@@ -234,7 +272,7 @@ export function SignInDemo({
                             >
                                 <span aria-hidden className="relative block h-0.5 w-full overflow-hidden bg-border">
                                     <span
-                                        ref={i === index && effective === 'auto' && !done ? fillRef : undefined}
+                                        ref={i === stepIndex && effective === 'auto' && !done ? fillRef : undefined}
                                         className="absolute inset-0 origin-left bg-oca-accent-display"
                                         // Autoplay fills the current bar; a reader's step shows full. A transform, so the fill's animation replaces it.
                                         style={{ transform: state === 'upcoming' || (state === 'current' && effective === 'auto') ? 'scaleX(0)' : 'scaleX(1)' }}
@@ -288,11 +326,18 @@ function defaultSuccess() {
     return <Mark size={72} />;
 }
 
-/* ── The default steps: email → code → in ─────────────────────────────── */
+/* ── The default steps: the app's sign-in, the email and its code, you're in ── */
 
 export interface SignInDemoCopy {
     /** The made-up app being signed in to. */
     appName: string;
+    appTitle: string;
+    appBody: string;
+    /** The app's orangecheck button, the one the cursor presses. */
+    continueLabel: string;
+    or: string;
+    /** The app's other ways in, drawn beside ours. */
+    alternatives: string[];
     email: string;
     /** The one-time code typed in; its length is the number of boxes. */
     code: string;
@@ -307,15 +352,23 @@ export interface SignInDemoCopy {
     verify: string;
     doneTitle: string;
     doneBody: string;
+    tookTitle: string;
+    /** What it took, as figures: "0" "new passwords". */
+    took: { value: string; label: string }[];
 }
 
 const PLACEHOLDER: SignInDemoCopy = {
     appName: 'Lumen Notes',
+    appTitle: 'Sign in to Lumen Notes',
+    appBody: 'One account for every app that uses orangecheck.',
+    continueLabel: 'Continue with orangecheck',
+    or: 'or',
+    alternatives: ['Google', 'GitHub'],
     email: 'you@example.com',
     code: '482913',
     brand: 'orangecheck',
-    labels: ['Enter your email', 'Type the code', "You're in"],
-    emailTitle: 'Sign in to Lumen Notes',
+    labels: ['Tap the button', 'Confirm your email', "You're in"],
+    emailTitle: 'Sign in',
     emailBody: 'We email you a one-time code.',
     emailField: 'Email',
     sendCode: 'Send code',
@@ -323,7 +376,12 @@ const PLACEHOLDER: SignInDemoCopy = {
     codeBody: 'Type the code we sent to you@example.com.',
     verify: 'Verify',
     doneTitle: "You're in.",
-    doneBody: 'Signed in to Lumen Notes.',
+    doneBody: 'Signed in to Lumen Notes as you@example.com.',
+    tookTitle: 'What it took',
+    took: [
+        { value: '0', label: 'new passwords' },
+        { value: '0', label: 'ID checks' },
+    ],
 };
 
 // The app drawn in the window is a product, so it keeps its rounded corners (a depiction, not the page).
@@ -335,7 +393,7 @@ const FIELD = 'border border-oca-surface-foreground/50';
 const TARGET =
     'mt-1 flex h-10 items-center justify-center rounded-[0.625rem] bg-brand text-[0.875rem] font-medium text-brand-foreground transition-transform duration-150 data-[pressed=true]:scale-[0.97]';
 
-/** The text types itself while the step plays; otherwise it is simply there. */
+/** The text types itself while the screen plays; otherwise it is simply there. */
 function Typed({ text, playing, delay = 400, perChar = 55 }: { text: string; playing: boolean; delay?: number; perChar?: number }) {
     const ref = useRef<HTMLSpanElement>(null);
     useLayoutEffect(() => {
@@ -347,7 +405,7 @@ function Typed({ text, playing, delay = 400, perChar = 55 }: { text: string; pla
             easing: `steps(${text.length}, end)`,
             fill: 'backwards',
         });
-        // Typed once per step, from the start of its play.
+        // Typed once per screen, from the start of its play.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return (
@@ -372,51 +430,103 @@ export function signInDemoSteps(copy: Partial<SignInDemoCopy> = {}): SignInDemoS
     return [
         {
             label: c.labels[0],
-            screen: ({ playing, pressed }) => (
-                <div className={CARD}>
-                    <BrandLine name={c.brand} />
-                    <span className="text-[1.125rem] font-medium leading-snug">{c.emailTitle}</span>
-                    <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.emailBody}</span>
-                    <span className="mt-1 text-[0.75rem] font-medium">{c.emailField}</span>
-                    <span className={`flex h-10 items-center rounded-[0.625rem] px-3 font-mono text-[0.8125rem] ${FIELD}`}>
-                        <Typed text={c.email} playing={playing} />
-                    </span>
-                    <span data-demo-target="" data-pressed={pressed} className={TARGET}>
-                        {c.sendCode}
-                    </span>
-                </div>
-            ),
+            screens: [
+                {
+                    duration: 2800,
+                    render: ({ pressed }) => (
+                        <div className={CARD}>
+                            <span className="text-[1.125rem] font-medium leading-snug">{c.appTitle}</span>
+                            <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.appBody}</span>
+                            <span data-demo-target="" data-pressed={pressed} className={`${TARGET} relative pl-12 pr-3`}>
+                                <span className="absolute inset-y-1 left-1 flex w-9 items-center justify-center rounded-[0.4375rem] bg-white">
+                                    <Mark size={20} />
+                                </span>
+                                {c.continueLabel}
+                            </span>
+                            <span className={`flex items-center gap-3 text-[0.75rem] ${QUIET}`}>
+                                <span className="h-px flex-1 bg-oca-surface-foreground/10" />
+                                {c.or}
+                                <span className="h-px flex-1 bg-oca-surface-foreground/10" />
+                            </span>
+                            <span className="grid grid-cols-2 gap-2">
+                                {c.alternatives.map((a) => (
+                                    <span key={a} className="flex h-10 items-center justify-center rounded-[0.625rem] border border-oca-surface-foreground/15 text-[0.8125rem]">
+                                        {a}
+                                    </span>
+                                ))}
+                            </span>
+                        </div>
+                    ),
+                },
+            ],
         },
         {
             label: c.labels[1],
-            screen: ({ playing, pressed }) => (
-                <div className={CARD}>
-                    <BrandLine name={c.brand} />
-                    <span className="text-[1.125rem] font-medium leading-snug">{c.codeTitle}</span>
-                    <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.codeBody}</span>
-                    <span className="mt-1 flex gap-1.5">
-                        {[...c.code].map((d, i) => (
-                            <span key={i} className={`flex h-11 min-w-0 flex-1 items-center justify-center rounded-[0.5rem] font-mono text-[1rem] ${FIELD}`}>
-                                <Typed text={d} playing={playing} delay={400 + i * 140} perChar={1} />
+            screens: [
+                {
+                    duration: 3000,
+                    render: ({ playing, pressed }) => (
+                        <div className={CARD}>
+                            <BrandLine name={c.brand} />
+                            <span className="text-[1.125rem] font-medium leading-snug">{c.emailTitle}</span>
+                            <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.emailBody}</span>
+                            <span className="mt-1 text-[0.75rem] font-medium">{c.emailField}</span>
+                            <span className={`flex h-10 items-center rounded-[0.625rem] px-3 font-mono text-[0.8125rem] ${FIELD}`}>
+                                <Typed text={c.email} playing={playing} />
                             </span>
-                        ))}
-                    </span>
-                    <span data-demo-target="" data-pressed={pressed} className={TARGET}>
-                        {c.verify}
-                    </span>
-                </div>
-            ),
+                            <span data-demo-target="" data-pressed={pressed} className={TARGET}>
+                                {c.sendCode}
+                            </span>
+                        </div>
+                    ),
+                },
+                {
+                    duration: 2800,
+                    render: ({ playing, pressed }) => (
+                        <div className={CARD}>
+                            <BrandLine name={c.brand} />
+                            <span className="text-[1.125rem] font-medium leading-snug">{c.codeTitle}</span>
+                            <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.codeBody}</span>
+                            <span className="mt-1 flex gap-1.5">
+                                {[...c.code].map((d, i) => (
+                                    <span key={i} className={`flex h-11 min-w-0 flex-1 items-center justify-center rounded-[0.5rem] font-mono text-[1rem] ${FIELD}`}>
+                                        <Typed text={d} playing={playing} delay={400 + i * 140} perChar={1} />
+                                    </span>
+                                ))}
+                            </span>
+                            <span data-demo-target="" data-pressed={pressed} className={TARGET}>
+                                {c.verify}
+                            </span>
+                        </div>
+                    ),
+                },
+            ],
         },
         {
             label: c.labels[2],
-            duration: 2400,
-            screen: ({ success }) => (
-                <div className="flex flex-col items-center gap-3 text-center">
-                    <span className="flex h-24 items-center justify-center">{success}</span>
-                    <span className="text-[1.25rem] font-medium">{c.doneTitle}</span>
-                    <span className={`text-[0.875rem] ${QUIET}`}>{c.doneBody}</span>
-                </div>
-            ),
+            screens: [
+                {
+                    duration: 3000,
+                    render: ({ success }) => (
+                        <div className="flex w-full max-w-[18rem] flex-col items-center gap-2.5 text-center">
+                            <span className="flex h-20 items-center justify-center">{success}</span>
+                            <span className="text-[1.25rem] font-medium">{c.doneTitle}</span>
+                            <span className={`text-[0.8125rem] ${QUIET}`}>{c.doneBody}</span>
+                            <span className="mt-1 flex w-full flex-col gap-2 rounded-[0.875rem] border border-oca-surface-foreground/10 p-3 text-left">
+                                <span className={`text-[0.75rem] ${QUIET}`}>{c.tookTitle}</span>
+                                <span className="grid grid-cols-2 gap-3">
+                                    {c.took.map((t) => (
+                                        <span key={t.label} className="flex flex-col gap-0.5">
+                                            <span className="text-[1.5rem] leading-none">{t.value}</span>
+                                            <span className={`text-[0.75rem] ${QUIET}`}>{t.label}</span>
+                                        </span>
+                                    ))}
+                                </span>
+                            </span>
+                        </div>
+                    ),
+                },
+            ],
         },
     ];
 }

@@ -1,7 +1,7 @@
 export { SignInDemo, signInDemoSteps } from './sign-in-demo';
-export type { SignInDemoCopy, SignInDemoProps, SignInDemoScreenState, SignInDemoStep } from './sign-in-demo';
+export type { SignInDemoCopy, SignInDemoProps, SignInDemoScreen, SignInDemoScreenState, SignInDemoStep } from './sign-in-demo';
 export { CostDemo, costText } from './cost-demo';
-export type { CostDemoLabels, CostDemoProps } from './cost-demo';
+export type { CostBar, CostDemoLabels, CostDemoProps } from './cost-demo';
 export { BentoGrid, BentoTile } from './bento';
 export type { BentoTileProps, BentoTone } from './bento';
 export { ReceiptCard } from './receipt-card';

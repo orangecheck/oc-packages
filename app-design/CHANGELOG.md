@@ -123,19 +123,26 @@ optional. What changes is how things look.
 A new entry, so a site that uses none of them pays nothing. Words are
 props; the defaults are placeholders a site replaces with its own copy.
 
-- `SignInDemo` (and `signInDemoSteps()`): our sign-in played on a made-up app
-  in a paper `BrowserFrame`. It plays only while a third of it is on screen
-  in a shown tab, plays through once and rests. The first press, key or
-  focus stops it for good; the step buttons then drive it, and each step is
-  said once. Nothing is said while it plays. Under reduced motion it shows
-  the first step with the buttons. `success` is a render prop (a MiniCheck).
+- `SignInDemo` (and `signInDemoSteps(copy)`): our sign-in played on a
+  made-up app in a paper `BrowserFrame`: the app's own sign-in with its
+  other ways in, then the email and the code under one step, then "You're
+  in" with what it took. A step holds one or more screens. It plays only
+  while a third of it is on screen in a shown tab, plays through once and
+  rests. The first press, key or focus stops it for good; the step buttons
+  then drive it, and each step is said once. Nothing is said while it
+  plays. "Try again" (a real button, `tryAgain`) plays it from the start.
+  Under reduced motion it shows the first step with the buttons. `success`
+  is a render prop (a MiniCheck). Every string is in `copy`.
 - `Slider` (also in `./primitives`): Radix's, square, a 44px target, its
   value in words through `valueText`.
-- `CostDemo`: two sliders set a bar, one total for a crowd of accounts, a
-  real person's verdict that follows the bar. The crowd is one element with
-  one sweep per change, none under reduced motion.
+- `CostDemo`: two sliders step through the bars an app can set (`amounts`,
+  `dayStops`), in the site's words (`amountText`, `dayText`, `amountTick`).
+  One total for a crowd of accounts (`cost`, the site's own function), a
+  real person's verdict that follows the bar (`labels.personBody(bar,
+  passes)`), and a line under the total (`labels.farmBody(bar)`). The crowd
+  is one element with one sweep per change, none under reduced motion.
 - `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
-  halftone), `ReceiptCard` (amounts on the decimal point, the split as one
+  halftone in a strip its words keep clear of), `ReceiptCard` (amounts on the decimal point, the split as one
   bar), `StepPath` (drawn on view, still under reduced motion) and
   `DitherMark` (the mark at its size until the baked art lands).
 - The window, the receipt and each tile keep their own colours inside a

@@ -6,14 +6,18 @@
  *   pauses where it was otherwise, plays through once and rests with nothing
  *   left running. Its cursor moves by transform, never left/top. Nothing is
  *   said while it plays; the first press stops it for good, and then each
- *   step a reader moves to is said once. Under reduced motion it never
- *   plays: the first step, with 44px step buttons that work. The last step
- *   shows the caller's success picture.
+ *   step a reader moves to is said once. Try again, a real button outside
+ *   the pictured window, plays it from the start and leaves focus on the
+ *   first step. Under reduced motion it never plays: the first step, with
+ *   44px step buttons that work. The last step shows the caller's success
+ *   picture.
  * - The Slider says its value in words, moves by key, and is a 44px target.
- *   CostDemo's number and the real person's verdict follow the sliders; the
- *   crowd is one element, not a node per account; one sweep crosses it per
- *   change and then nothing runs; none under reduced motion; the total is
- *   said once a change settles.
+ *   CostDemo steps through the site's stops in the site's words; its number
+ *   and the real person's verdict follow the sliders, and the site's own
+ *   cost and sentences replace the defaults; the crowd is one element, not a
+ *   node per account; one sweep crosses it per change and then nothing runs;
+ *   none under reduced motion; the total is said once a change settles.
+ * - A bento tile's halftone stays clear of its words.
  * - StepPath draws its line when it comes into view, and is simply drawn
  *   under reduced motion; its steps are a list with the current one marked.
  * - ReceiptCard stacks its amounts on the decimal point.
@@ -56,13 +60,15 @@ try {
     bundle(dir, {
         blocks:
             `import { createRoot } from 'react-dom/client';\n` +
-            `import { SignInDemo, signInDemoSteps, CostDemo, StepPath, ReceiptCard } from '${src('blocks/index.ts')}';\n` +
+            `import { SignInDemo, signInDemoSteps, CostDemo, StepPath, ReceiptCard, BentoTile } from '${src('blocks/index.ts')}';\n` +
             `const q = new URLSearchParams(location.search);\n` +
             // Everything the page's one live region says, in order.
             `window.__said = [];\n` +
             `new MutationObserver(() => { const r = document.getElementById('oca-announcer'); if (r && r.textContent) window.__said.push(r.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true });\n` +
-            `const steps = signInDemoSteps().map((s) => ({ ...s, duration: ${STEP} }));\n` +
-            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, path: <StepPath current={2} steps={[{ label: 'One' }, { label: 'Two' }, { label: 'Three' }, { label: 'Four' }]} />,\n` +
+            `const steps = signInDemoSteps().map((s) => ({ ...s, screens: s.screens.map((sc) => ({ ...sc, duration: ${STEP} })) }));\n` +
+            `const own = { cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
+            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'One' }, { label: 'Two' }, { label: 'Three' }, { label: 'Four' }]} />,\n` +
+            `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
             `  receipt: <ReceiptCard unit="sats" rows={[{ label: 'a', amount: 240 }, { label: 'b', amount: 12.5 }, { label: 'c', amount: 0.125 }, { label: 'd', amount: 1200 }]} /> }[q.get('b')];\n` +
             `createRoot(document.getElementById('root')).render(<div className="mx-auto max-w-[60rem] px-4" style={{ paddingTop: q.has('off') ? 3000 : 24, paddingBottom: 1200 }}>{pick}</div>);\n`,
     });
@@ -75,7 +81,7 @@ try {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
         const p = await ctx.newPage();
         await p.goto(`${page}?b=${b}${off ? '&off' : ''}`);
-        await p.waitForSelector(b === 'demo' ? '[data-demo-mode]' : b === 'cost' ? '[data-cost-demo]' : b === 'path' ? '[data-line]' : 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', bento: '[data-bento-tone]' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -108,6 +114,17 @@ try {
             const styles = moves.filter(Boolean);
             check(styles.length >= 2 && styles.every((s) => /transform:\s*translate\(/.test(s) && !/(^|;)\s*(left|top):/.test(s)), `SignInDemo: the cursor does not move by transform alone (${JSON.stringify(styles)})`);
             check(new Set(styles.map((s) => s.match(/translate\([^)]*\)/)?.[0])).size >= 2, `SignInDemo: the cursor never moved (${JSON.stringify(styles)})`);
+            // Try again: a real button, outside the pictured window, that plays it from the start.
+            const again = p.getByRole('button', { name: 'Try again' });
+            const hidden = await again.evaluate((b) => Boolean(b.closest('[aria-hidden="true"]')));
+            check((await again.count()) === 1 && !hidden, `SignInDemo: no reachable Try again on the last screen (hidden ${hidden})`);
+            await again.focus();
+            await p.keyboard.press('Enter');
+            const restart = await demo(p);
+            const focused = await p.evaluate(() => document.activeElement?.getAttribute('aria-current') ?? document.activeElement?.textContent);
+            check(restart.mode === 'auto' && restart.step === 0, `SignInDemo: Try again left it ${JSON.stringify(restart)}`);
+            check(focused === 'step' || focused?.includes('Tap the button'), `SignInDemo: after Try again focus is on ${focused}, not the first step`);
+            check(await until(p, () => document.querySelector('[data-demo-mode]').dataset.demoStep === '1', null, STEP * 4), 'SignInDemo: Try again did not play it again');
             await close();
         }
         // Offscreen it waits; in view it plays; a hidden tab holds it where it was.
@@ -150,7 +167,7 @@ try {
             const still = await demo(p);
             check(still.mode === 'manual' && still.step === 0, `SignInDemo after input: it moved by itself to ${JSON.stringify(still)}`);
             const said = await p.evaluate(() => window.__said);
-            check(said.length === 2 && said[0] === "You're in, step 3 of 3" && said[1] === 'Enter your email, step 1 of 3', `SignInDemo after input: said ${JSON.stringify(said)}, not each step once`);
+            check(said.length === 2 && said[0] === "You're in, step 3 of 3" && said[1] === 'Tap the button, step 1 of 3', `SignInDemo after input: said ${JSON.stringify(said)}, not each step once`);
             const current = await p.evaluate(() => [...document.querySelectorAll('[data-demo-mode] ol button')].map((b) => b.getAttribute('aria-current')));
             check(current[0] === 'step' && current.filter(Boolean).length === 1, `SignInDemo: aria-current is ${JSON.stringify(current)}`);
             await close();
@@ -169,33 +186,35 @@ try {
             await close();
         }
 
-        // CostDemo: words, keys, the number, the verdict, one element for the crowd, one sweep per change.
+        // CostDemo: stops in words, keys, the number, the verdict, one element for the crowd, one sweep per change.
         {
             const { p, close } = await open('cost');
             const text = () => p.evaluate(() => [...document.querySelectorAll('[role="slider"]')].map((s) => s.getAttribute('aria-valuetext')));
             const read = () => p.evaluate(() => ({ cost: document.querySelector('[data-cost]').textContent, verdict: document.querySelector('[data-verdict]').dataset.verdict }));
+            const ticks = await p.evaluate(() => [...document.querySelectorAll('[data-cost-demo] [data-slider]')].map((r) => [...r.parentElement.querySelectorAll('[aria-hidden] > span')].map((t) => t.textContent)));
             check(JSON.stringify(await text()) === JSON.stringify(['100,000 sats', '30 days']), `Slider words: ${JSON.stringify(await text())}`);
+            check(JSON.stringify(ticks) === JSON.stringify([['1k', '10k', '100k', '1M', '10M'], ['7 days', '30 days', '90 days', 'a year']]), `CostDemo ticks: ${JSON.stringify(ticks)}`);
             const crowd = await p.evaluate(() => ({ nodes: document.querySelector('[data-crowd]').querySelectorAll('*').length, canvases: document.querySelectorAll('[data-cost-demo] canvas').length }));
             check(crowd.nodes <= 3 && crowd.canvases === 0, `the crowd is ${crowd.nodes} nodes and ${crowd.canvases} canvases, not one element`);
             check((await running(p, '[data-cost-demo]')) === 0, 'CostDemo: something runs before any change');
+            check((await read()).verdict === 'pass' && (await read()).cost === '1', `CostDemo at 100,000 sats: ${JSON.stringify(await read())}`);
             const sliders = p.locator('[role="slider"]');
             await sliders.nth(0).focus();
             await p.keyboard.press('ArrowRight');
-            check((await text())[0] === '250,000 sats', `Slider: ArrowRight says ${(await text())[0]}`);
-            check((await read()).cost === '2.5', `CostDemo: 1,000 × 250,000 sats reads ${(await read()).cost}, not 2.5`);
+            check((await text())[0] === '1,000,000 sats', `Slider: ArrowRight says ${(await text())[0]}`);
+            const high = await read();
+            check(high.cost === '10' && high.verdict === 'fail', `CostDemo at 1,000,000 sats (the person holds 250,000): ${JSON.stringify(high)}`);
             check(await until(p, () => document.querySelector('[data-crowd]').getAnimations({ subtree: true }).some((a) => a.playState === 'running'), null, 1000), 'CostDemo: a change sent no sweep across the crowd');
             check(await until(p, () => document.querySelector('[data-crowd]').getAnimations({ subtree: true }).length === 0, null, 4000), 'CostDemo: the sweep never ended');
             check(await until(p, () => window.__said.length === 1, null, 3000), 'CostDemo: the total was never said');
             const said = await p.evaluate(() => window.__said);
-            check(said[0] === '1,000 accounts would need 2.5 BTC held for 30 days', `CostDemo said ${JSON.stringify(said)}`);
-            check((await read()).verdict === 'pass', 'CostDemo: at 250,000 sats the real person (500,000 held) does not pass');
-            await p.keyboard.press('ArrowRight');
-            await p.keyboard.press('ArrowRight');
-            const high = await read();
-            check(high.verdict === 'fail' && high.cost === '10', `CostDemo at 1,000,000 sats: ${JSON.stringify(high)}`);
-            await sliders.nth(1).focus();
+            check(said[0] === '1,000 accounts would need 10 BTC, held 30 days', `CostDemo said ${JSON.stringify(said)}`);
             await p.keyboard.press('ArrowLeft');
-            check((await text())[1] === '29 days', `Slider: ArrowLeft says ${(await text())[1]}`);
+            await sliders.nth(1).focus();
+            await p.keyboard.press('ArrowRight');
+            check((await text())[1] === '90 days' && (await read()).verdict === 'pass', `CostDemo at 90 days: ${(await text())[1]}, ${(await read()).verdict}`);
+            await p.keyboard.press('ArrowRight');
+            check((await text())[1] === 'a year' && (await read()).verdict === 'fail', `CostDemo at a year (the person holds 180 days): ${(await text())[1]}, ${(await read()).verdict}`);
             // The thumb is a thumb's 44px: a press 21px above or below its middle lands on the slider.
             const reach = await p.evaluate(() => {
                 const t = document.querySelector('[role="slider"]').getBoundingClientRect();
@@ -205,6 +224,13 @@ try {
                 return [y - 21, y + 21].every((yy) => root.contains(document.elementFromPoint(x, yy)));
             });
             check(reach, 'Slider: a press within 22px of the thumb misses it');
+            await close();
+        }
+        // The site's own cost and sentences replace the defaults.
+        {
+            const { p, close } = await open('own');
+            const words = await p.evaluate(() => ({ cost: document.querySelector('[data-cost]').parentElement.textContent, person: document.querySelector('[data-verdict] p').textContent, farm: document.querySelector('[data-cost]').closest('div').parentElement.textContent }));
+            check(words.cost === 'C100000U30' && words.person === 'P100000:true' && words.farm.includes('F30'), `CostDemo with the site's words: ${JSON.stringify(words)}`);
             await close();
         }
         {
@@ -246,8 +272,20 @@ try {
             await close();
         }
 
+        // A bento tile's halftone stays clear of its words.
+        for (const width of [390, 1280]) {
+            const { p, close } = await open('bento', { width });
+            const r = await p.evaluate(() => {
+                const dots = document.querySelector('[data-halftone]').getBoundingClientRect();
+                const words = [...document.querySelectorAll('[data-bento-tone] span, [data-bento-tone] div')].filter((e) => e.childNodes.length && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+                return { dots: Math.round(dots.right), words: Math.round(Math.min(...words.map((e) => e.getBoundingClientRect().left))) };
+            });
+            check(r.words >= r.dots, `[${width}] bento: the words start at ${r.words}px, inside the halftone that ends at ${r.dots}px`);
+            await close();
+        }
+
         // No block widens a phone.
-        for (const b of ['demo', 'cost', 'path', 'receipt']) {
+        for (const b of ['demo', 'cost', 'path', 'receipt', 'bento']) {
             const { p, close } = await open(b, { width: 390 });
             const w = await p.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
             check(w[0] <= w[1], `[390] ${b}: the page is ${w[0]}px wide in a ${w[1]}px window`);

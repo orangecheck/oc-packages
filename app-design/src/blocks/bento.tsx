@@ -55,7 +55,7 @@ export interface BentoTileProps {
     children?: ReactNode;
     /** A picture, to the right on a wide tile and under the words on a narrow one. */
     art?: ReactNode;
-    /** A field of dots fading in from the left edge, or your own halftone picture. */
+    /** A field of dots in a strip at the left edge, or your own halftone picture in it. The words keep clear of the strip. */
     halftone?: boolean | ReactNode;
     footer?: ReactNode;
     /** Columns it spans from sm up (2 at most on a tablet). */
@@ -68,15 +68,15 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
     return (
         <div data-bento-tone={tone} className={cn('relative isolate flex min-w-0 flex-col overflow-hidden', GROUND[tone], SPAN[span], ROWS[rows], className)}>
             {halftone ? (
-                <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+                <div aria-hidden data-halftone="" className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-[22%]">
                     {halftone === true ? (
-                        <div className="size-full bg-[radial-gradient(circle,var(--color-oca-orange)_1.2px,transparent_1.6px)] bg-[length:9px_9px] [mask-image:linear-gradient(90deg,#000_0%,#000_4%,transparent_26%)]" />
+                        <div className="size-full bg-[radial-gradient(circle,var(--color-oca-orange)_1.2px,transparent_1.6px)] bg-[length:9px_9px] [mask-image:linear-gradient(90deg,#000_0%,#000_30%,transparent_100%)]" />
                     ) : (
                         halftone
                     )}
                 </div>
             ) : null}
-            <div className={cn('flex flex-1 gap-6 p-6 md:p-8', art ? 'flex-col md:flex-row' : 'flex-col')}>
+            <div className={cn('flex flex-1 gap-6 p-6 md:p-8', art ? 'flex-col md:flex-row' : 'flex-col', halftone && 'pl-[calc(22%+1rem)] md:pl-[calc(22%+1.5rem)]')}>
                 <div className="flex min-w-0 flex-1 flex-col gap-4">
                     {label ? (
                         <span className={cn('oca-label leading-none', QUIET[tone])}>

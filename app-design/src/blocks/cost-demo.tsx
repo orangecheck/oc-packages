@@ -7,64 +7,66 @@ import { Slider } from '../primitives/slider';
 import { usePrefersStill } from './parts';
 
 /*
- * What a bar costs to fake, worked live: two sliders set the bar (an amount
- * held, for so many days), one number says what a crowd of new accounts
- * would have to hold to clear it, and a real person's card says whether
- * their one coin clears it. The crowd is one element: a CSS grid of squares
- * a single sweep of light crosses once per change, never a node per account.
- * Under reduced motion the sweep is off. The words are props; the defaults
- * are placeholders a site replaces with its gated copy. On ink it re-points
- * the text and hairline tokens, as a band does, so its parts need no tone.
+ * What a bar costs to fake, worked live: two sliders step through the bars an
+ * app can set (an amount held, for so many days), one number says what a
+ * crowd of new accounts would have to hold to clear it, and a real person's
+ * card says whether their one coin clears it. The crowd is one element: a
+ * CSS grid of squares a single sweep of light crosses once per change, never
+ * a node per account. Under reduced motion the sweep is off. Every word and
+ * every number is the site's: the stops, the words for an amount and a span,
+ * the sentences, and the cost itself. The defaults are placeholders. On ink
+ * it re-points the text and hairline tokens, as a band does, so its parts
+ * need no tone.
  */
+
+/** The bar the two sliders set. */
+export interface CostBar {
+    sats: number;
+    days: number;
+}
 
 export interface CostDemoLabels {
     kicker: string;
     amount: string;
-    amountUnit: string;
     days: string;
-    daysUnit: (days: number) => string;
     personKicker: string;
-    personBody: ReactNode;
+    /** Under the person: differs above and under the bar, and may name it. */
+    personBody: (bar: CostBar, passes: boolean) => ReactNode;
     pass: string;
     fail: string;
     farmKicker: (accounts: number) => string;
-    farmCaption: (days: number) => string;
+    /** A line under the cost: what the crowd would need, and why. */
+    farmBody: (bar: CostBar) => ReactNode;
     farmVerdict: string;
     foot?: ReactNode;
     /** Said to a screen reader once a change settles. */
-    costSaid: (cost: string, days: number, accounts: number) => string;
+    costSaid: (cost: string, bar: CostBar) => string;
 }
 
-const PLACEHOLDER: CostDemoLabels = {
-    kicker: 'Set the bar',
-    amount: 'Held at least',
-    amountUnit: 'sats',
-    days: 'For at least',
-    daysUnit: (d) => (d === 1 ? 'day' : 'days'),
-    personKicker: 'A real person',
-    personBody: 'One coin they already hold.',
-    pass: 'Gets in',
-    fail: 'Below the bar',
-    farmKicker: (n) => `${n.toLocaleString('en-US')} new accounts`,
-    farmCaption: (d) => `held for ${d} ${d === 1 ? 'day' : 'days'}`,
-    farmVerdict: 'Too costly',
-    costSaid: (cost, d, n) => `${n.toLocaleString('en-US')} accounts would need ${cost} held for ${d} ${d === 1 ? 'day' : 'days'}`,
-};
-
 export interface CostDemoProps {
-    /** The amounts the first slider steps through, in sats. */
+    /** The amounts an app can set, in sats: the first slider's stops. */
     amounts?: number[];
     /** Which of `amounts` it starts on. */
     defaultAmountIndex?: number;
-    days?: { min: number; max: number; default: number };
+    /** The spans an app can set, in days: the second slider's stops. */
+    dayStops?: number[];
+    defaultDayIndex?: number;
+    /** An amount in words: the readout, the slider's value text. */
+    amountText?: (sats: number) => string;
+    /** A span in words ("30 days", "a year"): the readout, the value text and the ticks. */
+    dayText?: (days: number) => string;
+    /** An amount's tick under the slider. Default: 1k, 100k, 1M. */
+    amountTick?: (sats: number) => string;
+    /** What the crowd must hold to clear the bar. Default: accounts × the amount, in BTC from 0.01 BTC. */
+    cost?: (bar: CostBar) => { value: string; unit: string };
     /** How many made-up accounts the crowd stands for. */
     accounts?: number;
     /** The real person's coin: what they hold, and for how long. */
-    person?: { sats: number; days: number };
+    person?: CostBar;
     labels?: Partial<CostDemoLabels>;
     /** `ink` on a dark band, `paper` on the page. */
     tone?: 'ink' | 'paper';
-    onChange?: (bar: { sats: number; days: number }) => void;
+    onChange?: (bar: CostBar) => void;
     className?: string;
 }
 
@@ -72,7 +74,11 @@ export interface CostDemoProps {
 const INK =
     'bg-oca-ink text-oca-ink-foreground [--foreground:var(--oca-ink-foreground)] [--muted-foreground:var(--oca-ink-muted)] [--border:var(--oca-ink-line)] [--oca-ground:var(--oca-ink)]';
 
-const AMOUNTS = [10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
+// A readout at display size, light: 24px and up.
+const READOUT = 'oca-tabular text-[clamp(1.75rem,1.4rem+1.6vw,2.75rem)] font-light leading-none tracking-[-0.03em]';
+
+const AMOUNTS = [1_000, 10_000, 100_000, 1_000_000, 10_000_000];
+const DAYS = [7, 30, 90, 365];
 
 /** 10k, 250k, 1M: a tick's words. */
 function compact(n: number): string {
@@ -81,6 +87,9 @@ function compact(n: number): string {
     return String(n);
 }
 
+const satsText = (n: number) => `${n.toLocaleString('en-US')} sats`;
+const daysText = (d: number) => (d === 365 ? 'a year' : d === 1 ? '1 day' : `${d} days`);
+
 /** A total in BTC once it reaches a hundredth of one, in sats below that. */
 export function costText(sats: number): { value: string; unit: string } {
     if (sats < 1_000_000) return { value: sats.toLocaleString('en-US'), unit: 'sats' };
@@ -88,26 +97,47 @@ export function costText(sats: number): { value: string; unit: string } {
     return { value: btc.toLocaleString('en-US', { maximumFractionDigits: btc >= 1 ? 1 : 2 }), unit: 'BTC' };
 }
 
+const clampIndex = (i: number, n: number) => Math.min(Math.max(i, 0), Math.max(n - 1, 0));
+
 export function CostDemo({
     amounts = AMOUNTS,
-    defaultAmountIndex = 3,
-    days: range = { min: 1, max: 90, default: 30 },
+    defaultAmountIndex = 2,
+    dayStops = DAYS,
+    defaultDayIndex = 1,
+    amountText = satsText,
+    dayText = daysText,
+    amountTick = compact,
     accounts = 1000,
-    person = { sats: 500_000, days: 90 },
+    cost: costOf,
+    person = { sats: 250_000, days: 180 },
     labels,
     tone = 'ink',
     onChange,
     className,
 }: CostDemoProps) {
-    const l = { ...PLACEHOLDER, ...labels };
+    const l: CostDemoLabels = {
+        kicker: 'Set the bar',
+        amount: 'Held at least',
+        days: 'For at least',
+        personKicker: 'A real person',
+        personBody: (_, passes) => (passes ? 'Their one coin clears this bar.' : 'Their one coin is under this bar.'),
+        pass: 'Gets in',
+        fail: 'Under this bar',
+        farmKicker: (n) => `${n.toLocaleString('en-US')} new accounts`,
+        farmBody: (b) => `${accounts.toLocaleString('en-US')} accounts, each with one coin of at least ${amountText(b.sats)}, held ${dayText(b.days)}.`,
+        farmVerdict: 'Too costly',
+        costSaid: (c, b) => `${accounts.toLocaleString('en-US')} accounts would need ${c}, held ${dayText(b.days)}`,
+        ...labels,
+    };
     const ink = tone === 'ink';
     const still = usePrefersStill();
-    const [ai, setAi] = useState(Math.min(Math.max(defaultAmountIndex, 0), amounts.length - 1));
-    const [days, setDays] = useState(range.default);
+    const [ai, setAi] = useState(clampIndex(defaultAmountIndex, amounts.length));
+    const [di, setDi] = useState(clampIndex(defaultDayIndex, dayStops.length));
     const [changes, setChanges] = useState(0);
-    const amount = amounts[ai] ?? amounts[0] ?? 0;
-    const cost = costText(amount * accounts);
-    const passes = person.sats >= amount && person.days >= days;
+    const bar: CostBar = { sats: amounts[ai] ?? 0, days: dayStops[di] ?? 0 };
+    const cost = (costOf ?? ((b: CostBar) => costText(b.sats * accounts)))(bar);
+    // Gets in at or under the bar's amount and span.
+    const passes = person.sats >= bar.sats && person.days >= bar.days;
     const ids = { amount: useId(), days: useId() };
 
     // One sweep across the crowd per change; none under reduced motion.
@@ -125,25 +155,21 @@ export function CostDemo({
     // The total, said once a change settles: never a word per step of a drag.
     useEffect(() => {
         if (!changes) return;
-        const t = setTimeout(() => announce(l.costSaid(`${cost.value} ${cost.unit}`, days, accounts)), 700);
+        const t = setTimeout(() => announce(l.costSaid(`${cost.value} ${cost.unit}`, bar)), 700);
         return () => clearTimeout(t);
         // Words follow the values; the label functions are the caller's.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [changes]);
 
-    const change = (next: { ai?: number; days?: number }) => {
+    const change = (next: { ai?: number; di?: number }) => {
         const a = next.ai ?? ai;
-        const d = next.days ?? days;
-        if (a === ai && d === days) return;
+        const d = next.di ?? di;
+        if (a === ai && d === di) return;
         setAi(a);
-        setDays(d);
+        setDi(d);
         setChanges((c) => c + 1);
-        onChange?.({ sats: amounts[a] ?? amount, days: d });
+        onChange?.({ sats: amounts[a] ?? bar.sats, days: dayStops[d] ?? bar.days });
     };
-
-    const marks = amounts.length > 2 ? [0, Math.floor((amounts.length - 1) / 2), amounts.length - 1] : [0, amounts.length - 1];
-    // The middle tick on a round number: 45 for 1 to 90.
-    const mid = Math.round((range.min + range.max) / 10) * 5;
 
     return (
         <div
@@ -158,11 +184,8 @@ export function CostDemo({
                         <span id={ids.amount} className="text-[0.875rem] text-muted-foreground">
                             {l.amount}
                         </span>
-                        <span className="flex items-baseline gap-2">
-                            <span className="oca-tabular text-[2.25rem] font-light leading-none tracking-[-0.03em] md:text-[2.75rem]">
-                                {amount.toLocaleString('en-US')}
-                            </span>
-                            <span className="text-[1rem] text-muted-foreground">{l.amountUnit}</span>
+                        <span data-readout="amount" className={READOUT}>
+                            {amountText(bar.sats)}
                         </span>
                         <Slider
                             aria-labelledby={ids.amount}
@@ -171,31 +194,26 @@ export function CostDemo({
                             step={1}
                             value={ai}
                             onValueChange={(v) => change({ ai: v })}
-                            valueText={(i) => `${(amounts[i] ?? 0).toLocaleString('en-US')} ${l.amountUnit}`}
-                            marks={marks.map((i) => ({ value: i, label: compact(amounts[i] ?? 0) }))}
+                            valueText={(i) => amountText(amounts[i] ?? 0)}
+                            marks={amounts.map((a, i) => ({ value: i, label: amountTick(a) }))}
                         />
                     </div>
                     <div className="flex flex-col gap-2">
                         <span id={ids.days} className="text-[0.875rem] text-muted-foreground">
                             {l.days}
                         </span>
-                        <span className="flex items-baseline gap-2">
-                            <span className="oca-tabular text-[2.25rem] font-light leading-none tracking-[-0.03em] md:text-[2.75rem]">{days}</span>
-                            <span className="text-[1rem] text-muted-foreground">{l.daysUnit(days)}</span>
+                        <span data-readout="days" className={READOUT}>
+                            {dayText(bar.days)}
                         </span>
                         <Slider
                             aria-labelledby={ids.days}
-                            min={range.min}
-                            max={range.max}
+                            min={0}
+                            max={dayStops.length - 1}
                             step={1}
-                            value={days}
-                            onValueChange={(v) => change({ days: v })}
-                            valueText={(d) => `${d} ${l.daysUnit(d)}`}
-                            marks={[
-                                { value: range.min, label: `${range.min} ${l.daysUnit(range.min)}` },
-                                { value: mid, label: String(mid) },
-                                { value: range.max, label: String(range.max) },
-                            ]}
+                            value={di}
+                            onValueChange={(v) => change({ di: v })}
+                            valueText={(i) => dayText(dayStops[i] ?? 0)}
+                            marks={dayStops.map((d, i) => ({ value: i, label: dayText(d) }))}
                         />
                     </div>
                 </div>
@@ -204,7 +222,7 @@ export function CostDemo({
                 <div className="flex flex-col gap-5 p-6 md:p-8" data-verdict={passes ? 'pass' : 'fail'}>
                     <MonoLabel as="span">{l.personKicker}</MonoLabel>
                     <PersonGlyph lit={passes} />
-                    <p className="text-[0.9375rem] leading-snug text-muted-foreground">{l.personBody}</p>
+                    <p className="text-[0.9375rem] leading-snug text-muted-foreground">{l.personBody(bar, passes)}</p>
                     <Verdict pass={passes} className="mt-auto">
                         {passes ? l.pass : l.fail}
                     </Verdict>
@@ -221,7 +239,7 @@ export function CostDemo({
                             </span>
                             <span className="text-[1.5rem] font-light">{cost.unit}</span>
                         </span>
-                        <span className="text-[0.9375rem] text-muted-foreground">{l.farmCaption(days)}</span>
+                        <span className="text-[0.9375rem] leading-snug text-muted-foreground">{l.farmBody(bar)}</span>
                     </div>
                     <Verdict pass={false} className="mt-auto">
                         {l.farmVerdict}
