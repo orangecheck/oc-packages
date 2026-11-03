@@ -14,17 +14,59 @@ export class UnansweredReadError extends Error {
     }
 }
 
-/** One relay query: the events, and per relay whether it finished answering (EOSE). */
+/**
+ * How one relay's read ended, in the family's words (the sdk's SubjectReadState,
+ * chat's SlotReadState). complete: its last page came back short, so it sent every
+ * record it holds there. cut_off: it sent a full page that could not be read
+ * past, or it stopped after sending something. no_answer: it sent nothing.
+ * Relays answer newest first up to their cap, so only a complete read says what
+ * a relay does not hold.
+ */
+export type RelayReadState = 'complete' | 'cut_off' | 'no_answer';
+
+/**
+ * One relay's answer: whether it sent EOSE, and, where the reader knows them, how
+ * its read ended (`state`, from a reader that pages each relay) or what it sent
+ * (`events` kept and `rejected`, as nostr-core counts them per relay).
+ */
+export interface RelayAnswer {
+    relay?: string;
+    eose: boolean;
+    state?: RelayReadState;
+    events?: number;
+    rejected?: number;
+}
+
+/** One relay query: the events, and per relay how it answered. */
 export interface QueryAnswer {
     events: NostrEvent[];
-    relayStatus?: readonly { eose: boolean }[];
+    relayStatus?: readonly RelayAnswer[];
 }
 
 export type Query = (filter: Record<string, unknown>) => Promise<QueryAnswer>;
 
-/** Relays that finished answering. */
+/** Relays that finished answering (EOSE): enough to take what a read returned. */
 export function completeAnswers(status: readonly { eose: boolean }[]): number {
     return status.filter((r) => r.eose).length;
+}
+
+/**
+ * Whether one relay answered in full: complete by its `state` when the reader
+ * paged it; else it sent EOSE and, when the query's `limit` and the relay's
+ * counts are known, a short page (a full page has more behind it).
+ */
+export function answeredInFull(r: RelayAnswer, limit?: number): boolean {
+    if (r.state) return r.state === 'complete';
+    if (!r.eose) return false;
+    if (limit === undefined || r.events === undefined) return true;
+    return r.events + (r.rejected ?? 0) < limit;
+}
+
+/** How a relay's answer to one query ended, with `limit` the page size asked for. */
+export function readState(r: RelayAnswer, limit?: number): RelayReadState {
+    if (answeredInFull(r, limit)) return 'complete';
+    if (r.state) return r.state;
+    return (r.events ?? 0) + (r.rejected ?? 0) > 0 ? 'cut_off' : 'no_answer';
 }
 
 /**
@@ -47,9 +89,17 @@ export function readFloor(asked: number): number {
     return Math.max(1, asked - WRITE_QUORUM + 1);
 }
 
-/** Whether a read's answers meet the read floor. A read that asked no relay never does. */
-export function meetsReadFloor(status: readonly { eose: boolean }[]): boolean {
-    return completeAnswers(status) >= readFloor(status.length);
+/**
+ * Whether a read's answers meet the read floor (§8.7): at least the floor of the
+ * relays asked answered in full, and none was cut off, since a relay cut off may
+ * be the one that holds the record. `limit` is the page size the query asked
+ * for, so a full page is not taken as a full answer. A read that asked no relay
+ * never meets it.
+ */
+export function meetsReadFloor(status: readonly RelayAnswer[], limit?: number): boolean {
+    const states = status.map((r) => readState(r, limit));
+    if (states.includes('cut_off')) return false;
+    return states.filter((s) => s === 'complete').length >= readFloor(status.length);
 }
 
 /**

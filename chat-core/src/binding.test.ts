@@ -23,7 +23,7 @@ import {
     type DescriptorContent,
 } from './channel';
 import type { NostrEvent } from './event';
-import { UnansweredReadError } from './read';
+import { UnansweredReadError, type RelayAnswer } from './read';
 import { recordReads, stepUpAddress } from './records';
 import { VOUCH_JWS_TYP, type AuthHostKey } from './session';
 import { readVersionBinding, recordBinding, type VersionBinding } from './version-binding';
@@ -353,6 +353,99 @@ describe('readChannelVersions: a page it cannot read past is a cut-off read (§8
         const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: keys }, FOUNDER);
         expect(r.events.map((e) => e.id)).toContain(ev.id);
         expect(r.truncated).toBe(true);
+    });
+});
+
+describe('readChannelVersions: a relay counts toward the floor only when it answered every page in full (§8.7)', () => {
+    const ev = version(founderKey, genesis);
+    // 600 versions-shaped events under the tag, one second apart and newer than the
+    // genesis: the open read takes two pages of 500.
+    const junk = Array.from({ length: 600 }, (_, i) => ({
+        ...ev,
+        id: `junk-${i}`,
+        created_at: ev.created_at + 1000 + i,
+        content: 'x',
+    }));
+    const RELAYS = ['wss://a', 'wss://b', 'wss://c', 'wss://d', 'wss://e'];
+    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
+    /** The relays' answers: `pages[n]` says which relays sent EOSE on page n of the open read. */
+    const query = (pages: string[][]) => {
+        let page = 0;
+        return async (f: Record<string, unknown>) => {
+            if (!f['#t'] || Array.isArray(f.authors)) {
+                const events = Array.isArray(f.authors) && f.authors.includes(ev.pubkey) ? [ev] : [];
+                return { events, relayStatus: RELAYS.map((relay) => ({ relay, eose: true, events: events.length, rejected: 0 })) };
+            }
+            const all = [...junk, ev]
+                .filter((e) => f.until === undefined || e.created_at <= (f.until as number))
+                .sort((a, b) => b.created_at - a.created_at)
+                .slice(0, f.limit as number);
+            const answering = pages[Math.min(page++, pages.length - 1)]!;
+            return {
+                events: all,
+                relayStatus: RELAYS.map((relay) => {
+                    const eose = answering.includes(relay);
+                    return { relay, eose, events: eose ? all.length : 0, rejected: 0 };
+                }),
+            };
+        };
+    };
+    const read = (pages: string[][]) =>
+        readChannelVersions(genesis.channel_id, { query: query(pages), everBoundKeys: keys }, FOUNDER);
+
+    it('a relay that answers page 1 and not page 2 does not count, though each page alone met the floor', async () => {
+        const r = await read([
+            ['wss://a', 'wss://b', 'wss://c', 'wss://d'],
+            ['wss://a', 'wss://b', 'wss://c', 'wss://e'],
+        ]);
+        expect(r.events.map((e) => e.id)).toContain(ev.id);
+        expect(r.floorMet).toBe(false);
+    });
+
+    it('four of five relays answering every page, the last one short, meet it; the fifth sent nothing', async () => {
+        const four = ['wss://a', 'wss://b', 'wss://c', 'wss://d'];
+        const r = await read([four, four]);
+        expect(r.floorMet).toBe(true);
+    });
+
+    it('an EOSE after a full page is not a full answer: a capped role-holder read leaves it unmet', async () => {
+        const capped = async (f: Record<string, unknown>) => ({
+            events: Array.isArray(f.authors) ? [ev] : [],
+            relayStatus: RELAYS.map((relay) => ({
+                relay,
+                eose: true,
+                events: Array.isArray(f.authors) ? 500 : 0,
+                rejected: 0,
+            })),
+        });
+        const r = await readChannelVersions(genesis.channel_id, { query: capped, everBoundKeys: keys }, FOUNDER);
+        expect(r.floorMet).toBe(false);
+    });
+});
+
+describe('recordReads: the floor counts relays that answered in full', () => {
+    const lookup = (status: RelayAnswer[], limit?: number) =>
+        recordReads(async () => ({ events: [], relayStatus: status, ...(limit ? { limit } : {}) }), {
+            hostKeys,
+            verifyBip322: () => true,
+        });
+    const five = (r: RelayAnswer) => Array.from({ length: 5 }, (_, i) => ({ ...r, relay: `wss://${i}` }));
+
+    it('an EOSE after a capped page is not a full answer when the lookup says its limit', async () => {
+        const capped = lookup(five({ eose: true, events: 500 }), 500);
+        expect((await capped.everBoundKeys(FOUNDER)).floor).toBe(false);
+        const short = lookup(five({ eose: true, events: 3 }), 500);
+        expect((await short.everBoundKeys(FOUNDER)).floor).toBe(true);
+    });
+
+    it('a relay a paging lookup reports cut off keeps the floor unmet, however many others answered', async () => {
+        const status: RelayAnswer[] = [
+            ...five({ eose: true, state: 'complete' }).slice(0, 4),
+            { relay: 'wss://4', eose: true, state: 'cut_off' },
+        ];
+        expect((await lookup(status).everBoundKeys(FOUNDER)).floor).toBe(false);
+        status[4] = { relay: 'wss://4', eose: false, state: 'no_answer' };
+        expect((await lookup(status).everBoundKeys(FOUNDER)).floor).toBe(true);
     });
 });
 

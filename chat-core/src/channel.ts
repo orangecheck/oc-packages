@@ -29,7 +29,16 @@ import { hexEncode, utf8Encode } from '@orangecheck/lock-crypto';
 import { isValidAttachment, type Attachment } from './attachment';
 import { b64urlNoPad, canonicalBytes } from './canonical';
 import { signedBy, verifyNostrEvent, type NostrEvent } from './event';
-import { answeredEvents, meetsReadFloor, UnansweredReadError, type Query, type VerifyBip322 } from './read';
+import {
+    answeredEvents,
+    meetsReadFloor,
+    readState,
+    UnansweredReadError,
+    type Query,
+    type RelayAnswer,
+    type RelayReadState,
+    type VerifyBip322,
+} from './read';
 import type { AuthHostKey } from './session';
 import {
     hasBindingTag,
@@ -958,12 +967,17 @@ export async function readChannelVersions(
     // Versions a role holder's key signed: the only ones the walk goes forward from.
     const walkable = new Set<string>();
     const roleKeys = new Set<string>();
+    // One query's answer. Its floor counts each relay that answered it in full
+    // (`limit`: the page asked for, so a full page is not a full answer); the open
+    // read's pages are counted per relay across the pages instead (`paged`).
     const add = (
-        res: { events?: NostrEvent[]; relayStatus?: readonly { eose: boolean }[] },
-        byRole = false
+        res: { events?: NostrEvent[]; relayStatus?: readonly RelayAnswer[] },
+        byRole = false,
+        limit?: number,
+        paged = false
     ) => {
         status.push(...(res.relayStatus ?? []));
-        if (res.relayStatus && !meetsReadFloor(res.relayStatus)) floorMet = false;
+        if (!paged && res.relayStatus && !meetsReadFloor(res.relayStatus, limit)) floorMet = false;
         let fresh = 0;
         for (const e of res.events ?? []) {
             if (byRole) walkable.add(e.id);
@@ -973,11 +987,19 @@ export async function readChannelVersions(
         }
         return fresh;
     };
-    const legacy = queryEvents({ kinds: [CHANNEL_DESCRIPTOR_KIND], '#d': [descriptorDtag(cid)] });
+    const legacy = queryEvents({
+        kinds: [CHANNEL_DESCRIPTOR_KIND],
+        '#d': [descriptorDtag(cid)],
+        limit: VERSION_PAGE_LIMIT,
+    });
 
     // The open read, paged with `until` (inclusive; events already read are skipped).
+    // Each relay is asked every page, and answered in full only if it answered
+    // every page it was asked for and its last page came back short. An EOSE on
+    // some page of the union is not that: a relay can answer page 1 and stop.
     let until: number | undefined;
     let truncated = false;
+    const openRead = new Map<string, { stopped: boolean; sent: boolean; last: RelayAnswer }>();
     for (let page = 0; page < VERSION_MAX_PAGES; page++) {
         const res = await queryEvents({
             kinds: [CHANNEL_DESCRIPTOR_KIND],
@@ -985,7 +1007,19 @@ export async function readChannelVersions(
             limit: VERSION_PAGE_LIMIT,
             ...(until !== undefined ? { until } : {}),
         });
-        const fresh = add(res);
+        const fresh = add(res, false, VERSION_PAGE_LIMIT, true);
+        (res.relayStatus ?? []).forEach((r, i) => {
+            const key = r.relay ?? `#${i}`;
+            const was = openRead.get(key) ?? { stopped: false, sent: false, last: r };
+            // Unknown counts with an EOSE may have sent something: the safe reading.
+            const sentHere =
+                r.events === undefined ? r.eose : r.events + (r.rejected ?? 0) > 0;
+            openRead.set(key, {
+                stopped: was.stopped || (r.state ? r.state === 'no_answer' : !r.eose),
+                sent: was.sent || sentHere,
+                last: r,
+            });
+        });
         for (const e of res.events ?? []) until = Math.min(until ?? Infinity, e.created_at);
         // A full page may have more behind it. One that brought nothing new is
         // stuck on a second it cannot page past: the read stops there, cut off.
@@ -995,7 +1029,20 @@ export async function readChannelVersions(
             break;
         }
     }
-    add(await legacy);
+    if (openRead.size > 0) {
+        // A relay that missed any page stopped: cut off if it had sent anything,
+        // else no answer. One that answered every page ends as its last page did.
+        const answers: RelayAnswer[] = [...openRead.values()].map((r) => {
+            const state: RelayReadState = r.stopped
+                ? r.sent
+                    ? 'cut_off'
+                    : 'no_answer'
+                : readState(r.last, VERSION_PAGE_LIMIT);
+            return { eose: state === 'complete', state };
+        });
+        if (!meetsReadFloor(answers)) floorMet = false;
+    }
+    add(await legacy, false, VERSION_PAGE_LIMIT);
 
     // The founder's keys first, then forward from each version by `s`, from the
     // keys of the founder and the admins that version names. Every key their
@@ -1040,7 +1087,7 @@ export async function readChannelVersions(
                     })
                 )
             )) {
-                add(res, true);
+                add(res, true, VERSION_PAGE_LIMIT);
             }
         };
         await read({ '#t': [cid] }, await keysOf(founder));
@@ -1088,7 +1135,15 @@ export async function readChannelVersions(
             .map(([id]) => id);
         if (missing.length === 0) break;
         for (const id of missing) asked.add(id);
-        add(await queryEvents({ kinds: [CHANNEL_DESCRIPTOR_KIND], '#d': missing.map(versionDtag) }));
+        add(
+            await queryEvents({
+                kinds: [CHANNEL_DESCRIPTOR_KIND],
+                '#d': missing.map(versionDtag),
+                limit: VERSION_PAGE_LIMIT,
+            }),
+            false,
+            VERSION_PAGE_LIMIT
+        );
     }
     return {
         events: answeredEvents({ events: [...merged.values()], relayStatus: status }),
