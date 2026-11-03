@@ -109,7 +109,7 @@ $ stamp verify blogpost.md.stamp other-content.md --json
 
 ## `--json` output
 
-All commands accept `--json` for machine-readable output. Exit codes: `0` success, `1` user error (bad input), `2` verification failure, `3` the anchor could not be checked (`verify --require-anchor` only; run it again later).
+Every command but `stamp canonical` (a dry run that prints the message, or the id with `--id`) accepts `--json` for machine-readable output. Exit codes: `0` success, `1` user error (bad input), `2` verification failure, `3` the anchor could not be checked (`verify --require-anchor` only; run it again later).
 
 ## How the signing flow works
 
