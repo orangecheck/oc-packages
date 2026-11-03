@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.5.0] — 2026-11-03
+
+### Changed
+
+- `oc check` and `oc verify` exit **3** when nothing could be concluded, and
+  print `? unread: …` with no sats, days or score line. That covers no chain
+  API or relay answering (`chain_unread`, `attestation_unread`,
+  `stake_unread`, or before `@orangecheck/sdk` 1.21.0 `bad_request` beside a
+  verified signature), the address holding more coins than the chain API
+  lists (`utxo_cap_unread`), and a refused lookup (`provider_refused_unread`,
+  with its HTTP status). They used to print `✗ fail / sats: 0` or
+  `✗ invalid` and exit 2, so a script gating on the exit code read a
+  mempool.space rate limit as a failed proof. `--json` uses the same codes.
+  `oc chat verify` keeps its own codes.
+
 ## [0.4.0] — 2026-10-28
 
 ### Added

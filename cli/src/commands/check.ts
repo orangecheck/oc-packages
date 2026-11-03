@@ -1,6 +1,6 @@
 import { check } from '@orangecheck/sdk';
 
-import { die, exitWithJson, parseIdentity } from '../util';
+import { die, EXIT_UNREAD, exitWithJson, parseIdentity, unreadOf, unreadWords } from '../util';
 
 export interface CheckArgs {
     addr?: string;
@@ -25,15 +25,22 @@ export async function runCheck(args: CheckArgs): Promise<void> {
     else if (args.identity) params.identity = parseIdentity(args.identity);
 
     const result = await check(params);
+    // Nothing concluded: not a "no", and its sats/days/score are not a reading.
+    const unread = result.ok ? null : unreadOf(result.reasons);
 
-    if (args.json) exitWithJson(result, result.ok ? 0 : 2);
+    if (args.json) exitWithJson(result, result.ok ? 0 : unread ? EXIT_UNREAD : 2);
 
     // Human-friendly output
-    const mark = result.ok ? '\u2713' : '\u2717';
-    process.stdout.write(`${mark} ${result.ok ? 'pass' : 'fail'}\n`);
-    process.stdout.write(`  sats:  ${result.sats.toLocaleString()}\n`);
-    process.stdout.write(`  days:  ${result.days}\n`);
-    process.stdout.write(`  score: ${result.score}\n`);
+    if (unread) {
+        const status = (result as { chain_status?: number }).chain_status;
+        process.stdout.write(`? unread: ${unreadWords(unread, status)}.\n`);
+    } else {
+        const mark = result.ok ? '\u2713' : '\u2717';
+        process.stdout.write(`${mark} ${result.ok ? 'pass' : 'fail'}\n`);
+        process.stdout.write(`  sats:  ${result.sats.toLocaleString()}\n`);
+        process.stdout.write(`  days:  ${result.days}\n`);
+        process.stdout.write(`  score: ${result.score}\n`);
+    }
     if (result.attestation_id) {
         process.stdout.write(`  id:    ${result.attestation_id}\n`);
     }
@@ -48,5 +55,5 @@ export async function runCheck(args: CheckArgs): Promise<void> {
     if (result.reasons?.length) {
         process.stdout.write(`  reasons: ${result.reasons.join(', ')}\n`);
     }
-    process.exit(result.ok ? 0 : 2);
+    process.exit(result.ok ? 0 : unread ? EXIT_UNREAD : 2);
 }

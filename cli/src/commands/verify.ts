@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { verify } from '@orangecheck/sdk';
 
-import { die, exitWithJson, readStdin } from '../util';
+import { die, EXIT_UNREAD, exitWithJson, readStdin, unreadOf, unreadWords } from '../util';
 
 export interface VerifyArgs {
     addr?: string;
@@ -60,11 +60,18 @@ export async function runVerify(args: VerifyArgs): Promise<void> {
     }
 
     const outcome = await verify({ addr, msg, sig, scheme });
+    // The signature checked out but the coins were not read: not "invalid".
+    const unread = outcome.ok ? null : unreadOf(outcome.codes);
 
-    if (args.json) exitWithJson(outcome, outcome.ok ? 0 : 2);
+    if (args.json) exitWithJson(outcome, outcome.ok ? 0 : unread ? EXIT_UNREAD : 2);
 
-    const mark = outcome.ok ? '\u2713' : '\u2717';
-    process.stdout.write(`${mark} ${outcome.ok ? 'valid' : 'invalid'}\n`);
+    if (unread) {
+        const status = (outcome as { chain_status?: number }).chain_status;
+        process.stdout.write(`? signature valid, coins unread: ${unreadWords(unread, status)}.\n`);
+    } else {
+        const mark = outcome.ok ? '\u2713' : '\u2717';
+        process.stdout.write(`${mark} ${outcome.ok ? 'valid' : 'invalid'}\n`);
+    }
     process.stdout.write(`  codes:   ${outcome.codes.join(', ')}\n`);
     process.stdout.write(`  network: ${outcome.network}\n`);
     if (outcome.attestation_id) {
@@ -80,5 +87,5 @@ export async function runVerify(args: VerifyArgs): Promise<void> {
             `  ids:     ${outcome.identities.map((i) => `${i.protocol}:${i.identifier}`).join(', ')}\n`
         );
     }
-    process.exit(outcome.ok ? 0 : 2);
+    process.exit(outcome.ok ? 0 : unread ? EXIT_UNREAD : 2);
 }
