@@ -81,11 +81,23 @@ export const Buttons: StoryObj = {
                     Continue <ArrowRight />
                 </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-3 rounded-[1.25rem] bg-brand p-8">
+            {/* 2.0's CTAs: the trailing "+" turns as the pointer lands on it. */}
+            <div className="flex flex-wrap items-center gap-3">
+                <Button size="lg" plus>
+                    Get started
+                </Button>
+                <Button variant="secondary" plus>
+                    Talk to us
+                </Button>
+                <Button variant="brand" plus>
+                    Add to Lumen Notes
+                </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 bg-brand p-8">
                 <Button variant="primary">Book a call</Button>
                 <Button variant="secondary">Read the docs</Button>
             </div>
-            <div className="flex flex-wrap items-center gap-3 rounded-[1.25rem] bg-oca-ink p-8">
+            <div className="flex flex-wrap items-center gap-3 bg-oca-ink p-8">
                 <Button variant="onInk">Integrate</Button>
                 <Button variant="onInkOutline">GitHub</Button>
             </div>
@@ -129,6 +141,23 @@ export const Cards: StoryObj = {
             <Card tone="ink" className="flex flex-col gap-3">
                 <CardTitle className="text-oca-ink-title">A direct line</CardTitle>
                 <p className="text-oca-ink-muted">You talk to the person who built it. Not a sales team.</p>
+            </Card>
+            {/* 2.0's tones: paper, the white product surface, burnt and brand. */}
+            <Card tone="paper" className="flex flex-col gap-3">
+                <CardTitle>Paper</CardTitle>
+                <CardDescription>The page itself, framed by one hairline.</CardDescription>
+            </Card>
+            <Card tone="white" className="flex flex-col gap-3">
+                <CardTitle>White</CardTitle>
+                <CardDescription>The product surface: a receipt, a table, a field.</CardDescription>
+            </Card>
+            <Card tone="burnt" className="flex flex-col gap-3">
+                <CardTitle>Burnt</CardTitle>
+                <p className="text-oca-burnt-muted">Paper text on the dark brown stage.</p>
+            </Card>
+            <Card tone="brand" className="flex flex-col gap-3">
+                <CardTitle>Brand</CardTitle>
+                <p>Ink text on orange, never white.</p>
             </Card>
         </div>
     ),
@@ -506,6 +535,22 @@ export const Disclosure: StoryObj = {
                 </AccordionItem>
                 <AccordionItem title="Does the file leave my browser?">No. Only its SHA-256 hash is signed and anchored.</AccordionItem>
                 <AccordionItem title="Can a stamp be revoked?">No. A stamp is a fact about the past; it stays true.</AccordionItem>
+            </Accordion>
+        </div>
+    ),
+};
+
+/** 2.0's FAQ look: hairline rows, a "+" that turns into "−". */
+export const DisclosureRule: StoryObj = {
+    name: 'Accordion (rule)',
+    render: () => (
+        <div className="max-w-3xl">
+            <Accordion variant="rule" single>
+                <AccordionItem title="Does Halfway Books see my address?" defaultOpen>
+                    No. Halfway Books learns only that you passed its check.
+                </AccordionItem>
+                <AccordionItem title="Is backing required?">Backing is optional; an app may ask for it.</AccordionItem>
+                <AccordionItem title="Can I sign in with email?">Yes, with an emailed code.</AccordionItem>
             </Accordion>
         </div>
     ),

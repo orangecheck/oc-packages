@@ -64,6 +64,19 @@
     --color-oca-code-package: var(--oca-code-package);
     --color-oca-code-tag: var(--oca-code-tag);
     --color-oca-code-link: var(--oca-code-link);
+    --color-oca-surface: var(--oca-surface);
+    --color-oca-surface-foreground: var(--oca-surface-foreground);
+    --color-oca-primary-hover: var(--oca-primary-hover);
+    --color-oca-ring-on-fill: var(--oca-ring-on-fill);
+    --color-oca-burnt: var(--oca-burnt);
+    --color-oca-burnt-foreground: var(--oca-burnt-foreground);
+    --color-oca-burnt-muted: var(--oca-burnt-muted);
+    --color-oca-burnt-accent: var(--oca-burnt-accent);
+    --color-oca-burnt-ember: var(--oca-burnt-ember);
+    --color-oca-footer: var(--oca-footer);
+    --color-oca-footer-foreground: var(--oca-footer-foreground);
+    --color-oca-footer-muted: var(--oca-footer-muted);
+    --color-oca-footer-line: var(--oca-footer-line);
 
     --font-sans: var(--oc-font-sans);
     --font-mono: var(--oc-font-mono);

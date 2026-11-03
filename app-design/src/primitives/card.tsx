@@ -5,15 +5,21 @@ import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 
 /*
- * White on the canvas with one hairline and a generous radius; no shadow. The
- * `ink` card is the deck's #1E1E1E panel, dark in both modes.
+ * 2.0: a square panel with one hairline and no shadow. Tones: `default` (the
+ * raised paper-2), `paper` (the page itself, framed), `white` (the product
+ * surface), `sunken`, `ink` (dark in both modes), `burnt` and `brand` (orange,
+ * ink text), and `outline`.
  */
-export const cardVariants = cva('relative rounded-[1.25rem] border', {
+export const cardVariants = cva('relative rounded-none border', {
     variants: {
         tone: {
             default: 'border-border bg-card text-card-foreground',
+            paper: 'border-border bg-background text-foreground',
+            white: 'border-border bg-oca-surface text-oca-surface-foreground',
             sunken: 'border-transparent bg-muted text-foreground',
             ink: 'border-oca-ink-line bg-oca-ink-card text-oca-ink-foreground',
+            burnt: 'border-transparent bg-oca-burnt text-oca-burnt-foreground',
+            brand: 'border-transparent bg-brand text-brand-foreground',
             outline: 'border-border bg-transparent text-foreground',
         },
         // The padding is also a variable, so a flush list can run back out to the edges.
