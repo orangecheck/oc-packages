@@ -25,7 +25,7 @@ This module wraps `execute` so every successful call produces a signed `agent-ac
 
 ```bash
 npm i @orangecheck/agent-vercel
-# peer deps:
+# Comes with agent-core and agent-signer. To import them yourself, add them too:
 npm i @orangecheck/agent-core @orangecheck/agent-signer
 ```
 
