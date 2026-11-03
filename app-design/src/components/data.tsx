@@ -108,20 +108,21 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
         <div
             data-ui="stat"
             className={cn(
-                'border border-border bg-card',
-                sm ? 'rounded-2xl p-4' : 'rounded-[1.25rem] p-5 md:p-6',
+                sm ? 'p-4' : 'p-5 md:p-6',
                 // In a grid, label, value and hint each share a row with their
-                // neighbours, so values line up whatever wraps above them.
-                inGrid ? 'row-span-3 grid grid-rows-subgrid gap-1.5' : 'flex flex-col gap-2',
+                // neighbours, so values line up whatever wraps above them; the
+                // grid's hairlines are the cells' own right and bottom edges.
+                inGrid ? 'row-span-3 grid grid-rows-subgrid gap-2 border-b border-r border-border' : 'flex flex-col gap-2 border border-border bg-card',
                 className
             )}
         >
-            <span className={cn('leading-snug text-muted-foreground', sm ? 'text-[0.8125rem]' : 'text-[0.875rem]')}>{label}</span>
+            <span className="font-mono text-[0.75rem] uppercase tracking-[0.08em] leading-snug text-muted-foreground">{label}</span>
             {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
             <span
                 className={cn(
-                    'break-words oca-tabular leading-tight tracking-[-0.02em]',
-                    sm ? 'text-[1.25rem]' : 'text-[1.5rem] md:text-[1.75rem]',
+                    // Light only at display size: 24px and up.
+                    'break-words oca-tabular font-light leading-tight tracking-[-0.03em]',
+                    sm ? 'text-[1.5rem]' : 'text-[2rem] md:text-[2.5rem]',
                     inGrid && 'self-end',
                     delta && 'flex flex-wrap items-baseline gap-x-2'
                 )}
@@ -183,7 +184,7 @@ export function EmptyLine({ children, className }: { children: ReactNode; classN
     return (
         <p
             className={cn(
-                'rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-5 py-4 text-[0.9375rem] text-muted-foreground',
+                'border border-dashed border-oca-hairline-strong px-5 py-4 text-[0.9375rem] text-muted-foreground',
                 className
             )}
         >
@@ -210,7 +211,6 @@ export function StatGrid({ columns, empty, isEmpty, className, children, ...prop
     const n = items.length;
     const allZero =
         n > 0 && items.every((el) => 'raw' in el.props && (el.props.raw === 0 || el.props.raw === null));
-    const compact = useDensity() === 'compact';
     if (isEmpty ?? allZero) return <EmptyLine className={className}>{empty ?? 'Nothing here yet.'}</EmptyLine>;
     const lg = columns ?? statColumns(n);
     // Five across is a desk-width row; a tablet gets three.
@@ -221,8 +221,8 @@ export function StatGrid({ columns, empty, isEmpty, className, children, ...prop
         <InStatGrid.Provider value>
             <div
                 className={cn(
-                    'grid',
-                    compact ? 'gap-2.5 md:gap-3' : 'gap-3 md:gap-4',
+                    // Hairline cells: the grid draws the top and left rule, each cell its right and bottom.
+                    'grid border-l border-t border-border',
                     n === 1 ? 'grid-cols-1' : 'grid-cols-2',
                     MD_COLS[md],
                     LG_COLS[lg],
@@ -281,7 +281,7 @@ export function KeyValueList({
     const tight = dense ?? density === 'compact';
     return (
         // The rows go side by side when the list itself is wide enough, wherever it sits: a narrow card stacks them.
-        <dl className={cn('@container divide-y divide-border border border-border bg-card', tight ? 'rounded-2xl' : 'rounded-[1.25rem]', className)}>
+        <dl className={cn('@container divide-y divide-border border border-border bg-card', className)}>
             {items.map((it, i) => (
                 <div
                     key={i}
@@ -411,7 +411,6 @@ export function DataTable<T>({
         <div
             className={cn(
                 'overflow-hidden border border-border bg-card',
-                tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
                 phone === 'cards' && 'max-sm:hidden',
                 className
             )}
@@ -427,7 +426,7 @@ export function DataTable<T>({
                                     scope="col"
                                     style={{ width: c.width, minWidth: c.minWidth }}
                                     className={cn(
-                                        'whitespace-nowrap text-[0.8125rem] font-medium text-muted-foreground',
+                                        'whitespace-nowrap font-mono text-[0.75rem] uppercase tracking-[0.08em] font-normal text-muted-foreground',
                                         tight ? 'px-4 py-2.5' : 'px-5 py-3',
                                         right(c) && 'text-right',
                                         c.wide && 'hidden md:table-cell'
@@ -487,7 +486,6 @@ export function DataTable<T>({
                 aria-label={caption}
                 className={cn(
                     'divide-y divide-border border border-border bg-card sm:hidden',
-                    tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
                     className
                 )}
             >
@@ -508,7 +506,7 @@ export function DataTable<T>({
                             >
                                 {rest.map((c) => (
                                     <div key={c.key} className="contents">
-                                        <dt className="text-muted-foreground">{c.header}</dt>
+                                        <dt className="pt-0.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-muted-foreground">{c.header}</dt>
                                         <dd className={cn('min-w-0 break-words', c.numeric && 'oca-tabular')}>
                                             {clickable && c === cardNamed ? opener(r, c.cell(r)) : c.cell(r)}
                                         </dd>
