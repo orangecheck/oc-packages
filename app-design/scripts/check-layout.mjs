@@ -401,6 +401,11 @@ try {
             )
         )
     );
+    // The footer's giant wordmark: one word at its natural spacing, filling the frame, nothing clipped.
+    const wordmark = page(
+        'wordmark',
+        renderToStaticMarkup(h(Ch.SiteFooter, { columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }], legal: true }))
+    );
     const icons = page(
         'icons',
         renderToStaticMarkup(
@@ -1257,6 +1262,56 @@ try {
                 check(JSON.stringify(pd.links) === JSON.stringify(rs.links), `[${width}] the nav moved when the CTA resolved: ${pd.links} → ${rs.links}`);
                 check(pd.tag === 'SPAN' && pd.hidden === 'true' && !pd.focusable && pd.visibility === 'hidden', `[${width}] a pending CTA is focusable or says its label: ${JSON.stringify(pd)}`);
                 check(rs.tag === 'A' && rs.visibility === 'visible', `[${width}] the resolved CTA is not a visible link`);
+                await c.close();
+            }
+            // The wordmark: letters at their natural spacing (no gap past the median by a tenth of
+            // an em), every glyph's ink inside the rise's clip, the descender of the g included,
+            // and the word inside the frame's content box.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 } });
+                await c.goto(wordmark);
+                await c.evaluate(() => document.fonts.ready);
+                const m = await c.evaluate(() => {
+                    const word = document.querySelector('[data-oca-wordmark]');
+                    const clip = word.parentElement.getBoundingClientRect();
+                    const frameEl = word.parentElement.parentElement;
+                    const fs = getComputedStyle(frameEl);
+                    const fr = frameEl.getBoundingClientRect();
+                    const content = { left: fr.left + parseFloat(fs.paddingLeft), right: fr.right - parseFloat(fs.paddingRight) };
+                    // A glyph's ink, not its line box: the canvas measures the font's own outlines,
+                    // placed on the baseline the text node sits on.
+                    const ws = getComputedStyle(word);
+                    const pen = document.createElement('canvas').getContext('2d');
+                    pen.font = `${ws.fontWeight} ${ws.fontSize} ${ws.fontFamily}`;
+                    const letters = [...word.children].map((span) => {
+                        const r = document.createRange();
+                        r.selectNodeContents(span);
+                        const area = r.getBoundingClientRect();
+                        const box = span.getBoundingClientRect();
+                        const t = pen.measureText(span.textContent);
+                        const baseline = area.top + t.fontBoundingBoxAscent;
+                        return {
+                            ch: span.textContent,
+                            box: { left: box.left, right: box.right },
+                            ink: { left: area.left - t.actualBoundingBoxLeft, right: area.left + t.actualBoundingBoxRight, top: baseline - t.actualBoundingBoxAscent, bottom: baseline + t.actualBoundingBoxDescent },
+                        };
+                    });
+                    const gaps = letters.slice(1).map((l, i) => l.box.left - letters[i].box.right);
+                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join('') };
+                });
+                const sorted = [...m.gaps].sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)];
+                // At its natural spacing a letter's box meets the next (the tracking is inside the box),
+                // so any gap is spreading: a word-sized one, or the same gap everywhere.
+                const wide = m.gaps.map((g, i) => [g, i]).filter(([g]) => g > 0.05 * m.size || g - median > 0.05 * m.size);
+                check(m.text === 'orangecheck', `[${width}] the wordmark reads "${m.text}"`);
+                check(wide.length === 0, `[${width}] the wordmark's letters are spread: gaps ${wide.map(([g, i]) => `${m.text[i]}|${m.text[i + 1]} ${g.toFixed(1)}px`).join(', ')} against a median of ${median.toFixed(1)}px`);
+                const clipped = m.letters.filter((l) => l.ink.left < m.clip.left - 0.5 || l.ink.right > m.clip.right + 0.5 || l.ink.top < m.clip.top - 0.5 || l.ink.bottom > m.clip.bottom + 0.5);
+                check(clipped.length === 0, `[${width}] the wordmark's clip cuts ${clipped.map((l) => l.ch).join('')}`);
+                const first = m.letters[0].ink.left;
+                const last = m.letters.at(-1).ink.right;
+                check(first >= m.content.left - 0.5 && last <= m.content.right + 0.5, `[${width}] the wordmark runs outside the frame: ${first.toFixed(1)}-${last.toFixed(1)} in ${m.content.left.toFixed(1)}-${m.content.right.toFixed(1)}`);
+                check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
                 await c.close();
             }
         }
