@@ -472,3 +472,12 @@ test('the ochk.app terms and privacy write orangecheck lowercase, the defined na
     }
     assert.match(DOCS.find(([n]) => n === 'me/terms')[1], /the party of record is orangecheck \(OCHK\), an unincorporated project\. References to "orangecheck" mean that party/);
 });
+
+// An unbacked account is tied to no bitcoin, and only a signature checks offline; a timestamp
+// checks against Bitcoin once it is anchored (lead rulings 1 and 21, 2026-11-03).
+test('the ochk.app terms say what checks offline, and what backing ties an account to', () => {
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.doesNotMatch(terms, /identity is anchored in Bitcoin|anchored in Bitcoin, verifiable offline/i);
+    assert.match(terms, /anyone holding one can check its signature offline, without asking us/);
+    assert.match(terms, /If you back your account, it is tied to bitcoin you hold/);
+});
