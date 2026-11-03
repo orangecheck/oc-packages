@@ -56,7 +56,7 @@ export function BrowserFrame({
             className={cn(
                 'relative overflow-hidden',
                 paper
-                    ? 'rounded-depict bg-oca-surface text-oca-surface-foreground shadow-[0_32px_80px_-32px_rgb(42_18_6/0.6),0_10px_24px_-14px_rgb(42_18_6/0.4)]'
+                    ? 'rounded-depict bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
                     : 'rounded-[1.1rem] border border-border bg-card shadow-[0_40px_90px_-40px_rgb(10_10_10/0.45)]',
                 !glow && className
             )}
@@ -86,7 +86,7 @@ export function BrowserFrame({
             <div
                 aria-hidden
                 data-frame-glow=""
-                className="pointer-events-none absolute inset-x-0 -inset-y-[20%] -z-10 bg-[radial-gradient(closest-side,rgb(249_115_22/0.55),rgb(249_115_22/0.18)_55%,transparent)] md:-inset-x-[12%]"
+                className="pointer-events-none absolute inset-x-0 -inset-y-[20%] -z-10 bg-[image:var(--oca-glow)] md:-inset-x-[12%]"
             />
             {frame}
         </div>

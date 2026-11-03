@@ -48,6 +48,7 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`, `failureText`, `OFFLINE_TEXT`; no React |
 | `/fonts` | `FONT_FILES`: the fonts the first screen paints in, at the stylesheet's own address. `FontPreloads` renders nothing since 1.20.0 (a preload cost first paint and saved no shift) and stays so no `_document` breaks |
 | `/og` | `OgCard`, `ogFonts()`, `OG_SIZE`: the family share card for next/og's ImageResponse, Inter inline |
+| `/blocks` | `SignInDemo`, `CostDemo`, `Slider`, `BentoGrid`, `BentoTile`, `ReceiptCard`, `StepPath`, `DitherMark`: design 2's interactive blocks, in their own entry so a site that uses none pays nothing |
 | `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
 | `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |
 | `/session` | `SessionAccount`, read from `@orangecheck/auth-client` (an optional peer: install it to use this entry) |

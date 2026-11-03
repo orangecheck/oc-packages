@@ -118,6 +118,39 @@ optional. What changes is how things look.
 - `AppShell`, `DocsShell`, `ToolShell` and the family menu keep their
   layouts and go square.
 
+### Blocks (`./blocks`, new)
+
+A new entry, so a site that uses none of them pays nothing. Words are
+props; the defaults are placeholders a site replaces with its own copy.
+
+- `SignInDemo` (and `signInDemoSteps()`): our sign-in played on a made-up app
+  in a paper `BrowserFrame`. It plays only while a third of it is on screen
+  in a shown tab, plays through once and rests. The first press, key or
+  focus stops it for good; the step buttons then drive it, and each step is
+  said once. Nothing is said while it plays. Under reduced motion it shows
+  the first step with the buttons. `success` is a render prop (a MiniCheck).
+- `Slider` (also in `./primitives`): Radix's, square, a 44px target, its
+  value in words through `valueText`.
+- `CostDemo`: two sliders set a bar, one total for a crowd of accounts, a
+  real person's verdict that follows the bar. The crowd is one element with
+  one sweep per change, none under reduced motion.
+- `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
+  halftone), `ReceiptCard` (amounts on the decimal point, the split as one
+  bar), `StepPath` (drawn on view, still under reduced motion) and
+  `DitherMark` (the mark at its size until the baked art lands).
+- The window, the receipt and each tile keep their own colours inside a
+  band; the step list, the slider and the path take the band's.
+
+### Data parts
+
+- `SplitBar`, `StatGrid`/`StatCard`, `KeyValueList`, `DataTable` and
+  `CodeBlock` go square. A grid's stat cards become hairline cells with a
+  mono label over a light figure that sizes to its cell. Table headers,
+  phone-card keys and the code caption take the mono label. No prop changes.
+- `BrowserFrame` takes `variant="paper"` (the product surface, the 12px
+  depiction corner, the depiction shadow), `glow` (the orange light behind
+  it) and `url={null}` (no address). The default look is unchanged.
+
 ## [1.29.3] — 2026-10-29
 
 - `SessionAccount`'s "still signed in" notice goes once the account menu opens
