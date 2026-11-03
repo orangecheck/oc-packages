@@ -222,7 +222,12 @@ describe('share image', () => {
         expect(image(CARDED, { canonical: '/' })).toBe('https://stamp.ochk.io/api/og');
     });
 
-    it.each<Record<string, string | { title: string }>>([{ 'Bad Key': 'x' }, { 'a/b': 'x' }, { '': 'x' }, { ok: '' }, { ok: { title: ' ' } }])('defineSite refuses ogCards %j', (ogCards) => {
+    // The share URL carries a key as it is, and the card route compares it encoded: a key that
+    // encodeURIComponent would change, or that reads differently in a query, must never be issued.
+    it.each<Record<string, string | { title: string }>>([
+        { 'Bad Key': 'x' }, { 'a/b': 'x' }, { '': 'x' }, { ok: '' }, { ok: { title: ' ' } },
+        { 'a+b': 'x' }, { 'a%20b': 'x' }, { 'a&b': 'x' }, { 'a?b': 'x' }, { 'a#b': 'x' }, { 'ä': 'x' }, { Create: 'x' }, { '-create': 'x' },
+    ])('defineSite refuses ogCards %j', (ogCards) => {
         expect(() => defineSite({ ...ROUTED, ogCards })).toThrow(TypeError);
     });
 
