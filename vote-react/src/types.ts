@@ -10,7 +10,10 @@ export interface TallyTurnout {
 
 export interface TallyResponse {
     poll_id: string;
-    state: 'tallied' | 'awaiting_reveal';
+    /** 200: `tallied`, `provisional` (an anchored poll's count before it is
+     *  final) or `awaiting_reveal`. 409: `deferred` (the snapshot block is not
+     *  yet buried), which `useTally` reports as an error. */
+    state: 'tallied' | 'provisional' | 'awaiting_reveal' | 'deferred';
     question?: string;
     creator?: string;
     /** The poll's deadline (iso8601_utc), sent by vote.ochk.io since oc-vote-web `8f135c54`. OcPoll reads open or closed by it. */
