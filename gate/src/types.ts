@@ -66,10 +66,12 @@ export interface GateOptions {
     cacheMax?: number;
 
     /**
-     * If the upstream fails (relays throw, or the signature verified but no
-     * Esplora endpoint answered), let the request through. Default `false`:
-     * degraded mode should be explicit. A lookup the gate abandons at its own
-     * `lookupTimeoutMs` is not an outage and is never let through.
+     * If the upstream fails (the SDK lookup throws, or the signature verified
+     * but no Esplora endpoint answered: sdk `chain_unread`), let the request
+     * through. Default `false`: degraded mode should be explicit. A lookup the
+     * gate abandons at its own `lookupTimeoutMs` is not an outage and is never
+     * let through, and neither is a read the relays did not finish (sdk
+     * `attestation_unread`, `stake_unread`).
      */
     failOpen?: boolean;
 
