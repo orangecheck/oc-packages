@@ -7,7 +7,34 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [Unreleased]
+## [0.3.0] — 2026-11-03
+
+### Fixed
+
+- **A candidate nothing could be concluded about is no longer dropped as if
+  it fell short.** When the chain API rate-limited a bulk run (every
+  candidate costs one or two UTXO reads from this process), `check()` came
+  back as `below_min_sats` for everyone read during the 429 window, and they
+  went to `rejected`: left out of the allocation with no sign of why. Such a
+  candidate, and one whose lookup threw, is now **unread**: asked again twice
+  (`retryUnread`, `retryDelayMs`), then listed in the new `unread` array,
+  never in `ok` or `rejected`. Reads with `@orangecheck/sdk` before 1.21.0
+  (a verified signature beside `bad_request`) and from 1.21.0
+  (`chain_unread`, `utxo_cap_unread`, `provider_refused_unread`,
+  `attestation_unread`, `stake_unread`). A capped or refused address is not
+  asked again.
+- `rejectOnError` does something again. `check()` never throws for a chain
+  outage, so the option had no effect. `true` (default) leaves unread
+  candidates off `ok` and lists them; `false` throws `AirdropUnreadError`
+  with the whole result.
+
+### Changed
+
+- `FilterAllowlistResult` gains `unread`, and `all` is `ok` ∪ `rejected` ∪
+  `unread`. `AirdropDecision` gains `unread`.
+- `oc-airdrop` lists unread candidates on stderr, counts them in the summary
+  and the JSON report, and exits 3 when there are any. With
+  `--allow-lookup-errors` it writes no allowlist then.
 
 ### Docs
 

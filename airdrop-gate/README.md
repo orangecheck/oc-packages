@@ -20,7 +20,7 @@ Reference implementation for VISION pathway 3's second half. Every distribution 
 ```ts
 import { filterAllowlist } from '@orangecheck/airdrop-gate';
 
-const { ok, rejected } = await filterAllowlist(candidates, {
+const { ok, rejected, unread } = await filterAllowlist(candidates, {
     minSats: 100_000,
     minDays: 30,
     concurrency: 8,
@@ -29,6 +29,7 @@ const { ok, rejected } = await filterAllowlist(candidates, {
 
 // `ok` is your final allowlist (addresses, in input order).
 // `rejected` explains why each excluded address was dropped.
+// `unread` lists the addresses nothing could be concluded about: decide on them yourself.
 ```
 
 ### `filterAllowlist(addresses, options?)`
@@ -40,9 +41,13 @@ const { ok, rejected } = await filterAllowlist(candidates, {
 | `concurrency`   | `4`          | Parallel `check()` calls. The relays' and Esplora's rate limits set the ceiling (see Rate limits). |
 | `onProgress`    | —            | `(done, total, last?) => void` — fires after every candidate.                            |
 | `relays`        | SDK defaults | Override Nostr discovery relays.                                                         |
-| `rejectOnError` | `true`       | Treat SDK failures as rejection. Set `false` to surface errors to the caller.            |
+| `rejectOnError` | `true`       | A candidate still unread after the retries is left off `ok` and listed in `unread`. Set `false` to throw `AirdropUnreadError` (carrying the whole result) instead. |
+| `retryUnread`   | `2`          | How many more times to check an unread candidate. A capped or refused address is not asked again. |
+| `retryDelayMs`  | `30000`      | Wait before each retry: a rate-limit window.                                             |
 
-**Returns:** `{ ok: string[], rejected: AirdropDecision[], all: AirdropDecision[] }`.
+**Returns:** `{ ok: string[], rejected: AirdropDecision[], unread: AirdropDecision[], all: AirdropDecision[] }`.
+
+A candidate is **unread** when nothing was concluded about it: no chain API or relay answered (`chain_unread`, `attestation_unread`, `stake_unread`), the lookup threw (`lookup_error`), its address holds more coins than the chain API lists (`utxo_cap_unread`), or the API refused the lookup (`provider_refused_unread`). It is never in `rejected` and never reported as below a threshold: a bulk run trips the explorer's rate limit partway, and dropping everyone checked during it would cut qualifying people out of the allocation.
 
 Any other option throws.
 
@@ -55,6 +60,7 @@ interface AirdropDecision {
     address: string;
     ok: boolean;
     reasons: string[]; // empty on pass
+    unread?: string; // which read did not finish; such a decision is in `unread`
     check?: CheckResult; // present unless the lookup threw
 }
 ```
@@ -79,9 +85,11 @@ oc-airdrop filter --min-sats 100000 --min-days 30 \
 | `--min-sats <n>`        | `0`     | Threshold.                                                                             |
 | `--min-days <n>`        | `0`     | Threshold.                                                                             |
 | `--concurrency <n>`     | `4`     | Parallel lookups.                                                                      |
-| `--allow-lookup-errors` | off     | Surface SDK errors instead of rejecting.                                               |
+| `--allow-lookup-errors` | off     | Write no allowlist, and exit 3, when a candidate stays unread.                         |
 | `--json`                | off     | Emit full JSON report (allowlist + rejections) to stdout instead of a plain allowlist. |
 | `-h`, `--help`          | —       | Show usage.                                                                            |
+
+Exit codes: `0` every candidate was decided, `1` usage or error, `3` some candidates stayed unread after the retries. They are left off the allowlist and listed on stderr.
 
 ### JSON report shape
 
@@ -89,7 +97,8 @@ oc-airdrop filter --min-sats 100000 --min-days 30 \
 {
   "total": 100,
   "passed": 72,
-  "rejected": 28,
+  "rejected": 27,
+  "unread": 1,
   "allowlist": ["bc1q...", "bc1q...", ...],
   "rejections": [
     {

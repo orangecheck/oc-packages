@@ -12,11 +12,15 @@
  *     < candidates.txt \
  *     > allowlist.txt \
  *     2> rejections.log
+ *
+ * Exit codes: 0 every candidate was decided, 1 usage or error, 3 some
+ * candidates stayed unread (the chain or the relays did not answer, even after
+ * two retries): the allowlist leaves them out, and stderr lists them.
  */
 
 import { createInterface } from 'node:readline';
 
-import { filterAllowlist } from './index';
+import { AirdropUnreadError, filterAllowlist, type FilterAllowlistResult } from './index';
 
 interface Args {
     minSats: number;
@@ -84,13 +88,15 @@ Options:
   --min-sats <n>            Minimum sats bonded (default: 0)
   --min-days <n>            Minimum days unspent (default: 0)
   --concurrency <n>         Parallel checks (default: 4)
-  --allow-lookup-errors     Surface SDK errors instead of rejecting
+  --allow-lookup-errors     Fail with no allowlist when a candidate stays unread,
+                            instead of leaving it off the allowlist
   --json                    Emit JSON report to stdout instead of plain allowlist
   -h, --help                Show this help
 
 Stdin:  one address per line; blank lines and '#' comments ignored
 Stdout: allowlist (plain) or JSON report (with --json)
 Stderr: per-decision progress + final summary
+Exit:   0 all decided, 1 error, 3 some candidates unread (listed on stderr)
 `;
 
 /** Basic shape check for a Bitcoin address. Not exhaustive (the API does
@@ -142,22 +148,30 @@ async function main() {
         `oc-airdrop: filtering ${candidates.length} candidate(s) | min_sats=${args.minSats} min_days=${args.minDays} concurrency=${args.concurrency}\n`
     );
 
-    const result = await filterAllowlist(candidates, {
-        minSats: args.minSats,
-        minDays: args.minDays,
-        concurrency: args.concurrency,
-        rejectOnError: args.rejectOnError,
-        onProgress: (done, total, last) => {
-            if (!last) return;
-            const mark = last.ok ? '+' : '-';
-            const tail = last.ok
-                ? `${last.check?.sats ?? 0} sats, ${last.check?.days ?? 0}d`
-                : last.reasons.join(',');
-            process.stderr.write(
-                `[${String(done).padStart(String(total).length)}/${total}] ${mark} ${last.address} — ${tail}\n`
-            );
-        },
-    });
+    let result: FilterAllowlistResult;
+    try {
+        result = await filterAllowlist(candidates, {
+            minSats: args.minSats,
+            minDays: args.minDays,
+            concurrency: args.concurrency,
+            rejectOnError: args.rejectOnError,
+            onProgress: (done, total, last) => {
+                if (!last) return;
+                const mark = last.ok ? '+' : last.unread ? '?' : '-';
+                const tail = last.ok
+                    ? `${last.check?.sats ?? 0} sats, ${last.check?.days ?? 0}d`
+                    : last.reasons.join(',');
+                process.stderr.write(
+                    `[${String(done).padStart(String(total).length)}/${total}] ${mark} ${last.address} — ${tail}\n`
+                );
+            },
+        });
+    } catch (err) {
+        if (!(err instanceof AirdropUnreadError)) throw err;
+        for (const d of err.result.unread) process.stderr.write(`unread: ${d.address} (${d.unread})\n`);
+        process.stderr.write(`oc-airdrop: ${err.result.unread.length} candidate(s) unread; no allowlist written\n`);
+        process.exit(3);
+    }
 
     if (args.json) {
         process.stdout.write(
@@ -166,8 +180,10 @@ async function main() {
                     total: candidates.length,
                     passed: result.ok.length,
                     rejected: result.rejected.length,
+                    unread: result.unread.length,
                     allowlist: result.ok,
                     rejections: result.rejected,
+                    unread_candidates: result.unread,
                 },
                 null,
                 2
@@ -177,10 +193,11 @@ async function main() {
         for (const addr of result.ok) process.stdout.write(addr + '\n');
     }
 
+    for (const d of result.unread) process.stderr.write(`unread: ${d.address} (${d.unread})\n`);
     process.stderr.write(
-        `oc-airdrop: done | ${result.ok.length} pass, ${result.rejected.length} reject\n`
+        `oc-airdrop: done | ${result.ok.length} pass, ${result.rejected.length} reject, ${result.unread.length} unread\n`
     );
-    process.exit(0);
+    process.exit(result.unread.length > 0 ? 3 : 0);
 }
 
 main().catch((err) => {
