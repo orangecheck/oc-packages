@@ -12,7 +12,7 @@ Three functions:
 |---|---|
 | `createDelegation(input)` | Principal signs a scoped grant for an agent address. |
 | `signAsAgent(input)` | Agent produces an `agent-action` envelope over content, citing the delegation. |
-| `revoke(input)` | Principal (or agent, if authorized) burns the delegation. |
+| `revoke(input)` | Principal or agent burns the delegation; either may always revoke (SPEC §9.5). |
 
 The signer layer wraps [`@orangecheck/agent-core`](../agent-core): canonical messages, scope canonicalization, envelope ids, and verification are delegated to the core package. This module handles wallet plumbing, default timestamps and nonces, and input validation.
 
