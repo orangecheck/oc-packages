@@ -19,7 +19,7 @@ Pairs cleanly with `<OcChallengeButton sign={sign} />` from `@orangecheck/react`
 yarn add @orangecheck/wallet-adapter
 ```
 
-React components are under a subpath to keep the core library zero-dep:
+React components are under a subpath, so the core library needs no React (its one dependency is `@orangecheck/bip322`):
 
 ```ts
 import { detectWallets, getSigner } from '@orangecheck/wallet-adapter';
@@ -40,6 +40,8 @@ detectWallets();
 //   { id: 'unisat',  name: 'UniSat',  detected: true,  installUrl: '...' },
 //   { id: 'xverse',  name: 'Xverse',  detected: false, installUrl: '...' },
 //   { id: 'leather', name: 'Leather', detected: false, installUrl: '...' },
+//   { id: 'okx',     name: 'OKX',     detected: false, installUrl: '...' },
+//   { id: 'phantom', name: 'Phantom', detected: false, installUrl: '...' },
 //   { id: 'manual',  name: 'Paste signature (Sparrow / Core / hardware)',
 //     detected: true, isManual: true }
 // ]
@@ -182,8 +184,12 @@ export function SignIn({ address }: { address: string }) {
 | ------------ | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | UniSat       | `window.unisat.signMessage(msg, 'bip322-simple')`                                         | Simple                                                           |
 | Xverse       | `window.BitcoinProvider.request('signMessage', { address, message, protocol: 'BIP322' })` | Full                                                             |
-| Leather      | `window.LeatherProvider.request('signMessage', { message, paymentType: 'p2tr' })`         | Full                                                             |
+| Leather      | `window.LeatherProvider.request('signMessage', { message, paymentType })`                 | Full                                                             |
+| OKX          | `window.okxwallet.bitcoin.signMessage(msg, 'bip322-simple')`                              | Simple                                                           |
+| Phantom      | `window.phantom.bitcoin.signMessage(bytes, addressType)`                                  | As Phantom signs for the account's `addressType`                 |
 | Manual       | The caller's `onManualSign` (deprecated fallback: `window.prompt`)                        | Caller's wallet produces the signature out-of-band               |
+
+Leather's `paymentType` follows the address: `p2tr` for a `bc1p…` address, `p2wpkh` for any other. Phantom signs with the account whose address you asked for, and refuses if it has none.
 
 The shims are duck-typed — we check shape, not just presence of globals, so spoofing wrappers don't produce false positives.
 
