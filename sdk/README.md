@@ -89,7 +89,7 @@ import { ocGate } from '@orangecheck/gate';
 app.post('/post', ocGate({ minSats: 100_000, minDays: 30, address: { from: 'query' } }), handler);
 ```
 
-`address` says where the caller's address is: `{ from: 'query' }` reads `?ocAddr=...`; a header, a cookie, the body or your own function work too. With no source, every request gets 401 `no_subject`. See the gate's README for subject sources.
+`address` says where the gate reads the address to check: `{ from: 'query' }` reads `?ocAddr=...`; a header, a cookie, the body or your own function work too. With no source, every request gets 401 `no_subject`. Query, header, cookie and body are caller-supplied, so any client can name any funded address. For real auth, resolve the address from a signed session with your own function (see the gate README's [signed-challenge section](https://github.com/orangecheck/oc-packages/tree/main/gate#signed-challenge-auth)).
 
 ---
 

@@ -256,7 +256,7 @@ No state beyond the cache. No secrets. No OrangeCheck server in the path — the
 **What the gate does _not_ protect against:**
 
 - A single determined attacker with a real wallet. The gate raises the cost floor; it does not prevent targeted abuse.
-- Identity squatting. A bound `github:alice` is self-asserted inside the signed message. If your app cares about handle ownership, verify out-of-band (gist, DNS, tweet).
+- Identity squatting. A bound `github:alice` is self-asserted inside the signed message. If your app cares about handle ownership, verify it out-of-band: the SDK's `verifyIdentity()` checks a public gist or `https://<domain>/.well-known/orangecheck.txt` (no DNS TXT record), and a tweet only by hand.
 - Malicious headers. If your `SubjectSource` is `header` or `query`, you are trusting the client to supply an address they control. For high-stakes gates, prove control with the signed-challenge flow first (see [Signed-challenge auth](#signed-challenge-auth)) and have the gate read the address from the verified session.
 
 ---
