@@ -106,12 +106,12 @@ program
 program
     .command('login')
     .description('authenticate to vault.ochk.io and cache the escrow + ciphertext blobs')
-    .option('--token <token>', 'an ocv_… access token (long-lived)')
+    .option('--token <token>', 'an ocvt_… access token (long-lived)')
     .option('--cookie <oc_session>', 'a pasted oc_session cookie value (interim, expires)')
     .option('--url <baseUrl>', 'API origin', 'https://vault.ochk.io')
     .action(async (opts: { token?: string; cookie?: string; url: string }) => {
         if (!opts.token && !opts.cookie) {
-            fail('pass --token <ocv_…> or --cookie <oc_session value>');
+            fail('pass --token <ocvt_…> or --cookie <oc_session value>');
         }
         const client = makeClient(opts.url, opts.token, opts.cookie);
         const cache = await pullCache(
@@ -130,7 +130,7 @@ program
 program
     .command('sync')
     .description('refresh the cached ciphertext from vault.ochk.io')
-    .option('--token <token>', 'an ocv_… access token')
+    .option('--token <token>', 'an ocvt_… access token')
     .option('--cookie <oc_session>', 'a pasted oc_session cookie value')
     .action(async (opts: { token?: string; cookie?: string }) => {
         const prev = requireCache();
