@@ -9,6 +9,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `<OcAccountChip>`'s default `dashboardUrl` is `https://ochk.app/me/account`,
+  the family's account page. It was `https://ochk.io/dashboard`, which only
+  308s there. `<OcAccountPill>`'s doc no longer claims a default: with no
+  `dashboardUrl` its label is plain text, as it always was.
+
 ### Docs
 
 - The `useStepUpAuth` doc taught `if (!r) return;` after `stepUp`. Since
