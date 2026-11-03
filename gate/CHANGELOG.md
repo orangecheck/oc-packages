@@ -22,8 +22,8 @@ this file tracks the package's TS / Node / runtime API surface.
   From sdk 1.21.0 the cap is `utxo_cap_unread` and a refusal (a 4xx but 429)
   `provider_refused_unread`: the gate answers them with the new closed reasons
   `utxo_cap` and `chain_refused`, never `fail_open`, and does not cache them.
-  This needs sdk 1.21.0 installed: with an older sdk the cap still reads as an
-  outage.
+  The gate requires `@orangecheck/sdk` ^1.21.0 (it was ^1.7.0), so an older
+  sdk, which still read the cap as an outage, is never installed beside it.
 - sdk 1.21.0's `chain_unread` is an outage, as `bad_request` beside a
   `sig_ok_*` code was before: `lookup_error`, or `fail_open` when opted in.
 
