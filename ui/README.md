@@ -1,10 +1,15 @@
 # @orangecheck/ui
 
+> **Frozen.** This package gets no new features. New work uses
+> [`@orangecheck/app-design`](../app-design), the ochk.app design system.
+
 > **Full reference:** [docs.ochk.io/sdk/ui](https://docs.ochk.io/sdk/ui) — auto-generated from the TypeScript source on every release.
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
-OrangeCheck family-internal UI for the `.ochk.io` sub-sites.
+OrangeCheck family-internal UI that the `.ochk.io` sub-sites used until
+`@orangecheck/design` 0.7.0 took its components in. No family site depends on it
+now.
 
 This package is **not** for third-party integrators. For embeddable
 OrangeCheck components (badge, gate, signed-challenge button), see
@@ -23,7 +28,7 @@ import { EcosystemSwitcher } from '@orangecheck/ui';
 <EcosystemSwitcher current="lock" />
 ```
 
-Slugs: `home | docs | attest | lock | vote | stamp | agent | pledge`.
+Slugs: `home | docs | fleet | me | vault | attest | lock | vote | stamp | agent | pledge | analytics`.
 
 ## Required host environment
 
@@ -37,8 +42,8 @@ Family-internal package — assumes the host is an OC sibling app:
   utilities.
 - **lucide-react** for icons.
 
-If you're not in an OC family `oc-X-web` app, you probably want
-`@orangecheck/react` instead.
+A new OC family `oc-X-web` app uses `@orangecheck/app-design`. Outside the
+family, you probably want `@orangecheck/react` instead.
 
 ## License
 
