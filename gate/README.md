@@ -200,7 +200,12 @@ interface GateOptions {
     // Let requests through when the upstream fails: relays throw, or the
     // signature verified but no Esplora endpoint answered. Never for a lookup
     // the gate itself abandoned, never for a signature that did not verify, and
-    // never for a shared-stake read a flood cut off (sdk stake_unread).
+    // never for a shared-stake read a flood cut off (sdk stake_unread). Never
+    // either when a chain API answered without listing the address's coins: the
+    // address holds more than it lists (~500 UTXOs, reason utxo_cap), which
+    // anyone can arrange by sending an address dust, or the API refused the
+    // lookup (reason chain_refused). Both are closed, and asking again about a
+    // capped address does not help.
     failOpen?: boolean; // default false — closed by default
 
     // `header` / `query` / `cookie` / `body` sources are caller-supplied
