@@ -9,6 +9,12 @@ bump that silently moves a colour is worse than a breaking one.
 
 ## [Unreleased]
 
+### Fixed
+
+- The account menu's `family dashboard ↗` link goes to
+  `https://ochk.app/me/account`, the family's account page. It pointed at
+  `https://ochk.io/dashboard`, which only 308s there.
+
 ## [0.35.3] — 2026-10-29
 
 The classic system is frozen; this is a fix. A sign-out the auth host refuses no longer looks like it worked.
