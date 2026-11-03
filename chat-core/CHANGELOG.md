@@ -6,7 +6,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
-## [Unreleased]
+## [0.2.0] — 2026-11-03
 
 A channel feed tells a post it could not check from one that failed, and
 checks a write proof by the one coin it names. The API changes below break
