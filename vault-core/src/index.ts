@@ -5,7 +5,6 @@
  *
  * The vault key is 32 random bytes. It is stored and sent only sealed: under
  * the passphrase and the recovery code, to a device, or in a backup file.
- * See VAULT-DEVELOPER-PLATFORM.md.
  */
 
 export {
