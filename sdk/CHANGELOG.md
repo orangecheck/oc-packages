@@ -7,6 +7,45 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.21.0] — 2026-11-03
+
+### Changed
+
+- Coins that were not read are unread, never a verdict. When no chain API
+  lists an address's coins, `check()` no longer adds `below_min_sats` /
+  `below_min_days`: a valid, bonded attestation read during an outage used to
+  answer "0 sats, below threshold". `verify()` and `check()` say why in one
+  code:
+  - `chain_unread`: none answered (429, 5xx, timeout, network, a body that
+    does not parse). Ask again. It comes beside the signature code and
+    `bad_request`, as before, so every decoder published before this version
+    still reads an outage, and a `failOpen` caller still lets it through.
+  - `utxo_cap_unread`: a chain API said the address holds more coins than it
+    lists (electrs' cap, about 500 on mempool.space). Asking again does not
+    help. Anyone can put an address there by sending it dust, so it never
+    comes beside `bad_request` and outranks an outage elsewhere. In `check()`
+    it is the one reason. No decoder, old or new, fails it open: gate 0.3.2
+    and relay-filter 0.5.5 read it as an invalid proof, and from gate 0.3.3
+    and relay-filter 0.5.6 a lone `*_unread` is a closed lookup error. Before
+    this version, `failOpen: true` on gate or relay-filter admitted such an
+    address on every request.
+  - `provider_refused_unread`: any other 4xx but 429 (a 403, a WAF block, a
+    404 from a moved endpoint, a cap worded some new way), with the status in
+    `chain_status`. The same rules as the cap.
+- `sats`, `days` and `score` stay numbers, 0 beside any `*_unread`, and their
+  doc comments now say that 0 is not a reading there. A major version will
+  make them absent.
+
+### Added
+
+- `unreadReason(reasonsOrCodes)`: which unread a `check()` result or a
+  `verify()` outcome holds, or null for a reading. Decode with it before
+  mapping a reason to words: beside `chain_unread`, `bad_request` means the
+  chain did not answer, never a malformed attestation.
+- `chain_status` on `VerifyOutcome` and `CheckResult`, beside
+  `provider_refused_unread` only.
+- `STATUS_META` entries for the three new codes.
+
 ## [1.20.0] — 2026-11-03
 
 ### Changed

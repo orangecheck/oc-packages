@@ -79,6 +79,21 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
         detail: 'Unable to verify the signature due to invalid or inconsistent data. Please ensure the address in the message matches the address you entered, and try again.',
         severity: 'error',
     },
+    chain_unread: {
+        label: 'Coins not read',
+        detail: 'The signature checks out, but no chain API answered for the coins, so nothing is concluded about them. Try again in a minute.',
+        severity: 'warn',
+    },
+    utxo_cap_unread: {
+        label: 'Coins not read',
+        detail: 'This address holds more coins than the chain API will list, so nothing is concluded about them. Asking again will not help; bond from an address that holds fewer coins.',
+        severity: 'warn',
+    },
+    provider_refused_unread: {
+        label: 'Coins not read',
+        detail: 'The chain API refused this lookup, so nothing is concluded about the coins.',
+        severity: 'warn',
+    },
     decode_error: {
         label: 'Message format error',
         detail: 'The message could not be parsed. Ensure you copied the complete canonical message from Step 2 without modifications.',

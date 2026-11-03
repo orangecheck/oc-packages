@@ -51,7 +51,11 @@ export type StatusCode =
     | 'bad_request' // Invalid request
     | 'decode_error' // Decoding error
     | 'invalid_scheme' // Invalid signature scheme
-    | 'invalid_attestation_id'; // Invalid attestation ID
+    | 'invalid_attestation_id' // Invalid attestation ID
+    // Unread, never a verdict (1.21.0): no chain endpoint listed the address's coins.
+    | 'chain_unread' // None answered (429, 5xx, timeout, network). Ask again; beside bad_request
+    | 'utxo_cap_unread' // The address holds more coins than the endpoints list (~500). Asking again does not help
+    | 'provider_refused_unread'; // An endpoint refused the lookup (a 4xx other than 429); see chain_status
 
 /**
  * Options for signature verification
@@ -126,8 +130,10 @@ export interface VerifyOutcome {
     attestation_id?: string;
     /** Identity bindings */
     identities?: IdentityBinding[];
-    /** Reputation metrics */
+    /** Reputation metrics. Absent whenever the coins were not read. */
     metrics?: Metrics;
+    /** The HTTP status an endpoint refused the UTXO lookup with, beside `provider_refused_unread` only. */
+    chain_status?: number;
 }
 
 /**
