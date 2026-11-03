@@ -51,7 +51,7 @@ job log in clear unless you mask it yourself.
 
 ## Auth
 
-`login` takes `--token <ocv_…>` (long-lived access tokens — vault.ochk.io
+`login` takes `--token <ocvt_…>` (long-lived access tokens — vault.ochk.io
 developer settings) or, as an interim, `--cookie <oc_session>` — the value
 of your `oc_session` cookie from a browser session. The cached escrow and
 blobs are ciphertext; the passphrase that unwraps them is never stored.
