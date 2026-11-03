@@ -170,6 +170,18 @@ describe('the account components say when sign-out did not happen', () => {
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull());
     });
 
+    it("OcAccountChip links to the family's account page by default, not a redirect", async () => {
+        setupFetch('ok');
+        render(
+            <OcSessionProvider>
+                <OcAccountChip />
+            </OcSessionProvider>
+        );
+        fireEvent.click(await screen.findByRole('button', { name: /Open account menu/ }));
+        // ochk.io/dashboard only 308s to this page.
+        expect(screen.getByRole('menuitem', { name: /dashboard/ }).getAttribute('href')).toBe('https://ochk.app/me/account');
+    });
+
     it('OcAccountChip: a sign-out with no answer shows the alert; the chip stays signed in', async () => {
         setupFetch('network');
         render(

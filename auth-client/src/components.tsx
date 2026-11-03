@@ -25,8 +25,8 @@ function useUniqueId(prefix: string): string {
 
 export interface OcAccountChipProps {
     /**
-     * URL to the user's account dashboard. Defaults to `https://ochk.io/dashboard`,
-     * the canonical family target.
+     * URL to the user's account page. Defaults to `https://ochk.app/me/account`,
+     * the family's account page (ochk.io/dashboard only redirects there).
      */
     dashboardUrl?: string;
     /**
@@ -67,7 +67,7 @@ export interface OcAccountChipProps {
  * or via the `[data-oc-account-chip-*]` data attributes.
  */
 export function OcAccountChip({
-    dashboardUrl = 'https://ochk.io/dashboard',
+    dashboardUrl = 'https://ochk.app/me/account',
     signInUrl: signInUrlOverride,
     signInLabel = 'sign in',
     className,
@@ -389,7 +389,7 @@ export function OcSignInButton({
 }
 
 export interface OcAccountPillProps extends React.HTMLAttributes<HTMLDivElement> {
-    /** URL to link the address to. Defaults to the auth origin's `/dashboard`. */
+    /** URL to link the address to. With none, the label is plain text. */
     dashboardUrl?: string;
     /** Override the display text. Defaults to the shortened address. */
     render?: (account: { address: string; displayName?: string | null }) => React.ReactNode;
