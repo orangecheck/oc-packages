@@ -127,6 +127,12 @@ every repo reads it on the next run (land it like any change here).
   hotfix shipped as a 0.x minor or a major still waits on its own rule's
   window, and on a person. Either way the branch waits for the daily
   window; a hotfix that cannot wait is bumped by hand in the repo.
+- Hold a release back from some repos until they are ready for it: a rule
+  with `"matchRepositories"`, `"matchPackageNames"` and `"allowedVersions"`
+  (for example `"<=1.18.2"`), with a description naming the unit that lifts
+  it. The repo's own unit bumps the package and takes its name out of the
+  rule. Holds today: `@orangecheck/sdk` at 1.18.2 for oc-attest-web, oc-www
+  and oc-pledge-web, until each decodes the reasons sdk 1.19.0 to 1.21.0 add.
 
 Tweak one repo's behaviour in that repo's `renovate.json`:
 
