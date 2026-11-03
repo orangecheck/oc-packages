@@ -104,7 +104,7 @@ window if your use needs it.
 
 ## Outcome envelopes
 
-Deterministic outcome (any of the five non-counterparty mechanisms — `chain_state`, `nostr_event_exists`, `stamp_published`, `http_get_hash`, `dns_record`, `vote_resolves`):
+Deterministic outcome (any of the six non-counterparty mechanisms — `chain_state`, `nostr_event_exists`, `stamp_published`, `http_get_hash`, `dns_record`, `vote_resolves`):
 
 ```ts
 import { createOutcome } from '@orangecheck/pledge-core';
