@@ -197,7 +197,7 @@ describe('checkPledgeCreateScope', () => {
     });
     it('fails when counterparty does not match', () => {
         const r = checkPledgeCreateScope(
-            pledge({ counterparty: 'bc1qOTHER' }),
+            pledge({ counterparty: 'bc1qother' }),
             delegation({ scopes: ['pledge:create(counterparty=bc1qexpected)'] }),
         );
         expect(r.ok).toBe(false);

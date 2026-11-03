@@ -202,9 +202,22 @@ const HEX_32 = /^[0-9a-f]{32}$/;
 
 export type ValidateResult = { ok: true } | { ok: false; reason: string };
 
+/**
+ * SPEC §2: a bech32 or bech32m address is written in lowercase. BIP-173 lets the
+ * same address be written in capitals, but discovery tags and every address
+ * comparison are by exact string, so a capitals spelling goes unlisted and can
+ * pass as a different address. Case only: nothing here decodes the address.
+ */
+export function bech32InCapitals(address: string): boolean {
+    return /^(bc|tb|bcrt)1/i.test(address) && /[A-Z]/.test(address);
+}
+
 export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult {
     if (!input.swearer || /[\s\x00-\x1f]/.test(input.swearer)) {
         return r('swearer must be non-empty with no whitespace or control chars');
+    }
+    if (bech32InCapitals(input.swearer)) {
+        return r('swearer: a bech32 address MUST be written in lowercase (SPEC §2)');
     }
     if (input.proposition.length === 0 || /[\n\r]/.test(input.proposition)) {
         return r('proposition must be non-empty and a single line (no LF or CR)');
@@ -278,6 +291,9 @@ export function validatePledgeInput(input: PledgeCanonicalInput): ValidateResult
     if (input.counterparty === 'null') {
         return r('counterparty must not be the string "null": it signs the same bytes as null');
     }
+    if (input.counterparty !== null && bech32InCapitals(input.counterparty)) {
+        return r('counterparty: a bech32 address MUST be written in lowercase (SPEC §2)');
+    }
     if (input.resolution.mechanism === 'counterparty_signs' && input.counterparty === null) {
         return r('counterparty MUST be non-null when resolution.mechanism == counterparty_signs');
     }
@@ -339,6 +355,9 @@ export function readOutcomeInput(input: OutcomeCanonicalInput): ValidateResult {
         (!input.resolved_by || /[\s\x00-\x1f]/.test(input.resolved_by))
     ) {
         return r('resolved_by must be "deterministic" or a Bitcoin address');
+    }
+    if (bech32InCapitals(input.resolved_by)) {
+        return r('resolved_by: a bech32 address MUST be written in lowercase (SPEC §2)');
     }
     if (!RESOLUTION_MECHANISMS.includes(input.evidence.mechanism)) {
         return r(`evidence.mechanism "${input.evidence.mechanism}" is not in the SPEC §3.4 set`);

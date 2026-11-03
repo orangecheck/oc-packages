@@ -272,9 +272,23 @@ def _r(reason: str) -> ValidateErr:
     return ValidateErr(reason=reason)
 
 
+_BECH32_HRP: Final = re.compile(r"(bc|tb|bcrt)1", re.IGNORECASE | re.ASCII)
+
+
+def bech32_in_capitals(address: str) -> bool:
+    """SPEC §2: a bech32 or bech32m address is written in lowercase. BIP-173
+    lets the same address be written in capitals, but discovery tags and every
+    address comparison are by exact string, so a capitals spelling goes unlisted
+    and can pass as a different address. Case only: nothing here decodes the
+    address."""
+    return bool(_BECH32_HRP.match(address)) and re.search(r"[A-Z]", address) is not None
+
+
 def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
     if not input.swearer or _SPACE_OR_CONTROL.search(input.swearer):
         return _r("swearer must be non-empty with no whitespace or control chars")
+    if bech32_in_capitals(input.swearer):
+        return _r("swearer: a bech32 address MUST be written in lowercase (SPEC §2)")
     if not input.proposition or re.search(r"[\n\r]", input.proposition):
         return _r("proposition must be non-empty and a single line (no LF or CR)")
     if len(utf8_bytes(input.proposition)) > 512:
@@ -310,6 +324,8 @@ def validate_pledge_input(input: PledgeCanonicalInput) -> ValidateResult:
     # The canonical message writes null as "null", so that string signs null's bytes (SPEC §3.6).
     if input.counterparty == "null":
         return _r('counterparty must not be the string "null": it signs the same bytes as null')
+    if input.counterparty is not None and bech32_in_capitals(input.counterparty):
+        return _r("counterparty: a bech32 address MUST be written in lowercase (SPEC §2)")
     if input.resolution.mechanism == "counterparty_signs" and input.counterparty is None:
         return _r("counterparty MUST be non-null when resolution.mechanism == counterparty_signs")
     if input.dispute.mechanism is not None and input.dispute.mechanism not in (
@@ -364,6 +380,8 @@ def read_outcome_input(input: OutcomeCanonicalInput) -> ValidateResult:
         or _SPACE_OR_CONTROL.search(input.resolved_by)
     ):
         return _r('resolved_by must be "deterministic" or a Bitcoin address')
+    if bech32_in_capitals(input.resolved_by):
+        return _r("resolved_by: a bech32 address MUST be written in lowercase (SPEC §2)")
     if input.evidence.mechanism not in RESOLUTION_MECHANISMS:
         return _r(
             f'evidence.mechanism "{input.evidence.mechanism}" is not in the SPEC §3.4 set'
