@@ -7,6 +7,25 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.2.0] — 2026-11-03
+
+### Added
+
+- A voter whose coins the chain did not give is **unread**, never weighed 0
+  and never the end of the count. A `UtxoLookup` that could not read an
+  address throws the new `UtxoUnreadError` with a `UtxoUnreadReason`:
+  `chain_unread` (no chain API answered), `utxo_cap_unread` (the address
+  holds more coins than the API lists, about 500 on mempool.space, which
+  anyone can arrange by sending it dust) or `provider_refused_unread` (the
+  API refused the lookup). `tally()` then answers the new `UnreadResult`,
+  `{ state: 'unread', snapshot_block, unread: [{ voter, reason }] }`, with no
+  count, as SPEC §8 gives a ballot read that fell short: tally again once the
+  chain answers. Until now the one throw ended the whole tally, so a single
+  unreadable voter (or one an attacker dusted past the cap) made the poll
+  uncountable with no word of why. Any other throw from the lookup still
+  aborts the tally, so a lookup that does not throw `UtxoUnreadError` behaves
+  as before. Nothing is kept: the next tally reads the chain again.
+
 ## [2.1.0] — 2026-10-25
 
 As oc-vote-protocol SPEC §7: a poll, ballot or reveal nests at most 32 levels

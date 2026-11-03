@@ -18,12 +18,13 @@ import type {
     TallyResult,
     TallyResultHead,
     Tiebreak,
+    UnreadResult,
     UtxoLookup,
     Utxo,
 } from './types.js';
 import { anchoredTallyIsFinal, isAnchoredPoll, lastAnchorHeight } from './anchor.js';
 import { MAX_NESTING_DEPTH, nestedTooDeep } from './depth.js';
-import { isBlockHeight, isMainnetAddress, parseUtc, verifyBallot, VoteError } from './verify.js';
+import { isBlockHeight, isMainnetAddress, parseUtc, UtxoUnreadError, verifyBallot, VoteError } from './verify.js';
 import type { SignatureVerifier } from './verify.js';
 import { isSupportedMode, voterWeight } from './weight.js';
 
@@ -339,13 +340,22 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
     );
     let turnoutVoters = 0;
     let turnoutWeight = 0;
+    // Voters whose coins the chain did not give: unread, never weighed 0.
+    const unread: UnreadResult['unread'] = [];
     const voters = Array.from(perVoter.keys()).sort();
     for (const voter of voters) {
         const b = perVoter.get(voter);
         if (!b) continue;
         if (b.option === 'withdraw' || b.option == null) continue;
         if (!hasOwn(tallies, b.option)) continue;
-        const utxos: Utxo[] = await Promise.resolve(utxosAt(voter, H));
+        let utxos: Utxo[];
+        try {
+            utxos = await Promise.resolve(utxosAt(voter, H));
+        } catch (err) {
+            if (!(err instanceof UtxoUnreadError)) throw err;
+            unread.push({ voter, reason: err.reason });
+            continue;
+        }
         const w = voterWeight({
             utxos,
             snapshot: H,
@@ -359,6 +369,9 @@ export async function tally(opts: TallyOptions): Promise<TallyResult> {
         turnoutVoters++;
         turnoutWeight += w;
     }
+
+    // No count while a counted voter is unread (SPEC §8): only who could not be read.
+    if (unread.length > 0) return { state: 'unread', ...head, snapshot_block: H, unread };
 
     const counted = voters.map((v) => standing.get(v)!).sort();
     return {

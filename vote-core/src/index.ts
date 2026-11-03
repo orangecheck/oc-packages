@@ -29,7 +29,7 @@ export {
     lastAnchorHeight,
 } from './anchor.js';
 export type { TallyOptions } from './tally.js';
-export { isMainnetAddress, parseUtc, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
+export { isMainnetAddress, parseUtc, UtxoUnreadError, verifyBallot, verifyPoll, verifyReveal, VoteError } from './verify.js';
 export { MAX_NESTING_DEPTH, nestedTooDeep } from './depth.js';
 export {
     MIN_SNAPSHOT_CONFIRMATIONS,
@@ -56,8 +56,10 @@ export type {
     TallyResultHead,
     TallyTurnout,
     Tiebreak,
+    UnreadResult,
     Utxo,
     UtxoLookup,
+    UtxoUnreadReason,
     VoteErrorCode,
     WeightMode,
     WeightParams,
