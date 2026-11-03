@@ -4,7 +4,7 @@ import { cn } from '../lib/cn';
 import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, whenIdle } from './env';
 import { Batch, inks, mix, rgba } from './paint';
 import { portraitPoints, type Points } from './points';
-import { PORTRAIT_POSTER } from './portrait-poster';
+import { PORTRAIT_POSTER, PORTRAIT_POSTER_DARK } from './portrait-poster';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
 /*
@@ -33,7 +33,7 @@ export interface Callout {
 }
 
 export interface ParticlePortraitProps {
-    /** The dots, or a loader for them; the deck portrait by default. */
+    /** The dots, or a loader for them; a bust drawn from shapes by default. */
     points?: Points | (() => Promise<Points>);
     /** Notes on the picture, in reading order. */
     callouts?: readonly Callout[];
@@ -43,7 +43,7 @@ export interface ParticlePortraitProps {
     ground?: 'auto' | 'light' | 'dark';
     /** Part the dots under a fine pointer. */
     lens?: boolean;
-    /** Shown until the canvas draws, without script, and under reduced motion. The deck portrait's own by default. */
+    /** Shown until the canvas draws, without script, and under reduced motion. The bust's own by default. */
     poster?: ReactNode;
     /** The control's words. */
     labels?: { pause?: string; play?: string; replay?: string };
@@ -138,7 +138,8 @@ export function ParticlePortrait({
                 <div className="oca-portrait-poster" aria-hidden>
                     {poster ?? (
                         <svg viewBox="0 0 1000 1000" className="size-full">
-                            <path d={PORTRAIT_POSTER} fill="currentColor" />
+                            <path className="oca-portrait-ink" d={PORTRAIT_POSTER} fill="currentColor" />
+                            <path className="oca-portrait-light" d={PORTRAIT_POSTER_DARK} fill="currentColor" />
                         </svg>
                     )}
                 </div>
@@ -255,6 +256,8 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
 
     const batch = new Batch(n);
     let styles: string[] = [];
+    // Each dot's full width, as a fraction of the pitch: from its ink, or for a shaded picture on a dark ground from its light.
+    const width = new Float32Array(n);
     let t = o.still ? END : 0;
     let paused = false;
     let done = o.still;
@@ -306,6 +309,8 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
     }
     return {
         theme(dark: boolean) {
+            // A floor of a few percent keeps the lightest places a fine texture rather than bare ground.
+            for (let i = 0; i < n; i++) width[i] = Math.sqrt(0.05 + 0.95 * (dark && pts.shaded ? 1 - pts.tone[i]! : pts.tone[i]!)) * DOT;
             const { base, heat } = inks(dark);
             styles = [];
             for (let k = 0; k < LEVELS; k++) styles.push(rgba(base, CLOUD_ALPHA + ((1 - CLOUD_ALPHA) * k) / (LEVELS - 1)));
@@ -334,7 +339,7 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
             for (let i = 0; i < n; i++) {
                 const tx = ox + pts.x[i]! * side;
                 const ty = oy + pts.y[i]! * side;
-                const full = Math.max(1, Math.sqrt(pts.tone[i]!) * pitch * DOT);
+                const full = Math.max(1, width[i]! * pitch);
                 let x = tx;
                 let y = ty;
                 let s = full;

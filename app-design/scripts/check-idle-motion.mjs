@@ -17,10 +17,11 @@
  *
  * Run after `yarn build` (it reads the CSS as a site compiles it).
  */
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { bundle, compileCss, findChrome, pkg, writePage } from './browser.mjs';
 
@@ -115,6 +116,9 @@ try {
             )
         )
     );
+    // The same markup on a dark page: the posters must draw a positive in light ink, not the paper frame inverted.
+    const serverDark = serverPage.replace(/server\.html$/, 'server-dark.html');
+    writeFileSync(fileURLToPath(serverDark), readFileSync(fileURLToPath(serverPage), 'utf8').replace('<html data-oc-app="ochk">', '<html data-oc-app="ochk" class="dark">'));
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
 
@@ -242,6 +246,29 @@ try {
             check(r.note === '1', `no script: a note is at opacity ${r.note}`);
             check(r.crowd === '1', `no script: the crowd's end-state poster is at opacity ${r.crowd}`);
             check(r.swap === 'none', `no script: the story's end headline is clipped (${r.swap})`);
+            // Each ground shows its own frame of the portrait, and the crowd's end: a grid of ghosts and the backed few.
+            for (const [url, dark] of [
+                [serverPage, false],
+                [serverDark, true],
+            ]) {
+                await p.goto(url);
+                const g = await p.evaluate(() => {
+                    const shown = (sel) => getComputedStyle(document.querySelector(sel)).display !== 'none';
+                    return {
+                        ink: shown('.oca-portrait-ink'),
+                        light: shown('.oca-portrait-light'),
+                        colour: getComputedStyle(document.querySelector('.oca-portrait-poster')).color,
+                        ghosts: document.querySelector('.oca-crowd-poster rect')?.getAttribute('fill') ?? '',
+                        crowdColour: getComputedStyle(document.querySelector('.oca-crowd-poster')).color,
+                        backed: document.querySelectorAll('.oca-crowd-poster use').length,
+                    };
+                });
+                const lum = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, v) => a + Number(v), 0) / 3;
+                const ground = dark ? 'dark' : 'light';
+                check(g.ink === !dark && g.light === dark, `no script, ${ground} page: the portrait poster shows ink ${g.ink}, light ${g.light}`);
+                check(dark ? lum(g.colour) > 200 && lum(g.crowdColour) > 200 : lum(g.colour) < 80 && lum(g.crowdColour) < 80, `no script, ${ground} page: the posters draw in ${g.colour} and ${g.crowdColour}`);
+                check(/^url\(#.+-place\)$/.test(g.ghosts) && g.backed === 8, `no script, ${ground} page: the crowd poster has ghosts '${g.ghosts}' and ${g.backed} backed figures`);
+            }
             await ctx.close();
         }
 

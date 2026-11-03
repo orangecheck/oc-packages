@@ -13,6 +13,12 @@ export interface Points {
     tone: Float32Array;
     /** A full-tone dot's width as a fraction of the square: the spacing the points were laid on. */
     pitch: number;
+    /**
+     * A shaded picture rather than a mark: on a dark ground each dot is drawn
+     * as large as its spot is light (1 - tone), so the picture stays a
+     * positive. Leave it unset for type and marks, which keep their ink.
+     */
+    shaded?: boolean;
 }
 
 /** Points from the packed bytes. */
@@ -48,25 +54,11 @@ export async function fetchPoints(url: string, pitch: number): Promise<Points> {
 let portrait: Promise<Points> | null = null;
 
 /**
- * The deck portrait as dots on its own 45° screen, the default for
- * ParticlePortrait. Imported on first use, so a page carries it only once a
- * portrait asks, and only once.
+ * A bust drawn from shapes (scripts/motion-points.mjs), as dots on a 45°
+ * screen: the default for ParticlePortrait. Imported on first use, so a page
+ * carries it only once a portrait asks, and only once.
  */
 export function portraitPoints(): Promise<Points> {
-    portrait ??= import('./portrait-points.data').then((m) => decodePoints(m.PORTRAIT_POINTS_B64, m.PORTRAIT_PITCH));
+    portrait ??= import('./portrait-points.data').then((m) => ({ ...decodePoints(m.PORTRAIT_POINTS_B64, m.PORTRAIT_PITCH), shaded: true }));
     return portrait;
 }
-
-/**
- * Named places on the deck portrait, in its square, for callouts: where a
- * label's `+` lands. Read off the settled frame.
- */
-export const PORTRAIT_ANCHORS = {
-    hair: [0.6, 0.14],
-    eye: [0.49, 0.22],
-    smile: [0.47, 0.33],
-    hand: [0.38, 0.44],
-    shoulder: [0.7, 0.55],
-    sleeve: [0.86, 0.66],
-    wrist: [0.4, 0.86],
-} as const satisfies Record<string, readonly [number, number]>;

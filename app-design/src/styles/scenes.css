@@ -47,11 +47,27 @@
    the canvas agree without script. */
 [data-oc-app='ochk'] .oca-portrait {
     container: oca-portrait / inline-size;
+}
+/* The dots' ink where a scene draws without script: burnt on a light ground, near-white on a dark one, whatever the page's theme. */
+[data-oc-app='ochk'] :is(.oca-portrait, .oca-crowd) {
     --oca-dots: var(--oca-burnt, var(--foreground));
 }
-[data-oc-app='ochk'].dark .oca-portrait:not([data-ground='light']),
-[data-oc-app='ochk'] .oca-portrait[data-ground='dark'] {
-    --oca-dots: var(--foreground);
+[data-oc-app='ochk'].dark :is(.oca-portrait, .oca-crowd):not([data-ground='light']),
+[data-oc-app='ochk'] :is(.oca-portrait, .oca-crowd)[data-ground='dark'] {
+    --oca-dots: var(--oca-burnt-foreground, var(--foreground));
+}
+
+/* The poster's two frames: ink on paper, and the positive drawn in light on a dark ground. */
+[data-oc-app='ochk'] .oca-portrait-light {
+    display: none;
+}
+[data-oc-app='ochk'].dark .oca-portrait:not([data-ground='light']) .oca-portrait-ink,
+[data-oc-app='ochk'] .oca-portrait[data-ground='dark'] .oca-portrait-ink {
+    display: none;
+}
+[data-oc-app='ochk'].dark .oca-portrait:not([data-ground='light']) .oca-portrait-light,
+[data-oc-app='ochk'] .oca-portrait[data-ground='dark'] .oca-portrait-light {
+    display: inline;
 }
 
 [data-oc-app='ochk'] .oca-portrait-stage {
@@ -296,6 +312,7 @@
 /* ── CrowdDissolve ────────────────────────────────────────────────────────
    Without script or motion the poster shows the end: the backed few, lit. */
 [data-oc-app='ochk'] .oca-crowd-poster {
+    color: var(--oca-dots);
     transition: opacity 300ms var(--oca-motion-ease);
 }
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
