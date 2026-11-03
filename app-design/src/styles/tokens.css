@@ -151,7 +151,12 @@
     --oca-footer-line: #d17149;
     --oca-skeleton: #e4e0dc;
 
-    --radius: 1rem;
+    /* The page is square (PLAN §1): chrome, controls, cards, panels, badges
+       and inputs have radius 0. Rounding lives only inside depictions: a mock
+       screen (12px) and an OG/social tile (24px). Avatars are circles. */
+    --radius: 0px;
+    --oca-radius-depict: 0.75rem;
+    --oca-radius-tile: 1.5rem;
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
@@ -159,13 +164,13 @@
     --oc-font-display: 'OCA Inter', 'OCA Inter Display Fallback', ui-sans-serif, system-ui, sans-serif;
 
     /* The family sign-in ceremony (@orangecheck/auth-client ≥ 2.27) in this
-       design: sentence-case Inter, pill buttons, rounded fields. */
+       design: sentence-case Inter, square buttons and fields. */
     --oc-signin-font: var(--oc-font-sans);
     --oc-signin-case: none;
     --oc-signin-tracking: 0;
     --oc-signin-scale: 1.25;
-    --oc-signin-radius: 0.875rem;
-    --oc-signin-button-radius: 9999px;
+    --oc-signin-radius: 0;
+    --oc-signin-button-radius: 0;
     --oc-signin-strong: 500;
     /* Sentence-case labels carry no trailing arrow (auth-client ≥ 2.29). */
     --oc-signin-arrow: none;
@@ -185,8 +190,8 @@
     --oc-wallet-tracking: 0;
     --oc-wallet-scale: 1.25;
     --oc-wallet-strong: 500;
-    --oc-wallet-radius: 0.875rem;
-    --oc-wallet-button-radius: 9999px;
+    --oc-wallet-radius: 0;
+    --oc-wallet-button-radius: 0;
     --oc-wallet-min-height: 2.25rem;
     --oc-wallet-surface: var(--card);
     --oc-wallet-ready: var(--success);
@@ -199,13 +204,17 @@
     /* OcWalletButton's heading: shown on its own, hidden where SignMessage already leads. */
     --oc-wallet-heading: block;
 
-    /* The deck has no shadows. Overlays get one, so a dialog still separates. */
+    /* The page has no shadows. Overlays get one, so a dialog still separates;
+       it is warm, an ink shadow on paper. */
     --oc-shadow-2xs: none;
     --oc-shadow-xs: none;
-    --oc-shadow-sm: 0 1px 2px rgb(10 10 10 / 0.04);
-    --oc-shadow-md: 0 4px 16px -4px rgb(10 10 10 / 0.08);
-    --oc-shadow-lg: 0 12px 32px -8px rgb(10 10 10 / 0.12);
-    --oc-shadow-xl: 0 24px 56px -12px rgb(10 10 10 / 0.18);
+    --oc-shadow-sm: 0 1px 2px rgb(22 20 18 / 0.04);
+    --oc-shadow-md: 0 4px 16px -4px rgb(22 20 18 / 0.08);
+    --oc-shadow-lg: 0 12px 32px -8px rgb(22 20 18 / 0.12);
+    --oc-shadow-xl: 0 24px 56px -12px rgb(22 20 18 / 0.18);
+    /* A depicted product (a mock browser or phone) and the orange glow behind it. */
+    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 50px 100px -24px rgb(0 0 0 / 0.7);
+    --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
 }
 
 :root.dark[data-oc-app='ochk'],
