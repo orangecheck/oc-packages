@@ -82,7 +82,7 @@ export async function runMeInit(opts: InitOpts): Promise<void> {
     const enabledCount = Object.values(cfg.events).filter((e) => e?.enabled).length;
     process.stdout.write(`  enabled:    ${enabledCount} of ${ALL_EVENT_SUBTYPES.length} subtypes\n`);
     process.stdout.write(
-        `\nnext: review ${outPath}, then submit via the dashboard at me.ochk.io/me/projects.\n`
+        `\nnext: review ${outPath}, then submit it from your project at https://ochk.app/me/projects.\n`
     );
 }
 

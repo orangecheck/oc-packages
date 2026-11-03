@@ -141,11 +141,11 @@ challenge
         });
     });
 
-// ── me.ochk.io integrator commands ────────────────────────────────────────
+// ── integrator commands (the me.ochk.io API) ──────────────────────────────
 
 const me = program
     .command('me')
-    .description('me.ochk.io integrator commands · scaffold, validate, smoke-fire');
+    .description('integrator commands for the me.ochk.io API · scaffold, validate, smoke-fire');
 
 me.command('init')
     .description('Scaffold an IntegratorPriceConfig from one of the curated archetypes')
