@@ -1,11 +1,15 @@
 # @orangecheck/design
 
+> **Frozen.** This package gets fixes only, no new features. New work uses
+> [`@orangecheck/app-design`](../app-design), the ochk.app design system (tokens,
+> type, primitives and site chrome, scoped under `data-oc-app="ochk"`), which most
+> family sites have moved to. Sites still on this package keep working.
+
 The OrangeCheck design system — **multi-theme tokens, primitives, and family
 composites** for the `.ochk.io` sub-sites. Tailwind 4 + Next.js Pages Router.
 Family-internal (for embeddable OrangeCheck components see `@orangecheck/react`).
 
 Living showcase: **[design.ochk.io](https://design.ochk.io)** (Storybook).
-Canonical design + rollout plan: `~/Projects/ochk/DESIGN-SYSTEM-PLAN.md`.
 
 ## What's in the box
 
@@ -14,7 +18,7 @@ Canonical design + rollout plan: `~/Projects/ochk/DESIGN-SYSTEM-PLAN.md`.
 | `@orangecheck/design` | everything below, re-exported |
 | `@orangecheck/design/tokens` | `OcThemeProvider`, `useOcSkin`, `OcThemePicker`, `getOcThemeInitScript`, `OC_THEMES`, `DEFAULT_OC_THEME`, `cn` |
 | `@orangecheck/design/primitives` | `Button` `Badge` `Input` `Label` `Alert` `Textarea` `ThemeToggle` `Working` `ErrorBoundary` (cva + Radix) |
-| `@orangecheck/design/components` | family composites, re-exported from `@orangecheck/ui` |
+| `@orangecheck/design/components` | family composites and chrome, re-exported from `./composites` and `./chrome` (prefer those subpaths) |
 | `@orangecheck/design/styles.css` | token bridge + base layer + utility system + all skin token values |
 
 ## Two theme axes
@@ -38,7 +42,6 @@ The two compose: any skin renders in both modes.
 
 ```css
 @import 'tailwindcss';
-@source '../../node_modules/@orangecheck/ui';
 @source '../../node_modules/@orangecheck/design';
 @import 'tw-animate-css';
 @custom-variant dark (&:is(.dark *));
@@ -77,7 +80,10 @@ CSS) rebases the relative `url()` on `@import`, so the woff2 emits through every
 consumer's build with **zero per-site `next/font` wiring**; the browser only
 fetches it when ember is the active skin.
 
-## Adding a skin
+## How a skin is built
+
+No new skins ship while the package is frozen. This is how the five that exist
+are wired, for fixing them:
 
 1. Add `src/styles/themes/<id>.css` declaring the full token set for both modes
    (under `[data-oc-theme='<id>']` and `[data-oc-theme='<id>'].dark`). Scope every
@@ -90,10 +96,11 @@ fetches it when ember is the active skin.
    `scripts/verify-contrast.mjs`, then `yarn verify` (asserts the skin is
    distinct and AA-clean in both modes).
 5. (Optional) self-host a font: see the Hanken Grotesk note above.
-6. Publish. Every site picks it up on the next Renovate bump — no per-site edits.
+6. A fix publishes as a patch, and every site still on this package picks it up
+   on its next Renovate bump — no per-site edits.
 
-A skin is **opt-in** by default — shipping one makes it a picker option, not the
-default. Changing `DEFAULT_OC_THEME` (family-wide) or a per-site
+A skin is **opt-in** by default — being in `OC_THEMES` makes it a picker option,
+not the default. Changing `DEFAULT_OC_THEME` (family-wide) or a per-site
 `<OcThemeProvider defaultSkin>` is a separate, deliberate flip.
 
 ## Build
