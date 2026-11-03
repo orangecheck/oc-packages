@@ -5,6 +5,20 @@
  * fade and lift. Everything stops under prefers-reduced-motion (theme.css).
  */
 
+/* Motion tokens (PLAN §2): one ease-out for every reveal, a glide for things
+   that travel, four durations, and two staggers (centre-out letters, lists). */
+:root[data-oc-app='ochk'],
+[data-oc-app='ochk'] {
+    --oca-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --oca-ease-glide: cubic-bezier(0.65, 0, 0.35, 1);
+    --oca-duration-quick: 200ms;
+    --oca-duration-base: 300ms;
+    --oca-duration-slow: 500ms;
+    --oca-duration-reveal: 1000ms;
+    --oca-stagger-centre: 40ms;
+    --oca-stagger-list: 60ms;
+}
+
 @keyframes oca-rise {
     from {
         opacity: 0;
