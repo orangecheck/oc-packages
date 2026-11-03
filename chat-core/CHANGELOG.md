@@ -6,6 +6,27 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [0.2.2] — 2026-11-03
+
+### Fixed
+
+- The read floor counts a relay only when it answered in full (§8.7), in the
+  family's words: `complete`, its last page came back short; `cut_off`, it sent
+  a full page that was not read past, or stopped after sending something;
+  `no_answer`, it sent nothing. A relay cut off keeps the floor unmet however
+  many others answered. `meetsReadFloor(status, limit?)` takes each relay's
+  `state` when its reader paged it, else its EOSE with a short page when its
+  counts and the page `limit` are known; `answeredInFull` and `readState` are
+  new, and `QueryAnswer.relayStatus` entries are `RelayAnswer`s.
+- `readChannelVersions` counts its open read per relay across its pages: a
+  relay counts only when it sent EOSE for every page it was asked for and its
+  last page was short. An EOSE on some page of the union no longer counts, so
+  a relay that answered page 1 and stopped cannot make "no newer version". Its
+  other reads ask for a page of 500 and count a capped answer as cut off.
+- `RecordLookup` answers may carry each relay's `state`, or its counts and the
+  `limit` asked for, so an EOSE after a capped page of device records no longer
+  meets the floor. Answers with neither are taken as before.
+
 ## [0.2.1] — 2026-11-03
 
 ### Fixed

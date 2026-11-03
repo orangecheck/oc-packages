@@ -13,7 +13,14 @@ import {
 
 import type { IsBound } from './channel';
 import { verifyNostrEvent } from './event';
-import { completeAnswers, meetsReadFloor, readFloor, UnansweredReadError, type VerifyBip322 } from './read';
+import {
+    completeAnswers,
+    meetsReadFloor,
+    readFloor,
+    UnansweredReadError,
+    type RelayAnswer,
+    type VerifyBip322,
+} from './read';
 import { liveSessionDevices, sessionDeviceDtag, sessionKeysEverBound, type AuthHostKey } from './session';
 import { btcBindingLive, sessionBindingRevoked, type Liveness, type VersionBinding } from './version-binding';
 
@@ -45,14 +52,21 @@ export function addressKeysEverBound(verified: readonly ParsedDeviceEvent[], now
 
 /**
  * The kind-30078 records the relays hold under a principal's d-tag, and per relay
- * asked whether it finished answering (EOSE). A record seen on any relay counts.
- * A conclusion that rests on a record not being there needs the read floor
- * (§8.7, `meetsReadFloor`): "bound now" and "live" (no revocation seen), and
- * "not bound". Below it those are not read.
+ * asked how it answered. A record seen on any relay counts. A conclusion that
+ * rests on a record not being there needs the read floor (§8.7,
+ * `meetsReadFloor`): "bound now" and "live" (no revocation seen), and "not
+ * bound". Below it those are not read. A relay counts toward the floor only when
+ * it answered in full: its `state` is complete (a lookup that pages each relay
+ * reports it), or it sent EOSE with a short page, which needs its `events` and
+ * the `limit` the lookup asked for. An EOSE after a capped page is not a full
+ * answer; with neither `state` nor counts, an EOSE is taken as one.
  */
-export type RecordLookup = (
-    principal: string
-) => Promise<{ events: NostrEvent[]; relayStatus: readonly { eose: boolean }[] }>;
+export type RecordLookup = (principal: string) => Promise<{
+    events: NostrEvent[];
+    relayStatus: readonly RelayAnswer[];
+    /** The page size the lookup asked each relay for, when it set one. */
+    limit?: number;
+}>;
 
 export interface RecordReadOptions {
     /** The auth host's published keys, retired ones included (§8.6). Read only for a did:oc. */
@@ -84,8 +98,13 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
     // What one read of a principal's records allows: anything it returned, once a
     // relay answered; what it did not return, only at the floor.
     const read = async (p: string) => {
-        const { events, relayStatus } = await records(p);
-        return { events, answered: completeAnswers(relayStatus) > 0, floor: meetsReadFloor(relayStatus), asked: relayStatus.length };
+        const { events, relayStatus, limit } = await records(p);
+        return {
+            events,
+            answered: completeAnswers(relayStatus) > 0,
+            floor: meetsReadFloor(relayStatus, limit),
+            asked: relayStatus.length,
+        };
     };
     const verified = async (address: string) => {
         const { events, answered, floor } = await read(address);
