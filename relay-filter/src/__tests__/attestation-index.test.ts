@@ -127,6 +127,17 @@ describe('AttestationIndex.decide', () => {
         });
     });
 
+    it('fails open for chain_unread alone beside the signature, with no bad_request', async () => {
+        vi.mocked(verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'chain_unread'],
+            network: 'mainnet',
+        } as never);
+        index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
+        await flush();
+        expect(index.decide(ev(HEX_A!), { failOpen: true })).toMatchObject({ action: 'accept', reason: 'fail_open' });
+    });
+
     it('fails open for sdk 1.21.0 chain_unread, the outage it was meant for', async () => {
         vi.mocked(verify).mockResolvedValue({
             ok: false,
