@@ -19,6 +19,7 @@ const entry = {
     vitest: 'src/vitest/index.ts',
     og: 'src/og/index.tsx',
     fonts: 'src/fonts/index.tsx',
+    blocks: 'src/blocks/index.ts',
 };
 
 /** Every source module, for the ESM build: one module each, so a site's bundler keeps only what a page uses. */

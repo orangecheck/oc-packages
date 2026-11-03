@@ -102,6 +102,8 @@ const PAIRS = [
     ['oca-orange-deep', 'card', 3],
     ['oca-orange-deep', 'background', 3],
     ['oca-ink-foreground', 'oca-orange-deep', 3],
+    // A Slider on ink: its fill and thumb; and orange figures on ink (display size, 3:1).
+    ['oca-orange', 'oca-ink', 3],
     // Chart series and their neutral: graphical objects on the card and the page (1.4.11).
     ...['oca-chart-1', 'oca-chart-2', 'oca-chart-3', 'oca-chart-4', 'oca-chart-neutral'].flatMap((t) => [
         [t, 'card', 3],

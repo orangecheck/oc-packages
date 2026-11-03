@@ -28,39 +28,67 @@ export function PhoneFrame({ className, style, children }: { className?: string;
     );
 }
 
-/** A browser window with its address. Children are the page. */
+/**
+ * A browser window with its address. Children are the page. `paper` is the
+ * product as a depiction on a page of paper: a white screen with the 12px
+ * corner pictures of products keep, a plain bar with no address when `url`
+ * is null, and with `glow`, an orange light behind it.
+ */
 export function BrowserFrame({
     url = 'ochk.app',
+    variant = 'default',
+    glow = false,
     className,
     style,
     children,
 }: {
-    url?: string;
+    url?: string | null;
+    variant?: 'default' | 'paper';
+    glow?: boolean;
     className?: string;
     style?: CSSProperties;
     children: ReactNode;
 }) {
-    return (
+    const paper = variant === 'paper';
+    const frame = (
         <div
+            data-frame={variant}
             className={cn(
-                'overflow-hidden rounded-[1.1rem] border border-border bg-card',
-                'shadow-[0_40px_90px_-40px_rgb(10_10_10/0.45)]',
-                className
+                'relative overflow-hidden',
+                paper
+                    ? 'rounded-[var(--radius-depict,0.75rem)] bg-white shadow-[0_32px_80px_-32px_rgb(42_18_6/0.6),0_10px_24px_-14px_rgb(42_18_6/0.4)] dark:bg-oca-ink-card'
+                    : 'rounded-[1.1rem] border border-border bg-card shadow-[0_40px_90px_-40px_rgb(10_10_10/0.45)]',
+                !glow && className
             )}
-            style={style}
+            style={glow ? undefined : style}
         >
-            <div className="flex h-10 items-center gap-3 border-b border-border px-4">
+            <div className={cn('flex h-10 items-center gap-3 border-b px-4', paper ? 'border-oca-hairline-strong/40 bg-muted' : 'border-border')}>
                 <div aria-hidden className="flex gap-1.5">
                     <span className="size-2.5 rounded-full bg-[#ff5f57]" />
                     <span className="size-2.5 rounded-full bg-[#febc2e]" />
                     <span className="size-2.5 rounded-full bg-[#28c840]" />
                 </div>
-                <div className="mx-auto flex h-6 min-w-0 max-w-[60%] flex-1 items-center justify-center rounded-md bg-muted px-3 text-[0.75rem] text-muted-foreground">
-                    <span className="truncate">{url}</span>
-                </div>
-                <span aria-hidden className="w-[2.6rem]" />
+                {url ? (
+                    <div className="mx-auto flex h-6 min-w-0 max-w-[60%] flex-1 items-center justify-center rounded-md bg-muted px-3 text-[0.75rem] text-muted-foreground">
+                        <span className="truncate">{url}</span>
+                    </div>
+                ) : null}
+                {url ? <span aria-hidden className="w-[2.6rem]" /> : null}
             </div>
             <div className="relative">{children}</div>
+        </div>
+    );
+    if (!glow) return frame;
+    return (
+        <div className={cn('relative isolate', className)} style={style}>
+            {/* The light behind the screen: a still gradient, no blur filter to raster. On a phone it stays within the
+                frame's width, so it never widens the page. */}
+            <div
+                aria-hidden
+                data-frame-glow=""
+                className="pointer-events-none absolute inset-x-0 -inset-y-[14%] -z-10 bg-[radial-gradient(closest-side,rgb(249_115_22/0.55),rgb(249_115_22/0.18)_55%,transparent)] md:-inset-x-[8%]"
+            />
+            {frame}
         </div>
     );
 }
