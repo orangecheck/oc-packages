@@ -9,7 +9,7 @@
  *   oc-vault whoami                 — show the cached identity
  *
  * Zero-knowledge: the vault key is derived locally from the passphrase and
- * never leaves the process. See VAULT-DEVELOPER-PLATFORM.md.
+ * never leaves the process.
  */
 
 import { spawn } from 'node:child_process';
