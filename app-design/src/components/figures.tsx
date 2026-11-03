@@ -333,7 +333,7 @@ export function HudCard({
         <div
             data-oca-hud=""
             className={cn(
-                'flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-xl border border-border bg-background/85 p-3 text-[0.8125rem] shadow-sm backdrop-blur-md',
+                'flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-xl border border-border bg-background/90 p-3 text-[0.8125rem] shadow-sm backdrop-blur-md',
                 className
             )}
         >

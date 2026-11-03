@@ -54,7 +54,7 @@ export const DialogContent = forwardRef<
                 ref={ref}
                 className={cn(
                     'oca-animate-rise fixed left-1/2 top-1/2 z-50 w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2',
-                    'max-h-[88vh] overflow-y-auto rounded-[1.5rem] border border-border bg-popover p-6 text-popover-foreground shadow-xl md:p-8',
+                    'max-h-[88vh] overflow-y-auto rounded-none border border-border bg-popover p-6 text-popover-foreground shadow-xl md:p-8',
                     'outline-none',
                     className
                 )}
@@ -64,7 +64,7 @@ export const DialogContent = forwardRef<
                 {children}
                 {hideClose ? null : (
                     <DialogPrimitive.Close
-                        className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         aria-label="Close"
                     >
                         <X className="size-4" />
@@ -114,7 +114,7 @@ export const SheetDescription = DialogDescription;
 const sheetSide = {
     right: 'inset-y-0 right-0 h-full w-[min(88vw,24rem)] border-l',
     left: 'inset-y-0 left-0 h-full w-[min(88vw,24rem)] border-r',
-    bottom: 'inset-x-0 bottom-0 max-h-[88vh] rounded-t-[1.5rem] border-t',
+    bottom: 'inset-x-0 bottom-0 max-h-[88vh] rounded-none border-t',
 } as const;
 
 export const SheetContent = forwardRef<
@@ -141,7 +141,7 @@ export const SheetContent = forwardRef<
             >
                 {children}
                 <DialogPrimitive.Close
-                    className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground hover:bg-accent hover:text-foreground"
                     aria-label="Close"
                 >
                     <X className="size-4" />
@@ -168,7 +168,7 @@ export const PopoverContent = forwardRef<
                 align={align}
                 sideOffset={sideOffset}
                 className={cn(
-                    'oca-animate-fade z-50 w-72 rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-lg outline-none',
+                    'oca-animate-fade z-50 w-72 rounded-none border border-border bg-popover p-4 text-popover-foreground shadow-lg outline-none',
                     className
                 )}
                 {...props}
@@ -193,7 +193,7 @@ export const TooltipContent = forwardRef<
                 ref={ref}
                 sideOffset={sideOffset}
                 className={cn(
-                    'oca-animate-fade z-50 max-w-xs rounded-lg bg-oca-ink px-2.5 py-1.5 text-[0.8125rem] leading-snug text-oca-ink-foreground',
+                    'oca-animate-fade z-50 max-w-xs rounded-none bg-oca-ink px-2.5 py-1.5 text-[0.8125rem] leading-snug text-oca-ink-foreground',
                     className
                 )}
                 {...props}
@@ -218,7 +218,7 @@ export const DropdownMenuContent = forwardRef<
                 ref={ref}
                 sideOffset={sideOffset}
                 className={cn(
-                    'oca-animate-fade z-50 min-w-56 overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg',
+                    'oca-animate-fade z-50 min-w-56 overflow-hidden rounded-none border border-border bg-popover p-1.5 text-popover-foreground shadow-lg',
                     className
                 )}
                 {...props}
@@ -236,7 +236,7 @@ export const DropdownMenuItem = forwardRef<
             ref={ref}
             className={cn(
                 // A thumb's 44px on a phone.
-                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-xl px-3 text-[0.9375rem] outline-none max-md:h-11',
+                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-none px-3 text-[0.9375rem] outline-none max-md:h-11',
                 // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
                 'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
                 destructive && 'text-destructive [&_svg]:text-destructive',

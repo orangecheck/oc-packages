@@ -36,7 +36,7 @@ export const TabsList = forwardRef<
                 ref={ref}
                 className={cn(
                     look === 'pill'
-                        ? 'inline-flex max-w-full flex-wrap items-center gap-1 rounded-[1.375rem] bg-muted p-1'
+                        ? 'inline-flex max-w-full flex-wrap items-center gap-1 rounded-none bg-muted p-1'
                         : 'flex flex-wrap items-center gap-x-6 border-b border-border',
                     className
                 )}
@@ -51,7 +51,7 @@ export const TabsList = forwardRef<
                 ref={ref}
                 className={cn(
                     look === 'pill'
-                        ? 'inline-flex w-max items-center gap-1 rounded-full bg-muted p-1'
+                        ? 'inline-flex w-max items-center gap-1 rounded-none bg-muted p-1'
                         : 'flex w-max min-w-full items-center gap-6 border-b border-border',
                     className
                 )}
@@ -89,7 +89,7 @@ export const TabsTrigger = forwardRef<
                 'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-[0.9375rem] outline-none transition-colors',
                 '[&:focus-visible:not([data-pressed])]:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
                 look === 'pill'
-                    ? 'h-9 rounded-full px-4 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+                    ? 'h-9 rounded-none px-4 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm'
                     : '-mb-px h-11 border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',
                 className
             )}
@@ -111,7 +111,7 @@ export const TabsContent = forwardRef<
             forceMount={keepMounted || undefined}
             // Radix puts the panel in the Tab order; it says so when reached.
             className={cn(
-                'mt-6 rounded-lg outline-none focus-visible:[outline:2px_solid_var(--ring)] focus-visible:[outline-offset:4px]',
+                'mt-6 rounded-none outline-none focus-visible:[outline:2px_solid_var(--ring)] focus-visible:[outline-offset:4px]',
                 keepMounted && 'data-[state=inactive]:hidden',
                 className
             )}

@@ -45,7 +45,7 @@ export function QrCode({
         <div
             role="img"
             aria-label={matrix ? (label ?? `QR code for ${short}`) : 'Too long for a QR code'}
-            className={cn('inline-block shrink-0 rounded-2xl bg-white p-3 ring-1 ring-border', className)}
+            className={cn('inline-block shrink-0 rounded-none bg-white p-3 ring-1 ring-border', className)}
             style={{ width: size, height: size }}
         >
             {matrix ? (

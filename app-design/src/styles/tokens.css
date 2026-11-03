@@ -1,8 +1,9 @@
 /*
  * @orangecheck/app-design — tokens.css
  *
- * Token values for ochk.app, measured from the ochk.app design (iteration 2, 2026-10-15) and
- * corrected where the deck fails contrast. Everything is scoped to
+ * Token values for ochk.app, app-design 2.0: warm paper, ink text, square
+ * controls (design iteration 2, PLAN §2, 2026-11-03), corrected where a pair
+ * fails contrast. Everything is scoped to
  * [data-oc-app='ochk'], so a family site that never sets the attribute never
  * sees a value from here. The :root form outranks a family skin's bare :root.
  *
@@ -20,37 +21,46 @@
     color-scheme: light;
 
     /* Surfaces */
-    --background: #fafafa;
-    --foreground: #0a0a0a;
-    --card: #ffffff;
-    --card-foreground: #0a0a0a;
+    --background: #eeeae6;
+    --foreground: #161412;
+    --card: #f5f2ef;
+    --card-foreground: #161412;
     --popover: #ffffff;
-    --popover-foreground: #0a0a0a;
-    --muted: #f2f2f2;
-    --muted-foreground: #54585e;
-    --secondary: #ffffff;
-    --secondary-foreground: #0a0a0a;
-    --accent: #f4f4f4;
-    --accent-foreground: #0a0a0a;
+    --popover-foreground: #161412;
+    --muted: #e4e0dc;
+    --muted-foreground: #5e5852;
+    --secondary: #f5f2ef;
+    --secondary-foreground: #161412;
+    --accent: #e4e0dc;
+    --accent-foreground: #161412;
+    /* The product surface: inputs, tables, receipts and mock screens. */
+    --oca-surface: #ffffff;
+    --oca-surface-foreground: #161412;
 
-    /* Actions: the black pill and the white outlined pill */
-    --primary: #0a0a0a;
+    /* Actions: page CTAs are deep orange with white text; a brand (orange) fill
+       takes ink text. White on orange is never used (2.80:1). */
+    --primary: #c2410c;
     --primary-foreground: #ffffff;
-    --brand: #f66d36;
-    --brand-foreground: #0a0a0a;
+    --brand: #f97316;
+    --brand-foreground: #161412;
+    /* The CTA's hover, and the ring on a brand or deep fill (an orange ring on
+       orange would vanish), ink in both modes. */
+    --oca-primary-hover: #9a3412;
+    --oca-ring-on-fill: #161412;
 
     /* Lines */
-    --border: #ececec;
+    --border: #d4d0cd;
     /* A field's edge is how you find it: 3:1 against the card it sits on. */
-    --input: #8f8f8f;
-    /* A focus ring is a graphic that must stand out 3:1 (WCAG 1.4.11): #F66D36
-       is 2.81:1 on the canvas, so light mode rings in the deep orange. */
-    --ring: #ea580b;
+    --input: #8a837d;
+    /* A focus ring is a graphic that must stand out 3:1 (WCAG 1.4.11): orange
+       #f97316 is 2.34:1 on paper, so light mode rings in deep #c2410c. */
+    --ring: #c2410c;
 
-    /* Status */
-    --destructive: #c2262e;
+    /* Status, re-tuned on paper: destructive moved from #c2262e (4.14:1 on a
+       tinted Swagger row) and success from #15803d (4.50:1 on the card). */
+    --destructive: #b21d26;
     --destructive-foreground: #ffffff;
-    --success: #15803d;
+    --success: #157a3a;
     --success-foreground: #ffffff;
     --warning: #a15c07;
     --warning-foreground: #ffffff;
@@ -58,26 +68,29 @@
     --info-foreground: #ffffff;
 
     /* ochk.app only */
-    --oca-subtle-foreground: #686c72;
-    --oca-hairline-strong: #dadada;
-    --oca-table-head: #ededed;
-    /* #F66D36 as text is 2.81:1 on the canvas; these are the same hue, darker. */
-    --oca-accent-display: #f55819;
-    --oca-accent-ink: #c73f09;
+    --oca-subtle-foreground: #68615a;
+    --oca-hairline-strong: #c3bfbc;
+    --oca-table-head: #e4e0dc;
+    /* Orange as text fails on paper. Ember is for display sizes, bullets and
+       numerals (3:1 on paper and on the sunken ground: the prototype's #e4561e
+       is 2.83:1 on #e4e0dc, so it moved to #dc531c); small orange text is
+       accent-ink (4.5:1). */
+    --oca-accent-display: #dc531c;
+    --oca-accent-ink: #9a3412;
     --oca-peach: #fed8ab;
-    --oca-orange-light: #fb933c;
-    --oca-orange: #f66d36;
-    --oca-orange-deep: #ea580b;
+    --oca-orange-light: #fb923c;
+    --oca-orange: #f97316;
+    --oca-orange-deep: #c2410c;
 
     /* Chart series: four categorical colours and a neutral, orange first. Each
        clears 3:1 on the card and the page, and every pair stays apart in
        normal vision and with red-green colour blindness (check-contrast.mjs
        tests the set). Up and down are the status colours. */
-    --oca-chart-1: #ea580b;
+    --oca-chart-1: #e0520b;
     --oca-chart-2: #2563eb;
     --oca-chart-3: #9d2b77;
     --oca-chart-4: #92400e;
-    --oca-chart-neutral: #8a8f96;
+    --oca-chart-neutral: #86817b;
     --oca-chart-up: var(--success);
     --oca-chart-down: var(--destructive);
     --oca-chart-grid: var(--border);
@@ -89,15 +102,16 @@
     --oca-sphere-to: #ffd9c4;
     --oca-outline: #f2cfc3;
 
-    /* The dark surfaces (code card, dark bands) are dark in both modes. */
-    --oca-ink: #0a0a0a;
-    --oca-ink-card: #1e1e1e;
-    --oca-ink-line: #2a2a2a;
-    --oca-ink-foreground: #ffffff;
-    --oca-ink-muted: #d5d8dc;
-    --oca-ink-subtle: #909397;
+    /* The ink band and the dark cards on it: ink #161412 in light, lifted to
+       #1c1916 in dark so the band still reads against the night canvas. */
+    --oca-ink: #161412;
+    --oca-ink-card: #1c1916;
+    --oca-ink-line: #2c2927;
+    --oca-ink-foreground: #f5f2ef;
+    --oca-ink-muted: #d6d0ca;
+    --oca-ink-subtle: #a39d97;
     --oca-ink-title: #fcb781;
-    --oca-ink-eyebrow: #f0835a;
+    --oca-ink-eyebrow: #fb923c;
     --oca-code-package: #e99a8f;
     --oca-code-tag: #e3a8c2;
     --oca-code-link: #9db4ec;
@@ -123,9 +137,29 @@
     --oca-code-removed-line: #2f1c1c;
     /* The hairline between bands; only dark needs one. */
     --oca-band-line: transparent;
-    --oca-skeleton: #e8e8e8;
+    /* Bands, the same in both modes. Burnt carries paper text, orange and ember;
+       the footer is deep orange with white text and one solid tint, never an
+       opacity, for its secondary lines. */
+    --oca-burnt: #2a1206;
+    --oca-burnt-foreground: #f5f2ef;
+    --oca-burnt-muted: #c9bdb2;
+    --oca-burnt-accent: #f97316;
+    --oca-burnt-ember: #e4561e;
+    --oca-footer: #c2410c;
+    --oca-footer-foreground: #ffffff;
+    --oca-footer-muted: #fff3ed;
+    --oca-footer-line: #d17149;
+    /* Hairlines on the burnt and orange bands (decorative). */
+    --oca-burnt-line: #422d22;
+    --oca-brand-line: #cc6015;
+    --oca-skeleton: #e4e0dc;
 
-    --radius: 1rem;
+    /* The page is square (PLAN §1): chrome, controls, cards, panels, badges
+       and inputs have radius 0. Rounding lives only inside depictions: a mock
+       screen (12px) and an OG/social tile (24px). Avatars are circles. */
+    --radius: 0px;
+    --oca-radius-depict: 0.75rem;
+    --oca-radius-tile: 1.5rem;
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
@@ -133,13 +167,13 @@
     --oc-font-display: 'OCA Inter', 'OCA Inter Display Fallback', ui-sans-serif, system-ui, sans-serif;
 
     /* The family sign-in ceremony (@orangecheck/auth-client ≥ 2.27) in this
-       design: sentence-case Inter, pill buttons, rounded fields. */
+       design: sentence-case Inter, square buttons and fields. */
     --oc-signin-font: var(--oc-font-sans);
     --oc-signin-case: none;
     --oc-signin-tracking: 0;
     --oc-signin-scale: 1.25;
-    --oc-signin-radius: 0.875rem;
-    --oc-signin-button-radius: 9999px;
+    --oc-signin-radius: 0;
+    --oc-signin-button-radius: 0;
     --oc-signin-strong: 500;
     /* Sentence-case labels carry no trailing arrow (auth-client ≥ 2.29). */
     --oc-signin-arrow: none;
@@ -159,8 +193,8 @@
     --oc-wallet-tracking: 0;
     --oc-wallet-scale: 1.25;
     --oc-wallet-strong: 500;
-    --oc-wallet-radius: 0.875rem;
-    --oc-wallet-button-radius: 9999px;
+    --oc-wallet-radius: 0;
+    --oc-wallet-button-radius: 0;
     --oc-wallet-min-height: 2.25rem;
     --oc-wallet-surface: var(--card);
     --oc-wallet-ready: var(--success);
@@ -173,13 +207,17 @@
     /* OcWalletButton's heading: shown on its own, hidden where SignMessage already leads. */
     --oc-wallet-heading: block;
 
-    /* The deck has no shadows. Overlays get one, so a dialog still separates. */
+    /* The page has no shadows. Overlays get one, so a dialog still separates;
+       it is warm, an ink shadow on paper. */
     --oc-shadow-2xs: none;
     --oc-shadow-xs: none;
-    --oc-shadow-sm: 0 1px 2px rgb(10 10 10 / 0.04);
-    --oc-shadow-md: 0 4px 16px -4px rgb(10 10 10 / 0.08);
-    --oc-shadow-lg: 0 12px 32px -8px rgb(10 10 10 / 0.12);
-    --oc-shadow-xl: 0 24px 56px -12px rgb(10 10 10 / 0.18);
+    --oc-shadow-sm: 0 1px 2px rgb(22 20 18 / 0.04);
+    --oc-shadow-md: 0 4px 16px -4px rgb(22 20 18 / 0.08);
+    --oc-shadow-lg: 0 12px 32px -8px rgb(22 20 18 / 0.12);
+    --oc-shadow-xl: 0 24px 56px -12px rgb(22 20 18 / 0.18);
+    /* A depicted product (a mock browser or phone) and the orange glow behind it. */
+    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 50px 100px -24px rgb(0 0 0 / 0.7);
+    --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
 }
 
 :root.dark[data-oc-app='ochk'],
@@ -187,28 +225,32 @@
 .dark [data-oc-app='ochk'] {
     color-scheme: dark;
 
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --card: #161616;
-    --card-foreground: #fafafa;
-    --popover: #1a1a1a;
-    --popover-foreground: #fafafa;
-    --muted: #1e1e1e;
-    --muted-foreground: #a3a6aa;
+    --background: #0e0c0b;
+    --foreground: #eeeae6;
+    --card: #161412;
+    --card-foreground: #eeeae6;
+    --popover: #1c1916;
+    --popover-foreground: #eeeae6;
+    --muted: #1c1916;
+    --muted-foreground: #a39d97;
     /* Lifted above the card, so a secondary button never reads as a hole. */
-    --secondary: #1c1c1c;
-    --secondary-foreground: #fafafa;
-    --accent: #1e1e1e;
-    --accent-foreground: #fafafa;
+    --secondary: #1c1916;
+    --secondary-foreground: #eeeae6;
+    --accent: #26221f;
+    --accent-foreground: #eeeae6;
+    --oca-surface: #1c1916;
+    --oca-surface-foreground: #eeeae6;
 
-    --primary: #fafafa;
-    --primary-foreground: #0a0a0a;
-    --brand: #f66d36;
-    --brand-foreground: #0a0a0a;
+    --primary: #c2410c;
+    --primary-foreground: #ffffff;
+    --brand: #f97316;
+    --brand-foreground: #161412;
+    --oca-primary-hover: #9a3412;
+    --oca-ring-on-fill: #161412;
 
-    --border: #2a2a2a;
-    --input: #6a6a6a;
-    --ring: #f66d36;
+    --border: #242221;
+    --input: #6f6964;
+    --ring: #f97316;
 
     --destructive: #f87171;
     --destructive-foreground: #0a0a0a;
@@ -219,31 +261,31 @@
     --info: #93c5fd;
     --info-foreground: #0a0a0a;
 
-    --oca-subtle-foreground: #8b8e93;
-    --oca-hairline-strong: #333333;
-    --oca-table-head: #1e1e1e;
-    --oca-accent-display: #f66d36;
-    --oca-accent-ink: #f0835a;
-    --oca-chart-1: #f66d36;
+    --oca-subtle-foreground: #8a837d;
+    --oca-hairline-strong: #363432;
+    --oca-table-head: #1c1916;
+    --oca-accent-display: #f97316;
+    --oca-accent-ink: #fb923c;
+    --oca-chart-1: #f97316;
     --oca-chart-2: #3b82f6;
     --oca-chart-3: #f9a8d4;
     --oca-chart-4: #fde047;
-    --oca-chart-neutral: #62676e;
+    --oca-chart-neutral: #6f6964;
     --oca-avatar-bg-l: 22%;
     --oca-avatar-fg-l: 82%;
     --oca-outline: #3a2a24;
-    /* In dark the ink band lifts off the canvas, so the deck's rhythm survives. */
-    --oca-ink: #171717;
-    --oca-ink-card: #1e1e1e;
-    --oca-icon-tile: #1e1e1e;
-    --oca-icon-ring: #333333;
-    --oca-code-surface: #0e0e0e;
+    /* In dark the ink band lifts off the night canvas, so the rhythm survives. */
+    --oca-ink: #1c1916;
+    --oca-ink-card: #221f1c;
+    --oca-icon-tile: #1c1916;
+    --oca-icon-ring: #363432;
+    --oca-code-surface: #0a0908;
     --oca-code-line: #2a2a2a;
     --oca-code-mark: #1b1b1b;
     --oca-code-added-line: #132519;
     --oca-code-removed-line: #271414;
-    --oca-band-line: #262626;
-    --oca-skeleton: #222222;
+    --oca-band-line: #26231f;
+    --oca-skeleton: #24201d;
 
     --oc-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --oc-shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);

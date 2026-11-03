@@ -85,7 +85,7 @@ export function DocsNav({
                                 });
                             }}
                             className={cn(
-                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.875rem] transition-colors',
+                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-none px-2.5 py-1.5 text-left text-[0.875rem] transition-colors',
                                 isActive ? 'font-medium text-foreground hover:bg-accent' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >
@@ -214,7 +214,7 @@ export function DocsShell({
             >
                 <div className="oca-container flex h-12 items-center gap-2">
                     <Sheet open={menu} onOpenChange={setMenu}>
-                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-full px-2.5 text-[0.875rem] hover:bg-accent">
+                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-none px-2.5 text-[0.875rem] hover:bg-accent">
                             <PanelLeft aria-hidden className="size-[1.125rem] shrink-0" />
                             <span className="sr-only">Docs menu. </span>
                             {place ? (
@@ -247,7 +247,7 @@ export function DocsShell({
                         {/* Below lg the bar under the header already says where you are. */}
                         {breadcrumbs ? <div className="mb-6 max-lg:hidden">{breadcrumbs}</div> : null}
                         {items.length > 1 ? (
-                            <details className="group mb-8 rounded-2xl border border-border bg-card xl:hidden">
+                            <details className="group mb-8 rounded-none border border-border bg-card xl:hidden">
                                 <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-[0.9375rem] font-medium [&::-webkit-details-marker]:hidden">
                                     On this page
                                     <ChevronDown aria-hidden className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />

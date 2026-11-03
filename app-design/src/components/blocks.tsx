@@ -240,16 +240,22 @@ export function Closing({
     );
 }
 
-/** Questions and their answers, one open at a time. One sentence an answer, where it can be. */
+/**
+ * Questions and their answers, one open at a time. One sentence an answer,
+ * where it can be. 2.0 draws them as hairline rows with a "+" (`variant="rule"`,
+ * the default); `card` is the framed panel it was.
+ */
 export function Faq({
     items,
+    variant = 'rule',
     className,
 }: {
     items: { q: ReactNode; a: ReactNode; id?: string }[];
+    variant?: 'rule' | 'card';
     className?: string;
 }) {
     return (
-        <Accordion single className={className}>
+        <Accordion single variant={variant} className={className}>
             {items.map((it, i) => (
                 <AccordionItem key={it.id ?? i} id={it.id} title={it.q}>
                     {it.a}

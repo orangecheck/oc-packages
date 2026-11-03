@@ -5,6 +5,20 @@
  * fade and lift. Everything stops under prefers-reduced-motion (theme.css).
  */
 
+/* Motion tokens (PLAN §2): one ease-out for every reveal, a glide for things
+   that travel, four durations, and two staggers (centre-out letters, lists). */
+:root[data-oc-app='ochk'],
+[data-oc-app='ochk'] {
+    --oca-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --oca-ease-glide: cubic-bezier(0.65, 0, 0.35, 1);
+    --oca-duration-quick: 200ms;
+    --oca-duration-base: 300ms;
+    --oca-duration-slow: 500ms;
+    --oca-duration-reveal: 1000ms;
+    --oca-stagger-centre: 40ms;
+    --oca-stagger-list: 60ms;
+}
+
 @keyframes oca-rise {
     from {
         opacity: 0;
@@ -122,6 +136,23 @@
     opacity: 0;
     transform: translateY(18px);
     filter: blur(6px);
+}
+
+/* The footer's giant wordmark rises letter by letter, centre-out, the first
+   time it is seen: the block itself stays put, each letter comes up from under
+   the line. Reveal never marks it pending under reduced motion, so it stays still. */
+[data-oc-app='ochk'] [data-reveal]:has(> [data-oca-wordmark]) {
+    opacity: 1;
+    transform: none;
+    filter: none;
+}
+[data-oc-app='ochk'] [data-reveal] > [data-oca-wordmark] > span {
+    transition: transform var(--oca-duration-reveal) var(--oca-ease-out);
+    transition-delay: calc(max(var(--oca-letter) - var(--oca-wordmark-mid), var(--oca-wordmark-mid) - var(--oca-letter)) * var(--oca-stagger-centre));
+}
+/* Far enough down to clear the descender room under the line. */
+[data-oc-app='ochk'] [data-reveal='pending'] > [data-oca-wordmark] > span {
+    transform: translateY(135%);
 }
 
 [data-oc-app='ochk'] [data-reveal] {

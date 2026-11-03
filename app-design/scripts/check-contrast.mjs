@@ -113,6 +113,30 @@ const PAIRS = [
     ['success', 'muted', 3],
     ['warning', 'muted', 3],
     ['destructive', 'muted', 3],
+    // 2.0: the product surface (inputs, tables, receipts, mock screens).
+    ['oca-surface-foreground', 'oca-surface', 4.5],
+    ['muted-foreground', 'oca-surface', 4.5],
+    ['oca-subtle-foreground', 'oca-surface', 4.5],
+    ['input', 'oca-surface', 3],
+    ['ring', 'oca-surface', 3],
+    // Text on the sunken ground, and small orange text and display ember on it.
+    ['foreground', 'muted', 4.5],
+    ['oca-subtle-foreground', 'muted', 4.5],
+    ['oca-accent-ink', 'muted', 4.5],
+    ['oca-accent-display', 'muted', 3],
+    // The CTA's hover keeps its white text; a filled control's ring is ink.
+    ['primary-foreground', 'oca-primary-hover', 4.5],
+    ['oca-ring-on-fill', 'primary', 3],
+    ['oca-ring-on-fill', 'brand', 3],
+    ['oca-ring-on-fill', 'oca-footer', 3],
+    // The bands: burnt (paper text, orange, ember, a muted line), ink, and the deep footer.
+    ['oca-burnt-foreground', 'oca-burnt', 4.5],
+    ['oca-burnt-muted', 'oca-burnt', 4.5],
+    ['oca-burnt-accent', 'oca-burnt', 4.5],
+    ['oca-burnt-ember', 'oca-burnt', 4.5],
+    ['oca-ink-subtle', 'oca-ink', 4.5],
+    ['oca-footer-foreground', 'oca-footer', 4.5],
+    ['oca-footer-muted', 'oca-footer', 4.5],
 ];
 
 let failed = 0;
@@ -170,10 +194,11 @@ for (const [mode, vars] of [
     }
 }
 
-// HudCard's text over a scene: the card is the background at 85%, so the worst
+// HudCard's text over a scene: the card is the background at 90%, so the worst
 // scene behind it is black in light mode and white in dark. Its text must
-// still clear 4.5:1 there. Keep HUD_ALPHA equal to the bg-background/85 class.
-const HUD_ALPHA = 0.85;
+// still clear 4.5:1 there. Keep HUD_ALPHA equal to the bg-background/90 class.
+// (85% left soft text at 4.17:1 on 2.0's paper.)
+const HUD_ALPHA = 0.9;
 for (const [mode, vars, behind] of [
     ['light', light, '#000000'],
     ['dark', dark, '#ffffff'],
