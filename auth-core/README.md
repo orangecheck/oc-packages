@@ -32,10 +32,11 @@ yarn add @orangecheck/auth-core
 
 ## Generate a key pair
 
-```bash
-node scripts/gen-auth-keys.mjs
-# → prints OC_AUTH_KID, OC_AUTH_PRIVATE_JWK, OC_AUTH_PUBLIC_JWK
-```
+The auth host signs with an Ed25519 (EdDSA) key. This package ships no
+generator: make the pair with `jose` (`generateKeyPair` with
+`extractable: true`, then `exportJWK` on each half), pick a short KID, and set
+`OC_AUTH_KID`, plus each JWK's JSON base64url-encoded as `OC_AUTH_PRIVATE_JWK`
+and `OC_AUTH_PUBLIC_JWK`.
 
 `OC_AUTH_PRIVATE_JWK` lives only on the auth host. The public JWK + KID go on
 every subdomain.

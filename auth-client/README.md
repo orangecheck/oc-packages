@@ -79,7 +79,7 @@ function Header() {
 
     return (
         <>
-            <span>{account!.address}</span>
+            <span>{account!.displayName ?? account!.didOc}</span>
             <button onClick={async () => setFailed(!(await trySignOut()).ok)}>sign out</button>
             {failed ? <span role="alert">Couldn't sign you out. Try again.</span> : null}
         </>
@@ -99,7 +99,7 @@ import { OcSignInButton, OcAccountPill } from '@orangecheck/auth-client';
 // Shows a sign-in link when anonymous, nothing when signed in.
 <OcSignInButton className="font-mono text-xs uppercase" />
 
-// Shows the signed-in address pill; nothing when anonymous.
+// Shows the signed-in account pill (its display name, else a shortened did:oc); nothing when anonymous.
 <OcAccountPill dashboardUrl="https://ochk.app/me/account" />
 ```
 
