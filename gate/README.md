@@ -197,10 +197,12 @@ interface GateOptions {
     // returns lookup_timeout, which fails closed even with failOpen.
     lookupTimeoutMs?: number; // default ~19_000
 
-    // Let requests through when the upstream fails: relays throw, or the
-    // signature verified but no Esplora endpoint answered. Never for a lookup
-    // the gate itself abandoned, never for a signature that did not verify, and
-    // never for a shared-stake read a flood cut off (sdk stake_unread). Never
+    // Let requests through when the upstream fails: the SDK lookup throws, or
+    // the signature verified but no Esplora endpoint answered (sdk
+    // chain_unread). Never for a lookup the gate itself abandoned, never for a
+    // signature that did not verify, and never for a read the relays did not
+    // finish: relays that failed (sdk attestation_unread) or a shared-stake
+    // read a flood cut off (sdk stake_unread). Never
     // either when a chain API answered without listing the address's coins: the
     // address holds more than it lists (~500 UTXOs, reason utxo_cap), which
     // anyone can arrange by sending an address dust, or the API refused the
