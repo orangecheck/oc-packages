@@ -606,7 +606,7 @@ export function SiteFooter({
         <footer className={cn(FOOTER_GROUND, className)}>
             <div
                 style={grid}
-                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-6 pt-6 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]')}
+                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-5 pt-5 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]')}
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}
@@ -642,20 +642,18 @@ export function SiteFooter({
             </div>
             {signature ? (
                 <div aria-hidden className={cn(FRAME_X, 'select-none pb-1 md:pb-12')}>
-                    {/* Inter 400, lowercase, "orange" and "check" pushed to the frame's edges.
-                        The letters rise from under the line, from the seam outward (motion.css). */}
-                    <Reveal className="overflow-hidden" style={{ '--oca-wordmark-mid': 5 } as CSSProperties}>
+                    {/* One word, Inter 400, lowercase, sized to fill the frame's content width: its natural
+                        width is 5.14em at -0.055em tracking (the last letter untracked, so its box is its ink),
+                        and 100cqi is the frame's content box. The letters rise from under the line, from the
+                        seam between "orange" and "check" outward (motion.css); the clip leaves room for the g. */}
+                    <Reveal className="overflow-hidden [container-type:inline-size]" style={{ '--oca-wordmark-mid': 5 } as CSSProperties}>
                         <div
                             data-oca-wordmark=""
-                            className="flex justify-between pb-[0.14em] text-[clamp(3.5rem,15vw,15rem)] font-normal leading-[0.82] tracking-[-0.055em] [font-family:var(--oc-font-display)]"
+                            className="flex whitespace-nowrap pb-[0.24em] text-[calc(100cqi/5.16)] font-normal leading-[0.82] tracking-[-0.055em] [font-family:var(--oc-font-display)] [&>span:last-child]:tracking-normal"
                         >
-                            {['orange', 'check'].map((word, w) => (
-                                <span key={word} className="flex">
-                                    {[...word].map((ch, i) => (
-                                        <span key={i} className="inline-block" style={{ '--oca-letter': w * 6 + i } as CSSProperties}>
-                                            {ch}
-                                        </span>
-                                    ))}
+                            {[...'orangecheck'].map((ch, i) => (
+                                <span key={i} className="inline-block" style={{ '--oca-letter': i } as CSSProperties}>
+                                    {ch}
                                 </span>
                             ))}
                         </div>
@@ -665,7 +663,7 @@ export function SiteFooter({
             {legalLinks || meta ? (
                 <div className={FRAME_X}>
                     {/* The rule spans the content, not the gutters. */}
-                    <div className="flex flex-col gap-3 border-t border-border py-4 text-[0.875rem] text-muted-foreground md:py-6">
+                    <div className="flex flex-col gap-3 border-t border-border py-3 text-[0.875rem] text-muted-foreground md:py-6">
                         {legalLinks ? <LegalRow links={legalLinks} /> : null}
                         {meta}
                     </div>
