@@ -12,7 +12,7 @@ const GOOD_DOT =
     "border-border bg-card text-foreground before:size-1.5 before:shrink-0 before:rounded-full before:bg-success before:content-['']";
 
 export const badgeVariants = cva(
-    'inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[0.8125rem] font-medium leading-none',
+    'inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border px-2.5 text-[0.8125rem] font-medium leading-none',
     {
         variants: {
             tone: {
@@ -52,7 +52,7 @@ export function StatusPill({
         <span
             data-ui="status-pill"
             className={cn(
-                'inline-flex min-h-8 w-fit items-center gap-2.5 rounded-full border border-border bg-card py-1 pl-3 pr-3.5 text-[0.875rem] leading-snug text-foreground',
+                'inline-flex min-h-8 w-fit items-center gap-2.5 rounded-none border border-border bg-card py-1 pl-3 pr-3.5 text-[0.875rem] leading-snug text-foreground',
                 className
             )}
             {...props}

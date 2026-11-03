@@ -36,7 +36,7 @@ export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>
     return (
         <div
             data-ui="skeleton"
-            className={cn('animate-pulse rounded-lg bg-[var(--oca-skeleton)]', className)}
+            className={cn('animate-pulse rounded-none bg-[var(--oca-skeleton)]', className)}
             {...props}
         />
     );
@@ -82,7 +82,7 @@ export function Kbd({ className, ...props }: HTMLAttributes<HTMLElement>) {
     return (
         <kbd
             className={cn(
-                'inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border bg-card px-1.5 font-mono text-[11px] text-muted-foreground',
+                'inline-flex h-5 min-w-5 items-center justify-center rounded-none border border-border bg-card px-1.5 font-mono text-[12px] text-muted-foreground',
                 className
             )}
             {...props}
@@ -166,11 +166,11 @@ export function Toaster({ style, ...props }: ToasterProps) {
                 position="bottom-right"
                 toastOptions={{
                     classNames: {
-                        toast: 'oca-toast rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg font-sans',
+                        toast: 'oca-toast rounded-none border border-border bg-popover text-popover-foreground shadow-lg font-sans',
                         title: 'text-[0.9375rem] font-medium',
                         description: 'text-sm text-muted-foreground',
-                        actionButton: 'rounded-full bg-primary text-primary-foreground',
-                        cancelButton: 'rounded-full bg-muted text-foreground',
+                        actionButton: 'rounded-none bg-primary text-primary-foreground',
+                        cancelButton: 'rounded-none bg-muted text-foreground',
                     },
                 }}
                 {...props}
