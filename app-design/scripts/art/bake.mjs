@@ -253,12 +253,21 @@ if (CHECK) {
             bad++;
         }
     }
+    // A file over its budget fails, as a page would pay for it.
+    for (const [f, buf] of files) {
+        if (buf.length > BUDGET) {
+            console.error(`✗ art: ${f} is ${(buf.length / 1024).toFixed(1)} KB, over the ${BUDGET / 1024} KB budget`);
+            bad++;
+        }
+    }
     const extra = readdirSync(OUT).filter((f) => !files.has(f) && f !== 'README.md');
     for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script`), bad++);
     if (bad) process.exit(1);
-    console.log(`✓ art: ${files.size} files match a fresh bake`);
+    console.log(`✓ art: ${files.size} files match a fresh bake, each within ${BUDGET / 1024} KB`);
 } else {
     mkdirSync(OUT, { recursive: true });
     for (const [f, buf] of files) writeFileSync(join(OUT, f), buf);
+    const over = [...files].filter(([, buf]) => buf.length > BUDGET).map(([f]) => f);
+    if (over.length) console.error(`✗ art: over the ${BUDGET / 1024} KB budget: ${over.join(', ')}`);
     for (const [f, buf] of files) console.log(`${f.padEnd(28)} ${(buf.length / 1024).toFixed(1)} KB`);
 }

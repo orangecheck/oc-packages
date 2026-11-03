@@ -139,6 +139,16 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
         check(band && tile.props.style.paddingLeft >= band.props.style.left + band.props.style.width && band.props.style.width <= tile.props.style.width / 3, 'the halftone tile’s text overlaps its dot band, or the band is past a third');
     }
 
+    // Art keeps its own aspect ratio in every tile, within a pixel: a band is cropped, never squashed.
+    const arts = Object.values(og.ogArt);
+    for (const [size, t] of [['1200', tree], ['1920', walk(h(og.OgBento, { ...tiles, size: 'social' }))]]) {
+        for (const img of t.filter((e) => e.type === 'img')) {
+            const a = arts.find((x) => x.src === img.props.src);
+            const want = (img.props.height * a.width) / a.height;
+            check(Math.abs(img.props.width - want) <= 1, `${size}: art drawn at ${img.props.width}×${img.props.height}, not its own ${a.width}:${a.height}`);
+        }
+    }
+
     // Tiles clip their own art: the gutters and margins stay the sheet's colour, pixel for pixel.
     const { data, info } = await sharp(Buffer.from(b.png)).raw().toBuffer({ resolveWithObject: true });
     const sheet = appColors.light.muted.slice(1).match(/../g).map((x) => parseInt(x, 16));

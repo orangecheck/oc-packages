@@ -393,6 +393,17 @@ function artBox(art: NonNullable<OgTile['art']>, width: number, height: number, 
     }
 }
 
+/**
+ * The art's drawn size in its box: always its own aspect ratio. A band or a fill
+ * covers the box at the art's height and is cropped by the box, never squashed.
+ */
+function artSize(art: NonNullable<OgTile['art']>, box: { width: number; height: number }) {
+    const place = art.place ?? 'right';
+    if (place !== 'left' && place !== 'fill') return { width: box.width, height: box.height };
+    const scale = Math.max(box.width / art.width, box.height / art.height);
+    return { width: Math.round(art.width * scale), height: Math.round(art.height * scale) };
+}
+
 function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; height: number; k: number; big?: boolean }) {
     const t = TILE_TONES[tile.tone];
     const pad = 32 * k;
@@ -419,8 +430,8 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
             }}
         >
             {tile.art && box ? (
-                <div style={{ position: 'absolute', display: 'flex', ...box }}>
-                    <img src={tile.art.src} width={box.width} height={box.height} alt="" />
+                <div style={{ position: 'absolute', display: 'flex', overflow: 'hidden', ...box }}>
+                    <img src={tile.art.src} {...artSize(tile.art, box)} alt="" />
                 </div>
             ) : null}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
