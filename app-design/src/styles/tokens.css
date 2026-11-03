@@ -149,6 +149,9 @@
     --oca-footer-foreground: #ffffff;
     --oca-footer-muted: #fff3ed;
     --oca-footer-line: #d17149;
+    /* Hairlines on the burnt and orange bands (decorative). */
+    --oca-burnt-line: #422d22;
+    --oca-brand-line: #cc6015;
     --oca-skeleton: #e4e0dc;
 
     /* The page is square (PLAN §1): chrome, controls, cards, panels, badges

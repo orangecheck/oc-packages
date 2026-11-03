@@ -1,10 +1,15 @@
 import { createElement, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { MonoLabel } from './frame';
 
-/** The small orange line above a heading ("How it works", "The honest version"). */
+/**
+ * The line above a heading ("How it works", "The honest version"). 2.0 has one
+ * eyebrow, the MonoLabel with its ember square; Eyebrow renders it. `onInk`
+ * is kept for old call sites: a Section band sets the label's colours itself.
+ */
 export function Eyebrow({ className, onInk, ...props }: HTMLAttributes<HTMLParagraphElement> & { onInk?: boolean }) {
-    return <p className={cn('oca-eyebrow', onInk && 'text-oca-ink-eyebrow', className)} {...props} />;
+    return <MonoLabel as="p" className={cn(onInk && 'text-oca-ink-muted', className)} {...props} />;
 }
 
 type DisplayLevel = 1 | 2 | 3;
