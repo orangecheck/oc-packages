@@ -67,7 +67,7 @@ export interface OcAccountMenuItem {
     label: string;
     /**
      * When `true`, opens in a new tab and renders a ↗ glyph after the
-     * label. Use for cross-domain links (e.g. `https://ochk.io/dashboard`).
+     * label. Use for cross-domain links (e.g. `https://ochk.app/me/account`).
      */
     external?: boolean;
 }
@@ -205,9 +205,10 @@ export interface OcAccountMenuProps {
      */
     secondaryNavLinks?: ReadonlyArray<OcAccountMenuItem>;
     /**
-     * When `true` (default), shows a `family dashboard ↗` link to
-     * `https://ochk.io/dashboard`. Set `false` for `home` (already
-     * there) or for sites that don't want it.
+     * When `true` (default), shows a `family dashboard ↗` link to the
+     * family's account page, `https://ochk.app/me/account` (ochk.io/dashboard
+     * only redirects there). Set `false` on ochk.app itself or for sites that
+     * don't want it.
      */
     showFamilyDashboard?: boolean;
     /**
@@ -875,7 +876,7 @@ export function OcAccountMenuView({
 
                         {familyDashboardEnabled ? (
                             <a
-                                href="https://ochk.io/dashboard"
+                                href="https://ochk.app/me/account"
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={() => setOpen(false)}
