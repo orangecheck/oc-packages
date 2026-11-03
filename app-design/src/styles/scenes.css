@@ -314,6 +314,18 @@
     opacity: 1;
 }
 
+/* ── DitherImage ──────────────────────────────────────────────────────────
+   The still is the picture; the live layer, at dither resolution, sits over
+   it square and crisp and is clear wherever the pointer has not been. */
+[data-oc-app='ochk'] .oca-dither-live {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
 /* ── StorySwap ────────────────────────────────────────────────────────────
    Both states share one grid cell, so the block keeps the taller one's
    height. The old one wipes out upward; only then does the new one wipe in. */
@@ -466,6 +478,9 @@
 }
 [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='frame'] {
     clip-path: inset(8% 11% 8% 11%);
+}
+[data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='center'] {
+    clip-path: inset(50% 50% 50% 50%);
 }
 [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='left'] {
     clip-path: inset(0 100% 0 0);

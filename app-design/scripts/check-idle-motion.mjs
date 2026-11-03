@@ -10,6 +10,8 @@
  * - Offscreen, and in a hidden tab, a scene sleeps; it draws when it is seen.
  * - The portrait's pause holds it still; its pointer lens draws only while
  *   the pointer moves. The crowd draws once per change of the story's --p.
+ * - DitherImage is its still until a fine pointer moves over it, then clear
+ *   again within about a second; never under reduced motion or on touch.
  * - The headline swap never shows both headlines at once.
  * - Without script the portrait's poster and notes stand.
  *
@@ -45,9 +47,20 @@ const check = (ok, msg) => {
 
 const PAGE = `
 import { createRoot } from 'react-dom/client';
-import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, ScrollStory, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';
+import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
+// A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
+function still() {
+    const w = 480, h = 320, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d'), img = x.createImageData(w, h), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        const l = 0.5 + 0.3 * Math.sin(i / 40) * Math.cos(j / 30), d = l < (B[(j & 3) * 4 + (i & 3)] + 0.5) / 16, o = (j * w + i) * 4;
+        img.data[o] = d ? 42 : 238; img.data[o + 1] = d ? 18 : 234; img.data[o + 2] = d ? 6 : 230; img.data[o + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    return c.toDataURL('image/png');
+}
 const notes = [{ at: PORTRAIT_ANCHORS.eye, label: 'First note' }, { at: PORTRAIT_ANCHORS.shoulder, label: 'Second note', side: 'right' }];
 const scenes = {
     portrait: () => <ParticlePortrait alt="A person drawn in dots" callouts={notes} style={{ height: 600 }} />,
@@ -64,6 +77,7 @@ const scenes = {
     stack: () => <StackCards top="1rem">{[1, 2, 3].map((n) => <div key={n} style={{ height: 500, background: '#fff', border: '1px solid #ccc' }}>Card {n}</div>)}</StackCards>,
     marquee: () => <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span><span style={{ fontSize: 64, paddingRight: 32 }}>Halfway Books</span></Marquee>,
     wipe: () => <Wipe><div id="wiped" style={{ height: 300, background: '#2a1206' }} /></Wipe>,
+    dither: () => <DitherImage src={still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' ? 1200 : q.has('off') ? 3000 : 0;
 createRoot(document.getElementById('root')).render(<div><div style={{ height: above }} />{scenes[s]()}<div style={{ height: 2400 }} /></div>);
@@ -74,6 +88,7 @@ createRoot(document.getElementById('root')).render(<div><div style={{ height: ab
 const COUNTERS =
     `<script>window.__draws = 0; window.__rafs = 0; const clear = CanvasRenderingContext2D.prototype.clearRect;` +
     `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; return clear.apply(this, a); };` +
+    `const put = CanvasRenderingContext2D.prototype.putImageData; CanvasRenderingContext2D.prototype.putImageData = function (...a) { if (this.canvas.isConnected) window.__draws++; return put.apply(this, a); };` +
     `const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
     `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
 
@@ -121,8 +136,8 @@ try {
         }
         return false;
     };
-    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false } = {}) => {
-        const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: reduce ? 'reduce' : 'no-preference', javaScriptEnabled: js });
+    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false } = {}) => {
+        const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: reduce ? 'reduce' : 'no-preference', javaScriptEnabled: js, hasTouch: touch, isMobile: touch });
         const p = await ctx.newPage();
         await p.goto(`${url}?s=${scene}${off ? '&off' : ''}`);
         return { p, close: () => ctx.close() };
@@ -381,6 +396,44 @@ try {
             const { p, close } = await open('stack', { reduce: true });
             const pos = await p.evaluate(() => getComputedStyle(document.querySelector('.oca-stack-item')).position);
             check(pos === 'static', `stack under reduced motion: the cards are ${pos}, not an ordinary column`);
+            await close();
+        }
+
+        // DitherImage: only the still until a fine pointer comes over it; live while it moves; then, within a
+        // second or so, clear again (exactly the still) and asking for nothing. Never under reduced motion or touch.
+        {
+            const { p, close } = await open('dither');
+            await p.waitForTimeout(800);
+            const before = await over(p, 600);
+            const box = await p.locator('.oca-dither').boundingBox();
+            for (let i = 0; i <= 10; i++) await p.mouse.move(box.x + 60 + i * 30, box.y + 160, { steps: 2 });
+            const moved = await p.evaluate(() => window.__draws);
+            const t0 = Date.now();
+            const idle = await settle(p, 6000);
+            const took = Date.now() - t0;
+            const clear = await p.evaluate(() => {
+                const c = document.querySelector('.oca-dither canvas');
+                const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                let lit = 0;
+                for (let i = 3; i < d.length; i += 4) lit += d[i] ? 1 : 0;
+                return lit;
+            });
+            check(before.draws === 0 && before.rafs === 0, `dither: before any pointer it drew ${before.draws} and asked ${before.rafs} frames`);
+            check(moved > 3, `dither: a pointer moving over it drew ${moved} frames`);
+            check(idle, 'dither: after the pointer stopped it never settled');
+            check(clear === 0, `dither: settled, ${clear} live pixels still cover the still`);
+            await close();
+        }
+        for (const [label, opts] of [
+            ['reduced motion', { reduce: true }],
+            ['a touch screen', { touch: true }],
+        ]) {
+            const { p, close } = await open('dither', opts);
+            await p.waitForTimeout(600);
+            const box = await p.locator('.oca-dither').boundingBox();
+            for (let i = 0; i <= 6; i++) await p.mouse.move(box.x + 60 + i * 40, box.y + 160, { steps: 2 });
+            await p.waitForTimeout(400);
+            check((await p.evaluate(() => window.__draws)) === 0, `dither under ${label}: the live dither drew`);
             await close();
         }
 

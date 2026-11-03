@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
+import portrait from '../assets/portrait-halftone-600.webp';
 import { Eyebrow } from '../components/typography';
-import { CrowdDissolve, Marquee, MiniCheck, ParticlePortrait, ParticleText, PORTRAIT_ANCHORS, ScrollStory, StackCards, StorySwap, Wipe } from './index';
+import { CrowdDissolve, DitherImage, Marquee, MiniCheck, ParticlePortrait, ParticleText, PORTRAIT_ANCHORS, ScrollStory, StackCards, StorySwap, Wipe } from './index';
 
 /*
  * The family's motion (@orangecheck/app-design/motion). Each scene draws its
@@ -103,6 +104,17 @@ export const Line: StoryObj = {
                 </span>
             ))}
         </Marquee>
+    ),
+};
+
+export const Dither: StoryObj = {
+    name: 'Dither image',
+    render: () => (
+        <div className="flex flex-col items-center gap-4 py-8">
+            {/* A site passes a baked two-tone still from ./art; the deck's halftone stands in here. */}
+            <DitherImage src={portrait} width={600} height={600} alt="" dark="#0d0a08" className="w-full max-w-[28rem]" />
+            <p className="m-0 text-muted-foreground">With a mouse, move over the picture: the screen comes alive where you pass, then settles.</p>
+        </div>
     ),
 };
 

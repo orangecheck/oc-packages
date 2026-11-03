@@ -17,11 +17,13 @@ export { StackCards } from './stack-cards';
 export type { StackCardsProps } from './stack-cards';
 export { Marquee } from './marquee';
 export type { MarqueeProps } from './marquee';
+export { DitherImage } from './dither-image';
+export type { DitherImageProps } from './dither-image';
 export { Wipe } from './wipe';
 export type { WipeProps } from './wipe';
 export { decodePoints, fetchPoints, portraitPoints, unpackPoints, PORTRAIT_ANCHORS } from './points';
 export type { Points } from './points';
-export { schedule, motionIdle } from './scheduler';
+export { schedule } from './scheduler';
 export type { Scene, Ticket } from './scheduler';
 // The scroll story and the count-up the scenes play beside, so a page imports its motion from one place.
 export { Reveal, ScrollStory, Ticker } from '../components/motion';

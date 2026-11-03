@@ -38,7 +38,6 @@ const byElement = new Map<Element, Set<Entry>>();
 let io: IntersectionObserver | null = null;
 let raf = 0;
 let last = 0;
-let scrolling = false;
 let listening = false;
 
 function loop(now: number) {
@@ -105,7 +104,6 @@ function observer(): IntersectionObserver | null {
                 if (e.visible !== was) e.onVisible?.(e.visible);
             }
         }
-        scrolling = [...entries].some((e) => e.scroll && e.visible);
         listen();
         kick();
     });
@@ -160,9 +158,4 @@ export function schedule(
             }
         },
     };
-}
-
-/** For tests and the cost harness: whether any scene is asking for frames. */
-export function motionIdle(): boolean {
-    return raf === 0 && !scrolling;
 }

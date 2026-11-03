@@ -46,6 +46,17 @@ export function inks(dark: boolean): Inks {
     };
 }
 
+/** Any CSS colour as [r, g, b, alpha 0-1], through the canvas's own parser. */
+export function parseColour(css: string): [number, number, number, number] {
+    const c = document.createElement('canvas').getContext('2d');
+    if (!c) return [128, 128, 128, 1];
+    c.fillStyle = css;
+    const v = String(c.fillStyle);
+    if (v[0] === '#') return [parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16), 1];
+    const n = v.match(/[\d.]+/g)?.map(Number) ?? [];
+    return [n[0] ?? 0, n[1] ?? 0, n[2] ?? 0, n[3] ?? 1];
+}
+
 export const mix = (a: Rgb, b: Rgb, k: number): Rgb => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
 
 export const rgba = (c: Rgb, a = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${+a.toFixed(3)})`;

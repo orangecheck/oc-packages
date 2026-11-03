@@ -2,7 +2,7 @@ import { createElement, useEffect, useRef, type CSSProperties, type ElementType 
 
 import { cn } from '../lib/cn';
 import { clamp01, easeOut, finePointer, prefersStill, seeded, whenIdle } from './env';
-import { Batch, rgba, type Rgb } from './paint';
+import { Batch, parseColour, rgba } from './paint';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
 /*
@@ -87,17 +87,6 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
         </span>,
         <canvas ref={canvas} aria-hidden className="oca-ptext-canvas" />
     );
-}
-
-/** The colour the element is set in, as bytes. */
-function colourOf(el: Element): Rgb {
-    const c = document.createElement('canvas').getContext('2d');
-    if (!c) return [128, 128, 128];
-    c.fillStyle = getComputedStyle(el).color;
-    const m = String(c.fillStyle).match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})/i);
-    if (m) return [parseInt(m[1]!, 16), parseInt(m[2]!, 16), parseInt(m[3]!, 16)];
-    const n = String(c.fillStyle).match(/[\d.]+/g)?.map(Number) ?? [128, 128, 128];
-    return [n[0]!, n[1]!, n[2]!];
 }
 
 function textScene(el: HTMLElement, cv: HTMLCanvasElement, text: HTMLSpanElement, probe: HTMLSpanElement, o: { still: boolean; repel: boolean; step?: number }) {
@@ -192,9 +181,9 @@ function textScene(el: HTMLElement, cv: HTMLCanvasElement, text: HTMLSpanElement
                     sample(surface.width, surface.height);
                 },
                 theme() {
-                    const c = colourOf(el);
+                    const c = parseColour(getComputedStyle(el).color);
                     styles = [];
-                    for (let k = 0; k < LEVELS; k++) styles.push(rgba(c, SCATTER_ALPHA + ((1 - SCATTER_ALPHA) * k) / (LEVELS - 1)));
+                    for (let k = 0; k < LEVELS; k++) styles.push(rgba([c[0], c[1], c[2]], SCATTER_ALPHA + ((1 - SCATTER_ALPHA) * k) / (LEVELS - 1)));
                 },
                 frame(_now, dt) {
                     if (t >= 0 && t < end) t = Math.min(end, t + dt);
