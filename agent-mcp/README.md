@@ -21,7 +21,7 @@ MCP servers expose tools to AI agents. The MCP wire protocol has no native notio
 
 ```bash
 npm i @orangecheck/agent-mcp
-# peer deps:
+# Comes with agent-core and agent-signer. To import them yourself, add them too:
 npm i @orangecheck/agent-core @orangecheck/agent-signer
 ```
 

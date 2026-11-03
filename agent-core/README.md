@@ -134,7 +134,7 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 - `canonicalizeScopes(scopes[])` — sort constraints, then sort list
 - `validateScope(scope, { mode: 'strict' | 'permissive' })`
 - `isSubScope(exercised, granted) -> boolean` — SPEC §7.4
-- `REGISTERED_SCOPES` — MVP registry of 8 product/verb pairs and their constraint keys
+- `REGISTERED_SCOPES` — registry of 13 product/verb pairs and their constraint keys
 
 ### Verification (§SPEC 8)
 
@@ -143,7 +143,7 @@ if (!result.ok) throw new Error(result.code + ': ' + result.message);
 - `verifyActionAsOfSignedAt({ … })` — an audit of a past action, as of its own `signed_at`. The agent chooses that time, so `asOf.anchored` says whether a verified OTS anchor fixes it. Never use it to decide whether to act now.
 - `createReplayGuard(maxSkewMs?)` — `firstUse(action, now?)` is true once per action id. It keeps each id until `signed_at + maxSkewMs`, as long as the action could pass `verifyAction`. One process only; across instances keep the same record in a shared store. Replay is the caller's to stop: `verifyAction` keeps no state.
 - `verifyRevocation({ envelope, delegation, verifyBip322 })` — the principal and the agent may always revoke; `revocation.holders` is informational
-- `verifyOtsAnchor(proofB64, blockHeight, blockHash, envelopeId)` — an anchor orders an action against a revocation only when this returns true
+- `verifyOtsAnchor` is not an export: it is the callback you pass to `verifyAction` or `verifyActionAsOfSignedAt`, `(proofB64, blockHeight, blockHash, envelopeId) => Promise<boolean>`. An anchor orders an action against a revocation only when it returns true
 - `verifyFederationRevocation({ envelope, delegation, verifyBip322 })`
 - Revocation reasons. SPEC §9.1: a signer writes printable ASCII, at most `REVOCATION_REASON_MAX_BYTES` = 128 bytes, `""` when there is none. A verifier never reads the reason to decide; a validly signed revocation revokes whatever it holds.
   - `authoredReasonProblem(reason)` is the signer's rule: `null`, or `'not_text'`, `'not_ascii'`, `'control_character'`, `'too_long'`. Check a reason with it before you sign one. No verifier uses it.
@@ -180,7 +180,7 @@ New language implementations should mirror this harness.
 
 ## Companion packages
 
-- [`@orangecheck/agent-signer`](../agent-signer) — `createDelegation()`, `signAsAgent()`, `revoke()`. Adds the wallet-adapter plumbing and OTS anchor submission.
+- [`@orangecheck/agent-signer`](../agent-signer) — `createDelegation()`, `signAsAgent()`, `revoke()`. Takes your wallet's `signMessage` and makes no network calls: OTS anchoring and Nostr publication are steps you wire up.
 - [`@orangecheck/agent-mcp`](../agent-mcp) — MCP tool wrapper that stamps every invocation as an agent-action.
 - [`@orangecheck/stamp-core`](../stamp-core) — OC Stamp base. `agent-core` depends on this for the canonical JSON serializer.
 
