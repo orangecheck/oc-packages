@@ -12,6 +12,8 @@
 
 import type { AttestationEnvelope, IdentityBinding, Network, VerifyOptions } from './types';
 
+import { normalizeAddress } from '@orangecheck/bip322';
+
 import { envelopesFromEvents } from './attestation';
 import {
     DEFAULT_RELAYS,
@@ -79,7 +81,7 @@ export interface CheckResult {
 export async function check(params: CheckParams): Promise<CheckResult> {
     checkCheckParams(params);
     const {
-        addr,
+        addr: rawAddr,
         id,
         identity,
         minSats = 0,
@@ -88,7 +90,11 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         verifyOptions,
     } = params;
 
-    if (!addr && !id && !identity) {
+    // An address is read checksum and all, in the one spelling attestations are
+    // tagged under (a QR code's capitals lowercased). Anything else is a bad
+    // request, never asked about: a typo would read as an address with nothing.
+    const addr = rawAddr === undefined ? undefined : normalizeAddress(rawAddr);
+    if ((!addr && !id && !identity) || addr === null) {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['bad_request'] };
     }
 
