@@ -16,7 +16,7 @@ Zero styling framework required. No global CSS. Inline styles so the components 
 yarn add @orangecheck/react
 ```
 
-React 18 or 19. `@orangecheck/sdk` is a peer dependency (pulled in automatically).
+React 18 or 19 (peer dependencies). `@orangecheck/sdk` is a regular dependency, installed with it.
 
 ---
 
