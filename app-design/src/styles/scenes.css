@@ -490,20 +490,23 @@
 
 /* ── Wipe ─────────────────────────────────────────────────────────────────
    Set by Wipe only for content below the fold at mount. */
-[data-oc-app='ochk'] .oca-wipe[data-wipe] {
-    transition: clip-path 1000ms var(--oca-motion-ease) var(--oca-wipe-delay, 0ms);
-}
-[data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='frame'] {
-    clip-path: inset(8% 11% 8% 11%);
-}
-[data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='center'] {
-    clip-path: inset(50% 50% 50% 50%);
-}
-[data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='left'] {
-    clip-path: inset(0 100% 0 0);
-}
-[data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='up'] {
-    clip-path: inset(100% 0 0 0);
+/* Only while motion is allowed: switching reduced motion on shows a pending wipe's content at once. */
+@media (prefers-reduced-motion: no-preference) {
+    [data-oc-app='ochk'] .oca-wipe[data-wipe] {
+        transition: clip-path 1000ms var(--oca-motion-ease) var(--oca-wipe-delay, 0ms);
+    }
+    [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='frame'] {
+        clip-path: inset(8% 11% 8% 11%);
+    }
+    [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='center'] {
+        clip-path: inset(50% 50% 50% 50%);
+    }
+    [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='left'] {
+        clip-path: inset(0 100% 0 0);
+    }
+    [data-oc-app='ochk'] .oca-wipe[data-wipe='pending'][data-from='up'] {
+        clip-path: inset(100% 0 0 0);
+    }
 }
 [data-oc-app='ochk'] .oca-wipe[data-wipe='shown'] {
     clip-path: inset(0);

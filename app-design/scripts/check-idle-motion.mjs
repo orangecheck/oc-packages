@@ -47,8 +47,9 @@ const check = (ok, msg) => {
 };
 
 const PAGE = `
+import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';
+import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule } from '${join(pkg, 'src/motion/index.ts')}';
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
@@ -61,6 +62,20 @@ function still() {
     }
     x.putImageData(img, 0, 0);
     return c.toDataURL('image/png');
+}
+// Two scenes on the loop, the first broken: the second must still get its 30 frames.
+function Loop() {
+    useEffect(() => {
+        window.__good = 0;
+        window.__errors = [];
+        window.addEventListener('error', (e) => window.__errors.push(e.message));
+        const bad = schedule(document.getElementById('bad'), { frame() { throw new Error('a broken scene'); } });
+        const good = schedule(document.getElementById('good'), { frame: () => ++window.__good < 30 });
+        bad.wake();
+        good.wake();
+        return () => { bad.stop(); good.stop(); };
+    }, []);
+    return <div><div id="bad" style={{ height: 40 }} /><div id="good" style={{ height: 40 }} /></div>;
 }
 const notes = [{ at: PORTRAIT_ANCHORS.eye, label: 'First note' }, { at: PORTRAIT_ANCHORS.shoulder, label: 'Second note', side: 'right' }];
 const scenes = {
@@ -78,6 +93,7 @@ const scenes = {
     stack: () => <StackCards top="1rem">{[1, 2, 3].map((n) => <div key={n} style={{ height: 500, background: '#fff', border: '1px solid #ccc' }}>Card {n}</div>)}</StackCards>,
     marquee: () => <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span><span style={{ fontSize: 64, paddingRight: 32 }}>Halfway Books</span></Marquee>,
     wipe: () => <Wipe><div id="wiped" style={{ height: 300, background: '#2a1206' }} /></Wipe>,
+    loop: () => <Loop />,
     dither: () => <DitherImage src={still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' ? 1200 : q.has('off') ? 3000 : 0;
@@ -461,6 +477,64 @@ try {
             for (let i = 0; i <= 6; i++) await p.mouse.move(box.x + 60 + i * 40, box.y + 160, { steps: 2 });
             await p.waitForTimeout(400);
             check((await p.evaluate(() => window.__draws)) === 0, `dither under ${label}: the live dither drew`);
+            await close();
+        }
+
+        // Reduced motion switched on mid-session: what was moving stops at once and shows its still.
+        {
+            const { p, close } = await open('portrait');
+            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            await p.emulateMedia({ reducedMotion: 'reduce' });
+            const a = await p.evaluate(() => window.__draws);
+            const stilled = await settle(p, 6000);
+            const drew = (await p.evaluate(() => window.__draws)) - a;
+            const phase = await p.getAttribute('.oca-portrait', 'data-phase');
+            check(stilled && drew <= 3 && phase === 'formed', `portrait, reduced motion switched on mid-gather: ${drew} more draws, settled ${stilled}, phase ${phase}`);
+            await close();
+        }
+        {
+            const { p, close } = await open('check');
+            await p.waitForFunction(() => document.querySelector('.oca-minicheck[data-state="flying"]'), null, { timeout: 8000 });
+            await p.emulateMedia({ reducedMotion: 'reduce' });
+            await p.waitForTimeout(300);
+            const a = await p.evaluate(() => window.__draws);
+            await p.waitForTimeout(1200);
+            const r = await p.evaluate(() => ({ draws: window.__draws, state: document.querySelector('.oca-minicheck').dataset.state }));
+            check(r.draws === a && r.state === 'still', `check, reduced motion switched on mid-flight: ${r.draws - a} more draws, state ${r.state}`);
+            await close();
+        }
+        {
+            const { p, close } = await open('wipe');
+            await p.waitForFunction(() => document.querySelector('.oca-wipe[data-wipe="pending"]'), null, { timeout: 8000 });
+            await p.emulateMedia({ reducedMotion: 'reduce' });
+            await p.waitForTimeout(100);
+            const clip = await p.evaluate(() => getComputedStyle(document.querySelector('.oca-wipe')).clipPath);
+            check(clip === 'none', `wipe, reduced motion switched on while it waited: its content is clipped (${clip})`);
+            await close();
+        }
+        {
+            const { p, close } = await open('dither');
+            await p.waitForTimeout(600);
+            const box = await p.locator('.oca-dither').boundingBox();
+            for (let i = 0; i <= 4; i++) await p.mouse.move(box.x + 60 + i * 30, box.y + 160, { steps: 2 });
+            await p.emulateMedia({ reducedMotion: 'reduce' });
+            await settle(p, 4000);
+            const a = await p.evaluate(() => window.__draws);
+            for (let i = 0; i <= 6; i++) await p.mouse.move(box.x + 60 + i * 40, box.y + 120, { steps: 2 });
+            await p.waitForTimeout(400);
+            check((await p.evaluate(() => window.__draws)) === a, 'dither, reduced motion switched on: the pointer still drives the live dither');
+            await close();
+        }
+
+        // One scene that throws stops only itself: the others keep their frames, and the page still hears of it.
+        {
+            const { p, close } = await open('loop');
+            await p.waitForTimeout(1500);
+            const r = await p.evaluate(() => ({ good: window.__good, errors: window.__errors }));
+            check(r.good === 30, `scheduler: beside a scene that throws, another got ${r.good} of its 30 frames`);
+            // A file: page hears a cross-script error as "Script error.", without its message: count it.
+            check(r.errors.length === 1, `scheduler: the throw reached the page ${r.errors.length} times, not once`);
+            check(await settle(p), 'scheduler: with a broken scene on it the loop never stops');
             await close();
         }
 

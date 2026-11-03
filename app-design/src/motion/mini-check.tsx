@@ -4,7 +4,7 @@ import { MARK_FACES, MARK_POINTS } from '@orangecheck/mark';
 
 import { Mark } from '../brand/mark';
 import { cn } from '../lib/cn';
-import { clamp01, easeOut, prefersStill, seeded } from './env';
+import { clamp01, easeOut, prefersStill, seeded, useMotionSetting } from './env';
 import { Batch, rgba, type Rgb } from './paint';
 import { mountScene, type Mounted } from './scene';
 
@@ -63,11 +63,17 @@ export function MiniCheck({ size = 132, title, playKey, className, style }: Mini
     const box = useRef<HTMLSpanElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
     const [state, setState] = useState<'still' | 'flying' | 'solid'>('still');
+    const setting = useMotionSetting();
 
     useEffect(() => {
         const el = box.current;
         const cv = canvas.current;
-        if (!el || !cv || prefersStill()) return;
+        if (!el || !cv) return;
+        // Reduced motion, from the start or switched on mid-flight: the mark, at once.
+        if (prefersStill()) {
+            setState('still');
+            return;
+        }
         setState('flying');
         const rand = seeded(typeof playKey === 'number' ? playKey + 7 : 7);
         const n = DOTS.length;
@@ -108,7 +114,7 @@ export function MiniCheck({ size = 132, title, playKey, className, style }: Mini
             mounted?.stop();
             mounted = null;
         };
-    }, [playKey]);
+    }, [playKey, setting]);
 
     return (
         <span

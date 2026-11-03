@@ -47,7 +47,15 @@ function loop(now: number) {
     let more = false;
     for (const e of entries) {
         if (!e.awake || !e.visible) continue;
-        e.awake = e.scene.frame(now, dt);
+        try {
+            e.awake = e.scene.frame(now, dt);
+        } catch (err) {
+            // A scene that throws sleeps; the others keep their frames, and the error still reaches the page.
+            e.awake = false;
+            setTimeout(() => {
+                throw err;
+            });
+        }
         if (e.awake) more = true;
     }
     if (more) kick();

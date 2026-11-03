@@ -1,7 +1,7 @@
 import { createElement, useEffect, useRef, type CSSProperties, type ElementType } from 'react';
 
 import { cn } from '../lib/cn';
-import { clamp01, easeOut, finePointer, prefersStill, seeded, whenIdle } from './env';
+import { clamp01, easeOut, finePointer, prefersStill, seeded, useMotionSetting, whenIdle } from './env';
 import { Batch, parseColour, rgba } from './paint';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
@@ -37,6 +37,7 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
     const glyphs = useRef<HTMLSpanElement>(null);
     const probe = useRef<HTMLSpanElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
+    const setting = useMotionSetting();
 
     useEffect(() => {
         const el = root.current;
@@ -76,7 +77,7 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
             io?.disconnect();
             mounted?.stop();
         };
-    }, [children, repel, step]);
+    }, [children, repel, step, setting]);
 
     return createElement(
         as,

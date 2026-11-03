@@ -3,8 +3,28 @@
  * follow the pointer, is there time to spare, and which ground it sits on.
  */
 
+import { useEffect, useState } from 'react';
+
+const REDUCE = '(prefers-reduced-motion: reduce)';
+
 export function prefersStill(): boolean {
-    return typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return typeof window === 'undefined' || window.matchMedia(REDUCE).matches;
+}
+
+/**
+ * A number that changes whenever the reduced-motion setting does. A scene's
+ * effect lists it, so turning reduced motion on mid-session stops the scene
+ * and shows its still at once, not on the next page load.
+ */
+export function useMotionSetting(): number {
+    const [n, setN] = useState(0);
+    useEffect(() => {
+        const m = window.matchMedia(REDUCE);
+        const bump = () => setN((v) => v + 1);
+        m.addEventListener('change', bump);
+        return () => m.removeEventListener('change', bump);
+    }, []);
+    return n;
 }
 
 /** A mouse or trackpad that hovers: the only pointer a scene follows. */

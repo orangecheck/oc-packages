@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { prefersStill } from './env';
+import { prefersStill, useMotionSetting } from './env';
 
 /*
  * The ScrollStory contract, read from inside: ScrollStory sets `--p` (0 to 1)
@@ -51,6 +51,7 @@ export interface StorySwapProps {
  */
 export function StorySwap({ before, after, at = 0.62, className, style }: StorySwapProps) {
     const ref = useRef<HTMLDivElement>(null);
+    const setting = useMotionSetting();
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
@@ -73,7 +74,7 @@ export function StorySwap({ before, after, at = 0.62, className, style }: StoryS
             cancelAnimationFrame(raf);
             stop();
         };
-    }, [at]);
+    }, [at, setting]);
     return (
         <div ref={ref} className={cn('oca-swap', className)} style={style}>
             <div className="oca-swap-state" data-swap="before">

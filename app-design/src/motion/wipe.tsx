@@ -1,7 +1,7 @@
 import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { prefersStill } from './env';
+import { prefersStill, useMotionSetting } from './env';
 
 /*
  * Reveal's clip-path sibling: the block opens the first time it scrolls into
@@ -52,13 +52,14 @@ function onceInView(el: Element, fn: () => void): () => void {
 
 export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, children }: WipeProps) {
     const ref = useRef<HTMLElement>(null);
+    const setting = useMotionSetting();
     useEffect(() => {
         const el = ref.current;
         if (!el || prefersStill() || typeof IntersectionObserver === 'undefined') return;
         if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
         el.dataset.wipe = 'pending';
         return onceInView(el, () => (el.dataset.wipe = 'shown'));
-    }, []);
+    }, [setting]);
     return createElement(
         as,
         { ref, className: cn('oca-wipe', className), style: { ...style, '--oca-wipe-delay': `${delay}ms` } as CSSProperties, 'data-from': from },

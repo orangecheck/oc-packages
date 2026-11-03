@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, type CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
-import { prefersStill, seeded, smoothstep, whenIdle } from './env';
+import { prefersStill, seeded, smoothstep, useMotionSetting, whenIdle } from './env';
 import { Batch, inks, mix, rgba, type Inks } from './paint';
 import { mountScene, type Mounted } from './scene';
 import { watchStory } from './story';
@@ -66,6 +66,7 @@ export function CrowdDissolve({
     const driven = useRef(progress);
     driven.current = progress;
     const wake = useRef<() => void>(() => {});
+    const setting = useMotionSetting();
 
     useEffect(() => {
         const el = box.current;
@@ -97,7 +98,7 @@ export function CrowdDissolve({
             mounted?.stop();
             wake.current = () => {};
         };
-    }, [cols, rows, real, seed, tone]);
+    }, [cols, rows, real, seed, tone, setting]);
 
     useEffect(() => wake.current(), [progress]);
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, whenIdle } from './env';
+import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, useMotionSetting, whenIdle } from './env';
 import { Batch, inks, mix, rgba } from './paint';
 import { portraitPoints, type Points } from './points';
 import { PORTRAIT_POSTER, PORTRAIT_POSTER_DARK } from './portrait-poster';
@@ -83,6 +83,7 @@ export function ParticlePortrait({
     const canvas = useRef<HTMLCanvasElement>(null);
     const [play, setPlay] = useState<Play>('playing');
     const control = useRef<{ toggle(): void } | null>(null);
+    const setting = useMotionSetting();
 
     useEffect(() => {
         const el = stage.current;
@@ -119,7 +120,7 @@ export function ParticlePortrait({
             mounted?.stop();
             control.current = null;
         };
-    }, [points, ground, lens]);
+    }, [points, ground, lens, setting]);
 
     const words = { pause: 'Pause animation', play: 'Play animation', replay: 'Replay animation', ...labels };
     const placed = callouts.map((c, i) => {

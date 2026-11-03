@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
 import { lightPalette } from '../tokens/palette';
-import { finePointer, prefersStill } from './env';
+import { finePointer, prefersStill, useMotionSetting } from './env';
 import { parseColour } from './paint';
 import { mountScene, type Mounted } from './scene';
 
@@ -92,6 +92,7 @@ function noise(x: number, y: number, z: number): number {
 export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark, light, pixel = 2, className, style }: DitherImageProps) {
     const box = useRef<HTMLSpanElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
+    const setting = useMotionSetting();
 
     useEffect(() => {
         const el = box.current;
@@ -120,7 +121,7 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
             el.removeEventListener('pointerenter', start);
             mounted?.stop();
         };
-    }, [src, tone, dark, light, pixel]);
+    }, [src, tone, dark, light, pixel, setting]);
 
     return (
         <span ref={box} className={cn('oca-dither relative block overflow-hidden', className)} style={{ aspectRatio: `${width} / ${height}`, ...style }}>

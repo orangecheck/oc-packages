@@ -1,7 +1,7 @@
 import { Children, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { prefersStill } from './env';
+import { prefersStill, useMotionSetting } from './env';
 import { schedule } from './scheduler';
 
 /*
@@ -24,6 +24,7 @@ export interface StackCardsProps {
 
 export function StackCards({ children, top = '5rem', className, style }: StackCardsProps) {
     const ref = useRef<HTMLDivElement>(null);
+    const setting = useMotionSetting();
     useEffect(() => {
         const el = ref.current;
         if (!el || prefersStill()) return;
@@ -48,7 +49,7 @@ export function StackCards({ children, top = '5rem', className, style }: StackCa
         );
         ticket.wake();
         return () => ticket.stop();
-    }, []);
+    }, [setting]);
     return (
         <div ref={ref} className={cn('oca-stack', className)} style={{ '--oca-stack-top': top, ...style } as CSSProperties}>
             {Children.toArray(children).map((child, i) => (
