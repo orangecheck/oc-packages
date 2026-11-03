@@ -66,4 +66,8 @@ describe('withOcAuth · audience, from your own cookie', () => {
         expect(warn).toHaveBeenCalledTimes(1);
         expect(String(warn.mock.calls[0]![0])).toContain(MINE);
     });
+
+    it("refuses a cookie token bound to another site's audience", async () => {
+        expect(await callWithCookie(await token(THEIRS), { audience: MINE })).toBeNull();
+    });
 });
