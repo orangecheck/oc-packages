@@ -56,6 +56,7 @@ export { payment } from './payment';
 export { event } from './event';
 export type {
     BatchEventResult,
+    BatchRejectCode,
     FireBatchResponse,
     FireEventOptions,
     FireEventResult,
