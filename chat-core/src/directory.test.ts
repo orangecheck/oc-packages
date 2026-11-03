@@ -283,6 +283,65 @@ describe('resolveDirectoryHandle', () => {
         });
     });
 
+    it('a full page of junk the reader drops is still a full page: the read goes on past it', async () => {
+        const { w, deps, anchorAt } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        anchorAt(a, ALICE);
+        w.bound.set(ALICE, [pk(1)]);
+        const newer = listing(2, 'alice', BOB, claim('alice', BOB, TIP - 50, 'bob'), {}, 1_790_000_900);
+        w.relays.set('wss://relay.ochk.io', [newer, listing(1, 'alice', ALICE, a, {}, 1_790_000_000)]);
+        const real = deps.page;
+        // The relay sends a full page: one listing that verifies, and 199 the reader
+        // drops for their signatures. Only the next page reaches alice's claim.
+        deps.page = async (relay, filter) => {
+            const got = await real(relay, filter);
+            if (relay !== 'wss://relay.ochk.io' || filter.until !== undefined) return got;
+            return { events: got.events.slice(0, 1), complete: true, sent: filter.limit };
+        };
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: ALICE,
+        });
+    });
+
+    it('a full page that is all junk has not been read completely, never "not listed"', async () => {
+        const { w, deps } = world();
+        w.relays.set('wss://relay.ochk.io', []);
+        const real = deps.page;
+        deps.page = async (relay, filter) =>
+            relay === 'wss://relay.ochk.io'
+                ? { events: [], complete: true, sent: filter.limit }
+                : real(relay, filter);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+    });
+
+    it('an audit relay that pads a page with junk is read past it, so the earlier claim it holds counts', async () => {
+        const { w, deps, anchorAt, publish } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        const b = claim('alice', BOB, TIP - 50, 'bob');
+        anchorAt(a, ALICE);
+        anchorAt(b, BOB);
+        w.bound.set(ALICE, [pk(1)]);
+        w.bound.set(BOB, [pk(2)]);
+        publish(listing(2, 'alice', BOB, b));
+        w.relays.set('wss://nos.lol', [
+            listing(2, 'alice', BOB, b, {}, 1_790_000_900),
+            listing(1, 'alice', ALICE, a, {}, 1_790_000_000),
+        ]);
+        const real = deps.page;
+        deps.page = async (relay, filter) => {
+            const got = await real(relay, filter);
+            if (relay !== 'wss://nos.lol' || filter.until !== undefined) return got;
+            return { events: got.events.slice(0, 1), complete: true, sent: filter.limit };
+        };
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: ALICE,
+        });
+    });
+
     it('a directory relay that stalls on a full page has not been read completely', async () => {
         const { w, deps } = world();
         const same = Array.from({ length: 200 }, (_, i) =>
