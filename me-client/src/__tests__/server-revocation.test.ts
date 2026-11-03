@@ -11,6 +11,7 @@ import {
     getOcSession,
     ocAuthExpress,
     ocAuthHono,
+    type SessionPayload,
     withOcAuth,
 } from '../server';
 
@@ -95,7 +96,7 @@ async function viaExpress(method: string) {
     const req = { method, headers: { cookie: `oc_session=${await token()}` } } as {
         method: string;
         headers: { cookie: string };
-        ocSession?: unknown;
+        ocSession?: SessionPayload | null;
     };
     const res = { status: () => res, json: () => undefined, setHeader: () => undefined };
     await ocAuthExpress({ audience: SITE })(req, res, () => {

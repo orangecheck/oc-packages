@@ -74,7 +74,7 @@ export interface FamilyScopesResult {
  *
  * Errors thrown:
  *   - `unknown_family_verb` if `verb` is not in the family allowlist
- *   - `sign in required` (401) if no oc_session cookie present
+ *   - `sign_in_required` (401) if no oc_session cookie present
  *   - `unknown_family_verb` (404) if me.ochk doesn't recognize the verb
  *
  * If you need to drive a consent prompt for a verb the user hasn't

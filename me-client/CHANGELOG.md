@@ -24,6 +24,8 @@ this file tracks the package's TS / Node / runtime API surface.
   and any route's `row_busy` 503. The message used to be the bare code.
   `reason` still comes first, and the code is the fallback when the body has
   no words.
+- `family.scopes`' doc names its 401 by the code me.ochk.io sends,
+  `sign_in_required`, not the old words.
 
 ## [0.56.0] — 2026-10-27
 

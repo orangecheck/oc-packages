@@ -68,13 +68,15 @@ describe('unknown options', () => {
 
     it('passes auth-core only the options auth-core reads', async () => {
         vi.mocked(coreCheckOcToken).mockClear();
-        await checkOcSession({ cookie: null, authorization: 'Bearer a.b.c' }, {
+        // The wrappers' own options ride in the same bag (withOcAuth passes it whole).
+        const options: WithOcAuthOptions = {
             audience: 'https://site.example',
             method: 'POST',
             projectKey: 'pk_live_example',
             required: true,
             requireBond: { minSats: 1 },
-        });
+        };
+        await checkOcSession({ cookie: null, authorization: 'Bearer a.b.c' }, options);
         const passed = vi.mocked(coreCheckOcToken).mock.calls[0]?.[1] ?? {};
         expect(Object.keys(passed).sort()).toEqual(['audience', 'issuer', 'jwksCacheTtlMs', 'jwksMaxStaleMs']);
         expect(passed.audience).toBe('https://site.example');

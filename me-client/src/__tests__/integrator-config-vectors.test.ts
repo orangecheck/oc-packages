@@ -33,7 +33,8 @@ const INTEGRATOR_DIST = join(__dirname, '..', '..', 'dist', 'integrator.mjs');
 
 function config(key: string, event: Record<string, unknown>): IntegratorPriceConfig {
     // fromEntries makes "__proto__" an own key, as JSON.parse does on the server.
-    return { ...V.base, events: Object.fromEntries([[key, event]]) } as IntegratorPriceConfig;
+    // The event is often malformed on purpose: that is what the validator is for.
+    return { ...V.base, events: Object.fromEntries([[key, event]]) } as unknown as IntegratorPriceConfig;
 }
 
 type Mod = Pick<

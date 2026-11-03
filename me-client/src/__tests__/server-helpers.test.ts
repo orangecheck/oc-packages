@@ -37,6 +37,11 @@ const SDK = /^@orangecheck\/me-client: /;
 const V = read('integrator.json');
 
 type Answer = { status: number; body: unknown };
+/** The vectors' rows for spendOnce's refusals and revokeToken. */
+type SpendRefused = { name: string; jti: unknown; exp: unknown };
+type RevokeRequest = { name: string; input: unknown; body: unknown };
+type RevokeRefused = { name: string; input: unknown };
+type RevokeAnswer = Answer & { name: string; result: unknown };
 type Case = {
     name: string;
     token: [string, string, string] | null;
@@ -157,7 +162,7 @@ describe('spendOnce · a token starts one session', () => {
         }
     });
 
-    it.each(H.spend_once.refused)('refuses a call that cannot be right: $name', (s) => {
+    it.each(H.spend_once.refused as SpendRefused[])('refuses a call that cannot be right: $name', (s) => {
         const add = vi.fn(() => true);
         expect(() => spendOnce(s.jti as string, s.exp as number, { add })).toThrow(SDK);
         expect(add).not.toHaveBeenCalled();
@@ -220,7 +225,7 @@ describe('revokeToken · ending a token at ochk.io', () => {
         return calls;
     }
 
-    it.each(H.revoke.requests)('sends $name', async (r) => {
+    it.each(H.revoke.requests as RevokeRequest[])('sends $name', async (r) => {
         const calls = stub({ status: 200, body: { ok: true, revoked: 1 } });
         await revokeToken(expand(r.input) as string | string[]);
         expect(calls).toHaveLength(1);
@@ -232,13 +237,13 @@ describe('revokeToken · ending a token at ochk.io', () => {
         expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ tokens: expand(body.tokens) });
     });
 
-    it.each(H.revoke.refused)('refuses before sending: $name', (r) => {
+    it.each(H.revoke.refused as RevokeRefused[])('refuses before sending: $name', (r) => {
         const calls = stub({ status: 200, body: { ok: true, revoked: 1 } });
         expect(() => revokeToken(expand(r.input) as string)).toThrow(SDK);
         expect(calls).toHaveLength(0);
     });
 
-    it.each(H.revoke.answers)('reads the answer: $name', async (a) => {
+    it.each(H.revoke.answers as RevokeAnswer[])('reads the answer: $name', async (a) => {
         stub({ status: a.status, body: a.body });
         expect(await revokeToken('a.b.c')).toEqual(a.result);
     });
