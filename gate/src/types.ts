@@ -126,7 +126,12 @@ export interface GateDecision {
         | 'not_found'
         | 'lookup_error'
         | 'lookup_timeout'
-        | 'fail_open';
+        | 'fail_open'
+        // The subject's coins were not listed (sdk 1.21.0). Unread, never fail_open:
+        // the address holds more coins than the chain API lists (~500), so asking
+        // again does not help; or a chain API refused the lookup (a 4xx but 429).
+        | 'utxo_cap'
+        | 'chain_refused';
     /** Underlying SDK result, present when a lookup happened. */
     check?: CheckResult;
     /** The subject value the gate resolved from the request. */

@@ -102,13 +102,32 @@ class LookupTimeout extends Error {}
  */
 class LookupIncomplete extends Error {}
 
-/** The signature verified but no Esplora endpoint answered: the bond is unknown, not absent. */
+/**
+ * A chain API answered about the subject's address without listing its coins:
+ * past the ~500-UTXO cap (`utxo_cap_unread`), or a refusal such as a 403
+ * (`provider_refused_unread`), from sdk 1.21.0. Unread, not a verdict, and
+ * never an outage: anyone can put an address past the cap by sending it dust,
+ * so failOpen never covers either.
+ */
+export function chainRefused(result: CheckResult): 'utxo_cap_unread' | 'provider_refused_unread' | null {
+    const reasons = result.reasons ?? [];
+    if (result.ok) return null;
+    if (reasons.includes('utxo_cap_unread')) return 'utxo_cap_unread';
+    if (reasons.includes('provider_refused_unread')) return 'provider_refused_unread';
+    return null;
+}
+
+/**
+ * The signature verified but no chain API answered: the bond is unknown, not
+ * absent, and the one state failOpen may let through. sdk 1.21.0 says
+ * `chain_unread`; before it, `bad_request` beside a `sig_ok_*` code.
+ */
 export function chainUnreachable(result: CheckResult): boolean {
     const reasons = result.reasons ?? [];
+    if (result.ok || chainRefused(result)) return false;
     return (
-        !result.ok &&
-        reasons.includes('bad_request') &&
-        reasons.some((r) => r === 'sig_ok_bip322' || r === 'sig_ok_legacy')
+        reasons.includes('chain_unread') ||
+        (reasons.includes('bad_request') && reasons.some((r) => r === 'sig_ok_bip322' || r === 'sig_ok_legacy'))
     );
 }
 
@@ -311,6 +330,19 @@ export async function assertOc(req: MinimalReq, opts: GateOptions): Promise<Gate
         ]).finally(() => clearTimeout(timer));
 
         if (chainUnreachable(result)) throw new Error('chain API unreachable');
+        // The address's coins were not listed: a closed decision, never fail_open,
+        // and not cached, like every lookup failure.
+        const refused = chainRefused(result);
+        if (refused) {
+            const decision: GateDecision = {
+                ok: false,
+                reason: refused === 'utxo_cap_unread' ? 'utxo_cap' : 'chain_refused',
+                check: result,
+                subject,
+                subjectKind,
+            };
+            return decision;
+        }
         // The shared-stake read was cut off (sdk stake_unread, alone): a closed
         // lookup failure, never fail_open, and not cached.
         if (readIncomplete(result)) throw new LookupIncomplete('lookup incomplete');

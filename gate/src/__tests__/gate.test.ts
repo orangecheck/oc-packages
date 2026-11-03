@@ -161,6 +161,52 @@ describe('failOpen', () => {
         expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
     });
 
+    it('treats sdk 1.21.0 chain_unread as an outage: closed, or fail_open when opted in, never cached', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_ok_bip322', 'bad_request', 'chain_unread'],
+        } as never);
+        const r = () => req({ headers: { 'x-oc-address': 'bc1qunread' } });
+        expect(await assertOc(r(), opts)).toMatchObject({ ok: false, reason: 'lookup_error' });
+        expect(await assertOc(r(), { ...opts, failOpen: true })).toMatchObject({ ok: true, reason: 'fail_open' });
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+    });
+
+    // FO1: anyone can put an address past the chain APIs' ~500-UTXO cap with
+    // dust, so an answer about the cap or a refusal is never an outage.
+    it.each([
+        ['utxo_cap_unread', 'utxo_cap'],
+        ['provider_refused_unread', 'chain_refused'],
+    ] as const)('treats %s as a closed %s, never fail_open, and not cached', async (code, reason) => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: [code],
+            address: 'bc1qdusted',
+        } as never);
+        const r = () => req({ headers: { 'x-oc-address': 'bc1qdusted' } });
+        expect(await assertOc(r(), opts)).toMatchObject({ ok: false, reason });
+        expect(await assertOc(r(), { ...opts, failOpen: true })).toMatchObject({ ok: false, reason });
+        expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
+    });
+
+    it('a cap beside the signature and bad_request is still never an outage', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_ok_bip322', 'bad_request', 'utxo_cap_unread'],
+        } as never);
+        const d = await assertOc(req({ headers: { 'x-oc-address': 'bc1qdusted2' } }), { ...opts, failOpen: true });
+        expect(d).toMatchObject({ ok: false, reason: 'utxo_cap' });
+    });
+
     it('treats a stake the SDK could not read (stake_unread, alone) as a closed lookup failure, never fail_open', async () => {
         // sdk 1.18.3 reads the stake only after everything else passed, and the
         // flood that cuts the read is the subject's own to make.

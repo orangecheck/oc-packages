@@ -11,6 +11,27 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.4.0] — 2026-11-03
+
+### Fixed
+
+- `failOpen: true` no longer admits an address whose coins a chain API would
+  not list. With `@orangecheck/sdk` before 1.21.0, the ~500-UTXO cap on
+  mempool.space and blockstream.info read as an outage, so anyone who sent
+  enough dust to their own address passed every threshold, on every request.
+  From sdk 1.21.0 the cap is `utxo_cap_unread` and a refusal (a 4xx but 429)
+  `provider_refused_unread`: the gate answers them with the new closed reasons
+  `utxo_cap` and `chain_refused`, never `fail_open`, and does not cache them.
+  This needs sdk 1.21.0 installed: with an older sdk the cap still reads as an
+  outage.
+- sdk 1.21.0's `chain_unread` is an outage, as `bad_request` beside a
+  `sig_ok_*` code was before: `lookup_error`, or `fail_open` when opted in.
+
+### Changed
+
+- `GateDecision.reason` gains `utxo_cap` and `chain_refused`. A 0.x minor:
+  a `switch` over the reasons needs the two new cases.
+
 ## [0.3.3] — 2026-11-01
 
 ### Fixed
