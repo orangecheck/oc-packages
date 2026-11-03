@@ -34,6 +34,7 @@ import {
     type PostContent,
 } from './channel';
 import type { NostrEvent } from './event';
+import { UnansweredReadError } from './read';
 
 const deriveChatIdentity = (sk: Uint8Array) => deriveNostrKey(sk);
 
@@ -1031,7 +1032,8 @@ describe('channels — a feed of posts (verifyChannelPosts, §8.3.2, §8.3.5)', 
         const spoof = buildPostEvent({ deviceSk: ADMIN_DEVICE, content: { ...post('c'), author_inbox_pubkey: adminInbox }, createdAt: 150 });
         const elsewhere = buildPostEvent({ deviceSk: STRANGER_DEVICE, content: post('d', { channel_id: 'e'.repeat(64) }), createdAt: 120 });
         const got = await feed([a, b, spoof, elsewhere]);
-        expect(got.map((p) => p.post.body)).toEqual(['b', 'a']);
+        expect(got.posts.map((p) => p.post.body)).toEqual(['b', 'a']);
+        expect([got.unchecked, got.removalsChecked]).toEqual([0, true]);
     });
 
     it('a removal by a roster admin takes the post out; one by a stranger does not', async () => {
@@ -1043,20 +1045,132 @@ describe('channels — a feed of posts (verifyChannelPosts, §8.3.2, §8.3.5)', 
             createdAt: 110,
         });
         const byStranger = buildPostEvent({ deviceSk: STRANGER_DEVICE, content: post('', { removes: pid }), createdAt: 110 });
-        expect(await feed([target, byStranger])).toHaveLength(1);
-        expect(await feed([target, byFounder])).toHaveLength(0);
+        expect((await feed([target, byStranger])).posts).toHaveLength(1);
+        expect((await feed([target, byFounder])).posts).toHaveLength(0);
     });
 
     it('two copies of one post count once, at the lower created_at', async () => {
         const first = buildPostEvent({ deviceSk: STRANGER_DEVICE, content: post('x'), createdAt: 300 });
         const again = buildPostEvent({ deviceSk: STRANGER_DEVICE, content: post('x'), createdAt: 100 });
-        const got = await feed([first, again]);
-        expect(got).toHaveLength(1);
-        expect(got[0]!.event.created_at).toBe(100);
+        const { posts } = await feed([first, again]);
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.event.created_at).toBe(100);
     });
 
     it('a closed channel shows what was posted but takes no new post through the gate', async () => {
         const p = buildPostEvent({ deviceSk: STRANGER_DEVICE, content: post('late'), createdAt: 100 });
-        expect(await feed([p], { ...open, status: 'closed' })).toHaveLength(0);
+        expect((await feed([p], { ...open, status: 'closed' })).posts).toHaveLength(0);
+    });
+});
+
+describe('channels — a gated feed when a read gets no answer (verifyChannelPosts, §8.3.3)', () => {
+    const STRANGER_DEVICE = new Uint8Array(32).fill(13);
+    const strangerInbox = deriveChatIdentity(STRANGER_DEVICE).nostrPk;
+    const bound: IsBound = async (pk, addr) =>
+        (await boundReal(pk, addr)) || (pk === strangerInbox && addr === STRANGER);
+    const unread = async (): Promise<never> => {
+        throw new UnansweredReadError('the chain could not be read');
+    };
+    const coin = (n: number) => `${'b'.repeat(63)}${n}:0`;
+    /** A stranger's gated post naming coin n, with its control_sig. */
+    const gated = (body: string, n: number, createdAt = 100) =>
+        buildPostEvent({
+            deviceSk: STRANGER_DEVICE,
+            content: {
+                ...POST,
+                channel_id: vDescV1.channel_id,
+                author_address: STRANGER,
+                author_inbox_pubkey: strangerInbox,
+                body,
+                write_proof: { ...POST.write_proof!, outpoint: coin(n) },
+            },
+            createdAt,
+            controlSig: 'sig',
+        });
+    const byFounder = (body: string, extra: Partial<PostContent> = {}) =>
+        buildPostEvent({
+            deviceSk: FOUNDER_DEVICE,
+            content: {
+                ...POST,
+                channel_id: vDescV1.channel_id,
+                author_address: FOUNDER,
+                author_inbox_pubkey: founderInbox,
+                body,
+                write_proof: undefined,
+                ...extra,
+            },
+            createdAt: 200,
+        });
+    const feed = (events: NostrEvent[], o: Partial<Parameters<typeof verifyChannelPosts>[2]> = {}) =>
+        verifyChannelPosts(events, vDescV1, {
+            tipHeight: 800200,
+            isBound: bound,
+            verifyBip322: yes,
+            verifyOnChain: async (proof) => proof.outpoint !== coin(9),
+            ...o,
+        });
+
+    it('a coin read with no answer leaves that post unchecked, and the rest of the feed still verifies', async () => {
+        const verifyOnChain = async (proof: { outpoint: string }) => {
+            if (proof.outpoint === coin(1)) throw new UnansweredReadError('429');
+            return true;
+        };
+        const got = await feed([gated('unread', 1), gated('read', 2)], { verifyOnChain });
+        expect(got.posts.map((p) => p.post.body)).toEqual(['read']);
+        expect(got.unchecked).toBe(1);
+    });
+
+    it('a forged coin is dropped, not counted unchecked', async () => {
+        const got = await feed([gated('forged', 9)]);
+        expect([got.posts.length, got.unchecked]).toEqual([0, 0]);
+    });
+
+    it('a binding read no relay answered leaves the post unchecked, not refused', async () => {
+        const got = await feed([gated('a', 1)], { isBound: unread });
+        expect([got.posts.length, got.unchecked]).toEqual([0, 1]);
+    });
+
+    it("with no tip read, a stranger's gated post is unchecked and the founder's still shows", async () => {
+        const got = await feed([gated('stranger', 1), byFounder('founder')], { tipHeight: 'unanswered' });
+        expect(got.posts.map((p) => p.post.body)).toEqual(['founder']);
+        expect(got.unchecked).toBe(1);
+    });
+
+    it('with no tip read, a post the gate refuses on its face is still refused', async () => {
+        const noSig = buildPostEvent({
+            deviceSk: STRANGER_DEVICE,
+            content: { ...POST, author_address: STRANGER, author_inbox_pubkey: strangerInbox, body: 'no sig' },
+            createdAt: 100,
+        });
+        const got = await feed([noSig], { tipHeight: 'unanswered' });
+        expect([got.posts.length, got.unchecked]).toEqual([0, 0]);
+    });
+
+    it('a removal that could not be checked leaves removals unchecked', async () => {
+        const target = gated('spam', 2);
+        const removal = byFounder('', { removes: postId(JSON.parse(target.content) as PostContent) });
+        const got = await feed([target, removal], { isBound: async (pk, addr) => (pk === founderInbox ? unread() : bound(pk, addr)) });
+        expect(got.removalsChecked).toBe(false);
+        expect(got.unchecked).toBe(1);
+    });
+
+    it('a post shown from one copy is not counted unchecked for another', async () => {
+        let first = true;
+        const verifyOnChain = async () => {
+            if (first) {
+                first = false;
+                throw new UnansweredReadError('429');
+            }
+            return true;
+        };
+        const got = await feed([gated('x', 1, 300), gated('x', 1, 100)], { verifyOnChain });
+        expect([got.posts.length, got.unchecked]).toEqual([1, 0]);
+    });
+
+    it('an error that is not an unanswered read still reaches the caller', async () => {
+        const broken = async (): Promise<boolean> => {
+            throw new TypeError('a bug, not a read');
+        };
+        await expect(feed([gated('a', 1)], { verifyOnChain: broken })).rejects.toBeInstanceOf(TypeError);
     });
 });
