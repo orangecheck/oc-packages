@@ -1,8 +1,8 @@
 /**
  * @orangecheck/legal — `me` profile.
  *
- * ochk.app (its API at me.ochk.io): a consumer Bitcoin-backed identity that pays users in sats.
- * Federation-custodied by default, self-custody graduation, no KYC. This is
+ * ochk.app (its API at me.ochk.io): a consumer Bitcoin-backed identity that will pay users in sats.
+ * orangecheck holds what users earn during bring-up, no KYC. This is
  * the only profile where value flows TO the user, so the money, custody, and
  * regulated-activity sections are rendered as counsel-review stubs per the
  * "structure + stubs" directive — the surrounding contract is complete.
@@ -55,7 +55,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity works across the orangecheck family. Every receipt for your account is signed, and anyone holding one can check its signature offline, without asking us; a receipt sent to Bitcoin for a timestamp also checks against Bitcoin once it is anchored. If you back your account, it is tied to bitcoin you hold, and that bitcoin stays in your wallet.',
+                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity works across the orangecheck family. Every paid event on your account has a receipt, signed by us, and anyone holding one and the public key we publish can check its signature offline, without asking us; a receipt sent to Bitcoin for a timestamp also checks against Bitcoin once it is anchored. If you back your account, it is tied to bitcoin you hold, and that bitcoin stays in your wallet.',
                 },
                 {
                     kind: 'para',
@@ -92,16 +92,16 @@ const terms: DocSpec = {
         },
         {
             id: 'custody',
-            heading: 'custody & graduation',
+            heading: 'custody & payouts',
             hint: 'orangecheck-held during bring-up · paid out to a wallet you choose',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. orangecheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance orangecheck owes you until it is paid out to the destination you bind. During bring-up orangecheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, orangecheck currently holds the key that will pay you.** The design is a Fedimint federation: independent guardians hold the bitcoin under a threshold scheme, and orangecheck’s executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by orangecheck. So during this period orangecheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that moves the money.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
+                    text: 'Custody depends on how you sign in, and the honest answer differs today from the design.\n\n**If you sign in with BIP-322, you hold your own keys.** They never leave your device. orangecheck verifies signatures and relays envelopes; it cannot move the funds in your wallet. That is true now and does not change.\n\n**What you earn is a different matter.** Cashback you accrue is a balance orangecheck owes you until it is paid out to the destination you bind. During bring-up orangecheck holds those sats for every user, however they sign in.\n\n**If you sign in with email, Google or GitHub, orangecheck currently holds the key that will pay you.** The design is a Fedimint federation: independent guardians hold the bitcoin under a threshold scheme, and orangecheck’s executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose. That federation does not exist yet: there are no independent guardians today, and during bring-up the signing key for the paying rail is operated by orangecheck. So during this period orangecheck is a custodian, of the signing keys of people who sign in with email, Google or GitHub and of every user’s accrued cashback, and the party that will move the money once payouts open.\n\nWe state that plainly rather than describing the destination as though it were the present. **The live status of the paying rail — which posture is in force, what bounds it, and what has actually settled — is published on [the custody page](/custody) and machine-readable at `/api/federations`.** Those surfaces are computed from the system rather than written by hand, so they cannot drift from this document the way a fixed sentence would.',
                 },
                 {
                     kind: 'stub',
-                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or orangecheck ceases operations, the mechanics and timing of graduation, and the allocation of risk between you, the federation, and orangecheck — is being finalized for publication before general availability. The honest current-state engineering account is published on the [security page](/security). This section will be completed following review by counsel.',
+                    text: 'The complete custody disclosure — the federation threshold model and its failure modes, what each guardian can and cannot do, the durability of your balance if a federation or orangecheck ceases operations, and the allocation of risk between you, the federation, and orangecheck — is being finalized for publication before general availability. The honest current-state engineering account is published on the [security page](/security). This section will be completed following review by counsel.',
                 },
             ],
         },
@@ -190,7 +190,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: '**Your right:** stop using ochk.app at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance orangecheck owes you, and during bring-up there is no sweep to self-custody to run first — no federation is bound. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by orangecheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
+                    text: '**Your right:** stop using ochk.app at any time; you may delete your identity in [your settings](/me/settings). **Our right:** suspend or terminate access with or without cause, including for abuse or legal risk. Deleting your identity does not settle a balance orangecheck owes you. If your balance is above zero, bind a payout destination and instruct a cash-out before you delete, or contact us. Hashes anchored to Bitcoin and commitments published to Nostr are immutable and cannot be deleted by orangecheck; neither names you. The disclaimer, liability, indemnification, governing-law, and dispute provisions survive.',
                 },
             ],
         },

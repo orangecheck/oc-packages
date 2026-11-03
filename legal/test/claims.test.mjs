@@ -412,9 +412,10 @@ test('the ochk.app privacy policy says what its contact form sends', () => {
 test('the ochk.app terms name every way to sign in', () => {
     const accounts = buildDoc('me', 'terms').sections.find((s) => s.id === 'accounts');
     const text = accounts.blocks.map((b) => b.text ?? '').join(' ').replace(/[*`]/g, '');
-    for (const way of [/\bemail\b/i, /\bGoogle\b/, /\bGitHub\b/, /\ba Bitcoin wallet\b/i]) {
-        assert.match(text, way);
-    }
+    assert.match(
+        text,
+        /You may create an identity four ways: with email \(a one-time code\), Google, GitHub, or a Bitcoin wallet \(/
+    );
     assert.doesNotMatch(text, /two ways/i);
     assert.doesNotMatch(accounts.hint ?? '', /\btwo\b/i);
     // Wherever the terms say who holds a key by sign-in, the keyless ways are named together.
@@ -450,6 +451,8 @@ const CUSTODY_PROMISES = [
     [/what replaces it/i, 'a federation replacing orangecheck'],
     [/custodied and disbursed by independent/i, 'a federation paying people'],
     [/federation ⇄ self-custody transition/i, 'a record per custody move'],
+    [/graduation|sweep to self-custody/i, 'a later move to self-custody'],
+    [/the party that moves the money/i, 'payouts that move today'],
 ];
 
 test('the ochk.app terms and privacy promise no federation stage that is not built', () => {
@@ -478,6 +481,9 @@ test('the ochk.app terms and privacy write orangecheck lowercase, the defined na
 test('the ochk.app terms say what checks offline, and what backing ties an account to', () => {
     const terms = DOCS.find(([n]) => n === 'me/terms')[1];
     assert.doesNotMatch(terms, /identity is anchored in Bitcoin|anchored in Bitcoin, verifiable offline/i);
-    assert.match(terms, /anyone holding one can check its signature offline, without asking us/);
+    // Only a paid event's receipt is signed (me-web isPublicEnvelope), and the check needs the key me.ochk.io publishes.
+    assert.doesNotMatch(terms, /Every receipt for your account is signed/);
+    assert.match(terms, /Every paid event on your account has a receipt, signed by us/);
+    assert.match(terms, /anyone holding one and the public key we publish can check its signature offline, without asking us/);
     assert.match(terms, /If you back your account, it is tied to bitcoin you hold/);
 });

@@ -29,13 +29,17 @@ ochk.io's and OC Vault's documents render exactly as before.
   policy listed a record of each federation to self-custody move. The planned
   stage keeps orangecheck's executor holding each claim until it is paid to a
   Lightning wallet you choose, and both documents now say only that. The
-  custody record entry says none is made while the system is in testing.
+  custody section is headed "custody & payouts", not "custody & graduation", the
+  custody disclosure still to come no longer lists graduation, the Termination
+  section no longer mentions a sweep to self-custody, and orangecheck is the
+  party that will move the money once payouts open. The custody record entry
+  says none is made while the system is in testing.
 - **What checks offline, and what backing ties.** The Terms' overview said your
   identity is anchored in Bitcoin and verifiable offline. An account that is not
-  backed is tied to no bitcoin, and what checks offline is a receipt's
-  signature; a timestamp checks against Bitcoin only once it is anchored. The
-  overview now says each of those, and that backing ties your account to bitcoin
-  you hold.
+  backed is tied to no bitcoin. What checks offline is a receipt's signature,
+  given the public key we publish, and only a paid event has a signed receipt; a
+  timestamp checks against Bitcoin only once it is anchored. The overview now
+  says each of those, and that backing ties your account to bitcoin you hold.
 - **orangecheck, lowercase.** Both documents now write the brand lowercase, as
   ochk.app's pages do. While no entity is registered the party of record goes
   by the brand, so these documents define it as "orangecheck". A new `BRAND`
