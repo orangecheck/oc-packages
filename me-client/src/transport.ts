@@ -75,12 +75,15 @@ export async function api<T>(path: string, opts: FetchOptions = {}): Promise<T> 
             const data = (await res.json()) as {
                 error?: string;
                 reason?: string;
+                detail?: string;
                 [k: string]: unknown;
             };
             body = data;
             if (data?.error) {
                 errorCode = data.error;
-                message = data.reason ?? data.error;
+                // Some refusals put their words in `detail`: the event routes'
+                // project_auth_required 401, and any route's row_busy 503.
+                message = data.reason ?? data.detail ?? data.error;
             }
         } catch {
             /* response body wasn't JSON; carry the bare status */
