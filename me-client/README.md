@@ -4,7 +4,7 @@
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
-Client for [me.ochk.io](https://me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. Sign people in with `signInWithOc()` from `/popup`. No React needed.
+Client for [ochk.app](https://ochk.app), the orangecheck account (its API answers at me.ochk.io). Popup sign-in for any site, framework-agnostic server-side verification, session lifecycle hooks, payment authorization, webhook signature verification, the canonical billable-event taxonomy as TypeScript types. Sign people in with `signInWithOc()` from `/popup`. No React needed.
 
 > Sign-in is free. Paying your users is optional: always, in promos you schedule, or never.
 
@@ -17,8 +17,9 @@ import { oc } from '@orangecheck/me-client';
 // The React provider and hook live in the companion package.
 import { OcSessionProvider, useOcSession } from '@orangecheck/auth-client';
 
-// Server-side verification — Next.js, Express, Hono. Zero env vars,
-// zero JWK handling. SDK lazy-fetches and caches the JWKS.
+// Server-side verification — Next.js, Express, Hono. No JWK handling:
+// SDK lazy-fetches and caches the JWKS. Set OC_PROJECT_KEY and
+// OC_SIGNING_SECRET (see "Sessions ended everywhere").
 import { withOcAuth, ocAuthExpress, ocAuthHono } from '@orangecheck/me-client/server';
 
 // Browser-only popup orchestrator — same shape Google / GitHub use.
@@ -136,7 +137,7 @@ if (!res.earned) {
 
 ## Session lifecycle
 
-Sessions are the billable atom for me.ochk.io: your server fires one `session_creation` event per real session with `oc.event.fire`. `oc.session.create` opens a session and records no charge, and a signin within a still-valid session is **free**. Site declares the policy at integration time; the OC verifier enforces it both client-side and server-side.
+Sessions are the billable atom on ochk.app: your server fires one `session_creation` event per real session with `oc.event.fire`. `oc.session.create` opens a session and records no charge, and a signin within a still-valid session is **free**. Site declares the policy at integration time; the OC verifier enforces it both client-side and server-side.
 
 ```ts
 import { oc } from '@orangecheck/me-client';
@@ -168,7 +169,7 @@ await oc.session.invalidate(session.id);
 
 ## Payment authorization
 
-Class B billable event. Sub-Stripe rates (0.5–1.0% percentage-based). The user receives ~65% of the OC fee as Lightning cashback on `/me/earn`.
+Class B billable event. Sub-Stripe rates (0.5–1.0% percentage-based). The person earns the share you set per event (`user_share_pct`, 0 to 0.8 of the gross fee; OC keeps 20%, and the default templates give 0.8), and it lands in their balance at ochk.app.
 
 ```ts
 import { oc } from '@orangecheck/me-client';
@@ -281,7 +282,7 @@ Set `OC_PROJECT_KEY` and `OC_SIGNING_SECRET` (from ochk.app/me/projects) and `ge
 
 ### Sign in from an app on the person's device
 
-A desktop build or a game can't open the popup, and must not carry a secret. It signs the person in through their browser instead (0.50.0, test projects only for now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE challenge, and its listener receives a one-time `code`. The app hands the code, its verifier and its redirect to your server, which trades them:
+A desktop build or a game can't open the popup, and must not carry a secret. It signs the person in through their browser instead (0.50.0; a test project signs in only its own developer, and a live project needs a verified domain): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE challenge, and its listener receives a one-time `code`. The app hands the code, its verifier and its redirect to your server, which trades them:
 
 ```ts
 import { exchangeNativeCode, spendOnce } from '@orangecheck/me-client/server';
@@ -302,7 +303,7 @@ if (out.status === 'valid' && (await spendOnce(out.session.jti, out.session.exp 
 
 Start a session only from `valid`. It means what a request through `withOcAuth` means: the token is the popup's, verified for your `audience`, with `azp: "native"`; the person has not ended it everywhere; and the account meets your project's "who can sign in" rule. The key decides whose rule and list of ended sessions apply, so it comes from your config (`projectKey`, default `OC_PROJECT_KEY`), and a `projectKey` in the input throws. The list of ended sessions is read with your project key and `OC_SIGNING_SECRET`, as the adapters read it, or pass `revocation`; the trade counts as a write, so a list that can't be read answers `unavailable`.
 
-`invalid` names why: `invalid_grant` (start again), `session_ended`, or `bond_required` with `need`, `have` and `back_url`, as the adapters' 403 carries them. `unavailable` is an outage (`revocations_unavailable` and `bond_policy_unavailable` among them), so answer it 503. Each code works once, whatever the answer. Turn native sign-in on for a test project on ochk.app; the app's half, with a Godot example, is at ochk.io/docs/integration/native-sign-in.
+`invalid` names why: `invalid_grant` (start again), `session_ended`, or `bond_required` with `need`, `have` and `back_url`, as the adapters' 403 carries them. `unavailable` is an outage (`revocations_unavailable` and `bond_policy_unavailable` among them), so answer it 503. Each code works once, whatever the answer. Turn native sign-in on for your project on ochk.app, under **Sign-in → Sign in from apps**; the app's half, with a Godot example, is at ochk.io/docs/integration/native-sign-in.
 
 ## Keep your own login: OC Connect
 
