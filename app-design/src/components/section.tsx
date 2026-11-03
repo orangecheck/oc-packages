@@ -5,12 +5,21 @@ import { cn } from '../lib/cn';
 import { Reveal } from './motion';
 
 /*
- * The deck alternates three grounds: the light canvas, the ink band and the
+ * The page alternates grounds: paper, the ink band, the burnt band and the
  * orange band. A section owns its ground edge to edge and its content sits in
- * the container. On the orange band text is ink, never white (2.9:1).
+ * the container. A band also re-points the text, hairline and accent tokens,
+ * so a MonoLabel, a StatRow or a lead inside it reads in the band's own colours.
+ * On the orange band text is ink, never white (2.80:1).
  */
 // overflow-x: clip, not hidden: decoration may not widen the page, and a sticky
 // child still sticks.
+const INK_BAND =
+    '[--foreground:var(--oca-ink-foreground)] [--muted-foreground:var(--oca-ink-muted)] [--oca-subtle-foreground:var(--oca-ink-subtle)] [--border:var(--oca-ink-line)]';
+const BURNT_BAND =
+    '[--foreground:var(--oca-burnt-foreground)] [--muted-foreground:var(--oca-burnt-muted)] [--oca-subtle-foreground:var(--oca-burnt-muted)] [--border:var(--oca-burnt-line)] [--oca-accent-display:var(--oca-burnt-ember)] [--ring:var(--oca-burnt-accent)]';
+const BRAND_BAND =
+    '[--foreground:var(--brand-foreground)] [--muted-foreground:var(--brand-foreground)] [--oca-subtle-foreground:var(--brand-foreground)] [--border:var(--oca-brand-line)] [--oca-accent-display:var(--brand-foreground)] [--ring:var(--brand-foreground)]';
+
 export const sectionVariants = cva('relative w-full overflow-x-clip', {
     variants: {
         tone: {
@@ -18,9 +27,16 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             card: 'bg-card text-card-foreground',
             // The band line is transparent in light; in dark it keeps the ink
             // band from melting into the canvas.
-            ink: 'border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground',
+            ink: `border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground ${INK_BAND}`,
+            // The dark brown stage: paper text, orange and ember.
+            burnt: `bg-oca-burnt text-oca-burnt-foreground ${BURNT_BAND}`,
             // Focus is drawn in the band's own ink: orange on orange was 1.2:1.
-            brand: 'bg-brand text-brand-foreground [--ring:var(--brand-foreground)]',
+            brand: `bg-brand text-brand-foreground ${BRAND_BAND}`,
+        },
+        /** A full-width hairline under the section, as 2.0 rules one section from the next. */
+        rule: {
+            true: 'border-b border-border',
+            false: '',
         },
         space: {
             none: '',
@@ -29,7 +45,7 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             lg: 'py-24 md:py-40',
         },
     },
-    defaultVariants: { tone: 'canvas', space: 'md' },
+    defaultVariants: { tone: 'canvas', space: 'md', rule: false },
 });
 
 export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<typeof sectionVariants> {
@@ -37,9 +53,9 @@ export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<
     contained?: boolean;
 }
 
-export function Section({ tone, space, contained = true, className, children, ...props }: SectionProps) {
+export function Section({ tone, space, rule, contained = true, className, children, ...props }: SectionProps) {
     return (
-        <section className={cn(sectionVariants({ tone, space }), className)} {...props}>
+        <section className={cn(sectionVariants({ tone, space, rule }), className)} {...props}>
             {contained ? <div className="oca-container">{children}</div> : children}
         </section>
     );
