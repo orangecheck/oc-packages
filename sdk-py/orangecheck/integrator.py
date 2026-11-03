@@ -1198,7 +1198,7 @@ def sign_event(
     processes the same signed bytes once: sending them again returns the first
     event, whatever ``Idempotency-Key`` they carry.
 
-        body = json.dumps({"project_key": key, "subtype": "account_created",
+        body = json.dumps({"project_key": key, "subtype": "account_creation",
                            "user_address": session.did_oc})
         httpx.post(url, content=body, headers={
             "Content-Type": "application/json",

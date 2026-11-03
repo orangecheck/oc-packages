@@ -182,7 +182,7 @@ POLICY = SignInPolicy(PROJECT_KEY)
 session = verify_session(token, audience="https://your-site.example", policy=POLICY)
 # Or in code, which wins over the project's: require_bond={"min_sats": 100000, "min_days": 30}
 
-body = json.dumps({"project_key": PROJECT_KEY, "subtype": "account_created",
+body = json.dumps({"project_key": PROJECT_KEY, "subtype": "account_creation",
                    "user_address": session.did_oc})
 httpx.post("https://me.ochk.io/api/integrator/event", content=body, headers={
     "Content-Type": "application/json",
@@ -298,9 +298,10 @@ later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https
 ### Sign in from an app on the person's device
 
 A desktop build or a game can't open the popup, and must not carry a secret. It
-signs the person in through their browser instead (3.6.0, test projects only for
-now): the app listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a
-PKCE challenge, and its listener receives a one-time `code`. The app hands the
+signs the person in through their browser instead (3.6.0; a test project signs in
+only its own developer, and a live project needs a verified domain): the app
+listens on `127.0.0.1`, opens ochk.io's `/native/authorize` with a PKCE
+challenge, and its listener receives a one-time `code`. The app hands the
 code, its verifier and its redirect to your server, which trades them:
 
 ```python
