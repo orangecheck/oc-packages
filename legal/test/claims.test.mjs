@@ -420,3 +420,13 @@ test('the ochk.app terms name every way to sign in', () => {
     assert.doesNotMatch(terms, /sign in with email(?!, Google or GitHub)/i);
     assert.doesNotMatch(terms, /email users/i);
 });
+
+// No app pays real sats yet, so ochk.app's documents say paying in the future tense (lead ruling, 2026-11-03).
+test('the ochk.app terms and privacy say paying in the future tense', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        assert.doesNotMatch(text, /\b(pays|flows back to) (you|users|every user)\b/i, name);
+        assert.doesNotMatch(text, /\bit pays (to )?(you|every user)\b/i, name);
+    }
+    assert.match(buildDoc('me', 'terms').description, /identity that will pay you in sats/i);
+});
