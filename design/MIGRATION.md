@@ -1,20 +1,26 @@
 # Migrating a consumer site to `@orangecheck/design`
 
+> **Frozen.** `@orangecheck/design` gets fixes only, no new features, so do not
+> move a site onto it: new work uses [`@orangecheck/app-design`](../app-design),
+> the ochk.app design system. This recipe stays as the record of how sites were
+> set up on design, and the release notes below still apply to the sites on it.
+
 A mechanical, low-risk recipe. For the default `orangecheck` skin the result is a
 **pixel no-op** — tokens, the utility layer, and shadows are byte-for-byte what
 the site ships today. Do one site per PR; verify on the Vercel preview before
-merging. `oc-stamp-web` is the canonical pilot (its primitives are the ones the
-package was extracted from, so its diff is import-path-only).
+merging. `oc-stamp-web` was the pilot (its primitives are the ones the package
+was extracted from, so its diff was import-path-only); it has since moved to
+`@orangecheck/app-design`.
 
 ## 1. Add the dependency
 
 ```jsonc
 // package.json
-"@orangecheck/design": "^0.1.0"
+"@orangecheck/design": "^0.35.3"
 ```
 
-`@orangecheck/ui`, the Radix packages, `cva`, `clsx`, `tailwind-merge`, and
-`sonner` arrive transitively — you may drop them as *direct* deps once nothing
+The Radix packages, `cva`, `clsx`, `tailwind-merge`, and `sonner` arrive
+transitively — you may drop them as *direct* deps once nothing
 local imports them, or leave them (versions match, no conflict).
 
 ### 1a. next.config — transpilePackages (REQUIRED)
@@ -22,14 +28,14 @@ local imports them, or leave them (versions match, no conflict).
 Add `@orangecheck/design` to `transpilePackages`:
 
 ```ts
-transpilePackages: [/* …existing… */, '@orangecheck/ui', '@orangecheck/design'],
+transpilePackages: [/* …existing… */, '@orangecheck/design'],
 ```
 
-This is **not optional**. `@orangecheck/design` re-exports `@orangecheck/ui`,
-whose ESM uses a bare `next/link` import. If `design` isn't transpiled, Next
-externalizes it and SSR page-data collection fails with
-`Cannot find module 'next/link'`. Transpiling lets webpack resolve it. (Keep
-`@orangecheck/ui` in the list too if it's already there.)
+This is **not optional**. `@orangecheck/design`'s chrome (`./chrome`, re-exported
+by the root and `./components`) uses a bare `next/link` import. If `design` isn't
+transpiled, Next externalizes it and SSR page-data collection fails with
+`Cannot find module 'next/link'`. Transpiling lets webpack resolve it. Design no
+longer depends on `@orangecheck/ui` (0.7.0 folded its composites and chrome in).
 
 ## 2. globals.css — replace the inlined tokens with one import
 
@@ -40,7 +46,6 @@ token blocks **and** the duplicated utility layer (`.container`, `.font-display`
 
 ```css
 @import 'tailwindcss';
-@source '../../node_modules/@orangecheck/ui';
 @source '../../node_modules/@orangecheck/design'; /* emit utilities used inside the package */
 @import 'tw-animate-css';
 @custom-variant dark (&:is(.dark *));
@@ -120,9 +125,7 @@ the migration, not an intended change.
 ## 8. Live BTC/USD spot rate · `useSpotPrice` (0.7.6+)
 
 `@orangecheck/design/format` ships a React hook for live BTC/USD display
-alongside the existing `satsToUsd` / `formatSats` formatters. Used today by
-`vault.ochk.io/pricing` (USD line under each sats price) and `me.ochk.io`
-treasury surfaces.
+alongside the existing `satsToUsd` / `formatSats` formatters.
 
 ```tsx
 import { asOf, satsToUsd, useSpotPrice } from '@orangecheck/design';
