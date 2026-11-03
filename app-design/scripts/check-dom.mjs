@@ -532,6 +532,31 @@ for (const mode of ['dark', 'light']) {
     }
 }
 
+// A test DOM without matchMedia or IntersectionObserver (vitest's jsdom, as chat, vault and
+// ochk.app run): the 2.0 footer mounts, and its wordmark is shown, not left waiting to rise.
+{
+    const kept = { mm: window.matchMedia, io: window.IntersectionObserver, gmm: globalThis.matchMedia, gio: globalThis.IntersectionObserver };
+    delete window.matchMedia;
+    delete globalThis.matchMedia;
+    window.IntersectionObserver = undefined;
+    globalThis.IntersectionObserver = undefined;
+    let threw = null;
+    let host = null;
+    let unmount = async () => {};
+    try {
+        ({ host, unmount } = await mount(h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }] })));
+    } catch (e) {
+        threw = e;
+    }
+    check(!threw, `SiteFooter: mounting with no matchMedia or IntersectionObserver threw ${threw?.message}`);
+    check(Boolean(host?.querySelector('[data-oca-wordmark]')) && !host?.querySelector('[data-reveal="pending"]'), 'SiteFooter: with no observers the wordmark waits hidden to rise');
+    await unmount();
+    window.matchMedia = kept.mm;
+    globalThis.matchMedia = kept.gmm;
+    window.IntersectionObserver = kept.io;
+    globalThis.IntersectionObserver = kept.gio;
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);

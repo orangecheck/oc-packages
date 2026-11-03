@@ -642,6 +642,11 @@ function useInnerWidth(ref: RefObject<HTMLElement | null>, padding: number): num
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
+        // Without ResizeObserver (a test DOM) the width is read once.
+        if (typeof ResizeObserver === 'undefined') {
+            setWidth(el.clientWidth - padding);
+            return;
+        }
         const ro = new ResizeObserver(() => setWidth(el.clientWidth - padding));
         ro.observe(el);
         return () => ro.disconnect();

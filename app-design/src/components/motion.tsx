@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import { cn } from '../lib/cn';
+import { prefersReducedMotion } from '../lib/env';
 
 /*
  * Motion that tells the story and then gets out of the way. Everything here is
@@ -16,8 +17,9 @@ import { cn } from '../lib/cn';
  * nothing while offscreen.
  */
 
+/** Still under reduced motion, and where matchMedia is missing (a test DOM): nothing hides content waiting for a rise. */
 function prefersStill(): boolean {
-    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return prefersReducedMotion();
 }
 
 /** True once the element has been on screen (or immediately without an observer). */

@@ -648,7 +648,8 @@ export function ThemeProvider({ children, storageKey = 'theme', defaultTheme = '
     // The system's own switch (dark mode at sunset) reaches next-themes, not ThemeToggle. Registered
     // in a layout effect, this listener runs before next-themes' own, which it adds in a passive one.
     useEarlyEffect(() => {
-        if (forcedTheme) return;
+        // No matchMedia (a test DOM): nothing to listen to.
+        if (forcedTheme || typeof window.matchMedia !== 'function') return;
         const scheme = window.matchMedia('(prefers-color-scheme: dark)');
         const still = () => {
             let chosen: string | null = null;
