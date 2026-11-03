@@ -9,7 +9,11 @@ small and the API may evolve quickly.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Fixed
+
+- The account menu's `family dashboard ↗` link goes to
+  `https://ochk.app/me/account`, the family's account page. It pointed at
+  `https://ochk.io/dashboard`, which only 308s there.
 
 ## [0.15.3] — 2026-10-29 · a refused sign-out says so
 
