@@ -1,17 +1,22 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { MARK_FACES, MARK_POINTS } from '../brand/mark';
 import { appColors } from '../tokens';
-import inter500 from './fonts/inter-latin-500-normal.woff';
-import inter600 from './fonts/inter-latin-600-normal.woff';
-import inter500Ext from './fonts/inter-latin-ext-500-normal.woff';
-import inter600Ext from './fonts/inter-latin-ext-600-normal.woff';
+import ditherMark480 from '../../art/dither-mark-480.png';
+import ditherMarkInk480 from '../../art/dither-mark-ink-480.png';
+import ditherField from '../../art/dither-field.png';
+import halftoneField from '../../art/halftone-field.png';
+import inter300 from './fonts/inter-latin-300-normal.woff';
+import inter400 from './fonts/inter-latin-400-normal.woff';
+import inter300Ext from './fonts/inter-latin-ext-300-normal.woff';
+import inter400Ext from './fonts/inter-latin-ext-400-normal.woff';
+import mono400 from './fonts/jetbrains-mono-latin-400-normal.woff';
 
 /*
- * The family's share card, for next/og's ImageResponse: the lockup and the
- * site's word, an eyebrow, the page's title at display size, the host.
- * Inline styles and flex only, as satori draws them. The route that serves
- * it (a title from the query, a cache header) is the site's, or site-kit's:
+ * The family's share images, for next/og's ImageResponse: `OgCard`, one page's
+ * card at 1200×630, and `OgBento`, rounded tiles on a sheet at 1200×630 or
+ * 1920×1080. Inline styles and flex only, as satori draws them; every colour
+ * is a /tokens value. The route that serves them is the site's, or site-kit's:
  *
  *     import { ImageResponse } from 'next/og';
  *     import { OG_SIZE, OgCard, ogFonts } from '@orangecheck/app-design/og';
@@ -19,51 +24,217 @@ import inter600Ext from './fonts/inter-latin-ext-600-normal.woff';
  *     new ImageResponse(<OgCard product="stamp" eyebrow="OC Stamp" title={title} host="stamp.ochk.io" />,
  *         { ...OG_SIZE, fonts: ogFonts() });
  *
- * The fonts are Inter (OFL-1.1, ./fonts/OFL.txt), Latin and Latin Extended
- * at 500 and 600, inlined so the route reads no file. A title in another
- * script needs a font of its own passed after these.
+ * The fonts are Inter 300 (display) and 400 (the wordmark, body), Latin and
+ * Latin Extended, and JetBrains Mono 400 (the label row), Latin: OFL-1.1,
+ * ./fonts/OFL.txt and ./fonts/OFL-JetBrainsMono.txt, inlined so a route reads
+ * no file. A title in another script needs a font of its own passed after these.
+ *
+ * The art is baked (scripts/art/bake.mjs, ./art in the package): satori cannot
+ * run a canvas, so dither and halftone come in as PNG data URIs (`ogArt`).
  */
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
+/** A social post's size, for `OgBento` with `size="social"`. */
+export const SOCIAL_SIZE = { width: 1920, height: 1080 } as const;
 
-// The page's own colours, from tokens.css: every text pair here is one the contrast check holds to AA.
-const { dark: D, light: L, brand: B } = appColors;
-const TONES = {
-    // The ink band: dark in both modes, as the deck's closing band.
-    ink: { bg: D.background, fg: D.foreground, muted: D.mutedForeground, accent: D.accentInk, line: D.hairlineStrong, tile: D.iconTile, ring: D.iconRing },
-    paper: { bg: L.background, fg: L.foreground, muted: L.mutedForeground, accent: L.accentInk, line: L.hairlineStrong, tile: B.ink, ring: B.ink },
-} as const;
+const { dark: D, light: L } = appColors;
+const INK = L.foreground;
+const PEACH = MARK_FACES.top;
+const MONO = "'JetBrains Mono', 'OCA JetBrains Mono', monospace";
 
-export interface OgCardProps {
-    /** The page's title, at display size. Three lines at most; a longer one is cut. */
-    title: string;
-    /** One line above it, in the accent: "OC Stamp", "Docs · Reference". */
-    eyebrow?: string;
-    /** The site's word beside the lockup: "stamp", "vault". */
-    product?: string;
-    /** At the foot: "stamp.ochk.io". */
-    host?: string;
-    tone?: keyof typeof TONES;
-    /** The large mark at the lower right. On by default; off, the title takes the card's width. */
-    mark?: boolean;
+interface Tone {
+    bg: string;
+    fg: string;
+    muted: string;
+    /** The label row's text. */
+    label: string;
+    /** The label row's square, and a numeral's colour. */
+    accent: string;
+    line: string;
+    /** The mark's top face: ink on a light ground, peach on a dark one. */
+    top: string;
+    /** A brand ground takes the ink mark: one colour at the mark's face opacities. */
+    monoMark: boolean;
 }
 
-function MarkSvg({ width, x = 0, y = 0 }: { width: number; x?: number; y?: number }) {
+// Every text pair here is one check-contrast holds to AA (the 2.0 tokens).
+const TONES = {
+    paper: {
+        bg: L.background,
+        fg: L.foreground,
+        muted: L.mutedForeground,
+        label: L.accentInk,
+        accent: L.accentDisplay,
+        line: L.hairlineStrong,
+        top: INK,
+        monoMark: false,
+    },
+    ink: {
+        bg: D.card,
+        fg: D.foreground,
+        muted: D.mutedForeground,
+        label: D.accentInk,
+        accent: D.accentDisplay,
+        line: D.hairlineStrong,
+        top: PEACH,
+        monoMark: false,
+    },
+    burnt: {
+        bg: L.burnt,
+        fg: L.burntForeground,
+        muted: L.burntMuted,
+        label: L.burntAccent,
+        accent: L.burntAccent,
+        line: L.burntEmber,
+        top: PEACH,
+        monoMark: false,
+    },
+    brand: {
+        bg: L.brand,
+        fg: L.brandForeground,
+        muted: L.brandForeground,
+        label: L.brandForeground,
+        accent: L.brandForeground,
+        line: L.brandForeground,
+        top: INK,
+        monoMark: true,
+    },
+} as const satisfies Record<string, Tone>;
+
+/** A tile's ground: the card tones, plus the white product surface (a receipt). */
+const TILE_TONES = {
+    ...TONES,
+    surface: {
+        bg: L.surface,
+        fg: L.surfaceForeground,
+        muted: L.mutedForeground,
+        label: L.accentInk,
+        accent: L.accentDisplay,
+        line: L.border,
+        top: INK,
+        monoMark: false,
+    },
+} as const satisfies Record<string, Tone>;
+
+export type OgTone = keyof typeof TONES;
+export type OgTileTone = keyof typeof TILE_TONES;
+
+export interface OgImage {
+    src: string;
+    width: number;
+    height: number;
+}
+
+// The build inlines each PNG as base64; a bundler that resolves it to a URL instead (Storybook) passes the URL.
+const png = (v: string) => (v.startsWith('iVBORw0KGgo') ? `data:image/png;base64,${v}` : v);
+
+/** Baked art as PNG data URIs, for an OG route (satori draws PNG, not AVIF). Sites import ./art/* for pages. */
+export const ogArt = {
+    ditherMark: { src: png(ditherMark480), width: 480, height: 240 },
+    ditherMarkInk: { src: png(ditherMarkInk480), width: 480, height: 240 },
+    ditherField: { src: png(ditherField), width: 1200, height: 320 },
+    halftoneField: { src: png(halftoneField), width: 320, height: 320 },
+} as const satisfies Record<string, OgImage>;
+
+function MarkSvg({ width, tone }: { width: number; tone: Tone }) {
+    const face = (name: 'left' | 'right' | 'top') =>
+        tone.monoMark
+            ? {
+                  fill: INK,
+                  fillOpacity: name === 'top' ? 1 : name === 'left' ? 0.6 : 0.3,
+              }
+            : { fill: name === 'top' ? tone.top : MARK_FACES[name] };
     return (
-        <svg width={width} height={width / 2} viewBox="0 0 16 8" style={{ position: 'absolute', left: x, top: y }}>
-            <polygon points={MARK_POINTS.left} fill={MARK_FACES.left} />
-            <polygon points={MARK_POINTS.right} fill={MARK_FACES.right} />
-            <polygon points={MARK_POINTS.top} fill={MARK_FACES.top} />
+        <svg width={width} height={width / 2} viewBox="0 0 16 8">
+            <polygon points={MARK_POINTS.left} {...face('left')} />
+            <polygon points={MARK_POINTS.right} {...face('right')} />
+            <polygon points={MARK_POINTS.top} {...face('top')} />
         </svg>
     );
 }
 
-/** The 1200×630 card. Satori-safe: every box is flex, every style inline. */
-export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true }: OgCardProps): ReactElement {
+/** The lockup: the mark and the lowercase wordmark in Inter 400, then the site's word after a rule. */
+function Lockup({ tone, size, product }: { tone: Tone; size: number; product?: string }) {
+    return (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: size,
+                fontWeight: 400,
+                letterSpacing: -size * 0.02,
+            }}
+        >
+            <MarkSvg width={size * 1.4} tone={tone} />
+            <span style={{ marginLeft: size * 0.4 }}>orangecheck</span>
+            {product ? (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div
+                        style={{
+                            width: 2,
+                            height: size * 1.05,
+                            background: tone.line,
+                            margin: `0 ${size * 0.6}px`,
+                        }}
+                    />
+                    <span>{product}</span>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+/** The label row: a square in the accent and a mono label, uppercase and tracked 0.08em. */
+function LabelRow({ tone, size, children }: { tone: Tone; size: number; children: ReactNode }) {
+    return (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                fontFamily: MONO,
+                fontSize: size,
+                fontWeight: 400,
+                letterSpacing: size * 0.08,
+                textTransform: 'uppercase',
+                color: tone.label,
+            }}
+        >
+            <div
+                style={{
+                    width: size * 0.6,
+                    height: size * 0.6,
+                    background: tone.accent,
+                    marginRight: size * 0.7,
+                }}
+            />
+            <span>{children}</span>
+        </div>
+    );
+}
+
+export interface OgCardProps {
+    /** The page's title, at display size. Three lines at most; a longer one is cut. */
+    title: string;
+    /** The label row above it, in mono: "OC Stamp", "Docs · Reference". */
+    eyebrow?: string;
+    /** The site's word beside the lockup: "stamp", "vault". */
+    product?: string;
+    /** At the top right, in mono: "stamp.ochk.io". */
+    host?: string;
+    tone?: OgTone;
+    /** The large mark at the lower right. On by default; off, the title takes the card's width. */
+    mark?: boolean;
+    /** Baked art in the mark's place (an `ogArt` entry, or the site's own PNG), at the lower right. */
+    art?: OgImage;
+}
+
+/** The 1200×630 card. The card is the image, so it is square: rounding is for tiles laid on a sheet (`OgBento`). */
+export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art }: OgCardProps): ReactElement {
     const t = TONES[tone];
     // Long titles step down a size before they would run past three lines.
-    const size = title.length > 70 ? 58 : title.length > 40 ? 68 : 80;
+    const size = title.length > 70 ? 60 : title.length > 40 ? 70 : 82;
     const text = title.length > 120 ? `${title.slice(0, 119).trimEnd()}…` : title;
+    const hasArt = Boolean(art) || mark;
     return (
         <div
             style={{
@@ -81,37 +252,324 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                 padding: '64px 72px 56px',
             }}
         >
-            {/* The mark, large and cut by the edge: the closing band's art, in two colours of light. */}
-            {mark ? (
-                <div style={{ position: 'absolute', right: -150, bottom: -140, width: 640, height: 320, display: 'flex', opacity: tone === 'ink' ? 0.9 : 1 }}>
-                    <MarkSvg width={640} />
+            {/* The art, large and cut by the edge, at the lower right. */}
+            {art ? (
+                <div
+                    style={{
+                        position: 'absolute',
+                        right: -40,
+                        bottom: -24,
+                        display: 'flex',
+                    }}
+                >
+                    <img src={art.src} width={art.width} height={art.height} alt="" />
+                </div>
+            ) : mark ? (
+                <div
+                    style={{
+                        position: 'absolute',
+                        right: -150,
+                        bottom: -140,
+                        width: 640,
+                        height: 320,
+                        display: 'flex',
+                    }}
+                >
+                    <MarkSvg width={640} tone={t} />
                 </div>
             ) : null}
-            <div style={{ display: 'flex', alignItems: 'center', fontSize: 34, fontWeight: 500, letterSpacing: -0.4 }}>
-                <svg width={56} height={56} viewBox="0 0 24 24">
-                    <rect width="24" height="24" rx="6.25" fill={t.tile} stroke={t.ring} strokeWidth="0.5" />
-                    <g transform="translate(4.25 8.1) scale(0.97)">
-                        <polygon points={MARK_POINTS.left} fill={MARK_FACES.left} />
-                        <polygon points={MARK_POINTS.right} fill={MARK_FACES.right} />
-                        <polygon points={MARK_POINTS.top} fill={MARK_FACES.top} />
-                    </g>
-                </svg>
-                <span style={{ marginLeft: 18 }}>orangecheck</span>
-                {product ? (
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ width: 2, height: 36, background: t.line, margin: '0 22px' }} />
-                        <span>{product}</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* A mono label at each end, as the page's section bar: the eyebrow, then the host. */}
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 30,
+                    }}
+                >
+                    {eyebrow ? (
+                        <LabelRow tone={t} size={22}>
+                            {eyebrow}
+                        </LabelRow>
+                    ) : (
+                        <div style={{ display: 'flex' }} />
+                    )}
+                    <div
+                        style={{
+                            display: 'flex',
+                            fontFamily: MONO,
+                            fontSize: 22,
+                            letterSpacing: 22 * 0.02,
+                            color: t.muted,
+                        }}
+                    >
+                        {host ?? 'ochk.io'}
                     </div>
-                ) : null}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: mark ? 860 : 1056 }}>
-                {eyebrow ? <div style={{ fontSize: 28, fontWeight: 500, color: t.accent, marginBottom: 22 }}>{eyebrow}</div> : null}
+                </div>
                 {/* Three lines at most, whatever the words: the art keeps the lower right. */}
-                <div style={{ display: 'block', lineClamp: 3, fontSize: size, fontWeight: 600, lineHeight: 1.04, letterSpacing: -size * 0.03 }}>
+                <div
+                    style={{
+                        display: 'block',
+                        lineClamp: 3,
+                        fontSize: size,
+                        fontWeight: 300,
+                        lineHeight: 1.02,
+                        letterSpacing: -size * 0.04,
+                        maxWidth: hasArt ? 900 : 1056,
+                    }}
+                >
                     {text}
                 </div>
             </div>
-            <div style={{ display: 'flex', fontSize: 24, fontWeight: 500, color: t.muted }}>{host ?? 'ochk.io'}</div>
+            <div style={{ display: 'flex' }}>
+                <Lockup tone={t} size={30} product={product} />
+            </div>
+        </div>
+    );
+}
+
+/** One tile of `OgBento`. Each part is optional; a tile shows what it is given. */
+export interface OgTile {
+    tone: OgTileTone;
+    /** The mono label at the top. */
+    kicker?: string;
+    /** A large light numeral: "0", "80%". */
+    numeral?: string;
+    /** Display text, at the top. */
+    title?: string;
+    /** Lines at the foot. */
+    body?: string | readonly string[];
+    /** Label and value rows in mono (a receipt). */
+    rows?: readonly (readonly [string, string])[];
+    /** Mono fine print at the foot. */
+    footer?: string;
+    /** Baked art: `fill` covers the tile, `left` and `right` sit at that edge, `center` in the middle. */
+    art?: OgImage & { place?: 'fill' | 'left' | 'right' | 'center' };
+    /** The orangecheck lockup at the foot. */
+    lockup?: boolean;
+}
+
+export interface OgBentoProps {
+    /** `og`: 1200×630, the large tile and three beside it. `social`: 1920×1080, with a row of four below. */
+    size?: 'og' | 'social';
+    /** The large tile, two rows high on the left. */
+    hero: OgTile;
+    /** The two tiles of the first row on the right. */
+    top: readonly [OgTile, OgTile];
+    /** The wide tile under them. */
+    wide: OgTile;
+    /** `social` only: the row of four along the foot. */
+    row?: readonly [OgTile, OgTile, OgTile, OgTile];
+}
+
+function artBox(art: NonNullable<OgTile['art']>, width: number, height: number, k: number) {
+    const w = art.width * k;
+    const h = art.height * k;
+    switch (art.place ?? 'right') {
+        case 'fill':
+            return { left: 0, top: 0, width, height };
+        case 'left':
+            return {
+                left: 0,
+                top: 0,
+                width: (art.width * height) / art.height,
+                height,
+            };
+        case 'center': {
+            // Centred art keeps clear of the tile's edges: at most 60% of its width.
+            const cw = Math.min(w, width * 0.6);
+            const ch = (cw * art.height) / art.width;
+            return {
+                left: (width - cw) / 2,
+                top: (height - ch) / 2 - 16 * k,
+                width: cw,
+                height: ch,
+            };
+        }
+        default: {
+            // At the lower right, art leaves the foot's left half to the lockup and the body.
+            const rw = Math.min(w, width * 0.55);
+            return { right: 0, bottom: 0, width: rw, height: (rw * h) / w };
+        }
+    }
+}
+
+function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; height: number; k: number; big?: boolean }) {
+    const t = TILE_TONES[tile.tone];
+    const pad = 32 * k;
+    const box = tile.art ? artBox(tile.art, width, height, k) : null;
+    const body = typeof tile.body === 'string' ? [tile.body] : (tile.body ?? []);
+    const titleSize = (big ? 64 : 38) * k;
+    return (
+        <div
+            style={{
+                width,
+                height,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 24 * k,
+                background: t.bg,
+                color: t.fg,
+                padding: pad,
+            }}
+        >
+            {tile.art && box ? (
+                <div style={{ position: 'absolute', display: 'flex', ...box }}>
+                    <img src={tile.art.src} width={box.width} height={box.height} alt="" />
+                </div>
+            ) : null}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {tile.kicker ? (
+                    <div style={{ display: 'flex', marginBottom: 18 * k }}>
+                        <LabelRow tone={t} size={15 * k}>
+                            {tile.kicker}
+                        </LabelRow>
+                    </div>
+                ) : null}
+                {tile.numeral ? (
+                    <div
+                        style={{
+                            display: 'flex',
+                            fontSize: (big ? 160 : 140) * k,
+                            fontWeight: 300,
+                            lineHeight: 0.85,
+                            letterSpacing: -8 * k,
+                            color: tile.tone === 'brand' ? t.fg : t.accent,
+                        }}
+                    >
+                        {tile.numeral}
+                    </div>
+                ) : null}
+                {tile.title ? (
+                    <div
+                        style={{
+                            display: 'block',
+                            lineClamp: big ? 4 : 3,
+                            fontSize: titleSize,
+                            fontWeight: 300,
+                            lineHeight: 1.04,
+                            letterSpacing: -titleSize * 0.035,
+                            maxWidth: big ? width * 0.62 : width - 2 * pad,
+                        }}
+                    >
+                        {tile.title}
+                    </div>
+                ) : null}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {tile.rows?.length ? (
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            fontFamily: MONO,
+                            fontSize: 17 * k,
+                            marginBottom: 18 * k,
+                        }}
+                    >
+                        {tile.rows.map(([label, value]) => (
+                            <div
+                                key={label}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    marginTop: 12 * k,
+                                }}
+                            >
+                                <span style={{ color: t.muted }}>{label}</span>
+                                <span>{value}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
+                {body.map((line) => (
+                    <div
+                        key={line}
+                        style={{
+                            display: 'flex',
+                            fontSize: (big ? 28 : 24) * k,
+                            fontWeight: 400,
+                            lineHeight: 1.3,
+                            letterSpacing: -0.2 * k,
+                        }}
+                    >
+                        {line}
+                    </div>
+                ))}
+                {tile.footer ? (
+                    <div
+                        style={{
+                            display: 'flex',
+                            fontFamily: MONO,
+                            fontSize: 14 * k,
+                            color: t.muted,
+                            marginTop: 6 * k,
+                        }}
+                    >
+                        {tile.footer}
+                    </div>
+                ) : null}
+                {tile.lockup ? <Lockup tone={t} size={26 * k} /> : null}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Tiles on the social sheet (`--muted`, #e4e0dc), rounded 24px: pictures of
+ * products are rounded, the page is not (PLAN §1). At 1920×1080 the grid is a
+ * 48px margin and 16px gutters, as the bento image; at 1200×630 it keeps the
+ * first two rows, which is what a 1.91:1 card can carry.
+ */
+export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): ReactElement {
+    const { width: W, height: H } = size === 'social' ? SOCIAL_SIZE : OG_SIZE;
+    const foot = size === 'social' ? row : undefined;
+    const margin = size === 'social' ? 48 : 30;
+    const gap = size === 'social' ? 16 : 10;
+    const rows = foot ? 3 : 2;
+    const colW = (W - 2 * margin - 3 * gap) / 4;
+    const rowH = (H - 2 * margin - (rows - 1) * gap) / rows;
+    // Type scales with the row: a 1920×1080 row is 317px tall.
+    const k = rowH / 317;
+    return (
+        <div
+            style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                background: L.muted,
+                padding: margin,
+                fontFamily: "Inter, 'OCA Inter', sans-serif",
+            }}
+        >
+            <div style={{ display: 'flex' }}>
+                <Tile tile={hero} width={2 * colW + gap} height={2 * rowH + gap} k={k} big />
+                <div style={{ display: 'flex', flexDirection: 'column', marginLeft: gap }}>
+                    <div style={{ display: 'flex' }}>
+                        <Tile tile={top[0]} width={colW} height={rowH} k={k} />
+                        <div style={{ display: 'flex', marginLeft: gap }}>
+                            <Tile tile={top[1]} width={colW} height={rowH} k={k} />
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', marginTop: gap }}>
+                        <Tile tile={wide} width={2 * colW + gap} height={rowH} k={k} />
+                    </div>
+                </div>
+            </div>
+            {foot ? (
+                <div style={{ display: 'flex', marginTop: gap }}>
+                    {foot.map((tile, i) => (
+                        <div key={i} style={{ display: 'flex', marginLeft: i ? gap : 0 }}>
+                            <Tile tile={tile} width={colW} height={rowH} k={k} />
+                        </div>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -121,15 +579,27 @@ function decode(base64: string): ArrayBuffer {
     return bytes.buffer;
 }
 
-let cached: { name: string; data: ArrayBuffer; weight: 500 | 600; style: 'normal' }[] | null = null;
+type OgFont = {
+    name: 'Inter' | 'JetBrains Mono';
+    data: ArrayBuffer;
+    weight: 300 | 400;
+    style: 'normal';
+};
+let cached: OgFont[] | null = null;
 
-/** Inter for ImageResponse's `fonts`: Latin first, then Latin Extended, at 500 and 600. Decoded once. */
-export function ogFonts(): { name: string; data: ArrayBuffer; weight: 500 | 600; style: 'normal' }[] {
+/** The fonts for ImageResponse's `fonts`: Inter 300 and 400 (Latin, then Latin Extended), JetBrains Mono 400. Decoded once. */
+export function ogFonts(): OgFont[] {
     cached ??= [
-        { name: 'Inter', data: decode(inter500), weight: 500, style: 'normal' },
-        { name: 'Inter', data: decode(inter600), weight: 600, style: 'normal' },
-        { name: 'Inter', data: decode(inter500Ext), weight: 500, style: 'normal' },
-        { name: 'Inter', data: decode(inter600Ext), weight: 600, style: 'normal' },
+        { name: 'Inter', data: decode(inter300), weight: 300, style: 'normal' },
+        { name: 'Inter', data: decode(inter400), weight: 400, style: 'normal' },
+        { name: 'Inter', data: decode(inter300Ext), weight: 300, style: 'normal' },
+        { name: 'Inter', data: decode(inter400Ext), weight: 400, style: 'normal' },
+        {
+            name: 'JetBrains Mono',
+            data: decode(mono400),
+            weight: 400,
+            style: 'normal',
+        },
     ];
     return cached;
 }
