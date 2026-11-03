@@ -165,7 +165,9 @@ describe('AttestationIndex.decide', () => {
         expect(d.message).toContain('bond from an address that holds fewer coins');
     });
 
-    it('a bond forgotten at the cap does not come back through a later outage', async () => {
+    // site-attest's low on the seven: an outage read after the cap keeps the refusal,
+    // as it keeps a known bond, so failOpen never admits a capped address.
+    it('a capped address stays refused through a later outage, with or without failOpen', async () => {
         bond(500_000);
         index.ingest(await attestation(ADDR, [{ protocol: 'nostr', identifier: NPUB_A! }]));
         await flush();
@@ -178,7 +180,12 @@ describe('AttestationIndex.decide', () => {
             network: 'mainnet',
         } as never);
         await refresh(ADDR);
-        expect(index.decide(ev(HEX_A!), { minSats: 100_000 })).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000, failOpen: true })).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000 })).toMatchObject({ action: 'reject', reason: 'utxo_cap' });
+        // A read that lists the coins again clears the refusal.
+        bond(500_000);
+        await refresh(ADDR);
+        expect(index.decide(ev(HEX_A!), { minSats: 100_000 }).reason).toBe('ok');
     });
 
     it('keeps the last known bond through a chain-API outage', async () => {
