@@ -93,8 +93,8 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     // An address is read checksum and all, in the one spelling attestations are
     // tagged under (a QR code's capitals lowercased). Anything else is a bad
     // request, never asked about: a typo would read as an address with nothing.
-    // An empty addr is no address, as it always was: an id or identity beside it decides.
-    const addr = rawAddr ? normalizeAddress(rawAddr) : undefined;
+    // An empty or blank addr is no address, as it always was: an id or identity beside it decides.
+    const addr = rawAddr?.trim() ? normalizeAddress(rawAddr) : undefined;
     if ((!addr && !id && !identity) || addr === null) {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['bad_request'] };
     }

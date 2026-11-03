@@ -53,6 +53,7 @@ describe('check() by address', () => {
         ['a bech32 address one character off', 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdp'],
         ['a base58 address one character off', '1BoatSLRHtKNngkdXEeobR76b53LETtpyX'],
         ['text that is no address', 'notanaddress12345'],
+        ['blank text, with nothing beside it', '  \n'],
     ])('answers %s as a bad request and asks no relay', async (_, addr) => {
         const r = await check({ addr, relays: RELAYS });
         expect(r).toEqual({
@@ -65,13 +66,19 @@ describe('check() by address', () => {
         expect(requests).toEqual([]);
     });
 
-    it('takes an empty addr beside an id as no address, and reads by the id as before', async () => {
-        const id = 'a'.repeat(64);
-        const r = await check({ addr: '', id, relays: RELAYS });
-        expect(r.reasons).toEqual(['not_found']);
-        expect(requests.length).toBeGreaterThan(0);
-        for (const f of requests) expect(f['#d']).toEqual([id]);
-    });
+    it.each([
+        ['an empty', ''],
+        ['a blank', ' \t\n '],
+    ])(
+        'takes %s addr beside an id as no address, and reads by the id as before',
+        async (_, addr) => {
+            const id = 'a'.repeat(64);
+            const r = await check({ addr, id, relays: RELAYS });
+            expect(r.reasons).toEqual(['not_found']);
+            expect(requests.length).toBeGreaterThan(0);
+            for (const f of requests) expect(f['#d']).toEqual([id]);
+        },
+    );
 
     it('refuses a typo beside an id: the id never decides an address it was not asked', async () => {
         const r = await check({
@@ -83,8 +90,11 @@ describe('check() by address', () => {
         expect(requests).toEqual([]);
     });
 
-    it('reads a capitalised address by the spelling it is tagged under', async () => {
-        const r = await check({ addr: ADDR.toUpperCase(), relays: RELAYS });
+    it.each([
+        ['capitalised', ADDR.toUpperCase()],
+        ['padded and capitalised', `  ${ADDR.toUpperCase()}\n`],
+    ])('reads a %s address by the spelling it is tagged under', async (_, addr) => {
+        const r = await check({ addr, relays: RELAYS });
         expect(r.reasons).toEqual(['not_found']);
         expect(requests.length).toBeGreaterThan(0);
         for (const f of requests) expect(f['#t']).toEqual([ADDR]);

@@ -16,8 +16,11 @@ this file tracks the package's TS / Node / runtime API surface.
   address, answers `reasons: ['bad_request']` and asks no relay, where it used
   to come back `not_found`: an address with no attestation, when it was never
   an address. A QR code's capitals are read by the lowercase spelling
-  attestations are tagged under, so they find what the lowercase does. An
-  empty `addr` is still no address: beside an `id` or `identity`, that decides.
+  attestations are tagged under, so they find what the lowercase does, and
+  spaces around an address are dropped. An empty or blank `addr` is still no
+  address: beside an `id` or `identity`, that decides. An `addr` that is not an
+  address answers `bad_request` even beside an `id` or `identity`, where 1.19.0
+  let the id or identity decide and never read the `addr`.
 
 ## [1.19.0] — 2026-11-02
 
