@@ -18,7 +18,7 @@ Function calling is the OpenAI-shaped way agents reach out to the world. Without
 
 ```bash
 npm i @orangecheck/agent-openai
-# peer deps:
+# Comes with agent-core and agent-signer. To import them yourself, add them too:
 npm i @orangecheck/agent-core @orangecheck/agent-signer
 ```
 

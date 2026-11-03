@@ -25,7 +25,7 @@ Claude's tool-use API exposes a list of tools and produces structured `tool_use`
 
 ```bash
 npm i @orangecheck/agent-anthropic
-# peer deps:
+# Comes with agent-core and agent-signer. To import them yourself, add them too:
 npm i @orangecheck/agent-core @orangecheck/agent-signer
 ```
 

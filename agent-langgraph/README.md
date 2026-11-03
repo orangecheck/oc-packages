@@ -20,7 +20,7 @@ This adapter canonicalizes `(verb, args, callId, graph_state_hash)` — one extr
 
 ```bash
 npm i @orangecheck/agent-langgraph
-# peer deps:
+# Comes with agent-core and agent-signer. To import them yourself, add them too:
 npm i @orangecheck/agent-core @orangecheck/agent-signer
 ```
 
