@@ -11,6 +11,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.3.0] — 2026-11-03
+
+### Added
+
+- `<OcGate unread>`: rendered when nothing could be concluded. That covers
+  no chain API or relay answering (`chain_unread`, `attestation_unread`,
+  `stake_unread`, or before `@orangecheck/sdk` 1.21.0 `bad_request` beside a
+  verified signature), the address holding more coins than the chain API
+  lists (`utxo_cap_unread`), a refused lookup (`provider_refused_unread`), and
+  `check()` throwing (the result is then null). Until now these rendered
+  `fallback` with `sats: 0` and `below_min_sats`, so a page told a bonded
+  person they fell short whenever mempool.space rate-limited their browser.
+  Without the prop the gate stays closed behind `fallback`, as before.
+
 ## [0.2.1] — 2026-09-24
 
 ### Changed
