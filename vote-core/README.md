@@ -29,7 +29,7 @@ npm i @orangecheck/vote-core @orangecheck/bip322
 
 ## Conformance
 
-The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for every vector there (sixteen as of oc-vote-protocol's anchored-ballots release: v01–v07 clock-dated, v08–v15 anchored polls, an open anchored poll and a deferred tally, v16 the order of `counted`).
+The package ships vitest suite that loads the canonical fixtures from [`oc-vote-protocol/test-vectors/`](https://github.com/orangecheck/oc-vote-protocol/tree/main/test-vectors) and asserts byte-identical canonical bytes, ids, commits, and tally output for every vector there (eighteen today: v01–v07 clock-dated, v08–v15 anchored polls, an open anchored poll and a deferred tally, v16 the order of `counted`, v17–v18 the 32-level nesting limit).
 
 ## Usage
 
@@ -121,7 +121,7 @@ See [oc-vote-protocol/WHY.md](https://github.com/orangecheck/oc-vote-protocol/bl
 
 - **Protocol spec**: [`orangecheck/oc-vote-protocol`](https://github.com/orangecheck/oc-vote-protocol)
 - **Reference web client**: [vote.ochk.io](https://vote.ochk.io) (closed-source; consumes this package from npm)
-- **Family**: [`@orangecheck/lock-core`](https://npmjs.com/package/@orangecheck/lock-core) (encryption primitive; composed here for secret-ballot envelopes)
+- **Family**: [`@orangecheck/lock-core`](https://npmjs.com/package/@orangecheck/lock-core) (encryption primitive for secret-ballot envelopes; vote-core does not depend on it, your `unseal` opens a ballot with it)
 
 ## License
 
