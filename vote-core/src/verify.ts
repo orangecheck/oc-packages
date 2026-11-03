@@ -22,6 +22,17 @@ export type SignatureVerifier = (args: {
 export type VerifyResult = { ok: true } | { ok: false; code: VoteErrorCode; reason: string };
 
 /** Thrown by `tally` when it declines to produce a result; `code` is a SPEC §9 code. */
+/** Thrown by a `UtxoLookup` when the chain could not be read for one address: that voter is unread. */
+export class UtxoUnreadError extends Error {
+    constructor(
+        readonly reason: import('./types.js').UtxoUnreadReason,
+        message = `the chain could not be read (${reason})`
+    ) {
+        super(message);
+        this.name = 'UtxoUnreadError';
+    }
+}
+
 export class VoteError extends Error {
     readonly code: VoteErrorCode;
     constructor(code: VoteErrorCode, message: string) {

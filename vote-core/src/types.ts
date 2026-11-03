@@ -83,8 +83,21 @@ export interface Utxo {
     confirmed_height: number;
 }
 
-/** `(addr, snapshot_height) -> list of UTXOs controlled by addr at that height`. */
+/**
+ * `(addr, snapshot_height) -> list of UTXOs controlled by addr at that height`.
+ * When the chain could not be read for that address, throw `UtxoUnreadError`:
+ * the voter is then unread, never weighed 0, and the tally is `unread`. Any
+ * other throw aborts the tally, as before.
+ */
 export type UtxoLookup = (addr: string, snapshot: number) => Utxo[] | Promise<Utxo[]>;
+
+/**
+ * Why a voter's coins were not read: no chain API answered (`chain_unread`; ask
+ * again), the address holds more coins than the API lists (`utxo_cap_unread`;
+ * asking again does not help), or the API refused the lookup
+ * (`provider_refused_unread`). The names are @orangecheck/sdk 1.21.0's.
+ */
+export type UtxoUnreadReason = 'chain_unread' | 'utxo_cap_unread' | 'provider_refused_unread';
 
 export interface TallyTurnout {
     voters: number;
@@ -121,7 +134,19 @@ export interface DeferredResult extends TallyResultHead {
     code: 'E_REORG';
 }
 
-export type TallyResult = TalliedResult | AwaitingRevealResult | DeferredResult;
+/**
+ * Some counted voters' coins could not be read at the snapshot (SPEC §8): there
+ * is no count, as for a ballot read that fell short, only who could not be read.
+ * Never weighed 0 and never final; tally again once the chain answers.
+ */
+export interface UnreadResult extends TallyResultHead {
+    state: 'unread';
+    snapshot_block: number;
+    /** Ascending by voter: the voters whose coins could not be read, and why. */
+    unread: { voter: string; reason: UtxoUnreadReason }[];
+}
+
+export type TallyResult = TalliedResult | AwaitingRevealResult | DeferredResult | UnreadResult;
 
 /** Error codes per SPEC §9. Non-weight-returning conditions. */
 export type VoteErrorCode =
