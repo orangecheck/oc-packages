@@ -11,20 +11,22 @@ variants they genuinely need.
 ## Why this exists
 
 The ecosystem outgrew "one Terms page on ochk.io". The non-custodial protocol
-sites, a consumer product that pays users in sats, a paid encrypted vault, and
-an enterprise B2B product cannot share one legal document. This package keeps
+sites, a consumer product that pays users in sats, and a paid encrypted vault
+cannot share one legal document. This package keeps
 the boilerplate shared and the divergence explicit.
 
 ## Profiles
 
 | Profile    | Sites                                                             |
 |------------|-------------------------------------------------------------------|
-| `protocol` | ochk.io + the six verb sites + docs + analytics (one shared doc)  |
-| `me`       | me.ochk.io — consumer identity that pays users in sats            |
+| `protocol` | ochk.io + 12 linked sites (`PROTOCOL_LINKED_SITES`), one doc      |
+| `me`       | ochk.app — consumer identity that pays users in sats              |
 | `vault`    | vault.ochk.io — paid end-to-end-encrypted secrets vault           |
 
-The nine `protocol` sites do **not** host their own pages — their footers link
-to ochk.io. Only the three commercial products self-host.
+The twelve linked `protocol` sites (attest, lock, vote, stamp, agent, pledge,
+docs, analytics, chat, cosign, btc, globe) do **not** host their own pages —
+their footers link to ochk.io. Three sites self-host: ochk.io, which hosts the
+protocol document, and the two commercial products, ochk.app and vault.
 
 ## Usage
 
