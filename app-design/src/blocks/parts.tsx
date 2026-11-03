@@ -1,27 +1,9 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
-
-import { cn } from '../lib/cn';
+import { useEffect, useState, useSyncExternalStore, type RefObject } from 'react';
 
 /*
- * What the blocks share: their mono kicker, whether the reader asked for
- * stillness, and whether a block is on screen in a tab someone is looking at.
+ * What the blocks share: whether the reader asked for stillness, and
+ * whether a block is on screen in a tab someone is looking at.
  */
-
-/** A mono label with an ember square: the blocks' eyebrow. */
-export function Kicker({ children, onInk, className }: { children: ReactNode; onInk?: boolean; className?: string }) {
-    return (
-        <span
-            className={cn(
-                'inline-flex items-center gap-2 font-mono text-[0.75rem] uppercase leading-none tracking-[0.08em]',
-                onInk ? 'text-oca-ink-muted' : 'text-muted-foreground',
-                className
-            )}
-        >
-            <span aria-hidden className="size-[7px] shrink-0 bg-oca-accent-display" />
-            {children}
-        </span>
-    );
-}
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
 

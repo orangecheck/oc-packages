@@ -7,7 +7,9 @@ import { cn } from '../lib/cn';
  * One value on a square track. The thumb is drawn 18px and pressed in 44px:
  * the root is a thumb tall, so a press anywhere in that band lands on it.
  * A screen reader hears the value in words ("100,000 sats", "30 days"),
- * never a bare index.
+ * never a bare index. It reads the ground's tokens, so on an ink or burnt
+ * band it takes the band's colours; the thumb is filled with --oca-ground
+ * where a block sets it, else the page.
  */
 
 export interface SliderMark {
@@ -28,8 +30,6 @@ export interface SliderProps
     'aria-labelledby'?: string;
     /** Ticks under the track. Shown to the eye only; the value text says the same. */
     marks?: SliderMark[];
-    /** `ink` on a dark ground. */
-    tone?: 'default' | 'ink';
 }
 
 export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, SliderProps>(function Slider(
@@ -40,7 +40,6 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
         onValueCommit,
         valueText,
         marks,
-        tone = 'default',
         min = 0,
         max = 100,
         className,
@@ -50,7 +49,6 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
     },
     ref
 ) {
-    const ink = tone === 'ink';
     // Uncontrolled, the words still follow the thumb.
     const [inner, setInner] = useState(defaultValue ?? min);
     const shown = value ?? inner;
@@ -72,9 +70,9 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
                 className="relative flex h-11 w-full touch-none select-none items-center data-[disabled]:opacity-50"
                 {...props}
             >
-                <SliderPrimitive.Track className={cn('relative h-1 w-full grow overflow-hidden', ink ? 'bg-oca-ink-line' : 'bg-oca-hairline-strong')}>
-                    {/* The fill is the state: the deep orange clears 3:1 on paper and card, the bright one on ink. */}
-                    <SliderPrimitive.Range className={cn('absolute h-full', ink ? 'bg-oca-orange' : 'bg-oca-orange-deep')} />
+                <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden bg-border">
+                    {/* The fill is the state: the display accent clears 3:1 on every ground (a band re-points it). */}
+                    <SliderPrimitive.Range className="absolute h-full bg-oca-accent-display" />
                 </SliderPrimitive.Track>
                 <SliderPrimitive.Thumb
                     aria-label={ariaLabel}
@@ -84,10 +82,7 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
                         'relative block size-[1.125rem] border-2 outline-none transition-[background-color]',
                         // A thumb's 44px, centred on what it draws.
                         'before:absolute before:-inset-[0.8125rem] before:content-[""]',
-                        'focus-visible:ring-2 focus-visible:ring-offset-2',
-                        ink
-                            ? 'border-oca-orange bg-oca-ink hover:bg-oca-ink-card focus-visible:ring-oca-orange focus-visible:ring-offset-oca-ink'
-                            : 'border-oca-orange-deep bg-background hover:bg-muted focus-visible:ring-ring focus-visible:ring-offset-background'
+                        'border-oca-accent-display bg-[var(--oca-ground,var(--background))] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring'
                     )}
                 />
             </SliderPrimitive.Root>
@@ -97,8 +92,7 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
                         <span
                             key={m.value}
                             className={cn(
-                                'absolute top-0 whitespace-nowrap font-mono text-[0.75rem] leading-none',
-                                ink ? 'text-oca-ink-muted' : 'text-muted-foreground',
+                                'absolute top-0 whitespace-nowrap font-mono text-[0.75rem] leading-none text-muted-foreground',
                                 // The ends sit inside the track; the rest centre on their value.
                                 i === 0 ? '' : i === marks.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
                             )}

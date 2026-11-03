@@ -2,8 +2,9 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 
 import { announce } from '../lib/announce';
 import { cn } from '../lib/cn';
+import { MonoLabel } from '../components/frame';
 import { Slider } from '../primitives/slider';
-import { Kicker, usePrefersStill } from './parts';
+import { usePrefersStill } from './parts';
 
 /*
  * What a bar costs to fake, worked live: two sliders set the bar (an amount
@@ -12,7 +13,8 @@ import { Kicker, usePrefersStill } from './parts';
  * their one coin clears it. The crowd is one element: a CSS grid of squares
  * a single sweep of light crosses once per change, never a node per account.
  * Under reduced motion the sweep is off. The words are props; the defaults
- * are placeholders a site replaces with its gated copy.
+ * are placeholders a site replaces with its gated copy. On ink it re-points
+ * the text and hairline tokens, as a band does, so its parts need no tone.
  */
 
 export interface CostDemoLabels {
@@ -65,6 +67,10 @@ export interface CostDemoProps {
     onChange?: (bar: { sats: number; days: number }) => void;
     className?: string;
 }
+
+// Ink, as the ink band draws it: the text and hairline tokens re-pointed, and the slider's thumb filled with the ground.
+const INK =
+    'bg-oca-ink text-oca-ink-foreground [--foreground:var(--oca-ink-foreground)] [--muted-foreground:var(--oca-ink-muted)] [--border:var(--oca-ink-line)] [--oca-ground:var(--oca-ink)]';
 
 const AMOUNTS = [10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
 
@@ -135,8 +141,6 @@ export function CostDemo({
         onChange?.({ sats: amounts[a] ?? amount, days: d });
     };
 
-    const muted = ink ? 'text-oca-ink-muted' : 'text-muted-foreground';
-    const rule = ink ? 'border-oca-ink-line' : 'border-border';
     const marks = amounts.length > 2 ? [0, Math.floor((amounts.length - 1) / 2), amounts.length - 1] : [0, amounts.length - 1];
     // The middle tick on a round number: 45 for 1 to 90.
     const mid = Math.round((range.min + range.max) / 10) * 5;
@@ -144,24 +148,23 @@ export function CostDemo({
     return (
         <div
             data-cost-demo=""
-            className={cn('grid border', ink ? 'bg-oca-ink text-oca-ink-foreground' : 'bg-card text-foreground', rule, className)}
+            className={cn('grid border border-border', ink ? INK : 'bg-card text-foreground [--oca-ground:var(--card)]', className)}
         >
-            <div className={cn('grid lg:grid-cols-[1.15fr_0.8fr_1.05fr] lg:divide-x max-lg:divide-y', ink ? 'divide-oca-ink-line' : 'divide-border')}>
+            <div className="grid divide-border lg:grid-cols-[1.15fr_0.8fr_1.05fr] lg:divide-x max-lg:divide-y">
                 {/* The bar */}
                 <div className="flex flex-col gap-7 p-6 md:p-8">
-                    <Kicker onInk={ink}>{l.kicker}</Kicker>
+                    <MonoLabel as="span">{l.kicker}</MonoLabel>
                     <div className="flex flex-col gap-2">
-                        <span id={ids.amount} className={cn('text-[0.875rem]', muted)}>
+                        <span id={ids.amount} className="text-[0.875rem] text-muted-foreground">
                             {l.amount}
                         </span>
                         <span className="flex items-baseline gap-2">
                             <span className="oca-tabular text-[2.25rem] font-light leading-none tracking-[-0.03em] md:text-[2.75rem]">
                                 {amount.toLocaleString('en-US')}
                             </span>
-                            <span className={cn('text-[1rem]', muted)}>{l.amountUnit}</span>
+                            <span className="text-[1rem] text-muted-foreground">{l.amountUnit}</span>
                         </span>
                         <Slider
-                            tone={ink ? 'ink' : 'default'}
                             aria-labelledby={ids.amount}
                             min={0}
                             max={amounts.length - 1}
@@ -173,15 +176,14 @@ export function CostDemo({
                         />
                     </div>
                     <div className="flex flex-col gap-2">
-                        <span id={ids.days} className={cn('text-[0.875rem]', muted)}>
+                        <span id={ids.days} className="text-[0.875rem] text-muted-foreground">
                             {l.days}
                         </span>
                         <span className="flex items-baseline gap-2">
                             <span className="oca-tabular text-[2.25rem] font-light leading-none tracking-[-0.03em] md:text-[2.75rem]">{days}</span>
-                            <span className={cn('text-[1rem]', muted)}>{l.daysUnit(days)}</span>
+                            <span className="text-[1rem] text-muted-foreground">{l.daysUnit(days)}</span>
                         </span>
                         <Slider
-                            tone={ink ? 'ink' : 'default'}
                             aria-labelledby={ids.days}
                             min={range.min}
                             max={range.max}
@@ -200,18 +202,18 @@ export function CostDemo({
 
                 {/* The real person */}
                 <div className="flex flex-col gap-5 p-6 md:p-8" data-verdict={passes ? 'pass' : 'fail'}>
-                    <Kicker onInk={ink}>{l.personKicker}</Kicker>
-                    <PersonGlyph lit={passes} ink={ink} />
-                    <p className={cn('text-[0.9375rem] leading-snug', muted)}>{l.personBody}</p>
-                    <Verdict pass={passes} ink={ink} className="mt-auto">
+                    <MonoLabel as="span">{l.personKicker}</MonoLabel>
+                    <PersonGlyph lit={passes} />
+                    <p className="text-[0.9375rem] leading-snug text-muted-foreground">{l.personBody}</p>
+                    <Verdict pass={passes} className="mt-auto">
                         {passes ? l.pass : l.fail}
                     </Verdict>
                 </div>
 
                 {/* The crowd */}
                 <div className="flex min-w-0 flex-col gap-5 p-6 md:p-8">
-                    <Kicker onInk={ink}>{l.farmKicker(accounts)}</Kicker>
-                    <Crowd ink={ink} sweepRef={sweepRef} />
+                    <MonoLabel as="span">{l.farmKicker(accounts)}</MonoLabel>
+                    <Crowd sweepRef={sweepRef} />
                     <div className="flex flex-col gap-1">
                         <span className="flex items-baseline gap-2 text-oca-accent-display">
                             <span data-cost="" className="oca-tabular text-[2.25rem] font-light leading-none tracking-[-0.03em] md:text-[2.75rem]">
@@ -219,24 +221,24 @@ export function CostDemo({
                             </span>
                             <span className="text-[1.5rem] font-light">{cost.unit}</span>
                         </span>
-                        <span className={cn('text-[0.9375rem]', muted)}>{l.farmCaption(days)}</span>
+                        <span className="text-[0.9375rem] text-muted-foreground">{l.farmCaption(days)}</span>
                     </div>
-                    <Verdict pass={false} ink={ink} className="mt-auto">
+                    <Verdict pass={false} className="mt-auto">
                         {l.farmVerdict}
                     </Verdict>
                 </div>
             </div>
-            {l.foot ? <div className={cn('border-t px-6 py-4 font-mono text-[0.75rem] md:px-8', rule, muted)}>{l.foot}</div> : null}
+            {l.foot ? <div className="border-t border-border px-6 py-4 font-mono text-[0.75rem] text-muted-foreground md:px-8">{l.foot}</div> : null}
         </div>
     );
 }
 
-function Verdict({ pass, ink, className, children }: { pass: boolean; ink: boolean; className?: string; children: ReactNode }) {
+function Verdict({ pass, className, children }: { pass: boolean; className?: string; children: ReactNode }) {
     return (
         <span
             className={cn(
                 'inline-flex w-fit items-center gap-2 px-2.5 py-1.5 font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em]',
-                pass ? 'bg-brand text-brand-foreground' : cn('border', ink ? 'border-oca-ink-line text-oca-ink-foreground' : 'border-oca-hairline-strong text-foreground'),
+                pass ? 'bg-brand text-brand-foreground' : 'border border-muted-foreground text-foreground',
                 className
             )}
         >
@@ -246,7 +248,7 @@ function Verdict({ pass, ink, className, children }: { pass: boolean; ink: boole
     );
 }
 
-// A person in 1-unit squares on a 13 × 13 grid: head, shoulders. One path.
+// A person in 1-unit squares on a 13 × 13 grid: head, neck, shoulders. One path.
 const PERSON = [
     '.....###.....',
     '....#####....',
@@ -255,7 +257,7 @@ const PERSON = [
     '...#######...',
     '....#####....',
     '.....###.....',
-    '.............',
+    '.....###.....',
     '...#######...',
     '.###########.',
     '#############',
@@ -264,19 +266,19 @@ const PERSON = [
 ];
 const PERSON_PATH = PERSON.flatMap((row, y) => [...row].map((c, x) => (c === '#' ? `M${x * 1.4} ${y * 1.4}h1v1h-1z` : ''))).join('');
 
-function PersonGlyph({ lit, ink }: { lit: boolean; ink: boolean }) {
+function PersonGlyph({ lit }: { lit: boolean }) {
     return (
         <svg aria-hidden viewBox="0 0 18 18.2" className="h-20 w-auto self-start">
             <path
                 d={PERSON_PATH}
-                className={cn('transition-[fill] duration-300', lit ? 'fill-oca-accent-display' : ink ? 'fill-oca-ink-line' : 'fill-oca-hairline-strong')}
+                className={cn('transition-[fill] duration-300', lit ? 'fill-oca-accent-display' : 'fill-border')}
             />
         </svg>
     );
 }
 
 /** The crowd: 50 × 20 squares drawn by one mask, and the one band of light that crosses them. */
-function Crowd({ ink, sweepRef }: { ink: boolean; sweepRef: RefObject<HTMLDivElement | null> }) {
+function Crowd({ sweepRef }: { sweepRef: RefObject<HTMLDivElement | null> }) {
     const cells: CSSProperties = {
         WebkitMaskImage: 'linear-gradient(90deg, #000 70%, transparent 0), linear-gradient(#000 70%, transparent 0)',
         maskImage: 'linear-gradient(90deg, #000 70%, transparent 0), linear-gradient(#000 70%, transparent 0)',
@@ -287,7 +289,7 @@ function Crowd({ ink, sweepRef }: { ink: boolean; sweepRef: RefObject<HTMLDivEle
     };
     return (
         <div aria-hidden data-crowd="" className="relative aspect-[5/2] w-full overflow-hidden" style={cells}>
-            <div className={cn('absolute inset-0', ink ? 'bg-oca-ink-foreground/25' : 'bg-foreground/20')} />
+            <div className="absolute inset-0 bg-foreground/20" />
             <div
                 ref={sweepRef}
                 className="absolute inset-y-0 -left-1/2 w-[200%] -translate-x-full bg-[linear-gradient(110deg,transparent_30%,var(--color-oca-orange)_50%,transparent_70%)]"

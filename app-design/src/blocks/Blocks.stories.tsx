@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { useId, useState } from 'react';
 
 import { Mark } from '../brand/mark';
+import { Section } from '../components/section';
 import { BentoGrid, BentoTile, CostDemo, DitherMark, ReceiptCard, SignInDemo, Slider, StepPath } from './index';
 
 /*
@@ -12,27 +13,26 @@ import { BentoGrid, BentoTile, CostDemo, DitherMark, ReceiptCard, SignInDemo, Sl
 const meta: Meta = { title: 'Interactive blocks', parameters: { fullBleed: true } };
 export default meta;
 
-const STAGE = 'bg-[var(--oca-burnt,#2a1206)] px-4 py-14 md:px-12 md:py-20';
-
 export const SignIn: StoryObj = {
     name: 'Sign-in demo',
     render: () => (
-        <div className={STAGE}>
+        // On the burnt band, as the prototype stages it: the band re-points the steps' colours.
+        <Section tone="burnt">
             <div className="mx-auto max-w-[50rem]">
                 <SignInDemo />
             </div>
-        </div>
+        </Section>
     ),
 };
 
 export const SignInPaper: StoryObj = {
     name: 'Sign-in demo, on paper',
     render: () => (
-        <div className="bg-background px-4 py-14 md:px-12">
+        <Section>
             <div className="mx-auto max-w-[50rem]">
-                <SignInDemo tone="paper" url="lumen-notes.example" />
+                <SignInDemo url="lumen-notes.example" />
             </div>
-        </div>
+        </Section>
     ),
 };
 

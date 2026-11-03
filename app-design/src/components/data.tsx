@@ -108,6 +108,7 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
         <div
             data-ui="stat"
             className={cn(
+                '@container',
                 sm ? 'p-4' : 'p-5 md:p-6',
                 // In a grid, label, value and hint each share a row with their
                 // neighbours, so values line up whatever wraps above them; the
@@ -120,9 +121,9 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
             {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
             <span
                 className={cn(
-                    // Light only at display size: 24px and up.
-                    'break-words oca-tabular font-light leading-tight tracking-[-0.03em]',
-                    sm ? 'text-[1.5rem]' : 'text-[2rem] md:text-[2.5rem]',
+                    'break-words oca-tabular leading-tight tracking-[-0.03em]',
+                    // The figure grows with its cell (a five-up row's cells are narrow), and is light only at 24px and up.
+                    sm ? 'text-[1.25rem]' : 'text-[clamp(1.5rem,13cqi,2.5rem)] font-light',
                     inGrid && 'self-end',
                     delta && 'flex flex-wrap items-baseline gap-x-2'
                 )}

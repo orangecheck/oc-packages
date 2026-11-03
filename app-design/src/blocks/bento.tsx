@@ -10,11 +10,12 @@ import { cn } from '../lib/cn';
 
 export type BentoTone = 'paper' | 'white' | 'ink' | 'burnt' | 'brand';
 
+// Each tile is its own ground in its own colours, so it reads the same on paper and inside a band.
 const GROUND: Record<BentoTone, string> = {
-    paper: 'border border-border bg-card text-foreground',
-    white: 'border border-border bg-white text-foreground dark:bg-oca-ink-card',
+    paper: 'border border-oca-surface-foreground/10 bg-card text-oca-surface-foreground',
+    white: 'border border-oca-surface-foreground/10 bg-oca-surface text-oca-surface-foreground',
     ink: 'bg-oca-ink text-oca-ink-foreground',
-    burnt: 'bg-[var(--oca-burnt,#2a1206)] text-[var(--oca-burnt-foreground,#f5f2ef)]',
+    burnt: 'bg-oca-burnt text-oca-burnt-foreground',
     brand: 'bg-brand text-brand-foreground',
 };
 // The numeral: ember on light grounds (display size only), bright orange on dark ones, ink on orange.
@@ -22,14 +23,15 @@ const NUMERAL: Record<BentoTone, string> = {
     paper: 'text-oca-accent-display',
     white: 'text-oca-accent-display',
     ink: 'text-oca-orange',
-    burnt: 'text-oca-orange',
-    brand: 'text-oca-ink',
+    burnt: 'text-oca-burnt-accent',
+    brand: 'text-brand-foreground',
 };
+// Quiet text: the surface's ink at 70% (6.5:1 on the card, 6.8:1 on white), each dark ground's own muted tone.
 const QUIET: Record<BentoTone, string> = {
-    paper: 'text-muted-foreground',
-    white: 'text-muted-foreground',
+    paper: 'text-oca-surface-foreground/70',
+    white: 'text-oca-surface-foreground/70',
     ink: 'text-oca-ink-muted',
-    burnt: 'text-[var(--oca-burnt-muted,#d6cfc8)]',
+    burnt: 'text-oca-burnt-muted',
     brand: 'text-brand-foreground',
 };
 
@@ -77,7 +79,7 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
             <div className={cn('flex flex-1 gap-6 p-6 md:p-8', art ? 'flex-col md:flex-row' : 'flex-col')}>
                 <div className="flex min-w-0 flex-1 flex-col gap-4">
                     {label ? (
-                        <span className={cn('font-mono text-[0.75rem] uppercase leading-none tracking-[0.08em]', tone === 'brand' ? 'text-brand-foreground' : QUIET[tone])}>
+                        <span className={cn('oca-label leading-none', QUIET[tone])}>
                             {label}
                         </span>
                     ) : null}

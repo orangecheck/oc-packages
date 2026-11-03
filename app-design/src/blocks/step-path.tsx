@@ -108,7 +108,7 @@ export function StepPath({ steps, current = 0, stateWords = { done: 'done', curr
                     />
                 </clipPath>
                 {ahead ? (
-                    <path d={ahead} fill="none" strokeWidth={1.5} strokeLinecap="round" strokeDasharray="0 6" vectorEffect="non-scaling-stroke" className="stroke-oca-hairline-strong" />
+                    <path d={ahead} fill="none" strokeWidth={2} strokeLinecap="round" strokeDasharray="0 6" vectorEffect="non-scaling-stroke" className="stroke-muted-foreground opacity-50" />
                 ) : null}
                 {walked ? (
                     <path d={walked} fill="none" strokeWidth={2} vectorEffect="non-scaling-stroke" clipPath={`url(#${clip})`} className="stroke-oca-accent-display" />

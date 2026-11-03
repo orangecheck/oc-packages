@@ -56,13 +56,13 @@ export function BrowserFrame({
             className={cn(
                 'relative overflow-hidden',
                 paper
-                    ? 'rounded-[var(--radius-depict,0.75rem)] bg-white shadow-[0_32px_80px_-32px_rgb(42_18_6/0.6),0_10px_24px_-14px_rgb(42_18_6/0.4)] dark:bg-oca-ink-card'
+                    ? 'rounded-depict bg-oca-surface text-oca-surface-foreground shadow-[0_32px_80px_-32px_rgb(42_18_6/0.6),0_10px_24px_-14px_rgb(42_18_6/0.4)]'
                     : 'rounded-[1.1rem] border border-border bg-card shadow-[0_40px_90px_-40px_rgb(10_10_10/0.45)]',
                 !glow && className
             )}
             style={glow ? undefined : style}
         >
-            <div className={cn('flex h-10 items-center gap-3 border-b px-4', paper ? 'border-oca-hairline-strong/40 bg-muted' : 'border-border')}>
+            <div className={cn('flex h-10 items-center gap-3 border-b px-4', paper ? 'border-oca-surface-foreground/10 bg-oca-surface-foreground/[0.04]' : 'border-border')}>
                 <div aria-hidden className="flex gap-1.5">
                     <span className="size-2.5 rounded-full bg-[#ff5f57]" />
                     <span className="size-2.5 rounded-full bg-[#febc2e]" />
@@ -86,7 +86,7 @@ export function BrowserFrame({
             <div
                 aria-hidden
                 data-frame-glow=""
-                className="pointer-events-none absolute inset-x-0 -inset-y-[14%] -z-10 bg-[radial-gradient(closest-side,rgb(249_115_22/0.55),rgb(249_115_22/0.18)_55%,transparent)] md:-inset-x-[8%]"
+                className="pointer-events-none absolute inset-x-0 -inset-y-[20%] -z-10 bg-[radial-gradient(closest-side,rgb(249_115_22/0.55),rgb(249_115_22/0.18)_55%,transparent)] md:-inset-x-[12%]"
             />
             {frame}
         </div>

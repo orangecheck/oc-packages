@@ -14,7 +14,9 @@ import { useOnScreen, usePrefersStill } from './parts';
  * the step buttons under the window drive it, and each step is said once.
  * Under reduced motion it never plays: the first step shows, with the
  * buttons. The window itself is a picture (aria-hidden): the step list is
- * what a screen reader reads.
+ * what a screen reader reads. The steps read the ground's tokens, so on an
+ * ink or burnt band they take its colours; the window keeps the product
+ * surface's own.
  */
 
 export interface SignInDemoScreenState {
@@ -48,8 +50,6 @@ export interface SignInDemoProps {
     stepsLabel?: string;
     /** The address in the window's bar; null shows none. */
     url?: string | null;
-    /** `ink` on a dark or burnt ground, `paper` on the page. */
-    tone?: 'ink' | 'paper';
     className?: string;
 }
 
@@ -68,7 +68,6 @@ export function SignInDemo({
     stepWords = (s, i, n) => `${s.label}, step ${i + 1} of ${n}`,
     stepsLabel = 'Steps',
     url = null,
-    tone = 'ink',
     className,
 }: SignInDemoProps) {
     const rootRef = useRef<HTMLDivElement>(null);
@@ -187,7 +186,6 @@ export function SignInDemo({
         if (target && target.contains(e.target as Node) && !last) go(index + 1);
     };
 
-    const ink = tone === 'ink';
     const playing = active;
     const pressed = effective === 'auto' && phase === 'press';
     const screen = step.screen({ playing, pressed, success: (success ?? defaultSuccess)({ playing }) });
@@ -209,7 +207,7 @@ export function SignInDemo({
         >
             <div ref={stageRef} className="relative" onClick={onStageClick}>
                 <BrowserFrame variant="paper" glow url={url}>
-                    <div ref={viewRef} aria-hidden className="flex h-[22rem] items-center justify-center bg-white px-4 text-foreground md:h-[25rem] dark:bg-oca-ink-card">
+                    <div ref={viewRef} aria-hidden className="flex h-[22rem] items-center justify-center bg-oca-surface px-4 text-oca-surface-foreground md:h-[25rem]">
                         {screen}
                     </div>
                 </BrowserFrame>
@@ -231,14 +229,13 @@ export function SignInDemo({
                                 onClick={() => go(i)}
                                 className={cn(
                                     'group flex min-h-11 w-full flex-col items-stretch gap-2.5 pt-1 text-left outline-none',
-                                    'focus-visible:ring-2 focus-visible:ring-offset-2',
-                                    ink ? 'focus-visible:ring-oca-orange focus-visible:ring-offset-oca-ink' : 'focus-visible:ring-ring focus-visible:ring-offset-background'
+                                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
                                 )}
                             >
-                                <span aria-hidden className={cn('relative block h-0.5 w-full overflow-hidden', ink ? 'bg-oca-ink-line' : 'bg-oca-hairline-strong')}>
+                                <span aria-hidden className="relative block h-0.5 w-full overflow-hidden bg-border">
                                     <span
                                         ref={i === index && effective === 'auto' && !done ? fillRef : undefined}
-                                        className={cn('absolute inset-0 origin-left', ink ? 'bg-oca-orange' : 'bg-oca-orange-deep')}
+                                        className="absolute inset-0 origin-left bg-oca-accent-display"
                                         // Autoplay fills the current bar; a reader's step shows full. A transform, so the fill's animation replaces it.
                                         style={{ transform: state === 'upcoming' || (state === 'current' && effective === 'auto') ? 'scaleX(0)' : 'scaleX(1)' }}
                                     />
@@ -246,13 +243,7 @@ export function SignInDemo({
                                 <span
                                     className={cn(
                                         'text-[0.8125rem] leading-snug md:text-[0.875rem]',
-                                        state === 'upcoming'
-                                            ? ink
-                                                ? 'text-oca-ink-muted'
-                                                : 'text-muted-foreground'
-                                            : ink
-                                              ? 'text-oca-ink-foreground'
-                                              : 'text-foreground'
+                                        state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground'
                                     )}
                                 >
                                     {s.label}
@@ -336,7 +327,11 @@ const PLACEHOLDER: SignInDemoCopy = {
 };
 
 // The app drawn in the window is a product, so it keeps its rounded corners (a depiction, not the page).
-const CARD = 'flex w-full max-w-[20rem] flex-col gap-3 rounded-[0.875rem] border border-border bg-white p-6 shadow-[0_18px_40px_-24px_rgb(42_18_6/0.45)] dark:bg-oca-ink-card';
+const CARD = 'flex w-full max-w-[20rem] flex-col gap-3 rounded-[0.875rem] border border-oca-surface-foreground/10 bg-oca-surface p-6 shadow-[0_18px_40px_-24px_rgb(42_18_6/0.45)]';
+// The app's own colours, so a band's re-pointed tokens never reach into the window: its ink at 70% is 6.8:1
+// on white and 7.7:1 on the dark surface; a field's edge at half strength is 3.5:1 and 4.6:1.
+const QUIET = 'text-oca-surface-foreground/70';
+const FIELD = 'border border-oca-surface-foreground/50';
 const TARGET =
     'mt-1 flex h-10 items-center justify-center rounded-[0.625rem] bg-brand text-[0.875rem] font-medium text-brand-foreground transition-transform duration-150 data-[pressed=true]:scale-[0.97]';
 
@@ -381,9 +376,9 @@ export function signInDemoSteps(copy: Partial<SignInDemoCopy> = {}): SignInDemoS
                 <div className={CARD}>
                     <BrandLine name={c.brand} />
                     <span className="text-[1.125rem] font-medium leading-snug">{c.emailTitle}</span>
-                    <span className="text-[0.8125rem] leading-snug text-muted-foreground">{c.emailBody}</span>
+                    <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.emailBody}</span>
                     <span className="mt-1 text-[0.75rem] font-medium">{c.emailField}</span>
-                    <span className="flex h-10 items-center rounded-[0.625rem] border border-input px-3 font-mono text-[0.8125rem]">
+                    <span className={`flex h-10 items-center rounded-[0.625rem] px-3 font-mono text-[0.8125rem] ${FIELD}`}>
                         <Typed text={c.email} playing={playing} />
                     </span>
                     <span data-demo-target="" data-pressed={pressed} className={TARGET}>
@@ -398,10 +393,10 @@ export function signInDemoSteps(copy: Partial<SignInDemoCopy> = {}): SignInDemoS
                 <div className={CARD}>
                     <BrandLine name={c.brand} />
                     <span className="text-[1.125rem] font-medium leading-snug">{c.codeTitle}</span>
-                    <span className="text-[0.8125rem] leading-snug text-muted-foreground">{c.codeBody}</span>
+                    <span className={`text-[0.8125rem] leading-snug ${QUIET}`}>{c.codeBody}</span>
                     <span className="mt-1 flex gap-1.5">
                         {[...c.code].map((d, i) => (
-                            <span key={i} className="flex h-11 min-w-0 flex-1 items-center justify-center rounded-[0.5rem] border border-input font-mono text-[1rem]">
+                            <span key={i} className={`flex h-11 min-w-0 flex-1 items-center justify-center rounded-[0.5rem] font-mono text-[1rem] ${FIELD}`}>
                                 <Typed text={d} playing={playing} delay={400 + i * 140} perChar={1} />
                             </span>
                         ))}
@@ -416,10 +411,10 @@ export function signInDemoSteps(copy: Partial<SignInDemoCopy> = {}): SignInDemoS
             label: c.labels[2],
             duration: 2400,
             screen: ({ success }) => (
-                <div className="flex flex-col items-center gap-3 text-center text-foreground">
+                <div className="flex flex-col items-center gap-3 text-center">
                     <span className="flex h-24 items-center justify-center">{success}</span>
                     <span className="text-[1.25rem] font-medium">{c.doneTitle}</span>
-                    <span className="text-[0.875rem] text-muted-foreground">{c.doneBody}</span>
+                    <span className={`text-[0.875rem] ${QUIET}`}>{c.doneBody}</span>
                 </div>
             ),
         },
