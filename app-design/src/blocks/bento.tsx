@@ -55,7 +55,11 @@ export interface BentoTileProps {
     children?: ReactNode;
     /** A picture, to the right on a wide tile and under the words on a narrow one. */
     art?: ReactNode;
-    /** A field of dots in a strip at the left edge, or your own halftone picture in it. The words keep clear of the strip. */
+    /**
+     * A field of dots in a strip at the left edge (a fifth of the tile), or your own halftone picture in it. The
+     * words keep clear of the strip. A picture keeps its own aspect: it fills the strip's height and is cropped at
+     * its edge, never squashed into it.
+     */
     halftone?: boolean | ReactNode;
     footer?: ReactNode;
     /** Columns it spans from sm up (2 at most on a tablet). */
@@ -68,7 +72,7 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
     return (
         <div data-bento-tone={tone} className={cn('relative isolate flex min-w-0 flex-col overflow-hidden', GROUND[tone], SPAN[span], ROWS[rows], className)}>
             {halftone ? (
-                <div aria-hidden data-halftone="" className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-[22%]">
+                <div aria-hidden data-halftone="" className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-[22%] overflow-hidden [&_img]:h-full [&_img]:w-auto [&_img]:max-w-none">
                     {halftone === true ? (
                         <div className="size-full bg-[radial-gradient(circle,var(--color-oca-orange)_1.2px,transparent_1.6px)] bg-[length:9px_9px] [mask-image:linear-gradient(90deg,#000_0%,#000_30%,transparent_100%)]" />
                     ) : (

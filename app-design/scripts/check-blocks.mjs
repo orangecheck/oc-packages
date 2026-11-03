@@ -69,6 +69,8 @@ try {
             `const own = { cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
             `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'One' }, { label: 'Two' }, { label: 'Three' }, { label: 'Four' }]} />,\n` +
             `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
+            // A halftone picture at 2:1, to see it kept at its own aspect and cropped by the strip.
+            `  art: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone={<img alt="" src={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="orange"/></svg>')} />} numeral="80%" title="of a reward" /></div>,\n` +
             `  receipt: <ReceiptCard unit="sats" rows={[{ label: 'a', amount: 240 }, { label: 'b', amount: 12.5 }, { label: 'c', amount: 0.125 }, { label: 'd', amount: 1200 }]} /> }[q.get('b')];\n` +
             `createRoot(document.getElementById('root')).render(<div className="mx-auto max-w-[60rem] px-4" style={{ paddingTop: q.has('off') ? 3000 : 24, paddingBottom: 1200 }}>{pick}</div>);\n`,
     });
@@ -81,7 +83,7 @@ try {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
         const p = await ctx.newPage();
         await p.goto(`${page}?b=${b}${off ? '&off' : ''}`);
-        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', bento: '[data-bento-tone]' }[b] ?? 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -281,7 +283,23 @@ try {
                 return { dots: Math.round(dots.right), words: Math.round(Math.min(...words.map((e) => e.getBoundingClientRect().left))) };
             });
             check(r.words >= r.dots, `[${width}] bento: the words start at ${r.words}px, inside the halftone that ends at ${r.dots}px`);
+            // The dots are drawn square, never stretched to the strip.
+            const cell = await p.evaluate(() => getComputedStyle(document.querySelector('[data-halftone] > div')).backgroundSize);
+            check(/^(\d+(?:\.\d+)?)px \1px$/.test(cell), `[${width}] bento: the dot cell is ${cell}, not square`);
             await close();
+            // A picture in the strip keeps its own aspect (2:1 here), and the strip crops it.
+            const a = await open('art', { width });
+            await a.p.waitForFunction(() => document.querySelector('[data-halftone] img').complete);
+            const art = await a.p.evaluate(() => {
+                const strip = document.querySelector('[data-halftone]');
+                const img = strip.querySelector('img').getBoundingClientRect();
+                const box = strip.getBoundingClientRect();
+                const words = [...document.querySelectorAll('[data-bento-tone] span')].filter((e) => e.textContent.trim() && !e.closest('[data-halftone]'));
+                return { w: img.width, h: img.height, clip: getComputedStyle(strip).overflow, strip: box.right, words: Math.min(...words.map((e) => e.getBoundingClientRect().left)) };
+            });
+            check(Math.abs(art.w - art.h * 2) <= 1, `[${width}] bento: a 2:1 picture is drawn ${art.w.toFixed(1)}×${art.h.toFixed(1)}, squashed`);
+            check(art.clip === 'hidden' && art.words >= art.strip, `[${width}] bento: the strip's overflow is ${art.clip}, not hidden, or the words start at ${Math.round(art.words)}px inside the strip that ends at ${Math.round(art.strip)}px`);
+            await a.close();
         }
 
         // No block widens a phone.
