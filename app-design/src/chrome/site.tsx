@@ -562,12 +562,12 @@ export function SiteFooter({
                 ))}
             </div>
             {signature ? (
-                <div aria-hidden className="oca-container select-none pb-3 md:pb-12">
+                <div aria-hidden className="oca-container select-none pb-1 md:pb-12">
                     {/* Inter 400, lowercase. The letters rise from under the line, the middle first (motion.css). */}
                     <Reveal className="overflow-hidden" style={{ '--oca-wordmark-mid': (WORDMARK.length - 1) / 2 } as CSSProperties}>
                         <div
                             data-oca-wordmark=""
-                            className="flex text-[clamp(3rem,13.5vw,15rem)] font-normal leading-[0.86] tracking-[-0.065em] [font-family:var(--oc-font-display)]"
+                            className="flex pb-[0.14em] text-[clamp(3rem,13.5vw,15rem)] font-normal leading-[0.86] tracking-[-0.065em] [font-family:var(--oc-font-display)]"
                         >
                             {[...WORDMARK].map((ch, i) => (
                                 <span key={i} className="inline-block" style={{ '--oca-letter': i } as CSSProperties}>
