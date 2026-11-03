@@ -294,6 +294,41 @@ describe('seal refuses a revoked device record (SPEC §3.5)', () => {
 });
 
 describe('unseal ties the signature to from.address (SPEC §4.3, §7.1)', () => {
+    it('rejects a mismatched sig.pubkey even with an empty signature and skipSenderVerification', async () => {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello'),
+            sender: { address: 'bc1qalice', signMessage: async () => '' },
+            recipients: [bob.record],
+        });
+        // The same envelope with sig.pubkey naming someone else, its id recomputed.
+        const draft = { ...envelope, id: '', sig: { alg: 'bip322' as const, pubkey: 'bc1qcarol', value: '' } };
+        const id = hexEncode(sha256Bytes(canonicalBytes(draft as never)));
+        await expect(
+            unseal({
+                envelope: { ...draft, id },
+                device: { device_id: 'bob-laptop', secretKey: bob.secret },
+                skipSenderVerification: true,
+            })
+        ).rejects.toSatisfy((e: unknown) => (e as LockError).code === 'E_BAD_SIG');
+    });
+
+    it('an empty signature whose pubkey is from.address still opens under skipSenderVerification', async () => {
+        const bob = makeDevice('bc1qbob', 'bob-laptop');
+        const envelope = await seal({
+            payload: utf8Encode('hello'),
+            sender: { address: 'bc1qalice', signMessage: async () => '' },
+            recipients: [bob.record],
+        });
+        const out = await unseal({
+            envelope,
+            device: { device_id: 'bob-laptop', secretKey: bob.secret },
+            skipSenderVerification: true,
+        });
+        expect(new TextDecoder().decode(out.payload)).toBe('hello');
+        expect(out.authenticated).toBe(false);
+    });
+
     it('rejects a signature whose sig.pubkey differs from from.address', async () => {
         const bob = makeDevice('bc1qbob', 'bob-laptop');
         const envelope = await seal({

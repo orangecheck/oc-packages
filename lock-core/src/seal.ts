@@ -214,7 +214,9 @@ export async function unseal(input: UnsealInput): Promise<UnsealResult> {
     // SPEC §4.3 step 2: the signature is verified against `sig.pubkey`, and it
     // is `from.address` that §7.1 says it authenticates, so the two must name
     // the same address, or a valid signature by one address vouches for another.
-    if (env.sig.value !== '' && env.sig.pubkey !== env.from.address) {
+    // Every time, an empty signature included: seal() always writes the sender's
+    // address into both, so a mismatch is an envelope made some other way.
+    if (env.sig.pubkey !== env.from.address) {
         throw makeError(
             'E_BAD_SIG',
             `sig.pubkey (${env.sig.pubkey}) does not match from.address (${env.from.address})`
