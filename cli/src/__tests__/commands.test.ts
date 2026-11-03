@@ -132,6 +132,36 @@ describe('oc check', () => {
         expect(parsed.sats).toBe(100);
     });
 
+    // chain-read-failures PK5: nothing concluded is exit 3, never "fail ... sats: 0".
+    it.each([
+        ['an sdk before 1.21.0 (bad_request beside the signature)', ['sig_ok_bip322', 'bad_request', 'below_min_sats'], /chain API did not answer/],
+        ['sdk 1.21.0 chain_unread', ['sig_ok_bip322', 'bad_request', 'chain_unread'], /chain API did not answer/],
+        ['the UTXO cap', ['utxo_cap_unread'], /holds more coins than the chain API lists/],
+    ])('exits 3 and prints unread, with no sats line, for %s', async (_w, reasons, words) => {
+        vi.mocked(sdk.check).mockResolvedValue({ ok: false, sats: 0, days: 0, score: 0, reasons } as never);
+        const code = await expectExit(() => runCheck({ addr: 'bc1qtest', minSats: '100000' }));
+        expect(code).toBe(3);
+        expect(stdout).toMatch(/^\? unread: /);
+        expect(stdout).toMatch(words);
+        expect(stdout).not.toMatch(/sats:|✗|fail/);
+    });
+
+    it('a refusal names its status, and --json exits 3 too', async () => {
+        vi.mocked(sdk.check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['provider_refused_unread'],
+            chain_status: 403,
+        } as never);
+        expect(await expectExit(() => runCheck({ addr: 'bc1qtest' }))).toBe(3);
+        expect(stdout).toContain('refused this lookup (HTTP 403)');
+        stdout = '';
+        expect(await expectExit(() => runCheck({ addr: 'bc1qtest', json: true }))).toBe(3);
+        expect(JSON.parse(stdout).reasons).toEqual(['provider_refused_unread']);
+    });
+
     it('exits 1 and prints to stderr when no subject is provided', async () => {
         const code = await expectExit(() => runCheck({}));
         expect(code).toBe(1);
@@ -167,6 +197,18 @@ describe('oc verify', () => {
             sig: 'sigdata',
             scheme: 'bip322',
         });
+    });
+
+    it('exits 3, "signature valid, coins unread", when the chain did not answer', async () => {
+        vi.mocked(sdk.verify).mockResolvedValue({
+            ok: false,
+            codes: ['sig_ok_bip322', 'bad_request'],
+            network: 'mainnet',
+        } as never);
+        const code = await expectExit(() => runVerify({ addr: 'bc1qtest', msg: 'orangecheck\n...', sig: 'sigdata' }));
+        expect(code).toBe(3);
+        expect(stdout).toMatch(/^\? signature valid, coins unread: the chain API did not answer/);
+        expect(stdout).not.toMatch(/invalid/);
     });
 
     it('bails out with 1 when none of --addr / --msg / --sig are provided', async () => {

@@ -12,7 +12,7 @@ oc check --addr bc1q... --min-sats 100000 --min-days 30
 #   score: 18.2
 ```
 
-Exit code `0` on pass, `2` on fail, `1` on error. JSON output available on every command with `--json`.
+Exit code `0` on pass, `2` on fail, `3` when nothing could be concluded (the chain or the relays did not answer, or the address holds more coins than the chain API lists), `1` on error. JSON output available on every command with `--json`.
 
 ---
 
@@ -150,6 +150,7 @@ Exit codes:
 - `0` — success (pass / valid / found)
 - `1` — error (bad flags, network failure, unexpected)
 - `2` — decision is "no" (check failed, verify invalid, challenge rejected)
+- `3` — nothing concluded (`oc check`, `oc verify`): the chain API or the relays did not answer, the address holds more coins than the chain API lists, or the API refused the lookup. Printed as `? unread: …`, with no sats line. Try again, or for a capped address, use one that holds fewer coins. (`oc chat verify` has its own codes, above.)
 
 ---
 
