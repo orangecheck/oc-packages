@@ -363,34 +363,32 @@ export interface OgBentoProps {
     row?: readonly [OgTile, OgTile, OgTile, OgTile];
 }
 
+/**
+ * Where a tile's art sits, in whole pixels and inside the tile, so the tile's
+ * rounded clip is the only edge it meets: art bleeds into its own corner, never
+ * into the gutter.
+ */
 function artBox(art: NonNullable<OgTile['art']>, width: number, height: number, k: number) {
     const w = art.width * k;
     const h = art.height * k;
+    const r = Math.round;
     switch (art.place ?? 'right') {
         case 'fill':
             return { left: 0, top: 0, width, height };
         case 'left':
-            return {
-                left: 0,
-                top: 0,
-                width: (art.width * height) / art.height,
-                height,
-            };
+            // A band down the left edge, at most a third of the tile: the text starts after it.
+            return { left: 0, top: 0, width: r(Math.min((art.width * height) / art.height, width / 3)), height };
         case 'center': {
             // Centred art keeps clear of the tile's edges: at most 60% of its width.
             const cw = Math.min(w, width * 0.6);
             const ch = (cw * art.height) / art.width;
-            return {
-                left: (width - cw) / 2,
-                top: (height - ch) / 2 - 16 * k,
-                width: cw,
-                height: ch,
-            };
+            return { left: r((width - cw) / 2), top: r((height - ch) / 2 - 16 * k), width: r(cw), height: r(ch) };
         }
         default: {
             // At the lower right, art leaves the foot's left half to the lockup and the body.
             const rw = Math.min(w, width * 0.55);
-            return { right: 0, bottom: 0, width: rw, height: (rw * h) / w };
+            const rh = (rw * h) / w;
+            return { left: r(width - rw), top: r(height - rh), width: r(rw), height: r(rh) };
         }
     }
 }
@@ -399,6 +397,8 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
     const t = TILE_TONES[tile.tone];
     const pad = 32 * k;
     const box = tile.art ? artBox(tile.art, width, height, k) : null;
+    // Text never sits on art in a band: the column starts after the band's right edge.
+    const band = tile.art?.place === 'left' && box ? box.left + box.width : 0;
     const body = typeof tile.body === 'string' ? [tile.body] : (tile.body ?? []);
     const titleSize = (big ? 64 : 38) * k;
     return (
@@ -411,10 +411,11 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                 justifyContent: 'space-between',
                 position: 'relative',
                 overflow: 'hidden',
-                borderRadius: 24 * k,
+                borderRadius: Math.round(24 * k),
                 background: t.bg,
                 color: t.fg,
                 padding: pad,
+                paddingLeft: band + pad,
             }}
         >
             {tile.art && box ? (
@@ -520,21 +521,32 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
 }
 
 /**
+ * The bento's grid in whole pixels, so every tile edge lands on a pixel: the
+ * margin (48px at 1920, 30px at 1200, the remainder split about it), the
+ * gutter (16 / 10), a column's width, a row's height, and the type scale `k`
+ * (a 1920×1080 row is 317px tall).
+ */
+export function ogBentoGrid(size: 'og' | 'social' = 'og', withRow = size === 'social') {
+    const { width: W, height: H } = size === 'social' ? SOCIAL_SIZE : OG_SIZE;
+    const margin = size === 'social' ? 48 : 30;
+    const gap = size === 'social' ? 16 : 10;
+    const rows = withRow ? 3 : 2;
+    const colW = Math.floor((W - 2 * margin - 3 * gap) / 4);
+    const rowH = Math.floor((H - 2 * margin - (rows - 1) * gap) / rows);
+    const left = Math.floor((W - 4 * colW - 3 * gap) / 2);
+    const top = Math.floor((H - rows * rowH - (rows - 1) * gap) / 2);
+    return { left, top, gap, colW, rowH, rows, k: rowH / 317 };
+}
+
+/**
  * Tiles on the social sheet (`--muted`, #e4e0dc), rounded 24px: pictures of
  * products are rounded, the page is not (PLAN §1). At 1920×1080 the grid is a
  * 48px margin and 16px gutters, as the bento image; at 1200×630 it keeps the
  * first two rows, which is what a 1.91:1 card can carry.
  */
 export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): ReactElement {
-    const { width: W, height: H } = size === 'social' ? SOCIAL_SIZE : OG_SIZE;
     const foot = size === 'social' ? row : undefined;
-    const margin = size === 'social' ? 48 : 30;
-    const gap = size === 'social' ? 16 : 10;
-    const rows = foot ? 3 : 2;
-    const colW = (W - 2 * margin - 3 * gap) / 4;
-    const rowH = (H - 2 * margin - (rows - 1) * gap) / rows;
-    // Type scales with the row: a 1920×1080 row is 317px tall.
-    const k = rowH / 317;
+    const { left, top: y0, gap, colW, rowH, k } = ogBentoGrid(size, Boolean(foot));
     return (
         <div
             style={{
@@ -543,7 +555,8 @@ export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): Re
                 display: 'flex',
                 flexDirection: 'column',
                 background: L.muted,
-                padding: margin,
+                paddingLeft: left,
+                paddingTop: y0,
                 fontFamily: "Inter, 'OCA Inter', sans-serif",
             }}
         >

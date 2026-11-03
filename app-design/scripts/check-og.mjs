@@ -21,6 +21,7 @@ const { ImageResponse } = await import(require.resolve('next/og.js'));
 const { createElement: h, isValidElement, Children } = require('react');
 const og = await import(join(pkg, 'dist/og.mjs'));
 const { appColors } = require(join(pkg, 'dist/tokens.js'));
+const sharp = require('sharp');
 
 let failures = 0;
 let checks = 0;
@@ -58,7 +59,7 @@ async function draw(el, size, name) {
     const png = new Uint8Array(await res.arrayBuffer());
     if (reviewDir) writeFileSync(join(reviewDir, `${name}.png`), png);
     const view = new DataView(png.buffer);
-    return { type: res.headers.get('content-type'), width: view.getUint32(16), height: view.getUint32(20), bytes: png.length };
+    return { type: res.headers.get('content-type'), width: view.getUint32(16), height: view.getUint32(20), bytes: png.length, png };
 }
 
 // Each tone's ground and ink are the 2.0 tokens: paper, ink, burnt and brand.
@@ -130,6 +131,35 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
     check(a.type === 'image/png' && a.width === 1200 && a.height === 630, 'the bento is not a 1200×630 PNG');
     const b = await draw(h(og.OgBento, { ...tiles, size: 'social' }), og.SOCIAL_SIZE, 'og-bento-1920');
     check(b.type === 'image/png' && b.width === 1920 && b.height === 1080, 'the social bento is not a 1920×1080 PNG');
+
+    // Text never sits on a band of art: the halftone tile's text column starts after the band.
+    for (const t of [tree, walk(h(og.OgBento, { ...tiles, size: 'social' }))]) {
+        const tile = t.find((e) => e.props.style?.borderRadius !== undefined && walk(e).some((x) => x.type === 'img' && x.props.src === og.ogArt.halftoneField.src));
+        const band = tile && walk(tile).find((x) => x.props.style?.position === 'absolute');
+        check(band && tile.props.style.paddingLeft >= band.props.style.left + band.props.style.width && band.props.style.width <= tile.props.style.width / 3, 'the halftone tile’s text overlaps its dot band, or the band is past a third');
+    }
+
+    // Tiles clip their own art: the gutters and margins stay the sheet's colour, pixel for pixel.
+    const { data, info } = await sharp(Buffer.from(b.png)).raw().toBuffer({ resolveWithObject: true });
+    const sheet = appColors.light.muted.slice(1).match(/../g).map((x) => parseInt(x, 16));
+    const g = og.ogBentoGrid('social');
+    const off = [];
+    const row = (y, x0, x1) => {
+        for (let x = x0; x < x1; x++) {
+            const i = (y * info.width + x) * info.channels;
+            if (data[i] !== sheet[0] || data[i + 1] !== sheet[1] || data[i + 2] !== sheet[2]) off.push(`${x},${y}`);
+        }
+    };
+    const col = (x, y0, y1) => {
+        for (let y = y0; y < y1; y++) row(y, x, x + 1);
+    };
+    // The gutter under rows 1 and 2, and the one right of the large tile.
+    for (let y = g.top + 2 * g.rowH + g.gap; y < g.top + 2 * g.rowH + 2 * g.gap; y++) row(y, 0, info.width);
+    for (let x = g.left + 2 * g.colW + g.gap; x < g.left + 2 * g.colW + 2 * g.gap; x++) col(x, 0, g.top + 2 * g.rowH + g.gap);
+    // The margins.
+    for (let y = 0; y < g.top; y++) row(y, 0, info.width);
+    col(0, 0, info.height);
+    check(off.length === 0, `art runs past its tile into the sheet at ${off.length} pixels (first ${off.slice(0, 3).join(' ')})`);
 }
 
 if (failures) {
