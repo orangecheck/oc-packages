@@ -50,15 +50,9 @@ export const PublicFrame: StoryObj = {
                     { href: '/apps', label: 'For apps', active: true },
                     { href: '/today', label: "What's true today" },
                 ]}
-                actions={
-                    <>
-                        <ThemeToggle />
-                        <Button variant="ghost" className="hidden sm:inline-flex">
-                            Sign in
-                        </Button>
-                    </>
-                }
-                cta={{ label: 'Get started', href: '/signin' }}
+                actions={<ThemeToggle />}
+                signIn
+                cta
             />
             <div className="oca-container py-32 text-center oca-body">Page content</div>
             <SiteFooter

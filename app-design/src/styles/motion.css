@@ -146,12 +146,12 @@
     transform: none;
     filter: none;
 }
-[data-oc-app='ochk'] [data-reveal] > [data-oca-wordmark] > span {
+[data-oc-app='ochk'] [data-reveal] > [data-oca-wordmark] > span > span {
     transition: transform var(--oca-duration-reveal) var(--oca-ease-out);
     transition-delay: calc(max(var(--oca-letter) - var(--oca-wordmark-mid), var(--oca-wordmark-mid) - var(--oca-letter)) * var(--oca-stagger-centre));
 }
 /* Far enough down to clear the descender room under the line. */
-[data-oc-app='ochk'] [data-reveal='pending'] > [data-oca-wordmark] > span {
+[data-oc-app='ochk'] [data-reveal='pending'] > [data-oca-wordmark] > span > span {
     transform: translateY(135%);
 }
 

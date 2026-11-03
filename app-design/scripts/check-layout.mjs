@@ -380,6 +380,27 @@ try {
             )
         )
     );
+    // 2.0's header CTA while a session check runs, and after: the same box, the nav where it was.
+    const ctaHeader = (cta) =>
+        h(Ch.SiteHeader, {
+            nav: [
+                { href: '/how', label: 'How it works' },
+                { href: '/apps', label: 'For apps' },
+            ],
+            signIn: true,
+            cta,
+        });
+    const ctaSwap = page(
+        'cta-swap',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-cta-case': 'pending' }, ctaHeader({ pending: true, reserve: ['Your account'] })),
+                h('div', { 'data-cta-case': 'resolved' }, ctaHeader({ label: 'Your account', href: '/me', reserve: ['Get an account'] }))
+            )
+        )
+    );
     const icons = page(
         'icons',
         renderToStaticMarkup(
@@ -1202,6 +1223,42 @@ try {
             check(shift < 0.001, `[${width}] a failed read shifted the page by ${shift.toFixed(4)}`);
             await q.close();
             await p.close();
+            // The header CTA pending, then resolved: no box moves, and the pending one names nothing and takes no focus.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 } });
+                await c.goto(ctaSwap);
+                const boxes = await c.evaluate(() =>
+                    Object.fromEntries(
+                        ['pending', 'resolved'].map((k) => {
+                            const root = document.querySelector(`[data-cta-case="${k}"]`);
+                            const cta = root.querySelector('[data-oca-cta]');
+                            const r = cta.getBoundingClientRect();
+                            const links = [...root.querySelectorAll('nav[aria-label="Main"] a')].map((a) => Math.round(a.getBoundingClientRect().left));
+                            // The label itself: the first in CtaLabel's one-cell grid.
+                            const label = cta.querySelector('.grid > span');
+                            return [
+                                k,
+                                {
+                                    x: Math.round(r.left),
+                                    w: Math.round(r.width),
+                                    h: Math.round(r.height),
+                                    links,
+                                    tag: cta.tagName,
+                                    hidden: cta.getAttribute('aria-hidden'),
+                                    focusable: cta.matches('a[href], button, [tabindex]:not([tabindex="-1"])') || Boolean(cta.querySelector('a[href], button, [tabindex]:not([tabindex="-1"])')),
+                                    visibility: getComputedStyle(label).visibility,
+                                },
+                            ];
+                        })
+                    )
+                );
+                const [pd, rs] = [boxes.pending, boxes.resolved];
+                check(pd.x === rs.x && pd.w === rs.w && pd.h === rs.h, `[${width}] the header CTA moved from pending to resolved: ${JSON.stringify([pd, rs].map(({ x, w, h }) => ({ x, w, h })))}`);
+                check(JSON.stringify(pd.links) === JSON.stringify(rs.links), `[${width}] the nav moved when the CTA resolved: ${pd.links} → ${rs.links}`);
+                check(pd.tag === 'SPAN' && pd.hidden === 'true' && !pd.focusable && pd.visibility === 'hidden', `[${width}] a pending CTA is focusable or says its label: ${JSON.stringify(pd)}`);
+                check(rs.tag === 'A' && rs.visibility === 'visible', `[${width}] the resolved CTA is not a visible link`);
+                await c.close();
+            }
         }
     } finally {
         await browser.close();
