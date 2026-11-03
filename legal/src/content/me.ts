@@ -55,7 +55,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity is anchored in Bitcoin, verifiable offline, and portable across the orangecheck family.',
+                    text: 'ochk.app is an identity you use to sign in across participating sites ("integrators"). When an integrator records a billable event for an action you authorize, a share of the fee will flow back to you in sats. Your identity works across the orangecheck family. Every receipt for your account is signed, and anyone holding one can check its signature offline, without asking us; a receipt sent to Bitcoin for a timestamp also checks against Bitcoin once it is anchored. If you back your account, it is tied to bitcoin you hold, and that bitcoin stays in your wallet.',
                 },
                 {
                     kind: 'para',

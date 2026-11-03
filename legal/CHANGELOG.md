@@ -12,7 +12,7 @@ plainly what was claimed before and what is claimed now.
 
 ### Changed — ochk.app's Terms and Privacy policy say what is true today
 
-Four corrections to ochk.app's documents (the `me` profile), ruled together.
+Five corrections to ochk.app's documents (the `me` profile), ruled together.
 ochk.io's and OC Vault's documents render exactly as before.
 
 - **Every way to sign in.** Section 02 of the Terms said an identity is made
@@ -30,6 +30,12 @@ ochk.io's and OC Vault's documents render exactly as before.
   stage keeps orangecheck's executor holding each claim until it is paid to a
   Lightning wallet you choose, and both documents now say only that. The
   custody record entry says none is made while the system is in testing.
+- **What checks offline, and what backing ties.** The Terms' overview said your
+  identity is anchored in Bitcoin and verifiable offline. An account that is not
+  backed is tied to no bitcoin, and what checks offline is a receipt's
+  signature; a timestamp checks against Bitcoin only once it is anchored. The
+  overview now says each of those, and that backing ties your account to bitcoin
+  you hold.
 - **orangecheck, lowercase.** Both documents now write the brand lowercase, as
   ochk.app's pages do. While no entity is registered the party of record goes
   by the brand, so these documents define it as "orangecheck". A new `BRAND`
