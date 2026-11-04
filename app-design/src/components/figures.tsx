@@ -195,7 +195,7 @@ export function SourceNote({ source, href, detail, updated, variant = 'popover',
         <Popover>
             <PopoverTrigger
                 className={cn(
-                    'inline-flex h-7 items-center gap-1 rounded-full px-2 text-[0.75rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                    'inline-flex h-7 items-center gap-1 rounded-none px-2 text-[0.75rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                     className
                 )}
             >
@@ -270,7 +270,7 @@ export function Panel({
                         onClick={() => setOpen(true)}
                         aria-label="Open full screen"
                         className={cn(
-                            'inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                            'inline-flex size-8 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                             HIT_32
                         )}
                     >
@@ -281,7 +281,7 @@ export function Panel({
         </header>
     );
     return (
-        <section className={cn('flex min-w-0 flex-col gap-4 rounded-[1.25rem] border border-border bg-card p-5 md:p-6', className)}>
+        <section className={cn('flex min-w-0 flex-col gap-4 rounded-none border border-border bg-card p-5 md:p-6', className)}>
             {head(false)}
             <div className="min-w-0">{body(false)}</div>
             {source ? <div className="-mb-1 border-t border-border pt-3">{source}</div> : null}
@@ -333,7 +333,7 @@ export function HudCard({
         <div
             data-oca-hud=""
             className={cn(
-                'flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-xl border border-border bg-background/90 p-3 text-[0.8125rem] shadow-sm backdrop-blur-md',
+                'flex w-60 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-none border border-border bg-background/90 p-3 text-[0.8125rem] shadow-sm backdrop-blur-md',
                 className
             )}
         >

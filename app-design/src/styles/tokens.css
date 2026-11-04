@@ -149,6 +149,8 @@
     --oca-footer-foreground: #ffffff;
     --oca-footer-muted: #fff3ed;
     --oca-footer-line: #d17149;
+    /* A card raised on the burnt band (paper 7% over burnt). */
+    --oca-burnt-card: #382216;
     /* Hairlines on the burnt and orange bands (decorative). */
     --oca-burnt-line: #422d22;
     --oca-brand-line: #cc6015;
@@ -164,7 +166,9 @@
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
     /* Inter itself; the fallback is matched to Inter's display cut (fonts.css). */
-    --oc-font-display: 'OCA Inter', 'OCA Inter Display Fallback', ui-sans-serif, system-ui, sans-serif;
+    --oc-font-display:
+        'OCA Inter', 'OCA Inter Display Fallback', 'OCA Inter Display Fallback Noto', 'OCA Inter Display Fallback DejaVu',
+        'OCA Inter Display Fallback Ubuntu', ui-sans-serif, system-ui, sans-serif;
 
     /* The family sign-in ceremony (@orangecheck/auth-client ≥ 2.27) in this
        design: sentence-case Inter, square buttons and fields. */

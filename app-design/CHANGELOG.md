@@ -14,6 +14,146 @@ on its own.
 below.** Every export keeps its name and its props, and the new props are
 optional. What changes is how things look.
 
+### Follow-up (design2-foundation-2)
+
+- Reveal, the halftone, the iso check's tilt, docs' width reader and the
+  theme's scheme listener run in a test DOM with no `matchMedia`,
+  `IntersectionObserver` or `ResizeObserver`: missing reads as still, in view,
+  and measured once.
+- `SiteHeader` on a phone: below 420px a product word replaces the wordmark
+  (still in the link's accessible name), and below 480px the CTA moves from
+  the bar into the menu, where it is the full-width button. A site that hid
+  its wordmark or moved its CTA by hand can drop that.
+- Chrome targets are 44px at every pointer: the header's brand link, links,
+  Sign in, family menu (it was 32px) and `ThemeToggle` (40px), and a footer
+  column's links (35px at a desk). The legal row and a tool's protocol row are
+  inline text links. They are 44px to a thumb on any touch screen and WCAG
+  2.5.8's 24px to a mouse (21px before). check-layout used to measure only
+  touch widths, and only a fixed list of buttons, so these were never
+  measured. It now measures the 2.0 chrome at 390 and 1440.
+  - The pointer decides, not the width. These rows used to drop to 24px from
+    768px wide, so a tablet or a phone in landscape got desk targets. So did
+    `Breadcrumbs`, `FilterChips`, `ArtifactView`'s bar buttons, `CodeBlock`'s
+    copy on ink and menu items, which were 44px below 768 and desk-sized above
+    it. Each now takes its 44px from `pointer-coarse`, as `HIT_32` and
+    `HIT_LINK` do. A narrow window on a desk keeps the desk sizes.
+    - `CodeBlock`'s copy on ink, drawn at 44px to a thumb, no longer adds
+      `HIT_32`'s wider target. That target reached 6px over the Download
+      button beside it.
+    - check-layout measures these on a 1024 touch screen and with a mouse, and
+      its 390 pass is now a touch screen.
+  - Signed in, too. AppShell's phone bar has three of these controls: the
+    menu button (40px before), the home lockup (36px tall) and `AccountMenu`'s
+    button (42 by 40). Each is now 44px drawn. Three small controls keep their
+    drawn size and get a 44px target on a touch screen, from a `::before`
+    that an audit can see: `Switch` (44 by 24), `Checkbox` (20 by 20) and a
+    pill `TabsTrigger` (36px tall). Each inset is measured from inside the
+    control's border; measured from outside it, the targets were 42px.
+    check-layout measures all six at 390 on a touch screen.
+- `Button plus` with `asChild` keeps its "+": the link it renders carries it
+  after its text.
+- The rest of the package is square. That covers Notice, EmptyState,
+  ChoiceCard, FormSection, DropZone, Panel, ListCard, KeyValueList, DataTable,
+  VerifyBox, VerifyReport, ToolGrid, LinkCard, PlanCard, the docs and MDX
+  tables, LoadingBlock, FloatChip and HudCard. FilterChips, CopyButton, the
+  search button, meters and inline code lose their pills too.
+  - `rounded-2xl` to `4xl` scale with `--radius`, so a site's own are square.
+  - Still round, by meaning: status dots, a radio, an avatar, the brand art,
+    an app's monogram, and the parts of a depicted device.
+  - `BrowserFrame` takes `rounded-depict` and `--oca-shadow-depict`.
+  - `SplitBar` draws its segments in tokens (`--oca-surface`, `--oca-ink`)
+    where it hard-coded white.
+  - check-render scans the source for a rounded panel or pill.
+  - The last three are square as well: the meter's growth tail (it was
+    `rounded-r-full` inside a square track), the search result's highlight
+    (`rounded-sm`) and the chart tooltip (`0.625rem` in chart.css).
+    check-render's scan is an allowlist now. Every `rounded-*` class in the
+    source must be `rounded-none`, `rounded-depict`, `rounded-tile` or
+    `rounded-[inherit]`. The exceptions are a dot, which is `rounded-full` on
+    a `size-*` box or on the `inset-0` halo that fills one, with no padding,
+    and the brand art, monogram, avatar and device frames. A stylesheet's
+    `border-radius` must be a radius token or nothing. The old scan caught only
+    fixed and large radii, and pills with `px` or `py`.
+- `PageHero` and `Closing` sit on the Frame (82.5rem, the page's gutter, the
+  hairlines from 900px), so they line up with the header and footer; before,
+  they sat 52px inside it at 1440. `Section` takes `framed` for the same.
+  `PageHero` takes `rule`, a hairline under it, and its `size="xl"` is the
+  page's H1 at display-1.
+  - `Closing`'s title is a display-2: it was set past display-1, larger than
+    the H1.
+  - `VerifyReport`'s title is a step under the page's H1. It was a display-3,
+    the same size as `PageHeader`'s H1.
+  - check-layout checks the frame line-up, and checks that the H1 is the
+    largest text read on the page.
+  - A framed `Section` puts its `space` inside the Frame, and takes
+    `frameClassName` for more. Before, the padding sat outside the Frame, so
+    its hairlines stopped 56 to 117px short of the section's edges and never
+    met the header's or the next section's. check-layout checks that each
+    framed section's Frame fills it.
+  - `PageHero` takes `layout="s10"`, the S10 page header that ochk.app's legal
+    pages built by hand. The title sits at the top of a band at least 27.5rem
+    tall from 900px. From md, the lead sits at its foot on the right and the
+    art (a mark) at its foot on the left, both on the frame, with their tops
+    level. The lead is a left-aligned block about 38 characters wide, set
+    against the right edge. On a phone the mark sits under the lead.
+    check-layout measures it at 390 and 1440, including the lead's alignment.
+- The ink and burnt bands re-point what a kit control raises on them:
+  `--card`, `--muted`, `--secondary`, `--accent` and `--oca-surface`, each
+  with its text. Before, a Card or a field on the ink band drew the paper card
+  under the band's paper text. New token `--oca-burnt-card` (`#382216`).
+  check-contrast holds each raised ground's text in every band, and fails a
+  dark band that leaves `--card` alone.
+- Card's `ink`, `burnt` and `brand` tones re-point what sits on them, as the
+  band of the same name does. Before, they set only a ground and a text colour,
+  so a MonoLabel or a muted line in an ink card kept the page's grey, 2.49:1 in
+  light, and a secondary Button's label was 1.05:1. The re-pointing is now its
+  own utility, `oca-on-ink`, `oca-on-burnt`, `oca-on-brand` and `oca-on-footer`;
+  each `oca-band-*` is its ground plus that. A hand-built panel on one of these
+  grounds takes the matching `oca-on-*`. SignInFrame's ink panel is an
+  `oca-band-ink` now.
+  - The brand and footer bands re-point their raised grounds too. On orange, a
+    card stays orange with an ink hairline: in dark the page's card is ink, so
+    a card's muted line on the brand band was 1.00:1. A hover on the footer
+    darkens to `--oca-primary-hover`.
+  - check-contrast holds every band's and every dark Card tone's pairs,
+    `--accent` with its text among them. check-focus renders each ground in
+    Chrome with a MonoLabel, a muted line, a card raised on it and a secondary
+    Button, and holds all 35 texts to 4.5:1 in light and dark.
+- The display stack reaches a fallback scaled to Inter on machines with no
+  Arial, Liberation or Arimo: Noto Sans, DejaVu Sans and Ubuntu, each with
+  its own size-adjust and Inter's ascent. Before Inter loads there, the
+  footer's wordmark ran 79px past its frame at 1440. check-layout measures
+  the wordmark on that stack, and its spread check's comment now says the
+  0.05em it tests.
+- `StatRow` takes `size="sm"` for values longer than a figure: a sats total
+  or a short phrase (ochk.app's trust group). Before, each site set its own
+  clamp on the cells. At either size, a value longer than its cell now wraps
+  instead of running out. At 390 a "987,654,321 sats" ran 100px past its cell.
+  check-layout measures both sizes with the trust group's values at 390 and
+  1440.
+- The display fallback has a face of its own for the light weight that
+  every `oca-display-*` headline is set in (100 to 349, `size-adjust` 94.4%).
+  One face had served 100 to 449, tuned for 400. Inter Light is about 3%
+  narrower than Inter Regular, so a light headline in Arial ran 3.3% wide and
+  rewrapped as Inter swapped in (ochk.app /about at 390, CLS 0.0189).
+  check-layout now measures the display stack at weight 300 too.
+- Under a tool's compact density, a `Button` with no `size` is `sm`: 36px
+  drawn and 44px to a thumb, the height of the fields beside it. A Field's
+  action no longer stands 8px taller than its input (vote /discover). An
+  explicit `size` is kept.
+- `SiteFooter` sets up to seven link columns in one row from 1280px. Below
+  1280, the rows are as even as the width allows. A product footer with its
+  three columns and the family's four (chat, vault) used to put six in a row
+  and PUBLIC GOODS alone under them. Now it is one row at 1280 and 4 + 3 at
+  768 and 1024. Five columns at md are 3 + 2 rather than 4 + 1. check-layout
+  mounts the seven-column footer at 768, 1024, 1280 and 1440.
+- `DocsShell` takes `signIn` and `cta` for its default header, the same props
+  that `SiteHeader` takes. So ochk.io/docs, signed out, can show ochk.io's
+  "Sign in" and its account CTA rather than an account button. check-render
+  checks that both reach the header.
+- `@orangecheck/app-design/package.json` is exported, so a site can read the
+  installed version (`require('@orangecheck/app-design/package.json')`).
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink

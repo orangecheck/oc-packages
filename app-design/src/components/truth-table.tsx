@@ -46,7 +46,7 @@ export function TruthTable({
                 line, so each row becomes a status over its sentence. */}
             <ul
                 className={cn(
-                    'divide-y divide-oca-hairline-strong overflow-hidden rounded-xl border border-oca-hairline-strong bg-card sm:hidden',
+                    'divide-y divide-oca-hairline-strong overflow-hidden rounded-none border border-oca-hairline-strong bg-card sm:hidden',
                     className
                 )}
             >
@@ -57,7 +57,7 @@ export function TruthTable({
                     </li>
                 ))}
             </ul>
-            <div className={cn('overflow-hidden rounded-xl border border-oca-hairline-strong max-sm:hidden', className)}>
+            <div className={cn('overflow-hidden rounded-none border border-oca-hairline-strong max-sm:hidden', className)}>
                 <table className="w-full border-collapse text-left text-[0.9375rem] md:text-[1rem]">
                     <thead className="bg-oca-table-head">
                         <tr>

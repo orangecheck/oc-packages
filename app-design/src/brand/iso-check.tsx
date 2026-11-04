@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { cn } from '../lib/cn';
+import { prefersReducedMotion } from '../lib/env';
 import { Mark } from './mark';
 
 export interface IsoCheckProps {
@@ -22,7 +23,7 @@ export function IsoCheck({ size = 360, settle = false, shadow = true, tilt = fal
 
     useEffect(() => {
         const el = ref.current;
-        if (!el || !tilt || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (!el || !tilt || prefersReducedMotion()) return;
         let raf = 0;
         let tx = 0;
         let ty = 0;

@@ -75,7 +75,7 @@ export function ListCard({
     className,
     ...props
 }: HTMLAttributes<HTMLElement> & { as?: 'ul' | 'ol' | 'div' }) {
-    return <Tag data-oca-list="" className={cn('divide-y divide-border overflow-clip rounded-[1.25rem] border border-border bg-card', className)} {...props} />;
+    return <Tag data-oca-list="" className={cn('divide-y divide-border overflow-clip rounded-none border border-border bg-card', className)} {...props} />;
 }
 
 /* ── ListRow ─────────────────────────────────────────────────────────── */
@@ -84,7 +84,7 @@ const ROW_LOOK = {
     // In a ListCard: full width, the card's hairlines between rows.
     card: { box: 'px-5', hover: 'hover:bg-accent/60', current: 'bg-accent' },
     // In a pane's list (threads, contacts): rounded, lifted when current.
-    pane: { box: 'rounded-xl px-3', hover: 'hover:bg-accent', current: 'bg-card shadow-sm ring-1 ring-border' },
+    pane: { box: 'rounded-none px-3', hover: 'hover:bg-accent', current: 'bg-card shadow-sm ring-1 ring-border' },
 } as const;
 
 /**
@@ -196,7 +196,7 @@ export function ListRow({
     );
     const stretch = cn(
         'outline-none after:absolute after:inset-0 after:content-[""] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring',
-        variant === 'pane' && 'after:rounded-xl'
+        variant === 'pane' && 'after:rounded-none'
     );
     const open = (children: ReactNode, className?: string) =>
         href !== undefined ? (
@@ -404,7 +404,7 @@ export function ChoiceCard({
                 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 'border-border bg-card data-[state=checked]:border-foreground data-[state=checked]:bg-accent data-[state=unchecked]:hover:border-oca-hairline-strong',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                sm ? 'min-h-11 rounded-xl px-3.5 py-2.5' : 'rounded-[1.25rem] p-5',
+                sm ? 'min-h-11 rounded-none px-3.5 py-2.5' : 'rounded-none p-5',
                 className
             )}
         >

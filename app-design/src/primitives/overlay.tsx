@@ -235,8 +235,8 @@ export const DropdownMenuItem = forwardRef<
         <DropdownMenuPrimitive.Item
             ref={ref}
             className={cn(
-                // A thumb's 44px on a phone.
-                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-none px-3 text-[0.9375rem] outline-none max-md:h-11',
+                // A thumb's 44px on any touch screen.
+                'flex h-10 cursor-default select-none items-center gap-2.5 rounded-none px-3 text-[0.9375rem] outline-none pointer-coarse:h-11',
                 // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
                 'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground',
                 destructive && 'text-destructive [&_svg]:text-destructive',

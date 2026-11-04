@@ -323,7 +323,8 @@ export const Checkbox = forwardRef<
         <CheckboxPrimitive.Root
             ref={ref}
             className={cn(
-                'peer inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface',
+                // 20px drawn, 44px to a thumb. The inset is measured from inside the 1px border.
+                'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface pointer-coarse:before:absolute pointer-coarse:before:-inset-[13px]',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -346,7 +347,8 @@ export const Switch = forwardRef<
         <SwitchPrimitive.Root
             ref={ref}
             className={cn(
-                'peer inline-flex h-6 w-11 shrink-0 items-center rounded-none border border-transparent bg-input p-0.5',
+                // 44 by 24 drawn, 44 by 44 to a thumb. The inset is measured from inside the 1px border.
+                'peer relative inline-flex h-6 w-11 shrink-0 items-center rounded-none border border-transparent bg-input p-0.5 pointer-coarse:before:absolute pointer-coarse:before:-inset-x-px pointer-coarse:before:-inset-y-[11px]',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 // The deep orange: the track is the state, so it must clear 3:1 on a card.
                 'data-[state=checked]:bg-oca-orange-deep disabled:cursor-not-allowed disabled:opacity-50',

@@ -39,6 +39,63 @@ const check = (ok, msg) => {
 };
 const html = (el) => renderToStaticMarkup(el);
 
+// 2.0 is square: every rounded- class in the source is square (rounded-none), a depiction's
+// (rounded-depict), a tile's (rounded-tile) or its parent's (rounded-[inherit]). Round by meaning
+// only: a dot (rounded-full on a size-* box or the inset-0 halo filling one, with no padding), and
+// in the brand art, an app's monogram, an avatar and a depicted device. The stylesheets' own
+// border-radius is a radius token or nothing.
+{
+    const { readdirSync, readFileSync, statSync } = require('node:fs');
+    const src = join(here, '../src');
+    const walk = (d, ext) =>
+        readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f), ext) : ext.test(f) && !/\.(stories|test)\.tsx?$/.test(f) ? [join(d, f)] : []));
+    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames))\.tsx$/;
+    const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
+    const rounded = [];
+    for (const f of walk(src, /\.tsx?$/)) {
+        if (ROUND_BY_MEANING.test(f)) continue;
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                if (/^\s*(\/\/|\/?\*)/.test(line)) return;
+                for (const m of line.matchAll(/(?<![\w-])rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-([a-z0-9]+|\[[^\]\s'"`]+\]))?(?![\w-])/g)) {
+                    const value = m[1] ?? '';
+                    if (ALLOWED.test(value)) continue;
+                    // A dot is judged on its own class string, the quoted string the match sits in, not the line.
+                    const open = Math.max(...['"', "'", '`'].map((q) => line.lastIndexOf(q, m.index)));
+                    const close = open < 0 ? -1 : line.indexOf(line[open], m.index);
+                    const classes = open < 0 || close < 0 ? line : line.slice(open + 1, close);
+                    const dot = m[0] === 'rounded-full' && /(?<![\w-])(size-|inset-0(?![\w-]))/.test(classes) && !/(?<![\w-])p[xytrblse]?-/.test(classes);
+                    if (!dot) rounded.push(`${f.slice(src.length + 1)}:${i + 1} ${m[0]}`);
+                }
+            });
+    }
+    for (const f of walk(join(src, 'styles'), /\.css$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                const r = line.match(/border(?:-[a-z]+)*-radius:\s*([^;]+);/);
+                if (r && !/^(0|inherit|var\(--(radius|oca-radius)[a-z0-9-]*\))$/.test(r[1].trim())) rounded.push(`${f.slice(src.length + 1)}:${i + 1} border-radius: ${r[1].trim()}`);
+            });
+    }
+    check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);
+    check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
+}
+
+// Under a tool's compact density a default Button is `sm`, the height of the field beside it; an explicit size stays.
+{
+    const compact = (el) => html(h(P.DensityProvider, { density: 'compact' }, el));
+    check(/\bh-9\b/.test(compact(h(P.Button, null, 'Open'))), 'Button: under compact density a default button is not sm (36px), so it stands taller than its field');
+    check(/\bh-11\b/.test(compact(h(P.Button, { size: 'md' }, 'Open'))), 'Button: an explicit size is overridden by density');
+    check(/\bh-11\b/.test(html(h(P.Button, null, 'Open'))), 'Button: the default size changed outside compact density');
+}
+// Button's trailing "+" survives asChild: the link it renders carries the "+" after its text.
+{
+    const link = html(h(P.Button, { asChild: true, plus: true }, h('a', { href: '/start' }, 'Get started')));
+    check(/^<a [^>]*href="\/start"[^>]*>Get started<span[^>]*data-oca-plus=""/.test(link), `Button asChild plus: the "+" is dropped or the link is not the root: ${link.slice(0, 160)}`);
+    check(!/data-oca-plus/.test(html(h(P.Button, { asChild: true }, h('a', { href: '/start' }, 'Get started')))), 'Button asChild: a "+" appears without plus');
+}
+
 // CodeBlock: highlighted on the server, marks and diff drawn, the sign not in the text.
 {
     const out = html(h(C.CodeBlock, { code: 'const a = 1;\nverify(a);', lang: 'ts', highlight: '2' }));
@@ -80,6 +137,12 @@ const html = (el) => renderToStaticMarkup(el);
     const shell = html(h(Ch.DocsShell, { nav, current: '/stamp' }, h('p', null, 'page')));
     check(/href="https:\/\/ochk.io\/docs"[^>]*aria-current="page"|aria-current="page"[^>]*href="https:\/\/ochk.io\/docs"/.test(shell), 'DocsShell: the header does not mark Docs');
     check(shell.includes('id="docs-content"') && shell.includes('id="main-content"'), 'DocsShell: the page has no content landmark');
+    // ochk.io/docs draws ochk.io's header: Sign in and the account CTA, as SiteHeader takes them.
+    {
+        const signedOut = html(h(Ch.DocsShell, { nav, current: '/stamp', signIn: true, cta: true }, h('p', null, 'page')));
+        const header = signedOut.slice(0, signedOut.indexOf('</header>'));
+        check(/>Sign in</.test(header) && /data-oca-cta/.test(header), 'DocsShell: signIn and cta do not reach its header');
+    }
 }
 
 // ToolShell: the protocol's word and page, tools in a tab bar on a phone, compact fields, the footer.
@@ -432,7 +495,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(title.includes('Who stands behind it.') && title.includes('href="/all"'), 'SectionTitle: the line or the action is missing');
     check(html(h(C.SectionTitle, { title: 'Delete', as: 'h3', size: 'sm', tone: 'danger' })).match(/<h3 class="[^"]*oca-title-sm[^"]*text-destructive/), 'SectionTitle: as, size or tone ignored');
     const list = html(h(C.ListCard, null, h('li', null, 'a'), h('li', null, 'b')));
-    check(/^<ul (?=[^>]*data-oca-list="")(?=[^>]*class="[^"]*divide-y[^"]*rounded-\[1\.25rem\])[^>]*><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card, marked for a flush card');
+    check(/^<ul (?=[^>]*data-oca-list="")(?=[^>]*class="[^"]*divide-y[^"]*rounded-none)[^>]*><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card, marked for a flush card');
     const choice = html(
         h(C.ChoiceGroup, { label: 'Who can post', value: 'b', onValueChange: () => {} }, h(C.ChoiceCard, { value: 'a', title: 'Anyone' }), h(C.ChoiceCard, { value: 'b', title: 'Holders', description: 'A bound address.' }))
     );

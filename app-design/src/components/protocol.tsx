@@ -182,7 +182,7 @@ function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', as
             <a
                 href={p.specHref}
                 className={cn(
-                    'group flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-border bg-card px-4 py-3 text-[0.875rem] transition-colors hover:border-oca-hairline-strong',
+                    'group flex flex-wrap items-center gap-x-4 gap-y-1 rounded-none border border-border bg-card px-4 py-3 text-[0.875rem] transition-colors hover:border-oca-hairline-strong',
                     className
                 )}
             >
@@ -197,7 +197,7 @@ function ProtocolSpecCard({ protocol, version, license, vectors, size = 'md', as
         );
     }
     return (
-        <div className={cn('flex flex-col gap-6 rounded-[1.25rem] border border-border bg-card p-6 md:p-8', className)}>
+        <div className={cn('flex flex-col gap-6 rounded-none border border-border bg-card p-6 md:p-8', className)}>
             <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-1.5">
                     <p className="text-[0.875rem] text-muted-foreground">The spec</p>
@@ -277,7 +277,7 @@ export function VerifyBox({
             action={action}
             method="get"
             onSubmit={submit}
-            className={cn('flex flex-col gap-5 rounded-[1.25rem] border border-border bg-card p-6 md:p-8', className)}
+            className={cn('flex flex-col gap-5 rounded-none border border-border bg-card p-6 md:p-8', className)}
         >
             {title || description ? (
                 <div className="flex flex-col gap-2">
@@ -367,7 +367,7 @@ export function ComparisonTable({
     } as CSSProperties;
     const ordered = [...columns].sort((a, b) => Number(Boolean(b.highlight)) - Number(Boolean(a.highlight)));
     return (
-        <ul aria-label={label} style={style} className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul aria-label={label} style={style} className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             <li
                 aria-hidden
                 className={cn(
@@ -399,7 +399,7 @@ export function ComparisonTable({
                                     className={cn(
                                         // Two rows of the pair's grid (name, answer), so answers line up
                                         // across a pair even when one name wraps.
-                                        'order-[var(--oca-order)] row-span-2 grid min-w-0 grid-rows-subgrid gap-1 rounded-xl px-3 py-2.5',
+                                        'order-[var(--oca-order)] row-span-2 grid min-w-0 grid-rows-subgrid gap-1 rounded-none px-3 py-2.5',
                                         desk === 'lg'
                                             ? 'lg:order-none lg:row-span-1 lg:flex lg:flex-col'
                                             : 'md:order-none md:row-span-1 md:flex md:flex-col',

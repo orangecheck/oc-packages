@@ -55,10 +55,10 @@ export interface Crumb {
     href?: string;
 }
 
-/** Where this page sits: docs › section › page, with room on the right for "View source". */
+/** Where this page sits: docs › section › page, with room on the right for "View source". Its links are 44px to a thumb and 24px to a mouse. */
 export function Breadcrumbs({ items, action, className }: { items: Crumb[]; action?: ReactNode; className?: string }) {
     return (
-        <div className={cn('flex min-h-11 items-center justify-between gap-4 sm:min-h-0', className)}>
+        <div className={cn('flex items-center justify-between gap-4 pointer-coarse:min-h-11', className)}>
             <nav aria-label="Breadcrumb" className="min-w-0">
                 <ol className="flex min-w-0 items-center gap-1.5 text-[0.875rem] text-muted-foreground">
                     {items.map((c, i) => {
@@ -66,7 +66,7 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                         return (
                             <li key={i} className={cn('flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0')}>
                                 {c.href && !last ? (
-                                    <DocLink href={c.href} className="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-6">
+                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11">
                                         {c.label}
                                     </DocLink>
                                 ) : (
@@ -101,7 +101,7 @@ export function DocsPager({ prev, next, className }: { prev?: PagerLink; next?: 
         <DocLink
             href={l.href}
             className={cn(
-                'group flex min-h-20 flex-col justify-center gap-1 rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:border-oca-hairline-strong',
+                'group flex min-h-20 flex-col justify-center gap-1 rounded-none border border-border bg-card px-5 py-4 transition-colors hover:border-oca-hairline-strong',
                 dir === 'next' && 'items-end text-right sm:col-start-2'
             )}
         >
@@ -246,7 +246,7 @@ export function Step({ title, id, as: Tag = 'h3', children }: { title: ReactNode
             {/* The number, and the line down to the next one. */}
             <span
                 aria-hidden
-                className="absolute left-0 top-0 flex size-7 items-center justify-center rounded-full border border-oca-hairline-strong bg-card text-[0.8125rem] oca-tabular text-foreground before:content-[counter(oca-step)]"
+                className="absolute left-0 top-0 flex size-7 items-center justify-center rounded-none border border-oca-hairline-strong bg-card text-[0.8125rem] oca-tabular text-foreground before:content-[counter(oca-step)]"
             />
             <span aria-hidden className="absolute bottom-1 left-[0.8125rem] top-9 w-px bg-border" />
             <Tag id={id} className="scroll-mt-28 pt-0.5 text-[1.0625rem] font-medium leading-snug tracking-[-0.008em] text-foreground">
@@ -291,13 +291,13 @@ export function LinkCard({
         <DocLink
             href={href}
             className={cn(
-                'group flex h-full flex-col gap-3 rounded-[1.25rem] border border-border bg-card p-5 transition-colors hover:border-oca-hairline-strong',
+                'group flex h-full flex-col gap-3 rounded-none border border-border bg-card p-5 transition-colors hover:border-oca-hairline-strong',
                 className
             )}
         >
             <span className="flex items-start justify-between gap-3">
                 {icon ? (
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground [&_svg]:size-[1.125rem]">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-muted text-foreground [&_svg]:size-[1.125rem]">
                         {icon}
                     </span>
                 ) : (
@@ -338,7 +338,7 @@ export function CardGrid({ columns = 2, children, className }: { columns?: 2 | 3
  */
 export function MdxTable({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
     return (
-        <div className="not-prose my-6 overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="not-prose my-6 overflow-hidden rounded-none border border-border bg-card">
             <ScrollFade fade="var(--card)">
                 <InTableContext.Provider value={true}>
                     <table
@@ -397,7 +397,7 @@ export function ApiTable({
     const hasSource = rows.some((r) => said(r.source));
     const cell = 'px-4 py-3 max-sm:p-0';
     return (
-        <div className={cn('not-prose my-6 overflow-hidden rounded-2xl border border-border bg-card', className)}>
+        <div className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card', className)}>
             <ScrollFade fade="var(--card)">
                 <table className="w-full border-collapse text-left text-[0.875rem] max-sm:block">
                     {caption ? <caption className="sr-only">{caption}</caption> : null}
@@ -642,6 +642,11 @@ function useInnerWidth(ref: RefObject<HTMLElement | null>, padding: number): num
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
+        // Without ResizeObserver (a test DOM) the width is read once.
+        if (typeof ResizeObserver === 'undefined') {
+            setWidth(el.clientWidth - padding);
+            return;
+        }
         const ro = new ResizeObserver(() => setWidth(el.clientWidth - padding));
         ro.observe(el);
         return () => ro.disconnect();
@@ -712,7 +717,7 @@ export function Diagram({
         <figure
             ref={ref}
             data-size={drawn?.width && drawn.height ? `${drawn.width}x${drawn.height}` : undefined}
-            className={cn('not-prose my-6 overflow-hidden rounded-[1.25rem] border border-border bg-card [container-type:inline-size]', className)}
+            className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card [container-type:inline-size]', className)}
         >
             {drawn ? (
                 <ScrollFade fade="var(--card)">
@@ -730,7 +735,7 @@ export function Diagram({
             ) : (
                 <div role="status" aria-label="Drawing the diagram" className="p-6">
                     <style>{reserve(hold, size, chart)}</style>
-                    <Skeleton className={cn('w-full rounded-xl', hold)} />
+                    <Skeleton className={cn('w-full rounded-none', hold)} />
                 </div>
             )}
             {caption ? <figcaption className="border-t border-border px-5 py-3 text-[0.8125rem] text-muted-foreground">{caption}</figcaption> : null}
@@ -766,7 +771,7 @@ export function DocsHeading({
                 <a
                     href={`#${id}`}
                     // A 24px target drawn around it (before:), so the heading's line does not grow.
-                    className="relative ml-2 inline-block rounded-md px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    className="relative ml-2 inline-block rounded-none px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
                 >
                     <span aria-hidden>#</span>
                     <span className="sr-only">Link to this section</span>

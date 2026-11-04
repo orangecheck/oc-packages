@@ -12,7 +12,7 @@ import type { NavItem } from '../lib/nav';
 import { Badge } from '../primitives/badge';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { StatusBadge, type Status } from '../primitives/status-badge';
-import { OchkIoFooter, SiteHeader, SkipLink } from './site';
+import { OchkIoFooter, SiteHeader, SkipLink, type SiteHeaderProps } from './site';
 
 /* ── The docs' navigation ────────────────────────────────────────────── */
 
@@ -152,8 +152,12 @@ export interface DocsShellProps {
     header?: ReactNode;
     /** The default header's search control (a SearchDialog). */
     search?: ReactNode;
-    /** The default header's actions (a SessionAccount, a Sign in). */
+    /** The default header's actions (a SessionAccount when signed in). */
     actions?: ReactNode;
+    /** The default header's "Sign in", as SiteHeader takes it: ochk.io's header, signed out. */
+    signIn?: SiteHeaderProps['signIn'];
+    /** The default header's account CTA, as SiteHeader takes it. */
+    cta?: SiteHeaderProps['cta'];
     /** Above the page: Breadcrumbs. */
     breadcrumbs?: ReactNode;
     /**
@@ -181,6 +185,8 @@ export function DocsShell({
     header,
     search,
     actions,
+    signIn,
+    cta,
     breadcrumbs,
     toc,
     pager,
@@ -206,7 +212,7 @@ export function DocsShell({
     return (
         <div className="flex min-h-dvh flex-col bg-background">
             <SkipLink />
-            {header ?? <SiteHeader home={OCHK_IO} family="docs" nav={DOCS_HEADER_NAV} search={search} actions={actions} />}
+            {header ?? <SiteHeader home={OCHK_IO} family="docs" nav={DOCS_HEADER_NAV} search={search} actions={actions} signIn={signIn} cta={cta} />}
             {/* Below lg: the sections behind one button, and where you are beside it. */}
             <div
                 data-oca-sticky="docs-bar"
