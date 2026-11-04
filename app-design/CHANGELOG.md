@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `BlockHeight`'s link is a 44px target to a thumb, centred on the number by a
+  pseudo-element, as a `HashChip`'s is. It was the line of text, 27px tall at
+  18px. To a mouse it keeps the box it draws, and the line keeps its height.
+  Heights in a feed of cards, and two in one line, do not reach each other.
+  **Migrate**: a site that gave a height its own hit area can drop it (globe's
+  blocks feed adds `HIT`).
+
 ## [2.0.0] — unreleased (2.0.0-pre)
 
 Design iteration 2: one family system that looks like a specification

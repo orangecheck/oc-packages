@@ -570,6 +570,24 @@ try {
             )
         )
     );
+    // Block heights as globe's feed sets them, eight cards in a grid, and two in one line of small text (BlockCountdown's
+    // "Target · tip"): each link is a line of text, so its target is a ::before, and no two may share a pixel.
+    const heights = [971632, 971631, 971630, 971629, 971628, 971627, 971626, 971625];
+    const touchHeights = page(
+        'touch-heights',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6 p-4' },
+                h(
+                    'ol',
+                    { className: 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4' },
+                    heights.map((n) => h('li', { key: n, className: 'flex items-baseline justify-between gap-2 border border-border p-4' }, h(C.BlockHeight, { height: n, className: 'text-[1.125rem]' }), h('span', null, '3 min ago')))
+                ),
+                h('p', { className: 'text-[0.8125rem]' }, 'Target ', h(C.BlockHeight, { height: 972000 }), ' · tip ', h(C.BlockHeight, { height: 971632 }))
+            )
+        )
+    );
     // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons.
     const shellSections = [
         { id: 'a', label: 'Apps', href: '/a', groups: [{ items: [{ href: '/a', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }] }] },
@@ -2236,6 +2254,41 @@ try {
                     const bar = mouse['the app shell sidebar'].targets;
                     check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
                     check(mouse['the app shell rail'].targets.length === 2 && mouse['the app shell rail'].targets.every((x) => x.w === 40 && x.h === 40), `[768 mouse] the rail's icons are drawn ${sizes('the app shell rail')}, not 40x40`);
+                }
+                // Block heights to a thumb: each lands from 21.5px out in every direction, and no point of one's 44px square
+                // lands on another height (a ::before 44 tall over a line of text can reach a neighbour). To a mouse each
+                // keeps the box it draws.
+                let thumbBoxes;
+                for (const [w, touch] of [[390, true], [1024, true], [1024, false]]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await visit(c, touchHeights);
+                    const r = await c.evaluate(() => {
+                        const links = [...document.querySelectorAll('a[href*="mempool.space/block"]')];
+                        return links.map((el) => {
+                            el.scrollIntoView({ block: 'center' });
+                            const b = el.getBoundingClientRect();
+                            const cx = b.left + b.width / 2;
+                            const cy = b.top + b.height / 2;
+                            const at = (x, y) => document.elementFromPoint(x, y)?.closest('a[href*="mempool.space/block"]') ?? null;
+                            const reach = [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => at(cx + dx, cy + dy) === el);
+                            let shared = 0;
+                            for (let dx = -21; dx <= 21; dx += 3) for (let dy = -21; dy <= 21; dy += 3) {
+                                const hit = at(cx + dx, cy + dy);
+                                if (hit && hit !== el) shared++;
+                            }
+                            return { name: el.textContent.trim().slice(0, 7), w: Math.round(b.width), h: Math.round(b.height), reach, shared };
+                        });
+                    });
+                    await c.close();
+                    const label = `[${w} ${touch ? 'touch' : 'mouse'}]`;
+                    if (touch) {
+                        check(r.length === 10 && r.every((x) => x.reach), `${label} block heights: ${r.filter((x) => !x.reach).length} of ${r.length} not a 44px target: ${JSON.stringify(r.filter((x) => !x.reach).slice(0, 3))}`);
+                        check(r.every((x) => x.shared === 0), `${label} block heights share hit points with a neighbour: ${JSON.stringify(r.filter((x) => x.shared))}`);
+                        thumbBoxes = r;
+                    } else {
+                        check(r.length === 10 && r.every((x) => x.h < 44), `${label} a block height is drawn ${JSON.stringify(r[0])}: a fine pointer gets the line of text`);
+                        check(thumbBoxes?.every((t, i) => t.w === r[i].w && t.h === r[i].h), `${label} a block height draws a different box to a thumb and a mouse: ${JSON.stringify([thumbBoxes?.[0], r[0]])}`);
+                    }
                 }
             }
             // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
