@@ -199,6 +199,42 @@ try {
             `import { Dialog, DialogContent, DialogTitle } from '${join(pkg, 'src/primitives/overlay.tsx')}';\n` +
             `createRoot(document.getElementById('root')).render(<Dialog defaultOpen><DialogContent><DialogTitle>A dialog</DialogTitle><p>Its body.</p></DialogContent></Dialog>);\n`
     );
+    // Every ScrollFade user, each in a box too narrow for it, so each scrolls and so takes focus: tables under a
+    // heading and with a caption, a drawn diagram, two tab lists (one labelled), ProtocolNav and a code block's tabs.
+    writeFileSync(
+        join(dir, 'scrollnames.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ApiTable, Diagram, MdxTable } from '${join(pkg, 'src/components/docs.tsx')}';\n` +
+            `import { ProtocolNav } from '${join(pkg, 'src/components/protocol.tsx')}';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `import { Tabs, TabsList, TabsTrigger } from '${join(pkg, 'src/primitives/tabs.tsx')}';\n` +
+            `const wide = 'a_column_name_that_does_not_break';\n` +
+            `const mermaid = { initialize() {}, render: async () => ({ svg: '<svg width="100%" xmlns="http://www.w3.org/2000/svg" style="max-width: 900px;" viewBox="0 0 900 120"><rect width="900" height="120" fill="none" stroke="currentColor"/></svg>' }) };\n` +
+            `const tabs = (label) => <Tabs defaultValue="t0"><TabsList aria-label={label}>{Array.from({ length: 12 }, (_, i) => <TabsTrigger key={i} value={'t' + i}>{'Layer ' + i}</TabsTrigger>)}</TabsList></Tabs>;\n` +
+            `const box = (k, el) => <div data-box={k} style={{ width: 260 }}>{el}</div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div className="flex flex-col gap-8 p-4">\n` +
+            `  <section><h2>Parameters</h2>{box('mdx', <MdxTable><thead><tr><th>{wide}</th><th>{wide}</th><th>{wide}</th></tr></thead><tbody><tr><td>{wide}</td><td>{wide}</td><td>{wide}</td></tr></tbody></MdxTable>)}</section>\n` +
+            `  {box('api', <ApiTable caption="Options" rows={[{ name: wide + wide, type: wide, description: wide + ' ' + wide }]} />)}\n` +
+            `  {box('diagram', <Diagram chart="flowchart LR; a-->b" caption="A flow" load={async () => mermaid} />)}\n` +
+            `  {box('tabs', tabs('Desk'))}\n` +
+            `  {box('tabs-bare', tabs(undefined))}\n` +
+            `  {box('protocols', <ProtocolNav current="lock" />)}\n` +
+            `  {box('codetabs', <CodeTabs items={Array.from({ length: 8 }, (_, i) => ({ label: 'version-' + i, lang: 'js', code: 'x' }))} />)}\n` +
+            `  {box('code', <CodeBlock code={'curl https://' + wide + '/' + 'f'.repeat(64)} caption="A long line" />)}\n` +
+            `</div>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'scrollnames.jsx')],
+        outfile: join(dir, 'scrollnames.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'dialogclose.jsx')],
         outfile: join(dir, 'dialogclose.js'),
@@ -269,7 +305,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -688,6 +724,7 @@ try {
     );
     const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
     const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
+    const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -2510,6 +2547,23 @@ try {
                 const m = await read(url, 390, false, sel);
                 check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
             }
+        }
+        // Every scroller that takes focus is a named region: each ScrollFade user, scrolling in a narrow box.
+        {
+            const c = await browser.newPage({ viewport: { width: 700, height: 2400 } });
+            await visit(c, scrollNames);
+            const ready = await c.waitForFunction(() => document.querySelectorAll('[data-box] [tabindex="0"]').length >= 8 && document.querySelector('[data-box="diagram"] svg'), null, { timeout: 10000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const got = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-box]')].map((b) => {
+                    const s = [...b.querySelectorAll('[tabindex="0"]')].find((el) => getComputedStyle(el).overflowX === 'auto');
+                    return [b.dataset.box, s ? { role: s.getAttribute('role'), name: s.getAttribute('aria-label') } : null];
+                })
+            );
+            const want = { mdx: 'Parameters', api: 'Options', diagram: 'A flow', tabs: 'Desk', 'tabs-bare': 'Tabs', protocols: 'Protocols', codetabs: 'Versions', code: 'A long line' };
+            const off = got.filter(([k, s]) => !s || s.role !== 'region' || s.name !== want[k]);
+            check(ready && got.length === 8 && off.length === 0, `[700] a ScrollFade that scrolls takes focus with no region name, or not the one it should have: ${JSON.stringify(off)}`);
+            await c.close();
         }
         // A sheet's Close (a site's phone menu) and a dialog's: 44 square to a thumb, 36 to a mouse.
         for (const [name, url, open] of [

@@ -367,7 +367,7 @@ export function CodeTabs({
             className={cn(FRAME, className)}
         >
             <div className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-2 pr-2">
-                <ScrollFade fade="var(--oca-code-surface)" className="min-w-0 flex-1">
+                <ScrollFade fade="var(--oca-code-surface)" label="Versions" className="min-w-0 flex-1">
                     <TabsPrimitive.List aria-label="Versions" className="flex w-max items-center gap-0.5">
                         {items.map((it) => (
                             <TabsPrimitive.Trigger

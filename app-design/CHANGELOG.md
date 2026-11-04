@@ -11,7 +11,9 @@
   there and the mark stays whole. The 4px reach still works on the block axis,
   so a control flush with a section's foot keeps its ring. **Migrate**: drop
   the `[overflow-clip-margin:0px]` that chat and vault put on `PageHero`
-  (their `TODO(app-design)`).
+  (their `TODO(app-design)`). A site's own element that reaches sideways past
+  a framed section's edge is now cut at that edge, so check for one when you
+  move to 2.0.1.
 - `Prose` breaks a word that is wider than its line, so a long hostname or URL
   wraps instead of scrolling the page. `LegalDocument` sets its text in
   `Prose`. On ochk.io, /privacy and /terms scroll 30px sideways at 320 today,
@@ -28,10 +30,17 @@
   - A folded `CodeBlock`'s "Show all" is 44 tall. It was 34.
   - A `Sheet`'s and a `Dialog`'s Close is 44 square, a site's phone menu
     included. It was 36.
-- A `CodeBlock` whose long line scrolls is a tab stop, and it is now a region
-  named by its caption, or by its language when the caption is not text. A
-  `CodeTabs` panel is named by its tab's label. `ScrollFade` takes the same
-  `label`. **Migrate**: a site that named the region itself can drop that code
+- Anything that scrolls sideways in a `ScrollFade` is a tab stop, and it is now
+  a region with a name. `ScrollFade` takes a `label`, and without one it takes
+  the text of the nearest heading before it. Each user names its own:
+  - a `CodeBlock`: its caption, or its language when the caption is not text;
+  - a `CodeTabs` panel: its tab's label, and its row of tabs "Versions";
+  - `ApiTable` and `Diagram`: their caption;
+  - an `MdxTable`: the heading above it;
+  - `TabsList`: its `aria-label`, or "Tabs";
+  - `ProtocolNav`: "Protocols".
+
+  **Migrate**: a site that named the region itself can drop that code
   (ochk.io's `SignedMessage`, its `TODO(app-design)`).
 - check-layout checks all of this:
   - No page scrolls sideways at 320, 390, 768, 900, 1024, 1200, 1280 or
@@ -40,7 +49,9 @@
   - At 320, IsoCheck's mark stays inside the edge where its section clips.
   - Each target is hit from 21.5px out in every direction at 390 touch, and
     keeps its drawn size to a mouse.
-  - A code region that takes focus has a name.
+  - Every ScrollFade user that scrolls, in a box too narrow for it, is a
+    named region, by the name it should have. On 53e2b87d seven of the eight
+    had none.
 
   On main's build it found 39 failures. The two Close checks came later, and
   fail when the fix is taken out.

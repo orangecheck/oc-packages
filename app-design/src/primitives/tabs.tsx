@@ -46,7 +46,7 @@ export const TabsList = forwardRef<
     }
     // More tabs than fit a phone scroll sideways, with an edge that says so.
     return (
-        <ScrollFade fade="var(--background)" className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
+        <ScrollFade fade="var(--background)" label={props['aria-label'] ?? 'Tabs'} className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
             <TabsPrimitive.List
                 ref={ref}
                 className={cn(

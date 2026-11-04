@@ -12,13 +12,31 @@ export interface ScrollFadeProps extends HTMLAttributes<HTMLDivElement> {
     fade?: string;
     /** Classes for the scrolling element itself. */
     innerClassName?: string;
-    /** Its name while it hides something and so takes focus: it is then a region with this label. */
+    /**
+     * Its name while it hides something and so takes focus: it is then a region with this label.
+     * Without one it takes the nearest heading before it, as a docs table under its section's title.
+     */
     label?: string;
+}
+
+/** The text of the nearest heading before an element, in reading order. */
+function headingBefore(el: Element): string | undefined {
+    for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
+        for (let sib = node.previousElementSibling; sib; sib = sib.previousElementSibling) {
+            const h = sib.matches('h1, h2, h3, h4, h5, h6') ? sib : [...sib.querySelectorAll('h1, h2, h3, h4, h5, h6')].pop();
+            // A heading's own # anchor is not part of its name.
+            const text = h?.textContent?.replace(/#\s*$/, '').trim();
+            if (text) return text;
+        }
+    }
+    return undefined;
 }
 
 export function ScrollFade({ fade = 'var(--card)', className, innerClassName, label, children, ...props }: ScrollFadeProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [edges, setEdges] = useState({ left: false, right: false });
+    const [heading, setHeading] = useState<string>();
+    const scrolls = edges.left || edges.right;
     const measure = useCallback(() => {
         const el = ref.current;
         if (!el) return;
@@ -44,6 +62,10 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, la
         });
     }, []);
     useEffect(() => {
+        if (scrolls && !label && ref.current) setHeading(headingBefore(ref.current));
+    }, [scrolls, label]);
+    const name = label ?? heading;
+    useEffect(() => {
         const el = ref.current;
         if (!el) return;
         measure();
@@ -61,9 +83,9 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, la
                 onScroll={measure}
                 onFocus={reveal}
                 // While it hides something, a keyboard can reach it to scroll.
-                tabIndex={edges.left || edges.right ? 0 : undefined}
-                role={label && (edges.left || edges.right) ? 'region' : undefined}
-                aria-label={label && (edges.left || edges.right) ? label : undefined}
+                tabIndex={scrolls ? 0 : undefined}
+                role={scrolls && name ? 'region' : undefined}
+                aria-label={scrolls && name ? name : undefined}
                 className={cn(
                     // Positioned, so sr-only text deep in a wide row scrolls and clips with the row.
                     // The ring is drawn inside the edge: a rounded, clipped frame (a code block's) would cut an outside one away.

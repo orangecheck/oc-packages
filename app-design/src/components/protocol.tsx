@@ -69,7 +69,7 @@ export function ProtocolNav({
 }) {
     return (
         <nav aria-label="Protocols" className={className}>
-            <ScrollFade fade="var(--background)">
+            <ScrollFade fade="var(--background)" label="Protocols">
                 <ul className="flex w-max min-w-full items-center gap-6 border-b border-border">
                     {PROTOCOLS.map((p) => {
                         const on = p.slug === current;

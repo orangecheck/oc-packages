@@ -398,7 +398,7 @@ export function ApiTable({
     const cell = 'px-4 py-3 max-sm:p-0';
     return (
         <div className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card', className)}>
-            <ScrollFade fade="var(--card)">
+            <ScrollFade fade="var(--card)" label={caption}>
                 <table className="w-full border-collapse text-left text-[0.875rem] max-sm:block">
                     {caption ? <caption className="sr-only">{caption}</caption> : null}
                     <thead className="max-sm:sr-only">
@@ -720,7 +720,7 @@ export function Diagram({
             className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card [container-type:inline-size]', className)}
         >
             {drawn ? (
-                <ScrollFade fade="var(--card)">
+                <ScrollFade fade="var(--card)" label={typeof caption === 'string' ? caption : undefined}>
                     <div
                         data-fit={fits ? '' : undefined}
                         className={cn(
