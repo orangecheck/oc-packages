@@ -12,5 +12,6 @@
 @import './styles/theme.css';
 @import './styles/tokens.css';
 @import './styles/motion.css';
+@import './styles/scenes.css';
 @import './styles/code.css';
 @import './styles/chart.css';
