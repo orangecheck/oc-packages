@@ -62,6 +62,25 @@ async function draw(el, size, name) {
     return { type: res.headers.get('content-type'), width: view.getUint32(16), height: view.getUint32(20), bytes: png.length, png };
 }
 
+// Art drawn at its own pixels keeps its bake's few colours; satori smooths any image it scales, which
+// rings each dot with dozens more. The opaque colours of a baked PNG, and those inside a rect of a render.
+const rgb = (d, i) => (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
+async function bakeColours(src) {
+    const { data, info } = await sharp(Buffer.from(src.split(',')[1], 'base64')).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const out = new Set();
+    for (let i = 0; i < info.width * info.height * 4; i += 4) if (data[i + 3] === 255) out.add(rgb(data, i));
+    return out;
+}
+async function renderColours(png, { left, top, width, height }, skip = () => false) {
+    const { data, info } = await sharp(Buffer.from(png)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const out = new Set();
+    for (let y = Math.max(0, top); y < Math.min(info.height, top + height); y++)
+        for (let x = Math.max(0, left); x < Math.min(info.width, left + width); x++) if (!skip(x, y)) out.add(rgb(data, (y * info.width + x) * 4));
+    return out;
+}
+const hexRgb = (h) => parseInt(h.slice(1), 16);
+const stray = (seen, bake, ground) => [...seen].filter((c) => !bake.has(c) && c !== hexRgb(ground)).length;
+
 // Each tone's ground and ink are the 2.0 tokens: paper, ink, burnt and brand.
 const L = appColors.light;
 const grounds = { paper: [L.background, L.foreground], ink: [appColors.dark.card, appColors.dark.foreground], burnt: [L.burnt, L.burntForeground], brand: [L.brand, L.brandForeground] };
@@ -89,20 +108,31 @@ check(title?.props.style.lineClamp === 3 && title.props.style.display === 'block
 check(String(title?.props.children ?? '').length <= 120, 'a long title is not cut');
 
 // The large art is on unless the caller leaves it out: the tone's dithered mark, its coarse 240px bake
-// at 2× (480×240), the peach top on ink and burnt, the ink top on paper, ink alone on brand (its orange
+// doubled (480×240, each pixel twice), the peach top on ink and burnt, the ink top on paper, ink alone on brand (its orange
 // sides would vanish into the ground). Baked art takes its
 // place. The lockup's small mark stays vector, so it keeps its edges when a feed shows the card at 300px.
 {
     const imgs = (props) => walk(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', ...props })).filter((e) => e.type === 'img');
-    const dither = { paper: og.ogArt.ditherMarkInk240, ink: og.ogArt.ditherMark240, burnt: og.ogArt.ditherMark240, brand: og.ogArt.ditherMarkOnBrand240 };
+    const dither = { paper: og.ogArt.ditherMarkInk240x2, ink: og.ogArt.ditherMark240x2, burnt: og.ogArt.ditherMark240x2, brand: og.ogArt.ditherMarkOnBrand240x2 };
     for (const [tone, a] of Object.entries(dither)) {
         const d = imgs({ tone });
         check(d.length === 1 && d[0].props.src === a.src && d[0].props.width === 480 && d[0].props.height === 240, `${tone}: the default art is not the tone's dithered mark at 480×240`);
     }
-    check(imgs({}).length === 1 && imgs({})[0].props.src === og.ogArt.ditherMark240.src, 'the dithered mark is not on by default');
-    // Its box sits on a 4px grid, so the 2× mark's 4px dots land on whole pixels when a feed shows the card at 300.
+    check(imgs({}).length === 1 && imgs({})[0].props.src === og.ogArt.ditherMark240x2.src, 'the dithered mark is not on by default');
+    // Its box sits on a 4px grid, so the doubled mark's 4px dots land on whole pixels when a feed shows the card at 300.
     const slot = walk(h(og.OgCard, { title: 'A page' })).find((e) => e.props.style?.position === 'absolute')?.props.style;
     check(slot && (1200 - 480 - slot.right) % 4 === 0 && (630 - 240 - slot.bottom) % 4 === 0, 'the dithered mark is off the 4px grid');
+    // Each tone's card draws it at its own pixels: its art box, as rendered, holds the bake's colours and the ground's, no others.
+    for (const [tone, [bg]] of Object.entries(grounds)) {
+        const card = h(og.OgCard, { title: 'Prove who signed it, and when.', eyebrow: 'OC Stamp', product: 'stamp', host: 'stamp.ochk.io', tone });
+        const tree = walk(card);
+        const img = tree.find((e) => e.type === 'img');
+        const box = tree.find((e) => e.props.style?.position === 'absolute').props.style;
+        const rect = { left: 1200 + -box.right - img.props.width, top: 630 + -box.bottom - img.props.height, width: img.props.width, height: img.props.height };
+        const { png } = await draw(card, og.OG_SIZE, `og-card-${tone}-art`);
+        const n = stray(await renderColours(png, rect), await bakeColours(img.props.src), bg);
+        check(n === 0, `${tone}: the default art's box holds ${n} colours its bake and the ground do not: it is smoothed, not drawn at its own pixels`);
+    }
     check(imgs({ mark: false }).length === 0, 'mark: false still draws the large art');
     const svgs = walk(h(og.OgCard, { title: 'A page' })).filter((e) => e.type === 'svg');
     check(svgs.length === 1 && svgs[0].props.width <= 60, 'the card’s marks are not one small vector mark in the lockup');
@@ -163,9 +193,13 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
     }
 
     // A tile with no art and no foot text draws the tone's dithered mark (the 240px bake) at its lower
-    // right, at 2× or 1×, the larger that fits 55% of its width and 45% of its height. A tile with foot
-    // text (rows, body, footer, lockup) and no art draws none.
-    const bakes = { mark: og.ogArt.ditherMark240, ink: og.ogArt.ditherMarkInk240, brand: og.ogArt.ditherMarkOnBrand240 };
+    // right, doubled or at 1×, the larger that fits 55% of its width and 45% of its height, at its own
+    // pixels. A tile with foot text (rows, body, footer, lockup) and no art draws none.
+    const bakes = {
+        mark: [og.ogArt.ditherMark240, og.ogArt.ditherMark240x2],
+        ink: [og.ogArt.ditherMarkInk240, og.ogArt.ditherMarkInk240x2],
+        brand: [og.ogArt.ditherMarkOnBrand240, og.ogArt.ditherMarkOnBrand240x2],
+    };
     const bare = {
         hero: { tone: 'paper', title: 'Lumen Notes keeps your notes on your own keys.' },
         top: [{ tone: 'ink', numeral: '0' }, { tone: 'brand', numeral: '0' }],
@@ -188,15 +222,34 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
             const img = walk(tile).find((e) => e.type === 'img');
             const footText = Boolean(spec.rows || spec.body || spec.footer || spec.lockup);
             if (footText) return check(!img, `${size}: a ${spec.tone} tile with foot text draws art it was not given`);
-            const own = bakes[shade[spec.tone]];
-            check(img?.props.src === own.src, `${size}: a bare ${spec.tone} tile does not draw its tone's dithered mark`);
-            const scale = [2, 1].find((x) => own.width * x <= width * 0.55 && own.height * x <= height * 0.45);
+            const [one, two] = bakes[shade[spec.tone]];
+            const fits = (a) => a.width <= width * 0.55 && a.height <= height * 0.45;
+            const want = fits(two) ? two : one;
+            check(img?.props.src === want.src, `${size}: a bare ${spec.tone} tile (${width}×${height}) does not draw its tone's dithered mark ${want === two ? 'doubled' : 'at 1×'}, the larger that fits`);
             const box = walk(tile).find((e) => e.props.style?.position === 'absolute')?.props.style;
             check(box && box.left + box.width === width && box.top + box.height === height, `${size}: a bare ${spec.tone} tile's dithered mark is not at its lower right`);
-            if (scale) check(img.props.width === own.width * scale && img.props.height === own.height * scale, `${size}: a bare ${spec.tone} tile (${width}×${height}) does not draw the mark at ${scale}×, the larger whole multiple that fits`);
+            if (fits(want)) check(img.props.width === want.width && img.props.height === want.height, `${size}: a bare ${spec.tone} tile's dithered mark is not drawn at its own pixels`);
         });
         const drawn = await draw(h(og.OgBento, { ...bare, size }), size === 'social' ? og.SOCIAL_SIZE : og.OG_SIZE, `og-bento-bare-${size}`);
         check(drawn.type === 'image/png', `${size}: the bare bento does not draw`);
+        // A tile's mark, drawn at its own pixels, keeps its bake's colours, away from the tile's rounded corner.
+        if (size === 'social') {
+            const g = og.ogBentoGrid('social');
+            const at = [
+                [0, g.left, g.top],
+                [1, g.left + 2 * g.colW + 2 * g.gap, g.top],
+            ];
+            for (const [i, x0, y0] of at) {
+                const tile = cells[i];
+                const img = walk(tile).find((e) => e.type === 'img');
+                const box = walk(tile).find((e) => e.props.style?.position === 'absolute').props.style;
+                const { width, height, borderRadius: r, background } = tile.props.style;
+                const rect = { left: x0 + box.left, top: y0 + box.top, width: box.width, height: box.height };
+                const corner = (x, y) => x >= x0 + width - r && y >= y0 + height - r;
+                const n = stray(await renderColours(drawn.png, rect, corner), await bakeColours(img.props.src), background);
+                check(n === 0, `social: a bare ${given[i].tone} tile's mark (${img.props.width}px) holds ${n} colours its bake and the tile do not: it is smoothed`);
+            }
+        }
     }
 
     // Every tile image's visible rect stays inside its own art box, and the box inside its tile: the box

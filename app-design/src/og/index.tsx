@@ -3,10 +3,13 @@ import type { ReactElement, ReactNode } from 'react';
 import { MARK_FACES, MARK_POINTS } from '../brand/mark';
 import { appColors } from '../tokens';
 import ditherMark240 from '../../art/dither-mark-240.png';
+import ditherMark240x2 from '../../art/dither-mark-240-2x.png';
 import ditherMark480 from '../../art/dither-mark-480.png';
 import ditherMarkOnBrand240 from '../../art/dither-mark-brand-240.png';
+import ditherMarkOnBrand240x2 from '../../art/dither-mark-brand-240-2x.png';
 import ditherMarkOnBrand480 from '../../art/dither-mark-brand-480.png';
 import ditherMarkInk240 from '../../art/dither-mark-ink-240.png';
+import ditherMarkInk240x2 from '../../art/dither-mark-ink-240-2x.png';
 import ditherMarkInk480 from '../../art/dither-mark-ink-480.png';
 import ditherField from '../../art/dither-field.png';
 import halftoneField from '../../art/halftone-field.png';
@@ -150,26 +153,37 @@ export const ogArt = {
     ditherMarkInk240: { src: png(ditherMarkInk240), width: 240, height: 120 },
     ditherMarkOnBrand: { src: png(ditherMarkOnBrand480), width: 480, height: 240 },
     ditherMarkOnBrand240: { src: png(ditherMarkOnBrand240), width: 240, height: 120 },
+    /** The 240 marks with every pixel doubled: their 2px dots as 4px, drawn at 1:1 (satori smooths what it scales). */
+    ditherMark240x2: { src: png(ditherMark240x2), width: 480, height: 240 },
+    ditherMarkInk240x2: { src: png(ditherMarkInk240x2), width: 480, height: 240 },
+    ditherMarkOnBrand240x2: { src: png(ditherMarkOnBrand240x2), width: 480, height: 240 },
     ditherField: { src: png(ditherField), width: 1200, height: 320 },
     halftoneField: { src: png(halftoneField), width: 320, height: 320 },
 } as const satisfies Record<string, OgImage>;
 
 /**
- * The default art: the tone's dithered mark from its coarse 240px bake, drawn at
- * whole multiples. Its 2px dots stay whole when a feed shows a 1200px card at
- * 300 (a quarter); the 480 bake's 3px dots beat against that into moiré.
+ * The default art: the tone's dithered mark from its coarse 240px bake, at 1×
+ * or doubled (each pixel twice, 2px dots as 4px), always drawn at its own
+ * pixels: satori smooths any image it scales, which rings every dot. Its dots
+ * stay whole when a feed shows a 1200px card at 300 (a quarter); the 480
+ * bake's 3px dots beat against that into moiré.
  */
-const ditherMark = (tone: Tone): OgImage => ({ mark: ogArt.ditherMark240, ink: ogArt.ditherMarkInk240, brand: ogArt.ditherMarkOnBrand240 })[tone.dither];
+const DITHER_MARKS: Record<Tone['dither'], readonly [OgImage, OgImage]> = {
+    mark: [ogArt.ditherMark240, ogArt.ditherMark240x2],
+    ink: [ogArt.ditherMarkInk240, ogArt.ditherMarkInk240x2],
+    brand: [ogArt.ditherMarkOnBrand240, ogArt.ditherMarkOnBrand240x2],
+};
+const ditherMark = (tone: Tone) => DITHER_MARKS[tone.dither];
 
 /**
- * A tile's default art: the dithered mark at 2× or 1×, the larger that fits the
- * lower right (55% of the tile's width, 45% of its height). A tile too small
- * for 1× takes it scaled down to fit.
+ * A tile's default art: the dithered mark doubled or at 1×, the larger that
+ * fits the lower right (55% of the tile's width, 45% of its height). A tile
+ * too small for 1× takes it scaled down to fit.
  */
 function defaultTileArt(tone: Tone, width: number, height: number): NonNullable<OgTile['art']> {
-    const mark = ditherMark(tone);
-    const scale = [2, 1].find((x) => mark.width * x <= width * 0.55 && mark.height * x <= height * 0.45) ?? 1;
-    return { ...mark, width: mark.width * scale, height: mark.height * scale, place: 'right' };
+    const [one, two] = ditherMark(tone);
+    const fit = (a: OgImage) => a.width <= width * 0.55 && a.height <= height * 0.45;
+    return { ...(fit(two) ? two : one), place: 'right' };
 }
 
 function MarkSvg({ width, tone }: { width: number; tone: Tone }) {
@@ -267,8 +281,8 @@ export interface OgCardProps {
 /** The 1200×630 card. The card is the image, so it is square: rounding is for tiles laid on a sheet (`OgBento`). */
 export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art: given }: OgCardProps): ReactElement {
     const t = TONES[tone];
-    // With no art of its own, the card draws the tone's dithered mark at 2×, 480px.
-    const art = given ?? (mark ? { ...ditherMark(t), width: 480, height: 240 } : undefined);
+    // With no art of its own, the card draws the tone's dithered mark doubled, 480px, at its own pixels.
+    const art = given ?? (mark ? ditherMark(t)[1] : undefined);
     // Long titles step down a size before they would run past three lines.
     const size = title.length > 70 ? 60 : title.length > 40 ? 70 : 82;
     const text = title.length > 120 ? `${title.slice(0, 119).trimEnd()}…` : title;
@@ -296,7 +310,7 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                     style={{
                         position: 'absolute',
                         right: -40,
-                        // On a 4px grid (left 760, top 416), so the 2× mark's 4px dots land on whole pixels at a quarter.
+                        // On a 4px grid (left 760, top 416), so the doubled mark's 4px dots land on whole pixels at a quarter.
                         bottom: -26,
                         display: 'flex',
                     }}

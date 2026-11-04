@@ -15,7 +15,8 @@
  *   - dither-mark-{240,480,960}: the isometric mark in ordered dither, faces
  *     as @orangecheck/mark; `-ink` has the ink top face for light grounds;
  *     `-brand` is ink alone for a brand ground (a solid top, sides at about
- *     50% and 25%), where the orange sides would vanish;
+ *     50% and 25%), where the orange sides would vanish; `-240-2x` is the 240
+ *     mark with every pixel doubled, for ./og to draw at 1:1;
  *   - dither-field: a dither texture from value noise, orange on transparent,
  *     for burnt bands;
  *   - halftone-field: a dot screen that fades from the left edge, for the
@@ -217,11 +218,23 @@ function halftoneField(width, height, pitch, fade) {
     return { data, width, height };
 }
 
+/** An image at twice its pixels, each one doubled: nearest neighbour, so no colour is added. */
+function doubled({ data, width, height }) {
+    const out = Buffer.alloc(width * height * 16);
+    for (let y = 0; y < height * 2; y++) for (let x = 0; x < width * 2; x++) data.copy(out, (y * width * 2 + x) * 4, ((y >> 1) * width + (x >> 1)) * 4, ((y >> 1) * width + (x >> 1)) * 4 + 4);
+    return { data: out, width: width * 2, height: height * 2 };
+}
+
 const pieces = [];
 for (const w of [240, 480, 960]) {
-    pieces.push([`dither-mark-${w}`, ditherMark(w, MARK_FACES.top)]);
-    pieces.push([`dither-mark-ink-${w}`, ditherMark(w, `#${INK.map((c) => c.toString(16).padStart(2, '0')).join('')}`)]);
-    pieces.push([`dither-mark-brand-${w}`, ditherMark(w, null)]);
+    const marks = [
+        [`dither-mark-${w}`, ditherMark(w, MARK_FACES.top)],
+        [`dither-mark-ink-${w}`, ditherMark(w, `#${INK.map((c) => c.toString(16).padStart(2, '0')).join('')}`)],
+        [`dither-mark-brand-${w}`, ditherMark(w, null)],
+    ];
+    pieces.push(...marks);
+    // The 240 marks again at 2x, each pixel doubled (2px dots as 4px), for an OG route to draw at 1:1: satori smooths any image it scales.
+    if (w === 240) for (const [name, img] of marks) pieces.push([`${name}-2x`, doubled(img)]);
 }
 // Each texture at display size, 1x and 2x. The mark's three widths are its 1x/2x pairs (240/480, 480/960).
 pieces.push(['dither-field', ditherField(1200, 320, 7)]);
