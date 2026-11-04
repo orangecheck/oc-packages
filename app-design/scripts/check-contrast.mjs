@@ -115,6 +115,7 @@ const PAIRS = [
     ['oca-surface-foreground', 'oca-surface', 4.5],
     ['muted-foreground', 'oca-surface', 4.5],
     ['oca-subtle-foreground', 'oca-surface', 4.5],
+    ['oca-accent-ink', 'oca-surface', 4.5],
     ['input', 'oca-surface', 3],
     ['ring', 'oca-surface', 3],
     // Text on the sunken ground, and small orange text and display ember on it.
