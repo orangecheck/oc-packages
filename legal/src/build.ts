@@ -8,7 +8,7 @@
  */
 
 import type { Block, BulletItem, DocKind, DocSpec, LegalDoc, Section } from './types';
-import { GLOBAL_TOKENS } from './constants';
+import { BRAND, ENTITY_PENDING, GLOBAL_TOKENS, LEGAL_ENTITY, LEGAL_ENTITY_LONG } from './constants';
 import { getSiteContext } from './registry';
 import { PROFILES } from './content';
 
@@ -64,8 +64,14 @@ function fillSpec(spec: DocSpec, tokens: Record<string, string>): DocSpec {
 export function buildDoc(siteSlug: string, kind: DocKind): LegalDoc {
     const ctx = getSiteContext(siteSlug);
     const spec = PROFILES[ctx.profile][kind];
+    const brand = ctx.brand ?? BRAND;
+    const entity = ENTITY_PENDING && ctx.brand ? ctx.brand : LEGAL_ENTITY;
     const tokens: Record<string, string> = {
         ...GLOBAL_TOKENS,
+        BRAND: brand,
+        ENTITY: entity,
+        ENTITY_LONG: LEGAL_ENTITY_LONG.replace(LEGAL_ENTITY, entity),
+        ENTITY_UPPER: entity.toUpperCase(),
         PRODUCT: ctx.product,
         PRODUCT_SHORT: ctx.productShort,
         HOST: ctx.host,

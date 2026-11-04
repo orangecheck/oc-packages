@@ -9,6 +9,10 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [0.3.0] — 2026-11-03
 
+- Requires `@orangecheck/sdk` ^1.21.0 (it was ^1.7.0), the release whose
+  `check()` names a coin it could not read (`chain_unread`, `utxo_cap_unread`,
+  `provider_refused_unread`) and never puts `below_min_*` beside it.
+
 ### Fixed
 
 - **A candidate nothing could be concluded about is no longer dropped as if

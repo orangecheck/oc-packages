@@ -100,13 +100,30 @@ export function AppIcon({ title, size = 32, className, ...rest }: AppIconProps) 
 export interface LockupProps {
     /** The word beside the icon. */
     name?: string;
-    /** Icon size in px; the word scales with it. */
+    /** Icon size in px (the flat mark's width); the word scales with it. */
     size?: number;
+    /**
+     * `icon` (default): the app icon, a depiction of the app. `flat`: 2.0's page
+     * chrome, the flat check (30px wide in a header) and the wordmark in Inter
+     * 400 at 0.7 of its width, 21px beside a 30px mark.
+     */
+    variant?: 'icon' | 'flat';
     className?: string;
 }
 
 /** Icon and wordmark, lowercase, as the deck sets it. */
-export function Lockup({ name = 'orangecheck', size = 28, className }: LockupProps) {
+export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', className }: LockupProps) {
+    if (variant === 'flat') {
+        return (
+            <span
+                className={cn('inline-flex items-center font-normal tracking-[-0.024em]', className)}
+                style={{ gap: size / 3, fontSize: size * 0.7 }}
+            >
+                <Mark size={size} />
+                <span>{name}</span>
+            </span>
+        );
+    }
     return (
         <span
             className={cn('inline-flex items-center font-medium tracking-[-0.01em]', className)}

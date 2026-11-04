@@ -33,6 +33,8 @@ export const LEGAL_SITES: Record<string, SiteContext> = {
         contact: CONTACT_GENERAL,
         securityContact: CONTACT_SECURITY,
         selfHosted: true,
+        // ochk.app writes its brand lowercase, as its own pages do (lead ruling, 2026-11-03).
+        brand: 'orangecheck',
     },
     vault: {
         slug: 'vault',
