@@ -10,7 +10,7 @@
 [data-oc-app='ochk'] .oca-chart .oca-chart-tick {
     fill: var(--muted-foreground);
     font-family: var(--oc-font-mono);
-    font-size: 10px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
 }
 [data-oc-app='ochk'] .oca-chart .oca-chart-grid {

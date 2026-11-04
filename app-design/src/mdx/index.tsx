@@ -34,7 +34,7 @@ function breakAfterPunctuation(children: ReactNode): ReactNode {
 function InlineCode({ className, children, ...props }: HTMLAttributes<HTMLElement>) {
     const inTable = useInTable();
     return (
-        <code className={cn('break-words rounded-none bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground', className)} {...props}>
+        <code className={cn('break-words rounded-none bg-muted px-1.5 py-0.5 font-mono text-[max(0.875em,0.75rem)] text-foreground', className)} {...props}>
             {inTable ? breakAfterPunctuation(children) : children}
         </code>
     );

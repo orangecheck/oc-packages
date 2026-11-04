@@ -43,14 +43,15 @@ const html = (el) => renderToStaticMarkup(el);
 // (rounded-depict), a tile's (rounded-tile) or its parent's (rounded-[inherit]). Round by meaning
 // only: a dot (rounded-full on a size-* box or the inset-0 halo filling one, with no padding), and
 // in the brand art, an app's monogram, an avatar, a depicted device, and the made-up app the sign-in
-// demo draws inside its window (a product keeps its own corners). The stylesheets' own
+// demo draws inside its window (a product keeps its own corners; it has a file of its own, so the
+// demo's step list, Try again and cursor are still held square). The stylesheets' own
 // border-radius is a radius token or nothing.
 {
     const { readdirSync, readFileSync, statSync } = require('node:fs');
     const src = join(here, '../src');
     const walk = (d, ext) =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f), ext) : ext.test(f) && !/\.(stories|test)\.tsx?$/.test(f) ? [join(d, f)] : []));
-    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames)|blocks\/sign-in-demo)\.tsx$/;
+    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames)|blocks\/sign-in-demo-app)\.tsx$/;
     const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
     const rounded = [];
     for (const f of walk(src, /\.tsx?$/)) {
@@ -81,6 +82,33 @@ const html = (el) => renderToStaticMarkup(el);
     }
     check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);
     check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
+
+    // No text under 12px: a size in rem or px is 0.75rem (12px) or more, and one in em, which follows a
+    // smaller parent down (0.875em of a 13px table head was 11.375px), is floored: max(…em, 0.75rem).
+    const small = [];
+    const tooSmall = (v) => {
+        const n = parseFloat(v);
+        if (/^[\d.]+rem$/.test(v)) return n < 0.75;
+        if (/^[\d.]+px$/.test(v)) return n < 12;
+        if (/^[\d.]+em$/.test(v)) return n < 1;
+        return false;
+    };
+    for (const f of walk(src, /\.tsx?$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                for (const m of line.matchAll(/(?<![\w-])text-\[([\d.]+(?:rem|px|em))\]/g)) if (tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} text-[${m[1]}]`);
+            });
+    }
+    for (const f of walk(join(src, 'styles'), /\.css$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                const m = line.match(/(?<![\w-])font-size:\s*([\d.]+(?:rem|px|em))\s*;/);
+                if (m && tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} font-size: ${m[1]}`);
+            });
+    }
+    check(small.length === 0, `text under 12px in the source: ${small.join(', ')}`);
 }
 
 // One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square

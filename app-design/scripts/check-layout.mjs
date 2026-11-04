@@ -63,6 +63,15 @@
  * - A read that fails moves nothing: a LoadError given the rows of the
  *   LoadingBlock it replaces keeps their height, and a LoadingBlock that
  *   times out keeps its own, so the line under either stays where it was.
+ * - A hero's h1 and lead are opaque on the entrance's first frame, in both
+ *   PageHero layouts, a document's header and an ErrorPage, so the first
+ *   paint is their LCP; the rest of the entrance still fades in. No entrance
+ *   or reveal blurs.
+ * - Under reduced motion every entrance and reveal starts at once: no
+ *   animation or transition keeps a delay, so nothing holds its first frame.
+ * - A hero's two actions stack on a phone, each the column's full width, in
+ *   DOM order; from 640px they sit side by side at their own widths. In both
+ *   PageHero layouts, a document's header and an ErrorPage.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -229,7 +238,11 @@ try {
     const { renderToStaticMarkup } = require('react-dom/server');
     const C = require(join(pkg, 'dist/components.js'));
     const Ch = require(join(pkg, 'dist/chrome.js'));
+    // Every page written here is loaded through visit (so its small-text and state checks run): the guard at the end.
+    const written = new Set();
+    const visited = new Set();
     const page = (name, body, script = '') => {
+        written.add(pathToFileURL(join(dir, `${name}.html`)).href);
         writeFileSync(
             join(dir, `${name}.html`),
             `<!doctype html><html data-oc-app="ochk"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="out.css"></head><body>${body}${script}</body></html>`
@@ -276,18 +289,24 @@ try {
     // Markdown tables as the docs write them: one that fits a phone, one that cannot.
     const { mdxComponents: M } = require(join(pkg, 'dist/mdx.js'));
     const mdTable = (head, rows) =>
-        h(M.table, null, h('thead', null, h('tr', null, ...head.map((x) => h(M.th ?? 'th', { key: x }, x)))), h('tbody', null, ...rows.map((r, i) => h('tr', { key: i }, ...r.map((c, j) => h(M.td ?? 'td', { key: j }, c))))));
+        h(M.table, null, h('thead', null, h('tr', null, ...head.map((x, i) => h(M.th ?? 'th', { key: i }, x)))), h('tbody', null, ...rows.map((r, i) => h('tr', { key: i }, ...r.map((c, j) => h(M.td ?? 'td', { key: j }, c))))));
     const tables = page(
         'tables',
         renderToStaticMarkup(
             h(
                 'div',
                 { className: 'p-4' },
-                h('div', { 'data-t': 'fits' }, mdTable(['Code', 'Status', 'What it means'], [
+                h('div', { 'data-t': 'fits' }, mdTable([h(M.code, null, 'code'), 'Status', 'What it means'], [
                     [h(M.code, null, 'oc_session_expired_or_revoked'), '401', 'The session ended. Sign in again.'],
                     [h(M.code, null, 'oc.vault.entitlement_missing'), '402', 'No plan covers this. See /pricing.'],
                     [h(M.code, null, 'https://ochk.io/api/auth/revocations'), '200', 'The feed of ended sessions.'],
                 ])),
+                // The package's other small parents, each holding inline code: a caption, a MonoLabel, a SectionBar.
+                h('div', { 'data-t': 'small' },
+                    h('table', null, h(M.caption ?? 'caption', { className: 'text-[0.75rem]' }, 'Codes, ', h(M.code, null, 'oc_*'))),
+                    h(C.MonoLabel, null, 'Status ', h(M.code, null, '401')),
+                    h(C.SectionBar, { start: h('span', null, 'Field ', h(M.code, null, 'did')), end: h(M.code, null, 'v1') })
+                ),
                 h('div', { 'data-t': 'wide' }, mdTable(['A', 'B', 'C', 'D', 'E', 'F'], [
                     ['first_column_value', 'second_column_value', 'third_column_value', 'fourth_column_value', 'fifth_column_value', 'sixth_column_value'].map((x) => h(M.code, null, x.replace(/_/g, ''))),
                 ]))
@@ -508,6 +527,37 @@ try {
             )
         )
     );
+    // States chosen in script as well as by a class variant: AppShell's section switcher and current page,
+    // a pill tab, a pressed chip. The rendered state check reads each in light and in dark.
+    const statesPage = page(
+        'states',
+        renderToStaticMarkup(
+            h(
+                Ch.AppShell,
+                {
+                    product: 'ochk.app',
+                    activeSection: 'keys',
+                    sections: [
+                        { id: 'keys', label: 'Keys', href: '/keys', groups: [{ items: [{ href: '/keys', label: 'Entries', active: true }, { href: '/keys/new', label: 'New' }] }] },
+                        { id: 'apps', label: 'Apps', href: '/apps', groups: [{ items: [{ href: '/apps', label: 'Apps' }] }] },
+                    ],
+                },
+                h(
+                    'div',
+                    { className: 'flex flex-col items-start gap-6 p-6' },
+                    h(P.Tabs, { defaultValue: 'a', look: 'pill' }, h(P.TabsList, null, h(P.TabsTrigger, { value: 'a' }, 'Entries'), h(P.TabsTrigger, { value: 'b' }, 'Keys'))),
+                    h(C.FilterChips, { label: 'Status', value: 'open', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }] })
+                )
+            )
+        )
+    );
+    // The docs rail: a row is the rail's width, and 44px tall to a thumb.
+    const docsRail = page(
+        'docs-rail',
+        renderToStaticMarkup(
+            h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Docs' }, { href: '/docs/me', label: 'me' }, { href: '/docs/stamp', label: 'Stamp' }] }], current: '/docs/me' }, h('h1', null, 'me'))
+        )
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -520,6 +570,40 @@ try {
                 h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
                 h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
                 h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
+            )
+        )
+    );
+    // Every hero shape, its entrance read on the first frame.
+    const heroes = page(
+        'heroes',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead of one sentence.' })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', eyebrow: 'Legal', title: 'Privacy policy', lead: 'What we keep, and for how long.' })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', eyebrow: 'Legal', title: 'Terms', lead: 'The terms.' })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null })),
+                h('div', { 'data-reveal': 'pending', 'data-t': 'reveal', style: { '--reveal-delay': '120ms' } }, 'Below the fold.')
+            )
+        )
+    );
+    // The same heroes with a CTA pair of different lengths (ochk.app's was 135 and 172px at 390): a Button,
+    // and a link styled as one through asChild, as ochk.io's protocol pages pass them.
+    const pair = () => [
+        h(P.Button, { key: 'a', size: 'lg', 'data-cta': '' }, 'Get an account'),
+        h(P.Button, { key: 'b', asChild: true, size: 'lg', variant: 'secondary', plus: true }, h('a', { href: '/how', 'data-cta': '' }, 'Read how it works first')),
+    ];
+    const heroActions = page(
+        'hero-actions',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', title: 'Privacy policy', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', title: 'Terms', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() }))
             )
         )
     );
@@ -752,6 +836,81 @@ try {
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
+    // No text under 12px anywhere these pages draw, in the smallest places a site puts it (a 13px table
+    // head, a 12px label): every visible element that holds text, as computed, at 390 and at 1440.
+    // An inline code in a table head was 11.375px (0.875em of 13px).
+    const small = new Map();
+    const visit = async (p, url) => {
+        visited.add(url);
+        await p.goto(url);
+        const found = await p.evaluate(() =>
+            [...document.querySelectorAll('body *')]
+                .filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && el.getClientRects().length > 0)
+                .map((el) => [el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : ''), parseFloat(getComputedStyle(el).fontSize), el.textContent.trim().slice(0, 24)])
+                .filter(([, size]) => size < 11.95)
+        );
+        for (const [el, size, text] of found) small.set(`${url.split('/').pop()}: ${el} ${size}px '${text}'`, true);
+        for (const s of await stateEdges(p)) weak.set(`${url.split('/').pop()}: ${s}`, true);
+    };
+    // A state drawn as a fill (the current page, a chosen segment, a pressed chip, a highlighted item), as
+    // rendered, however it was chosen (a class variant or a script's ternary): the fill reads 3:1 on the
+    // ground under it, or an edge (a border, an outline, a ring) reads 3:1 on both the fill and that ground.
+    const weak = new Map();
+    const stateEdges = (p) =>
+        p.evaluate(() => {
+            const cv = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+            const paint = (color, under) => {
+                cv.globalCompositeOperation = 'copy';
+                cv.fillStyle = under;
+                cv.fillRect(0, 0, 1, 1);
+                cv.globalCompositeOperation = 'source-over';
+                cv.fillStyle = '#000';
+                cv.fillStyle = color;
+                cv.fillRect(0, 0, 1, 1);
+                const [r, g, b] = cv.getImageData(0, 0, 1, 1).data;
+                return `rgb(${r}, ${g}, ${b})`;
+            };
+            const alpha = (color) => {
+                cv.globalCompositeOperation = 'copy';
+                cv.fillStyle = 'rgba(0,0,0,0)';
+                cv.fillStyle = color;
+                cv.fillRect(0, 0, 1, 1);
+                return cv.getImageData(0, 0, 1, 1).data[3];
+            };
+            const lum = (c) => {
+                const [r, g, b] = c.match(/\d+/g).slice(0, 3).map((v) => Number(v) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            };
+            const ratio = (a, b) => {
+                const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+                return (x + 0.05) / (y + 0.05);
+            };
+            const ground = (el) => {
+                for (let e = el.parentElement; e; e = e.parentElement) {
+                    const bg = getComputedStyle(e).backgroundColor;
+                    if (alpha(bg) > 0) return paint(bg, ground(e) ?? '#fff');
+                }
+                return null;
+            };
+            const out = [];
+            for (const el of document.querySelectorAll('[aria-current]:not([aria-current="false"]), [aria-selected="true"], [aria-pressed="true"], [data-state="active"]:not([role="tabpanel"]), [data-state="on"], [data-highlighted]')) {
+                if (el.getClientRects().length === 0) continue;
+                const cs = getComputedStyle(el);
+                if (alpha(cs.backgroundColor) === 0) continue;
+                const under = ground(el) ?? 'rgb(255, 255, 255)';
+                const fill = paint(cs.backgroundColor, under);
+                if (ratio(fill, under) >= 3) continue;
+                const edges = [];
+                for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+                    if (parseFloat(cs[`border${side}Width`]) >= 1 && cs[`border${side}Style`] !== 'none') edges.push(cs[`border${side}Color`]);
+                }
+                if (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 1) edges.push(cs.outlineColor);
+                for (const m of cs.boxShadow.matchAll(/(rgba?\([^)]*\)|oklab\([^)]*\)|color\([^)]*\))\s+(?:inset\s+)?0px\s+0px\s+0px\s+([\d.]+)px/g)) if (parseFloat(m[2]) >= 1) edges.push(m[1]);
+                const best = Math.max(0, ...edges.filter((e) => alpha(e) > 0).map((e) => Math.min(ratio(paint(e, fill), fill), ratio(paint(e, under), under))));
+                if (best < 3) out.push(`${el.tagName.toLowerCase()} '${el.textContent.trim().slice(0, 16)}' fill ${ratio(fill, under).toFixed(2)}:1, edge ${best.toFixed(2)}:1`);
+            }
+            return out;
+        });
     try {
         for (const [width, height] of [
             [390, 844],
@@ -760,7 +919,7 @@ try {
             // A phone is a touch screen: the 390 pass has a coarse pointer, as the targets it checks do.
             const p = await browser.newPage({ viewport: { width, height }, isMobile: width < 768, hasTouch: width < 768 });
             // Markdown tables: the one that fits does not scroll and no cell spills; the wide one scrolls.
-            await p.goto(tables);
+            await visit(p, tables);
             const tb = await p.evaluate(() =>
                 Object.fromEntries(
                     [...document.querySelectorAll('[data-t]')].map((w) => {
@@ -774,7 +933,7 @@ try {
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
             // A tool site's phone menu holds Docs, a 44px target, beside About.
             if (width < 768) {
-                await p.goto(toolMenu);
+                await visit(p, toolMenu);
                 await p.click('header button[aria-label="Open menu"]');
                 await p.waitForSelector('[role="dialog"]');
                 const docs = await p.evaluate(() => {
@@ -784,7 +943,7 @@ try {
                 check(docs?.href === 'https://ochk.io/docs/stamp' && docs.h >= 44, `[${width}] the tool site's phone menu has no 44px Docs link (${JSON.stringify(docs)})`);
             }
             // ListRow lines="all": wrapped in full, its picture and end level with the title.
-            await p.goto(wrapRows);
+            await visit(p, wrapRows);
             const wr = await p.evaluate(() => {
                 const [all, one] = [...document.querySelectorAll('li')];
                 const row = all.querySelector('button').getBoundingClientRect();
@@ -806,7 +965,7 @@ try {
             check(Math.abs(wr.endOff) <= 3 && wr.picOff <= 6 && wr.picOff >= -12, `[${width}] ListRow lines="all": the end is ${wr.endOff.toFixed(1)}px off the title's line, the picture ${wr.picOff.toFixed(1)}px`);
             check(wr.oneCut, `[${width}] ListRow: the default no longer cuts the line to one`);
             // 1.9.0 parts.
-            await p.goto(parts190);
+            await visit(p, parts190);
             const b190 = await p.evaluate((phone) => {
                 const lands = (el, x, y) => el.contains(document.elementFromPoint(x, y));
                 const out = {};
@@ -843,14 +1002,14 @@ try {
             check(b190.line < 32 && b190.chipTarget, `[${width}] HashChip compact: the line is ${Math.round(b190.line)}px, or its copy is not a 44px target`);
             check(b190.tabsIn && b190.over <= 0, `[${width}] TabsList wrap: a tab sits off the screen (overflow ${b190.over})`);
             if (width >= 1024) {
-                await p.goto(productShell);
+                await visit(p, productShell);
                 const side = await p.evaluate(() => {
                     const aside = document.querySelector('aside');
                     const home = aside.querySelector('a[href="/"]');
                     return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
                 });
                 check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);
-                await p.goto(deskShell);
+                await visit(p, deskShell);
                 const desk = await p.evaluate(async () => {
                     const box = (el) => el.getBoundingClientRect();
                     const aside = document.querySelector('aside');
@@ -881,7 +1040,7 @@ try {
                 );
             }
             // The family footer: a phone gets folded groups in 600px; a desk the columns.
-            await p.goto(footer);
+            await visit(p, footer);
             const ft = await p.evaluate(() => {
                 const f = document.querySelector('footer');
                 const groups = [...f.querySelectorAll('details')];
@@ -913,7 +1072,7 @@ try {
                 check(ft.groupsShown === 0 && ft.deskShown >= ft.phoneLinks.length, `[${width}] a desk sees ${ft.groupsShown} folded groups and ${ft.deskShown} of ${ft.phoneLinks.length} links`);
             }
             // ListRow slots: the line over the title, two under it, a text action beside them or, on a phone, under them.
-            await p.goto(rowSlots);
+            await visit(p, rowSlots);
             const rs = await p.evaluate(() => {
                 const box = (s) => document.querySelector(`[data-s="${s}"]`)?.getBoundingClientRect() ?? null;
                 const [eyebrow, title, desc, detail, action] = ['eyebrow', 'title', 'desc', 'detail', 'action'].map(box);
@@ -943,7 +1102,7 @@ try {
             if (width < 640) check(rs.under && Math.abs(rs.indent) <= 1 && Math.abs(rs.indent2) <= 1, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
             else check(!rs.under, `[${width}] ListRow action: on a desk it falls under the text (${JSON.stringify(rs)})`);
             // A wide end beside the text on a desk; on a phone under it, lined up with it, the text kept whole.
-            await p.goto(rowWide);
+            await visit(p, rowWide);
             const rw = await p.evaluate(() =>
                 ['a', 'b'].map((k) => {
                     const t = document.querySelector(`[data-s="t-${k}"]`);
@@ -959,7 +1118,7 @@ try {
                 else check(!r.under, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end left the text's side on a desk (${JSON.stringify(r)})`);
             }
             // ListRow lg: the value at 1.125rem, the before's air, hairlines inset to the text.
-            await p.goto(lgRows);
+            await visit(p, lgRows);
             const lgm = await p.evaluate(() => {
                 const ulEl = document.querySelector('ul');
                 // From the list's inner edge, past its 1px border.
@@ -985,7 +1144,7 @@ try {
             if (width < 640) check(lgm.aUnder && lgm.gap >= 16, `[${width}] ListRow lg: the action is not under the text with room (${JSON.stringify(lgm)})`);
             else check(!lgm.aUnder && lgm.centred <= 2, `[${width}] ListRow lg: the action is not beside the text, centred on it (${JSON.stringify(lgm)})`);
             // Card flush: the list spans the card, its rows lined up with the card's text; last, it takes the card's foot.
-            await p.goto(flushCards);
+            await visit(p, flushCards);
             const fl = await p.evaluate(() => {
                 const card = (k) => document.querySelector(`[data-f="${k}"]`);
                 const mid = card('mid').getBoundingClientRect();
@@ -1005,7 +1164,7 @@ try {
             check(fl.edges[0] === 1 && fl.edges[1] === 1 && fl.sides === '0px', `[${width}] Card flush: the list sits ${fl.edges.join('/')}px inside the card's edges with ${fl.sides} side borders, a card in a card`);
             check(fl.rowAt === 0 && fl.foot === 1, `[${width}] Card flush: rows start ${fl.rowAt}px off the card's text, and a last list stops ${fl.foot}px above its foot`);
             // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
-            await p.goto(sdk);
+            await visit(p, sdk);
             const sd = await p.evaluate(() => ({
                 over: document.documentElement.scrollWidth - innerWidth,
                 wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
@@ -1076,7 +1235,7 @@ try {
                         );
             }
             // SignInFrame holds still while its ceremony mounts: the title stays put and the ink column's art does not re-centre.
-            await p.goto(signinGrow);
+            await visit(p, signinGrow);
             const place = () =>
                 p.evaluate(() => {
                     const aside = document.querySelector('main > aside');
@@ -1093,7 +1252,7 @@ try {
                     `[${width}] SignInFrame: the art moved ${Math.round((after.art ?? 0) - (before.art ?? 0))}px and the ink column is ${Math.round(after.aside)}px tall in a ${height}px window`
                 );
             // stackBelow="sm": on a phone a long-token title takes the row and the badge goes under it; from sm, as without it.
-            await p.goto(stacked);
+            await visit(p, stacked);
             const st = await p.evaluate(() => {
                 const r = (k) => document.querySelector(`[data-st="${k}"]`).getBoundingClientRect();
                 const title = document.querySelector('[data-st="title"]');
@@ -1112,7 +1271,7 @@ try {
             if (width < 640) check(st.lines <= 2 && st.colW >= st.rowW - 1 && st.under && st.aligned, `[${width}] ListRow stackBelow="sm": the long title keeps ${st.colW}px of ${st.rowW} and wraps to ${st.lines} lines, the badge ${st.under ? 'under' : 'beside'} it`);
             else check(st.same && !st.under, `[${width}] ListRow stackBelow="sm": a desk's row changed (${JSON.stringify(st)})`);
             // A product's footer with seven groups still fits a phone, every link kept.
-            await p.goto(productFooter);
+            await visit(p, productFooter);
             const pf = await p.evaluate(async () => {
                 await document.fonts.ready;
                 const f = document.querySelector('footer');
@@ -1131,7 +1290,7 @@ try {
             }
             // SectionTitle: one button beside its title; three wrap under it, inside the column.
             if (width < 640) {
-                await p.goto(titles);
+                await visit(p, titles);
                 const st = await p.evaluate(() =>
                     Object.fromEntries(
                         [...document.querySelectorAll('[data-t]')].map((el) => {
@@ -1150,7 +1309,7 @@ try {
             {
                 const ctx = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 768, isMobile: width < 768 });
                 const t = await ctx.newPage();
-                await t.goto(icons);
+                await visit(t, icons);
                 const reach = await t.evaluate(() =>
                     ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', '[data-t="sm-b"]', '[data-t="sm-plus"]', '[data-t="icon-sm-b"]', '[data-t="icon-b"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
                         const el = document.querySelector(sel);
@@ -1206,7 +1365,7 @@ try {
                 if (width < 768) check(alone.reach, `[${width} touch] TextLink standalone: link ${alone.w}×${alone.h}px, 44px target ${alone.reach}`);
                 else check(!alone.reach, `[${width} mouse] TextLink standalone: its target grew past the text`);
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
-                await t.goto(fields);
+                await visit(t, fields);
                 const fh = await t.$$eval('[data-f]', (els) => Object.fromEntries(els.map((el) => [el.dataset.f, el.getBoundingClientRect().height])));
                 for (const [k, hgt] of Object.entries(fh)) {
                     const want = width < 768 || k === 'md' ? 44 : 36;
@@ -1217,7 +1376,7 @@ try {
             }
             // Bare borders take the hairline token, in both modes; a colour utility still wins.
             for (const dark of [false, true]) {
-                await p.goto(borders);
+                await visit(p, borders);
                 const seen = await p.evaluate((dark) => {
                     document.documentElement.classList.toggle('dark', dark);
                     const probe = document.createElement('i');
@@ -1233,7 +1392,7 @@ try {
                 check(seen.utility === seen.fg, `[${width} ${mode}] border-foreground lost to the base rule (${seen.utility})`);
             }
             // Panel header: the actions on the first row, at the right, beside two lines of description.
-            await p.goto(header);
+            await visit(p, header);
             const rows = await p.$$eval('section', (secs) =>
                 secs.map((s) => {
                     const title = s.querySelector('h3').getBoundingClientRect();
@@ -1248,7 +1407,7 @@ try {
                 check(r.btnTop < r.titleTop + 12 && r.headRight - r.btnRight < 2, `[${width}] panel ${i + 1}: the actions wrapped under the text (button top ${Math.round(r.btnTop)}, title top ${Math.round(r.titleTop)})`);
             }
             // Expanded: the body scrolls inside itself, above the source.
-            await p.goto(expanded);
+            await visit(p, expanded);
             await p.click('button[aria-label="Open full screen"]');
             await p.waitForSelector('[role="dialog"] [data-tall]');
             const ex = await p.evaluate(() => {
@@ -1266,17 +1425,17 @@ try {
                 ['ToolShell app', tool],
                 ['AppShell rail', rail],
             ]) {
-                await p.goto(url);
+                await visit(p, url);
                 const doc = await p.evaluate(() => ({ scroll: document.documentElement.scrollHeight, view: innerHeight }));
                 check(doc.scroll <= doc.view, `[${width}] ${name}: sr-only text in the page's scroller stretches the document to ${doc.scroll}px in a ${doc.view}px window`);
             }
-            await p.goto(wide);
+            await visit(p, wide);
             const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
             // One column: every title at the gutter of one centred 72rem column.
             const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
             for (const [name, url] of columns) {
-                await p.goto(url);
+                await visit(p, url);
                 const box = await p.evaluate(() => ({
                     left: document.querySelector('main h1').getBoundingClientRect().left,
                     width: document.querySelector('main header')?.getBoundingClientRect().width,
@@ -1289,11 +1448,11 @@ try {
                 if (name === 'narrow') check(box.width <= 768.5, `[${width}] narrow: the page runs ${Math.round(box.width)}px wide, past 48rem`);
             }
             // A menu's items and a pane's rows: 44px on a phone; the row's time clear of its actions.
-            await p.goto(menu);
+            await visit(p, menu);
             await p.waitForSelector('[role="menuitem"]');
             const items = await p.$$eval('[role="menuitem"]', (els) => els.map((e) => e.getBoundingClientRect().height));
             check(items.length === 2 && items.every((x) => (width < 768 ? x >= 44 : x <= 40.5)), `[${width}] menu items are ${items.map(Math.round).join('/')}px tall`);
-            await p.goto(paneRows);
+            await visit(p, paneRows);
             const rowBoxes = await p.$$eval('li', (lis) =>
                 lis.map((li) => {
                     const row = li.firstElementChild.getBoundingClientRect();
@@ -1309,7 +1468,7 @@ try {
                 if (r.pic) check(r.pic[0] === 44 && r.pic[1] === 44, `[${width}] pane row ${i + 1}: the avatar is ${r.pic.join('×')}, not 44×44`);
             }
             // Targets: a press anywhere in the 44px around the control's middle lands on it.
-            await p.goto(targets);
+            await visit(p, targets);
             const reach = await p.evaluate(() => {
                 const probe = (el) => {
                     el.scrollIntoView({ block: 'center' });
@@ -1343,7 +1502,7 @@ try {
                 window.__shift = 0;
                 new PerformanceObserver((l) => l.getEntries().forEach((e) => (window.__shift += e.value))).observe({ type: 'layout-shift', buffered: true });
             });
-            await q.goto(loadErr);
+            await visit(q, loadErr);
             await q.waitForSelector('[data-case="fails"] [role="status"]');
             const under = () => q.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-case]')].map((c) => [c.dataset.case, c.querySelector('[data-below]').getBoundingClientRect().top - c.getBoundingClientRect().top])));
             const held = await under();
@@ -1358,7 +1517,7 @@ try {
             // The header CTA pending, then resolved: no box moves, and the pending one names nothing and takes no focus.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
-                await c.goto(ctaSwap);
+                await visit(c, ctaSwap);
                 const boxes = await c.evaluate(() =>
                     Object.fromEntries(
                         ['pending', 'resolved'].map((k) => {
@@ -1395,7 +1554,7 @@ try {
             if (width < 768) {
                 for (const w of [390, 360]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
-                    await c.goto(narrow);
+                    await visit(c, narrow);
                     await c.evaluate(() => document.fonts.ready);
                     const rows = await c.evaluate(() =>
                         [...document.querySelectorAll('[data-hdr]')].map((d) => {
@@ -1421,7 +1580,7 @@ try {
             if (width === 1440) {
                 for (const w of [768, 1024, 1280, 1440]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 900 } });
-                    await c.goto(productFooter);
+                    await visit(c, productFooter);
                     await c.evaluate(() => document.fonts.ready);
                     const tops = await c.evaluate(() => [...document.querySelectorAll('footer [class~="md:flex"] > .oca-label')].map((l) => Math.round(l.getBoundingClientRect().top)));
                     const rows = Object.values(tops.reduce((m, t) => ({ ...m, [t]: (m[t] ?? 0) + 1 }), {}));
@@ -1434,7 +1593,7 @@ try {
             // The page's bands on the header's frame, and the H1 the largest text read.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(framedPage);
+                await visit(c, framedPage);
                 await c.evaluate(() => document.fonts.ready);
                 const f = await c.evaluate(() => {
                     const left = (el) => Math.round(el.getBoundingClientRect().left);
@@ -1462,10 +1621,90 @@ try {
                 check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
                 await c.close();
             }
+            // The entrance on its first frame: every animation paused at 0.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await visit(c, heroes);
+                const e = await c.evaluate(() => {
+                    for (const a of document.getAnimations()) {
+                        a.pause();
+                        a.currentTime = 0;
+                    }
+                    const read = (el) => {
+                        const cs = getComputedStyle(el);
+                        return { opacity: cs.opacity, filter: cs.filter, transform: cs.transform, animation: cs.animationName };
+                    };
+                    return {
+                        heroes: Object.fromEntries(
+                            ['split', 's10', 'document', 'error'].map((t) => {
+                                const s = document.querySelector(`[data-t="${t}"]`);
+                                return [t, { h1: read(s.querySelector('h1')), lead: read(s.querySelector('.oca-lead')), eyebrow: read(s.querySelector('h1').parentElement.querySelector('.oca-enter')) }];
+                            })
+                        ),
+                        blurred: [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).filter.includes('blur')).map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`),
+                        reveal: read(document.querySelector('[data-t="reveal"]')),
+                    };
+                });
+                for (const [t, x] of Object.entries(e.heroes)) {
+                    // The h1 still rises; a lead rises with it, or (a document's) has no entrance.
+                    check(x.h1.opacity === '1' && x.h1.animation === 'oca-enter-lift' && x.h1.transform !== 'none', `[${width}] ${t} hero's h1 is not opaque and rising on the entrance's first frame: ${JSON.stringify(x.h1)}`);
+                    check(x.lead.opacity === '1' && ['oca-enter-lift', 'none'].includes(x.lead.animation), `[${width}] ${t} hero's lead is not opaque on the entrance's first frame: ${JSON.stringify(x.lead)}`);
+                    check(x.eyebrow.opacity === '0', `[${width}] ${t} hero's eyebrow no longer fades in (opacity ${x.eyebrow.opacity} on the first frame)`);
+                }
+                check(e.blurred.length === 0, `[${width}] an entrance blurs on its first frame: ${e.blurred.join(', ')}`);
+                check(e.reveal.opacity === '0' && !e.reveal.filter.includes('blur'), `[${width}] a pending Reveal is blurred or not hidden: ${JSON.stringify(e.reveal)}`);
+                await c.close();
+            }
+            // Reduced motion: no animation or transition waits out a delay. Without it the entrances keep theirs.
+            {
+                const delays = async (reduce) => {
+                    const c = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: reduce ? 'reduce' : 'no-preference' });
+                    await visit(c, heroes);
+                    const d = await c.evaluate(() => {
+                        const all = [...document.querySelectorAll('*')];
+                        return {
+                            animated: all.filter((el) => getComputedStyle(el).animationName !== 'none').map((el) => [`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)}`, getComputedStyle(el).animationDelay]),
+                            reveal: getComputedStyle(document.querySelector('[data-t="reveal"]')).transitionDelay,
+                        };
+                    });
+                    await c.close();
+                    return d;
+                };
+                const [still, moving] = [await delays(true), await delays(false)];
+                const held = still.animated.filter(([, delay]) => delay !== '0s');
+                check(still.animated.length > 0 && held.length === 0, `[${width}] under reduced motion an entrance still waits out its delay: ${JSON.stringify(held)}`);
+                check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
+                check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
+            }
+            // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await visit(c, heroActions);
+                await c.evaluate(() => document.fonts.ready);
+                const a = await c.evaluate(() =>
+                    Object.fromEntries(
+                        ['split', 's10', 'document', 'error'].map((t) => {
+                            const [x, y] = [...document.querySelectorAll(`[data-t="${t}"] [data-cta]`)].map((b) => b.getBoundingClientRect());
+                            const col = document.querySelector(`[data-t="${t}"] [data-cta]`).parentElement.parentElement;
+                            const cs = getComputedStyle(col);
+                            const inner = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                            return [t, { widths: [Math.round(x.width), Math.round(y.width)], column: Math.round(inner), stacked: y.top >= x.bottom, level: Math.abs(x.top - y.top) < 1, order: x.top < y.top || (x.top === y.top && x.left < y.left) }];
+                        })
+                    )
+                );
+                for (const [t, m] of Object.entries(a)) {
+                    if (width < 640) {
+                        check(m.stacked && m.order && m.widths.every((w) => Math.abs(w - m.column) <= 1), `[${width}] ${t} hero's two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
+                    } else {
+                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${width}] ${t} hero's two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
+                    }
+                }
+                await c.close();
+            }
             // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(statRows);
+                await visit(c, statRows);
                 await c.evaluate(() => document.fonts.ready);
                 const st = await c.evaluate(() =>
                     Object.fromEntries(
@@ -1491,7 +1730,7 @@ try {
             // on the left, both on the header's frame; on a phone the mark under the lead.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(s10Page);
+                await visit(c, s10Page);
                 await c.evaluate(() => document.fonts.ready);
                 const g = await c.evaluate(() => {
                     const box = (el) => el.getBoundingClientRect();
@@ -1521,7 +1760,7 @@ try {
             // column's links (44px), and the legal row's inline links (24px).
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(chromeTargets);
+                await visit(c, chromeTargets);
                 const t = await c.evaluate(() => {
                     const hgt = (el) => Math.round(el.getBoundingClientRect().height);
                     const shown = (el) => el.getBoundingClientRect().width > 0;
@@ -1535,6 +1774,19 @@ try {
                 });
                 const short = (list, min) => list.filter(([, px]) => px < min);
                 check(short(t.header, 44).length === 0, `[${width}] header controls under 44px: ${JSON.stringify(short(t.header, 44))}`);
+                // To a thumb a target is 44px in both axes: a short word ('Terms') was 41px wide at 44 tall.
+                if (width < 768) {
+                    const boxes = await c.evaluate(() =>
+                        [...document.querySelectorAll('header a, header button, footer a, footer button, footer summary')]
+                            .filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden')
+                            .map((el) => {
+                                const r = el.getBoundingClientRect();
+                                return [el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), Math.round(r.width), Math.round(r.height)];
+                            })
+                    );
+                    const small = boxes.filter(([, w, hh]) => w < 44 || hh < 44);
+                    check(boxes.length >= 8 && small.length === 0, `[${width} touch] chrome targets under 44x44: ${small.length} of ${boxes.length}: ${JSON.stringify(small.slice(0, 6))}`);
+                }
                 if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
                 check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
                 await c.close();
@@ -1544,15 +1796,38 @@ try {
             if (width === 1440) {
                 for (const touch of [true, false]) {
                     const c = await browser.newPage({ viewport: { width: 1024, height: 900 }, isMobile: touch, hasTouch: touch });
-                    await c.goto(footRows);
+                    await visit(c, footRows);
                     const r = await c.evaluate(() => ({
                         coarse: matchMedia('(pointer: coarse)').matches,
-                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height)]),
+                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height), Math.round(a.getBoundingClientRect().width)]),
                     }));
                     const min = touch ? 44 : 24;
-                    const short = r.links.filter(([, px]) => px < min);
+                    // A thumb's target is 44 wide too; a mouse's 24 is the height of a line of text.
+                    const short = r.links.filter(([, px, w]) => px < min || (touch && w < 44));
                     check(r.coarse === touch, `[1024 ${touch ? 'touch' : 'mouse'}] the page's pointer reads ${r.coarse ? 'coarse' : 'fine'}`);
                     check(r.links.length >= 10 && short.length === 0, `[1024 ${touch ? 'touch' : 'mouse'}] inline links and chips: ${short.length} of ${r.links.length} under ${min}px: ${JSON.stringify(short.slice(0, 4))}`);
+                    await c.close();
+                }
+                {
+                    const c = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+                    await visit(c, statesPage);
+                    const seen = await c.evaluate(() => document.querySelectorAll('[aria-current]:not([aria-current="false"]), [aria-pressed="true"], [data-state="active"]:not([role="tabpanel"])').length);
+                    // Read dark at rest: a transition caught midway reads a colour of neither mode.
+                    await c.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+                    await c.evaluate(() => document.documentElement.classList.add('dark'));
+                    const dark = await stateEdges(c);
+                    for (const d of dark) weak.set(`states.html dark: ${d}`, true);
+                    check(seen >= 4, `the states page draws ${seen} chosen states, not the switcher, the current page, a pill tab and a chip`);
+                    await c.close();
+                }
+                {
+                    const c = await browser.newPage({ viewport: { width: 1280, height: 900 }, isMobile: true, hasTouch: true });
+                    await visit(c, docsRail);
+                    const rows = await c.evaluate(() =>
+                        [...document.querySelectorAll('nav[aria-label="Docs"] a')].filter((a) => a.getClientRects().length > 0).map((a) => [a.textContent.trim(), Math.round(a.getBoundingClientRect().width), Math.round(a.getBoundingClientRect().height)])
+                    );
+                    const small = rows.filter(([, w, hh]) => w < 44 || hh < 44);
+                    check(rows.length >= 3 && small.length === 0, `[1280 touch] docs rail rows under 44x44: ${small.length} of ${rows.length}: ${JSON.stringify(small)}`);
                     await c.close();
                 }
             }
@@ -1560,7 +1835,7 @@ try {
             // the Switch, the Checkbox's mark and a pill tab keep their drawn size.
             if (width < 768) {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
-                await c.goto(signedInTargets);
+                await visit(c, signedInTargets);
                 await c.evaluate(() => document.fonts.ready);
                 const got = await c.evaluate(() =>
                     [
@@ -1593,7 +1868,7 @@ try {
             // on a machine with no Arial, Liberation or Arimo: the next fallback (Noto here) must fit too.
             for (const before of [false, true]) {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
-                await c.goto(wordmark);
+                await visit(c, wordmark);
                 await c.evaluate(() => document.fonts.ready);
                 const m = await c.evaluate(async (before) => {
                     const word = document.querySelector('[data-oca-wordmark]');
@@ -1661,6 +1936,10 @@ try {
                 await c.close();
             }
         }
+        check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
+        check(weak.size === 0, `states drawn as a fill with no edge at 3:1: ${[...weak.keys()].slice(0, 8).join('; ')}`);
+        const unvisited = [...written].filter((u) => !visited.has(u));
+        check(unvisited.length === 0, `pages written but never loaded through visit: ${unvisited.map((u) => u.split('/').pop()).join(', ')}`);
     } finally {
         await browser.close();
     }
@@ -1672,4 +1951,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions`);
