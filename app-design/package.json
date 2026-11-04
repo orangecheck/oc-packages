@@ -100,6 +100,11 @@
       "import": "./dist/og.mjs",
       "require": "./dist/og.js"
     },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.mjs",
+      "require": "./dist/motion.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*"
   },
@@ -111,7 +116,7 @@
   "scripts": {
     "build": "node scripts/gen-palette.mjs && rm -rf dist && tsup && rm -rf dist/m && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-next.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-idle-motion.mjs && node scripts/check-budget.mjs && node scripts/check-next.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit && tsc -p tsconfig.stories.json",
     "clean": "rm -rf dist"
