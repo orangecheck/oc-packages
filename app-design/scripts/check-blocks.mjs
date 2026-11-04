@@ -312,6 +312,16 @@ try {
                 return [y - 21, y + 21].every((yy) => root.contains(document.elementFromPoint(x, yy)));
             });
             check(reach, 'Slider: a press within 22px of the thumb misses it');
+            // The band a press lands in is a thumb tall along the whole track, not only around the thumb.
+            const band = await p.evaluate(() => {
+                const root = document.querySelector('[role="slider"]').closest('[data-slider]');
+                const t = document.querySelector('[role="slider"]').getBoundingClientRect();
+                const track = root.querySelector('[data-slider-fill]').parentElement.getBoundingClientRect();
+                const x = Math.abs(track.left + 4 - (t.left + t.width / 2)) > 40 ? track.left + 4 : track.right - 4;
+                const y = track.top + track.height / 2;
+                return [y - 21, y + 21].every((yy) => root.contains(document.elementFromPoint(x, yy)));
+            });
+            check(band, 'Slider: a press 21px above or below the track, away from the thumb, misses the slider');
             await close();
         }
         // Ruling 11's defaults: the real person holds one coin of 250,000 sats for 180 days, and the badge reads
@@ -378,6 +388,8 @@ try {
                             ground: img.dataset.ground,
                             natural: file.naturalWidth,
                             aspect: file.naturalWidth / file.naturalHeight,
+                            // The 2:1 box the element holds before any picture decodes (width and height map to aspect-ratio).
+                            reserved: ((r) => (r ? +r[1] / +r[2] : 0))(getComputedStyle(img).aspectRatio.match(/([\d.]+)\s*\/\s*([\d.]+)/)),
                             candidate: set.find(([u]) => u === img.currentSrc)?.[1] ?? null,
                             widest: Math.max(...set.map(([, w]) => w)),
                             w: Math.round(r.width * 10) / 10,
@@ -393,7 +405,7 @@ try {
                 const off = marks.flatMap((m, i) => {
                     const [kind, w, ground] = want[i] ?? [];
                     const ok =
-                        m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 2 &&
+                        m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 2 && m.reserved === 2 &&
                         (m.natural >= w * dpr || m.natural === m.widest) && Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - w / 2) <= 0.5 && m.filled > 0.1 && m.colours >= 2;
                     return ok ? [] : [JSON.stringify(m)];
                 });
