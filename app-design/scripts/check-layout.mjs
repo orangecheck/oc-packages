@@ -988,7 +988,9 @@ try {
                         const full = stack(name);
                         return { font, name, text, tol, full, without: full.slice(full.indexOf(',') + 1).trim() };
                     });
-                    await Promise.all(cases.flatMap((c) => [document.fonts.load(`${c.font} ${c.full}`, c.text), document.fonts.load(`${c.font} ${c.without}`, c.text)]));
+                    // allSettled: a fallback face whose local() font this machine lacks (Noto, DejaVu or
+                    // Ubuntu on a CI runner) rejects its load, which is the browser skipping it, not a fault.
+                    await Promise.allSettled(cases.flatMap((c) => [document.fonts.load(`${c.font} ${c.full}`, c.text), document.fonts.load(`${c.font} ${c.without}`, c.text)]));
                     const mono = probe('400 16px', 'monospace', prose).w;
                     // Does this machine have Arial or one of its metric twins at all?
                     const twin = ['Arial', "'Liberation Sans'", 'Arimo'].some((f) => Math.abs(probe('400 16px', `${f}, monospace`, prose).w - mono) >= 0.5);
@@ -1403,16 +1405,21 @@ try {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
                 await c.goto(wordmark);
                 await c.evaluate(() => document.fonts.ready);
-                const m = await c.evaluate((before) => {
+                const m = await c.evaluate(async (before) => {
                     const word = document.querySelector('[data-oca-wordmark]');
                     // Before Inter loads on a machine with no Arial, Liberation or Arimo: the display
                     // stack as the page sets it, less Inter and less the Arial-sourced fallback.
+                    let faces = [];
                     if (before) {
                         const stack = getComputedStyle(document.documentElement).getPropertyValue('--oc-font-display');
                         word.style.fontFamily = stack
                             .split(',')
                             .filter((f) => !["'OCA Inter'", "'OCA Inter Display Fallback'"].includes(f.trim()))
                             .join(',');
+                        // A face whose local() font this machine lacks rejects; the rest settle loaded.
+                        const ws = getComputedStyle(word);
+                        await document.fonts.load(`${ws.fontWeight} ${ws.fontSize} ${ws.fontFamily}`, word.textContent).catch(() => null);
+                        faces = [...document.fonts].filter((f) => /Display Fallback \w/.test(f.family) && f.status === 'loaded').map((f) => f.family.replace(/["']/g, ''));
                     }
                     const clip = word.parentElement.getBoundingClientRect();
                     const frameEl = word.parentElement.parentElement;
@@ -1438,8 +1445,15 @@ try {
                         };
                     });
                     const gaps = letters.slice(1).map((l, i) => l.box.left - letters[i].box.right);
-                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join(''), font: getComputedStyle(word).fontFamily.split(',')[0] };
+                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join(''), font: getComputedStyle(word).fontFamily.split(',')[0], faces };
                 }, before);
+                // With none of the Noto, DejaVu or Ubuntu faces here (a CI runner), the word falls to an
+                // unadjusted system face, which says nothing about the faces this check is for.
+                if (before && m.faces.length === 0) {
+                    console.log(`  · layout: [${width}] no Noto, DejaVu or Ubuntu on this machine; the wordmark's non-Arial fallbacks are not measured here`);
+                    await c.close();
+                    continue;
+                }
                 const sorted = [...m.gaps].sort((a, b) => a - b);
                 const median = sorted[Math.floor(sorted.length / 2)];
                 // At its natural spacing a letter's box meets the next (the tracking is inside the box),
