@@ -56,7 +56,8 @@ const CEILING = {
     './session': 61_000,
     './acknowledgement': 11_000,
     './vitest': 500,
-    // 191.7 KB on 2026-11-04 once og's baked dither art, crisp 2x bakes included, is inlined for Satori (lead).
+    // 191.7 KB on 2026-11-04: og's JetBrains Mono 400 for the card labels (27.0 KB) and its eleven baked dither PNGs,
+    // 2x included (6.0 KB), inlined for Satori (lead; measured by review-lows).
     './og': 226_000,
     './fonts': 500,
     './motion': 49_500,
