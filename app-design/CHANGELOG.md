@@ -489,6 +489,28 @@ after, starting with what to grep for.
   `--muted` must stay apart from every surface it is drawn on. On 2.0.0-pre at
   f642df4f it found 142 failures.
 
+### Follow-up (design2-targets-2)
+
+- More targets reach 44px to a thumb, in both axes. A fine pointer still
+  gets them at their drawn size.
+  - The underline tabs (`Tabs look="line"`) take `min-w-11` under a coarse
+    pointer, with the label centred. On btc's desk "DCA" was 32×44 and
+    "Paper" 41×44.
+  - `SignInFrame`'s lockup and "Back to home" reach 44px through a `::before`
+    (the `HIT_LINK` that `TextLink standalone` uses), so the header keeps its
+    height. They were 27 and 23px tall.
+  - `AppShell`'s sidebar lockup gets the same treatment. The sidebar's page
+    rows and section switcher are 44px tall under a coarse pointer, and the
+    rail's icons are 44 square. On a tablet they were 24, 36, 32 and 40.
+  - check-layout loads each shape on a touch screen and asks that every target
+    is hit from 21.5px out in each direction. That is 390 and 1024 for the tabs
+    and the sign-in header, 1024 for the sidebar and 768 for the rail. It also
+    checks that a mouse gets the drawn sizes. On main 15 targets failed: four
+    at both 390 and 1024, all five in the sidebar and both rail icons.
+- The rail's current page is drawn in ink, as the sidebar's row is. It was
+  card on the page with a hairline, at 1.07:1 and 1.28:1. check-layout's state
+  rule found it once the rail page was loaded.
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink
