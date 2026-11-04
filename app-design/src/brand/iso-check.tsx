@@ -66,7 +66,8 @@ export function IsoCheck({ size = 360, settle = false, shadow = true, tilt = fal
                 className="relative z-10 transition-transform duration-300 ease-out"
                 style={tilt ? { transform: 'rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))', transformStyle: 'preserve-3d' } : undefined}
             >
-                <Mark size={size} title={title} className="block" />
+                {/* In a box capped by max-w-full (Closing's), the mark scales with it rather than spill past it. */}
+                <Mark size={size} title={title} className="block h-auto max-w-full" />
             </div>
             {shadow ? (
                 <div

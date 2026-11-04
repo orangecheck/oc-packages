@@ -211,7 +211,8 @@ export function DocLayout({
                     href={`#${t.id}`}
                     aria-current={active === t.id ? 'location' : undefined}
                     className={cn(
-                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors',
+                        // 31px to a mouse; 44 to a thumb, the label centred in it.
+                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
                         active === t.id
                             ? 'border-foreground text-foreground'
                             : 'border-border text-muted-foreground hover:text-foreground'

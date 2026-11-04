@@ -176,7 +176,13 @@ export interface SourceNoteProps {
 /** "Where this number comes from": the source named and linked, one press away (or always in view). */
 export function SourceNote({ source, href, detail, updated, variant = 'popover', className }: SourceNoteProps) {
     const name = href ? (
-        <a href={href} className="text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground" rel="noreferrer" target="_blank">
+        // Alone on its line in the popover, 44px to a thumb as the trigger is; in the line variant it is in a sentence.
+        <a
+            href={href}
+            className={cn('text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', variant === 'popover' && HIT_LINK)}
+            rel="noreferrer"
+            target="_blank"
+        >
             {source}
             <span className="sr-only"> (opens in a new tab)</span>
         </a>

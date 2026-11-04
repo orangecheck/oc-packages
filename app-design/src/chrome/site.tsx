@@ -281,7 +281,8 @@ export function SiteHeader({
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
-                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1">
+                    {/* It may narrow to its mark on a crowded phone bar, never under 44 to a thumb. */}
+                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>

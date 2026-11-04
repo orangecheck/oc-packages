@@ -319,7 +319,8 @@ export function DropZone({
                             </p>
                             {hint ? <p className="text-[0.875rem] text-muted-foreground">{hint}</p> : null}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                        {/* Wrapped, the two buttons' 44px targets stand clear of each other to a thumb. */}
+                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2 pointer-coarse:gap-y-3">
                             <Button size="sm" variant="secondary" disabled={disabled} onClick={() => input.current?.click()}>
                                 Choose a file
                             </Button>

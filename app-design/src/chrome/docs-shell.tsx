@@ -86,7 +86,7 @@ export function DocsNav({
                                 });
                             }}
                             className={cn(
-                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-none px-2.5 py-1.5 text-left text-[0.875rem] transition-colors',
+                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-none px-2.5 py-1.5 text-left text-[0.875rem] transition-colors pointer-coarse:min-h-11',
                                 isActive ? 'font-medium text-foreground hover:bg-accent' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >

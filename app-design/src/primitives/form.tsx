@@ -298,7 +298,8 @@ export const SelectItem = forwardRef<
         <SelectPrimitive.Item
             ref={ref}
             className={cn(
-                'relative flex h-10 cursor-default select-none items-center rounded-none pl-3 pr-9 text-[0.9375rem] outline-none',
+                // 40px to a mouse, 44 to a thumb, as a menu's items are.
+                'relative flex h-10 cursor-default select-none items-center rounded-none pl-3 pr-9 text-[0.9375rem] outline-none pointer-coarse:h-11',
                 // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
                 'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50',
                 className

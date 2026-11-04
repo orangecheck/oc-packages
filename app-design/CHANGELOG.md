@@ -32,7 +32,8 @@
     included. It was 36.
 - Anything that scrolls sideways in a `ScrollFade` is a tab stop, and it is now
   a region with a name. `ScrollFade` takes a `label`, and without one it takes
-  the text of the nearest heading before it. Each user names its own:
+  the text of the nearest heading before it, without the heading's own `#`
+  anchor. Each user names its own:
   - a `CodeBlock`: its caption, or its language when the caption is not text;
   - a `CodeTabs` panel: its tab's label, and its row of tabs "Versions";
   - `ApiTable` and `Diagram`: their caption;
@@ -42,15 +43,34 @@
 
   **Migrate**: a site that named the region itself can drop that code
   (ochk.io's `SignedMessage`, its `TODO(app-design)`).
-- Every target the package draws is 44px to a thumb, and a census proves it.
-  check-layout renders every story at 390 on a touch screen, about 540
-  targets, and the dialog that `SearchDialog` holds open on a page of its own.
-  It taps each target 21.5px out from its centre in every direction. A link
-  inside a sentence is exempt, as WCAG 2.5.8 exempts it. On 53e2b87d it found
-  113 targets under 44, and one more in the dialog. Each is now 44 to a
-  coarse pointer, and a mouse sees the same boxes in every story:
-  - `SourceNote`'s "Source" (74x28) and `Button variant="link"` (23 tall)
-    reach 44 by a pseudo-element.
+- On a phone, at 320 and 390, every target the package draws is 44px to a
+  thumb, and a census proves it. Tablet widths with a touch screen (768 to
+  1180) are not measured yet; they come in 2.0.2. check-layout renders every
+  story on a touch screen at both widths, about 550 targets. It opens each
+  closed trigger in turn (popover, menu, select, dialog, sheet, collapsed
+  control and closed details) and reads what appears, about 360 more targets.
+  The dialog that `SearchDialog` holds open gets a page of its own. It taps
+  each target 21.5px out from its centre in every direction.
+
+  A link is exempt only when its own line holds other text, as WCAG 2.5.8
+  exempts a link in a sentence. Planted cases must fail: a card title alone
+  in its heading, a 13x13 checkbox in a list item, a 20x20 icon button in a
+  list item. A link in a sentence must pass.
+
+  On 53e2b87d the census found 113 targets under 44 at 390, plus one in the
+  dialog. Behind its triggers it found 27 more, and at 320 others again.
+  Each is now 44 to a coarse pointer, and a mouse sees the same boxes in
+  every story:
+  - `SourceNote`'s "Source" (74x28), the source link in its popover (107x17)
+    and `Button variant="link"` (23 tall) reach 44 by a pseudo-element.
+  - Behind a trigger: `DocLayout`'s and `DocsShell`'s "On this page" links
+    (31 tall), `DocsShell`'s menu section buttons (36) and `SelectItem` (40)
+    are 44 tall.
+  - At 320: `SiteHeader`'s home link is at least 44 wide, where it was 37 to
+    41. Stacked wallet buttons and `DropZone`'s two buttons leave room
+    between their rows.
+  - An `IsoCheck` given `max-w-full` scales its mark. It used to shrink its
+    box and let the mark spill, and a closing band at 320 cut it.
   - `RadioGroupItem` takes `Checkbox`'s 44px hit area, its label row counting
     as `Checkbox`'s does, and its rows space out so that two never meet. It
     was 20x20.
@@ -72,7 +92,7 @@
     them counts as part of a sentence.
 
   Not counted: the sign-in button stories, since that button is
-  `@orangecheck/me-client`'s, and `BlockHeight`'s link, which PR 288 fixes.
+  `@orangecheck/me-client`'s.
 - Swagger UI's controls and its own buttons (`.btn`: Try it out, Execute,
   Cancel, Hide) are 44px to a thumb on any touch screen, a tablet included. It
   used to apply below 48rem only, and never to `.btn`: attest's Hide was 80x30.
