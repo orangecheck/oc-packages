@@ -3,8 +3,9 @@ import * as React from 'react';
 /*
  * app-design 2.0's checkbox and radio, for the ceremonies here that style
  * themselves inline: a real input (its label, keyboard and form behaviour
- * unchanged), drawn as a 20px square from the page's tokens instead of the
- * platform's control and its accent-color.
+ * unchanged), drawn 20px from the page's tokens instead of the platform's
+ * control and its accent-color. The checkbox is square; the radio is round,
+ * as app-design's own is, since a square radio reads as a checkbox.
  *
  * Under forced colors the fill gives way to the system's Canvas but an SVG
  * keeps its own colour, so a checked box's white mark vanished on a white
@@ -29,16 +30,16 @@ const FORCED = [
     '}',
 ].join('');
 
-function boxStyle(checked: boolean, filled: boolean, disabled: boolean): React.CSSProperties {
+function boxStyle(kind: 'checkbox' | 'radio', checked: boolean, disabled: boolean): React.CSSProperties {
     return {
         appearance: 'none',
         WebkitAppearance: 'none',
         margin: 0,
         width: 20,
         height: 20,
-        borderRadius: 0,
+        borderRadius: kind === 'radio' ? '50%' : 0,
         border: checked ? '1px solid var(--primary, #f97316)' : '1px solid var(--input, var(--border, #52525b))',
-        background: checked && filled ? 'var(--primary, #f97316)' : 'var(--oca-surface, var(--background, transparent))',
+        background: checked && kind === 'checkbox' ? 'var(--primary, #f97316)' : 'var(--oca-surface, var(--background, transparent))',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
     };
@@ -51,7 +52,7 @@ export function DesignCheckbox({ checked, disabled, ...props }: BoxProps) {
     return (
         <span data-oc-control="" style={WRAP}>
             <style dangerouslySetInnerHTML={{ __html: FORCED }} />
-            <input {...props} type="checkbox" checked={checked} disabled={disabled} style={boxStyle(checked, true, Boolean(disabled))} />
+            <input {...props} type="checkbox" checked={checked} disabled={disabled} style={boxStyle('checkbox', checked, Boolean(disabled))} />
             {checked ? (
                 <svg data-oc-check="" aria-hidden="true" viewBox="0 0 24 24" style={{ ...MARK, color: 'var(--primary-foreground, #ffffff)' }}>
                     <path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="square" />
@@ -61,12 +62,12 @@ export function DesignCheckbox({ checked, disabled, ...props }: BoxProps) {
     );
 }
 
-/** The design radio: a square box like the checkbox, a dot in --primary when chosen. */
+/** The design radio: round, as app-design's RadioGroupItem is, with a dot in --primary when chosen. */
 export function DesignRadio({ checked, disabled, ...props }: BoxProps) {
     return (
         <span data-oc-control="" style={WRAP}>
             <style dangerouslySetInnerHTML={{ __html: FORCED }} />
-            <input {...props} type="radio" checked={checked} disabled={disabled} style={boxStyle(checked, false, Boolean(disabled))} />
+            <input {...props} type="radio" checked={checked} disabled={disabled} style={boxStyle('radio', checked, Boolean(disabled))} />
             {checked ? (
                 <svg data-oc-dot="" aria-hidden="true" viewBox="0 0 14 14" style={{ ...MARK, color: 'var(--primary, #f97316)' }}>
                     <circle cx="7" cy="7" r="4" fill="currentColor" />

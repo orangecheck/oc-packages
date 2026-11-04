@@ -56,8 +56,8 @@ describe('the sign-in opt-in looks like the design checkbox', () => {
     });
 });
 
-describe('the design radio (the bond coin chooser) has the same look', () => {
-    it('is a 20px square with no native accent; the chosen one draws its dot', async () => {
+describe('the design radio (the bond coin chooser) matches it, round', () => {
+    it('is a round 20px box with no native accent; the chosen one draws its dot', async () => {
         const { DesignRadio } = await import('../controls');
         const on = renderToStaticMarkup(<DesignRadio checked onChange={() => {}} name="x" />);
         const off = renderToStaticMarkup(<DesignRadio checked={false} onChange={() => {}} name="x" />);
@@ -67,7 +67,7 @@ describe('the design radio (the bond coin chooser) has the same look', () => {
             expect(input).not.toMatch(/accent-color/);
             expect(input).toMatch(/appearance:none/);
             expect(input).toMatch(/width:20px/);
-            expect(input).toMatch(/border-radius:0/);
+            expect(input).toMatch(/border-radius:50%/);
         }
         expect(on).toMatch(/<svg data-oc-dot=""[^>]*>[\s\S]*fill="currentColor"/);
         expect(off).not.toMatch(/<svg data-oc-dot/);
