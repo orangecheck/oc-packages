@@ -67,6 +67,9 @@
  *   PageHero layouts, a document's header and an ErrorPage, so the first
  *   paint is their LCP; the rest of the entrance still fades in. No entrance
  *   or reveal blurs.
+ * - A hero's two actions stack on a phone, each the column's full width, in
+ *   DOM order; from 640px they sit side by side at their own widths. In both
+ *   PageHero layouts, a document's header and an ErrorPage.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -539,6 +542,21 @@ try {
                 h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', eyebrow: 'Legal', title: 'Terms', lead: 'The terms.' })),
                 h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null })),
                 h('div', { 'data-reveal': 'pending', 'data-t': 'reveal' }, 'Below the fold.')
+            )
+        )
+    );
+    // The same heroes with a CTA pair of different lengths (ochk.app's was 135 and 172px at 390).
+    const pair = () => [h(P.Button, { key: 'a', 'data-cta': '' }, 'Get an account'), h(P.Button, { key: 'b', variant: 'secondary', 'data-cta': '' }, 'Read how it works first')];
+    const heroActions = page(
+        'hero-actions',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', title: 'Privacy policy', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', title: 'Terms', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() }))
             )
         )
     );
@@ -1515,6 +1533,31 @@ try {
                 check(e.reveal.opacity === '0' && !e.reveal.filter.includes('blur'), `[${width}] a pending Reveal is blurred or not hidden: ${JSON.stringify(e.reveal)}`);
                 await c.close();
             }
+            // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(heroActions);
+                await c.evaluate(() => document.fonts.ready);
+                const a = await c.evaluate(() =>
+                    Object.fromEntries(
+                        ['split', 's10', 'document', 'error'].map((t) => {
+                            const [x, y] = [...document.querySelectorAll(`[data-t="${t}"] [data-cta]`)].map((b) => b.getBoundingClientRect());
+                            const col = document.querySelector(`[data-t="${t}"] [data-cta]`).parentElement.parentElement;
+                            const cs = getComputedStyle(col);
+                            const inner = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                            return [t, { widths: [Math.round(x.width), Math.round(y.width)], column: Math.round(inner), stacked: y.top >= x.bottom, level: Math.abs(x.top - y.top) < 1, order: x.top < y.top || (x.top === y.top && x.left < y.left) }];
+                        })
+                    )
+                );
+                for (const [t, m] of Object.entries(a)) {
+                    if (width < 640) {
+                        check(m.stacked && m.order && m.widths.every((w) => Math.abs(w - m.column) <= 1), `[${width}] ${t} hero's two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
+                    } else {
+                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${width}] ${t} hero's two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
+                    }
+                }
+                await c.close();
+            }
             // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
@@ -1725,4 +1768,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions`);
