@@ -15,7 +15,7 @@ function SiteRow({ site, here, onNavigate }: { site: FamilySite; here: boolean; 
                 onClick={onNavigate}
                 aria-current={here ? 'page' : undefined}
                 className={cn(
-                    'flex flex-col gap-0.5 rounded-xl px-3 py-2 transition-colors hover:bg-accent',
+                    'flex flex-col gap-0.5 rounded-none px-3 py-2 transition-colors hover:bg-accent',
                     here && 'bg-muted hover:bg-muted dark:bg-white/[0.06]'
                 )}
             >
@@ -95,7 +95,7 @@ export function FamilyMenu({ current, className }: { current?: FamilySlug; class
             <PopoverTrigger
                 aria-label="All orangecheck sites"
                 className={cn(
-                    'group inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors',
+                    'group inline-flex size-8 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors',
                     HIT_32,
                     'hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground',
                     className

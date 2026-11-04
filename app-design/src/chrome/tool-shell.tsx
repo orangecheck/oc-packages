@@ -93,7 +93,7 @@ export function SessionAccountView({
                 {menu}
                 <span
                     role="alert"
-                    className="absolute right-0 top-full z-50 mt-1.5 w-max max-w-[16rem] rounded-md border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] leading-snug text-destructive shadow-sm"
+                    className="absolute right-0 top-full z-50 mt-1.5 w-max max-w-[16rem] rounded-none border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] leading-snug text-destructive shadow-sm"
                 >
                     {SIGN_OUT_REFUSED}
                 </span>
@@ -212,7 +212,7 @@ export function ToolShell({
     const about = (
         <a
             href={p.pageHref}
-            className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-none px-3 py-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground"
         >
             About {p.label}
             <ArrowUpRight aria-hidden className="size-3.5" />
@@ -246,7 +246,7 @@ export function ToolShell({
                             {tabs ? (
                                 <a
                                     href={docs.href}
-                                    className="inline-flex items-center gap-1 rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                                    className="inline-flex items-center gap-1 rounded-none text-muted-foreground transition-colors hover:text-foreground"
                                 >
                                     Docs
                                     <ArrowUpRight aria-hidden className="size-3.5" />

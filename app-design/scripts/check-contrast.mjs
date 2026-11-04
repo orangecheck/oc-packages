@@ -136,6 +136,8 @@ const PAIRS = [
     ['oca-ink-subtle', 'oca-ink', 4.5],
     ['oca-footer-foreground', 'oca-footer', 4.5],
     ['oca-footer-muted', 'oca-footer', 4.5],
+    // Button onInk: ink text on its white fill (bg-white, the same white as primary-foreground).
+    ['oca-ink', 'primary-foreground', 4.5],
 ];
 
 let failed = 0;
@@ -250,8 +252,52 @@ for (const [mode, vars, behind] of [
     }
 }
 
+// The bands (theme.css oca-band-*): each re-points the text tokens for what sits
+// on it, a Button's included. Every text token it names clears 4.5:1 on its
+// ground and its ring 3:1, in light and dark, so an outline button on the
+// orange band can't be drawn in paper again.
+{
+    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8');
+    const bands = [...theme.matchAll(/@utility (oca-band-[a-z]+) \{([^}]*)\}/g)];
+    if (bands.length < 4) {
+        console.error(`✗ contrast: only ${bands.length} oca-band-* utilities in theme.css`);
+        failed++;
+    }
+    for (const [, name, body] of bands) {
+        const ground = body.match(/background-color:\s*var\(--([a-z0-9-]+)\)/)?.[1];
+        const texts = [...body.matchAll(/(?:^|\s)(color|--foreground|--muted-foreground|--oca-subtle-foreground):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2], 4.5]);
+        const ring = body.match(/--ring:\s*var\(--([a-z0-9-]+)\)/)?.[1];
+        if (ring) texts.push(['--ring', ring, 3]);
+        // A band that leaves --foreground or --muted-foreground alone lets the page's
+        // ink (or paper) through onto its ground: a Button's text among it.
+        for (const must of ['color', '--foreground', '--muted-foreground']) {
+            if (!texts.some(([prop]) => prop === must)) {
+                console.error(`✗ contrast: ${name} does not set ${must}`);
+                failed++;
+            }
+        }
+        for (const [mode, vars] of [
+            ['light', light],
+            ['dark', dark],
+        ]) {
+            for (const [prop, token, min] of texts) {
+                if (!vars[ground] || !vars[token]) {
+                    console.error(`✗ ${mode}: ${name} ${prop} --${token} on --${ground} has no colour`);
+                    failed++;
+                    continue;
+                }
+                const r = ratio(vars[token], vars[ground]);
+                if (r < min) {
+                    console.error(`✗ ${mode}: ${name} ${prop} --${token} ${vars[token]} on --${ground} ${vars[ground]} is ${r.toFixed(2)}:1, needs ${min}:1`);
+                    failed++;
+                }
+            }
+        }
+    }
+}
+
 if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; every band's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);

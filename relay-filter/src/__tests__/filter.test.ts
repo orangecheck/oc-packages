@@ -317,6 +317,14 @@ describe('coins a chain API would not list (sdk 1.21.0) never fail open (chain-r
         expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({ action: 'accept', reason: 'fail_open' });
     });
 
+    // The name alone decides it: with no bad_request beside it, chain_unread is still the outage.
+    it('chain_unread alone beside the signature is the outage too', async () => {
+        vi.mocked(check).mockResolvedValue(result(['sig_ok_bip322', 'chain_unread']));
+        expect(await filterEvent(evt(), {})).toMatchObject({ action: 'reject', reason: 'lookup_error' });
+        __clearFilterCachesForTests();
+        expect(await filterEvent(evt(), { failOpen: true })).toMatchObject({ action: 'accept', reason: 'fail_open' });
+    });
+
     it('the cap is utxo_cap, worded, with or without failOpen', async () => {
         vi.mocked(check).mockResolvedValue(result(['utxo_cap_unread']));
         const closed = await filterEvent(evt(), {});

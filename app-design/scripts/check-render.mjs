@@ -495,8 +495,10 @@ const html = (el) => renderToStaticMarkup(el);
     const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
     const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
     check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
-    check(/\bbg-secondary\b/.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
-    check(/\bbg-secondary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
+    // 2.0's secondary is the outlined button (an ink hairline, no fill), so it is known by its edge.
+    const SECONDARY = /\bborder-foreground\/45\b/;
+    check(SECONDARY.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
+    check(SECONDARY.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
     // Typed as a string, so it passes where a string label is asked for.
     check(/label: "Get an account"/.test(require('node:fs').readFileSync(join(here, '../dist/family.d.ts'), 'utf8') + require('node:fs').readdirSync(join(here, '../dist')).filter((f) => /^index-.*\.d\.ts$/.test(f)).map((f) => require('node:fs').readFileSync(join(here, '../dist', f), 'utf8')).join('')), 'GET_AN_ACCOUNT: its label is not typed as the string it is');
     check(html(h(Ch.AccountCta, { href: '/signin' })).includes('href="/signin"'), 'AccountCta: ochk.app cannot point it at its own sign-in');

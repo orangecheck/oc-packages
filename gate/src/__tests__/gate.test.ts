@@ -175,6 +175,20 @@ describe('failOpen', () => {
         expect(vi.mocked(check)).toHaveBeenCalledTimes(2);
     });
 
+    // The name alone decides it: with no bad_request beside it, chain_unread is still the outage.
+    it('treats chain_unread alone beside the signature as an outage too', async () => {
+        vi.mocked(check).mockResolvedValue({
+            ok: false,
+            sats: 0,
+            days: 0,
+            score: 0,
+            reasons: ['sig_ok_bip322', 'chain_unread'],
+        } as never);
+        const r = () => req({ headers: { 'x-oc-address': 'bc1qunreadalone' } });
+        expect(await assertOc(r(), opts)).toMatchObject({ ok: false, reason: 'lookup_error' });
+        expect(await assertOc(r(), { ...opts, failOpen: true })).toMatchObject({ ok: true, reason: 'fail_open' });
+    });
+
     // FO1: anyone can put an address past the chain APIs' ~500-UTXO cap with
     // dust, so an answer about the cap or a refusal is never an outage.
     it.each([

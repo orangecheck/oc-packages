@@ -255,7 +255,8 @@ describe("variables: app-design's values take over", () => {
     expect(css(heading, "display", vars)).toBe("block");
     expect(css(heading, "display", { ...vars, "--oc-wallet-heading": "none" })).toBe("none");
     const row = option("UniSat");
-    expect(css(row, "border-radius", vars)).toBe("0.875rem");
+    // app-design 2.0 is square: its radii are 0.
+    expect(css(row, "border-radius", vars)).toBe("0");
     expect(css(row, "min-height", vars)).toBe("2.25rem");
     expect(css(row, "background", vars)).toBe("var(--card)");
     expect(css(row?.firstElementChild, "color", vars)).toBe("var(--success)");
@@ -271,7 +272,7 @@ describe("variables: app-design's values take over", () => {
     expect(css(host.querySelector("textarea"), "font-family", vars)).toBe(
       "var(--oc-font-mono)",
     );
-    expect(css(option("Back"), "border-radius", vars)).toBe("9999px");
+    expect(css(option("Back"), "border-radius", vars)).toBe("0");
     expect(css(option("Back"), "text-transform", vars)).toBe("none");
   });
 

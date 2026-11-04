@@ -22,8 +22,9 @@ this file tracks the package's TS / Node / runtime API surface.
   refusal (a 4xx but 429) `provider_refused_unread`: `filterEvent` rejects them
   as `utxo_cap` and `chain_refused`, held for the short lookup-error TTL, and
   the attestation index rejects them too and forgets the address's last bond,
-  since a capped address's coins could be spent unseen. This needs sdk 1.21.0
-  installed: with an older sdk the cap still reads as an outage.
+  since a capped address's coins could be spent unseen. It requires
+  `@orangecheck/sdk` ^1.21.0 (it was ^1.15.0), so an older sdk, which still
+  read the cap as an outage, is never installed beside it.
 - sdk 1.21.0's `chain_unread` is an outage, as `bad_request` beside a
   `sig_ok_*` code was before.
 

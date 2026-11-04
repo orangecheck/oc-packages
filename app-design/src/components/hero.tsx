@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { MonoLabel } from './frame';
 import { Section } from './section';
 
 /*
@@ -27,8 +28,12 @@ export interface PageHeroProps {
     variant?: 'page' | 'document';
     /** `xl` is the home page's size; content pages default to `lg`. `page` only. */
     size?: 'lg' | 'xl';
+    /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
+    ground?: 'paper' | 'ink' | 'brand';
     className?: string;
 }
+
+const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
 export function PageHero({
     eyebrow,
@@ -40,6 +45,7 @@ export function PageHero({
     children,
     variant = 'page',
     size = 'lg',
+    ground = 'paper',
     className,
 }: PageHeroProps) {
     if (variant === 'document') {
@@ -52,10 +58,10 @@ export function PageHero({
         );
     }
     return (
-        <Section space="none" className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
+        <Section space="none" tone={GROUND[ground]} data-ground={ground} className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
-                    {eyebrow ? <p className="oca-eyebrow oca-enter">{eyebrow}</p> : null}
+                    {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
                     <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter [--enter-delay:70ms]')}>
                         {title}
                     </h1>
