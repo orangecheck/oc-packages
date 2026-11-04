@@ -39,6 +39,29 @@ const check = (ok, msg) => {
 };
 const html = (el) => renderToStaticMarkup(el);
 
+// 2.0 is square: no rounded panel, card, chip or control in the source. Round by meaning only: status
+// dots, a radio, an avatar, the brand art, an app's monogram, and inside a depicted device (frames.tsx).
+{
+    const { readdirSync, readFileSync, statSync } = require('node:fs');
+    const src = join(here, '../src');
+    const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : f.endsWith('.tsx') && !f.endsWith('.stories.tsx') ? [join(d, f)] : []));
+    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames))\.tsx$/;
+    const rounded = [];
+    for (const f of walk(src)) {
+        if (ROUND_BY_MEANING.test(f)) continue;
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                // A fixed or large radius anywhere, or a full one on something with padding (a pill).
+                if (/rounded-(\[[\d.]+rem\]|2xl|3xl|xl|lg|md)(?![\w-])/.test(line) || (/rounded-full(?![\w-])/.test(line) && /\bp[xy]?-/.test(line))) {
+                    rounded.push(`${f.slice(src.length + 1)}:${i + 1}`);
+                }
+            });
+    }
+    check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);
+    check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
+}
+
 // Button's trailing "+" survives asChild: the link it renders carries the "+" after its text.
 {
     const link = html(h(P.Button, { asChild: true, plus: true }, h('a', { href: '/start' }, 'Get started')));
@@ -439,7 +462,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(title.includes('Who stands behind it.') && title.includes('href="/all"'), 'SectionTitle: the line or the action is missing');
     check(html(h(C.SectionTitle, { title: 'Delete', as: 'h3', size: 'sm', tone: 'danger' })).match(/<h3 class="[^"]*oca-title-sm[^"]*text-destructive/), 'SectionTitle: as, size or tone ignored');
     const list = html(h(C.ListCard, null, h('li', null, 'a'), h('li', null, 'b')));
-    check(/^<ul (?=[^>]*data-oca-list="")(?=[^>]*class="[^"]*divide-y[^"]*rounded-\[1\.25rem\])[^>]*><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card, marked for a flush card');
+    check(/^<ul (?=[^>]*data-oca-list="")(?=[^>]*class="[^"]*divide-y[^"]*rounded-none)[^>]*><li>a<\/li><li>b<\/li><\/ul>$/.test(list), 'ListCard: not a list in one card, marked for a flush card');
     const choice = html(
         h(C.ChoiceGroup, { label: 'Who can post', value: 'b', onValueChange: () => {} }, h(C.ChoiceCard, { value: 'a', title: 'Anyone' }), h(C.ChoiceCard, { value: 'b', title: 'Holders', description: 'A bound address.' }))
     );

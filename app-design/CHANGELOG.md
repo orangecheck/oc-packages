@@ -4,6 +4,16 @@
 
 ## [2.0.0] — unreleased (2.0.0-pre)
 
+Design iteration 2: one family system that looks like a specification
+drawing. Warm paper, ink text, light display type, mono labels with square
+bullets, a framed column ruled in hairlines, and square controls. A site
+adopts it whole, in its own PR. It is a major, so Renovate does not merge it
+on its own.
+
+**What a site must change: nothing beyond the version, except as noted
+below.** Every export keeps its name and its props, and the new props are
+optional. What changes is how things look.
+
 ### Follow-up (design2-foundation-2)
 
 - Reveal, the halftone, the iso check's tilt, docs' width reader and the
@@ -21,16 +31,20 @@
   before). check-layout only measured touch widths, and only a fixed list of
   buttons, so these were never measured; it now measures the 2.0 chrome at
   390 and 1440.
-
-Design iteration 2: one family system that looks like a specification
-drawing. Warm paper, ink text, light display type, mono labels with square
-bullets, a framed column ruled in hairlines, and square controls. A site
-adopts it whole, in its own PR. It is a major, so Renovate does not merge it
-on its own.
-
-**What a site must change: nothing beyond the version, except as noted
-below.** Every export keeps its name and its props, and the new props are
-optional. What changes is how things look.
+- `Button plus` with `asChild` keeps its "+": the link it renders carries it
+  after its text.
+- The rest of the package is square. That covers Notice, EmptyState,
+  ChoiceCard, FormSection, DropZone, Panel, ListCard, KeyValueList, DataTable,
+  VerifyBox, VerifyReport, ToolGrid, LinkCard, PlanCard, the docs and MDX
+  tables, LoadingBlock, FloatChip and HudCard. FilterChips, CopyButton, the
+  search button, meters and inline code lose their pills too.
+  - `rounded-2xl` to `4xl` scale with `--radius`, so a site's own are square.
+  - Still round, by meaning: status dots, a radio, an avatar, the brand art,
+    an app's monogram, and the parts of a depicted device.
+  - `BrowserFrame` takes `rounded-depict` and `--oca-shadow-depict`.
+  - `SplitBar` draws its segments in tokens (`--oca-surface`, `--oca-ink`)
+    where it hard-coded white.
+  - check-render scans the source for a rounded panel or pill.
 
 ### Tokens (`tokens.css`, `appColors`)
 

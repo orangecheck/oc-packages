@@ -122,7 +122,7 @@ export function PlanCard({
     return (
         <section
             className={cn(
-                'flex h-full flex-col gap-5 rounded-[1.25rem] border bg-card p-6',
+                'flex h-full flex-col gap-5 rounded-none border bg-card p-6',
                 highlight ? 'border-foreground shadow-sm ring-1 ring-foreground' : 'border-border',
                 className
             )}
@@ -198,8 +198,8 @@ export function LockedPreview({
                     {children}
                 </div>
             ) : null}
-            <div className={cn('relative mx-auto flex max-w-md flex-col items-center gap-4 rounded-[1.25rem] border border-border bg-card px-6 py-7 text-center shadow-sm', children && '-mt-40')}>
-                <span aria-hidden className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+            <div className={cn('relative mx-auto flex max-w-md flex-col items-center gap-4 rounded-none border border-border bg-card px-6 py-7 text-center shadow-sm', children && '-mt-40')}>
+                <span aria-hidden className="flex size-10 items-center justify-center rounded-none bg-muted text-foreground">
                     <Lock className="size-[1.125rem]" />
                 </span>
                 <div className="flex flex-col gap-1.5">

@@ -189,7 +189,7 @@ export function DocLayout({
                             <p className="mb-3 text-[0.875rem] font-medium">On this page</p>
                             <ul>{links()}</ul>
                         </nav>
-                        <details className="group rounded-2xl border border-border bg-card px-4 py-3 lg:hidden">
+                        <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
                             <summary className="cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden">
                                 On this page
                             </summary>

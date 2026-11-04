@@ -23,9 +23,9 @@ import { StatusBadge } from '../primitives/status-badge';
  * one focus ring when the keyboard reaches it.
  */
 const CARD =
-    'group relative flex h-full flex-col rounded-[1.25rem] border border-border bg-card p-6 transition-colors hover:border-oca-hairline-strong md:p-7 ' +
+    'group relative flex h-full flex-col rounded-none border border-border bg-card p-6 transition-colors hover:border-oca-hairline-strong md:p-7 ' +
     'has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-offset-2 has-[a:focus-visible]:ring-offset-background';
-const STRETCH = 'outline-none after:absolute after:inset-0 after:rounded-[1.25rem] after:content-[""]';
+const STRETCH = 'outline-none after:absolute after:inset-0 after:rounded-none after:content-[""]';
 
 const pad = (n: number) => String(n + 1).padStart(2, '0');
 

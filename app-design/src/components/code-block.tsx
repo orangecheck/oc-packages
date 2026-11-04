@@ -147,7 +147,7 @@ function Well({
                         type="button"
                         onClick={() => setOpen((v) => !v)}
                         aria-expanded={open}
-                        className="rounded-full border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10"
+                        className="rounded-none border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10"
                     >
                         {open ? 'Show less' : `Show all ${lines} lines`}
                     </button>
@@ -157,7 +157,7 @@ function Well({
     );
 }
 
-const FRAME = 'overflow-hidden rounded-[1.25rem] border border-[var(--oca-code-line)] bg-[var(--oca-code-surface)]';
+const FRAME = 'overflow-hidden rounded-none border border-[var(--oca-code-line)] bg-[var(--oca-code-surface)]';
 // The bar is 44px tall: on a phone the copy fills it, a thumb's target.
 const COPY_ON_INK = 'text-oca-ink-subtle hover:bg-white/10 hover:text-white max-md:size-11';
 
@@ -372,7 +372,7 @@ export function CodeTabs({
                                     'relative inline-flex h-11 items-center whitespace-nowrap px-3 text-[0.8125rem] text-oca-ink-subtle outline-none transition-colors',
                                     'hover:text-white focus-visible:text-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                                     'data-[state=active]:text-white',
-                                    'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-oca-orange'
+                                    'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-none after:bg-transparent data-[state=active]:after:bg-oca-orange'
                                 )}
                             >
                                 {it.label}

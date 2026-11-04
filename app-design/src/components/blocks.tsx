@@ -116,7 +116,7 @@ export function FactRows({
     className?: string;
 }) {
     return (
-        <ul aria-label={label} className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul aria-label={label} className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             {rows.map((r) => (
                 <li key={r.key} className="flex flex-col gap-5 px-5 py-6 md:px-8 md:py-7">
                     {/* The figure keeps its own line end; a long title wraps beside it. */}
@@ -153,7 +153,7 @@ export interface Endpoint {
 /** Public endpoints and what each returns: the same numbers, for your own tooling. Each opens raw, in a new tab. */
 export function EndpointList({ items, label, className }: { items: Endpoint[]; label?: string; className?: string }) {
     return (
-        <ul aria-label={label} className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul aria-label={label} className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             {items.map((a) => (
                 <li key={a.href}>
                     <a

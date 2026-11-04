@@ -89,6 +89,10 @@
     --radius-md: max(0px, calc(var(--radius) - 2px));
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) * 1.25);
+    /* 2xl to 4xl scale the same way, so a site's own rounded-2xl is square under 2.0 too. */
+    --radius-2xl: calc(var(--radius) * 1.5);
+    --radius-3xl: calc(var(--radius) * 2);
+    --radius-4xl: calc(var(--radius) * 2.5);
     --radius-depict: var(--oca-radius-depict);
     --radius-tile: var(--oca-radius-tile);
 

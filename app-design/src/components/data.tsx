@@ -109,7 +109,7 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
             data-ui="stat"
             className={cn(
                 'border border-border bg-card',
-                sm ? 'rounded-2xl p-4' : 'rounded-[1.25rem] p-5 md:p-6',
+                sm ? 'rounded-none p-4' : 'rounded-none p-5 md:p-6',
                 // In a grid, label, value and hint each share a row with their
                 // neighbours, so values line up whatever wraps above them.
                 inGrid ? 'row-span-3 grid grid-rows-subgrid gap-1.5' : 'flex flex-col gap-2',
@@ -183,7 +183,7 @@ export function EmptyLine({ children, className }: { children: ReactNode; classN
     return (
         <p
             className={cn(
-                'rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-5 py-4 text-[0.9375rem] text-muted-foreground',
+                'rounded-none border border-dashed border-oca-hairline-strong px-5 py-4 text-[0.9375rem] text-muted-foreground',
                 className
             )}
         >
@@ -281,7 +281,7 @@ export function KeyValueList({
     const tight = dense ?? density === 'compact';
     return (
         // The rows go side by side when the list itself is wide enough, wherever it sits: a narrow card stacks them.
-        <dl className={cn('@container divide-y divide-border border border-border bg-card', tight ? 'rounded-2xl' : 'rounded-[1.25rem]', className)}>
+        <dl className={cn('@container divide-y divide-border border border-border bg-card', tight ? 'rounded-none' : 'rounded-none', className)}>
             {items.map((it, i) => (
                 <div
                     key={i}
@@ -411,7 +411,7 @@ export function DataTable<T>({
         <div
             className={cn(
                 'overflow-hidden border border-border bg-card',
-                tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
+                tight ? 'rounded-none' : 'rounded-none',
                 phone === 'cards' && 'max-sm:hidden',
                 className
             )}
@@ -487,7 +487,7 @@ export function DataTable<T>({
                 aria-label={caption}
                 className={cn(
                     'divide-y divide-border border border-border bg-card sm:hidden',
-                    tight ? 'rounded-2xl' : 'rounded-[1.25rem]',
+                    tight ? 'rounded-none' : 'rounded-none',
                     className
                 )}
             >
@@ -545,12 +545,12 @@ export function EmptyState({
     return (
         <div
             className={cn(
-                'flex flex-col items-center gap-3 rounded-[1.25rem] border border-dashed border-oca-hairline-strong px-6 py-10 text-center',
+                'flex flex-col items-center gap-3 rounded-none border border-dashed border-oca-hairline-strong px-6 py-10 text-center',
                 className
             )}
         >
             {icon ? (
-                <span className="mb-1 flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+                <span className="mb-1 flex size-11 items-center justify-center rounded-none bg-muted text-muted-foreground [&_svg]:size-5">
                     {icon}
                 </span>
             ) : null}
@@ -603,7 +603,7 @@ export function Notice({
             role={role ?? (tone === 'danger' || tone === 'warning' ? 'alert' : 'note')}
             data-tone={kind}
             className={cn(
-                'flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-4 sm:flex-row sm:items-start sm:justify-between',
+                'flex flex-col gap-3 rounded-none border border-border bg-card px-5 py-4 sm:flex-row sm:items-start sm:justify-between',
                 kind === 'danger' && 'border-[color-mix(in_oklab,var(--destructive)_40%,var(--border))]',
                 className
             )}
@@ -684,7 +684,7 @@ export function LoadingBlock({
     return (
         <div role="status" aria-label={label} className={cn('flex flex-col gap-3', className)}>
             {Array.from({ length: rows }, (_, i) => (
-                <Skeleton key={i} className="h-16 rounded-2xl" />
+                <Skeleton key={i} className="h-16 rounded-none" />
             ))}
         </div>
     );
@@ -840,7 +840,7 @@ export function CopyButton({ value, label = 'Copy', showLabel = false, variant =
             aria-label={copied ? 'Copied' : label}
             title={label}
             className={cn(
-                'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                'inline-flex size-8 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                 HIT_32,
                 className
             )}
@@ -938,7 +938,7 @@ export function ProgressSteps({ steps, className }: { steps: ProgressStep[]; cla
                         ) : null}
                         <span
                             className={cn(
-                                'relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-[0.75rem] oca-tabular',
+                                'relative z-10 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-none border text-[0.75rem] oca-tabular',
                                 s.state === 'done' && 'border-primary bg-primary text-primary-foreground',
                                 s.state === 'current' && 'border-brand bg-card text-oca-accent-ink',
                                 s.state === 'upcoming' && 'border-border bg-card text-muted-foreground',
@@ -975,7 +975,7 @@ export interface ActivityItem {
 export function ActivityList({ items, empty, className }: { items: ActivityItem[]; empty?: ReactNode; className?: string }) {
     if (items.length === 0 && empty) return <>{empty}</>;
     return (
-        <ul className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             {items.map((it) => {
                 const body = (
                     <div className="flex items-center justify-between gap-4 px-5 py-4">

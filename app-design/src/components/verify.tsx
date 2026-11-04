@@ -63,7 +63,7 @@ export function VerifyReport({
     return (
         <section
             aria-label="Verification result"
-            className={cn('overflow-hidden rounded-[1.25rem] border border-border bg-card', className)}
+            className={cn('overflow-hidden rounded-none border border-border bg-card', className)}
         >
             {/* items-start sizes each line to its longest word: a Bitcoin address must be free to break. */}
             <header className="flex flex-col items-start gap-3 p-6 md:p-8">
