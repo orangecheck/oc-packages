@@ -21,6 +21,13 @@ this file tracks the package's TS / Node / runtime API surface.
   the type but never set. A TypeScript caller that compares
   `method === 'dns-txt'` now gets a compile error, for a branch that could
   never run.
+- `getTwitterVerificationInstructions` stops asking for a URL to paste and
+  stops promising that "the verification will check that the tweet exists".
+  `verifyTwitterIdentity` cannot read X and never verifies a tweet. The
+  instructions now say to share the tweet's URL and that a tweet is checked
+  by hand. The text people post (`generateTweetText`, the X and Nostr
+  instructions) says "orangecheck", lowercase. Checks look only for the
+  attestation ID, so posts made with the old text still pass.
 
 ## [1.21.0] — 2026-11-03
 
