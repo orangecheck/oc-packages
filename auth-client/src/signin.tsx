@@ -1718,6 +1718,8 @@ const linkAlsoStyle: React.CSSProperties = {
 function submitStyle(disabled: boolean): React.CSSProperties {
     return {
         marginTop: 12,
+        // 44px to a thumb, as the tabs are: the padding round one line drew it 42.
+        minHeight: 44,
         padding: '0.6rem 1rem',
         background: 'var(--primary, #f97316)',
         color: 'var(--primary-foreground, #0a0a0a)',
