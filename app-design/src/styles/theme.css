@@ -290,6 +290,8 @@
     --warning-foreground: var(--oca-ink-status-foreground);
     --info: var(--oca-ink-info);
     --info-foreground: var(--oca-ink-status-foreground);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-ink-subtle);
 }
 
 @utility oca-band-ink {
@@ -328,6 +330,8 @@
     --warning-foreground: var(--oca-ink-status-foreground);
     --info: var(--oca-ink-info);
     --info-foreground: var(--oca-ink-status-foreground);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-burnt-muted);
 }
 
 @utility oca-band-burnt {
@@ -372,6 +376,8 @@
     --warning-foreground: var(--brand);
     --info: var(--brand-foreground);
     --info-foreground: var(--brand);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--brand-foreground);
 }
 
 @utility oca-band-brand {
@@ -414,6 +420,8 @@
     --warning-foreground: var(--oca-primary-hover);
     --info: var(--oca-footer-foreground);
     --info-foreground: var(--oca-footer);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-footer-foreground);
 }
 
 @utility oca-band-footer {

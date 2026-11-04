@@ -239,6 +239,16 @@ optional. What changes is how things look.
   check-layout measures both axes of every header and footer control at 390
   touch, the inline rows at 1024 touch and the docs rail at 1280 touch. On
   main it failed on "Terms" at 41.
+- A drawn window or phone is told from its page by an edge at 3:1, not by
+  its fill or a shadow. `BrowserFrame` (both variants) and `PhoneFrame` take
+  `border-input`, the field edge: 3.12:1 on paper and 3.61:1 on night. Before
+  this, a paper window was white on paper (1.20:1) and the default window's
+  hairline was 1.28:1. Every band now re-points `--input`, both a field's edge
+  and a window's: to the band's subtle text on ink, its quiet text on burnt,
+  ink on orange and white on the footer. On the lighter dark ink band the old
+  edge would have been 2.67:1. check-contrast holds every depiction frame in
+  the package against the page, each band and each Card tone (65 failures on
+  main), and each band's `--input` on its ground.
 - check-contrast reads the components. It checks every text and ground named
   in a component's class strings, a badge's `color-mix` tint included. It
   checks them on the page, in every band and in every Card tone, in light and

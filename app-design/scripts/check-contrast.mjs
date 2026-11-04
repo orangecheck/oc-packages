@@ -310,6 +310,9 @@ for (const [mode, vars, behind] of [
         }
         const ring = body.match(/--ring:\s*var\(--([a-z0-9-]+)\)/)?.[1];
         if (ring) texts.push(['--ring', ring, 3]);
+        // A field's edge, and a drawn window's, on the band (1.4.11).
+        const input = body.match(/--input:\s*var\(--([a-z0-9-]+)\)/)?.[1];
+        if (input) texts.push(['--input', input, 3]);
         // A band that leaves --foreground or --muted-foreground alone lets the page's
         // ink (or paper) through onto its ground: a Button's text among it.
         for (const must of ['--foreground', '--muted-foreground']) {
@@ -420,6 +423,7 @@ const census = { strings: 0, pairs: 0 };
         const mix = rest.match(/^\[color-mix\(in_oklab,var\(--([a-z0-9-]+)\)_(\d+)%,var\(--([a-z0-9-]+)\)\)\]$/);
         if (mix) return { variant, mix: [mix[1], Number(mix[2]) / 100, mix[3]], alpha, name: `color-mix(${mix[1]} ${mix[2]}%, ${mix[3]})` };
         if (FIXED[rest]) return { variant, hex: FIXED[rest], alpha, name: rest };
+        if (/^\[#[0-9a-f]{6}\]$/i.test(rest)) return { variant, hex: rest.slice(1, -1).toLowerCase(), alpha, name: rest.slice(1, -1) };
         if (colorVar[rest]) return { variant, token: colorVar[rest], alpha, name: `--${colorVar[rest]}${alpha < 1 ? `/${a[2]}` : ''}` };
         return null;
     };
@@ -442,7 +446,9 @@ const census = { strings: 0, pairs: 0 };
                     return e ? [{ variant: e[1].replace(/:$/, ''), token: e[2], alpha: 1, name: `--${e[2]}` }] : [];
                 }),
             ];
-            if (texts.length || grounds.length) units.push({ at: `${f.slice(join(here, '..').length + 1)}:${src.slice(0, m.index).split('\n').length}`, texts, grounds, edges });
+            // A depiction's frame: a drawn window (rounded-depict) or a phone's bezel.
+            const depiction = /(?<![\w-])rounded-depict(?![\w-])/.test(str) && grounds.length ? 'window' : /rounded-\[2\.9rem\]/.test(str) ? 'phone' : null;
+            if (texts.length || grounds.length) units.push({ at: `${f.slice(join(here, '..').length + 1)}:${src.slice(0, m.index).split('\n').length}`, texts, grounds, edges, depiction });
         }
     }
     census.strings = units.length;
@@ -505,6 +511,20 @@ const census = { strings: 0, pairs: 0 };
                 failed++;
             };
             for (const u of units) {
+                // A depicted window or device against the page it is drawn on (1.4.11, by the lead's ruling on
+                // depictions): its fill reads 3:1 on that ground, or an edge in a token does. A paper window was
+                // white on paper with only a shadow; the default one a hairline at 1.3:1.
+                if (u.depiction) {
+                    for (const [name, under] of around) {
+                        const fill = u.grounds.filter((g) => g.variant === '' || (g.variant === 'dark' && mode === 'dark')).map((g) => paint(g, under)).at(-1);
+                        if (!fill || !under) continue;
+                        census.pairs++;
+                        if (ratio(fill, under) >= 3) continue;
+                        const edges = u.edges.filter((e) => e.variant === '' || (e.variant === 'dark' && mode === 'dark')).map((e) => paint(e, fill));
+                        const best = Math.max(0, ...edges.filter(Boolean).map((c) => Math.min(ratio(c, under), 3.01)));
+                        if (best < 3) fail(`a depiction (${u.depiction}, ${u.at}) on ${name}, fill and edge`, best || ratio(fill, under), 3, u.at);
+                    }
+                }
                 // A state shown by a fill (a selected tab, a checked choice): the fill reads 3:1 against the
                 // ground it replaces, or the state also draws an edge that does (1.4.11). A selected segment
                 // in card on the muted list was 1.18:1 with nothing else but its text.
