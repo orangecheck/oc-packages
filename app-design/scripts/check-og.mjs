@@ -88,13 +88,25 @@ const title = long.find((e) => e.props.style?.lineClamp !== undefined);
 check(title?.props.style.lineClamp === 3 && title.props.style.display === 'block', 'a long title is not held to three lines');
 check(String(title?.props.children ?? '').length <= 120, 'a long title is not cut');
 
-// The large mark is on unless the caller leaves it out; baked art takes its place.
+// The large art is on unless the caller leaves it out: the tone's dithered mark, its coarse 240px bake
+// at 2× (480×240), the peach top on ink and burnt, the ink top on paper and brand. Baked art takes its
+// place. The lockup's small mark stays vector, so it keeps its edges when a feed shows the card at 300px.
 {
-    const art = (props) => walk(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', ...props })).filter((e) => e.type === 'svg' && e.props.width === 640).length;
-    check(art({}) === 1, 'the large mark is not on by default');
-    check(art({ mark: false }) === 0, 'mark: false still draws the large mark');
-    const withArt = walk(h(og.OgCard, { title: 'A page', art: og.ogArt.ditherMark }));
-    check(withArt.some((e) => e.type === 'img' && e.props.src === og.ogArt.ditherMark.src) && !withArt.some((e) => e.type === 'svg' && e.props.width === 640), 'art does not take the mark’s place');
+    const imgs = (props) => walk(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', ...props })).filter((e) => e.type === 'img');
+    const dither = { paper: og.ogArt.ditherMarkInk240, ink: og.ogArt.ditherMark240, burnt: og.ogArt.ditherMark240, brand: og.ogArt.ditherMarkInk240 };
+    for (const [tone, a] of Object.entries(dither)) {
+        const d = imgs({ tone });
+        check(d.length === 1 && d[0].props.src === a.src && d[0].props.width === 480 && d[0].props.height === 240, `${tone}: the default art is not the tone's dithered mark at 480×240`);
+    }
+    check(imgs({}).length === 1 && imgs({})[0].props.src === og.ogArt.ditherMark240.src, 'the dithered mark is not on by default');
+    // Its box sits on a 4px grid, so the 2× mark's 4px dots land on whole pixels when a feed shows the card at 300.
+    const slot = walk(h(og.OgCard, { title: 'A page' })).find((e) => e.props.style?.position === 'absolute')?.props.style;
+    check(slot && (1200 - 480 - slot.right) % 4 === 0 && (630 - 240 - slot.bottom) % 4 === 0, 'the dithered mark is off the 4px grid');
+    check(imgs({ mark: false }).length === 0, 'mark: false still draws the large art');
+    const svgs = walk(h(og.OgCard, { title: 'A page' })).filter((e) => e.type === 'svg');
+    check(svgs.length === 1 && svgs[0].props.width <= 60, 'the card’s marks are not one small vector mark in the lockup');
+    const withArt = imgs({ art: og.ogArt.halftoneField });
+    check(withArt.length === 1 && withArt[0].props.src === og.ogArt.halftoneField.src, 'art does not take the dithered mark’s place');
     const res = await draw(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', mark: false }), og.OG_SIZE, 'og-card-no-mark');
     check(res.type === 'image/png' && res.bytes > 1000, 'mark: false does not draw');
     const drawn = await draw(h(og.OgCard, { title: 'Your keys, your account.', eyebrow: 'Lumen Notes', tone: 'burnt', art: og.ogArt.ditherMark }), og.OG_SIZE, 'og-card-burnt-art');
@@ -149,6 +161,64 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
         }
     }
 
+    // A tile with no art and no foot text draws the tone's dithered mark (the 240px bake) at its lower
+    // right, at 2× or 1×, the larger that fits 55% of its width and 45% of its height. A tile with foot
+    // text (rows, body, footer, lockup) and no art draws none.
+    const bakes = { mark: og.ogArt.ditherMark240, ink: og.ogArt.ditherMarkInk240 };
+    const bare = {
+        hero: { tone: 'paper', title: 'Lumen Notes keeps your notes on your own keys.' },
+        top: [{ tone: 'ink', numeral: '0' }, { tone: 'brand', numeral: '0', body: 'passwords to remember' }],
+        wide: { tone: 'burnt', title: 'Every second-hand shelf, one search.' },
+        row: [
+            { tone: 'surface', kicker: 'Receipts', title: 'Every order comes with a receipt.' },
+            { tone: 'brand', title: 'Listing a book is free.', footer: 'halfway.example' },
+            { tone: 'ink', title: 'Notes that stay yours.', lockup: true },
+            { tone: 'paper', kicker: 'For shops', rows: [['Listing', 'free']] },
+        ],
+    };
+    const shade = { paper: 'ink', brand: 'ink', surface: 'ink', ink: 'mark', burnt: 'mark' };
+    for (const size of ['og', 'social']) {
+        const cells = walk(h(og.OgBento, { ...bare, size })).filter((e) => e.props.style?.borderRadius !== undefined);
+        const given = [bare.hero, ...bare.top, bare.wide, ...(size === 'social' ? bare.row : [])];
+        check(cells.length === given.length, `${size}: the bare bento has ${cells.length} tiles, not ${given.length}`);
+        cells.forEach((tile, i) => {
+            const spec = given[i];
+            const { width, height } = tile.props.style;
+            const img = walk(tile).find((e) => e.type === 'img');
+            const footText = Boolean(spec.rows || spec.body || spec.footer || spec.lockup);
+            if (footText) return check(!img, `${size}: a ${spec.tone} tile with foot text draws art it was not given`);
+            const own = bakes[shade[spec.tone]];
+            check(img?.props.src === own.src, `${size}: a bare ${spec.tone} tile does not draw its tone's dithered mark`);
+            const scale = [2, 1].find((x) => own.width * x <= width * 0.55 && own.height * x <= height * 0.45);
+            const box = walk(tile).find((e) => e.props.style?.position === 'absolute')?.props.style;
+            check(box && box.left + box.width === width && box.top + box.height === height, `${size}: a bare ${spec.tone} tile's dithered mark is not at its lower right`);
+            if (scale) check(img.props.width === own.width * scale && img.props.height === own.height * scale, `${size}: a bare ${spec.tone} tile (${width}×${height}) does not draw the mark at ${scale}×, the larger whole multiple that fits`);
+        });
+        const drawn = await draw(h(og.OgBento, { ...bare, size }), size === 'social' ? og.SOCIAL_SIZE : og.OG_SIZE, `og-bento-bare-${size}`);
+        check(drawn.type === 'image/png', `${size}: the bare bento does not draw`);
+    }
+
+    // Every tile image's visible rect stays inside its own art box, and the box inside its tile: the box
+    // clips what it holds (the halftone band's crop among them), and sits within the tile's own bounds.
+    for (const [size, t] of [
+        ['1200', tree],
+        ['1920', walk(h(og.OgBento, { ...tiles, size: 'social' }))],
+        ['1200 bare', walk(h(og.OgBento, bare))],
+        ['1920 bare', walk(h(og.OgBento, { ...bare, size: 'social' }))],
+    ]) {
+        for (const tile of t.filter((e) => e.props.style?.borderRadius !== undefined)) {
+            const { width, height, overflow } = tile.props.style;
+            check(overflow === 'hidden', `${size}: a tile does not clip to its own rounded edge`);
+            for (const box of walk(tile).filter((e) => e.props.style?.position === 'absolute')) {
+                const s = box.props.style;
+                const halftone = walk(box).some((x) => x.type === 'img' && x.props.src === og.ogArt.halftoneField.src);
+                check(s.overflow === 'hidden', `${size}: ${halftone ? 'the halftone band' : 'an art box'} does not clip its image`);
+                check(s.left >= 0 && s.top >= 0 && s.left + s.width <= width && s.top + s.height <= height, `${size}: an art box (${s.left},${s.top} ${s.width}×${s.height}) is not inside its ${width}×${height} tile`);
+                for (const v of [s.left, s.top, s.width, s.height]) check(Number.isInteger(v), `${size}: an art box is off the pixel grid (${v})`);
+            }
+        }
+    }
+
     // Tiles clip their own art: the gutters and margins stay the sheet's colour, pixel for pixel.
     const { data, info } = await sharp(Buffer.from(b.png)).raw().toBuffer({ resolveWithObject: true });
     const sheet = appColors.light.muted.slice(1).match(/../g).map((x) => parseInt(x, 16));
@@ -176,4 +246,4 @@ if (failures) {
     console.error(`\n${failures} og failure(s)`);
     process.exit(1);
 }
-console.log(`✓ og: ${checks} checks; Inter 300/400 and JetBrains Mono inline, four tones in the 2.0 tokens, a 1200×630 PNG per tone, three lines at most, art in the mark's place, the bento at 1200×630 and 1920×1080`);
+console.log(`✓ og: ${checks} checks; Inter 300/400 and JetBrains Mono inline, four tones in the 2.0 tokens, a 1200×630 PNG per tone, three lines at most, the dithered mark as default art and the vector mark in the lockup, the bento at 1200×630 and 1920×1080 with each image inside its art box`);

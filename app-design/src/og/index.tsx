@@ -2,7 +2,9 @@ import type { ReactElement, ReactNode } from 'react';
 
 import { MARK_FACES, MARK_POINTS } from '../brand/mark';
 import { appColors } from '../tokens';
+import ditherMark240 from '../../art/dither-mark-240.png';
 import ditherMark480 from '../../art/dither-mark-480.png';
+import ditherMarkInk240 from '../../art/dither-mark-ink-240.png';
 import ditherMarkInk480 from '../../art/dither-mark-ink-480.png';
 import ditherField from '../../art/dither-field.png';
 import halftoneField from '../../art/halftone-field.png';
@@ -30,7 +32,10 @@ import mono400 from './fonts/jetbrains-mono-latin-400-normal.woff';
  * no file. A title in another script needs a font of its own passed after these.
  *
  * The art is baked (scripts/art/bake.mjs, ./art in the package): satori cannot
- * run a canvas, so dither and halftone come in as PNG data URIs (`ogArt`).
+ * run a canvas, so dither and halftone come in as PNG data URIs (`ogArt`). With
+ * no art of its own, a card or a tile draws the dithered mark large; the small
+ * mark in the lockup stays vector, which keeps its edges when a feed shows the
+ * card at 300px.
  */
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
@@ -55,6 +60,8 @@ interface Tone {
     top: string;
     /** A brand ground takes the ink mark: one colour at the mark's face opacities. */
     monoMark: boolean;
+    /** The default art's dithered mark: the peach top on a dark ground, the ink top on a light one. */
+    dither: 'mark' | 'ink';
 }
 
 // Every text pair here is one check-contrast holds to AA (the 2.0 tokens).
@@ -68,6 +75,7 @@ const TONES = {
         line: L.hairlineStrong,
         top: INK,
         monoMark: false,
+        dither: 'ink',
     },
     ink: {
         bg: D.card,
@@ -78,6 +86,7 @@ const TONES = {
         line: D.hairlineStrong,
         top: PEACH,
         monoMark: false,
+        dither: 'mark',
     },
     burnt: {
         bg: L.burnt,
@@ -88,6 +97,7 @@ const TONES = {
         line: L.burntEmber,
         top: PEACH,
         monoMark: false,
+        dither: 'mark',
     },
     brand: {
         bg: L.brand,
@@ -98,6 +108,7 @@ const TONES = {
         line: L.brandForeground,
         top: INK,
         monoMark: true,
+        dither: 'ink',
     },
 } as const satisfies Record<string, Tone>;
 
@@ -113,6 +124,7 @@ const TILE_TONES = {
         line: L.border,
         top: INK,
         monoMark: false,
+        dither: 'ink',
     },
 } as const satisfies Record<string, Tone>;
 
@@ -132,9 +144,29 @@ const png = (v: string) => (v.startsWith('iVBORw0KGgo') ? `data:image/png;base64
 export const ogArt = {
     ditherMark: { src: png(ditherMark480), width: 480, height: 240 },
     ditherMarkInk: { src: png(ditherMarkInk480), width: 480, height: 240 },
+    ditherMark240: { src: png(ditherMark240), width: 240, height: 120 },
+    ditherMarkInk240: { src: png(ditherMarkInk240), width: 240, height: 120 },
     ditherField: { src: png(ditherField), width: 1200, height: 320 },
     halftoneField: { src: png(halftoneField), width: 320, height: 320 },
 } as const satisfies Record<string, OgImage>;
+
+/**
+ * The default art: the tone's dithered mark from its coarse 240px bake, drawn at
+ * whole multiples. Its 2px dots stay whole when a feed shows a 1200px card at
+ * 300 (a quarter); the 480 bake's 3px dots beat against that into moiré.
+ */
+const ditherMark = (tone: Tone): OgImage => (tone.dither === 'ink' ? ogArt.ditherMarkInk240 : ogArt.ditherMark240);
+
+/**
+ * A tile's default art: the dithered mark at 2× or 1×, the larger that fits the
+ * lower right (55% of the tile's width, 45% of its height). A tile too small
+ * for 1× takes it scaled down to fit.
+ */
+function defaultTileArt(tone: Tone, width: number, height: number): NonNullable<OgTile['art']> {
+    const mark = ditherMark(tone);
+    const scale = [2, 1].find((x) => mark.width * x <= width * 0.55 && mark.height * x <= height * 0.45) ?? 1;
+    return { ...mark, width: mark.width * scale, height: mark.height * scale, place: 'right' };
+}
 
 function MarkSvg({ width, tone }: { width: number; tone: Tone }) {
     const face = (name: 'left' | 'right' | 'top') =>
@@ -222,19 +254,21 @@ export interface OgCardProps {
     /** At the top right, in mono: "stamp.ochk.io". */
     host?: string;
     tone?: OgTone;
-    /** The large mark at the lower right. On by default; off, the title takes the card's width. */
+    /** The large dithered mark at the lower right, 480px wide. On by default; off, the title takes the card's width. */
     mark?: boolean;
     /** Baked art in the mark's place (an `ogArt` entry, or the site's own PNG), at the lower right. */
     art?: OgImage;
 }
 
 /** The 1200×630 card. The card is the image, so it is square: rounding is for tiles laid on a sheet (`OgBento`). */
-export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art }: OgCardProps): ReactElement {
+export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art: given }: OgCardProps): ReactElement {
     const t = TONES[tone];
+    // With no art of its own, the card draws the tone's dithered mark at 2×, 480px.
+    const art = given ?? (mark ? { ...ditherMark(t), width: 480, height: 240 } : undefined);
     // Long titles step down a size before they would run past three lines.
     const size = title.length > 70 ? 60 : title.length > 40 ? 70 : 82;
     const text = title.length > 120 ? `${title.slice(0, 119).trimEnd()}…` : title;
-    const hasArt = Boolean(art) || mark;
+    const hasArt = Boolean(art);
     return (
         <div
             style={{
@@ -258,24 +292,12 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                     style={{
                         position: 'absolute',
                         right: -40,
-                        bottom: -24,
+                        // On a 4px grid (left 760, top 416), so the 2× mark's 4px dots land on whole pixels at a quarter.
+                        bottom: -26,
                         display: 'flex',
                     }}
                 >
                     <img src={art.src} width={art.width} height={art.height} alt="" />
-                </div>
-            ) : mark ? (
-                <div
-                    style={{
-                        position: 'absolute',
-                        right: -150,
-                        bottom: -140,
-                        width: 640,
-                        height: 320,
-                        display: 'flex',
-                    }}
-                >
-                    <MarkSvg width={640} tone={t} />
                 </div>
             ) : null}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -344,7 +366,10 @@ export interface OgTile {
     rows?: readonly (readonly [string, string])[];
     /** Mono fine print at the foot. */
     footer?: string;
-    /** Baked art: `fill` covers the tile, `left` and `right` sit at that edge, `center` in the middle. */
+    /**
+     * Baked art: `fill` covers the tile, `left` and `right` sit at that edge, `center` in the middle.
+     * Left out, a tile with no foot text (rows, body, footer, lockup) draws the dithered mark at the lower right.
+     */
     art?: OgImage & { place?: 'fill' | 'left' | 'right' | 'center' };
     /** The orangecheck lockup at the foot. */
     lockup?: boolean;
@@ -407,10 +432,13 @@ function artSize(art: NonNullable<OgTile['art']>, box: { width: number; height: 
 function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; height: number; k: number; big?: boolean }) {
     const t = TILE_TONES[tile.tone];
     const pad = 32 * k;
-    const box = tile.art ? artBox(tile.art, width, height, k) : null;
-    // Text never sits on art in a band: the column starts after the band's right edge.
-    const band = tile.art?.place === 'left' && box ? box.left + box.width : 0;
     const body = typeof tile.body === 'string' ? [tile.body] : (tile.body ?? []);
+    // With no art of its own, a tile whose foot is free of text draws the dithered mark there, at a whole multiple.
+    const footFree = !tile.rows?.length && body.length === 0 && !tile.footer && !tile.lockup;
+    const art = tile.art ?? (footFree ? defaultTileArt(t, width, height) : undefined);
+    const box = art ? artBox(art, width, height, tile.art ? k : 1) : null;
+    // Text never sits on art in a band: the column starts after the band's right edge.
+    const band = art?.place === 'left' && box ? box.left + box.width : 0;
     const titleSize = (big ? 64 : 38) * k;
     return (
         <div
@@ -429,9 +457,9 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                 paddingLeft: band + pad,
             }}
         >
-            {tile.art && box ? (
+            {art && box ? (
                 <div style={{ position: 'absolute', display: 'flex', overflow: 'hidden', ...box }}>
-                    <img src={tile.art.src} {...artSize(tile.art, box)} alt="" />
+                    <img src={art.src} {...artSize(art, box)} alt="" />
                 </div>
             ) : null}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
