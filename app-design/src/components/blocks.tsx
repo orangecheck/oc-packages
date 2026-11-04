@@ -5,7 +5,7 @@ import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 import { Accordion, AccordionItem } from '../primitives/accordion';
 import { Reveal } from './motion';
-import { Section, SectionIntro } from './section';
+import { Section, SectionIntro, type SectionProps } from './section';
 import { Display, Eyebrow } from './typography';
 
 /**
@@ -204,6 +204,7 @@ export function Closing({
     fineprint,
     art,
     as: Tag = 'h2',
+    tone,
     className,
 }: {
     title: ReactNode;
@@ -215,11 +216,13 @@ export function Closing({
     art?: ReactNode;
     /** The title's heading level, where the page puts it. Default h2. */
     as?: HeadingTag;
+    /** Its band, one of Section's tones; canvas by default. The default check is orange, so on brand pass your own art or `null`. */
+    tone?: SectionProps['tone'];
     className?: string;
 }) {
     return (
         // On the Frame like PageHero; its title is a display-2, so the page's H1 stays the largest text.
-        <Section framed className={cn('overflow-hidden', className)}>
+        <Section framed tone={tone} className={cn('overflow-hidden', className)}>
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <Reveal className="flex flex-col items-start gap-8 md:col-span-7">
                     <div className="flex flex-col gap-5">

@@ -299,6 +299,9 @@ const html = (el) => renderToStaticMarkup(el);
     const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
     check(cmp.includes('>Use OC Stamp</a>') && (cmp.match(/<li/g) ?? []).length === 3, 'ComparisonTable: no action row');
     check(html(h(C.Closing, { title: 't', fineprint: h('span', { 'data-fine': '' }, 'credit') })).includes('data-fine'), 'Closing: no fineprint');
+    // Closing on a band: its tone reaches the section, which leaves the canvas; with none it stays there.
+    check(/^<section class="(?=[^"]*\boca-band-brand\b)(?![^"]*\bbg-background\b)/.test(html(h(C.Closing, { tone: 'brand', title: 't', art: null }))), 'Closing tone="brand": its section is not on the brand band');
+    check(/^<section class="[^"]*\bbg-background\b/.test(html(h(C.Closing, { title: 't', art: null }))), 'Closing with no tone: its section is not on the canvas');
     // A product without a page of its own links ochk.io's, and keeps all five.
     const F = require(join(here, '../dist/family.js'));
     const vault = F.selfHostedLegalLinks({ contact: false });

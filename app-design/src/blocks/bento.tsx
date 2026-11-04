@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import type { HeadingTag } from '../lib/heading';
 
 /*
  * Tiles laid on a sheet: a big numeral, a line of display type, a picture.
@@ -62,13 +63,23 @@ export interface BentoTileProps {
      */
     halftone?: boolean | ReactNode;
     footer?: ReactNode;
+    /**
+     * Which line is the tile's heading: its title, or its label when the label names the tile. None by default,
+     * as a tile of figures has no heading.
+     */
+    heading?: 'title' | 'label';
+    /** That heading's level, where the page puts the grid. Default h3. */
+    as?: HeadingTag;
     /** Columns it spans from sm up (2 at most on a tablet). */
     span?: 1 | 2 | 3 | 4;
     rows?: 1 | 2;
     className?: string;
 }
 
-export function BentoTile({ tone = 'paper', label, numeral, title, children, art, halftone, footer, span = 1, rows = 1, className }: BentoTileProps) {
+export function BentoTile({ tone = 'paper', label, numeral, title, children, art, halftone, footer, heading, as = 'h3', span = 1, rows = 1, className }: BentoTileProps) {
+    // The heading keeps the line's own classes: in the tile's flex column it lays out as the span does.
+    const Label = heading === 'label' ? as : 'span';
+    const Title = heading === 'title' ? as : 'span';
     return (
         <div data-bento-tone={tone} className={cn('relative isolate flex min-w-0 flex-col overflow-hidden', GROUND[tone], SPAN[span], ROWS[rows], className)}>
             {halftone ? (
@@ -82,11 +93,7 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
             ) : null}
             <div className={cn('flex flex-1 gap-6 p-6 md:p-8', art ? 'flex-col md:flex-row' : 'flex-col', halftone && 'pl-[calc(22%+1rem)] md:pl-[calc(22%+1.5rem)]')}>
                 <div className="flex min-w-0 flex-1 flex-col gap-4">
-                    {label ? (
-                        <span className={cn('oca-label leading-none', QUIET[tone])}>
-                            {label}
-                        </span>
-                    ) : null}
+                    {label ? <Label className={cn('oca-label leading-none', QUIET[tone])}>{label}</Label> : null}
                     {numeral !== undefined ? (
                         <span className={cn('oca-tabular text-[clamp(4.5rem,3.2rem+4vw,8rem)] font-light leading-[0.85] tracking-[-0.05em]', NUMERAL[tone])}>
                             {numeral}
@@ -94,7 +101,7 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
                     ) : null}
                     <div className="mt-auto flex flex-col gap-2 pt-4">
                         {title ? (
-                            <span
+                            <Title
                                 className={cn(
                                     rows === 2
                                         ? 'text-[2rem] font-light leading-[1.02] tracking-[-0.035em] md:text-[3.25rem]'
@@ -102,7 +109,7 @@ export function BentoTile({ tone = 'paper', label, numeral, title, children, art
                                 )}
                             >
                                 {title}
-                            </span>
+                            </Title>
                         ) : null}
                         {children ? <div className={cn('text-[0.9375rem] leading-snug', QUIET[tone])}>{children}</div> : null}
                     </div>

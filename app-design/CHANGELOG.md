@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- `BentoTile` takes a heading. `heading="title"` makes its title the tile's
+  heading and `heading="label"` its mono label, at `as` (h3 by default),
+  where the page puts the grid. The heading is drawn exactly as the line it
+  replaces. With no `heading` a tile has none, as before. **Migrate**: drop
+  the `<span role="heading" aria-level={3}>` inside a tile's label or title
+  (chat's ThreeModes; vault's WhyVault and WhatYouCanStore) and pass
+  `heading="label"` or `heading="title"`.
+- `Closing` takes `tone`, one of Section's tones, for its band; canvas by
+  default. The default check is orange, so on brand pass your own `art` or
+  `null`. **Migrate**: chat's BottomCta passes `tone="brand"` in place of
+  its `oca-band-brand bg-brand text-brand-foreground` class.
+
 ## [2.0.0] — unreleased (2.0.0-pre)
 
 Design iteration 2: one family system that looks like a specification
