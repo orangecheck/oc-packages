@@ -82,6 +82,30 @@ const html = (el) => renderToStaticMarkup(el);
     check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
 }
 
+// One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square
+// app icon (AppIcon, its 24-unit tile with rounded corners), which stays the favicon, app icon and OG mark.
+{
+    const nav = [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }];
+    const chrome = {
+        'SiteHeader': h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+        'SiteHeader (tool)': h(Ch.SiteHeader, { variant: 'tool', product: 'stamp', nav: [] }),
+        'ToolShell': h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('p', null, 'page')),
+        'SiteFooter': h(Ch.SiteFooter, { family: true, legal: true }),
+        'SiteFooter compact': h(Ch.SiteFooter, { compact: true, family: true, legal: true }),
+        'SignInFrame': h(Ch.SignInFrame, { title: 'Sign in', protocol: 'stamp' }, h('p', null, 'form')),
+        'AppShell': h(Ch.AppShell, { product: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')),
+        'AppShell rail': h(Ch.AppShell, { variant: 'rail', product: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')),
+        'DocsShell': h(Ch.DocsShell, { nav, current: '/docs' }, h('p', null, 'page')),
+    };
+    const icon = /<svg[^>]*viewBox="0 0 24 24"[^>]*>(?:<title>[^<]*<\/title>)?<rect width="24" height="24" rx="/;
+    const iconIn = Object.entries(chrome)
+        .map(([name, el]) => [name, html(el)])
+        // The rail (the messenger's frame) draws no lockup of its own; the rest each draw one.
+        .filter(([name, out]) => icon.test(out) || (name !== 'AppShell rail' && !/viewBox="0 0 16 8"/.test(out)))
+        .map(([name]) => name);
+    check(iconIn.length === 0, `chrome draws the square app icon, or no swoosh lockup: ${iconIn.join(', ')}`);
+}
+
 // Under a tool's compact density a default Button is `sm`, the height of the field beside it; an explicit size stays.
 {
     const compact = (el) => html(h(P.DensityProvider, { density: 'compact' }, el));

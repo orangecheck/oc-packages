@@ -154,6 +154,19 @@ optional. What changes is how things look.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 
+### Follow-up (design2-chrome-app)
+
+- One lockup in all chrome: the swoosh and the wordmark, the lockup the site
+  header already drew. It is now used in `SiteFooter`, the compact footer,
+  `SignInFrame`, the tool header (`ToolShell`, `SiteHeader variant="tool"`)
+  and `AppShell`'s bar and sidebar. They used the square app icon, so one page
+  showed two lockups. The app icon stays the favicon, the app icon and the OG
+  mark. A product site keeps its word after the hairline
+  ("orangecheck | stamp"), and below 420px the wordmark still gives way to
+  it. The sizes follow the flat lockup's larger name: 22 in the tool header,
+  20 in the phone bar and the compact footer, 26 in the footer and the sign-in.
+  check-render renders every chrome and fails on the app icon in any of it.
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink

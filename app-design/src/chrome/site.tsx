@@ -238,7 +238,7 @@ export function SiteHeader({
             : null;
     const headerSignIn = !tool && signIn ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
     // 2.0's site header: the flat mark and the wordmark at 21px in the frame. The tool header keeps its lockup.
-    const brandNode = brand ?? (tool ? <ProductLockup size={24} product={product} /> : <ProductLockup size={30} product={product} flat />);
+    const brandNode = brand ?? <ProductLockup size={tool ? 22 : 30} product={product} />;
     const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta);
     // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
     // links follow the brand, and Sign in and the CTA sit at the right rule.
@@ -569,7 +569,7 @@ export function SiteFooter({
                             href={OCHK_IO}
                             className="relative rounded-none text-foreground before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2"
                         >
-                            <Lockup size={22} />
+                            <Lockup size={20} variant="flat" />
                         </a>
                         {family ? (
                             <nav aria-label="Protocols">
@@ -625,7 +625,7 @@ export function SiteFooter({
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}
-                    <Lockup size={26} className={signature ? 'max-md:hidden' : undefined} />
+                    <Lockup size={26} variant="flat" className={signature ? 'max-md:hidden' : undefined} />
                     {fineprint ? <p className="max-w-xs text-[0.9375rem] leading-relaxed text-muted-foreground">{fineprint}</p> : null}
                 </div>
                 {/* On a phone each group folds shut, a native disclosure that needs no script: the footer is a screen, not two. */}

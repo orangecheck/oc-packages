@@ -398,7 +398,7 @@ function SidebarShell({
                             </SheetContent>
                         </Sheet>
                         <Link href={home} className="flex min-h-11 items-center rounded-none p-1">
-                            <ProductLockup size={22} product={product} />
+                            <ProductLockup size={20} product={product} />
                             {/* Read as "orangecheck home": the name starts with what the link shows. */}
                             <span className="sr-only"> home</span>
                         </Link>
@@ -424,7 +424,7 @@ function SidebarShell({
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
                         <div className="flex items-center gap-1">
                             <Link href={home} className="min-w-0 px-2">
-                                <ProductLockup size={product ? 24 : 26} product={product} />
+                                <ProductLockup size={product ? 22 : 24} product={product} />
                                 <span className="sr-only"> home</span>
                             </Link>
                             {familyMenu}
