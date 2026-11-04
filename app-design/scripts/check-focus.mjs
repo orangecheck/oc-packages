@@ -242,6 +242,25 @@ try {
         h(C.Section, { tone: 'brand' }, h('p', null, h('a', { href: '/docs', 'data-b': 'link' }, 'Read the docs')), h(P.Button, { 'data-b': 'button' }, 'Get an account'))
     );
     const signin = ssr('signin', h(Ch.SignInFrame, { title: 'Sign in', protocol: 'stamp' }, h('input', { 'data-ceremony': '', 'aria-label': 'Email' })));
+    // Every dark or orange ground, a Card tone, a band and the sign-in frame's ink panel, with what
+    // a page puts on it: a MonoLabel, a muted line, a card raised on it (its text and its muted line)
+    // and a secondary Button. Seven grounds, five texts each.
+    const onGround = (k) => [
+        h(C.MonoLabel, { key: 'l', 'data-t': `${k}: MonoLabel` }, 'Since 2025'),
+        h('p', { key: 'm', className: 'text-muted-foreground', 'data-t': `${k}: muted text` }, 'A muted line'),
+        h(P.Card, { key: 'c', padding: 'sm' }, h('p', { 'data-t': `${k}: a card's text` }, 'On a card'), h('p', { className: 'text-muted-foreground', 'data-t': `${k}: a card's muted text` }, 'Its muted line')),
+        h(P.Button, { key: 'b', variant: 'secondary', 'data-t': `${k}: secondary Button` }, 'Secondary'),
+    ];
+    const grounds = ssr(
+        'grounds',
+        h(
+            'div',
+            { className: 'flex flex-col gap-6 bg-background p-6' },
+            ...['ink', 'burnt', 'brand'].map((t) => h(P.Card, { key: `card-${t}`, tone: t }, ...onGround(`Card tone="${t}"`))),
+            ...['ink', 'burnt', 'brand'].map((t) => h(C.Section, { key: `section-${t}`, tone: t, space: 'sm' }, ...onGround(`Section tone="${t}"`))),
+            h(Ch.SignInFrame, { key: 'signin', title: 'Sign in', protocol: 'stamp', caption: onGround('SignInFrame caption') }, h('p', null, 'form'))
+        )
+    );
     const appNav = [{ items: [{ href: '/me', label: 'Home', active: true }, { href: '/me/activity', label: 'Activity' }, { href: '/me/balance', label: 'Balance' }] }];
     const shells = [
         ['ToolShell', ssr('tool', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('p', null, 'page')))],
@@ -345,6 +364,27 @@ try {
                 });
                 check(got.b === b && got.contrast >= 3, `[${dark ? 'dark' : 'light'}] band ${b}: the focus ring is ${got.contrast?.toFixed(2)}:1 on the orange (${got.ring})`);
             }
+        }
+
+        // Text on a dark or orange ground reads at 4.5:1: a Card tone that set only its ground and
+        // text left a MonoLabel and a muted line in the page's grey, dark on dark.
+        for (const dark of [false, true]) {
+            await p.goto(grounds);
+            await p.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark);
+            const got = await p.evaluate(() =>
+                [...document.querySelectorAll('[data-t]')].map((el) => {
+                    // The ground under the text: every background from the page down, painted in turn.
+                    const chain = [];
+                    for (let n = el; n; n = n.parentElement) chain.unshift(n);
+                    let ground = [255, 255, 255];
+                    for (const n of chain) ground = __rgb(getComputedStyle(n).backgroundColor, `rgb(${ground.join()})`);
+                    const text = __rgb(getComputedStyle(el).color, `rgb(${ground.join()})`);
+                    return { t: el.getAttribute('data-t'), r: __contrast(text, ground) };
+                })
+            );
+            const twice = [...new Set(got.map((g) => g.t).filter((t, i, all) => all.indexOf(t) !== i))];
+            check(got.length === 35 && twice.length === 0, `[${dark ? 'dark' : 'light'}] grounds: ${got.length} texts measured, not 35${twice.length ? ` (twice: ${twice.join('; ')})` : ''}`);
+            for (const g of got) check(g.r >= 4.5, `[${dark ? 'dark' : 'light'}] ${g.t} is ${g.r.toFixed(2)}:1 on its ground, needs 4.5:1`);
         }
 
         // Sign-in: the first stop skips to the ceremony, and lands there.
@@ -769,4 +809,4 @@ if (failures) {
     console.error(`\n${failures} focus failure(s)`);
     process.exit(1);
 }
-console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, skip links that land, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
+console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, text at 4.5:1 on every dark and orange ground, skip links that land, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);

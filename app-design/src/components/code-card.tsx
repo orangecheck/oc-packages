@@ -28,7 +28,7 @@ export function PackageCard({ items, as: Tag = 'h3', className }: { items: Packa
     return (
         <div
             className={cn(
-                'grid gap-x-10 gap-y-7 rounded-[1.25rem] border border-oca-ink-line bg-oca-ink-card p-6 text-oca-ink-foreground md:grid-cols-2 md:p-9',
+                'grid gap-x-10 gap-y-7 rounded-none border border-oca-ink-line bg-oca-ink-card p-6 text-oca-ink-foreground md:grid-cols-2 md:p-9',
                 className
             )}
         >

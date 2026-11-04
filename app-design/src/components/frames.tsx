@@ -43,8 +43,9 @@ export function BrowserFrame({
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-[1.1rem] border border-border bg-card',
-                'shadow-[0_40px_90px_-40px_rgb(10_10_10/0.45)]',
+                'overflow-hidden rounded-depict border border-border bg-card',
+                // 2.0's depiction shadow (tokens.css), drawn tight to the window.
+                'shadow-[var(--oca-shadow-depict)]',
                 className
             )}
             style={style}
@@ -85,14 +86,14 @@ export function FloatChip({
     return (
         <div
             className={cn(
-                'oca-animate-drift flex items-center gap-3 rounded-2xl border border-border bg-card/90 py-2.5 pl-2.5 pr-4 backdrop-blur-md',
+                'oca-animate-drift flex items-center gap-3 rounded-none border border-border bg-card/90 py-2.5 pl-2.5 pr-4 backdrop-blur-md',
                 'shadow-[0_24px_50px_-24px_rgb(10_10_10/0.35)]',
                 className
             )}
             style={{ animationDelay: `${-delay}s`, ...style }}
         >
             {icon ? (
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground [&_svg]:size-4">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-muted text-foreground [&_svg]:size-4">
                     {icon}
                 </span>
             ) : null}

@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
+import { Frame } from './frame';
 import { Reveal } from './motion';
 
 /*
@@ -14,6 +15,10 @@ import { Reveal } from './motion';
 // overflow-x: clip, not hidden: decoration may not widen the page, and a sticky
 // child still sticks.
 // The bands are theme.css utilities (oca-band-*), so any element can be one.
+// A section's vertical space. A framed section puts it inside its Frame, so the Frame's hairlines
+// run the section's full height and meet the next section's.
+const SPACE = { none: '', sm: 'py-12 md:py-16', md: 'oca-section', lg: 'py-24 md:py-40' } as const;
+
 export const sectionVariants = cva('relative w-full overflow-x-clip', {
     variants: {
         tone: {
@@ -32,12 +37,7 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             true: 'border-b border-border',
             false: '',
         },
-        space: {
-            none: '',
-            sm: 'py-12 md:py-16',
-            md: 'oca-section',
-            lg: 'py-24 md:py-40',
-        },
+        space: SPACE,
     },
     defaultVariants: { tone: 'canvas', space: 'md', rule: false },
 });
@@ -45,9 +45,23 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
 export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<typeof sectionVariants> {
     /** Put children in the standard container. Default true. */
     contained?: boolean;
+    /**
+     * Put children in 2.0's Frame instead: the 82.5rem column with the page's gutter and a hairline
+     * at each edge from 900px, so the section lines up with the header and the footer.
+     */
+    framed?: boolean;
+    /** With `framed`: classes for the Frame, which also holds the section's `space`. */
+    frameClassName?: string;
 }
 
-export function Section({ tone, space, rule, contained = true, className, children, ...props }: SectionProps) {
+export function Section({ tone, space, rule, contained = true, framed = false, frameClassName, className, children, ...props }: SectionProps) {
+    if (framed) {
+        return (
+            <section className={cn(sectionVariants({ tone, space: 'none', rule }), className)} {...props}>
+                <Frame className={cn(SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
+            </section>
+        );
+    }
     return (
         <section className={cn(sectionVariants({ tone, space, rule }), className)} {...props}>
             {contained ? <div className="oca-container">{children}</div> : children}

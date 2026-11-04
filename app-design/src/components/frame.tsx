@@ -88,12 +88,17 @@ export interface StatRowProps extends HTMLAttributes<HTMLDListElement> {
     items: StatItem[];
     /** Cells per row from md up. Two on a phone. Default: the number of items, at most four. */
     columns?: 2 | 3 | 4;
+    /**
+     * `md` (default) for a figure ("21", "3 of 5"); `sm` for values longer than one, such as a
+     * sats total or a short phrase. A value longer than its cell wraps at either size.
+     */
+    size?: 'md' | 'sm';
 }
 
 const COLUMNS = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' } as const;
 
 /** A hairline stat grid: one figure and its label a cell, the cells ruled like a table. */
-export function StatRow({ items, columns, className, ...props }: StatRowProps) {
+export function StatRow({ items, columns, size = 'md', className, ...props }: StatRowProps) {
     const cols = columns ?? (Math.min(4, Math.max(2, items.length)) as 2 | 3 | 4);
     return (
         <dl
@@ -107,7 +112,7 @@ export function StatRow({ items, columns, className, ...props }: StatRowProps) {
                         <span className="oca-label">{it.label}</span>
                         {it.note ? <span className="text-[0.8125rem] text-oca-subtle">{it.note}</span> : null}
                     </dt>
-                    <dd className="oca-stat text-foreground">{it.value}</dd>
+                    <dd className={cn('oca-stat text-foreground', size === 'sm' && '[--oca-stat-size:clamp(1.375rem,0.9rem+2.2vw,3rem)]')}>{it.value}</dd>
                 </div>
             ))}
         </dl>
