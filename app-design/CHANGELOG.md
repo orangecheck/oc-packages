@@ -98,6 +98,12 @@ optional. What changes is how things look.
   drawn and 44px to a thumb, the height of the fields beside it. A Field's
   action no longer stands 8px taller than its input (vote /discover). An
   explicit `size` is kept.
+- `SiteFooter` sets up to seven link columns in one row from 1280px. Below
+  1280, the rows are as even as the width allows. A product footer with its
+  three columns and the family's four (chat, vault) used to put six in a row
+  and PUBLIC GOODS alone under them. Now it is one row at 1280 and 4 + 3 at
+  768 and 1024. Five columns at md are 3 + 2 rather than 4 + 1. check-layout
+  mounts the seven-column footer at 768, 1024, 1280 and 1440.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 

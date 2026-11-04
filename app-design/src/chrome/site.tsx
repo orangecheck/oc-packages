@@ -541,7 +541,8 @@ const FRAME_X = 'mx-auto w-full max-w-[82.5rem] px-[clamp(1rem,0.333rem+2.857vw,
  * The footer, in 2.0's register: the deep orange ground, a line of fine print,
  * columns of links, the family when it is on, the giant wordmark and the
  * legal row. Any number
- * of columns: the lockup shares their row up to five, then takes its own.
+ * of columns: the lockup shares their row up to five, then takes its own, and
+ * up to seven columns share one row from 1280px (below, the rows are even).
  * Links are 44px tall on phones. A phone sees the whole footer in 600px, fine
  * print and meta included: six groups leave them about 110px, seven about 65px.
  */
@@ -605,17 +606,21 @@ export function SiteFooter({
     ];
     const n = cols.length;
     const inline = n <= 5;
+    // Rows as even as each width allows, at most 4 a row from md, 6 from lg and 7 from xl: seven
+    // columns are one row at 1280, 4 + 3 below it, never 6 and a straggler. (auto-fit fills each
+    // row greedily, which is the straggler again.)
+    const even = (most: number) => `repeat(${n === 0 ? 1 : Math.ceil(n / Math.ceil(n / most))}, minmax(0, 1fr))`;
+    const beside = `minmax(0, 1.3fr) repeat(${Math.max(1, n)}, minmax(0, 1fr))`;
     const grid = {
-        '--oca-footer-md': `repeat(${Math.max(1, Math.min(n, 4))}, minmax(0, 1fr))`,
-        '--oca-footer-lg': inline
-            ? `minmax(0, 1.3fr) repeat(${Math.max(1, n)}, minmax(0, 1fr))`
-            : `repeat(${Math.min(n, 6)}, minmax(0, 1fr))`,
+        '--oca-footer-md': even(4),
+        '--oca-footer-lg': inline ? beside : even(6),
+        '--oca-footer-xl': inline ? beside : even(7),
     } as CSSProperties;
     return (
         <footer className={cn(FOOTER_GROUND, className)}>
             <div
                 style={grid}
-                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-5 pt-5 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]')}
+                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-5 pt-5 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)] xl:grid-cols-[var(--oca-footer-xl)]')}
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}

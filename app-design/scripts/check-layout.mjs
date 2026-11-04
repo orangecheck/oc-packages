@@ -1352,6 +1352,21 @@ try {
                     await c.close();
                 }
             }
+            // A product footer's seven columns (three of its own and the family's four): one row from
+            // 1280, and below that rows as even as the width allows, never six and a straggler.
+            if (width === 1440) {
+                for (const w of [768, 1024, 1280, 1440]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+                    await c.goto(productFooter);
+                    await c.evaluate(() => document.fonts.ready);
+                    const tops = await c.evaluate(() => [...document.querySelectorAll('footer [class~="md:flex"] > .oca-label')].map((l) => Math.round(l.getBoundingClientRect().top)));
+                    const rows = Object.values(tops.reduce((m, t) => ({ ...m, [t]: (m[t] ?? 0) + 1 }), {}));
+                    const even = Math.max(...rows) - Math.min(...rows) <= 1 && (rows.length === 1 || Math.min(...rows) > 1);
+                    check(tops.length === 7, `[${w}] the product footer drew ${tops.length} columns, not 7`);
+                    check(w >= 1280 ? rows.length === 1 : even, `[${w}] the product footer's 7 columns sit in rows of ${rows.join(' + ')}${w >= 1280 ? ', not one row' : ', not as even as the width allows'}`);
+                    await c.close();
+                }
+            }
             // The page's bands on the header's frame, and the H1 the largest text read.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
