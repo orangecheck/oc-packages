@@ -451,6 +451,24 @@ try {
             )
         )
     );
+    // StatRow with the long values ochk.app's trust group shows: sats totals and a phrase.
+    const LONG_STATS = [
+        { label: 'Earned, waiting', value: '12,345,678 sats' },
+        { label: 'Paid out, all time', value: '987,654,321 sats' },
+        { label: 'Signing threshold', value: '2 of 3' },
+        { label: 'Who you trust', value: 'Bitcoin and two operators' },
+    ];
+    const statRows = page(
+        'stat-rows',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-10 p-4' },
+                h(C.StatRow, { 'data-t': 'md', columns: 4, items: LONG_STATS }),
+                h(C.StatRow, { 'data-t': 'sm', columns: 4, size: 'sm', items: LONG_STATS })
+            )
+        )
+    );
     // PageHero's S10 layout, as the legal pages use it: a two-line title, a lead and a mark.
     const s10Page = page(
         's10',
@@ -1421,6 +1439,31 @@ try {
                 check(Math.abs(f.hero - f.brand) <= 1 && Math.abs(f.closing - f.brand) <= 1, `[${width}] the hero and the closing are off the header's frame: brand ${f.brand}, hero ${f.hero}, closing ${f.closing}`);
                 check(f.gaps.length >= 2 && f.gaps.every((g) => g <= 1), `[${width}] a framed section's hairlines stop short of its edges by ${JSON.stringify(f.gaps)}px`);
                 check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
+                await c.close();
+            }
+            // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(statRows);
+                await c.evaluate(() => document.fonts.ready);
+                const st = await c.evaluate(() =>
+                    Object.fromEntries(
+                        [...document.querySelectorAll('dl[data-t]')].map((dl) => {
+                            const over = [...dl.querySelectorAll('dd')]
+                                .map((dd) => {
+                                    const r = document.createRange();
+                                    r.selectNodeContents(dd);
+                                    const cell = dd.parentElement.getBoundingClientRect();
+                                    const cs = getComputedStyle(dd.parentElement);
+                                    return [dd.textContent, Math.round(r.getBoundingClientRect().right - (cell.right - parseFloat(cs.paddingRight)))];
+                                })
+                                .filter(([, px]) => px > 1);
+                            return [dl.dataset.t, { over, size: parseFloat(getComputedStyle(dl.querySelector('dd')).fontSize) }];
+                        })
+                    )
+                );
+                check(st.md.over.length === 0 && st.sm.over.length === 0, `[${width}] StatRow: a value runs out of its cell by px: ${JSON.stringify({ md: st.md.over, sm: st.sm.over })}`);
+                check(st.sm.size < st.md.size, `[${width}] StatRow size="sm" draws its figures at ${st.sm.size}px, not under the default's ${st.md.size}px`);
                 await c.close();
             }
             // S10: from md the title at the top, the lead at the foot on the right, the mark at the foot

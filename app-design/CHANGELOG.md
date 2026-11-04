@@ -112,6 +112,12 @@ optional. What changes is how things look.
   footer's wordmark ran 79px past its frame at 1440. check-layout measures
   the wordmark on that stack, and its spread check's comment now says the
   0.05em it tests.
+- `StatRow` takes `size="sm"` for values longer than a figure: a sats total
+  or a short phrase (ochk.app's trust group). Before, each site set its own
+  clamp on the cells. At either size, a value longer than its cell now wraps
+  instead of running out. At 390 a "987,654,321 sats" ran 100px past its cell.
+  check-layout measures both sizes with the trust group's values at 390 and
+  1440.
 - Under a tool's compact density, a `Button` with no `size` is `sm`: 36px
   drawn and 44px to a thumb, the height of the fields beside it. A Field's
   action no longer stands 8px taller than its input (vote /discover). An

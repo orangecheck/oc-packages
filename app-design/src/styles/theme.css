@@ -152,11 +152,13 @@
     color: var(--oca-accent-display);
 }
 
-/* A figure in a hairline stat grid. */
+/* A figure in a hairline stat grid. StatRow's size="sm" sets --oca-stat-size for values longer
+   than a figure; a value longer than its cell still wraps rather than runs out of it. */
 @utility oca-stat {
     font-family: var(--oc-font-display);
     font-weight: 300;
-    font-size: clamp(2.5rem, 2.036rem + 1.905vw, 3.75rem);
+    font-size: var(--oca-stat-size, clamp(2.5rem, 2.036rem + 1.905vw, 3.75rem));
+    overflow-wrap: anywhere;
     line-height: 1;
     letter-spacing: -0.035em;
     font-variant-numeric: tabular-nums;
