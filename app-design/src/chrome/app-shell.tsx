@@ -74,8 +74,9 @@ export function SideNav({ groups, onNavigate }: { groups: ShellNavGroup[]; onNav
                             className={cn(
                                 'flex h-9 items-center gap-3 rounded-none px-3 text-[0.9375rem] transition-colors',
                                 '[&_svg]:size-[1.0625rem] [&_svg]:shrink-0',
+                                // The current page is drawn in ink as well as raised: card on the page was 1.07:1, its hairline 1.3.
                                 it.active
-                                    ? 'bg-card text-foreground shadow-sm ring-1 ring-border [&_svg]:text-foreground'
+                                    ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground [&_svg]:text-foreground'
                                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >
@@ -117,8 +118,9 @@ function SectionSwitch({
                         onClick={onNavigate}
                         aria-current={on ? 'true' : undefined}
                         className={cn(
-                            'flex h-8 min-w-0 items-center justify-center rounded-none px-1.5 text-[0.8125rem] font-medium transition-colors',
-                            on ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                            'flex h-8 min-w-0 items-center justify-center rounded-none border border-transparent px-1.5 text-[0.8125rem] font-medium transition-colors',
+                            // The chosen section is edged in ink, as a pill tab's is: card on the muted list was 1.18:1.
+                            on ? 'border-foreground bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
                         <span className="truncate">{sec.label}</span>

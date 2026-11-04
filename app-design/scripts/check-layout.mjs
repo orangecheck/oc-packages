@@ -238,7 +238,11 @@ try {
     const { renderToStaticMarkup } = require('react-dom/server');
     const C = require(join(pkg, 'dist/components.js'));
     const Ch = require(join(pkg, 'dist/chrome.js'));
+    // Every page written here is loaded through visit (so its small-text and state checks run): the guard at the end.
+    const written = new Set();
+    const visited = new Set();
     const page = (name, body, script = '') => {
+        written.add(pathToFileURL(join(dir, `${name}.html`)).href);
         writeFileSync(
             join(dir, `${name}.html`),
             `<!doctype html><html data-oc-app="ochk"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="out.css"></head><body>${body}${script}</body></html>`
@@ -519,6 +523,30 @@ try {
                     { className: 'flex flex-col gap-6 p-6' },
                     h(C.Breadcrumbs, { items: [{ label: 'Docs', href: '/docs' }, { label: 'Stamp', href: '/docs/stamp' }, { label: 'Verify' }] }),
                     h(C.FilterChips, { label: 'Status', value: 'all', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }] })
+                )
+            )
+        )
+    );
+    // States chosen in script as well as by a class variant: AppShell's section switcher and current page,
+    // a pill tab, a pressed chip. The rendered state check reads each in light and in dark.
+    const statesPage = page(
+        'states',
+        renderToStaticMarkup(
+            h(
+                Ch.AppShell,
+                {
+                    product: 'ochk.app',
+                    activeSection: 'keys',
+                    sections: [
+                        { id: 'keys', label: 'Keys', href: '/keys', groups: [{ items: [{ href: '/keys', label: 'Entries', active: true }, { href: '/keys/new', label: 'New' }] }] },
+                        { id: 'apps', label: 'Apps', href: '/apps', groups: [{ items: [{ href: '/apps', label: 'Apps' }] }] },
+                    ],
+                },
+                h(
+                    'div',
+                    { className: 'flex flex-col items-start gap-6 p-6' },
+                    h(P.Tabs, { defaultValue: 'a', look: 'pill' }, h(P.TabsList, null, h(P.TabsTrigger, { value: 'a' }, 'Entries'), h(P.TabsTrigger, { value: 'b' }, 'Keys'))),
+                    h(C.FilterChips, { label: 'Status', value: 'open', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }] })
                 )
             )
         )
@@ -813,6 +841,7 @@ try {
     // An inline code in a table head was 11.375px (0.875em of 13px).
     const small = new Map();
     const visit = async (p, url) => {
+        visited.add(url);
         await p.goto(url);
         const found = await p.evaluate(() =>
             [...document.querySelectorAll('body *')]
@@ -821,7 +850,67 @@ try {
                 .filter(([, size]) => size < 11.95)
         );
         for (const [el, size, text] of found) small.set(`${url.split('/').pop()}: ${el} ${size}px '${text}'`, true);
+        for (const s of await stateEdges(p)) weak.set(`${url.split('/').pop()}: ${s}`, true);
     };
+    // A state drawn as a fill (the current page, a chosen segment, a pressed chip, a highlighted item), as
+    // rendered, however it was chosen (a class variant or a script's ternary): the fill reads 3:1 on the
+    // ground under it, or an edge (a border, an outline, a ring) reads 3:1 on both the fill and that ground.
+    const weak = new Map();
+    const stateEdges = (p) =>
+        p.evaluate(() => {
+            const cv = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+            const paint = (color, under) => {
+                cv.globalCompositeOperation = 'copy';
+                cv.fillStyle = under;
+                cv.fillRect(0, 0, 1, 1);
+                cv.globalCompositeOperation = 'source-over';
+                cv.fillStyle = '#000';
+                cv.fillStyle = color;
+                cv.fillRect(0, 0, 1, 1);
+                const [r, g, b] = cv.getImageData(0, 0, 1, 1).data;
+                return `rgb(${r}, ${g}, ${b})`;
+            };
+            const alpha = (color) => {
+                cv.globalCompositeOperation = 'copy';
+                cv.fillStyle = 'rgba(0,0,0,0)';
+                cv.fillStyle = color;
+                cv.fillRect(0, 0, 1, 1);
+                return cv.getImageData(0, 0, 1, 1).data[3];
+            };
+            const lum = (c) => {
+                const [r, g, b] = c.match(/\d+/g).slice(0, 3).map((v) => Number(v) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            };
+            const ratio = (a, b) => {
+                const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+                return (x + 0.05) / (y + 0.05);
+            };
+            const ground = (el) => {
+                for (let e = el.parentElement; e; e = e.parentElement) {
+                    const bg = getComputedStyle(e).backgroundColor;
+                    if (alpha(bg) > 0) return paint(bg, ground(e) ?? '#fff');
+                }
+                return null;
+            };
+            const out = [];
+            for (const el of document.querySelectorAll('[aria-current]:not([aria-current="false"]), [aria-selected="true"], [aria-pressed="true"], [data-state="active"]:not([role="tabpanel"]), [data-state="on"], [data-highlighted]')) {
+                if (el.getClientRects().length === 0) continue;
+                const cs = getComputedStyle(el);
+                if (alpha(cs.backgroundColor) === 0) continue;
+                const under = ground(el) ?? 'rgb(255, 255, 255)';
+                const fill = paint(cs.backgroundColor, under);
+                if (ratio(fill, under) >= 3) continue;
+                const edges = [];
+                for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+                    if (parseFloat(cs[`border${side}Width`]) >= 1 && cs[`border${side}Style`] !== 'none') edges.push(cs[`border${side}Color`]);
+                }
+                if (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 1) edges.push(cs.outlineColor);
+                for (const m of cs.boxShadow.matchAll(/(rgba?\([^)]*\)|oklab\([^)]*\)|color\([^)]*\))\s+(?:inset\s+)?0px\s+0px\s+0px\s+([\d.]+)px/g)) if (parseFloat(m[2]) >= 1) edges.push(m[1]);
+                const best = Math.max(0, ...edges.filter((e) => alpha(e) > 0).map((e) => Math.min(ratio(paint(e, fill), fill), ratio(paint(e, under), under))));
+                if (best < 3) out.push(`${el.tagName.toLowerCase()} '${el.textContent.trim().slice(0, 16)}' fill ${ratio(fill, under).toFixed(2)}:1, edge ${best.toFixed(2)}:1`);
+            }
+            return out;
+        });
     try {
         for (const [width, height] of [
             [390, 844],
@@ -1535,7 +1624,7 @@ try {
             // The entrance on its first frame: every animation paused at 0.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(heroes);
+                await visit(c, heroes);
                 const e = await c.evaluate(() => {
                     for (const a of document.getAnimations()) {
                         a.pause();
@@ -1570,7 +1659,7 @@ try {
             {
                 const delays = async (reduce) => {
                     const c = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: reduce ? 'reduce' : 'no-preference' });
-                    await c.goto(heroes);
+                    await visit(c, heroes);
                     const d = await c.evaluate(() => {
                         const all = [...document.querySelectorAll('*')];
                         return {
@@ -1590,7 +1679,7 @@ try {
             // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(heroActions);
+                await visit(c, heroActions);
                 await c.evaluate(() => document.fonts.ready);
                 const a = await c.evaluate(() =>
                     Object.fromEntries(
@@ -1720,6 +1809,18 @@ try {
                     await c.close();
                 }
                 {
+                    const c = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+                    await visit(c, statesPage);
+                    const seen = await c.evaluate(() => document.querySelectorAll('[aria-current]:not([aria-current="false"]), [aria-pressed="true"], [data-state="active"]:not([role="tabpanel"])').length);
+                    // Read dark at rest: a transition caught midway reads a colour of neither mode.
+                    await c.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+                    await c.evaluate(() => document.documentElement.classList.add('dark'));
+                    const dark = await stateEdges(c);
+                    for (const d of dark) weak.set(`states.html dark: ${d}`, true);
+                    check(seen >= 4, `the states page draws ${seen} chosen states, not the switcher, the current page, a pill tab and a chip`);
+                    await c.close();
+                }
+                {
                     const c = await browser.newPage({ viewport: { width: 1280, height: 900 }, isMobile: true, hasTouch: true });
                     await visit(c, docsRail);
                     const rows = await c.evaluate(() =>
@@ -1836,6 +1937,9 @@ try {
             }
         }
         check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
+        check(weak.size === 0, `states drawn as a fill with no edge at 3:1: ${[...weak.keys()].slice(0, 8).join('; ')}`);
+        const unvisited = [...written].filter((u) => !visited.has(u));
+        check(unvisited.length === 0, `pages written but never loaded through visit: ${unvisited.map((u) => u.split('/').pop()).join(', ')}`);
     } finally {
         await browser.close();
     }

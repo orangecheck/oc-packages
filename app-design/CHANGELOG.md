@@ -215,6 +215,22 @@ optional. What changes is how things look.
   its text colour that was the only sign of which segment was chosen.
   check-contrast fails any selected, pressed or current state drawn as a fill
   under 3:1 with no edge at 3:1.
+- Three more chosen states now carry an edge at 3:1, as the pill tab does:
+  - `AppShell`'s current page in the sidebar (card on the page, 1.07:1, with
+    a 1.28:1 hairline) is ringed in ink;
+  - its section switcher's chosen section (1.18:1 on the muted list) is
+    bordered in ink;
+  - a JSON panel's Formatted / Raw toggle (1.45:1 on the code bar) is ringed
+    in the bar's subtle text.
+
+  Menu and select items already ring their highlight in `--ring`, and
+  check-contrast now names that variant too. check-layout reads every
+  rendered current, selected, pressed, active or highlighted element,
+  however a script chose it. Its fill must be 3:1 on the ground under it,
+  or an edge must be 3:1 on both the fill and that ground. This covers every
+  page it loads, plus a states page in light and dark. On the build before
+  the fix it failed on all three. Every page check-layout writes is now
+  loaded through the same checks, the hero pages included.
 - No text is under 12px. Inline code is `max(0.875em, 0.75rem)`; in a 13px
   table head it was 11.375px. The same floor now applies to the base
   `code`, `kbd` and `samp` size (`0.92em`), to a heading's `#` anchor and to

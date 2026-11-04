@@ -394,8 +394,9 @@ for (const [mode, vars] of [
 //   and its card.
 // - A mark drawn as a fill in one of those tokens (a status dot, a current-page square) is non-text:
 //   3:1 on its ground.
-// - A state shown by a fill (a selected tab, a pressed toggle, the current page) reads 3:1 against the
-//   ground it replaces, or draws an edge that does.
+// - A state shown by a fill (a selected tab, a pressed toggle, the current page, a highlighted menu
+//   item) reads 3:1 against the ground it replaces, or draws an edge that does. A state chosen in
+//   script, out of reach of a class variant, is held by check-layout's rendered state check.
 // - Hidden from assistive tech (aria-hidden on the element) is drawing, not text, and fixed colours
 //   (white, black) on translucent tints are left to the code well's pairs above.
 const census = { strings: 0, pairs: 0 };
@@ -453,7 +454,7 @@ const census = { strings: 0, pairs: 0 };
     }
     census.strings = units.length;
     // Checked boxes, radios and switches carry their state in a glyph or a thumb's place, not only in the fill.
-    const STATE = /(^|:)(data-\[state=(active|on)\]|aria-(selected|pressed)|aria-\[current=[a-z]+\])$/;
+    const STATE = /(^|:)(data-\[state=(active|on)\]|data-\[highlighted\]|aria-(selected|pressed)|aria-\[current=[a-z]+\])$/;
     const FOLLOWS = new Set(['foreground', 'muted-foreground', 'oca-subtle-foreground', 'oca-accent-ink', 'oca-accent-display', 'destructive', 'success', 'warning', 'info']);
     const home = (t) => {
         if (/^oca-ink-(foreground|muted|subtle|title|eyebrow)$/.test(t)) return ['oca-ink', 'oca-ink-card'];
@@ -529,6 +530,8 @@ const census = { strings: 0, pairs: 0 };
                 // ground it replaces, or the state also draws an edge that does (1.4.11). A selected segment
                 // in card on the muted list was 1.18:1 with nothing else but its text.
                 for (const g of u.grounds.filter((x) => STATE.test(x.variant) && !/(^|:)(before|after)$/.test(x.variant))) {
+                    // A highlighted item lives in a menu or a select's list, portalled to the page's body: never in a band.
+                    if (/data-\[highlighted\]/.test(g.variant) && ctx !== 'the page') continue;
                     const was = u.grounds.find((x) => x.variant === '');
                     const under = was ? paint(was, value(base)) : value(base);
                     const fill = paint(g, under);
