@@ -34,7 +34,7 @@ It landed in these units on oc-packages main:
 - the framed column (`f175c80a`): `PageFrame`, one left axis, each section a
   closed box, and a `SectionBar` that spans its box;
 - `Closing`'s actions (`98d9b60f`): full width on a phone, as the hero's;
-- the targets follow-up (`7e9ff92c`): the underline tabs, `SignInFrame`'s
+- the targets follow-up (`aaa6ca6f`): the underline tabs, `SignInFrame`'s
   header and `AppShell`'s sidebar and rail at 44px to a thumb.
 
 ### Migrating from 1.x
