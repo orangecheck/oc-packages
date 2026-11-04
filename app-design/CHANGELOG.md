@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `HERO_ACTIONS` is exported from `./components`: the row PageHero,
+  DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
+  column, each action at full width, in DOM order. From sm it is a row at the
+  actions' own widths. check-render fails if one of those blocks draws a row
+  of its own. **Migrate**: a site that copied the row swaps its copy for the
+  import, as in `cn('mt-8', HERO_ACTIONS)`. ochk.app's `CTA_ROW` is one.
+
 ## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification
