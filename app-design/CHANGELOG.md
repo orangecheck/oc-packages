@@ -31,6 +31,14 @@ optional. What changes is how things look.
   before). check-layout only measured touch widths, and only a fixed list of
   buttons, so these were never measured; it now measures the 2.0 chrome at
   390 and 1440.
+  - Signed in, too. AppShell's phone bar has three of these controls: the
+    menu button (40px before), the home lockup (36px tall) and `AccountMenu`'s
+    button (42 by 40). Each is now 44px drawn. Three small controls keep their
+    drawn size and get a 44px target on a touch screen, from a `::before`
+    that an audit can see: `Switch` (44 by 24), `Checkbox` (20 by 20) and a
+    pill `TabsTrigger` (36px tall). Each inset is measured from inside the
+    control's border; measured from outside it, the targets were 42px.
+    check-layout measures all six at 390 on a touch screen.
 - `Button plus` with `asChild` keeps its "+": the link it renders carries it
   after its text.
 - The rest of the package is square. That covers Notice, EmptyState,

@@ -433,6 +433,24 @@ try {
             )
         )
     );
+    // The signed-in chrome on a phone: AppShell's bar (menu, home lockup, account menu), and the
+    // small controls an app page holds (a Switch, a Checkbox, pill Tabs).
+    const signedInTargets = page(
+        'signed-in-targets',
+        renderToStaticMarkup(
+            h(
+                Ch.AppShell,
+                { product: 'ochk.app', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }], account: h(Ch.AccountMenu, { name: 'Ada Lovelace', items: [{ label: 'Sign out', onSelect: () => {} }] }) },
+                h(
+                    'div',
+                    { className: 'flex flex-col items-start gap-8 p-6' },
+                    h(P.Switch, { 'data-t': 'switch', 'aria-label': 'Alerts' }),
+                    h(P.Checkbox, { 'data-t': 'checkbox', 'aria-label': 'Agree' }),
+                    h(P.Tabs, { defaultValue: 'a' }, h(P.TabsList, null, h(P.TabsTrigger, { value: 'a', 'data-t': 'tab' }, 'Entries'), h(P.TabsTrigger, { value: 'b' }, 'Keys')))
+                )
+            )
+        )
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -1397,6 +1415,37 @@ try {
                 check(short(t.header, 44).length === 0, `[${width}] header controls under 44px: ${JSON.stringify(short(t.header, 44))}`);
                 if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
                 check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
+                await c.close();
+            }
+            // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
+            // the Switch, the Checkbox's mark and a pill tab keep their drawn size.
+            if (width < 768) {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+                await c.goto(signedInTargets);
+                await c.evaluate(() => document.fonts.ready);
+                const got = await c.evaluate(() =>
+                    [
+                        ['menu', 'header button[aria-label="Open navigation"]'],
+                        ['home lockup', 'header a'],
+                        ['account menu', 'header button[aria-label$="account menu"]'],
+                        ['Switch', '[data-t="switch"]'],
+                        ['Checkbox', '[data-t="checkbox"]'],
+                        ['Tabs trigger', '[data-t="tab"]'],
+                    ].map(([name, sel]) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return { name, missing: true };
+                        const r = el.getBoundingClientRect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                        return { name, w: Math.round(r.width), h: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (r.width >= 44 || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
+                    })
+                );
+                const DRAWN = { Switch: [44, 24], Checkbox: [20, 20], 'Tabs trigger': [null, 36] };
+                for (const g of got) {
+                    const [dw, dh] = DRAWN[g.name] ?? [null, null];
+                    check(!g.missing && g.reach && (dw === null || g.w === dw) && (dh === null || g.h === dh), `[${width} touch] ${g.name}: drawn ${g.w}×${g.h}px, a 44px target ${g.reach}${g.missing ? ' (not found)' : ''}`);
+                }
                 await c.close();
             }
             // The wordmark: letters at their natural spacing (no gap between letter boxes past a
