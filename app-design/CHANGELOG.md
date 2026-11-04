@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- `ParticlePortrait` sets `data-phase="formed"` in its last frame, as its
+  loop goes to sleep, so a page that waits for it sees no frame after.
+  It used to read formed as soon as the dots gathered, at 1.9 s of play,
+  and then drew the wave for 2.45 s more: 147 frames after formed in Chrome
+  on SwiftShader. Under reduced motion it reads formed after its one still
+  frame, not before it. A replay reads `forming` until the portrait sleeps
+  again; the pointer lens wakes the loop without changing the phase. The
+  notes still come in once the dots gather, now on a `data-notes`
+  attribute. **Migrate**: a site that showed something with the notes on
+  `[data-phase='formed']` keys it on `[data-notes]`.
+
 - `HERO_ACTIONS` is exported from `./components`: the row PageHero,
   DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
   column, each action at full width, in DOM order. From sm it is a row at the
