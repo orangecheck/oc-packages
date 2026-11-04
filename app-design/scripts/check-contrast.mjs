@@ -265,6 +265,19 @@ for (const [mode, vars, behind] of [
     for (const [, name, body] of bands) {
         const ground = body.match(/background-color:\s*var\(--([a-z0-9-]+)\)/)?.[1];
         const texts = [...body.matchAll(/(?:^|\s)(color|--foreground|--muted-foreground|--oca-subtle-foreground):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2], 4.5]);
+        // A dark band re-points what a kit control raises on it: each raised ground with its own
+        // text, and the band's text on it too (a card's line in muted-foreground).
+        const set = Object.fromEntries([...body.matchAll(/(--[a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
+        const raised = [
+            ['--card', ['--card-foreground', '--foreground', '--muted-foreground']],
+            ['--oca-surface', ['--oca-surface-foreground', '--muted-foreground']],
+            ['--muted', ['--foreground', '--muted-foreground']],
+            ['--secondary', ['--secondary-foreground']],
+        ].filter(([g]) => set[g]);
+        if (/oca-band-(ink|burnt)/.test(name) && !set['--card']) {
+            console.error(`✗ contrast: ${name} is dark but leaves --card alone: a kit card would draw paper under its paper text`);
+            failed++;
+        }
         const ring = body.match(/--ring:\s*var\(--([a-z0-9-]+)\)/)?.[1];
         if (ring) texts.push(['--ring', ring, 3]);
         // A band that leaves --foreground or --muted-foreground alone lets the page's
@@ -279,6 +292,17 @@ for (const [mode, vars, behind] of [
             ['light', light],
             ['dark', dark],
         ]) {
+            for (const [g, fgs] of raised) {
+                for (const fg of fgs) {
+                    const [bgT, fgT] = [set[g], set[fg]];
+                    if (!fgT) continue;
+                    const r = ratio(vars[fgT], vars[bgT]);
+                    if (!(r >= 4.5)) {
+                        console.error(`✗ ${mode}: ${name} ${fg} --${fgT} on its ${g} --${bgT} is ${r.toFixed(2)}:1, needs 4.5:1`);
+                        failed++;
+                    }
+                }
+            }
             for (const [prop, token, min] of texts) {
                 if (!vars[ground] || !vars[token]) {
                     console.error(`✗ ${mode}: ${name} ${prop} --${token} on --${ground} has no colour`);

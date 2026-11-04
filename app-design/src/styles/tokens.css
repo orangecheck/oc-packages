@@ -149,6 +149,8 @@
     --oca-footer-foreground: #ffffff;
     --oca-footer-muted: #fff3ed;
     --oca-footer-line: #d17149;
+    /* A card raised on the burnt band (paper 7% over burnt). */
+    --oca-burnt-card: #382216;
     /* Hairlines on the burnt and orange bands (decorative). */
     --oca-burnt-line: #422d22;
     --oca-brand-line: #cc6015;

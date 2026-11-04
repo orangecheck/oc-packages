@@ -261,6 +261,16 @@
     --muted-foreground: var(--oca-ink-muted);
     --oca-subtle-foreground: var(--oca-ink-subtle);
     --border: var(--oca-ink-line);
+    /* What a kit control raises on the band: a card, a sunken well, a field, a hover. */
+    --card: var(--oca-ink-card);
+    --card-foreground: var(--oca-ink-foreground);
+    --muted: var(--oca-ink-card);
+    --secondary: var(--oca-ink-card);
+    --secondary-foreground: var(--oca-ink-foreground);
+    --accent: var(--oca-ink-line);
+    --accent-foreground: var(--oca-ink-foreground);
+    --oca-surface: var(--oca-ink-card);
+    --oca-surface-foreground: var(--oca-ink-foreground);
 }
 
 @utility oca-band-burnt {
@@ -272,6 +282,15 @@
     --border: var(--oca-burnt-line);
     --oca-accent-display: var(--oca-burnt-ember);
     --ring: var(--oca-burnt-accent);
+    --card: var(--oca-burnt-card);
+    --card-foreground: var(--oca-burnt-foreground);
+    --muted: var(--oca-burnt-card);
+    --secondary: var(--oca-burnt-card);
+    --secondary-foreground: var(--oca-burnt-foreground);
+    --accent: var(--oca-burnt-line);
+    --accent-foreground: var(--oca-burnt-foreground);
+    --oca-surface: var(--oca-burnt-card);
+    --oca-surface-foreground: var(--oca-burnt-foreground);
 }
 
 /* Orange: ink text, an ink edge on an outlined button, an ink ring (orange on

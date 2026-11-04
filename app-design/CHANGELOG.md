@@ -56,6 +56,12 @@ optional. What changes is how things look.
     the same size as `PageHeader`'s H1.
   - check-layout checks the frame line-up, and checks that the H1 is the
     largest text read on the page.
+- The ink and burnt bands re-point what a kit control raises on them:
+  `--card`, `--muted`, `--secondary`, `--accent` and `--oca-surface`, each
+  with its text. Before, a Card or a field on the ink band drew the paper card
+  under the band's paper text. New token `--oca-burnt-card` (`#382216`).
+  check-contrast holds each raised ground's text in every band, and fails a
+  dark band that leaves `--card` alone.
 
 ### Tokens (`tokens.css`, `appColors`)
 
