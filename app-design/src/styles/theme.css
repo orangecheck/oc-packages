@@ -274,6 +274,22 @@
     --accent-foreground: var(--oca-ink-foreground);
     --oca-surface: var(--oca-ink-card);
     --oca-surface-foreground: var(--oca-ink-foreground);
+    /* The page's own grounds and the small orange text, so nothing a component
+       paints in the band keeps the page's colours (orange text on ink was 2.51:1). */
+    --background: var(--oca-ink);
+    --popover: var(--oca-ink-card);
+    --popover-foreground: var(--oca-ink-foreground);
+    --oca-table-head: var(--oca-ink-card);
+    --oca-surface-muted: var(--oca-ink-muted);
+    --oca-accent-ink: var(--oca-ink-eyebrow);
+    --destructive: var(--oca-ink-destructive);
+    --destructive-foreground: var(--oca-ink-status-foreground);
+    --success: var(--oca-ink-success);
+    --success-foreground: var(--oca-ink-status-foreground);
+    --warning: var(--oca-ink-warning);
+    --warning-foreground: var(--oca-ink-status-foreground);
+    --info: var(--oca-ink-info);
+    --info-foreground: var(--oca-ink-status-foreground);
 }
 
 @utility oca-band-ink {
@@ -298,6 +314,20 @@
     --accent-foreground: var(--oca-burnt-foreground);
     --oca-surface: var(--oca-burnt-card);
     --oca-surface-foreground: var(--oca-burnt-foreground);
+    --background: var(--oca-burnt);
+    --popover: var(--oca-burnt-card);
+    --popover-foreground: var(--oca-burnt-foreground);
+    --oca-table-head: var(--oca-burnt-card);
+    --oca-surface-muted: var(--oca-burnt-muted);
+    --oca-accent-ink: var(--oca-burnt-accent);
+    --destructive: var(--oca-ink-destructive);
+    --destructive-foreground: var(--oca-ink-status-foreground);
+    --success: var(--oca-ink-success);
+    --success-foreground: var(--oca-ink-status-foreground);
+    --warning: var(--oca-ink-warning);
+    --warning-foreground: var(--oca-ink-status-foreground);
+    --info: var(--oca-ink-info);
+    --info-foreground: var(--oca-ink-status-foreground);
 }
 
 @utility oca-band-burnt {
@@ -326,6 +356,22 @@
     --accent-foreground: var(--brand-foreground);
     --oca-surface: var(--brand);
     --oca-surface-foreground: var(--brand-foreground);
+    /* No status hue reads on orange: status takes the band's ink, its word or
+       icon says which, and a status fill is ink with orange text. */
+    --background: var(--brand);
+    --popover: var(--brand);
+    --popover-foreground: var(--brand-foreground);
+    --oca-table-head: var(--brand);
+    --oca-surface-muted: var(--brand-foreground);
+    --oca-accent-ink: var(--brand-foreground);
+    --destructive: var(--brand-foreground);
+    --destructive-foreground: var(--brand);
+    --success: var(--brand-foreground);
+    --success-foreground: var(--brand);
+    --warning: var(--brand-foreground);
+    --warning-foreground: var(--brand);
+    --info: var(--brand-foreground);
+    --info-foreground: var(--brand);
 }
 
 @utility oca-band-brand {
@@ -342,7 +388,8 @@
     --border: var(--oca-footer-line);
     --oca-accent-display: var(--oca-footer-foreground);
     --ring: var(--oca-ring-on-fill);
-    --card: var(--oca-footer);
+    /* Raised a step darker, as a hover is: a badge's tint of white on the footer itself left its white text at 4.10:1. */
+    --card: var(--oca-primary-hover);
     --card-foreground: var(--oca-footer-foreground);
     --muted: var(--oca-footer);
     --secondary: var(--oca-footer);
@@ -352,6 +399,21 @@
     --accent-foreground: var(--oca-footer-foreground);
     --oca-surface: var(--oca-footer);
     --oca-surface-foreground: var(--oca-footer-foreground);
+    /* As on orange: status in the footer's white, a status fill white with the darker deep text. */
+    --background: var(--oca-footer);
+    --popover: var(--oca-footer);
+    --popover-foreground: var(--oca-footer-foreground);
+    --oca-table-head: var(--oca-footer);
+    --oca-surface-muted: var(--oca-footer-muted);
+    --oca-accent-ink: var(--oca-footer-foreground);
+    --destructive: var(--oca-footer-foreground);
+    --destructive-foreground: var(--oca-primary-hover);
+    --success: var(--oca-footer-foreground);
+    --success-foreground: var(--oca-primary-hover);
+    --warning: var(--oca-footer-foreground);
+    --warning-foreground: var(--oca-primary-hover);
+    --info: var(--oca-footer-foreground);
+    --info-foreground: var(--oca-footer);
 }
 
 @utility oca-band-footer {

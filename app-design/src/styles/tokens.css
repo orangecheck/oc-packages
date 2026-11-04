@@ -64,7 +64,9 @@
     --destructive-foreground: #ffffff;
     --success: #157a3a;
     --success-foreground: #ffffff;
-    --warning: #a15c07;
+    /* Darkened by the smallest step in OKLab lightness that clears 4.5:1 on the
+       paper canvas (#a15c07 was 4.33:1 there; a DataTable cell in caution). */
+    --warning: #9e5900;
     --warning-foreground: #ffffff;
     --info: #1d4ed8;
     --info-foreground: #ffffff;
@@ -114,6 +116,14 @@
     --oca-ink-subtle: #a39d97;
     --oca-ink-title: #fcb781;
     --oca-ink-eyebrow: #fb923c;
+    /* Status on the dark grounds, in both modes: the dark theme's own set. A band
+       re-points the status tokens to these (theme.css oca-on-ink, oca-on-burnt);
+       the light set is 2.6-3.5:1 on ink. */
+    --oca-ink-destructive: #f87171;
+    --oca-ink-success: #4ade80;
+    --oca-ink-warning: #fbbf24;
+    --oca-ink-info: #93c5fd;
+    --oca-ink-status-foreground: #0a0a0a;
     --oca-code-package: #e99a8f;
     --oca-code-tag: #e3a8c2;
     --oca-code-link: #9db4ec;
@@ -237,7 +247,10 @@
     --card-foreground: #eeeae6;
     --popover: #1c1916;
     --popover-foreground: #eeeae6;
-    --muted: #1c1916;
+    /* Sunken in light, lifted in dark, and apart from every surface it is drawn on
+       by at least light's own step (1.10:1): #1c1916 was the window's own colour,
+       so a muted fill vanished on --oca-surface and --popover (1.00:1). */
+    --muted: #26221f;
     --muted-foreground: #a39d97;
     /* Lifted above the card, so a secondary button never reads as a hole. */
     --secondary: #1c1916;
@@ -268,7 +281,9 @@
     --info: #93c5fd;
     --info-foreground: #0a0a0a;
 
-    --oca-subtle-foreground: #8a837d;
+    /* Lifted with --muted, by the smallest step in OKLab lightness that keeps
+       4.5:1 on it (#8a837d was 4.22:1 on #26221f). */
+    --oca-subtle-foreground: #8f8882;
     --oca-hairline-strong: #363432;
     --oca-table-head: #1c1916;
     --oca-accent-display: #f97316;

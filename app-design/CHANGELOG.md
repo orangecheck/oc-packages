@@ -173,6 +173,43 @@ optional. What changes is how things look.
   site's `_document` hard-coded `#fafafa` and `#0a0a0a`, 1.x's colours.
   check-mirror holds it to tokens.css.
 
+### Follow-up (design2-tokens)
+
+- The bands hold every colour a component paints on them, not only their own
+  text. A brand badge on the ink band was 2.14:1, and small orange text on it
+  was 2.51:1, because `oca-on-ink` never re-pointed `--oca-accent-ink`. It now
+  takes the ink eyebrow `#fb923c`, so the badge reads 6.91:1 and orange text
+  8.12:1. Every band and dark or orange Card tone now also re-points:
+  - `--oca-accent-ink`;
+  - the page's own grounds: `--background`, `--popover` and `--oca-table-head`;
+  - `--oca-surface-muted`;
+  - the status colours. On ink and burnt they take the dark theme's set, as
+    the new `--oca-ink-destructive`, `-success`, `-warning`, `-info` and
+    `--oca-ink-status-foreground` (destructive 6.64:1 on ink). On orange and
+    on the deep footer, status takes the band's own text colour, and its word
+    or icon says which status it is.
+
+  The footer's raised ground (`--card`) is a step darker, `--oca-primary-hover`.
+  On the footer itself, a badge's white tint left its white text at 4.10:1.
+- Dark `--muted` is `#26221f` (it was `#1c1916`). It was the same colour as
+  `--oca-surface` and `--popover`, so a muted fill vanished in a drawn window
+  or a popover (1.00:1). It is now 1.11:1 on them, 1.16:1 on `--card` and
+  1.24:1 on `--background`, a step at least as large as light's (1.10:1).
+  Dark `--oca-subtle-foreground` is lifted from `#8a837d` to `#8f8882`, so it
+  keeps 4.5:1 on muted (4.52:1). **Migrating:** a site that drew muted fills
+  a step up in dark by hand (chat's `bg-muted dark:bg-accent`) can drop the
+  `dark:` half, since dark `--muted` is now that colour. A site that
+  re-pointed orange text, a status colour or `--background` inside a band by
+  hand can drop that too.
+- Light `--warning` is `#9e5900` (it was `#a15c07`), so a DataTable cell in
+  caution is 4.52:1 on paper (it was 4.33:1).
+- check-contrast reads the components. It checks every text and ground named
+  in a component's class strings, a badge's `color-mix` tint included. It
+  checks them on the page, in every band and in every Card tone, in light and
+  in dark. A status dot or other mark drawn as a fill must reach 3:1, and
+  `--muted` must stay apart from every surface it is drawn on. On 2.0.0-pre at
+  f642df4f it found 142 failures.
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink
@@ -188,7 +225,7 @@ optional. What changes is how things look.
 - New: `--oca-surface` and `--oca-surface-foreground` for the product
   surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
   in dark. `--oca-surface-muted` is its secondary text (`#5e5852`, dark
-  `#a39d97`), which a band never re-points. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  `#a39d97`), which a band re-points with the surface. The bands are new too: `--oca-burnt*` (the dark brown stage),
   `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
   `--oca-brand-line`.
 - Status colours are re-tuned for paper: `--destructive` `#b21d26`,
