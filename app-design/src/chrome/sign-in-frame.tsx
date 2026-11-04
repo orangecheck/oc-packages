@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { IsoCheck } from '../brand/iso-check';
 import { OCHK_IO, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
 import { ProductLockup } from './product-lockup';
 import { SkipLink } from './site';
 
@@ -67,15 +68,16 @@ export function SignInFrame({
             {/* Past the lockup and "Back to home", to what the frame holds: a sign-in, a consent or an error. */}
             <SkipLink href="#signin">Skip to content</SkipLink>
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
+                {/* To a thumb the lockup and Back to home are 44px targets by a ::before, so the header keeps its height. */}
                 <header className="flex items-center justify-between gap-4">
-                    <Link href={homeHref} className="w-fit rounded-none">
+                    <Link href={homeHref} className={cn('w-fit rounded-none', HIT_LINK)}>
                         {brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />}
                         <span className="sr-only"> home</span>
                     </Link>
                     {back === undefined ? (
                         <Link
                             href={homeHref}
-                            className="text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                            className={cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK)}
                         >
                             Back to home
                         </Link>

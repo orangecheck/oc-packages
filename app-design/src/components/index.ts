@@ -1,9 +1,9 @@
 export { Accent, Display, Eyebrow, Footnote, Lead, Prose } from './typography';
-export { Frame, MonoLabel, SectionBar, StatRow } from './frame';
+export { Frame, MonoLabel, PageFrame, SectionBar, StatRow } from './frame';
 export type { FrameProps, MonoLabelProps, SectionBarProps, StatItem, StatRowProps } from './frame';
 export type { DisplayProps } from './typography';
 export { Container, Section, SectionIntro, sectionVariants } from './section';
-export { DocHeader, DocLayout, PageHero, useActiveHeading } from './hero';
+export { DocHeader, DocLayout, HERO_ACTIONS, PageHero, useActiveHeading } from './hero';
 export type { PageHeroProps, TocItem } from './hero';
 export type { SectionProps } from './section';
 export { StepGrid } from './steps';

@@ -14,9 +14,12 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 export const PALETTE_FILE = join(here, '../src/tokens/palette.ts');
 
-function block(css, selectorStart) {
+function block(raw, selectorStart) {
+    // Comments go first: a brace in one (`padded={false}`) would end the block early, and every
+    // token after it would silently leave the palette.
+    const css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
     const open = css.indexOf('{', css.indexOf(selectorStart));
-    const body = css.slice(open + 1, css.indexOf('}', open)).replace(/\/\*[\s\S]*?\*\//g, '');
+    const body = css.slice(open + 1, css.indexOf('}', open));
     const vars = {};
     for (const m of body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/gi)) vars[m[1]] = m[2].trim();
     return vars;

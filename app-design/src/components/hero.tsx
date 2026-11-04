@@ -37,7 +37,7 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
-    /** A full-width hairline under the hero. `page` only. */
+    /** The hairline that closes the hero, between the frame's rules. Default true. `page` only. */
     rule?: boolean;
     /**
      * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
@@ -50,7 +50,12 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
-/** A hero's actions: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
+/**
+ * A page's CTA pair: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at
+ * their own widths. PageHero, DocHeader, ErrorPage and Closing draw their actions in it, and a site draws any other
+ * pair in it too (`cn('mt-8', HERO_ACTIONS)`), so every CTA pair on a page follows one rule. check-render fails
+ * if a block draws its own row.
+ */
 export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
 
 export function PageHero({
@@ -64,7 +69,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
-    rule = false,
+    rule = true,
     layout = 'split',
     className,
 }: PageHeroProps) {

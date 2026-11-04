@@ -109,3 +109,50 @@ function colourKit() {
     };
 }
 export const COLOUR_KIT = `(${colourKit})();`;
+
+/**
+ * A screenshot's pixels, for checks that read a column of them: Chrome's PNG (8-bit RGB or RGBA,
+ * not interlaced) inflated and unfiltered here, so no image library is needed.
+ */
+export function decodePng(buf) {
+    const { inflateSync } = require('node:zlib');
+    let pos = 8;
+    let width = 0;
+    let height = 0;
+    let channels = 4;
+    const idat = [];
+    while (pos < buf.length) {
+        const len = buf.readUInt32BE(pos);
+        const type = buf.toString('ascii', pos + 4, pos + 8);
+        const body = buf.subarray(pos + 8, pos + 8 + len);
+        if (type === 'IHDR') {
+            width = body.readUInt32BE(0);
+            height = body.readUInt32BE(4);
+            if (body[8] !== 8 || body[12] !== 0) throw new Error('decodePng: only 8-bit, non-interlaced PNGs');
+            channels = body[9] === 6 ? 4 : body[9] === 2 ? 3 : 0;
+            if (!channels) throw new Error(`decodePng: colour type ${body[9]}`);
+        }
+        if (type === 'IDAT') idat.push(body);
+        pos += 12 + len;
+    }
+    const raw = inflateSync(Buffer.concat(idat));
+    const stride = width * channels;
+    const data = Buffer.alloc(width * height * 4, 255);
+    let prev = Buffer.alloc(stride);
+    for (let y = 0, i = 0; y < height; y++) {
+        const filter = raw[i++];
+        const line = Buffer.from(raw.subarray(i, i + stride));
+        i += stride;
+        for (let x = 0; x < stride; x++) {
+            const a = x >= channels ? line[x - channels] : 0;
+            const b = prev[x];
+            const c = x >= channels ? prev[x - channels] : 0;
+            const p = a + b - c;
+            const pred = filter === 1 ? a : filter === 2 ? b : filter === 3 ? (a + b) >> 1 : filter === 4 ? (Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c) ? a : Math.abs(p - b) <= Math.abs(p - c) ? b : c) : 0;
+            line[x] = (line[x] + pred) & 255;
+        }
+        for (let x = 0; x < width; x++) for (let k = 0; k < channels; k++) data[(y * width + x) * 4 + k] = line[x * channels + k];
+        prev = line;
+    }
+    return { width, height, data };
+}
