@@ -79,7 +79,7 @@ try {
             `const own = { id: 'cd', role: 'group', 'aria-label': 'D', cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
             `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'Open the app', href: '#1' }, { label: 'Back it', href: '#2' }, { label: 'Get paid', href: '#3' }, { label: 'Own your key, later', href: '#4' }]} />,\n` +
             // The baked mark at each size, sized by a class, and on a dark ground.
-            `  dither: <div className="flex flex-col items-start gap-4"><DitherMark size="sm" /><DitherMark size="md" /><DitherMark size="lg" title="orangecheck" /><div style={{ width: 300 }}><DitherMark className="w-full" sizes="300px" /></div><DitherMark size="md" ground="dark" /></div>,\n` +
+            `  dither: <div className="flex flex-col items-start gap-4"><DitherMark size="sm" /><DitherMark size="md" /><DitherMark size="lg" title="orangecheck" /><div style={{ width: 300 }}><DitherMark className="w-full" sizes="300px" /></div><DitherMark size="md" ground="dark" /><DitherMark size="md" ground="brand" /></div>,\n` +
             // Ruling 11's person at the edges of their own coin: 250,000 sats, 180 days.
             `  edge: <CostDemo amounts={[249_999, 250_000, 250_001]} dayStops={[179, 180, 181]} defaultAmountIndex={1} defaultDayIndex={1} />,\n` +
             `  pathlong: <StepPath steps={[{ label: 'Open the app on the phone you already carry' }, { label: 'Back it with a coin you hold' }, { label: 'Get paid when an app asks for you' }, { label: 'Own your key, a little later on' }]} />,\n` +
@@ -350,7 +350,8 @@ try {
         }
 
         // DitherMark: the baked PNG at each size, light and dark, at 1x and 2x: the picture the srcSet names, at its
-        // own width, drawn in two tones, the ground's own art, no vector stand-in, and nothing moves as it loads.
+        // own width, drawn in two tones (ink alone on brand), the ground's own art, no vector stand-in, and nothing
+        // moves as it loads.
         for (const dark of [false, true]) {
             for (const dpr of [1, 2]) {
                 const { p, close } = await open('dither', { dark, dpr });
@@ -372,10 +373,12 @@ try {
                         x.drawImage(file, 0, 0);
                         const px = x.getImageData(0, 0, canvas.width, canvas.height).data;
                         let opaque = 0;
+                        let warm = 0;
                         const colours = new Set();
                         for (let i = 0; i < px.length; i += 4) {
                             if (px[i + 3] > 200) {
                                 opaque++;
+                                if (px[i] > 0x60) warm++;
                                 colours.add((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
                             }
                         }
@@ -396,20 +399,26 @@ try {
                             h: Math.round(r.height * 10) / 10,
                             filled: Math.round((opaque / (px.length / 4)) * 100) / 100,
                             colours: colours.size,
+                            warm,
                         };
                     }))
                 );
                 const theme = dark ? 'dark' : 'light';
-                const want = [['sm', 120, theme], ['md', 240, theme], ['lg', 480, theme], ['sized', 300, theme], ['md', 240, 'dark']];
+                const want = [['sm', 120, theme], ['md', 240, theme], ['lg', 480, theme], ['sized', 300, theme], ['md', 240, 'dark'], ['md', 240, 'brand']];
                 // The picked file is the candidate its descriptor names, 2:1, and enough pixels for the box at this density.
+                // A fixed size carries its own 2x bake, and a 2x screen draws from it pixel for pixel (md never from 240 alone).
                 const off = marks.flatMap((m, i) => {
                     const [kind, w, ground] = want[i] ?? [];
+                    const fixed = kind !== 'sized';
                     const ok =
                         m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 2 && m.reserved === 2 &&
-                        (m.natural >= w * dpr || m.natural === m.widest) && Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - w / 2) <= 0.5 && m.filled > 0.1 && m.colours >= 2;
+                        (m.natural >= w * dpr || m.natural === m.widest) && (!fixed || (m.widest >= w * 2 && (dpr < 2 || m.natural === w * 2))) &&
+                        Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - w / 2) <= 0.5 && m.filled > 0.1 &&
+                        // On brand orange the mark is ink alone: no orange or peach pixel. Elsewhere its faces show their colours.
+                        (ground === 'brand' ? m.warm === 0 : m.colours >= 2 && m.warm > 0);
                     return ok ? [] : [JSON.stringify(m)];
                 });
-                check(marks.length === 5 && off.length === 0, `[${dark ? 'dark' : 'light'} ${dpr}x] DitherMark: ${off.join('; ') || `${marks.length} marks`}`);
+                check(marks.length === 6 && off.length === 0, `[${dark ? 'dark' : 'light'} ${dpr}x] DitherMark: ${off.join('; ') || `${marks.length} marks`}`);
                 const shift = await p.evaluate(() => window.__shift);
                 check(shift === 0, `[${dark ? 'dark' : 'light'} ${dpr}x] DitherMark: the page shifted by ${shift} while the marks loaded`);
                 await close();

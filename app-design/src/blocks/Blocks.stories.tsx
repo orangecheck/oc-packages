@@ -202,7 +202,7 @@ export const Dither: StoryObj = {
                     <DitherMark size="md" ground="dark" />
                 </span>
                 <span className="bg-brand p-8">
-                    <DitherMark size="md" ground="light" />
+                    <DitherMark size="md" ground="brand" />
                 </span>
             </div>
         </div>

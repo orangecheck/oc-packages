@@ -323,15 +323,18 @@ replaces with its own copy, so a missing prop shows nothing untrue.
 - `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
   halftone in a strip its words keep clear of).
 - `DitherMark`: the baked two-tone dither of the mark (`./art`), the ink top
-  face on a light ground and the peach one on a dark ground (`ground`:
-  `light`, `dark`, or `theme`, the default, which follows the page). It is
+  face on a light ground, the peach one on a dark ground, and ink alone on
+  brand orange (`ground`: `light`, `dark`, `brand`, or `theme`, the default,
+  which follows the page). It is
   PNG only: for 1-bit dither the AVIF is 5 to 12 times the PNG at every
   size, so an AVIF would only cost bytes. The PNGs are inlined as data URIs,
   so it needs no asset pipeline: 0.7 KB of HTML at `sm`, 1.8 KB at `md`,
   2.7 KB at `lg`, 3.4 KB when a class sizes it with `sizes`, and twice that
   with `ground="theme"`. `size` is 120, 240 or 480px, each drawn from the
   art's own 1x and 2x; the image keeps its 2:1 box, so nothing shifts as it
-  loads. The widths changed from the placeholder's 96/192/384.
+  loads. The widths changed from the placeholder's 96/192/384. Its nine
+  PNGs are 6.0 KB of the ./blocks entry gzipped (check-budget keeps the
+  entry under its ceiling).
 - The window, the receipt and each tile keep their own colours inside a
   band; the step list, the slider and the path take the band's.
 
