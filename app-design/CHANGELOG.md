@@ -224,6 +224,21 @@ optional. What changes is how things look.
   check-layout fails any text it computes under 12px on its pages at 390 and
   at 1440. On main that was the table-head code at 11.375px and the rail's
   labels at 11px.
+- To a thumb, chrome targets are 44px wide as well as 44px tall. A short word
+  in the legal row ("Terms") was 41×44 at 390 on every site using
+  `SiteFooter`. At 1024 touch, the compact footer's protocol links were 27 to
+  37px wide. Now these get `min-w-11` under a coarse pointer, with the label
+  centred, so a mouse sees no change:
+  - the legal and protocol rows;
+  - breadcrumbs;
+  - `FilterChips`;
+  - `SiteHeader`'s nav.
+
+  `DocsShell`'s rail rows were 36px tall to a thumb and are now 44. The legal
+  row's gap is 16px on a phone, so the family footer stays within its 600px.
+  check-layout measures both axes of every header and footer control at 390
+  touch, the inline rows at 1024 touch and the docs rail at 1280 touch. On
+  main it failed on "Terms" at 41.
 - check-contrast reads the components. It checks every text and ground named
   in a component's class strings, a badge's `color-mix` tint included. It
   checks them on the page, in every band and in every Card tone, in light and

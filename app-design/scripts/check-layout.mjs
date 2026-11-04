@@ -517,6 +517,13 @@ try {
             )
         )
     );
+    // The docs rail: a row is the rail's width, and 44px tall to a thumb.
+    const docsRail = page(
+        'docs-rail',
+        renderToStaticMarkup(
+            h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Docs' }, { href: '/docs/me', label: 'me' }, { href: '/docs/stamp', label: 'Stamp' }] }], current: '/docs/me' }, h('h1', null, 'me'))
+        )
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -1672,6 +1679,19 @@ try {
                 });
                 const short = (list, min) => list.filter(([, px]) => px < min);
                 check(short(t.header, 44).length === 0, `[${width}] header controls under 44px: ${JSON.stringify(short(t.header, 44))}`);
+                // To a thumb a target is 44px in both axes: a short word ('Terms') was 41px wide at 44 tall.
+                if (width < 768) {
+                    const boxes = await c.evaluate(() =>
+                        [...document.querySelectorAll('header a, header button, footer a, footer button, footer summary')]
+                            .filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden')
+                            .map((el) => {
+                                const r = el.getBoundingClientRect();
+                                return [el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), Math.round(r.width), Math.round(r.height)];
+                            })
+                    );
+                    const small = boxes.filter(([, w, hh]) => w < 44 || hh < 44);
+                    check(boxes.length >= 8 && small.length === 0, `[${width} touch] chrome targets under 44x44: ${small.length} of ${boxes.length}: ${JSON.stringify(small.slice(0, 6))}`);
+                }
                 if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
                 check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
                 await c.close();
@@ -1684,12 +1704,23 @@ try {
                     await visit(c, footRows);
                     const r = await c.evaluate(() => ({
                         coarse: matchMedia('(pointer: coarse)').matches,
-                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height)]),
+                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height), Math.round(a.getBoundingClientRect().width)]),
                     }));
                     const min = touch ? 44 : 24;
-                    const short = r.links.filter(([, px]) => px < min);
+                    // A thumb's target is 44 wide too; a mouse's 24 is the height of a line of text.
+                    const short = r.links.filter(([, px, w]) => px < min || (touch && w < 44));
                     check(r.coarse === touch, `[1024 ${touch ? 'touch' : 'mouse'}] the page's pointer reads ${r.coarse ? 'coarse' : 'fine'}`);
                     check(r.links.length >= 10 && short.length === 0, `[1024 ${touch ? 'touch' : 'mouse'}] inline links and chips: ${short.length} of ${r.links.length} under ${min}px: ${JSON.stringify(short.slice(0, 4))}`);
+                    await c.close();
+                }
+                {
+                    const c = await browser.newPage({ viewport: { width: 1280, height: 900 }, isMobile: true, hasTouch: true });
+                    await visit(c, docsRail);
+                    const rows = await c.evaluate(() =>
+                        [...document.querySelectorAll('nav[aria-label="Docs"] a')].filter((a) => a.getClientRects().length > 0).map((a) => [a.textContent.trim(), Math.round(a.getBoundingClientRect().width), Math.round(a.getBoundingClientRect().height)])
+                    );
+                    const small = rows.filter(([, w, hh]) => w < 44 || hh < 44);
+                    check(rows.length >= 3 && small.length === 0, `[1280 touch] docs rail rows under 44x44: ${small.length} of ${rows.length}: ${JSON.stringify(small)}`);
                     await c.close();
                 }
             }

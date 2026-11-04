@@ -66,7 +66,7 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                         return (
                             <li key={i} className={cn('flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0')}>
                                 {c.href && !last ? (
-                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11">
+                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11">
                                         {c.label}
                                     </DocLink>
                                 ) : (

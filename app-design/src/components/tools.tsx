@@ -794,7 +794,7 @@ export function FilterChips<T extends string | number>({
                         aria-disabled={o.disabled || undefined}
                         onClick={() => (o.disabled ? undefined : press(o.value))}
                         className={cn(
-                            'inline-flex shrink-0 items-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors',
+                            'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors pointer-coarse:min-w-11',
                             // A thumb's 44px on any touch screen, a tablet's included; a mouse's chip is smaller.
                             tight ? 'h-8 pointer-coarse:h-11' : 'h-9 pointer-coarse:h-11',
                             on
