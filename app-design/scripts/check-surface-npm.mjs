@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 /*
- * check-surface reads scripts/surface-1.29.3.json as given, so an edit to the
+ * check-surface reads scripts/surface-<version>.json as given, so an edit to a
  * snapshot could hide a removal (review-me's mutant took StatGrid's `empty`
  * from both the build and the snapshot, and check-surface passed). This holds
- * the snapshot to what npm published:
- *   1. npm pack @orangecheck/app-design@1.29.3 into a temporary directory;
+ * one version's snapshot to what npm published:
+ *   1. npm pack @orangecheck/app-design@<version> into a temporary directory;
  *   2. its sha512 must equal the integrity pinned below, as the registry gives it;
  *   3. the surface is regenerated from it with surface.mjs, check-surface's own reader;
- *   4. any difference from the committed snapshot fails.
+ *   4. fewer exports or props than the snapshot fails on its own line (the
+ *      tarball's types did not resolve), and any difference from the snapshot fails.
  * It also compares every component prop's type between that tarball and this
  * build (propTypes): a prop that lost a string option, or that was optional and
  * is now required, fails. The CHANGELOG says no prop breaks; check-surface
  * compares names only.
+ *
+ *   node scripts/check-surface-npm.mjs <version> [--self-test]
  *
  * It needs the network, so it is a step of its own in the Packages workflow,
  * not part of yarn test. Run after `yarn build`. With --self-test it also runs
@@ -28,8 +31,17 @@ import { fileURLToPath } from 'node:url';
 
 import { narrowings, propTypes, surface } from './surface.mjs';
 
-const VERSION = '1.29.3';
-const INTEGRITY = 'sha512-7x+NuE3IXmYOzvs9QUzFdrpiGOz97ckzvnWjVzh/ObZJ9gy4MiSpV4sbOJgHT+1vA5JjGNSWFgzIsGI8X9V46g==';
+// The integrity npm's registry gives for each published version with a committed snapshot.
+const PINNED = {
+    '1.29.3': 'sha512-7x+NuE3IXmYOzvs9QUzFdrpiGOz97ckzvnWjVzh/ObZJ9gy4MiSpV4sbOJgHT+1vA5JjGNSWFgzIsGI8X9V46g==',
+    '2.0.0': 'sha512-PKIzosCSZLR3Lk/jvPJIeOoQ19StJ9tfXR7uUmYGSWYFeWGb6E3ZKuYu2xAytsKvwAsSo2IgQbTfctNtR5ga1w==',
+};
+const VERSION = process.argv[2];
+const INTEGRITY = PINNED[VERSION];
+if (!INTEGRITY) {
+    console.error(`✗ surface-npm: usage: check-surface-npm.mjs <${Object.keys(PINNED).join(' | ')}> [--self-test]`);
+    process.exit(1);
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const selfTest = process.argv.includes('--self-test');
@@ -56,6 +68,12 @@ function differences(a, b) {
     return out;
 }
 
+/** A surface's export count and its components' prop count. */
+const counts = (s) => [
+    Object.values(s.exports).reduce((n, e) => n + Object.keys(e).length, 0),
+    Object.values(s.exports).reduce((n, e) => n + Object.values(e).reduce((m, x) => m + (x.props?.length ?? 0), 0), 0),
+];
+
 // Without a build there is nothing to compare, and a comparison of nothing must not pass.
 if (!existsSync(join(root, 'dist/index.d.ts'))) {
     console.error(`✗ surface-${VERSION}: dist/index.d.ts is missing; run yarn build first`);
@@ -76,8 +94,13 @@ try {
     mkdirSync(published, { recursive: true });
     execFileSync('tar', ['xzf', join(work, tgz), '-C', published, '--strip-components=1']);
 
-    const snapshot = JSON.parse(readFileSync(join(root, 'scripts/surface-1.29.3.json'), 'utf8'));
+    const snapshot = JSON.parse(readFileSync(join(root, `scripts/surface-${VERSION}.json`), 'utf8'));
     const regenerated = surface(join(published, 'dist'), join(published, 'package.json'));
+    // A .d.ts that cannot resolve React reads as far fewer exports and no props, not as an error: say so first.
+    const [gotExports, gotProps] = counts(regenerated);
+    const [heldExports, heldProps] = counts(snapshot);
+    if (gotExports < heldExports || gotProps < heldProps)
+        fail(`npm's ${VERSION} reads as ${gotExports} exports and ${gotProps} props, the snapshot holds ${heldExports} and ${heldProps}: did the tarball's types resolve?`);
     const diff = differences(regenerated, snapshot);
     for (const d of diff.slice(0, 20)) fail(`the snapshot disagrees with npm's ${VERSION}: ${d}`);
     if (diff.length > 20) fail(`… and ${diff.length - 20} more differences`);
@@ -91,8 +114,7 @@ try {
     const named = Object.values(snapshot.exports).reduce((n, e) => n + Object.values(e).filter((x) => x.kind === 'component').length, 0);
     const compared = Object.keys(before).filter((key) => after[key]).length;
     if (Object.keys(before).length !== named || compared !== named) fail(`${compared} components compared, of ${Object.keys(before).length} read from the tarball; the snapshot names ${named}`);
-    const exports = Object.values(regenerated.exports).reduce((n, e) => n + Object.keys(e).length, 0);
-    if (!failures) console.log(`✓ surface-${VERSION}: npm's tarball matches its pinned integrity; the snapshot equals its surface (${regenerated.entries.length} entries, ${exports} exports); ${compared} of the snapshot's ${named} components compared, every string option and optional prop kept`);
+    if (!failures) console.log(`✓ surface-${VERSION}: npm's tarball matches its pinned integrity; the snapshot equals its surface (${regenerated.entries.length} entries, ${gotExports} exports, ${gotProps} props); ${compared} of the snapshot's ${named} components compared, every string option and optional prop kept`);
 
     if (selfTest) {
         // Mutant 1, review-me's: StatGrid's `empty` gone from the snapshot (as a build without it would be snapshotted).

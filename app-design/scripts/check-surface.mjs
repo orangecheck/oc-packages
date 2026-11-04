@@ -10,12 +10,10 @@
  *   - a new entry, or a new value export (a component, a function, a
  *     constant), is not named in backticks in the [2.0.0] section, when 2.0.0
  *     shipped it, or in a section above [2.0.0] ([Unreleased] included), when
- *     it came after. scripts/surface-2.0.0.json is 2.0.0's surface, written
- *     from a build of the tagged tree (app-design-v2.0.0, d0b93911) until npm
- *     serves 2.0.0.
+ *     it came after. scripts/surface-2.0.0.json is 2.0.0's surface.
  * A site lane migrates from that list, so nothing it greps for may be missing.
- * The snapshot itself is held to npm's published 1.29.3 by
- * check-surface-1.29.3.mjs, a CI step of its own, since it needs the network.
+ * Each snapshot is held to the version npm published by check-surface-npm.mjs,
+ * a CI step of its own per version, since it needs the network.
  * Run after `yarn build`.
  *
  *   node scripts/check-surface.mjs                      check
