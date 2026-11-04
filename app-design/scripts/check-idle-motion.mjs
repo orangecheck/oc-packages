@@ -55,7 +55,10 @@ const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
 function still() {
     const w = 480, h = 320, c = document.createElement('canvas'); c.width = w; c.height = h;
-    const x = c.getContext('2d'), img = x.createImageData(w, h), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    const x = c.getContext('2d');
+    // A page without a 2D canvas (?nocanvas) gets a blank still.
+    if (!x) return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"/>');
+    const img = x.createImageData(w, h), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
         const l = 0.5 + 0.3 * Math.sin(i / 40) * Math.cos(j / 30), d = l < (B[(j & 3) * 4 + (i & 3)] + 0.5) / 16, o = (j * w + i) * 4;
         img.data[o] = d ? 42 : 238; img.data[o + 1] = d ? 18 : 234; img.data[o + 2] = d ? 6 : 230; img.data[o + 3] = 255;
@@ -107,6 +110,23 @@ const scenes = {
     loop: () => <Loop />,
     broken: () => <ParticlePortrait alt="A picture that fails" points={brokenPoints()} poster={<svg viewBox="0 0 10 10"><rect width="10" height="10" /></svg>} callouts={notes} style={{ height: 600 }} />,
     deck: () => <ParticlePortrait alt="The deck portrait" points={deckPortraitPoints} style={{ height: 600 }} />,
+    // Every ./motion scene on one page, as a site's test renders them. (ScrollStory is foundation's, in
+    // components/motion.tsx, which guards its own matchMedia; the swap and the crowd stand without it.)
+    all: () => (
+        <div>
+            <ParticlePortrait alt="A person drawn in dots" callouts={notes} style={{ height: 600 }} />
+            <p style={{ fontSize: 120 }}><ParticleText>80%</ParticleText></p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', width: '100%' }}>
+                <StorySwap before={<h2>Before</h2>} after={<h2>After</h2>} />
+                <CrowdDissolve style={{ aspectRatio: '4 / 3' }} />
+            </div>
+            <MiniCheck title="Signed in" />
+            <StackCards top="1rem">{[1, 2, 3].map((n) => <div key={n} style={{ height: 300 }}>Card {n}</div>)}</StackCards>
+            <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span></Marquee>
+            <Wipe><div style={{ height: 200, background: '#2a1206' }} /></Wipe>
+            <DitherImage src={still()} width={480} height={320} alt="" style={{ width: 480 }} />
+        </div>
+    ),
     dither: () => <DitherImage src={still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' ? 1200 : q.has('off') ? 3000 : 0;
@@ -116,7 +136,10 @@ createRoot(document.getElementById('root')).render(<div><div style={{ height: ab
 // Count every draw (each starts with a clear) on a canvas in the page, and every frame the page's code asks
 // for; the page's own tick, on the untouched rAF, proves frames are being made at all.
 const COUNTERS =
-    `<script>window.__draws = 0; window.__rafs = 0; const clear = CanvasRenderingContext2D.prototype.clearRect;` +
+    // ?nomm: a DOM without matchMedia (jsdom); ?nocanvas: one without a 2D canvas either.
+    `<script>if (location.search.includes('nomm')) Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true });` +
+    `if (location.search.includes('nocanvas')) HTMLCanvasElement.prototype.getContext = () => null;` +
+    `window.__draws = 0; window.__rafs = 0; const clear = CanvasRenderingContext2D.prototype.clearRect;` +
     `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; return clear.apply(this, a); };` +
     `const put = CanvasRenderingContext2D.prototype.putImageData; CanvasRenderingContext2D.prototype.putImageData = function (...a) { if (this.canvas.isConnected) window.__draws++; return put.apply(this, a); };` +
     `const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
@@ -170,11 +193,13 @@ try {
         }
         return false;
     };
-    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false } = {}) => {
+    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false, flags = '' } = {}) => {
         const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: reduce ? 'reduce' : 'no-preference', javaScriptEnabled: js, hasTouch: touch, isMobile: touch });
         const p = await ctx.newPage();
-        await p.goto(`${url}?s=${scene}${off ? '&off' : ''}`);
-        return { p, close: () => ctx.close() };
+        const errors = [];
+        p.on('pageerror', (e) => errors.push(e.message));
+        await p.goto(`${url}?s=${scene}${off ? '&off' : ''}${flags ? `&${flags}` : ''}`);
+        return { p, errors, close: () => ctx.close() };
     };
     const hide = (p, hidden) =>
         p.evaluate((h) => {
@@ -585,6 +610,31 @@ try {
             const { p, close } = await open('deck');
             await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
             check(await settle(p), 'deck portrait: after its motion it never settles');
+            await close();
+        }
+
+        // A DOM without matchMedia (jsdom has none), and one without a 2D canvas either: every scene renders
+        // without an error and stands still; with no canvas the portrait keeps its poster.
+        for (const [label, flags] of [
+            ['without matchMedia', 'nomm'],
+            ['without matchMedia or a 2D canvas', 'nomm&nocanvas'],
+        ]) {
+            const { p, errors, close } = await open('all', { flags });
+            await p.waitForTimeout(2500);
+            const quiet = await settle(p, 6000);
+            const r = await p.evaluate(() => {
+                const fig = document.querySelector('.oca-portrait');
+                return {
+                    phase: fig?.dataset.phase,
+                    check: document.querySelector('.oca-minicheck')?.dataset.state,
+                    live: fig?.dataset.live !== undefined,
+                    fallback: fig?.dataset.fallback !== undefined,
+                    logged: window.__logged,
+                };
+            });
+            check(errors.length === 0 && r.logged === 0, `${label}: ${errors.length} page errors and ${r.logged} logged (${errors[0] ?? ''})`);
+            check(quiet && r.phase === 'formed' && r.check === 'still', `${label}: the scenes did not stand still (settled ${quiet}, portrait ${r.phase}, check ${r.check})`);
+            if (flags.includes('nocanvas')) check(!r.live && r.fallback, `${label}: the portrait did not keep its poster (live ${r.live}, fallback ${r.fallback})`);
             await close();
         }
 

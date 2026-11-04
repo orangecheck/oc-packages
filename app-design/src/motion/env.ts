@@ -7,8 +7,14 @@ import { useEffect, useState } from 'react';
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
 
+/** A media query, or null where there is no way to ask: on a server, or in a test DOM without matchMedia (jsdom). */
+function media(query: string): MediaQueryList | null {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(query) : null;
+}
+
+/** Reduced motion is asked for, or there is no way to know: either way a scene stays still. */
 export function prefersStill(): boolean {
-    return typeof window === 'undefined' || window.matchMedia(REDUCE).matches;
+    return media(REDUCE)?.matches ?? true;
 }
 
 /**
@@ -19,7 +25,9 @@ export function prefersStill(): boolean {
 export function useMotionSetting(): number {
     const [n, setN] = useState(0);
     useEffect(() => {
-        const m = window.matchMedia(REDUCE);
+        const m = media(REDUCE);
+        // Without matchMedia, or a MediaQueryList too old for events, the setting is read once, at mount.
+        if (typeof m?.addEventListener !== 'function') return;
         const bump = () => setN((v) => v + 1);
         m.addEventListener('change', bump);
         return () => m.removeEventListener('change', bump);
@@ -29,7 +37,7 @@ export function useMotionSetting(): number {
 
 /** A mouse or trackpad that hovers: the only pointer a scene follows. */
 export function finePointer(): boolean {
-    return typeof window !== 'undefined' && window.matchMedia('(pointer: fine) and (hover: hover)').matches;
+    return media('(pointer: fine) and (hover: hover)')?.matches ?? false;
 }
 
 /**

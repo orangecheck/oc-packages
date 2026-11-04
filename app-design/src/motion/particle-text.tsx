@@ -2,7 +2,7 @@ import { createElement, useEffect, useRef, type CSSProperties, type ElementType 
 
 import { cn } from '../lib/cn';
 import { clamp01, easeOut, finePointer, prefersStill, seeded, useMotionSetting, whenReady } from './env';
-import { Batch, parseColour, rgba } from './paint';
+import { Batch, parseColour, rgba, type Surface } from './paint';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
 /*
@@ -158,7 +158,7 @@ function textScene(el: HTMLElement, cv: HTMLCanvasElement, text: HTMLSpanElement
         form(animate: boolean) {
             t = animate ? 0 : Infinity;
         },
-        parts(surface: Mounted['surface'], wake: () => void): SceneParts {
+        parts(surface: Surface, wake: () => void): SceneParts {
             const move = (e: PointerEvent) => {
                 const b = cv.getBoundingClientRect();
                 pointer.tx = e.clientX - b.left;

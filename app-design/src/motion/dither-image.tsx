@@ -3,7 +3,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { cn } from '../lib/cn';
 import { lightPalette } from '../tokens/palette';
 import { finePointer, prefersStill, useMotionSetting } from './env';
-import { parseColour } from './paint';
+import { parseColour, type Surface } from './paint';
 import { mountScene, type Mounted } from './scene';
 
 /*
@@ -138,7 +138,7 @@ interface Inks {
     pixel: number;
 }
 
-function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Mounted['surface'], wake: () => void, o: Inks, first: PointerEvent) {
+function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, wake: () => void, o: Inks, first: PointerEvent) {
     // The canvas works at dither resolution and is scaled up pixelated: one buffer pixel per `pixel` CSS px.
     let W = 0;
     let H = 0;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 
 import { cn } from '../lib/cn';
 import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, useMotionSetting, whenReady } from './env';
-import { Batch, inks, mix, rgba } from './paint';
+import { Batch, inks, mix, rgba, type Surface } from './paint';
 import { bustPoints, type Points } from './points';
 import { PORTRAIT_POSTER, PORTRAIT_POSTER_DARK } from './portrait-poster';
 import { mountScene, type Mounted, type SceneParts } from './scene';
@@ -239,7 +239,7 @@ interface PortraitOptions {
 }
 
 /** The drawing: positions, the gather, the wave and the lens, for points in a unit square fitted to the box. */
-function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => void, host: HTMLElement, o: PortraitOptions): SceneParts {
+function portraitScene(pts: Points, surface: Surface, wake: () => void, host: HTMLElement, o: PortraitOptions): SceneParts {
     const n = pts.count;
     const rand = seeded(0x51ee);
     // The cloud the dots start in: a loose band across the whole box, as fractions of it.

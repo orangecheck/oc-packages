@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, type CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
 import { prefersStill, seeded, smoothstep, useMotionSetting, whenReady } from './env';
-import { Batch, inks, mix, rgba, type Inks } from './paint';
+import { Batch, inks, mix, rgba, type Inks, type Surface } from './paint';
 import { mountScene, type Mounted } from './scene';
 import { watchStory } from './story';
 
@@ -240,7 +240,7 @@ function build({ cols, rows, tw, th }: Grid, real: number, seed: number): Crowd 
     return c;
 }
 
-function crowdScene(grids: { wide: Crowd; narrow: Crowd }, surface: Mounted['surface'], progress: () => number) {
+function crowdScene(grids: { wide: Crowd; narrow: Crowd }, surface: Surface, progress: () => number) {
     // A leaving copy draws its dust and its outline: two squares a cell at most.
     const batch = new Batch(Math.max(grids.wide.fig.length, grids.narrow.fig.length) * 2);
     let ink: Inks | null = null;

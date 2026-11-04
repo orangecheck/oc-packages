@@ -21,7 +21,6 @@ export interface SceneParts {
 }
 
 export interface Mounted {
-    surface: Surface;
     /** Ask for frames: the scene runs while it is on screen and has something to move. */
     wake(): void;
     stop(): void;
@@ -46,10 +45,15 @@ export function mountScene(
         scroll?: boolean;
         /** Called once, after the first frame is on the canvas: the moment to hide a poster. */
         onDraw?: () => void;
-        /** The scene threw and has stopped, its canvas cleared: the moment to show the poster again. */
+        /** The scene threw and has stopped, its canvas cleared, or there is no 2D canvas at all: the moment to show the poster again. */
         onFail?: () => void;
     } = {}
 ): Mounted {
+    // No 2D canvas (a test DOM such as jsdom, a locked-down browser): the scene stays its poster.
+    if (!canvas.getContext('2d', { alpha: true, willReadFrequently: true })) {
+        onFail?.();
+        return { wake() {}, stop() {} };
+    }
     let parts: SceneParts | null = null;
     let wake = () => {};
     let drawn = false;
@@ -92,7 +96,6 @@ export function mountScene(
               })
             : () => {};
     return {
-        surface,
         wake,
         stop() {
             offTheme();
