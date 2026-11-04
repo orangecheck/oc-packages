@@ -11,8 +11,9 @@
  * - The portrait's pause holds it still; its pointer lens draws only while
  *   the pointer moves. The crowd draws once per change of the story's --p.
  * - The portrait reads formed only as its loop sleeps: no frame runs and
- *   nothing draws after, with motion, under reduced motion and after a
- *   replay. Its notes come in once the dots gather, while it still forms.
+ *   nothing draws after, with motion, under reduced motion, after a replay
+ *   and with the pointer moving through the end of the play. Its notes come
+ *   in once the dots gather, while it still forms.
  * - DitherImage is its still until a fine pointer moves over it, then clear
  *   again within about a second; never under reduced motion or on touch.
  * - The headline swap never shows both headlines at once.
@@ -289,6 +290,24 @@ try {
             check(await settle(p), 'portrait: after a replay it never settles');
             const replayed = await sinceFormed(p);
             check(replayed?.cbs === 0 && replayed?.draws === 0, `portrait after a replay: ${formedLast(replayed)}`);
+            await close();
+        }
+        // The pointer moving through the end of the play: the lens keeps the loop awake, so it still reads forming;
+        // once the pointer rests the loop sleeps, and only then does it read formed, with no frame after.
+        {
+            const { p, close } = await open('portrait');
+            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            const box = await p.locator('.oca-portrait-stage').boundingBox();
+            let i = 0;
+            const sweep = () => p.mouse.move(box.x + box.width / 2 - 100 + (i++ % 11) * 20, box.y + 200, { steps: 2 });
+            const until = Date.now() + 20000;
+            while ((await p.getAttribute('.oca-portrait-control', 'aria-label')) !== 'Replay animation' && Date.now() < until) await sweep();
+            for (let k = 0; k < 10; k++) await sweep();
+            const moving = await p.getAttribute('.oca-portrait', 'data-phase');
+            check(i > 10 && moving === 'forming', `portrait with the pointer moving past the end of its play: phase ${moving} after ${i} moves, not forming`);
+            check(await settle(p), 'portrait: with the pointer at rest after its play it never stops');
+            const rested = await sinceFormed(p);
+            check((await p.getAttribute('.oca-portrait', 'data-phase')) === 'formed' && rested?.cbs === 0 && rested?.draws === 0, `portrait with the pointer at rest after its play: ${formedLast(rested)}`);
             await close();
         }
         // Paused mid-gather: nothing drawn, nothing asked; playing again finishes and sleeps.
