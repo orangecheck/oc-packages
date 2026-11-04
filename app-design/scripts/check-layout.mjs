@@ -67,12 +67,13 @@
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
  */
-import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { compileCss } from './browser.mjs';
 
 process.env.NODE_ENV = 'production';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -128,19 +129,6 @@ const check = (ok, msg) => {
 }
 
 try {
-    // The package's CSS, compiled the way a site compiles it.
-    writeFileSync(
-        join(dir, 'input.css'),
-        `@import '${join(pkg, 'node_modules/tailwindcss/index.css')}';\n` +
-            `@custom-variant dark (&:is(.dark *));\n` +
-            `@source '${join(pkg, 'dist')}';\n` +
-            `@source '${join(dir, 'client.js')}';\n` +
-            `@source '${join(dir, 'menu.js')}';\n` +
-            `@source '${join(dir, 'toolmenu.js')}';\n` +
-            `@source '${join(dir, 'loaderr.js')}';\n` +
-            `@import '${join(pkg, 'src/styles.css')}';\n`
-    );
-
     // The panel, opened in the browser: its dialog renders only on the client.
     const esbuild = require('esbuild');
     writeFileSync(
@@ -232,10 +220,9 @@ try {
         logLevel: 'error',
     });
 
-    const tw = spawnSync(process.execPath, [join(pkg, 'node_modules/@tailwindcss/cli/dist/index.mjs'), '-i', join(dir, 'input.css'), '-o', join(dir, 'out.css')], { encoding: 'utf8' });
-    if (tw.status !== 0) throw new Error(`tailwind: ${tw.stderr}`);
-    // The fonts beside the CSS, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    cpSync(join(pkg, 'src/styles/fonts'), join(dir, 'fonts'), { recursive: true });
+    // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
+    // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
