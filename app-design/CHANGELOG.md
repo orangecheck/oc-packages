@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
+  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
+  every real card the same pixels). Any other character in a mono field draws
+  in Inter, and the server logs a warning naming the field and code point.
+
 ## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification
