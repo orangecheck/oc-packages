@@ -166,6 +166,12 @@ optional. What changes is how things look.
   it. The sizes follow the flat lockup's larger name: 22 in the tool header,
   20 in the phone bar and the compact footer, 26 in the footer and the sign-in.
   check-render renders every chrome and fails on the app icon in any of it.
+- `THEME_COLOR` (`{ light, dark }`, from `@orangecheck/app-design` and
+  `/tokens`) is the page's ground, `--background`: `#eeeae6` and `#0e0c0b`. It
+  is read from the same generated palette as the CSS, so a site's
+  `<meta name="theme-color">` can import it instead of typing its own. Every
+  site's `_document` hard-coded `#fafafa` and `#0a0a0a`, 1.x's colours.
+  check-mirror holds it to tokens.css.
 
 ### Tokens (`tokens.css`, `appColors`)
 

@@ -20,7 +20,7 @@ if (!existsSync(dist)) {
     console.error('✗ mirror: dist/tokens.js is missing; run yarn build first');
     process.exit(1);
 }
-const { appColors } = createRequire(import.meta.url)(dist);
+const { appColors, THEME_COLOR } = createRequire(import.meta.url)(dist);
 const palette = buildPalette();
 
 let failures = 0;
@@ -29,6 +29,13 @@ const fail = (msg) => {
     console.error(`✗ mirror: ${msg}`);
     failures++;
 };
+
+// THEME_COLOR, a document's theme-color meta in light and dark: the page's ground, --background,
+// from the same generated palette, so a site's _document stops typing its own copy.
+checked++;
+if (!THEME_COLOR || THEME_COLOR.light !== palette.light.background || THEME_COLOR.dark !== palette.dark.background) {
+    fail(`THEME_COLOR is ${JSON.stringify(THEME_COLOR)}, tokens.css's --background is ${palette.light.background} and ${palette.dark.background}`);
+}
 
 if (readFileSync(PALETTE_FILE, 'utf8') !== renderPalette(palette)) {
     fail('src/tokens/palette.ts disagrees with tokens.css; run node scripts/gen-palette.mjs');

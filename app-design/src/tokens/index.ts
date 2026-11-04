@@ -8,6 +8,12 @@ import { darkPalette, lightPalette } from './palette';
 
 export { darkPalette, lightPalette } from './palette';
 
+/**
+ * A document's `<meta name="theme-color">` in light and dark: the page's ground (--background),
+ * read from the same generated palette as the CSS, so a site's _document need not type it.
+ */
+export const THEME_COLOR = { light: lightPalette.background, dark: darkPalette.background } as const;
+
 export const APP_ATTRIBUTE = 'data-oc-app';
 export const APP_ID = 'ochk';
 
