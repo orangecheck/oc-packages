@@ -105,7 +105,7 @@ export function SatsFigure({
                 )}
             >
                 <Sats value={value} unit="none" />
-                <span className="ml-2 text-[0.5em] tracking-normal text-muted-foreground">sats</span>
+                <span className="ml-2 text-[max(0.5em,0.75rem)] tracking-normal text-muted-foreground">sats</span>
             </span>
             {hint ? <span className="text-[0.875rem] text-muted-foreground">{hint}</span> : null}
         </div>

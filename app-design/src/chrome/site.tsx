@@ -251,7 +251,7 @@ export function SiteHeader({
                         <NavDropdown key={n.href} item={n} />
                     ) : (
                         // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center px-0 hover:text-oca-accent-ink'} />
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink pointer-coarse:min-w-11'} />
                     )
                 )}
             </nav>
@@ -483,9 +483,10 @@ export function SiteBanner({
 
 /**
  * A link in the legal row or a tool's protocol row, lines of inline text links: 44px to a thumb on
- * any screen, a tablet's included, and WCAG 2.5.8's 24px to a mouse. The pointer decides, not the width.
+ * any screen, a tablet's included, in both axes (a short word, "Terms", was 41px wide), and WCAG
+ * 2.5.8's 24px to a mouse. The pointer decides, not the width; the label stays centred in its box.
  */
-const FOOT_LINK = 'inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11';
+const FOOT_LINK = 'inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (

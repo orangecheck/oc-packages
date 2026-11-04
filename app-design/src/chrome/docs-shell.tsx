@@ -113,7 +113,8 @@ export function DocsNav({
                                             onClick={onNavigate}
                                             aria-current={on ? 'page' : undefined}
                                             className={cn(
-                                                '-ml-px flex min-h-9 items-center gap-2 border-l-2 py-1.5 pl-3.5 pr-2 text-[0.875rem] leading-snug transition-colors',
+                                                // 44px tall to a thumb; the rail's width already gives the row its 44.
+                                                '-ml-px flex min-h-9 items-center gap-2 border-l-2 py-1.5 pl-3.5 pr-2 text-[0.875rem] leading-snug transition-colors pointer-coarse:min-h-11',
                                                 on
                                                     ? 'border-foreground font-medium text-foreground'
                                                     : 'border-transparent text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
