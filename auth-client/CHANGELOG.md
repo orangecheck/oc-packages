@@ -9,6 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.1] — 2026-11-04
+
+### Fixed
+
+- `<OcSignIn>`'s submit buttons ("Send one-time code", "Verify · sign me in"
+  and the wallet steps' buttons) are at least 44px tall, as its tabs and the
+  opt-in row are. The padding round one line drew them 41.7px tall, under a
+  thumb's 44 at every width.
+
 ## [2.42.0] — 2026-11-04
 
 ### Changed
