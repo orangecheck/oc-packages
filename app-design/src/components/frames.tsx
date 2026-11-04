@@ -13,8 +13,8 @@ export function PhoneFrame({ className, style, children }: { className?: string;
     return (
         <div
             className={cn(
-                // A lighter bezel in dark mode, or the phone dissolves into the page.
-                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
+                // A lighter bezel in dark mode, and the field edge around it, or the phone dissolves into a dark ground.
+                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] border border-input bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
                 'shadow-[0_50px_100px_-40px_rgb(10_10_10/0.55),0_0_0_1px_rgb(255_255_255/0.06)_inset]',
                 className
             )}
@@ -55,10 +55,11 @@ export function BrowserFrame({
             data-frame={variant}
             className={cn(
                 'relative overflow-hidden',
-                // 2.0's depiction shadow (tokens.css), drawn tight to the window.
+                // 2.0's depiction shadow (tokens.css), drawn tight to the window, and the field edge around it:
+                // a window is told from its page by a line at 3:1, not by its fill (white on paper) or a shadow.
                 paper
-                    ? 'rounded-depict bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
-                    : 'rounded-depict border border-border bg-card shadow-[var(--oca-shadow-depict)]',
+                    ? 'rounded-depict border border-input bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
+                    : 'rounded-depict border border-input bg-card shadow-[var(--oca-shadow-depict)]',
                 !glow && className
             )}
             style={glow ? undefined : style}

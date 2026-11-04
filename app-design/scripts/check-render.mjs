@@ -82,6 +82,33 @@ const html = (el) => renderToStaticMarkup(el);
     }
     check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);
     check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
+
+    // No text under 12px: a size in rem or px is 0.75rem (12px) or more, and one in em, which follows a
+    // smaller parent down (0.875em of a 13px table head was 11.375px), is floored: max(…em, 0.75rem).
+    const small = [];
+    const tooSmall = (v) => {
+        const n = parseFloat(v);
+        if (/^[\d.]+rem$/.test(v)) return n < 0.75;
+        if (/^[\d.]+px$/.test(v)) return n < 12;
+        if (/^[\d.]+em$/.test(v)) return n < 1;
+        return false;
+    };
+    for (const f of walk(src, /\.tsx?$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                for (const m of line.matchAll(/(?<![\w-])text-\[([\d.]+(?:rem|px|em))\]/g)) if (tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} text-[${m[1]}]`);
+            });
+    }
+    for (const f of walk(join(src, 'styles'), /\.css$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                const m = line.match(/(?<![\w-])font-size:\s*([\d.]+(?:rem|px|em))\s*;/);
+                if (m && tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} font-size: ${m[1]}`);
+            });
+    }
+    check(small.length === 0, `text under 12px in the source: ${small.join(', ')}`);
 }
 
 // One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square

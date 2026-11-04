@@ -173,6 +173,105 @@ optional. What changes is how things look.
   site's `_document` hard-coded `#fafafa` and `#0a0a0a`, 1.x's colours.
   check-mirror holds it to tokens.css.
 
+### Follow-up (design2-tokens)
+
+- The bands hold every colour a component paints on them, not only their own
+  text. A brand badge on the ink band was 2.14:1, and small orange text on it
+  was 2.51:1, because `oca-on-ink` never re-pointed `--oca-accent-ink`. It now
+  takes the ink eyebrow `#fb923c`, so the badge reads 6.91:1 and orange text
+  8.12:1. Every band and dark or orange Card tone now also re-points:
+  - `--oca-accent-ink`;
+  - the page's own grounds: `--background`, `--popover` and `--oca-table-head`;
+  - `--oca-surface-muted`;
+  - the status colours. On ink and burnt they take the dark theme's set, as
+    the new `--oca-ink-destructive`, `-success`, `-warning`, `-info` and
+    `--oca-ink-status-foreground` (destructive 6.64:1 on ink). On orange and
+    on the deep footer, status takes the band's own text colour, and its word
+    or icon says which status it is.
+
+  The footer's raised ground (`--card`) is a step darker, `--oca-primary-hover`.
+  On the footer itself, a badge's white tint left its white text at 4.10:1.
+- Dark `--muted` is `#26221f` (it was `#1c1916`). It was the same colour as
+  `--oca-surface` and `--popover`, so a muted fill vanished in a drawn window
+  or a popover (1.00:1). It is now 1.11:1 on them, 1.16:1 on `--card` and
+  1.24:1 on `--background`, a step at least as large as light's (1.10:1).
+  Dark `--oca-subtle-foreground` is lifted from `#8a837d` to `#8f8882`, so it
+  keeps 4.5:1 on muted (4.52:1). **Migrating:** a site that drew muted fills
+  a step up in dark by hand (chat's `bg-muted dark:bg-accent`) can drop the
+  `dark:` half, since dark `--muted` is now that colour. A site that
+  re-pointed orange text, a status colour or `--background` inside a band by
+  hand can drop that too.
+- Light `--warning` is `#9e5900` (it was `#a15c07`), so a DataTable cell in
+  caution is 4.52:1 on paper (it was 4.33:1).
+- The dark ink band is `#2c2927` (it was `#1c1916`), its card `#332f2d`, and its
+  line `#3c3836`. It was the same colour as the window, the popover and the
+  table head, so a drawn window in the band vanished. It is now at least
+  1.09:1 from every page ground: 1.09 on `--muted`, 1.21 on `--oca-surface`.
+  The code comment colour moves `#909397` to `#94979b`, to keep 4.5:1 on the
+  lighter card. The band's red is one step lighter (`#fca5a5`), so a danger
+  badge's tint keeps 4.5:1.
+- The segmented `Tabs` (`look="pill"`) draws the chosen segment's ink edge as
+  well as its raised fill. Card on the muted list was 1.18:1, and apart from
+  its text colour that was the only sign of which segment was chosen.
+  check-contrast fails any selected, pressed or current state drawn as a fill
+  under 3:1 with no edge at 3:1.
+- Three more chosen states now carry an edge at 3:1, as the pill tab does:
+  - `AppShell`'s current page in the sidebar (card on the page, 1.07:1, with
+    a 1.28:1 hairline) is ringed in ink;
+  - its section switcher's chosen section (1.18:1 on the muted list) is
+    bordered in ink;
+  - a JSON panel's Formatted / Raw toggle (1.45:1 on the code bar) is ringed
+    in the bar's subtle text.
+
+  Menu and select items already ring their highlight in `--ring`, and
+  check-contrast now names that variant too. check-layout reads every
+  rendered current, selected, pressed, active or highlighted element,
+  however a script chose it. Its fill must be 3:1 on the ground under it,
+  or an edge must be 3:1 on both the fill and that ground. This covers every
+  page it loads, plus a states page in light and dark. On the build before
+  the fix it failed on all three. Every page check-layout writes is now
+  loaded through the same checks, the hero pages included.
+- No text is under 12px. Inline code is `max(0.875em, 0.75rem)`; in a 13px
+  table head it was 11.375px. The same floor now applies to the base
+  `code`, `kbd` and `samp` size (`0.92em`), to a heading's `#` anchor and to
+  the `sats` unit. At 12px now: `AppShell`'s count badge (was 10px) and tab
+  labels (11px), a `2xs` `Avatar`'s initials (11px), and chart ticks (10px).
+  check-render fails any font size under 12px in the source (8 on main).
+  check-layout fails any text it computes under 12px on its pages at 390 and
+  at 1440. On main that was the table-head code at 11.375px and the rail's
+  labels at 11px.
+- To a thumb, chrome targets are 44px wide as well as 44px tall. A short word
+  in the legal row ("Terms") was 41×44 at 390 on every site using
+  `SiteFooter`. At 1024 touch, the compact footer's protocol links were 27 to
+  37px wide. Now these get `min-w-11` under a coarse pointer, with the label
+  centred, so a mouse sees no change:
+  - the legal and protocol rows;
+  - breadcrumbs;
+  - `FilterChips`;
+  - `SiteHeader`'s nav.
+
+  `DocsShell`'s rail rows were 36px tall to a thumb and are now 44. The legal
+  row's gap is 16px on a phone, so the family footer stays within its 600px.
+  check-layout measures both axes of every header and footer control at 390
+  touch, the inline rows at 1024 touch and the docs rail at 1280 touch. On
+  main it failed on "Terms" at 41.
+- A drawn window or phone is told from its page by an edge at 3:1, not by
+  its fill or a shadow. `BrowserFrame` (both variants) and `PhoneFrame` take
+  `border-input`, the field edge: 3.12:1 on paper and 3.61:1 on night. Before
+  this, a paper window was white on paper (1.20:1) and the default window's
+  hairline was 1.28:1. Every band now re-points `--input`, both a field's edge
+  and a window's: to the band's subtle text on ink, its quiet text on burnt,
+  ink on orange and white on the footer. On the lighter dark ink band the old
+  edge would have been 2.67:1. check-contrast holds every depiction frame in
+  the package against the page, each band and each Card tone (65 failures on
+  main), and each band's `--input` on its ground.
+- check-contrast reads the components. It checks every text and ground named
+  in a component's class strings, a badge's `color-mix` tint included. It
+  checks them on the page, in every band and in every Card tone, in light and
+  in dark. A status dot or other mark drawn as a fill must reach 3:1, and
+  `--muted` must stay apart from every surface it is drawn on. On 2.0.0-pre at
+  f642df4f it found 142 failures.
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink
@@ -188,7 +287,7 @@ optional. What changes is how things look.
 - New: `--oca-surface` and `--oca-surface-foreground` for the product
   surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
   in dark. `--oca-surface-muted` is its secondary text (`#5e5852`, dark
-  `#a39d97`), which a band never re-points. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  `#a39d97`), which a band re-points with the surface. The bands are new too: `--oca-burnt*` (the dark brown stage),
   `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
   `--oca-brand-line`.
 - Status colours are re-tuned for paper: `--destructive` `#b21d26`,
