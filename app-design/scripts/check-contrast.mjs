@@ -133,8 +133,10 @@ const PAIRS = [
     ['oca-subtle-foreground', 'muted', 4.5],
     ['oca-accent-ink', 'muted', 4.5],
     ['oca-accent-display', 'muted', 3],
-    // The CTA's hover keeps its white text; a filled control's ring is ink.
-    ['primary-foreground', 'oca-primary-hover', 4.5],
+    // The CTA's hover keeps its white text and its 3:1 on the page (the darker one was 2.67:1 on night);
+    // a filled control's ring is ink.
+    ['primary-foreground', 'oca-cta-hover', 4.5],
+    ['oca-cta-hover', 'background', 3],
     ['oca-ring-on-fill', 'primary', 3],
     ['oca-ring-on-fill', 'brand', 3],
     ['oca-ring-on-fill', 'oca-footer', 3],
@@ -493,6 +495,62 @@ const census = { strings: 0, pairs: 0 };
         const [l, m, s] = [L + 0.3963377774 * x + 0.2158037573 * y, L - 0.1055613458 * x - 0.0638541728 * y, L - 0.0894841775 * x - 1.291485548 * y].map((v) => v ** 3);
         return hex([4.0767416621 * l - 3.3077085212 * m + 0.2309667373 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960771 * l - 0.7034186147 * m + 1.707614701 * s].map((v) => 255 * gamma(Math.min(1, Math.max(0, v)))));
     };
+    // A Button is told from its ground by its fill or by its edge at 3:1, at rest and under the pointer (1.4.11
+    // by the lead's ruling, as a state is), not by its label alone. Each look is read from button.tsx and held
+    // on the grounds it is drawn on: the page's looks on the page, every band and every Card tone; the ink pair
+    // and the orange fill on the dark grounds only (the ink and burnt bands and Cards, and the orange fill on
+    // the dark page too). ghost and link are text, told by their words.
+    const buttonSrc = readFileSync(join(here, '../src/primitives/button.tsx'), 'utf8');
+    const looks = [...buttonSrc.matchAll(/^\s+(primary|secondary|brand|danger|onInk|onInkOutline):\s*'([^']*)'/gm)].map((m) => {
+        const cls = m[2].split(/\s+/).filter(Boolean);
+        const of = (kind, variant) => cls.map((c) => parse(c, kind)).find((x) => x?.variant === variant);
+        return { name: m[1], ground: of('bg', ''), edge: of('border', ''), hoverGround: of('bg', 'hover'), hoverEdge: of('border', 'hover') };
+    });
+    if (looks.length !== 6) {
+        console.error(`✗ contrast: read ${looks.length} of Button's six bounded looks from button.tsx`);
+        failed++;
+    }
+    const drawnOn = (look, ctx, mode) =>
+        /^onInk/.test(look) ? /ink|burnt/.test(ctx) : look === 'brand' ? /ink|burnt/.test(ctx) || (ctx === 'the page' && mode === 'dark') : true;
+    // And the orange fill is only drawn there: a brand Button in a component, a block or a story sits inside
+    // an ink or burnt ground (a band, a tone, a ground, a dark class) or draws the disabled look instead.
+    {
+        const ts = (await import('node:module')).createRequire(import.meta.url)('typescript');
+        const DARK = /\b(oca-band-(ink|burnt)|oca-on-(ink|burnt)|bg-oca-(ink|burnt)(-card)?|dark)\b/;
+        const attr = (el, name) => el.attributes.properties.find((a) => a.name?.getText() === name);
+        const text = (a) => (a?.initializer && ts.isStringLiteral(a.initializer) ? a.initializer.text : a?.initializer?.getText() ?? '');
+        const walkFiles = (d, out = []) => {
+            for (const f of readdirSync(d)) {
+                const p = join(d, f);
+                if (statSync(p).isDirectory()) walkFiles(p, out);
+                else if (/\.tsx$/.test(f) && !/\.test\.tsx$/.test(f)) out.push(p);
+            }
+            return out;
+        };
+        for (const f of walkFiles(join(here, '../src'))) {
+            const src = readFileSync(f, 'utf8');
+            if (!/variant=["{']*brand/.test(src)) continue;
+            const sf = ts.createSourceFile(f, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+            const visit = (node) => {
+                const el = ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : null;
+                if (el && el.tagName.getText() === 'Button' && /^['"]?brand['"]?$/.test(text(attr(el, 'variant'))) && !attr(el, 'disabled')) {
+                    let dark = false;
+                    for (let up = node.parent; up && !dark; up = up.parent) {
+                        const open = ts.isJsxElement(up) ? up.openingElement : ts.isJsxSelfClosingElement(up) ? up : null;
+                        if (!open) continue;
+                        dark = DARK.test(text(attr(open, 'className'))) || /^(ink|burnt)$/.test(text(attr(open, 'tone'))) || /^(ink|burnt|dark)$/.test(text(attr(open, 'ground')));
+                    }
+                    if (!dark) {
+                        const at = `${f.slice(join(here, '..').length + 1)}:${sf.getLineAndCharacterOfPosition(el.getStart()).line + 1}`;
+                        console.error(`✗ contrast: a brand Button at ${at} is drawn on paper or on orange: the orange fill is for the ink and burnt grounds and the dark page (2.34:1 on paper, 1.00 on orange)`);
+                        failed++;
+                    }
+                }
+                ts.forEachChild(node, visit);
+            };
+            visit(sf);
+        }
+    }
     const seen = new Set();
     for (const [ctx, set, base] of contexts) {
         for (const [mode, vars] of [
@@ -512,6 +570,20 @@ const census = { strings: 0, pairs: 0 };
                 console.error(`✗ ${mode}: in ${ctx}, ${what} is ${r.toFixed(2)}:1, needs ${min}:1 (${at})`);
                 failed++;
             };
+            for (const look of looks.filter((l) => drawnOn(l.name, ctx, mode))) {
+                const under = value(base);
+                for (const [state, g, e] of [
+                    ['', look.ground, look.edge],
+                    ['hover ', look.hoverGround ?? look.ground, look.hoverEdge ?? look.edge],
+                ]) {
+                    const fill = g ? paint(g, under) : under;
+                    const edge = e && paint(e, fill);
+                    if (!under || !fill) continue;
+                    census.pairs++;
+                    const best = Math.max(ratio(fill, under), edge ? ratio(edge, under) : 0);
+                    if (best < 3) fail(`Button variant="${look.name}" ${state}(fill ${g?.name ?? 'none'}${e ? `, edge ${e.name}` : ''}) on --${base}`, best, 3, 'primitives/button.tsx');
+                }
+            }
             for (const u of units) {
                 // A depicted window or device against the page it is drawn on (1.4.11, by the lead's ruling on
                 // depictions): its fill reads 3:1 on that ground, or an edge in a token does. A paper window was

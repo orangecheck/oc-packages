@@ -8,8 +8,11 @@ import { Spinner } from './feedback';
 
 /*
  * 2.0: square buttons. `primary` is the page CTA, deep orange with white
- * text; `secondary` is the outlined one. `brand` is the orange fill with ink
- * text, for in-product CTAs and tiles (white on orange is never used).
+ * text; each band points it at a fill that holds 3:1 on it (ink on orange,
+ * orange on ink, white on the footer). `secondary` is the outlined one, its
+ * edge the field's. `brand` is the orange fill with ink text, for dark grounds
+ * and tiles only (the ink and burnt bands, the dark page): on paper it was
+ * 2.34:1, so a page CTA there is `primary`. White on orange is never used.
  * `onInk` and `onInkOutline` are the pair for dark bands. `plus` adds the
  * trailing "+" that turns 90° on hover and press, CSS only.
  */
@@ -27,10 +30,11 @@ export const buttonVariants = cva(
     {
         variants: {
             variant: {
-                primary: 'bg-primary text-primary-foreground hover:bg-oca-primary-hover',
-                // A border's width, so the touch target below is measured from the border box.
+                primary: 'bg-primary text-primary-foreground hover:bg-oca-cta-hover',
+                // A border's width, so the touch target below is measured from the border box. Its edge is a
+                // field's, 3:1 on every ground: the ink at 45% was 2.87:1 on paper and 2.36:1 on orange.
                 secondary:
-                    'border border-foreground/45 bg-transparent text-foreground hover:border-foreground hover:bg-accent/60 [--hit-b:1px]',
+                    'border border-input bg-transparent text-foreground hover:border-foreground hover:bg-accent/60 [--hit-b:1px]',
                 // Ink text on orange; the hover lightens, since ink on the deep orange is 3.55:1.
                 brand: 'bg-brand text-brand-foreground hover:bg-oca-orange-light',
                 ghost: 'text-foreground hover:bg-accent',

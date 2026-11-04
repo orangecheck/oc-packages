@@ -611,8 +611,8 @@ const html = (el) => renderToStaticMarkup(el);
     const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
     const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
     check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
-    // 2.0's secondary is the outlined button (an ink hairline, no fill), so it is known by its edge.
-    const SECONDARY = /\bborder-foreground\/45\b/;
+    // 2.0's secondary is the outlined button (the field's edge, no fill), so it is known by its edge.
+    const SECONDARY = /\bborder-input\b/;
     check(SECONDARY.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
     check(SECONDARY.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
     // Typed as a string, so it passes where a string label is asked for.
