@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
+import { Frame } from './frame';
 import { Reveal } from './motion';
 
 /*
@@ -45,12 +46,17 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
 export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<typeof sectionVariants> {
     /** Put children in the standard container. Default true. */
     contained?: boolean;
+    /**
+     * Put children in 2.0's Frame instead: the 82.5rem column with the page's gutter and a hairline
+     * at each edge from 900px, so the section lines up with the header and the footer.
+     */
+    framed?: boolean;
 }
 
-export function Section({ tone, space, rule, contained = true, className, children, ...props }: SectionProps) {
+export function Section({ tone, space, rule, contained = true, framed = false, className, children, ...props }: SectionProps) {
     return (
         <section className={cn(sectionVariants({ tone, space, rule }), className)} {...props}>
-            {contained ? <div className="oca-container">{children}</div> : children}
+            {framed ? <Frame>{children}</Frame> : contained ? <div className="oca-container">{children}</div> : children}
         </section>
     );
 }

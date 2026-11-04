@@ -30,6 +30,8 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
+    /** A full-width hairline under the hero. `page` only. */
+    rule?: boolean;
     className?: string;
 }
 
@@ -46,6 +48,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
+    rule = false,
     className,
 }: PageHeroProps) {
     if (variant === 'document') {
@@ -58,7 +61,9 @@ export function PageHero({
         );
     }
     return (
-        <Section space="none" tone={GROUND[ground]} data-ground={ground} className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
+        // On the Frame, so the hero lines up with the header and the footer. `xl` is the home page's
+        // H1 (display-1, the largest text on the page); content pages take `lg` (display-2).
+        <Section space="none" framed rule={rule} tone={GROUND[ground]} data-ground={ground} className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}

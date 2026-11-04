@@ -68,7 +68,8 @@ export function VerifyReport({
             {/* items-start sizes each line to its longest word: a Bitcoin address must be free to break. */}
             <header className="flex flex-col items-start gap-3 p-6 md:p-8">
                 <StatusBadge status={verdict} />
-                <Heading className="oca-display-3 [overflow-wrap:anywhere]">{title}</Heading>
+                {/* A step under the page's H1 (PageHeader's display-3): the verdict reads as a section. */}
+                <Heading className="oca-title [overflow-wrap:anywhere] md:text-[1.5rem]">{title}</Heading>
                 {summary ? <p className="oca-body max-w-[40rem] [overflow-wrap:anywhere]">{summary}</p> : null}
             </header>
             <ul aria-label="Checks" className="divide-y divide-border border-t border-border">

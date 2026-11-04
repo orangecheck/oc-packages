@@ -446,6 +446,21 @@ try {
             )
         )
     );
+    // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
+    // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
+    const framedPage = page(
+        'framed-page',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }], cta: true }),
+                h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
+                h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
+                h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
+            )
+        )
+    );
     // The footer's giant wordmark: one word at its natural spacing, filling the frame, nothing clipped.
     const wordmark = page(
         'wordmark',
@@ -1334,6 +1349,29 @@ try {
                     for (const r of rows) check(r.over <= 1 && r.right <= 1 && r.clash <= 0, `[${w}] the ${r.hdr} header with the product word "${longest}" overflows: ${JSON.stringify(r)}`);
                     await c.close();
                 }
+            }
+            // The page's bands on the header's frame, and the H1 the largest text read.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(framedPage);
+                await c.evaluate(() => document.fonts.ready);
+                const f = await c.evaluate(() => {
+                    const left = (el) => Math.round(el.getBoundingClientRect().left);
+                    const size = (el) => parseFloat(getComputedStyle(el).fontSize);
+                    const h1 = document.querySelector('h1');
+                    const read = [...document.querySelectorAll('body *')].filter((el) => !el.closest('[aria-hidden="true"]') && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+                    const biggest = read.reduce((m, el) => (size(el) > size(m) ? el : m), h1);
+                    return {
+                        brand: left(document.querySelector('header a[href="/"] > span')),
+                        hero: left(h1),
+                        closing: left([...document.querySelectorAll('h2')].at(-1)),
+                        h1: size(h1),
+                        biggest: [biggest.tagName, size(biggest), biggest.textContent.trim().slice(0, 30)],
+                    };
+                });
+                check(Math.abs(f.hero - f.brand) <= 1 && Math.abs(f.closing - f.brand) <= 1, `[${width}] the hero and the closing are off the header's frame: brand ${f.brand}, hero ${f.hero}, closing ${f.closing}`);
+                check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
+                await c.close();
             }
             // Chrome targets: the header's links, family menu, theme switch, Sign in and CTA, a footer
             // column's links (44px), and the legal row's inline links (24px).

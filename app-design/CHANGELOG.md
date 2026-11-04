@@ -45,6 +45,17 @@ optional. What changes is how things look.
   - `SplitBar` draws its segments in tokens (`--oca-surface`, `--oca-ink`)
     where it hard-coded white.
   - check-render scans the source for a rounded panel or pill.
+- `PageHero` and `Closing` sit on the Frame (82.5rem, the page's gutter, the
+  hairlines from 900px), so they line up with the header and footer; before,
+  they sat 52px inside it at 1440. `Section` takes `framed` for the same.
+  `PageHero` takes `rule`, a hairline under it, and its `size="xl"` is the
+  page's H1 at display-1.
+  - `Closing`'s title is a display-2: it was set past display-1, larger than
+    the H1.
+  - `VerifyReport`'s title is a step under the page's H1. It was a display-3,
+    the same size as `PageHeader`'s H1.
+  - check-layout checks the frame line-up, and checks that the H1 is the
+    largest text read on the page.
 
 ### Tokens (`tokens.css`, `appColors`)
 
