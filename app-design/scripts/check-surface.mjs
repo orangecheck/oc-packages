@@ -10,6 +10,8 @@
  *   - a new entry, or a new value export (a component, a function, a
  *     constant), is not named in backticks in the [2.0.0] section.
  * A site lane migrates from that list, so nothing it greps for may be missing.
+ * The snapshot itself is held to npm's published 1.29.3 by
+ * check-surface-1.29.3.mjs, a CI step of its own, since it needs the network.
  * Run after `yarn build`.
  *
  *   node scripts/check-surface.mjs                      check
@@ -17,55 +19,12 @@
  *                                                       write a baseline from a published dist
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
+import { surface } from './surface.mjs';
 
-/** Every entry's exports (value, component, function or type) and each component's own prop names. */
-export function surface(dist, pkgJson) {
-    // Every entry, a folder of files (./art/*) too; the ones with types are read for their exports.
-    const entries = Object.keys(JSON.parse(readFileSync(pkgJson, 'utf8')).exports).filter((k) => k !== './package.json');
-    const files = Object.fromEntries(entries.filter((e) => !e.includes('*')).map((e) => [e, join(dist, `${e === '.' ? 'index' : e.slice(2)}.d.ts`)]).filter(([, f]) => existsSync(f)));
-    const program = ts.createProgram(Object.values(files), { skipLibCheck: true, jsx: ts.JsxEmit.ReactJSX, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 });
-    const checker = program.getTypeChecker();
-    // Own props only: those declared in this package's .d.ts, not React's or Radix's HTML attributes.
-    const propsOf = (type) => {
-        if (!type) return undefined;
-        const own = checker
-            .getPropertiesOfType(checker.getApparentType(type))
-            .filter((p) => (p.declarations ?? []).some((d) => !d.getSourceFile().fileName.includes('node_modules')))
-            .map((p) => p.getName())
-            .sort();
-        return own.length ? own : undefined;
-    };
-    const out = { entries: entries.sort(), exports: {} };
-    for (const [entry, file] of Object.entries(files)) {
-        const mod = checker.getSymbolAtLocation(program.getSourceFile(file));
-        const exp = {};
-        for (const s of mod ? checker.getExportsOfModule(mod) : []) {
-            const name = s.getName();
-            const target = s.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s;
-            if (target.flags & (ts.SymbolFlags.Interface | ts.SymbolFlags.TypeAlias) && !(target.flags & ts.SymbolFlags.Value)) {
-                exp[name] = { kind: 'type' };
-                continue;
-            }
-            const decl = target.valueDeclaration ?? target.declarations?.[0];
-            const t = decl ? checker.getTypeOfSymbolAtLocation(target, decl) : undefined;
-            const sig = t?.getCallSignatures()[0];
-            const component = /^[A-Z]/.test(name) && (sig || t?.getProperties().some((p) => p.getName() === '$$typeof'));
-            if (component) {
-                const p = sig?.getParameters()[0];
-                exp[name] = { kind: 'component', props: p ? propsOf(checker.getTypeOfSymbolAtLocation(p, decl)) : undefined };
-            } else exp[name] = { kind: sig ? 'function' : 'value' };
-        }
-        out.exports[entry] = Object.fromEntries(Object.entries(exp).sort(([a], [b]) => a.localeCompare(b)));
-    }
-    return out;
-}
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 if (process.argv[2] === '--write') {
     const [dist, pkgJson, file] = process.argv.slice(3);

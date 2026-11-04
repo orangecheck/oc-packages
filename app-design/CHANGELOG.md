@@ -33,7 +33,11 @@ Nothing in 1.29.3's surface is removed or renamed: no entry, no export, no
 component prop. `scripts/check-surface.mjs` compares the built surface with
 1.29.3's (`scripts/surface-1.29.3.json`) and fails the build when one is gone
 without a line here, or when a new entry or export is not named in this
-section. Each line below is before → after, starting with what to grep for.
+section. `scripts/check-surface-1.29.3.mjs`, a step of its own in CI, fetches
+npm's 1.29.3 tarball, checks it against its pinned integrity, and fails if the
+snapshot is not exactly its surface. It also fails if any component prop lost
+a string option or became required since 1.29.3. Each line below is before →
+after, starting with what to grep for.
 
 - **The version.** `"@orangecheck/app-design": "^1.…"` → `"^2.0.0"`. A site
   that renders site-kit's `./og` or `./document` moves `@orangecheck/site-kit`
@@ -44,8 +48,9 @@ section. Each line below is before → after, starting with what to grep for.
   - `--background` `#fafafa` → `#eeeae6` (dark `#0a0a0a` → `#0e0c0b`);
   - `--foreground` `#0a0a0a` → `#161412` (dark `#fafafa` → `#eeeae6`);
   - `--card` `#ffffff` → `#f5f2ef`;
-  - `--primary` ink `#0a0a0a` → deep orange `#c2410c` in light and dark, with
-    white text. Every `variant="primary"` `Button`, `bg-primary` and
+  - `--primary` was ink `#0a0a0a` with white text in light, and paper
+    `#fafafa` with `#0a0a0a` text in dark → deep orange `#c2410c` with white
+    text in both. Every `variant="primary"` `Button`, `bg-primary` and
     `text-primary` turns orange: grep them and keep only the page's CTA on
     primary; a quiet action takes `variant="secondary"`;
   - `--brand` and `--oca-orange` `#f66d36` → `#f97316`;
