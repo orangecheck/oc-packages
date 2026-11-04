@@ -4,8 +4,11 @@ import { forwardRef, useState, type ComponentPropsWithoutRef, type ElementRef } 
 import { cn } from '../lib/cn';
 
 /*
- * One value on a square track. The thumb is drawn 18px and pressed in 44px:
- * the root is a thumb tall, so a press anywhere in that band lands on it.
+ * One value on a square track. The thumb's own box is 44px, the target, with
+ * the 18px square drawn in its middle; the track and the ticks are inset by
+ * half a thumb, so the drawn square's centre, the fill's end and a tick meet
+ * at every value. The root is a thumb tall, so a press anywhere in that band
+ * lands on it.
  * A screen reader hears the value in words ("100,000 sats", "30 days"),
  * never a bare index. It reads the ground's tokens, so on an ink or burnt
  * band it takes the band's colours; the thumb is filled with --oca-ground
@@ -70,33 +73,32 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
                 className="relative flex h-11 w-full touch-none select-none items-center data-[disabled]:opacity-50"
                 {...props}
             >
-                <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden bg-border">
+                {/* Radix keeps the 44px thumb inside the root, so its centre runs from 22px to the width less 22px: the track does too. */}
+                <SliderPrimitive.Track className="relative mx-[1.375rem] h-1 grow overflow-hidden bg-border">
                     {/* The fill is the state: the display accent clears 3:1 on every ground (a band re-points it). */}
-                    <SliderPrimitive.Range className="absolute h-full bg-oca-accent-display" />
+                    <SliderPrimitive.Range data-slider-fill="" className="absolute h-full bg-oca-accent-display" />
                 </SliderPrimitive.Track>
                 <SliderPrimitive.Thumb
                     aria-label={ariaLabel}
                     aria-labelledby={labelledBy}
                     aria-valuetext={valueText(shown)}
-                    className={cn(
-                        'relative block size-[1.125rem] border-2 transition-[background-color]',
-                        // A thumb's 44px, centred on what it draws.
-                        'before:absolute before:-inset-[0.8125rem] before:content-[""]',
-                        'border-oca-accent-display bg-[var(--oca-ground,var(--background))] focus-visible:[outline:2px_solid_var(--ring)] focus-visible:outline-offset-4'
-                    )}
-                />
+                    data-slider-thumb=""
+                    className="group flex size-11 items-center justify-center outline-none"
+                >
+                    <span
+                        aria-hidden
+                        className="block size-[1.125rem] border-2 border-oca-accent-display bg-[var(--oca-ground,var(--background))] transition-[background-color] group-focus-visible:[outline:2px_solid_var(--ring)] group-focus-visible:outline-offset-4"
+                    />
+                </SliderPrimitive.Thumb>
             </SliderPrimitive.Root>
             {marks && marks.length > 0 ? (
                 <div aria-hidden className="pointer-events-none relative mt-0.5 h-4">
-                    {marks.map((m, i) => (
+                    {marks.map((m) => (
                         <span
                             key={m.value}
-                            className={cn(
-                                'absolute top-0 whitespace-nowrap font-mono text-[0.75rem] leading-none text-muted-foreground',
-                                // The ends sit inside the track; the rest centre on their value.
-                                i === 0 ? '' : i === marks.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
-                            )}
-                            style={{ left: `${at(m.value)}%` }}
+                            // Each centres on where the thumb's square sits at its value.
+                            className="absolute top-0 -translate-x-1/2 whitespace-nowrap font-mono text-[0.75rem] leading-none text-muted-foreground"
+                            style={{ left: `calc(1.375rem + ${at(m.value) / 100} * (100% - 2.75rem))` }}
                         >
                             {m.label}
                         </span>

@@ -119,6 +119,9 @@ const PAIRS = [
     ['destructive', 'muted', 3],
     // 2.0: the product surface (inputs, tables, receipts, mock screens).
     ['oca-surface-foreground', 'oca-surface', 4.5],
+    // A block's secondary text on the surface, and on a paper bento tile.
+    ['oca-surface-muted', 'oca-surface', 4.5],
+    ['oca-surface-muted', 'card', 4.5],
     ['muted-foreground', 'oca-surface', 4.5],
     ['oca-subtle-foreground', 'oca-surface', 4.5],
     ['input', 'oca-surface', 3],

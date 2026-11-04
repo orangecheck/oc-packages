@@ -20,7 +20,8 @@
  *   none under reduced motion; the total is said once a change settles.
  * - A bento tile's halftone stays clear of its words.
  * - StepPath draws its line when it comes into view, and is simply drawn
- *   under reduced motion; its steps are a list with the current one marked.
+ *   under reduced motion, also when served and hydrated; its steps are a
+ *   list with the current one marked; its labels stay inside its box.
  * - ReceiptCard stacks its amounts on the decimal point.
  * - None of them widens a phone.
  *
@@ -60,31 +61,40 @@ try {
     const src = (f) => join(pkg, 'src', f);
     bundle(dir, {
         blocks:
-            `import { createRoot } from 'react-dom/client';\n` +
+            `import { createRoot, hydrateRoot } from 'react-dom/client';\n` +
+            `import { renderToString } from 'react-dom/server';\n` +
+            `import { useEffect } from 'react';\n` +
             `import { SignInDemo, signInDemoSteps, CostDemo, StepPath, ReceiptCard, BentoTile } from '${src('blocks/index.ts')}';\n` +
             `const q = new URLSearchParams(location.search);\n` +
             // Everything the page's one live region says, in order.
             `window.__said = [];\n` +
-            `new MutationObserver(() => { const r = document.getElementById('oca-announcer'); if (r && r.textContent) window.__said.push(r.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true });\n` +
+            `new MutationObserver((ms) => { const r = document.getElementById('oca-announcer'); if (r && r.textContent && ms.some((m) => r === m.target || r.contains(m.target))) window.__said.push(r.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true });\n` +
             `const steps = signInDemoSteps().map((s) => ({ ...s, screens: s.screens.map((sc) => ({ ...sc, duration: ${STEP} })) }));\n` +
-            `const own = { cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
-            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'One' }, { label: 'Two' }, { label: 'Three' }, { label: 'Four' }]} />,\n` +
+            `const own = { id: 'cd', role: 'group', 'aria-label': 'D', cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
+            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'Open the app', href: '#1' }, { label: 'Back it', href: '#2' }, { label: 'Get paid', href: '#3' }, { label: 'Own your key, later', href: '#4' }]} />,\n` +
+            `  pathlong: <StepPath steps={[{ label: 'Open the app on the phone you already carry' }, { label: 'Back it with a coin you hold' }, { label: 'Get paid when an app asks for you' }, { label: 'Own your key, a little later on' }]} />,\n` +
             `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
             // A halftone picture at 2:1, to see it kept at its own aspect and cropped by the strip.
             `  art: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone={<img alt="" src={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="orange"/></svg>')} />} numeral="80%" title="of a reward" /></div>,\n` +
-            `  receipt: <ReceiptCard unit="sats" rows={[{ label: 'a', amount: 240 }, { label: 'b', amount: 12.5 }, { label: 'c', amount: 0.125 }, { label: 'd', amount: 1200 }]} /> }[q.get('b')];\n` +
-            `createRoot(document.getElementById('root')).render(<div className="mx-auto max-w-[60rem] px-4" style={{ paddingTop: q.has('off') ? 3000 : 24, paddingBottom: 1200 }}>{pick}</div>);\n`,
+            `  receipt: <ReceiptCard id="rc" role="group" aria-label="R" unit="sats" facts={[{ label: 'When', value: 'W' }, { label: 'Paid to', value: 'P' }]} split={[{ pct: 80, label: 'x', value: '192 sats' }, { pct: 20, label: 'y' }]} rows={[{ label: 'a', amount: 240 }, { label: 'b', amount: 12.5 }, { label: 'c', amount: 0.125 }, { label: 'd', amount: 1200 }, { label: 'e', amount: <><s>60</s> 48</> }]} /> }[q.get('b')];\n` +
+            // With ?ssr the page is the server's HTML, hydrated, as a site serves it: hooks first see the server's answers.
+            `function Hydrated() { useEffect(() => { document.documentElement.dataset.hydrated = ''; }, []); return null; }\n` +
+            `const app = <div className="mx-auto max-w-[60rem] px-4" style={{ paddingTop: q.has('off') ? 3000 : 24, paddingBottom: 1200 }}>{pick}<Hydrated /></div>;\n` +
+            `const root = document.getElementById('root');\n` +
+            `window.__mismatch = [];\n` +
+            `if (q.has('ssr')) { root.innerHTML = renderToString(app); hydrateRoot(root, app, { onRecoverableError: (e) => window.__mismatch.push(String(e)) }); } else createRoot(root).render(app);\n`,
     });
     compileCss(dir, ['blocks']);
     const page = writePage(dir, 'blocks', '<div id="root"></div>', { script: '<script src="blocks.js"></script>' });
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
-    const open = async (b, { off = false, reduced = false, width = 1280 } = {}) => {
+    const open = async (b, { off = false, reduced = false, width = 1280, ssr = false } = {}) => {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
         const p = await ctx.newPage();
-        await p.goto(`${page}?b=${b}${off ? '&off' : ''}`);
-        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img' }[b] ?? 'table');
+        await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}`);
+        await p.waitForSelector('[data-hydrated]', { state: 'attached' });
+        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -214,13 +224,19 @@ try {
             const ticks = await p.evaluate(() => [...document.querySelectorAll('[data-cost-demo] [data-slider]')].map((r) => [...r.parentElement.querySelectorAll('[aria-hidden] > span')].map((t) => t.textContent)));
             check(JSON.stringify(await text()) === JSON.stringify(['100,000 sats', '30 days']), `Slider words: ${JSON.stringify(await text())}`);
             await p.keyboard.press('Tab');
+            // The ring is drawn on the thumb's square, inside its 44px box.
             const thumb = await p.evaluate(() => {
                 const el = document.activeElement;
-                const cs = getComputedStyle(el);
-                return { role: el.getAttribute('role'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+                const cs = getComputedStyle(el.firstElementChild ?? el);
+                const box = el.getBoundingClientRect();
+                return { role: el.getAttribute('role'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), w: box.width, h: box.height };
             });
             check(thumb.role === 'slider' && thumb.style !== 'none' && thumb.width >= 2, `Slider: the Tab-focused thumb's ring is ${thumb.style} ${thumb.width}px (focus on ${thumb.role})`);
-            check(JSON.stringify(ticks) === JSON.stringify([['1k', '10k', '100k', '1M', '10M'], ['7 days', '30 days', '90 days', 'a year']]), `CostDemo ticks: ${JSON.stringify(ticks)}`);
+            check(thumb.w >= 44 && thumb.h >= 44, `Slider: the thumb's own box is ${thumb.w}×${thumb.h}, under 44px`);
+            check(JSON.stringify(ticks) === JSON.stringify([['1k', '10k', '100k', '1M', '10M'], ['7d', '30d', '90d', '1y']]), `CostDemo ticks: ${JSON.stringify(ticks)}`);
+            // A site that passes no words shows placeholders, never a claim of the package's own (ruling 8).
+            const plain = await p.evaluate(() => document.querySelector('[data-cost-demo]').textContent);
+            check(!/coin|account|person|clears|costly/i.test(plain) && plain.includes('Label') && plain.includes('Value'), `CostDemo's default words: ${plain}`);
             const crowd = await p.evaluate(() => ({ nodes: document.querySelector('[data-crowd]').querySelectorAll('*').length, canvases: document.querySelectorAll('[data-cost-demo] canvas').length }));
             check(crowd.nodes <= 3 && crowd.canvases === 0, `the crowd is ${crowd.nodes} nodes and ${crowd.canvases} canvases, not one element`);
             check((await running(p, '[data-cost-demo]')) === 0, 'CostDemo: something runs before any change');
@@ -233,15 +249,43 @@ try {
             check(high.cost === '10' && high.verdict === 'fail', `CostDemo at 1,000,000 sats (the person holds 250,000): ${JSON.stringify(high)}`);
             check(await until(p, () => document.querySelector('[data-crowd]').getAnimations({ subtree: true }).some((a) => a.playState === 'running'), null, 1000), 'CostDemo: a change sent no sweep across the crowd');
             check(await until(p, () => document.querySelector('[data-crowd]').getAnimations({ subtree: true }).length === 0, null, 4000), 'CostDemo: the sweep never ended');
-            check(await until(p, () => window.__said.length === 1, null, 3000), 'CostDemo: the total was never said');
-            const said = await p.evaluate(() => window.__said);
-            check(said[0] === '1,000 accounts would need 10 BTC, held 30 days', `CostDemo said ${JSON.stringify(said)}`);
+            // Said once a change settles: the total, and the verdict when the person crossed the bar since the last word.
+            const said = (n) => until(p, (k) => window.__said.length >= k, n, 3000).then(() => p.evaluate(() => window.__said));
+            check((await said(1))[0] === '10 BTC. Under this bar', `CostDemo crossing above the person said ${JSON.stringify(await said(1))}`);
             await p.keyboard.press('ArrowLeft');
+            check((await said(2))[1] === '1 BTC. Gets in', `CostDemo crossing back under the person said ${JSON.stringify(await said(2))}`);
             await sliders.nth(1).focus();
             await p.keyboard.press('ArrowRight');
             check((await text())[1] === '90 days' && (await read()).verdict === 'pass', `CostDemo at 90 days: ${(await text())[1]}, ${(await read()).verdict}`);
             await p.keyboard.press('ArrowRight');
             check((await text())[1] === 'a year' && (await read()).verdict === 'fail', `CostDemo at a year (the person holds 180 days): ${(await text())[1]}, ${(await read()).verdict}`);
+            check((await said(3))[2] === '1 BTC. Under this bar', `CostDemo crossing by days said ${JSON.stringify(await said(3))}`);
+            await sliders.nth(0).focus();
+            await p.keyboard.press('ArrowRight');
+            check((await said(4))[3] === '10 BTC', `CostDemo with no crossing said ${JSON.stringify(await said(4))}`);
+            // At every stop the square's centre, the fill's end and the stop's tick meet (within 1px).
+            const meet = async () =>
+                p.evaluate(() => {
+                    const root = document.querySelector('[data-cost-demo] [data-slider]');
+                    const thumb = root.querySelector('[role="slider"]');
+                    const square = (thumb.firstElementChild ?? thumb).getBoundingClientRect();
+                    const fill = root.querySelector('[data-slider-fill]')?.getBoundingClientRect();
+                    const at = Number(root.querySelector('[role="slider"]').getAttribute('aria-valuenow'));
+                    const tick = root.parentElement.querySelectorAll('[aria-hidden] > span')[at].getBoundingClientRect();
+                    const c = square.left + square.width / 2;
+                    return { c, fill: fill ? fill.right : null, tick: tick.left + tick.width / 2 };
+                });
+            {
+                const amount = p.locator('[role="slider"]').nth(0);
+                await amount.focus();
+                const off = [];
+                for (const key of ['Home', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'End']) {
+                    await p.keyboard.press(key);
+                    const m = await meet();
+                    if (m.fill === null || Math.abs(m.c - m.fill) > 1 || Math.abs(m.c - m.tick) > 1) off.push(`${key}: ${JSON.stringify(m)}`);
+                }
+                check(off.length === 0, `Slider: the square, the fill and the tick part: ${off.join('; ')}`);
+            }
             // The thumb is a thumb's 44px: a press 21px above or below its middle lands on the slider.
             const reach = await p.evaluate(() => {
                 const t = document.querySelector('[role="slider"]').getBoundingClientRect();
@@ -258,6 +302,8 @@ try {
             const { p, close } = await open('own');
             const words = await p.evaluate(() => ({ cost: document.querySelector('[data-cost]').parentElement.textContent, person: document.querySelector('[data-verdict] p').textContent, farm: document.querySelector('[data-cost]').closest('div').parentElement.textContent }));
             check(words.cost === 'C100000U30' && words.person === 'P100000:true' && words.farm.includes('F30'), `CostDemo with the site's words: ${JSON.stringify(words)}`);
+            const named = await p.evaluate(() => { const r = document.getElementById('cd'); return [r?.dataset.costDemo, r?.getAttribute('role'), r?.getAttribute('aria-label')]; });
+            check(JSON.stringify(named) === JSON.stringify(['', 'group', 'D']), `CostDemo: the caller's id, role and name land on ${JSON.stringify(named)}`);
             await close();
         }
         {
@@ -284,6 +330,44 @@ try {
             const drawn = await r.p.evaluate(() => document.querySelector('[data-line]').dataset.line);
             check(drawn === 'drawn', `StepPath under reduced motion: the line is ${drawn}`);
             await r.close();
+            // Served and hydrated: the first effect sees the server's "not still" and arms the line below the fold, so
+            // under reduced motion the line must still end drawn; and in motion it still waits, then draws on view.
+            const h = await open('path', { off: true, reduced: true, ssr: true });
+            await h.p.waitForTimeout(300);
+            const still = await h.p.evaluate(() => [document.querySelector('[data-line]').dataset.line, window.__mismatch]);
+            check(still[0] === 'drawn' && still[1].length === 0, `StepPath served and hydrated under reduced motion: the line is ${still[0]}, hydration errors ${JSON.stringify(still[1])}`);
+            await h.close();
+            const m = await open('path', { off: true, ssr: true });
+            const armed = await until(m.p, () => document.querySelector('[data-line]').dataset.line === 'armed', null, 1000);
+            await m.p.evaluate(() => document.querySelector('[data-line]').scrollIntoView({ block: 'center' }));
+            check(armed && (await until(m.p, () => document.querySelector('[data-line]').dataset.line === 'drawing', null, 3000)), `StepPath served and hydrated: armed below the fold ${armed}, but it did not draw on view`);
+            await m.close();
+        }
+
+        // StepPath's labels stay inside its own box, the end ones too, so a band's overflow clip never cuts one.
+        for (const [b, width] of [['path', 320], ['path', 390], ['path', 1280], ['pathlong', 320]]) {
+            const { p, close } = await open(b, { width });
+            const out = await p.evaluate(() => {
+                const box = document.querySelector('[data-line]').getBoundingClientRect();
+                const labels = [...document.querySelectorAll('[data-line] li > span:not([aria-hidden])')];
+                if (labels.length !== 4) return [`${labels.length} labels found, not 4`];
+                return labels
+                    .map((e) => [e.textContent, e.getBoundingClientRect()])
+                    .filter(([, r]) => r.left < box.left - 0.5 || r.right > box.right + 0.5 || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5)
+                    .map(([t, r]) => `${t} ${Math.round(r.left)}..${Math.round(r.right)} × ${Math.round(r.top)}..${Math.round(r.bottom)} in ${Math.round(box.left)}..${Math.round(box.right)} × ${Math.round(box.top)}..${Math.round(box.bottom)}`);
+            });
+            check(out.length === 0, `[${width}] StepPath (${b}): labels outside its box: ${out.join('; ')}`);
+            await close();
+        }
+
+        // Served and hydrated under reduced motion, the demo rests on its first step.
+        {
+            const { p, close } = await open('demo', { reduced: true, ssr: true });
+            await p.waitForTimeout(STEP * 1.5);
+            const s = await demo(p);
+            const errors = await p.evaluate(() => window.__mismatch);
+            check(s.mode === 'still' && s.step === 0 && errors.length === 0, `SignInDemo served and hydrated under reduced motion: ${JSON.stringify(s)}, hydration errors ${JSON.stringify(errors)}`);
+            await close();
         }
 
         // ReceiptCard: the points stack.
@@ -295,7 +379,24 @@ try {
                     return { int: Math.round(int.getBoundingClientRect().right), frac: Math.round(frac.getBoundingClientRect().left) };
                 })
             );
-            check(new Set(cols.map((c) => c.int)).size === 1 && new Set(cols.map((c) => c.frac)).size === 1, `ReceiptCard: amounts do not line up on the point (${JSON.stringify(cols)})`);
+            check(cols.length === 5 && new Set(cols.map((c) => c.int)).size === 1 && new Set(cols.map((c) => c.frac)).size === 1, `ReceiptCard: amounts, a node among them, do not line up on the point (${JSON.stringify(cols)})`);
+            // The facts above the rows, a share read in sats, the caller's id, role and name on the card.
+            const card = await p.evaluate(() => {
+                const r = document.getElementById('rc');
+                const facts = r?.querySelector('[data-facts]');
+                return {
+                    role: r?.getAttribute('role'),
+                    name: r?.getAttribute('aria-label'),
+                    facts: facts ? [...facts.querySelectorAll('dt')].map((d) => d.textContent + '=' + d.nextElementSibling.textContent) : [],
+                    above: facts && r.querySelector('table') ? facts.getBoundingClientRect().bottom <= r.querySelector('table').getBoundingClientRect().top : false,
+                    shares: [...(r?.querySelectorAll('figure dt') ?? [])].map((d) => d.textContent),
+                    struck: r?.querySelector('td s')?.textContent,
+                };
+            });
+            check(
+                JSON.stringify(card) === JSON.stringify({ role: 'group', name: 'R', facts: ['When=W', 'Paid to=P'], above: true, shares: ['192 sats', '20%'], struck: '60' }),
+                `ReceiptCard: ${JSON.stringify(card)}`
+            );
             await close();
         }
 

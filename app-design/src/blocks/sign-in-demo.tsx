@@ -243,7 +243,7 @@ export function SignInDemo({
                     <button
                         type="button"
                         onClick={replay}
-                        className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-foreground/70 underline underline-offset-4 hover:text-oca-surface-foreground focus-visible:[outline:2px_solid_var(--ring)]"
+                        className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-muted underline underline-offset-4 hover:text-oca-surface-foreground focus-visible:[outline:2px_solid_var(--ring)]"
                     >
                         {tryAgain}
                     </button>
@@ -387,9 +387,9 @@ const PLACEHOLDER: SignInDemoCopy = {
 
 // The app drawn in the window is a product, so it keeps its rounded corners (a depiction, not the page).
 const CARD = 'flex w-full max-w-[20rem] flex-col gap-3 rounded-[0.875rem] border border-oca-surface-foreground/10 bg-oca-surface p-6 shadow-[0_18px_40px_-24px_rgb(42_18_6/0.45)]';
-// The app's own colours, so a band's re-pointed tokens never reach into the window: its ink at 70% is 6.8:1
-// on white and 7.7:1 on the dark surface; a field's edge at half strength is 3.5:1 and 4.6:1.
-const QUIET = 'text-oca-surface-foreground/70';
+// The app's own colours, so a band's re-pointed tokens never reach into the window: the surface's muted token
+// (check-contrast holds it on the surface); a field's edge, its ink at half strength, is 3.5:1 and 4.6:1.
+const QUIET = 'text-oca-surface-muted';
 const FIELD = 'border border-oca-surface-foreground/50';
 const TARGET =
     'mt-1 flex h-10 items-center justify-center rounded-[0.625rem] bg-brand text-[0.875rem] font-medium text-brand-foreground transition-transform duration-150 data-[pressed=true]:scale-[0.97]';

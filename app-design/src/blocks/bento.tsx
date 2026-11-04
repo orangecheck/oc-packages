@@ -26,10 +26,10 @@ const NUMERAL: Record<BentoTone, string> = {
     burnt: 'text-oca-burnt-accent',
     brand: 'text-brand-foreground',
 };
-// Quiet text: the surface's ink at 70% (6.5:1 on the card, 6.8:1 on white), each dark ground's own muted tone.
+// Quiet text: the surface's own muted token (check-contrast holds it on the card and on white), each dark ground's own muted tone.
 const QUIET: Record<BentoTone, string> = {
-    paper: 'text-oca-surface-foreground/70',
-    white: 'text-oca-surface-foreground/70',
+    paper: 'text-oca-surface-muted',
+    white: 'text-oca-surface-muted',
     ink: 'text-oca-ink-muted',
     burnt: 'text-oca-burnt-muted',
     brand: 'text-brand-foreground',

@@ -28,7 +28,8 @@ optional. What changes is how things look.
   numerals. Small orange text is `--oca-accent-ink` `#9a3412`.
 - New: `--oca-surface` and `--oca-surface-foreground` for the product
   surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
-  in dark. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  in dark. `--oca-surface-muted` is its secondary text (`#5e5852`, dark
+  `#a39d97`), which a band never re-points. The bands are new too: `--oca-burnt*` (the dark brown stage),
   `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
   `--oca-brand-line`.
 - Status colours are re-tuned for paper: `--destructive` `#b21d26`,
@@ -139,7 +140,8 @@ optional. What changes is how things look.
 ### Blocks (`./blocks`, new)
 
 A new entry, so a site that uses none of them pays nothing. Words are
-props; the defaults are placeholders a site replaces with its own copy.
+props; the defaults are neutral placeholders ("Label", "Value") a site
+replaces with its own copy, so a missing prop shows nothing untrue.
 
 - `SignInDemo` (and `signInDemoSteps(copy)`): our sign-in played on a
   made-up app in a paper `BrowserFrame`: the app's own sign-in with its
@@ -151,18 +153,34 @@ props; the defaults are placeholders a site replaces with its own copy.
   plays. "Try again" (a real button, `tryAgain`) plays it from the start.
   Under reduced motion it shows the first step with the buttons. `success`
   is a render prop (a MiniCheck). Every string is in `copy`.
-- `Slider` (also in `./primitives`): Radix's, square, a 44px target, its
-  value in words through `valueText`.
+- `Slider` (also in `./primitives`, so the root entry carries it, and
+  Radix's slider with it, in `index.js` too): Radix's, square, its value in
+  words through `valueText`. The thumb's own box is the 44px target, with
+  the 18px square in its middle; the track and the ticks are inset by half
+  a thumb, so the square, the fill's end and a tick meet at every value.
 - `CostDemo`: two sliders step through the bars an app can set (`amounts`,
-  `dayStops`), in the site's words (`amountText`, `dayText`, `amountTick`).
-  One total for a crowd of accounts (`cost`, the site's own function), a
-  real person's verdict that follows the bar (`labels.personBody(bar,
-  passes)`), and a line under the total (`labels.farmBody(bar)`). The crowd
-  is one element with one sweep per change, none under reduced motion.
+  `dayStops`), in the site's words (`amountText`, `dayText`, and the short
+  ticks `amountTick` and `dayTick`). One total for a crowd of accounts
+  (`cost`, the site's own function), a real person's verdict that follows
+  the bar (`labels.personBody(bar, passes)`; badges "Gets in" and "Under
+  this bar", ruling 11), and a line under the total (`labels.farmBody(bar)`).
+  Once a change settles the total is said, and the verdict with it when the
+  person crossed the bar (`labels.costSaid`, `labels.verdictSaid`). The
+  crowd is one element with one sweep per change, none under reduced
+  motion. `id`, `role` and `aria-label` reach its root.
+- `ReceiptCard`: `facts` (when, paid to, pricing) above mono rows whose
+  amounts line up on the decimal point; an amount may be any node (a struck
+  original beside the new one). The split is one bar, each share in its
+  percentage or its own `value` ("192 sats"). Secondary text is the new
+  `--oca-surface-muted` token, which no band re-points. `id`, `role` and
+  `aria-label` reach its root.
+- `StepPath`: drawn on view, still under reduced motion, including after
+  hydration (the server's answer is "not still", and the line used to stay
+  hidden). The end labels run inward from their node and every label wraps
+  inside the path's own box, from 320px up.
 - `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
-  halftone in a strip its words keep clear of), `ReceiptCard` (amounts on the decimal point, the split as one
-  bar), `StepPath` (drawn on view, still under reduced motion) and
-  `DitherMark` (the mark at its size until the baked art lands).
+  halftone in a strip its words keep clear of) and `DitherMark` (the mark
+  at its size until the baked art lands).
 - The window, the receipt and each tile keep their own colours inside a
   band; the step list, the slider and the path take the band's.
 

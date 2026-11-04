@@ -41,14 +41,30 @@ export const Cost: StoryObj = {
     render: () => (
         <div className="bg-oca-ink px-4 py-14 md:px-12">
             <div className="mx-auto max-w-[82.5rem]">
-                <CostDemo labels={{ foot: 'Backed accounts pass. A thousand new ones cost a thousand coins.' }} />
+                <CostDemo
+                    aria-label="What a bar costs to fake"
+                    labels={{
+                        kicker: 'Set the bar',
+                        amount: 'Held at least',
+                        days: 'For at least',
+                        personKicker: 'A real person',
+                        personBody: (_, passes) => (passes ? 'Their one coin clears this bar.' : 'Their one coin is under this bar.'),
+                        farmKicker: (n) => `${n.toLocaleString('en-US')} new accounts`,
+                        farmBody: () => 'Each needs a coin of its own, held as long.',
+                        farmVerdict: 'Too costly',
+                        costSaid: (c) => `A thousand new accounts would need ${c}`,
+                        verdictSaid: (passes) => (passes ? 'The real person gets in' : 'The real person is under this bar'),
+                        foot: 'Backed accounts pass. A thousand new ones cost a thousand coins.',
+                    }}
+                />
             </div>
         </div>
     ),
 };
 
+// With no words passed, every label reads its neutral placeholder.
 export const CostPaper: StoryObj = {
-    name: 'Cost demo, on paper',
+    name: 'Cost demo, on paper, placeholders',
     render: () => (
         <div className="bg-background px-4 py-14 md:px-12">
             <div className="mx-auto max-w-[82.5rem]">
@@ -99,14 +115,27 @@ const RECEIPT = (
         title="A signed receipt you can check yourself."
         caption="Receipt from Halfway Books"
         unit="sats"
+        facts={[
+            { label: 'When', value: '3 Nov 2026, 14:02' },
+            { label: 'Paid to', value: 'A Halfway Books reader' },
+            { label: 'Pricing', value: '20% of each reward' },
+        ]}
         rows={[
             { label: 'Reward from Halfway Books', amount: 240 },
             { label: 'To you', amount: 192 },
-            { label: 'Fee', amount: 48 },
+            {
+                label: 'Fee',
+                amount: (
+                    <>
+                        <s className="text-oca-surface-muted">60</s> 48
+                    </>
+                ),
+                note: 'Lowered for this reward',
+            },
         ]}
         split={[
-            { pct: 80, label: 'to you' },
-            { pct: 20, label: 'fee' },
+            { pct: 80, label: 'to you', value: '192 sats' },
+            { pct: 20, label: 'fee', value: '48 sats' },
         ]}
         footer="Signed by the app"
         action={

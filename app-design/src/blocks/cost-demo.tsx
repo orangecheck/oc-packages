@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject } from 'react';
 
 import { announce } from '../lib/announce';
 import { cn } from '../lib/cn';
@@ -14,7 +14,9 @@ import { usePrefersStill } from './parts';
  * CSS grid of squares a single sweep of light crosses once per change, never
  * a node per account. Under reduced motion the sweep is off. Every word and
  * every number is the site's: the stops, the words for an amount and a span,
- * the sentences, and the cost itself. The defaults are placeholders. On ink
+ * the sentences, and the cost itself. The default words are neutral
+ * placeholders ("Label", "Value"), so a site that leaves one out shows
+ * nothing it has not checked; the verdict words are ruling 11's. On ink
  * it re-points the text and hairline tokens, as a band does, so its parts
  * need no tone.
  */
@@ -41,9 +43,11 @@ export interface CostDemoLabels {
     foot?: ReactNode;
     /** Said to a screen reader once a change settles. */
     costSaid: (cost: string, bar: CostBar) => string;
+    /** Said after the cost when that change moved the real person across the bar. */
+    verdictSaid: (passes: boolean, bar: CostBar) => string;
 }
 
-export interface CostDemoProps {
+export interface CostDemoProps extends Pick<HTMLAttributes<HTMLDivElement>, 'id' | 'role' | 'aria-label' | 'aria-labelledby'> {
     /** The amounts an app can set, in sats: the first slider's stops. */
     amounts?: number[];
     /** Which of `amounts` it starts on. */
@@ -53,10 +57,12 @@ export interface CostDemoProps {
     defaultDayIndex?: number;
     /** An amount in words: the readout, the slider's value text. */
     amountText?: (sats: number) => string;
-    /** A span in words ("30 days", "a year"): the readout, the value text and the ticks. */
+    /** A span in words ("30 days", "a year"): the readout and the value text. */
     dayText?: (days: number) => string;
     /** An amount's tick under the slider. Default: 1k, 100k, 1M. */
     amountTick?: (sats: number) => string;
+    /** A span's tick under the slider, short enough for a phone. Default: 7d, 30d, 1y. */
+    dayTick?: (days: number) => string;
     /** What the crowd must hold to clear the bar. Default: accounts × the amount, in BTC from 0.01 BTC. */
     cost?: (bar: CostBar) => { value: string; unit: string };
     /** How many made-up accounts the crowd stands for. */
@@ -89,6 +95,7 @@ function compact(n: number): string {
 
 const satsText = (n: number) => `${n.toLocaleString('en-US')} sats`;
 const daysText = (d: number) => (d === 365 ? 'a year' : d === 1 ? '1 day' : `${d} days`);
+const dayCompact = (d: number) => (d % 365 === 0 ? `${d / 365}y` : `${d}d`);
 
 /** A total in BTC once it reaches a hundredth of one, in sats below that. */
 export function costText(sats: number): { value: string; unit: string } {
@@ -107,6 +114,7 @@ export function CostDemo({
     amountText = satsText,
     dayText = daysText,
     amountTick = compact,
+    dayTick = dayCompact,
     accounts = 1000,
     cost: costOf,
     person = { sats: 250_000, days: 180 },
@@ -114,19 +122,21 @@ export function CostDemo({
     tone = 'ink',
     onChange,
     className,
+    ...aria
 }: CostDemoProps) {
     const l: CostDemoLabels = {
-        kicker: 'Set the bar',
-        amount: 'Held at least',
-        days: 'For at least',
-        personKicker: 'A real person',
-        personBody: (_, passes) => (passes ? 'Their one coin clears this bar.' : 'Their one coin is under this bar.'),
+        kicker: 'Label',
+        amount: 'Label',
+        days: 'Label',
+        personKicker: 'Label',
+        personBody: () => 'Value',
         pass: 'Gets in',
         fail: 'Under this bar',
-        farmKicker: (n) => `${n.toLocaleString('en-US')} new accounts`,
-        farmBody: (b) => `${accounts.toLocaleString('en-US')} accounts, each with one coin of at least ${amountText(b.sats)}, held ${dayText(b.days)}.`,
-        farmVerdict: 'Too costly',
-        costSaid: (c, b) => `${accounts.toLocaleString('en-US')} accounts would need ${c}, held ${dayText(b.days)}`,
+        farmKicker: () => 'Label',
+        farmBody: () => 'Value',
+        farmVerdict: 'Value',
+        costSaid: (c) => c,
+        verdictSaid: (ok) => (ok ? l.pass : l.fail),
         ...labels,
     };
     const ink = tone === 'ink';
@@ -152,10 +162,17 @@ export function CostDemo({
         return () => a.cancel();
     }, [changes, still]);
 
-    // The total, said once a change settles: never a word per step of a drag.
+    // The total, said once a change settles: never a word per step of a drag. When the person crossed the bar
+    // since the last thing said, the verdict follows in the same breath.
+    const saidVerdict = useRef(passes);
     useEffect(() => {
         if (!changes) return;
-        const t = setTimeout(() => announce(l.costSaid(`${cost.value} ${cost.unit}`, bar)), 700);
+        const t = setTimeout(() => {
+            const crossed = passes !== saidVerdict.current;
+            saidVerdict.current = passes;
+            const total = l.costSaid(`${cost.value} ${cost.unit}`, bar);
+            announce(crossed ? `${total}. ${l.verdictSaid(passes, bar)}` : total);
+        }, 700);
         return () => clearTimeout(t);
         // Words follow the values; the label functions are the caller's.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,6 +190,7 @@ export function CostDemo({
 
     return (
         <div
+            {...aria}
             data-cost-demo=""
             className={cn('grid border border-border', ink ? INK : 'bg-card text-foreground [--oca-ground:var(--card)]', className)}
         >
@@ -213,7 +231,7 @@ export function CostDemo({
                             value={di}
                             onValueChange={(v) => change({ di: v })}
                             valueText={(i) => dayText(dayStops[i] ?? 0)}
-                            marks={dayStops.map((d, i) => ({ value: i, label: dayText(d) }))}
+                            marks={dayStops.map((d, i) => ({ value: i, label: dayTick(d) }))}
                         />
                     </div>
                 </div>

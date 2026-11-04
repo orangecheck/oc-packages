@@ -65,7 +65,13 @@ export function StepPath({ steps, current = 0, stateWords = { done: 'done', curr
     const [line, setLine] = useState<'drawn' | 'armed' | 'drawing'>('drawn');
     useEffect(() => {
         const el = ref.current;
-        if (!el || still || typeof IntersectionObserver === 'undefined') return;
+        if (!el) return;
+        // Still, or nothing to say when it is seen: the finished line. Hydration first runs this with the
+        // server's answer (not still) and may arm the line, so a reader who asked for stillness must put it back.
+        if (still || typeof IntersectionObserver === 'undefined') {
+            setLine('drawn');
+            return;
+        }
         // Already on screen at load: left alone, so nothing above the fold redraws.
         const r = el.getBoundingClientRect();
         if (r.top < window.innerHeight && r.bottom > 0) return;
@@ -91,77 +97,91 @@ export function StepPath({ steps, current = 0, stateWords = { done: 'done', curr
     const ahead = at < steps.length - 1 ? start(at) + segs.slice(at).join('') : '';
 
     return (
-        <div ref={ref} data-line={line} className={cn('relative aspect-[5/3] w-full', className)}>
-            <svg aria-hidden viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-visible">
-                {/* The walked line is revealed left to right (the path only ever moves right), so a dash never has to match a scaled length. */}
-                <clipPath id={clip}>
-                    <rect
-                        x={-5}
-                        y={-10}
-                        width={W + 10}
-                        height={H + 20}
-                        style={{
-                            transformOrigin: '-5px 0',
-                            transform: line === 'armed' ? 'scaleX(0)' : 'scaleX(1)',
-                            transition: line === 'drawing' ? 'transform 1000ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
-                        }}
-                    />
-                </clipPath>
-                {ahead ? (
-                    <path d={ahead} fill="none" strokeWidth={2} strokeLinecap="round" strokeDasharray="0 6" vectorEffect="non-scaling-stroke" className="stroke-muted-foreground opacity-50" />
-                ) : null}
-                {walked ? (
-                    <path d={walked} fill="none" strokeWidth={2} vectorEffect="non-scaling-stroke" clipPath={`url(#${clip})`} className="stroke-oca-accent-display" />
-                ) : null}
-            </svg>
-            <ol className="absolute inset-0">
-                {steps.map((s, i) => {
-                    const state = i < at ? 'done' : i === at ? 'current' : 'upcoming';
-                    const [x, y] = pts[i]!;
-                    // Labels alternate under and over their node, as the path rises and dips.
-                    const below = i % 2 === 0;
-                    const words = (
-                        <>
-                            {s.label}
-                            <span className="sr-only">, {stateWords[state]}</span>
-                        </>
-                    );
-                    return (
-                        <li
-                            key={i}
-                            aria-current={state === 'current' ? 'step' : undefined}
-                            data-state={state}
-                            className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                            style={{ left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%` }}
-                        >
-                            <span
-                                aria-hidden
-                                className={cn(
-                                    'block size-3.5',
-                                    state === 'done' && 'bg-oca-accent-display',
-                                    state === 'current' && 'border-2 border-oca-accent-display bg-background',
-                                    state === 'upcoming' && 'border-[1.5px] border-oca-hairline-strong bg-background'
-                                )}
+        <div ref={ref} data-line={line} className={cn('@container relative w-full', className)}>
+            {/* Room above the top node and below the bottom one for a 44px label, where the drawing's own margin
+                (15% of its height, 9cqi) is short of it: none on a wide box, about 1.75rem at 390. */}
+            <div className="py-[max(0px,calc(3.75rem-9cqi))]">
+                <div className="relative aspect-[5/3]">
+                    <svg aria-hidden viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-visible">
+                        {/* The walked line is revealed left to right (the path only ever moves right), so a dash never has to match a scaled length. */}
+                        <clipPath id={clip}>
+                            <rect
+                                x={-5}
+                                y={-10}
+                                width={W + 10}
+                                height={H + 20}
+                                style={{
+                                    transformOrigin: '-5px 0',
+                                    transform: line === 'armed' ? 'scaleX(0)' : 'scaleX(1)',
+                                    transition: line === 'drawing' ? 'transform 1000ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
+                                }}
                             />
-                            <span
-                                className={cn(
-                                    'absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.8125rem] md:text-[0.9375rem]',
-                                    below ? 'top-full mt-2' : 'bottom-full mb-2',
-                                    state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground'
-                                )}
-                            >
-                                {s.href ? (
-                                    <a href={s.href} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:[outline:2px_solid_var(--ring)]">
-                                        {words}
-                                    </a>
-                                ) : (
-                                    words
-                                )}
-                            </span>
-                        </li>
-                    );
-                })}
-            </ol>
+                        </clipPath>
+                        {ahead ? (
+                            <path d={ahead} fill="none" strokeWidth={2} strokeLinecap="round" strokeDasharray="0 6" vectorEffect="non-scaling-stroke" className="stroke-muted-foreground opacity-50" />
+                        ) : null}
+                        {walked ? (
+                            <path d={walked} fill="none" strokeWidth={2} vectorEffect="non-scaling-stroke" clipPath={`url(#${clip})`} className="stroke-oca-accent-display" />
+                        ) : null}
+                    </svg>
+                    <ol className="absolute inset-0">
+                        {steps.map((s, i) => {
+                            const state = i < at ? 'done' : i === at ? 'current' : 'upcoming';
+                            const [x, y] = pts[i]!;
+                            // Labels alternate under and over their node, as the path rises and dips. The end ones run inward
+                            // from their node and the rest centre on it; each may wrap to stay inside the box.
+                            const below = i % 2 === 0;
+                            const end = steps.length < 2 ? 'middle' : i === 0 ? 'start' : i === steps.length - 1 ? 'end' : 'middle';
+                            const room = { start: `calc(${100 - x}cqi + 0.4375rem)`, end: `calc(${x}cqi + 0.4375rem)`, middle: `${2 * Math.min(x, 100 - x)}cqi` }[end];
+                            const words = (
+                                <>
+                                    {s.label}
+                                    <span className="sr-only">, {stateWords[state]}</span>
+                                </>
+                            );
+                            return (
+                                <li
+                                    key={i}
+                                    aria-current={state === 'current' ? 'step' : undefined}
+                                    data-state={state}
+                                    className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                                    style={{ left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%` }}
+                                >
+                                    <span
+                                        aria-hidden
+                                        className={cn(
+                                            'block size-3.5',
+                                            state === 'done' && 'bg-oca-accent-display',
+                                            state === 'current' && 'border-2 border-oca-accent-display bg-background',
+                                            state === 'upcoming' && 'border-[1.5px] border-oca-hairline-strong bg-background'
+                                        )}
+                                    />
+                                    <span
+                                        data-edge={end}
+                                        className={cn(
+                                            'absolute w-max text-[0.8125rem] md:text-[0.9375rem]',
+                                            end === 'start' && 'left-0 text-left',
+                                            end === 'end' && 'right-0 text-right',
+                                            end === 'middle' && 'left-1/2 -translate-x-1/2 text-center',
+                                            below ? 'top-full mt-2' : 'bottom-full mb-2',
+                                            state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground'
+                                        )}
+                                        style={{ maxWidth: room }}
+                                    >
+                                        {s.href ? (
+                                            <a href={s.href} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:[outline:2px_solid_var(--ring)]">
+                                                {words}
+                                            </a>
+                                        ) : (
+                                            words
+                                        )}
+                                    </span>
+                                </li>
+                            );
+                        })}
+                    </ol>
+                </div>
+            </div>
         </div>
     );
 }
