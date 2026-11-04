@@ -1,4 +1,4 @@
-import { Slot } from '@radix-ui/react-slot';
+import { Slot, Slottable } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
@@ -95,7 +95,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             {...props}
         >
             {asChild ? (
-                children
+                plus ? (
+                    // The child (a Link, an <a>) is the root and the "+" goes inside it. Slot finds
+                    // Slottable only among its direct children, so this is an array, not a fragment.
+                    [<Slottable key="child">{children}</Slottable>, <Plus key="plus" />]
+                ) : (
+                    children
+                )
             ) : (
                 <>
                     {loading ? <Spinner className="size-[1.1em]" /> : null}

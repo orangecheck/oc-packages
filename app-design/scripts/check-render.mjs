@@ -39,6 +39,13 @@ const check = (ok, msg) => {
 };
 const html = (el) => renderToStaticMarkup(el);
 
+// Button's trailing "+" survives asChild: the link it renders carries the "+" after its text.
+{
+    const link = html(h(P.Button, { asChild: true, plus: true }, h('a', { href: '/start' }, 'Get started')));
+    check(/^<a [^>]*href="\/start"[^>]*>Get started<span[^>]*data-oca-plus=""/.test(link), `Button asChild plus: the "+" is dropped or the link is not the root: ${link.slice(0, 160)}`);
+    check(!/data-oca-plus/.test(html(h(P.Button, { asChild: true }, h('a', { href: '/start' }, 'Get started')))), 'Button asChild: a "+" appears without plus');
+}
+
 // CodeBlock: highlighted on the server, marks and diff drawn, the sign not in the text.
 {
     const out = html(h(C.CodeBlock, { code: 'const a = 1;\nverify(a);', lang: 'ts', highlight: '2' }));
