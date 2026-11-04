@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
 import { prefersReducedMotion } from '../lib/env';
+import { visibleObserver } from '../lib/viewport';
 import { PORTRAIT_TONE_B64, PORTRAIT_TONE_SIZE } from './portrait-tone';
 
 /*
@@ -192,7 +193,7 @@ export function HalftoneCanvas({
         ro?.observe(el);
         const io =
             typeof IntersectionObserver !== 'undefined'
-                ? new IntersectionObserver(([e]) => {
+                ? visibleObserver(([e]) => {
                       visible = Boolean(e?.isIntersecting);
                       kick();
                   })

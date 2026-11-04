@@ -4,7 +4,10 @@
  * something to move; when no scene does, the loop stops and the page asks for
  * no frames at all. A scroll-driven scene draws only when the page scrolls:
  * one passive listener for all of them, at most one frame per scroll frame.
+ * On screen means above a phone's TabBar, where there is one.
  */
+
+import { visibleObserver, type VisibleObserver } from '../lib/viewport';
 
 export interface Scene {
     /**
@@ -36,7 +39,7 @@ interface Entry {
 
 const entries = new Set<Entry>();
 const byElement = new Map<Element, Set<Entry>>();
-let io: IntersectionObserver | null = null;
+let io: VisibleObserver | null = null;
 let raf = 0;
 let last = 0;
 let listening = false;
@@ -101,9 +104,9 @@ function onVisibility() {
     } else kick();
 }
 
-function observer(): IntersectionObserver | null {
+function observer(): VisibleObserver | null {
     if (io || typeof IntersectionObserver === 'undefined') return io;
-    io = new IntersectionObserver((records) => {
+    io = visibleObserver((records) => {
         for (const r of records) {
             for (const e of byElement.get(r.target) ?? []) {
                 const was = e.visible;

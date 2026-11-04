@@ -1,6 +1,7 @@
 import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type HTMLAttributes, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { visibleBottom, visibleObserver, type VisibleObserver } from '../lib/viewport';
 import { prefersStill, useMotionSetting } from './env';
 
 /*
@@ -25,11 +26,11 @@ export interface WipeProps extends Omit<HTMLAttributes<HTMLElement>, 'children'>
 }
 
 const waiting = new Map<Element, () => void>();
-let io: IntersectionObserver | null = null;
+let io: VisibleObserver | null = null;
 
 /** Call `fn` once, the first time `el` comes into view. Returns a cancel. */
 function onceInView(el: Element, fn: () => void): () => void {
-    io ??= new IntersectionObserver(
+    io ??= visibleObserver(
         (records) => {
             for (const r of records) {
                 if (!r.isIntersecting) continue;
@@ -55,7 +56,7 @@ export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, 
     useEffect(() => {
         const el = ref.current;
         if (!el || prefersStill() || typeof IntersectionObserver === 'undefined') return;
-        if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+        if (el.getBoundingClientRect().top < visibleBottom() * 0.92) return;
         el.dataset.wipe = 'pending';
         return onceInView(el, () => (el.dataset.wipe = 'shown'));
     }, [setting]);

@@ -1,6 +1,7 @@
 import { createElement, useEffect, useRef, type CSSProperties, type ElementType } from 'react';
 
 import { cn } from '../lib/cn';
+import { visibleBottom, visibleObserver, type VisibleObserver } from '../lib/viewport';
 import { clamp01, easeOut, finePointer, prefersStill, seeded, useMotionSetting, whenReady } from './env';
 import { Batch, parseColour, rgba, type Surface } from './paint';
 import { mountScene, type Mounted, type SceneParts } from './scene';
@@ -12,7 +13,8 @@ import { mountScene, type Mounted, type SceneParts } from './scene';
  * the drawing. When it scrolls into view the dots gather from a loose scatter,
  * a fine pointer pushes them aside while it moves, and then it sleeps. Already
  * on screen when the canvas arrives, it simply turns to dots: nothing visible
- * scatters.
+ * scatters. On screen ends at a phone's TabBar. data-form on the element says
+ * which it did: place (turned to dots where it stood), wait, then gather.
  *
  * The dots take the element's own colour, so a token class sets them.
  */
@@ -47,7 +49,7 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
         if (!el || !text || !base || !cv) return;
         const still = prefersStill();
         let mounted: Mounted | null = null;
-        let io: IntersectionObserver | null = null;
+        let io: VisibleObserver | null = null;
         let gone = false;
         const cancelIdle = whenReady(el, async () => {
             await document.fonts?.ready;
@@ -55,15 +57,20 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
             const scene = textScene(el, cv, text, base, { still, repel: repel && !still && finePointer(), step });
             // A scene that fails gives the words back their ink.
             mounted = mountScene(cv, el, (surface, wake) => scene.parts(surface, wake), { onDraw: () => (el.dataset.live = ''), onFail: () => delete el.dataset.live });
-            // On screen already: it turns to dots where it stands. Below: it gathers when a third is in view.
+            // On screen already (above a phone's TabBar): it turns to dots where it stands. Below: it gathers
+            // when a third is in view. data-form says which: place, wait, then gather.
             const r = el.getBoundingClientRect();
-            if (still || (r.top < innerHeight && r.bottom > 0) || typeof IntersectionObserver === 'undefined') scene.form(false);
-            else {
-                io = new IntersectionObserver(
+            if (still || (r.top < visibleBottom() && r.bottom > 0) || typeof IntersectionObserver === 'undefined') {
+                scene.form(false);
+                el.dataset.form = 'place';
+            } else {
+                el.dataset.form = 'wait';
+                io = visibleObserver(
                     ([e]) => {
                         if (!e?.isIntersecting) return;
                         io?.disconnect();
                         scene.form(true);
+                        el.dataset.form = 'gather';
                         mounted?.wake();
                     },
                     { threshold: 0.35 }
