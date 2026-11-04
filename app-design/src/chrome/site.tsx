@@ -481,15 +481,16 @@ export function SiteBanner({
     );
 }
 
-/** A link in the footer's lists: 44px tall on phones. */
-// The legal row and a tool's protocol row are lines of inline text links: 44px to a thumb, and WCAG
-// 2.5.8's 24px at a desk.
-const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:text-foreground md:min-h-6';
+/**
+ * A link in the legal row or a tool's protocol row, lines of inline text links: 44px to a thumb on
+ * any screen, a tablet's included, and WCAG 2.5.8's 24px to a mouse. The pointer decides, not the width.
+ */
+const FOOT_LINK = 'inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
-        // Below md each link is a 44px target with room under its text: the year needs no gap of its own.
-        <div className="flex flex-col gap-x-6 gap-y-0 sm:flex-row sm:items-center sm:justify-between md:gap-y-2">
+        // To a thumb each link is a 44px target with room under its text: the year needs no gap of its own.
+        <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between pointer-coarse:gap-y-0">
             <nav aria-label="Legal">
                 <ul className="flex flex-wrap gap-x-5">
                     {/* Two links may share an address; the label and place keep them apart. */}

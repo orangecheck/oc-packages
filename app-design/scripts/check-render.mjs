@@ -61,7 +61,11 @@ const html = (el) => renderToStaticMarkup(el);
                 for (const m of line.matchAll(/(?<![\w-])rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-([a-z0-9]+|\[[^\]\s'"`]+\]))?(?![\w-])/g)) {
                     const value = m[1] ?? '';
                     if (ALLOWED.test(value)) continue;
-                    const dot = m[0] === 'rounded-full' && /(?<![\w-])(size-|inset-0(?![\w-]))/.test(line) && !/(?<![\w-])p[xytrbl]?-/.test(line);
+                    // A dot is judged on its own class string, the quoted string the match sits in, not the line.
+                    const open = Math.max(...['"', "'", '`'].map((q) => line.lastIndexOf(q, m.index)));
+                    const close = open < 0 ? -1 : line.indexOf(line[open], m.index);
+                    const classes = open < 0 || close < 0 ? line : line.slice(open + 1, close);
+                    const dot = m[0] === 'rounded-full' && /(?<![\w-])(size-|inset-0(?![\w-]))/.test(classes) && !/(?<![\w-])p[xytrblse]?-/.test(classes);
                     if (!dot) rounded.push(`${f.slice(src.length + 1)}:${i + 1} ${m[0]}`);
                 }
             });

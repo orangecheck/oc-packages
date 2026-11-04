@@ -27,10 +27,21 @@ optional. What changes is how things look.
 - Chrome targets are 44px at every pointer: the header's brand link, links,
   Sign in, family menu (it was 32px) and `ThemeToggle` (40px), and a footer
   column's links (35px at a desk). The legal row and a tool's protocol row are
-  inline text links: 44px to a thumb, and WCAG 2.5.8's 24px at a desk (21px
-  before). check-layout only measured touch widths, and only a fixed list of
-  buttons, so these were never measured; it now measures the 2.0 chrome at
-  390 and 1440.
+  inline text links. They are 44px to a thumb on any touch screen and WCAG
+  2.5.8's 24px to a mouse (21px before). check-layout used to measure only
+  touch widths, and only a fixed list of buttons, so these were never
+  measured. It now measures the 2.0 chrome at 390 and 1440.
+  - The pointer decides, not the width. These rows used to drop to 24px from
+    768px wide, so a tablet or a phone in landscape got desk targets. So did
+    `Breadcrumbs`, `FilterChips`, `ArtifactView`'s bar buttons, `CodeBlock`'s
+    copy on ink and menu items, which were 44px below 768 and desk-sized above
+    it. Each now takes its 44px from `pointer-coarse`, as `HIT_32` and
+    `HIT_LINK` do. A narrow window on a desk keeps the desk sizes.
+    - `CodeBlock`'s copy on ink, drawn at 44px to a thumb, no longer adds
+      `HIT_32`'s wider target. That target reached 6px over the Download
+      button beside it.
+    - check-layout measures these on a 1024 touch screen and with a mouse, and
+      its 390 pass is now a touch screen.
   - Signed in, too. AppShell's phone bar has three of these controls: the
     menu button (40px before), the home lockup (36px tall) and `AccountMenu`'s
     button (42 by 40). Each is now 44px drawn. Three small controls keep their

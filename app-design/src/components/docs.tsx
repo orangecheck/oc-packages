@@ -55,10 +55,10 @@ export interface Crumb {
     href?: string;
 }
 
-/** Where this page sits: docs › section › page, with room on the right for "View source". */
+/** Where this page sits: docs › section › page, with room on the right for "View source". Its links are 44px to a thumb and 24px to a mouse. */
 export function Breadcrumbs({ items, action, className }: { items: Crumb[]; action?: ReactNode; className?: string }) {
     return (
-        <div className={cn('flex min-h-11 items-center justify-between gap-4 sm:min-h-0', className)}>
+        <div className={cn('flex items-center justify-between gap-4 pointer-coarse:min-h-11', className)}>
             <nav aria-label="Breadcrumb" className="min-w-0">
                 <ol className="flex min-w-0 items-center gap-1.5 text-[0.875rem] text-muted-foreground">
                     {items.map((c, i) => {
@@ -66,7 +66,7 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                         return (
                             <li key={i} className={cn('flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0')}>
                                 {c.href && !last ? (
-                                    <DocLink href={c.href} className="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-6">
+                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11">
                                         {c.label}
                                     </DocLink>
                                 ) : (

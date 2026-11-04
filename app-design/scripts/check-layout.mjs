@@ -489,6 +489,25 @@ try {
             )
         )
     );
+    // The footer's lines of inline links: the legal row, and a tool's protocol row in the compact footer.
+    const footRows = page(
+        'foot-rows',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }] }),
+                h(Ch.SiteFooter, { compact: true, family: true, legal: true }),
+                // The same pattern elsewhere: a breadcrumb trail and filter chips.
+                h(
+                    'div',
+                    { className: 'flex flex-col gap-6 p-6' },
+                    h(C.Breadcrumbs, { items: [{ label: 'Docs', href: '/docs' }, { label: 'Stamp', href: '/docs/stamp' }, { label: 'Verify' }] }),
+                    h(C.FilterChips, { label: 'Status', value: 'all', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }] })
+                )
+            )
+        )
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -738,7 +757,8 @@ try {
             [390, 844],
             [1440, 900],
         ]) {
-            const p = await browser.newPage({ viewport: { width, height } });
+            // A phone is a touch screen: the 390 pass has a coarse pointer, as the targets it checks do.
+            const p = await browser.newPage({ viewport: { width, height }, isMobile: width < 768, hasTouch: width < 768 });
             // Markdown tables: the one that fits does not scroll and no cell spills; the wide one scrolls.
             await p.goto(tables);
             const tb = await p.evaluate(() =>
@@ -1518,6 +1538,23 @@ try {
                 if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
                 check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
                 await c.close();
+            }
+            // Inline link rows (the footer's legal and protocol rows, breadcrumbs) and filter chips follow
+            // the pointer, not the width: 44px to a thumb on a tablet as on a phone, 24px to a mouse.
+            if (width === 1440) {
+                for (const touch of [true, false]) {
+                    const c = await browser.newPage({ viewport: { width: 1024, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await c.goto(footRows);
+                    const r = await c.evaluate(() => ({
+                        coarse: matchMedia('(pointer: coarse)').matches,
+                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height)]),
+                    }));
+                    const min = touch ? 44 : 24;
+                    const short = r.links.filter(([, px]) => px < min);
+                    check(r.coarse === touch, `[1024 ${touch ? 'touch' : 'mouse'}] the page's pointer reads ${r.coarse ? 'coarse' : 'fine'}`);
+                    check(r.links.length >= 10 && short.length === 0, `[1024 ${touch ? 'touch' : 'mouse'}] inline links and chips: ${short.length} of ${r.links.length} under ${min}px: ${JSON.stringify(short.slice(0, 4))}`);
+                    await c.close();
+                }
             }
             // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
             // the Switch, the Checkbox's mark and a pill tab keep their drawn size.

@@ -47,7 +47,7 @@ function download(content: string, filename: string, mime: string) {
 }
 
 const BAR_BUTTON =
-    'inline-flex h-7 items-center gap-1.5 rounded-none px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white max-md:h-11 max-md:min-w-11 max-md:justify-center max-md:px-3';
+    'inline-flex h-7 items-center gap-1.5 rounded-none px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white pointer-coarse:h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center pointer-coarse:px-3';
 
 /**
  * An artifact as it is: an envelope, a ballot, a delegation. JSON shows
@@ -795,8 +795,8 @@ export function FilterChips<T extends string | number>({
                         onClick={() => (o.disabled ? undefined : press(o.value))}
                         className={cn(
                             'inline-flex shrink-0 items-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors',
-                            // A thumb's 44px on a phone.
-                            tight ? 'h-11 md:h-8' : 'h-11 md:h-9',
+                            // A thumb's 44px on any touch screen, a tablet's included; a mouse's chip is smaller.
+                            tight ? 'h-8 pointer-coarse:h-11' : 'h-9 pointer-coarse:h-11',
                             on
                                 ? 'border-foreground bg-foreground text-background'
                                 : o.disabled
