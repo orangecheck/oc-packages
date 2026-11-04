@@ -12,6 +12,10 @@ import { Section } from './section';
  * - `document`: for pages that are read top to bottom (privacy, terms,
  *   security, changelog). A centred column with the same eyebrow and a
  *   display headline that is always larger than the document's own h2s.
+ *
+ * `page` takes `layout="s10"`, PLAN's S10 page header: the title at the top of
+ * a tall band, the lead at its foot on the right and the art (a mark) at its
+ * foot on the left, from md. On a phone the mark sits under the lead.
  */
 export interface PageHeroProps {
     eyebrow?: ReactNode;
@@ -32,6 +36,12 @@ export interface PageHeroProps {
     ground?: 'paper' | 'ink' | 'brand';
     /** A full-width hairline under the hero. `page` only. */
     rule?: boolean;
+    /**
+     * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
+     * at least 27.5rem tall from 900px, the lead at its foot on the right and the art at its
+     * foot on the left, from md; on a phone the art comes under the lead. `page` only.
+     */
+    layout?: 'split' | 's10';
     className?: string;
 }
 
@@ -49,6 +59,7 @@ export function PageHero({
     size = 'lg',
     ground = 'paper',
     rule = false,
+    layout = 'split',
     className,
 }: PageHeroProps) {
     if (variant === 'document') {
@@ -60,10 +71,35 @@ export function PageHero({
             </Section>
         );
     }
+    if (layout === 's10') {
+        const h1 = size === 'xl' ? 'oca-display-1' : 'oca-display-2';
+        return (
+            // One row from md: the text spans it, title at the top, lead at the foot; the art shares the row's foot on the left.
+            <Section
+                space="none"
+                framed
+                rule={rule}
+                tone={GROUND[ground]}
+                data-ground={ground}
+                className={cn('flex flex-col min-[900px]:min-h-[max(27.5rem,62svh)]', className)}
+                frameClassName="grid flex-1 grid-cols-1 gap-10 pb-14 pt-12 md:grid-cols-12 md:pb-20 md:pt-20"
+            >
+                <div className="flex min-w-0 flex-col items-start gap-6 md:col-span-12 md:col-start-1 md:row-start-1">
+                    {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
+                    <h1 className={cn(h1, 'oca-enter mb-auto pb-6 [--enter-delay:70ms]')}>{title}</h1>
+                    {lead ? <p className="oca-lead oca-enter max-w-[38rem] md:max-w-[26rem] md:self-end md:text-right [--enter-delay:150ms]">{lead}</p> : null}
+                    {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground md:self-end [--enter-delay:190ms]">{meta}</p> : null}
+                    {actions ? <div className="oca-enter flex flex-wrap gap-3 md:self-end [--enter-delay:230ms]">{actions}</div> : null}
+                    {children ? <div className="oca-enter w-full [--enter-delay:270ms]">{children}</div> : null}
+                </div>
+                {art ? <div className="oca-enter md:col-span-5 md:col-start-1 md:row-start-1 md:self-end [--enter-delay:120ms]">{art}</div> : null}
+            </Section>
+        );
+    }
     return (
         // On the Frame, so the hero lines up with the header and the footer. `xl` is the home page's
         // H1 (display-1, the largest text on the page); content pages take `lg` (display-2).
-        <Section space="none" framed rule={rule} tone={GROUND[ground]} data-ground={ground} className={cn('pb-14 pt-12 md:pb-20 md:pt-20', className)}>
+        <Section space="none" framed rule={rule} tone={GROUND[ground]} data-ground={ground} className={className} frameClassName="pb-14 pt-12 md:pb-20 md:pt-20">
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}

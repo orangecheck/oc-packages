@@ -451,6 +451,26 @@ try {
             )
         )
     );
+    // PageHero's S10 layout, as the legal pages use it: a two-line title, a lead and a mark.
+    const s10Page = page(
+        's10',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(C.PageHero, {
+                    layout: 's10',
+                    size: 'xl',
+                    eyebrow: 'Legal',
+                    title: 'Privacy policy',
+                    lead: 'What we keep, what we never see, and how long anything stays.',
+                    art: h('div', { 'data-art': '', style: { width: '96px', height: '96px', background: 'currentColor' } }),
+                }),
+                h('p', { className: 'p-6' }, 'The policy.')
+            )
+        )
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -1389,10 +1409,46 @@ try {
                         closing: left([...document.querySelectorAll('h2')].at(-1)),
                         h1: size(h1),
                         biggest: [biggest.tagName, size(biggest), biggest.textContent.trim().slice(0, 30)],
+                        // A framed section's Frame fills it top to bottom, so its hairlines meet the next section's.
+                        gaps: [...document.querySelectorAll('section')]
+                            .filter((sec) => sec.firstElementChild?.matches('[data-oca-frame]'))
+                            .map((sec) => {
+                                const [a, b] = [sec, sec.firstElementChild].map((el) => el.getBoundingClientRect());
+                                return Math.round(Math.max(Math.abs(a.top - b.top), Math.abs(a.bottom - b.bottom)));
+                            }),
                     };
                 });
                 check(Math.abs(f.hero - f.brand) <= 1 && Math.abs(f.closing - f.brand) <= 1, `[${width}] the hero and the closing are off the header's frame: brand ${f.brand}, hero ${f.hero}, closing ${f.closing}`);
+                check(f.gaps.length >= 2 && f.gaps.every((g) => g <= 1), `[${width}] a framed section's hairlines stop short of its edges by ${JSON.stringify(f.gaps)}px`);
                 check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
+                await c.close();
+            }
+            // S10: from md the title at the top, the lead at the foot on the right, the mark at the foot
+            // on the left, both on the header's frame; on a phone the mark under the lead.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(s10Page);
+                await c.evaluate(() => document.fonts.ready);
+                const g = await c.evaluate(() => {
+                    const box = (el) => el.getBoundingClientRect();
+                    const frame = document.querySelector('section [data-oca-frame]');
+                    const fs = getComputedStyle(frame);
+                    const fr = box(frame);
+                    const content = { left: fr.left + parseFloat(fs.paddingLeft), right: fr.right - parseFloat(fs.paddingRight) };
+                    const [sec, h1, lead, art] = [document.querySelector('section'), document.querySelector('section h1'), document.querySelector('section .oca-lead'), document.querySelector('[data-art]')].map(box);
+                    const fb = box(frame);
+                    return { gap: Math.max(Math.abs(sec.top - fb.top), Math.abs(sec.bottom - fb.bottom)), content, sec: { top: sec.top, h: sec.height }, h1: { top: h1.top, bottom: h1.bottom }, lead: { left: lead.left, right: lead.right, top: lead.top, bottom: lead.bottom }, art: { left: art.left, right: art.right, top: art.top, bottom: art.bottom } };
+                });
+                const near = (a, b) => Math.abs(a - b) <= 1;
+                check(g.gap <= 1, `[${width}] S10: the frame's hairlines stop ${Math.round(g.gap)}px short of the band's edges`);
+                if (width >= 768) {
+                    check(near(g.lead.right, g.content.right) && near(g.art.left, g.content.left), `[${width}] S10: the lead's right ${g.lead.right.toFixed(1)} or the mark's left ${g.art.left.toFixed(1)} is off the frame (${JSON.stringify(g.content)})`);
+                    check(near(g.lead.bottom, g.art.bottom) || g.lead.bottom >= g.art.top, `[${width}] S10: the lead and the mark do not share the foot (${JSON.stringify({ lead: g.lead, art: g.art })})`);
+                    check(g.art.top >= g.h1.bottom && g.lead.left > g.art.right, `[${width}] S10: the mark runs into the title or the lead (${JSON.stringify(g)})`);
+                    if (width >= 900) check(g.sec.h >= 440, `[${width}] S10: the band is ${Math.round(g.sec.h)}px tall, under 27.5rem`);
+                } else {
+                    check(g.art.top >= g.lead.bottom && near(g.art.left, g.content.left), `[${width}] S10: on a phone the mark is not under the lead (${JSON.stringify({ lead: g.lead, art: g.art })})`);
+                }
                 await c.close();
             }
             // Chrome targets: the header's links, family menu, theme switch, Sign in and CTA, a footer

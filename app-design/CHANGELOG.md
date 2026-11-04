@@ -74,6 +74,16 @@ optional. What changes is how things look.
     the same size as `PageHeader`'s H1.
   - check-layout checks the frame line-up, and checks that the H1 is the
     largest text read on the page.
+  - A framed `Section` puts its `space` inside the Frame, and takes
+    `frameClassName` for more. Before, the padding sat outside the Frame, so
+    its hairlines stopped 56 to 117px short of the section's edges and never
+    met the header's or the next section's. check-layout checks that each
+    framed section's Frame fills it.
+  - `PageHero` takes `layout="s10"`, the S10 page header that ochk.app's legal
+    pages built by hand. The title sits at the top of a band at least 27.5rem
+    tall from 900px. From md, the lead sits at its foot on the right and the
+    art (a mark) at its foot on the left, both on the frame. On a phone the
+    mark sits under the lead. check-layout measures it at 390 and 1440.
 - The ink and burnt bands re-point what a kit control raises on them:
   `--card`, `--muted`, `--secondary`, `--accent` and `--oca-surface`, each
   with its text. Before, a Card or a field on the ink band drew the paper card
