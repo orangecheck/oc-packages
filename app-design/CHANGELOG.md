@@ -11,10 +11,11 @@
   - **Visible change in dark mode, on every site:** a primary Button's hover,
     and `SiteHeader`'s CTA's, now lightens to `#cc4a0e` instead of darkening.
     The darker hover was 2.67:1 on the night page.
-  - On the orange band `primary` is ink with orange words (6.56:1). The deep
-    orange was 1.85:1 there.
-  - In the footer band `primary` is white with deep-orange words (5.18:1),
-    as the footer's status fills are. The deep orange was the footer itself.
+  - **Visible change on the orange band:** `primary` is ink with orange words
+    (6.56:1). The deep orange was 1.85:1 there.
+  - **Visible change in the footer band:** `primary` is white with
+    deep-orange words (5.18:1), as the footer's status fills are. The deep
+    orange was the footer itself.
   - `secondary` takes the field's edge, `--input`, on every ground. The ink
     at 45% was 2.87:1 on paper and 2.36:1 on orange. On paper the new edge
     reads the same grey.
@@ -27,7 +28,10 @@
   bands and Cards, and the dark page. On paper it was 2.34:1, and on orange
   1.00. **Migrate**: a CTA on paper is `primary`. check-contrast fails on a
   brand `Button` drawn outside an ink or burnt ground, in a component, a
-  block or a story.
+  block or a story. It reads the variant through the type checker, so a
+  const, a conditional, a spread or a forwarded prop counts, and a variant it
+  cannot pin to literals counts as brand. A ground counts only when it is
+  written out: the `dark` class, not a `dark:` variant.
 
 ## [2.0.0] — unreleased (2.0.0-pre)
 

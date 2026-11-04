@@ -513,12 +513,15 @@ const census = { strings: 0, pairs: 0 };
     const drawnOn = (look, ctx, mode) =>
         /^onInk/.test(look) ? /ink|burnt/.test(ctx) : look === 'brand' ? /ink|burnt/.test(ctx) || (ctx === 'the page' && mode === 'dark') : true;
     // And the orange fill is only drawn there: a brand Button in a component, a block or a story sits inside
-    // an ink or burnt ground (a band, a tone, a ground, a dark class) or draws the disabled look instead.
+    // an ink or burnt ground (a band, a tone, a ground, the dark class) or is disabled, which is one grey look.
+    // The type checker reads each Button's variant, so a const, a conditional, a spread or a forwarded prop
+    // counts as the looks it can take, and one it cannot pin to literals (a string, any) counts as brand. A
+    // ground counts only when it is certain: a class written out (not a dark: variant, not behind a condition),
+    // a tone or ground that can only be dark.
     {
         const ts = (await import('node:module')).createRequire(import.meta.url)('typescript');
-        const DARK = /\b(oca-band-(ink|burnt)|oca-on-(ink|burnt)|bg-oca-(ink|burnt)(-card)?|dark)\b/;
-        const attr = (el, name) => el.attributes.properties.find((a) => a.name?.getText() === name);
-        const text = (a) => (a?.initializer && ts.isStringLiteral(a.initializer) ? a.initializer.text : a?.initializer?.getText() ?? '');
+        const src = join(here, '../src');
+        const buttonFile = join(src, 'primitives/button.tsx');
         const walkFiles = (d, out = []) => {
             for (const f of readdirSync(d)) {
                 const p = join(d, f);
@@ -527,28 +530,147 @@ const census = { strings: 0, pairs: 0 };
             }
             return out;
         };
-        for (const f of walkFiles(join(here, '../src'))) {
-            const src = readFileSync(f, 'utf8');
-            if (!/variant=["{']*brand/.test(src)) continue;
-            const sf = ts.createSourceFile(f, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+        // Planted shapes the scan must catch (want) and pass (ok), as a file the checker sees beside the real
+        // ones but nothing writes to disk.
+        const shapesFile = join(src, '__brand-shapes__.tsx');
+        const shapes = `import { Button } from './primitives/button';
+const v = 'brand';
+const p = { variant: 'brand' } as const;
+declare const c: boolean;
+declare const s: string;
+declare function cn(...a: unknown[]): string;
+function Ground(_: { tone?: string; ground?: string; children?: unknown }) { return null; }
+const t = (c ? 'ink' : 'paper') as 'ink' | 'paper';
+export const all = (
+    <div>
+        <Button variant="brand">want</Button>
+        <Button variant={'brand'}>want</Button>
+        <Button variant={v}>want</Button>
+        <Button {...p}>want</Button>
+        <Button variant={c ? 'brand' : 'primary'}>want</Button>
+        <div className="dark:bg-muted"><Button variant="brand">want</Button></div>
+        <Button variant={s as any}>want</Button>
+        <Button variant="brand" disabled={c}>want</Button>
+        <div className={cn(c && 'oca-band-ink')}><Button variant="brand">want</Button></div>
+        <Ground tone={t}><Button variant="brand">want</Button></Ground>
+        <div className="oca-band-ink p-4"><Button variant={v}>ok</Button></div>
+        <div className={cn('dark', 'p-4')}><Button {...p}>ok</Button></div>
+        <Ground tone="burnt"><Button variant="brand">ok</Button></Ground>
+        <Ground ground="dark"><Button variant="brand">ok</Button></Ground>
+        <Button variant="brand" disabled>ok</Button>
+        <Button variant={c ? 'secondary' : 'primary'}>ok</Button>
+        <Button>ok</Button>
+    </div>
+);
+`;
+        const files = [...walkFiles(src), shapesFile];
+        const options = { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, target: ts.ScriptTarget.ES2020, strict: true, skipLibCheck: true, noEmit: true };
+        const host = ts.createCompilerHost(options);
+        const getSourceFile = host.getSourceFile.bind(host);
+        const fileExists = host.fileExists.bind(host);
+        const readFile = host.readFile.bind(host);
+        host.getSourceFile = (name, lang, ...rest) => (name === shapesFile ? ts.createSourceFile(name, shapes, lang, true, ts.ScriptKind.TSX) : getSourceFile(name, lang, ...rest));
+        host.fileExists = (name) => name === shapesFile || fileExists(name);
+        host.readFile = (name) => (name === shapesFile ? shapes : readFile(name));
+        const program = ts.createProgram(files, options, host);
+        const checker = program.getTypeChecker();
+        // The string literals a value can take; null when it can take any string.
+        const values = (type) => {
+            const out = [];
+            for (const t of type.isUnion() ? type.types : [type]) {
+                if (t.isStringLiteral()) out.push(t.value);
+                else if (!(t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null))) return null;
+            }
+            return out;
+        };
+        const attrs = (el) => el.attributes.properties;
+        const named = (el, name) => attrs(el).find((a) => ts.isJsxAttribute(a) && a.name.getText() === name);
+        // An attribute's literals: from a string, or from the type of the expression in its braces.
+        const attrValues = (a) => (!a.initializer ? null : ts.isStringLiteral(a.initializer) ? [a.initializer.text] : a.initializer.expression ? values(checker.getTypeAtLocation(a.initializer.expression)) : null);
+        // Every look a Button can take, from its variant and its spreads; null when one cannot be pinned.
+        const variants = (el) => {
+            const out = [];
+            let any = false;
+            for (const a of attrs(el)) {
+                if (ts.isJsxAttribute(a) && a.name.getText() === 'variant') {
+                    const v = attrValues(a);
+                    if (v) out.push(...v);
+                    else any = true;
+                } else if (ts.isJsxSpreadAttribute(a)) {
+                    const type = checker.getTypeAtLocation(a.expression);
+                    if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) any = true;
+                    const prop = type.getProperty('variant');
+                    if (prop) {
+                        const v = values(checker.getTypeOfSymbolAtLocation(prop, a.expression));
+                        if (v) out.push(...v);
+                        else any = true;
+                    }
+                }
+            }
+            return any ? null : out;
+        };
+        const isButton = (tag) => {
+            let sym = checker.getSymbolAtLocation(ts.isPropertyAccessExpression(tag) ? tag.name : tag);
+            if (sym && sym.flags & ts.SymbolFlags.Alias) sym = checker.getAliasedSymbol(sym);
+            return !!sym?.declarations?.some((d) => d.getSourceFile().fileName === buttonFile && sym.name === 'Button');
+        };
+        const disabled = (el) => {
+            const a = named(el, 'disabled');
+            return !!a && (!a.initializer || a.initializer.expression?.kind === ts.SyntaxKind.TrueKeyword);
+        };
+        // The classes an element always carries: a string, or the string arguments of a cn() call.
+        const DARK = /^(oca-band-(ink|burnt)|oca-on-(ink|burnt)|bg-oca-(ink|burnt)(-card)?|dark)$/;
+        const classes = (el) => {
+            const a = named(el, 'className');
+            const e = a?.initializer && (ts.isStringLiteral(a.initializer) ? a.initializer : a.initializer.expression);
+            const lits = !e ? [] : ts.isStringLiteralLike(e) ? [e] : ts.isCallExpression(e) ? e.arguments.filter((x) => ts.isStringLiteralLike(x)) : [];
+            return lits.flatMap((x) => x.text.split(/\s+/));
+        };
+        const only = (el, name, set) => {
+            const a = named(el, name);
+            const v = a && attrValues(a);
+            return !!v && v.length > 0 && v.every((x) => set.includes(x));
+        };
+        const darkGround = (el) => classes(el).some((c) => DARK.test(c)) || only(el, 'tone', ['ink', 'burnt']) || only(el, 'ground', ['ink', 'burnt', 'dark']);
+        const scan = (sf) => {
+            const out = [];
             const visit = (node) => {
                 const el = ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : null;
-                if (el && el.tagName.getText() === 'Button' && /^['"]?brand['"]?$/.test(text(attr(el, 'variant'))) && !attr(el, 'disabled')) {
-                    let dark = false;
-                    for (let up = node.parent; up && !dark; up = up.parent) {
-                        const open = ts.isJsxElement(up) ? up.openingElement : ts.isJsxSelfClosingElement(up) ? up : null;
-                        if (!open) continue;
-                        dark = DARK.test(text(attr(open, 'className'))) || /^(ink|burnt)$/.test(text(attr(open, 'tone'))) || /^(ink|burnt|dark)$/.test(text(attr(open, 'ground')));
-                    }
-                    if (!dark) {
-                        const at = `${f.slice(join(here, '..').length + 1)}:${sf.getLineAndCharacterOfPosition(el.getStart()).line + 1}`;
-                        console.error(`✗ contrast: a brand Button at ${at} is drawn on paper or on orange: the orange fill is for the ink and burnt grounds and the dark page (2.34:1 on paper, 1.00 on orange)`);
-                        failed++;
+                if (el && isButton(el.tagName) && !disabled(el)) {
+                    const v = variants(el);
+                    if (!v || v.includes('brand')) {
+                        let dark = false;
+                        for (let up = node.parent; up && !dark; up = up.parent) {
+                            const open = ts.isJsxElement(up) ? up.openingElement : ts.isJsxSelfClosingElement(up) ? up : null;
+                            if (open) dark = darkGround(open);
+                        }
+                        if (!dark) out.push({ line: sf.getLineAndCharacterOfPosition(el.getStart()).line + 1, v });
                     }
                 }
                 ts.forEachChild(node, visit);
             };
             visit(sf);
+            return out;
+        };
+        for (const f of files.filter((f) => f !== shapesFile)) {
+            for (const { line, v } of scan(program.getSourceFile(f))) {
+                const at = `${f.slice(join(here, '..').length + 1)}:${line}`;
+                console.error(
+                    v
+                        ? `✗ contrast: a Button at ${at} can be brand (${v.join(' | ')}) and is drawn on paper or on orange: the orange fill is for the ink and burnt grounds and the dark page (2.34:1 on paper, 1.00 on orange)`
+                        : `✗ contrast: a Button at ${at} takes a variant the checker cannot pin to its looks, so it may be brand on paper or on orange: give it literals, or a prop typed without brand`
+                );
+                failed++;
+            }
+        }
+        const lines = shapes.split('\n');
+        const want = lines.flatMap((l, i) => (/>want</.test(l) ? [i + 1] : []));
+        const got = scan(program.getSourceFile(shapesFile)).map((x) => x.line);
+        const missed = want.filter((l) => !got.includes(l));
+        const extra = got.filter((l) => !want.includes(l));
+        if (missed.length || extra.length || want.length !== 10) {
+            console.error(`✗ contrast: the brand Button scan misreads its planted shapes: missed ${JSON.stringify(missed.map((l) => lines[l - 1].trim()))}, flagged ${JSON.stringify(extra.map((l) => lines[l - 1].trim()))}`);
+            failed++;
         }
     }
     const seen = new Set();
