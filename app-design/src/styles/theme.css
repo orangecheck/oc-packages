@@ -250,18 +250,18 @@
 
 /* ── Bands ───────────────────────────────────────────────────────────────
    A band is a ground plus the tokens re-pointed for whatever sits on it: text,
-   soft text, hairlines, the accent and the ring. A Button, a MonoLabel or a
-   StatRow on a band reads in its colours with no props. check-contrast reads
-   these blocks and holds each band's text to 4.5:1 on its ground. */
+   soft text, hairlines, the accent, the ring, and the grounds a kit control
+   raises on it (a card, a sunken well, a field, a hover). The re-pointing is
+   its own utility, oca-on-*, so a Card tone or a hand-built panel on the same
+   ground takes it too: a MonoLabel, a muted line, a card or a Button there reads
+   in its colours with no props. check-contrast reads these blocks and holds
+   each pair to 4.5:1; check-focus measures them in Chrome. */
 
-@utility oca-band-ink {
-    background-color: var(--oca-ink);
-    color: var(--oca-ink-foreground);
+@utility oca-on-ink {
     --foreground: var(--oca-ink-foreground);
     --muted-foreground: var(--oca-ink-muted);
     --oca-subtle-foreground: var(--oca-ink-subtle);
     --border: var(--oca-ink-line);
-    /* What a kit control raises on the band: a card, a sunken well, a field, a hover. */
     --card: var(--oca-ink-card);
     --card-foreground: var(--oca-ink-foreground);
     --muted: var(--oca-ink-card);
@@ -273,9 +273,13 @@
     --oca-surface-foreground: var(--oca-ink-foreground);
 }
 
-@utility oca-band-burnt {
-    background-color: var(--oca-burnt);
-    color: var(--oca-burnt-foreground);
+@utility oca-band-ink {
+    background-color: var(--oca-ink);
+    color: var(--oca-ink-foreground);
+    @apply oca-on-ink;
+}
+
+@utility oca-on-burnt {
     --foreground: var(--oca-burnt-foreground);
     --muted-foreground: var(--oca-burnt-muted);
     --oca-subtle-foreground: var(--oca-burnt-muted);
@@ -293,29 +297,64 @@
     --oca-surface-foreground: var(--oca-burnt-foreground);
 }
 
+@utility oca-band-burnt {
+    background-color: var(--oca-burnt);
+    color: var(--oca-burnt-foreground);
+    @apply oca-on-burnt;
+}
+
 /* Orange: ink text, an ink edge on an outlined button, an ink ring (orange on
-   orange was 1.2:1), never white (2.80:1). */
-@utility oca-band-brand {
-    background-color: var(--brand);
-    color: var(--brand-foreground);
+   orange was 1.2:1), never white (2.80:1). What is raised on it stays orange
+   with an ink hairline: in dark the page's card is ink, and ink text on it
+   vanished. */
+@utility oca-on-brand {
     --foreground: var(--brand-foreground);
     --muted-foreground: var(--brand-foreground);
     --oca-subtle-foreground: var(--brand-foreground);
     --border: var(--oca-brand-line);
     --oca-accent-display: var(--brand-foreground);
     --ring: var(--oca-ring-on-fill);
+    --card: var(--brand);
+    --card-foreground: var(--brand-foreground);
+    --muted: var(--brand);
+    --secondary: var(--brand);
+    --secondary-foreground: var(--brand-foreground);
+    --accent: var(--oca-brand-line);
+    --accent-foreground: var(--brand-foreground);
+    --oca-surface: var(--brand);
+    --oca-surface-foreground: var(--brand-foreground);
+}
+
+@utility oca-band-brand {
+    background-color: var(--brand);
+    color: var(--brand-foreground);
+    @apply oca-on-brand;
 }
 
 /* The deep footer: white, one solid tint for secondary text, an ink ring. */
-@utility oca-band-footer {
-    background-color: var(--oca-footer);
-    color: var(--oca-footer-foreground);
+@utility oca-on-footer {
     --foreground: var(--oca-footer-foreground);
     --muted-foreground: var(--oca-footer-muted);
     --oca-subtle-foreground: var(--oca-footer-muted);
     --border: var(--oca-footer-line);
     --oca-accent-display: var(--oca-footer-foreground);
     --ring: var(--oca-ring-on-fill);
+    --card: var(--oca-footer);
+    --card-foreground: var(--oca-footer-foreground);
+    --muted: var(--oca-footer);
+    --secondary: var(--oca-footer);
+    --secondary-foreground: var(--oca-footer-foreground);
+    /* A hover darkens, as the deep orange's own does: white on the footer line was 3.4:1. */
+    --accent: var(--oca-primary-hover);
+    --accent-foreground: var(--oca-footer-foreground);
+    --oca-surface: var(--oca-footer);
+    --oca-surface-foreground: var(--oca-footer-foreground);
+}
+
+@utility oca-band-footer {
+    background-color: var(--oca-footer);
+    color: var(--oca-footer-foreground);
+    @apply oca-on-footer;
 }
 
 /* The stadium hairline behind a hero sphere. */

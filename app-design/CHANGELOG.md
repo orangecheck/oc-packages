@@ -62,6 +62,22 @@ optional. What changes is how things look.
   under the band's paper text. New token `--oca-burnt-card` (`#382216`).
   check-contrast holds each raised ground's text in every band, and fails a
   dark band that leaves `--card` alone.
+- Card's `ink`, `burnt` and `brand` tones re-point what sits on them, as the
+  band of the same name does. Before, they set only a ground and a text colour,
+  so a MonoLabel or a muted line in an ink card kept the page's grey, 2.49:1 in
+  light, and a secondary Button's label was 1.05:1. The re-pointing is now its
+  own utility, `oca-on-ink`, `oca-on-burnt`, `oca-on-brand` and `oca-on-footer`;
+  each `oca-band-*` is its ground plus that. A hand-built panel on one of these
+  grounds takes the matching `oca-on-*`. SignInFrame's ink panel is an
+  `oca-band-ink` now.
+  - The brand and footer bands re-point their raised grounds too. On orange, a
+    card stays orange with an ink hairline: in dark the page's card is ink, so
+    a card's muted line on the brand band was 1.00:1. A hover on the footer
+    darkens to `--oca-primary-hover`.
+  - check-contrast holds every band's and every dark Card tone's pairs,
+    `--accent` with its text among them. check-focus renders each ground in
+    Chrome with a MonoLabel, a muted line, a card raised on it and a secondary
+    Button, and holds all 35 texts to 4.5:1 in light and dark.
 - The display stack reaches a fallback scaled to Inter on machines with no
   Arial, Liberation or Arimo: Noto Sans, DejaVu Sans and Ubuntu, each with
   its own size-adjust and Inter's ascent. Before Inter loads there, the
