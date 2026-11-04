@@ -4,8 +4,10 @@
  * Every submit button the sign-in draws is a 44px target, as its tabs and the
  * opt-in row are: Send one-time code, Verify, the wallet step's button and the
  * pasted signature's Sign me in. The padding round one line of text drew them
- * 41.7px tall. Each step is reached as a person reaches it, with the host
- * answered by a stub.
+ * 41.7px tall. So is every field on those steps: the email, the code, the
+ * address, the message and the pasted signature (the email field was 43.6
+ * inside SignInFrame). Each step is reached as a person reaches it, with the
+ * host answered by a stub.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
@@ -35,6 +37,9 @@ function stubFetch() {
 }
 
 const floor = (name: RegExp) => (screen.getByRole('button', { name }) as HTMLButtonElement).style.minHeight;
+// Every field the step draws that is under the floor: 44px tall at least, padding and border inside it.
+const fields = () => [...document.querySelectorAll<HTMLElement>('input:not([type=checkbox]):not([type=hidden]), textarea, select')];
+const short = () => fields().filter((f) => f.style.minHeight !== '44px' || f.style.boxSizing !== 'border-box').map((f) => f.id);
 
 afterEach(() => {
     cleanup();
@@ -65,5 +70,35 @@ describe('the sign-in submit buttons are 44px tall at least', () => {
             fireEvent.click(screen.getByRole('button', { name: step }));
         });
         expect(floor(/Sign me in/)).toBe('44px');
+    });
+});
+
+describe('the sign-in fields are 44px tall at least', () => {
+    it('on the email path: the email, then the code', async () => {
+        stubFetch();
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+        expect(fields()).toHaveLength(1);
+        expect(short()).toEqual([]);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        expect(screen.getByRole('textbox', { name: 'One-time code' })).toBeTruthy();
+        expect(short()).toEqual([]);
+    });
+
+    it('on the wallet path: the address, then the message and the pasted signature', async () => {
+        stubFetch();
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        expect(short()).toEqual([]);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign|Sign in with wallet/ }));
+        });
+        expect(screen.getByLabelText('Signature')).toBeTruthy();
+        expect(fields().length).toBeGreaterThanOrEqual(2);
+        expect(short()).toEqual([]);
     });
 });

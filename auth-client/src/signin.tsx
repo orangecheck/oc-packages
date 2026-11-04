@@ -1687,6 +1687,10 @@ function Label({
 
 const inputStyle: React.CSSProperties = {
     width: '100%',
+    // 44px to a thumb, as the submit buttons are: one line drew the email field 43.6. The padding and border sit
+    // inside it, so a host without a border-box reset gets 44 too.
+    boxSizing: 'border-box',
+    minHeight: 44,
     padding: '0.55rem 0.75rem',
     background: 'var(--background, #0a0a0a)',
     color: 'var(--foreground, #fafafa)',
