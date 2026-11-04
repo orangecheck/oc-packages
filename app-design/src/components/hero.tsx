@@ -16,6 +16,9 @@ import { Section } from './section';
  * `page` takes `layout="s10"`, PLAN's S10 page header: the title at the top of
  * a tall band, the lead at its foot on the right and the art (a mark) at its
  * foot on the left, from md. On a phone the mark sits under the lead.
+ *
+ * The h1 and lead enter with `oca-enter-lift`, opaque from the first frame,
+ * because one of them is the page's LCP; the rest fades in with `oca-enter`.
  */
 export interface PageHeroProps {
     eyebrow?: ReactNode;
@@ -87,11 +90,11 @@ export function PageHero({
             >
                 <div className="flex flex-col items-start gap-6 pb-6">
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
-                    <h1 className={cn(h1, 'oca-enter [--enter-delay:70ms]')}>{title}</h1>
+                    <h1 className={cn(h1, 'oca-enter-lift [--enter-delay:70ms]')}>{title}</h1>
                 </div>
                 <div className="mt-auto grid grid-cols-1 gap-10 md:grid-cols-12 md:items-start">
                     <div className="flex flex-col items-start gap-6 md:col-span-7 md:col-start-6 md:row-start-1 md:justify-self-end">
-                        {lead ? <p className="oca-lead oca-enter max-w-[22em] text-left [--enter-delay:150ms]">{lead}</p> : null}
+                        {lead ? <p className="oca-lead oca-enter-lift max-w-[22em] text-left [--enter-delay:150ms]">{lead}</p> : null}
                         {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground [--enter-delay:190ms]">{meta}</p> : null}
                         {actions ? <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">{actions}</div> : null}
                     </div>
@@ -108,10 +111,10 @@ export function PageHero({
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
-                    <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter [--enter-delay:70ms]')}>
+                    <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter-lift [--enter-delay:70ms]')}>
                         {title}
                     </h1>
-                    {lead ? <p className="oca-lead oca-enter max-w-[38rem] [--enter-delay:150ms]">{lead}</p> : null}
+                    {lead ? <p className="oca-lead oca-enter-lift max-w-[38rem] [--enter-delay:150ms]">{lead}</p> : null}
                     {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground [--enter-delay:190ms]">{meta}</p> : null}
                     {actions ? <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">{actions}</div> : null}
                     {children ? <div className="oca-enter w-full [--enter-delay:270ms]">{children}</div> : null}
@@ -138,7 +141,7 @@ export function DocHeader({
     return (
         <div className={cn('flex flex-col gap-5', className)}>
             {eyebrow ? <p className="oca-eyebrow oca-enter">{eyebrow}</p> : null}
-            <h1 className="oca-display-2 oca-enter [--enter-delay:70ms]">{title}</h1>
+            <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title}</h1>
             {lead ? <p className="oca-lead">{lead}</p> : null}
             {meta ? <p className="text-[0.875rem] text-muted-foreground">{meta}</p> : null}
             {actions ? <div className="mt-1 flex flex-wrap gap-3">{actions}</div> : null}

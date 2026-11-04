@@ -69,8 +69,8 @@ export function ErrorPage({
                     <p className="oca-eyebrow oca-enter">
                         <span className="oca-tabular">{code}</span> · {WORDS[code]?.name ?? (server ? 'Error' : 'Not available')}
                     </p>
-                    <h1 className="oca-display-2 oca-enter [--enter-delay:70ms]">{title ?? words.title}</h1>
-                    <p className="oca-lead oca-enter [--enter-delay:150ms]">{detail ?? words.detail}</p>
+                    <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title ?? words.title}</h1>
+                    <p className="oca-lead oca-enter-lift [--enter-delay:150ms]">{detail ?? words.detail}</p>
                     <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">
                         {actions ?? (
                             <>

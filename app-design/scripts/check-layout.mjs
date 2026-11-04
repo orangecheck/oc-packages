@@ -63,6 +63,10 @@
  * - A read that fails moves nothing: a LoadError given the rows of the
  *   LoadingBlock it replaces keeps their height, and a LoadingBlock that
  *   times out keeps its own, so the line under either stays where it was.
+ * - A hero's h1 and lead are opaque on the entrance's first frame, in both
+ *   PageHero layouts, a document's header and an ErrorPage, so the first
+ *   paint is their LCP; the rest of the entrance still fades in. No entrance
+ *   or reveal blurs.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -520,6 +524,21 @@ try {
                 h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
                 h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
                 h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
+            )
+        )
+    );
+    // Every hero shape, its entrance read on the first frame.
+    const heroes = page(
+        'heroes',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead of one sentence.' })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', eyebrow: 'Legal', title: 'Privacy policy', lead: 'What we keep, and for how long.' })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', eyebrow: 'Legal', title: 'Terms', lead: 'The terms.' })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null })),
+                h('div', { 'data-reveal': 'pending', 'data-t': 'reveal' }, 'Below the fold.')
             )
         )
     );
@@ -1462,6 +1481,40 @@ try {
                 check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
                 await c.close();
             }
+            // The entrance on its first frame: every animation paused at 0.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(heroes);
+                const e = await c.evaluate(() => {
+                    for (const a of document.getAnimations()) {
+                        a.pause();
+                        a.currentTime = 0;
+                    }
+                    const read = (el) => {
+                        const cs = getComputedStyle(el);
+                        return { opacity: cs.opacity, filter: cs.filter, transform: cs.transform, animation: cs.animationName };
+                    };
+                    return {
+                        heroes: Object.fromEntries(
+                            ['split', 's10', 'document', 'error'].map((t) => {
+                                const s = document.querySelector(`[data-t="${t}"]`);
+                                return [t, { h1: read(s.querySelector('h1')), lead: read(s.querySelector('.oca-lead')), eyebrow: read(s.querySelector('h1').parentElement.querySelector('.oca-enter')) }];
+                            })
+                        ),
+                        blurred: [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).filter.includes('blur')).map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`),
+                        reveal: read(document.querySelector('[data-t="reveal"]')),
+                    };
+                });
+                for (const [t, x] of Object.entries(e.heroes)) {
+                    // The h1 still rises; a lead rises with it, or (a document's) has no entrance.
+                    check(x.h1.opacity === '1' && x.h1.animation === 'oca-enter-lift' && x.h1.transform !== 'none', `[${width}] ${t} hero's h1 is not opaque and rising on the entrance's first frame: ${JSON.stringify(x.h1)}`);
+                    check(x.lead.opacity === '1' && ['oca-enter-lift', 'none'].includes(x.lead.animation), `[${width}] ${t} hero's lead is not opaque on the entrance's first frame: ${JSON.stringify(x.lead)}`);
+                    check(x.eyebrow.opacity === '0', `[${width}] ${t} hero's eyebrow no longer fades in (opacity ${x.eyebrow.opacity} on the first frame)`);
+                }
+                check(e.blurred.length === 0, `[${width}] an entrance blurs on its first frame: ${e.blurred.join(', ')}`);
+                check(e.reveal.opacity === '0' && !e.reveal.filter.includes('blur'), `[${width}] a pending Reveal is blurred or not hidden: ${JSON.stringify(e.reveal)}`);
+                await c.close();
+            }
             // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
@@ -1672,4 +1725,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame`);
