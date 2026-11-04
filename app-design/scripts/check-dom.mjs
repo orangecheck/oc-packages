@@ -532,9 +532,57 @@ for (const mode of ['dark', 'light']) {
     }
 }
 
+// A test DOM without matchMedia or IntersectionObserver (vitest's jsdom, as chat, vault and
+// ochk.app run): the 2.0 footer mounts, and its wordmark is shown, not left waiting to rise.
+{
+    const kept = { mm: window.matchMedia, io: window.IntersectionObserver, gmm: globalThis.matchMedia, gio: globalThis.IntersectionObserver };
+    delete window.matchMedia;
+    delete globalThis.matchMedia;
+    window.IntersectionObserver = undefined;
+    globalThis.IntersectionObserver = undefined;
+    let threw = null;
+    let host = null;
+    let unmount = async () => {};
+    try {
+        ({ host, unmount } = await mount(h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }] })));
+    } catch (e) {
+        threw = e;
+    }
+    check(!threw, `SiteFooter: mounting with no matchMedia or IntersectionObserver threw ${threw?.message}`);
+    check(Boolean(host?.querySelector('[data-oca-wordmark]')) && !host?.querySelector('[data-reveal="pending"]'), 'SiteFooter: with no observers the wordmark waits hidden to rise');
+    await unmount();
+    // useInView's consumers (a Diagram, a Ticker) and the docs width reader, with no
+    // IntersectionObserver or ResizeObserver either: a Diagram counts as in view and draws at
+    // the width it reads once, and a Ticker shows its number.
+    const keptRo = { w: window.ResizeObserver, g: globalThis.ResizeObserver };
+    window.ResizeObserver = undefined;
+    globalThis.ResizeObserver = undefined;
+    let loads = 0;
+    const mermaid = { initialize() {}, render: async () => ({ svg: '<svg viewBox="0 0 120 60" width="100%"><rect width="120" height="60"/></svg>' }) };
+    const load = async () => (loads++, mermaid);
+    threw = null;
+    host = null;
+    try {
+        ({ host, unmount } = await mount(h('div', null, h(C.Diagram, { chart: 'graph TD; A-->B', load, caption: 'A to B' }), h(C.Ticker, { value: 21 }))));
+        await act(async () => new Promise((r) => setTimeout(r, 0)));
+    } catch (e) {
+        threw = e;
+    }
+    check(!threw, `Diagram and Ticker: mounting with no IntersectionObserver or ResizeObserver threw ${threw?.message}`);
+    check(loads === 1 && Boolean(host?.querySelector('[role="img"][aria-label="A to B"] svg')), `Diagram: with no observers it never drew (${loads} loads)`);
+    check(/21/.test(host?.textContent ?? ''), 'Ticker: with no IntersectionObserver its number is not shown');
+    await unmount();
+    window.ResizeObserver = keptRo.w;
+    globalThis.ResizeObserver = keptRo.g;
+    window.matchMedia = kept.mm;
+    globalThis.matchMedia = kept.gmm;
+    window.IntersectionObserver = kept.io;
+    globalThis.IntersectionObserver = kept.gio;
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a refused sign-out`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a refused sign-out, observer-free mounts`);
 process.exit(0);

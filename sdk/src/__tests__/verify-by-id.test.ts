@@ -8,12 +8,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildCanonicalMessage, createAttestationEnvelope, verifyAttestationById } from '../index';
-import { createAttestationEvent, queryByAttestationId } from '../nostr';
+import { createAttestationEvent, readByAttestationId } from '../nostr';
 import { signatureIsValid } from '../verify';
 
 vi.mock('../nostr', async (importOriginal) => ({
     ...(await importOriginal<typeof import('../nostr')>()),
-    queryByAttestationId: vi.fn(),
+    readByAttestationId: vi.fn(),
 }));
 vi.mock('../verify', async (importOriginal) => ({
     ...(await importOriginal<typeof import('../verify')>()),
@@ -40,7 +40,7 @@ describe('verifyAttestationById', () => {
 
     it("returns null for an attestation naming the victim's address beside a signature that does not verify", async () => {
         const forged = await attestation('forged');
-        vi.mocked(queryByAttestationId).mockResolvedValue([eventFor(forged, '1'.repeat(64))]);
+        vi.mocked(readByAttestationId).mockResolvedValue({ events: [eventFor(forged, '1'.repeat(64))], relays: [] });
         await expect(verifyAttestationById(forged.attestation_id, ['wss://r'])).resolves.toBeNull();
         expect(signatureIsValid).toHaveBeenCalledWith(
             expect.objectContaining({ addr: VICTIM, msg: forged.message, sig: 'forged' })
@@ -49,7 +49,7 @@ describe('verifyAttestationById', () => {
 
     it('returns the attestation when its signature verifies', async () => {
         const genuine = await attestation('genuine');
-        vi.mocked(queryByAttestationId).mockResolvedValue([eventFor(genuine, '2'.repeat(64))]);
+        vi.mocked(readByAttestationId).mockResolvedValue({ events: [eventFor(genuine, '2'.repeat(64))], relays: [] });
         const found = await verifyAttestationById(genuine.attestation_id, ['wss://r']);
         expect(found?.attestation_id).toBe(genuine.attestation_id);
         expect(found?.signature).toBe('genuine');
@@ -58,10 +58,13 @@ describe('verifyAttestationById', () => {
     it('returns the copy whose signature verifies when a forged copy comes first', async () => {
         const forged = await attestation('forged');
         const genuine = await attestation('genuine');
-        vi.mocked(queryByAttestationId).mockResolvedValue([
-            eventFor(forged, '3'.repeat(64)),
-            eventFor(genuine, '4'.repeat(64)),
-        ]);
+        vi.mocked(readByAttestationId).mockResolvedValue({
+            events: [
+                eventFor(forged, '3'.repeat(64)),
+                eventFor(genuine, '4'.repeat(64)),
+            ],
+            relays: [],
+        });
         const found = await verifyAttestationById(genuine.attestation_id, ['wss://r']);
         expect(found?.signature).toBe('genuine');
     });

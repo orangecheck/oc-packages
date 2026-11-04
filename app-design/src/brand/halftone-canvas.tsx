@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { cn } from '../lib/cn';
+import { prefersReducedMotion } from '../lib/env';
 import { PORTRAIT_TONE_B64, PORTRAIT_TONE_SIZE } from './portrait-tone';
 
 /*
@@ -87,7 +88,7 @@ export function HalftoneCanvas({
         const ctx = cv.getContext('2d');
         if (!ctx) return;
         const t = tone ?? portraitTone();
-        const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const still = prefersReducedMotion();
 
         let size = 0;
         let dots = new Float32Array(0); // x, y, r, delay per dot

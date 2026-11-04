@@ -1,9 +1,9 @@
 /**
- * Twitter Identity Verification
- * Verifies that a user controls a Twitter identity
+ * X (Twitter) identity: instructions, post text and a manual check.
  *
- * Note: Twitter API requires authentication and has rate limits.
- * This implementation uses manual verification where the user provides a tweet URL.
+ * Nothing here reads X (its API needs authentication). verifyTwitterIdentity
+ * never verifies a tweet: given a tweet URL it says a person must open it and
+ * look for the attestation ID.
  */
 
 import { createLogger } from '../utils/logger';
@@ -102,31 +102,28 @@ function extractTweetId(url: string): string | null {
 export function getTwitterVerificationInstructions(attestationId: string, handle: string): string {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
 
-    return `To verify your Twitter identity (@${cleanHandle}):
+    return `To prove your X (Twitter) handle (@${cleanHandle}):
 
 1. Go to https://twitter.com/compose/tweet
 2. Post a tweet with this text:
 
-   Verifying my OrangeCheck attestation: ${attestationId}
+   Verifying my orangecheck attestation: ${attestationId}
 
-3. After posting, copy the tweet URL
-4. Paste the URL below and click "Verify"
+3. Share the tweet's URL with whoever checks this attestation, for example:
+   https://twitter.com/${cleanHandle}/status/1234567890
 
-Example tweet URL:
-https://twitter.com/${cleanHandle}/status/1234567890
-
-The verification will check that the tweet exists and contains the attestation ID.`;
+X cannot be read without its API, so a tweet is checked by hand: open it and look for the attestation ID.`;
 }
 
 /**
  * Generate tweet text for verification
  */
 export function generateTweetText(attestationId: string): string {
-    return `Verifying my OrangeCheck attestation: ${attestationId}
+    return `Verifying my orangecheck attestation: ${attestationId}
 
 Proving Bitcoin reputation with cryptographic signatures.
 
-#OrangeCheck #Bitcoin`;
+#orangecheck #Bitcoin`;
 }
 
 /**

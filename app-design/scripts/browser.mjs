@@ -57,7 +57,10 @@ export function compileCss(dir, bundles = []) {
             bundles.map((b) => `@source '${join(dir, `${b}.js`)}';\n`).join('') +
             `@import '${join(pkg, 'src/styles.css')}';\n`
     );
-    const tw = spawnSync(process.execPath, [join(pkg, 'node_modules/@tailwindcss/cli/dist/index.mjs'), '-i', join(dir, 'input.css'), '-o', join(dir, 'out.css')], { encoding: 'utf8' });
+    // Tailwind also scans its working directory for sources, so it runs in the package: run from
+    // $HOME it read the whole home directory (38 GB, 11-03), and from anywhere else it picks up
+    // whatever classes lie there.
+    const tw = spawnSync(process.execPath, [join(pkg, 'node_modules/@tailwindcss/cli/dist/index.mjs'), '-i', join(dir, 'input.css'), '-o', join(dir, 'out.css')], { cwd: pkg, encoding: 'utf8' });
     if (tw.status !== 0) throw new Error(`tailwind: ${tw.stderr}`);
     cpSync(join(pkg, 'src/styles/fonts'), join(dir, 'fonts'), { recursive: true });
 }

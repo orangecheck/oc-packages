@@ -100,14 +100,20 @@
       "import": "./dist/blocks.mjs",
       "require": "./dist/blocks.js"
     },
-    "./art/*": "./art/*",
     "./og": {
       "types": "./dist/og.d.ts",
       "import": "./dist/og.mjs",
       "require": "./dist/og.js"
     },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.mjs",
+      "require": "./dist/motion.js"
+    },
     "./styles.css": "./dist/styles.css",
-    "./styles/*": "./dist/styles/*"
+    "./styles/*": "./dist/styles/*",
+    "./art/*": "./art/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -118,7 +124,7 @@
   "scripts": {
     "build": "node scripts/gen-palette.mjs && rm -rf dist && tsup && rm -rf dist/m && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/art/bake.mjs --check && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-blocks.mjs && node scripts/check-next.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-idle-motion.mjs && node scripts/check-blocks.mjs && node scripts/check-budget.mjs && node scripts/check-next.mjs && node scripts/art/bake.mjs --check && node scripts/check-compile-scope.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit && tsc -p tsconfig.stories.json",
     "clean": "rm -rf dist"
@@ -178,11 +184,11 @@
     "playwright-core": "~1.60.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "sharp": "^0.35.5",
     "storybook": "^10",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "sharp": "^0.35.5"
   },
   "engines": {
     "node": ">=18"

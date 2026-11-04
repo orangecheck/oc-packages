@@ -24,13 +24,13 @@ export function SplitBar({
     return (
         <figure className={cn('flex flex-col gap-5', className)}>
             {caption ? <figcaption className="text-[0.9375rem]">{caption}</figcaption> : null}
-            <div className="flex h-16 w-full gap-1 md:h-20">
+            <div className="flex h-16 w-full gap-1.5 overflow-hidden rounded-none md:h-20">
                 {segments.map((s, i) => (
                     <div
                         key={i}
                         className={cn(
-                            'flex min-w-[4.25rem] items-end px-3 pb-2.5 md:px-4 md:pb-3',
-                            s.tone === 'card' ? 'bg-white text-oca-ink' : 'bg-oca-ink text-white'
+                            'flex min-w-[4.25rem] items-end rounded-none px-3 pb-2.5 md:px-4 md:pb-3',
+                            s.tone === 'card' ? 'bg-oca-surface text-oca-surface-foreground' : 'bg-oca-ink text-oca-ink-foreground'
                         )}
                         style={{ flexBasis: `${s.pct}%` }}
                     >
@@ -50,8 +50,8 @@ export function SplitBar({
                         <span
                             aria-hidden
                             className={cn(
-                                'inline-block size-[7px] shrink-0 translate-y-[-1px]',
-                                s.tone === 'card' ? 'bg-white' : 'bg-oca-ink'
+                                'inline-block size-2.5 shrink-0 translate-y-[-1px] rounded-none',
+                                s.tone === 'card' ? 'bg-oca-surface ring-1 ring-border' : 'bg-oca-ink'
                             )}
                         />
                         <dd className="text-[0.9375rem] leading-snug">{s.label}</dd>

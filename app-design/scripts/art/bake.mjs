@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 /*
  * Bakes the family's generated art into ./art (published as
- * @orangecheck/app-design/art/*): AVIF and PNG at display size, for a page
- * to show in a <picture> and for an OG route to draw (satori reads the PNG).
+ * @orangecheck/app-design/art/*): PNG at display size, for a page and for an
+ * OG route to draw (satori reads the PNG), and AVIF beside it only where the
+ * AVIF is the smaller file. 1-bit dither is not: its AVIF is 5 to 12 times
+ * its PNG, so it ships as PNG alone.
  *
  *   node scripts/art/bake.mjs           write ./art
- *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake
+ *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake,
+ *                                       or holds an AVIF bigger than its PNG
  *
  * Everything is drawn from geometry and a seeded noise, never from a
  * photograph (PLAN §6), so a bake is the same bytes every time:
  *   - dither-mark-{240,480,960}: the isometric mark in ordered dither, faces
  *     as @orangecheck/mark; `-ink` has the ink top face for light grounds;
+ *     `-brand` is ink alone for a brand ground (a solid top, sides at about
+ *     50% and 25%), where the orange sides would vanish; `-240-2x` is the 240
+ *     mark with every pixel doubled, for ./og to draw at 1:1;
  *   - dither-field: a dither texture from value noise, orange on transparent,
  *     for burnt bands;
  *   - halftone-field: a dot screen that fades from the left edge, for the
@@ -20,7 +26,7 @@
  * 1-bit dither image costs (design2/forensics/SUMMARY-subpages.md).
  * sharp (a devDependency) encodes; nothing here runs in a site.
  */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -113,24 +119,37 @@ function inside(px, py, points) {
     return hit;
 }
 
-/** The mark in ordered dither: each face's tone screened in `cell`-px blocks. */
+/** The mark on a brand ground: ink alone, a solid top and its sides at about a half and a quarter. */
+const ON_BRAND = { top: 1, left: 0.5, right: 0.25 };
+
+/**
+ * The mark in ordered dither: each face's tone screened in `cell`-px blocks.
+ * With `topFace` null it is the brand-ground mark: every face ink, at ON_BRAND's
+ * flat densities, so the orange sides do not vanish into an orange ground.
+ */
 function ditherMark(width, topFace) {
     const height = width / 2;
     const cell = Math.max(2, Math.round(width / 160));
     const data = Buffer.alloc(width * height * 4);
-    const faces = [
-        ['top', hex(topFace), MARK_MONO_OPACITY.top],
-        ['left', hex(MARK_FACES.left), MARK_MONO_OPACITY.left],
-        ['right', hex(MARK_FACES.right), MARK_MONO_OPACITY.right],
-    ];
+    const faces = topFace
+        ? [
+              ['top', hex(topFace), MARK_MONO_OPACITY.top],
+              ['left', hex(MARK_FACES.left), MARK_MONO_OPACITY.left],
+              ['right', hex(MARK_FACES.right), MARK_MONO_OPACITY.right],
+          ]
+        : [
+              ['top', INK, ON_BRAND.top],
+              ['left', INK, ON_BRAND.left],
+              ['right', INK, ON_BRAND.right],
+          ];
     for (let cy = 0; cy < height; cy += cell)
         for (let cx = 0; cx < width; cx += cell) {
             const vx = ((cx + cell / 2) / width) * 16;
             const vy = ((cy + cell / 2) / height) * 8;
             const face = faces.find(([name]) => inside(vx, vy, MARK_POINTS[name]));
             if (!face) continue;
-            // A face is solid at its own tone and grainier toward its far edge.
-            const tone = 0.55 + 0.45 * face[2] * (1 - (vy / 8) * 0.35);
+            // A face is solid at its own tone and grainier toward its far edge; on brand, flat at its density.
+            const tone = topFace ? 0.55 + 0.45 * face[2] * (1 - (vy / 8) * 0.35) : face[2];
             const t = BAYER[(cy / cell) % 8][(cx / cell) % 8];
             if (tone < t) continue;
             for (let y = cy; y < Math.min(cy + cell, height); y++)
@@ -199,10 +218,23 @@ function halftoneField(width, height, pitch, fade) {
     return { data, width, height };
 }
 
+/** An image at twice its pixels, each one doubled: nearest neighbour, so no colour is added. */
+function doubled({ data, width, height }) {
+    const out = Buffer.alloc(width * height * 16);
+    for (let y = 0; y < height * 2; y++) for (let x = 0; x < width * 2; x++) data.copy(out, (y * width * 2 + x) * 4, ((y >> 1) * width + (x >> 1)) * 4, ((y >> 1) * width + (x >> 1)) * 4 + 4);
+    return { data: out, width: width * 2, height: height * 2 };
+}
+
 const pieces = [];
 for (const w of [240, 480, 960]) {
-    pieces.push([`dither-mark-${w}`, ditherMark(w, MARK_FACES.top)]);
-    pieces.push([`dither-mark-ink-${w}`, ditherMark(w, `#${INK.map((c) => c.toString(16).padStart(2, '0')).join('')}`)]);
+    const marks = [
+        [`dither-mark-${w}`, ditherMark(w, MARK_FACES.top)],
+        [`dither-mark-ink-${w}`, ditherMark(w, `#${INK.map((c) => c.toString(16).padStart(2, '0')).join('')}`)],
+        [`dither-mark-brand-${w}`, ditherMark(w, null)],
+    ];
+    pieces.push(...marks);
+    // The 240 marks again at 2x, each pixel doubled (2px dots as 4px), for an OG route to draw at 1:1: satori smooths any image it scales.
+    if (w === 240) for (const [name, img] of marks) pieces.push([`${name}-2x`, doubled(img)]);
 }
 // Each texture at display size, 1x and 2x. The mark's three widths are its 1x/2x pairs (240/480, 480/960).
 pieces.push(['dither-field', ditherField(1200, 320, 7)]);
@@ -236,7 +268,8 @@ for (const [name, img, ground] of pieces) {
         if (avif.length <= BUDGET) break;
     }
     files.set(`${name}.png`, png);
-    files.set(`${name}.avif`, avif);
+    // An AVIF ships only when it is smaller than the PNG; otherwise a <picture> would pay more for it.
+    if (avif.length < png.length) files.set(`${name}.avif`, avif);
 }
 
 if (CHECK) {
@@ -253,12 +286,24 @@ if (CHECK) {
             bad++;
         }
     }
+    // A file over its budget fails, as a page would pay for it.
+    for (const [f, buf] of files) {
+        if (buf.length > BUDGET) {
+            console.error(`✗ art: ${f} is ${(buf.length / 1024).toFixed(1)} KB, over the ${BUDGET / 1024} KB budget`);
+            bad++;
+        }
+    }
+    // Anything else fails too, an AVIF that lost to its PNG among them.
     const extra = readdirSync(OUT).filter((f) => !files.has(f) && f !== 'README.md');
-    for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script`), bad++);
+    for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script${f.endsWith('.avif') ? ', or is bigger than its PNG' : ''}`), bad++);
     if (bad) process.exit(1);
-    console.log(`✓ art: ${files.size} files match a fresh bake`);
+    console.log(`✓ art: ${files.size} files match a fresh bake, each within ${BUDGET / 1024} KB`);
 } else {
     mkdirSync(OUT, { recursive: true });
     for (const [f, buf] of files) writeFileSync(join(OUT, f), buf);
+    // A file this bake no longer makes (an AVIF that lost to its PNG) leaves ./art.
+    for (const f of readdirSync(OUT)) if (!files.has(f) && f !== 'README.md') rmSync(join(OUT, f));
+    const over = [...files].filter(([, buf]) => buf.length > BUDGET).map(([f]) => f);
+    if (over.length) console.error(`✗ art: over the ${BUDGET / 1024} KB budget: ${over.join(', ')}`);
     for (const [f, buf] of files) console.log(`${f.padEnd(28)} ${(buf.length / 1024).toFixed(1)} KB`);
 }

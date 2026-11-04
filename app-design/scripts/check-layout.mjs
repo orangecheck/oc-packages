@@ -67,12 +67,13 @@
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
  */
-import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { compileCss } from './browser.mjs';
 
 process.env.NODE_ENV = 'production';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -128,19 +129,6 @@ const check = (ok, msg) => {
 }
 
 try {
-    // The package's CSS, compiled the way a site compiles it.
-    writeFileSync(
-        join(dir, 'input.css'),
-        `@import '${join(pkg, 'node_modules/tailwindcss/index.css')}';\n` +
-            `@custom-variant dark (&:is(.dark *));\n` +
-            `@source '${join(pkg, 'dist')}';\n` +
-            `@source '${join(dir, 'client.js')}';\n` +
-            `@source '${join(dir, 'menu.js')}';\n` +
-            `@source '${join(dir, 'toolmenu.js')}';\n` +
-            `@source '${join(dir, 'loaderr.js')}';\n` +
-            `@import '${join(pkg, 'src/styles.css')}';\n`
-    );
-
     // The panel, opened in the browser: its dialog renders only on the client.
     const esbuild = require('esbuild');
     writeFileSync(
@@ -232,10 +220,9 @@ try {
         logLevel: 'error',
     });
 
-    const tw = spawnSync(process.execPath, [join(pkg, 'node_modules/@tailwindcss/cli/dist/index.mjs'), '-i', join(dir, 'input.css'), '-o', join(dir, 'out.css')], { encoding: 'utf8' });
-    if (tw.status !== 0) throw new Error(`tailwind: ${tw.stderr}`);
-    // The fonts beside the CSS, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    cpSync(join(pkg, 'src/styles/fonts'), join(dir, 'fonts'), { recursive: true });
+    // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
+    // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -398,6 +385,141 @@ try {
                 null,
                 h('div', { 'data-cta-case': 'pending' }, ctaHeader({ pending: true, reserve: ['Your account'] })),
                 h('div', { 'data-cta-case': 'resolved' }, ctaHeader({ label: 'Your account', href: '/me', reserve: ['Get an account'] }))
+            )
+        )
+    );
+    // A phone's header with the family's longest product word: the site header with Sign in and its CTA,
+    // and the tool header with an account button. Nothing may run off the row or under the next part.
+    const Fam = require(join(pkg, 'dist/family.js'));
+    const longest = Fam.FAMILY.map((s) => s.label)
+        .filter((l) => !l.includes('.'))
+        .sort((a, b) => b.length - a.length)[0];
+    const narrow = page(
+        'header-narrow',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                // As chat and vault compose it: the family menu, an account button among the actions, and the CTA.
+                h(
+                    'div',
+                    { 'data-hdr': 'site' },
+                    h(Ch.SiteHeader, {
+                        product: longest,
+                        family: true,
+                        nav: [{ href: '/how', label: 'How it works' }],
+                        actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account'),
+                        cta: true,
+                    })
+                ),
+                h(
+                    'div',
+                    { 'data-hdr': 'tool' },
+                    h(Ch.SiteHeader, { variant: 'tool', product: longest, family: true, actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account') })
+                )
+            )
+        )
+    );
+    // 2.0's chrome at a desk: every control in the header and every link in a footer column is 44px
+    // tall; the legal row is a line of inline text links, held to WCAG 2.5.8's 24px.
+    const chromeTargets = page(
+        'chrome-targets',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }, { href: '/apps', label: 'For apps' }], family: true, actions: h(Ch.ThemeToggle, {}), signIn: true, cta: true }),
+                h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }, { href: '/apps', label: 'For apps' }] }] })
+            )
+        )
+    );
+    // The signed-in chrome on a phone: AppShell's bar (menu, home lockup, account menu), and the
+    // small controls an app page holds (a Switch, a Checkbox, pill Tabs).
+    const signedInTargets = page(
+        'signed-in-targets',
+        renderToStaticMarkup(
+            h(
+                Ch.AppShell,
+                { product: 'ochk.app', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }], account: h(Ch.AccountMenu, { name: 'Ada Lovelace', items: [{ label: 'Sign out', onSelect: () => {} }] }) },
+                h(
+                    'div',
+                    { className: 'flex flex-col items-start gap-8 p-6' },
+                    h(P.Switch, { 'data-t': 'switch', 'aria-label': 'Alerts' }),
+                    h(P.Checkbox, { 'data-t': 'checkbox', 'aria-label': 'Agree' }),
+                    h(P.Tabs, { defaultValue: 'a' }, h(P.TabsList, null, h(P.TabsTrigger, { value: 'a', 'data-t': 'tab' }, 'Entries'), h(P.TabsTrigger, { value: 'b' }, 'Keys')))
+                )
+            )
+        )
+    );
+    // StatRow with the long values ochk.app's trust group shows: sats totals and a phrase.
+    const LONG_STATS = [
+        { label: 'Earned, waiting', value: '12,345,678 sats' },
+        { label: 'Paid out, all time', value: '987,654,321 sats' },
+        { label: 'Signing threshold', value: '2 of 3' },
+        { label: 'Who you trust', value: 'Bitcoin and two operators' },
+    ];
+    const statRows = page(
+        'stat-rows',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-10 p-4' },
+                h(C.StatRow, { 'data-t': 'md', columns: 4, items: LONG_STATS }),
+                h(C.StatRow, { 'data-t': 'sm', columns: 4, size: 'sm', items: LONG_STATS })
+            )
+        )
+    );
+    // PageHero's S10 layout, as the legal pages use it: a two-line title, a lead and a mark.
+    const s10Page = page(
+        's10',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(C.PageHero, {
+                    layout: 's10',
+                    size: 'xl',
+                    eyebrow: 'Legal',
+                    title: 'Privacy policy',
+                    lead: 'What we keep, what we never see, and how long anything stays.',
+                    art: h('div', { 'data-art': '', style: { width: '96px', height: '96px', background: 'currentColor' } }),
+                }),
+                h('p', { className: 'p-6' }, 'The policy.')
+            )
+        )
+    );
+    // The footer's lines of inline links: the legal row, and a tool's protocol row in the compact footer.
+    const footRows = page(
+        'foot-rows',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }] }),
+                h(Ch.SiteFooter, { compact: true, family: true, legal: true }),
+                // The same pattern elsewhere: a breadcrumb trail and filter chips.
+                h(
+                    'div',
+                    { className: 'flex flex-col gap-6 p-6' },
+                    h(C.Breadcrumbs, { items: [{ label: 'Docs', href: '/docs' }, { label: 'Stamp', href: '/docs/stamp' }, { label: 'Verify' }] }),
+                    h(C.FilterChips, { label: 'Status', value: 'all', onChange: () => {}, options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }] })
+                )
+            )
+        )
+    );
+    // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
+    // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
+    const framedPage = page(
+        'framed-page',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }], cta: true }),
+                h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
+                h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
+                h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
             )
         )
     );
@@ -635,7 +757,8 @@ try {
             [390, 844],
             [1440, 900],
         ]) {
-            const p = await browser.newPage({ viewport: { width, height } });
+            // A phone is a touch screen: the 390 pass has a coarse pointer, as the targets it checks do.
+            const p = await browser.newPage({ viewport: { width, height }, isMobile: width < 768, hasTouch: width < 768 });
             // Markdown tables: the one that fits does not scroll and no cell spills; the wide one scrolls.
             await p.goto(tables);
             const tb = await p.evaluate(() =>
@@ -922,13 +1045,16 @@ try {
                     };
                     const cases = [
                         ...['400 15px', '400 16px', '400 17px', '500 16px', '600 16px', '700 16px'].map((font) => [font, '--oc-font-sans', prose, 0.01]),
-                        ...['400 32px', '400 48px', '400 76px'].map((font) => [font, '--oc-font-display', headline, 0.01]),
+                        // Display type is set at 300 (oca-display-*) as well as 400: Inter Light is narrower.
+                        ...['300 36px', '300 60px', '400 32px', '400 48px', '400 76px'].map((font) => [font, '--oc-font-display', headline, 0.01]),
                         ['400 14px', '--oc-font-mono', code, 0.005],
                     ].map(([font, name, text, tol]) => {
                         const full = stack(name);
                         return { font, name, text, tol, full, without: full.slice(full.indexOf(',') + 1).trim() };
                     });
-                    await Promise.all(cases.flatMap((c) => [document.fonts.load(`${c.font} ${c.full}`, c.text), document.fonts.load(`${c.font} ${c.without}`, c.text)]));
+                    // allSettled: a fallback face whose local() font this machine lacks (Noto, DejaVu or
+                    // Ubuntu on a CI runner) rejects its load, which is the browser skipping it, not a fault.
+                    await Promise.allSettled(cases.flatMap((c) => [document.fonts.load(`${c.font} ${c.full}`, c.text), document.fonts.load(`${c.font} ${c.without}`, c.text)]));
                     const mono = probe('400 16px', 'monospace', prose).w;
                     // Does this machine have Arial or one of its metric twins at all?
                     const twin = ['Arial', "'Liberation Sans'", 'Arimo'].some((f) => Math.abs(probe('400 16px', `${f}, monospace`, prose).w - mono) >= 0.5);
@@ -1037,11 +1163,12 @@ try {
                         return { sel, size: Math.round(r.height), w: Math.round(r.width), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
-                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 40 };
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 44 };
                 for (const r of reach) {
                     const drawn = DRAWN[r.sel] ?? 32;
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);
-                    else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
+                    // A control drawn at 44px reaches 44px on its own; the rest grow only to a thumb.
+                    else check((drawn >= 44 || !r.reach) && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
                 }
                 // A HashChip link keeps its line's height; a thumb gets 44px, at least 44px wide when the value is short.
                 const links = await t.evaluate(() =>
@@ -1264,15 +1391,226 @@ try {
                 check(rs.tag === 'A' && rs.visibility === 'visible', `[${width}] the resolved CTA is not a visible link`);
                 await c.close();
             }
-            // The wordmark: letters at their natural spacing (no gap past the median by a tenth of
-            // an em), every glyph's ink inside the rise's clip, the descender of the g included,
-            // and the word inside the frame's content box.
+            // The header on a phone, at 390 and the 360 some phones still have.
+            if (width < 768) {
+                for (const w of [390, 360]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
+                    await c.goto(narrow);
+                    await c.evaluate(() => document.fonts.ready);
+                    const rows = await c.evaluate(() =>
+                        [...document.querySelectorAll('[data-hdr]')].map((d) => {
+                            const row = d.querySelector('header > div');
+                            const kids = [...row.children].map((k) => k.getBoundingClientRect());
+                            // The lockup itself: its link may be squeezed narrower than what it draws.
+                            const brand = d.querySelector('header a[href="/"] > span').getBoundingClientRect();
+                            return {
+                                hdr: d.dataset.hdr,
+                                over: row.scrollWidth - row.clientWidth,
+                                right: Math.max(...kids.map((k) => k.right)) - window.innerWidth,
+                                // The brand ends before the next thing in the row starts.
+                                clash: kids.length > 1 ? brand.right - Math.min(...kids.slice(1).map((k) => k.left)) : 0,
+                            };
+                        })
+                    );
+                    for (const r of rows) check(r.over <= 1 && r.right <= 1 && r.clash <= 0, `[${w}] the ${r.hdr} header with the product word "${longest}" overflows: ${JSON.stringify(r)}`);
+                    await c.close();
+                }
+            }
+            // A product footer's seven columns (three of its own and the family's four): one row from
+            // 1280, and below that rows as even as the width allows, never six and a straggler.
+            if (width === 1440) {
+                for (const w of [768, 1024, 1280, 1440]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+                    await c.goto(productFooter);
+                    await c.evaluate(() => document.fonts.ready);
+                    const tops = await c.evaluate(() => [...document.querySelectorAll('footer [class~="md:flex"] > .oca-label')].map((l) => Math.round(l.getBoundingClientRect().top)));
+                    const rows = Object.values(tops.reduce((m, t) => ({ ...m, [t]: (m[t] ?? 0) + 1 }), {}));
+                    const even = Math.max(...rows) - Math.min(...rows) <= 1 && (rows.length === 1 || Math.min(...rows) > 1);
+                    check(tops.length === 7, `[${w}] the product footer drew ${tops.length} columns, not 7`);
+                    check(w >= 1280 ? rows.length === 1 : even, `[${w}] the product footer's 7 columns sit in rows of ${rows.join(' + ')}${w >= 1280 ? ', not one row' : ', not as even as the width allows'}`);
+                    await c.close();
+                }
+            }
+            // The page's bands on the header's frame, and the H1 the largest text read.
             {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(framedPage);
+                await c.evaluate(() => document.fonts.ready);
+                const f = await c.evaluate(() => {
+                    const left = (el) => Math.round(el.getBoundingClientRect().left);
+                    const size = (el) => parseFloat(getComputedStyle(el).fontSize);
+                    const h1 = document.querySelector('h1');
+                    const read = [...document.querySelectorAll('body *')].filter((el) => !el.closest('[aria-hidden="true"]') && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+                    const biggest = read.reduce((m, el) => (size(el) > size(m) ? el : m), h1);
+                    return {
+                        brand: left(document.querySelector('header a[href="/"] > span')),
+                        hero: left(h1),
+                        closing: left([...document.querySelectorAll('h2')].at(-1)),
+                        h1: size(h1),
+                        biggest: [biggest.tagName, size(biggest), biggest.textContent.trim().slice(0, 30)],
+                        // A framed section's Frame fills it top to bottom, so its hairlines meet the next section's.
+                        gaps: [...document.querySelectorAll('section')]
+                            .filter((sec) => sec.firstElementChild?.matches('[data-oca-frame]'))
+                            .map((sec) => {
+                                const [a, b] = [sec, sec.firstElementChild].map((el) => el.getBoundingClientRect());
+                                return Math.round(Math.max(Math.abs(a.top - b.top), Math.abs(a.bottom - b.bottom)));
+                            }),
+                    };
+                });
+                check(Math.abs(f.hero - f.brand) <= 1 && Math.abs(f.closing - f.brand) <= 1, `[${width}] the hero and the closing are off the header's frame: brand ${f.brand}, hero ${f.hero}, closing ${f.closing}`);
+                check(f.gaps.length >= 2 && f.gaps.every((g) => g <= 1), `[${width}] a framed section's hairlines stop short of its edges by ${JSON.stringify(f.gaps)}px`);
+                check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
+                await c.close();
+            }
+            // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(statRows);
+                await c.evaluate(() => document.fonts.ready);
+                const st = await c.evaluate(() =>
+                    Object.fromEntries(
+                        [...document.querySelectorAll('dl[data-t]')].map((dl) => {
+                            const over = [...dl.querySelectorAll('dd')]
+                                .map((dd) => {
+                                    const r = document.createRange();
+                                    r.selectNodeContents(dd);
+                                    const cell = dd.parentElement.getBoundingClientRect();
+                                    const cs = getComputedStyle(dd.parentElement);
+                                    return [dd.textContent, Math.round(r.getBoundingClientRect().right - (cell.right - parseFloat(cs.paddingRight)))];
+                                })
+                                .filter(([, px]) => px > 1);
+                            return [dl.dataset.t, { over, size: parseFloat(getComputedStyle(dl.querySelector('dd')).fontSize) }];
+                        })
+                    )
+                );
+                check(st.md.over.length === 0 && st.sm.over.length === 0, `[${width}] StatRow: a value runs out of its cell by px: ${JSON.stringify({ md: st.md.over, sm: st.sm.over })}`);
+                check(st.sm.size < st.md.size, `[${width}] StatRow size="sm" draws its figures at ${st.sm.size}px, not under the default's ${st.md.size}px`);
+                await c.close();
+            }
+            // S10: from md the title at the top, the lead at the foot on the right, the mark at the foot
+            // on the left, both on the header's frame; on a phone the mark under the lead.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(s10Page);
+                await c.evaluate(() => document.fonts.ready);
+                const g = await c.evaluate(() => {
+                    const box = (el) => el.getBoundingClientRect();
+                    const frame = document.querySelector('section [data-oca-frame]');
+                    const fs = getComputedStyle(frame);
+                    const fr = box(frame);
+                    const content = { left: fr.left + parseFloat(fs.paddingLeft), right: fr.right - parseFloat(fs.paddingRight) };
+                    const [sec, h1, lead, art] = [document.querySelector('section'), document.querySelector('section h1'), document.querySelector('section .oca-lead'), document.querySelector('[data-art]')].map(box);
+                    const fb = box(frame);
+                    return { align: getComputedStyle(document.querySelector('section .oca-lead')).textAlign, gap: Math.max(Math.abs(sec.top - fb.top), Math.abs(sec.bottom - fb.bottom)), content, sec: { top: sec.top, h: sec.height }, h1: { top: h1.top, bottom: h1.bottom }, lead: { left: lead.left, right: lead.right, top: lead.top, bottom: lead.bottom }, art: { left: art.left, right: art.right, top: art.top, bottom: art.bottom } };
+                });
+                const near = (a, b) => Math.abs(a - b) <= 1;
+                check(g.gap <= 1, `[${width}] S10: the frame's hairlines stop ${Math.round(g.gap)}px short of the band's edges`);
+                // The lead is a block of left-aligned text set at the right, not a ragged-left paragraph.
+                check(['start', 'left'].includes(g.align), `[${width}] S10: the lead is set ${g.align}, not left-aligned`);
+                if (width >= 768) {
+                    check(near(g.lead.right, g.content.right) && near(g.art.left, g.content.left), `[${width}] S10: the lead's right ${g.lead.right.toFixed(1)} or the mark's left ${g.art.left.toFixed(1)} is off the frame (${JSON.stringify(g.content)})`);
+                    check(near(g.lead.top, g.art.top), `[${width}] S10: the lead's top ${g.lead.top.toFixed(1)} is not level with the mark's ${g.art.top.toFixed(1)}`);
+                    check(g.art.top >= g.h1.bottom && g.lead.left > g.art.right, `[${width}] S10: the mark runs into the title or the lead (${JSON.stringify(g)})`);
+                    if (width >= 900) check(g.sec.h >= 440, `[${width}] S10: the band is ${Math.round(g.sec.h)}px tall, under 27.5rem`);
+                } else {
+                    check(g.art.top >= g.lead.bottom && near(g.art.left, g.content.left), `[${width}] S10: on a phone the mark is not under the lead (${JSON.stringify({ lead: g.lead, art: g.art })})`);
+                }
+                await c.close();
+            }
+            // Chrome targets: the header's links, family menu, theme switch, Sign in and CTA, a footer
+            // column's links (44px), and the legal row's inline links (24px).
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(chromeTargets);
+                const t = await c.evaluate(() => {
+                    const hgt = (el) => Math.round(el.getBoundingClientRect().height);
+                    const shown = (el) => el.getBoundingClientRect().width > 0;
+                    const header = document.querySelector('header');
+                    const footer = document.querySelector('footer');
+                    return {
+                        header: [...header.querySelectorAll('nav[aria-label="Main"] a, button, a[data-oca-cta], a[href]')].filter(shown).map((el) => [el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), hgt(el)]),
+                        column: [...footer.querySelectorAll('div.md\\:flex a')].filter(shown).map((el) => [el.textContent.trim(), hgt(el)]),
+                        legal: [...footer.querySelectorAll('nav[aria-label="Legal"] a')].filter(shown).map((el) => [el.textContent.trim(), hgt(el)]),
+                    };
+                });
+                const short = (list, min) => list.filter(([, px]) => px < min);
+                check(short(t.header, 44).length === 0, `[${width}] header controls under 44px: ${JSON.stringify(short(t.header, 44))}`);
+                if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
+                check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
+                await c.close();
+            }
+            // Inline link rows (the footer's legal and protocol rows, breadcrumbs) and filter chips follow
+            // the pointer, not the width: 44px to a thumb on a tablet as on a phone, 24px to a mouse.
+            if (width === 1440) {
+                for (const touch of [true, false]) {
+                    const c = await browser.newPage({ viewport: { width: 1024, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await c.goto(footRows);
+                    const r = await c.evaluate(() => ({
+                        coarse: matchMedia('(pointer: coarse)').matches,
+                        links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height)]),
+                    }));
+                    const min = touch ? 44 : 24;
+                    const short = r.links.filter(([, px]) => px < min);
+                    check(r.coarse === touch, `[1024 ${touch ? 'touch' : 'mouse'}] the page's pointer reads ${r.coarse ? 'coarse' : 'fine'}`);
+                    check(r.links.length >= 10 && short.length === 0, `[1024 ${touch ? 'touch' : 'mouse'}] inline links and chips: ${short.length} of ${r.links.length} under ${min}px: ${JSON.stringify(short.slice(0, 4))}`);
+                    await c.close();
+                }
+            }
+            // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
+            // the Switch, the Checkbox's mark and a pill tab keep their drawn size.
+            if (width < 768) {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+                await c.goto(signedInTargets);
+                await c.evaluate(() => document.fonts.ready);
+                const got = await c.evaluate(() =>
+                    [
+                        ['menu', 'header button[aria-label="Open navigation"]'],
+                        ['home lockup', 'header a'],
+                        ['account menu', 'header button[aria-label$="account menu"]'],
+                        ['Switch', '[data-t="switch"]'],
+                        ['Checkbox', '[data-t="checkbox"]'],
+                        ['Tabs trigger', '[data-t="tab"]'],
+                    ].map(([name, sel]) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return { name, missing: true };
+                        const r = el.getBoundingClientRect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                        return { name, w: Math.round(r.width), h: Math.round(r.height), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (r.width >= 44 || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
+                    })
+                );
+                const DRAWN = { Switch: [44, 24], Checkbox: [20, 20], 'Tabs trigger': [null, 36] };
+                for (const g of got) {
+                    const [dw, dh] = DRAWN[g.name] ?? [null, null];
+                    check(!g.missing && g.reach && (dw === null || g.w === dw) && (dh === null || g.h === dh), `[${width} touch] ${g.name}: drawn ${g.w}×${g.h}px, a 44px target ${g.reach}${g.missing ? ' (not found)' : ''}`);
+                }
+                await c.close();
+            }
+            // The wordmark: letters at their natural spacing (no gap between letter boxes past a
+            // twentieth of an em, 0.05em), every glyph's ink inside the rise's clip, the descender of
+            // the g included, and the word inside the frame's content box. Again before Inter loads
+            // on a machine with no Arial, Liberation or Arimo: the next fallback (Noto here) must fit too.
+            for (const before of [false, true]) {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
                 await c.goto(wordmark);
                 await c.evaluate(() => document.fonts.ready);
-                const m = await c.evaluate(() => {
+                const m = await c.evaluate(async (before) => {
                     const word = document.querySelector('[data-oca-wordmark]');
+                    // Before Inter loads on a machine with no Arial, Liberation or Arimo: the display
+                    // stack as the page sets it, less Inter and less the Arial-sourced fallback.
+                    let faces = [];
+                    if (before) {
+                        const stack = getComputedStyle(document.documentElement).getPropertyValue('--oc-font-display');
+                        word.style.fontFamily = stack
+                            .split(',')
+                            .filter((f) => !["'OCA Inter'", "'OCA Inter Display Fallback'"].includes(f.trim()))
+                            .join(',');
+                        // A face whose local() font this machine lacks rejects; the rest settle loaded.
+                        const ws = getComputedStyle(word);
+                        await document.fonts.load(`${ws.fontWeight} ${ws.fontSize} ${ws.fontFamily}`, word.textContent).catch(() => null);
+                        faces = [...document.fonts].filter((f) => /Display Fallback \w/.test(f.family) && f.status === 'loaded').map((f) => f.family.replace(/["']/g, ''));
+                    }
                     const clip = word.parentElement.getBoundingClientRect();
                     const frameEl = word.parentElement.parentElement;
                     const fs = getComputedStyle(frameEl);
@@ -1297,21 +1635,29 @@ try {
                         };
                     });
                     const gaps = letters.slice(1).map((l, i) => l.box.left - letters[i].box.right);
-                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join('') };
-                });
+                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join(''), font: getComputedStyle(word).fontFamily.split(',')[0], faces };
+                }, before);
+                // With none of the Noto, DejaVu or Ubuntu faces here (a CI runner), the word falls to an
+                // unadjusted system face, which says nothing about the faces this check is for.
+                if (before && m.faces.length === 0) {
+                    console.log(`  · layout: [${width}] no Noto, DejaVu or Ubuntu on this machine; the wordmark's non-Arial fallbacks are not measured here`);
+                    await c.close();
+                    continue;
+                }
                 const sorted = [...m.gaps].sort((a, b) => a - b);
                 const median = sorted[Math.floor(sorted.length / 2)];
                 // At its natural spacing a letter's box meets the next (the tracking is inside the box),
                 // so any gap is spreading: a word-sized one, or the same gap everywhere.
                 const wide = m.gaps.map((g, i) => [g, i]).filter(([g]) => g > 0.05 * m.size || g - median > 0.05 * m.size);
-                check(m.text === 'orangecheck', `[${width}] the wordmark reads "${m.text}"`);
-                check(wide.length === 0, `[${width}] the wordmark's letters are spread: gaps ${wide.map(([g, i]) => `${m.text[i]}|${m.text[i + 1]} ${g.toFixed(1)}px`).join(', ')} against a median of ${median.toFixed(1)}px`);
+                check(m.text === 'orangecheck', `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark reads "${m.text}"`);
+                check(wide.length === 0, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark's letters are spread: gaps ${wide.map(([g, i]) => `${m.text[i]}|${m.text[i + 1]} ${g.toFixed(1)}px`).join(', ')} against a median of ${median.toFixed(1)}px`);
                 const clipped = m.letters.filter((l) => l.ink.left < m.clip.left - 0.5 || l.ink.right > m.clip.right + 0.5 || l.ink.top < m.clip.top - 0.5 || l.ink.bottom > m.clip.bottom + 0.5);
-                check(clipped.length === 0, `[${width}] the wordmark's clip cuts ${clipped.map((l) => l.ch).join('')}`);
+                check(clipped.length === 0, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark's clip cuts ${clipped.map((l) => l.ch).join('')}`);
                 const first = m.letters[0].ink.left;
                 const last = m.letters.at(-1).ink.right;
-                check(first >= m.content.left - 0.5 && last <= m.content.right + 0.5, `[${width}] the wordmark runs outside the frame: ${first.toFixed(1)}-${last.toFixed(1)} in ${m.content.left.toFixed(1)}-${m.content.right.toFixed(1)}`);
-                check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
+                check(first >= m.content.left - 0.5 && last <= m.content.right + 0.5, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark runs outside the frame: ${first.toFixed(1)}-${last.toFixed(1)} in ${m.content.left.toFixed(1)}-${m.content.right.toFixed(1)}`);
+                // A fallback only has to fit; its size-adjust errs narrow.
+                if (!before) check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
                 await c.close();
             }
         }

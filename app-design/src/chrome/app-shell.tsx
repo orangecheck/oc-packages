@@ -379,7 +379,7 @@ function SidebarShell({
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
                                 className={cn(
-                                    'inline-flex size-10 items-center justify-center rounded-none hover:bg-accent',
+                                    'inline-flex size-11 items-center justify-center rounded-none hover:bg-accent',
                                     // The tab bar holds every page; the sheet is left for a footer. Section tabs leave the pages here.
                                     tabs && !sectionTabsFor && !footer && 'max-md:hidden'
                                 )}
@@ -397,7 +397,7 @@ function SidebarShell({
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
-                        <Link href={home} className="rounded-none p-1">
+                        <Link href={home} className="flex min-h-11 items-center rounded-none p-1">
                             <ProductLockup size={22} product={product} />
                             {/* Read as "orangecheck home": the name starts with what the link shows. */}
                             <span className="sr-only"> home</span>
@@ -562,7 +562,7 @@ export function AccountMenu({
         <DropdownMenu onOpenChange={onOpenChange}>
             <DropdownMenuTrigger
                 className={cn(
-                    'inline-flex h-10 items-center gap-2.5 rounded-none border border-border bg-card pl-1 pr-1 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
+                    'inline-flex h-11 items-center gap-2.5 rounded-none border border-border bg-card pl-1.5 pr-1.5 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
                     nameFrom === 'lg' ? 'lg:pr-3.5' : 'sm:pr-3.5'
                 )}
                 aria-label={`${name}, account menu`}
@@ -648,7 +648,8 @@ export function ThemeProvider({ children, storageKey = 'theme', defaultTheme = '
     // The system's own switch (dark mode at sunset) reaches next-themes, not ThemeToggle. Registered
     // in a layout effect, this listener runs before next-themes' own, which it adds in a passive one.
     useEarlyEffect(() => {
-        if (forcedTheme) return;
+        // No matchMedia (a test DOM): nothing to listen to.
+        if (forcedTheme || typeof window.matchMedia !== 'function') return;
         const scheme = window.matchMedia('(prefers-color-scheme: dark)');
         const still = () => {
             let chosen: string | null = null;
@@ -693,8 +694,8 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-label={`Theme: ${current}. Switch to ${next}`}
             title={`Theme: ${current}`}
             className={cn(
-                // 40px drawn, 44px to a thumb, as Button's icon size; a crowded row does not squeeze it.
-                'relative inline-flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
+                // 44px at every pointer, as the header's other controls; a crowded row does not squeeze it.
+                'relative inline-flex size-11 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                 className
             )}
         >

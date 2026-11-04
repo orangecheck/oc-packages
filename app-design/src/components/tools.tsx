@@ -47,7 +47,7 @@ function download(content: string, filename: string, mime: string) {
 }
 
 const BAR_BUTTON =
-    'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white max-md:h-11 max-md:min-w-11 max-md:justify-center max-md:px-3';
+    'inline-flex h-7 items-center gap-1.5 rounded-none px-2.5 text-[0.75rem] text-oca-ink-subtle transition-colors hover:bg-white/10 hover:text-white pointer-coarse:h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center pointer-coarse:px-3';
 
 /**
  * An artifact as it is: an envelope, a ballot, a delegation. JSON shows
@@ -89,7 +89,7 @@ export function ArtifactView({
             actions={
                 <>
                     {json ? (
-                        <span role="group" aria-label="View" className="mr-1 flex items-center rounded-full bg-white/[0.06] p-0.5">
+                        <span role="group" aria-label="View" className="mr-1 flex items-center rounded-none bg-white/[0.06] p-0.5">
                             {(['formatted', 'raw'] as const).map((v) => (
                                 <button
                                     key={v}
@@ -98,7 +98,7 @@ export function ArtifactView({
                                     onClick={() => setView(v)}
                                     className={cn(
                                         // The pill stays 28px; its target reaches the bar's 44.
-                                        'relative h-7 rounded-full px-2.5 text-[0.75rem] transition-colors before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2',
+                                        'relative h-7 rounded-none px-2.5 text-[0.75rem] transition-colors before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2',
                                         view === v ? 'bg-white/[0.12] text-white' : 'text-oca-ink-subtle hover:text-white'
                                     )}
                                 >
@@ -249,7 +249,7 @@ export function DropZone({
                     take(e.dataTransfer.files?.[0]);
                 }}
                 className={cn(
-                    'relative flex flex-col gap-3 rounded-[1.25rem] border border-dashed transition-colors',
+                    'relative flex flex-col gap-3 rounded-none border border-dashed transition-colors',
                     file ? 'px-4 py-4 sm:px-5' : 'items-center px-5 py-8 text-center md:py-10',
                     over ? 'border-foreground bg-accent' : 'border-oca-hairline-strong bg-card',
                     error && 'border-destructive',
@@ -272,7 +272,7 @@ export function DropZone({
                 {file ? (
                     <div className="flex w-full flex-col gap-3">
                         <div className="flex items-center gap-3">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-muted text-foreground">
                                 {busy ? <FileText aria-hidden className="size-5" /> : <Check aria-hidden className="size-5" />}
                             </span>
                             <div className="flex min-w-0 flex-1 flex-col">
@@ -297,9 +297,9 @@ export function DropZone({
                                     aria-valuemax={100}
                                     aria-valuenow={pct}
                                     aria-label={typeof progressLabel === 'string' ? progressLabel : 'Progress'}
-                                    className="h-1.5 overflow-hidden rounded-full bg-muted"
+                                    className="h-1.5 overflow-hidden rounded-none bg-muted"
                                 >
-                                    <div className="h-full rounded-full bg-foreground transition-[width] duration-200" style={{ width: `${pct}%` }} />
+                                    <div className="h-full rounded-none bg-foreground transition-[width] duration-200" style={{ width: `${pct}%` }} />
                                 </div>
                                 <span className="text-[0.8125rem] text-muted-foreground oca-tabular">
                                     {progressLabel} {pct}%
@@ -309,7 +309,7 @@ export function DropZone({
                     </div>
                 ) : (
                     <>
-                        <span className="flex size-11 items-center justify-center rounded-full bg-muted text-foreground">
+                        <span className="flex size-11 items-center justify-center rounded-none bg-muted text-foreground">
                             <Upload aria-hidden className="size-5" />
                         </span>
                         <div className="flex flex-col gap-1">
@@ -381,7 +381,7 @@ export function FormSection({
             id={id}
             aria-labelledby={titleId}
             aria-current={status === 'current' ? 'step' : undefined}
-            className={cn('scroll-mt-24 rounded-[1.25rem] border border-border bg-card', className)}
+            className={cn('scroll-mt-24 rounded-none border border-border bg-card', className)}
         >
             {/* Below sm the action takes its own row under the hint, so the hint keeps the width. */}
             <header className={cn('flex flex-wrap items-start gap-x-3.5 gap-y-3', tight ? 'px-5 pt-5' : 'px-6 pt-6')}>
@@ -389,7 +389,7 @@ export function FormSection({
                     <span
                         aria-hidden
                         className={cn(
-                            'mt-px flex size-7 shrink-0 items-center justify-center rounded-full border text-[0.8125rem] oca-tabular',
+                            'mt-px flex size-7 shrink-0 items-center justify-center rounded-none border text-[0.8125rem] oca-tabular',
                             status === 'done' && 'border-primary bg-primary text-primary-foreground',
                             status === 'current' && 'border-brand text-oca-accent-ink',
                             status === 'blocked' && 'border-destructive text-destructive',
@@ -650,9 +650,9 @@ export function BlockCountdown({
                     aria-valuemax={100}
                     aria-valuenow={Math.round(share * 100)}
                     aria-label="Blocks passed"
-                    className="h-1.5 overflow-hidden rounded-full bg-muted"
+                    className="h-1.5 overflow-hidden rounded-none bg-muted"
                 >
-                    <div className="h-full rounded-full bg-foreground" style={{ width: `${share * 100}%` }} />
+                    <div className="h-full rounded-none bg-foreground" style={{ width: `${share * 100}%` }} />
                 </div>
             ) : null}
             {known && !done ? (
@@ -721,16 +721,16 @@ export function Meter({
                 aria-valuemax={max}
                 aria-valuenow={value}
                 aria-valuetext={typeof figure === 'string' ? figure : pct}
-                className={cn('flex overflow-hidden rounded-full bg-muted', size === 'sm' ? 'h-1.5' : 'h-2.5')}
+                className={cn('flex overflow-hidden rounded-none bg-muted', size === 'sm' ? 'h-1.5' : 'h-2.5')}
             >
                 <div
-                    className={cn('h-full shrink-0 rounded-full', METER_FILL[tone])}
+                    className={cn('h-full shrink-0 rounded-none', METER_FILL[tone])}
                     style={{ width: `${v * 100}%` }}
                 />
                 {g > 0 ? (
                     <div
                         aria-hidden
-                        className="-ml-1.5 h-full shrink-0 rounded-r-full pl-1.5 text-foreground/45"
+                        className="-ml-1.5 h-full shrink-0 rounded-none pl-1.5 text-foreground/45"
                         style={{
                             width: `calc(${g * 100}% + 0.375rem)`,
                             backgroundImage: 'repeating-linear-gradient(-45deg, currentColor 0 2px, transparent 2px 6px)',
@@ -794,9 +794,9 @@ export function FilterChips<T extends string | number>({
                         aria-disabled={o.disabled || undefined}
                         onClick={() => (o.disabled ? undefined : press(o.value))}
                         className={cn(
-                            'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] transition-colors',
-                            // A thumb's 44px on a phone.
-                            tight ? 'h-11 md:h-8' : 'h-11 md:h-9',
+                            'inline-flex shrink-0 items-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors',
+                            // A thumb's 44px on any touch screen, a tablet's included; a mouse's chip is smaller.
+                            tight ? 'h-8 pointer-coarse:h-11' : 'h-9 pointer-coarse:h-11',
                             on
                                 ? 'border-foreground bg-foreground text-background'
                                 : o.disabled
@@ -850,14 +850,14 @@ export function ToolGrid({
                 <li key={t.href}>
                     <div
                         className={cn(
-                            'group relative flex h-full flex-col rounded-[1.25rem] border border-border bg-card transition-colors',
+                            'group relative flex h-full flex-col rounded-none border border-border bg-card transition-colors',
                             tight ? 'gap-3 p-5' : 'gap-4 p-6',
                             'hover:border-oca-hairline-strong has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-offset-2 has-[a:focus-visible]:ring-offset-background'
                         )}
                     >
                         <div className="flex items-center justify-between gap-3">
                             {t.icon ? (
-                                <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-foreground [&_svg]:size-5">
+                                <span className="flex size-10 items-center justify-center rounded-none bg-muted text-foreground [&_svg]:size-5">
                                     {t.icon}
                                 </span>
                             ) : (
@@ -872,7 +872,7 @@ export function ToolGrid({
                             <Heading className="oca-title-sm">
                                 <Link
                                     href={t.href}
-                                    className="outline-none after:absolute after:inset-0 after:rounded-[1.25rem] after:content-['']"
+                                    className="outline-none after:absolute after:inset-0 after:rounded-none after:content-['']"
                                 >
                                     {t.label}
                                 </Link>

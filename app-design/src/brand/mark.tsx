@@ -109,10 +109,12 @@ export interface LockupProps {
      */
     variant?: 'icon' | 'flat';
     className?: string;
+    /** Classes for the word alone (ProductLockup hides it on a narrow phone, keeping it for screen readers). */
+    nameClassName?: string;
 }
 
 /** Icon and wordmark, lowercase, as the deck sets it. */
-export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', className }: LockupProps) {
+export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', className, nameClassName }: LockupProps) {
     if (variant === 'flat') {
         return (
             <span
@@ -120,7 +122,7 @@ export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', clas
                 style={{ gap: size / 3, fontSize: size * 0.7 }}
             >
                 <Mark size={size} />
-                <span>{name}</span>
+                <span className={nameClassName}>{name}</span>
             </span>
         );
     }
@@ -130,7 +132,7 @@ export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', clas
             style={{ gap: size * 0.32, fontSize: size * 0.56 }}
         >
             <AppIcon size={size} />
-            <span>{name}</span>
+            <span className={nameClassName}>{name}</span>
         </span>
     );
 }

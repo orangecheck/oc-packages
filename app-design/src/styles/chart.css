@@ -66,7 +66,7 @@
 [data-oc-app='ochk'] .oca-chart-tooltip {
     pointer-events: none;
     border: 1px solid var(--border);
-    border-radius: 0.625rem;
+    border-radius: var(--radius);
     background: var(--popover);
     color: var(--popover-foreground);
     padding: 0.375rem 0.625rem;

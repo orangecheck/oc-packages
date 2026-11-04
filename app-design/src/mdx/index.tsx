@@ -34,7 +34,7 @@ function breakAfterPunctuation(children: ReactNode): ReactNode {
 function InlineCode({ className, children, ...props }: HTMLAttributes<HTMLElement>) {
     const inTable = useInTable();
     return (
-        <code className={cn('break-words rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground', className)} {...props}>
+        <code className={cn('break-words rounded-none bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-foreground', className)} {...props}>
             {inTable ? breakAfterPunctuation(children) : children}
         </code>
     );
@@ -186,7 +186,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
         code: InlineCode,
         pre: Pre,
         img: ({ className, alt = '', ...props }: ImgHTMLAttributes<HTMLImageElement>) => (
-            <img alt={alt} loading="lazy" className={cn('my-6 h-auto max-w-full rounded-2xl border border-border', className)} {...props} />
+            <img alt={alt} loading="lazy" className={cn('my-6 h-auto max-w-full rounded-none border border-border', className)} {...props} />
         ),
         Callout,
         Steps,

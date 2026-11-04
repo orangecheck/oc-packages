@@ -19,6 +19,7 @@ const entry = {
     vitest: 'src/vitest/index.ts',
     og: 'src/og/index.tsx',
     fonts: 'src/fonts/index.tsx',
+    motion: 'src/motion/index.ts',
     blocks: 'src/blocks/index.ts',
 };
 
@@ -27,7 +28,7 @@ function modules(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
         const path = join(dir, name);
         if (statSync(path).isDirectory()) return name === 'pages' || name === 'vitest' ? [] : modules(path);
-        return /\.tsx?$/.test(name) && !/\.(stories|test)\.tsx?$|\.d\.ts$/.test(name) ? [path] : [];
+        return /\.tsx?$/.test(name) && !/\.(stories|test|data)\.tsx?$|\.d\.ts$/.test(name) ? [path] : [];
     });
 }
 

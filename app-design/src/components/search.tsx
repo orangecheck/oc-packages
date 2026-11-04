@@ -59,7 +59,7 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
             onClick={onClick}
             aria-keyshortcuts={mac ? 'Meta+K' : 'Control+K'}
             className={cn(
-                'inline-flex size-10 items-center justify-center gap-2 rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                 'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card',
                 className
             )}
@@ -200,7 +200,7 @@ export function SearchDialog({
                                 back.focus();
                             }
                         }}
-                        className="oca-animate-rise fixed left-1/2 top-3 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col overflow-hidden rounded-[1.5rem] border border-border bg-popover text-popover-foreground shadow-xl outline-none sm:top-[12vh] sm:max-h-[min(36rem,76vh)] sm:w-[min(92vw,40rem)]"
+                        className="oca-animate-rise fixed left-1/2 top-3 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col overflow-hidden rounded-none border border-border bg-popover text-popover-foreground shadow-xl outline-none sm:top-[12vh] sm:max-h-[min(36rem,76vh)] sm:w-[min(92vw,40rem)]"
                     >
                         <DialogPrimitive.Title className="sr-only">{label}</DialogPrimitive.Title>
                         <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border pl-5 pr-3">
@@ -235,7 +235,7 @@ export function SearchDialog({
                                 autoComplete="off"
                                 className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-oca-subtle"
                             />
-                            <DialogPrimitive.Close className="inline-flex h-8 shrink-0 items-center rounded-md border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground">
+                            <DialogPrimitive.Close className="inline-flex h-8 shrink-0 items-center rounded-none border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground">
                                 {/* A phone has no Esc key. */}
                                 <span className="sm:hidden">Close</span>
                                 <span className="max-sm:hidden" aria-hidden>
@@ -272,7 +272,7 @@ export function SearchDialog({
                                                         choose(r);
                                                     }}
                                                     className={cn(
-                                                        'flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors',
+                                                        'flex items-start gap-3 rounded-none px-3 py-2.5 transition-colors',
                                                         on ? 'bg-accent shadow-[inset_0_0_0_2px_var(--ring)]' : 'hover:bg-accent',
                                                         !r.href && 'cursor-pointer'
                                                     )}
@@ -287,7 +287,7 @@ export function SearchDialog({
                                                         {r.section ? <span className="truncate text-[0.8125rem] text-muted-foreground">{r.section}</span> : null}
                                                         {r.excerptHtml ? (
                                                             <span
-                                                                className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground [&_mark]:rounded-sm [&_mark]:bg-[color-mix(in_oklab,var(--oca-orange)_22%,transparent)] [&_mark]:px-0.5 [&_mark]:text-foreground"
+                                                                className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground [&_mark]:rounded-none [&_mark]:bg-[color-mix(in_oklab,var(--oca-orange)_22%,transparent)] [&_mark]:px-0.5 [&_mark]:text-foreground"
                                                                 dangerouslySetInnerHTML={{ __html: r.excerptHtml }}
                                                             />
                                                         ) : r.excerpt ? (

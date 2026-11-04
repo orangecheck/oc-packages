@@ -212,7 +212,7 @@ export function getGitHubVerificationInstructions(attestationId: string): string
 3. Add a file with any name (e.g., "orangecheck.txt")
 4. Paste this text into the file:
 
-   OrangeCheck Attestation Verification
+   orangecheck attestation verification
    Attestation ID: ${attestationId}
 
 5. Click "Create public gist"
@@ -225,9 +225,9 @@ The verification will search your public gists for this attestation ID.`;
  * Generate a gist template for verification
  */
 export function generateGistTemplate(attestationId: string, username: string): string {
-    return `# OrangeCheck Attestation Verification
+    return `# orangecheck attestation verification
 
-I am verifying my GitHub identity (@${username}) for OrangeCheck.
+I am verifying my GitHub identity (@${username}) for orangecheck.
 
 **Attestation ID:** \`${attestationId}\`
 
@@ -239,7 +239,7 @@ This gist proves that I control both:
 
 ---
 
-Learn more about OrangeCheck: https://ochk.io
+Learn more about orangecheck: https://ochk.io
 `;
 }
 

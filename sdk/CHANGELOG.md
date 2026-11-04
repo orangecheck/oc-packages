@@ -7,6 +7,55 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.23.0] — 2026-11-04
+
+### Added
+
+- `readAttestations(options)` discovers attestations as
+  `discoverAttestations` does and says whether the relays finished the read:
+  `{ attestations, unread, relays }`. `unread` is `'attestation_unread'` when
+  fewer than the read floor of relays finished with a short page, or one was
+  cut off (`subjectReadComplete`, the rule `check()` answers by), and `null`
+  otherwise. An empty list beside it is not "none", and a non-empty one may be
+  missing copies, newer ones included. By id, an envelope of that id whose
+  signature verifies is a finished answer on its own, since the id is the hash
+  of the one message; copies whose signature fails are not. The reason is the
+  one `check()` answers, so `unreadReason` decodes both. `relays` says how each
+  relay's read ended (`SubjectReadState`, now exported).
+- `AttestationsRead` and `SubjectReadState` types.
+
+### Changed
+
+- `discoverAttestations`, `getAttestationsForAddress` and
+  `getAttestationsForIdentity` keep their signatures and results. Their docs
+  now say an empty list may be a read that did not finish, and point to
+  `readAttestations`.
+- The well-known file (`generateWellKnownContent`) ends
+  "Protocol: orangecheck protocol (OCP)", lowercase like its heading. Checks
+  look only for the attestation ID, so files made with the old text still pass.
+
+## [1.22.0] — 2026-11-04
+
+### Changed
+
+- A domain is proven by one thing, as it always was: its
+  `https://<domain>/.well-known/orangecheck.txt` file naming the attestation.
+  `getDnsVerificationInstructions` no longer offers a "DNS TXT record" method.
+  Nothing ever read that record, so anyone who followed it could never
+  verify. The instructions now end "Only this file is checked. DNS records
+  are not read."
+- `DnsVerificationResult.method` is always `'well-known'`. `'dns-txt'` was
+  never set; it stays in the type, documented as deprecated, so a caller that
+  compares against it still compiles under `^1`, and is removed in 2.0.
+- `getTwitterVerificationInstructions` stops asking for a URL to paste and
+  stops promising that "the verification will check that the tweet exists".
+  `verifyTwitterIdentity` cannot read X and never verifies a tweet. The
+  instructions now say to share the tweet's URL and that a tweet is checked
+  by hand. The text people post (`generateTweetText`, the X and Nostr
+  instructions, the GitHub gist template and instructions, and the
+  well-known file heading) says "orangecheck", lowercase. Checks look only for
+  the attestation ID, so posts and files made with the old text still pass.
+
 ## [1.21.0] — 2026-11-03
 
 ### Changed

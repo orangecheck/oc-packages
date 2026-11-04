@@ -124,6 +124,7 @@ const PAIRS = [
     ['oca-surface-muted', 'card', 4.5],
     ['muted-foreground', 'oca-surface', 4.5],
     ['oca-subtle-foreground', 'oca-surface', 4.5],
+    ['oca-accent-ink', 'oca-surface', 4.5],
     ['input', 'oca-surface', 3],
     ['ring', 'oca-surface', 3],
     // Text on the sunken ground, and small orange text and display ember on it.
@@ -260,34 +261,82 @@ for (const [mode, vars, behind] of [
     }
 }
 
-// The bands (theme.css oca-band-*): each re-points the text tokens for what sits
-// on it, a Button's included. Every text token it names clears 4.5:1 on its
-// ground and its ring 3:1, in light and dark, so an outline button on the
-// orange band can't be drawn in paper again.
+// The bands (theme.css oca-band-*) and the Card tones on the same grounds: each
+// re-points the text tokens for what sits on it (oca-on-*), a Button's included.
+// Every text token it names clears 4.5:1 on its ground and its ring 3:1, in light
+// and dark, so an outline button on the orange band can't be drawn in paper again.
 {
     const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8');
-    const bands = [...theme.matchAll(/@utility (oca-band-[a-z]+) \{([^}]*)\}/g)];
+    const utilities = Object.fromEntries([...theme.matchAll(/@utility (oca-(?:band|on)-[a-z]+) \{([^}]*)\}/g)].map((m) => [m[1], m[2]]));
+    // A band's own block with the oca-on-* it applies.
+    const resolved = (body) => body + [...body.matchAll(/@apply ([a-z0-9- ]+);/g)].flatMap((m) => m[1].split(/\s+/)).map((u) => utilities[u] ?? '').join('\n');
+    const bands = Object.entries(utilities)
+        .filter(([name]) => name.startsWith('oca-band-'))
+        .map(([name, body]) => [name, resolved(body)]);
     if (bands.length < 4) {
         console.error(`✗ contrast: only ${bands.length} oca-band-* utilities in theme.css`);
         failed++;
     }
-    for (const [, name, body] of bands) {
+    // Card tones off the page's own grounds: each names its ground and an oca-on-* for what sits on it.
+    const card = readFileSync(join(here, '../src/primitives/card.tsx'), 'utf8');
+    const cardTones = ['ink', 'burnt', 'brand'].map((t) => {
+        const cls = card.match(new RegExp(`\\b${t}: '([^']*)'`))?.[1] ?? '';
+        const on = cls.match(/\boca-on-([a-z]+)/)?.[1];
+        const ground = cls.match(/\bbg-((?:oca-)?[a-z0-9-]+)/)?.[1];
+        if (!on) {
+            console.error(`✗ contrast: Card tone="${t}" sets its ground but no oca-on-*: a MonoLabel or muted line in it reads in the page's colours`);
+            failed++;
+        }
+        return [`Card tone="${t}"`, `background-color: var(--${ground});\n${on ? utilities[`oca-on-${on}`] ?? '' : ''}`];
+    });
+    for (const [name, body] of [...bands, ...cardTones]) {
         const ground = body.match(/background-color:\s*var\(--([a-z0-9-]+)\)/)?.[1];
         const texts = [...body.matchAll(/(?:^|\s)(color|--foreground|--muted-foreground|--oca-subtle-foreground):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2], 4.5]);
+        // Each re-points what a kit control raises on it: each raised ground with its own text,
+        // and the band's text on it too (a card's line in muted-foreground, a hover's label).
+        const set = Object.fromEntries([...body.matchAll(/(--[a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
+        const raised = [
+            ['--card', ['--card-foreground', '--foreground', '--muted-foreground']],
+            ['--oca-surface', ['--oca-surface-foreground', '--muted-foreground']],
+            ['--muted', ['--foreground', '--muted-foreground']],
+            ['--secondary', ['--secondary-foreground']],
+            ['--accent', ['--accent-foreground', '--foreground']],
+        ];
+        for (const [g] of raised) {
+            if (!set[g]) {
+                console.error(`✗ contrast: ${name} leaves ${g} alone: a kit control raised on it draws the page's ground under the band's text`);
+                failed++;
+            }
+        }
         const ring = body.match(/--ring:\s*var\(--([a-z0-9-]+)\)/)?.[1];
         if (ring) texts.push(['--ring', ring, 3]);
         // A band that leaves --foreground or --muted-foreground alone lets the page's
         // ink (or paper) through onto its ground: a Button's text among it.
-        for (const must of ['color', '--foreground', '--muted-foreground']) {
+        for (const must of ['--foreground', '--muted-foreground']) {
             if (!texts.some(([prop]) => prop === must)) {
                 console.error(`✗ contrast: ${name} does not set ${must}`);
                 failed++;
             }
         }
+        if (name.startsWith('oca-band-') && !texts.some(([prop]) => prop === 'color')) {
+            console.error(`✗ contrast: ${name} does not set color`);
+            failed++;
+        }
         for (const [mode, vars] of [
             ['light', light],
             ['dark', dark],
         ]) {
+            for (const [g, fgs] of raised.filter(([g]) => set[g])) {
+                for (const fg of fgs) {
+                    const [bgT, fgT] = [set[g], set[fg]];
+                    if (!fgT) continue;
+                    const r = ratio(vars[fgT], vars[bgT]);
+                    if (!(r >= 4.5)) {
+                        console.error(`✗ ${mode}: ${name} ${fg} --${fgT} on its ${g} --${bgT} is ${r.toFixed(2)}:1, needs 4.5:1`);
+                        failed++;
+                    }
+                }
+            }
             for (const [prop, token, min] of texts) {
                 if (!vars[ground] || !vars[token]) {
                     console.error(`✗ ${mode}: ${name} ${prop} --${token} on --${ground} has no colour`);
@@ -308,4 +357,4 @@ if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; every band's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; every band's and dark Card tone's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);

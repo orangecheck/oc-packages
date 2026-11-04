@@ -8,7 +8,9 @@ import type { HeadingTag } from '../lib/heading';
  * 2.0: a square panel with one hairline and no shadow. Tones: `default` (the
  * raised paper-2), `paper` (the page itself, framed), `white` (the product
  * surface), `sunken`, `ink` (dark in both modes), `burnt` and `brand` (orange,
- * ink text), and `outline`.
+ * ink text), and `outline`. The ink, burnt and brand tones re-point what sits on
+ * them as the band of the same name does (theme.css oca-on-*), so a MonoLabel, a
+ * muted line or a Button inside reads in the card's colours.
  */
 export const cardVariants = cva('relative rounded-none border', {
     variants: {
@@ -17,9 +19,9 @@ export const cardVariants = cva('relative rounded-none border', {
             paper: 'border-border bg-background text-foreground',
             white: 'border-border bg-oca-surface text-oca-surface-foreground',
             sunken: 'border-transparent bg-muted text-foreground',
-            ink: 'border-oca-ink-line bg-oca-ink-card text-oca-ink-foreground',
-            burnt: 'border-transparent bg-oca-burnt text-oca-burnt-foreground',
-            brand: 'border-transparent bg-brand text-brand-foreground',
+            ink: 'oca-on-ink border-oca-ink-line bg-oca-ink-card text-oca-ink-foreground',
+            burnt: 'oca-on-burnt border-transparent bg-oca-burnt text-oca-burnt-foreground',
+            brand: 'oca-on-brand border-transparent bg-brand text-brand-foreground',
             outline: 'border-border bg-transparent text-foreground',
         },
         // The padding is also a variable, so a flush list can run back out to the edges.

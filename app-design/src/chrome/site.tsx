@@ -251,7 +251,7 @@ export function SiteHeader({
                         <NavDropdown key={n.href} item={n} />
                     ) : (
                         // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'px-0 hover:text-oca-accent-ink'} />
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center px-0 hover:text-oca-accent-ink'} />
                     )
                 )}
             </nav>
@@ -272,11 +272,15 @@ export function SiteHeader({
                         ? 'h-14 px-4 md:px-6'
                         : // The frame's column: the page's gutter at left, the CTA at the right rule.
                           'mx-auto h-14 w-full max-w-[82.5rem] border-border pl-[clamp(1rem,0.333rem+2.857vw,3rem)] min-[900px]:h-[4.25rem] min-[900px]:border-x',
-                    framed && !headerCta && 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
+                    framed &&
+                        (headerCta
+                            ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
+                              'max-[479px]:pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
+                            : 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]')
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
-                    <Link href={home} className="-ml-1 min-w-0 rounded-none p-1">
+                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
@@ -288,7 +292,7 @@ export function SiteHeader({
                     {search}
                     {actions}
                     {headerSignIn ? (
-                        <a href={headerSignIn.href} className="hidden px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
+                        <a href={headerSignIn.href} className="hidden min-h-11 items-center px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
                             {headerSignIn.label}
                         </a>
                     ) : null}
@@ -378,7 +382,7 @@ export function SiteHeader({
                     {headerCta ? (
                         headerCta.pending ? (
                             // The session check is running: the block holds its place, says nothing, takes no focus.
-                            <span data-oca-cta="pending" aria-hidden className={CTA_BLOCK}>
+                            <span data-oca-cta="pending" aria-hidden className={cn(CTA_BLOCK, 'max-[479px]:hidden')}>
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} hidden />
                                 <span className="invisible">
                                     <CtaPlus />
@@ -390,6 +394,9 @@ export function SiteHeader({
                                 href={headerCta.href}
                                 className={cn(
                                     CTA_BLOCK,
+                                    // Below 480px the bar keeps the brand, the actions and the menu: the CTA
+                                    // is the menu's full-width button there, so nothing overlaps.
+                                    'max-[479px]:hidden',
                                     'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
                                 )}
                             >
@@ -474,13 +481,16 @@ export function SiteBanner({
     );
 }
 
-/** A link in the footer's lists: 44px tall on phones. */
-const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:text-foreground md:min-h-0';
+/**
+ * A link in the legal row or a tool's protocol row, lines of inline text links: 44px to a thumb on
+ * any screen, a tablet's included, and WCAG 2.5.8's 24px to a mouse. The pointer decides, not the width.
+ */
+const FOOT_LINK = 'inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
-        // Below md each link is a 44px target with room under its text: the year needs no gap of its own.
-        <div className="flex flex-col gap-x-6 gap-y-0 sm:flex-row sm:items-center sm:justify-between md:gap-y-2">
+        // To a thumb each link is a 44px target with room under its text: the year needs no gap of its own.
+        <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between pointer-coarse:gap-y-0">
             <nav aria-label="Legal">
                 <ul className="flex flex-wrap gap-x-5">
                     {/* Two links may share an address; the label and place keep them apart. */}
@@ -532,7 +542,8 @@ const FRAME_X = 'mx-auto w-full max-w-[82.5rem] px-[clamp(1rem,0.333rem+2.857vw,
  * The footer, in 2.0's register: the deep orange ground, a line of fine print,
  * columns of links, the family when it is on, the giant wordmark and the
  * legal row. Any number
- * of columns: the lockup shares their row up to five, then takes its own.
+ * of columns: the lockup shares their row up to five, then takes its own, and
+ * up to seven columns share one row from 1280px (below, the rows are even).
  * Links are 44px tall on phones. A phone sees the whole footer in 600px, fine
  * print and meta included: six groups leave them about 110px, seven about 65px.
  */
@@ -596,17 +607,21 @@ export function SiteFooter({
     ];
     const n = cols.length;
     const inline = n <= 5;
+    // Rows as even as each width allows, at most 4 a row from md, 6 from lg and 7 from xl: seven
+    // columns are one row at 1280, 4 + 3 below it, never 6 and a straggler. (auto-fit fills each
+    // row greedily, which is the straggler again.)
+    const even = (most: number) => `repeat(${n === 0 ? 1 : Math.ceil(n / Math.ceil(n / most))}, minmax(0, 1fr))`;
+    const beside = `minmax(0, 1.3fr) repeat(${Math.max(1, n)}, minmax(0, 1fr))`;
     const grid = {
-        '--oca-footer-md': `repeat(${Math.max(1, Math.min(n, 4))}, minmax(0, 1fr))`,
-        '--oca-footer-lg': inline
-            ? `minmax(0, 1.3fr) repeat(${Math.max(1, n)}, minmax(0, 1fr))`
-            : `repeat(${Math.min(n, 6)}, minmax(0, 1fr))`,
+        '--oca-footer-md': even(4),
+        '--oca-footer-lg': inline ? beside : even(6),
+        '--oca-footer-xl': inline ? beside : even(7),
     } as CSSProperties;
     return (
         <footer className={cn(FOOTER_GROUND, className)}>
             <div
                 style={grid}
-                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-5 pt-5 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)]')}
+                className={cn(FRAME_X, 'grid grid-cols-1 gap-y-6 pb-5 pt-5 md:grid-cols-[var(--oca-footer-md)] md:gap-x-6 md:gap-y-10 md:py-16 lg:grid-cols-[var(--oca-footer-lg)] xl:grid-cols-[var(--oca-footer-xl)]')}
             >
                 <div className={cn('col-span-full flex flex-col gap-4', inline && 'lg:col-span-1')}>
                     {/* On a phone the signature below says the name; the lockup would say it twice. */}
@@ -634,7 +649,7 @@ export function SiteFooter({
                         <p className="oca-label mb-2">{col.heading}</p>
                         <div className="flex flex-col gap-1">
                             {col.links.map((l, j) => (
-                                <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 py-1.5 text-[0.9375rem]" />
+                                <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 flex min-h-11 items-center text-[0.9375rem]" />
                             ))}
                         </div>
                     </div>

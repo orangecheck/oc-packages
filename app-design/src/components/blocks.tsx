@@ -116,7 +116,7 @@ export function FactRows({
     className?: string;
 }) {
     return (
-        <ul aria-label={label} className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul aria-label={label} className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             {rows.map((r) => (
                 <li key={r.key} className="flex flex-col gap-5 px-5 py-6 md:px-8 md:py-7">
                     {/* The figure keeps its own line end; a long title wraps beside it. */}
@@ -153,7 +153,7 @@ export interface Endpoint {
 /** Public endpoints and what each returns: the same numbers, for your own tooling. Each opens raw, in a new tab. */
 export function EndpointList({ items, label, className }: { items: Endpoint[]; label?: string; className?: string }) {
     return (
-        <ul aria-label={label} className={cn('divide-y divide-border rounded-[1.25rem] border border-border bg-card', className)}>
+        <ul aria-label={label} className={cn('divide-y divide-border rounded-none border border-border bg-card', className)}>
             {items.map((a) => (
                 <li key={a.href}>
                     <a
@@ -218,11 +218,12 @@ export function Closing({
     className?: string;
 }) {
     return (
-        <Section className={cn('overflow-hidden', className)}>
+        // On the Frame like PageHero; its title is a display-2, so the page's H1 stays the largest text.
+        <Section framed className={cn('overflow-hidden', className)}>
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <Reveal className="flex flex-col items-start gap-8 md:col-span-7">
                     <div className="flex flex-col gap-5">
-                        <Tag className="oca-display-1 text-[clamp(2.5rem,1.5rem+4vw,5rem)] leading-[1]">{title}</Tag>
+                        <Tag className="oca-display-2">{title}</Tag>
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
                     {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
