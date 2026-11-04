@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type ReactNode } from 'react';
+import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { prefersStill, useMotionSetting } from './env';
@@ -15,13 +15,12 @@ import { prefersStill, useMotionSetting } from './env';
  * page shares one observer, and each leaves it once shown.
  */
 
-export interface WipeProps {
+/** Any other attribute (id, aria-*, data-*) goes on the root. */
+export interface WipeProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
     as?: ElementType;
     from?: 'frame' | 'center' | 'left' | 'up';
     /** Milliseconds, for staggering siblings. */
     delay?: number;
-    className?: string;
-    style?: CSSProperties;
     children: ReactNode;
 }
 
@@ -50,7 +49,7 @@ function onceInView(el: Element, fn: () => void): () => void {
     };
 }
 
-export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, children }: WipeProps) {
+export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, children, ...rest }: WipeProps) {
     const ref = useRef<HTMLElement>(null);
     const setting = useMotionSetting();
     useEffect(() => {
@@ -62,7 +61,7 @@ export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, 
     }, [setting]);
     return createElement(
         as,
-        { ref, className: cn('oca-wipe', className), style: { ...style, '--oca-wipe-delay': `${delay}ms` } as CSSProperties, 'data-from': from },
+        { ...rest, ref, className: cn('oca-wipe', className), style: { ...style, '--oca-wipe-delay': `${delay}ms` } as CSSProperties, 'data-from': from },
         children
     );
 }

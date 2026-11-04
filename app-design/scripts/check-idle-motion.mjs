@@ -18,6 +18,7 @@
  * Run after `yarn build` (it reads the CSS as a site compiles it).
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -108,6 +109,15 @@ const scenes = {
     marquee: () => <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span><span style={{ fontSize: 64, paddingRight: 32 }}>Halfway Books</span></Marquee>,
     wipe: () => <Wipe><div id="wiped" style={{ height: 300, background: '#2a1206' }} /></Wipe>,
     loop: () => <Loop />,
+    // A Wipe from its middle, carrying its own id and label.
+    wipecenter: () => <Wipe from="center" id="wiped-center" aria-label="A statement"><div style={{ height: 300, background: '#2a1206' }} /></Wipe>,
+    // Scenes whose first layout can fail: text sampled through getImageData, and a dither over a cross-origin still.
+    fails: () => (
+        <div>
+            <p style={{ fontSize: 120 }}><ParticleText>80%</ParticleText></p>
+            <DitherImage src={still()} width={480} height={320} alt="" style={{ width: 480 }} />
+        </div>
+    ),
     broken: () => <ParticlePortrait alt="A picture that fails" points={brokenPoints()} poster={<svg viewBox="0 0 10 10"><rect width="10" height="10" /></svg>} callouts={notes} style={{ height: 600 }} />,
     deck: () => <ParticlePortrait alt="The deck portrait" points={deckPortraitPoints} style={{ height: 600 }} />,
     // Every ./motion scene on one page, as a site's test renders them. (ScrollStory is foundation's, in
@@ -127,10 +137,12 @@ const scenes = {
             <DitherImage src={still()} width={480} height={320} alt="" style={{ width: 480 }} />
         </div>
     ),
-    dither: () => <DitherImage src={still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
+    dither: () => <DitherImage src={q.get('src') ?? still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
-const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' ? 1200 : q.has('off') ? 3000 : 0;
-createRoot(document.getElementById('root')).render(<div><div style={{ height: above }} />{scenes[s]()}<div style={{ height: 2400 }} /></div>);
+const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' || s === 'wipecenter' ? 1200 : q.has('off') ? 3000 : 0;
+const root = createRoot(document.getElementById('root'));
+root.render(<div><div style={{ height: above }} />{scenes[s]()}<div style={{ height: 2400 }} /></div>);
+window.__unmount = () => root.unmount();
 `;
 
 // Count every draw (each starts with a clear) on a canvas in the page, and every frame the page's code asks
@@ -139,6 +151,10 @@ const COUNTERS =
     // ?nomm: a DOM without matchMedia (jsdom); ?nocanvas: one without a 2D canvas either.
     `<script>if (location.search.includes('nomm')) Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true });` +
     `if (location.search.includes('nocanvas')) HTMLCanvasElement.prototype.getContext = () => null;` +
+    // ?taint: every getImageData throws as a tainted canvas does.
+    `if (location.search.includes('taint')) CanvasRenderingContext2D.prototype.getImageData = () => { throw new DOMException('tainted', 'SecurityError'); };` +
+    // ResizeObservers alive (observing and not yet disconnected), to see a scene let go of its own.
+    `window.__ro = 0; const RO = window.ResizeObserver; window.ResizeObserver = class extends RO { constructor(cb) { super(cb); window.__ro++; this.__on = true; } disconnect() { if (this.__on) { this.__on = false; window.__ro--; } super.disconnect(); } };` +
     `window.__draws = 0; window.__rafs = 0; const clear = CanvasRenderingContext2D.prototype.clearRect;` +
     `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; return clear.apply(this, a); };` +
     `const put = CanvasRenderingContext2D.prototype.putImageData; CanvasRenderingContext2D.prototype.putImageData = function (...a) { if (this.canvas.isConnected) window.__draws++; return put.apply(this, a); };` +
@@ -491,7 +507,8 @@ try {
         {
             const { p, close } = await open('dither');
             await p.waitForTimeout(800);
-            const before = await over(p, 600);
+            // Everything since the page loaded, read just before the first pointer: a dither started at mount shows here.
+            const before = await read(p);
             const box = await p.locator('.oca-dither').boundingBox();
             for (let i = 0; i <= 10; i++) await p.mouse.move(box.x + 60 + i * 30, box.y + 160, { steps: 2 });
             const moved = await p.evaluate(() => window.__draws);
@@ -509,6 +526,19 @@ try {
             check(moved > 3, `dither: a pointer moving over it drew ${moved} frames`);
             check(idle, 'dither: after the pointer stopped it never settled');
             check(clear === 0, `dither: settled, ${clear} live pixels still cover the still`);
+            await close();
+        }
+        // A finger on a hybrid screen whose primary pointer is fine: the dither waits for a mouse or a pen.
+        {
+            const { p, close } = await open('dither');
+            await p.waitForTimeout(600);
+            const box = await p.locator('.oca-dither').boundingBox();
+            for (let i = 0; i <= 6; i++) {
+                const at = { pointerType: 'touch', clientX: box.x + 60 + i * 40, clientY: box.y + 160, bubbles: i > 0 };
+                await p.dispatchEvent('.oca-dither', i === 0 ? 'pointerenter' : 'pointermove', at);
+            }
+            await p.waitForTimeout(400);
+            check((await p.evaluate(() => window.__draws)) === 0, 'dither: a finger on a fine-pointer device started the live dither');
             await close();
         }
         for (const [label, opts] of [
@@ -678,6 +708,74 @@ try {
             await p.waitForTimeout(400);
             check((await p.getAttribute('.oca-wipe', 'data-wipe')) === null, 'wipe under reduced motion: it hid content');
             await close();
+        }
+        // Wipe from the centre: clipped to a point below the fold, open in view; its id and label on the root.
+        {
+            const { p, close } = await open('wipecenter');
+            await p.waitForTimeout(400);
+            const before = await p.evaluate(() => {
+                const w = document.querySelector('.oca-wipe');
+                return { state: w.dataset.wipe, clip: getComputedStyle(w).clipPath, id: w.id, label: w.getAttribute('aria-label') };
+            });
+            await p.evaluate(() => document.querySelector('.oca-wipe').scrollIntoView({ block: 'center' }));
+            await p.waitForFunction(() => document.querySelector('.oca-wipe').dataset.wipe === 'shown', null, { timeout: 4000 }).catch(() => {});
+            await p.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+            const clip = await p.evaluate(() => getComputedStyle(document.querySelector('.oca-wipe')).clipPath);
+            check(before.state === 'pending' && /^inset\(50%/.test(before.clip) && clip === 'inset(0px)', `wipe from the centre: ${before.state} at ${before.clip}, then ${clip}`);
+            check(before.id === 'wiped-center' && before.label === 'A statement', `wipe: its id and label did not reach the root (${before.id}, ${before.label})`);
+            await close();
+        }
+        // StackCards: a list of steps, and data-flat lays it out as a column for a full-page screenshot.
+        {
+            const { p, close } = await open('stack');
+            const r = await p.evaluate(() => {
+                const s = document.querySelector('.oca-stack');
+                const items = [...s.children].map((c) => c.tagName).join();
+                s.dataset.flat = '';
+                return { tag: s.tagName, items, flat: getComputedStyle(s.firstElementChild).position };
+            });
+            check(r.tag === 'OL' && r.items === 'LI,LI,LI', `stack: rendered ${r.tag} of ${r.items}, not a list of steps`);
+            check(r.flat === 'static', `stack with data-flat: the cards are ${r.flat}, not a column`);
+            await close();
+        }
+        // A first layout that throws (text read through a tainted getImageData) fails that scene to its words,
+        // logs once, and lets go of everything; the dither over the same taint draws nothing and logs nothing.
+        {
+            const { p, errors, close } = await open('fails', { flags: 'taint' });
+            await p.waitForTimeout(2500);
+            const box = await p.locator('.oca-dither').boundingBox();
+            // The text's failure clears its canvas once; from here the dither must draw nothing.
+            const a = await p.evaluate(() => window.__draws);
+            for (let i = 0; i <= 8; i++) await p.mouse.move(box.x + 60 + i * 30, box.y + 160, { steps: 2 });
+            await settle(p, 3000);
+            const r = await p.evaluate(() => ({ live: document.querySelector('.oca-ptext').dataset.live !== undefined, draws: window.__draws, logged: window.__logged }));
+            await p.evaluate(() => window.__unmount());
+            const ro = await p.evaluate(() => window.__ro);
+            check(errors.length === 0 && r.logged === 1, `a first layout that throws: ${errors.length} page errors (${errors[0] ?? ''}), logged ${r.logged}, not once`);
+            check(!r.live && r.draws === a && ro === 0, `a first layout that throws: text live ${r.live}, the dither drew ${r.draws - a}, ${ro} ResizeObservers left after unmount`);
+            await close();
+        }
+        // A cross-origin still served without CORS (a real second origin: a route() would answer CORS itself):
+        // the dither reads it with CORS, so it never loads for reading and nothing taints; the plain image still
+        // shows, no error escapes, nothing is logged, and nothing is left after unmount.
+        {
+            const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+            const server = createServer((_, res) => res.writeHead(200, { 'content-type': 'image/png' }).end(png));
+            await new Promise((done) => server.listen(0, '127.0.0.1', done));
+            const { p, errors, close } = await open('dither', { flags: `src=${encodeURIComponent(`http://127.0.0.1:${server.address().port}/still.png`)}` });
+            await p.waitForTimeout(2500);
+            const box = await p.locator('.oca-dither').boundingBox();
+            const a = await p.evaluate(() => window.__draws);
+            for (let i = 0; i <= 8; i++) await p.mouse.move(box.x + 60 + i * 30, box.y + 160, { steps: 2 });
+            await p.waitForTimeout(600);
+            const drew = (await p.evaluate(() => window.__draws)) - a;
+            const shown = await p.evaluate(() => document.querySelector('.oca-dither img').complete && document.querySelector('.oca-dither img').naturalWidth > 0);
+            const logged = await p.evaluate(() => window.__logged);
+            await p.evaluate(() => window.__unmount());
+            const ro = await p.evaluate(() => window.__ro);
+            check(errors.length === 0 && drew === 0 && shown && logged === 0 && ro === 0, `cross-origin still without CORS: ${errors.length} page errors (${errors[0] ?? ''}), ${drew} dither draws, still shown ${shown}, logged ${logged}, ${ro} ResizeObservers left`);
+            await close();
+            server.close();
         }
     } finally {
         await browser.close();

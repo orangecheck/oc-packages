@@ -21,7 +21,7 @@ export const MAX_BUCKETS = 16;
 
 export type Rgb = readonly [number, number, number];
 
-const hex = (h: string): Rgb => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+export const hex = (h: string): Rgb => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 type Palette = Readonly<Record<string, string | undefined>>;
 /** The first of `keys` the palette has: a 2.0 token where it exists, the 1.x one it replaces otherwise. */

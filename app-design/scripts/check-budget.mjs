@@ -58,13 +58,16 @@ const CEILING = {
     './vitest': 500,
     './og': 187_500,
     './fonts': 500,
-    './motion': 78_000,
+    './motion': 49_500,
 };
-// ./motion on its own: the eight scenes and their loop (12.0 KB at 2.0.0-pre; 12.9 KB once each scene listens
-// for reduced motion, falls back to its still when it throws, the crowd has a grid for phones and the
-// portrait a stipple for each ground; a page pays only for the scenes it imports), the bust's two poster
-// paths, and each lazy chunk of dots (the bust's stipple, 23.8 KB, and the deck portrait kept as an option,
-// 18.1 KB), which load only when a portrait asks for them once the page is idle.
+// ./motion on its own: the eight scenes and their loop. 12.0 KB at the DitherImage commit; 12.8 KB now. The
+// 0.8 KB buys the crowd's phone grid, outline ghosts and pair of posters (0.5 KB), the reduced-motion listener
+// and the matchMedia guard (0.2 KB), a scene that throws falling back to its still, in a frame or in its first
+// layout (0.25 KB), the portrait's second ground (0.2 KB), and list semantics and pass-through props on
+// StackCards and Wipe (0.1 KB); the dither's cheaper noise and a shared colour parser gave back 0.2 KB. A page
+// pays only for the scenes it imports. Apart: the bust's two poster paths, and each lazy chunk of dots (the
+// bust's stipple, 23.8 KB, and the deck portrait kept as an option, 18.1 KB), which load only when a portrait
+// asks for them once the page is idle.
 const MOTION_OWN = 13 * 1024;
 const MOTION_POSTER = 5 * 1024;
 const MOTION_LAZY = 26 * 1024;
@@ -97,6 +100,7 @@ async function shipped(entry, outside = new Set()) {
         write: false,
         format: 'esm',
         splitting: true,
+        metafile: true,
         outdir: join(root, '.budget'),
         external: peers,
         loader: { '.woff': 'base64', '.woff2': 'base64' },
@@ -115,7 +119,16 @@ async function shipped(entry, outside = new Set()) {
     });
     // The entry and its static chunks count; a chunk only a dynamic import reaches is reported apart.
     const main = r.outputFiles.find((f) => f.path.endsWith(entry.split('/').pop().replace(/\.mjs$/, '.js')));
-    const total = r.outputFiles.filter((f) => f.path.endsWith('.js')).reduce((n, f) => n + gzipSync(f.contents).length, 0);
+    const outputs = r.metafile.outputs;
+    const key = (f) => Object.keys(outputs).find((k) => f.path.endsWith(k.replace(/^.*\.budget\//, '/')));
+    const eager = new Set();
+    const walk = (k) => {
+        if (!k || eager.has(k)) return;
+        eager.add(k);
+        for (const i of outputs[k].imports) if (i.kind === 'import-statement' && outputs[i.path]) walk(i.path);
+    };
+    walk(main && key(main));
+    const total = r.outputFiles.filter((f) => f.path.endsWith('.js') && eager.has(key(f))).reduce((n, f) => n + gzipSync(f.contents).length, 0);
     return { main: main ? gzipSync(main.contents).length : 0, total };
 }
 

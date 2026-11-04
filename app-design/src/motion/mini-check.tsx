@@ -5,7 +5,7 @@ import { MARK_FACES, MARK_POINTS } from '@orangecheck/mark';
 import { Mark } from '../brand/mark';
 import { cn } from '../lib/cn';
 import { clamp01, easeOut, prefersStill, seeded, useMotionSetting } from './env';
-import { Batch, rgba, type Rgb } from './paint';
+import { Batch, hex, rgba } from './paint';
 import { mountScene, type Mounted } from './scene';
 
 /*
@@ -57,7 +57,6 @@ for (let y = STEP / 2; y < 8; y += STEP) {
     }
 }
 
-const hex = (h: string): Rgb => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 export function MiniCheck({ size = 132, title, playKey, className, style }: MiniCheckProps) {
     const box = useRef<HTMLSpanElement>(null);

@@ -51,6 +51,8 @@ const BAYER8 = Array.from({ length: 64 }, (_, i) => {
     return (v + 0.5) / 64;
 });
 
+const pens = (e: PointerEvent) => e.pointerType === 'mouse' || e.pointerType === 'pen';
+
 /** A CSS colour as little-endian RGBA bytes in one word, for ImageData. */
 function word(css: string): number {
     if (css === 'transparent') return 0;
@@ -67,27 +69,8 @@ function groundOf(el: Element): string {
     return '#ffffff';
 }
 
-/** Smooth value noise on a lattice: enough for a bias that crawls; cheaper than Perlin. */
-function hash(x: number, y: number, z: number): number {
-    let h = (x * 374761393 + y * 668265263 + z * 2147483647) | 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
-}
-function noise(x: number, y: number, z: number): number {
-    const xi = Math.floor(x);
-    const yi = Math.floor(y);
-    const zi = Math.floor(z);
-    const s = (t: number) => t * t * (3 - 2 * t);
-    const u = s(x - xi);
-    const v = s(y - yi);
-    const w = s(z - zi);
-    const at = (dx: number, dy: number, dz: number) => hash(xi + dx, yi + dy, zi + dz);
-    const a = at(0, 0, 0) + (at(1, 0, 0) - at(0, 0, 0)) * u;
-    const b = at(0, 1, 0) + (at(1, 1, 0) - at(0, 1, 0)) * u;
-    const c = at(0, 0, 1) + (at(1, 0, 1) - at(0, 0, 1)) * u;
-    const d = at(0, 1, 1) + (at(1, 1, 1) - at(0, 1, 1)) * u;
-    return (a + (b - a) * v + (c + (d - c) * v - (a + (b - a) * v)) * w) * 2 - 1;
-}
+/** A smooth field that crawls with z: two crossed waves, enough for a bias that drifts; far cheaper than lattice noise. */
+const noise = (x: number, y: number, z: number) => Math.sin(x * 1.9 + z * 1.3 + Math.sin(y * 2.3 - z)) * Math.cos(y * 1.7 - z * 0.9 + Math.sin(x * 1.1));
 
 export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark, light, pixel = 2, className, style }: DitherImageProps) {
     const box = useRef<HTMLSpanElement>(null);
@@ -100,10 +83,13 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
         if (!el || !cv || prefersStill() || !finePointer()) return;
         let mounted: Mounted | null = null;
         let gone = false;
-        // Nothing is read or drawn until a pointer first comes over the picture.
+        // Nothing is read or drawn until a mouse or a pen first comes over the picture (a finger on a hybrid screen does not count).
         const start = async (e: PointerEvent) => {
+            if (!pens(e)) return;
             el.removeEventListener('pointerenter', start);
             const img = new Image();
+            // Read with CORS, so a cross-origin still without it fails to load here instead of tainting the canvas.
+            img.crossOrigin = 'anonymous';
             img.src = tone ?? src;
             try {
                 await img.decode();
@@ -167,7 +153,13 @@ function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, w
         const c = off.getContext('2d', { willReadFrequently: true });
         if (!c) return;
         c.drawImage(img, 0, 0, W, H);
-        const d = c.getImageData(0, 0, W, H).data;
+        let d: Uint8ClampedArray;
+        try {
+            d = c.getImageData(0, 0, W, H).data;
+        } catch {
+            // A tainted still (cross-origin, served without CORS): the picture stays the plain image.
+            return;
+        }
         lum = new Float32Array(W * H);
         // Paper where the still is clear; otherwise its luminance.
         for (let i = 0; i < W * H; i++) lum[i] = d[i * 4 + 3]! < 128 ? 1 : (0.2126 * d[i * 4]! + 0.7152 * d[i * 4 + 1]! + 0.0722 * d[i * 4 + 2]!) / 255;
@@ -197,6 +189,7 @@ function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, w
     }
 
     const move = (e: PointerEvent) => {
+        if (!pens(e)) return;
         const b = el.getBoundingClientRect();
         stamp(e.clientX - b.left, e.clientY - b.top);
         wake();

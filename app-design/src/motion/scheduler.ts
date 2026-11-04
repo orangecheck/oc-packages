@@ -53,7 +53,7 @@ function loop(now: number) {
         } catch (err) {
             // A scene that throws leaves the loop, once, and falls back to its still; the others keep their frames.
             remove(e);
-            console.error('@orangecheck/app-design/motion: a scene failed and fell back to its still', err);
+            report(err);
             e.onError?.(err);
             continue;
         }
@@ -118,6 +118,11 @@ function observer(): IntersectionObserver | null {
     });
     document.addEventListener('visibilitychange', onVisibility);
     return io;
+}
+
+/** A scene failed and fell back to its still: said once, on the console. */
+export function report(err: unknown) {
+    console.error('app-design/motion: a scene failed; its still stays', err);
 }
 
 function remove(entry: Entry) {

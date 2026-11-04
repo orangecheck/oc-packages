@@ -5,7 +5,7 @@
  */
 import { isDark, onTheme } from './env';
 import { Surface } from './paint';
-import { schedule } from './scheduler';
+import { report, schedule } from './scheduler';
 
 export interface SceneParts {
     /** Draw a frame; true while something still moves. */
@@ -55,12 +55,14 @@ export function mountScene(
         return { wake() {}, stop() {} };
     }
     let parts: SceneParts | null = null;
-    let wake = () => {};
     let drawn = false;
-    const surface = new Surface(canvas, () => {
-        parts?.layout?.();
-        wake();
-    });
+    let offTheme = () => {};
+    const surface = new Surface(canvas, () =>
+        run(() => {
+            parts?.layout?.();
+            wake();
+        })
+    );
     const frame = (now: number, dt: number) => {
         if (!parts) return false;
         const more = parts.frame(now, dt);
@@ -76,33 +78,44 @@ export function mountScene(
         {
             scroll,
             onVisible: (on) => parts?.visible?.(on),
-            onError: () => {
-                surface.clear();
-                parts = null;
-                onFail?.();
-            },
+            onError: fail,
         }
     );
-    wake = () => ticket.wake();
-    parts = build(surface, wake);
+    function stop() {
+        offTheme();
+        ticket.stop();
+        surface.dispose();
+        parts?.dispose?.();
+        parts = null;
+    }
+    /** The scene threw: it lets go of everything it holds, clears its canvas, and the poster comes back. */
+    function fail() {
+        stop();
+        surface.clear();
+        onFail?.();
+    }
+    /** Scene code run outside the loop (building, a resize, a theme change): a throw there fails the scene, as in a frame. */
+    function run(f: () => void) {
+        try {
+            f();
+        } catch (err) {
+            report(err);
+            fail();
+        }
+    }
+    const wake = () => ticket.wake();
     const dark = () => (ground === 'auto' ? isDark(host) : ground === 'dark');
-    parts.layout?.();
-    parts.theme?.(dark());
-    const offTheme =
-        ground === 'auto'
-            ? onTheme(() => {
-                  parts?.theme?.(dark());
-                  wake();
-              })
-            : () => {};
-    return {
-        wake,
-        stop() {
-            offTheme();
-            ticket.stop();
-            surface.dispose();
-            parts?.dispose?.();
-            parts = null;
-        },
-    };
+    run(() => {
+        parts = build(surface, wake);
+        parts.layout?.();
+        parts.theme?.(dark());
+    });
+    if (parts && ground === 'auto')
+        offTheme = onTheme(() =>
+            run(() => {
+                parts?.theme?.(dark());
+                wake();
+            })
+        );
+    return { wake, stop };
 }
