@@ -134,6 +134,10 @@ optional. What changes is how things look.
   and PUBLIC GOODS alone under them. Now it is one row at 1280 and 4 + 3 at
   768 and 1024. Five columns at md are 3 + 2 rather than 4 + 1. check-layout
   mounts the seven-column footer at 768, 1024, 1280 and 1440.
+- `DocsShell` takes `signIn` and `cta` for its default header, the same props
+  that `SiteHeader` takes. So ochk.io/docs, signed out, can show ochk.io's
+  "Sign in" and its account CTA rather than an account button. check-render
+  checks that both reach the header.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 

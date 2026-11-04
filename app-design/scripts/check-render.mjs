@@ -133,6 +133,12 @@ const html = (el) => renderToStaticMarkup(el);
     const shell = html(h(Ch.DocsShell, { nav, current: '/stamp' }, h('p', null, 'page')));
     check(/href="https:\/\/ochk.io\/docs"[^>]*aria-current="page"|aria-current="page"[^>]*href="https:\/\/ochk.io\/docs"/.test(shell), 'DocsShell: the header does not mark Docs');
     check(shell.includes('id="docs-content"') && shell.includes('id="main-content"'), 'DocsShell: the page has no content landmark');
+    // ochk.io/docs draws ochk.io's header: Sign in and the account CTA, as SiteHeader takes them.
+    {
+        const signedOut = html(h(Ch.DocsShell, { nav, current: '/stamp', signIn: true, cta: true }, h('p', null, 'page')));
+        const header = signedOut.slice(0, signedOut.indexOf('</header>'));
+        check(/>Sign in</.test(header) && /data-oca-cta/.test(header), 'DocsShell: signIn and cta do not reach its header');
+    }
 }
 
 // ToolShell: the protocol's word and page, tools in a tab bar on a phone, compact fields, the footer.
