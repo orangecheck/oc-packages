@@ -423,6 +423,12 @@ optional. What changes is how things look.
 - `Faq` defaults to `variant="rule"`. **Migrate**: pass `variant="card"` to
   keep the framed panel.
 - `PageHero` takes `ground`: `paper` (default), `ink` or `brand`.
+- `Closing`'s actions follow the same rule as `PageHero`'s, with the same
+  classes. On a phone the CTA pair stacks full width in DOM order; from
+  640px the actions sit in a row at their own widths. On a phone they used
+  to wrap at their own widths, 178 and 262 of 357px at 390. **Migrate**: drop
+  any full-width class a site put on Closing's buttons (chat's
+  `max-sm:w-full`).
 - `Section` takes tone `burnt` and `rule` (a full-width hairline under it).
   Its `ink`, `burnt` and `brand` bands now re-point `--foreground`,
   `--muted-foreground`, `--oca-subtle-foreground` and `--border`, and
