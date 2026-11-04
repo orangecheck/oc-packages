@@ -839,13 +839,24 @@ describe('oc chat verify: a version read cut off at its bound is not an answer (
 
     // chat-core pages its open read with an inclusive `until`, so 600 events in one second
     // bring back the same full page every time. Before 0.1.1 that read stopped there as if
-    // complete, and the genesis it never reached read as absent.
-    it("a flood in one second the read cannot page past, with no founder named: can't tell, NOT READ, exit 2", async () => {
+    // complete: the genesis it never reached read as absent (a channel and a post FAILED), and a
+    // version read as the tip of the little that was read (VERIFIED).
+    describe('a flood in one second the read cannot page past, with no founder named', () => {
         const stuck = flood.slice(0, 600).map((e) => ({ ...e, created_at: genesis.created_at + 1000 }));
-        expect(await run({ channel: genesis.channel_id }, limitedNet([version, founder.record, ...stuck]))).toBe(2);
-        expect(stdout).toContain("can't tell");
-        expect(stdout).toContain('NOT READ');
-        expect(stdout).not.toContain('FAILED');
+        const cases: [string, Parameters<typeof run>[0], NostrEvent[]][] = [
+            ['a channel by --channel', { channel: genesis.channel_id }, [version, founder.record]],
+            ['a version from a file', { file: file(version) }, [version, founder.record]],
+            ['a post from a file', { file: file(post) }, [version, founder.record, post]],
+        ];
+        for (const [subject, opts, events] of cases) {
+            it(`${subject}: can't tell, NOT READ, exit 2, never FAILED or VERIFIED`, async () => {
+                expect(await run(opts, limitedNet([...events, ...stuck]))).toBe(2);
+                expect(stdout).toContain("can't tell");
+                expect(stdout).toContain('NOT READ');
+                expect(stdout).not.toContain('FAILED');
+                expect(stdout).not.toMatch(/^VERIFIED/m);
+            });
+        }
     });
 
     it('the same flood with the founder named: the founder’s keys were read in full, so the answer stands', async () => {

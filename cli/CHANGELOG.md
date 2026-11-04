@@ -14,10 +14,15 @@ this file tracks the package's TS / Node / runtime API surface.
   `provider_refused_unread`) and never puts `below_min_*` beside it.
 - Requires `@orangecheck/chat-core` ^0.1.1 (it was ^0.1.0). 0.1.0's version
   read stopped on a page it could not get past, such as more than 500 events
-  in one second under a channel's tag, and called that read complete. So 0.4.0's
-  cut-off rule never saw it, and `oc chat verify --channel` printed FAILED for a
-  channel whose genesis the flood hid. 0.1.1 marks that read cut off, so the
-  verdict is NOT READ, exit 2.
+  in one second under a channel's tag, and called that read complete, so 0.4.0's
+  cut-off rule never saw it. 0.1.1 marks that read cut off. Under such a flood,
+  with no `--founder`, `oc chat verify` now says it can't tell: NOT READ, exit 2,
+  for all three subjects that resolve the channel.
+  - `--channel`: FAILED, exit 1, before.
+  - A post from a file or stdin: FAILED, exit 1, before.
+  - A channel version from a file or stdin: **VERIFIED, exit 0, before.** That
+    VERIFIED was wrong: it judged the version against only what the stuck read
+    reached. A script that gates on the exit code sees 2 where it saw 0.
 
 ### Changed
 
