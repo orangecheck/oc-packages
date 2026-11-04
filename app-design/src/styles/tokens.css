@@ -176,6 +176,12 @@
     /* How far a focus ring reaches outside its control: ring-2 plus ring-offset-2.
        A box that clips (a framed Section) keeps this much room past its edge. */
     --oca-focus-reach: 4px;
+    /* A SectionBar spans its nearest edged box: it takes back the gutter that box gives
+       (--oca-bar-bleed) and sets its label in that box's inset (--oca-bar-inset). A
+       container, a padded Frame and a Card set both; a box with its own edge and no gutter
+       (a Frame without padding, PageFrame) bleeds 0. Here, the page with no such box. */
+    --oca-bar-bleed: 0px;
+    --oca-bar-inset: var(--oca-frame-gutter);
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;

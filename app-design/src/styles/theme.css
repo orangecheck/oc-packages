@@ -248,6 +248,8 @@
     max-width: var(--oca-frame-max);
     margin-inline: auto;
     padding-inline: calc(var(--oca-frame-rule) + var(--oca-frame-gutter));
+    --oca-bar-bleed: var(--oca-frame-gutter);
+    --oca-bar-inset: var(--oca-frame-gutter);
     /* Inside another container (a site's own inside a Section's) it adds no second gutter. */
     :where(.oca-container) & {
         max-width: none;

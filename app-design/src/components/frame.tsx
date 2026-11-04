@@ -47,7 +47,8 @@ export function Frame({ as = 'div', padded = true, className, ...props }: FrameP
         'data-oca-frame': '',
         className: cn(
             'mx-auto w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
-            padded && 'px-[var(--oca-frame-gutter)]',
+            // A SectionBar inside takes back the gutter it is given, or none in a Frame without one.
+            padded ? 'px-[var(--oca-frame-gutter)] [--oca-bar-bleed:var(--oca-frame-gutter)] [--oca-bar-inset:var(--oca-frame-gutter)]' : '[--oca-bar-bleed:0px] [--oca-bar-inset:var(--oca-frame-gutter)]',
             className
         ),
         ...props,
@@ -70,7 +71,7 @@ export function PageFrame({ as = 'main', className, ...props }: PageFrameProps) 
     return createElement(as, {
         'data-oca-page-frame': '',
         // A PageFrame inside another (a DocsShell page in a layout's frame) draws no second rule.
-        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px] [&_[data-oca-page-frame]]:border-x-0', className),
+        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px] [--oca-bar-bleed:0px] [--oca-bar-inset:var(--oca-frame-gutter)] [&_[data-oca-page-frame]]:border-x-0', className),
         ...props,
     });
 }
@@ -89,9 +90,10 @@ export function SectionBar({ start, end, as = 'p', className, ...props }: Sectio
     return (
         <div
             data-oca-section-bar=""
-            // Its rule runs the frame's width, between the side rules, as every rule in the frame does; the
-            // label and the end stay on the content's axis. The gutter it sits in is taken back as a margin.
-            className={cn('-mx-[var(--oca-frame-gutter)] flex min-h-11 items-center justify-between gap-4 border-b border-border px-[var(--oca-frame-gutter)] py-2', className)}
+            // Its rule spans its nearest edged box (the frame between its rules, or a card), as every rule in
+            // the frame does: it takes back only the gutter that box gives (--oca-bar-bleed, 0 where there is
+            // none) and sets its label in that box's inset, so it is right in any parent and never overflows.
+            className={cn('mx-[calc(-1*var(--oca-bar-bleed,0px))] flex min-h-11 items-center justify-between gap-4 border-b border-border px-[var(--oca-bar-inset,var(--oca-frame-gutter))] py-2', className)}
             {...props}
         >
             <MonoLabel as={as}>{start}</MonoLabel>

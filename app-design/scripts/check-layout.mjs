@@ -581,6 +581,30 @@ try {
             )
         )
     );
+    // A SectionBar in every parent a site puts one in: a container's child, nested in a container, a
+    // padded Frame, a Frame without padding, a bare section in the frame, and a Card. Each bar spans its
+    // nearest edged box with its label on that box's axis; [data-box] marks the box, [data-axis] its axis.
+    const bar = (k) => h(C.SectionBar, { start: `Bar ${k}`, end: '01 / 06', 'data-bar': k });
+    const bars = page(
+        'bars',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(
+                    C.PageFrame,
+                    { 'data-box': 'frame' },
+                    h(C.Section, { space: 'sm' }, bar('container')),
+                    h(C.Section, { space: 'sm' }, h('div', { className: 'flex flex-col gap-4' }, h('div', null, bar('nested')))),
+                    h(C.Section, { framed: true, space: 'sm' }, bar('padded')),
+                    h(C.Frame, { padded: false }, bar('unpadded')),
+                    h('section', null, bar('bare')),
+                    h(C.Section, { space: 'sm' }, h(P.Card, { 'data-box': 'card' }, bar('card'), h('p', { 'data-axis': 'card' }, 'The card says one thing.')))
+                )
+            )
+        )
+    );
     // ochk.io/docs' shape: DocsShell with its sections and a page long enough to scroll past the sidebar.
     const docsFrame = page(
         'docs-frame',
@@ -1769,6 +1793,42 @@ try {
                 check(broken.length === 0, `[${width}] one frame: a rule breaks between the header and the footer at ${broken.length} rows, first ${JSON.stringify(broken.slice(0, 3))} (want ${want.join()})`);
                 await c.close();
             }
+            // SectionBars in every parent, at 320, 390 and 1440: each spans its nearest edged box exactly (the
+            // frame between its rules, or a card inside its border), its square on that box's axis, and the
+            // page never scrolls sideways.
+            if (width === 1440) {
+                for (const w of [320, 390, 1440]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
+                    await c.goto(bars);
+                    await c.evaluate(() => document.fonts.ready);
+                    const b = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const frame = document.querySelector('[data-box="frame"]');
+                        const fr = r(frame);
+                        const inner = { left: fr.left + 1, right: fr.right - 1 };
+                        const axis = r(document.querySelector('header a[href="/"] svg')).left;
+                        const card = document.querySelector('[data-box="card"]');
+                        const cr = r(card);
+                        const cardInner = { left: cr.left + 1, right: cr.right - 1 };
+                        const range = document.createRange();
+                        range.selectNodeContents(document.querySelector('[data-axis="card"]'));
+                        const cardAxis = range.getClientRects()[0].left;
+                        return {
+                            scroll: document.documentElement.scrollWidth - innerWidth,
+                            bars: [...document.querySelectorAll('[data-bar]')].map((el) => {
+                                const box = el.dataset.bar === 'card' ? cardInner : inner;
+                                const want = el.dataset.bar === 'card' ? cardAxis : axis;
+                                const square = r(el.querySelector('[data-ui="label"] span[aria-hidden]'));
+                                return { k: el.dataset.bar, dl: Math.round((r(el).left - box.left) * 10) / 10, dr: Math.round((r(el).right - box.right) * 10) / 10, axis: Math.round((square.left - want) * 10) / 10 };
+                            }),
+                        };
+                    });
+                    const off = b.bars.filter((x) => Math.abs(x.dl) > 1 || Math.abs(x.dr) > 1 || Math.abs(x.axis) > 1);
+                    check(b.bars.length === 6 && off.length === 0, `[${w}] SectionBar: a bar does not span its box or sits off its axis (px off left, right, axis): ${JSON.stringify(off)}`);
+                    check(b.scroll <= 0, `[${w}] SectionBar: the page scrolls ${b.scroll}px sideways`);
+                    await c.close();
+                }
+            }
             // The frame's edge cases. A nested PageFrame draws no second rule and moves nothing; a container
             // inside a Section adds no second gutter; a flush control's focus ring is whole at the foot of
             // its clipped Section (it matches the ring beside it).
@@ -1862,9 +1922,9 @@ try {
                     let ground = 'rgba(0, 0, 0, 0)';
                     for (let el = next; el && /rgba\(0, 0, 0, 0\)|transparent/.test(ground); el = el.parentElement) ground = getComputedStyle(el).backgroundColor;
                     if (/rgba\(0, 0, 0, 0\)/.test(ground)) ground = getComputedStyle(document.documentElement).backgroundColor;
-                    // A clipped section keeps a focus ring's reach past its edge (overflow-clip-margin), no more.
-                    const reach = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--oca-focus-reach')) || 0;
-                    return { top: r.top + scrollY, left: r.left, right: r.right, ground, reach, dpr: devicePixelRatio, probe: { left: probe.left, right: probe.right, top: probe.top + scrollY + 100 } };
+                    // The token that sets the clip's margin, read only to hold it to the ring it is for.
+                    const token = getComputedStyle(document.documentElement).getPropertyValue('--oca-focus-reach').trim();
+                    return { top: r.top + scrollY, left: r.left, right: r.right, ground, token, dpr: devicePixelRatio, probe: { left: probe.left, right: probe.right, top: probe.top + scrollY + 100 } };
                 });
                 const png = decodePng(await c.screenshot({ fullPage: true }));
                 const want = g.ground.match(/\d+/g).slice(0, 3).map(Number);
@@ -1872,7 +1932,11 @@ try {
                 const pi = (Math.round((g.top - 4) * g.dpr) * png.width + Math.round(((g.probe.left + g.probe.right) / 2) * g.dpr)) * 4;
                 check(g.probe.top < g.top - 4 && png.data[pi] > 200 && png.data[pi + 1] < 60, `[${width}] closed box: the overflow probe is not drawn above the next section, so the check would see nothing`);
                 const smudged = [];
-                for (let y = Math.ceil(g.top + g.reach) + 1; y < g.top + 24; y++) {
+                // A focus ring reaches 4px (ring-2 plus ring-offset-2), fixed here rather than read from the
+                // token it guards; the clip may let exactly that much through, and the first row past it is clean.
+                const REACH = 4;
+                check(g.token === `${REACH}px`, `[${width}] closed box: --oca-focus-reach is ${g.token}, not a focus ring's ${REACH}px`);
+                for (let y = Math.ceil(g.top + REACH); y < g.top + 24; y++) {
                     for (let x = Math.ceil(g.left) + 1; x < g.right - 1; x += 2) {
                         const i = (Math.round(y * g.dpr) * png.width + Math.round(x * g.dpr)) * 4;
                         const px = [png.data[i], png.data[i + 1], png.data[i + 2]];
