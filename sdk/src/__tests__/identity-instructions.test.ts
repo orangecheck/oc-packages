@@ -4,9 +4,9 @@
  * automatic check; and the text people post says orangecheck, lowercase.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getDnsVerificationInstructions } from '../identity/dns';
+import { generateWellKnownContent, getDnsVerificationInstructions } from '../identity/dns';
 import { generateGistTemplate, getGitHubVerificationInstructions } from '../identity/github';
 import { getNostrVerificationInstructions } from '../identity/nostr';
 import { generateTweetText, getTwitterVerificationInstructions, verifyTwitterIdentity } from '../identity/twitter';
@@ -42,5 +42,30 @@ describe('X (Twitter) and Nostr proof instructions', () => {
             expect(text).toContain(ID);
             expect(text).not.toContain('OrangeCheck');
         }
+    });
+});
+
+describe('the well-known file', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('is pinned whole: orangecheck, lowercase, in every line', () => {
+        vi.useFakeTimers({ now: new Date('2026-11-04T05:00:00.000Z') });
+        expect(generateWellKnownContent(ID, 'https://example.com/')).toBe(`orangecheck attestation verification
+=====================================
+
+Domain: example.com
+Attestation ID: ${ID}
+Timestamp: 2026-11-04T05:00:00.000Z
+
+This file verifies that the owner of example.com controls the Bitcoin
+address associated with attestation ${ID}.
+
+Learn more: https://ochk.io
+
+---
+
+Verification method: .well-known/orangecheck.txt
+Protocol: orangecheck protocol (OCP)
+`);
     });
 });

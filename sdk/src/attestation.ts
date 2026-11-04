@@ -12,9 +12,12 @@ import {
     createAttestationEvent,
     DEFAULT_RELAYS,
     publishToRelays,
-    queryByAddress,
-    queryByAttestationId,
-    queryByIdentity,
+    readByAddress,
+    readByAttestationId,
+    readByIdentity,
+    type SubjectRead,
+    type SubjectReadState,
+    subjectReadComplete,
     verifyAttestationEnvelope,
 } from './nostr';
 import { isNip07Available, signNostrEvent } from './nostr-crypto';
@@ -227,33 +230,86 @@ export function envelopesFromEvents(events: NostrEvent[]): Promise<AttestationEn
 }
 
 /**
- * Discover attestations from Nostr relays
+ * What readAttestations found, and whether that is the whole answer.
  */
-export async function discoverAttestations(
+export interface AttestationsRead {
+    /**
+     * What discoverAttestations returns: one envelope per id whose id is the
+     * hash of its message, its fields read from that message. Where copies of
+     * an id disagree, the one whose signature verifies; a lone copy's signature
+     * is not checked, so call check() or verifyAttestationById before acting on one.
+     */
+    attestations: AttestationEnvelope[];
+    /**
+     * null when the list is a finished answer. 'attestation_unread' when it is
+     * not: fewer than the read floor of relays finished with a short page, or
+     * one was cut off (subjectReadComplete). An empty list beside it is not
+     * "none", and a non-empty one may be missing copies, newer ones included.
+     * By id, an envelope of that id whose signature verifies is a finished
+     * answer: the id is the hash of the one message. Copies that fail it are not.
+     * The same reason check() answers, so unreadReason decodes both.
+     */
+    unread: 'attestation_unread' | null;
+    /** How each relay's read ended. */
+    relays: { relay: string; state: SubjectReadState }[];
+}
+
+async function readEnvelopes(
     options: DiscoverAttestationOptions
-): Promise<AttestationEnvelope[]> {
+): Promise<{ read: SubjectRead; attestations: AttestationEnvelope[] }> {
     const { attestationId, address, identity, relays = DEFAULT_RELAYS } = options;
 
-    let events: NostrEvent[] = [];
+    let read: SubjectRead;
 
     if (attestationId) {
         log.info({ attestationId }, 'Discovering by attestation ID');
-        events = await queryByAttestationId(attestationId, relays);
+        read = await readByAttestationId(attestationId, relays);
     } else if (address) {
         log.info({ address }, 'Discovering by Bitcoin address');
-        events = await queryByAddress(address, relays);
+        read = await readByAddress(address, relays);
     } else if (identity) {
         log.info({ identity }, 'Discovering by identity');
-        events = await queryByIdentity(identity.protocol, identity.identifier, relays);
+        read = await readByIdentity(identity.protocol, identity.identifier, relays);
     } else {
         throw new Error('Must provide attestationId, address, or identity');
     }
 
-    const envelopes = await envelopesFromEvents(events);
+    const attestations = await envelopesFromEvents(read.events);
 
-    log.info({ eventCount: events.length, validCount: envelopes.length }, 'Discovery complete');
+    log.info({ eventCount: read.events.length, validCount: attestations.length }, 'Discovery complete');
 
-    return envelopes;
+    return { read, attestations };
+}
+
+/**
+ * Discover attestations from Nostr relays, and say whether the relays finished
+ * the read. Read `unread` before taking an empty list as "none", or a list as
+ * every attestation there is.
+ */
+export async function readAttestations(options: DiscoverAttestationOptions): Promise<AttestationsRead> {
+    const { read, attestations } = await readEnvelopes(options);
+    const id = options.attestationId;
+    let finished = subjectReadComplete(read);
+    if (!finished && id) {
+        for (const e of attestations) {
+            if (e.attestation_id !== id) continue;
+            if (await signatureIsValid({ addr: e.address, msg: e.message, sig: e.signature, scheme: e.scheme })) {
+                finished = true;
+                break;
+            }
+        }
+    }
+    return { attestations, unread: finished ? null : 'attestation_unread', relays: read.relays };
+}
+
+/**
+ * Discover attestations from Nostr relays. An empty list may be a read that did
+ * not finish; readAttestations tells.
+ */
+export async function discoverAttestations(
+    options: DiscoverAttestationOptions
+): Promise<AttestationEnvelope[]> {
+    return (await readEnvelopes(options)).attestations;
 }
 
 /**
@@ -290,7 +346,8 @@ export async function verifyAttestationById(
 }
 
 /**
- * Get all attestations for a Bitcoin address
+ * Get all attestations for a Bitcoin address. An empty list may be a read that
+ * did not finish; readAttestations tells.
  */
 export async function getAttestationsForAddress(
     address: string,
@@ -301,7 +358,8 @@ export async function getAttestationsForAddress(
 }
 
 /**
- * Get all attestations for an identity
+ * Get all attestations for an identity. An empty list may be a read that did
+ * not finish; readAttestations tells.
  */
 export async function getAttestationsForIdentity(
     protocol: string,
