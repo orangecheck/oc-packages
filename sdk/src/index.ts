@@ -91,6 +91,7 @@ export type { BuildOptions, Extensions } from './canonical';
 
 // ─── Attestation discovery + publishing ────────────────────────────────────
 export {
+    type AttestationsRead,
     discoverAttestations,
     extractAttestationIdFromUrl,
     formatIdentitiesForDisplay,
@@ -98,6 +99,7 @@ export {
     getAttestationsForIdentity,
     getVerificationUrl,
     publishAttestation,
+    readAttestations,
     verifyAttestationById,
 } from './attestation';
 
@@ -113,6 +115,7 @@ export {
     queryByIdentity,
     queryRecent,
     signedEnvelope,
+    type SubjectReadState,
 } from './nostr';
 export {
     getNip07Info,

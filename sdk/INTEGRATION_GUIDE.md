@@ -224,28 +224,26 @@ async function verifyUserIdentities(
 ### Use Case 4: Fetching Attestations from Nostr
 
 ```typescript
-import { getAttestation, getAttestationsForAddress } from '@orangecheck/sdk/attestation';
+import { readAttestations, verifyAttestationById } from '@orangecheck/sdk/attestation';
 
-// Get specific attestation
+// One attestation whose signature verifies, or null.
 async function getAttestationById(id: string) {
-    const attestation = await getAttestation(id);
-
-    if (!attestation) {
-        throw new Error('Attestation not found');
-    }
-
-    return attestation;
+    return verifyAttestationById(id);
 }
 
-// Get all attestations for an address
+// Every attestation for an address. A read the relays did not finish is not
+// "none": say so rather than show an empty list as the answer.
 async function getUserAttestations(address: string) {
-    const attestations = await getAttestationsForAddress(address);
+    const { attestations, unread } = await readAttestations({ address });
 
-    return attestations.map((att) => ({
-        id: att.attestation_id,
-        timestamp: att.timestamp,
-        identities: att.identities,
-    }));
+    return {
+        complete: unread === null,
+        attestations: attestations.map((att) => ({
+            id: att.attestation_id,
+            issuedAt: att.issued_at,
+            identities: att.identities,
+        })),
+    };
 }
 ```
 

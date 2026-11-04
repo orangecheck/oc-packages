@@ -300,6 +300,7 @@ buildCanonicalMessage(...)
 generateAttestationId(msg: string): Promise<string>
 publishAttestation({ envelope, npub, relays? })
 discoverAttestations({ attestationId | address | identity, relays? })
+readAttestations({ attestationId | address | identity, relays? }): { attestations, unread, relays }
 verifyIdentity(attestationId, { protocol, identifier }, options?)
 ```
 

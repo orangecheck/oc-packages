@@ -176,7 +176,7 @@ Learn more: https://ochk.io
 ---
 
 Verification method: .well-known/orangecheck.txt
-Protocol: OrangeCheck Protocol (OCP)
+Protocol: orangecheck protocol (OCP)
 `;
 }
 

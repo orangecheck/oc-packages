@@ -10,11 +10,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildCanonicalMessage, createAttestationEnvelope, discoverAttestations } from '../index';
-import { createAttestationEvent, queryByAddress } from '../nostr';
+import { createAttestationEvent, readByAddress } from '../nostr';
 
 vi.mock('../nostr', async (importOriginal) => ({
     ...(await importOriginal<typeof import('../nostr')>()),
-    queryByAddress: vi.fn(),
+    readByAddress: vi.fn(),
 }));
 
 const ADDR = 'bc1qtest';
@@ -43,12 +43,15 @@ describe('discoverAttestations', () => {
     it('returns one envelope per attestation however many relays hold it', async () => {
         const a = await envelopeFor('0011223344556677889900aabbccddee');
         const b = await envelopeFor('ffeeddccbbaa99887766554433221100');
-        vi.mocked(queryByAddress).mockResolvedValue([
-            eventFor(a, '1'.repeat(64), 1000), // relay one
-            eventFor(a, '1'.repeat(64), 1000), // relay two, same event
-            eventFor(a, '2'.repeat(64), 1005), // republished later: another event id
-            eventFor(b, '3'.repeat(64), 1000),
-        ]);
+        vi.mocked(readByAddress).mockResolvedValue({
+            events: [
+                eventFor(a, '1'.repeat(64), 1000), // relay one
+                eventFor(a, '1'.repeat(64), 1000), // relay two, same event
+                eventFor(a, '2'.repeat(64), 1005), // republished later: another event id
+                eventFor(b, '3'.repeat(64), 1000),
+            ],
+            relays: [],
+        });
         const found = await discoverAttestations({ address: ADDR, relays: ['wss://r'] });
         expect(found.map((e) => e.attestation_id).sort()).toEqual(
             [a.attestation_id, b.attestation_id].sort()
@@ -61,10 +64,13 @@ describe('discoverAttestations', () => {
             ...eventFor(a, '4'.repeat(64), 900),
             content: JSON.stringify({ ...a, message: 'altered' }),
         };
-        vi.mocked(queryByAddress).mockResolvedValue([
-            broken,
-            eventFor(a, '5'.repeat(64), 1000),
-        ]);
+        vi.mocked(readByAddress).mockResolvedValue({
+            events: [
+                broken,
+                eventFor(a, '5'.repeat(64), 1000),
+            ],
+            relays: [],
+        });
         const found = await discoverAttestations({ address: ADDR, relays: ['wss://r'] });
         expect(found).toHaveLength(1);
         expect(found[0]!.message).toBe(a.message);
