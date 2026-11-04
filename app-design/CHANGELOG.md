@@ -178,8 +178,17 @@ optional. What changes is how things look.
   chat's hero. BrowserFrame's glow stays within 3rem of the window.
 - On a phone the legal row's links are 16px apart (20px from md), so the row
   still fits the narrower column.
-- **Migrating:** a site's layout wraps its pages in `<PageFrame>`, with the
-  `SiteHeader` above it and the `SiteFooter` below. A site with its own
+- A `SectionBar`'s hairline stays the width of its content, by choice: it is
+  a label's rule, a level below the frame-wide hairline that bounds a section,
+  so the page reads as two levels of line.
+- **Migrating:** no package shell renders `PageFrame` but `DocsShell`.
+  `ToolShell` and `AppShell` keep their own frames (a tool's column, an app's
+  sidebar). A site that composes `SiteHeader`, its `main` and `SiteFooter` by
+  hand wraps the `main` in `<PageFrame>`, with the header above it and the
+  footer below. That is ochk.io (oc-www), ochk.app's public pages (oc-app-web),
+  chat, vault, cosign, globe and btc. The tool sites (lock, vote, stamp,
+  pledge, agent) are on `ToolShell` and the docs (oc-docs) on `DocsShell`, so
+  they need no wrap. A site with its own
   container, a `max-w-[75rem]` or `max-w-6xl` with its own `px-*` gutter →
   `oca-container`, or `Frame` for a framed block, so its content joins the
   axis. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`) can go.

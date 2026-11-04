@@ -61,11 +61,12 @@ const CEILING = {
     './og': 226_000,
     './fonts': 500,
     './motion': 49_500,
-    // 35.2 KB on 2026-11-04 (whole entry; Radix's slider rides in it). DitherMark's nine baked PNGs, inlined, are 6.0 KB
-    // of that gzipped: 3.5 KB in a chunk it shares with ./og (ink and peach at 240/480/960) and 2.6 KB in its own (the
-    // brand art and the component). Under 10 KB, so it stays in ./blocks; package.json marks every non-CSS file free of
-    // side effects, so a site's bundler can leave those chunks out of a page that draws no mark.
-    './blocks': 41_000,
+    // 35,948 bytes on 2026-11-04 (whole entry; Radix's slider rides in it), the ceiling 15% over. DitherMark's nine baked
+    // PNGs, inlined, are 6.0 KB of that gzipped: 3.5 KB in a chunk it shares with ./og (the 240 and 480 bakes of the
+    // ink, peach and brand marks) and 2.6 KB in its own (the component and the three 960 bakes). Under 10 KB, so it
+    // stays in ./blocks; package.json marks every non-CSS file free of side effects, so a site's bundler can leave
+    // those chunks out of a page that draws no mark.
+    './blocks': 41_340,
 };
 // ./motion on its own: the eight scenes and their loop. 12.0 KB at the DitherImage commit; 12.8 KB now. The
 // 0.8 KB buys the crowd's phone grid, outline ghosts and pair of posters (0.5 KB), the reduced-motion listener

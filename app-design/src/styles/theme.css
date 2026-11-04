@@ -514,12 +514,17 @@
     }
 }
 
+/* Reduced motion: every animation and transition ends at once, delays too. A
+   delayed entrance otherwise held its first frame for the delay (a hero's h1
+   sat 14px low for 70 ms, then snapped up). */
 @media (prefers-reduced-motion: reduce) {
     [data-oc-app='ochk'] *,
     [data-oc-app='ochk'] *::before,
     [data-oc-app='ochk'] *::after {
         animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
     }
 }

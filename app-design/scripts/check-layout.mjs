@@ -63,6 +63,15 @@
  * - A read that fails moves nothing: a LoadError given the rows of the
  *   LoadingBlock it replaces keeps their height, and a LoadingBlock that
  *   times out keeps its own, so the line under either stays where it was.
+ * - A hero's h1 and lead are opaque on the entrance's first frame, in both
+ *   PageHero layouts, a document's header and an ErrorPage, so the first
+ *   paint is their LCP; the rest of the entrance still fades in. No entrance
+ *   or reveal blurs.
+ * - Under reduced motion every entrance and reveal starts at once: no
+ *   animation or transition keeps a delay, so nothing holds its first frame.
+ * - A hero's two actions stack on a phone, each the column's full width, in
+ *   DOM order; from 640px they sit side by side at their own widths. In both
+ *   PageHero layouts, a document's header and an ErrorPage.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -588,6 +597,40 @@ try {
                 // A bar straight after the hero, on the page's own ground, as chat's was: a section with a
                 // ground of its own paints over what runs into it and would hide the fault.
                 h('div', { 'data-s': 'next', className: 'oca-container py-16' }, h(C.SectionBar, { start: 'Next', end: '02' }))
+            )
+        )
+    );
+    // Every hero shape, its entrance read on the first frame.
+    const heroes = page(
+        'heroes',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead of one sentence.' })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', eyebrow: 'Legal', title: 'Privacy policy', lead: 'What we keep, and for how long.' })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', eyebrow: 'Legal', title: 'Terms', lead: 'The terms.' })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null })),
+                h('div', { 'data-reveal': 'pending', 'data-t': 'reveal', style: { '--reveal-delay': '120ms' } }, 'Below the fold.')
+            )
+        )
+    );
+    // The same heroes with a CTA pair of different lengths (ochk.app's was 135 and 172px at 390): a Button,
+    // and a link styled as one through asChild, as ochk.io's protocol pages pass them.
+    const pair = () => [
+        h(P.Button, { key: 'a', size: 'lg', 'data-cta': '' }, 'Get an account'),
+        h(P.Button, { key: 'b', asChild: true, size: 'lg', variant: 'secondary', plus: true }, h('a', { href: '/how', 'data-cta': '' }, 'Read how it works first')),
+    ];
+    const heroActions = page(
+        'hero-actions',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h('div', { 'data-t': 'split' }, h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', title: 'Privacy policy', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', title: 'Terms', lead: 'A lead.', actions: pair() })),
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() }))
             )
         )
     );
@@ -1530,6 +1573,86 @@ try {
                 check(f.biggest[1] <= f.h1, `[${width}] the H1 (${f.h1}px) is not the largest text: ${JSON.stringify(f.biggest)}`);
                 await c.close();
             }
+            // The entrance on its first frame: every animation paused at 0.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(heroes);
+                const e = await c.evaluate(() => {
+                    for (const a of document.getAnimations()) {
+                        a.pause();
+                        a.currentTime = 0;
+                    }
+                    const read = (el) => {
+                        const cs = getComputedStyle(el);
+                        return { opacity: cs.opacity, filter: cs.filter, transform: cs.transform, animation: cs.animationName };
+                    };
+                    return {
+                        heroes: Object.fromEntries(
+                            ['split', 's10', 'document', 'error'].map((t) => {
+                                const s = document.querySelector(`[data-t="${t}"]`);
+                                return [t, { h1: read(s.querySelector('h1')), lead: read(s.querySelector('.oca-lead')), eyebrow: read(s.querySelector('h1').parentElement.querySelector('.oca-enter')) }];
+                            })
+                        ),
+                        blurred: [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).filter.includes('blur')).map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`),
+                        reveal: read(document.querySelector('[data-t="reveal"]')),
+                    };
+                });
+                for (const [t, x] of Object.entries(e.heroes)) {
+                    // The h1 still rises; a lead rises with it, or (a document's) has no entrance.
+                    check(x.h1.opacity === '1' && x.h1.animation === 'oca-enter-lift' && x.h1.transform !== 'none', `[${width}] ${t} hero's h1 is not opaque and rising on the entrance's first frame: ${JSON.stringify(x.h1)}`);
+                    check(x.lead.opacity === '1' && ['oca-enter-lift', 'none'].includes(x.lead.animation), `[${width}] ${t} hero's lead is not opaque on the entrance's first frame: ${JSON.stringify(x.lead)}`);
+                    check(x.eyebrow.opacity === '0', `[${width}] ${t} hero's eyebrow no longer fades in (opacity ${x.eyebrow.opacity} on the first frame)`);
+                }
+                check(e.blurred.length === 0, `[${width}] an entrance blurs on its first frame: ${e.blurred.join(', ')}`);
+                check(e.reveal.opacity === '0' && !e.reveal.filter.includes('blur'), `[${width}] a pending Reveal is blurred or not hidden: ${JSON.stringify(e.reveal)}`);
+                await c.close();
+            }
+            // Reduced motion: no animation or transition waits out a delay. Without it the entrances keep theirs.
+            {
+                const delays = async (reduce) => {
+                    const c = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: reduce ? 'reduce' : 'no-preference' });
+                    await c.goto(heroes);
+                    const d = await c.evaluate(() => {
+                        const all = [...document.querySelectorAll('*')];
+                        return {
+                            animated: all.filter((el) => getComputedStyle(el).animationName !== 'none').map((el) => [`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)}`, getComputedStyle(el).animationDelay]),
+                            reveal: getComputedStyle(document.querySelector('[data-t="reveal"]')).transitionDelay,
+                        };
+                    });
+                    await c.close();
+                    return d;
+                };
+                const [still, moving] = [await delays(true), await delays(false)];
+                const held = still.animated.filter(([, delay]) => delay !== '0s');
+                check(still.animated.length > 0 && held.length === 0, `[${width}] under reduced motion an entrance still waits out its delay: ${JSON.stringify(held)}`);
+                check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
+                check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
+            }
+            // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(heroActions);
+                await c.evaluate(() => document.fonts.ready);
+                const a = await c.evaluate(() =>
+                    Object.fromEntries(
+                        ['split', 's10', 'document', 'error'].map((t) => {
+                            const [x, y] = [...document.querySelectorAll(`[data-t="${t}"] [data-cta]`)].map((b) => b.getBoundingClientRect());
+                            const col = document.querySelector(`[data-t="${t}"] [data-cta]`).parentElement.parentElement;
+                            const cs = getComputedStyle(col);
+                            const inner = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                            return [t, { widths: [Math.round(x.width), Math.round(y.width)], column: Math.round(inner), stacked: y.top >= x.bottom, level: Math.abs(x.top - y.top) < 1, order: x.top < y.top || (x.top === y.top && x.left < y.left) }];
+                        })
+                    )
+                );
+                for (const [t, m] of Object.entries(a)) {
+                    if (width < 640) {
+                        check(m.stacked && m.order && m.widths.every((w) => Math.abs(w - m.column) <= 1), `[${width}] ${t} hero's two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
+                    } else {
+                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${width}] ${t} hero's two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
+                    }
+                }
+                await c.close();
+            }
             // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
@@ -1875,4 +1998,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions`);
