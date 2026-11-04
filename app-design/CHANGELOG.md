@@ -14,7 +14,7 @@ on its own.
 below.** Every export, prop and entry of 1.29.3 keeps its name, and the new
 props are optional. What changes is how things look and a few defaults.
 
-It landed as six units on oc-packages main:
+It landed in these units on oc-packages main:
 
 - the foundation (`b1efeaa7`): tokens, shape, type, primitives, components
   and chrome;
@@ -23,9 +23,14 @@ It landed as six units on oc-packages main:
 - `./motion` (`ed542302`): the dot scenes on one loop that sleeps;
 - `./og` and `./art/*` (`ec9df56b`, `e9a18ba3`, `f15962a3`): social cards and
   bento tiles with the baked dither art;
-- `./blocks` (`f642df4f`): the prototype's product blocks;
+- `./blocks` (`f642df4f`): the prototype's product blocks, and its
+  follow-up (`5553c70a`);
 - the chrome follow-up (`0ccbacd0`, `4bf8b67a`): one lockup in all chrome,
-  and `THEME_COLOR`.
+  and `THEME_COLOR`;
+- the hero entrance (`1c3fba2e`, `26c0a79b`, `ad1669bd`, `c82db4ff`): the
+  hero's title and lead readable at first paint, and its actions on a phone;
+- the tokens follow-up (`f4cfba94`): every band holds its contrast, every
+  state shows a 3:1 edge, and targets are 44px in both axes;
 
 ### Migrating from 1.x
 
@@ -350,14 +355,15 @@ after, starting with what to grep for.
   - a JSON panel's Formatted / Raw toggle (1.45:1 on the code bar) is ringed
     in the bar's subtle text.
 
-  Menu and select items already ring their highlight in `--ring`, and
-  check-contrast now names that variant too. check-layout reads every
-  rendered current, selected, pressed, active or highlighted element,
-  however a script chose it. Its fill must be 3:1 on the ground under it,
-  or an edge must be 3:1 on both the fill and that ground. This covers every
-  page it loads, plus a states page in light and dark. On the build before
-  the fix it failed on all three. Every page check-layout writes is now
-  loaded through the same checks, the hero pages included.
+  Menu and select items already ring their highlight in `--ring`.
+  check-contrast holds that highlighted variant, and check-focus measures
+  the ring on an open menu. check-layout reads every rendered current,
+  selected, pressed or active element, however a script chose it. Its fill
+  must be 3:1 on the ground under it, or an edge must be 3:1 on both the
+  fill and that ground. This covers every page it loads, plus a states page
+  in light and dark. On the build before the fix it failed on all three.
+  Every page check-layout writes is now loaded through the same checks, the
+  hero pages included.
 - No text is under 12px. Inline code is `max(0.875em, 0.75rem)`; in a 13px
   table head it was 11.375px. The same floor now applies to the base
   `code`, `kbd` and `samp` size (`0.92em`), to a heading's `#` anchor and to
@@ -452,6 +458,8 @@ after, starting with what to grep for.
 
 ### Motion
 
+- The hero title and lead are readable at first paint: they rise without
+  fading, and no entrance blurs.
 - New custom properties: `--oca-ease-out`, `--oca-ease-glide`,
   `--oca-duration-quick/-base/-slow/-reveal` (200/300/500/1000ms),
   `--oca-stagger-centre` (40ms) and `--oca-stagger-list` (60ms). Tailwind
@@ -483,6 +491,8 @@ after, starting with what to grep for.
 - `Faq` defaults to `variant="rule"`. **Migrate**: pass `variant="card"` to
   keep the framed panel.
 - `PageHero` takes `ground`: `paper` (default), `ink` or `brand`.
+- A hero's two actions stack full width on phones, equal in width; side by
+  side from 640px.
 - `Section` takes tone `burnt` and `rule` (a full-width hairline under it).
   Its `ink`, `burnt` and `brand` bands now re-point `--foreground`,
   `--muted-foreground`, `--oca-subtle-foreground` and `--border`, and
