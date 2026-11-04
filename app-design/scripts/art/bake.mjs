@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /*
  * Bakes the family's generated art into ./art (published as
- * @orangecheck/app-design/art/*): AVIF and PNG at display size, for a page
- * to show in a <picture> and for an OG route to draw (satori reads the PNG).
+ * @orangecheck/app-design/art/*): PNG at display size, for a page and for an
+ * OG route to draw (satori reads the PNG), and AVIF beside it only where the
+ * AVIF is the smaller file. 1-bit dither is not: its AVIF is 5 to 12 times
+ * its PNG, so it ships as PNG alone.
  *
  *   node scripts/art/bake.mjs           write ./art
- *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake
+ *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake,
+ *                                       or holds an AVIF bigger than its PNG
  *
  * Everything is drawn from geometry and a seeded noise, never from a
  * photograph (PLAN §6), so a bake is the same bytes every time:
@@ -20,7 +23,7 @@
  * 1-bit dither image costs (design2/forensics/SUMMARY-subpages.md).
  * sharp (a devDependency) encodes; nothing here runs in a site.
  */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -236,7 +239,8 @@ for (const [name, img, ground] of pieces) {
         if (avif.length <= BUDGET) break;
     }
     files.set(`${name}.png`, png);
-    files.set(`${name}.avif`, avif);
+    // An AVIF ships only when it is smaller than the PNG; otherwise a <picture> would pay more for it.
+    if (avif.length < png.length) files.set(`${name}.avif`, avif);
 }
 
 if (CHECK) {
@@ -260,13 +264,16 @@ if (CHECK) {
             bad++;
         }
     }
+    // Anything else fails too, an AVIF that lost to its PNG among them.
     const extra = readdirSync(OUT).filter((f) => !files.has(f) && f !== 'README.md');
-    for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script`), bad++);
+    for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script${f.endsWith('.avif') ? ', or is bigger than its PNG' : ''}`), bad++);
     if (bad) process.exit(1);
     console.log(`✓ art: ${files.size} files match a fresh bake, each within ${BUDGET / 1024} KB`);
 } else {
     mkdirSync(OUT, { recursive: true });
     for (const [f, buf] of files) writeFileSync(join(OUT, f), buf);
+    // A file this bake no longer makes (an AVIF that lost to its PNG) leaves ./art.
+    for (const f of readdirSync(OUT)) if (!files.has(f) && f !== 'README.md') rmSync(join(OUT, f));
     const over = [...files].filter(([, buf]) => buf.length > BUDGET).map(([f]) => f);
     if (over.length) console.error(`✗ art: over the ${BUDGET / 1024} KB budget: ${over.join(', ')}`);
     for (const [f, buf] of files) console.log(`${f.padEnd(28)} ${(buf.length / 1024).toFixed(1)} KB`);
