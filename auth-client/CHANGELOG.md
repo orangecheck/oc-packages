@@ -9,6 +9,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.0] — 2026-11-04
+
+### Changed
+
+- The opt-in under `<OcSignIn>` ("After signing in, also link…") is drawn as
+  app-design 2.0's checkbox, not the browser's. It is a 20px square with a
+  hairline in `--input`, filled with `--primary` and showing a check mark in
+  `--primary-foreground` when checked. Before, it was the platform's 13px
+  native checkbox, rounded and tinted by `accent-color`. It is still a real
+  `<input type="checkbox">` inside its label, so the whole 44px row checks it
+  and the props are unchanged. A site that styled
+  `[data-oc-signin-linkalso] input` should check how it now looks.
+
 ### Fixed
 
 - `<OcAccountChip>`'s default `dashboardUrl` is `https://ochk.app/me/account`,
