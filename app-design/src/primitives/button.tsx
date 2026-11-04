@@ -3,6 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
+import { useDensity } from '../lib/density';
 import { Spinner } from './feedback';
 
 /*
@@ -84,11 +85,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     ref
 ) {
     const Comp = asChild ? Slot : 'button';
+    // Under a tool's compact density a default button is `sm`, the height of the fields beside it
+    // (36px drawn, 44px to a thumb), so a Field's action lines up with its input.
+    const density = useDensity();
+    const s = size ?? (density === 'compact' ? 'sm' : undefined);
     return (
         <Comp
             ref={ref}
             data-ui="button"
-            className={cn(buttonVariants({ variant, size }), className)}
+            className={cn(buttonVariants({ variant, size: s }), className)}
             disabled={asChild ? undefined : disabled || loading}
             aria-busy={loading || undefined}
             type={asChild ? undefined : (type ?? 'button')}

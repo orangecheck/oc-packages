@@ -68,6 +68,12 @@ optional. What changes is how things look.
   footer's wordmark ran 79px past its frame at 1440. check-layout measures
   the wordmark on that stack, and its spread check's comment now says the
   0.05em it tests.
+- Under a tool's compact density, a `Button` with no `size` is `sm`: 36px
+  drawn and 44px to a thumb, the height of the fields beside it. A Field's
+  action no longer stands 8px taller than its input (vote /discover). An
+  explicit `size` is kept.
+- `@orangecheck/app-design/package.json` is exported, so a site can read the
+  installed version (`require('@orangecheck/app-design/package.json')`).
 
 ### Tokens (`tokens.css`, `appColors`)
 

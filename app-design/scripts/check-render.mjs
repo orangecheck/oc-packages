@@ -62,6 +62,13 @@ const html = (el) => renderToStaticMarkup(el);
     check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
 }
 
+// Under a tool's compact density a default Button is `sm`, the height of the field beside it; an explicit size stays.
+{
+    const compact = (el) => html(h(P.DensityProvider, { density: 'compact' }, el));
+    check(/\bh-9\b/.test(compact(h(P.Button, null, 'Open'))), 'Button: under compact density a default button is not sm (36px), so it stands taller than its field');
+    check(/\bh-11\b/.test(compact(h(P.Button, { size: 'md' }, 'Open'))), 'Button: an explicit size is overridden by density');
+    check(/\bh-11\b/.test(html(h(P.Button, null, 'Open'))), 'Button: the default size changed outside compact density');
+}
 // Button's trailing "+" survives asChild: the link it renders carries the "+" after its text.
 {
     const link = html(h(P.Button, { asChild: true, plus: true }, h('a', { href: '/start' }, 'Get started')));
