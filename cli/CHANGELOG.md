@@ -12,6 +12,12 @@ this file tracks the package's TS / Node / runtime API surface.
 - Requires `@orangecheck/sdk` ^1.21.0 (it was ^1.7.0), the release whose
   `check()` names a coin it could not read (`chain_unread`, `utxo_cap_unread`,
   `provider_refused_unread`) and never puts `below_min_*` beside it.
+- Requires `@orangecheck/chat-core` ^0.1.1 (it was ^0.1.0). 0.1.0's version
+  read stopped on a page it could not get past, such as more than 500 events
+  in one second under a channel's tag, and called that read complete. So 0.4.0's
+  cut-off rule never saw it, and `oc chat verify --channel` printed FAILED for a
+  channel whose genesis the flood hid. 0.1.1 marks that read cut off, so the
+  verdict is NOT READ, exit 2.
 
 ### Changed
 

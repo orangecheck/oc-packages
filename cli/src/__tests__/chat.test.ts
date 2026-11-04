@@ -837,6 +837,17 @@ describe('oc chat verify: a version read cut off at its bound is not an answer (
         expect(stdout).not.toContain('FAILED');
     });
 
+    // chat-core pages its open read with an inclusive `until`, so 600 events in one second
+    // bring back the same full page every time. Before 0.1.1 that read stopped there as if
+    // complete, and the genesis it never reached read as absent.
+    it("a flood in one second the read cannot page past, with no founder named: can't tell, NOT READ, exit 2", async () => {
+        const stuck = flood.slice(0, 600).map((e) => ({ ...e, created_at: genesis.created_at + 1000 }));
+        expect(await run({ channel: genesis.channel_id }, limitedNet([version, founder.record, ...stuck]))).toBe(2);
+        expect(stdout).toContain("can't tell");
+        expect(stdout).toContain('NOT READ');
+        expect(stdout).not.toContain('FAILED');
+    });
+
     it('the same flood with the founder named: the founder’s keys were read in full, so the answer stands', async () => {
         expect(await run({ channel: genesis.channel_id, founder: FOUNDER, json: true }, limitedNet([version, founder.record, ...flood]))).toBe(0);
         expect(JSON.parse(stdout).verdict).toBe('verified');
