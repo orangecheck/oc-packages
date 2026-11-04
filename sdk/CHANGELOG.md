@@ -17,17 +17,17 @@ this file tracks the package's TS / Node / runtime API surface.
   Nothing ever read that record, so anyone who followed it could never
   verify. The instructions now end "Only this file is checked. DNS records
   are not read."
-- `DnsVerificationResult.method` is `'well-known'` only. `'dns-txt'` was in
-  the type but never set. A TypeScript caller that compares
-  `method === 'dns-txt'` now gets a compile error, for a branch that could
-  never run.
+- `DnsVerificationResult.method` is always `'well-known'`. `'dns-txt'` was
+  never set; it stays in the type, documented as deprecated, so a caller that
+  compares against it still compiles under `^1`, and is removed in 2.0.
 - `getTwitterVerificationInstructions` stops asking for a URL to paste and
   stops promising that "the verification will check that the tweet exists".
   `verifyTwitterIdentity` cannot read X and never verifies a tweet. The
   instructions now say to share the tweet's URL and that a tweet is checked
   by hand. The text people post (`generateTweetText`, the X and Nostr
-  instructions) says "orangecheck", lowercase. Checks look only for the
-  attestation ID, so posts made with the old text still pass.
+  instructions, the GitHub gist template and instructions, and the
+  well-known file heading) says "orangecheck", lowercase. Checks look only for
+  the attestation ID, so posts and files made with the old text still pass.
 
 ## [1.21.0] — 2026-11-03
 

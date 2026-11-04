@@ -38,11 +38,13 @@ function isSafePublicHost(host: string): boolean {
 export interface DnsVerificationResult {
     verified: boolean;
     /**
-     * How the domain was checked: its https://<domain>/.well-known/orangecheck.txt
-     * file, the only proof read. (Before 1.22.0 this also allowed 'dns-txt',
-     * which was never set: no DNS record is read.)
+     * How the domain was checked: always 'well-known', its
+     * https://<domain>/.well-known/orangecheck.txt file, the only proof read.
+     * 'dns-txt' is deprecated: it is never set (no DNS record is read) and is
+     * removed in 2.0. It stays in the type so a caller that compares against it
+     * still compiles under ^1.
      */
-    method?: 'well-known';
+    method?: 'well-known' | 'dns-txt';
     url?: string;
     error?: string;
 }
@@ -142,7 +144,7 @@ export function getDnsVerificationInstructions(attestationId: string, domain: st
 1. Create a file at: https://${cleanDomain}/.well-known/orangecheck.txt
 2. Add this content to the file:
 
-   OrangeCheck Attestation Verification
+   orangecheck attestation verification
    Domain: ${cleanDomain}
    Attestation ID: ${attestationId}
    Timestamp: ${new Date().toISOString()}
@@ -159,7 +161,7 @@ Only this file is checked. DNS records are not read.`;
 export function generateWellKnownContent(attestationId: string, domain: string): string {
     const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-    return `OrangeCheck Attestation Verification
+    return `orangecheck attestation verification
 =====================================
 
 Domain: ${cleanDomain}
