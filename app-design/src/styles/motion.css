@@ -131,11 +131,11 @@
 
 /* ── Reveal ───────────────────────────────────────────────────────────────
    Set by Reveal only for content below the fold at mount, so nothing is
-   hidden without script and nothing above the fold flashes. */
+   hidden without script and nothing above the fold flashes. No blur: a
+   filter over a block of text drops frames on a slow phone. */
 [data-oc-app='ochk'] [data-reveal='pending'] {
     opacity: 0;
     transform: translateY(18px);
-    filter: blur(6px);
 }
 
 /* The footer's giant wordmark rises letter by letter, centre-out, the first
@@ -144,7 +144,6 @@
 [data-oc-app='ochk'] [data-reveal]:has(> [data-oca-wordmark]) {
     opacity: 1;
     transform: none;
-    filter: none;
 }
 [data-oc-app='ochk'] [data-reveal] > [data-oca-wordmark] > span {
     transition: transform var(--oca-duration-reveal) var(--oca-ease-out);
@@ -158,8 +157,7 @@
 [data-oc-app='ochk'] [data-reveal] {
     transition:
         opacity 800ms cubic-bezier(0.2, 0.7, 0.2, 1),
-        transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1),
-        filter 800ms cubic-bezier(0.2, 0.7, 0.2, 1);
+        transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
     transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -179,21 +177,39 @@
 
 /* ── Entrance ─────────────────────────────────────────────────────────────
    A page's opening settles in once on load: CSS only, so it plays without
-   script and stops under reduced motion like everything else. */
+   script and stops under reduced motion like everything else. No blur: a
+   filter over a block of text drops frames on a slow phone, and a 750 ms
+   entrance ran 2-3 s. */
 @keyframes oca-enter {
     from {
         opacity: 0;
         transform: translateY(14px);
-        filter: blur(5px);
     }
     to {
         opacity: 1;
         transform: none;
-        filter: none;
     }
 }
 
 @utility oca-enter {
     animation: oca-enter 750ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+}
+
+/* A hero's h1 and lead: the same rise, opaque from the first frame. They are
+   the page's largest text, and Chrome takes an element for LCP only when it
+   paints it visible. Faded in, ochk.io's lead waited for a repaint, in 3 loads
+   of 10 until the fade's last frame (LCP 2.0-3.0 s on a phone, not ~0.9 s). */
+@keyframes oca-enter-lift {
+    from {
+        transform: translateY(14px);
+    }
+    to {
+        transform: none;
+    }
+}
+
+@utility oca-enter-lift {
+    animation: oca-enter-lift 750ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
     animation-delay: var(--enter-delay, 0ms);
 }
