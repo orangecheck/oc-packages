@@ -23,7 +23,7 @@ It landed as six units on oc-packages main:
 - `./motion` (`ed542302`): the dot scenes on one loop that sleeps;
 - `./og` and `./art/*` (`ec9df56b`, `e9a18ba3`, `f15962a3`): social cards and
   bento tiles with the baked dither art;
-- the blocks;
+- `./blocks` (`f642df4f`): the prototype's product blocks;
 - the chrome follow-up (`0ccbacd0`, `4bf8b67a`): one lockup in all chrome,
   and `THEME_COLOR`.
 
@@ -133,6 +133,7 @@ section. Each line below is before → after, starting with what to grep for.
   data URIs for an OG route.
 - `./art/*`: the baked art as files, for pages: the dither mark (plain,
   `-brand` and `-ink`) at its sizes, and the dither and halftone fields.
+- `./blocks`: the product blocks, under "Blocks" below.
 - `./package.json`: so a site can read the installed version.
 
 ### Foundation follow-up
@@ -308,7 +309,8 @@ section. Each line below is before → after, starting with what to grep for.
   numerals. Small orange text is `--oca-accent-ink` `#9a3412`.
 - New: `--oca-surface` and `--oca-surface-foreground` for the product
   surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
-  in dark. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  in dark. `--oca-surface-muted` is its secondary text (`#5e5852`, dark
+  `#a39d97`), which a band never re-points. The bands are new too: `--oca-burnt*` (the dark brown stage),
   `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
   `--oca-brand-line`.
 - Status colours are re-tuned for paper: `--destructive` `#b21d26`,
@@ -415,6 +417,79 @@ section. Each line below is before → after, starting with what to grep for.
   and check-contrast holds each band's text and ring on its ground.
 - `AppShell`, `DocsShell`, `ToolShell` and the family menu keep their
   layouts and go square.
+
+### Blocks (`./blocks`, new)
+
+A new entry, so a site that uses none of them pays nothing. Words are
+props; the defaults are neutral placeholders ("Label", "Value") a site
+replaces with its own copy, so a missing prop shows nothing untrue.
+
+- `SignInDemo` (and `signInDemoSteps(copy)`): our sign-in played on a
+  made-up app in a paper `BrowserFrame`: the app's own sign-in with its
+  other ways in, then the email and the code under one step, then "You're
+  in" with what it took. A step holds one or more screens. It plays only
+  while a third of it is on screen in a shown tab, plays through once and
+  rests. The first press, key or focus stops it for good; the step buttons
+  then drive it, and each step is said once. Nothing is said while it
+  plays. "Try again" (a real button, `tryAgain`) plays it from the start;
+  at the end the cursor rests on it, and there is no cursor at all under
+  reduced motion.
+  Under reduced motion it shows the first step with the buttons. `success`
+  is a render prop (a MiniCheck). Every string is in `copy`.
+- `Slider` (also in `./primitives`, so the root entry carries it, and
+  Radix's slider with it, in `index.js` too): Radix's, square, its value in
+  words through `valueText`. The thumb's own box is the 44px target, with
+  the 18px square in its middle; the track and the ticks are inset by half
+  a thumb, so the square, the fill's end and a tick meet at every value.
+- `CostDemo`: two sliders step through the bars an app can set (`amounts`,
+  `dayStops`), in the site's words (`amountText`, `dayText`, and the short
+  ticks `amountTick` and `dayTick`). One total for a crowd of accounts
+  (`cost`, the site's own function), a real person's verdict that follows
+  the bar (`labels.personBody(bar, passes)`; badges "Gets in" and "Under
+  this bar", ruling 11), and a line under the total (`labels.farmBody(bar)`).
+  Once a change settles the total is said, and the verdict with it when the
+  person crossed the bar (`labels.costSaid`, `labels.verdictSaid`). The
+  crowd is one element with one sweep per change, none under reduced
+  motion. `id`, `role` and `aria-label` reach its root. `costText(sats)` is
+  the total's own formatting, exported for a site's copy: BTC once it reaches
+  a hundredth of one, sats below that, as `{ value, unit }`.
+- `ReceiptCard`: `facts` (when, paid to, pricing) above mono rows whose
+  amounts line up on the decimal point; an amount may be any node (a struck
+  original beside the new one). The split is one bar, each share in its
+  percentage or its own `value` ("192 sats"). Secondary text is the new
+  `--oca-surface-muted` token, which no band re-points. `id`, `role` and
+  `aria-label` reach its root.
+- `StepPath`: drawn on view, still under reduced motion, including after
+  hydration (the server's answer is "not still", and the line used to stay
+  hidden). The end labels run inward from their node and every label wraps
+  inside the path's own box, from 320px up.
+- `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
+  halftone in a strip its words keep clear of).
+- `DitherMark`: the baked two-tone dither of the mark (`./art`), the ink top
+  face on a light ground, the peach one on a dark ground, and ink alone on
+  brand orange (`ground`: `light`, `dark`, `brand`, or `theme`, the default,
+  which follows the page). It is
+  PNG only: for 1-bit dither the AVIF is 5 to 12 times the PNG at every
+  size, so an AVIF would only cost bytes. The PNGs are inlined as data URIs,
+  so it needs no asset pipeline: 0.7 KB of HTML at `sm`, 1.8 KB at `md`,
+  2.7 KB at `lg`, 3.4 KB when a class sizes it with `sizes`, and twice that
+  with `ground="theme"`. `size` is 120, 240 or 480px, each drawn from the
+  art's own 1x and 2x; the image keeps its 2:1 box, so nothing shifts as it
+  loads. The widths changed from the placeholder's 96/192/384. Its nine
+  PNGs are 6.0 KB of the ./blocks entry gzipped (check-budget keeps the
+  entry under its ceiling).
+- The window, the receipt and each tile keep their own colours inside a
+  band; the step list, the slider and the path take the band's.
+
+### Data parts
+
+- `SplitBar`, `StatGrid`/`StatCard`, `KeyValueList`, `DataTable` and
+  `CodeBlock` go square. A grid's stat cards become hairline cells with a
+  mono label over a light figure that sizes to its cell. Table headers,
+  phone-card keys and the code caption take the mono label. No prop changes.
+- `BrowserFrame` takes `variant="paper"` (the product surface, the 12px
+  depiction corner, the depiction shadow), `glow` (the orange light behind
+  it) and `url={null}` (no address). The default look is unchanged.
 
 ## [1.29.3] — 2026-10-29
 

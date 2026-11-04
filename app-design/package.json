@@ -95,6 +95,11 @@
       "import": "./dist/fonts.mjs",
       "require": "./dist/fonts.js"
     },
+    "./blocks": {
+      "types": "./dist/blocks.d.ts",
+      "import": "./dist/blocks.mjs",
+      "require": "./dist/blocks.js"
+    },
     "./og": {
       "types": "./dist/og.d.ts",
       "import": "./dist/og.mjs",
@@ -119,7 +124,7 @@
   "scripts": {
     "build": "node scripts/gen-palette.mjs && rm -rf dist && tsup && rm -rf dist/m && yarn copy:css",
     "copy:css": "rm -rf dist/styles && mkdir -p dist/styles && cp src/styles.css dist/styles.css && cp -R src/styles/. dist/styles/",
-    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-surface.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-idle-motion.mjs && node scripts/check-budget.mjs && node scripts/check-next.mjs && node scripts/art/bake.mjs --check && node scripts/check-compile-scope.mjs",
+    "test": "node scripts/check-contrast.mjs && node scripts/check-swagger.mjs && node scripts/check-og.mjs && node scripts/check-isolation.mjs && node scripts/check-shell.mjs && node scripts/check-mirror.mjs && node scripts/check-code.mjs && node scripts/check-entries.mjs && node scripts/check-surface.mjs && node scripts/check-registry.mjs && node scripts/check-render.mjs && node scripts/check-dom.mjs && node scripts/check-format.mjs && node scripts/check-fixtures.mjs && node scripts/check-layout.mjs && node scripts/check-focus.mjs && node scripts/check-idle.mjs && node scripts/check-idle-motion.mjs && node scripts/check-blocks.mjs && node scripts/check-budget.mjs && node scripts/check-next.mjs && node scripts/art/bake.mjs --check && node scripts/check-compile-scope.mjs",
     "dev": "tsup --watch",
     "type-check": "tsc --noEmit && tsc -p tsconfig.stories.json",
     "clean": "rm -rf dist"
@@ -137,6 +142,7 @@
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slider": "^1.6.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",

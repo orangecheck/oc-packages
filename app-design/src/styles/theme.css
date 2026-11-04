@@ -66,6 +66,7 @@
     --color-oca-code-link: var(--oca-code-link);
     --color-oca-surface: var(--oca-surface);
     --color-oca-surface-foreground: var(--oca-surface-foreground);
+    --color-oca-surface-muted: var(--oca-surface-muted);
     --color-oca-primary-hover: var(--oca-primary-hover);
     --color-oca-ring-on-fill: var(--oca-ring-on-fill);
     --color-oca-burnt: var(--oca-burnt);

@@ -42,14 +42,15 @@ const html = (el) => renderToStaticMarkup(el);
 // 2.0 is square: every rounded- class in the source is square (rounded-none), a depiction's
 // (rounded-depict), a tile's (rounded-tile) or its parent's (rounded-[inherit]). Round by meaning
 // only: a dot (rounded-full on a size-* box or the inset-0 halo filling one, with no padding), and
-// in the brand art, an app's monogram, an avatar and a depicted device. The stylesheets' own
+// in the brand art, an app's monogram, an avatar, a depicted device, and the made-up app the sign-in
+// demo draws inside its window (a product keeps its own corners). The stylesheets' own
 // border-radius is a radius token or nothing.
 {
     const { readdirSync, readFileSync, statSync } = require('node:fs');
     const src = join(here, '../src');
     const walk = (d, ext) =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f), ext) : ext.test(f) && !/\.(stories|test)\.tsx?$/.test(f) ? [join(d, f)] : []));
-    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames))\.tsx$/;
+    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames)|blocks\/sign-in-demo)\.tsx$/;
     const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
     const rounded = [];
     for (const f of walk(src, /\.tsx?$/)) {

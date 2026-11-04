@@ -36,6 +36,8 @@
     /* The product surface: inputs, tables, receipts and mock screens. */
     --oca-surface: #ffffff;
     --oca-surface-foreground: #161412;
+    /* Secondary text drawn on the surface; no band re-points it, so a receipt or mock screen keeps it inside one. */
+    --oca-surface-muted: #5e5852;
 
     /* Actions: page CTAs are deep orange with white text; a brand (orange) fill
        takes ink text. White on orange is never used (2.80:1). */
@@ -244,6 +246,7 @@
     --accent-foreground: #eeeae6;
     --oca-surface: #1c1916;
     --oca-surface-foreground: #eeeae6;
+    --oca-surface-muted: #a39d97;
 
     --primary: #c2410c;
     --primary-foreground: #ffffff;
