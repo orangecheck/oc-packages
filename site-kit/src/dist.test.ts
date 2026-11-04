@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * Needs `yarn build` first; CI builds before it tests.
  */
 const DIST = join(__dirname, '..', 'dist');
-const ENTRIES = ['seo', 'headers', 'auth', 'og', 'sitemap', 'analytics', 'rate'];
+const ENTRIES = ['seo', 'headers', 'auth', 'og', 'sitemap', 'analytics', 'rate', 'document'];
 
 describe('built entries load under plain Node', () => {
     it('dist exists', () => {

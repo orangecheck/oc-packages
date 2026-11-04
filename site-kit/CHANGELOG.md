@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0
+
+A new entry, `./document`, holds `ThemeColorMeta` for a site's `_document`
+`<Head>`. It draws the two `theme-color` metas, light and dark, from
+app-design's `THEME_COLOR`: the page's ground, generated from tokens.css with
+the CSS variables. Every family `_document` typed 1.x's `#fafafa` and `#0a0a0a`
+by hand; under app-design 2.0 the ground is `#eeeae6` and `#0e0c0b`, and a site
+that renders `<ThemeColorMeta />` follows it with no hex of its own.
+
+`@orangecheck/app-design` moves to ^2.0.0, as a peer (still optional, for
+`./og` and `./document`) and for development.
+
 ## 0.7.2
 
 `createOgHandler` keeps each card a day, `public, max-age=86400,
