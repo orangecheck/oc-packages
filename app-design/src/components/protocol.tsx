@@ -79,7 +79,7 @@ export function ProtocolNav({
                                     href={link === 'tool' ? p.toolHref : p.pageHref}
                                     aria-current={on ? 'page' : undefined}
                                     className={cn(
-                                        '-mb-px inline-flex h-11 items-center border-b-2 text-[0.9375rem] transition-colors',
+                                        '-mb-px inline-flex h-11 items-center justify-center border-b-2 text-[0.9375rem] transition-colors pointer-coarse:min-w-11',
                                         on
                                             ? 'border-foreground text-foreground'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'

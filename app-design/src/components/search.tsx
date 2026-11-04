@@ -59,8 +59,8 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
             onClick={onClick}
             aria-keyshortcuts={mac ? 'Meta+K' : 'Control+K'}
             className={cn(
-                'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card',
+                'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:size-11',
+                'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card md:pointer-coarse:h-11 md:pointer-coarse:w-56',
                 className
             )}
         >

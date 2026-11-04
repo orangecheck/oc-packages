@@ -183,6 +183,44 @@ try {
             `  <div className="flex flex-col gap-10 p-4"><div data-case="fails"><Fails />{below}</div><div data-case="late"><LoadingBlock timeoutMs={400} onRetry={() => {}} />{below}</div></div>\n` +
             `);\n`
     );
+    // Code blocks whose long line scrolls: the scroller becomes a tab stop only once it has measured, on the client.
+    writeFileSync(
+        join(dir, 'coderegion.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `const host = 'alice.btc.calendar.opentimestamps.org';\n` +
+            `createRoot(document.getElementById('root')).render(\n` +
+            `  <div className="flex flex-col gap-6 p-4"><CodeBlock code={'curl https://' + host + '/digest/' + 'f'.repeat(64)} caption="A long line" /><CodeTabs items={[{ label: 'curl', lang: 'bash', code: 'curl https://' + host + '/digest/' + 'e'.repeat(64) }, { label: 'node', lang: 'js', code: 'fetch(url)' }]} /></div>\n` +
+            `);\n`
+    );
+    writeFileSync(
+        join(dir, 'dialogclose.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { Dialog, DialogContent, DialogTitle } from '${join(pkg, 'src/primitives/overlay.tsx')}';\n` +
+            `createRoot(document.getElementById('root')).render(<Dialog defaultOpen><DialogContent><DialogTitle>A dialog</DialogTitle><p>Its body.</p></DialogContent></Dialog>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'dialogclose.jsx')],
+        outfile: join(dir, 'dialogclose.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'coderegion.jsx')],
+        outfile: join(dir, 'coderegion.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        // The highlighter reads process.env outside its bundler.
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'loaderr.jsx')],
         outfile: join(dir, 'loaderr.js'),
@@ -231,7 +269,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -581,6 +619,75 @@ try {
         'touch-rail',
         renderToStaticMarkup(h(Ch.AppShell, { variant: 'rail', nav: [{ items: [{ href: '/c', label: 'Chats', icon, active: true }, { href: '/s', label: 'Settings', icon }] }] }, h('p', null, 'x')))
     );
+    // Reflow: shapes that moved a page sideways. A framed Section clipped 4px out on both axes (its focus
+    // reach), so a glow at the frame's edge scrolled a frame-wide page by that much: the drawn windows of
+    // chat's and vault's heroes from 768, and ochk.io /about's tilting mark at 320. Each in a PageFrame and bare.
+    const Br = require(join(pkg, 'dist/brand.js'));
+    const glowWindow = (props, tall) => h(C.BrowserFrame, { url: 'ochk.io', glow: true, ...props }, h('div', { style: { height: tall } }, 'A drawn window'));
+    const reflowShapes = [
+        ['a hero with a glowing window', h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', art: glowWindow({}, 240) })],
+        // chat's: an ink hero, a paper window.
+        ['chat hero', h(C.PageHero, { ground: 'ink', title: 'Messages only they can read.', lead: 'A lead.', art: glowWindow({ variant: 'paper' }, 260) })],
+        // vault's: the window centred in its column at max-w-md, a proof row in an unpadded Frame under it.
+        [
+            'vault hero',
+            h(
+                'div',
+                null,
+                h(C.PageHero, { title: 'A vault only you can open.', lead: 'A lead.', art: h('div', { className: 'relative min-w-0' }, glowWindow({ variant: 'paper', className: 'mx-auto w-full max-w-md' }, 200)) }),
+                h(C.Frame, { padded: false }, h('ul', { className: 'grid grid-cols-2 gap-px bg-border' }, ['One', 'Two', 'Three', 'Four'].map((l) => h('li', { key: l, className: 'bg-background p-4' }, l))))
+            ),
+        ],
+        // ochk.io /about's: a 300px mark that tilts, its glow 120% of it, in a framed section.
+        ['IsoCheck in a framed section', h(C.Section, { framed: true }, h('div', { className: 'flex justify-center' }, h(Br.IsoCheck, { size: 300, tilt: true })))],
+    ];
+    const reflowPages = reflowShapes.flatMap(([name, el], i) => [
+        [`${name} in a PageFrame`, page(`reflow-${i}-frame`, renderToStaticMarkup(h(C.PageFrame, null, el)))],
+        [`${name}, bare`, page(`reflow-${i}-bare`, renderToStaticMarkup(el))],
+    ]);
+    // A legal page whose words include a hostname wider than a phone (ochk.io's privacy and terms ran 30px past 320).
+    const HOST = 'alice.btc.calendar.opentimestamps.org';
+    const legalLong = page(
+        'legal-long',
+        renderToStaticMarkup(
+            h(C.LegalDocument, {
+                doc: {
+                    eyebrow: 'Legal',
+                    title: 'Privacy',
+                    description: 'What we keep.',
+                    effective: '1 January 2026',
+                    updated: '4 November 2026',
+                    sections: [
+                        {
+                            id: 'stamps',
+                            heading: 'Timestamps',
+                            blocks: [
+                                { kind: 'para', text: `Your browser sends the claim's fingerprint to ${HOST}, at https://${HOST}/digest.` },
+                                { kind: 'bullets', items: [`The calendars: ${HOST} and bob.btc.calendar.opentimestamps.org`, { k: 'Relay', v: `wss://relay.${HOST}` }] },
+                            ],
+                        },
+                        { id: 'more', heading: 'More', blocks: [{ kind: 'para', text: 'Short.' }] },
+                    ],
+                },
+            })
+        )
+    );
+    // Targets a thumb missed: ProtocolNav's short names ("lock" 29 wide), the docs search button (40x40),
+    // a folded code block's Show all (34 tall), and a code block whose long line scrolls, named for its region.
+    const touchMore = page(
+        'touch-more',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6' },
+                h(C.ProtocolNav, { current: 'lock' }),
+                h('div', { 'data-t': 'search' }, h(C.SearchButton, null)),
+                h(C.CodeBlock, { code: Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n'), maxLines: 8, caption: 'Thirty lines' })
+            )
+        )
+    );
+    const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
+    const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -2342,6 +2449,108 @@ try {
                 if (!before) check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
                 await c.close();
             }
+        }
+        // Reflow (WCAG 1.4.10): no glow and no long word scrolls the page sideways, at 320 or any width
+        // the frame fills or leaves.
+        for (const w of [320, 390, 768, 900, 1024, 1200, 1280, 1440]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
+            for (const [name, url] of [...reflowPages, ['a legal page with a long hostname', legalLong]]) {
+                await visit(c, url);
+                await c.evaluate(() => document.fonts.ready);
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const over = await c.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+                check(over === 0, `[${w}] ${name} scrolls the page ${over}px sideways`);
+            }
+            if (w === 320) {
+                // The mark is whole: its glow may be cut at the Frame's edge, where the section clips sideways, the mark never.
+                await visit(c, reflowPages.find(([n]) => n === 'IsoCheck in a framed section in a PageFrame')[1]);
+                const mark = await c.evaluate(() => {
+                    const frame = document.querySelector('section > *');
+                    const f = frame.getBoundingClientRect();
+                    const b = document.querySelector('section svg').getBoundingClientRect();
+                    return { clip: getComputedStyle(frame).overflowX, left: b.left, right: b.right, edgeL: f.left + frame.clientLeft, edgeR: f.left + frame.clientLeft + frame.clientWidth };
+                });
+                check(mark.clip === 'clip' && mark.left >= mark.edgeL - 0.5 && mark.right <= mark.edgeR + 0.5, `[320] IsoCheck's mark is cut where its section clips: ${JSON.stringify(mark)}`);
+            }
+            await c.close();
+        }
+        // The same targets to a thumb (44 from 21.5px out each way, on the box or by a ::before) and to a mouse
+        // (their drawn size): ProtocolNav's names, the search button, Show all, the docs bar's sections button
+        // and the legal page's "On this page".
+        {
+            const read = async (url, w, touch, sel) => {
+                const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                const r = await c.evaluate((q) =>
+                    [...document.querySelectorAll(q)]
+                        .filter((el) => el.getClientRects().length > 0 && el.getBoundingClientRect().width > 1)
+                        .map((el) => {
+                            el.scrollIntoView({ block: 'center' });
+                            const b = el.getBoundingClientRect();
+                            const cx = b.left + b.width / 2;
+                            const cy = b.top + b.height / 2;
+                            const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                            return { name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                        }),
+                    sel
+                );
+                await c.close();
+                return r;
+            };
+            const shapes = [
+                ['ProtocolNav', touchMore, 'nav[aria-label="Protocols"] a', 6, (x) => x.name === 'lock' && x.w < 44],
+                ['the search button', touchMore, '[data-t="search"] button', 1, (x) => x.w === 40 && x.h === 40],
+                ['Show all', touchMore, 'figure button[aria-expanded]', 1, (x) => x.h < 44],
+                ["the docs bar's sections button", docsRail, '[data-oca-sticky="docs-bar"] button', 1, (x) => x.h === 40],
+                ['On this page', legalLong, 'details > summary', 1, (x) => x.h < 44],
+            ];
+            for (const [name, url, sel, n, drawn] of shapes) {
+                const t = await read(url, 390, true, sel);
+                check(t.length >= n && t.every((x) => x.reach), `[390 touch] ${name}: ${t.filter((x) => !x.reach).length} of ${t.length} not a 44px target: ${JSON.stringify(t.filter((x) => !x.reach).slice(0, 3))}`);
+                const m = await read(url, 390, false, sel);
+                check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
+            }
+        }
+        // A sheet's Close (a site's phone menu) and a dialog's: 44 square to a thumb, 36 to a mouse.
+        for (const [name, url, open] of [
+            ["the phone menu's Close", toolMenu, 'header button[aria-label="Open menu"]'],
+            ["a dialog's Close", dialogClose, null],
+        ]) {
+            for (const touch of [true, false]) {
+                const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                if (open) await c.click(open);
+                await c.waitForSelector('[role="dialog"] button[aria-label="Close"]');
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const x = await c.evaluate(() => {
+                    const el = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    const lands = (px, py) => el.contains(document.elementFromPoint(px, py));
+                    return { w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                });
+                if (touch) check(x.reach, `[390 touch] ${name} is ${x.w}x${x.h}, not a 44px target`);
+                else check(x.w === 36 && x.h === 36, `[390 mouse] ${name} is drawn ${x.w}x${x.h}, not its 36x36`);
+                await c.close();
+            }
+        }
+        // A code block that scrolls is a tab stop, so its region has a name: the caption, or the tab's label.
+        {
+            const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
+            await visit(c, codeRegion);
+            const drawn = await c.waitForFunction(() => document.querySelectorAll('pre').length >= 2, null, { timeout: 10000 }).then(() => true, () => false);
+            check(drawn, '[390] the code region page did not render its two code blocks');
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const regions = await c.evaluate(() =>
+                [...document.querySelectorAll('figure pre, [role="tabpanel"] pre')]
+                    .map((pre) => pre.closest('[tabindex]'))
+                    .filter((el) => el && el.tabIndex === 0)
+                    .map((el) => ({ role: el.getAttribute('role'), name: el.getAttribute('aria-label') }))
+            );
+            check(regions.length === 2 && regions.every((r) => r.role === 'region' && r.name), `[390] a code block that scrolls is a tab stop with no region name: ${JSON.stringify(regions)}`);
+            check(regions.map((r) => r.name).join('|') === 'A long line|curl', `[390] the code regions are named ${JSON.stringify(regions.map((r) => r.name))}, not by the caption and the tab's label`);
+            await c.close();
         }
         check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
         check(weak.size === 0, `states drawn as a fill with no edge at 3:1: ${[...weak.keys()].slice(0, 8).join('; ')}`);

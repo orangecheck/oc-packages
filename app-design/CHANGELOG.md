@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+- No glow scrolls the page sideways. A framed `Section`, and so `PageHero`,
+  clipped 4px past its edge on both axes, a focus ring's reach. A glow at the
+  frame's edge then widened a page as wide as the frame by those 4px: a hero
+  with a glowing `BrowserFrame` (chat's and vault's) scrolled 3px sideways
+  from 768 to 1280, and `IsoCheck`'s tilt glow did at 320 (ochk.io /about).
+  The section's `Frame` now clips sideways at its own edge, so a glow is cut
+  there and the mark stays whole. The 4px reach still works on the block axis,
+  so a control flush with a section's foot keeps its ring. **Migrate**: drop
+  the `[overflow-clip-margin:0px]` that chat and vault put on `PageHero`
+  (their `TODO(app-design)`).
+- `Prose` breaks a word that is wider than its line, so a long hostname or URL
+  wraps instead of scrolling the page. `LegalDocument` sets its text in
+  `Prose`. On ochk.io, /privacy and /terms scroll 30px sideways at 320 today,
+  on 1.x.
+- More targets reach 44px to a thumb. A mouse still gets the size each one is
+  drawn at:
+  - `ProtocolNav`'s names are at least 44 wide, as an underline tab's are.
+    "lock" was 29.
+  - `SearchButton` is 44 square on a phone and 44 tall from md. It was 40.
+  - `DocsShell`'s sections button, in the bar above a phone's page, is 44
+    tall. It was 40.
+  - On a phone, "On this page" in `DocLayout` reaches 44 by a pseudo-element.
+    It was 23 tall, and its box keeps that size.
+  - A folded `CodeBlock`'s "Show all" is 44 tall. It was 34.
+  - A `Sheet`'s and a `Dialog`'s Close is 44 square, a site's phone menu
+    included. It was 36.
+- A `CodeBlock` whose long line scrolls is a tab stop, and it is now a region
+  named by its caption, or by its language when the caption is not text. A
+  `CodeTabs` panel is named by its tab's label. `ScrollFade` takes the same
+  `label`. **Migrate**: a site that named the region itself can drop that code
+  (ochk.io's `SignedMessage`, its `TODO(app-design)`).
+- check-layout checks all of this:
+  - No page scrolls sideways at 320, 390, 768, 900, 1024, 1200, 1280 or
+    1440. It loads each glow shape in a `PageFrame` and bare, and a legal page
+    with a long hostname.
+  - At 320, IsoCheck's mark stays inside the edge where its section clips.
+  - Each target is hit from 21.5px out in every direction at 390 touch, and
+    keeps its drawn size to a mouse.
+  - A code region that takes focus has a name.
+
+  On main's build it found 39 failures. The two Close checks came later, and
+  fail when the fix is taken out.
+
 ## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification

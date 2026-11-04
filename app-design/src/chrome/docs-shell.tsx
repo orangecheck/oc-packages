@@ -222,7 +222,7 @@ export function DocsShell({
             >
                 <div className="oca-container flex h-12 items-center gap-2">
                     <Sheet open={menu} onOpenChange={setMenu}>
-                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-none px-2.5 text-[0.875rem] hover:bg-accent">
+                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-none px-2.5 text-[0.875rem] hover:bg-accent pointer-coarse:h-11">
                             <PanelLeft aria-hidden className="size-[1.125rem] shrink-0" />
                             <span className="sr-only">Docs menu. </span>
                             {place ? (

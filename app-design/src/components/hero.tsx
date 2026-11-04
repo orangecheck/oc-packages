@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
 import { MonoLabel } from './frame';
 import { Section } from './section';
 
@@ -242,7 +243,7 @@ export function DocLayout({
                             <ul>{links()}</ul>
                         </nav>
                         <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
-                            <summary className="cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden">
+                            <summary className={cn('cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden', HIT_LINK)}>
                                 On this page
                             </summary>
                             <ul className="mt-3">{links()}</ul>

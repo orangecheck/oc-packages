@@ -95,8 +95,11 @@ function Well({
     diff,
     lineNumbers,
     wrap,
+    label,
 }: {
     preRef?: RefObject<HTMLPreElement | null>;
+    /** The scroll region's name when a long line makes it a tab stop: the caption, or the tab's label. */
+    label?: string;
     html?: string;
     children?: ReactNode;
     lang?: string;
@@ -117,7 +120,7 @@ function Well({
                 className={cn(folded && 'overflow-hidden')}
                 style={folded ? { maxHeight: `calc(${maxLines} * 1.625em + 2rem)` } : undefined}
             >
-                <ScrollFade fade="var(--oca-code-surface)">
+                <ScrollFade fade="var(--oca-code-surface)" label={label}>
                     <pre
                         ref={preRef}
                         data-diff={diff ? '' : undefined}
@@ -147,7 +150,7 @@ function Well({
                         type="button"
                         onClick={() => setOpen((v) => !v)}
                         aria-expanded={open}
-                        className="rounded-none border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10"
+                        className="rounded-none border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10 pointer-coarse:min-h-11"
                     >
                         {open ? 'Show less' : `Show all ${lines} lines`}
                     </button>
@@ -259,6 +262,7 @@ export function CodeBlock({
             </figcaption>
             <Well
                 preRef={preRef}
+                label={typeof caption === 'string' ? caption : (languageName(lang) ?? 'Code')}
                 html={markup}
                 lang={lang}
                 lines={lines}
@@ -392,6 +396,7 @@ export function CodeTabs({
             {items.map((it, i) => (
                 <TabsPrimitive.Content key={it.label} value={it.label} className="outline-none" tabIndex={-1}>
                     <Well
+                        label={it.label}
                         html={prepared[i]!.html}
                         lang={it.lang}
                         lines={prepared[i]!.lines}

@@ -12,9 +12,11 @@ export interface ScrollFadeProps extends HTMLAttributes<HTMLDivElement> {
     fade?: string;
     /** Classes for the scrolling element itself. */
     innerClassName?: string;
+    /** Its name while it hides something and so takes focus: it is then a region with this label. */
+    label?: string;
 }
 
-export function ScrollFade({ fade = 'var(--card)', className, innerClassName, children, ...props }: ScrollFadeProps) {
+export function ScrollFade({ fade = 'var(--card)', className, innerClassName, label, children, ...props }: ScrollFadeProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [edges, setEdges] = useState({ left: false, right: false });
     const measure = useCallback(() => {
@@ -60,6 +62,8 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
                 onFocus={reveal}
                 // While it hides something, a keyboard can reach it to scroll.
                 tabIndex={edges.left || edges.right ? 0 : undefined}
+                role={label && (edges.left || edges.right) ? 'region' : undefined}
+                aria-label={label && (edges.left || edges.right) ? label : undefined}
                 className={cn(
                     // Positioned, so sr-only text deep in a wide row scrolls and clips with the row.
                     // The ring is drawn inside the edge: a rounded, clipped frame (a code block's) would cut an outside one away.

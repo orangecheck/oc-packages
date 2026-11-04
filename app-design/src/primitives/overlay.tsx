@@ -64,7 +64,7 @@ export const DialogContent = forwardRef<
                 {children}
                 {hideClose ? null : (
                     <DialogPrimitive.Close
-                        className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:size-11"
                         aria-label="Close"
                     >
                         <X className="size-4" />
@@ -141,7 +141,7 @@ export const SheetContent = forwardRef<
             >
                 {children}
                 <DialogPrimitive.Close
-                    className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground hover:bg-accent hover:text-foreground"
+                    className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-none text-muted-foreground hover:bg-accent hover:text-foreground pointer-coarse:size-11"
                     aria-label="Close"
                 >
                     <X className="size-4" />
