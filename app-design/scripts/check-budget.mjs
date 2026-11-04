@@ -171,5 +171,5 @@ if (failures) {
 }
 const width = Math.max(...rows.map(([e]) => e.length));
 console.log(rows.map(([e, n]) => `  ${e.padEnd(width)}  ${kb(n).padStart(9)}`).join('\n'));
-console.log(`  ./motion own code ${kb(code.total)}, posters ${kb(gz(poster))}, lazy dots ${lazy.map((f) => kb(gz([f]))).join(' + ')}`);
+console.log(`  ./motion own code ${kb(code.total)} (${code.total} bytes), posters ${kb(gz(poster))}, lazy dots ${lazy.map((f) => kb(gz([f]))).join(' + ')}`);
 console.log(`✓ budget: ${checks} checks; every entry under its ceiling, ./motion's own code under ${kb(MOTION_OWN)}, and \`.\` and ./components reach none of it`);

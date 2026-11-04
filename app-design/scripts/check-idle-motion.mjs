@@ -50,7 +50,7 @@ const check = (ok, msg) => {
 const PAGE = `
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule, deckPortraitPoints } from '${join(pkg, 'src/motion/index.ts')}';
+import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule, bustPoints, deckPortraitPoints } from '${join(pkg, 'src/motion/index.ts')}';
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
@@ -92,6 +92,8 @@ function brokenPoints() {
     const trap = (a) => new Proxy(a, { get: (t, k) => { if (typeof k === 'string' && /^[0-9]+$/.test(k) && ++reads > n * 5) throw new Error('broken points'); const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
     return { count: n, x: trap(x), y, tone, pitch: 0.02 };
 }
+window.__anchors = PORTRAIT_ANCHORS;
+window.__bust = bustPoints;
 const notes = [{ at: PORTRAIT_ANCHORS.eye, label: 'First note' }, { at: PORTRAIT_ANCHORS.shoulder, label: 'Second note', side: 'right' }];
 const scenes = {
     portrait: () => <ParticlePortrait alt="A person drawn in dots" callouts={notes} style={{ height: 600 }} />,
@@ -137,6 +139,13 @@ const scenes = {
             <DitherImage src={still()} width={480} height={320} alt="" style={{ width: 480 }} />
         </div>
     ),
+    // A crowd either side of the switch to the narrow grid, at its end (no story drives it).
+    crowds: () => (
+        <div>
+            <CrowdDissolve style={{ aspectRatio: '4 / 3', width: 600 }} />
+            <CrowdDissolve style={{ aspectRatio: '4 / 3', width: 360 }} />
+        </div>
+    ),
     dither: () => <DitherImage src={q.get('src') ?? still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' || s === 'wipecenter' ? 1200 : q.has('off') ? 3000 : 0;
@@ -148,15 +157,24 @@ window.__unmount = () => root.unmount();
 // Count every draw (each starts with a clear) on a canvas in the page, and every frame the page's code asks
 // for; the page's own tick, on the untouched rAF, proves frames are being made at all.
 const COUNTERS =
+    // ?dark: the page on a dark ground, as next-themes marks it.
+    `<script>if (new URLSearchParams(location.search).has('dark')) document.documentElement.classList.add('dark');` +
     // ?nomm: a DOM without matchMedia (jsdom); ?nocanvas: one without a 2D canvas either.
-    `<script>if (location.search.includes('nomm')) Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true });` +
+    `if (location.search.includes('nomm')) Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true });` +
     `if (location.search.includes('nocanvas')) HTMLCanvasElement.prototype.getContext = () => null;` +
     // ?taint: every getImageData throws as a tainted canvas does.
     `if (location.search.includes('taint')) CanvasRenderingContext2D.prototype.getImageData = () => { throw new DOMException('tainted', 'SecurityError'); };` +
     // ResizeObservers alive (observing and not yet disconnected), to see a scene let go of its own.
     `window.__ro = 0; const RO = window.ResizeObserver; window.ResizeObserver = class extends RO { constructor(cb) { super(cb); window.__ro++; this.__on = true; } disconnect() { if (this.__on) { this.__on = false; window.__ro--; } super.disconnect(); } };` +
+    // Pointer listeners held on elements, to see a scene that stops let go of its own.
+    `const held = []; window.__held = (sel) => held.filter((h) => h.t instanceof Element && h.t.closest(sel)).length;` +
+    `const on = EventTarget.prototype.addEventListener, off = EventTarget.prototype.removeEventListener; const at = (t, type, fn) => held.findIndex((h) => h.t === t && h.type === type && h.fn === fn);` +
+    `EventTarget.prototype.addEventListener = function (type, fn, o) { if (type.startsWith('pointer') && fn && at(this, type, fn) < 0) held.push({ t: this, type, fn }); return on.call(this, type, fn, o); };` +
+    `EventTarget.prototype.removeEventListener = function (type, fn, o) { const i = at(this, type, fn); if (i >= 0) held.splice(i, 1); return off.call(this, type, fn, o); };` +
+    // Each canvas keeps the squares it filled since its last clear: the frame on show.
     `window.__draws = 0; window.__rafs = 0; const clear = CanvasRenderingContext2D.prototype.clearRect;` +
-    `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; return clear.apply(this, a); };` +
+    `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; this.canvas.__rects = []; return clear.apply(this, a); };` +
+    `const fill = CanvasRenderingContext2D.prototype.fillRect; CanvasRenderingContext2D.prototype.fillRect = function (...a) { (this.canvas.__rects ??= []).push(a); return fill.apply(this, a); };` +
     `const put = CanvasRenderingContext2D.prototype.putImageData; CanvasRenderingContext2D.prototype.putImageData = function (...a) { if (this.canvas.isConnected) window.__draws++; return put.apply(this, a); };` +
     `const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
     `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
@@ -244,6 +262,7 @@ try {
             const resting = await settle(p);
             check((await p.evaluate(() => window.__draws)) - before > 3, 'portrait: the pointer moving over it drew nothing');
             check(resting, 'portrait: with the pointer at rest it never stops');
+            check((await p.evaluate(() => window.__held('.oca-portrait'))) > 0, 'portrait: no pointer listener on it for the lens');
             await p.mouse.move(box.x + box.width + 400, box.y + 100, { steps: 3 });
             check(await settle(p), 'portrait: after the pointer left it never stops');
             await close();
@@ -424,6 +443,22 @@ try {
             const drew = (await p.evaluate(() => window.__draws)) - a;
             check(drew >= steps.length && drew <= steps.length * 3, `crowd: ${steps.length} scroll steps drew ${drew} frames`);
             check(quiet, 'crowd: after the scroll stops it keeps drawing');
+            await close();
+        }
+        // The canvas crowd's grid follows its box: 10 x 6 at 600px, 6 x 5 under 480 (read from the squares drawn,
+        // grouped where the gap between figures is wider than three cells).
+        {
+            const { p, close } = await open('crowds');
+            await p.waitForFunction(() => document.querySelectorAll('.oca-crowd[data-live]').length === 2, null, { timeout: 8000 });
+            check(await settle(p), 'crowds at their end: they keep drawing');
+            const grids = await p.evaluate(() =>
+                [...document.querySelectorAll('.oca-crowd canvas')].map((c) => {
+                    const cell = Math.min(...c.__rects.map((r) => r[2]));
+                    const bands = (v) => [...new Set(v)].sort((a, b) => a - b).filter((x, i, u) => i === 0 || x - u[i - 1] > 3 * cell).length;
+                    return `${bands(c.__rects.map((r) => r[0]))}x${bands(c.__rects.map((r) => r[1]))}`;
+                })
+            );
+            check(grids.join(' ') === '10x6 6x5', `crowd on the canvas: grids ${grids.join(' ')} at 600px and 360px, not 10x6 and 6x5`);
             await close();
         }
         // The swap: never both headlines at once, sampled through the crossing.
@@ -628,12 +663,40 @@ try {
                 canvas: getComputedStyle(document.querySelector('.oca-portrait-canvas')).opacity,
                 note: getComputedStyle(document.querySelector('.oca-note-label')).opacity,
                 logged: window.__logged,
+                held: window.__held('.oca-portrait'),
             }));
             check(
                 quiet && r.poster === '1' && r.canvas === '0' && r.note === '1' && r.logged === 1,
                 `portrait that throws: poster ${r.poster}, canvas ${r.canvas}, note ${r.note}, logged ${r.logged}, settled ${quiet}`
             );
+            check(r.held === 0, `portrait that throws: ${r.held} pointer listeners left on it`);
             await close();
+        }
+        // Each ground draws its own positive. The still under reduced motion is the settled frame: on each ground
+        // exactly the dots stored for it, dense by the dark hair on paper and by the lit eye on a dark ground.
+        {
+            const seen = {};
+            for (const ground of ['light', 'dark']) {
+                const { p, close } = await open('portrait', { reduce: true, flags: ground === 'dark' ? 'dark' : '' });
+                await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+                seen[ground] = await p.evaluate(async (bit) => {
+                    const pts = await window.__bust();
+                    const c = document.querySelector('.oca-portrait-canvas');
+                    const b = c.getBoundingClientRect();
+                    const side = Math.min(b.width, b.height);
+                    const near = ([ax, ay]) =>
+                        c.__rects.filter(([x, y, w, h]) => Math.hypot(x + w / 2 - (b.width - side) / 2 - ax * side, y + h / 2 - (b.height - side) / 2 - ay * side) < 0.05 * side).length;
+                    return { drawn: c.__rects.length, stored: pts.grounds.filter((g) => g & bit).length, all: pts.count, hair: near(window.__anchors.hair), eye: near(window.__anchors.eye) };
+                }, ground === 'dark' ? 2 : 1);
+                const r = seen[ground];
+                check(r.drawn === r.stored && r.stored < r.all, `portrait on a ${ground} ground: ${r.drawn} dots drawn, not the ${r.stored} of ${r.all} stored for it`);
+                await close();
+            }
+            const { light, dark } = seen;
+            check(
+                light.hair > 2 * dark.hair && dark.eye > 2 * light.eye,
+                `portrait: not a positive on each ground (by the hair ${light.hair} dots on paper and ${dark.hair} on dark, by the eye ${light.eye} and ${dark.eye})`
+            );
         }
         // The deck portrait, kept as an option, still loads and draws.
         {

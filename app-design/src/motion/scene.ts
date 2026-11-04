@@ -85,7 +85,12 @@ export function mountScene(
         offTheme();
         ticket.stop();
         surface.dispose();
-        parts?.dispose?.();
+        // The scene's own listeners go too, even when it is stopping because it threw.
+        try {
+            parts?.dispose?.();
+        } catch (err) {
+            report(err);
+        }
         parts = null;
     }
     /** The scene threw: it lets go of everything it holds, clears its canvas, and the poster comes back. */

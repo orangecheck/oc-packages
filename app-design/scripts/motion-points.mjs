@@ -1,24 +1,27 @@
 #!/usr/bin/env node
 /*
  * Writes the figure ParticlePortrait draws by default: a head-and-shoulders bust
- * made here from shapes, lit, and screened to dots. No photograph or artwork goes
+ * made here from shapes, lit, and stippled to dots. No photograph or artwork goes
  * in. A head, neck and shoulders are signed distance fields (ellipsoids, spheres
  * and capsules, blended), ray-marched from the front under a key light, a fill and
  * a rim; the hair, eyes and shirt are materials. So the picture is ours to ship
  * under the package's licence, and anyone can change it here.
  *
- * Two files:
- * - src/motion/portrait-points.data.ts: every place of a 45° screen ACROSS dots
- *   across that falls inside the figure, thinning out below the shoulders. Each
- *   keeps the ink the picture has there (0 lit to 1 dark), so on paper a dot is
- *   as large as its spot is dark, and on a dark ground as large as it is light:
- *   the picture is a positive on both. Packed the way every point set in ./motion
- *   travels: per dot a Uint16 x and y (0..65535 across the square), then a Uint8
- *   tone each, as base64 in a module the scene imports once the page is idle.
- * - src/motion/portrait-poster.ts: the settled frame, coarse, as two SVG paths of
- *   squares (ink on paper, light on a dark ground), the still the page shows
+ * Three files:
+ * - src/motion/portrait-points.data.ts: the bust as a blue-noise stipple (see
+ *   Stipple below), no screen, so nothing beats against the pixel grid. Dots
+ *   gather where the picture is dark on paper and where it is lit on a dark
+ *   ground, so it is a positive on both; each dot is stored once with the
+ *   grounds that draw it, and keeps its ink (0 lit to 1 dark). Packed the way
+ *   every point set in ./motion travels: per dot a Uint16 x and y (0..65535
+ *   across the square), then a Uint8 ink each, as base64 in a module the scene
+ *   imports once the page is idle, with the grounds beside it.
+ * - src/motion/portrait-poster.ts: the settled frame, sparser, as two SVG paths
+ *   of squares (ink on paper, light on a dark ground), the still the page shows
  *   without script and under reduced motion before the canvas draws; and the
  *   named places on the figure that callouts point at.
+ * - src/motion/deck-points.data.ts: the deck portrait on its own 45° screen,
+ *   kept as an option (deckPortraitPoints).
  *
  * Deterministic: the same shapes always give the same files.
  *   node scripts/motion-points.mjs
@@ -28,7 +31,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
-const GRID = 360; // the tone is rendered on this grid and sampled by the screen
+const GRID = 360; // the tone is rendered on this grid and sampled by the stipple
 
 const { abs, min, max, hypot, sin, cos, SQRT1_2 } = Math;
 const clamp = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
