@@ -173,6 +173,9 @@
     --oca-frame-max: 82.5rem;
     --oca-frame-gutter: clamp(1rem, 0.333rem + 2.857vw, 3rem);
     --oca-frame-rule: 1px;
+    /* How far a focus ring reaches outside its control: ring-2 plus ring-offset-2.
+       A box that clips (a framed Section) keeps this much room past its edge. */
+    --oca-focus-reach: 4px;
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;

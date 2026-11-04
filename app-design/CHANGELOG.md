@@ -173,14 +173,17 @@ optional. What changes is how things look.
   hero, whose `rule` now defaults to true) runs from rule to rule, not from
   edge to edge. A framed `Section` and `PageHero` clip on both axes
   (`overflow: clip`, so sticky children still stick), so nothing inside
-  paints across them. `--oca-shadow-depict` reaches 48px below a depiction,
+  paints across them, but for a focus ring: `overflow-clip-margin` keeps
+  `--oca-focus-reach` (4px, ring-2 plus its 2px offset) past the edge, so a
+  control flush with a section's foot keeps its whole ring. `--oca-shadow-depict` reaches 48px below a depiction,
   inside a hero's foot; it had reached 126px, and smudged the next band in
   chat's hero. BrowserFrame's glow stays within 3rem of the window.
 - On a phone the legal row's links are 16px apart (20px from md), so the row
   still fits the narrower column.
-- A `SectionBar`'s hairline stays the width of its content, by choice: it is
-  a label's rule, a level below the frame-wide hairline that bounds a section,
-  so the page reads as two levels of line.
+- A `SectionBar`'s rule runs the frame's width, between the side rules, as
+  every rule in the frame does: the prototype's title-block label rows span
+  the frame. Its label and end stay on the content's axis. It takes the
+  gutter it sits in back as a negative margin, so it needs no prop.
 - **Migrating:** no package shell renders `PageFrame` but `DocsShell`.
   `ToolShell` and `AppShell` keep their own frames (a tool's column, an app's
   sidebar). A site that composes `SiteHeader`, its `main` and `SiteFooter` by
@@ -188,7 +191,15 @@ optional. What changes is how things look.
   footer below. That is ochk.io (oc-www), ochk.app's public pages (oc-app-web),
   chat, vault, cosign, globe and btc. The tool sites (lock, vote, stamp,
   pledge, agent) are on `ToolShell` and the docs (oc-docs) on `DocsShell`, so
-  they need no wrap. A site with its own
+  they need no wrap. Pages that render `DocsShell` or `AppShell` stay outside a
+  layout's `PageFrame`, since both draw their own frame. A `PageFrame` nested in
+  another draws no second rule, but it is still one column too many.
+  Inside a `Section`, drop the site's own container: the Section gives it one,
+  and a nested `oca-container` now adds no second gutter (it had put content
+  at 153.9 against 107.5 at 1440). A framed block is `<Section framed>`, not a
+  `Frame` inside a Section. A `SectionBar` given its own gutter (ochk.app's
+  `GUTTER`) drops that className, because the bar now spans the frame and keeps
+  its label on the axis itself. A site with its own
   container, a `max-w-[75rem]` or `max-w-6xl` with its own `px-*` gutter →
   `oca-container`, or `Frame` for a framed block, so its content joins the
   axis. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`) can go.

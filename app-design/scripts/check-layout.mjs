@@ -558,6 +558,29 @@ try {
             )
         )
     );
+    // The frame's edge cases: a PageFrame inside a layout's PageFrame (a DocsShell page), a site's own
+    // container inside an unframed Section, and a focusable control flush with a framed Section's foot.
+    const frameEdges = page(
+        'frame-edges',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(
+                    C.PageFrame,
+                    { 'data-t': 'outer' },
+                    h(
+                        C.PageFrame,
+                        { as: 'div', 'data-t': 'inner' },
+                        h(C.Section, null, h('div', { className: 'oca-container' }, h('h2', { 'data-t': 'own-container' }, 'A site container in a Section'))),
+                        h(C.Section, { framed: true, space: 'none' }, h('p', null, 'A flush control:'), h(P.Button, { 'data-t': 'flush' }, 'Continue'))
+                    ),
+                    h('div', { style: { height: '120px' } })
+                )
+            )
+        )
+    );
     // ochk.io/docs' shape: DocsShell with its sections and a page long enough to scroll past the sidebar.
     const docsFrame = page(
         'docs-frame',
@@ -1717,6 +1740,7 @@ try {
                             inkH2: textStart(document.querySelector('[data-t="ink-h2"]')),
                         },
                         hairlines: [...frame.querySelectorAll(':scope > section')].map((sec) => ({ s: sec.dataset.s ?? sec.dataset.ground ?? 'hero', ...after(sec) })),
+                        bar: { left: r(document.querySelector('[data-t="bar"]')).left, width: r(document.querySelector('[data-t="bar"]')).width },
                         ruleColor: getComputedStyle(frame).borderLeftColor,
                         dpr: devicePixelRatio,
                     };
@@ -1725,6 +1749,8 @@ try {
                 check(Math.max(...xs) - Math.min(...xs) <= 1, `[${width}] one frame: the page's left edges are not on one axis: ${JSON.stringify(Object.fromEntries(Object.entries(f.axis).map(([k, v]) => [k, Math.round(v * 10) / 10])))}`);
                 const inner = f.frame.right - f.frame.left - 2;
                 const short = f.hairlines.filter((l) => l.width === undefined || Math.abs(l.width - inner) > 1 || Math.abs(l.left - (f.frame.left + 1)) > 1);
+                // A SectionBar's rule runs the frame's width too, between the side rules.
+                check(Math.abs(f.bar.width - inner) <= 1 && Math.abs(f.bar.left - (f.frame.left + 1)) <= 1, `[${width}] one frame: a SectionBar's rule is ${f.bar.width.toFixed(1)}px from ${f.bar.left.toFixed(1)}, not the frame's ${inner}px between its rules`);
                 check(f.hairlines.length >= 3 && short.length === 0, `[${width}] one frame: a section's closing hairline does not run from rule to rule (${inner}px): ${JSON.stringify(short)}`);
                 // The rules, pixel by pixel, down the page: every row from the header's foot to the footer's top.
                 const png = decodePng(await c.screenshot({ fullPage: true }));
@@ -1741,6 +1767,46 @@ try {
                     }
                 }
                 check(broken.length === 0, `[${width}] one frame: a rule breaks between the header and the footer at ${broken.length} rows, first ${JSON.stringify(broken.slice(0, 3))} (want ${want.join()})`);
+                await c.close();
+            }
+            // The frame's edge cases. A nested PageFrame draws no second rule and moves nothing; a container
+            // inside a Section adds no second gutter; a flush control's focus ring is whole at the foot of
+            // its clipped Section (it matches the ring beside it).
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(frameEdges);
+                await c.evaluate(() => document.fonts.ready);
+                await c.keyboard.press('Tab');
+                for (let i = 0; i < 12 && !(await c.evaluate(() => document.activeElement?.dataset.t === 'flush')); i++) await c.keyboard.press('Tab');
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))));
+                const e = await c.evaluate(() => {
+                    const r = (el) => el.getBoundingClientRect();
+                    const outer = document.querySelector('[data-t="outer"]');
+                    const inner = document.querySelector('[data-t="inner"]');
+                    const own = document.querySelector('[data-t="own-container"]');
+                    const range = document.createRange();
+                    range.selectNodeContents(own);
+                    const btn = document.querySelector('[data-t="flush"]');
+                    return {
+                        focused: document.activeElement === btn,
+                        rules: [getComputedStyle(outer).borderLeftWidth, getComputedStyle(inner).borderLeftWidth],
+                        lockup: r(document.querySelector('header a[href="/"] svg')).left,
+                        own: range.getClientRects()[0].left,
+                        btn: { left: r(btn).left, right: r(btn).right, top: r(btn).top + scrollY, bottom: r(btn).bottom + scrollY },
+                        dpr: devicePixelRatio,
+                    };
+                });
+                check(e.rules[0] === '1px' && e.rules[1] === '0px', `[${width}] frame edges: a nested PageFrame draws a rule of its own (${e.rules.join(', ')}), doubling the frame's`);
+                check(Math.abs(e.own - e.lockup) <= 1, `[${width}] frame edges: a container inside a Section starts at ${e.own.toFixed(1)}, a second gutter off the axis ${e.lockup.toFixed(1)}`);
+                const png = decodePng(await c.screenshot({ fullPage: true }));
+                const at = (x, y) => {
+                    const i = (Math.round(y * e.dpr) * png.width + Math.round(x * e.dpr)) * 4;
+                    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+                };
+                const midY = (e.btn.top + e.btn.bottom) / 2;
+                const side = at(e.btn.left - 3, midY);
+                const foot = at((e.btn.left + e.btn.right) / 2, e.btn.bottom + 3);
+                check(e.focused && foot.every((v, k) => Math.abs(v - side[k]) <= 8), `[${width}] frame edges: the flush control's focus ring is cut at its section's foot (${foot.join()} under it, ${side.join()} beside it)`);
                 await c.close();
             }
             // DocsShell in the frame, at a desk and wider: its sidebar starts on the header's axis, and the
@@ -1779,7 +1845,8 @@ try {
                 }
             }
             // A section is a closed box: under a hero with a depiction, the next section's top rows are
-            // its own ground, nothing the hero drew. A framed Section clips on both axes.
+            // its own ground, nothing the hero drew. A framed Section clips on both axes, leaving only a
+            // focus ring's reach (--oca-focus-reach) past its edge.
             {
                 // The hero's entrance played out first: mid-entrance its art is transparent and shows nothing.
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768, reducedMotion: 'reduce' });
@@ -1795,7 +1862,9 @@ try {
                     let ground = 'rgba(0, 0, 0, 0)';
                     for (let el = next; el && /rgba\(0, 0, 0, 0\)|transparent/.test(ground); el = el.parentElement) ground = getComputedStyle(el).backgroundColor;
                     if (/rgba\(0, 0, 0, 0\)/.test(ground)) ground = getComputedStyle(document.documentElement).backgroundColor;
-                    return { top: r.top + scrollY, left: r.left, right: r.right, ground, dpr: devicePixelRatio, probe: { left: probe.left, right: probe.right, top: probe.top + scrollY + 100 } };
+                    // A clipped section keeps a focus ring's reach past its edge (overflow-clip-margin), no more.
+                    const reach = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--oca-focus-reach')) || 0;
+                    return { top: r.top + scrollY, left: r.left, right: r.right, ground, reach, dpr: devicePixelRatio, probe: { left: probe.left, right: probe.right, top: probe.top + scrollY + 100 } };
                 });
                 const png = decodePng(await c.screenshot({ fullPage: true }));
                 const want = g.ground.match(/\d+/g).slice(0, 3).map(Number);
@@ -1803,7 +1872,7 @@ try {
                 const pi = (Math.round((g.top - 4) * g.dpr) * png.width + Math.round(((g.probe.left + g.probe.right) / 2) * g.dpr)) * 4;
                 check(g.probe.top < g.top - 4 && png.data[pi] > 200 && png.data[pi + 1] < 60, `[${width}] closed box: the overflow probe is not drawn above the next section, so the check would see nothing`);
                 const smudged = [];
-                for (let y = Math.ceil(g.top) + 1; y < g.top + 24; y++) {
+                for (let y = Math.ceil(g.top + g.reach) + 1; y < g.top + 24; y++) {
                     for (let x = Math.ceil(g.left) + 1; x < g.right - 1; x += 2) {
                         const i = (Math.round(y * g.dpr) * png.width + Math.round(x * g.dpr)) * 4;
                         const px = [png.data[i], png.data[i + 1], png.data[i + 2]];

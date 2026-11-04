@@ -69,7 +69,8 @@ export interface PageFrameProps extends HTMLAttributes<HTMLElement> {
 export function PageFrame({ as = 'main', className, ...props }: PageFrameProps) {
     return createElement(as, {
         'data-oca-page-frame': '',
-        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px]', className),
+        // A PageFrame inside another (a DocsShell page in a layout's frame) draws no second rule.
+        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px] [&_[data-oca-page-frame]]:border-x-0', className),
         ...props,
     });
 }
@@ -88,7 +89,9 @@ export function SectionBar({ start, end, as = 'p', className, ...props }: Sectio
     return (
         <div
             data-oca-section-bar=""
-            className={cn('flex min-h-11 items-center justify-between gap-4 border-b border-border py-2', className)}
+            // Its rule runs the frame's width, between the side rules, as every rule in the frame does; the
+            // label and the end stay on the content's axis. The gutter it sits in is taken back as a margin.
+            className={cn('-mx-[var(--oca-frame-gutter)] flex min-h-11 items-center justify-between gap-4 border-b border-border px-[var(--oca-frame-gutter)] py-2', className)}
             {...props}
         >
             <MonoLabel as={as}>{start}</MonoLabel>

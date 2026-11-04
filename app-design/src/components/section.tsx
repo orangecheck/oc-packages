@@ -60,7 +60,7 @@ export function Section({ tone, space, rule, contained = true, framed = false, f
         return (
             // A closed box between its hairlines: nothing inside paints across them, a depiction's shadow
             // included. overflow: clip on both axes, so a sticky child still sticks.
-            <section className={cn(sectionVariants({ tone, space: 'none', rule }), 'overflow-clip', className)} {...props}>
+            <section className={cn(sectionVariants({ tone, space: 'none', rule }), 'overflow-clip [overflow-clip-margin:var(--oca-focus-reach)]', className)} {...props}>
                 <Frame className={cn(SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
             </section>
         );
