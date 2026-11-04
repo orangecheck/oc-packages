@@ -67,6 +67,8 @@
  *   PageHero layouts, a document's header and an ErrorPage, so the first
  *   paint is their LCP; the rest of the entrance still fades in. No entrance
  *   or reveal blurs.
+ * - Under reduced motion every entrance and reveal starts at once: no
+ *   animation or transition keeps a delay, so nothing holds its first frame.
  * - A hero's two actions stack on a phone, each the column's full width, in
  *   DOM order; from 640px they sit side by side at their own widths. In both
  *   PageHero layouts, a document's header and an ErrorPage.
@@ -541,7 +543,7 @@ try {
                 h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', eyebrow: 'Legal', title: 'Privacy policy', lead: 'What we keep, and for how long.' })),
                 h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', eyebrow: 'Legal', title: 'Terms', lead: 'The terms.' })),
                 h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null })),
-                h('div', { 'data-reveal': 'pending', 'data-t': 'reveal' }, 'Below the fold.')
+                h('div', { 'data-reveal': 'pending', 'data-t': 'reveal', style: { '--reveal-delay': '120ms' } }, 'Below the fold.')
             )
         )
     );
@@ -1536,6 +1538,27 @@ try {
                 check(e.blurred.length === 0, `[${width}] an entrance blurs on its first frame: ${e.blurred.join(', ')}`);
                 check(e.reveal.opacity === '0' && !e.reveal.filter.includes('blur'), `[${width}] a pending Reveal is blurred or not hidden: ${JSON.stringify(e.reveal)}`);
                 await c.close();
+            }
+            // Reduced motion: no animation or transition waits out a delay. Without it the entrances keep theirs.
+            {
+                const delays = async (reduce) => {
+                    const c = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: reduce ? 'reduce' : 'no-preference' });
+                    await c.goto(heroes);
+                    const d = await c.evaluate(() => {
+                        const all = [...document.querySelectorAll('*')];
+                        return {
+                            animated: all.filter((el) => getComputedStyle(el).animationName !== 'none').map((el) => [`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 30)}`, getComputedStyle(el).animationDelay]),
+                            reveal: getComputedStyle(document.querySelector('[data-t="reveal"]')).transitionDelay,
+                        };
+                    });
+                    await c.close();
+                    return d;
+                };
+                const [still, moving] = [await delays(true), await delays(false)];
+                const held = still.animated.filter(([, delay]) => delay !== '0s');
+                check(still.animated.length > 0 && held.length === 0, `[${width}] under reduced motion an entrance still waits out its delay: ${JSON.stringify(held)}`);
+                check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
+                check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
             }
             // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
             {
