@@ -14,6 +14,13 @@
   (still in the link's accessible name), and below 480px the CTA moves from
   the bar into the menu, where it is the full-width button. A site that hid
   its wordmark or moved its CTA by hand can drop that.
+- Chrome targets are 44px at every pointer: the header's brand link, links,
+  Sign in, family menu (it was 32px) and `ThemeToggle` (40px), and a footer
+  column's links (35px at a desk). The legal row and a tool's protocol row are
+  inline text links: 44px to a thumb, and WCAG 2.5.8's 24px at a desk (21px
+  before). check-layout only measured touch widths, and only a fixed list of
+  buttons, so these were never measured; it now measures the 2.0 chrome at
+  390 and 1440.
 
 Design iteration 2: one family system that looks like a specification
 drawing. Warm paper, ink text, light display type, mono labels with square

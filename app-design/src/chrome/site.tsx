@@ -251,7 +251,7 @@ export function SiteHeader({
                         <NavDropdown key={n.href} item={n} />
                     ) : (
                         // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'px-0 hover:text-oca-accent-ink'} />
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center px-0 hover:text-oca-accent-ink'} />
                     )
                 )}
             </nav>
@@ -280,7 +280,7 @@ export function SiteHeader({
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
-                    <Link href={home} className="-ml-1 min-w-0 rounded-none p-1">
+                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
@@ -292,7 +292,7 @@ export function SiteHeader({
                     {search}
                     {actions}
                     {headerSignIn ? (
-                        <a href={headerSignIn.href} className="hidden px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
+                        <a href={headerSignIn.href} className="hidden min-h-11 items-center px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
                             {headerSignIn.label}
                         </a>
                     ) : null}
@@ -482,7 +482,9 @@ export function SiteBanner({
 }
 
 /** A link in the footer's lists: 44px tall on phones. */
-const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:text-foreground md:min-h-0';
+// The legal row and a tool's protocol row are lines of inline text links: 44px to a thumb, and WCAG
+// 2.5.8's 24px at a desk.
+const FOOT_LINK = 'inline-flex min-h-11 items-center transition-colors hover:text-foreground md:min-h-6';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
@@ -641,7 +643,7 @@ export function SiteFooter({
                         <p className="oca-label mb-2">{col.heading}</p>
                         <div className="flex flex-col gap-1">
                             {col.links.map((l, j) => (
-                                <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 py-1.5 text-[0.9375rem]" />
+                                <NavLink key={`${j}:${l.label}`} item={l} className="-mx-3 flex min-h-11 items-center text-[0.9375rem]" />
                             ))}
                         </div>
                     </div>

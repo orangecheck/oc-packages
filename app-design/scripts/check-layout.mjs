@@ -433,6 +433,19 @@ try {
             )
         )
     );
+    // 2.0's chrome at a desk: every control in the header and every link in a footer column is 44px
+    // tall; the legal row is a line of inline text links, held to WCAG 2.5.8's 24px.
+    const chromeTargets = page(
+        'chrome-targets',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }, { href: '/apps', label: 'For apps' }], family: true, actions: h(Ch.ThemeToggle, {}), signIn: true, cta: true }),
+                h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }, { href: '/apps', label: 'For apps' }] }] })
+            )
+        )
+    );
     // The footer's giant wordmark: one word at its natural spacing, filling the frame, nothing clipped.
     const wordmark = page(
         'wordmark',
@@ -1069,11 +1082,12 @@ try {
                         return { sel, size: Math.round(r.height), w: Math.round(r.width), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
-                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 40 };
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 44 };
                 for (const r of reach) {
                     const drawn = DRAWN[r.sel] ?? 32;
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);
-                    else check(!r.reach && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
+                    // A control drawn at 44px reaches 44px on its own; the rest grow only to a thumb.
+                    else check((drawn >= 44 || !r.reach) && r.size === drawn, `[${width} mouse] ${r.sel}: drawn ${r.size}px, or the target grew past the button (${r.reach})`);
                 }
                 // A HashChip link keeps its line's height; a thumb gets 44px, at least 44px wide when the value is short.
                 const links = await t.evaluate(() =>
@@ -1320,6 +1334,28 @@ try {
                     for (const r of rows) check(r.over <= 1 && r.right <= 1 && r.clash <= 0, `[${w}] the ${r.hdr} header with the product word "${longest}" overflows: ${JSON.stringify(r)}`);
                     await c.close();
                 }
+            }
+            // Chrome targets: the header's links, family menu, theme switch, Sign in and CTA, a footer
+            // column's links (44px), and the legal row's inline links (24px).
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await c.goto(chromeTargets);
+                const t = await c.evaluate(() => {
+                    const hgt = (el) => Math.round(el.getBoundingClientRect().height);
+                    const shown = (el) => el.getBoundingClientRect().width > 0;
+                    const header = document.querySelector('header');
+                    const footer = document.querySelector('footer');
+                    return {
+                        header: [...header.querySelectorAll('nav[aria-label="Main"] a, button, a[data-oca-cta], a[href]')].filter(shown).map((el) => [el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), hgt(el)]),
+                        column: [...footer.querySelectorAll('div.md\\:flex a')].filter(shown).map((el) => [el.textContent.trim(), hgt(el)]),
+                        legal: [...footer.querySelectorAll('nav[aria-label="Legal"] a')].filter(shown).map((el) => [el.textContent.trim(), hgt(el)]),
+                    };
+                });
+                const short = (list, min) => list.filter(([, px]) => px < min);
+                check(short(t.header, 44).length === 0, `[${width}] header controls under 44px: ${JSON.stringify(short(t.header, 44))}`);
+                if (width >= 768) check(t.column.length > 0 && short(t.column, 44).length === 0, `[${width}] footer column links under 44px: ${JSON.stringify(short(t.column, 44))}`);
+                check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
+                await c.close();
             }
             // The wordmark: letters at their natural spacing (no gap past the median by a tenth of
             // an em), every glyph's ink inside the rise's clip, the descender of the g included,
