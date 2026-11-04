@@ -110,6 +110,11 @@
       "import": "./dist/motion.mjs",
       "require": "./dist/motion.js"
     },
+    "./signin": {
+      "types": "./dist/signin.d.ts",
+      "import": "./dist/signin.mjs",
+      "require": "./dist/signin.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./styles/*": "./dist/styles/*",
     "./art/*": "./art/*",

@@ -26,6 +26,8 @@ export function SignInFrame({
     home,
     protocol,
     back,
+    backTo,
+    backLabel = 'Go back',
     art,
     caption,
     className,
@@ -51,8 +53,15 @@ export function SignInFrame({
     home?: string;
     /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
     protocol?: ProtocolSlug;
-    /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. */
+    /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. Wins over `backTo`. */
     back?: ReactNode;
+    /**
+     * Where the link opposite the lockup goes instead of home: the page the visitor came from, a
+     * sign-in's return target. Drawn as Back to home is, a 44px target to a thumb.
+     */
+    backTo?: string;
+    /** That link's words. Default "Go back". */
+    backLabel?: string;
     /** The picture in the ink column. Defaults to the check. */
     art?: ReactNode;
     /** A line at the foot of the ink column. */
@@ -60,6 +69,7 @@ export function SignInFrame({
     className?: string;
 }) {
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : OCHK_IO);
+    const linkLook = cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK);
     return (
         <main
             id="main-content"
@@ -74,15 +84,17 @@ export function SignInFrame({
                         {brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />}
                         <span className="sr-only"> home</span>
                     </Link>
-                    {back === undefined ? (
-                        <Link
-                            href={homeHref}
-                            className={cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK)}
-                        >
+                    {back !== undefined ? (
+                        back
+                    ) : backTo ? (
+                        // A plain link, as each tool site's own Go back was: the return target may be another family site.
+                        <a href={backTo} className={linkLook}>
+                            {backLabel}
+                        </a>
+                    ) : (
+                        <Link href={homeHref} className={linkLook}>
                             Back to home
                         </Link>
-                    ) : (
-                        back
                     )}
                 </header>
                 {/* Top-aligned: centred, the title rose by half of whatever the ceremony grew as it mounted. */}

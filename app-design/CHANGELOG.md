@@ -2,6 +2,47 @@
 
 ## [Unreleased]
 
+## [2.1.0] — unreleased
+
+A family site's sign-in page in the package. Six tool sites (lock, stamp,
+attest, pledge, agent and vote) each carried the same hundred-line
+`src/pages/signin.tsx`, different only in the protocol and the return path;
+btc and cosign carried the same skeleton with their own words. Each tool
+site also drew its own Go back link, so all six lost the frame's 44px
+target to a thumb until each was patched by hand.
+
+- New entry `./signin`, read from `@orangecheck/auth-client` like
+  `./session` (the same optional peer; no other entry loads it, and
+  `scripts/check-entries.mjs` holds that):
+  - `SignInPage`: `SignInFrame` around auth-client's `OcSignIn`. A tool site
+    passes `protocol` and `defaultReturnTo`; an app on its own host passes
+    `product`, `home` and `audience`. The audience defaults to
+    `https://<protocol>.ochk.io`, the title to "Sign in to OC <Protocol>",
+    the lead to "One sign-in for every orangecheck site. No password.".
+    `title`, `lead`, `fineprint`, `art`, `caption`, `alreadySignedIn` and
+    `signIn` (`providersFirst`, `initialPath`, `paths`) take a site's own.
+    `back` is `'return'` by default ("Go back" to the return target),
+    `'home'` for the frame's Back to home, or a node of the site's own.
+  - `useSignInReturn(defaultReturnTo)`: what the site copies did, moved
+    unchanged. The return target is the first `?return_to` that auth-client's
+    `familyReturnTarget` accepts, else `defaultReturnTo`; `?add=1` keeps a
+    signed-in visitor on the form for a second account; anyone else signed in
+    is sent to the return target. The query is read from the address, so the
+    server renders the page without it, as the copies did.
+  - `signInSeo({ protocol })`: the props for the site's own `<Seo>`, which
+    stays in the site. The title is always `SIGN_IN_LABEL` and site-kit adds
+    the site's name, so every tab reads "Sign in | OC <Protocol>"; lock's
+    tab, "Sign in · OC Lock" by hand, was the one that differed.
+- `SignInFrame` gains `backTo` and `backLabel` (default "Go back"): the link
+  opposite the lockup goes to the given page, drawn as Back to home is, a
+  44px target to a thumb. `back` still wins when given.
+- **Migrate** (a tool site): `src/pages/signin.tsx` becomes its `<Seo
+  {...signInSeo({ protocol })} />` and `<SignInPage protocol defaultReturnTo />`.
+  btc and cosign pass `product`, `home`, `audience`, `back="home"` and their
+  words. cosign keeps its origin prefix on the return path until a test shows
+  auth-client's own (it prefixes a path that starts with `/`) brings the
+  Google and GitHub return back to cosign.
+
 ## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification

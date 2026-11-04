@@ -663,6 +663,60 @@ const html = (el) => renderToStaticMarkup(el);
     check(tree.children[0].properties.dataSize === '834x623' && tree.children[0].children.length === 1, `rehypeCode: a mermaid fence's size is not carried (${JSON.stringify(tree.children[0].properties)})`);
 }
 
+// 2.1.0: ./signin, the sign-in page six tool sites each carried a copy of, and SignInFrame's backTo.
+{
+    const S = require(join(here, '../dist/signin.js'));
+    const F = require(join(here, '../dist/family.js'));
+    // backTo draws the link opposite the lockup as Back to home is drawn: the same look and the coarse hit box.
+    const hit = 'pointer-coarse:before:h-11';
+    const backLink = (out) => out.match(/<header[^>]*>.*?<\/a>.*?(<a [^>]*>[^<]*<\/a>)/s)?.[1] ?? '';
+    const to = backLink(html(h(Ch.SignInFrame, { protocol: 'lock', backTo: '/came/from?x=1' }, 'x')));
+    check(/href="\/came\/from\?x=1"/.test(to) && />Go back</.test(to) && to.includes(hit), `SignInFrame backTo: the link is ${to}`);
+    check(/>Back again</.test(backLink(html(h(Ch.SignInFrame, { backTo: '/a', backLabel: 'Back again' }, 'x')))), 'SignInFrame backLabel: the words are not the given ones');
+    const home = backLink(html(h(Ch.SignInFrame, { protocol: 'lock' }, 'x')));
+    check(/href="https:\/\/ochk.io\/lock"/.test(home) && />Back to home</.test(home) && home.includes(hit), `SignInFrame: with no backTo the link is no longer Back to home (${home})`);
+    check(/>Mine</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: h('a', { href: '/m' }, 'Mine') }, 'x'))) && !/>Go back</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: null }, 'x'))), 'SignInFrame: back no longer wins over backTo');
+
+    // The page on the server, as a prerendered /signin: no query, so the return target is the default.
+    const page = html(h(S.SignInPage, { protocol: 'lock', defaultReturnTo: '/app' }));
+    const back = backLink(page);
+    check(/href="\/app"/.test(back) && />Go back</.test(back) && back.includes(hit), `SignInPage: Go back is ${back}, not a 44px link to the default return`);
+    // The six tool sites' own words, so their screens do not move when they adopt it.
+    check(page.includes('>Sign in to OC Lock</h1>') && page.includes('One sign-in for every orangecheck site. No password.'), 'SignInPage: the title or lead is not the tool sites\' own');
+    check(/href="https:\/\/ochk.io\/lock"/.test(page) && /data-oc-signin/.test(page), 'SignInPage: no lockup home to ochk.io/lock, or no OcSignIn');
+    const btc = html(h(S.SignInPage, { product: 'btc', home: '/', audience: 'https://btc.ochk.io', defaultReturnTo: '/', back: 'home', title: 'Sign in to the desk', fineprint: 'Small print.' }));
+    const btcBack = backLink(btc);
+    check(/href="\/"/.test(btcBack) && />Back to home</.test(btcBack) && btc.includes('>Sign in to the desk</h1>') && btc.includes('Small print.'), `SignInPage product: back="home", the title or the fineprint is not the site's (${btcBack})`);
+    check(html(h(S.SignInPage, { product: 'x', home: '/', audience: 'https://x.ochk.io', defaultReturnTo: '/' })).includes(`>${F.SIGN_IN_LABEL}</h1>`), 'SignInPage: a product site\'s default title is not SIGN_IN_LABEL');
+
+    // One rule for the tab: the title is SIGN_IN_LABEL, and site-kit adds the site's name.
+    const seo = S.signInSeo({ protocol: 'vote' });
+    check(
+        seo.title === F.SIGN_IN_LABEL &&
+            seo.description === 'Sign in to OC Vote with email, Google, GitHub or a Bitcoin wallet. One sign-in for every orangecheck site.' &&
+            seo.canonical === '/signin' &&
+            seo.noindex === true,
+        `signInSeo: ${JSON.stringify(seo)}`
+    );
+    check(S.signInSeo({ product: 'btc', description: 'Desk.' }).description === 'Desk.', 'signInSeo: a product site\'s description is not its own');
+
+    // A product site has no protocol to take the audience from, so leaving it out is a type error.
+    const ts = require('typescript');
+    const file = join(here, '../dist/__signin-types.tsx');
+    const probe = (src) => {
+        require('node:fs').writeFileSync(file, `import { SignInPage } from './signin';\nexport const x = ${src};\n`);
+        try {
+            const p = ts.createProgram([file], { strict: true, noEmit: true, jsx: ts.JsxEmit.ReactJSX, skipLibCheck: true, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 });
+            return ts.getPreEmitDiagnostics(p).length;
+        } finally {
+            require('node:fs').rmSync(file, { force: true });
+        }
+    };
+    check(probe(`<SignInPage protocol="lock" defaultReturnTo="/app" />`) === 0, 'SignInPage types: a tool site\'s two props do not type-check');
+    check(probe(`<SignInPage product="btc" home="/" defaultReturnTo="/" />`) > 0, 'SignInPage types: a product site without an audience type-checks');
+    check(probe(`<SignInPage protocol="lock" product="btc" home="/" audience="a" defaultReturnTo="/" />`) > 0, 'SignInPage types: a protocol and a product together type-check');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

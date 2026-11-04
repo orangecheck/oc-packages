@@ -54,6 +54,8 @@ const CEILING = {
     './format': 1_500,
     './mdx': 47_000,
     './session': 61_000,
+    // 13.9 KB on 2026-11-04 (2.1.0's SignInPage: the frame, Notice and the lockup; auth-client is a peer, outside).
+    './signin': 16_400,
     './acknowledgement': 11_000,
     './vitest': 500,
     // 191.7 KB on 2026-11-04: og's JetBrains Mono 400 for the card labels (27.0 KB) and its eleven baked dither PNGs,

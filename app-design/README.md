@@ -53,6 +53,7 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 | `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
 | `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |
 | `/session` | `SessionAccount`, read from `@orangecheck/auth-client` (an optional peer: install it to use this entry) |
+| `/signin` | `SignInPage`, `useSignInReturn`, `signInSeo`: a family site's whole /signin page around auth-client's `OcSignIn` (the same optional peer); a tool site passes its protocol and where to go |
 | `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`) and the account phrase (`GET_AN_ACCOUNT`, `SIGN_IN_LABEL`); no React |
 | `/tokens` | the palette as data, for OG images and charts |
 

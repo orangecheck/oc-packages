@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * Every entry in package.json's exports points at a built file, and the
- * optional peer stays optional: only ./session may load
+ * optional peer stays optional: only ./session and ./signin may load
  * @orangecheck/auth-client, so a site without it can import everything
  * else. ./code, ./format and ./vitest load no React, so a Next config, an
  * OG renderer or a vitest config can import them; ./vitest's aliases point
@@ -58,7 +58,7 @@ for (const [entry, target] of Object.entries(pkg.exports)) {
     for (const [cond, file] of Object.entries(target)) check(existsSync(join(root, file)), `${entry} (${cond}) → ${file} is not built`);
     for (const file of [target.import, target.require]) {
         const { bare: deps, text } = graph(file);
-        if (entry !== './session') check(!deps.has('@orangecheck/auth-client'), `${entry} loads the optional peer @orangecheck/auth-client`);
+        if (entry !== './session' && entry !== './signin') check(!deps.has('@orangecheck/auth-client'), `${entry} loads the optional peer @orangecheck/auth-client`);
         if (entry === './code' || entry === './format' || entry === './vitest') check(!deps.has('react'), `${entry} loads React`);
         if (entry !== './acknowledgement') check(!/kanstein|bramk\.substack/i.test(text), `${entry} carries the credit's name`);
         if (file === target.import) {
@@ -89,10 +89,12 @@ check(
     pkg.peerDependenciesMeta?.['@orangecheck/auth-client']?.optional === true,
     '@orangecheck/auth-client is not marked an optional peer'
 );
-check(graph(pkg.exports['./session'].require).bare.has('@orangecheck/auth-client') && graph(pkg.exports['./session'].import).bare.has('@orangecheck/auth-client'), './session does not read auth-client');
+for (const entry of ['./session', './signin']) {
+    check(graph(pkg.exports[entry].require).bare.has('@orangecheck/auth-client') && graph(pkg.exports[entry].import).bare.has('@orangecheck/auth-client'), `${entry} does not read auth-client`);
+}
 
 if (failures) {
     console.error(`\n${failures} entry failure(s)`);
     process.exit(1);
 }
-console.log(`✓ entries: ${checks} checks; the optional peer stays in ./session, ./code, ./format and ./vitest load no React, ./vitest aliases next, only ./acknowledgement names the credit`);
+console.log(`✓ entries: ${checks} checks; the optional peer stays in ./session and ./signin, ./code, ./format and ./vitest load no React, ./vitest aliases next, only ./acknowledgement names the credit`);

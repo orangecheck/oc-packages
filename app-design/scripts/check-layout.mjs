@@ -46,6 +46,9 @@
  * - SignInFrame holds still while its ceremony grows past the window: the
  *   title stays put, and the ink column is one screen tall with its art in
  *   place.
+ * - ./signin's SignInPage, as a tool site serves it, keeps its Go back (the
+ *   frame's backTo) a 44px target to a thumb, and its header the frame's
+ *   height to a thumb and to a mouse.
  * - A tool site's Docs link is in its phone menu, a 44px target, when the
  *   tools are the tab bar.
  * - A ListRow with lines="all" wraps its title and line in full, stays
@@ -570,6 +573,9 @@ try {
             )
         )
     );
+    // ./signin's page as a tool site serves it, prerendered: its Go back is the frame's backTo, a 44px target to a thumb.
+    const { SignInPage } = require(join(pkg, 'dist/signin.js'));
+    const touchSignInPage = page('touch-signin-page', renderToStaticMarkup(h(SignInPage, { protocol: 'lock', defaultReturnTo: '/app' })));
     // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons.
     const shellSections = [
         { id: 'a', label: 'Apps', href: '/a', groups: [{ items: [{ href: '/a', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }] }] },
@@ -2216,6 +2222,7 @@ try {
                     };
                     const shapes = [
                         ['line tabs and the sign-in header', touchShapes, [390, 1024], '[data-t="line-tab"], main header a', 5],
+                        ['the sign-in page header, Go back to the return target', touchSignInPage, [390, 1024], 'main header a', 2],
                         ['the app shell sidebar', touchShell, [1024], 'aside a', 5],
                         ['the app shell rail', touchRail, [768], 'nav[aria-label="Pages"] a', 2],
                     ];
@@ -2232,6 +2239,9 @@ try {
                     check(dca && dca.w < 44, `[1024 mouse] the DCA tab is ${dca?.w}px wide: a fine pointer's tab keeps its label's width`);
                     const touchHeader = (await read(touchShapes, 1024, true, 'main header a')).header;
                     check(touchHeader > 0 && touchHeader === mouse['line tabs and the sign-in header'].header, `[1024] the sign-in frame's header is ${touchHeader}px to a thumb and ${mouse['line tabs and the sign-in header'].header}px to a mouse`);
+                    const goBack = mouse['the sign-in page header, Go back to the return target'];
+                    const touchGoBack = (await read(touchSignInPage, 1024, true, 'main header a')).header;
+                    check(goBack.targets.some((x) => x.name === 'Go back') && touchGoBack === goBack.header && goBack.header === mouse['line tabs and the sign-in header'].header, `[1024] the sign-in page's header with Go back is ${touchGoBack}px to a thumb and ${goBack.header}px to a mouse, not the frame's ${mouse['line tabs and the sign-in header'].header}px`);
                     // A mouse's drawn sizes: section switcher 32, page rows 36, rail icons 40.
                     const bar = mouse['the app shell sidebar'].targets;
                     check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
