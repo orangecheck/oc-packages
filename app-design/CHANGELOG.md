@@ -118,6 +118,12 @@ optional. What changes is how things look.
   instead of running out. At 390 a "987,654,321 sats" ran 100px past its cell.
   check-layout measures both sizes with the trust group's values at 390 and
   1440.
+- The display fallback has a face of its own for the light weight that
+  every `oca-display-*` headline is set in (100 to 349, `size-adjust` 94.4%).
+  One face had served 100 to 449, tuned for 400. Inter Light is about 3%
+  narrower than Inter Regular, so a light headline in Arial ran 3.3% wide and
+  rewrapped as Inter swapped in (ochk.app /about at 390, CLS 0.0189).
+  check-layout now measures the display stack at weight 300 too.
 - Under a tool's compact density, a `Button` with no `size` is `sm`: 36px
   drawn and 44px to a thumb, the height of the fields beside it. A Field's
   action no longer stands 8px taller than its input (vote /discover). An

@@ -1025,7 +1025,8 @@ try {
                     };
                     const cases = [
                         ...['400 15px', '400 16px', '400 17px', '500 16px', '600 16px', '700 16px'].map((font) => [font, '--oc-font-sans', prose, 0.01]),
-                        ...['400 32px', '400 48px', '400 76px'].map((font) => [font, '--oc-font-display', headline, 0.01]),
+                        // Display type is set at 300 (oca-display-*) as well as 400: Inter Light is narrower.
+                        ...['300 36px', '300 60px', '400 32px', '400 48px', '400 76px'].map((font) => [font, '--oc-font-display', headline, 0.01]),
                         ['400 14px', '--oc-font-mono', code, 0.005],
                     ].map(([font, name, text, tol]) => {
                         const full = stack(name);
