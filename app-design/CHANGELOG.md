@@ -31,6 +31,9 @@ It landed in these units on oc-packages main:
   hero's title and lead readable at first paint, and its actions on a phone;
 - the tokens follow-up (`f4cfba94`): every band holds its contrast, every
   state shows a 3:1 edge, and targets are 44px in both axes;
+- the framed column (`f175c80a`): `PageFrame`, one left axis, each section a
+  closed box, and a `SectionBar` that spans its box;
+- `Closing`'s actions (`98d9b60f`): full width on a phone, as the hero's.
 
 ### Migrating from 1.x
 
@@ -81,6 +84,10 @@ after, starting with what to grep for.
   `oca-band-brand`/`oca-on-brand` and `oca-band-footer`/`oca-on-footer`.
   `Card tone="ink"`, `"burnt"` and `"brand"` do this themselves, so overrides
   like `[&_.text-muted-foreground]:…` on them can go.
+- **Fills and colours in bands.** A muted fill raised a step by hand in dark
+  (chat's `bg-muted dark:bg-accent`) → `bg-muted`: dark `--muted` is now that
+  colour. Orange text, a status colour or `--background` re-pointed by hand
+  inside a band → drop it: the band re-points them.
 - **The lockup.** A site's own `<Lockup />` (the default `variant`, the square
   app icon) in its chrome → `<Lockup variant="flat" />`, the swoosh and the
   wordmark. `AppIcon` is for the favicon, the app icon and the OG mark only.
@@ -101,7 +108,37 @@ after, starting with what to grep for.
 - **PageHero.** `size="xl"` is the home page's H1 and content pages take
   `"lg"`. New optional `ground`, `rule` and `layout="s10"`: a hand-built S10
   (child selectors over PageHero's markup, as ochk.app's legal pages had) →
-  `layout="s10"`. PageHero and `Closing` sit on the `Frame`.
+  `layout="s10"`. PageHero and `Closing` sit on the `Frame`. `rule` now
+  defaults to true; pass `rule={false}` for a hero without its closing
+  hairline. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`)
+  can go.
+- **Closing's buttons.** A full-width class on `Closing`'s buttons (chat's
+  `max-sm:w-full`) → drop it: Closing's actions stack full width on a phone
+  themselves.
+- **The page frame.** A site that composes `SiteHeader`, its `main` and
+  `SiteFooter` by hand → `<PageFrame>` around the `main`, with the header
+  above it and the footer below. That is ochk.io (oc-www), ochk.app's public
+  pages (oc-app-web), chat, vault, cosign, globe and btc. No package shell
+  renders `PageFrame` but `DocsShell`, so the docs (oc-docs) need no wrap,
+  and neither do the tool sites (lock, vote, stamp, pledge, agent) on
+  `ToolShell`. `ToolShell` and `AppShell` keep their own frames (a tool's
+  column, an app's sidebar). Pages that render `DocsShell` or `AppShell` stay
+  outside a layout's `PageFrame`, since both draw their own frame. A
+  `PageFrame` nested in another draws no second rule, but it is still one
+  column too many.
+- **A site's own container.** A `max-w-[75rem]` or `max-w-6xl` with its own
+  `px-*` gutter → `oca-container`, or `Frame` for a framed block, so its
+  content joins the axis. Until it moves, a `SectionBar` in it puts its label
+  at that container's padding (41.5px at 390 against the axis at 17.5).
+  Inside a `Section`, drop it: the Section gives one, and a nested
+  `oca-container` adds no second gutter (it had put content at 153.9 against
+  107.5 at 1440). A framed block is `<Section framed>`, not a `Frame` inside
+  a Section.
+- **SectionBar.** No edit in the package's own parents: it sizes itself, so
+  there is no `GUTTER` className to drop or keep (one that is there sets the
+  same padding). A box a site builds itself from a border and padding, like
+  ochk.app how's receipt → a `Card`, or `--oca-bar-bleed` and
+  `--oca-bar-inset` set to its padding, so the bar spans it.
 - **Section.** New optional `framed` (the content on the `Frame`, its
   hairlines meeting the next section's), `frameClassName`, `rule`, and tone
   `burnt`.
@@ -286,7 +323,7 @@ after, starting with what to grep for.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 
-### One framed column (design2-frame)
+### One framed column
 
 - The page is one framed column, as the prototype's is. The new `PageFrame`
   is the page's `main`: 82.5rem at most, with a hairline at each side that
@@ -318,32 +355,12 @@ after, starting with what to grep for.
   end sit on that box's axis. It takes back only the gutter its box gives:
   a container, a padded `Frame` and a `Card` set `--oca-bar-bleed` and
   `--oca-bar-inset`, while `Frame padded={false}` and `PageFrame` bleed
-  0. So it is right in any parent and never scrolls the page sideways, with
-  no prop.
-- **Migrating:** no package shell renders `PageFrame` but `DocsShell`.
-  `ToolShell` and `AppShell` keep their own frames (a tool's column, an app's
-  sidebar). A site that composes `SiteHeader`, its `main` and `SiteFooter` by
-  hand wraps the `main` in `<PageFrame>`, with the header above it and the
-  footer below. That is ochk.io (oc-www), ochk.app's public pages (oc-app-web),
-  chat, vault, cosign, globe and btc. The tool sites (lock, vote, stamp,
-  pledge, agent) are on `ToolShell` and the docs (oc-docs) on `DocsShell`, so
-  they need no wrap. Pages that render `DocsShell` or `AppShell` stay outside a
-  layout's `PageFrame`, since both draw their own frame. A `PageFrame` nested in
-  another draws no second rule, but it is still one column too many.
-  Inside a `Section`, drop the site's own container: the Section gives it one,
-  and a nested `oca-container` now adds no second gutter (it had put content
-  at 153.9 against 107.5 at 1440). A framed block is `<Section framed>`, not a
-  `Frame` inside a Section. A `SectionBar` needs no edit in any parent: it sizes
-  itself, so there is no `GUTTER` className to drop or keep (one that is there
-  sets the same padding). The one box it cannot read is one a site builds
-  itself from a border and padding, like ochk.app how's receipt. Make that box
-  a `Card`, or set `--oca-bar-bleed` and `--oca-bar-inset` to its padding, and
-  the bar spans it. A site with its own
-  container, a `max-w-[75rem]` or `max-w-6xl` with its own `px-*` gutter →
-  `oca-container`, or `Frame` for a framed block, so its content joins the
-  axis. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`) can go.
-  `PageHero`'s `rule` now defaults to true; pass `rule={false}` for a hero
-  without its closing hairline. No other prop changes.
+  0. So in the package's own parents it is right with no prop, and it never
+  scrolls the page sideways. In a site's own container not yet migrated (a
+  `max-w-6xl px-6`) its label sits at that container's padding, 41.5px at
+  390 against the axis at 17.5: "Migrating from 1.x" says how to move it.
+- What a site changes for the frame is under "Migrating from 1.x": the page
+  frame, a site's own container, `SectionBar` and the hero's `rule`.
 - check-layout proves it on built pages at 390 and 1440: one x for the page's
   left edges, the rules continuous pixel by pixel from the header to the
   footer, each section's hairline exactly the frame's inner width, DocsShell
@@ -372,7 +389,7 @@ after, starting with what to grep for.
   site's `_document` hard-coded `#fafafa` and `#0a0a0a`, 1.x's colours.
   check-mirror holds it to tokens.css.
 
-### Follow-up (design2-tokens)
+### Bands, chosen states and targets
 
 - The bands hold every colour a component paints on them, not only their own
   text. A brand badge on the ink band was 2.14:1, and small orange text on it
@@ -558,15 +575,14 @@ after, starting with what to grep for.
 - `Faq` defaults to `variant="rule"`. **Migrate**: pass `variant="card"` to
   keep the framed panel.
 - `PageHero` takes `ground`: `paper` (default), `ink` or `brand`.
-- A hero's two actions stack full width on phones, equal in width; side by
-  side from 640px.
-- `Closing`'s actions follow the same rule as `PageHero`'s, with the same
-  classes. On a phone the CTA pair stacks full width in DOM order; from
-  640px the actions sit in a row at their own widths. On a phone they used
-  to wrap at their own widths, 178 and 262 of 357px at 390. **Migrate**: drop
-  any full-width class a site put on Closing's buttons (chat's
-  `max-sm:w-full`).
-- `Section` takes tone `burnt` and `rule` (a full-width hairline under it).
+- On a phone `PageHero`'s actions stack full width, in DOM order; from
+  640px they sit side by side at their own widths. `Closing`'s actions
+  follow the same rule, with the same classes; on a phone they used to wrap
+  at their own widths, 178 and 262 of 357px at 390. A single action goes
+  full width on a phone too, as ochk.app home's closing link does (357 of
+  357px at 390). **Migrate**: drop any full-width class a site put on
+  Closing's buttons (chat's `max-sm:w-full`).
+- `Section` takes tone `burnt` and `rule` (a hairline under it).
   Its `ink`, `burnt` and `brand` bands now re-point `--foreground`,
   `--muted-foreground`, `--oca-subtle-foreground` and `--border`, and
   `burnt` and `brand` also re-point the accent and the ring. Text and
