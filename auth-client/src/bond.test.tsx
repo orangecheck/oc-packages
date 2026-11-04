@@ -151,7 +151,7 @@ describe('OcBond', () => {
         expect(input.value).toBe('bc1qholder0holder0holder');
     });
 
-    it('picks a coin with the design radio: a 20px square, a dot on the chosen coin that moves with the choice', async () => {
+    it('picks a coin with the design radio: a round 20px box, a dot on the chosen coin that moves with the choice', async () => {
         const second = { ...COIN, outpoint: 'cd'.repeat(32) + ':0', sats: 200_000 };
         coins = [COIN, second];
         render(<OcBond authOrigin="https://ochk.io" />);
@@ -162,7 +162,8 @@ describe('OcBond', () => {
         for (const r of radios) {
             expect(r.style.width).toBe('20px');
             expect(r.style.height).toBe('20px');
-            expect(['0', '0px']).toContain(r.style.borderRadius);
+            // Round by meaning: a square radio reads as a checkbox.
+            expect(r.style.borderRadius).toBe('50%');
         }
         const dotIn = (r: HTMLInputElement) => r.closest('label')!.querySelector('svg[data-oc-dot]');
         expect(radios[0]!.checked).toBe(true);
