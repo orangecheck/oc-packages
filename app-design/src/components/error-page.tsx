@@ -7,6 +7,7 @@ import { cn } from '../lib/cn';
 import { useInColumn } from '../lib/column';
 import { useSiteHome } from '../lib/site-home';
 import { Button } from '../primitives/button';
+import { HERO_ACTIONS } from './hero';
 import { Section } from './section';
 
 const WORDS: Record<number, { name: string; title: string; detail: string }> = {
@@ -71,7 +72,7 @@ export function ErrorPage({
                     </p>
                     <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title ?? words.title}</h1>
                     <p className="oca-lead oca-enter-lift [--enter-delay:150ms]">{detail ?? words.detail}</p>
-                    <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">
+                    <div className={cn('oca-enter [--enter-delay:230ms]', HERO_ACTIONS)}>
                         {actions ?? (
                             <>
                                 {server ? <Button onClick={() => window.location.reload()}>Try again</Button> : null}
