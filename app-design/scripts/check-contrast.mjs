@@ -353,8 +353,182 @@ for (const [mode, vars, behind] of [
     }
 }
 
+// A ground that holds text and is drawn on another one (a sunken panel, a drawn bubble, a cancel
+// button in a toast) stays apart from every surface it sits on by at least the step light has
+// always had between paper and its sunken ground (1.10:1). Its text is held to 4.5:1 above, so it
+// cannot also reach 1.4.11's 3:1 against the surface; what identifies a control is held to 3:1
+// there instead. In dark, --muted was #1c1916, the window's own colour: 1.00:1 on --oca-surface.
+const FLOOR = 1.09;
+for (const [mode, vars] of [
+    ['light', light],
+    ['dark', dark],
+]) {
+    for (const g of ['muted']) {
+        for (const on of ['background', 'card', 'popover', 'oca-surface']) {
+            const r = ratio(vars[g], vars[on]);
+            if (r < FLOOR) {
+                console.error(`✗ ${mode}: --${g} ${vars[g]} on --${on} ${vars[on]} is ${r.toFixed(2)}:1, the same ground; needs ${FLOOR}:1 to read apart`);
+                failed++;
+            }
+        }
+    }
+}
+
+// What the components themselves put on each ground. The pairs above are the ones someone thought of;
+// this reads every class string in the package's components (stories and tests aside) and checks what
+// they name, on the page, in every band and in every Card tone, light and dark, each token resolved
+// through the band's re-pointing as the browser would. A band that leaves a token alone lets the page's
+// value through: small orange text on the ink band (oca-accent-ink, 2.51:1 in light) passed the band
+// check above because oca-on-ink never named it.
+// - A text with a ground in the same class string is checked on that ground (a badge's tint included:
+//   a color-mix of two tokens, mixed in OKLab as the browser does).
+// - A text named for its ground (card-foreground, oca-surface-muted, oca-ink-muted…) is checked on it.
+// - The page's own text tokens, which follow whatever they sit on, are checked on the context's ground
+//   and its card.
+// - A mark drawn as a fill in one of those tokens (a status dot, a current-page square) is non-text:
+//   3:1 on its ground.
+// - Hidden from assistive tech (aria-hidden on the element) is drawing, not text, and fixed colours
+//   (white, black) on translucent tints are left to the code well's pairs above.
+const census = { strings: 0, pairs: 0 };
+{
+    const { readdirSync, statSync } = await import('node:fs');
+    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8');
+    const colorVar = Object.fromEntries([...theme.matchAll(/--color-([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
+    const FIXED = { white: '#ffffff', black: '#000000' };
+    const files = [];
+    (function walk(d) {
+        for (const f of readdirSync(d)) {
+            const p = join(d, f);
+            if (statSync(p).isDirectory()) walk(p);
+            else if (/\.tsx$/.test(f) && !/\.(stories|test)\.tsx$/.test(f)) files.push(p);
+        }
+    })(join(here, '../src'));
+    const parse = (cls, kind) => {
+        const m = cls.match(new RegExp(`^((?:[^\\s:]+:)*)${kind}-(.+)$`));
+        if (!m) return null;
+        const variant = m[1].replace(/:$/, '');
+        let rest = m[2];
+        let alpha = 1;
+        const a = rest.match(/^(.*)\/(\d+)$/);
+        if (a) [rest, alpha] = [a[1], Number(a[2]) / 100];
+        const mix = rest.match(/^\[color-mix\(in_oklab,var\(--([a-z0-9-]+)\)_(\d+)%,var\(--([a-z0-9-]+)\)\)\]$/);
+        if (mix) return { variant, mix: [mix[1], Number(mix[2]) / 100, mix[3]], alpha, name: `color-mix(${mix[1]} ${mix[2]}%, ${mix[3]})` };
+        if (FIXED[rest]) return { variant, hex: FIXED[rest], alpha, name: rest };
+        if (colorVar[rest]) return { variant, token: colorVar[rest], alpha, name: `--${colorVar[rest]}${alpha < 1 ? `/${a[2]}` : ''}` };
+        return null;
+    };
+    const units = [];
+    for (const f of files) {
+        const src = readFileSync(f, 'utf8');
+        for (const m of src.matchAll(/'([^'\n]*)'|"([^"\n]*)"|`([^`]*)`/g)) {
+            const str = m[1] ?? m[2] ?? m[3];
+            if (!/\b(text|bg)-/.test(str)) continue;
+            const tag = src.slice(src.lastIndexOf('<', m.index), m.index);
+            if (/\baria-hidden\b/.test(tag) && !tag.includes('>')) continue;
+            const cls = str.split(/\s+/).filter(Boolean);
+            const texts = cls.map((c) => parse(c, 'text')).filter(Boolean);
+            const grounds = cls.map((c) => parse(c, 'bg')).filter(Boolean);
+            if (texts.length || grounds.length) units.push({ at: `${f.slice(join(here, '..').length + 1)}:${src.slice(0, m.index).split('\n').length}`, texts, grounds });
+        }
+    }
+    census.strings = units.length;
+    const FOLLOWS = new Set(['foreground', 'muted-foreground', 'oca-subtle-foreground', 'oca-accent-ink', 'oca-accent-display', 'destructive', 'success', 'warning', 'info']);
+    const home = (t) => {
+        if (/^oca-ink-(foreground|muted|subtle|title|eyebrow)$/.test(t)) return ['oca-ink', 'oca-ink-card'];
+        if (/^oca-burnt-(foreground|muted|accent|ember)$/.test(t)) return ['oca-burnt', 'oca-burnt-card'];
+        if (/^oca-footer-(foreground|muted)$/.test(t)) return ['oca-footer'];
+        if (/^oca-code-/.test(t)) return ['oca-code-surface', 'oca-ink-card'];
+        if (t === 'oca-surface-muted') return ['oca-surface'];
+        const g = t.match(/^(.+)-foreground$/)?.[1];
+        return g && g !== 'muted' && g !== 'oca-subtle' && dark[g] ? [g] : null;
+    };
+    // The page, every band (its own block with the oca-on-* it applies) and every Card tone off the page's grounds.
+    const utilities = Object.fromEntries([...theme.matchAll(/@utility (oca-(?:band|on)-[a-z]+) \{([^}]*)\}/g)].map((m) => [m[1], m[2]]));
+    const pointed = (body) => Object.fromEntries([...body.matchAll(/--([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
+    const contexts = [['the page', {}, 'background']];
+    for (const [name, body] of Object.entries(utilities).filter(([n]) => n.startsWith('oca-band-'))) {
+        const full = body + [...body.matchAll(/@apply ([a-z0-9- ]+);/g)].flatMap((m) => m[1].split(/\s+/)).map((u) => utilities[u] ?? '').join('\n');
+        contexts.push([name, pointed(full), full.match(/background-color:\s*var\(--([a-z0-9-]+)\)/)[1]]);
+    }
+    const cardSrc = readFileSync(join(here, '../src/primitives/card.tsx'), 'utf8');
+    for (const t of ['ink', 'burnt', 'brand']) {
+        const cls = cardSrc.match(new RegExp(`\\b${t}: '([^']*)'`))?.[1] ?? '';
+        const on = cls.match(/\boca-on-([a-z]+)/)?.[1];
+        const bg = cls.match(/\bbg-((?:oca-)?[a-z0-9-]+)/)?.[1];
+        contexts.push([`Card tone="${t}"`, on ? pointed(utilities[`oca-on-${on}`] ?? '') : {}, colorVar[bg] ?? bg]);
+    }
+    const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const hex = (c) => '#' + c.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('');
+    const over = (top, a, under) => hex(rgb(top).map((v, i) => a * v + (1 - a) * rgb(under)[i]));
+    const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const gamma = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+    const toLab = (h) => oklab(rgb(h).map((v) => lin(v / 255)));
+    const mixLab = (a, p, b) => {
+        const [A, B] = [toLab(a), toLab(b)];
+        const [L, x, y] = A.map((v, i) => p * v + (1 - p) * B[i]);
+        const [l, m, s] = [L + 0.3963377774 * x + 0.2158037573 * y, L - 0.1055613458 * x - 0.0638541728 * y, L - 0.0894841775 * x - 1.291485548 * y].map((v) => v ** 3);
+        return hex([4.0767416621 * l - 3.3077085212 * m + 0.2309667373 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960771 * l - 0.7034186147 * m + 1.707614701 * s].map((v) => 255 * gamma(Math.min(1, Math.max(0, v)))));
+    };
+    const seen = new Set();
+    for (const [ctx, set, base] of contexts) {
+        for (const [mode, vars] of [
+            ['light', light],
+            ['dark', dark],
+        ]) {
+            const value = (t) => vars[set[t] ?? t];
+            const paint = (x, under) => {
+                const c = x.hex ?? (x.mix ? mixLab(value(x.mix[0]), x.mix[1], value(x.mix[2])) : value(x.token));
+                return c && x.alpha < 1 ? over(c, x.alpha, under) : c;
+            };
+            const around = [base, set.card ?? 'card'].map((g) => [`--${g}`, value(g)]);
+            const fail = (what, r, min, at) => {
+                const key = `${ctx} ${mode}: ${what}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                console.error(`✗ ${mode}: in ${ctx}, ${what} is ${r.toFixed(2)}:1, needs ${min}:1 (${at})`);
+                failed++;
+            };
+            for (const u of units) {
+                for (const v of new Set([...u.texts, ...u.grounds].map((x) => x.variant))) {
+                    if (/disabled/.test(v) || (/(^|:)dark(:|$)/.test(v) && mode === 'light')) continue;
+                    const mark = /(^|:)(before|after)$/.test(v);
+                    const of = (list) => list.filter((x) => x.variant === v);
+                    const own = (of(u.grounds).length && !mark ? of(u.grounds) : u.grounds.filter((x) => x.variant === '')).filter((g) => !(g.alpha < 1 && u.texts.some((t) => t.hex)));
+                    const owned = own.map((g) => [g.name, paint(g, value(base))]);
+                    if (mark) {
+                        // Only a mark in a colour that follows its ground: a fixed one (the code well's orange tab line) sits on its own well.
+                        for (const g of of(u.grounds).filter((x) => FOLLOWS.has(x.token))) {
+                            for (const [name, under] of owned.length ? owned : around) {
+                                const c = paint(g, under);
+                                if (!c || !under) continue;
+                                census.pairs++;
+                                const r = ratio(c, under);
+                                if (r < 3) fail(`a ${g.name} mark on ${name}`, r, 3, u.at);
+                            }
+                        }
+                        continue;
+                    }
+                    for (const t of of(u.texts).length ? of(u.texts) : u.texts.filter((x) => x.variant === '')) {
+                        if (t.hex && !owned.length) continue;
+                        const homes = t.token && home(t.token);
+                        const on = owned.length ? owned : homes ? homes.map((g) => [`--${g}`, value(g)]) : FOLLOWS.has(t.token) ? around : [];
+                        for (const [name, under] of on) {
+                            const c = under && paint(t, under);
+                            if (!c) continue;
+                            census.pairs++;
+                            const min = t.token === 'oca-accent-display' ? 3 : 4.5;
+                            const r = ratio(c, under);
+                            if (r < min) fail(`text ${t.name} on ${name}`, r, min, u.at);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; every band's and dark Card tone's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; --muted apart from every surface; ${census.pairs} pairs from ${census.strings} component class strings on the page, every band and Card tone; every band's and dark Card tone's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);
