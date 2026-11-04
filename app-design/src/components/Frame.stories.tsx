@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Button } from '../primitives';
-import { Display, Faq, Frame, Lead, MonoLabel, PageHero, Section, SectionBar, StatRow } from './index';
+import { Display, Faq, Lead, MonoLabel, PageHero, Section, SectionBar, StatRow } from './index';
 
 const meta: Meta = { title: 'Components/Frame (2.0)' };
 export default meta;
