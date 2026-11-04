@@ -558,6 +558,31 @@ try {
             h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Docs' }, { href: '/docs/me', label: 'me' }, { href: '/docs/stamp', label: 'Stamp' }] }], current: '/docs/me' }, h('h1', null, 'me'))
         )
     );
+    // Underline tabs with short labels (btc's desk: DCA, Paper) above a sign-in frame's header: its lockup and Back to home.
+    const touchShapes = page(
+        'touch-shapes',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(P.Tabs, { look: 'line', defaultValue: 'dca' }, h(P.TabsList, null, ['DCA', 'Paper', 'Overview'].map((l) => h(P.TabsTrigger, { key: l, value: l.toLowerCase(), 'data-t': 'line-tab' }, l)))),
+                h(Ch.SignInFrame, { lead: 'One line.' }, h('p', null, 'The ceremony.'))
+            )
+        )
+    );
+    // A site header with short nav words (ochk.app's Earn and Trust): its nav shows from 1024, where a tablet is touch.
+    const touchNav = page('touch-nav', renderToStaticMarkup(h(Ch.SiteHeader, { nav: [{ href: '/earn', label: 'Earn' }, { href: '/trust', label: 'Trust' }], signIn: true, cta: true })));
+    // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons.
+    const shellSections = [
+        { id: 'a', label: 'Apps', href: '/a', groups: [{ items: [{ href: '/a', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }] }] },
+        { id: 'm', label: 'Money', href: '/m', groups: [{ items: [{ href: '/m', label: 'Payouts' }] }] },
+    ];
+    const touchShell = page('touch-shell', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'a' }, h('p', null, 'x'))));
+    const icon = h('svg', { viewBox: '0 0 10 10' }, h('rect', { width: 10, height: 10 }));
+    const touchRail = page(
+        'touch-rail',
+        renderToStaticMarkup(h(Ch.AppShell, { variant: 'rail', nav: [{ items: [{ href: '/c', label: 'Chats', icon, active: true }, { href: '/s', label: 'Settings', icon }] }] }, h('p', null, 'x')))
+    );
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -2168,6 +2193,55 @@ try {
                     const small = rows.filter(([, w, hh]) => w < 44 || hh < 44);
                     check(rows.length >= 3 && small.length === 0, `[1280 touch] docs rail rows under 44x44: ${small.length} of ${rows.length}: ${JSON.stringify(small)}`);
                     await c.close();
+                }
+                // Underline tabs, a sign-in frame's header links, an app shell's sidebar and rail, and a site header's
+                // nav at 1024 (in the menu at 390 and to a mouse at 1440, so only a tablet touches it): to a thumb each
+                // lands from 21.5px out in every direction, on the box or by a ::before. To a mouse they keep their
+                // drawn size (a short tab or nav word its own width), and the sign-in header its height either way.
+                {
+                    const read = async (url, w, touch, sel) => {
+                        const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                        await visit(c, url);
+                        const r = await c.evaluate((q) => ({
+                            header: Math.round(document.querySelector('main header')?.getBoundingClientRect().height ?? 0),
+                            targets: [...document.querySelectorAll(q)]
+                                .filter((el) => el.getClientRects().length > 0 && el.getBoundingClientRect().width > 1)
+                                .map((el) => {
+                                    const b = el.getBoundingClientRect();
+                                    const cx = b.left + b.width / 2;
+                                    const cy = b.top + b.height / 2;
+                                    const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                                    return { name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                                }),
+                        }), sel);
+                        await c.close();
+                        return r;
+                    };
+                    const shapes = [
+                        ['line tabs and the sign-in header', touchShapes, [390, 1024], '[data-t="line-tab"], main header a', 5],
+                        ['the app shell sidebar', touchShell, [1024], 'aside a', 5],
+                        ['the app shell rail', touchRail, [768], 'nav[aria-label="Pages"] a', 2],
+                        ['the site header nav', touchNav, [1024], 'nav[aria-label="Main"] a', 2],
+                    ];
+                    const mouse = {};
+                    for (const [name, url, widths, sel, n] of shapes) {
+                        for (const w of widths) {
+                            const t = (await read(url, w, true, sel)).targets;
+                            check(t.length === n && t.every((x) => x.reach), `[${w} touch] ${name}: ${t.filter((x) => !x.reach).length} of ${t.length} (want ${n}) not a 44px target: ${JSON.stringify(t.filter((x) => !x.reach))}`);
+                        }
+                        mouse[name] = await read(url, widths[widths.length - 1], false, sel);
+                    }
+                    const sizes = (name) => mouse[name].targets.map((x) => `${x.name} ${x.w}x${x.h}`).join(', ');
+                    const dca = mouse['line tabs and the sign-in header'].targets.find((x) => x.name === 'DCA');
+                    check(dca && dca.w < 44, `[1024 mouse] the DCA tab is ${dca?.w}px wide: a fine pointer's tab keeps its label's width`);
+                    const touchHeader = (await read(touchShapes, 1024, true, 'main header a')).header;
+                    check(touchHeader > 0 && touchHeader === mouse['line tabs and the sign-in header'].header, `[1024] the sign-in frame's header is ${touchHeader}px to a thumb and ${mouse['line tabs and the sign-in header'].header}px to a mouse`);
+                    // A mouse's drawn sizes: section switcher 32, page rows 36, rail icons 40.
+                    const bar = mouse['the app shell sidebar'].targets;
+                    check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
+                    const earn = mouse['the site header nav'].targets.find((x) => x.name === 'Earn');
+                    check(earn && earn.w < 44 && earn.h === 44, `[1024 mouse] the header's Earn is drawn ${earn?.w}x${earn?.h}: a fine pointer's nav word keeps its own width`);
+                    check(mouse['the app shell rail'].targets.length === 2 && mouse['the app shell rail'].targets.every((x) => x.w === 40 && x.h === 40), `[768 mouse] the rail's icons are drawn ${sizes('the app shell rail')}, not 40x40`);
                 }
             }
             // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
