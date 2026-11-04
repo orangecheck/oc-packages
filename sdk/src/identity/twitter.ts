@@ -1,9 +1,9 @@
 /**
- * Twitter Identity Verification
- * Verifies that a user controls a Twitter identity
+ * X (Twitter) identity: instructions, post text and a manual check.
  *
- * Note: Twitter API requires authentication and has rate limits.
- * This implementation uses manual verification where the user provides a tweet URL.
+ * Nothing here reads X (its API needs authentication). verifyTwitterIdentity
+ * never verifies a tweet: given a tweet URL it says a person must open it and
+ * look for the attestation ID.
  */
 
 import { createLogger } from '../utils/logger';

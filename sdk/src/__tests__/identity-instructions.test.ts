@@ -6,6 +6,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { getDnsVerificationInstructions } from '../identity/dns';
+import { generateGistTemplate, getGitHubVerificationInstructions } from '../identity/github';
 import { getNostrVerificationInstructions } from '../identity/nostr';
 import { generateTweetText, getTwitterVerificationInstructions, verifyTwitterIdentity } from '../identity/twitter';
 
@@ -30,6 +32,14 @@ describe('X (Twitter) and Nostr proof instructions', () => {
             getNostrVerificationInstructions(ID),
         ]) {
             expect(text).toContain(`Verifying my orangecheck attestation: ${ID}`);
+            expect(text).not.toContain('OrangeCheck');
+        }
+        for (const text of [
+            generateGistTemplate(ID, 'alice'),
+            getGitHubVerificationInstructions(ID),
+            getDnsVerificationInstructions(ID, 'example.com'),
+        ]) {
+            expect(text).toContain(ID);
             expect(text).not.toContain('OrangeCheck');
         }
     });
