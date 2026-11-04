@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { OnThisPage, useHeadings } from '../components/docs';
+import { PageFrame } from '../components/frame';
 import { useActiveHeading } from '../components/hero';
 import type { TocItem } from '../components/hero';
 import { DOCS_HREF, OCHK_IO, OCHK_IO_NAV } from '../family';
@@ -245,8 +246,9 @@ export function DocsShell({
                     </Sheet>
                 </div>
             </div>
-            <div className="oca-container flex-1">
-                <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
+            {/* The page's framed column, its rules from the header to the footer; the content on its axis. */}
+            <PageFrame as="div" className="flex-1">
+                <div className="oca-container lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
                     <div className="sticky top-[4.5rem] hidden max-h-[calc(100dvh-4.5rem)] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
                         <DocsNav sections={nav} current={marked} />
                     </div>
@@ -271,7 +273,7 @@ export function DocsShell({
                         {items.length > 1 ? <OnThisPage items={items} activeId={activeId} /> : null}
                     </div>
                 </div>
-            </div>
+            </PageFrame>
             {footer ?? <OchkIoFooter />}
         </div>
     );

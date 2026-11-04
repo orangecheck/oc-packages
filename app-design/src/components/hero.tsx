@@ -37,7 +37,7 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
-    /** A full-width hairline under the hero. `page` only. */
+    /** The hairline that closes the hero, between the frame's rules. Default true. `page` only. */
     rule?: boolean;
     /**
      * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
@@ -50,7 +50,7 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
-/** A hero's actions: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
+/** A page's CTA pair, a hero's and the closing band's: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
 export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
 
 export function PageHero({
@@ -64,7 +64,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
-    rule = false,
+    rule = true,
     layout = 'split',
     className,
 }: PageHeroProps) {

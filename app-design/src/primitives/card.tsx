@@ -12,7 +12,8 @@ import type { HeadingTag } from '../lib/heading';
  * them as the band of the same name does (theme.css oca-on-*), so a MonoLabel, a
  * muted line or a Button inside reads in the card's colours.
  */
-export const cardVariants = cva('relative rounded-none border', {
+// A SectionBar in a card spans the card inside its border, its label on the card's own inset.
+export const cardVariants = cva('relative rounded-none border [--oca-bar-bleed:var(--oca-card-pad,0px)] [--oca-bar-inset:var(--oca-card-pad,0px)]', {
     variants: {
         tone: {
             default: 'border-border bg-card text-card-foreground',
