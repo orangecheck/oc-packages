@@ -56,7 +56,8 @@ const CEILING = {
     './session': 61_000,
     './acknowledgement': 11_000,
     './vitest': 500,
-    './og': 187_500,
+    // 191.7 KB on 2026-11-04 once og's baked dither art, crisp 2x bakes included, is inlined for Satori (lead).
+    './og': 226_000,
     './fonts': 500,
     './motion': 49_500,
 };
