@@ -363,8 +363,12 @@ for (const [mode, vars] of [
     ['light', light],
     ['dark', dark],
 ]) {
-    for (const g of ['muted']) {
-        for (const on of ['background', 'card', 'popover', 'oca-surface']) {
+    // --muted on what it is drawn on; the ink band beside every page ground (in dark it was the window's colour).
+    for (const [g, ons] of [
+        ['muted', ['background', 'card', 'popover', 'oca-surface']],
+        ['oca-ink', ['background', 'card', 'popover', 'oca-surface', 'muted']],
+    ]) {
+        for (const on of ons) {
             const r = ratio(vars[g], vars[on]);
             if (r < FLOOR) {
                 console.error(`✗ ${mode}: --${g} ${vars[g]} on --${on} ${vars[on]} is ${r.toFixed(2)}:1, the same ground; needs ${FLOOR}:1 to read apart`);
@@ -387,6 +391,8 @@ for (const [mode, vars] of [
 //   and its card.
 // - A mark drawn as a fill in one of those tokens (a status dot, a current-page square) is non-text:
 //   3:1 on its ground.
+// - A state shown by a fill (a selected tab, a pressed toggle, the current page) reads 3:1 against the
+//   ground it replaces, or draws an edge that does.
 // - Hidden from assistive tech (aria-hidden on the element) is drawing, not text, and fixed colours
 //   (white, black) on translucent tints are left to the code well's pairs above.
 const census = { strings: 0, pairs: 0 };
@@ -428,10 +434,20 @@ const census = { strings: 0, pairs: 0 };
             const cls = str.split(/\s+/).filter(Boolean);
             const texts = cls.map((c) => parse(c, 'text')).filter(Boolean);
             const grounds = cls.map((c) => parse(c, 'bg')).filter(Boolean);
-            if (texts.length || grounds.length) units.push({ at: `${f.slice(join(here, '..').length + 1)}:${src.slice(0, m.index).split('\n').length}`, texts, grounds });
+            // An edge: a border or ring in a token, or an inset hairline drawn in one.
+            const edges = [
+                ...cls.flatMap((c) => [parse(c, 'border'), parse(c, 'ring')]).filter(Boolean),
+                ...cls.flatMap((c) => {
+                    const e = c.match(/^((?:[^\s:]+:)*)shadow-\[inset_[^\]]*var\(--([a-z0-9-]+)\)\]$/);
+                    return e ? [{ variant: e[1].replace(/:$/, ''), token: e[2], alpha: 1, name: `--${e[2]}` }] : [];
+                }),
+            ];
+            if (texts.length || grounds.length) units.push({ at: `${f.slice(join(here, '..').length + 1)}:${src.slice(0, m.index).split('\n').length}`, texts, grounds, edges });
         }
     }
     census.strings = units.length;
+    // Checked boxes, radios and switches carry their state in a glyph or a thumb's place, not only in the fill.
+    const STATE = /(^|:)(data-\[state=(active|on)\]|aria-(selected|pressed)|aria-\[current=[a-z]+\])$/;
     const FOLLOWS = new Set(['foreground', 'muted-foreground', 'oca-subtle-foreground', 'oca-accent-ink', 'oca-accent-display', 'destructive', 'success', 'warning', 'info']);
     const home = (t) => {
         if (/^oca-ink-(foreground|muted|subtle|title|eyebrow)$/.test(t)) return ['oca-ink', 'oca-ink-card'];
@@ -489,6 +505,21 @@ const census = { strings: 0, pairs: 0 };
                 failed++;
             };
             for (const u of units) {
+                // A state shown by a fill (a selected tab, a checked choice): the fill reads 3:1 against the
+                // ground it replaces, or the state also draws an edge that does (1.4.11). A selected segment
+                // in card on the muted list was 1.18:1 with nothing else but its text.
+                for (const g of u.grounds.filter((x) => STATE.test(x.variant) && !/(^|:)(before|after)$/.test(x.variant))) {
+                    const was = u.grounds.find((x) => x.variant === '');
+                    const under = was ? paint(was, value(base)) : value(base);
+                    const fill = paint(g, under);
+                    if (!fill || !under) continue;
+                    census.pairs++;
+                    if (ratio(fill, under) >= 3) continue;
+                    const edge = u.edges.filter((e) => e.variant === g.variant && e.token).map((e) => [e.name, paint(e, fill)]);
+                    if (!edge.some(([, c]) => c && ratio(c, fill) >= 3 && ratio(c, under) >= 3)) {
+                        fail(`a ${g.variant} fill ${g.name} on ${was ? was.name : `--${base}`} with no edge at 3:1`, ratio(fill, under), 3, u.at);
+                    }
+                }
                 for (const v of new Set([...u.texts, ...u.grounds].map((x) => x.variant))) {
                     if (/disabled/.test(v) || (/(^|:)dark(:|$)/.test(v) && mode === 'light')) continue;
                     const mark = /(^|:)(before|after)$/.test(v);
@@ -531,4 +562,4 @@ if (failed) {
     console.error(`\n${failed} contrast failure(s)`);
     process.exit(1);
 }
-console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; --muted apart from every surface; ${census.pairs} pairs from ${census.strings} component class strings on the page, every band and Card tone; every band's and dark Card tone's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);
+console.log(`✓ contrast: ${PAIRS.length} pairs × light, dark; --muted and the ink band apart from every surface; ${census.pairs} pairs from ${census.strings} component class strings on the page, every band and Card tone; every band's and dark Card tone's text and ring on its ground; the chart series stay apart; HUD text over any scene; avatar initials at every hue`);

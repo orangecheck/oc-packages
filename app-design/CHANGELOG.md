@@ -203,6 +203,18 @@ optional. What changes is how things look.
   hand can drop that too.
 - Light `--warning` is `#9e5900` (it was `#a15c07`), so a DataTable cell in
   caution is 4.52:1 on paper (it was 4.33:1).
+- The dark ink band is `#2c2927` (it was `#1c1916`), its card `#332f2d`, and its
+  line `#3c3836`. It was the same colour as the window, the popover and the
+  table head, so a drawn window in the band vanished. It is now at least
+  1.09:1 from every page ground: 1.09 on `--muted`, 1.21 on `--oca-surface`.
+  The code comment colour moves `#909397` to `#94979b`, to keep 4.5:1 on the
+  lighter card. The band's red is one step lighter (`#fca5a5`), so a danger
+  badge's tint keeps 4.5:1.
+- The segmented `Tabs` (`look="pill"`) draws the chosen segment's ink edge as
+  well as its raised fill. Card on the muted list was 1.18:1, and apart from
+  its text colour that was the only sign of which segment was chosen.
+  check-contrast fails any selected, pressed or current state drawn as a fill
+  under 3:1 with no edge at 3:1.
 - check-contrast reads the components. It checks every text and ground named
   in a component's class strings, a badge's `color-mix` tint included. It
   checks them on the page, in every band and in every Card tone, in light and
