@@ -38,18 +38,38 @@ export interface FrameProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * The framed column every public page is drawn in: 82.5rem at most, a
- * hairline at each edge from 900px, a gutter of 3rem that narrows to 1rem.
- * Frame is for public pages; DocsShell and AppShell keep their own layouts.
+ * The framed column: 82.5rem at most, a hairline at each side, a gutter of
+ * 3rem that narrows to 1rem (tokens.css --oca-frame-*). Inside PageFrame it
+ * draws no rules of its own: the page's run beside it.
  */
 export function Frame({ as = 'div', padded = true, className, ...props }: FrameProps) {
     return createElement(as, {
         'data-oca-frame': '',
         className: cn(
-            'mx-auto w-full max-w-[82.5rem] border-border min-[900px]:border-x',
-            padded && 'px-[clamp(1rem,0.333rem+2.857vw,3rem)]',
+            'mx-auto w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
+            padded && 'px-[var(--oca-frame-gutter)]',
             className
         ),
+        ...props,
+    });
+}
+
+export interface PageFrameProps extends HTMLAttributes<HTMLElement> {
+    /** Default `main`; DocsShell, which has its own main, takes `div`. */
+    as?: 'main' | 'div';
+}
+
+/**
+ * The page's one framed column, between the header and the footer: its two
+ * hairlines run the page's whole height, its sections and bands sit between
+ * them (a Section's hairline closes it from rule to rule), and their content
+ * starts on the frame's axis. A site's layout puts its pages in it, the footer
+ * outside. A full-bleed stage that should paint over the rules says so itself.
+ */
+export function PageFrame({ as = 'main', className, ...props }: PageFrameProps) {
+    return createElement(as, {
+        'data-oca-page-frame': '',
+        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px]', className),
         ...props,
     });
 }

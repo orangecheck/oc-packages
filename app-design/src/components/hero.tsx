@@ -34,7 +34,7 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
-    /** A full-width hairline under the hero. `page` only. */
+    /** The hairline that closes the hero, between the frame's rules. Default true. `page` only. */
     rule?: boolean;
     /**
      * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
@@ -58,7 +58,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
-    rule = false,
+    rule = true,
     layout = 'split',
     className,
 }: PageHeroProps) {

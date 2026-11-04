@@ -240,11 +240,14 @@
     font-feature-settings: 'tnum' 1;
 }
 
+/* The frame's column: its content starts where the Frame's does (the rule plus
+   the gutter), so a Section, a PageHero and a site's own container share one
+   left axis with the header. Reading measures keep their own max-width. */
 @utility oca-container {
     width: 100%;
-    max-width: 75rem;
+    max-width: var(--oca-frame-max);
     margin-inline: auto;
-    padding-inline: clamp(1rem, 0.4rem + 2.6vw, 2.5rem);
+    padding-inline: calc(var(--oca-frame-rule) + var(--oca-frame-gutter));
 }
 
 @utility oca-section {
