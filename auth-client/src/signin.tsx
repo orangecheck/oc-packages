@@ -43,6 +43,7 @@ import * as React from 'react';
 
 import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
+import { DesignCheckbox } from './controls';
 import { LinkPromptStep } from './linked-identities';
 import { ownWord } from './own-word';
 import { stripFragment } from './return-to';
@@ -774,20 +775,7 @@ export function OcSignIn({
 
             {linkPrompt && (
                 <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
-                    {/* The design checkbox, not the browser's: a square from the page's tokens, its mark drawn when checked. */}
-                    <span style={checkWrapStyle}>
-                        <input
-                            type="checkbox"
-                            checked={linkAlso}
-                            onChange={(e) => setLinkAlso(e.target.checked)}
-                            style={checkStyle(linkAlso)}
-                        />
-                        {linkAlso ? (
-                            <svg data-oc-check="" aria-hidden="true" viewBox="0 0 24 24" style={checkMarkStyle}>
-                                <path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="square" />
-                            </svg>
-                        ) : null}
-                    </span>
+                    <DesignCheckbox checked={linkAlso} onChange={(e) => setLinkAlso(e.target.checked)} />
                     <span>
                         After signing in, also link{' '}
                         {activeMethod === 'email' ? 'a Bitcoin wallet' : 'an email'}{' '}
@@ -1709,32 +1697,6 @@ const inputStyle: React.CSSProperties = {
     // auto-zoom the viewport on focus; the family rule is >=16px on
     // every form field. Desktop reads fine at 16 too.
     fontSize: 16,
-};
-
-// The design system's Checkbox: 20px, square, a hairline in --input, the CTA's fill when checked.
-const checkWrapStyle: React.CSSProperties = { position: 'relative', display: 'inline-flex', flexShrink: 0, width: 20, height: 20 };
-
-function checkStyle(checked: boolean): React.CSSProperties {
-    return {
-        appearance: 'none',
-        WebkitAppearance: 'none',
-        margin: 0,
-        width: 20,
-        height: 20,
-        borderRadius: 0,
-        border: checked ? '1px solid var(--primary, #f97316)' : '1px solid var(--input, var(--border, #52525b))',
-        background: checked ? 'var(--primary, #f97316)' : 'var(--oca-surface, var(--background, transparent))',
-        cursor: 'pointer',
-    };
-}
-
-const checkMarkStyle: React.CSSProperties = {
-    position: 'absolute',
-    inset: 3,
-    width: 14,
-    height: 14,
-    color: 'var(--primary-foreground, #ffffff)',
-    pointerEvents: 'none',
 };
 
 const linkAlsoStyle: React.CSSProperties = {

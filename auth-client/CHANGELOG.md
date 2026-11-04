@@ -21,6 +21,12 @@ this file tracks the package's TS / Node / runtime API surface.
   `<input type="checkbox">` inside its label, so the whole 44px row checks it
   and the props are unchanged. A site that styled
   `[data-oc-signin-linkalso] input` should check how it now looks.
+  - Under forced colors (Windows high contrast) a checked box is drawn as a
+    native one is: a `Highlight` fill and border with the mark in
+    `HighlightText`, and an unchecked box has a `CanvasText` border. Without
+    this the fill turned to `Canvas` while the mark kept its own white, so a
+    checked box looked empty. A small `<style>` beside the box carries the
+    rule, because inline styles cannot say forced-colors.
 
 ### Fixed
 
