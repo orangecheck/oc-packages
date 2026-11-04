@@ -2,6 +2,140 @@
 
 ## [Unreleased]
 
+## [2.0.0] — unreleased (2.0.0-pre)
+
+Design iteration 2: one family system that looks like a specification
+drawing. Warm paper, ink text, light display type, mono labels with square
+bullets, a framed column ruled in hairlines, and square controls. A site
+adopts it whole, in its own PR. It is a major, so Renovate does not merge it
+on its own.
+
+**What a site must change: nothing beyond the version, except as noted
+below.** Every export keeps its name and its props, and the new props are
+optional. What changes is how things look.
+
+### Tokens (`tokens.css`, `appColors`)
+
+- Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink
+  `#161412` text, soft `#5e5852` secondary text and subtle `#68615a`. Dark:
+  night `#0e0c0b` canvas, ink `#161412` cards, paper text.
+- `--primary`, the page CTA, is deep `#c2410c` with white text (5.18:1); it
+  hovers to `--oca-primary-hover` `#9a3412`. `--brand` is orange `#f97316`
+  with ink text; white on orange is never used. `--ring` is deep in light and
+  orange in dark. `--oca-ring-on-fill` (ink) is the ring on an orange or deep
+  fill.
+- `--oca-accent-display` is ember `#dc531c`, for display sizes, bullets and
+  numerals. Small orange text is `--oca-accent-ink` `#9a3412`.
+- New: `--oca-surface` and `--oca-surface-foreground` for the product
+  surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
+  in dark. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
+  `--oca-brand-line`.
+- Status colours are re-tuned for paper: `--destructive` `#b21d26`,
+  `--success` `#157a3a`. The first chart colour is `#e0520b`; the neutral is
+  `#86817b`.
+- `appColors.brand`: `orange` `#F97316`, `orangeLight` `#FB923C`,
+  `orangeDeep` `#C2410C`, `ink` `#161412`, `inkCard` `#1C1916`. **Migrate** a
+  site that hard-codes a hex beside these: read `appColors` instead.
+- Overlay shadows are warm ink. There are new `--oca-shadow-depict` and
+  `--oca-glow` for a depicted product.
+
+### Shape
+
+- `--radius` is `0`: chrome, controls, cards, panels, badges and fields are
+  square. `rounded-sm` and `rounded-md` floor at 0; `rounded-xl` scales with
+  the radius, so it is square too. Depictions take `rounded-depict` (12px, a
+  mock screen) and OG/social tiles take `rounded-tile` (24px). Avatars,
+  radios and status dots stay round.
+- **Migrate** a site's own `rounded-full` or `rounded-[…]` on chrome or
+  controls to square, if it wants to match. Nothing breaks if it doesn't.
+- The sign-in ceremony and the wallet picker go square through their
+  variables (`--oc-signin-radius`, `--oc-wallet-radius` and the button radii).
+
+### Type
+
+- Display type is Inter 300, never below 24px: `oca-display-1` (2.75 →
+  4.75rem), `oca-display-2` (2.25 → 3.75rem), `oca-display-3` (1.75 →
+  2.5rem). The H1 is the largest heading on every page.
+- New utilities: `oca-numeral-display` (the large ember numeral), `oca-stat`
+  (a stat grid's figure) and `oca-label` (JetBrains Mono 12px, uppercase).
+  `oca-numeral` keeps its old meaning, the small step number.
+- `oca-eyebrow` is now the mono label with its 7px ember square. An existing
+  eyebrow changes look and needs no edit. `oca-lead` is 1.125 → 1.375rem and
+  `oca-body` 1rem/1.55.
+
+### Motion
+
+- New custom properties: `--oca-ease-out`, `--oca-ease-glide`,
+  `--oca-duration-quick/-base/-slow/-reveal` (200/300/500/1000ms),
+  `--oca-stagger-centre` (40ms) and `--oca-stagger-list` (60ms). Tailwind
+  gets `ease-oca-out` and `ease-oca-glide`.
+
+### Primitives
+
+- `Button`: square. `primary` hovers to the darker deep. `secondary` is the
+  outlined button, transparent with an ink edge. `brand` lightens on hover.
+  New `plus` prop: the trailing "+" that turns 90° on hover and press. Sizes
+  keep their 44px targets.
+- `Card`: square, with new tones `paper`, `white`, `burnt` and `brand`.
+  `default`, `sunken`, `ink` and `outline` are unchanged in name.
+- `Accordion`: new `variant="rule"` (hairline rows and a "+" that turns into
+  "−"). The default is still the framed card.
+- Fields (`Input`, `Textarea`, `Select`, `Checkbox`, `Switch`), `Badge`,
+  `Tabs`, `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, toasts and
+  `QrCode`: square. Fields sit on `--oca-surface`.
+- `HudCard`'s ground is the background at 90% (it was 85%), so its soft text
+  clears 4.5:1 over any scene.
+
+### Components
+
+- New: `MonoLabel` (the one eyebrow), `Frame` (the 82.5rem framed column,
+  hairlines at its edges from 900px), `SectionBar` (a mono label at each end
+  of a hairline) and `StatRow` (the hairline stat grid). PLAN's `Label` is
+  `MonoLabel`, because `Label` is the form field's label.
+- `Eyebrow` renders `MonoLabel`; `onInk` still works.
+- `Faq` defaults to `variant="rule"`. **Migrate**: pass `variant="card"` to
+  keep the framed panel.
+- `PageHero` takes `ground`: `paper` (default), `ink` or `brand`.
+- `Section` takes tone `burnt` and `rule` (a full-width hairline under it).
+  Its `ink`, `burnt` and `brand` bands now re-point `--foreground`,
+  `--muted-foreground`, `--oca-subtle-foreground` and `--border`, and
+  `burnt` and `brand` also re-point the accent and the ring. Text and
+  hairlines inside a band read in its colours with no props.
+
+### Chrome
+
+- `SiteHeader` (`site`): its row is the frame. It is 82.5rem wide and 68px
+  tall from 900px, with a hairline under it. The brand is the flat check
+  and a 21px wordmark (`Lockup variant="flat"`), and the links follow it,
+  28px apart. New props, both optional:
+  - `signIn` (`true`, or `{ label, href }`) draws "Sign in".
+  - `cta` (`true` for the registry's "Get an account" to the family
+    sign-in, or `{ label, href, pending, reserve }`) draws the deep,
+    full-height CTA flush to the frame's right rule, with the turning "+".
+    While `pending` the CTA keeps its box, shows and names nothing, and takes
+    no focus. `reserve` sizes it for the labels it may take, so the swap
+    moves nothing.
+  - Below 900px the links, Sign in and a full-width CTA move into a paper
+    sheet that marks the current page. They used to move below 768px.
+  - The `tool` header keeps md and its lockup. An active external link
+    carries `aria-current` too.
+- `Lockup` takes `variant`: `icon` (default, the app icon) or `flat` (page
+  chrome).
+- `SiteFooter`: deep orange ground in the 82.5rem frame, with mono column
+  heads. The giant lowercase wordmark stands alone, without the mark:
+  "orange" and "check" at 15vw, set to the frame's edges. Its letters rise
+  from the seam outward the first time it is seen, and stay still under
+  reduced motion. The `signature` prop keeps its name. The legal row's line
+  reads "© <year> orangecheck".
+- New utilities `oca-band-ink`, `oca-band-burnt`, `oca-band-brand` and
+  `oca-band-footer`. Each is a ground plus re-pointed text, hairline, accent
+  and ring tokens, so anything on it reads in its colours: an outline
+  `Button` on orange is ink. `Section`'s band tones and the footer use them,
+  and check-contrast holds each band's text and ring on its ground.
+- `AppShell`, `DocsShell`, `ToolShell` and the family menu keep their
+  layouts and go square.
+
 ## [1.29.3] — 2026-10-29
 
 - `SessionAccount`'s "still signed in" notice goes once the account menu opens

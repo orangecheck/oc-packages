@@ -28,7 +28,7 @@ import { sharedContext } from '../lib/shared-context';
 /* Fields: 44px tall, a hairline that darkens on focus with a soft orange halo,
    16px text on phones so iOS never zooms. */
 const fieldBase = [
-    'w-full rounded-xl border border-input bg-card text-foreground placeholder:text-oca-subtle',
+    'w-full rounded-none border border-input bg-oca-surface text-oca-surface-foreground placeholder:text-oca-subtle',
     'text-base md:text-[0.9375rem] outline-none transition-[border-color,box-shadow]',
     // The focus look is theme.css's [data-oca-field] rule, so a field styled inline can wear it too.
     'disabled:cursor-not-allowed disabled:opacity-55',
@@ -38,7 +38,7 @@ const fieldBase = [
 /* `sm` is 36px for a tool's dense forms, 44px to a thumb like the buttons; the text stays 16px on phones. */
 const FIELD_SIZE = {
     md: 'h-11 px-3.5',
-    sm: 'h-9 rounded-[0.625rem] px-3 pointer-coarse:h-11 md:text-[0.875rem]',
+    sm: 'h-9 px-3 pointer-coarse:h-11 md:text-[0.875rem]',
 } as const;
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -279,7 +279,7 @@ export const SelectContent = forwardRef<
                 position={position}
                 sideOffset={6}
                 className={cn(
-                    'oca-animate-fade z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg',
+                    'oca-animate-fade z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-none border border-border bg-popover p-1 text-popover-foreground shadow-lg',
                     className
                 )}
                 {...props}
@@ -298,7 +298,7 @@ export const SelectItem = forwardRef<
         <SelectPrimitive.Item
             ref={ref}
             className={cn(
-                'relative flex h-10 cursor-default select-none items-center rounded-lg pl-3 pr-9 text-[0.9375rem] outline-none',
+                'relative flex h-10 cursor-default select-none items-center rounded-none pl-3 pr-9 text-[0.9375rem] outline-none',
                 // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
                 'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50',
                 className
@@ -323,7 +323,7 @@ export const Checkbox = forwardRef<
         <CheckboxPrimitive.Root
             ref={ref}
             className={cn(
-                'peer inline-flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-input bg-card',
+                'peer inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -346,7 +346,7 @@ export const Switch = forwardRef<
         <SwitchPrimitive.Root
             ref={ref}
             className={cn(
-                'peer inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent bg-input p-0.5',
+                'peer inline-flex h-6 w-11 shrink-0 items-center rounded-none border border-transparent bg-input p-0.5',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 // The deep orange: the track is the state, so it must clear 3:1 on a card.
                 'data-[state=checked]:bg-oca-orange-deep disabled:cursor-not-allowed disabled:opacity-50',
@@ -354,7 +354,7 @@ export const Switch = forwardRef<
             )}
             {...props}
         >
-            <SwitchPrimitive.Thumb className="pointer-events-none block size-5 rounded-full bg-white shadow-sm transition-transform data-[state=checked]:translate-x-5" />
+            <SwitchPrimitive.Thumb className="pointer-events-none block size-5 rounded-none bg-white shadow-sm transition-transform data-[state=checked]:translate-x-5" />
         </SwitchPrimitive.Root>
     );
 });
@@ -374,7 +374,7 @@ export const RadioGroupItem = forwardRef<
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-card',
+                'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface',
                 'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary disabled:cursor-not-allowed disabled:opacity-50',
                 className

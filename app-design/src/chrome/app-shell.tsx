@@ -72,7 +72,7 @@ export function SideNav({ groups, onNavigate }: { groups: ShellNavGroup[]; onNav
                             onClick={onNavigate}
                             aria-current={it.active ? 'page' : undefined}
                             className={cn(
-                                'flex h-9 items-center gap-3 rounded-xl px-3 text-[0.9375rem] transition-colors',
+                                'flex h-9 items-center gap-3 rounded-none px-3 text-[0.9375rem] transition-colors',
                                 '[&_svg]:size-[1.0625rem] [&_svg]:shrink-0',
                                 it.active
                                     ? 'bg-card text-foreground shadow-sm ring-1 ring-border [&_svg]:text-foreground'
@@ -105,7 +105,7 @@ function SectionSwitch({
     return (
         <nav
             aria-label="Sections"
-            className={cn('grid gap-1 bg-muted p-1', cols === sections.length ? 'rounded-full' : 'rounded-[1.25rem]')}
+            className={cn('grid gap-1 bg-muted p-1', cols === sections.length ? 'rounded-none' : 'rounded-none')}
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         >
             {sections.map((sec) => {
@@ -117,7 +117,7 @@ function SectionSwitch({
                         onClick={onNavigate}
                         aria-current={on ? 'true' : undefined}
                         className={cn(
-                            'flex h-8 min-w-0 items-center justify-center rounded-full px-1.5 text-[0.8125rem] font-medium transition-colors',
+                            'flex h-8 min-w-0 items-center justify-center rounded-none px-1.5 text-[0.8125rem] font-medium transition-colors',
                             on ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
@@ -136,7 +136,7 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
             <span
                 aria-hidden
                 className={cn(
-                    'absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
+                    'absolute flex h-4 min-w-4 items-center justify-center rounded-none bg-primary px-1 text-[0.625rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
                     className
                 )}
             >
@@ -149,14 +149,14 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
 }
 
 const TAB =
-    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-none text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
 
 function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: string; badge?: ReactNode; active?: boolean }) {
     return (
         <>
             <span
                 className={cn(
-                    'relative flex h-7 w-12 items-center justify-center rounded-full transition-[background-color,box-shadow] duration-200',
+                    'relative flex h-7 w-12 items-center justify-center rounded-none transition-[background-color,box-shadow] duration-200',
                     '[&_svg]:size-[1.125rem] [&_svg]:shrink-0',
                     active ? 'bg-card shadow-sm ring-1 ring-border [&_svg]:stroke-2' : '[&_svg]:stroke-[1.75]'
                 )}
@@ -217,7 +217,7 @@ export function TabBar({ items }: { items: ShellNavItem[] }) {
                                         onClick={() => setMore(false)}
                                         aria-current={it.active ? 'page' : undefined}
                                         className={cn(
-                                            'flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border px-2 text-center text-[0.8125rem] transition-colors',
+                                            'flex min-h-20 flex-col items-center justify-center gap-2 rounded-none border px-2 text-center text-[0.8125rem] transition-colors',
                                             '[&_svg]:size-5',
                                             it.active ? 'border-foreground bg-card text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
                                         )}
@@ -379,7 +379,7 @@ function SidebarShell({
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
                                 className={cn(
-                                    'inline-flex size-10 items-center justify-center rounded-full hover:bg-accent',
+                                    'inline-flex size-10 items-center justify-center rounded-none hover:bg-accent',
                                     // The tab bar holds every page; the sheet is left for a footer. Section tabs leave the pages here.
                                     tabs && !sectionTabsFor && !footer && 'max-md:hidden'
                                 )}
@@ -397,7 +397,7 @@ function SidebarShell({
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
-                        <Link href={home} className="rounded-lg p-1">
+                        <Link href={home} className="rounded-none p-1">
                             <ProductLockup size={22} product={product} />
                             {/* Read as "orangecheck home": the name starts with what the link shows. */}
                             <span className="sr-only"> home</span>
@@ -457,7 +457,7 @@ function RailItem({ item }: { item: ShellNavItem }) {
                     href={item.href}
                     aria-current={item.active ? 'page' : undefined}
                     className={cn(
-                        'relative flex size-10 items-center justify-center rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        'relative flex size-10 items-center justify-center rounded-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
                         '[&_svg]:size-5 [&_svg]:shrink-0',
                         item.active
                             ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
@@ -562,7 +562,7 @@ export function AccountMenu({
         <DropdownMenu onOpenChange={onOpenChange}>
             <DropdownMenuTrigger
                 className={cn(
-                    'inline-flex h-10 items-center gap-2.5 rounded-full border border-border bg-card pl-1 pr-1 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
+                    'inline-flex h-10 items-center gap-2.5 rounded-none border border-border bg-card pl-1 pr-1 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
                     nameFrom === 'lg' ? 'lg:pr-3.5' : 'sm:pr-3.5'
                 )}
                 aria-label={`${name}, account menu`}
@@ -694,7 +694,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             title={`Theme: ${current}`}
             className={cn(
                 // 40px drawn, 44px to a thumb, as Button's icon size; a crowded row does not squeeze it.
-                'relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
+                'relative inline-flex size-10 shrink-0 items-center justify-center rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-0.5',
                 className
             )}
         >

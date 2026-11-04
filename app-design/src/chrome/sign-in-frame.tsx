@@ -68,7 +68,7 @@ export function SignInFrame({
             <SkipLink href="#signin">Skip to content</SkipLink>
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
                 <header className="flex items-center justify-between gap-4">
-                    <Link href={homeHref} className="w-fit rounded-lg">
+                    <Link href={homeHref} className="w-fit rounded-none">
                         {brand ?? <ProductLockup size={28} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />}
                         <span className="sr-only"> home</span>
                     </Link>

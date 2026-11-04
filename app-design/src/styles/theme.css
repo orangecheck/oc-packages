@@ -64,16 +64,37 @@
     --color-oca-code-package: var(--oca-code-package);
     --color-oca-code-tag: var(--oca-code-tag);
     --color-oca-code-link: var(--oca-code-link);
+    --color-oca-surface: var(--oca-surface);
+    --color-oca-surface-foreground: var(--oca-surface-foreground);
+    --color-oca-primary-hover: var(--oca-primary-hover);
+    --color-oca-ring-on-fill: var(--oca-ring-on-fill);
+    --color-oca-burnt: var(--oca-burnt);
+    --color-oca-burnt-foreground: var(--oca-burnt-foreground);
+    --color-oca-burnt-muted: var(--oca-burnt-muted);
+    --color-oca-burnt-accent: var(--oca-burnt-accent);
+    --color-oca-burnt-ember: var(--oca-burnt-ember);
+    --color-oca-footer: var(--oca-footer);
+    --color-oca-footer-foreground: var(--oca-footer-foreground);
+    --color-oca-footer-muted: var(--oca-footer-muted);
+    --color-oca-footer-line: var(--oca-footer-line);
 
     --font-sans: var(--oc-font-sans);
     --font-mono: var(--oc-font-mono);
 
     /* Same formulas as the family bridge: in a shared build the last @theme wins,
-       and family components must not change shape. */
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
+       and family components must not change shape. Floored at 0, since 2.0's
+       --radius is 0; xl scales with it (1.25×, the old +4px at a 1rem radius).
+       Depictions and social tiles have their own radii. */
+    --radius-sm: max(0px, calc(var(--radius) - 4px));
+    --radius-md: max(0px, calc(var(--radius) - 2px));
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
+    --radius-xl: calc(var(--radius) * 1.25);
+    --radius-depict: var(--oca-radius-depict);
+    --radius-tile: var(--oca-radius-tile);
+
+    /* Motion (motion.css holds the values): ease-oca-out and ease-oca-glide. */
+    --ease-oca-out: var(--oca-ease-out);
+    --ease-oca-glide: var(--oca-ease-glide);
 
     --shadow-2xs: var(--oc-shadow-2xs);
     --shadow-xs: var(--oc-shadow-xs);
@@ -84,34 +105,70 @@
 }
 
 /* ── Type scale ──────────────────────────────────────────────────────────
-   Inter at regular weight for display, as the deck sets it; optical sizing
-   tightens it at large sizes. Fluid between a 390px phone and a 1440px desk. */
+   2.0 (PLAN §2): Inter at 300 for display, never 300 below 24px; the H1
+   (display-1) is the largest heading on every page. Fluid between a 390px
+   phone and a 1440px desk. */
 
 @utility oca-display-1 {
     font-family: var(--oc-font-display);
-    font-weight: 400;
-    font-size: clamp(2.625rem, 1.75rem + 3.6vw, 4.75rem);
-    line-height: 1.02;
-    letter-spacing: -0.035em;
+    font-weight: 300;
+    font-size: clamp(2.75rem, 2.007rem + 3.048vw, 4.75rem);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
     text-wrap: balance;
 }
 
 @utility oca-display-2 {
     font-family: var(--oc-font-display);
-    font-weight: 400;
-    font-size: clamp(2rem, 1.45rem + 2.4vw, 3.5rem);
-    line-height: 1.06;
-    letter-spacing: -0.03em;
+    font-weight: 300;
+    font-size: clamp(2.25rem, 1.693rem + 2.286vw, 3.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
     text-wrap: balance;
 }
 
 @utility oca-display-3 {
     font-family: var(--oc-font-display);
-    font-weight: 400;
-    font-size: clamp(1.5rem, 1.25rem + 1.1vw, 2.25rem);
-    line-height: 1.12;
-    letter-spacing: -0.022em;
+    font-weight: 300;
+    font-size: clamp(1.75rem, 1.471rem + 1.143vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
     text-wrap: balance;
+}
+
+/* A display numeral ("01" on a numbered card): ember, light, tabular. It is a
+   graphic beside a heading, never a heading. oca-numeral stays the small one. */
+@utility oca-numeral-display {
+    font-family: var(--oc-font-display);
+    font-weight: 300;
+    font-size: clamp(4.5rem, 2.829rem + 6.857vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--oca-accent-display);
+}
+
+/* A figure in a hairline stat grid. */
+@utility oca-stat {
+    font-family: var(--oc-font-display);
+    font-weight: 300;
+    font-size: clamp(2.5rem, 2.036rem + 1.905vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+/* The one label and eyebrow: JetBrains Mono 12px, uppercase, 0.08em, soft.
+   Label draws the 7px ember square before it. */
+@utility oca-label {
+    font-family: var(--oc-font-mono);
+    font-weight: 400;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
 }
 
 @utility oca-title {
@@ -128,25 +185,38 @@
     letter-spacing: -0.008em;
 }
 
+/* 2.0 has one eyebrow: an oca-eyebrow is the mono label with its ember square,
+   so an existing eyebrow takes the new look with no change at the call site. */
 @utility oca-eyebrow {
+    font-family: var(--oc-font-mono);
     font-weight: 400;
-    font-size: 0.9375rem;
+    font-size: 0.75rem;
     line-height: 1.4;
-    letter-spacing: -0.003em;
-    color: var(--oca-accent-ink);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    &::before {
+        content: '';
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-inline-end: 0.625rem;
+        vertical-align: 0.05em;
+        background: var(--oca-accent-display);
+    }
 }
 
 @utility oca-lead {
-    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
-    line-height: 1.55;
-    letter-spacing: -0.006em;
+    font-size: clamp(1.125rem, 1.032rem + 0.381vw, 1.375rem);
+    line-height: 1.5;
+    letter-spacing: -0.008em;
     color: var(--muted-foreground);
     text-wrap: pretty;
 }
 
 @utility oca-body {
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.55;
     color: var(--muted-foreground);
     text-wrap: pretty;
 }
@@ -172,6 +242,57 @@
 
 @utility oca-section {
     padding-block: clamp(4rem, 2.8rem + 5vw, 8rem);
+}
+
+/* ── Bands ───────────────────────────────────────────────────────────────
+   A band is a ground plus the tokens re-pointed for whatever sits on it: text,
+   soft text, hairlines, the accent and the ring. A Button, a MonoLabel or a
+   StatRow on a band reads in its colours with no props. check-contrast reads
+   these blocks and holds each band's text to 4.5:1 on its ground. */
+
+@utility oca-band-ink {
+    background-color: var(--oca-ink);
+    color: var(--oca-ink-foreground);
+    --foreground: var(--oca-ink-foreground);
+    --muted-foreground: var(--oca-ink-muted);
+    --oca-subtle-foreground: var(--oca-ink-subtle);
+    --border: var(--oca-ink-line);
+}
+
+@utility oca-band-burnt {
+    background-color: var(--oca-burnt);
+    color: var(--oca-burnt-foreground);
+    --foreground: var(--oca-burnt-foreground);
+    --muted-foreground: var(--oca-burnt-muted);
+    --oca-subtle-foreground: var(--oca-burnt-muted);
+    --border: var(--oca-burnt-line);
+    --oca-accent-display: var(--oca-burnt-ember);
+    --ring: var(--oca-burnt-accent);
+}
+
+/* Orange: ink text, an ink edge on an outlined button, an ink ring (orange on
+   orange was 1.2:1), never white (2.80:1). */
+@utility oca-band-brand {
+    background-color: var(--brand);
+    color: var(--brand-foreground);
+    --foreground: var(--brand-foreground);
+    --muted-foreground: var(--brand-foreground);
+    --oca-subtle-foreground: var(--brand-foreground);
+    --border: var(--oca-brand-line);
+    --oca-accent-display: var(--brand-foreground);
+    --ring: var(--oca-ring-on-fill);
+}
+
+/* The deep footer: white, one solid tint for secondary text, an ink ring. */
+@utility oca-band-footer {
+    background-color: var(--oca-footer);
+    color: var(--oca-footer-foreground);
+    --foreground: var(--oca-footer-foreground);
+    --muted-foreground: var(--oca-footer-muted);
+    --oca-subtle-foreground: var(--oca-footer-muted);
+    --border: var(--oca-footer-line);
+    --oca-accent-display: var(--oca-footer-foreground);
+    --ring: var(--oca-ring-on-fill);
 }
 
 /* The stadium hairline behind a hero sphere. */

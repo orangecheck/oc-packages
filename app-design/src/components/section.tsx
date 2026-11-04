@@ -5,12 +5,15 @@ import { cn } from '../lib/cn';
 import { Reveal } from './motion';
 
 /*
- * The deck alternates three grounds: the light canvas, the ink band and the
+ * The page alternates grounds: paper, the ink band, the burnt band and the
  * orange band. A section owns its ground edge to edge and its content sits in
- * the container. On the orange band text is ink, never white (2.9:1).
+ * the container. A band also re-points the text, hairline and accent tokens,
+ * so a MonoLabel, a StatRow or a lead inside it reads in the band's own colours.
+ * On the orange band text is ink, never white (2.80:1).
  */
 // overflow-x: clip, not hidden: decoration may not widen the page, and a sticky
 // child still sticks.
+// The bands are theme.css utilities (oca-band-*), so any element can be one.
 export const sectionVariants = cva('relative w-full overflow-x-clip', {
     variants: {
         tone: {
@@ -18,9 +21,16 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             card: 'bg-card text-card-foreground',
             // The band line is transparent in light; in dark it keeps the ink
             // band from melting into the canvas.
-            ink: 'border-y border-[var(--oca-band-line)] bg-oca-ink text-oca-ink-foreground',
+            ink: 'oca-band-ink border-y border-[var(--oca-band-line)]',
+            // The dark brown stage: paper text, orange and ember.
+            burnt: 'oca-band-burnt',
             // Focus is drawn in the band's own ink: orange on orange was 1.2:1.
-            brand: 'bg-brand text-brand-foreground [--ring:var(--brand-foreground)]',
+            brand: 'oca-band-brand',
+        },
+        /** A full-width hairline under the section, as 2.0 rules one section from the next. */
+        rule: {
+            true: 'border-b border-border',
+            false: '',
         },
         space: {
             none: '',
@@ -29,7 +39,7 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             lg: 'py-24 md:py-40',
         },
     },
-    defaultVariants: { tone: 'canvas', space: 'md' },
+    defaultVariants: { tone: 'canvas', space: 'md', rule: false },
 });
 
 export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<typeof sectionVariants> {
@@ -37,9 +47,9 @@ export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<
     contained?: boolean;
 }
 
-export function Section({ tone, space, contained = true, className, children, ...props }: SectionProps) {
+export function Section({ tone, space, rule, contained = true, className, children, ...props }: SectionProps) {
     return (
-        <section className={cn(sectionVariants({ tone, space }), className)} {...props}>
+        <section className={cn(sectionVariants({ tone, space, rule }), className)} {...props}>
             {contained ? <div className="oca-container">{children}</div> : children}
         </section>
     );
