@@ -3,7 +3,7 @@ import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
-import { HIT_32 } from '../lib/hit';
+import { HIT_32, HIT_LINK } from '../lib/hit';
 import {
     Dialog,
     DialogContent,
@@ -195,7 +195,9 @@ export function SourceNote({ source, href, detail, updated, variant = 'popover',
         <Popover>
             <PopoverTrigger
                 className={cn(
+                    // 28px drawn; to a thumb 44 tall by a pseudo-element, so a figure's foot keeps its height (globe's six were 74x28).
                     'inline-flex h-7 items-center gap-1 rounded-none px-2 text-[0.75rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                    HIT_LINK,
                     className
                 )}
             >

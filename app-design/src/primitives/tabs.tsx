@@ -36,7 +36,8 @@ export const TabsList = forwardRef<
                 ref={ref}
                 className={cn(
                     look === 'pill'
-                        ? 'inline-flex max-w-full flex-wrap items-center gap-1 rounded-none bg-muted p-1'
+                        ? // A wrapped row stands far enough under the one above that their 44px targets meet, not overlap.
+                          'inline-flex max-w-full flex-wrap items-center gap-1 rounded-none bg-muted p-1 pointer-coarse:gap-y-2.5'
                         : 'flex flex-wrap items-center gap-x-6 border-b border-border',
                     className
                 )}

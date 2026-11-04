@@ -42,6 +42,49 @@
 
   **Migrate**: a site that named the region itself can drop that code
   (ochk.io's `SignedMessage`, its `TODO(app-design)`).
+- Every target the package draws is 44px to a thumb, and a census proves it.
+  check-layout renders every story at 390 on a touch screen, about 540
+  targets, and the dialog that `SearchDialog` holds open on a page of its own.
+  It taps each target 21.5px out from its centre in every direction. A link
+  inside a sentence is exempt, as WCAG 2.5.8 exempts it. On 53e2b87d it found
+  113 targets under 44, and one more in the dialog. Each is now 44 to a
+  coarse pointer, and a mouse sees the same boxes in every story:
+  - `SourceNote`'s "Source" (74x28) and `Button variant="link"` (23 tall)
+    reach 44 by a pseudo-element.
+  - `RadioGroupItem` takes `Checkbox`'s 44px hit area, its label row counting
+    as `Checkbox`'s does, and its rows space out so that two never meet. It
+    was 20x20.
+  - A `SiteBanner`'s action link (25 tall), `FactBlock`'s source links (30),
+    `ApiTable`'s "Defined in" links (25), the spec note's link (26) and a docs
+    heading's `#` anchor (19x23) reach 44.
+  - The connect-a-wallet buttons are 44 tall (`--oc-wallet-min-height`). They
+    were 37.
+  - `SearchDialog`'s Close reaches 44. It was 50x32.
+  - Rows whose 44px areas reached each other now leave room under a coarse
+    pointer: `ListRow`'s trailing actions, `CompareActions`, wrapped pill tabs,
+    and a `FactBlock`'s wrapped links.
+  - Where a box covered a target's edge, the target wins it. That was the
+    footer's copyright line over the legal row, the hero below
+    `ProtocolNav`'s links, and `IsoCheck`'s glow over a closing band's button.
+    The glow covered that button to a mouse too, so it now takes no pointer
+    events.
+  - `LegalDocument`'s callouts set their text in a paragraph, so a link in
+    them counts as part of a sentence.
+
+  Not counted: the sign-in button stories, since that button is
+  `@orangecheck/me-client`'s, and `BlockHeight`'s link, which PR 288 fixes.
+- Swagger UI's controls and its own buttons (`.btn`: Try it out, Execute,
+  Cancel, Hide) are 44px to a thumb on any touch screen, a tablet included. It
+  used to apply below 48rem only, and never to `.btn`: attest's Hide was 80x30.
+  check-swagger reads the `pointer: coarse` rule, and on 53e2b87d it fails all
+  six.
+- The gates measure sideways scroll against the page's `clientWidth`. A phone
+  page (`isMobile`) widens its layout viewport to its content, so the window's
+  inner width grew with the overflow and the old measure read 0. A 400px child
+  at 320 reads 0 by the window and 80 by `clientWidth`. check-layout fails if
+  any gate script measures against the window again (9 did, in check-layout,
+  check-blocks and check-focus). With the right measure, the head shows no
+  overflow that the old one hid.
 - check-layout checks all of this:
   - No page scrolls sideways at 320, 390, 768, 900, 1024, 1200, 1280 or
     1440. It loads each glow shape in a `PageFrame` and bare, and a legal page

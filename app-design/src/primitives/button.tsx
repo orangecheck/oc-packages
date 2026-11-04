@@ -4,6 +4,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
+import { HIT_LINK } from '../lib/hit';
 import { Spinner } from './feedback';
 
 /*
@@ -50,7 +51,8 @@ export const buttonVariants = cva(
                 'icon-sm': 'relative size-8 pointer-coarse:before:absolute pointer-coarse:before:-inset-[calc(0.375rem+var(--hit-b,0px))]',
             },
         },
-        compoundVariants: [{ variant: 'link', className: 'h-auto px-0' }],
+        // A link is its line's height, 44px to a thumb (HIT_LINK).
+        compoundVariants: [{ variant: 'link', className: ['h-auto px-0', HIT_LINK] }],
         defaultVariants: { variant: 'primary', size: 'md' },
     }
 );

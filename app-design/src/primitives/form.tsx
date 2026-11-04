@@ -365,7 +365,8 @@ export const RadioGroup = forwardRef<
     ElementRef<typeof RadioGroupPrimitive.Root>,
     ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
 >(function RadioGroup({ className, ...props }, ref) {
-    return <RadioGroupPrimitive.Root ref={ref} className={cn('grid gap-3', className)} {...props} />;
+    // To a thumb the rows stand far enough apart that their 44px targets meet, not overlap.
+    return <RadioGroupPrimitive.Root ref={ref} className={cn('grid gap-3 pointer-coarse:gap-6.5', className)} {...props} />;
 });
 
 export const RadioGroupItem = forwardRef<
@@ -376,7 +377,8 @@ export const RadioGroupItem = forwardRef<
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface',
+                // 20px drawn, 44px to a thumb, as a Checkbox is. The inset is measured from inside the 1px border.
+                'relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface pointer-coarse:before:absolute pointer-coarse:before:-inset-[13px]',
                 'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary disabled:cursor-not-allowed disabled:opacity-50',
                 className

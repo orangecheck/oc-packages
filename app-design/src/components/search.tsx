@@ -235,7 +235,8 @@ export function SearchDialog({
                                 autoComplete="off"
                                 className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-oca-subtle"
                             />
-                            <DialogPrimitive.Close className="inline-flex h-8 shrink-0 items-center rounded-none border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground">
+                            {/* 32px drawn, 44px to a thumb. The inset is measured from inside the 1px border. */}
+                            <DialogPrimitive.Close className="relative inline-flex h-8 shrink-0 items-center rounded-none border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-[7px]">
                                 {/* A phone has no Esc key. */}
                                 <span className="sm:hidden">Close</span>
                                 <span className="max-sm:hidden" aria-hidden>

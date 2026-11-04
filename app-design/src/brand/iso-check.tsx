@@ -58,7 +58,7 @@ export function IsoCheck({ size = 360, settle = false, shadow = true, tilt = fal
             {tilt ? (
                 <div
                     aria-hidden
-                    className="absolute left-1/2 top-1/2 -z-0 aspect-square w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70 blur-3xl"
+                    className="pointer-events-none absolute left-1/2 top-1/2 -z-0 aspect-square w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70 blur-3xl"
                     style={{ background: 'radial-gradient(closest-side, rgb(255 140 70 / 0.35), transparent)' }}
                 />
             ) : null}
@@ -71,7 +71,7 @@ export function IsoCheck({ size = 360, settle = false, shadow = true, tilt = fal
             {shadow ? (
                 <div
                     aria-hidden
-                    className="absolute left-[8%] right-[8%] rounded-[50%] opacity-60 blur-xl"
+                    className="pointer-events-none absolute left-[8%] right-[8%] rounded-[50%] opacity-60 blur-xl"
                     style={{ height: size * 0.08, bottom: -size * 0.04, background: 'rgb(234 88 11 / 0.18)' }}
                 />
             ) : null}

@@ -354,7 +354,8 @@ export const Parts: StoryObj = {
                     ]}
                 />
                 <WindowChips />
-                <div className="flex flex-col gap-2 text-[0.9375rem]">
+                {/* Stacked 32px lines: to a thumb 12px apart, so one line's 44px targets meet the next's, not overlap them. */}
+                <div className="flex flex-col gap-2 text-[0.9375rem] pointer-coarse:gap-3.5">
                     <span className="flex items-center gap-2">
                         Address <HashChip value={ADDRESS} explorer="address" />
                     </span>

@@ -258,6 +258,14 @@
     --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
 }
 
+/* To a thumb the wallet buttons are 44px, as this design's own are; a mouse keeps 36. */
+@media (pointer: coarse) {
+    :root[data-oc-app='ochk'],
+    [data-oc-app='ochk'] {
+        --oc-wallet-min-height: 2.75rem;
+    }
+}
+
 :root.dark[data-oc-app='ochk'],
 .dark[data-oc-app='ochk'],
 .dark [data-oc-app='ochk'] {

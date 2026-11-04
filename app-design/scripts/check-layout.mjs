@@ -223,6 +223,43 @@ try {
             `  {box('code', <CodeBlock code={'curl https://' + wide + '/' + 'f'.repeat(64)} caption="A long line" />)}\n` +
             `</div>);\n`
     );
+    // The census: every story, each the package's own use of its components, rendered on the client in a
+    // box of its own. A transform makes the box the containing block, so a fixed bar stays inside its story.
+    const stories = (function walk(d) {
+        return readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : e.name.endsWith('.stories.tsx') ? [join(d, e.name)] : []));
+    })(join(pkg, 'src'))
+        // pages/ holds hand-built page mocks, whose own markup is not the package's to size.
+        .filter((f) => !f.includes('/src/pages/'))
+        // SignIn's stories draw @orangecheck/me-client's button, whose size is that package's to set.
+        .filter((f) => !f.endsWith('/src/brand/SignIn.stories.tsx'))
+        .sort();
+    writeFileSync(
+        join(dir, 'census.jsx'),
+        `import { Component } from 'react';\n` +
+            `import { createRoot } from 'react-dom/client';\n` +
+            stories.map((f, i) => `import * as S${i} from '${f}';\n`).join('') +
+            `class Boundary extends Component { state = { failed: null }; static getDerivedStateFromError(e) { return { failed: String(e?.message ?? e).slice(0, 120) }; } render() { return this.state.failed ? <p data-story-failed={this.state.failed}>failed</p> : this.props.children; } }\n` +
+            `const files = [${stories.map((f, i) => `['${f.slice(pkg.length + 5).replace(/\.stories\.tsx$/, '')}', S${i}]`).join(', ')}];\n` +
+            `const all = files.flatMap(([file, mod]) => Object.entries(mod).filter(([k, s]) => k !== 'default' && s && typeof s.render === 'function').map(([k, s]) => [file + '/' + k, s]));\n` +
+            `function Story({ s }) { return s.render(s.args ?? {}, { args: s.args ?? {}, globals: { mode: 'light' }, parameters: s.parameters ?? {} }); }\n` +
+            // A story whose dialog is held open (Docs/Search) hides the rest of the page, so it is read on a page of its own.\n` +
+            `const MODAL = ['components/Docs/Search'];\n` +
+            `const shown = all.filter(([name]) => MODAL.includes(name) === (location.hash === '#modal'));\n` +
+            `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}</div>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'census.jsx')],
+        outfile: join(dir, 'census.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        loader: { '.webp': 'dataurl', '.png': 'dataurl', '.jpg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'scrollnames.jsx')],
         outfile: join(dir, 'scrollnames.js'),
@@ -305,7 +342,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -725,6 +762,7 @@ try {
     const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
     const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
     const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
+    const census = page('census', '<div id="root"></div>', '<script src="census.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -1277,8 +1315,8 @@ try {
                 out.chipTarget = lands(btn, b.left + b.width / 2, b.top + b.height / 2 - 21.5) && lands(btn, b.left + b.width / 2, b.top + b.height / 2 + 21.5);
                 const list = document.querySelector('[data-wrap]');
                 const tabs = [...list.querySelectorAll('[role="tab"]')].map((t) => t.getBoundingClientRect());
-                out.tabsIn = tabs.every((t) => t.right <= innerWidth && t.left >= 0);
-                out.over = document.documentElement.scrollWidth - innerWidth;
+                out.tabsIn = tabs.every((t) => t.right <= document.documentElement.clientWidth && t.left >= 0);
+                out.over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
                 return out;
             }, width < 640);
             check(b190.rowOpens, `[${width}] DataTable: a press elsewhere in a linked row does not open it`);
@@ -1450,7 +1488,7 @@ try {
             // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
             await visit(p, sdk);
             const sd = await p.evaluate(() => ({
-                over: document.documentElement.scrollWidth - innerWidth,
+                over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
                 links: Object.fromEntries([...document.querySelectorAll('[data-sdk] a[href]:not([href^="#"])')].map((a, i) => [a.textContent + i, Math.round(a.getBoundingClientRect().height)])),
             }));
@@ -1580,7 +1618,7 @@ try {
                         [...document.querySelectorAll('[data-t]')].map((el) => {
                             const heading = el.querySelector('h2').getBoundingClientRect();
                             const action = el.firstElementChild.lastElementChild.getBoundingClientRect();
-                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= innerWidth - 16 + 0.5 }];
+                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= document.documentElement.clientWidth - 16 + 0.5 }];
                         })
                     )
                 );
@@ -1714,7 +1752,7 @@ try {
                 check(doc.scroll <= doc.view, `[${width}] ${name}: sr-only text in the page's scroller stretches the document to ${doc.scroll}px in a ${doc.view}px window`);
             }
             await visit(p, wide);
-            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
+            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
             // One column: every title at the gutter of one centred 72rem column.
             const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
@@ -1849,7 +1887,7 @@ try {
                             return {
                                 hdr: d.dataset.hdr,
                                 over: row.scrollWidth - row.clientWidth,
-                                right: Math.max(...kids.map((k) => k.right)) - window.innerWidth,
+                                right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
                                 // The brand ends before the next thing in the row starts.
                                 clash: kids.length > 1 ? brand.right - Math.min(...kids.slice(1).map((k) => k.left)) : 0,
                             };
@@ -2100,7 +2138,7 @@ try {
                         range.selectNodeContents(document.querySelector('[data-axis="card"]'));
                         const cardAxis = range.getClientRects()[0].left;
                         return {
-                            scroll: document.documentElement.scrollWidth - innerWidth,
+                            scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                             bars: [...document.querySelectorAll('[data-bar]')].map((el) => {
                                 const box = el.dataset.bar === 'card' ? cardInner : inner;
                                 const want = el.dataset.bar === 'card' ? cardAxis : axis;
@@ -2487,6 +2525,20 @@ try {
                 await c.close();
             }
         }
+        // An isMobile page widens its layout viewport to its content, so the window's inner width grows with
+        // the overflow and a sideways measure against it reads 0: ochk.app's home hid a 68px scroll at 320 that
+        // way. Every gate here measures against documentElement.clientWidth, and none may go back.
+        {
+            const wide = page('wider-than-phone', '<div style="width: 400px; height: 20px"></div>');
+            const c = await browser.newPage({ viewport: { width: 320, height: 600 }, isMobile: true, hasTouch: true });
+            await visit(c, wide);
+            const m = await c.evaluate(() => ({ window: document.documentElement.scrollWidth - window['inner' + 'Width'], client: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+            check(m.client === 80, `[320 isMobile] a 400px child scrolls the page ${m.client}px by clientWidth, not 80 (the window's inner width reads ${m.window})`);
+            await c.close();
+            const word = new RegExp('\\binner' + 'Width\\b');
+            const gates = readdirSync(join(pkg, 'scripts')).filter((f) => f.endsWith('.mjs') && word.test(readFileSync(join(pkg, 'scripts', f), 'utf8')));
+            check(gates.length === 0, `a gate measures against the window's inner width, which an isMobile page widens with its own overflow: ${gates.join(', ')}`);
+        }
         // Reflow (WCAG 1.4.10): no glow and no long word scrolls the page sideways, at 320 or any width
         // the frame fills or leaves.
         for (const w of [320, 390, 768, 900, 1024, 1200, 1280, 1440]) {
@@ -2547,6 +2599,69 @@ try {
                 const m = await read(url, 390, false, sel);
                 check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
             }
+        }
+        // The census: every link, button, trigger and toggle any story draws is a 44px target to a thumb at 390,
+        // hit from 21.5px out in every direction, on its box or by a ::before. A link inside a line of running
+        // text is exempt, as WCAG 2.5.8 exempts it; so is a text field, which is not a tap target.
+        for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
+            const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
+            await c.emulateMedia({ reducedMotion: 'reduce' });
+            // Loaded, not visited: a story's own sample markup is not held to the package's text and state rules.
+            visited.add(url);
+            await c.goto(url);
+            const drawn = await c.waitForFunction((n) => document.querySelectorAll('[data-story]').length >= n, least, { timeout: 20000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => setTimeout(r, 800)));
+            const r = await c.evaluate(() => {
+                document.documentElement.style.scrollBehavior = 'auto';
+                const SEL = 'a[href], button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="link"], [role="option"], input[type="checkbox"], input[type="radio"]';
+                const out = { stories: document.querySelectorAll('[data-story]').length, failed: [...document.querySelectorAll('[data-story-failed]')].map((e) => `${e.closest('[data-story]')?.dataset.story} (${e.dataset.storyFailed})`), dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((d) => `${d.closest('[data-story]')?.dataset.story ?? 'portal'}: ${d.getAttribute('aria-label') ?? ''} ${d.textContent.trim().slice(0, 60)}`), hidden: document.querySelectorAll('[data-story][aria-hidden="true"], [data-story] [aria-hidden="true"] [data-story]').length + document.querySelectorAll('body > [aria-hidden="true"]').length, seen: 0, inline: [], small: [] };
+                // A link inside a sentence: a paragraph or list item whose words go on past the link's own.
+                const inText = (el) => {
+                    const p = el.closest('p, li');
+                    if (!p || !getComputedStyle(el).display.startsWith('inline')) return false;
+                    const words = (s) => s.trim().split(/\s+/).filter(Boolean).length;
+                    return words(p.textContent) - words(el.textContent) >= 4;
+                };
+                for (const el of document.querySelectorAll(SEL)) {
+                    if (el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
+                    const box = el.getBoundingClientRect();
+                    // checkVisibility skips a closed details' content too: it keeps its boxes but draws and takes nothing.
+                    if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true })) continue;
+                    if (inText(el)) {
+                        out.inline.push(`${el.closest('[data-story]')?.dataset.story}: "${el.textContent.trim().slice(0, 24)}"`);
+                        continue;
+                    }
+                    out.seen++;
+                    el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    // A radio's or a checkbox's label takes its taps too.
+                    const label = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : el.closest('label');
+                    const lands = (x, y) => {
+                        const got = document.elementFromPoint(x, y);
+                        return el.contains(got) || (!!label && label.contains(got));
+                    };
+                    const miss = [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].find(([dx, dy]) => !lands(cx + dx, cy + dy));
+                    if (miss) {
+                        const name = (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28);
+                        // What a thumb there lands on instead: a neighbour, or the ground.
+                        const got = document.elementFromPoint(cx + miss[0], cy + miss[1]);
+                        const on = got ? `${got.tagName.toLowerCase()}${got.getAttribute('aria-label') ? ' "' + got.getAttribute('aria-label').slice(0, 20) + '"' : got.textContent?.trim() ? ' "' + got.textContent.trim().slice(0, 16) + '"' : ''}` : 'nothing';
+                        out.small.push(`${el.closest('[data-story]')?.dataset.story ?? 'outside a story (a portal)'}: ${el.tagName.toLowerCase()}${el.getAttribute('role') ? '[' + el.getAttribute('role') + ']' : ''} "${name}" ${Math.round(b.width)}x${Math.round(b.height)}, ${miss[0] ? (miss[0] < 0 ? 'left' : 'right') : miss[1] < 0 ? 'above' : 'below'} lands on ${on}`);
+                    }
+                }
+                return out;
+            });
+            const tag = least > 1 ? 'the census' : 'the census of a held-open dialog';
+            if (process.env.OCA_CENSUS_OUT) writeFileSync(`${process.env.OCA_CENSUS_OUT}${least > 1 ? '' : '.modal'}.json`, JSON.stringify(r, null, 1));
+            check(drawn && r.stories >= least && r.failed.length === 0, `[390] ${tag} drew ${r.stories} stories, and these threw: ${r.failed.join(', ')}`);
+            check(least > 1 ? r.dialogs.length === 0 && r.seen > 300 : r.dialogs.length === 1 && r.seen >= 3, `[390 touch] ${tag} read only ${r.seen} targets, with dialogs open: ${JSON.stringify(r.dialogs)}`);
+            // BlockHeight's link is PR 288's (design2-blockheight-hit, 384f7c5e), which lands before this one in 2.0.1:
+            // remove this one exception when the two meet, so the census reads it like any other target.
+            const under = r.small.filter((s) => !s.startsWith('components/Tools/Parts: a "block 972,000 (opens mempool"'));
+            check(under.length === 0, `[390 touch] ${tag} found ${under.length} targets under 44px to a thumb: ${under.slice(0, 12).join('; ')}`);
+            await c.close();
         }
         // Every scroller that takes focus is a named region: each ScrollFade user, scrolling in a narrow box.
         {

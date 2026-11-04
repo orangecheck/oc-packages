@@ -15,6 +15,7 @@ import {
 
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
+import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { InTableContext } from '../lib/in-table';
 import { Badge } from '../primitives/badge';
 import { ScrollFade } from '../primitives/scroll-fade';
@@ -442,7 +443,7 @@ export function ApiTable({
                                     </td>
                                 ) : null}
                                 {hasSource ? (
-                                    <td className={cn(cell, 'text-[0.8125rem] text-muted-foreground max-sm:order-last max-sm:break-all', !said(r.source) && 'max-sm:hidden')}>
+                                    <td className={cn(cell, 'text-[0.8125rem] text-muted-foreground max-sm:order-last max-sm:break-all', HIT_LINKS, !said(r.source) && 'max-sm:hidden')}>
                                         {r.source}
                                     </td>
                                 ) : null}
@@ -770,8 +771,11 @@ export function DocsHeading({
             {id && Tag !== 'h1' ? (
                 <a
                     href={`#${id}`}
-                    // A 24px target drawn around it (before:), so the heading's line does not grow.
-                    className="relative ml-2 inline-block rounded-none px-1 align-baseline text-[max(0.85em,0.75rem)] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    // A 24px target drawn around it (before:), 44px to a thumb, so the heading's line does not grow.
+                    className={cn(
+                        "relative ml-2 inline-block rounded-none px-1 align-baseline text-[max(0.85em,0.75rem)] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100",
+                        HIT_LINK
+                    )}
                 >
                     <span aria-hidden>#</span>
                     <span className="sr-only">Link to this section</span>
