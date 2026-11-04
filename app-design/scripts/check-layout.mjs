@@ -545,8 +545,12 @@ try {
             )
         )
     );
-    // The same heroes with a CTA pair of different lengths (ochk.app's was 135 and 172px at 390).
-    const pair = () => [h(P.Button, { key: 'a', 'data-cta': '' }, 'Get an account'), h(P.Button, { key: 'b', variant: 'secondary', 'data-cta': '' }, 'Read how it works first')];
+    // The same heroes with a CTA pair of different lengths (ochk.app's was 135 and 172px at 390): a Button,
+    // and a link styled as one through asChild, as ochk.io's protocol pages pass them.
+    const pair = () => [
+        h(P.Button, { key: 'a', size: 'lg', 'data-cta': '' }, 'Get an account'),
+        h(P.Button, { key: 'b', asChild: true, size: 'lg', variant: 'secondary', plus: true }, h('a', { href: '/how', 'data-cta': '' }, 'Read how it works first')),
+    ];
     const heroActions = page(
         'hero-actions',
         renderToStaticMarkup(
