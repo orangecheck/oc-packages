@@ -38,18 +38,40 @@ export interface FrameProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * The framed column every public page is drawn in: 82.5rem at most, a
- * hairline at each edge from 900px, a gutter of 3rem that narrows to 1rem.
- * Frame is for public pages; DocsShell and AppShell keep their own layouts.
+ * The framed column: 82.5rem at most, a hairline at each side, a gutter of
+ * 3rem that narrows to 1rem (tokens.css --oca-frame-*). Inside PageFrame it
+ * draws no rules of its own: the page's run beside it.
  */
 export function Frame({ as = 'div', padded = true, className, ...props }: FrameProps) {
     return createElement(as, {
         'data-oca-frame': '',
         className: cn(
-            'mx-auto w-full max-w-[82.5rem] border-border min-[900px]:border-x',
-            padded && 'px-[clamp(1rem,0.333rem+2.857vw,3rem)]',
+            'mx-auto w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
+            // A SectionBar inside takes back the gutter it is given, or none in a Frame without one.
+            padded ? 'px-[var(--oca-frame-gutter)] [--oca-bar-bleed:var(--oca-frame-gutter)] [--oca-bar-inset:var(--oca-frame-gutter)]' : '[--oca-bar-bleed:0px] [--oca-bar-inset:var(--oca-frame-gutter)]',
             className
         ),
+        ...props,
+    });
+}
+
+export interface PageFrameProps extends HTMLAttributes<HTMLElement> {
+    /** Default `main`; DocsShell, which has its own main, takes `div`. */
+    as?: 'main' | 'div';
+}
+
+/**
+ * The page's one framed column, between the header and the footer: its two
+ * hairlines run the page's whole height, its sections and bands sit between
+ * them (a Section's hairline closes it from rule to rule), and their content
+ * starts on the frame's axis. A site's layout puts its pages in it, the footer
+ * outside. A full-bleed stage that should paint over the rules says so itself.
+ */
+export function PageFrame({ as = 'main', className, ...props }: PageFrameProps) {
+    return createElement(as, {
+        'data-oca-page-frame': '',
+        // A PageFrame inside another (a DocsShell page in a layout's frame) draws no second rule.
+        className: cn('mx-auto w-full max-w-[var(--oca-frame-max)] border-x border-border [--oca-frame-rule:0px] [--oca-bar-bleed:0px] [--oca-bar-inset:var(--oca-frame-gutter)] [&_[data-oca-page-frame]]:border-x-0', className),
         ...props,
     });
 }
@@ -68,7 +90,10 @@ export function SectionBar({ start, end, as = 'p', className, ...props }: Sectio
     return (
         <div
             data-oca-section-bar=""
-            className={cn('flex min-h-11 items-center justify-between gap-4 border-b border-border py-2', className)}
+            // Its rule spans its nearest edged box (the frame between its rules, or a card), as every rule in
+            // the frame does: it takes back only the gutter that box gives (--oca-bar-bleed, 0 where there is
+            // none) and sets its label in that box's inset, so it is right in any parent and never overflows.
+            className={cn('mx-[calc(-1*var(--oca-bar-bleed,0px))] flex min-h-11 items-center justify-between gap-4 border-b border-border px-[var(--oca-bar-inset,var(--oca-frame-gutter))] py-2', className)}
             {...props}
         >
             <MonoLabel as={as}>{start}</MonoLabel>

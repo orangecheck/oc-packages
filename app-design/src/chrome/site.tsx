@@ -271,12 +271,12 @@ export function SiteHeader({
                     tool
                         ? 'h-14 px-4 md:px-6'
                         : // The frame's column: the page's gutter at left, the CTA at the right rule.
-                          'mx-auto h-14 w-full max-w-[82.5rem] border-border pl-[clamp(1rem,0.333rem+2.857vw,3rem)] min-[900px]:h-[4.25rem] min-[900px]:border-x',
+                          'mx-auto h-14 w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
                     framed &&
                         (headerCta
                             ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
-                              'max-[479px]:pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
-                            : 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]')
+                              'max-[479px]:pr-[var(--oca-frame-gutter)]'
+                            : 'pr-[var(--oca-frame-gutter)]')
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
@@ -536,7 +536,8 @@ export interface SiteFooterProps {
 
 /** The footer's deep ground (the oca-band-footer utility re-points the tokens) and the frame's width. */
 const FOOTER_GROUND = 'oca-band-footer';
-const FRAME_X = 'mx-auto w-full max-w-[82.5rem] px-[clamp(1rem,0.333rem+2.857vw,3rem)]';
+// The footer's content on the frame's axis: it has no rules of its own, so it counts the page's.
+const FRAME_X = 'mx-auto w-full max-w-[var(--oca-frame-max)] px-[calc(var(--oca-frame-rule)+var(--oca-frame-gutter))]';
 
 
 /**

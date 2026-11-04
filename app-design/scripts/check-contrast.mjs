@@ -10,7 +10,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const css = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8');
+// Without its comments, so a brace in one cannot end a block early.
+const css = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 function block(selectorStart) {
     const i = css.indexOf(selectorStart);
