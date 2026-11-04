@@ -20,6 +20,7 @@ const entry = {
     og: 'src/og/index.tsx',
     fonts: 'src/fonts/index.tsx',
     motion: 'src/motion/index.ts',
+    blocks: 'src/blocks/index.ts',
 };
 
 /** Every source module, for the ESM build: one module each, so a site's bundler keeps only what a page uses. */
