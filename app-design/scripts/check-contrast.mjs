@@ -102,6 +102,12 @@ const PAIRS = [
     ['oca-orange-deep', 'card', 3],
     ['oca-orange-deep', 'background', 3],
     ['oca-ink-foreground', 'oca-orange-deep', 3],
+    // A Slider on ink: its fill and thumb; and orange figures on ink (display size, 3:1).
+    ['oca-orange', 'oca-ink', 3],
+    // The blocks: a figure in the display accent on ink and on the product surface, a receipt's split on the surface.
+    ['oca-accent-display', 'oca-ink', 3],
+    ['oca-accent-display', 'oca-surface', 3],
+    ['oca-orange-deep', 'oca-surface', 3],
     // Chart series and their neutral: graphical objects on the card and the page (1.4.11).
     ...['oca-chart-1', 'oca-chart-2', 'oca-chart-3', 'oca-chart-4', 'oca-chart-neutral'].flatMap((t) => [
         [t, 'card', 3],
@@ -113,6 +119,9 @@ const PAIRS = [
     ['destructive', 'muted', 3],
     // 2.0: the product surface (inputs, tables, receipts, mock screens).
     ['oca-surface-foreground', 'oca-surface', 4.5],
+    // A block's secondary text on the surface, and on a paper bento tile.
+    ['oca-surface-muted', 'oca-surface', 4.5],
+    ['oca-surface-muted', 'card', 4.5],
     ['muted-foreground', 'oca-surface', 4.5],
     ['oca-subtle-foreground', 'oca-surface', 4.5],
     ['oca-accent-ink', 'oca-surface', 4.5],

@@ -251,7 +251,7 @@ export function CodeBlock({
     return (
         <figure className={cn(FRAME, className)} onCopy={onCopy}>
             <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
-                <span className="truncate text-[0.8125rem] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
+                <span className="truncate font-mono text-[0.75rem] uppercase tracking-[0.08em] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
                 <span className="flex shrink-0 items-center gap-1">
                     {actions}
                     {copy ? <CopyButton value={read} label="Copy code" clearAfter={clearAfter} className={COPY_ON_INK} /> : null}

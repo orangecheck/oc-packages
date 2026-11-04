@@ -64,6 +64,8 @@ export { Accordion, AccordionItem } from './accordion';
 export { confirm, DialogHost, prompt } from './dialogs';
 export type { ConfirmOptions, PromptOptions } from './dialogs';
 export { Pagination } from './pagination';
+export { Slider } from './slider';
+export type { SliderMark, SliderProps } from './slider';
 export { QrCode } from './qr-code';
 export type { ScrollFadeProps } from './scroll-fade';
 export { announce } from '../lib/announce';
