@@ -39,23 +39,39 @@ const check = (ok, msg) => {
 };
 const html = (el) => renderToStaticMarkup(el);
 
-// 2.0 is square: no rounded panel, card, chip or control in the source. Round by meaning only: status
-// dots, a radio, an avatar, the brand art, an app's monogram, and inside a depicted device (frames.tsx).
+// 2.0 is square: every rounded- class in the source is square (rounded-none), a depiction's
+// (rounded-depict), a tile's (rounded-tile) or its parent's (rounded-[inherit]). Round by meaning
+// only: a dot (rounded-full on a size-* box or the inset-0 halo filling one, with no padding), and
+// in the brand art, an app's monogram, an avatar and a depicted device. The stylesheets' own
+// border-radius is a radius token or nothing.
 {
     const { readdirSync, readFileSync, statSync } = require('node:fs');
     const src = join(here, '../src');
-    const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : f.endsWith('.tsx') && !f.endsWith('.stories.tsx') ? [join(d, f)] : []));
+    const walk = (d, ext) =>
+        readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f), ext) : ext.test(f) && !/\.(stories|test)\.tsx?$/.test(f) ? [join(d, f)] : []));
     const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames))\.tsx$/;
+    const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
     const rounded = [];
-    for (const f of walk(src)) {
+    for (const f of walk(src, /\.tsx?$/)) {
         if (ROUND_BY_MEANING.test(f)) continue;
         readFileSync(f, 'utf8')
             .split('\n')
             .forEach((line, i) => {
-                // A fixed or large radius anywhere, or a full one on something with padding (a pill).
-                if (/rounded-(\[[\d.]+rem\]|2xl|3xl|xl|lg|md)(?![\w-])/.test(line) || (/rounded-full(?![\w-])/.test(line) && /\bp[xy]?-/.test(line))) {
-                    rounded.push(`${f.slice(src.length + 1)}:${i + 1}`);
+                if (/^\s*(\/\/|\/?\*)/.test(line)) return;
+                for (const m of line.matchAll(/(?<![\w-])rounded(?:-(?:tl|tr|br|bl|ss|se|es|ee|t|r|b|l|s|e))?(?:-([a-z0-9]+|\[[^\]\s'"`]+\]))?(?![\w-])/g)) {
+                    const value = m[1] ?? '';
+                    if (ALLOWED.test(value)) continue;
+                    const dot = m[0] === 'rounded-full' && /(?<![\w-])(size-|inset-0(?![\w-]))/.test(line) && !/(?<![\w-])p[xytrbl]?-/.test(line);
+                    if (!dot) rounded.push(`${f.slice(src.length + 1)}:${i + 1} ${m[0]}`);
                 }
+            });
+    }
+    for (const f of walk(join(src, 'styles'), /\.css$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                const r = line.match(/border(?:-[a-z]+)*-radius:\s*([^;]+);/);
+                if (r && !/^(0|inherit|var\(--(radius|oca-radius)[a-z0-9-]*\))$/.test(r[1].trim())) rounded.push(`${f.slice(src.length + 1)}:${i + 1} border-radius: ${r[1].trim()}`);
             });
     }
     check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);

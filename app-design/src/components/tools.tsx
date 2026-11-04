@@ -730,7 +730,7 @@ export function Meter({
                 {g > 0 ? (
                     <div
                         aria-hidden
-                        className="-ml-1.5 h-full shrink-0 rounded-r-full pl-1.5 text-foreground/45"
+                        className="-ml-1.5 h-full shrink-0 rounded-none pl-1.5 text-foreground/45"
                         style={{
                             width: `calc(${g * 100}% + 0.375rem)`,
                             backgroundImage: 'repeating-linear-gradient(-45deg, currentColor 0 2px, transparent 2px 6px)',

@@ -287,7 +287,7 @@ export function SearchDialog({
                                                         {r.section ? <span className="truncate text-[0.8125rem] text-muted-foreground">{r.section}</span> : null}
                                                         {r.excerptHtml ? (
                                                             <span
-                                                                className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground [&_mark]:rounded-sm [&_mark]:bg-[color-mix(in_oklab,var(--oca-orange)_22%,transparent)] [&_mark]:px-0.5 [&_mark]:text-foreground"
+                                                                className="line-clamp-2 text-[0.875rem] leading-snug text-muted-foreground [&_mark]:rounded-none [&_mark]:bg-[color-mix(in_oklab,var(--oca-orange)_22%,transparent)] [&_mark]:px-0.5 [&_mark]:text-foreground"
                                                                 dangerouslySetInnerHTML={{ __html: r.excerptHtml }}
                                                             />
                                                         ) : r.excerpt ? (

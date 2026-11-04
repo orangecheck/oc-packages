@@ -45,6 +45,16 @@ optional. What changes is how things look.
   - `SplitBar` draws its segments in tokens (`--oca-surface`, `--oca-ink`)
     where it hard-coded white.
   - check-render scans the source for a rounded panel or pill.
+  - The last three are square as well: the meter's growth tail (it was
+    `rounded-r-full` inside a square track), the search result's highlight
+    (`rounded-sm`) and the chart tooltip (`0.625rem` in chart.css).
+    check-render's scan is an allowlist now. Every `rounded-*` class in the
+    source must be `rounded-none`, `rounded-depict`, `rounded-tile` or
+    `rounded-[inherit]`. The exceptions are a dot, which is `rounded-full` on
+    a `size-*` box or on the `inset-0` halo that fills one, with no padding,
+    and the brand art, monogram, avatar and device frames. A stylesheet's
+    `border-radius` must be a radius token or nothing. The old scan caught only
+    fixed and large radii, and pills with `px` or `py`.
 - `PageHero` and `Closing` sit on the Frame (82.5rem, the page's gutter, the
   hairlines from 900px), so they line up with the header and footer; before,
   they sat 52px inside it at 1440. `Section` takes `framed` for the same.
