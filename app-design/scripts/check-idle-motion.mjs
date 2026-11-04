@@ -49,7 +49,7 @@ const check = (ok, msg) => {
 const PAGE = `
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule } from '${join(pkg, 'src/motion/index.ts')}';
+import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule, deckPortraitPoints } from '${join(pkg, 'src/motion/index.ts')}';
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
@@ -67,15 +67,26 @@ function still() {
 function Loop() {
     useEffect(() => {
         window.__good = 0;
-        window.__errors = [];
-        window.addEventListener('error', (e) => window.__errors.push(e.message));
-        const bad = schedule(document.getElementById('bad'), { frame() { throw new Error('a broken scene'); } });
+        window.__failed = 0;
+        const bad = schedule(document.getElementById('bad'), { frame() { throw new Error('a broken scene'); } }, { onError: () => window.__failed++ });
         const good = schedule(document.getElementById('good'), { frame: () => ++window.__good < 30 });
         bad.wake();
         good.wake();
         return () => { bad.stop(); good.stop(); };
     }, []);
     return <div><div id="bad" style={{ height: 40 }} /><div id="good" style={{ height: 40 }} /></div>;
+}
+// Every console.error the page logs, counted.
+window.__logged = 0;
+const logError = console.error;
+console.error = (...a) => { window.__logged++; logError(...a); };
+// Points that read well while the scene builds, then throw in its second frame.
+function brokenPoints() {
+    const n = 200, x = new Float32Array(n), y = new Float32Array(n), tone = new Float32Array(n).fill(0.5);
+    for (let i = 0; i < n; i++) { x[i] = (i % 20) / 20; y[i] = Math.floor(i / 20) / 10; }
+    let reads = 0;
+    const trap = (a) => new Proxy(a, { get: (t, k) => { if (typeof k === 'string' && /^[0-9]+$/.test(k) && ++reads > n * 5) throw new Error('broken points'); const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
+    return { count: n, x: trap(x), y, tone, pitch: 0.02 };
 }
 const notes = [{ at: PORTRAIT_ANCHORS.eye, label: 'First note' }, { at: PORTRAIT_ANCHORS.shoulder, label: 'Second note', side: 'right' }];
 const scenes = {
@@ -94,6 +105,8 @@ const scenes = {
     marquee: () => <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span><span style={{ fontSize: 64, paddingRight: 32 }}>Halfway Books</span></Marquee>,
     wipe: () => <Wipe><div id="wiped" style={{ height: 300, background: '#2a1206' }} /></Wipe>,
     loop: () => <Loop />,
+    broken: () => <ParticlePortrait alt="A picture that fails" points={brokenPoints()} poster={<svg viewBox="0 0 10 10"><rect width="10" height="10" /></svg>} callouts={notes} style={{ height: 600 }} />,
+    deck: () => <ParticlePortrait alt="The deck portrait" points={deckPortraitPoints} style={{ height: 600 }} />,
     dither: () => <DitherImage src={still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' ? 1200 : q.has('off') ? 3000 : 0;
@@ -128,7 +141,8 @@ try {
                 null,
                 h(M.ParticlePortrait, { alt: 'A person drawn in dots', callouts: [{ at: M.PORTRAIT_ANCHORS.eye, label: 'First note' }], style: { height: 600 } }),
                 h(M.StorySwap, { before: h('h2', null, 'Before'), after: h('h2', null, 'After') }),
-                h(M.CrowdDissolve, { style: { aspectRatio: '4 / 3', width: 600 } })
+                h(M.CrowdDissolve, { style: { aspectRatio: '4 / 3', width: 600 } }),
+                h(M.CrowdDissolve, { style: { aspectRatio: '4 / 3', width: 360 } })
             )
         )
     );
@@ -276,14 +290,19 @@ try {
                         colour: getComputedStyle(document.querySelector('.oca-portrait-poster')).color,
                         ghosts: document.querySelector('.oca-crowd-poster rect')?.getAttribute('fill') ?? '',
                         crowdColour: getComputedStyle(document.querySelector('.oca-crowd-poster')).color,
-                        backed: document.querySelectorAll('.oca-crowd-poster use').length,
+                        // Per crowd, the poster its width shows and the backed figures in it.
+                        shown: [...document.querySelectorAll('.oca-crowd')].map((c) => {
+                            const on = [...c.querySelectorAll('.oca-crowd-poster')].filter((s) => getComputedStyle(s).display !== 'none');
+                            return on.map((s) => `${s.dataset.size}:${s.querySelectorAll('g svg').length}`).join();
+                        }),
                     };
                 });
                 const lum = (c) => c.match(/\d+/g).slice(0, 3).reduce((a, v) => a + Number(v), 0) / 3;
                 const ground = dark ? 'dark' : 'light';
                 check(g.ink === !dark && g.light === dark, `no script, ${ground} page: the portrait poster shows ink ${g.ink}, light ${g.light}`);
                 check(dark ? lum(g.colour) > 200 && lum(g.crowdColour) > 200 : lum(g.colour) < 80 && lum(g.crowdColour) < 80, `no script, ${ground} page: the posters draw in ${g.colour} and ${g.crowdColour}`);
-                check(/^url\(#.+-place\)$/.test(g.ghosts) && g.backed === 8, `no script, ${ground} page: the crowd poster has ghosts '${g.ghosts}' and ${g.backed} backed figures`);
+                check(/^url\(#.+-place\)$/.test(g.ghosts), `no script, ${ground} page: the crowd poster's ghosts are '${g.ghosts}'`);
+                check(g.shown.join(' ') === 'wide:8 narrow:8', `no script, ${ground} page: the crowds show ${g.shown.join(' ')}, not the wide grid at 600px and the narrow at 360, 8 backed each`);
             }
             await ctx.close();
         }
@@ -484,12 +503,14 @@ try {
         {
             const { p, close } = await open('portrait');
             await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
-            await p.emulateMedia({ reducedMotion: 'reduce' });
             const a = await p.evaluate(() => window.__draws);
-            const stilled = await settle(p, 6000);
-            const drew = (await p.evaluate(() => window.__draws)) - a;
+            await p.emulateMedia({ reducedMotion: 'reduce' });
+            // At once: the finished frame and the notes within a moment, not on the next idle callback.
+            await p.waitForTimeout(250);
             const phase = await p.getAttribute('.oca-portrait', 'data-phase');
-            check(stilled && drew <= 3 && phase === 'formed', `portrait, reduced motion switched on mid-gather: ${drew} more draws, settled ${stilled}, phase ${phase}`);
+            const stilled = await settle(p, 3000);
+            const drew = (await p.evaluate(() => window.__draws)) - a;
+            check(stilled && drew <= 3 && phase === 'formed', `portrait, reduced motion switched on mid-gather: ${drew} more draws, settled ${stilled}, phase ${phase} after 250 ms`);
             await close();
         }
         {
@@ -530,11 +551,40 @@ try {
         {
             const { p, close } = await open('loop');
             await p.waitForTimeout(1500);
-            const r = await p.evaluate(() => ({ good: window.__good, errors: window.__errors }));
+            const r = await p.evaluate(() => ({ good: window.__good, failed: window.__failed, logged: window.__logged }));
             check(r.good === 30, `scheduler: beside a scene that throws, another got ${r.good} of its 30 frames`);
-            // A file: page hears a cross-script error as "Script error.", without its message: count it.
-            check(r.errors.length === 1, `scheduler: the throw reached the page ${r.errors.length} times, not once`);
+            check(r.failed === 1 && r.logged === 1, `scheduler: a broken scene was handed back ${r.failed} times and logged ${r.logged} times, not once each`);
             check(await settle(p), 'scheduler: with a broken scene on it the loop never stops');
+            await close();
+        }
+        // A portrait whose drawing throws drops to its poster and notes, logs once, and asks for nothing more.
+        {
+            const { p, close } = await open('broken');
+            const fell = await p.waitForFunction(() => document.querySelector('.oca-portrait[data-fallback]'), null, { timeout: 8000 }).then(
+                () => true,
+                () => false
+            );
+            check(fell, 'portrait that throws: it never fell back to its poster');
+            const quiet = await settle(p, 3000);
+            // The poster and the notes fade in: read them once their transitions have run.
+            await p.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+            const r = await p.evaluate(() => ({
+                poster: getComputedStyle(document.querySelector('.oca-portrait-poster')).opacity,
+                canvas: getComputedStyle(document.querySelector('.oca-portrait-canvas')).opacity,
+                note: getComputedStyle(document.querySelector('.oca-note-label')).opacity,
+                logged: window.__logged,
+            }));
+            check(
+                quiet && r.poster === '1' && r.canvas === '0' && r.note === '1' && r.logged === 1,
+                `portrait that throws: poster ${r.poster}, canvas ${r.canvas}, note ${r.note}, logged ${r.logged}, settled ${quiet}`
+            );
+            await close();
+        }
+        // The deck portrait, kept as an option, still loads and draws.
+        {
+            const { p, close } = await open('deck');
+            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            check(await settle(p), 'deck portrait: after its motion it never settles');
             await close();
         }
 

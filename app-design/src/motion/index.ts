@@ -21,7 +21,7 @@ export { DitherImage } from './dither-image';
 export type { DitherImageProps } from './dither-image';
 export { Wipe } from './wipe';
 export type { WipeProps } from './wipe';
-export { decodePoints, fetchPoints, portraitPoints, unpackPoints } from './points';
+export { bustPoints, decodePoints, deckPortraitPoints, fetchPoints, unpackPoints } from './points';
 export { PORTRAIT_ANCHORS } from './portrait-poster';
 export type { Points } from './points';
 export { schedule } from './scheduler';

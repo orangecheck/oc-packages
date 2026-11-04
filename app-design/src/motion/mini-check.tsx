@@ -92,23 +92,29 @@ export function MiniCheck({ size = 132, title, playKey, className, style }: Mini
         const styles = FACES.map(([k]) => rgba(hex(MARK_FACES[k])));
         const batch = new Batch(n);
         let t = 0;
-        let mounted: Mounted | null = mountScene(cv, el, (surface) => ({
-            frame(_now, dt) {
-                t += dt;
-                const u = surface.width / 16;
-                surface.clear();
-                batch.reset();
-                for (let i = 0; i < n; i++) {
-                    const d = DOTS[i]!;
-                    const e = easeOut(clamp01((t - delay[i]!) / FLIGHT));
-                    batch.add(d.face, (sx[i]! + (d.x - sx[i]!) * e) * u, (sy[i]! + (d.y - sy[i]!) * e) * u, STEP * u * (0.6 + 0.2 * e));
-                }
-                batch.draw(surface.ctx, styles, surface.dpr);
-                if (t < FLIGHT + SPREAD) return true;
-                setState('solid');
-                return false;
-            },
-        }));
+        let mounted: Mounted | null = mountScene(
+            cv,
+            el,
+            (surface) => ({
+                frame(_now, dt) {
+                    t += dt;
+                    const u = surface.width / 16;
+                    surface.clear();
+                    batch.reset();
+                    for (let i = 0; i < n; i++) {
+                        const d = DOTS[i]!;
+                        const e = easeOut(clamp01((t - delay[i]!) / FLIGHT));
+                        batch.add(d.face, (sx[i]! + (d.x - sx[i]!) * e) * u, (sy[i]! + (d.y - sy[i]!) * e) * u, STEP * u * (0.6 + 0.2 * e));
+                    }
+                    batch.draw(surface.ctx, styles, surface.dpr);
+                    if (t < FLIGHT + SPREAD) return true;
+                    setState('solid');
+                    return false;
+                },
+            }),
+            // A scene that fails lands at once: the mark.
+            { onFail: () => setState('solid') }
+        );
         mounted.wake();
         return () => {
             mounted?.stop();

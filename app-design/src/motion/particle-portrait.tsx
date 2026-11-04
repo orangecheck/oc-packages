@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, useMotionSetting, whenIdle } from './env';
+import { clamp01, easeOut, finePointer, glide, prefersStill, seeded, smoothstep, useMotionSetting, whenReady } from './env';
 import { Batch, inks, mix, rgba } from './paint';
-import { portraitPoints, type Points } from './points';
+import { bustPoints, type Points } from './points';
 import { PORTRAIT_POSTER, PORTRAIT_POSTER_DARK } from './portrait-poster';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
@@ -33,7 +33,7 @@ export interface Callout {
 }
 
 export interface ParticlePortraitProps {
-    /** The dots, or a loader for them; a bust drawn from shapes by default. */
+    /** The dots, or a loader for them; a bust drawn from shapes by default (bustPoints). */
     points?: Points | (() => Promise<Points>);
     /** Notes on the picture, in reading order. */
     callouts?: readonly Callout[];
@@ -43,7 +43,7 @@ export interface ParticlePortraitProps {
     ground?: 'auto' | 'light' | 'dark';
     /** Part the dots under a fine pointer. */
     lens?: boolean;
-    /** Shown until the canvas draws, without script, and under reduced motion. The bust's own by default. */
+    /** Shown until the canvas draws, without script, and under reduced motion. The bust's own with the default points; none with others. */
     poster?: ReactNode;
     /** The control's words. */
     labels?: { pause?: string; play?: string; replay?: string };
@@ -60,7 +60,8 @@ const WAVE = FORMED + 0.15; // the front starts below the figure
 const WAVE_RISE = 1.3; // the front crosses it
 const WAVE_LAG = 0.9; // the back follows
 const END = WAVE + WAVE_LAG + WAVE_RISE + 0.1;
-const DOT = 0.76; // a full-tone dot's width, of the pitch
+const DOT = 0.76; // a screened dot's width at full tone, of the pitch
+const STIPPLE = 0.62; // a stippled dot's width, of the spacing at full density
 const CLOUD_ALPHA = 0.45;
 const LEVELS = 8; // alpha levels while gathering, heat levels while the wave passes
 
@@ -96,10 +97,11 @@ export function ParticlePortrait({
         };
         let mounted: Mounted | null = null;
         let gone = false;
-        const cancelIdle = whenIdle(async () => {
+        // Hydrate when idle; at once when the scene comes back after a change of setting.
+        const cancelIdle = whenReady(fig, async () => {
             let pts: Points;
             try {
-                pts = typeof points === 'function' ? await points() : (points ?? (await portraitPoints()));
+                pts = typeof points === 'function' ? await points() : (points ?? (await bustPoints()));
             } catch {
                 setPhase('formed');
                 return;
@@ -110,7 +112,16 @@ export function ParticlePortrait({
                 el,
                 (surface, wake) => portraitScene(pts, surface, wake, el, { still, lens: lens && !still && finePointer(), setPhase, setPlay, control }),
                 // Written to the DOM, not to state: the first frame costs no React render.
-                { ground, onDraw: () => (fig.dataset.live = '') }
+                {
+                    ground,
+                    onDraw: () => (fig.dataset.live = ''),
+                    // A scene that failed shows its poster and its notes, and asks for nothing more.
+                    onFail: () => {
+                        delete fig.dataset.live;
+                        fig.dataset.fallback = '';
+                        setPhase('formed');
+                    },
+                }
             );
             mounted.wake();
         });
@@ -137,12 +148,12 @@ export function ParticlePortrait({
         >
             <div ref={stage} className="oca-portrait-stage relative min-h-[18rem] flex-1">
                 <div className="oca-portrait-poster" aria-hidden>
-                    {poster ?? (
+                    {poster ?? (points ? null : (
                         <svg viewBox="0 0 1000 1000" className="size-full">
                             <path className="oca-portrait-ink" d={PORTRAIT_POSTER} fill="currentColor" />
                             <path className="oca-portrait-light" d={PORTRAIT_POSTER_DARK} fill="currentColor" />
                         </svg>
-                    )}
+                    ))}
                 </div>
                 <div className="oca-portrait-cloud" aria-hidden />
                 <canvas ref={canvas} aria-hidden className="oca-portrait-canvas absolute inset-0 size-full" />
@@ -257,7 +268,8 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
 
     const batch = new Batch(n);
     let styles: string[] = [];
-    // Each dot's full width, as a fraction of the pitch: from its ink, or for a shaded picture on a dark ground from its light.
+    // Per dot, for the ground it is on: whether it is drawn, and its full width as a fraction of the pitch.
+    const drawn = new Uint8Array(n);
     const width = new Float32Array(n);
     let t = o.still ? END : 0;
     let paused = false;
@@ -310,8 +322,17 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
     }
     return {
         theme(dark: boolean) {
-            // A floor of a few percent keeps the lightest places a fine texture rather than bare ground.
-            for (let i = 0; i < n; i++) width[i] = Math.sqrt(0.05 + 0.95 * (dark && pts.shaded ? 1 - pts.tone[i]! : pts.tone[i]!)) * DOT;
+            for (let i = 0; i < n; i++) {
+                if (pts.grounds) {
+                    // A stipple: the dots for this ground, a little larger where the picture is fuller.
+                    drawn[i] = pts.grounds[i]! & (dark ? 2 : 1) ? 1 : 0;
+                    width[i] = STIPPLE * (0.8 + 0.2 * (dark ? 1 - pts.tone[i]! : pts.tone[i]!));
+                } else {
+                    // A screen: every dot, as wide as its ink.
+                    drawn[i] = 1;
+                    width[i] = Math.sqrt(pts.tone[i]!) * DOT;
+                }
+            }
             const { base, heat } = inks(dark);
             styles = [];
             for (let k = 0; k < LEVELS; k++) styles.push(rgba(base, CLOUD_ALPHA + ((1 - CLOUD_ALPHA) * k) / (LEVELS - 1)));
@@ -338,6 +359,7 @@ function portraitScene(pts: Points, surface: Mounted['surface'], wake: () => voi
             surface.clear();
             batch.reset();
             for (let i = 0; i < n; i++) {
+                if (!drawn[i]) continue;
                 const tx = ox + pts.x[i]! * side;
                 const ty = oy + pts.y[i]! * side;
                 const full = Math.max(1, width[i]! * pitch);

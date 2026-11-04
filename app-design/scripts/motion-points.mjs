@@ -23,13 +23,11 @@
  * Deterministic: the same shapes always give the same files.
  *   node scripts/motion-points.mjs
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ACROSS = 108; // dots across the square: about 4,100 in the figure, as many as the prototype's
-const POSTER_ACROSS = 48;
 const GRID = 360; // the tone is rendered on this grid and sampled by the screen
 
 const { abs, min, max, hypot, sin, cos, SQRT1_2 } = Math;
@@ -73,7 +71,7 @@ const HAIR = 1;
 const CLOTH = 2;
 const LIP = 3;
 const EYE = 4;
-const ALBEDO = [0.86, 0.2, 0.8, 0.62, 0.12];
+const ALBEDO = [0.86, 0.2, 0.5, 0.62, 0.12];
 
 /** A point of the square in head units: the inverse of `fromHead`. */
 function toHead(x, y, z) {
@@ -196,7 +194,12 @@ function render(n) {
     return light;
 }
 
-// ── Screen ───────────────────────────────────────────────────────────────────
+// ── Stipple ──────────────────────────────────────────────────────────────────
+// Dots by density, not a screen, so nothing beats against the pixel grid. One progressive blue-noise
+// sequence covers the figure: every prefix of it is evenly spread. A dot is drawn where its place in the
+// sequence comes before the tone there, so its neighbourhood shows the first few of the sequence where the
+// picture is light and most of it where it is dark: an even stipple whose density is the tone. Paper takes
+// the ink as its tone, a dark ground the light, so one sequence gives a positive on both.
 
 const light = render(GRID);
 /** Light at (u, v): bilinear inside the figure, the nearest sample at its edge, NaN off it. */
@@ -210,72 +213,133 @@ function lightAt(u, v) {
     return (c[0] * (1 - fx) + c[1] * fx) * (1 - fy) + (c[2] * (1 - fx) + c[3] * fx) * fy;
 }
 
-/** A fixed scatter in 0..1 for lattice place (i, j). */
-function scatter(i, j) {
-    let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263);
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-/** The 45° screen `across` dots wide: [x, y, light] inside the figure, top to bottom, then left to right. */
-function screen(across) {
-    const pitch = 1 / across;
-    const span = Math.ceil(0.75 / pitch) + 1;
+let seed = 0x5eed;
+const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+
+const inside = [];
+for (let k = 0; k < GRID * GRID; k++) if (!Number.isNaN(light[k])) inside.push(k);
+const SEQUENCE = 8000; // the blue-noise sequence's length: full density at a scale of 1
+const PITCH = Math.sqrt(inside.length / (GRID * GRID) / SEQUENCE); // spacing at full density, in the square
+
+/** Mitchell's best candidate, progressively: each new dot is the farthest of a few random tries from all before it. */
+function sequence(count, tries) {
+    const g = Math.ceil(1 / PITCH);
+    const cells = Array.from({ length: g * g }, () => []);
     const out = [];
-    for (let i = -span; i <= span; i++) {
-        for (let j = -span; j <= span; j++) {
-            const x = 0.5 + (i - j) * pitch * SQRT1_2;
-            const y = 0.5 + (i + j) * pitch * SQRT1_2;
-            if (x < 0 || y < 0 || x > 1 || y > 1) continue;
-            const l = lightAt(x, y);
-            if (Number.isNaN(l)) continue;
-            // Below the shoulders the figure scatters away, so it has no hard bottom edge.
-            if (1 - smoothstep(0.76, 1, y) <= scatter(i, j)) continue;
-            out.push([x, y, l]);
+    const nearest = (x, y) => {
+        const cx = Math.min(g - 1, Math.floor(x * g));
+        const cy = Math.min(g - 1, Math.floor(y * g));
+        let best = Infinity;
+        for (let r = 0; r < g; r++) {
+            if (best < ((r - 1) / g) ** 2) break;
+            for (let j = cy - r; j <= cy + r; j++) {
+                if (j < 0 || j >= g) continue;
+                for (let i = cx - r; i <= cx + r; i++) {
+                    if (i < 0 || i >= g || (Math.abs(i - cx) !== r && Math.abs(j - cy) !== r)) continue;
+                    for (const [px, py] of cells[j * g + i]) best = Math.min(best, (px - x) ** 2 + (py - y) ** 2);
+                }
+            }
         }
+        return best;
+    };
+    for (let n = 0; n < count; n++) {
+        let pick = null;
+        let far = -1;
+        for (let t = 0; t < tries; t++) {
+            const k = inside[Math.floor(rand() * inside.length)];
+            const x = ((k % GRID) + rand()) / GRID;
+            const y = (Math.floor(k / GRID) + rand()) / GRID;
+            const d = nearest(x, y);
+            if (d > far) [far, pick] = [d, [x, y]];
+        }
+        out.push(pick);
+        cells[Math.min(g - 1, Math.floor(pick[1] * g)) * g + Math.min(g - 1, Math.floor(pick[0] * g))].push(pick);
     }
-    return out.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+    return out;
 }
 
-const dots = screen(ACROSS);
+/**
+ * How much of the sequence a tone draws: a little even in the lightest places, so the figure keeps its
+ * outline on either ground, and nothing below the shoulders, where the figure scatters away. On a dark
+ * ground the curve is steeper, so the lit face stands out from the paler shirt below it.
+ */
+const share = (tone, y, onDark) => (0.035 + 0.965 * tone ** (onDark ? 1.7 : 1.15)) * (1 - smoothstep(0.78, 1, y));
+
+const seq = sequence(SEQUENCE, 12);
+const DOTS = 3300; // on each ground: the bust is darker than it is light, so each ground has its own scale
+/** The dots one ground draws, scaled by `k`, at a fraction `of` of that: [x, y, light]. */
+function stipple(onDark, of = 1, k = scale[onDark ? 1 : 0]) {
+    const out = [];
+    seq.forEach(([x, y], n) => {
+        const l = lightAt(x, y);
+        if ((n + 0.5) / SEQUENCE < of * Math.min(1, k * share(onDark ? l : 1 - l, y, onDark))) out.push([x, y, l]);
+    });
+    return out;
+}
+const scale = [false, true].map((onDark) => {
+    let [lo, hi] = [0.1, 10];
+    for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        if (stipple(onDark, 1, mid).length < DOTS) lo = mid;
+        else hi = mid;
+    }
+    return hi;
+});
+
+// Every dot either ground draws, stored once with the grounds that draw it (1 paper, 2 dark, 3 both).
+const both = new Map();
+for (const [ground, onDark] of [
+    [1, false],
+    [2, true],
+]) {
+    for (const d of stipple(onDark)) {
+        const key = `${d[0]},${d[1]}`;
+        both.set(key, { d, grounds: (both.get(key)?.grounds ?? 0) | ground });
+    }
+}
+const dots = [...both.values()].sort((a, b) => a.d[1] - b.d[1] || a.d[0] - b.d[0]);
 const packed = Buffer.alloc(dots.length * 5);
-dots.forEach(([x, y, l], n) => {
+dots.forEach(({ d: [x, y, l] }, n) => {
     packed.writeUInt16LE(Math.round(x * 65535), n * 4);
     packed.writeUInt16LE(Math.round(y * 65535), n * 4 + 2);
     packed[dots.length * 4 + n] = Math.round((1 - l) * 255);
 });
+const grounds = Buffer.from(dots.map((d) => d.grounds));
+const count = (g) => dots.filter((d) => d.grounds & g).length;
 writeFileSync(
     join(pkg, 'src/motion/portrait-points.data.ts'),
     `// Generated by scripts/motion-points.mjs. Do not edit: run the script.\n\n` +
-        `/** The bust as ${dots.length} dots on a 45° screen ${ACROSS} dots across: Uint16 x, y pairs (little-endian, 0..65535 across the square), then a Uint8 ink each. */\n` +
+        `/** The bust as a blue-noise stipple: ${count(1)} dots on paper, ${count(2)} on a dark ground, ${dots.length} in all. Uint16 x, y pairs (little-endian, 0..65535 across the square), then a Uint8 ink each. */\n` +
         `export const PORTRAIT_POINTS_B64 =\n    '${packed.toString('base64')}';\n\n` +
-        `/** The screen's pitch, as a fraction of the square: a full-tone dot is about this wide. */\n` +
-        `export const PORTRAIT_PITCH = ${+(1 / ACROSS).toFixed(6)};\n`
+        `/** Per dot, the grounds that draw it: 1 paper, 2 a dark ground, 3 both. */\n` +
+        `export const PORTRAIT_GROUNDS_B64 =\n    '${grounds.toString('base64')}';\n\n` +
+        `/** The stipple's spacing at full density, as a fraction of the square. */\n` +
+        `export const PORTRAIT_PITCH = ${+PITCH.toFixed(6)};\n`
 );
 
-// The posters: a coarser screen, each dot a square as wide as ParticlePortrait draws it (0.76 of the
-// pitch at full tone), in a 1000-unit square, moving relatively from one square to the next.
-function poster(tone) {
-    const size = 1000 / POSTER_ACROSS;
+// The posters: the same stipple at a quarter of its density, each dot a square in a 1000-unit box, left to
+// right along each line, moving relatively from one to the next.
+function poster(onDark) {
+    const of = 0.26;
+    const s = Math.round((0.62 * PITCH * 1000) / Math.sqrt(of));
     let d = '';
     let [px, py] = [0, 0];
-    for (const [x, y, l] of screen(POSTER_ACROSS)) {
-        const k = tone(l);
-        if (k < 0.08) continue;
-        const s = Math.max(2, Math.round(Math.sqrt(k) * size * 0.76));
+    for (const [x, y] of stipple(onDark, of).sort((a, b) => Math.round(a[1] * 125) - Math.round(b[1] * 125) || a[0] - b[0])) {
         const [nx, ny] = [Math.round(x * 1000 - s / 2), Math.round(y * 1000 - s / 2)];
         d += `m${nx - px} ${ny - py}h${s}v${s}h-${s}z`;
         [px, py] = [nx, ny];
     }
     return 'M' + d.slice(1);
 }
-const onPaper = poster((l) => 1 - l);
-const onDark = poster((l) => l);
+const onPaper = poster(false);
+const onDark = poster(true);
 
 // Named places: on the head projected from its own units, so they follow the shapes; on the body, in the square.
 const anchors = {
     hair: fromHead(0.06, 0.72, 0.2),
     eye: fromHead(-0.095, 0.326, 0.3),
     mouth: fromHead(0, 0.135, 0.3),
+    jaw: fromHead(0.17, 0.12, 0.08),
     ear: fromHead(0.29, 0.29, -0.02),
     chin: fromHead(0, 0.03, 0.18),
     neck: [0.52, 0.65],
@@ -285,9 +349,9 @@ const anchors = {
 writeFileSync(
     join(pkg, 'src/motion/portrait-poster.ts'),
     `// Generated by scripts/motion-points.mjs. Do not edit: run the script.\n\n` +
-        `/** The bust's settled frame, coarse, ink on paper: one path of squares in a 0 0 1000 1000 box. */\n` +
+        `/** The bust's settled frame, sparser, ink on paper: one path of squares in a 0 0 1000 1000 box. */\n` +
         `export const PORTRAIT_POSTER = '${onPaper}';\n\n` +
-        `/** The same frame on a dark ground, where each square is as large as its spot is light. */\n` +
+        `/** The same frame on a dark ground, where the dots gather where the bust is lit. */\n` +
         `export const PORTRAIT_POSTER_DARK = '${onDark}';\n\n` +
         `/** Named places on the bust, in its unit square, for callouts: where a label's + lands. */\n` +
         `export const PORTRAIT_ANCHORS = {\n` +
@@ -296,4 +360,52 @@ writeFileSync(
             .join('') +
         `} as const satisfies Record<string, readonly [number, number]>;\n`
 );
-console.log(`✓ portrait: ${dots.length} dots, ${packed.length} bytes; posters ${onPaper.length} + ${onDark.length} bytes`);
+
+// ── The deck portrait ────────────────────────────────────────────────────────
+// Kept as an option (deckPortraitPoints): src/brand/portrait-tone.ts on the deck's own 45° screen, one dot
+// where the ink is, none on the paper, each keeping its ink. Ink on any ground: it has no positive for a dark one.
+
+const deckSrc = readFileSync(join(pkg, 'src/brand/portrait-tone.ts'), 'utf8');
+const N = Number(deckSrc.match(/PORTRAIT_TONE_SIZE = (\d+)/)[1]);
+const deckTone = Buffer.from(deckSrc.match(/'([A-Za-z0-9+/=]{100,})'/)[1], 'base64');
+function deckInk(u, v) {
+    const x = Math.min(N - 1.001, Math.max(0, u * N - 0.5));
+    const y = Math.min(N - 1.001, Math.max(0, v * N - 0.5));
+    const [x0, y0] = [Math.floor(x), Math.floor(y)];
+    const [fx, fy] = [x - x0, y - y0];
+    const a = deckTone[y0 * N + x0] * (1 - fx) + deckTone[y0 * N + x0 + 1] * fx;
+    const b = deckTone[(y0 + 1) * N + x0] * (1 - fx) + deckTone[(y0 + 1) * N + x0 + 1] * fx;
+    return (a * (1 - fy) + b * fy) / 255;
+}
+const DECK_ACROSS = 104;
+const deck = [];
+{
+    const pitch = 1 / DECK_ACROSS;
+    const span = Math.ceil(0.75 / pitch) + 1;
+    for (let i = -span; i <= span; i++) {
+        for (let j = -span; j <= span; j++) {
+            const x = 0.5 + (i - j) * pitch * SQRT1_2;
+            const y = 0.5 + (i + j) * pitch * SQRT1_2;
+            if (x < 0 || y < 0 || x > 1 || y > 1) continue;
+            const k = deckInk(x, y);
+            if (k >= 0.08) deck.push([x, y, k]);
+        }
+    }
+    deck.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+}
+const deckPacked = Buffer.alloc(deck.length * 5);
+deck.forEach(([x, y, k], n) => {
+    deckPacked.writeUInt16LE(Math.round(x * 65535), n * 4);
+    deckPacked.writeUInt16LE(Math.round(y * 65535), n * 4 + 2);
+    deckPacked[deck.length * 4 + n] = Math.round(k * 255);
+});
+writeFileSync(
+    join(pkg, 'src/motion/deck-points.data.ts'),
+    `// Generated from brand/portrait-tone.ts by scripts/motion-points.mjs. Do not edit: run the script.\n\n` +
+        `/** The deck portrait as ${deck.length} dots on a 45° screen ${DECK_ACROSS} dots across: Uint16 x, y pairs (little-endian, 0..65535 across the square), then a Uint8 ink each. */\n` +
+        `export const DECK_POINTS_B64 =\n    '${deckPacked.toString('base64')}';\n\n` +
+        `/** The screen's pitch, as a fraction of the square. */\n` +
+        `export const DECK_PITCH = ${+(1 / DECK_ACROSS).toFixed(6)};\n`
+);
+
+console.log(`✓ bust: ${count(1)} dots on paper, ${count(2)} on dark, ${dots.length} stored; posters ${onPaper.length} + ${onDark.length} bytes; deck ${deck.length} dots`);

@@ -21,8 +21,8 @@ export const Portrait: StoryObj = {
                 className="h-[min(78svh,44rem)]"
                 callouts={[
                     { at: PORTRAIT_ANCHORS.eye, label: 'A note on a hairline leader' },
-                    { at: PORTRAIT_ANCHORS.ear, label: 'Real text, not canvas' },
-                    { at: PORTRAIT_ANCHORS.neck, label: 'Drawn from shapes, not a photo', side: 'right' },
+                    { at: PORTRAIT_ANCHORS.hair, label: 'Drawn from shapes, not a photo', side: 'right' },
+                    { at: PORTRAIT_ANCHORS.jaw, label: 'Real text, not canvas' },
                     { at: PORTRAIT_ANCHORS.shoulder, label: 'It sleeps once formed' },
                     { at: PORTRAIT_ANCHORS.chest, label: 'Pause it any time' },
                 ]}

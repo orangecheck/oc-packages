@@ -134,6 +134,13 @@
 [data-oc-app='ochk'] .oca-portrait[data-live] .oca-portrait-canvas {
     opacity: 1;
 }
+/* A scene that failed: the poster again (the notes come with data-phase). */
+[data-oc-app='ochk'] .oca-portrait[data-fallback] .oca-portrait-poster {
+    opacity: 1;
+}
+[data-oc-app='ochk'] .oca-portrait[data-fallback] .oca-portrait-cloud {
+    opacity: 0;
+}
 
 [data-oc-app='ochk'] .oca-portrait-notes {
     position: absolute;
@@ -310,10 +317,26 @@
 }
 
 /* ── CrowdDissolve ────────────────────────────────────────────────────────
-   Without script or motion the poster shows the end: the backed few, lit. */
+   Without script or motion the poster shows the end: the crowd's places as
+   outlines and the backed few, lit. One poster per grid, switched at the same
+   480px the canvas switches at. */
+[data-oc-app='ochk'] .oca-crowd {
+    container: oca-crowd / inline-size;
+}
 [data-oc-app='ochk'] .oca-crowd-poster {
     color: var(--oca-dots);
     transition: opacity 300ms var(--oca-motion-ease);
+}
+[data-oc-app='ochk'] .oca-crowd-poster[data-size='narrow'] {
+    display: none;
+}
+@container oca-crowd (width < 480px) {
+    [data-oc-app='ochk'] .oca-crowd-poster[data-size='wide'] {
+        display: none;
+    }
+    [data-oc-app='ochk'] .oca-crowd-poster[data-size='narrow'] {
+        display: block;
+    }
 }
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
     [data-oc-app='ochk'] .oca-crowd-poster {
@@ -328,6 +351,9 @@
     transition: opacity 300ms var(--oca-motion-ease);
 }
 [data-oc-app='ochk'] .oca-crowd[data-live] canvas {
+    opacity: 1;
+}
+[data-oc-app='ochk'] .oca-crowd[data-fallback] .oca-crowd-poster {
     opacity: 1;
 }
 

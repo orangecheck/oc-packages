@@ -40,11 +40,14 @@ export function mountScene(
         ground = 'auto',
         scroll = false,
         onDraw,
+        onFail,
     }: {
         ground?: 'auto' | 'light' | 'dark';
         scroll?: boolean;
         /** Called once, after the first frame is on the canvas: the moment to hide a poster. */
         onDraw?: () => void;
+        /** The scene threw and has stopped, its canvas cleared: the moment to show the poster again. */
+        onFail?: () => void;
     } = {}
 ): Mounted {
     let parts: SceneParts | null = null;
@@ -63,7 +66,19 @@ export function mountScene(
         }
         return more;
     };
-    const ticket = schedule(host, { frame }, { scroll, onVisible: (on) => parts?.visible?.(on) });
+    const ticket = schedule(
+        host,
+        { frame },
+        {
+            scroll,
+            onVisible: (on) => parts?.visible?.(on),
+            onError: () => {
+                surface.clear();
+                parts = null;
+                onFail?.();
+            },
+        }
+    );
     wake = () => ticket.wake();
     parts = build(surface, wake);
     const dark = () => (ground === 'auto' ? isDark(host) : ground === 'dark');

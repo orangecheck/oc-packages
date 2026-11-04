@@ -1,7 +1,7 @@
 import { createElement, useEffect, useRef, type CSSProperties, type ElementType } from 'react';
 
 import { cn } from '../lib/cn';
-import { clamp01, easeOut, finePointer, prefersStill, seeded, useMotionSetting, whenIdle } from './env';
+import { clamp01, easeOut, finePointer, prefersStill, seeded, useMotionSetting, whenReady } from './env';
 import { Batch, parseColour, rgba } from './paint';
 import { mountScene, type Mounted, type SceneParts } from './scene';
 
@@ -49,11 +49,12 @@ export function ParticleText({ children, as = 'span', repel = true, step, classN
         let mounted: Mounted | null = null;
         let io: IntersectionObserver | null = null;
         let gone = false;
-        const cancelIdle = whenIdle(async () => {
+        const cancelIdle = whenReady(el, async () => {
             await document.fonts?.ready;
             if (gone) return;
             const scene = textScene(el, cv, text, base, { still, repel: repel && !still && finePointer(), step });
-            mounted = mountScene(cv, el, (surface, wake) => scene.parts(surface, wake), { onDraw: () => (el.dataset.live = '') });
+            // A scene that fails gives the words back their ink.
+            mounted = mountScene(cv, el, (surface, wake) => scene.parts(surface, wake), { onDraw: () => (el.dataset.live = ''), onFail: () => delete el.dataset.live });
             // On screen already: it turns to dots where it stands. Below: it gathers when a third is in view.
             const r = el.getBoundingClientRect();
             if (still || (r.top < innerHeight && r.bottom > 0) || typeof IntersectionObserver === 'undefined') scene.form(false);

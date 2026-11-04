@@ -31,6 +31,7 @@ interface Entry {
     visible: boolean;
     awake: boolean;
     onVisible?: (visible: boolean) => void;
+    onError?: (err: unknown) => void;
 }
 
 const entries = new Set<Entry>();
@@ -50,11 +51,11 @@ function loop(now: number) {
         try {
             e.awake = e.scene.frame(now, dt);
         } catch (err) {
-            // A scene that throws sleeps; the others keep their frames, and the error still reaches the page.
-            e.awake = false;
-            setTimeout(() => {
-                throw err;
-            });
+            // A scene that throws leaves the loop, once, and falls back to its still; the others keep their frames.
+            remove(e);
+            console.error('@orangecheck/app-design/motion: a scene failed and fell back to its still', err);
+            e.onError?.(err);
+            continue;
         }
         if (e.awake) more = true;
     }
@@ -119,6 +120,25 @@ function observer(): IntersectionObserver | null {
     return io;
 }
 
+function remove(entry: Entry) {
+    if (!entries.delete(entry)) return;
+    const set = byElement.get(entry.el);
+    set?.delete(entry);
+    if (set && !set.size) {
+        byElement.delete(entry.el);
+        io?.unobserve(entry.el);
+    }
+    listen();
+    if (!entries.size) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        last = 0;
+        io?.disconnect();
+        io = null;
+        document.removeEventListener('visibilitychange', onVisibility);
+    }
+}
+
 /**
  * Put a scene on the loop. It sleeps until the first `wake()` (a scroll scene
  * wakes itself when it comes into view and on every scroll).
@@ -126,11 +146,20 @@ function observer(): IntersectionObserver | null {
 export function schedule(
     el: Element,
     scene: Scene,
-    { scroll = false, onVisible }: { scroll?: boolean; onVisible?: (visible: boolean) => void } = {}
+    {
+        scroll = false,
+        onVisible,
+        onError,
+    }: {
+        scroll?: boolean;
+        onVisible?: (visible: boolean) => void;
+        /** The scene's frame() threw: it has left the loop, and should show its still. */
+        onError?: (err: unknown) => void;
+    } = {}
 ): Ticket {
     const obs = observer();
     // Without an observer, everything counts as on screen.
-    const entry: Entry = { scene, el, scroll, visible: !obs, awake: false, onVisible };
+    const entry: Entry = { scene, el, scroll, visible: !obs, awake: false, onVisible, onError };
     entries.add(entry);
     let set = byElement.get(el);
     if (!set) {
@@ -149,21 +178,7 @@ export function schedule(
             return entry.visible;
         },
         stop() {
-            entries.delete(entry);
-            set.delete(entry);
-            if (!set.size) {
-                byElement.delete(el);
-                obs?.unobserve(el);
-            }
-            listen();
-            if (!entries.size) {
-                cancelAnimationFrame(raf);
-                raf = 0;
-                last = 0;
-                io?.disconnect();
-                io = null;
-                document.removeEventListener('visibilitychange', onVisibility);
-            }
+            remove(entry);
         },
     };
 }

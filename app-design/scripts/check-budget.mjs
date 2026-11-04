@@ -58,13 +58,16 @@ const CEILING = {
     './vitest': 500,
     './og': 187_500,
     './fonts': 500,
-    './motion': 51_000,
+    './motion': 78_000,
 };
-// ./motion on its own: the eight scenes and their loop (12.0 KB at 2.0.0-pre; the aim was under 12 KB, and
-// a page pays only for the scenes it imports), the poster path, the lazy portrait dots.
-const MOTION_OWN = 12.5 * 1024;
-const MOTION_POSTER = 3 * 1024;
-const MOTION_LAZY = 20 * 1024;
+// ./motion on its own: the eight scenes and their loop (12.0 KB at 2.0.0-pre; 12.9 KB once each scene listens
+// for reduced motion, falls back to its still when it throws, the crowd has a grid for phones and the
+// portrait a stipple for each ground; a page pays only for the scenes it imports), the bust's two poster
+// paths, and each lazy chunk of dots (the bust's stipple, 23.8 KB, and the deck portrait kept as an option,
+// 18.1 KB), which load only when a portrait asks for them once the page is idle.
+const MOTION_OWN = 13 * 1024;
+const MOTION_POSTER = 5 * 1024;
+const MOTION_LAZY = 26 * 1024;
 
 const peers = [...Object.keys(pkg.peerDependencies ?? {}), ...builtinModules, 'node:*', 'react/jsx-runtime', 'next/link', 'next/router', 'next/compat/router', 'next/head', 'next/image', 'next/dynamic', 'next/og', 'next/font/local'];
 
@@ -137,8 +140,8 @@ const gz = (files) => files.reduce((n, f) => n + gzipSync(esbuild.transformSync(
 const code = await shipped(join(root, pkg.exports['./motion'].import), new Set([...base, ...lazy, ...poster]));
 check(code.total <= MOTION_OWN, `./motion's own code ships ${kb(code.total)} gzipped, over its ${kb(MOTION_OWN)} ceiling`);
 check(gz(poster) <= MOTION_POSTER, `./motion's portrait poster is ${kb(gz(poster))} gzipped, over ${kb(MOTION_POSTER)}`);
-check(lazy.length > 0, "./motion's portrait dots are no longer a separate chunk: they would load with the entry");
-check(gz(lazy) <= MOTION_LAZY, `./motion's lazy portrait dots are ${kb(gz(lazy))} gzipped, over ${kb(MOTION_LAZY)}`);
+check(lazy.length >= 2, "./motion's dots (the bust and the deck portrait) are no longer separate chunks: they would load with the entry");
+for (const f of lazy) check(gz([f]) <= MOTION_LAZY, `./motion's lazy ${f.split('/').pop()} is ${kb(gz([f]))} gzipped, over ${kb(MOTION_LAZY)}`);
 
 // Apart: `.` and `./components` reach none of ./motion's own modules (ESM), and their CJS builds carry none of it.
 for (const entry of ['.', './components']) {
@@ -155,5 +158,5 @@ if (failures) {
 }
 const width = Math.max(...rows.map(([e]) => e.length));
 console.log(rows.map(([e, n]) => `  ${e.padEnd(width)}  ${kb(n).padStart(9)}`).join('\n'));
-console.log(`  ./motion own code ${kb(code.total)}, poster ${kb(gz(poster))}, lazy portrait dots ${kb(gz(lazy))}`);
+console.log(`  ./motion own code ${kb(code.total)}, posters ${kb(gz(poster))}, lazy dots ${lazy.map((f) => kb(gz([f]))).join(' + ')}`);
 console.log(`✓ budget: ${checks} checks; every entry under its ceiling, ./motion's own code under ${kb(MOTION_OWN)}, and \`.\` and ./components reach none of it`);

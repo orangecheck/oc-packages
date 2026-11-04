@@ -45,6 +45,17 @@ export function whenIdle(fn: () => void, timeout = 1500): () => void {
     return () => window.clearTimeout(id);
 }
 
+/**
+ * Run `fn` when the main thread is idle, or at once if the scene in `el` has
+ * drawn before (data-live): a scene coming back after a change of setting
+ * should not wait for idle time to show its new state.
+ */
+export function whenReady(el: HTMLElement, fn: () => void): () => void {
+    if (el.dataset.live === undefined) return whenIdle(fn);
+    fn();
+    return () => {};
+}
+
 /** Dark when the element sits in a `.dark` tree (next-themes puts the class on <html>). */
 export function isDark(el: Element): boolean {
     return el.closest('.dark') !== null;
