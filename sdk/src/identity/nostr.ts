@@ -243,7 +243,7 @@ export function getNostrVerificationInstructions(attestationId: string): string 
 1. Open your Nostr client (Damus, Amethyst, Primal, etc.)
 2. Post a note containing this text:
 
-   Verifying my OrangeCheck attestation: ${attestationId}
+   Verifying my orangecheck attestation: ${attestationId}
 
 3. Wait a few seconds for the note to propagate to relays
 4. Return here and click "Verify" to check
