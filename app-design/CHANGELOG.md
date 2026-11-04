@@ -154,6 +154,73 @@ optional. What changes is how things look.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 
+### One framed column (design2-frame)
+
+- The page is one framed column, as the prototype's is. The new `PageFrame`
+  is the page's `main`: 82.5rem at most, with a hairline at each side that
+  runs from the header's foot to the footer's top, at the viewport's edges on
+  a phone. Its sections and bands, dark ones included, sit between the
+  hairlines. `DocsShell` puts its body in one, so its sidebar starts on the
+  header's axis and the rules run beside the sidebar and the page.
+- One left axis: `oca-container` now starts its content where `Frame` does,
+  the rule plus the gutter (tokens.css `--oca-frame-max`, `--oca-frame-gutter`
+  and `--oca-frame-rule`). The header's lockup, a hero's eyebrow and H1, a
+  `SectionBar`'s square, a section's heading and its first card share one x:
+  at 1440 they had been at 108 for the header and hero and 160 for the
+  sections. Reading measures keep their own max-width, and centred
+  compositions stay centred.
+- A section is a closed box. Its closing hairline (`Section rule`, and the
+  hero, whose `rule` now defaults to true) runs from rule to rule, not from
+  edge to edge. A framed `Section` and `PageHero` clip on both axes
+  (`overflow: clip`, so sticky children still stick), so nothing inside
+  paints across them, but for a focus ring: `overflow-clip-margin` keeps
+  `--oca-focus-reach` (4px, ring-2 plus its 2px offset) past the edge, so a
+  control flush with a section's foot keeps its whole ring. `--oca-shadow-depict` reaches 48px below a depiction,
+  inside a hero's foot; it had reached 126px, and smudged the next band in
+  chat's hero. BrowserFrame's glow stays within 3rem of the window.
+- On a phone the legal row's links are 16px apart (20px from md), so the row
+  still fits the narrower column.
+- A `SectionBar`'s rule spans its nearest edged box, as every rule in the
+  frame does: the frame between its side rules (the prototype's title-block
+  label rows span the frame), or a `Card` inside its border. Its label and
+  end sit on that box's axis. It takes back only the gutter its box gives:
+  a container, a padded `Frame` and a `Card` set `--oca-bar-bleed` and
+  `--oca-bar-inset`, while `Frame padded={false}` and `PageFrame` bleed
+  0. So it is right in any parent and never scrolls the page sideways, with
+  no prop.
+- **Migrating:** no package shell renders `PageFrame` but `DocsShell`.
+  `ToolShell` and `AppShell` keep their own frames (a tool's column, an app's
+  sidebar). A site that composes `SiteHeader`, its `main` and `SiteFooter` by
+  hand wraps the `main` in `<PageFrame>`, with the header above it and the
+  footer below. That is ochk.io (oc-www), ochk.app's public pages (oc-app-web),
+  chat, vault, cosign, globe and btc. The tool sites (lock, vote, stamp,
+  pledge, agent) are on `ToolShell` and the docs (oc-docs) on `DocsShell`, so
+  they need no wrap. Pages that render `DocsShell` or `AppShell` stay outside a
+  layout's `PageFrame`, since both draw their own frame. A `PageFrame` nested in
+  another draws no second rule, but it is still one column too many.
+  Inside a `Section`, drop the site's own container: the Section gives it one,
+  and a nested `oca-container` now adds no second gutter (it had put content
+  at 153.9 against 107.5 at 1440). A framed block is `<Section framed>`, not a
+  `Frame` inside a Section. A `SectionBar` needs no edit in any parent: it sizes
+  itself, so there is no `GUTTER` className to drop or keep (one that is there
+  sets the same padding). The one box it cannot read is one a site builds
+  itself from a border and padding, like ochk.app how's receipt. Make that box
+  a `Card`, or set `--oca-bar-bleed` and `--oca-bar-inset` to its padding, and
+  the bar spans it. A site with its own
+  container, a `max-w-[75rem]` or `max-w-6xl` with its own `px-*` gutter →
+  `oca-container`, or `Frame` for a framed block, so its content joins the
+  axis. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`) can go.
+  `PageHero`'s `rule` now defaults to true; pass `rule={false}` for a hero
+  without its closing hairline. No other prop changes.
+- check-layout proves it on built pages at 390 and 1440: one x for the page's
+  left edges, the rules continuous pixel by pixel from the header to the
+  footer, each section's hairline exactly the frame's inner width, DocsShell
+  at 1440 and 1920 on the header's axis with continuous rules, and nothing
+  from a hero with a depiction in the next section's top rows. A 75rem
+  container fails the axis checks (sections at 160 against 107.5; DocsShell's
+  sidebar at 160 and, at 1920, 400 against 349). Framed sections clipped on
+  the x axis only fail the closed-box check.
+
 ### Follow-up (design2-chrome-app)
 
 - One lockup in all chrome: the swoosh and the wordmark, the lockup the site
