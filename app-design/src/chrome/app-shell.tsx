@@ -136,7 +136,7 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
             <span
                 aria-hidden
                 className={cn(
-                    'absolute flex h-4 min-w-4 items-center justify-center rounded-none bg-primary px-1 text-[0.625rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
+                    'absolute flex h-4 min-w-4 items-center justify-center rounded-none bg-primary px-1 text-[0.75rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
                     className
                 )}
             >
@@ -149,7 +149,7 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
 }
 
 const TAB =
-    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-none text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-none text-[0.75rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
 
 function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: string; badge?: ReactNode; active?: boolean }) {
     return (

@@ -215,6 +215,15 @@ optional. What changes is how things look.
   its text colour that was the only sign of which segment was chosen.
   check-contrast fails any selected, pressed or current state drawn as a fill
   under 3:1 with no edge at 3:1.
+- No text is under 12px. Inline code is `max(0.875em, 0.75rem)`; in a 13px
+  table head it was 11.375px. The same floor now applies to the base
+  `code`, `kbd` and `samp` size (`0.92em`), to a heading's `#` anchor and to
+  the `sats` unit. At 12px now: `AppShell`'s count badge (was 10px) and tab
+  labels (11px), a `2xs` `Avatar`'s initials (11px), and chart ticks (10px).
+  check-render fails any font size under 12px in the source (8 on main).
+  check-layout fails any text it computes under 12px on its pages at 390 and
+  at 1440. On main that was the table-head code at 11.375px and the rail's
+  labels at 11px.
 - check-contrast reads the components. It checks every text and ground named
   in a component's class strings, a badge's `color-mix` tint included. It
   checks them on the page, in every band and in every Card tone, in light and

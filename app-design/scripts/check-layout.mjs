@@ -276,14 +276,14 @@ try {
     // Markdown tables as the docs write them: one that fits a phone, one that cannot.
     const { mdxComponents: M } = require(join(pkg, 'dist/mdx.js'));
     const mdTable = (head, rows) =>
-        h(M.table, null, h('thead', null, h('tr', null, ...head.map((x) => h(M.th ?? 'th', { key: x }, x)))), h('tbody', null, ...rows.map((r, i) => h('tr', { key: i }, ...r.map((c, j) => h(M.td ?? 'td', { key: j }, c))))));
+        h(M.table, null, h('thead', null, h('tr', null, ...head.map((x, i) => h(M.th ?? 'th', { key: i }, x)))), h('tbody', null, ...rows.map((r, i) => h('tr', { key: i }, ...r.map((c, j) => h(M.td ?? 'td', { key: j }, c))))));
     const tables = page(
         'tables',
         renderToStaticMarkup(
             h(
                 'div',
                 { className: 'p-4' },
-                h('div', { 'data-t': 'fits' }, mdTable(['Code', 'Status', 'What it means'], [
+                h('div', { 'data-t': 'fits' }, mdTable([h(M.code, null, 'code'), 'Status', 'What it means'], [
                     [h(M.code, null, 'oc_session_expired_or_revoked'), '401', 'The session ended. Sign in again.'],
                     [h(M.code, null, 'oc.vault.entitlement_missing'), '402', 'No plan covers this. See /pricing.'],
                     [h(M.code, null, 'https://ochk.io/api/auth/revocations'), '200', 'The feed of ended sessions.'],
@@ -752,6 +752,20 @@ try {
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
+    // No text under 12px anywhere these pages draw, in the smallest places a site puts it (a 13px table
+    // head, a 12px label): every visible element that holds text, as computed, at 390 and at 1440.
+    // An inline code in a table head was 11.375px (0.875em of 13px).
+    const small = new Map();
+    const visit = async (p, url) => {
+        await p.goto(url);
+        const found = await p.evaluate(() =>
+            [...document.querySelectorAll('body *')]
+                .filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && el.getClientRects().length > 0)
+                .map((el) => [el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : ''), parseFloat(getComputedStyle(el).fontSize), el.textContent.trim().slice(0, 24)])
+                .filter(([, size]) => size < 11.95)
+        );
+        for (const [el, size, text] of found) small.set(`${url.split('/').pop()}: ${el} ${size}px '${text}'`, true);
+    };
     try {
         for (const [width, height] of [
             [390, 844],
@@ -760,7 +774,7 @@ try {
             // A phone is a touch screen: the 390 pass has a coarse pointer, as the targets it checks do.
             const p = await browser.newPage({ viewport: { width, height }, isMobile: width < 768, hasTouch: width < 768 });
             // Markdown tables: the one that fits does not scroll and no cell spills; the wide one scrolls.
-            await p.goto(tables);
+            await visit(p, tables);
             const tb = await p.evaluate(() =>
                 Object.fromEntries(
                     [...document.querySelectorAll('[data-t]')].map((w) => {
@@ -774,7 +788,7 @@ try {
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
             // A tool site's phone menu holds Docs, a 44px target, beside About.
             if (width < 768) {
-                await p.goto(toolMenu);
+                await visit(p, toolMenu);
                 await p.click('header button[aria-label="Open menu"]');
                 await p.waitForSelector('[role="dialog"]');
                 const docs = await p.evaluate(() => {
@@ -784,7 +798,7 @@ try {
                 check(docs?.href === 'https://ochk.io/docs/stamp' && docs.h >= 44, `[${width}] the tool site's phone menu has no 44px Docs link (${JSON.stringify(docs)})`);
             }
             // ListRow lines="all": wrapped in full, its picture and end level with the title.
-            await p.goto(wrapRows);
+            await visit(p, wrapRows);
             const wr = await p.evaluate(() => {
                 const [all, one] = [...document.querySelectorAll('li')];
                 const row = all.querySelector('button').getBoundingClientRect();
@@ -806,7 +820,7 @@ try {
             check(Math.abs(wr.endOff) <= 3 && wr.picOff <= 6 && wr.picOff >= -12, `[${width}] ListRow lines="all": the end is ${wr.endOff.toFixed(1)}px off the title's line, the picture ${wr.picOff.toFixed(1)}px`);
             check(wr.oneCut, `[${width}] ListRow: the default no longer cuts the line to one`);
             // 1.9.0 parts.
-            await p.goto(parts190);
+            await visit(p, parts190);
             const b190 = await p.evaluate((phone) => {
                 const lands = (el, x, y) => el.contains(document.elementFromPoint(x, y));
                 const out = {};
@@ -843,14 +857,14 @@ try {
             check(b190.line < 32 && b190.chipTarget, `[${width}] HashChip compact: the line is ${Math.round(b190.line)}px, or its copy is not a 44px target`);
             check(b190.tabsIn && b190.over <= 0, `[${width}] TabsList wrap: a tab sits off the screen (overflow ${b190.over})`);
             if (width >= 1024) {
-                await p.goto(productShell);
+                await visit(p, productShell);
                 const side = await p.evaluate(() => {
                     const aside = document.querySelector('aside');
                     const home = aside.querySelector('a[href="/"]');
                     return { asideRight: aside.getBoundingClientRect().right, homeRight: home.getBoundingClientRect().right, scroll: aside.scrollWidth - aside.clientWidth };
                 });
                 check(side.homeRight <= side.asideRight && side.scroll <= 0, `[${width}] AppShell: the lockup and product word overflow the sidebar (${Math.round(side.homeRight)} > ${Math.round(side.asideRight)})`);
-                await p.goto(deskShell);
+                await visit(p, deskShell);
                 const desk = await p.evaluate(async () => {
                     const box = (el) => el.getBoundingClientRect();
                     const aside = document.querySelector('aside');
@@ -881,7 +895,7 @@ try {
                 );
             }
             // The family footer: a phone gets folded groups in 600px; a desk the columns.
-            await p.goto(footer);
+            await visit(p, footer);
             const ft = await p.evaluate(() => {
                 const f = document.querySelector('footer');
                 const groups = [...f.querySelectorAll('details')];
@@ -913,7 +927,7 @@ try {
                 check(ft.groupsShown === 0 && ft.deskShown >= ft.phoneLinks.length, `[${width}] a desk sees ${ft.groupsShown} folded groups and ${ft.deskShown} of ${ft.phoneLinks.length} links`);
             }
             // ListRow slots: the line over the title, two under it, a text action beside them or, on a phone, under them.
-            await p.goto(rowSlots);
+            await visit(p, rowSlots);
             const rs = await p.evaluate(() => {
                 const box = (s) => document.querySelector(`[data-s="${s}"]`)?.getBoundingClientRect() ?? null;
                 const [eyebrow, title, desc, detail, action] = ['eyebrow', 'title', 'desc', 'detail', 'action'].map(box);
@@ -943,7 +957,7 @@ try {
             if (width < 640) check(rs.under && Math.abs(rs.indent) <= 1 && Math.abs(rs.indent2) <= 1, `[${width}] ListRow action: on a phone it is not under the text, lined up with it (${JSON.stringify(rs)})`);
             else check(!rs.under, `[${width}] ListRow action: on a desk it falls under the text (${JSON.stringify(rs)})`);
             // A wide end beside the text on a desk; on a phone under it, lined up with it, the text kept whole.
-            await p.goto(rowWide);
+            await visit(p, rowWide);
             const rw = await p.evaluate(() =>
                 ['a', 'b'].map((k) => {
                     const t = document.querySelector(`[data-s="t-${k}"]`);
@@ -959,7 +973,7 @@ try {
                 else check(!r.under, `[${width}] ListRow ${r.k === 'a' ? 'trailing' : 'actions'}: a wide end left the text's side on a desk (${JSON.stringify(r)})`);
             }
             // ListRow lg: the value at 1.125rem, the before's air, hairlines inset to the text.
-            await p.goto(lgRows);
+            await visit(p, lgRows);
             const lgm = await p.evaluate(() => {
                 const ulEl = document.querySelector('ul');
                 // From the list's inner edge, past its 1px border.
@@ -985,7 +999,7 @@ try {
             if (width < 640) check(lgm.aUnder && lgm.gap >= 16, `[${width}] ListRow lg: the action is not under the text with room (${JSON.stringify(lgm)})`);
             else check(!lgm.aUnder && lgm.centred <= 2, `[${width}] ListRow lg: the action is not beside the text, centred on it (${JSON.stringify(lgm)})`);
             // Card flush: the list spans the card, its rows lined up with the card's text; last, it takes the card's foot.
-            await p.goto(flushCards);
+            await visit(p, flushCards);
             const fl = await p.evaluate(() => {
                 const card = (k) => document.querySelector(`[data-f="${k}"]`);
                 const mid = card('mid').getBoundingClientRect();
@@ -1005,7 +1019,7 @@ try {
             check(fl.edges[0] === 1 && fl.edges[1] === 1 && fl.sides === '0px', `[${width}] Card flush: the list sits ${fl.edges.join('/')}px inside the card's edges with ${fl.sides} side borders, a card in a card`);
             check(fl.rowAt === 0 && fl.foot === 1, `[${width}] Card flush: rows start ${fl.rowAt}px off the card's text, and a last list stops ${fl.foot}px above its foot`);
             // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
-            await p.goto(sdk);
+            await visit(p, sdk);
             const sd = await p.evaluate(() => ({
                 over: document.documentElement.scrollWidth - innerWidth,
                 wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
@@ -1076,7 +1090,7 @@ try {
                         );
             }
             // SignInFrame holds still while its ceremony mounts: the title stays put and the ink column's art does not re-centre.
-            await p.goto(signinGrow);
+            await visit(p, signinGrow);
             const place = () =>
                 p.evaluate(() => {
                     const aside = document.querySelector('main > aside');
@@ -1093,7 +1107,7 @@ try {
                     `[${width}] SignInFrame: the art moved ${Math.round((after.art ?? 0) - (before.art ?? 0))}px and the ink column is ${Math.round(after.aside)}px tall in a ${height}px window`
                 );
             // stackBelow="sm": on a phone a long-token title takes the row and the badge goes under it; from sm, as without it.
-            await p.goto(stacked);
+            await visit(p, stacked);
             const st = await p.evaluate(() => {
                 const r = (k) => document.querySelector(`[data-st="${k}"]`).getBoundingClientRect();
                 const title = document.querySelector('[data-st="title"]');
@@ -1112,7 +1126,7 @@ try {
             if (width < 640) check(st.lines <= 2 && st.colW >= st.rowW - 1 && st.under && st.aligned, `[${width}] ListRow stackBelow="sm": the long title keeps ${st.colW}px of ${st.rowW} and wraps to ${st.lines} lines, the badge ${st.under ? 'under' : 'beside'} it`);
             else check(st.same && !st.under, `[${width}] ListRow stackBelow="sm": a desk's row changed (${JSON.stringify(st)})`);
             // A product's footer with seven groups still fits a phone, every link kept.
-            await p.goto(productFooter);
+            await visit(p, productFooter);
             const pf = await p.evaluate(async () => {
                 await document.fonts.ready;
                 const f = document.querySelector('footer');
@@ -1131,7 +1145,7 @@ try {
             }
             // SectionTitle: one button beside its title; three wrap under it, inside the column.
             if (width < 640) {
-                await p.goto(titles);
+                await visit(p, titles);
                 const st = await p.evaluate(() =>
                     Object.fromEntries(
                         [...document.querySelectorAll('[data-t]')].map((el) => {
@@ -1150,7 +1164,7 @@ try {
             {
                 const ctx = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width < 768, isMobile: width < 768 });
                 const t = await ctx.newPage();
-                await t.goto(icons);
+                await visit(t, icons);
                 const reach = await t.evaluate(() =>
                     ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', '[data-t="sm-b"]', '[data-t="sm-plus"]', '[data-t="icon-sm-b"]', '[data-t="icon-b"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
                         const el = document.querySelector(sel);
@@ -1206,7 +1220,7 @@ try {
                 if (width < 768) check(alone.reach, `[${width} touch] TextLink standalone: link ${alone.w}×${alone.h}px, 44px target ${alone.reach}`);
                 else check(!alone.reach, `[${width} mouse] TextLink standalone: its target grew past the text`);
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
-                await t.goto(fields);
+                await visit(t, fields);
                 const fh = await t.$$eval('[data-f]', (els) => Object.fromEntries(els.map((el) => [el.dataset.f, el.getBoundingClientRect().height])));
                 for (const [k, hgt] of Object.entries(fh)) {
                     const want = width < 768 || k === 'md' ? 44 : 36;
@@ -1217,7 +1231,7 @@ try {
             }
             // Bare borders take the hairline token, in both modes; a colour utility still wins.
             for (const dark of [false, true]) {
-                await p.goto(borders);
+                await visit(p, borders);
                 const seen = await p.evaluate((dark) => {
                     document.documentElement.classList.toggle('dark', dark);
                     const probe = document.createElement('i');
@@ -1233,7 +1247,7 @@ try {
                 check(seen.utility === seen.fg, `[${width} ${mode}] border-foreground lost to the base rule (${seen.utility})`);
             }
             // Panel header: the actions on the first row, at the right, beside two lines of description.
-            await p.goto(header);
+            await visit(p, header);
             const rows = await p.$$eval('section', (secs) =>
                 secs.map((s) => {
                     const title = s.querySelector('h3').getBoundingClientRect();
@@ -1248,7 +1262,7 @@ try {
                 check(r.btnTop < r.titleTop + 12 && r.headRight - r.btnRight < 2, `[${width}] panel ${i + 1}: the actions wrapped under the text (button top ${Math.round(r.btnTop)}, title top ${Math.round(r.titleTop)})`);
             }
             // Expanded: the body scrolls inside itself, above the source.
-            await p.goto(expanded);
+            await visit(p, expanded);
             await p.click('button[aria-label="Open full screen"]');
             await p.waitForSelector('[role="dialog"] [data-tall]');
             const ex = await p.evaluate(() => {
@@ -1266,17 +1280,17 @@ try {
                 ['ToolShell app', tool],
                 ['AppShell rail', rail],
             ]) {
-                await p.goto(url);
+                await visit(p, url);
                 const doc = await p.evaluate(() => ({ scroll: document.documentElement.scrollHeight, view: innerHeight }));
                 check(doc.scroll <= doc.view, `[${width}] ${name}: sr-only text in the page's scroller stretches the document to ${doc.scroll}px in a ${doc.view}px window`);
             }
-            await p.goto(wide);
+            await visit(p, wide);
             const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
             // One column: every title at the gutter of one centred 72rem column.
             const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
             for (const [name, url] of columns) {
-                await p.goto(url);
+                await visit(p, url);
                 const box = await p.evaluate(() => ({
                     left: document.querySelector('main h1').getBoundingClientRect().left,
                     width: document.querySelector('main header')?.getBoundingClientRect().width,
@@ -1289,11 +1303,11 @@ try {
                 if (name === 'narrow') check(box.width <= 768.5, `[${width}] narrow: the page runs ${Math.round(box.width)}px wide, past 48rem`);
             }
             // A menu's items and a pane's rows: 44px on a phone; the row's time clear of its actions.
-            await p.goto(menu);
+            await visit(p, menu);
             await p.waitForSelector('[role="menuitem"]');
             const items = await p.$$eval('[role="menuitem"]', (els) => els.map((e) => e.getBoundingClientRect().height));
             check(items.length === 2 && items.every((x) => (width < 768 ? x >= 44 : x <= 40.5)), `[${width}] menu items are ${items.map(Math.round).join('/')}px tall`);
-            await p.goto(paneRows);
+            await visit(p, paneRows);
             const rowBoxes = await p.$$eval('li', (lis) =>
                 lis.map((li) => {
                     const row = li.firstElementChild.getBoundingClientRect();
@@ -1309,7 +1323,7 @@ try {
                 if (r.pic) check(r.pic[0] === 44 && r.pic[1] === 44, `[${width}] pane row ${i + 1}: the avatar is ${r.pic.join('×')}, not 44×44`);
             }
             // Targets: a press anywhere in the 44px around the control's middle lands on it.
-            await p.goto(targets);
+            await visit(p, targets);
             const reach = await p.evaluate(() => {
                 const probe = (el) => {
                     el.scrollIntoView({ block: 'center' });
@@ -1343,7 +1357,7 @@ try {
                 window.__shift = 0;
                 new PerformanceObserver((l) => l.getEntries().forEach((e) => (window.__shift += e.value))).observe({ type: 'layout-shift', buffered: true });
             });
-            await q.goto(loadErr);
+            await visit(q, loadErr);
             await q.waitForSelector('[data-case="fails"] [role="status"]');
             const under = () => q.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-case]')].map((c) => [c.dataset.case, c.querySelector('[data-below]').getBoundingClientRect().top - c.getBoundingClientRect().top])));
             const held = await under();
@@ -1358,7 +1372,7 @@ try {
             // The header CTA pending, then resolved: no box moves, and the pending one names nothing and takes no focus.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
-                await c.goto(ctaSwap);
+                await visit(c, ctaSwap);
                 const boxes = await c.evaluate(() =>
                     Object.fromEntries(
                         ['pending', 'resolved'].map((k) => {
@@ -1395,7 +1409,7 @@ try {
             if (width < 768) {
                 for (const w of [390, 360]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
-                    await c.goto(narrow);
+                    await visit(c, narrow);
                     await c.evaluate(() => document.fonts.ready);
                     const rows = await c.evaluate(() =>
                         [...document.querySelectorAll('[data-hdr]')].map((d) => {
@@ -1421,7 +1435,7 @@ try {
             if (width === 1440) {
                 for (const w of [768, 1024, 1280, 1440]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 900 } });
-                    await c.goto(productFooter);
+                    await visit(c, productFooter);
                     await c.evaluate(() => document.fonts.ready);
                     const tops = await c.evaluate(() => [...document.querySelectorAll('footer [class~="md:flex"] > .oca-label')].map((l) => Math.round(l.getBoundingClientRect().top)));
                     const rows = Object.values(tops.reduce((m, t) => ({ ...m, [t]: (m[t] ?? 0) + 1 }), {}));
@@ -1434,7 +1448,7 @@ try {
             // The page's bands on the header's frame, and the H1 the largest text read.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(framedPage);
+                await visit(c, framedPage);
                 await c.evaluate(() => document.fonts.ready);
                 const f = await c.evaluate(() => {
                     const left = (el) => Math.round(el.getBoundingClientRect().left);
@@ -1465,7 +1479,7 @@ try {
             // StatRow: no value runs out of its cell at either size, and size="sm" is the smaller figure.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(statRows);
+                await visit(c, statRows);
                 await c.evaluate(() => document.fonts.ready);
                 const st = await c.evaluate(() =>
                     Object.fromEntries(
@@ -1491,7 +1505,7 @@ try {
             // on the left, both on the header's frame; on a phone the mark under the lead.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(s10Page);
+                await visit(c, s10Page);
                 await c.evaluate(() => document.fonts.ready);
                 const g = await c.evaluate(() => {
                     const box = (el) => el.getBoundingClientRect();
@@ -1521,7 +1535,7 @@ try {
             // column's links (44px), and the legal row's inline links (24px).
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(chromeTargets);
+                await visit(c, chromeTargets);
                 const t = await c.evaluate(() => {
                     const hgt = (el) => Math.round(el.getBoundingClientRect().height);
                     const shown = (el) => el.getBoundingClientRect().width > 0;
@@ -1544,7 +1558,7 @@ try {
             if (width === 1440) {
                 for (const touch of [true, false]) {
                     const c = await browser.newPage({ viewport: { width: 1024, height: 900 }, isMobile: touch, hasTouch: touch });
-                    await c.goto(footRows);
+                    await visit(c, footRows);
                     const r = await c.evaluate(() => ({
                         coarse: matchMedia('(pointer: coarse)').matches,
                         links: [...document.querySelectorAll('footer nav[aria-label="Legal"] a, footer nav[aria-label="Protocols"] a, nav[aria-label="Breadcrumb"] a, [role="group"][aria-label="Status"] button')].map((a) => [`${a.closest('nav, [role="group"]').getAttribute('aria-label')}: ${a.textContent.trim()}`, Math.round(a.getBoundingClientRect().height)]),
@@ -1560,7 +1574,7 @@ try {
             // the Switch, the Checkbox's mark and a pill tab keep their drawn size.
             if (width < 768) {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
-                await c.goto(signedInTargets);
+                await visit(c, signedInTargets);
                 await c.evaluate(() => document.fonts.ready);
                 const got = await c.evaluate(() =>
                     [
@@ -1593,7 +1607,7 @@ try {
             // on a machine with no Arial, Liberation or Arimo: the next fallback (Noto here) must fit too.
             for (const before of [false, true]) {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
-                await c.goto(wordmark);
+                await visit(c, wordmark);
                 await c.evaluate(() => document.fonts.ready);
                 const m = await c.evaluate(async (before) => {
                     const word = document.querySelector('[data-oca-wordmark]');
@@ -1661,6 +1675,7 @@ try {
                 await c.close();
             }
         }
+        check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
     } finally {
         await browser.close();
     }

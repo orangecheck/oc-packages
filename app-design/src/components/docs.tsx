@@ -771,7 +771,7 @@ export function DocsHeading({
                 <a
                     href={`#${id}`}
                     // A 24px target drawn around it (before:), so the heading's line does not grow.
-                    className="relative ml-2 inline-block rounded-none px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    className="relative ml-2 inline-block rounded-none px-1 align-baseline text-[max(0.85em,0.75rem)] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
                 >
                     <span aria-hidden>#</span>
                     <span className="sr-only">Link to this section</span>

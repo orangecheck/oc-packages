@@ -475,7 +475,8 @@
     [data-oc-app='ochk'] kbd,
     [data-oc-app='ochk'] samp {
         font-family: var(--oc-font-mono);
-        font-size: 0.92em;
+        /* Never under 12px: in a 13px table head, 0.92em was 11.96px. */
+        font-size: max(0.92em, 0.75rem);
     }
 
     /* Code is read character by character: => stays two characters, never an arrow glyph. */
