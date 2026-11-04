@@ -43,6 +43,17 @@ describe('the sign-in opt-in looks like the design checkbox', () => {
         // The row is the target: 44px tall to a thumb.
         expect(label).toMatch(/min-height:44px/);
     });
+
+    it('draws a checked box in Highlight under forced colors, as a native checkbox does', () => {
+        // Forced colors repaint the fill to Canvas but leave the mark its own white: a checked box
+        // looked unchecked. Only a browser shows that; this pins the rule that answers it.
+        const { label } = optIn(renderToStaticMarkup(<OcSignIn audience="https://ochk.io" />));
+        const sheet = label.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+        expect(sheet).toMatch(/^@media \(forced-colors: active\)\{/);
+        expect(sheet).toContain('input[type=checkbox]:checked{border-color:Highlight!important;background:Highlight!important}');
+        expect(sheet).toContain('svg[data-oc-check]{color:HighlightText!important}');
+        expect(sheet).toContain('[data-oc-control] input{border-color:CanvasText!important;background:Canvas!important}');
+    });
 });
 
 describe('the sign-in opt-in still behaves as a checkbox', () => {
