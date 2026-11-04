@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, '../src/styles/swagger.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-const tokens = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8');
+// Without its comments, so a brace in one cannot end a block early.
+const tokens = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 let failures = 0;
 let checks = 0;
