@@ -4,6 +4,8 @@ import { MARK_FACES, MARK_POINTS } from '../brand/mark';
 import { appColors } from '../tokens';
 import ditherMark240 from '../../art/dither-mark-240.png';
 import ditherMark480 from '../../art/dither-mark-480.png';
+import ditherMarkOnBrand240 from '../../art/dither-mark-brand-240.png';
+import ditherMarkOnBrand480 from '../../art/dither-mark-brand-480.png';
 import ditherMarkInk240 from '../../art/dither-mark-ink-240.png';
 import ditherMarkInk480 from '../../art/dither-mark-ink-480.png';
 import ditherField from '../../art/dither-field.png';
@@ -60,8 +62,8 @@ interface Tone {
     top: string;
     /** A brand ground takes the ink mark: one colour at the mark's face opacities. */
     monoMark: boolean;
-    /** The default art's dithered mark: the peach top on a dark ground, the ink top on a light one. */
-    dither: 'mark' | 'ink';
+    /** The default art's dithered mark: the peach top on a dark ground, the ink top on a light one, ink alone on brand. */
+    dither: 'mark' | 'ink' | 'brand';
 }
 
 // Every text pair here is one check-contrast holds to AA (the 2.0 tokens).
@@ -108,7 +110,7 @@ const TONES = {
         line: L.brandForeground,
         top: INK,
         monoMark: true,
-        dither: 'ink',
+        dither: 'brand',
     },
 } as const satisfies Record<string, Tone>;
 
@@ -146,6 +148,8 @@ export const ogArt = {
     ditherMarkInk: { src: png(ditherMarkInk480), width: 480, height: 240 },
     ditherMark240: { src: png(ditherMark240), width: 240, height: 120 },
     ditherMarkInk240: { src: png(ditherMarkInk240), width: 240, height: 120 },
+    ditherMarkOnBrand: { src: png(ditherMarkOnBrand480), width: 480, height: 240 },
+    ditherMarkOnBrand240: { src: png(ditherMarkOnBrand240), width: 240, height: 120 },
     ditherField: { src: png(ditherField), width: 1200, height: 320 },
     halftoneField: { src: png(halftoneField), width: 320, height: 320 },
 } as const satisfies Record<string, OgImage>;
@@ -155,7 +159,7 @@ export const ogArt = {
  * whole multiples. Its 2px dots stay whole when a feed shows a 1200px card at
  * 300 (a quarter); the 480 bake's 3px dots beat against that into moiré.
  */
-const ditherMark = (tone: Tone): OgImage => (tone.dither === 'ink' ? ogArt.ditherMarkInk240 : ogArt.ditherMark240);
+const ditherMark = (tone: Tone): OgImage => ({ mark: ogArt.ditherMark240, ink: ogArt.ditherMarkInk240, brand: ogArt.ditherMarkOnBrand240 })[tone.dither];
 
 /**
  * A tile's default art: the dithered mark at 2× or 1×, the larger that fits the

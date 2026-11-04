@@ -89,11 +89,12 @@ check(title?.props.style.lineClamp === 3 && title.props.style.display === 'block
 check(String(title?.props.children ?? '').length <= 120, 'a long title is not cut');
 
 // The large art is on unless the caller leaves it out: the tone's dithered mark, its coarse 240px bake
-// at 2× (480×240), the peach top on ink and burnt, the ink top on paper and brand. Baked art takes its
+// at 2× (480×240), the peach top on ink and burnt, the ink top on paper, ink alone on brand (its orange
+// sides would vanish into the ground). Baked art takes its
 // place. The lockup's small mark stays vector, so it keeps its edges when a feed shows the card at 300px.
 {
     const imgs = (props) => walk(h(og.OgCard, { title: 'bc1q… holds 0.5 BTC', ...props })).filter((e) => e.type === 'img');
-    const dither = { paper: og.ogArt.ditherMarkInk240, ink: og.ogArt.ditherMark240, burnt: og.ogArt.ditherMark240, brand: og.ogArt.ditherMarkInk240 };
+    const dither = { paper: og.ogArt.ditherMarkInk240, ink: og.ogArt.ditherMark240, burnt: og.ogArt.ditherMark240, brand: og.ogArt.ditherMarkOnBrand240 };
     for (const [tone, a] of Object.entries(dither)) {
         const d = imgs({ tone });
         check(d.length === 1 && d[0].props.src === a.src && d[0].props.width === 480 && d[0].props.height === 240, `${tone}: the default art is not the tone's dithered mark at 480×240`);
@@ -164,11 +165,11 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
     // A tile with no art and no foot text draws the tone's dithered mark (the 240px bake) at its lower
     // right, at 2× or 1×, the larger that fits 55% of its width and 45% of its height. A tile with foot
     // text (rows, body, footer, lockup) and no art draws none.
-    const bakes = { mark: og.ogArt.ditherMark240, ink: og.ogArt.ditherMarkInk240 };
+    const bakes = { mark: og.ogArt.ditherMark240, ink: og.ogArt.ditherMarkInk240, brand: og.ogArt.ditherMarkOnBrand240 };
     const bare = {
         hero: { tone: 'paper', title: 'Lumen Notes keeps your notes on your own keys.' },
-        top: [{ tone: 'ink', numeral: '0' }, { tone: 'brand', numeral: '0', body: 'passwords to remember' }],
-        wide: { tone: 'burnt', title: 'Every second-hand shelf, one search.' },
+        top: [{ tone: 'ink', numeral: '0' }, { tone: 'brand', numeral: '0' }],
+        wide: { tone: 'burnt', title: 'Every second-hand shelf, one search.', body: 'halfway.example' },
         row: [
             { tone: 'surface', kicker: 'Receipts', title: 'Every order comes with a receipt.' },
             { tone: 'brand', title: 'Listing a book is free.', footer: 'halfway.example' },
@@ -176,7 +177,7 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
             { tone: 'paper', kicker: 'For shops', rows: [['Listing', 'free']] },
         ],
     };
-    const shade = { paper: 'ink', brand: 'ink', surface: 'ink', ink: 'mark', burnt: 'mark' };
+    const shade = { paper: 'ink', brand: 'brand', surface: 'ink', ink: 'mark', burnt: 'mark' };
     for (const size of ['og', 'social']) {
         const cells = walk(h(og.OgBento, { ...bare, size })).filter((e) => e.props.style?.borderRadius !== undefined);
         const given = [bare.hero, ...bare.top, bare.wide, ...(size === 'social' ? bare.row : [])];

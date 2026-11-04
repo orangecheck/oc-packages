@@ -14,6 +14,8 @@
  * photograph (PLAN §6), so a bake is the same bytes every time:
  *   - dither-mark-{240,480,960}: the isometric mark in ordered dither, faces
  *     as @orangecheck/mark; `-ink` has the ink top face for light grounds;
+ *     `-brand` is ink alone for a brand ground (a solid top, sides at about
+ *     50% and 25%), where the orange sides would vanish;
  *   - dither-field: a dither texture from value noise, orange on transparent,
  *     for burnt bands;
  *   - halftone-field: a dot screen that fades from the left edge, for the
@@ -116,24 +118,37 @@ function inside(px, py, points) {
     return hit;
 }
 
-/** The mark in ordered dither: each face's tone screened in `cell`-px blocks. */
+/** The mark on a brand ground: ink alone, a solid top and its sides at about a half and a quarter. */
+const ON_BRAND = { top: 1, left: 0.5, right: 0.25 };
+
+/**
+ * The mark in ordered dither: each face's tone screened in `cell`-px blocks.
+ * With `topFace` null it is the brand-ground mark: every face ink, at ON_BRAND's
+ * flat densities, so the orange sides do not vanish into an orange ground.
+ */
 function ditherMark(width, topFace) {
     const height = width / 2;
     const cell = Math.max(2, Math.round(width / 160));
     const data = Buffer.alloc(width * height * 4);
-    const faces = [
-        ['top', hex(topFace), MARK_MONO_OPACITY.top],
-        ['left', hex(MARK_FACES.left), MARK_MONO_OPACITY.left],
-        ['right', hex(MARK_FACES.right), MARK_MONO_OPACITY.right],
-    ];
+    const faces = topFace
+        ? [
+              ['top', hex(topFace), MARK_MONO_OPACITY.top],
+              ['left', hex(MARK_FACES.left), MARK_MONO_OPACITY.left],
+              ['right', hex(MARK_FACES.right), MARK_MONO_OPACITY.right],
+          ]
+        : [
+              ['top', INK, ON_BRAND.top],
+              ['left', INK, ON_BRAND.left],
+              ['right', INK, ON_BRAND.right],
+          ];
     for (let cy = 0; cy < height; cy += cell)
         for (let cx = 0; cx < width; cx += cell) {
             const vx = ((cx + cell / 2) / width) * 16;
             const vy = ((cy + cell / 2) / height) * 8;
             const face = faces.find(([name]) => inside(vx, vy, MARK_POINTS[name]));
             if (!face) continue;
-            // A face is solid at its own tone and grainier toward its far edge.
-            const tone = 0.55 + 0.45 * face[2] * (1 - (vy / 8) * 0.35);
+            // A face is solid at its own tone and grainier toward its far edge; on brand, flat at its density.
+            const tone = topFace ? 0.55 + 0.45 * face[2] * (1 - (vy / 8) * 0.35) : face[2];
             const t = BAYER[(cy / cell) % 8][(cx / cell) % 8];
             if (tone < t) continue;
             for (let y = cy; y < Math.min(cy + cell, height); y++)
@@ -206,6 +221,7 @@ const pieces = [];
 for (const w of [240, 480, 960]) {
     pieces.push([`dither-mark-${w}`, ditherMark(w, MARK_FACES.top)]);
     pieces.push([`dither-mark-ink-${w}`, ditherMark(w, `#${INK.map((c) => c.toString(16).padStart(2, '0')).join('')}`)]);
+    pieces.push([`dither-mark-brand-${w}`, ditherMark(w, null)]);
 }
 // Each texture at display size, 1x and 2x. The mark's three widths are its 1x/2x pairs (240/480, 480/960).
 pieces.push(['dither-field', ditherField(1200, 320, 7)]);
