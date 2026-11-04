@@ -92,4 +92,10 @@ export interface SiteContext {
     securityContact: string;
     /** True when this site hosts its own legal pages (vs. linking to ochk.io). */
     selfHosted: boolean;
+    /**
+     * How this site's documents write the brand (`[[BRAND]]`), when not as `BRAND`.
+     * While no entity is registered (`ENTITY_PENDING`) the party of record goes by
+     * the brand, so it names the party too; a registered name replaces it.
+     */
+    brand?: string;
 }

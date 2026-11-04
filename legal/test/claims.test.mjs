@@ -139,7 +139,7 @@ test('me terms govern the Service at both addresses', () => {
 
 test('me terms and privacy name ochk.app as the Service', () => {
     const terms = DOCS.find(([n]) => n === 'me/terms')[1];
-    assert.match(terms, /ochk\.app is a commercial product operated by OrangeCheck/);
+    assert.match(terms, /ochk\.app is a commercial product operated by orangecheck/);
     assert.match(terms, /By accessing or using ochk\.app or its API at me\.ochk\.io, you agree/);
     for (const kind of ['terms', 'privacy']) {
         assert.match(buildDoc('me', kind).metaTitle, /— ochk\.app$/);
@@ -349,6 +349,8 @@ test('each privacy policy opens with a dated note of what changed, newest first'
         },
         me: {
             first: '29 October',
+            // 0.7.29 changed wording only (brand, tense, custody destination), not what is kept.
+            updated: '2026-11-03',
             facts: [
                 'the contact form sends your email address',
                 'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
@@ -367,7 +369,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
     };
-    for (const [site, { first, facts }] of Object.entries(notes)) {
+    for (const [site, { first, facts, updated = '2026-10-31' }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
         const [lead, list] = doc.preamble ?? [];
         assert.equal(lead?.kind, 'callout', site);
@@ -377,7 +379,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
         assert.equal(list.items[0].k, first, site);
         const text = list.items.map((it) => `${it.k} ${it.v}`).join(' ');
         for (const f of facts) assert.ok(text.includes(f), `${site}: ${f}`);
-        assert.equal(doc.updated, '2026-10-31', site);
+        assert.equal(doc.updated, updated, site);
     }
 });
 
@@ -404,4 +406,84 @@ test('ochk.io privacy says what the first-sign-in notice names, up to and after 
 test('the ochk.app privacy policy says what its contact form sends', () => {
     const text = DOCS.find(([n]) => n === 'me/privacy')[1];
     assert.match(text, /contact form at ochk\.app\/contact sends your email address, an optional name, the topic you pick and your message to our inbox through our email provider \(Resend\)/);
+});
+
+// Sign-in is email, Google, GitHub or a Bitcoin wallet (lead ruling, 2026-11-03).
+test('the ochk.app terms name every way to sign in', () => {
+    const accounts = buildDoc('me', 'terms').sections.find((s) => s.id === 'accounts');
+    const text = accounts.blocks.map((b) => b.text ?? '').join(' ').replace(/[*`]/g, '');
+    assert.match(
+        text,
+        /You may create an identity four ways: with email \(a one-time code\), Google, GitHub, or a Bitcoin wallet \(/
+    );
+    assert.doesNotMatch(text, /two ways/i);
+    assert.doesNotMatch(accounts.hint ?? '', /\btwo\b/i);
+    // Wherever the terms say who holds a key by sign-in, the keyless ways are named together.
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.doesNotMatch(terms, /sign in with email(?!, Google or GitHub)/i);
+    assert.doesNotMatch(terms, /email users/i);
+});
+
+// No app pays real sats yet, so ochk.app's documents say paying in the future tense (lead ruling, 2026-11-03).
+test('the ochk.app terms and privacy say paying in the future tense', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        assert.doesNotMatch(text, /\b(pays|flows back to) (you|users|every user)\b/i, name);
+        assert.doesNotMatch(text, /\bit pays (to )?(you|every user)\b/i, name);
+    }
+    assert.match(buildDoc('me', 'terms').description, /identity that will pay you in sats/i);
+});
+
+// While the system is in testing orangecheck holds every key that can move funds, and even
+// the planned federation stage keeps orangecheck's executor holding each claim until it pays
+// out. ochk.app's own words promise no federation stage it has not built (oc-app-web
+// custody-promises.test.ts); its terms and privacy hold to the same list (lead ruling, 2026-11-03).
+const CUSTODY_PROMISES = [
+    [/federation[^.'"`]{0,40}replaces? (it|orangecheck)/i, 'a federation replacing orangecheck'],
+    [/until (a|an independent) federation (runs|settles|holds|takes|replaces)/i, 'custody that ends when a federation arrives'],
+    [/once a federation runs the network/i, 'what a federation will do'],
+    [/federation (next|takes over)|federations take (it )?over|self-custody exit next/i, 'a federation next'],
+    [/today a federation holds/i, 'a federation holding funds today'],
+    [/orangecheck is not one of (them|its guardians)|guardian operators, not orangecheck/i, 'a federation without orangecheck'],
+    [/orangecheck cannot move funds/i, 'orangecheck unable to move funds'],
+    [/keys only you hold|moves? to keys they hold|independent federations, and then your own keys/i, 'own keys'],
+    [/graduat\w*[^.]{0,60}at any time|graduation as the destination/i, 'self-custody on demand'],
+    [/what replaces it/i, 'a federation replacing orangecheck'],
+    [/custodied and disbursed by independent/i, 'a federation paying people'],
+    [/federation ⇄ self-custody transition/i, 'a record per custody move'],
+    [/graduation|sweep to self-custody/i, 'a later move to self-custody'],
+    [/the party that moves the money/i, 'payouts that move today'],
+];
+
+test('the ochk.app terms and privacy promise no federation stage that is not built', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        for (const [rx, what] of CUSTODY_PROMISES) assert.doesNotMatch(text, rx, `${name}: ${what}`);
+    }
+    // The planned stage, in the words ochk.app's custody copy uses.
+    assert.match(
+        DOCS.find(([n]) => n === 'me/terms')[1],
+        /executor holds your claim on it, as ecash, until it is paid out to a Lightning wallet you choose/
+    );
+});
+
+// ochk.app writes its brand lowercase, as its pages do, and while no entity is registered the
+// bare name the documents define is that brand (lead ruling, 2026-11-03).
+test('the ochk.app terms and privacy write orangecheck lowercase, the defined name too', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        assert.doesNotMatch(DOCS.find(([n]) => n === name)[1], /OrangeCheck/, name);
+    }
+    assert.match(DOCS.find(([n]) => n === 'me/terms')[1], /the party of record is orangecheck \(OCHK\), an unincorporated project\. References to "orangecheck" mean that party/);
+});
+
+// An unbacked account is tied to no bitcoin, and only a signature checks offline; a timestamp
+// checks against Bitcoin once it is anchored (lead rulings 1 and 21, 2026-11-03).
+test('the ochk.app terms say what checks offline, and what backing ties an account to', () => {
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.doesNotMatch(terms, /identity is anchored in Bitcoin|anchored in Bitcoin, verifiable offline/i);
+    // Only a paid event's receipt is signed (me-web isPublicEnvelope), and the check needs the key me.ochk.io publishes.
+    assert.doesNotMatch(terms, /Every receipt for your account is signed/);
+    assert.match(terms, /Every paid event on your account has a receipt, signed by us/);
+    assert.match(terms, /anyone holding one and the public key we publish can check its signature offline, without asking us/);
+    assert.match(terms, /If you back your account, it is tied to bitcoin you hold/);
 });
