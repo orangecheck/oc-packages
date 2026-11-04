@@ -1847,7 +1847,7 @@ try {
             // section's closing hairline, the hero's included, runs from rule to rule.
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(oneFrame);
+                await visit(c, oneFrame);
                 await c.evaluate(() => document.fonts.ready);
                 const f = await c.evaluate(() => {
                     const r = (el) => el.getBoundingClientRect();
@@ -1915,7 +1915,7 @@ try {
             if (width === 1440) {
                 for (const w of [320, 390, 1440]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
-                    await c.goto(bars);
+                    await visit(c, bars);
                     await c.evaluate(() => document.fonts.ready);
                     const b = await c.evaluate(() => {
                         const r = (el) => el.getBoundingClientRect();
@@ -1950,7 +1950,7 @@ try {
             // its clipped Section (it matches the ring beside it).
             {
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
-                await c.goto(frameEdges);
+                await visit(c, frameEdges);
                 await c.evaluate(() => document.fonts.ready);
                 await c.keyboard.press('Tab');
                 for (let i = 0; i < 12 && !(await c.evaluate(() => document.activeElement?.dataset.t === 'flush')); i++) await c.keyboard.press('Tab');
@@ -1990,7 +1990,7 @@ try {
             if (width === 1440) {
                 for (const w of [1440, 1920]) {
                     const c = await browser.newPage({ viewport: { width: w, height: 900 } });
-                    await c.goto(docsFrame);
+                    await visit(c, docsFrame);
                     await c.evaluate(() => document.fonts.ready);
                     const d = await c.evaluate(() => {
                         const r = (el) => el.getBoundingClientRect();
@@ -2026,7 +2026,7 @@ try {
             {
                 // The hero's entrance played out first: mid-entrance its art is transparent and shows nothing.
                 const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768, reducedMotion: 'reduce' });
-                await c.goto(closedBox);
+                await visit(c, closedBox);
                 await c.evaluate(() => document.fonts.ready);
                 await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
                 const g = await c.evaluate(() => {
