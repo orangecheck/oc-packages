@@ -329,6 +329,14 @@ jobs:
                       echo "no test script; skipping"
                   fi
 
+            # app-design's 1.29.3 snapshot held to npm's tarball, and no prop narrowed since: it needs
+            # the network, so it is a step here rather than in yarn test. --self-test also runs its two
+            # mutants (StatGrid's empty cut from the snapshot, 'ghost' cut from Button) and fails unless
+            # each is caught.
+            - name: Surface against npm's app-design 1.29.3
+              if: matrix.pkg == 'app-design'
+              run: node scripts/check-surface-1.29.3.mjs --self-test
+
             - name: Smoke check — dist exists
               run: test -d dist
 
