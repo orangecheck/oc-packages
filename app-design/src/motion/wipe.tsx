@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type HTMLAttributes, type ReactNode } from 'react';
+import { createElement, useEffect, useRef, type CSSProperties, type ElementType, type HTMLAttributes, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { prefersStill, useMotionSetting } from './env';
@@ -49,7 +49,7 @@ function onceInView(el: Element, fn: () => void): () => void {
     };
 }
 
-export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, children, ...rest }: WipeProps) {
+export function Wipe({ as = 'div', from = 'frame', delay = 0, className, style, children, ...rest }: WipeProps): ReactElement {
     const ref = useRef<HTMLElement>(null);
     const setting = useMotionSetting();
     useEffect(() => {

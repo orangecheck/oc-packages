@@ -1,4 +1,4 @@
-import { Children, createElement, useEffect, useRef, type HTMLAttributes, type ReactNode } from 'react';
+import { Children, createElement, useEffect, useRef, type CSSProperties, type HTMLAttributes, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { prefersStill, useMotionSetting } from './env';
@@ -27,7 +27,7 @@ export interface StackCardsProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
     as?: 'ol' | 'ul' | 'div';
 }
 
-export function StackCards({ children, top = '5rem', as = 'ol', className, style, ...rest }: StackCardsProps) {
+export function StackCards({ children, top = '5rem', as = 'ol', className, style, ...rest }: StackCardsProps): ReactElement {
     const ref = useRef<HTMLElement>(null);
     const setting = useMotionSetting();
     useEffect(() => {
@@ -57,7 +57,7 @@ export function StackCards({ children, top = '5rem', as = 'ol', className, style
     }, [setting]);
     return createElement(
         as,
-        { ...rest, ref, className: cn('oca-stack', className), style: { '--oca-stack-top': top, ...style } },
+        { ...rest, ref, className: cn('oca-stack', className), style: { '--oca-stack-top': top, ...style } as CSSProperties },
         Children.toArray(children).map((child, i) =>
             createElement(as === 'div' ? 'div' : 'li', { key: i, className: 'oca-stack-item', style: { zIndex: i + 1 } }, <div className="oca-stack-panel">{child}</div>)
         )
