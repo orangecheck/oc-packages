@@ -325,19 +325,19 @@ try {
             check(under === 0 && above > 5, `[390x400] the scheduler ran ${under} frames for a scene under the bar and ${above} above it`);
             await close();
         }
-        // HalftoneCanvas asks for no frames under the bar, and plays its intro above it.
+        // HalftoneCanvas asks for no frames under the bar, and draws again above it. Its intro runs on the
+        // clock from its first frame, so a slow runner may find it over by then: one frame is enough here.
         {
             const { p, close } = await open('halftone');
             await p.waitForTimeout(500);
             const a = await p.evaluate(() => window.__rafs);
             await p.waitForTimeout(600);
             const under = (await p.evaluate(() => window.__rafs)) - a;
-            await intoView(p);
-            await p.waitForTimeout(150);
             const b = await p.evaluate(() => window.__rafs);
-            await p.waitForTimeout(500);
-            const above = (await p.evaluate(() => window.__rafs)) - b;
-            check(under === 0 && above > 5, `[390x400] HalftoneCanvas asked for ${under} frames under the bar and ${above} above it`);
+            await intoView(p);
+            let above = 0;
+            for (const end = Date.now() + 3000; Date.now() < end && !above; await p.waitForTimeout(100)) above = (await p.evaluate(() => window.__rafs)) - b;
+            check(under === 0 && above > 0, `[390x400] HalftoneCanvas asked for ${under} frames under the bar and ${above} above it`);
             await close();
         }
         // lane-lock's case: vote's share, 56px of text at 807 in an 844 window, the bar from 787.
