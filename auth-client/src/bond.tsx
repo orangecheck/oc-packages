@@ -15,6 +15,7 @@
 import * as React from 'react';
 
 import { addressInputValue } from './address';
+import { DesignRadio } from './controls';
 import { ownWord } from './own-word';
 import { SIGNIN_FONT } from './appearance';
 import {
@@ -139,6 +140,8 @@ function coinStyle(picked: boolean, young: boolean): React.CSSProperties {
         background: V.card,
         border: `1px ${young ? 'dashed' : 'solid'} ${picked ? V.primary : V.border}`,
         padding: '0.75rem',
+        // The whole row is the radio's target.
+        minHeight: 44,
         display: 'flex',
         gap: 10,
         alignItems: 'flex-start',
@@ -479,14 +482,12 @@ function BondForm({
                                         key={c.outpoint}
                                         style={coinStyle(chosen === c.outpoint, young)}
                                     >
-                                        <input
-                                            type="radio"
+                                        <DesignRadio
                                             name="oc-bond-coin"
                                             value={c.outpoint}
                                             checked={chosen === c.outpoint}
                                             disabled={young}
                                             onChange={() => setChosen(c.outpoint)}
-                                            style={{ accentColor: V.primary, margin: '2px 0 0' }}
                                         />
                                         <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
                                             <span

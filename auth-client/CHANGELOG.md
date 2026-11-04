@@ -27,6 +27,13 @@ this file tracks the package's TS / Node / runtime API surface.
     this the fill turned to `Canvas` while the mark kept its own white, so a
     checked box looked empty. A small `<style>` beside the box carries the
     rule, because inline styles cannot say forced-colors.
+- `<OcBond>`'s coin chooser uses the matching design radio: a 20px square with
+  a `--primary` dot on the chosen coin, square-cornered under 2.0's shape rule.
+  Before, it was the platform's round radio tinted by `accent-color`. Each
+  coin's row is a 44px target at least. It is still a real
+  `<input type="radio">` in one group, so arrow keys and the form behave as
+  before. Under forced colors a chosen radio's border and dot are drawn in
+  `Highlight`.
 
 ### Fixed
 

@@ -56,6 +56,27 @@ describe('the sign-in opt-in looks like the design checkbox', () => {
     });
 });
 
+describe('the design radio (the bond coin chooser) has the same look', () => {
+    it('is a 20px square with no native accent; the chosen one draws its dot', async () => {
+        const { DesignRadio } = await import('../controls');
+        const on = renderToStaticMarkup(<DesignRadio checked onChange={() => {}} name="x" />);
+        const off = renderToStaticMarkup(<DesignRadio checked={false} onChange={() => {}} name="x" />);
+        for (const html of [on, off]) {
+            const input = html.match(/<input[^>]*>/)?.[0] ?? '';
+            expect(input).toMatch(/type="radio"/);
+            expect(input).not.toMatch(/accent-color/);
+            expect(input).toMatch(/appearance:none/);
+            expect(input).toMatch(/width:20px/);
+            expect(input).toMatch(/border-radius:0/);
+        }
+        expect(on).toMatch(/<svg data-oc-dot=""[^>]*>[\s\S]*fill="currentColor"/);
+        expect(off).not.toMatch(/<svg data-oc-dot/);
+        // Under forced colors a chosen radio's border and dot are Highlight, as native radios draw.
+        expect(on).toContain('input[type=radio]:checked{border-color:Highlight!important}');
+        expect(on).toContain('svg[data-oc-dot]{color:Highlight!important}');
+    });
+});
+
 describe('the sign-in opt-in still behaves as a checkbox', () => {
     it('starts unchecked; its row checks it and draws the mark; again clears it', () => {
         const { container } = render(<OcSignIn audience="https://ochk.io" />);
