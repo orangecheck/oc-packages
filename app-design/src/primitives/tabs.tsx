@@ -92,7 +92,8 @@ export const TabsTrigger = forwardRef<
                     ? // 36px drawn, 44px to a thumb: the target runs 5px past the border, into the list's padding. The chosen
                       // segment is drawn in ink as well as raised: card on the muted list alone was 1.18:1.
                       'relative h-9 rounded-none border border-transparent px-4 text-muted-foreground pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-[5px] hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground'
-                    : '-mb-px h-11 border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',
+                    : // 44px tall, and to a thumb 44 wide too, the label centred: a short one ('DCA') was 32.
+                      '-mb-px h-11 border-b-2 border-transparent text-muted-foreground pointer-coarse:min-w-11 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',
                 className
             )}
             {...props}
