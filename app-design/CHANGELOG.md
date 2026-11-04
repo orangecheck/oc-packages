@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [2.0.0] — unreleased (2.0.0-pre)
+## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification
 drawing. Warm paper, ink text, light display type, mono labels with square
@@ -11,10 +11,131 @@ adopts it whole, in its own PR. It is a major, so Renovate does not merge it
 on its own.
 
 **What a site must change: nothing beyond the version, except as noted
-below.** Every export keeps its name and its props, and the new props are
-optional. What changes is how things look.
+below.** Every export, prop and entry of 1.29.3 keeps its name, and the new
+props are optional. What changes is how things look and a few defaults.
 
-### Follow-up (design2-foundation-2)
+It landed as six units on oc-packages main:
+
+- the foundation (`b1efeaa7`): tokens, shape, type, primitives, components
+  and chrome;
+- the foundation follow-up (`eb6f8fe5`): targets by pointer, bands that hold
+  their contrast, square by default, the S10 hero;
+- `./motion` (`ed542302`): the dot scenes on one loop that sleeps;
+- `./og` and `./art/*` (`ec9df56b`, `e9a18ba3`, `f15962a3`): social cards and
+  bento tiles with the baked dither art;
+- the blocks;
+- the chrome follow-up (`0ccbacd0`, `4bf8b67a`): one lockup in all chrome,
+  and `THEME_COLOR`.
+
+### Migrating from 1.x
+
+Nothing in 1.29.3's surface is removed or renamed: no entry, no export, no
+component prop. `scripts/check-surface.mjs` compares the built surface with
+1.29.3's (`scripts/surface-1.29.3.json`) and fails the build when one is gone
+without a line here, or when a new entry or export is not named in this
+section. Each line below is before → after, starting with what to grep for.
+
+- **The version.** `"@orangecheck/app-design": "^1.…"` → `"^2.0.0"`. A site
+  that renders site-kit's `./og` or `./document` moves `@orangecheck/site-kit`
+  to `^0.8.0`, which needs app-design 2; a site on app-design 1.x stays on
+  site-kit 0.7.x.
+- **Token values, same names.** No custom property is renamed or removed;
+  their values move to paper and ink:
+  - `--background` `#fafafa` → `#eeeae6` (dark `#0a0a0a` → `#0e0c0b`);
+  - `--foreground` `#0a0a0a` → `#161412` (dark `#fafafa` → `#eeeae6`);
+  - `--card` `#ffffff` → `#f5f2ef`;
+  - `--primary` ink `#0a0a0a` → deep orange `#c2410c` in light and dark, with
+    white text. Every `variant="primary"` `Button`, `bg-primary` and
+    `text-primary` turns orange: grep them and keep only the page's CTA on
+    primary; a quiet action takes `variant="secondary"`;
+  - `--brand` and `--oca-orange` `#f66d36` → `#f97316`;
+    `--oca-orange-deep` `#ea580b` → `#c2410c`;
+  - `--radius` `1rem` → `0`.
+- **Hard-coded hex.** Grep `#fafafa`, `#0a0a0a`, `#f66d36`, `#ea580b`,
+  `#ffffff` in a site's own CSS and TSX → read `appColors.light`,
+  `appColors.dark` or `appColors.brand` from `@orangecheck/app-design/tokens`.
+- **theme-color.** `<meta name="theme-color" … content="#fafafa">` and
+  `#0a0a0a` in `_document` → `<ThemeColorMeta />` from
+  `@orangecheck/site-kit/document` (0.8.0), or `THEME_COLOR.light` and
+  `THEME_COLOR.dark` from `@orangecheck/app-design/tokens`.
+- **Radius.** `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl` and
+  `rounded-2xl` to `rounded-4xl` scale with `--radius`, so they are now
+  square with no edit. A site's own `rounded-full` pill or `rounded-[…]` on
+  chrome, a card or a control → square (`rounded-none`). A depiction (a mock
+  screen, a product shot) → `rounded-depict` (12px). A social or OG tile →
+  `rounded-tile` (24px). Dots, avatars and radios stay `rounded-full`.
+- **Dark and orange grounds.** A hand-built panel
+  `bg-oca-ink text-oca-ink-foreground` → `oca-band-ink`, or `oca-on-ink` beside
+  your own ground, so a `MonoLabel`, a muted line, a card or a `Button` on it
+  reads in its colours. The same goes for `oca-band-burnt`/`oca-on-burnt`,
+  `oca-band-brand`/`oca-on-brand` and `oca-band-footer`/`oca-on-footer`.
+  `Card tone="ink"`, `"burnt"` and `"brand"` do this themselves, so overrides
+  like `[&_.text-muted-foreground]:…` on them can go.
+- **The lockup.** A site's own `<Lockup />` (the default `variant`, the square
+  app icon) in its chrome → `<Lockup variant="flat" />`, the swoosh and the
+  wordmark. `AppIcon` is for the favicon, the app icon and the OG mark only.
+  `SiteHeader`, `SiteFooter`, `SignInFrame`, `ToolShell` and `AppShell` draw
+  the flat lockup themselves, the product word after its hairline;
+  `ProductLockup` is internal.
+- **SiteHeader's CTA and sign-in.** A CTA `Button` or a "Sign in" link passed
+  in `actions` → the `cta` and `signIn` props. Below 480px the CTA moves into
+  the menu, and below 420px a product word replaces the wordmark. `DocsShell`
+  takes the same `signIn` and `cta`.
+- **Targets by pointer.** A site's own `max-md:h-11`, `md:min-h-6` or
+  `sm:min-h-6` for a thumb's 44px → `pointer-coarse:` (`pointer-coarse:h-11`,
+  or `HIT_32` and `HIT_LINK`'s pattern). A tablet is a touch screen too.
+- **Faq.** `<Faq …>` keeps working but defaults to `variant="rule"`, hairline
+  rows → `variant="card"` to keep the framed panel.
+- **Eyebrows.** `Eyebrow` and `oca-eyebrow` now draw the mono label with its
+  ember square; nothing to edit. New work → `MonoLabel`.
+- **PageHero.** `size="xl"` is the home page's H1 and content pages take
+  `"lg"`. New optional `ground`, `rule` and `layout="s10"`: a hand-built S10
+  (child selectors over PageHero's markup, as ochk.app's legal pages had) →
+  `layout="s10"`. PageHero and `Closing` sit on the `Frame`.
+- **Section.** New optional `framed` (the content on the `Frame`, its
+  hairlines meeting the next section's), `frameClassName`, `rule`, and tone
+  `burnt`.
+- **StatRow.** A site's own `[&_dd]:text-[clamp(…)]` for long values →
+  `size="sm"`.
+- **Compact density.** Under a tool's `density="compact"` a `Button` with no
+  `size` is `sm`; pass `size` to keep another.
+- **Test DOMs.** `matchMedia`, `IntersectionObserver` and `ResizeObserver`
+  stubs written for `Reveal`, the halftone or docs' width reader can go: they
+  run without them.
+- **The sign-in and wallet radii.** `--oc-signin-radius`,
+  `--oc-signin-button-radius`, `--oc-wallet-radius` and
+  `--oc-wallet-button-radius` are `0`; a site that set its own keeps it.
+
+### New entries
+
+- `./motion`: the dot scenes, on one loop that sleeps (`schedule`), each
+  still before its canvas starts and still under reduced motion. Nothing
+  here is reachable from `.` or `./components`.
+  - `ParticlePortrait`: a person made of dots, with callouts at
+    `PORTRAIT_ANCHORS`. Points come from `bustPoints` (the default) or
+    `deckPortraitPoints`, or your own via `fetchPoints`, `decodePoints` or
+    `unpackPoints`.
+  - `ParticleText`: a short word or numeral drawn in dots, real text
+    underneath.
+  - `MiniCheck`: a success moment, dots that settle into the check once.
+  - `CrowdDissolve`: the crowd that dissolves as a `ScrollStory` plays.
+  - `StorySwap`, two states of a headline in one place, and `watchStory`,
+    the story's progress for your own scene.
+  - `StackCards`, numbered cards that stack as you scroll; `Marquee`, a line
+    that runs sideways and pauses on request; `DitherImage`, a dithered
+    picture that comes alive under a fine pointer; `Wipe`, `Reveal`'s
+    clip-path sibling.
+  - `Reveal`, `ScrollStory` and `Ticker` are re-exported here, so a page
+    imports its motion from one place.
+- `./og`: `OgCard` takes `art` and the tones `burnt` and `brand`. `OgBento`
+  lays tiles on the social sheet (`ogBentoGrid` is its grid in whole pixels;
+  `SOCIAL_SIZE` is a social post's size). `ogArt` has the baked art as PNG
+  data URIs for an OG route.
+- `./art/*`: the baked art as files, for pages: the dither mark (plain,
+  `-brand` and `-ink`) at its sizes, and the dither and halftone fields.
+- `./package.json`: so a site can read the installed version.
+
+### Foundation follow-up
 
 - Reveal, the halftone, the iso check's tilt, docs' width reader and the
   theme's scheme listener run in a test DOM with no `matchMedia`,
@@ -154,7 +275,7 @@ optional. What changes is how things look.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 
-### Follow-up (design2-chrome-app)
+### One lockup and THEME_COLOR
 
 - One lockup in all chrome: the swoosh and the wordmark, the lockup the site
   header already drew. It is now used in `SiteFooter`, the compact footer,
