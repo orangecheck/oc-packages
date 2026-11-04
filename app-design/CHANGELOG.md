@@ -150,7 +150,9 @@ replaces with its own copy, so a missing prop shows nothing untrue.
   while a third of it is on screen in a shown tab, plays through once and
   rests. The first press, key or focus stops it for good; the step buttons
   then drive it, and each step is said once. Nothing is said while it
-  plays. "Try again" (a real button, `tryAgain`) plays it from the start.
+  plays. "Try again" (a real button, `tryAgain`) plays it from the start;
+  at the end the cursor rests on it, and there is no cursor at all under
+  reduced motion.
   Under reduced motion it shows the first step with the buttons. `success`
   is a render prop (a MiniCheck). Every string is in `copy`.
 - `Slider` (also in `./primitives`, so the root entry carries it, and
@@ -179,8 +181,17 @@ replaces with its own copy, so a missing prop shows nothing untrue.
   hidden). The end labels run inward from their node and every label wraps
   inside the path's own box, from 320px up.
 - `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
-  halftone in a strip its words keep clear of) and `DitherMark` (the mark
-  at its size until the baked art lands).
+  halftone in a strip its words keep clear of).
+- `DitherMark`: the baked two-tone dither of the mark (`./art`), the ink top
+  face on a light ground and the peach one on a dark ground (`ground`:
+  `light`, `dark`, or `theme`, the default, which follows the page). It is
+  PNG only: for 1-bit dither the AVIF is 5 to 12 times the PNG at every
+  size, so an AVIF would only cost bytes. The PNGs are inlined as data URIs,
+  so it needs no asset pipeline: 0.7 KB of HTML at `sm`, 1.8 KB at `md`,
+  2.7 KB at `lg`, 3.4 KB when a class sizes it with `sizes`, and twice that
+  with `ground="theme"`. `size` is 120, 240 or 480px, each drawn from the
+  art's own 1x and 2x; the image keeps its 2:1 box, so nothing shifts as it
+  loads. The widths changed from the placeholder's 96/192/384.
 - The window, the receipt and each tile keep their own colours inside a
   band; the step list, the slider and the path take the band's.
 

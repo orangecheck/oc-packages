@@ -33,7 +33,7 @@ function modules(dir: string): string[] {
 
 const shared: Options = {
     // ./og carries its fonts inline, so a share-card route reads no file.
-    loader: { '.woff': 'base64' },
+    loader: { '.woff': 'base64', '.png': 'base64' },
     sourcemap: true,
     clean: false,
     treeshake: true,

@@ -85,6 +85,7 @@ export function SignInDemo({
     const viewRef = useRef<HTMLDivElement>(null);
     const fillRef = useRef<HTMLSpanElement>(null);
     const firstStepRef = useRef<HTMLButtonElement>(null);
+    const againRef = useRef<HTMLButtonElement>(null);
     const still = usePrefersStill();
     const onScreen = useOnScreen(rootRef, 0.35);
     const [mode, setMode] = useState<Mode>('auto');
@@ -159,19 +160,19 @@ export function SignInDemo({
         view.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 350, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
     }, [index, effective]);
 
-    // The cursor: at rest low right, over the control it will press, and out of the way at the end.
+    // The cursor: at rest low right, over the control it will press, and parked on Try again at the end.
     const aim = useCallback(() => {
         const stage = stageRef.current;
         if (!stage) return;
         const s = stage.getBoundingClientRect();
         const rest = { x: s.width * 0.78, y: s.height * 0.82 };
-        const target = viewRef.current?.querySelector<HTMLElement>('[data-demo-target]');
-        if (phase !== 'show' && target) {
+        const target = last ? againRef.current : viewRef.current?.querySelector<HTMLElement>('[data-demo-target]');
+        if ((phase !== 'show' || last) && target) {
             const t = target.getBoundingClientRect();
             setCursor({ x: t.left - s.left + t.width * 0.62, y: t.top - s.top + t.height * 0.55 });
         } else {
             // A new screen leaves the cursor where it pressed, until it sets off again.
-            setCursor((c) => (c && !last ? c : rest));
+            setCursor((c) => c ?? rest);
         }
     }, [phase, last]);
     useLayoutEffect(() => {
@@ -241,6 +242,7 @@ export function SignInDemo({
                 </BrowserFrame>
                 {last ? (
                     <button
+                        ref={againRef}
                         type="button"
                         onClick={replay}
                         className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-muted underline underline-offset-4 hover:text-oca-surface-foreground focus-visible:[outline:2px_solid_var(--ring)]"

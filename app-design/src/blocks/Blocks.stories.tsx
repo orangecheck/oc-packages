@@ -167,7 +167,7 @@ export const Bento: StoryObj = {
                     Coming soon.
                 </BentoTile>
                 <BentoTile tone="paper" title="You stand out as real." />
-                <BentoTile tone="ink" art={<DitherMark size="sm" />} />
+                <BentoTile tone="ink" art={<DitherMark size="sm" ground="dark" />} />
                 <BentoTile tone="white" label="Receipts" title="Every reward comes with a receipt you can check." />
                 <BentoTile tone="brand" label="For apps" title="Keep bots out of Halfway Books." />
             </BentoGrid>
@@ -189,10 +189,22 @@ export const Path: StoryObj = {
 export const Dither: StoryObj = {
     name: 'Dither mark',
     render: () => (
-        <div className="flex flex-wrap items-end gap-10 bg-background p-6 md:p-12">
-            <DitherMark size="sm" />
-            <DitherMark size="md" />
-            <DitherMark size="lg" title="orangecheck" />
+        <div className="flex flex-col gap-10 bg-background p-6 md:p-12">
+            <div className="flex flex-wrap items-end gap-10">
+                <DitherMark size="sm" />
+                <DitherMark size="md" />
+                <DitherMark size="lg" title="orangecheck" />
+            </div>
+            {/* Sized by its class: the browser picks the baked width from sizes. */}
+            <DitherMark className="w-40 md:w-60" sizes="(min-width: 768px) 240px, 160px" />
+            <div className="flex flex-wrap gap-6">
+                <span className="bg-oca-ink p-8">
+                    <DitherMark size="md" ground="dark" />
+                </span>
+                <span className="bg-brand p-8">
+                    <DitherMark size="md" ground="light" />
+                </span>
+            </div>
         </div>
     ),
 };

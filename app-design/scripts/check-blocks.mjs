@@ -23,6 +23,8 @@
  *   under reduced motion, also when served and hydrated; its steps are a
  *   list with the current one marked; its labels stay inside its box.
  * - ReceiptCard stacks its amounts on the decimal point.
+ * - DitherMark draws the baked PNG its srcSet names, at its own width, in the
+ *   ground's art, light and dark, at 1x and 2x, with no layout shift.
  * - None of them widens a phone.
  *
  * Run after `yarn build`.
@@ -64,14 +66,22 @@ try {
             `import { createRoot, hydrateRoot } from 'react-dom/client';\n` +
             `import { renderToString } from 'react-dom/server';\n` +
             `import { useEffect } from 'react';\n` +
-            `import { SignInDemo, signInDemoSteps, CostDemo, StepPath, ReceiptCard, BentoTile } from '${src('blocks/index.ts')}';\n` +
+            `import { SignInDemo, signInDemoSteps, CostDemo, StepPath, ReceiptCard, BentoTile, DitherMark } from '${src('blocks/index.ts')}';\n` +
             `const q = new URLSearchParams(location.search);\n` +
+            `if (q.has('dark')) document.documentElement.classList.add('dark');\n` +
+            // Every layout shift the page makes, summed.
+            `window.__shift = 0;\n` +
+            `new PerformanceObserver((l) => l.getEntries().forEach((e) => (window.__shift += e.value))).observe({ type: 'layout-shift', buffered: true });\n` +
             // Everything the page's one live region says, in order.
             `window.__said = [];\n` +
             `new MutationObserver((ms) => { const r = document.getElementById('oca-announcer'); if (r && r.textContent && ms.some((m) => r === m.target || r.contains(m.target))) window.__said.push(r.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true });\n` +
             `const steps = signInDemoSteps().map((s) => ({ ...s, screens: s.screens.map((sc) => ({ ...sc, duration: ${STEP} })) }));\n` +
             `const own = { id: 'cd', role: 'group', 'aria-label': 'D', cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
             `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'Open the app', href: '#1' }, { label: 'Back it', href: '#2' }, { label: 'Get paid', href: '#3' }, { label: 'Own your key, later', href: '#4' }]} />,\n` +
+            // The baked mark at each size, sized by a class, and on a dark ground.
+            `  dither: <div className="flex flex-col items-start gap-4"><DitherMark size="sm" /><DitherMark size="md" /><DitherMark size="lg" title="orangecheck" /><div style={{ width: 300 }}><DitherMark className="w-full" sizes="300px" /></div><DitherMark size="md" ground="dark" /></div>,\n` +
+            // Ruling 11's person at the edges of their own coin: 250,000 sats, 180 days.
+            `  edge: <CostDemo amounts={[249_999, 250_000, 250_001]} dayStops={[179, 180, 181]} defaultAmountIndex={1} defaultDayIndex={1} />,\n` +
             `  pathlong: <StepPath steps={[{ label: 'Open the app on the phone you already carry' }, { label: 'Back it with a coin you hold' }, { label: 'Get paid when an app asks for you' }, { label: 'Own your key, a little later on' }]} />,\n` +
             `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
             // A halftone picture at 2:1, to see it kept at its own aspect and cropped by the strip.
@@ -89,12 +99,12 @@ try {
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
-    const open = async (b, { off = false, reduced = false, width = 1280, ssr = false } = {}) => {
-        const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
+    const open = async (b, { off = false, reduced = false, width = 1280, ssr = false, dark = false, dpr = 1 } = {}) => {
+        const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: dpr, reducedMotion: reduced ? 'reduce' : 'no-preference' });
         const p = await ctx.newPage();
-        await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}`);
+        await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}${dark ? '&dark' : ''}`);
         await p.waitForSelector('[data-hydrated]', { state: 'attached' });
-        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img' }[b] ?? 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -119,6 +129,13 @@ try {
             await sample();
             const end = await demo(p);
             check(end.mode === 'auto' && end.step === 2, `SignInDemo: after playing through it is on ${JSON.stringify(end)}, not resting on the last step`);
+            // At rest the cursor is parked on Try again, not idle mid-frame.
+            const parked = await p.evaluate(() => {
+                const c = document.querySelector('[data-demo-cursor]')?.getBoundingClientRect();
+                const b = [...document.querySelectorAll('[data-demo-mode] button')].find((x) => x.textContent === 'Try again')?.getBoundingClientRect();
+                return c && b ? { x: c.left, y: c.top, b: [b.left, b.right, b.top, b.bottom] } : null;
+            });
+            check(parked && parked.x >= parked.b[0] && parked.x <= parked.b[1] && parked.y >= parked.b[2] && parked.y <= parked.b[3], `SignInDemo: at rest the cursor is at ${JSON.stringify(parked)}, not on Try again`);
             check((await running(p, '[data-demo-mode]')) === 0, 'SignInDemo: something still runs after it came to rest');
             const said = await p.evaluate(() => window.__said);
             check(said.length === 0, `SignInDemo: autoplay said ${JSON.stringify(said)}`);
@@ -134,9 +151,9 @@ try {
             await again.focus();
             await p.keyboard.press('Enter');
             const restart = await demo(p);
-            const focused = await p.evaluate(() => document.activeElement?.getAttribute('aria-current') ?? document.activeElement?.textContent);
+            const focused = await p.evaluate(() => (document.activeElement === document.querySelector('[data-demo-mode] ol button') ? 'first step' : document.activeElement?.outerHTML.slice(0, 80)));
             check(restart.mode === 'auto' && restart.step === 0, `SignInDemo: Try again left it ${JSON.stringify(restart)}`);
-            check(focused === 'step' || focused?.includes('Tap the button'), `SignInDemo: after Try again focus is on ${focused}, not the first step`);
+            check(focused === 'first step', `SignInDemo: after Try again focus is on ${focused}, not the first step button`);
             check(await until(p, () => document.querySelector('[data-demo-mode]').dataset.demoStep === '1', null, STEP * 4), 'SignInDemo: Try again did not play it again');
             await close();
         }
@@ -297,6 +314,96 @@ try {
             check(reach, 'Slider: a press within 22px of the thumb misses it');
             await close();
         }
+        // Ruling 11's defaults: the real person holds one coin of 250,000 sats for 180 days, and the badge reads
+        // "Gets in" at or under that and "Under this bar" above it.
+        {
+            const { p, close } = await open('edge');
+            const badge = () => p.evaluate(() => {
+                const v = document.querySelector('[data-verdict]');
+                const b = v.lastElementChild;
+                return [v.dataset.verdict, b.firstChild.textContent];
+            });
+            const sliders = p.locator('[role="slider"]');
+            const seen = [JSON.stringify(await badge())];
+            await sliders.nth(0).focus();
+            await p.keyboard.press('ArrowRight');
+            seen.push(JSON.stringify(await badge()));
+            await p.keyboard.press('ArrowLeft');
+            await sliders.nth(1).focus();
+            await p.keyboard.press('ArrowRight');
+            seen.push(JSON.stringify(await badge()));
+            check(
+                JSON.stringify(seen) === JSON.stringify([JSON.stringify(['pass', 'Gets in']), JSON.stringify(['fail', 'Under this bar']), JSON.stringify(['fail', 'Under this bar'])]),
+                `CostDemo's default person at 250,000 sats / 180 days, then 250,001, then 181 days: ${seen.join(' ')}`
+            );
+            await close();
+        }
+
+        // DitherMark: the baked PNG at each size, light and dark, at 1x and 2x: the picture the srcSet names, at its
+        // own width, drawn in two tones, the ground's own art, no vector stand-in, and nothing moves as it loads.
+        for (const dark of [false, true]) {
+            for (const dpr of [1, 2]) {
+                const { p, close } = await open('dither', { dark, dpr });
+                await p.waitForFunction(() => [...document.querySelectorAll('[data-dither-mark] img')].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 5000 });
+                const marks = await p.evaluate(async () =>
+                    Promise.all([...document.querySelectorAll('[data-dither-mark]')].map(async (m) => {
+                        const shown = [...m.querySelectorAll('img')].filter((i) => i.getBoundingClientRect().width > 0);
+                        const img = shown[0];
+                        if (!img) return { kind: m.dataset.ditherMark, shown: 0, svg: m.querySelectorAll('svg').length };
+                        const set = img.srcset.split(', ').map((c) => [c.slice(0, c.lastIndexOf(' ')), parseInt(c.slice(c.lastIndexOf(' ') + 1), 10)]);
+                        // The file the browser picked, at its own pixels (an <img> with w descriptors reports its CSS width).
+                        const file = new Image();
+                        file.src = img.currentSrc;
+                        await file.decode();
+                        const canvas = document.createElement('canvas');
+                        canvas.width = file.naturalWidth;
+                        canvas.height = file.naturalHeight;
+                        const x = canvas.getContext('2d', { willReadFrequently: true });
+                        x.drawImage(file, 0, 0);
+                        const px = x.getImageData(0, 0, canvas.width, canvas.height).data;
+                        let opaque = 0;
+                        const colours = new Set();
+                        for (let i = 0; i < px.length; i += 4) {
+                            if (px[i + 3] > 200) {
+                                opaque++;
+                                colours.add((px[i] << 16) | (px[i + 1] << 8) | px[i + 2]);
+                            }
+                        }
+                        const r = img.getBoundingClientRect();
+                        return {
+                            kind: m.dataset.ditherMark,
+                            shown: shown.length,
+                            svg: m.querySelectorAll('svg').length,
+                            png: img.currentSrc.startsWith('data:image/png;base64,'),
+                            ground: img.dataset.ground,
+                            natural: file.naturalWidth,
+                            aspect: file.naturalWidth / file.naturalHeight,
+                            candidate: set.find(([u]) => u === img.currentSrc)?.[1] ?? null,
+                            widest: Math.max(...set.map(([, w]) => w)),
+                            w: Math.round(r.width * 10) / 10,
+                            h: Math.round(r.height * 10) / 10,
+                            filled: Math.round((opaque / (px.length / 4)) * 100) / 100,
+                            colours: colours.size,
+                        };
+                    }))
+                );
+                const theme = dark ? 'dark' : 'light';
+                const want = [['sm', 120, theme], ['md', 240, theme], ['lg', 480, theme], ['sized', 300, theme], ['md', 240, 'dark']];
+                // The picked file is the candidate its descriptor names, 2:1, and enough pixels for the box at this density.
+                const off = marks.flatMap((m, i) => {
+                    const [kind, w, ground] = want[i] ?? [];
+                    const ok =
+                        m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 2 &&
+                        (m.natural >= w * dpr || m.natural === m.widest) && Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - w / 2) <= 0.5 && m.filled > 0.1 && m.colours >= 2;
+                    return ok ? [] : [JSON.stringify(m)];
+                });
+                check(marks.length === 5 && off.length === 0, `[${dark ? 'dark' : 'light'} ${dpr}x] DitherMark: ${off.join('; ') || `${marks.length} marks`}`);
+                const shift = await p.evaluate(() => window.__shift);
+                check(shift === 0, `[${dark ? 'dark' : 'light'} ${dpr}x] DitherMark: the page shifted by ${shift} while the marks loaded`);
+                await close();
+            }
+        }
+
         // The site's own cost and sentences replace the defaults.
         {
             const { p, close } = await open('own');

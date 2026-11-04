@@ -40,6 +40,8 @@ export function bundle(dir, sources) {
             alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
             // next/link reads process.env outside its bundler.
             banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+            // The baked art comes in as base64, as tsup's build inlines it.
+            loader: { '.png': 'base64' },
             logLevel: 'error',
         });
     }
