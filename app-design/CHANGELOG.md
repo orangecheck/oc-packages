@@ -30,10 +30,12 @@ It landed in these units on oc-packages main:
 - the hero entrance (`1c3fba2e`, `26c0a79b`, `ad1669bd`, `c82db4ff`): the
   hero's title and lead readable at first paint, and its actions on a phone;
 - the tokens follow-up (`f4cfba94`): every band holds its contrast, every
-  state shows a 3:1 edge, and targets are 44px in both axes;
+  state shows a 3:1 edge, and targets are 44px in both axes to a thumb;
 - the framed column (`f175c80a`): `PageFrame`, one left axis, each section a
   closed box, and a `SectionBar` that spans its box;
-- `Closing`'s actions (`98d9b60f`): full width on a phone, as the hero's.
+- `Closing`'s actions (`98d9b60f`): full width on a phone, as the hero's;
+- the targets follow-up (`7e9ff92c`): the underline tabs, `SignInFrame`'s
+  header and `AppShell`'s sidebar and rail at 44px to a thumb.
 
 ### Migrating from 1.x
 
@@ -112,16 +114,20 @@ after, starting with what to grep for.
   defaults to true; pass `rule={false}` for a hero without its closing
   hairline. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`)
   can go.
-- **Closing's buttons.** A full-width class on `Closing`'s buttons (chat's
-  `max-sm:w-full`) → drop it: Closing's actions stack full width on a phone
-  themselves.
+- **The CTA pair.** A full-width class on `PageHero`'s or `Closing`'s buttons
+  (chat's `max-sm:w-full`, on its hero and its closing) → drop it: both stack
+  their actions full width on a phone themselves. A pair moved into
+  PageHero's children so that it could stack (vault's hero stopgap) → back
+  to `actions`.
 - **The page frame.** A site that composes `SiteHeader`, its `main` and
   `SiteFooter` by hand → `<PageFrame>` around the `main`, with the header
   above it and the footer below. That is ochk.io (oc-www), ochk.app's public
-  pages (oc-app-web), chat, vault, cosign, globe and btc. No package shell
-  renders `PageFrame` but `DocsShell`, so the docs (oc-docs) need no wrap,
-  and neither do the tool sites (lock, vote, stamp, pledge, agent) on
-  `ToolShell`. `ToolShell` and `AppShell` keep their own frames (a tool's
+  pages (oc-app-web), chat, vault, cosign, globe and btc, and oc-docs' 404
+  and 500: `DocsFrame`'s `bare` branch builds `SiteHeader`, its `main` and
+  `OchkIoFooter` by hand. No package shell renders `PageFrame` but
+  `DocsShell`, so the docs pages that render it need no wrap, and the tool
+  sites on `ToolShell` (lock, vote, stamp, pledge, agent, attest) need none
+  either. `ToolShell` and `AppShell` keep their own frames (a tool's
   column, an app's sidebar). Pages that render `DocsShell` or `AppShell` stay
   outside a layout's `PageFrame`, since both draw their own frame. A
   `PageFrame` nested in another draws no second rule, but it is still one
@@ -129,7 +135,8 @@ after, starting with what to grep for.
 - **A site's own container.** A `max-w-[75rem]` or `max-w-6xl` with its own
   `px-*` gutter → `oca-container`, or `Frame` for a framed block, so its
   content joins the axis. Until it moves, a `SectionBar` in it puts its label
-  at that container's padding (41.5px at 390 against the axis at 17.5).
+  a gutter inside that container's padding (41.5px at 390, 25 plus the 16.5
+  gutter, against the axis at 17.5).
   Inside a `Section`, drop it: the Section gives one, and a nested
   `oca-container` adds no second gutter (it had put content at 153.9 against
   107.5 at 1440). A framed block is `<Section framed>`, not a `Frame` inside
@@ -357,8 +364,9 @@ after, starting with what to grep for.
   `--oca-bar-inset`, while `Frame padded={false}` and `PageFrame` bleed
   0. So in the package's own parents it is right with no prop, and it never
   scrolls the page sideways. In a site's own container not yet migrated (a
-  `max-w-6xl px-6`) its label sits at that container's padding, 41.5px at
-  390 against the axis at 17.5: "Migrating from 1.x" says how to move it.
+  `max-w-6xl px-6`) its label sits a gutter inside that container's padding,
+  41.5px at 390 against the axis at 17.5: "Migrating from 1.x" says how to
+  move it.
 - What a site changes for the frame is under "Migrating from 1.x": the page
   frame, a site's own container, `SectionBar` and the hero's `rule`.
 - check-layout proves it on built pages at 390 and 1440: one x for the page's
@@ -489,7 +497,7 @@ after, starting with what to grep for.
   `--muted` must stay apart from every surface it is drawn on. On 2.0.0-pre at
   f642df4f it found 142 failures.
 
-### Follow-up (design2-targets-2)
+### More 44px targets
 
 - More targets reach 44px to a thumb, in both axes. A fine pointer still
   gets them at their drawn size.
