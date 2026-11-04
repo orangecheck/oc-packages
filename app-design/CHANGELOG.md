@@ -62,6 +62,12 @@ optional. What changes is how things look.
   under the band's paper text. New token `--oca-burnt-card` (`#382216`).
   check-contrast holds each raised ground's text in every band, and fails a
   dark band that leaves `--card` alone.
+- The display stack reaches a fallback scaled to Inter on machines with no
+  Arial, Liberation or Arimo: Noto Sans, DejaVu Sans and Ubuntu, each with
+  its own size-adjust and Inter's ascent. Before Inter loads there, the
+  footer's wordmark ran 79px past its frame at 1440. check-layout measures
+  the wordmark on that stack, and its spread check's comment now says the
+  0.05em it tests.
 
 ### Tokens (`tokens.css`, `appColors`)
 

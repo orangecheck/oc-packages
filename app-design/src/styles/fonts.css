@@ -152,3 +152,68 @@
     descent-override: 29.75%;
     line-gap-override: 0%;
 }
+
+/* Display type on a machine with no Arial, Liberation or Arimo: the face the page's
+   generic sans resolves to there (Noto Sans, DejaVu Sans, Ubuntu), scaled to Inter's
+   width and set on Inter's ascent, so the footer's wordmark fits its frame before Inter
+   loads. Each size-adjust is Inter's width over the face's, measured in Chrome on the
+   wordmark and a sentence (the smaller, so a fallback is never the wider), weights 300 and 400. */
+@font-face {
+    font-family: 'OCA Inter Display Fallback Noto';
+    font-weight: 100 449;
+    src: local('Noto Sans'), local('NotoSans-Regular'), local('Noto Sans Regular');
+    ascent-override: 107.12%;
+    descent-override: 26.78%;
+    line-gap-override: 0%;
+    size-adjust: 90.44%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback Noto';
+    font-weight: 450 549;
+    src: local('Noto Sans'), local('NotoSans-Regular'), local('Noto Sans Regular');
+    ascent-override: 103.97%;
+    descent-override: 25.99%;
+    line-gap-override: 0%;
+    size-adjust: 93.18%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback DejaVu';
+    font-weight: 100 449;
+    src: local('DejaVu Sans'), local('DejaVuSans');
+    ascent-override: 115.49%;
+    descent-override: 28.87%;
+    line-gap-override: 0%;
+    size-adjust: 83.88%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback DejaVu';
+    font-weight: 450 549;
+    src: local('DejaVu Sans'), local('DejaVuSans');
+    ascent-override: 112.11%;
+    descent-override: 28.03%;
+    line-gap-override: 0%;
+    size-adjust: 86.41%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback Ubuntu';
+    font-weight: 100 449;
+    src: local('Ubuntu'), local('Ubuntu Regular'), local('Ubuntu-Regular');
+    ascent-override: 102.91%;
+    descent-override: 25.73%;
+    line-gap-override: 0%;
+    size-adjust: 94.14%;
+}
+
+@font-face {
+    font-family: 'OCA Inter Display Fallback Ubuntu';
+    font-weight: 450 549;
+    src: local('Ubuntu'), local('Ubuntu Regular'), local('Ubuntu-Regular');
+    ascent-override: 100.65%;
+    descent-override: 25.16%;
+    line-gap-override: 0%;
+    size-adjust: 96.25%;
+}

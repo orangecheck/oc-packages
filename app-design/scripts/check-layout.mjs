@@ -1395,15 +1395,25 @@ try {
                 check(t.legal.length > 0 && short(t.legal, 24).length === 0, `[${width}] legal links under 24px: ${JSON.stringify(short(t.legal, 24))}`);
                 await c.close();
             }
-            // The wordmark: letters at their natural spacing (no gap past the median by a tenth of
-            // an em), every glyph's ink inside the rise's clip, the descender of the g included,
-            // and the word inside the frame's content box.
-            {
+            // The wordmark: letters at their natural spacing (no gap between letter boxes past a
+            // twentieth of an em, 0.05em), every glyph's ink inside the rise's clip, the descender of
+            // the g included, and the word inside the frame's content box. Again before Inter loads
+            // on a machine with no Arial, Liberation or Arimo: the next fallback (Noto here) must fit too.
+            for (const before of [false, true]) {
                 const c = await browser.newPage({ viewport: { width, height: 900 } });
                 await c.goto(wordmark);
                 await c.evaluate(() => document.fonts.ready);
-                const m = await c.evaluate(() => {
+                const m = await c.evaluate((before) => {
                     const word = document.querySelector('[data-oca-wordmark]');
+                    // Before Inter loads on a machine with no Arial, Liberation or Arimo: the display
+                    // stack as the page sets it, less Inter and less the Arial-sourced fallback.
+                    if (before) {
+                        const stack = getComputedStyle(document.documentElement).getPropertyValue('--oc-font-display');
+                        word.style.fontFamily = stack
+                            .split(',')
+                            .filter((f) => !["'OCA Inter'", "'OCA Inter Display Fallback'"].includes(f.trim()))
+                            .join(',');
+                    }
                     const clip = word.parentElement.getBoundingClientRect();
                     const frameEl = word.parentElement.parentElement;
                     const fs = getComputedStyle(frameEl);
@@ -1428,21 +1438,22 @@ try {
                         };
                     });
                     const gaps = letters.slice(1).map((l, i) => l.box.left - letters[i].box.right);
-                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join('') };
-                });
+                    return { size: parseFloat(getComputedStyle(word).fontSize), clip: { left: clip.left, right: clip.right, top: clip.top, bottom: clip.bottom }, content, letters, gaps, text: letters.map((l) => l.ch).join(''), font: getComputedStyle(word).fontFamily.split(',')[0] };
+                }, before);
                 const sorted = [...m.gaps].sort((a, b) => a - b);
                 const median = sorted[Math.floor(sorted.length / 2)];
                 // At its natural spacing a letter's box meets the next (the tracking is inside the box),
                 // so any gap is spreading: a word-sized one, or the same gap everywhere.
                 const wide = m.gaps.map((g, i) => [g, i]).filter(([g]) => g > 0.05 * m.size || g - median > 0.05 * m.size);
-                check(m.text === 'orangecheck', `[${width}] the wordmark reads "${m.text}"`);
-                check(wide.length === 0, `[${width}] the wordmark's letters are spread: gaps ${wide.map(([g, i]) => `${m.text[i]}|${m.text[i + 1]} ${g.toFixed(1)}px`).join(', ')} against a median of ${median.toFixed(1)}px`);
+                check(m.text === 'orangecheck', `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark reads "${m.text}"`);
+                check(wide.length === 0, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark's letters are spread: gaps ${wide.map(([g, i]) => `${m.text[i]}|${m.text[i + 1]} ${g.toFixed(1)}px`).join(', ')} against a median of ${median.toFixed(1)}px`);
                 const clipped = m.letters.filter((l) => l.ink.left < m.clip.left - 0.5 || l.ink.right > m.clip.right + 0.5 || l.ink.top < m.clip.top - 0.5 || l.ink.bottom > m.clip.bottom + 0.5);
-                check(clipped.length === 0, `[${width}] the wordmark's clip cuts ${clipped.map((l) => l.ch).join('')}`);
+                check(clipped.length === 0, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark's clip cuts ${clipped.map((l) => l.ch).join('')}`);
                 const first = m.letters[0].ink.left;
                 const last = m.letters.at(-1).ink.right;
-                check(first >= m.content.left - 0.5 && last <= m.content.right + 0.5, `[${width}] the wordmark runs outside the frame: ${first.toFixed(1)}-${last.toFixed(1)} in ${m.content.left.toFixed(1)}-${m.content.right.toFixed(1)}`);
-                check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
+                check(first >= m.content.left - 0.5 && last <= m.content.right + 0.5, `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark runs outside the frame: ${first.toFixed(1)}-${last.toFixed(1)} in ${m.content.left.toFixed(1)}-${m.content.right.toFixed(1)}`);
+                // A fallback only has to fit; its size-adjust errs narrow.
+                if (!before) check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
                 await c.close();
             }
         }
