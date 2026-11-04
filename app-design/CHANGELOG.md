@@ -82,8 +82,10 @@ optional. What changes is how things look.
   - `PageHero` takes `layout="s10"`, the S10 page header that ochk.app's legal
     pages built by hand. The title sits at the top of a band at least 27.5rem
     tall from 900px. From md, the lead sits at its foot on the right and the
-    art (a mark) at its foot on the left, both on the frame. On a phone the
-    mark sits under the lead. check-layout measures it at 390 and 1440.
+    art (a mark) at its foot on the left, both on the frame, with their tops
+    level. The lead is a left-aligned block about 38 characters wide, set
+    against the right edge. On a phone the mark sits under the lead.
+    check-layout measures it at 390 and 1440, including the lead's alignment.
 - The ink and burnt bands re-point what a kit control raises on them:
   `--card`, `--muted`, `--secondary`, `--accent` and `--oca-surface`, each
   with its text. Before, a Card or a field on the ink band drew the paper card

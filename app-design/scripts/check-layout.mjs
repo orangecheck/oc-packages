@@ -1481,13 +1481,15 @@ try {
                     const content = { left: fr.left + parseFloat(fs.paddingLeft), right: fr.right - parseFloat(fs.paddingRight) };
                     const [sec, h1, lead, art] = [document.querySelector('section'), document.querySelector('section h1'), document.querySelector('section .oca-lead'), document.querySelector('[data-art]')].map(box);
                     const fb = box(frame);
-                    return { gap: Math.max(Math.abs(sec.top - fb.top), Math.abs(sec.bottom - fb.bottom)), content, sec: { top: sec.top, h: sec.height }, h1: { top: h1.top, bottom: h1.bottom }, lead: { left: lead.left, right: lead.right, top: lead.top, bottom: lead.bottom }, art: { left: art.left, right: art.right, top: art.top, bottom: art.bottom } };
+                    return { align: getComputedStyle(document.querySelector('section .oca-lead')).textAlign, gap: Math.max(Math.abs(sec.top - fb.top), Math.abs(sec.bottom - fb.bottom)), content, sec: { top: sec.top, h: sec.height }, h1: { top: h1.top, bottom: h1.bottom }, lead: { left: lead.left, right: lead.right, top: lead.top, bottom: lead.bottom }, art: { left: art.left, right: art.right, top: art.top, bottom: art.bottom } };
                 });
                 const near = (a, b) => Math.abs(a - b) <= 1;
                 check(g.gap <= 1, `[${width}] S10: the frame's hairlines stop ${Math.round(g.gap)}px short of the band's edges`);
+                // The lead is a block of left-aligned text set at the right, not a ragged-left paragraph.
+                check(['start', 'left'].includes(g.align), `[${width}] S10: the lead is set ${g.align}, not left-aligned`);
                 if (width >= 768) {
                     check(near(g.lead.right, g.content.right) && near(g.art.left, g.content.left), `[${width}] S10: the lead's right ${g.lead.right.toFixed(1)} or the mark's left ${g.art.left.toFixed(1)} is off the frame (${JSON.stringify(g.content)})`);
-                    check(near(g.lead.bottom, g.art.bottom) || g.lead.bottom >= g.art.top, `[${width}] S10: the lead and the mark do not share the foot (${JSON.stringify({ lead: g.lead, art: g.art })})`);
+                    check(near(g.lead.top, g.art.top), `[${width}] S10: the lead's top ${g.lead.top.toFixed(1)} is not level with the mark's ${g.art.top.toFixed(1)}`);
                     check(g.art.top >= g.h1.bottom && g.lead.left > g.art.right, `[${width}] S10: the mark runs into the title or the lead (${JSON.stringify(g)})`);
                     if (width >= 900) check(g.sec.h >= 440, `[${width}] S10: the band is ${Math.round(g.sec.h)}px tall, under 27.5rem`);
                 } else {
