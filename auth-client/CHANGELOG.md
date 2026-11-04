@@ -17,6 +17,11 @@ this file tracks the package's TS / Node / runtime API surface.
   and the wallet steps' buttons) are at least 44px tall, as its tabs and the
   opt-in row are. The padding round one line drew them 41.7px tall, under a
   thumb's 44 at every width.
+- Its fields (the email, the one-time code, the Bitcoin address, the
+  message to sign, the pasted signature and the wallet picker) are at least
+  44px tall too, padding and border included. One line drew the email field
+  43.6px tall inside `SignInFrame`. On a host with no border-box reset the
+  fields also stop running 26px past their column.
 
 ## [2.42.0] — 2026-11-04
 
