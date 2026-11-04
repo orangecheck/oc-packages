@@ -50,7 +50,7 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
-/** A hero's actions: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
+/** A page's CTA pair, a hero's and the closing band's: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
 export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
 
 export function PageHero({

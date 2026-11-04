@@ -603,7 +603,9 @@ try {
                 h('div', { 'data-t': 'split' }, h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', actions: pair() })),
                 h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', title: 'Privacy policy', lead: 'A lead.', actions: pair() })),
                 h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', title: 'Terms', lead: 'A lead.', actions: pair() })),
-                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() }))
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() })),
+                // The closing band holds the same pair by the same rule: one page, one CTA pair.
+                h('div', { 'data-t': 'closing' }, h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.', art: null, actions: pair() }))
             )
         )
     );
@@ -1676,14 +1678,15 @@ try {
                 check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
                 check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
             }
-            // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
-            {
-                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+            // A hero's CTA pair, and the closing band's: full width and stacked on a phone (at 320 as at 390), a row of
+            // their own widths from 640px.
+            for (const w of width < 768 ? [320, width] : [width]) {
+                const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
                 await visit(c, heroActions);
                 await c.evaluate(() => document.fonts.ready);
                 const a = await c.evaluate(() =>
                     Object.fromEntries(
-                        ['split', 's10', 'document', 'error'].map((t) => {
+                        ['split', 's10', 'document', 'error', 'closing'].map((t) => {
                             const [x, y] = [...document.querySelectorAll(`[data-t="${t}"] [data-cta]`)].map((b) => b.getBoundingClientRect());
                             const col = document.querySelector(`[data-t="${t}"] [data-cta]`).parentElement.parentElement;
                             const cs = getComputedStyle(col);
@@ -1693,10 +1696,10 @@ try {
                     )
                 );
                 for (const [t, m] of Object.entries(a)) {
-                    if (width < 640) {
-                        check(m.stacked && m.order && m.widths.every((w) => Math.abs(w - m.column) <= 1), `[${width}] ${t} hero's two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
+                    if (w < 640) {
+                        check(m.stacked && m.order && m.widths.every((x) => Math.abs(x - m.column) <= 1), `[${w}] ${t}'s two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
                     } else {
-                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${width}] ${t} hero's two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
+                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${w}] ${t}'s two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
                     }
                 }
                 await c.close();
