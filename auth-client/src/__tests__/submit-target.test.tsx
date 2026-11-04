@@ -5,20 +5,25 @@
  * opt-in row are: Send one-time code, Verify, the wallet step's button and the
  * pasted signature's Sign me in. The padding round one line of text drew them
  * 41.7px tall. So is every field on those steps: the email, the code, the
- * address, the message and the pasted signature (the email field was 43.6
- * inside SignInFrame). Each step is reached as a person reaches it, with the
- * host answered by a stub.
+ * address, the message, the pasted signature and, with two browser wallets,
+ * the picker (the email field was 43.6 inside SignInFrame). Each step is
+ * reached as a person reaches it, with the host answered by a stub.
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+// The wallets the adapter detects: none in a browser by default, so the wallet path is the pasted signature.
+const MANUAL = { id: 'manual', name: 'Manual', detected: true };
+const adapter = vi.hoisted(() => ({ wallets: [] as Array<{ id: string; name: string; detected: boolean }> }));
 vi.mock('@orangecheck/wallet-adapter', () => ({
-    detectWallets: () => [{ id: 'manual', name: 'Manual', detected: true }],
+    detectWallets: () => adapter.wallets,
     getSigner: () => async () => 'unused',
 }));
 
 import { OcSignIn } from '../signin';
+
+adapter.wallets = [MANUAL];
 
 const ADDR = 'bc1qmr7qn2t0ahj56ztpdswt54kn2r863ukd8wadj8';
 
@@ -42,6 +47,7 @@ const fields = () => [...document.querySelectorAll<HTMLElement>('input:not([type
 const short = () => fields().filter((f) => f.style.minHeight !== '44px' || f.style.boxSizing !== 'border-box').map((f) => f.id);
 
 afterEach(() => {
+    adapter.wallets = [MANUAL];
     cleanup();
     vi.restoreAllMocks();
 });
@@ -99,6 +105,16 @@ describe('the sign-in fields are 44px tall at least', () => {
         });
         expect(screen.getByLabelText('Signature')).toBeTruthy();
         expect(fields().length).toBeGreaterThanOrEqual(2);
+        expect(short()).toEqual([]);
+    });
+
+    it('on the wallet path with two browser wallets: the address and the picker', async () => {
+        adapter.wallets = [{ id: 'unisat', name: 'UniSat', detected: true }, { id: 'xverse', name: 'Xverse', detected: true }, MANUAL];
+        stubFetch();
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        expect((await screen.findByLabelText('Sign with')).tagName).toBe('SELECT');
+        expect(fields().map((f) => f.tagName)).toEqual(['INPUT', 'SELECT']);
         expect(short()).toEqual([]);
     });
 });
