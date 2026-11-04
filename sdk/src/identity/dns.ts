@@ -37,17 +37,20 @@ function isSafePublicHost(host: string): boolean {
  */
 export interface DnsVerificationResult {
     verified: boolean;
-    method?: 'well-known' | 'dns-txt';
+    /**
+     * How the domain was checked: its https://<domain>/.well-known/orangecheck.txt
+     * file, the only proof read. (Before 1.22.0 this also allowed 'dns-txt',
+     * which was never set: no DNS record is read.)
+     */
+    method?: 'well-known';
     url?: string;
     error?: string;
 }
 
 /**
- * Verify that a user controls a DNS domain
- *
- * Verification methods (in order of preference):
- * 1. Check .well-known/orangecheck.txt file
- * 2. Check DNS TXT record (requires server-side DNS lookup)
+ * Verify that a user controls a domain: its file at
+ * https://<domain>/.well-known/orangecheck.txt must name the attestation ID.
+ * That file is the only proof read; no DNS record is looked up.
  *
  * @param attestationId - The attestation ID to look for
  * @param domain - The domain name (without protocol)
@@ -70,15 +73,10 @@ export async function verifyDnsIdentity(
         return { verified: false, error: 'domain resolves to a disallowed private host' };
     }
 
-    // Try .well-known file first
     const wellKnownResult = await checkWellKnownFile(attestationId, cleanDomain);
     if (wellKnownResult.verified) {
         return wellKnownResult;
     }
-
-    // DNS TXT record check requires server-side implementation
-    // For now, return instructions
-    log.info({ domain: cleanDomain }, 'Well-known file not found, DNS TXT check not implemented');
 
     return {
         verified: false,
@@ -139,9 +137,7 @@ async function checkWellKnownFile(
 export function getDnsVerificationInstructions(attestationId: string, domain: string): string {
     const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-    return `To verify your DNS domain (${cleanDomain}):
-
-**Method 1: .well-known file (Recommended)**
+    return `To verify your domain (${cleanDomain}):
 
 1. Create a file at: https://${cleanDomain}/.well-known/orangecheck.txt
 2. Add this content to the file:
@@ -151,19 +147,10 @@ export function getDnsVerificationInstructions(attestationId: string, domain: st
    Attestation ID: ${attestationId}
    Timestamp: ${new Date().toISOString()}
 
-3. Make sure the file is publicly accessible
+3. Make sure the file is publicly accessible over HTTPS
 4. Return here and click "Verify"
 
-**Method 2: DNS TXT record (Advanced)**
-
-1. Add a TXT record to your DNS:
-   Name: _orangecheck.${cleanDomain}
-   Value: ${attestationId}
-
-2. Wait for DNS propagation (up to 24 hours)
-3. Return here and click "Verify"
-
-Note: Method 1 is faster and easier to set up.`;
+Only this file is checked. DNS records are not read.`;
 }
 
 /**
@@ -212,8 +199,8 @@ export function isValidDomain(domain: string): boolean {
 
 /**
  * Check if a DNS identity is already verified
- * This is a quick check using cached data: the TXT value or the well-known file
- * fetched from `domain`. A well-known file names its domain, and must name this one.
+ * This is a quick check using cached data: the well-known file fetched from
+ * `domain`. A well-known file that names its domain must name this one.
  */
 export function isDnsIdentityVerified(
     attestationId: string,
