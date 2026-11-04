@@ -151,7 +151,7 @@ export function StepPath({ steps, current = 0, stateWords = { done: 'done', curr
                                 )}
                             >
                                 {s.href ? (
-                                    <a href={s.href} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">
+                                    <a href={s.href} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:[outline:2px_solid_var(--ring)]">
                                         {words}
                                     </a>
                                 ) : (

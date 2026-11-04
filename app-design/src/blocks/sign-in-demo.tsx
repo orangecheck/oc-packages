@@ -243,7 +243,7 @@ export function SignInDemo({
                     <button
                         type="button"
                         onClick={replay}
-                        className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-foreground/70 underline underline-offset-4 outline-none hover:text-oca-surface-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                        className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center px-3 text-[0.8125rem] text-oca-surface-foreground/70 underline underline-offset-4 hover:text-oca-surface-foreground focus-visible:[outline:2px_solid_var(--ring)]"
                     >
                         {tryAgain}
                     </button>
@@ -266,8 +266,9 @@ export function SignInDemo({
                                 data-state={state}
                                 onClick={() => show(firstScene(i))}
                                 className={cn(
-                                    'group flex min-h-11 w-full flex-col items-stretch gap-2.5 pt-1 text-left outline-none',
-                                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                                    // The ring is drawn whole: outline-none would leave outline-2 a style of none.
+                                    'group flex min-h-11 w-full flex-col items-stretch gap-2.5 pt-1 text-left',
+                                    'focus-visible:[outline:2px_solid_var(--ring)] focus-visible:outline-offset-2'
                                 )}
                             >
                                 <span aria-hidden className="relative block h-0.5 w-full overflow-hidden bg-border">

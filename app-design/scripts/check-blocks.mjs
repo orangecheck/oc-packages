@@ -5,14 +5,15 @@
  * - SignInDemo plays by itself only while it is on screen in a shown tab,
  *   pauses where it was otherwise, plays through once and rests with nothing
  *   left running. Its cursor moves by transform, never left/top. Nothing is
- *   said while it plays; the first press stops it for good, and then each
- *   step a reader moves to is said once. Try again, a real button outside
- *   the pictured window, plays it from the start and leaves focus on the
- *   first step. Under reduced motion it never plays: the first step, with
- *   44px step buttons that work. The last step shows the caller's success
- *   picture.
- * - The Slider says its value in words, moves by key, and is a 44px target.
- *   CostDemo steps through the site's stops in the site's words; its number
+ *   said while it plays; the first press, Tab or focus stops it for good on
+ *   the step it was on, and then each step a reader moves to is said once.
+ *   Try again, a real button outside the pictured window, plays it from the
+ *   start and leaves focus on the first step. Under reduced motion it never
+ *   plays: the first step, with 44px step buttons that work. The last step
+ *   shows the caller's success picture.
+ * - The Slider says its value in words, moves by key and is a 44px target;
+ *   focused from the keyboard, it and a step button draw a ring at least
+ *   2px wide. CostDemo steps through the site's stops in the site's words; its number
  *   and the real person's verdict follow the sliders, and the site's own
  *   cost and sentences replace the defaults; the crowd is one element, not a
  *   node per account; one sweep crosses it per change and then nothing runs;
@@ -174,6 +175,23 @@ try {
             check(current[0] === 'step' && current.filter(Boolean).length === 1, `SignInDemo: aria-current is ${JSON.stringify(current)}`);
             await close();
         }
+        // A Tab into a playing demo stops it on the step it was on, and the focused step button shows a ring.
+        {
+            const { p, close } = await open('demo');
+            await p.waitForTimeout(300);
+            const before = await demo(p);
+            await p.keyboard.press('Tab');
+            const ring = await p.evaluate(() => {
+                const el = document.activeElement;
+                const cs = getComputedStyle(el);
+                return { current: el.getAttribute('aria-current'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+            });
+            await p.waitForTimeout(STEP * 3);
+            const after = await demo(p);
+            check(before.mode === 'auto' && after.mode === 'manual' && after.step === before.step, `SignInDemo: a Tab left it ${JSON.stringify(after)} (it was ${JSON.stringify(before)})`);
+            check(ring.current === 'step' && ring.style !== 'none' && ring.width >= 2, `SignInDemo: the Tab-focused step button's ring is ${ring.style} ${ring.width}px`);
+            await close();
+        }
         // Reduced motion: never plays; the first step, with buttons a thumb can press.
         for (const width of [390, 1280]) {
             const { p, close } = await open('demo', { reduced: true, width });
@@ -195,6 +213,13 @@ try {
             const read = () => p.evaluate(() => ({ cost: document.querySelector('[data-cost]').textContent, verdict: document.querySelector('[data-verdict]').dataset.verdict }));
             const ticks = await p.evaluate(() => [...document.querySelectorAll('[data-cost-demo] [data-slider]')].map((r) => [...r.parentElement.querySelectorAll('[aria-hidden] > span')].map((t) => t.textContent)));
             check(JSON.stringify(await text()) === JSON.stringify(['100,000 sats', '30 days']), `Slider words: ${JSON.stringify(await text())}`);
+            await p.keyboard.press('Tab');
+            const thumb = await p.evaluate(() => {
+                const el = document.activeElement;
+                const cs = getComputedStyle(el);
+                return { role: el.getAttribute('role'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+            });
+            check(thumb.role === 'slider' && thumb.style !== 'none' && thumb.width >= 2, `Slider: the Tab-focused thumb's ring is ${thumb.style} ${thumb.width}px (focus on ${thumb.role})`);
             check(JSON.stringify(ticks) === JSON.stringify([['1k', '10k', '100k', '1M', '10M'], ['7 days', '30 days', '90 days', 'a year']]), `CostDemo ticks: ${JSON.stringify(ticks)}`);
             const crowd = await p.evaluate(() => ({ nodes: document.querySelector('[data-crowd]').querySelectorAll('*').length, canvases: document.querySelectorAll('[data-cost-demo] canvas').length }));
             check(crowd.nodes <= 3 && crowd.canvases === 0, `the crowd is ${crowd.nodes} nodes and ${crowd.canvases} canvases, not one element`);

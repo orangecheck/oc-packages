@@ -79,10 +79,10 @@ export const Slider = forwardRef<ElementRef<typeof SliderPrimitive.Root>, Slider
                     aria-labelledby={labelledBy}
                     aria-valuetext={valueText(shown)}
                     className={cn(
-                        'relative block size-[1.125rem] border-2 outline-none transition-[background-color]',
+                        'relative block size-[1.125rem] border-2 transition-[background-color]',
                         // A thumb's 44px, centred on what it draws.
                         'before:absolute before:-inset-[0.8125rem] before:content-[""]',
-                        'border-oca-accent-display bg-[var(--oca-ground,var(--background))] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring'
+                        'border-oca-accent-display bg-[var(--oca-ground,var(--background))] focus-visible:[outline:2px_solid_var(--ring)] focus-visible:outline-offset-4'
                     )}
                 />
             </SliderPrimitive.Root>
