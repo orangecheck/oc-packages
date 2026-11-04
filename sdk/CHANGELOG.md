@@ -7,6 +7,21 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.22.0] — 2026-11-04
+
+### Changed
+
+- A domain is proven by one thing, as it always was: its
+  `https://<domain>/.well-known/orangecheck.txt` file naming the attestation.
+  `getDnsVerificationInstructions` no longer offers a "DNS TXT record" method.
+  Nothing ever read that record, so anyone who followed it could never
+  verify. The instructions now end "Only this file is checked. DNS records
+  are not read."
+- `DnsVerificationResult.method` is `'well-known'` only. `'dns-txt'` was in
+  the type but never set. A TypeScript caller that compares
+  `method === 'dns-txt'` now gets a compile error, for a branch that could
+  never run.
+
 ## [1.21.0] — 2026-11-03
 
 ### Changed
