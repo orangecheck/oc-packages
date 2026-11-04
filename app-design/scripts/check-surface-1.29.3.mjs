@@ -21,7 +21,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,12 @@ function differences(a, b) {
     return out;
 }
 
+// Without a build there is nothing to compare, and a comparison of nothing must not pass.
+if (!existsSync(join(root, 'dist/index.d.ts'))) {
+    console.error(`✗ surface-${VERSION}: dist/index.d.ts is missing; run yarn build first`);
+    process.exit(1);
+}
+
 // The tarball sits inside the package while it is read, so its .d.ts resolve React and Radix from node_modules.
 const work = mkdtempSync(join(tmpdir(), `app-design-${VERSION}-`));
 const published = join(root, `.published-${VERSION}`);
@@ -80,8 +86,13 @@ try {
     const after = propTypes(join(root, 'dist'), join(root, 'package.json'));
     const narrowed = narrowings(before, after);
     for (const n of narrowed) fail(`a prop narrowed since ${VERSION}: ${n}`);
+    // Every component the snapshot names is compared, and only a comparison that happened is reported:
+    // narrowings skips a component the build lacks, so a missing one would otherwise pass unseen.
+    const named = Object.values(snapshot.exports).reduce((n, e) => n + Object.values(e).filter((x) => x.kind === 'component').length, 0);
+    const compared = Object.keys(before).filter((key) => after[key]).length;
+    if (Object.keys(before).length !== named || compared !== named) fail(`${compared} components compared, of ${Object.keys(before).length} read from the tarball; the snapshot names ${named}`);
     const exports = Object.values(regenerated.exports).reduce((n, e) => n + Object.keys(e).length, 0);
-    if (!failures) console.log(`✓ surface-${VERSION}: npm's tarball matches its pinned integrity; the snapshot equals its surface (${regenerated.entries.length} entries, ${exports} exports); ${Object.keys(before).length} components keep every string option and optional prop`);
+    if (!failures) console.log(`✓ surface-${VERSION}: npm's tarball matches its pinned integrity; the snapshot equals its surface (${regenerated.entries.length} entries, ${exports} exports); ${compared} of the snapshot's ${named} components compared, every string option and optional prop kept`);
 
     if (selfTest) {
         // Mutant 1, review-me's: StatGrid's `empty` gone from the snapshot (as a build without it would be snapshotted).

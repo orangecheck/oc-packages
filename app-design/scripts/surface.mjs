@@ -68,10 +68,14 @@ export function propTypes(dist, pkgJson) {
             const target = s.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s;
             const decl = target.valueDeclaration ?? target.declarations?.[0];
             if (!decl) continue;
-            const p = checker.getTypeOfSymbolAtLocation(target, decl).getCallSignatures()[0]?.getParameters()[0];
-            if (!p) continue;
+            // The components surface() counts: callable, or React's exotic forwardRef and memo objects.
+            const t = checker.getTypeOfSymbolAtLocation(target, decl);
+            const sig = t.getCallSignatures()[0];
+            if (!sig && !t.getProperties().some((x) => x.getName() === '$$typeof')) continue;
+            const p = sig?.getParameters()[0];
             const props = {};
-            for (const prop of checker.getPropertiesOfType(checker.getApparentType(checker.getTypeOfSymbolAtLocation(p, decl))).filter(own)) {
+            // A component that takes no props has none to narrow; it still counts as compared.
+            for (const prop of p ? checker.getPropertiesOfType(checker.getApparentType(checker.getTypeOfSymbolAtLocation(p, decl))).filter(own) : []) {
                 const ptype = checker.getTypeOfSymbolAtLocation(prop, prop.valueDeclaration ?? prop.declarations[0]);
                 const parts = ptype.isUnion() ? ptype.types : [ptype];
                 props[prop.getName()] = {
