@@ -8,6 +8,9 @@
     orange with ink words (6.56:1 on the band, 8.12:1 for the words on its
     hover). This is chat's ink-hero CTA. No deep orange under white words
     holds 3:1 on the dark ink band: it was 2.79:1, and 2.56 on its Card.
+  - **Visible change in dark mode, on every site:** a primary Button's hover,
+    and `SiteHeader`'s CTA's, now lightens to `#cc4a0e` instead of darkening.
+    The darker hover was 2.67:1 on the night page.
   - On the orange band `primary` is ink with orange words (6.56:1). The deep
     orange was 1.85:1 there.
   - In the footer band `primary` is white with deep-orange words (5.18:1),
@@ -16,11 +19,10 @@
     at 45% was 2.87:1 on paper and 2.36:1 on orange. On paper the new edge
     reads the same grey.
   - The primary hover has its own token, `--oca-cta-hover` (palette
-    `ctaHover`), which each band re-points. On the dark page it lightens to
-    `#cc4a0e` (4.23:1 on night, white words 4.61:1), and on the burnt band
-    it takes `--oca-primary-lift`, the same lighter orange. The darker hover
-    was 2.67:1 on night and 2.42:1 on burnt. `SiteHeader`'s CTA takes the
-    same hover.
+    `ctaHover`), which each band re-points. In dark mode it is `#cc4a0e`
+    (4.23:1 on night, white words 4.61:1). On the burnt band, in both modes,
+    it takes `--oca-primary-lift`, the same lighter orange; the darker hover
+    was 2.42:1 there. On paper it stays `#9a3412`.
 - `variant="brand"` is for dark grounds and tiles only: the ink and burnt
   bands and Cards, and the dark page. On paper it was 2.34:1, and on orange
   1.00. **Migrate**: a CTA on paper is `primary`. check-contrast fails on a
