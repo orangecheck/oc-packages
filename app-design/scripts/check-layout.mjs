@@ -297,6 +297,12 @@ try {
                     [h(M.code, null, 'oc.vault.entitlement_missing'), '402', 'No plan covers this. See /pricing.'],
                     [h(M.code, null, 'https://ochk.io/api/auth/revocations'), '200', 'The feed of ended sessions.'],
                 ])),
+                // The package's other small parents, each holding inline code: a caption, a MonoLabel, a SectionBar.
+                h('div', { 'data-t': 'small' },
+                    h('table', null, h(M.caption ?? 'caption', { className: 'text-[0.75rem]' }, 'Codes, ', h(M.code, null, 'oc_*'))),
+                    h(C.MonoLabel, null, 'Status ', h(M.code, null, '401')),
+                    h(C.SectionBar, { start: h('span', null, 'Field ', h(M.code, null, 'did')), end: h(M.code, null, 'v1') })
+                ),
                 h('div', { 'data-t': 'wide' }, mdTable(['A', 'B', 'C', 'D', 'E', 'F'], [
                     ['first_column_value', 'second_column_value', 'third_column_value', 'fourth_column_value', 'fifth_column_value', 'sixth_column_value'].map((x) => h(M.code, null, x.replace(/_/g, ''))),
                 ]))
