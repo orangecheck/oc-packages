@@ -108,7 +108,7 @@ function Headings() {
         <div>
             <p id="active" style={{ position: 'fixed', top: 0, right: 0, margin: 0 }}>{active}</p>
             <h2 id="h-a" style={{ margin: 0, height: 20, fontSize: 16 }}>A</h2>
-            <div style={{ height: 108 }} />
+            <div style={{ height: +(q.get('gap') ?? 108) }} />
             <h2 id="h-b" style={{ margin: 0, height: 20, fontSize: 16 }}>B</h2>
             <div style={{ height: 2400 }} />
         </div>
@@ -233,11 +233,13 @@ try {
     writeFileSync(join(dir, 'ssr-dark.html'), readFileSync(join(dir, 'ssr-dark.html'), 'utf8').replace('<html data-oc-app="ochk">', '<html data-oc-app="ochk" class="dark">'));
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
-    const open = async (scene, { width = 390, height = 400, flags = '', page = null } = {}) => {
+    // safe: a bottom safe-area inset in px, as a phone with a home indicator has (env(safe-area-inset-bottom)).
+    const open = async (scene, { width = 390, height = 400, flags = '', page = null, safe = 0 } = {}) => {
         const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: true, javaScriptEnabled: !page });
         const p = await ctx.newPage();
         const errors = [];
         p.on('pageerror', (e) => errors.push(e.message));
+        if (safe) await (await ctx.newCDPSession(p)).send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 0, left: 0, right: 0, bottom: safe } });
         await p.goto(page ?? `${url}?s=${scene}${flags ? `&${flags}` : ''}`);
         await p.evaluate(() => document.fonts.ready);
         return { p, errors, close: () => ctx.close() };
@@ -446,14 +448,40 @@ try {
             check(without === 'auto', `[390] a page with no bar has scroll-padding-bottom ${without}, not auto`);
             check(parseFloat(withBar) === h + 12, `[390] a page with a ${h}px bar has scroll-padding-bottom ${withBar}, not ${h + 12}px`);
         }
-        // The heading being read is in the upper third of what is seen, not of the window under the bar.
-        {
-            const { p, close } = await open('heading');
+        // The heading being read is in the upper 35% of what is seen (80 to 120 here), not of the window under the
+        // bar (80 to 140) and not a band narrowed by a percent taken of the whole window (80 to 83).
+        for (const [gap, want] of [
+            [108, 'h-a'],
+            [80, 'h-b'],
+        ]) {
+            const { p, close } = await open('heading', { flags: `gap=${gap}` });
             await p.waitForTimeout(600);
             const got = await p.evaluate(() => document.getElementById('active').textContent);
             const b = await p.evaluate(() => document.getElementById('h-b').getBoundingClientRect().top);
-            check(got === 'h-a', `[390x400] useActiveHeading reads "${got}" with B at ${Math.round(b)}, below the upper 35% of the 343px seen (want h-a)`);
+            check(got === want, `[390x400] useActiveHeading reads "${got}" with B at ${Math.round(b)} (want ${want}: the band is 80 to 120 of the 343px seen)`);
             await close();
+        }
+        // The padding and the room exactly, from the bar's own box: with script (the published height) and without
+        // it (the fallback, which must hold the bar's hairline and safe area), at no inset and at a 34px one.
+        for (const [name, o] of [
+            ['the server page, no script', { page: ssrLight }],
+            ['the server page, no script, dark', { page: ssrDark }],
+            ['focus', {}],
+        ]) {
+            for (const safe of [0, 34]) {
+                const { p, close } = await open(name.split(' ')[0], { ...o, safe });
+                await p.waitForTimeout(300);
+                const r = await p.evaluate(() => {
+                    const room = document.getElementById('main-content')?.closest('[class*="max-md:pb-"]');
+                    return {
+                        bar: document.querySelector('[data-oca-tabbar]').getBoundingClientRect().height,
+                        pad: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom),
+                        room: room ? parseFloat(getComputedStyle(room).paddingBottom) : null,
+                    };
+                });
+                check(Math.abs(r.bar - (57 + safe)) < 0.5 && Math.abs(r.pad - (r.bar + 12)) < 0.5 && Math.abs(r.room - r.bar) < 0.5, `[390, safe area ${safe}] ${name}: a ${r.bar}px bar (want ${57 + safe}) has scroll-padding-bottom ${r.pad}px (want ${r.bar + 12}) and room ${r.room}px (want ${r.bar})`);
+                await close();
+            }
         }
         // Focus: Tab down twenty buttons in a shell; the one in focus is never under the bar, the last one at the
         // page's end included (the shell's room under its content is the bar's own height).
