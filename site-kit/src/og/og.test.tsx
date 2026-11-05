@@ -152,15 +152,24 @@ describe('createOgHandler resolve', () => {
         expect(asked).toEqual(['demo', 'vault']);
     }, 30_000);
 
-    it('sends a thing removed, hidden or not found to the default card, kept as long as the lookup says, and draws nothing', async () => {
+    it('sends a thing removed, hidden or not found to the default card for now, kept as long as the lookup says, and draws nothing', async () => {
         // A probe of any slug costs one lookup and no render, and a project made after its URL was
-        // probed shows within the lookup's own age, not a day.
+        // probed shows within the lookup's own age. Not found now is not for good: a 307.
         const { asked, opts } = lookingUp({});
         const out = await handled(opts, '/api/og?project=gone');
-        expect([out.status, out.headers.location, out.headers['cache-control'], out.body]).toEqual([308, '/api/og', SHORT, undefined]);
+        expect([out.status, out.headers.location, out.headers['cache-control'], out.body]).toEqual([307, '/api/og', SHORT, undefined]);
         expect(asked).toEqual(['gone']);
         const docs = await handled({ ...opts, basePath: '/docs' }, '/api/og?project=gone');
-        expect([docs.status, docs.headers.location]).toEqual([308, '/docs/api/og']);
+        expect([docs.status, docs.headers.location]).toEqual([307, '/docs/api/og']);
+    });
+
+    it('keeps that redirect a day at most, whatever the lookup asks', async () => {
+        const project = async (): Promise<OgLookup> => ({
+            card: null,
+            cacheControl: 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000, immutable',
+        });
+        const out = await handled({ ...KEYED, resolve: { project } }, '/api/og?project=gone');
+        expect([out.status, out.headers['cache-control']]).toEqual([307, 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400']);
     });
 
     it('answers the default card with no-store when the lookup throws, so a failed read is never kept', async () => {
@@ -220,6 +229,20 @@ describe('createOgHandler basePath', () => {
         const create = await handled(docs, '/api/og?page=create');
         expect([create.status, create.headers.location]).toEqual([200, undefined]);
     }, 30_000);
+
+    it('sends no request to another host, whatever its path', async () => {
+        // /x/..//evil.com resolves to //evil.com, which a Location would read as a host.
+        const { opts } = lookingUp({});
+        for (const [site, url, to] of [
+            [KEYED, '/x/..//evil.example?title=x', '/evil.example'],
+            [{ ...KEYED, basePath: '/docs' }, '/x/..//evil.example?title=x', '/docs/evil.example'],
+            [opts, '/x/..//evil.example?project=gone', '/evil.example'],
+            [KEYED, '/x/..///api/og?page=nope', '/api/og'],
+        ] as const) {
+            const out = await handled(site, url);
+            expect(out.headers.location, url).toBe(to);
+        }
+    });
 
     it('refuses a basePath that is not a path, so a 308 never leaves the site', () => {
         for (const basePath of ['docs', '/docs/', '/', '', '//evil.example', 'https://evil.example', '/do cs', '/a//b', '/.', '/..', '/docs/..', '/../docs', '/./docs']) {
