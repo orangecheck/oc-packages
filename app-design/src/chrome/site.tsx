@@ -113,6 +113,13 @@ export interface SiteHeaderProps {
     /** Mount the family menu beside the lockup. Pass the site's slug to mark it. */
     family?: boolean | FamilySlug;
     nav?: readonly NavItem[];
+    /**
+     * Links after `nav` that join the bar from 1180px, where a tool site's
+     * Docs and About have room. Below that they are in the menu, whose button
+     * then stays beside the bar's own links in place of the family menu, which
+     * it holds too.
+     */
+    navWide?: readonly NavItem[];
     /** A search control, set before the actions. */
     search?: ReactNode;
     actions?: ReactNode;
@@ -180,6 +187,7 @@ export function SiteHeader({
     product,
     family,
     nav = [],
+    navWide = [],
     search,
     actions,
     variant = 'site',
@@ -193,7 +201,7 @@ export function SiteHeader({
     const [open, setOpen] = useState(false);
     const familySignIn = useFamilySignInHref();
     const current = typeof family === 'string' ? family : undefined;
-    const phoneNav = navOnPhone ? nav : [];
+    const phoneNav = [...(navOnPhone ? nav : []), ...navWide];
     const ctaOwn = typeof cta === 'object' ? cta : {};
     const signInOwn = typeof signIn === 'object' ? signIn : {};
     const headerCta =
@@ -214,20 +222,28 @@ export function SiteHeader({
     // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
     // links follow the brand, and Sign in and the CTA sit at the right rule.
     const framed = variant !== 'tool';
+    const barLink = (n: NavItem) =>
+        n.children?.length ? (
+            <NavDropdown key={n.href} item={n} />
+        ) : (
+            // Text links, 28px apart.
+            <NavLink key={n.href} item={n} className={cn('flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink', HIT_LINK)} />
+        );
     const navigation =
-        nav.length > 0 ? (
+        nav.length + navWide.length > 0 ? (
             // To a thumb a short word's 44px is a ::before, not a wider box, and the words close up 4px, so the row still
             // fits beside search at 900 (the home link's 44 has to be drawn: the family menu sits 4px from it).
-            // Into the sheet below 900px.
-            <nav aria-label="Main" className="ml-[1.125rem] hidden items-center gap-7 pointer-coarse:gap-6 min-[900px]:flex">
-                {nav.map((n) =>
-                    n.children?.length ? (
-                        <NavDropdown key={n.href} item={n} />
-                    ) : (
-                        // Text links, 28px apart.
-                        <NavLink key={n.href} item={n} className={cn('flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink', HIT_LINK)} />
-                    )
-                )}
+            // Into the sheet below 900px; `navWide` below 1180px, where the links close up 4px as they do to a thumb,
+            // for the name's room beside four tools. Each group is named, so a page can hide one.
+            <nav aria-label="Main" className={cn('ml-[1.125rem] hidden items-center gap-7 pointer-coarse:gap-6 min-[900px]:flex', navWide.length > 0 && 'max-[1180px]:gap-6')}>
+                <span data-nav="main" className="contents">
+                    {nav.map(barLink)}
+                </span>
+                {navWide.length > 0 ? (
+                    <span data-nav="wide" className="contents max-[1180px]:hidden">
+                        {navWide.map(barLink)}
+                    </span>
+                ) : null}
             </nav>
         ) : null;
     return (
@@ -260,7 +276,8 @@ export function SiteHeader({
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
                     </Link>
-                    {family ? <FamilyMenu current={current} className="max-[900px]:hidden" /> : null}
+                    {/* Below 1180px a bar with `navWide` has its menu, which holds the family too. */}
+                    {family ? <FamilyMenu current={current} className={navWide.length > 0 ? 'max-[1180px]:hidden' : 'max-[900px]:hidden'} /> : null}
                     {navigation}
                 </div>
                 <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch', account ? 'shrink-[1000000]' : 'shrink-0')}>
@@ -277,7 +294,10 @@ export function SiteHeader({
                     {menu ? (
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
-                                className="inline-flex size-11 shrink-0 items-center justify-center rounded-none text-foreground hover:bg-accent min-[900px]:hidden"
+                                className={cn(
+                                    'inline-flex size-11 shrink-0 items-center justify-center rounded-none text-foreground hover:bg-accent',
+                                    navWide.length > 0 ? 'min-[1180px]:hidden' : 'min-[900px]:hidden'
+                                )}
                                 aria-label="Open menu"
                             >
                                 <Menu className="size-5" />

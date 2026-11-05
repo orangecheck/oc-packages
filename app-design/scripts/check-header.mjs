@@ -7,7 +7,9 @@
  *   navigation (15px text 18px after the family menu, into the phone's menu below 900px) and account block flush
  *   at the right end; in the frame (82.5rem at most, between its rules), or the window's width for `tool`;
  * - no theme switch in the bar: it is in the footer and the account menu;
- * - ToolShell's phone menu holds its links one row each, as ochk.app's does.
+ * - ToolShell's phone menu holds its links one row each, as ochk.app's does;
+ * - with the longest tool set a site has (agent's four), no link wraps, the lockup's word is whole and the bar does
+ *   not overflow; Docs and About join the bar from 1180px, and the menu holds them below.
  *
  * It bundles the package's sources, so it needs no build.
  */
@@ -46,13 +48,14 @@ import { AppShell, ThemeProvider } from '${src('chrome/app-shell.tsx')}';
 import { SessionAccountView } from '${src('chrome/account.tsx')}';
 const place = new URLSearchParams(location.search).get('place');
 const account = <SessionAccountView state="out" signInHref="/signin" />;
-const tools = [{ href: '/create', label: 'Create', icon: <FileText />, active: true }, { href: '/verify', label: 'Verify', icon: <ShieldCheck /> }, { href: '/discover', label: 'Discover', icon: <List /> }];
+// agent's own four, the longest tool set of the six sites.
+const tools = [{ href: '/create', label: 'Create', icon: <FileText />, active: true }, { href: '/inspect', label: 'Inspect', icon: <ShieldCheck /> }, { href: '/delegations', label: 'Delegations', icon: <List /> }, { href: '/playground', label: 'Playground', icon: <House /> }];
 const page = <main id="main-content" style={{ height: 1600 }}><p>page</p></main>;
 const views = {
     // ochk.app's public header, the measure.
     app: () => <><SiteHeader family="me" nav={[{ href: '/how', label: 'How it works' }, { href: '/earn', label: 'Earn' }, { href: '/apps', label: 'For apps' }]} account={account} />{page}</>,
-    tool: () => <ToolShell protocol="stamp" tools={tools} account={account}><p>page</p></ToolShell>,
-    toolapp: () => <ToolShell protocol="lock" variant="app" tools={tools} account={account}><p>page</p></ToolShell>,
+    tool: () => <ToolShell protocol="agent" tools={tools} account={account}><p>page</p></ToolShell>,
+    toolapp: () => <ToolShell protocol="attest" variant="app" tools={tools} account={account}><p>page</p></ToolShell>,
     docs: () => <DocsShell nav={[{ label: 'Start', items: [{ href: '/', label: 'Overview' }] }]} current="/" account={account}><div style={{ height: 2400 }}>page</div></DocsShell>,
     messenger: () => (
         <AppShell variant="rail" header={<SiteHeader variant="tool" home="/" product="chat" family="chat" nav={[{ href: '/', label: 'Overview' }]} account={account} />} nav={[{ items: [{ href: '/a', label: 'Chats', icon: <House />, active: true }] }]}>
@@ -78,9 +81,21 @@ function measure() {
     // The wordmark's own element: a lockup's outer span holds the same text at the link's size.
     const word = [...(brand?.querySelectorAll('span, text') ?? [])].find((e) => !e.children.length && e.textContent.trim() === 'orangecheck' && !e.classList.contains('sr-only'));
     const nav = header.querySelector('nav[aria-label="Main"]');
-    const navShown = nav && getComputedStyle(nav).display !== 'none';
-    // The first item, a link or a dropdown's button (ochk.io's Protocols).
-    const firstLink = navShown ? nav.querySelector('a, button') : null;
+    // The first item shown, a link or a dropdown's button (ochk.io's Protocols).
+    const shownLinks = nav ? [...nav.querySelectorAll('a, button')].filter((a) => a.getClientRects().length) : [];
+    const firstLink = shownLinks[0] ?? null;
+    const navShown = Boolean(firstLink);
+    // A link on two lines: its words' boxes start more than half a line apart (an icon beside them is not a line).
+    const lines = (el) => {
+        const tops = [];
+        const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+            const r = document.createRange();
+            r.selectNodeContents(t);
+            for (const b of r.getClientRects()) if (b.width > 0) tops.push(b.top);
+        }
+        return tops.length ? 1 + tops.filter((t) => t - Math.min(...tops) > 8).length : 0;
+    };
     const family = header.querySelector('button[aria-haspopup]:not([data-oca-account])');
     const familyShown = family && family.getClientRects().length > 0;
     const acc = header.querySelector('[data-oca-account]');
@@ -97,6 +112,12 @@ function measure() {
         theme: [...header.querySelectorAll('button[aria-label^="Theme:"]')].filter((b) => b.getClientRects().length).length,
         menu: Boolean(header.querySelector('button[aria-label="Open menu"]')?.getClientRects().length),
         family: Boolean(familyShown),
+        links: shownLinks.map((a) => a.textContent.trim()),
+        wrapped: shownLinks.filter((a) => lines(a) > 1).map((a) => a.textContent.trim()),
+        // The lockup's words shown, each as wide as its content (a word cut to nothing reads 0 of its width); a word
+        // the lockup hides on purpose is visually hidden (absolute, 1px), not cut.
+        cut: [...(brand?.querySelectorAll('span') ?? [])].filter((e) => !e.children.length && e.textContent.trim() && getComputedStyle(e).position !== 'absolute' && !e.closest('.sr-only') && e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map((e) => `${e.textContent.trim()} ${e.clientWidth} of ${e.scrollWidth}`),
+        over: row.scrollWidth > row.clientWidth + 1,
     };
 }
 
@@ -120,7 +141,8 @@ try {
     };
     try {
         const PLACES = ['tool', 'toolapp', 'docs', 'messenger'];
-        for (const width of [360, 390, 768, 899, 900, 1024, 1440, 1920]) {
+        const TOOLS = new Set(['tool', 'toolapp']);
+        for (const width of [360, 390, 768, 899, 900, 1024, 1179, 1180, 1440, 1920]) {
             const ref = await open('app', width);
             const want = await ref.p.evaluate(measure);
             await ref.close();
@@ -145,9 +167,18 @@ try {
                 check(got.word === want.word, `${at}: the wordmark is ${got.word}, ochk.app's ${want.word}`);
                 check(got.padLeft === want.padLeft && Math.abs(got.mark.x - (bleed ? want.mark.x - want.row.x - parseFloat(want.rules[0]) : want.mark.x)) <= 0.5, `${at}: the lockup starts at ${got.mark?.x} (gutter ${got.padLeft}), ochk.app's at ${want.mark.x} (${want.padLeft})`);
                 check(JSON.stringify(got.nav && { font: got.nav.font, gap: got.nav.gap }) === JSON.stringify(want.nav && { font: want.nav.font, gap: want.nav.gap }), `${at}: the navigation is ${JSON.stringify(got.nav)}, ochk.app's ${JSON.stringify(want.nav)}`);
-                check(got.menu === want.menu, `${at}: the phone's menu button is ${got.menu ? 'there' : 'missing'}, ochk.app's ${want.menu ? 'there' : 'missing'}`);
+                // A tool bar's menu holds Docs and About to 1179px, so its button stays there beside the tools.
+                const menuWanted = TOOLS.has(place) ? width < 1180 : want.menu;
+                check(got.menu === menuWanted, `${at}: the menu button is ${got.menu ? 'there' : 'missing'}, ${menuWanted ? 'wanted' : 'not wanted'}`);
                 // The menu holds the family where its button shows, so the bar never draws both.
                 check(!(got.menu && got.family), `${at}: the family menu and the menu button are both in the bar`);
+                check(got.wrapped.length === 0, `${at}: ${got.wrapped.join(', ')} wraps onto two lines`);
+                check(got.cut.length === 0, `${at}: the lockup's word is cut: ${got.cut.join(', ')}`);
+                check(!got.over, `${at}: the bar overflows`);
+                if (TOOLS.has(place)) {
+                    const wantLinks = width < 900 ? [] : ['Create', 'Inspect', 'Delegations', 'Playground', ...(width >= 1180 ? ['Docs', `About ${place === 'toolapp' ? 'attest' : 'agent'}`] : [])];
+                    check(JSON.stringify(got.links) === JSON.stringify(wantLinks), `${at}: the bar's links are ${JSON.stringify(got.links)}, not ${JSON.stringify(wantLinks)}`);
+                }
                 check(got.theme === 0, `${at}: ${got.theme} theme switch in the bar`);
                 // What sticks under the bar, scrolled: the docs' section bar below lg, its sidebar from lg, flush.
                 if (place === 'docs') {
@@ -186,8 +217,17 @@ try {
                 })
             );
             const labels = rows.map((r) => r[0]);
-            check(JSON.stringify(labels) === JSON.stringify(['Create', 'Verify', 'Discover', 'Docs', 'About stamp']), `ToolShell's phone menu lists ${JSON.stringify(labels)}`);
+            check(JSON.stringify(labels) === JSON.stringify(['Create', 'Inspect', 'Delegations', 'Playground', 'Docs', 'About agent']), `ToolShell's phone menu lists ${JSON.stringify(labels)}`);
             check(rows.every((r) => r[1] === rows[0][1] && r[3] >= 44) && rows.every((r, i) => i === 0 || r[2] >= rows[i - 1][2] + rows[i - 1][3] - 1), `ToolShell's phone menu is not one 44px row per link: ${JSON.stringify(rows)}`);
+            await close();
+        }
+        // From 900 to 1179 a tool bar's menu holds what the bar does not show: Docs and About.
+        for (const place of ['tool']) {
+            const { p, close } = await open(place, 1024);
+            await p.locator('header button[aria-label="Open menu"]').click();
+            await p.waitForSelector('[role="dialog"]');
+            const labels = await p.evaluate(() => [...document.querySelectorAll('[role="dialog"] nav[aria-label="Main"] a')].map((a) => a.textContent.trim()));
+            check(labels.includes('Docs') && labels.includes('About agent'), `[1024] ${place}: the menu lists ${JSON.stringify(labels)}, without Docs or About`);
             await close();
         }
         // The theme's switch: in ToolShell's footer.
@@ -207,4 +247,4 @@ if (failures) {
     console.error(`\n${failures} header failure(s)`);
     process.exit(1);
 }
-console.log(`✓ header: ${checks} checks in Chrome from 360 to 1920; ToolShell, DocsShell and a full-width app draw ochk.app's bar, with no theme switch in it`);
+console.log(`✓ header: ${checks} checks in Chrome from 360 to 1920; ToolShell, DocsShell and a full-width app draw ochk.app's bar, with no theme switch in it, and agent's four tools fit it`);
