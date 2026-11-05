@@ -2,7 +2,8 @@
 /*
  * The family's one account control, in Chrome on SwiftShader, in every place
  * a site puts it (the public header, the tool header, a header given a site's
- * own CTA, the signed-in shell) and every state, from 320 to 1440:
+ * own CTA, the docs' header, the signed-in shell) and every state, from 320 to
+ * 1440:
  *
  * - Exactly one account control a person can use: signed in, the trigger
  *   showing who (the email, or a short did), at every width; signed out, the
@@ -57,6 +58,8 @@ import { createRoot } from 'react-dom/client';
 import { FileText, House, List } from 'lucide-react';
 import { SiteHeader } from '${src('chrome/site.tsx')}';
 import { ToolShell } from '${src('chrome/tool-shell.tsx')}';
+import { DocsShell } from '${src('chrome/docs-shell.tsx')}';
+import { SearchButton } from '${src('components/search.tsx')}';
 import { AppShell, ThemeProvider } from '${src('chrome/app-shell.tsx')}';
 import { SessionAccountView } from '${src('chrome/account.tsx')}';
 const q = new URLSearchParams(location.search);
@@ -89,6 +92,12 @@ const views = {
             <p>page</p>
         </ToolShell>
     ),
+    // The docs' bar: orangecheck's own lockup, the family menu and search beside the account.
+    docs: () => (
+        <DocsShell nav={[{ label: 'Start', items: [{ href: '/', label: 'Overview' }] }]} current="/" search={<SearchButton />} account={account}>
+            <div style={{ height: 1200 }}>page</div>
+        </DocsShell>
+    ),
     app: () => (
         <AppShell product="vault" nav={[{ items: [{ href: '/a', label: 'Entries', icon: <House />, active: true }, { href: '/b', label: 'Shares', icon: <List /> }] }]} account={account}>
             <p>page</p>
@@ -98,14 +107,15 @@ const views = {
 createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place]()}</ThemeProvider>);
 `;
 
-const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'app'];
+const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'docs', 'app'];
 // Places whose lockup is orangecheck's alone (no site's word).
-const BARE = new Set(['site', 'dup', 'old']);
+const BARE = new Set(['site', 'dup', 'old', 'docs']);
 // Places that draw the inline control, not the header's block.
 const INLINE = new Set(['app', 'old']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
-// 440: between the wordmark's 420 and the bar's 480, where a signed-in site's lockup drops its wordmark.
-const WIDTHS = [320, 360, 390, 440, 768, 1024, 1440];
+// 440: between the wordmark's 420 and the bar's 480, where a signed-in lockup drops its wordmark. 900: where the
+// links come into the bar, its most crowded width.
+const WIDTHS = [320, 360, 390, 440, 768, 900, 1024, 1440];
 
 // In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
 // them the same way: a page function carries nothing in with it).
@@ -264,14 +274,15 @@ try {
                             check(!n.brandCut || n.w < 1, `${at}: the brand is cut while the name still has ${n.w}px`);
                             check(n.w <= n.cap + 0.5, `${at}: the name is ${n.w}px, past its ${n.cap}px`);
                             check(!n.cut || n.w >= n.least, `${at}: the name is cut to ${n.w}px, under a letter and the ellipsis (${n.least}px), so the ellipsis is clipped`);
-                            // At least 8 of its characters at every width: below 390 the lockup is its mark alone, and below
-                            // 480 a site's lockup drops the wordmark, to make the room.
+                            // At least 8 of its characters at every width: below 480 the lockup drops its wordmark, so
+                            // orangecheck's own is its mark alone, and below 390 a site's is too, to make the room.
                             check(n.chars >= Math.min(8, name.length), `${at}: the name shows ${n.chars} characters, under 8`);
-                            const words = width < 390 ? [] : BARE.has(place) ? ['orangecheck'] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
+                            const words = BARE.has(place) ? (width < 480 ? [] : ['orangecheck']) : width < 390 ? [] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
                             if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
-                            // Whole wherever the bar has the room: from 768, where the links are still in the phone's menu.
-                            if (state !== 'in-long' && width >= 768) check(!n.cut, `${at}: "${name}" is cut at ${n.w}px`);
+                            // Whole wherever the bar has the room: at 768, where the links are still in the phone's menu, and
+                            // from 1024. At 900 the links have just come into the bar, and the name gives them its room.
+                            if (state !== 'in-long' && width >= 768 && width !== 900) check(!n.cut, `${at}: "${name}" is cut at ${n.w}px`);
                             if (state === 'in-long' && width >= 1024) check(n.cut, `${at}: the long name is whole at ${n.w}px`);
                             if (state === 'in-long' && width >= 1440) check(atCap, `${at}: the long name is cut at ${n.w}px with room for its ${n.cap}px`);
                             // On a phone the initial gives its room to the name.
@@ -280,6 +291,19 @@ try {
                         }
                         const label = await p.locator('[data-oca-account="in"]').first().getAttribute('aria-label');
                         check(label === `${name}, account menu`, `${at}: the trigger is named "${label}"`);
+                    }
+                    // The docs' search: a field from md, but with someone signed in its icon where the links share the bar
+                    // (900 to 1179px), its word still its name and the shortcut not drawn.
+                    if (place === 'docs' && width >= 768) {
+                        const s = await p.evaluate(() => {
+                            const b = document.querySelector('header button[aria-keyshortcuts]');
+                            const label = b.querySelector('span:not([aria-hidden])');
+                            const kbd = b.querySelector('[aria-hidden]:not(svg)');
+                            return { w: Math.round(b.getBoundingClientRect().width), label: label.textContent, drawn: label.getBoundingClientRect().width > 1, kbd: kbd.getClientRects().length > 0 };
+                        });
+                        const icon = signedIn && width >= 900 && width < 1180;
+                        check(icon ? s.w <= 44 && !s.drawn && !s.kbd : s.w === 224 && s.drawn && s.kbd, `${at}: the search is ${JSON.stringify(s)}, not ${icon ? 'its icon' : 'its field'}`);
+                        check(s.label === 'Search', `${at}: the search is named "${s.label}"`);
                     }
                     if (width <= 390) {
                         const fit = await p.evaluate(() => {
