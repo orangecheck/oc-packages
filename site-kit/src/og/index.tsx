@@ -30,9 +30,9 @@ export interface OgCardOptions {
      * draws a project's card for `?project=<slug>`, that query alone being its
      * one URL. Each lookup says how long its answer is kept, since a looked-up
      * card can change or be taken down. One that finds nothing sends the
-     * request to the default card's URL for that long, and draws nothing; one
-     * that throws answers the default card with `no-store`, so a failed read is
-     * never kept. Not `page`, the query of `cards`.
+     * request to the default card's URL with a 307 for that long, but never past
+     * a day, and draws nothing; one that throws answers the default card with
+     * `no-store`, so a failed read is never kept. Not `page`, the query of `cards`.
      */
     resolve?: Readonly<Record<string, (value: string) => Promise<OgLookup>>>;
     /**
@@ -60,7 +60,8 @@ export interface OgCardOptions {
 export interface OgLookup {
     /**
      * The card to draw, or null for a thing removed, hidden or not found: that
-     * request is sent to the default card's URL, kept for `cacheControl`.
+     * request is sent to the default card's URL with a 307, kept for
+     * `cacheControl` but never past a day.
      */
     card: OgCardEntry | null;
     /** This answer's Cache-Control, e.g. `public, max-age=300, s-maxage=3600, stale-while-revalidate=60`. */
@@ -106,6 +107,23 @@ const CARD_CACHE = 'public, max-age=86400, s-maxage=86400';
 const FAILED_LOOKUP_CACHE = 'no-store';
 
 /**
+ * A lookup's own Cache-Control for its redirect to the default card, kept no
+ * longer than a day and never immutable: what is not found now may be found
+ * tomorrow, whatever the lookup asks.
+ */
+function atMostADay(cacheControl: string): string {
+    return cacheControl
+        .split(',')
+        .map((d) => d.trim())
+        .filter((d) => d !== '' && d.toLowerCase() !== 'immutable')
+        .map((d) => {
+            const age = /^(max-age|s-maxage|stale-while-revalidate)\s*=\s*(\d+)$/i.exec(d);
+            return age ? `${age[1]}=${Math.min(Number(age[2]), 86400)}` : d;
+        })
+        .join(', ');
+}
+
+/**
  * The query of the one URL of the card a request names, as `generateMetaTags`
  * builds it: `?page=<key>` for a card the site issues, else `?<name>=<value>`
  * for the first of its lookups the request gives a value, else none.
@@ -146,10 +164,11 @@ export function createOgHandler(opts: OgCardOptions) {
     }
     return async function ogHandler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
         const url = new URL(req.url ?? '/', 'http://og.invalid');
-        const sendTo = (query: string, cacheControl: string) => {
+        // One leading slash, so no path (/x/..//host resolves to //host) reads as another host.
+        const sendTo = (query: string, cacheControl: string, status = 308) => {
             res.setHeader('Cache-Control', cacheControl);
-            res.setHeader('Location', `${opts.basePath ?? ''}${url.pathname}${query}`);
-            res.status(308).end();
+            res.setHeader('Location', `${opts.basePath ?? ''}${url.pathname.replace(/^\/+/, '/')}${query}`);
+            res.status(status).end();
         };
         const { query, lookup } = canonical(url, opts);
         if (url.search !== query) return sendTo(query, CARD_CACHE);
@@ -159,7 +178,7 @@ export function createOgHandler(opts: OgCardOptions) {
             const [name, value] = lookup;
             try {
                 const found = await opts.resolve![name]!(value);
-                if (found.card === null) return sendTo('', found.cacheControl);
+                if (found.card === null) return sendTo('', atMostADay(found.cacheControl), 307);
                 drawn = entryCard(found.card);
                 cache = found.cacheControl;
             } catch (err) {
