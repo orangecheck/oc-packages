@@ -42,6 +42,11 @@ const head = [
     `<meta name="twitter:card" content="summary_large_image" />`,
 ].join('\n    ');
 html = html.replace(title, head);
+// main.ts's managerHead gives the page 2.0's theme-color pair; a page without it shows the browser's own chrome.
+if ((html.match(/<meta name="theme-color" media="\(prefers-color-scheme: (light|dark)\)" content="#[0-9a-f]{6}" \/>/g) ?? []).length !== 2) {
+    console.error('✗ finish-static: index.html has no light and dark theme-color from the tokens');
+    process.exit(1);
+}
 writeFileSync(file, html);
 copyFileSync(join(here, 'og.png'), join(out, 'og.png'));
-console.log(`✓ finish-static: index.html names "${TITLE}", with its description, canonical and card`);
+console.log(`✓ finish-static: index.html names "${TITLE}", with its description, canonical, card and theme-color pair`);
