@@ -127,6 +127,8 @@ export interface MempoolHeaderSourceOptions {
     /** Esplora-compatible API base. Default https://mempool.space/api. */
     baseUrl?: string;
     fetch?: typeof fetch;
+    /** Per request: a lookup that has not answered by then throws, as unread. Default 15_000ms. */
+    timeoutMs?: number;
 }
 
 /**
@@ -137,10 +139,12 @@ export interface MempoolHeaderSourceOptions {
 export function mempoolHeaderSource(opts: MempoolHeaderSourceOptions = {}): BlockHeaderSource {
     const base = (opts.baseUrl ?? 'https://mempool.space/api').replace(/\/+$/, '');
     const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
+    const timeoutMs = opts.timeoutMs ?? 15_000;
     // Null only when the explorer says there is no such block (404). Any other
-    // failure throws: a header that could not be read is not a missing block.
+    // failure throws: a header that could not be read is not a missing block,
+    // and neither is an explorer that never answers.
     const read = async (url: string, shape: RegExp): Promise<string | null> => {
-        const r = await fetchImpl(url);
+        const r = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
         if (r.status === 404) return null;
         if (!r.ok) throw new Error(`header lookup failed: HTTP ${r.status} from ${url}`);
         const text = (await r.text()).trim();

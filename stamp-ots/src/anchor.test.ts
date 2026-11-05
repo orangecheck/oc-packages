@@ -85,6 +85,25 @@ describe('mempoolHeaderSource', () => {
         expect(calls[0]).toBe(`https://esplora.test/api/block-height/${BLOCK_HEIGHT}`);
     });
 
+    it('throws when the explorer never answers, so a hung lookup is unread, not a stall', async () => {
+        // Answers only when its request is aborted, as a hung explorer does.
+        const hung = ((_url: string, init?: RequestInit) =>
+            new Promise((_, reject) =>
+                init?.signal?.addEventListener('abort', () => reject(init.signal!.reason))
+            )) as unknown as typeof fetch;
+        const src = mempoolHeaderSource({ fetch: hung, timeoutMs: 20 });
+        await expect(src.getHeaderAt(BLOCK_HEIGHT)).rejects.toThrow();
+        // The default bounds every request too.
+        const signals: (AbortSignal | undefined)[] = [];
+        const record = (async (_url: string, init?: RequestInit) => {
+            signals.push(init?.signal ?? undefined);
+            return new Response('', { status: 404 });
+        }) as unknown as typeof fetch;
+        await mempoolHeaderSource({ fetch: record }).getHeaderAt(BLOCK_HEIGHT);
+        expect(signals).toHaveLength(1);
+        expect(signals[0]).toBeInstanceOf(AbortSignal);
+    });
+
     it('throws when the explorer fails, so a failed lookup never reads as no block', async () => {
         for (const answer of [
             () => new Response('busy', { status: 503 }),

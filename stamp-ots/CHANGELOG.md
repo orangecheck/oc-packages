@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.0] — 2026-11-05
+
+### Changed
+
+- `upgradeProof` throws `CalendarsUnreadError` when no calendar the proof
+  names answered (each failed, timed out or refused). Before, that read the
+  same as every calendar saying "not yet": the proof came back `pending`,
+  though it may be anchored already. A calendar's 404 is still its "not yet",
+  so one 404 among failures keeps the proof `pending`, and a proof that already
+  reaches its block is still `confirmed`. Callers that catch the throw can say
+  the calendars could not be reached.
+- `mempoolHeaderSource` gives each request a timeout (`timeoutMs`, default
+  15000). An explorer that never answers now throws, as an unread header,
+  instead of stalling the verify or upgrade that asked.
+
+### Added
+
+- `CalendarsUnreadError`, with `failures` naming each calendar asked and why it
+  did not answer.
+
 ## [0.6.1] — 2026-10-22
 
 ### Fixed

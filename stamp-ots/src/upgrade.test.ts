@@ -11,7 +11,7 @@ import {
     HELLO_OTS_FILE,
 } from './ots-fixture.test-helper.js';
 import type { BlockHeaderSource, OtsProof } from './types.js';
-import { upgradeProof, verifiedAnchor } from './upgrade.js';
+import { CalendarsUnreadError, upgradeProof, verifiedAnchor } from './upgrade.js';
 
 const CAL = 'https://cal.test';
 const chain: BlockHeaderSource = {
@@ -104,6 +104,53 @@ describe('upgradeProof', () => {
         const out = await upgradeProof(current, HELLO_DIGEST, {
             headerSource: chain,
             fetch: (async () => new Response(null, { status: 404 })) as unknown as typeof fetch,
+        });
+        expect(out).toEqual(current);
+    });
+
+    it('throws CalendarsUnreadError when no calendar answers, so silence never reads as not yet', async () => {
+        const { pending } = split(6);
+        for (const fetchImpl of [
+            async () => new Response('busy', { status: 503 }),
+            async () => {
+                throw new TypeError('fetch failed');
+            },
+        ]) {
+            const err = await upgradeProof(pendingProof(pending), HELLO_DIGEST, {
+                headerSource: chain,
+                fetch: fetchImpl as unknown as typeof fetch,
+            }).catch((e: unknown) => e);
+            expect(err).toBeInstanceOf(CalendarsUnreadError);
+            expect((err as CalendarsUnreadError).failures).toEqual([
+                { calendar: CAL, reason: expect.stringMatching(/HTTP 503|fetch failed/) },
+            ]);
+        }
+    });
+
+    it('confirms a proof that already reaches its block though no calendar answers', async () => {
+        const full = parseDetached(HELLO_OTS_FILE).timestamp;
+        full.attestations.push({ kind: 'pending', uri: CAL });
+        const out = await upgradeProof(pendingProof(full), HELLO_DIGEST, {
+            headerSource: chain,
+            fetch: (async () => new Response('busy', { status: 503 })) as unknown as typeof fetch,
+        });
+        expect(out.status).toBe('confirmed');
+        expect(out.blockHeight).toBe(BLOCK_HEIGHT);
+    });
+
+    it('stays pending when one calendar says not yet and another does not answer', async () => {
+        const { pending } = split(6);
+        const other = 'https://cal2.test';
+        // A second calendar's attestation beside the first, as a proof sent to two calendars holds.
+        const leaf = (n: OtsTimestamp): OtsTimestamp => (n.ops.length ? leaf(n.ops[0]!.child) : n);
+        leaf(pending).attestations.push({ kind: 'pending', uri: other });
+        const current = pendingProof(pending, [CAL, other]);
+        const out = await upgradeProof(current, HELLO_DIGEST, {
+            headerSource: chain,
+            fetch: (async (url: string) =>
+                url.startsWith(other)
+                    ? new Response('busy', { status: 503 })
+                    : new Response(null, { status: 404 })) as unknown as typeof fetch,
         });
         expect(out).toEqual(current);
     });
