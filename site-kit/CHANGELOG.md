@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.3
+
+The day cap on a not-found redirect now reaches every directive that takes a
+number of seconds, quoted or not. 0.8.2 capped `max-age`, `s-maxage` and
+`stale-while-revalidate` written bare, so a lookup answering
+`max-age="31536000"` (which RFC 9111 lets a cache read) or `stale-if-error`
+still kept the redirect for a year. Each is now capped at 86400, written bare.
+
 ## 0.8.2
 
 Refinements to 0.8.1's options, from its review.

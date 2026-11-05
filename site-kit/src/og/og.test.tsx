@@ -172,6 +172,16 @@ describe('createOgHandler resolve', () => {
         expect([out.status, out.headers['cache-control']]).toEqual([307, 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400']);
     });
 
+    it('caps every age it is given on that redirect, quoted or not', async () => {
+        // RFC 9111 lets a cache read max-age="31536000"; stale-if-error keeps a redirect through any outage.
+        const project = async (): Promise<OgLookup> => ({
+            card: null,
+            cacheControl: 'public, max-age="31536000", s-maxage = "31536000", stale-if-error=31536000, no-transform',
+        });
+        const out = await handled({ ...KEYED, resolve: { project } }, '/api/og?project=gone');
+        expect(out.headers['cache-control']).toBe('public, max-age=86400, s-maxage=86400, stale-if-error=86400, no-transform');
+    });
+
     it('answers the default card with no-store when the lookup throws, so a failed read is never kept', async () => {
         const said = vi.spyOn(console, 'error').mockImplementation(() => {});
         try {

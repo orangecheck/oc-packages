@@ -117,8 +117,9 @@ function atMostADay(cacheControl: string): string {
         .map((d) => d.trim())
         .filter((d) => d !== '' && d.toLowerCase() !== 'immutable')
         .map((d) => {
-            const age = /^(max-age|s-maxage|stale-while-revalidate)\s*=\s*(\d+)$/i.exec(d);
-            return age ? `${age[1]}=${Math.min(Number(age[2]), 86400)}` : d;
+            // Every directive that takes a number of seconds, quoted or not (RFC 9111 reads both).
+            const age = /^([a-z-]+)\s*=\s*(?:(\d+)|"(\d+)")$/i.exec(d);
+            return age ? `${age[1]}=${Math.min(Number(age[2] ?? age[3]), 86400)}` : d;
         })
         .join(', ');
 }
