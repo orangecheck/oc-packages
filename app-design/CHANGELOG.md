@@ -33,8 +33,8 @@
   page was 981 to 1187px wide. Where the labels fit (1440 at the story's
   height), nothing moves. This is the change a desktop user can see. A figure
   that narrows without the window (a container resize) switches as well.
-  `./motion`'s own code is 13.1 KB at most (13,380 bytes), up from 13.0, for
-  that measure.
+  `./motion`'s own code may be 13.2 KB, up from 13.0, for that measure (13,433
+  bytes).
 - An unlabelled `ScrollFade` takes its name only from a heading in its own
   section, and never from one further up the page. A heading's trailing
   plain-text "#" stays out of the name, which a fixture now holds.
