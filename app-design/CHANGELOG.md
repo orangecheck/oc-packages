@@ -32,6 +32,11 @@ since 2.2.1. Below lg, vault and ochk.app showed an initial alone.
 - check-account holds AppShell's bar as it holds the headers', with vault's
   family menu and footer in it.
 
+- AppShell's desk bar carries `data-oca-sticky="app-bar"`, as its phone bar
+  does, so a census finds the shell's bar at every width: vault's /vault read
+  as a local header at 1440. It does not stick, and the scroll padding from lg
+  stays 0. check-account and check-shell hold both bars.
+
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
 a theme switch, and About and Docs side by side in the phone's menu. ochk.app,

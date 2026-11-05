@@ -432,7 +432,8 @@ function SidebarShell({
                 </header>
                 {/* From lg a grid, so the account bar comes before the sidebar in the page (Tab reaches it first) and still draws top right. */}
                 <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
-                    <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">
+                    {/* The shell's bar from lg, as the phone bar is below it; it does not stick. */}
+                    <header data-oca-sticky="app-bar" className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">
                         <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
                     </header>
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
