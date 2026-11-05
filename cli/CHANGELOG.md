@@ -19,6 +19,11 @@ this file tracks the package's TS / Node / runtime API surface.
   that is not a transaction, or not answered within 8 s (its body included) is
   NOT READ, exit 2, never FAILED. Each of the two reads takes chat-core's own
   time limit, which aborts its request.
+- The directory walk (`--handle`, and a listing from a file or stdin) takes a
+  page as full by what the relay sent, as chat-core 0.2.1 reads it: the events
+  nostr-core kept, repeats included, and the ones it dropped for a bad
+  signature. A full page that brings nothing new is a read cut off, so with no
+  other answer the handle is NOT READ, exit 2.
 
 ## [0.5.1] — 2026-11-05
 
