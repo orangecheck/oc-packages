@@ -1,10 +1,8 @@
-import { ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
 import { protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
-import { HIT_LINK } from '../lib/hit';
 import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
 import { SiteHomeContext } from '../lib/site-home';
@@ -75,12 +73,12 @@ export interface ToolShellProps {
 }
 
 /**
- * The frame for a protocol's tools: a slim full-width header (orangecheck ·
+ * The frame for a protocol's tools: the family's one header (orangecheck |
  * stamp, linking the protocol's page on ochk.io; the family menu, the tools,
- * "About stamp", the status when it is not live, the account, the theme), the
- * page, and the compact family footer. Everything inside is set at compact density. On a phone the
- * tools move to a tab bar under the thumb when there are two to five, each
- * with an icon.
+ * Docs and "About stamp", the status when it is not live, the account), the
+ * page in the frame, and the compact family footer with the theme's switch.
+ * Everything inside is set at compact density. On a phone the tools move to a
+ * tab bar under the thumb when there are two to five, each with an icon.
  */
 export function ToolShell({
     protocol,
@@ -99,18 +97,9 @@ export function ToolShell({
     const homeHref = home ?? p.pageHref;
     const app = variant === 'app';
     const tabs = app ? null : tabsFor([{ items: [...tools] }]);
-    const about = (
-        <a
-            href={p.pageHref}
-            // 39px drawn, 44 to a thumb.
-            className={cn('inline-flex items-center gap-1 rounded-none px-3 py-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground', HIT_LINK)}
-        >
-            About {p.label}
-            <ArrowUpRight aria-hidden className="size-3.5" />
-        </a>
-    );
-    // The way from a tool to its docs: in the header's line from md, in the phone's menu when the tools are tabs.
+    // After the tools in the header's line: the docs, and the protocol's own page on ochk.io.
     const docs = { href: p.docsHref, label: 'Docs', external: true };
+    const about = { href: p.pageHref, label: `About ${p.label}`, external: true };
     return (
         <DensityProvider density="compact">
             <div
@@ -124,42 +113,32 @@ export function ToolShell({
             >
                 <SkipLink />
                 {banner}
+                {/* The family's one bar: in the frame over a tool page, full width over an app. */}
                 <SiteHeader
-                    variant="tool"
+                    variant={app ? 'tool' : 'site'}
                     home={homeHref}
                     product={p.label}
                     family={protocol}
-                    nav={[...tools.map((t) => ({ href: t.href, label: t.label, active: t.active })), docs]}
-                    navOnPhone={!tabs}
-                    menu={
-                        <div className="[&>a]:px-3 [&>a]:py-3 [&>a]:text-[1.0625rem]">
-                            {about}
-                            {tabs ? (
-                                <a
-                                    href={docs.href}
-                                    className="inline-flex items-center gap-1 rounded-none text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                    Docs
-                                    <ArrowUpRight aria-hidden className="size-3.5" />
-                                </a>
-                            ) : null}
-                        </div>
-                    }
+                    nav={[...tools.map((t) => ({ href: t.href, label: t.label, active: t.active })), docs, about]}
+                    // The menu holds every link the bar does, as ochk.app's: below md the tools are in the tab bar
+                    // too, and from md to 900px, where the tab bar is gone, only here.
                     // With a rail, the tools leave the header from lg.
                     className={cn(rail && 'lg:[&_nav[aria-label=Main]]:hidden')}
-                    actions={
-                        <>
-                            <span className="hidden lg:contents">{about}</span>
-                            {p.status !== 'live' ? <StatusBadge status={p.status} className="max-sm:hidden" /> : null}
-                            <ThemeToggle className="max-sm:hidden" />
-                        </>
-                    }
+                    actions={p.status !== 'live' ? <StatusBadge status={p.status} className="max-sm:hidden" /> : undefined}
                     account={account}
                 />
                 {/* At least a window tall, so the footer starts below the fold and late content moves nothing in view. */}
-                <div className={cn('mx-auto flex w-full', app ? 'min-h-0 flex-1' : 'min-h-[calc(100dvh-3.5rem)] max-w-[90rem] flex-1')}>
+                <div
+                    className={cn(
+                        'mx-auto flex w-full',
+                        app
+                            ? 'min-h-0 flex-1'
+                            : // In the frame, its rules under the header's; the header is 56px and 68 from 900, each with its hairline.
+                              'min-h-[calc(100dvh-3.5rem-1px)] max-w-[var(--oca-frame-max)] flex-1 border-x-[length:var(--oca-frame-rule)] border-border min-[900px]:min-h-[calc(100dvh-4.25rem-1px)]'
+                    )}
+                >
                     {rail ? (
-                        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
+                        <aside className="sticky top-[calc(4.25rem+1px)] hidden h-[calc(100dvh-4.25rem-1px)] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                             <SideNav groups={[{ label: 'Tools', items: tools.map(({ href, label, icon, active }) => ({ href, label, icon, active })) }]} />
                             {railFooter ? (
                                 // Its links (Docs, the spec) are 33px to a mouse and 44 to a thumb.
@@ -177,7 +156,8 @@ export function ToolShell({
                         </SiteHomeContext.Provider>
                     </main>
                 </div>
-                {app || footer === false ? null : (footer ?? <SiteFooter compact family legal />)}
+                {/* The theme's switch is in the footer, and in the account menu, not in the bar. */}
+                {app || footer === false ? null : (footer ?? <SiteFooter compact family legal meta={<ThemeToggle className="-mx-3 self-start sm:self-auto" />} />)}
                 {tabs ? <TabBar items={tabs} /> : null}
             </div>
         </DensityProvider>

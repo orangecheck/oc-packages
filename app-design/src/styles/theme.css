@@ -527,11 +527,10 @@
 
 /* A focused control is never left under a sticky bar: the page scrolls it into view below the
    bar, with a little room. The bars say what they are (data-oca-sticky); their heights are the
-   shells' own: a tool's bar 3.5rem, the site's 4rem (4.5rem from md), an app's phone bar 3.5rem,
-   the docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the
-   page's root itself or an element under it, so each rule names both. */
-:root[data-oc-app='ochk']:has([data-oca-sticky='tool']),
-:root:has([data-oc-app='ochk'] [data-oca-sticky='tool']),
+   shells' own: the site's bar 3.5rem, 4.25rem from 900px (its rule counts 4rem, 4.5rem from md,
+   for room), an app's phone bar 3.5rem, the docs' section bar a further 3rem below lg. Each with
+   its 1px hairline. The scope is the page's root itself or an element under it, so each rule
+   names both. */
 :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
 :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
     scroll-padding-top: calc(3.5rem + 1px + 0.75rem);

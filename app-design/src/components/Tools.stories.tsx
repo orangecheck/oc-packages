@@ -438,17 +438,12 @@ export const Session: StoryObj = {
             {(['checking', 'out', 'in', 'unknown'] as const).map((state) => (
                 <div key={state} className="border-b border-border">
                     <SiteHeader
-                        variant="tool"
                         product="stamp"
                         family="stamp"
                         nav={stampTools('create').map((t) => ({ href: t.href, label: t.label, active: t.active }))}
-                        actions={
-                            <>
-                                <span className="text-[0.8125rem] text-muted-foreground max-sm:hidden">{state}</span>
-                                {/* In place: this site's /signin, returning to the page it was opened from. */}
-                                <SessionAccountView state={state} name="you@example.com" signInPath="/signin" />
-                            </>
-                        }
+                        actions={<span className="text-[0.8125rem] text-muted-foreground max-sm:hidden">{state}</span>}
+                        // In place: this site's /signin, returning to the page it was opened from.
+                        account={<SessionAccountView state={state} name="you@example.com" signInPath="/signin" />}
                     />
                 </div>
             ))}

@@ -261,9 +261,8 @@ try {
                             const words = width < 390 ? [] : place === 'site' ? ['orangecheck'] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
                             if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
-                            // Whole wherever the bar has the room: from 768 beside a site's links, from 1024 beside ToolShell's,
-                            // which its tool bar shows from 768.
-                            if (state !== 'in-long' && width >= (place === 'tool' ? 1024 : 768)) check(!n.cut, `${at}: "${name}" is cut at ${n.w}px`);
+                            // Whole wherever the bar has the room: from 768, where the links are still in the phone's menu.
+                            if (state !== 'in-long' && width >= 768) check(!n.cut, `${at}: "${name}" is cut at ${n.w}px`);
                             if (state === 'in-long' && width >= 1024) check(n.cut, `${at}: the long name is whole at ${n.w}px`);
                             if (state === 'in-long' && width >= 1440) check(atCap, `${at}: the long name is cut at ${n.w}px with room for its ${n.cap}px`);
                             // On a phone the initial gives its room to the name.

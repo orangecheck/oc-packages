@@ -1865,9 +1865,11 @@ try {
             await visit(p, wide);
             const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
-            // One column: every title at the gutter of one centred 72rem column.
-            const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
+            // One column: every title at the gutter of one centred 72rem column. A tool page sits in the frame,
+            // so its gutter starts past the frame's 1px rule; an app frame has none.
             for (const [name, url] of columns) {
+                const rule = name.startsWith('app') ? 0 : 1;
+                const gutter = Math.max((width < 768 ? 16 : 32) + rule, (width - 1152) / 2);
                 await visit(p, url);
                 const box = await p.evaluate(() => ({
                     left: document.querySelector('main h1').getBoundingClientRect().left,
