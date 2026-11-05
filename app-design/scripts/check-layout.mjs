@@ -241,7 +241,7 @@ try {
         join(dir, 'portrait.jsx'),
         `import { createRoot } from 'react-dom/client';\n` +
             `import { ParticlePortrait, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';\n` +
-            `const notes = [['eye', 'A note on a hairline leader'], ['hair', 'Drawn from shapes, not a photo', 'right'], ['jaw', 'Real text, not canvas'], ['shoulder', 'It sleeps once formed'], ['chest', 'Pause it any time']].map(([k, label, side]) => ({ at: PORTRAIT_ANCHORS[k], label, side }));\n` +
+            `const notes = [['eye', 'A note on a hairline leader'], ['hair', 'Dots from a generated portrait', 'right'], ['jaw', 'Real text, not canvas'], ['shoulder', 'It sleeps once formed'], ['chest', 'Pause it any time']].map(([k, label, side]) => ({ at: PORTRAIT_ANCHORS[k], label, side }));\n` +
             `createRoot(document.getElementById('root')).render(<ParticlePortrait alt="A person drawn in dots" className="h-[44rem]" callouts={notes} />);\n`
     );
     // The census: every story, each the package's own use of its components, rendered on the client in a
