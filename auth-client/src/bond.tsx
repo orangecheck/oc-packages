@@ -204,7 +204,8 @@ export function OcBond({
             if (pin && r.ok && typeof j.token === 'string') {
                 writeTabSession({ token: j.token, didOc: pin.didOc });
             }
-            return { ok: r.ok && j.ok === true, ...j };
+            // ok last: a body that says ok never overrides an error status.
+            return { ...j, ok: r.ok && j.ok === true };
         },
         [authOrigin]
     );

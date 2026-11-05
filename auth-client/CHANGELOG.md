@@ -9,6 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.3] — 2026-11-05
+
+### Fixed
+
+- `<OcBond>` takes an error status from the auth host as a refusal, even
+  when the body says `ok: true`. Its request helper spread the body after
+  the status check, so the body's `ok` replaced it.
+
 ## [2.42.2] — 2026-11-05
 
 ### Fixed
@@ -17,8 +25,8 @@ this file tracks the package's TS / Node / runtime API surface.
   cannot be read. The auth host now answers it `422 utxo_cap`, not
   `chain_unavailable`; the component read the new reason as a failed save
   ("your backing didn't save · nothing changed, try again"), though trying
-  again is unlikely to help. It says the address holds more coins than the chain
-  service lists, and to back with one that holds fewer.
+  again is unlikely to help. It says the address holds more coins than the
+  chain service lists, and to back with one that holds fewer.
 
 ## [2.42.1] — 2026-11-04
 

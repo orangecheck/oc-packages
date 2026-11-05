@@ -193,6 +193,24 @@ describe('OcBond', () => {
         expect(onChange).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ['an error status whose body says ok', json({ ok: true, bond: BOND }, 500), undefined],
+        [
+            'a 200 whose body says not ok',
+            json({ ok: false, reason: 'coin_spent', bond: BOND }),
+            'coin_spent',
+        ],
+    ])('takes %s as a refusal: both must say ok', async (_, res, reason) => {
+        answer = (c) => (c.body?.action === 'bond' ? res : undefined);
+        const onChange = vi.fn();
+        render(<OcBond onChange={onChange} />);
+        await toCoins();
+        fireEvent.click(await screen.findByText('continue'));
+        fireEvent.click(await screen.findByText('sign-with-wallet'));
+        expect(await screen.findByText(bondRefusal(reason))).toBeTruthy();
+        expect(onChange).not.toHaveBeenCalled();
+    });
+
     it('lists only coins big enough to back an account, and counts the rest', async () => {
         coins = [dust(1, 546), COIN, dust(2, 999)];
         render(<OcBond />);
