@@ -8,9 +8,10 @@ import { cn } from '../lib/cn';
  * wordmark gives way to it. It stays in the accessible name, so the link still reads
  * "orangecheck stamp".
  *
- * `compact`, in SiteHeader's bar: with someone signed in, a phone's bar gives
- * their name the room. Below 390px the lockup is its mark alone, and below
- * 480px a site's lockup drops the wordmark. Signed out it is drawn as above.
+ * `compact`, in SiteHeader's and AppShell's bars: with someone signed in, a
+ * phone's bar gives their name the room. Below 480px the lockup drops the
+ * wordmark, so orangecheck's own (ochk.io, the docs) is its mark alone, and
+ * below 390px a site's is its mark alone too. Signed out it is drawn as above.
  */
 export function ProductLockup({ size, product, compact = false }: { size: number; product?: string; compact?: boolean }) {
     return (
@@ -21,7 +22,7 @@ export function ProductLockup({ size, product, compact = false }: { size: number
                 nameClassName={
                     cn(
                         product && 'max-[419px]:sr-only',
-                        compact && (product ? 'max-[479px]:group-has-[[data-oca-account=in]]/bar:sr-only' : 'max-[389px]:group-has-[[data-oca-account=in]]/bar:sr-only')
+                        compact && 'max-[479px]:group-has-[[data-oca-account=in]]/bar:sr-only'
                     ) || undefined
                 }
             />
