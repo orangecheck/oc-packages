@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+- A `Button` is told from its ground by its fill or its edge at 3:1, at rest
+  and on hover, on the page, in every band and in every Card tone.
+  - **Visible change on the ink band:** `primary` is now the brand look,
+    orange with ink words (6.56:1 on the band, 8.12:1 for the words on its
+    hover). This is chat's ink-hero CTA. No deep orange under white words
+    holds 3:1 on the dark ink band: it was 2.79:1, and 2.56 on its Card.
+  - **Visible change in dark mode, on every site:** a primary Button's hover,
+    and `SiteHeader`'s CTA's, now lightens to `#cc4a0e` instead of darkening.
+    The darker hover was 2.67:1 on the night page.
+  - **Visible change on the orange band:** `primary` is ink with orange words
+    (6.56:1). The deep orange was 1.85:1 there.
+  - **Visible change in the footer band:** `primary` is white with
+    deep-orange words (5.18:1), as the footer's status fills are. The deep
+    orange was the footer itself.
+  - `secondary` takes the field's edge, `--input`, on every ground. The ink
+    at 45% was 2.87:1 on paper and 2.36:1 on orange. On paper the new edge
+    reads the same grey.
+  - The primary hover has its own token, `--oca-cta-hover` (palette
+    `ctaHover`), which each band re-points. In dark mode it is `#cc4a0e`
+    (4.23:1 on night, white words 4.61:1). On the burnt band, in both modes,
+    it takes `--oca-primary-lift`, the same lighter orange; the darker hover
+    was 2.42:1 there. On paper it stays `#9a3412`.
+- `variant="brand"` is for dark grounds and tiles only: the ink and burnt
+  bands and Cards, and the dark page. On paper it was 2.34:1, and on orange
+  1.00. **Migrate**: a CTA on paper is `primary`. check-contrast fails on a
+  brand `Button` drawn outside an ink or burnt ground, in a component, a
+  block or a story. It reads the variant through the type checker, so a
+  const, a conditional, a spread or a forwarded prop counts, and a variant it
+  cannot pin to literals counts as brand. A ground counts only when it is
+  written out: the `dark` class, not a `dark:` variant.
+
 - `ParticlePortrait` sets `data-phase="formed"` in its last frame, as its
   loop goes to sleep, so a page that waits for it sees no frame after.
   It used to read formed as soon as the dots gathered, at 1.9 s of play,
