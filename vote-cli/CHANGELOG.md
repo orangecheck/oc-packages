@@ -19,16 +19,16 @@ this file tracks the package's TS / Node / runtime API surface.
   of its own beside 0 (counted), 1 (failed) and 2 (below the write quorum).
   `--json` prints vote-core's `UnreadResult`. Before, one voter mempool.space
   would not list, which anyone can arrange for about 125 USD of dust, ended the
-  tally with `mempool utxo 400` and exit 1, for that poll for good.
+  tally with `mempool utxo 400` and exit 1.
 
 ### Changed
 
 - The coin lookup reads mempool.space's answers by what they mean: its
   "Too many unspent transaction outputs (>500)" 400 is `utxo_cap_unread`
-  (tallying again from it won't help); a 429, a 5xx, no answer, an 8 s timeout
-  of its own, or a body that is not a coin list is `chain_unread`; any other
-  refusal is `provider_refused_unread`. A throw read as `chain_unread` is named
-  on stderr, by its name only.
+  (tallying again from it is unlikely to help); a 429, a 5xx, no answer, an
+  8 s timeout of its own, or a body that is not a coin list is `chain_unread`;
+  any other refusal is `provider_refused_unread`. A throw read as
+  `chain_unread` is named on stderr, by its name only.
 - Requires `@orangecheck/vote-core` ^2.2.0.
 
 ## [0.7.7] — 2026-11-02
