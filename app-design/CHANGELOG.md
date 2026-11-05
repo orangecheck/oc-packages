@@ -43,6 +43,10 @@ target to a thumb until each was patched by hand.
 - `SignInFrame` gains `backTo` and `backLabel` (default "Go back"): the link
   opposite the lockup goes to the given page, drawn as Back to home is, a
   44px target to a thumb. `back` still wins when given.
+- `SignInFrame` gains `homeLink` (default `true`). `homeLink={false}` draws
+  the lockup without its link and leaves out Back to home, for a sign-in
+  popup that would leave its opener waiting if it navigated away. A `back` of
+  its own (me.ochk.io's Close) still sits opposite the lockup.
 - **Migrate** (a tool site): `src/pages/signin.tsx` becomes its `<Seo
   {...signInSeo({ protocol })} />` and `<SignInPage protocol defaultReturnTo />`.
   btc and cosign pass `product`, `home`, `audience`, `back="home"` and their

@@ -696,6 +696,13 @@ const html = (el) => renderToStaticMarkup(el);
     const home = backLink(html(h(Ch.SignInFrame, { protocol: 'lock' }, 'x')));
     check(/href="https:\/\/ochk.io\/lock"/.test(home) && />Back to home</.test(home) && home.includes(hit), `SignInFrame: with no backTo the link is no longer Back to home (${home})`);
     check(/>Mine</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: h('a', { href: '/m' }, 'Mine') }, 'x'))) && !/>Go back</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: null }, 'x'))), 'SignInFrame: back no longer wins over backTo');
+    // homeLink={false}, for a popup that must stay with its opener: the lockup is drawn but goes nowhere, and
+    // there is no Back to home. The skip link is the only anchor; a back of the popup's own sits opposite.
+    const pinned = html(h(Ch.SignInFrame, { protocol: 'lock', homeLink: false }, 'x'));
+    const hrefs = [...pinned.matchAll(/<a [^>]*href="([^"]*)"/g)].map((m) => m[1]);
+    check(hrefs.join() === '#signin' && /<header[^>]*>.*?<svg/s.test(pinned), `SignInFrame homeLink={false}: the page still links to ${hrefs.join(', ')}, or the lockup is gone`);
+    const closer = html(h(Ch.SignInFrame, { homeLink: false, back: h('button', { type: 'button' }, 'Close') }, 'x'));
+    check(/<header[^>]*>.*<button type="button">Close<\/button>.*<\/header>/s.test(closer), 'SignInFrame homeLink={false}: a back of its own is not drawn opposite the lockup');
 
     // The page on the server, as a prerendered /signin: no query, so the return target is the default.
     const page = html(h(S.SignInPage, { protocol: 'lock', defaultReturnTo: '/app' }));

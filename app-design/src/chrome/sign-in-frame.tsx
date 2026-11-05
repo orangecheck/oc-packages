@@ -24,6 +24,7 @@ export function SignInFrame({
     brand,
     product,
     home,
+    homeLink = true,
     protocol,
     back,
     backTo,
@@ -51,6 +52,11 @@ export function SignInFrame({
      * (ochk.app, vault, chat, cosign) passes `home="/"`.
      */
     home?: string;
+    /**
+     * `false` draws the lockup without its link and leaves out Back to home: for a sign-in popup, which
+     * would leave its opener waiting if it navigated away. A `back` of its own (a Close) still shows.
+     */
+    homeLink?: boolean;
     /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
     protocol?: ProtocolSlug;
     /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. Wins over `backTo`. */
@@ -69,6 +75,7 @@ export function SignInFrame({
     className?: string;
 }) {
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : OCHK_IO);
+    const lockup = brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />;
     const linkLook = cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK);
     return (
         <main
@@ -80,10 +87,14 @@ export function SignInFrame({
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
                 {/* To a thumb the lockup and Back to home are 44px targets by a ::before, so the header keeps its height. */}
                 <header className="flex items-center justify-between gap-4">
-                    <Link href={homeHref} className={cn('w-fit rounded-none', HIT_LINK)}>
-                        {brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />}
-                        <span className="sr-only"> home</span>
-                    </Link>
+                    {homeLink ? (
+                        <Link href={homeHref} className={cn('w-fit rounded-none', HIT_LINK)}>
+                            {lockup}
+                            <span className="sr-only"> home</span>
+                        </Link>
+                    ) : (
+                        <span className="w-fit">{lockup}</span>
+                    )}
                     {back !== undefined ? (
                         back
                     ) : backTo ? (
@@ -91,11 +102,11 @@ export function SignInFrame({
                         <a href={backTo} className={linkLook}>
                             {backLabel}
                         </a>
-                    ) : (
+                    ) : homeLink ? (
                         <Link href={homeHref} className={linkLook}>
                             Back to home
                         </Link>
-                    )}
+                    ) : null}
                 </header>
                 {/* Top-aligned: centred, the title rose by half of whatever the ceremony grew as it mounted. */}
                 <div id="signin" tabIndex={-1} className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col gap-9 py-12 outline-none lg:pt-[max(3rem,12vh)]">
