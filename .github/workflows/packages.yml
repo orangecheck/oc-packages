@@ -79,6 +79,17 @@ jobs:
                   node-version: '24'
             - run: node --test scripts/land.test.mjs
 
+    sdk-docs-transform:
+        # scripts/mdx-transform.mjs on TypeDoc-shaped bodies: an indented JSDoc example is set as code.
+        name: SDK reference pages set indented examples as code
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node --test scripts/mdx-transform.test.mjs
+
     home-paths:
         # A /Users/<name>/ fallback sat in six test files of this public repo,
         # naming a person and working on one laptop only. Fail on any.
@@ -481,6 +492,7 @@ jobs:
                 dist-tag,
                 renovate-roster,
                 land-script,
+                sdk-docs-transform,
                 home-paths,
                 id-coverage,
                 build,
