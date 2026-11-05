@@ -224,7 +224,7 @@ export function SiteHeader({
     // The account is the block at the right rule, in the bar and at the phone menu's foot.
     const slot = (where: AccountSlot['where']): AccountSlot => ({ look: 'block', where });
     // 2.0's site header: the flat mark and the wordmark at 21px in the frame. The tool header keeps its lockup.
-    const brandNode = brand ?? <ProductLockup size={tool ? 22 : 30} product={product} />;
+    const brandNode = brand ?? <ProductLockup size={tool ? 22 : 30} product={product} compact />;
     const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta) || Boolean(account);
     // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
     // links follow the brand, and Sign in and the CTA sit at the right rule.
@@ -249,7 +249,8 @@ export function SiteHeader({
             // theme.css keeps a focused control clear of it (scroll-padding-top).
             data-oca-sticky={tool ? 'tool' : 'site'}
             className={cn(
-                'sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
+                // group/bar: the lockup reads whether someone is signed in here (ProductLockup's `compact`).
+                'group/bar sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
                 className
             )}
         >

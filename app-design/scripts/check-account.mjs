@@ -96,7 +96,17 @@ createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place](
 
 const PLACES = ['site', 'cta', 'tool', 'app'];
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
-const WIDTHS = [320, 360, 390, 768, 1024, 1440];
+// 440: between the wordmark's 420 and the bar's 480, where a signed-in site's lockup drops its wordmark.
+const WIDTHS = [320, 360, 390, 440, 768, 1024, 1440];
+
+// In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
+// them the same way: a page function carries nothing in with it).
+function brandWords() {
+    const brand = document.querySelector('header > div').children[0].querySelector('a');
+    return [...brand.querySelectorAll('span')]
+        .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
+        .map((e) => e.textContent.trim());
+}
 
 // In the page, signed in: the name in the bar's trigger, the room the bar has left beside it, and the brand's word.
 function nameRoom() {
@@ -115,13 +125,28 @@ function nameRoom() {
     // The least a cut name shows whole: its first letter and the ellipsis.
     probe.textContent = `${n.textContent.charAt(0)}…`;
     const least = half(probe.getBoundingClientRect().width);
+    const w = n.getBoundingClientRect().width;
+    const cut = n.scrollHeight > n.clientHeight + 1;
+    // The letters it shows: all of them, or as many as fit before the ellipsis, as line-clamp cuts.
+    let chars = n.textContent.length;
+    if (cut) {
+        chars = 0;
+        for (let k = 1; k <= n.textContent.length; k++) {
+            probe.textContent = `${n.textContent.slice(0, k)}…`;
+            if (probe.getBoundingClientRect().width > w + 0.5) break;
+            chars = k;
+        }
+    }
     probe.remove();
     const row = document.querySelector('header > div');
     const [left, right] = row.children;
     const parts = [...left.children].filter((e) => e.getClientRects().length);
     const slack = half(right.getBoundingClientRect().left - parseFloat(getComputedStyle(row).columnGap) - Math.max(...parts.map((e) => e.getBoundingClientRect().right)));
-    const brandCut = [...left.querySelector('a').querySelectorAll('span')].some((e) => getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
-    return { shown: n.getClientRects().length > 0, w: half(n.getBoundingClientRect().width), cut: n.scrollHeight > n.clientHeight + 1, cap, typical32, least, slack, brandCut, disc: disc.getClientRects().length > 0 };
+    // A word drawn and cut; one kept only for screen readers (sr-only, 1px) is not drawn.
+    const brandCut = [...left.querySelector('a').querySelectorAll('span')].some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
+    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, slack, brandCut, brandWords: [...left.querySelector('a').querySelectorAll('span')]
+            .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
+            .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0 };
 }
 
 // In the page: every account control drawn, and every link or button that says "Your account" or the CTA the account replaced.
@@ -199,6 +224,13 @@ try {
                     }
                     check(r.words.length === 0 && sheetWords.length === 0, `${at}: "Your account", or the site's CTA beside the account, is a link or button: ${[...r.words, ...sheetWords].join(', ')}`);
                     if (state === 'out') wayIn[`${place}:${width}`] = r.bar.find((c) => c.kind === 'out') ?? null;
+                    // Signed out, nothing needs the room: the lockup is drawn whole (the wordmark gives way below 420
+                    // beside a site's word, as it always has).
+                    if (place !== 'app' && !state.startsWith('in')) {
+                        const words = await p.evaluate(brandWords);
+                        const want = place === 'site' ? ['orangecheck'] : width < 420 ? [place === 'cta' ? 'vault' : 'stamp'] : ['orangecheck', place === 'cta' ? 'vault' : 'stamp'];
+                        check(JSON.stringify(words) === JSON.stringify(want), `${at}: the lockup draws ${JSON.stringify(words)}, not ${JSON.stringify(want)}`);
+                    }
                     if (state === 'checking' || state === 'unknown') {
                         const out = wayIn[`${place}:${width}`];
                         const held = r.bar[0] ?? null;
@@ -223,6 +255,11 @@ try {
                             check(!n.brandCut || n.w < 1, `${at}: the brand is cut while the name still has ${n.w}px`);
                             check(n.w <= n.cap + 0.5, `${at}: the name is ${n.w}px, past its ${n.cap}px`);
                             check(!n.cut || n.w >= n.least, `${at}: the name is cut to ${n.w}px, under a letter and the ellipsis (${n.least}px), so the ellipsis is clipped`);
+                            // At least 8 of its characters at every width: below 390 the lockup is its mark alone, and below
+                            // 480 a site's lockup drops the wordmark, to make the room.
+                            check(n.chars >= Math.min(8, name.length), `${at}: the name shows ${n.chars} characters, under 8`);
+                            const words = width < 390 ? [] : place === 'site' ? ['orangecheck'] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
+                            if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
                             // Whole wherever the bar has the room: from 768 beside a site's links, from 1024 beside ToolShell's,
                             // which its tool bar shows from 768.
@@ -231,7 +268,7 @@ try {
                             if (state === 'in-long' && width >= 1440) check(atCap, `${at}: the long name is cut at ${n.w}px with room for its ${n.cap}px`);
                             // On a phone the initial gives its room to the name.
                             check(n.disc === width >= 768, `${at}: the initial is ${n.disc ? 'shown' : 'hidden'}`);
-                            names.push(`${width} ${place} ${state}: ${n.w}px${n.cut ? ' cut' : ''}`);
+                            names.push(`${width} ${place} ${state}: ${n.w}px, ${n.chars} characters${n.cut ? ', cut' : ''}`);
                         }
                         const label = await p.locator('[data-oca-account="in"]').first().getAttribute('aria-label');
                         check(label === `${name}, account menu`, `${at}: the trigger is named "${label}"`);
