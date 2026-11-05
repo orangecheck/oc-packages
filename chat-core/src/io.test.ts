@@ -111,16 +111,31 @@ describe('writeProofOnChain reads the one coin a proof names', () => {
 describe('a read that never answers', () => {
     // A hung explorer is a read with no answer, never a wait (11-03 sweep PK-io).
     const hung = (() => new Promise<Response>(() => {})) as typeof fetch;
-    const hungBody = (async (url: string | URL) =>
-        String(url).includes('/outspend/')
-            ? ({ ok: true, status: 200, json: () => new Promise(() => {}) } as unknown as Response)
-            : explorer().f(url)) as typeof fetch;
+    /** Headers come back; the body of the read whose URL matches never does. */
+    const hungBodyOn = (which: (u: string) => boolean) =>
+        (async (url: string | URL) =>
+            which(String(url))
+                ? ({ ok: true, status: 200, json: () => new Promise(() => {}) } as unknown as Response)
+                : explorer().f(url)) as typeof fetch;
 
-    it('is unanswered after timeoutMs, for the transaction and for the outspend body', async () => {
+    it('is unanswered after timeoutMs: no answer, a transaction body or an outspend body that never ends', async () => {
         const t0 = Date.now();
         expect(await readOutpoint(PROOF.outpoint, { fetch: hung, timeoutMs: 50 })).toBe('unanswered');
-        expect(await readOutpoint(PROOF.outpoint, { fetch: hungBody, timeoutMs: 50 })).toBe('unanswered');
+        const txBody = hungBodyOn((u) => !u.includes('/outspend/'));
+        expect(await readOutpoint(PROOF.outpoint, { fetch: txBody, timeoutMs: 50 })).toBe('unanswered');
+        const spendBody = hungBodyOn((u) => u.includes('/outspend/'));
+        expect(await readOutpoint(PROOF.outpoint, { fetch: spendBody, timeoutMs: 50 })).toBe('unanswered');
         expect(Date.now() - t0).toBeLessThan(2000);
+    });
+
+    it('leaves no timer behind after a read that answered', async () => {
+        vi.useFakeTimers();
+        try {
+            expect(await readOutpoint(PROOF.outpoint, { fetch: explorer().f })).toMatchObject({ spent: false });
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('aborts the request it gave up on', async () => {
@@ -154,6 +169,31 @@ describe('a read that never answers', () => {
     it('through esploraWriteProofCheck, throws UnansweredReadError rather than waiting', async () => {
         const check = esploraWriteProofCheck({ fetch: hung, timeoutMs: 20 });
         await expect(check(PROOF, AUTHOR)).rejects.toBeInstanceOf(UnansweredReadError);
+    });
+});
+
+describe('a 200 that is not the answer asked for', () => {
+    // Malformed is no answer, never a negative fact (review-lows on 0.2.3).
+    const answering = (tx: unknown, spend: unknown) =>
+        (async (url: string | URL) =>
+            Response.json(String(url).includes('/outspend/') ? spend : tx)) as typeof fetch;
+    const goodTx = {
+        vout: [{ scriptpubkey_address: AUTHOR, value: PROOF.value_sats }],
+        status: { confirmed: true, block_height: PROOF.anchor_block_height, block_hash: PROOF.anchor_block_hash },
+    };
+
+    it('an outspend body that is the string "missing" is unanswered', async () => {
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering(goodTx, 'missing') })).toBe('unanswered');
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering(goodTx, 'unanswered') })).toBe('unanswered');
+    });
+
+    it('a transaction body that is not an object is unanswered, not missing', async () => {
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering('missing', { spent: false }) })).toBe('unanswered');
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering(null, { spent: false }) })).toBe('unanswered');
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering(7, { spent: false }) })).toBe('unanswered');
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering({ vout: 'x' }, { spent: false }) })).toBe('unanswered');
+        // A transaction without that output is the coin missing, as before.
+        expect(await readOutpoint(PROOF.outpoint, { fetch: answering({ ...goodTx, vout: [] }, { spent: false }) })).toBe('missing');
     });
 });
 

@@ -79,28 +79,33 @@ export async function readOutpoint(
             return 'missing';
         }
         const ms = opts.timeoutMs ?? ESPLORA_TIMEOUT_MS;
+        // The parsed body travels apart from the outcomes, so no body reads as one.
+        const ask = (url: string) =>
+            within(ms, async (signal): Promise<{ body: unknown } | 'missing' | 'unanswered'> => {
+                const res = await f(url, { signal });
+                if (res.status === 404) return 'missing';
+                if (!res.ok) return 'unanswered';
+                return { body: await res.json() };
+            });
+        const isObject = (b: unknown): b is Record<string, unknown> => typeof b === 'object' && b !== null;
         try {
-            const tx = await within(ms, async (signal) => {
-                const res = await f(`${base}/tx/${txid}`, { signal });
-                if (res.status === 404) return 'missing' as const;
-                if (!res.ok) return 'unanswered' as const;
-                return (await res.json()) as {
-                    vout?: { scriptpubkey_address?: string; value?: number }[];
-                    status?: { confirmed?: boolean; block_height?: number; block_hash?: string };
-                };
-            });
-            if (tx === 'timeout' || tx === 'unanswered') return 'unanswered';
-            if (tx === 'missing') return 'missing';
-            const out = tx.vout?.[vout];
+            const txRead = await ask(`${base}/tx/${txid}`);
+            if (txRead === 'timeout' || txRead === 'unanswered') return 'unanswered';
+            if (txRead === 'missing') return 'missing';
+            // A 200 that is not a transaction is no answer, not a missing coin.
+            if (!isObject(txRead.body)) return 'unanswered';
+            const tx = txRead.body as {
+                vout?: unknown;
+                status?: { confirmed?: boolean; block_height?: number; block_hash?: string };
+            };
+            if (!Array.isArray(tx.vout)) return 'unanswered';
+            const out = tx.vout[vout] as { scriptpubkey_address?: string; value?: number } | undefined;
             if (!out) return 'missing';
-            const spend = await within(ms, async (signal) => {
-                const res = await f(`${base}/tx/${txid}/outspend/${vout}`, { signal });
-                if (res.status === 404) return 'missing' as const;
-                if (!res.ok) return 'unanswered' as const;
-                return (await res.json()) as { spent?: unknown };
-            });
-            if (spend === 'timeout' || spend === 'unanswered') return 'unanswered';
-            if (spend === 'missing') return 'missing';
+            const spendRead = await ask(`${base}/tx/${txid}/outspend/${vout}`);
+            if (spendRead === 'timeout' || spendRead === 'unanswered') return 'unanswered';
+            if (spendRead === 'missing') return 'missing';
+            if (!isObject(spendRead.body)) return 'unanswered';
+            const spend = spendRead.body as { spent?: unknown };
             if (typeof spend.spent !== 'boolean') return 'unanswered';
             return {
                 address: out.scriptpubkey_address ?? null,
