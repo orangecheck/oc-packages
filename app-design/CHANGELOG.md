@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.2.1] — 2026-11-05
+
 The signed-in bar says who is signed in at every width. 2.2.0 showed the
 name only from 1024px, and below that a lone initial.
 
