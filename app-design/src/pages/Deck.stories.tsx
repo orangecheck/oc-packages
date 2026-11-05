@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import portrait from '../assets/portrait-halftone-600.webp';
+import portrait from '../../art/portrait-halftone-600.webp';
 import { HalftoneSphere, IsoCheck, Lockup } from '../brand';
 import {
     Accent,

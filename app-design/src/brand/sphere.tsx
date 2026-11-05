@@ -4,10 +4,11 @@ import { cn } from '../lib/cn';
 import { HalftoneCanvas } from './halftone-canvas';
 
 /*
- * The deck's photograph: a halftone portrait on an orange ball, lit from the
- * upper left, with a hairline stadium behind it. The dot layer is an image of
- * black dots on transparent, made by scripts/halftone.py, so the ball stays CSS
- * and the dots stay crisp at any size.
+ * A halftone portrait on an orange ball, lit from the upper left, with a
+ * hairline stadium behind it. The dot layer is an image of black dots on
+ * transparent, so the ball stays CSS and the dots stay crisp at any size: the
+ * package's own is art/portrait-halftone-*.webp (scripts/portrait/build.mjs),
+ * and scripts/halftone.py makes one from any photo.
  */
 
 export const SPHERE_GRADIENT =
