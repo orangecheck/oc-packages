@@ -244,11 +244,12 @@ export function liveNet(
             try {
                 const res = await timed(`${esplora}/blocks/tip/height`);
                 if (!res.ok) throw unread;
-                n = Number.parseInt((await res.text()).trim(), 10);
+                n = Number((await res.text()).trim());
             } catch {
                 throw unread;
             }
-            if (!Number.isFinite(n)) throw unread;
+            // A blank, 0 or negative body is no height (sdk 1.23.1's rule), never block 0.
+            if (!Number.isSafeInteger(n) || n < 1) throw unread;
             return n;
         },
         verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, fetch: timed, unanswered: 'throw' }),
@@ -259,8 +260,8 @@ export function liveNet(
             },
             tip: async () => {
                 const res = await timed(`${esplora}/blocks/tip/height`);
-                const n = Number.parseInt((await res.text()).trim(), 10);
-                if (!res.ok || !Number.isFinite(n)) throw new Error('tip');
+                const n = Number((await res.text()).trim());
+                if (!res.ok || !Number.isSafeInteger(n) || n < 1) throw new Error('tip');
                 return n;
             },
             headers: mempoolHeaderSource({ baseUrl: esplora, fetch: timed }),
