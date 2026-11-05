@@ -399,7 +399,7 @@ export function SiteHeader({
                                     // Below 480px the bar keeps the brand, the actions and the menu: the CTA
                                     // is the menu's full-width button there, so nothing overlaps.
                                     'max-[479px]:hidden',
-                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
+                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-cta-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
                                 )}
                             >
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} />

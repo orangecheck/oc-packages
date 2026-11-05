@@ -1,7 +1,7 @@
 /*
  * The public surface of a built app-design, read by the TypeScript checker from
- * its .d.ts: what check-surface compares with 1.29.3's snapshot, and what
- * check-surface-1.29.3 regenerates from npm's published tarball. propTypes and
+ * its .d.ts: what check-surface compares with the 1.29.3 and 2.0.0 snapshots, and
+ * what check-surface-npm regenerates from npm's published tarballs. propTypes and
  * narrowings compare each component prop's type, for a prop that lost a string
  * option or became required. That started as review-me's prop-narrowing tool.
  */
