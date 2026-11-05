@@ -687,7 +687,7 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(r.relays).toMatchObject({ asked: 4, answered: 2, floors_missed: ['3 of 4'] });
         expect(r.relays.below_floor).toBeGreaterThan(0);
         const why = r.not_checked.join('\n');
-        expect(why).toMatch(/\d+ of \d+ reads had fewer relays answering than their floor \(3 of 4\)/);
+        expect(why).toMatch(/\d+ of \d+ reads had fewer relays answering in full than their floor \(3 of 4\)/);
         expect(why).toMatch(/relay wss:\/\/c\.example did not answer \d+ of \d+ reads/);
         expect(why).toMatch(/relay wss:\/\/d\.example did not answer/);
         stdout = '';
@@ -871,7 +871,7 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(await run({ file: file(version), json: true }, versionsOn4([D, E]))).toBe(2);
         const r = JSON.parse(stdout);
         expect(r.relays.floors_missed).toEqual(['4 of 5']);
-        expect(r.not_checked.join('\n')).toMatch(/fewer relays answering than their floor \(4 of 5\)/);
+        expect(r.not_checked.join('\n')).toMatch(/fewer relays answering in full than their floor \(4 of 5\)/);
     });
 
     it('one relay asked: its answer is the floor, and its silence is NOT READ', async () => {
@@ -1007,5 +1007,70 @@ describe('oc chat verify: a directory page is full by what the relay sent (chat-
     it('a short page, every event the relay sent counted, still ends it: not listed, FAILED', async () => {
         expect(await run({ handle: 'alice', json: true }, walkNet(100, 99))).toBe(1);
         expect(JSON.parse(stdout).detail).toEqual({ result: 'not_found' });
+    });
+});
+
+describe('oc chat verify: a page of device records a relay filled is cut off (chat-core 0.2.2)', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const RECORD_PAGE = 500; // the page the cli asks device records in
+    let recordLimits: unknown[] = [];
+    // Two relays hold the version and the founder's record. Asked for device records, each
+    // sends `sent` as nostr-core counts them: past the founder's record, filler under its d
+    // tag that binds nothing, left out of `events`, as if it pushed a revocation off the page.
+    const filled = (sent: number) => {
+        recordLimits = [];
+        const raw: RawQuery = async (filter, relays) => {
+            const records = (filter.kinds as number[]).includes(30078);
+            if (records) recordLimits.push(filter.limit);
+            const events = [version, founder.record].filter((e) => matchFilter(e, filter as never));
+            return { events, relayStatus: relays.map((relay) => ({ relay, eose: true, events: records ? sent : events.length, rejected: 0 })) };
+        };
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        return liveNet(['wss://a.example', 'wss://b.example'], 'https://esplora.test/api', raw);
+    };
+
+    it('a full page is a read cut off, so the key is not read as live: NOT READ, exit 2, the read named below its floor', async () => {
+        expect(await run({ file: file(version), json: true }, filled(RECORD_PAGE))).toBe(2);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('unread');
+        // chat-core's own floor stops the resolution, as when the relays send no records at all.
+        expect(r.checks).toEqual([]);
+        expect(recordLimits.length).toBeGreaterThan(0);
+        expect(new Set(recordLimits)).toEqual(new Set([RECORD_PAGE]));
+        expect(r.relays).toMatchObject({ asked: 2, answered: 2, floors_missed: ['1 of 2'], silent: [] });
+        expect(r.relays.below_floor).toBeGreaterThan(0);
+        expect(r.not_checked.join('\n')).toMatch(/reads had fewer relays answering in full than their floor \(1 of 2\)/);
+    });
+
+    it('a short page is a full answer: VERIFIED, every read at its floor', async () => {
+        expect(await run({ file: file(version), json: true }, filled(RECORD_PAGE - 1))).toBe(0);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('verified');
+        expect(r.relays).toMatchObject({ below_floor: 0, floors_missed: [] });
+    });
+
+    it("a full page chat-core pages past is not cut off: the versions read over 500 filler events is VERIFIED", async () => {
+        // 500 events under the channel's tag dated after the version, which no check takes for a version.
+        const filler = Array.from({ length: 500 }, (_, i) => ({
+            ...version,
+            id: i.toString(16).padStart(64, '0'),
+            created_at: version.created_at + 1 + i,
+            content: 'filler',
+        }));
+        const held = [version, founder.record, ...filler];
+        // Each relay answers newest first, up to the page asked for, `until` inclusive.
+        const raw: RawQuery = async (filter, relays) => {
+            const until = typeof filter.until === 'number' ? filter.until : Infinity;
+            const page = held
+                .filter((e) => matchFilter(e, filter as never) && e.created_at <= until)
+                .sort((x, y) => y.created_at - x.created_at)
+                .slice(0, typeof filter.limit === 'number' ? filter.limit : undefined);
+            return { events: page, relayStatus: relays.map((relay) => ({ relay, eose: true, events: page.length, rejected: 0 })) };
+        };
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        expect(await run({ file: file(version), json: true }, liveNet(['wss://a.example', 'wss://b.example'], 'https://esplora.test/api', raw))).toBe(0);
+        const r = JSON.parse(stdout);
+        expect(r.verdict).toBe('verified');
+        expect(r.relays).toMatchObject({ below_floor: 0, floors_missed: [] });
     });
 });

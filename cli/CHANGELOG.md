@@ -29,6 +29,14 @@ this file tracks the package's TS / Node / runtime API surface.
   other answer the handle is NOT READ, exit 2. A relay that padded a page with
   junk ended the read there, as if complete, so the handle read as not listed
   (FAILED, exit 1).
+- Device records and revocations are asked in pages of 500, and the page goes
+  to chat-core with the answer, as chat-core 0.2.2 reads a `RecordLookup`. A
+  relay that fills the page may hold more behind it, a revocation included, so
+  it has not answered in full and the read is below its floor: "live", "bound
+  now" and "not bound" are not read, NOT READ, exit 2. An EOSE after a full
+  page counted as a full answer. The relay report counts such a read below its
+  floor, and the line that names those reads says "fewer relays answering in
+  full than their floor".
 
 ## [0.5.1] — 2026-11-05
 

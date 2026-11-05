@@ -67,6 +67,8 @@ import { die, readStdin } from '../util';
 
 const ESPLORA = 'https://mempool.space/api';
 const TIMEOUT_MS = 8000;
+/** Device records are asked a page this size, so a relay that fills it reads as cut off (chat-core RecordLookup). */
+const RECORD_PAGE = 500;
 
 export interface ChatVerifyOpts {
     file?: string;
@@ -151,12 +153,15 @@ const verifyBip322 = ({ address, message, signature }: { address: string; messag
     }
 };
 
-/** One REQ to some relays: the events, and per relay whether it finished answering (EOSE) and,
- *  as nostr-core counts them, the events it sent that were kept and that were dropped. */
+/** One relay's answer: whether it finished answering (EOSE) and, as nostr-core counts them,
+ *  the events it sent that were kept and that were dropped. */
+type RelayStatus = { relay: string; eose: boolean; events?: number; rejected?: number };
+
+/** One REQ to some relays: the events, and how each relay answered. */
 export type RawQuery = (
     filter: Record<string, unknown>,
     relays: readonly string[]
-) => Promise<{ events: NostrEvent[]; relayStatus: readonly { relay: string; eose: boolean; events?: number; rejected?: number }[] }>;
+) => Promise<{ events: NostrEvent[]; relayStatus: readonly RelayStatus[] }>;
 
 /** How the relays answered over one run: how many there were, which missed a read, and how
  *  many reads fell below the read floor (chat-core `readFloor`, SPEC §8.7). */
@@ -177,9 +182,10 @@ export function relayTally() {
     let below = 0;
     const floorsMissed = new Set<string>();
     return {
-        note(status: readonly { relay: string; eose: boolean }[]) {
+        /** `page`: the one page a read asked for, so a relay that filled it did not answer in full. */
+        note(status: readonly RelayStatus[], page?: number) {
             reads++;
-            if (!meetsReadFloor(status)) {
+            if (!meetsReadFloor(status, page)) {
                 below++;
                 floorsMissed.add(`${readFloor(status.length)} of ${status.length}`);
             }
@@ -210,9 +216,10 @@ export function liveNet(
 ): ChatNet {
     const timed: typeof fetch = (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
     const tally = relayTally();
-    const ask: RawQuery = async (filter, to) => {
+    // chat-core pages its own reads past a full page; a read the cli asks in one page passes it.
+    const ask = async (filter: Record<string, unknown>, to: readonly string[], page?: number) => {
         const res = await raw(filter, to);
-        tally.note(res.relayStatus);
+        tally.note(res.relayStatus, page);
         return res;
     };
     const query: Query = async (filter) => ask(filter, relays);
@@ -221,8 +228,8 @@ export function liveNet(
         query,
         // A bind any answering relay holds counts; "not bound" needs the floor (chat-core recordReads).
         records: async (principal) => {
-            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)] }, recordRelays);
-            return { events: res.events, relayStatus: res.relayStatus };
+            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)], limit: RECORD_PAGE }, recordRelays, RECORD_PAGE);
+            return { events: res.events, relayStatus: res.relayStatus, limit: RECORD_PAGE };
         },
         relays: () => tally.report(),
         // A JWKS that answers with no keys binds nothing; one that does not answer is not read.
@@ -588,7 +595,7 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         r.relays = tally;
         if (tally.below_floor > 0) {
             r.not_checked.push(
-                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering than their floor (${tally.floors_missed.join(', ')}): a revocation, newer version or record may not have been seen`
+                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering in full than their floor (${tally.floors_missed.join(', ')}): a revocation, newer version or record may not have been seen`
             );
             for (const s of tally.silent) r.not_checked.push(`relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads`);
         }
