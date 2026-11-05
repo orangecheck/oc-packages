@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { visibleObserver } from '../lib/viewport';
 import { MonoLabel } from './frame';
 import { Section } from './section';
 
@@ -177,7 +178,7 @@ export function useActiveHeading(ids: string[]): string | undefined {
             .map((id) => document.getElementById(id))
             .filter((el): el is HTMLElement => el !== null);
         if (els.length === 0 || typeof IntersectionObserver === 'undefined') return;
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             (entries) => {
                 const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
                 if (hit) setActive(hit.target.id);

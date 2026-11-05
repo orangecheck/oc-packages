@@ -10,6 +10,7 @@ import {
 
 import { cn } from '../lib/cn';
 import { prefersReducedMotion } from '../lib/env';
+import { visibleBottom, visibleObserver } from '../lib/viewport';
 
 /*
  * Motion that tells the story and then gets out of the way. Everything here is
@@ -33,7 +34,7 @@ export function useInView<T extends Element>(rootMargin = '0px 0px -12% 0px') {
             setSeen(true);
             return;
         }
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             ([e]) => {
                 if (e?.isIntersecting) {
                     setSeen(true);
@@ -70,9 +71,9 @@ export function Reveal({
     useEffect(() => {
         const el = ref.current;
         if (!el || prefersStill() || typeof IntersectionObserver === 'undefined') return;
-        if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+        if (el.getBoundingClientRect().top < visibleBottom() * 0.92) return;
         el.dataset.reveal = 'pending';
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             ([e]) => {
                 if (e?.isIntersecting) {
                     el.dataset.reveal = 'shown';
@@ -162,7 +163,7 @@ export function Ticker({
     useEffect(() => {
         const el = ref.current;
         if (!el || animate.current !== null) return;
-        animate.current = !prefersStill() && el.getBoundingClientRect().top > window.innerHeight * 0.9;
+        animate.current = !prefersStill() && el.getBoundingClientRect().top > visibleBottom() * 0.9;
         if (animate.current) setShown(0);
     }, [ref]);
     useEffect(() => {
