@@ -20,6 +20,8 @@ const config: StorybookConfig = {
      */
     addons: [],
     framework: { name: '@storybook/react-vite', options: {} },
+    // app-design's self-hosted faces, for the frame around the stories (manager-head.html links fonts.css).
+    staticDirs: [{ from: '../../app-design/src/styles', to: '/oca' }],
     core: { disableTelemetry: true },
     async viteFinal(viteConfig) {
         // Tailwind 4 via the Vite plugin so @theme / @apply / @source resolve.
