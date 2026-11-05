@@ -193,15 +193,16 @@ export const Dither: StoryObj = {
             <div className="flex flex-wrap items-end gap-10">
                 <DitherMark size="sm" />
                 <DitherMark size="md" />
-                <DitherMark size="lg" title="orangecheck" />
+                {/* 480px is wider than a phone's column: there it shrinks to fit, as a site's must. */}
+                <DitherMark size="lg" title="orangecheck" className="max-w-full" />
             </div>
             {/* Sized by its class: the browser picks the baked width from sizes. */}
             <DitherMark className="w-40 md:w-60" sizes="(min-width: 768px) 240px, 160px" />
             <div className="flex flex-wrap gap-6">
-                <span className="bg-oca-ink p-8">
+                <span className="bg-oca-ink p-4 sm:p-8">
                     <DitherMark size="md" ground="dark" />
                 </span>
-                <span className="bg-brand p-8">
+                <span className="bg-brand p-4 sm:p-8">
                     <DitherMark size="md" ground="brand" />
                 </span>
             </div>

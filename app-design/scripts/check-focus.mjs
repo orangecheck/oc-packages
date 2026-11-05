@@ -607,7 +607,7 @@ try {
                     const bars = [...document.querySelectorAll('body *')].filter((b) => {
                         if (getComputedStyle(b).position !== 'sticky') return false;
                         const r = b.getBoundingClientRect();
-                        return r.width > innerWidth / 2 && r.top < 200 && r.height > 0;
+                        return r.width > document.documentElement.clientWidth / 2 && r.top < 200 && r.height > 0;
                     });
                     const under = Math.max(0, ...bars.map((b) => b.getBoundingClientRect().bottom));
                     return { n: el.getAttribute('data-n'), top: Math.round(el.getBoundingClientRect().top), under: Math.round(under), y: scrollY };

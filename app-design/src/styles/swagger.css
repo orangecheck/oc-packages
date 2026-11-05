@@ -207,7 +207,7 @@
 
 /* Swagger draws a 20px glyph in a button with no padding of its own, and the
    preflight takes the browser's button padding away: 20x20 targets (the
-   operation lock 30x20). At least 24px at every width; 44px on a phone below. */
+   operation lock 30x20). At least 24px at every width; 44px to a thumb below. */
 [data-oc-app='ochk'] .swagger-ui :is(.expand-operation, .expand-methods, .opblock-control-arrow, .authorization__btn, .models-control) {
     min-width: 24px;
     min-height: 24px;
@@ -227,7 +227,14 @@
     [data-oc-app='ochk'] .swagger-ui :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']), select, textarea) {
         font-size: 16px;
     }
-    [data-oc-app='ochk'] .swagger-ui :is(.expand-operation, .expand-methods, .opblock-control-arrow, .authorization__btn, .models-control) {
+}
+
+/* To a thumb, on any screen a touch screen draws (a tablet too), each control is
+   44px, and so is each of Swagger's own buttons (.btn: Try it out, Execute,
+   Cancel, Hide), which drew 30px tall (attest's Hide was 80x30). A mouse keeps
+   the drawn sizes. */
+@media (pointer: coarse) {
+    [data-oc-app='ochk'] .swagger-ui :is(.expand-operation, .expand-methods, .opblock-control-arrow, .authorization__btn, .models-control, .btn) {
         min-width: 44px;
         min-height: 44px;
     }
