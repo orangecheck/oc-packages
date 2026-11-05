@@ -402,16 +402,24 @@ const gatedPost = signNostrEvent(
     },
     authorDevice.nostrSk
 );
-const COIN = {
+/** The transaction PROOF's outpoint names, as Esplora's /tx/<txid> serves it. */
+const TX = {
     txid: 'ab'.repeat(32),
-    vout: 0,
-    value: 50000,
+    vout: [{ scriptpubkey_address: AUTHOR, value: 50000 }],
     status: { confirmed: true, block_height: 900000, block_hash: '00'.repeat(32) },
 };
 
+/** Every URL the stubbed fetch was asked, this test. */
+let asked: string[] = [];
+type Answer = (url: string, init?: RequestInit) => Response | Promise<Response>;
+
 /** The in-memory relays, with ochk.io and the chain read by liveNet over a stubbed fetch. */
-function chainNet(answer: (url: string) => Response | Promise<Response>): ChatNet {
-    vi.stubGlobal('fetch', (async (url: string) => answer(String(url))) as unknown as typeof fetch);
+function chainNet(answer: Answer): ChatNet {
+    asked = [];
+    vi.stubGlobal('fetch', (async (url: string, init?: RequestInit) => {
+        asked.push(String(url));
+        return answer(String(url), init);
+    }) as unknown as typeof fetch);
     const live = liveNet([], 'https://esplora.test/api');
     return {
         ...net([gatedVersion, founder.record, gatedPost, authorDevice.record]),
@@ -420,31 +428,97 @@ function chainNet(answer: (url: string) => Response | Promise<Response>): ChatNe
         verifyOnChain: live.verifyOnChain,
     };
 }
-const json = (body: unknown) => ({ ok: true, json: async () => body, text: async () => String(body) }) as unknown as Response;
+const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => String(body) }) as unknown as Response;
+const status = (code: number, body = '') =>
+    ({ ok: false, status: code, json: async () => ({}), text: async () => body }) as unknown as Response;
 const refused = () => Promise.reject(new TypeError('fetch failed'));
-const answers = (over: Partial<Record<'jwks' | 'tip' | 'utxo', () => Response | Promise<Response>>>) => (url: string) =>
+// Anything else, the address's whole coin list included, is refused: electrs' 400 for an
+// address past its few hundred coins, which dust sent to the author can bring about.
+const answers = (over: Partial<Record<'jwks' | 'tip' | 'tx' | 'outspend', Answer>>): Answer => (url, init) =>
     url.includes('jwks')
-        ? (over.jwks ?? (() => json({ keys: [HOST] })))()
+        ? (over.jwks ?? (() => json({ keys: [HOST] })))(url, init)
         : url.endsWith('/blocks/tip/height')
-          ? (over.tip ?? (() => json(930000)))()
-          : (over.utxo ?? (() => json([COIN])))();
+          ? (over.tip ?? (() => json(930000)))(url, init)
+          : url.endsWith(`/tx/${TX.txid}/outspend/0`)
+            ? (over.outspend ?? (() => json({ spent: false })))(url, init)
+            : url.endsWith(`/tx/${TX.txid}`)
+              ? (over.tx ?? (() => json(TX)))(url, init)
+              : status(400, 'Too many unspent transaction outputs');
 
 describe('oc chat verify: the write gate, and reads that get no answer', () => {
     afterEach(() => vi.unstubAllGlobals());
 
-    it('a utxo-floor post whose coin is on chain is VERIFIED', async () => {
+    it("a utxo-floor post is VERIFIED by the one coin its proof names, though the address's coin list is refused", async () => {
         expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({})))).toBe(0);
         expect(JSON.parse(stdout).verdict).toBe('verified');
+        const coinReads = asked.filter((u) => u.startsWith('https://esplora.test/api/') && !u.endsWith('/blocks/tip/height'));
+        expect(coinReads).toEqual([`https://esplora.test/api/tx/${TX.txid}`, `https://esplora.test/api/tx/${TX.txid}/outspend/0`]);
     });
 
-    it('a utxo-floor post whose coin is not there FAILS (E_CHAN_FLOOR)', async () => {
-        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ utxo: () => json([]) })))).toBe(1);
-        expect(JSON.parse(stdout).checks.at(-1).detail).toBe('E_CHAN_FLOOR');
+    it('a utxo-floor post whose coin is not there, or is spent, FAILS (E_CHAN_FLOOR)', async () => {
+        const cases: [string, Parameters<typeof answers>[0]][] = [
+            ['no such transaction', { tx: () => status(404) }],
+            ['no such output', { tx: () => json({ ...TX, vout: [] }) }],
+            ['spent', { outspend: () => json({ spent: true }) }],
+        ];
+        for (const [name, over] of cases) {
+            stdout = '';
+            expect(await run({ file: file(gatedPost), json: true }, chainNet(answers(over))), name).toBe(1);
+            expect(JSON.parse(stdout).checks.at(-1).detail, name).toBe('E_CHAN_FLOOR');
+        }
     });
 
-    it('an Esplora outputs read that fails is NOT READ, exit 2', async () => {
-        expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ utxo: refused })))).toBe(2);
-        expect(JSON.parse(stdout).verdict).toBe('unread');
+    it('a coin read that is refused, limited, fails or answers with no transaction is NOT READ, exit 2, never a no', async () => {
+        const unparsable = () => ({ ok: true, status: 200, json: async () => JSON.parse('<html>') }) as unknown as Response;
+        const cases: [string, Parameters<typeof answers>[0]][] = [
+            ['refused', { tx: refused }],
+            ['429', { tx: () => status(429) }],
+            ['503 on the spend', { outspend: () => status(503) }],
+            ['a body that does not parse', { tx: unparsable }],
+            ['an empty object', { tx: () => json({}) }],
+            ['a list', { tx: () => json([]) }],
+            ['a vout that is not a list', { tx: () => json({ ...TX, vout: 'x' }) }],
+            ['a spend with no spent flag', { outspend: () => json({}) }],
+        ];
+        for (const [name, over] of cases) {
+            stdout = '';
+            expect(await run({ file: file(gatedPost), json: true }, chainNet(answers(over))), name).toBe(2);
+            expect(JSON.parse(stdout).verdict, name).toBe('unread');
+        }
+    });
+
+    it('a coin read that hangs, or whose body hangs, is NOT READ at the read time, its request aborted', async () => {
+        const READ_MS = 8000; // the cli's TIMEOUT_MS, which it hands chat-core as timeoutMs
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        try {
+            for (const where of ['request', 'body'] as const) {
+                stdout = '';
+                let signal: AbortSignal | null | undefined;
+                let reached = () => {};
+                const hung = new Promise<void>((r) => (reached = r));
+                const never = new Promise<never>(() => {});
+                const hang: Answer = (_url, init) => {
+                    signal = init?.signal;
+                    reached();
+                    if (where === 'body') return { ok: true, status: 200, json: () => never } as unknown as Response;
+                    // A real fetch rejects once its signal aborts.
+                    return new Promise<never>((_, reject) => signal?.addEventListener('abort', () => reject(signal?.reason)));
+                };
+                let code: number | undefined;
+                const done = run({ file: file(gatedPost), json: true }, chainNet(answers({ tx: hang }))).then((c) => (code = c));
+                await hung;
+                await vi.advanceTimersByTimeAsync(READ_MS - 1);
+                expect(code, where).toBeUndefined();
+                expect(signal?.aborted, where).toBe(false);
+                await vi.advanceTimersByTimeAsync(1);
+                await done;
+                expect(code, where).toBe(2);
+                expect(JSON.parse(stdout).verdict, where).toBe('unread');
+                expect(signal?.aborted, where).toBe(true);
+            }
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('a tip body of 0, a negative, a fraction or a blank one is NOT READ, exit 2, never block 0', async () => {
