@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HalftoneSphere, Lockup } from './brand';
 import { Accent, Display, Eyebrow, Lead, Prose } from './components';
 import { Badge } from './primitives';
-import portrait from './assets/portrait-halftone-600.webp';
+import portrait from '../art/portrait-halftone-600.webp';
 
 const meta: Meta = { title: 'Introduction', parameters: { fullBleed: true } };
 export default meta;
@@ -43,8 +43,9 @@ export const Overview: StoryObj = {
                 <p>
                     Inter at regular weight for display, with optical sizing doing the tightening. Pills for actions,
                     white cards with one hairline, no shadows outside overlays. The isometric check is measured from
-                    slide 9 and drawn on a 16×8 grid. The portrait is re-screened from the deck by{' '}
-                    <code>scripts/halftone.py</code>, which turns any photo into a dot layer.
+                    slide 9 and drawn on a 16×8 grid. The portrait is one generated photograph of a woman who does not exist,
+                    made into every dot the package draws by <code>scripts/portrait/build.mjs</code>;{' '}
+                    <code>scripts/halftone.py</code> turns any other photo into a dot layer.
                 </p>
                 <h2>Using it</h2>
                 <p>

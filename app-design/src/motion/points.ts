@@ -61,10 +61,10 @@ let bust: Promise<Points> | null = null;
 let deck: Promise<Points> | null = null;
 
 /**
- * A bust drawn from shapes (scripts/motion-points.mjs) as a blue-noise
- * stipple, a positive on paper and on a dark ground: ParticlePortrait's
- * default. Imported on first use, so a page carries it only once a portrait
- * asks, and only once.
+ * A woman's head and shoulders from a portrait photograph
+ * (scripts/portrait/build.mjs), as a blue-noise stipple, a positive on paper
+ * and on a dark ground: ParticlePortrait's default. Imported on first use, so
+ * a page carries it only once a portrait asks, and only once.
  */
 export function bustPoints(): Promise<Points> {
     bust ??= import('./portrait-points.data').then((m) => ({ ...decodePoints(m.PORTRAIT_POINTS_B64, m.PORTRAIT_PITCH), grounds: bytes(m.PORTRAIT_GROUNDS_B64) }));
@@ -72,8 +72,8 @@ export function bustPoints(): Promise<Points> {
 }
 
 /**
- * The deck portrait on its 45° screen, as an option for `points`. It is ink
- * on any ground, so it reads best on paper; it has no poster of its own.
+ * The same portrait's ink on a 45° screen, as an option for `points`. It is
+ * ink on any ground, so it reads best on paper; it has no poster of its own.
  */
 export function deckPortraitPoints(): Promise<Points> {
     deck ??= import('./deck-points.data').then((m) => decodePoints(m.DECK_POINTS_B64, m.DECK_PITCH));

@@ -10,8 +10,11 @@
  *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake,
  *                                       or holds an AVIF bigger than its PNG
  *
- * Everything is drawn from geometry and a seeded noise, never from a
- * photograph (PLAN §6), so a bake is the same bytes every time:
+ * Everything here is drawn from geometry and a seeded noise, never from a
+ * photograph (PLAN §6), so a bake is the same bytes every time. The one
+ * picture of a person in ./art, portrait-halftone-*.webp, is written and
+ * checked by scripts/portrait/build.mjs from its own source; this bake
+ * leaves it alone:
  *   - dither-mark-{240,480,960}: the isometric mark in ordered dither, faces
  *     as @orangecheck/mark; `-ink` has the ink top face for light grounds;
  *     `-brand` is ink alone for a brand ground (a solid top, sides at about
@@ -243,6 +246,9 @@ pieces.push(['dither-field-2x', ditherField(2400, 640, 7, 2)]);
 pieces.push(['halftone-field', halftoneField(320, 320, 8, 0.6), BURNT]);
 pieces.push(['halftone-field-2x', halftoneField(640, 640, 16, 0.6), BURNT]);
 
+// Files in ./art this bake does not make, and must neither flag nor remove.
+const theirs = (f) => f === 'README.md' || /^portrait-halftone-\d+\.webp$/.test(f);
+
 const files = new Map();
 for (const [name, img, ground] of pieces) {
     const raw = { raw: { width: img.width, height: img.height, channels: 4 } };
@@ -294,7 +300,7 @@ if (CHECK) {
         }
     }
     // Anything else fails too, an AVIF that lost to its PNG among them.
-    const extra = readdirSync(OUT).filter((f) => !files.has(f) && f !== 'README.md');
+    const extra = readdirSync(OUT).filter((f) => !files.has(f) && !theirs(f));
     for (const f of extra) (console.error(`✗ art: ${f} is not baked by this script${f.endsWith('.avif') ? ', or is bigger than its PNG' : ''}`), bad++);
     if (bad) process.exit(1);
     console.log(`✓ art: ${files.size} files match a fresh bake, each within ${BUDGET / 1024} KB`);
@@ -302,7 +308,7 @@ if (CHECK) {
     mkdirSync(OUT, { recursive: true });
     for (const [f, buf] of files) writeFileSync(join(OUT, f), buf);
     // A file this bake no longer makes (an AVIF that lost to its PNG) leaves ./art.
-    for (const f of readdirSync(OUT)) if (!files.has(f) && f !== 'README.md') rmSync(join(OUT, f));
+    for (const f of readdirSync(OUT)) if (!files.has(f) && !theirs(f)) rmSync(join(OUT, f));
     const over = [...files].filter(([, buf]) => buf.length > BUDGET).map(([f]) => f);
     if (over.length) console.error(`✗ art: over the ${BUDGET / 1024} KB budget: ${over.join(', ')}`);
     for (const [f, buf] of files) console.log(`${f.padEnd(28)} ${(buf.length / 1024).toFixed(1)} KB`);

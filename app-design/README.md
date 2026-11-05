@@ -55,7 +55,7 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`, `failureText`, `OFFLINE_TEXT`; no React |
 | `/fonts` | `FONT_FILES`: the fonts the first screen paints in, at the stylesheet's own address. `FontPreloads` renders nothing since 1.20.0 (a preload cost first paint and saved no shift) and stays so no `_document` breaks |
 | `/og` | `OgCard` (paper, ink, burnt, brand), `OgBento` (tiles on the social sheet, 1200×630 or 1920×1080), `ogArt`, `ogFonts()`, `OG_SIZE`, `SOCIAL_SIZE`: the family's share images for next/og's ImageResponse, Inter 300/400 and JetBrains Mono inline |
-| `/art/*` | Baked art, PNG at display size and `-2x`, with an AVIF beside a PNG only where it is smaller (none is today) (`scripts/art/bake.mjs`): `dither-mark-{240,480,960}`, `-ink-` (ink top, light grounds) and `-brand-` (ink alone, brand grounds), each 240 also as `-240-2x` (every pixel doubled, for an OG route to draw at 1:1); `dither-field`, `halftone-field`. Generated, never from a photograph |
+| `/art/*` | Baked art, PNG at display size and `-2x`, with an AVIF beside a PNG only where it is smaller (none is today) (`scripts/art/bake.mjs`): `dither-mark-{240,480,960}`, `-ink-` (ink top, light grounds) and `-brand-` (ink alone, brand grounds), each 240 also as `-240-2x` (every pixel doubled, for an OG route to draw at 1:1); `dither-field`, `halftone-field`, generated from geometry, never from a photograph; and `portrait-halftone-{600,1200}.webp`, the default portrait's dot layer for `HalftoneSphere` (black dots on transparent), written by `scripts/portrait/build.mjs` from a generated portrait of a woman who does not exist (`scripts/portrait/SOURCE.md`) |
 | `/blocks` | `SignInDemo`, `CostDemo`, `Slider`, `BentoGrid`, `BentoTile`, `ReceiptCard`, `StepPath`, `DitherMark`: design 2's interactive blocks, in their own entry so a site that uses none pays nothing |
 | `/vitest` | `appDesignVitest()`: what a site's vitest config needs to render the package (next aliases, inlined); no React |
 | `/acknowledgement` | `Acknowledgement`, the family's credit line, opt in; no other entry carries the name |
@@ -91,7 +91,9 @@ pinned rather than trust a 14px reading.
 `yarn test` fails if any text token (the syntax colours included) drops under WCAG
 AA in light or dark, if a rule could match without the attribute, if the
 highlighter changes a character of the code it colours, or if a component stops
-doing what its story shows. `scripts/halftone.py` turns any photo into
-the dot layer of a `HalftoneSphere`.
+doing what its story shows. `scripts/portrait/build.mjs` turns one matted portrait
+into every picture of the person the package draws: `ParticlePortrait`'s dots and
+posters, `HalftoneCanvas`'s tone and `HalftoneSphere`'s dot layer.
+`scripts/halftone.py` turns any other photo into the dot layer of a `HalftoneSphere`.
 
 MIT © OrangeCheck. The fonts it bundles, Inter and JetBrains Mono (`dist/styles/fonts`, and inline in `/og`), are SIL OFL 1.1; their licence texts are in `licenses/`.

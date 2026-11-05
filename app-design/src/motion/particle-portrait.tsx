@@ -39,7 +39,7 @@ export interface Callout {
 }
 
 export interface ParticlePortraitProps {
-    /** The dots, or a loader for them; a bust drawn from shapes by default (bustPoints). */
+    /** The dots, or a loader for them; a woman's portrait in dots by default (bustPoints). */
     points?: Points | (() => Promise<Points>);
     /** Notes on the picture, in reading order. */
     callouts?: readonly Callout[];
@@ -49,7 +49,7 @@ export interface ParticlePortraitProps {
     ground?: 'auto' | 'light' | 'dark';
     /** Part the dots under a fine pointer. */
     lens?: boolean;
-    /** Shown until the canvas draws, without script, and under reduced motion. The bust's own with the default points; none with others. */
+    /** Shown until the canvas draws, without script, and under reduced motion. The portrait's own with the default points; none with others. */
     poster?: ReactNode;
     /** The control's words. */
     labels?: { pause?: string; play?: string; replay?: string };
@@ -143,7 +143,7 @@ export function ParticlePortrait({
 
     // Labels beside the square only where the widest fits there; otherwise the numbered marks and the legend, as
     // below 46rem (data-crowded). A label starts just outside the square, so the stage must be 1.04 squares and two
-    // labels wide: measured against the story's widest label ("Drawn from shapes, not a photo", 232px with its
+    // labels wide: measured against the story's widest label ("Dots from a generated portrait", 232px with its
     // padding), a 702px-tall stage switches at 1194px wide, so 1440 keeps its labels and 768 to 1180 list them.
     // Read with the labels drawn, in the frame after a resize, so nothing is painted between; a label the 46rem
     // query hides reads as spilling, which only repeats the legend that query already shows.
