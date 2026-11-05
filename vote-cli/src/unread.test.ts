@@ -173,7 +173,7 @@ describe("the explorer's answers for a voter's coins", () => {
     const answers: { what: string; answer: () => Response | Promise<Response>; reason: string }[] = [
         { what: 'its 500-output cap (400)', answer: capped, reason: 'utxo_cap_unread' },
         {
-            what: "the cap in blockstream's words (400)",
+            what: 'the cap in other words, any case (400)',
             answer: () => new Response('Too many unspent outputs', { status: 400 }),
             reason: 'utxo_cap_unread',
         },

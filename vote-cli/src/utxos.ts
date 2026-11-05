@@ -19,11 +19,14 @@ export const UTXO_FETCH_TIMEOUT_MS = 8_000;
 
 /**
  * Why a voter's coins were not read (OC Vote SPEC §8). mempool.space answers 400
- * "Too many unspent transaction outputs (>500)" for an address with more coins
- * than it lists (read 2026-11-05; blockstream says "Too many unspent outputs"),
- * and anyone can push an address there by sending it dust. A rate limit, a
- * server error, no answer or an answer that is not a coin list may pass; any
- * other refusal is the explorer's.
+ * "Too many unspent transaction outputs (>500). Contact support to raise limits."
+ * for an address with more coins than it lists (read 2026-11-05), and anyone can
+ * push an address there by sending it dust. blockstream.info lists more (all
+ * 3,171 coins of an address mempool.space caps) and refuses a very large one
+ * with 400 "Scripthash history too large to scan" (both read 2026-11-05), which
+ * this reads as the explorer's refusal. A rate limit, a server error, no answer
+ * or an answer that is not a coin list may pass; any other refusal is the
+ * explorer's.
  */
 function unreadBecause(status: number, body: string): UtxoUnreadError {
     if (/too many unspent/i.test(body)) {
