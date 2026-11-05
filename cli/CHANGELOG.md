@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+- Requires `@orangecheck/chat-core` ^0.2.3 (it was ^0.1.1). `oc chat verify`
+  checks a utxo-floor post's write proof against the one coin it names, `GET
+  /tx/<txid>` and then `GET /tx/<txid>/outspend/<vout>`, as chat.ochk.io does.
+  The post is VERIFIED or FAILED by its coin: the coin must pay the author the
+  value the proof states, at its height and block hash, and be unspent (a spend
+  still in the mempool counts as spent).
+- A coin read that is refused, rate limited, answered with a 5xx or with a body
+  that is not a transaction, or not answered within 8 s (its body included) is
+  NOT READ, exit 2, never FAILED. Each of the two reads takes chat-core's own
+  time limit, which aborts its request.
+
 ## [0.5.1] — 2026-11-05
 
 - `oc chat verify` reads a chain tip body that is blank, 0, negative or not

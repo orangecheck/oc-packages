@@ -203,14 +203,15 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/chat-core@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.1.1.tgz#d7393cc07cb22c5cae02b12263b32c53e200e516"
-  integrity sha512-6LWRb3RsplKdzrTHhyl8SRFdhB9pAcM6ez3L/gLHC93uNNkXDqapEosxNKyo9qE9vgBgz0o0JhIRUaTQ74QGuA==
+"@orangecheck/chat-core@^0.2.3":
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.2.3.tgz#00bd09d61292782ccb710937d206237be6c2ca04"
+  integrity sha512-VMvpJ+92iZpSSypiKuUsemxqUjU6c4EugzclBKu9SvvTDXiMCbrmGXD6TCNdnqm9RoFNNkPS7Nn3NuBtCmn4gg==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@orangecheck/auth-core" "^2.27.0"
+    "@orangecheck/bip322" "^1.1.3"
     "@orangecheck/lock-core" "^1.4.0"
     "@orangecheck/lock-crypto" "^0.1.0"
     "@orangecheck/lock-device" "^0.8.0"
