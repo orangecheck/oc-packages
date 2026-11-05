@@ -160,6 +160,8 @@ export interface DocsShellProps {
     signIn?: SiteHeaderProps['signIn'];
     /** The default header's account CTA, as SiteHeader takes it. */
     cta?: SiteHeaderProps['cta'];
+    /** The default header's account control (SessionAccount), as SiteHeader takes it. */
+    account?: ReactNode;
     /** Above the page: Breadcrumbs. */
     breadcrumbs?: ReactNode;
     /**
@@ -189,6 +191,7 @@ export function DocsShell({
     actions,
     signIn,
     cta,
+    account,
     breadcrumbs,
     toc,
     pager,
@@ -214,7 +217,7 @@ export function DocsShell({
     return (
         <div className="flex min-h-dvh flex-col bg-background">
             <SkipLink />
-            {header ?? <SiteHeader home={OCHK_IO} family="docs" nav={DOCS_HEADER_NAV} search={search} actions={actions} signIn={signIn} cta={cta} />}
+            {header ?? <SiteHeader home={OCHK_IO} family="docs" nav={DOCS_HEADER_NAV} search={search} actions={actions} signIn={signIn} cta={cta} account={account} />}
             {/* Below lg: the sections behind one button, and where you are beside it. */}
             <div
                 data-oca-sticky="docs-bar"

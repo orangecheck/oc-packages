@@ -532,6 +532,42 @@ for (const mode of ['dark', 'light']) {
     }
 }
 
+// SessionAccount, read from auth-client: a session shown by its email puts the email on the trigger, over a chosen
+// name, and its menu holds Account settings on ochk.app, Appearance and Sign out, never "Your account".
+{
+    const account = {
+        id: 'acc-e',
+        did_oc: 'did:oc:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        display_name: 'Ana',
+        primary_btc: null,
+        has_email: true,
+        display_identity: { kind: 'email', value: 'ana@example.com' },
+    };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = window.fetch = async (url) =>
+        String(url).endsWith('/api/auth/me') ? new Response(JSON.stringify({ account, roster: [] }), { status: 200 }) : new Response('{}', { status: 404 });
+    const settle = () => act(async () => new Promise((r) => setTimeout(r, 20)));
+    const { host, unmount } = await mount(h(OcSessionProvider, null, h(SessionAccount, { items: [{ label: 'Your watch', href: '/watch' }] })));
+    let trigger = null;
+    for (let i = 0; i < 50 && !trigger; i++) {
+        await settle();
+        trigger = host.querySelector('[data-oca-account="in"]');
+    }
+    check(trigger?.getAttribute('aria-label') === 'ana@example.com, account menu' && trigger?.textContent.includes('ana@example.com'), `SessionAccount: an email session's trigger says ${show(trigger?.getAttribute('aria-label'))}`);
+    check(host.querySelectorAll('[data-oca-account]').length === 1, `SessionAccount: ${host.querySelectorAll('[data-oca-account]').length} account controls signed in`);
+    await act(async () => {
+        trigger?.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+    });
+    const items = [...document.querySelectorAll('[role="menuitem"]')].map((e) => [e.textContent.trim(), e.getAttribute('href')]);
+    check(
+        JSON.stringify(items) === JSON.stringify([['Your watch', '/watch'], ['Account settings', 'https://ochk.app/me/account'], ['Appearance: System', null], ['Sign out', null]]),
+        `SessionAccount: the menu holds ${JSON.stringify(items)}`
+    );
+    check(!/your account/i.test(document.body.textContent), 'SessionAccount: "Your account" is on the page');
+    await unmount();
+    globalThis.fetch = window.fetch = realFetch;
+}
+
 // A test DOM without matchMedia or IntersectionObserver (vitest's jsdom, as chat, vault and
 // ochk.app run): the 2.0 footer mounts, and its wordmark is shown, not left waiting to rise.
 {

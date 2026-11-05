@@ -8,10 +8,12 @@ import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PR
 import { cn } from '../lib/cn';
 import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
+import { AccountSlotContext, type AccountSlot } from '../lib/account-slot';
 import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
 import { ThemeToggle } from './app-shell';
+import { CTA_BLOCK, CTA_LINK, CtaLabel, CtaPlus } from './cta';
 import { FamilyList, FamilyMenu } from './family-menu';
 import { ProductLockup } from './product-lockup';
 
@@ -146,43 +148,20 @@ export interface SiteHeaderProps {
      * `pending` is the moment a session check runs: the block keeps its width
      * and ground, its label is hidden, and nothing in it can be focused or
      * named, so the wrong label never flashes. `reserve` lists the other labels
-     * it may take ("Your account"): the block is as wide as the widest, so the
-     * swap never moves the nav.
+     * it may take: the block is as wide as the widest, so the swap never moves
+     * the nav. Not drawn with `account`: a site's own action goes in its menu.
      */
     cta?: boolean | { label?: ReactNode; href?: string; pending?: boolean; reserve?: readonly ReactNode[] };
-    /** "Sign in" before the CTA; in the phone's menu, a row. `true` links the family sign-in. `site` only. */
+    /** "Sign in" before the CTA; in the phone's menu, a row. `true` links the family sign-in. `site` only. Not drawn with `account`. */
     signIn?: boolean | { label?: ReactNode; href?: string };
+    /**
+     * The one account control (SessionAccount, or SessionAccountView): the
+     * full-height block at the bar's right rule. Signed out below 480px its way
+     * in moves to the foot of the phone menu. Pass it here, never among
+     * `actions`, so a header holds exactly one; `cta` and `signIn` then give way.
+     */
+    account?: ReactNode;
     className?: string;
-}
-
-/** A CTA's label in a one-cell grid with the labels it may become, so its width never changes. */
-function CtaLabel({ label, reserve, hidden }: { label: ReactNode; reserve: readonly ReactNode[]; hidden?: boolean }) {
-    return (
-        <span className="grid [&>*]:[grid-area:1/1]">
-            <span className={cn(hidden && 'invisible')}>{label}</span>
-            {reserve.map((r, i) => (
-                <span key={i} aria-hidden className="invisible">
-                    {r}
-                </span>
-            ))}
-        </span>
-    );
-}
-
-const CTA_BLOCK =
-    'flex items-center gap-3 self-stretch whitespace-nowrap bg-primary px-4 text-[0.9375rem] font-medium text-primary-foreground min-[900px]:px-7';
-
-/** The trailing "+" of a CTA; it turns as the pointer lands on its link. */
-function CtaPlus() {
-    return (
-        <span
-            aria-hidden
-            className="relative inline-block size-3 shrink-0 transition-transform duration-300 ease-oca-out group-hover/cta:rotate-90 group-active/cta:rotate-90"
-        >
-            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-current" />
-            <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-current" />
-        </span>
-    );
 }
 
 /**
@@ -219,6 +198,7 @@ export function SiteHeader({
     menu: menuExtra,
     cta,
     signIn,
+    account,
     className,
 }: SiteHeaderProps) {
     const [open, setOpen] = useState(false);
@@ -232,7 +212,7 @@ export function SiteHeader({
     const ctaOwn = typeof cta === 'object' ? cta : {};
     const signInOwn = typeof signIn === 'object' ? signIn : {};
     const headerCta =
-        !tool && cta
+        !tool && cta && !account
             ? {
                   label: ctaOwn.label ?? GET_AN_ACCOUNT.label,
                   href: ctaOwn.href ?? familySignIn,
@@ -240,10 +220,12 @@ export function SiteHeader({
                   reserve: ctaOwn.reserve ?? [],
               }
             : null;
-    const headerSignIn = !tool && signIn ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
+    const headerSignIn = !tool && signIn && !account ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
+    // The account is the block at the right rule, in the bar and at the phone menu's foot.
+    const slot = (where: AccountSlot['where']): AccountSlot => ({ look: 'block', where });
     // 2.0's site header: the flat mark and the wordmark at 21px in the frame. The tool header keeps its lockup.
     const brandNode = brand ?? <ProductLockup size={tool ? 22 : 30} product={product} />;
-    const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta);
+    const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta) || Boolean(account);
     // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
     // links follow the brand, and Sign in and the CTA sit at the right rule.
     const framed = !tool;
@@ -275,11 +257,11 @@ export function SiteHeader({
                 className={cn(
                     'flex items-center justify-between gap-4',
                     tool
-                        ? 'h-14 px-4 md:px-6'
+                        ? cn('h-14 pl-4 md:pl-6', account ? 'max-[479px]:pr-4' : 'pr-4 md:pr-6')
                         : // The frame's column: the page's gutter at left, the CTA at the right rule.
                           'mx-auto h-14 w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
                     framed &&
-                        (headerCta
+                        (headerCta || account
                             ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
                               'max-[479px]:pr-[var(--oca-frame-gutter)]'
                             : 'pr-[var(--oca-frame-gutter)]')
@@ -295,7 +277,7 @@ export function SiteHeader({
                     {family ? <FamilyMenu current={current} className={tool ? 'max-md:hidden' : 'max-[899px]:hidden'} /> : null}
                     {tool && navigation ? <div className="ml-5">{navigation}</div> : navigation}
                 </div>
-                <div className={cn('flex items-center gap-2', headerCta && 'self-stretch')}>
+                <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch')}>
                     {search}
                     {actions}
                     {headerSignIn ? (
@@ -357,13 +339,16 @@ export function SiteHeader({
                                         <FamilyList current={current} onNavigate={() => setOpen(false)} stack className="mt-2" />
                                     </details>
                                 ) : null}
-                                {headerSignIn || headerCta ? (
-                                    <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
+                                {headerSignIn || headerCta || account ? (
+                                    // From 480px the bar holds the account's block, so its foot has nothing left to hold.
+                                    <div className={cn('mt-auto flex flex-col gap-2 border-t border-border pt-4 empty:hidden', account && 'min-[480px]:hidden')}>
                                         {headerSignIn ? (
                                             <a href={headerSignIn.href} className={PHONE_ROW} onClick={() => setOpen(false)}>
                                                 {headerSignIn.label}
                                             </a>
                                         ) : null}
+                                        {/* Signed out, the way in; signed in, nothing: the trigger stays in the bar. */}
+                                        {account ? <AccountSlotContext.Provider value={slot('sheet')}>{account}</AccountSlotContext.Provider> : null}
                                         {headerCta ? (
                                             <Button asChild size="lg" className="w-full justify-between">
                                                 {headerCta.pending ? (
@@ -386,6 +371,7 @@ export function SiteHeader({
                             </SheetContent>
                         </Sheet>
                     ) : null}
+                    {account ? <AccountSlotContext.Provider value={slot('bar')}>{account}</AccountSlotContext.Provider> : null}
                     {headerCta ? (
                         headerCta.pending ? (
                             // The session check is running: the block holds its place, says nothing, takes no focus.
@@ -404,7 +390,7 @@ export function SiteHeader({
                                     // Below 480px the bar keeps the brand, the actions and the menu: the CTA
                                     // is the menu's full-width button there, so nothing overlaps.
                                     'max-[479px]:hidden',
-                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-cta-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
+                                    CTA_LINK
                                 )}
                             >
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} />
