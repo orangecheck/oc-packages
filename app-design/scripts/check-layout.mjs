@@ -568,7 +568,7 @@ try {
     const longest = Fam.FAMILY.map((s) => s.label)
         .filter((l) => !l.includes('.'))
         .sort((a, b) => b.length - a.length)[0];
-    const signedIn = h(Ch.SessionAccountView, { state: 'in', name: 'satoshi.nakamoto@example.com' });
+    const signedIn = h(Ch.SessionAccountView, { state: 'in', name: 'ana@example.com' });
     const narrow = page(
         'header-narrow',
         renderToStaticMarkup(
