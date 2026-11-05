@@ -6,6 +6,7 @@ import { Lockup } from '../brand/mark';
 import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
+import { HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
 import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
@@ -280,7 +281,8 @@ export function SiteHeader({
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
-                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1">
+                    {/* It may narrow to its mark on a crowded phone bar, never under 44 to a thumb. */}
+                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
@@ -461,7 +463,7 @@ export function SiteBanner({
 }) {
     return (
         <div role="status" aria-live="polite" data-tone={tone} className={cn('border-b text-[0.875rem]', BANNER_TONE[tone], className)}>
-            <div className="oca-container flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+            <div className="oca-container flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 pointer-coarse:py-3">
                 <p className="flex min-w-0 items-baseline gap-2.5 leading-snug">
                     {tone !== 'neutral' ? (
                         <span
@@ -475,7 +477,7 @@ export function SiteBanner({
                     <span>{children}</span>
                 </p>
                 {/* On a phone the link wraps under the words, lined up with them, not the dot. */}
-                {action ? <div className={cn('shrink-0 font-medium', tone !== 'neutral' && 'max-sm:pl-[1.125rem]')}>{action}</div> : null}
+                {action ? <div className={cn('shrink-0 font-medium', HIT_LINKS, tone !== 'neutral' && 'max-sm:pl-[1.125rem]')}>{action}</div> : null}
             </div>
         </div>
     );
@@ -485,8 +487,9 @@ export function SiteBanner({
  * A link in the legal row or a tool's protocol row, lines of inline text links: 44px to a thumb on
  * any screen, a tablet's included, in both axes (a short word, "Terms", was 41px wide), and WCAG
  * 2.5.8's 24px to a mouse. The pointer decides, not the width; the label stays centred in its box.
+ * Positioned to a thumb, so a link keeps its bottom edge where the year's line starts flush under it.
  */
-const FOOT_LINK = 'inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11';
+const FOOT_LINK = 'inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:relative pointer-coarse:min-h-11 pointer-coarse:min-w-11';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (

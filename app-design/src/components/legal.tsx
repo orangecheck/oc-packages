@@ -135,8 +135,11 @@ function BlockView({ block }: { block: LegalBlock }): ReactNode {
         case 'callout':
             return (
                 <div className="not-prose my-6">
+                    {/* A sentence, set as one: its links are in running text, as a paragraph's are. */}
                     <Notice tone={block.emphatic ? 'brand' : 'neutral'}>
-                        <Inline text={block.text} />
+                        <p>
+                            <Inline text={block.text} />
+                        </p>
                     </Notice>
                 </div>
             );
@@ -144,7 +147,9 @@ function BlockView({ block }: { block: LegalBlock }): ReactNode {
             return (
                 <div className="not-prose my-6">
                     <Notice tone="brand" title="Pending counsel review">
-                        <Inline text={block.text} />
+                        <p>
+                            <Inline text={block.text} />
+                        </p>
                     </Notice>
                 </div>
             );

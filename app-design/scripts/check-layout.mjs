@@ -183,6 +183,129 @@ try {
             `  <div className="flex flex-col gap-10 p-4"><div data-case="fails"><Fails />{below}</div><div data-case="late"><LoadingBlock timeoutMs={400} onRetry={() => {}} />{below}</div></div>\n` +
             `);\n`
     );
+    // Code blocks whose long line scrolls: the scroller becomes a tab stop only once it has measured, on the client.
+    writeFileSync(
+        join(dir, 'coderegion.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `const host = 'alice.btc.calendar.opentimestamps.org';\n` +
+            `createRoot(document.getElementById('root')).render(\n` +
+            `  <div className="flex flex-col gap-6 p-4"><CodeBlock code={'curl https://' + host + '/digest/' + 'f'.repeat(64)} caption="A long line" /><CodeTabs items={[{ label: 'curl', lang: 'bash', code: 'curl https://' + host + '/digest/' + 'e'.repeat(64) }, { label: 'node', lang: 'js', code: 'fetch(url)' }]} /></div>\n` +
+            `);\n`
+    );
+    writeFileSync(
+        join(dir, 'dialogclose.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { Dialog, DialogContent, DialogTitle } from '${join(pkg, 'src/primitives/overlay.tsx')}';\n` +
+            `createRoot(document.getElementById('root')).render(<Dialog defaultOpen><DialogContent><DialogTitle>A dialog</DialogTitle><p>Its body.</p></DialogContent></Dialog>);\n`
+    );
+    // Every ScrollFade user, each in a box too narrow for it, so each scrolls and so takes focus: tables under a
+    // docs heading (its "#" link is not part of the name) and with a caption, a drawn diagram, two tab lists (one
+    // labelled), ProtocolNav and a code block's tabs. And first, with no heading before it, a bare ScrollFade.
+    // It is a tab stop but no region, since a region with no name is no landmark.
+    writeFileSync(
+        join(dir, 'scrollnames.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ApiTable, Diagram, DocsHeading, MdxTable } from '${join(pkg, 'src/components/docs.tsx')}';\n` +
+            `import { ScrollFade } from '${join(pkg, 'src/primitives/scroll-fade.tsx')}';\n` +
+            `import { ProtocolNav } from '${join(pkg, 'src/components/protocol.tsx')}';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `import { Tabs, TabsList, TabsTrigger } from '${join(pkg, 'src/primitives/tabs.tsx')}';\n` +
+            `const wide = 'a_column_name_that_does_not_break';\n` +
+            `const mermaid = { initialize() {}, render: async () => ({ svg: '<svg width="100%" xmlns="http://www.w3.org/2000/svg" style="max-width: 900px;" viewBox="0 0 900 120"><rect width="900" height="120" fill="none" stroke="currentColor"/></svg>' }) };\n` +
+            `const tabs = (label) => <Tabs defaultValue="t0"><TabsList aria-label={label}>{Array.from({ length: 12 }, (_, i) => <TabsTrigger key={i} value={'t' + i}>{'Layer ' + i}</TabsTrigger>)}</TabsList></Tabs>;\n` +
+            `const box = (k, el) => <div data-box={k} style={{ width: 260 }}>{el}</div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div className="flex flex-col gap-8 p-4">\n` +
+            `  {box('unnamed', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}\n` +
+            `  <section><DocsHeading as="h2" id="parameters">Parameters</DocsHeading>{box('mdx', <MdxTable><thead><tr><th>{wide}</th><th>{wide}</th><th>{wide}</th></tr></thead><tbody><tr><td>{wide}</td><td>{wide}</td><td>{wide}</td></tr></tbody></MdxTable>)}</section>\n` +
+            `  {box('api', <ApiTable caption="Options" rows={[{ name: wide + wide, type: wide, description: wide + ' ' + wide }]} />)}\n` +
+            `  {box('diagram', <Diagram chart="flowchart LR; a-->b" caption="A flow" load={async () => mermaid} />)}\n` +
+            `  {box('tabs', tabs('Desk'))}\n` +
+            `  {box('tabs-bare', tabs(undefined))}\n` +
+            `  {box('protocols', <ProtocolNav current="lock" />)}\n` +
+            `  {box('codetabs', <CodeTabs items={Array.from({ length: 8 }, (_, i) => ({ label: 'version-' + i, lang: 'js', code: 'x' }))} />)}\n` +
+            `  {box('code', <CodeBlock code={'curl https://' + wide + '/' + 'f'.repeat(64)} caption="A long line" />)}\n` +
+            `</div>);\n`
+    );
+    // The census: every story, each the package's own use of its components, rendered on the client in a
+    // box of its own. A transform makes the box the containing block, so a fixed bar stays inside its story.
+    const stories = (function walk(d) {
+        return readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : e.name.endsWith('.stories.tsx') ? [join(d, e.name)] : []));
+    })(join(pkg, 'src'))
+        // pages/ holds hand-built page mocks, whose own markup is not the package's to size.
+        .filter((f) => !f.includes('/src/pages/'))
+        // SignIn's stories draw @orangecheck/me-client's button, whose size is that package's to set.
+        .filter((f) => !f.endsWith('/src/brand/SignIn.stories.tsx'))
+        .sort();
+    writeFileSync(
+        join(dir, 'census.jsx'),
+        `import { Component } from 'react';\n` +
+            `import { createRoot } from 'react-dom/client';\n` +
+            stories.map((f, i) => `import * as S${i} from '${f}';\n`).join('') +
+            `class Boundary extends Component { state = { failed: null }; static getDerivedStateFromError(e) { return { failed: String(e?.message ?? e).slice(0, 120) }; } render() { return this.state.failed ? <p data-story-failed={this.state.failed}>failed</p> : this.props.children; } }\n` +
+            `const files = [${stories.map((f, i) => `['${f.slice(pkg.length + 5).replace(/\.stories\.tsx$/, '')}', S${i}]`).join(', ')}];\n` +
+            `const all = files.flatMap(([file, mod]) => Object.entries(mod).filter(([k, s]) => k !== 'default' && s && typeof s.render === 'function').map(([k, s]) => [file + '/' + k, s]));\n` +
+            `function Story({ s }) { return s.render(s.args ?? {}, { args: s.args ?? {}, globals: { mode: 'light' }, parameters: s.parameters ?? {} }); }\n` +
+            // A story whose dialog is held open (Docs/Search) hides the rest of the page, so it is read on a page of its own.\n` +
+            `const MODAL = ['components/Docs/Search'];\n` +
+            `const shown = all.filter(([name]) => MODAL.includes(name) === (location.hash === '#modal'));\n` +
+            // Plants, read apart from the stories: three the census must find small (a card's title link alone in its
+            // heading, a 13px checkbox and a 20px icon button in a list item) and one it must exempt (a link in a sentence).
+            `const plants = location.hash === '#modal' ? null : <div data-plants="" className="flex flex-col gap-8 p-4">` +
+            `<ul data-plant="card-title"><li className="flex flex-col gap-2 border border-border p-5"><h3 className="oca-title"><a href="#plant">OC Stamp</a></h3><p className="text-[0.9375rem] text-muted-foreground">Sign a file’s hash with a Bitcoin address, anchored to a block.</p></li></ul>` +
+            `<ul data-plant="checkbox-li"><li><label><input type="checkbox" style={{ width: 13, height: 13 }} /> Remember this device for thirty days</label></li></ul>` +
+            `<ul data-plant="icon-button-li"><li>Copy the receiving address to your clipboard <button type="button" aria-label="Copy the address" className="inline-flex size-5 items-center justify-center">+</button></li></ul>` +
+            `<p data-plant="sentence-link">Read the <a href="#plant">full specification</a> before you sign anything with this key.</p>` +
+            `</div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}{plants}</div>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'census.jsx')],
+        outfile: join(dir, 'census.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        loader: { '.webp': 'dataurl', '.png': 'dataurl', '.jpg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'scrollnames.jsx')],
+        outfile: join(dir, 'scrollnames.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'dialogclose.jsx')],
+        outfile: join(dir, 'dialogclose.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'coderegion.jsx')],
+        outfile: join(dir, 'coderegion.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        // The highlighter reads process.env outside its bundler.
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'loaderr.jsx')],
         outfile: join(dir, 'loaderr.js'),
@@ -231,7 +354,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -601,6 +724,77 @@ try {
         'touch-rail',
         renderToStaticMarkup(h(Ch.AppShell, { variant: 'rail', nav: [{ items: [{ href: '/c', label: 'Chats', icon, active: true }, { href: '/s', label: 'Settings', icon }] }] }, h('p', null, 'x')))
     );
+    // Reflow: shapes that moved a page sideways. A framed Section clipped 4px out on both axes (its focus
+    // reach), so a glow at the frame's edge scrolled a frame-wide page by that much: the drawn windows of
+    // chat's and vault's heroes from 768, and ochk.io /about's tilting mark at 320. Each in a PageFrame and bare.
+    const Br = require(join(pkg, 'dist/brand.js'));
+    const glowWindow = (props, tall) => h(C.BrowserFrame, { url: 'ochk.io', glow: true, ...props }, h('div', { style: { height: tall } }, 'A drawn window'));
+    const reflowShapes = [
+        ['a hero with a glowing window', h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', art: glowWindow({}, 240) })],
+        // chat's: an ink hero, a paper window.
+        ['chat hero', h(C.PageHero, { ground: 'ink', title: 'Messages only they can read.', lead: 'A lead.', art: glowWindow({ variant: 'paper' }, 260) })],
+        // vault's: the window centred in its column at max-w-md, a proof row in an unpadded Frame under it.
+        [
+            'vault hero',
+            h(
+                'div',
+                null,
+                h(C.PageHero, { title: 'A vault only you can open.', lead: 'A lead.', art: h('div', { className: 'relative min-w-0' }, glowWindow({ variant: 'paper', className: 'mx-auto w-full max-w-md' }, 200)) }),
+                h(C.Frame, { padded: false }, h('ul', { className: 'grid grid-cols-2 gap-px bg-border' }, ['One', 'Two', 'Three', 'Four'].map((l) => h('li', { key: l, className: 'bg-background p-4' }, l))))
+            ),
+        ],
+        // ochk.io /about's: a 300px mark that tilts, its glow 120% of it, in a framed section.
+        ['IsoCheck in a framed section', h(C.Section, { framed: true }, h('div', { className: 'flex justify-center' }, h(Br.IsoCheck, { size: 300, tilt: true })))],
+    ];
+    const reflowPages = reflowShapes.flatMap(([name, el], i) => [
+        [`${name} in a PageFrame`, page(`reflow-${i}-frame`, renderToStaticMarkup(h(C.PageFrame, null, el)))],
+        [`${name}, bare`, page(`reflow-${i}-bare`, renderToStaticMarkup(el))],
+    ]);
+    // A legal page whose words include a hostname wider than a phone (ochk.io's privacy and terms ran 30px past 320).
+    const HOST = 'alice.btc.calendar.opentimestamps.org';
+    const legalLong = page(
+        'legal-long',
+        renderToStaticMarkup(
+            h(C.LegalDocument, {
+                doc: {
+                    eyebrow: 'Legal',
+                    title: 'Privacy',
+                    description: 'What we keep.',
+                    effective: '1 January 2026',
+                    updated: '4 November 2026',
+                    sections: [
+                        {
+                            id: 'stamps',
+                            heading: 'Timestamps',
+                            blocks: [
+                                { kind: 'para', text: `Your browser sends the claim's fingerprint to ${HOST}, at https://${HOST}/digest.` },
+                                { kind: 'bullets', items: [`The calendars: ${HOST} and bob.btc.calendar.opentimestamps.org`, { k: 'Relay', v: `wss://relay.${HOST}` }] },
+                            ],
+                        },
+                        { id: 'more', heading: 'More', blocks: [{ kind: 'para', text: 'Short.' }] },
+                    ],
+                },
+            })
+        )
+    );
+    // Targets a thumb missed: ProtocolNav's short names ("lock" 29 wide), the docs search button (40x40),
+    // a folded code block's Show all (34 tall), and a code block whose long line scrolls, named for its region.
+    const touchMore = page(
+        'touch-more',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6' },
+                h(C.ProtocolNav, { current: 'lock' }),
+                h('div', { 'data-t': 'search' }, h(C.SearchButton, null)),
+                h(C.CodeBlock, { code: Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n'), maxLines: 8, caption: 'Thirty lines' })
+            )
+        )
+    );
+    const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
+    const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
+    const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
+    const census = page('census', '<div id="root"></div>', '<script src="census.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -1153,8 +1347,8 @@ try {
                 out.chipTarget = lands(btn, b.left + b.width / 2, b.top + b.height / 2 - 21.5) && lands(btn, b.left + b.width / 2, b.top + b.height / 2 + 21.5);
                 const list = document.querySelector('[data-wrap]');
                 const tabs = [...list.querySelectorAll('[role="tab"]')].map((t) => t.getBoundingClientRect());
-                out.tabsIn = tabs.every((t) => t.right <= innerWidth && t.left >= 0);
-                out.over = document.documentElement.scrollWidth - innerWidth;
+                out.tabsIn = tabs.every((t) => t.right <= document.documentElement.clientWidth && t.left >= 0);
+                out.over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
                 return out;
             }, width < 640);
             check(b190.rowOpens, `[${width}] DataTable: a press elsewhere in a linked row does not open it`);
@@ -1326,7 +1520,7 @@ try {
             // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
             await visit(p, sdk);
             const sd = await p.evaluate(() => ({
-                over: document.documentElement.scrollWidth - innerWidth,
+                over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
                 links: Object.fromEntries([...document.querySelectorAll('[data-sdk] a[href]:not([href^="#"])')].map((a, i) => [a.textContent + i, Math.round(a.getBoundingClientRect().height)])),
             }));
@@ -1456,7 +1650,7 @@ try {
                         [...document.querySelectorAll('[data-t]')].map((el) => {
                             const heading = el.querySelector('h2').getBoundingClientRect();
                             const action = el.firstElementChild.lastElementChild.getBoundingClientRect();
-                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= innerWidth - 16 + 0.5 }];
+                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= document.documentElement.clientWidth - 16 + 0.5 }];
                         })
                     )
                 );
@@ -1590,7 +1784,7 @@ try {
                 check(doc.scroll <= doc.view, `[${width}] ${name}: sr-only text in the page's scroller stretches the document to ${doc.scroll}px in a ${doc.view}px window`);
             }
             await visit(p, wide);
-            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
+            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
             // One column: every title at the gutter of one centred 72rem column.
             const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
@@ -1725,7 +1919,7 @@ try {
                             return {
                                 hdr: d.dataset.hdr,
                                 over: row.scrollWidth - row.clientWidth,
-                                right: Math.max(...kids.map((k) => k.right)) - window.innerWidth,
+                                right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
                                 // The brand ends before the next thing in the row starts.
                                 clash: kids.length > 1 ? brand.right - Math.min(...kids.slice(1).map((k) => k.left)) : 0,
                             };
@@ -1976,7 +2170,7 @@ try {
                         range.selectNodeContents(document.querySelector('[data-axis="card"]'));
                         const cardAxis = range.getClientRects()[0].left;
                         return {
-                            scroll: document.documentElement.scrollWidth - innerWidth,
+                            scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                             bars: [...document.querySelectorAll('[data-bar]')].map((el) => {
                                 const box = el.dataset.bar === 'card' ? cardInner : inner;
                                 const want = el.dataset.bar === 'card' ? cardAxis : axis;
@@ -2401,6 +2595,324 @@ try {
                 if (!before) check(last - first > 0.95 * (m.content.right - m.content.left), `[${width}${before ? ' before Inter, no Arial' : ''}] the wordmark fills ${(((last - first) / (m.content.right - m.content.left)) * 100).toFixed(0)}% of the frame, not its width`);
                 await c.close();
             }
+        }
+        // An isMobile page widens its layout viewport to its content, so the window's inner width grows with
+        // the overflow and a sideways measure against it reads 0: ochk.app's home hid a 68px scroll at 320 that
+        // way. Every gate here measures against documentElement.clientWidth, and none may go back.
+        {
+            const wide = page('wider-than-phone', '<div style="width: 400px; height: 20px"></div>');
+            const c = await browser.newPage({ viewport: { width: 320, height: 600 }, isMobile: true, hasTouch: true });
+            await visit(c, wide);
+            const m = await c.evaluate(() => ({ window: document.documentElement.scrollWidth - window['inner' + 'Width'], client: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+            check(m.client === 80, `[320 isMobile] a 400px child scrolls the page ${m.client}px by clientWidth, not 80 (the window's inner width reads ${m.window})`);
+            await c.close();
+            const word = new RegExp('\\binner' + 'Width\\b');
+            const gates = readdirSync(join(pkg, 'scripts')).filter((f) => f.endsWith('.mjs') && word.test(readFileSync(join(pkg, 'scripts', f), 'utf8')));
+            check(gates.length === 0, `a gate measures against the window's inner width, which an isMobile page widens with its own overflow: ${gates.join(', ')}`);
+        }
+        // Reflow (WCAG 1.4.10): no glow and no long word scrolls the page sideways, at 320 or any width
+        // the frame fills or leaves.
+        for (const w of [320, 390, 768, 900, 1024, 1200, 1280, 1440]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
+            for (const [name, url] of [...reflowPages, ['a legal page with a long hostname', legalLong]]) {
+                await visit(c, url);
+                await c.evaluate(() => document.fonts.ready);
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const over = await c.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+                check(over === 0, `[${w}] ${name} scrolls the page ${over}px sideways`);
+            }
+            if (w === 320) {
+                // The mark is whole: its glow may be cut at the Frame's edge, where the section clips sideways, the mark never.
+                await visit(c, reflowPages.find(([n]) => n === 'IsoCheck in a framed section in a PageFrame')[1]);
+                const mark = await c.evaluate(() => {
+                    const frame = document.querySelector('section > *');
+                    const f = frame.getBoundingClientRect();
+                    const b = document.querySelector('section svg').getBoundingClientRect();
+                    return { clip: getComputedStyle(frame).overflowX, left: b.left, right: b.right, edgeL: f.left + frame.clientLeft, edgeR: f.left + frame.clientLeft + frame.clientWidth };
+                });
+                check(mark.clip === 'clip' && mark.left >= mark.edgeL - 0.5 && mark.right <= mark.edgeR + 0.5, `[320] IsoCheck's mark is cut where its section clips: ${JSON.stringify(mark)}`);
+            }
+            await c.close();
+        }
+        // The same targets to a thumb (44 from 21.5px out each way, on the box or by a ::before) and to a mouse
+        // (their drawn size): ProtocolNav's names, the search button, Show all, the docs bar's sections button
+        // and the legal page's "On this page".
+        {
+            const read = async (url, w, touch, sel) => {
+                const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                const r = await c.evaluate((q) =>
+                    [...document.querySelectorAll(q)]
+                        .filter((el) => el.getClientRects().length > 0 && el.getBoundingClientRect().width > 1)
+                        .map((el) => {
+                            el.scrollIntoView({ block: 'center' });
+                            const b = el.getBoundingClientRect();
+                            const cx = b.left + b.width / 2;
+                            const cy = b.top + b.height / 2;
+                            const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                            return { name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                        }),
+                    sel
+                );
+                await c.close();
+                return r;
+            };
+            const shapes = [
+                ['ProtocolNav', touchMore, 'nav[aria-label="Protocols"] a', 6, (x) => x.name === 'lock' && x.w < 44],
+                ['the search button', touchMore, '[data-t="search"] button', 1, (x) => x.w === 40 && x.h === 40],
+                ['Show all', touchMore, 'figure button[aria-expanded]', 1, (x) => x.h < 44],
+                ["the docs bar's sections button", docsRail, '[data-oca-sticky="docs-bar"] button', 1, (x) => x.h === 40],
+                ['On this page', legalLong, 'details > summary', 1, (x) => x.h < 44],
+            ];
+            for (const [name, url, sel, n, drawn] of shapes) {
+                const t = await read(url, 390, true, sel);
+                check(t.length >= n && t.every((x) => x.reach), `[390 touch] ${name}: ${t.filter((x) => !x.reach).length} of ${t.length} not a 44px target: ${JSON.stringify(t.filter((x) => !x.reach).slice(0, 3))}`);
+                const m = await read(url, 390, false, sel);
+                check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
+            }
+        }
+        // The census: every link, button, trigger and toggle any story draws is a 44px target to a thumb at 390
+        // and 320, hit from 21.5px out in every direction, on its box or by a ::before. A link inside a line of running
+        // text is exempt, as WCAG 2.5.8 exempts it; so is a text field, which is not a tap target.
+        // At a phone's 390 and the narrowest phone's 320.
+        for (const width of [390, 320]) for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
+            const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+            await c.emulateMedia({ reducedMotion: 'reduce' });
+            // Loaded, not visited: a story's own sample markup is not held to the package's text and state rules.
+            visited.add(url);
+            await c.goto(url);
+            const drawn = await c.waitForFunction((n) => document.querySelectorAll('[data-story]').length >= n, least, { timeout: 20000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => setTimeout(r, 800)));
+            // The measure stays on the page, so what opens behind a trigger below is read the same way.
+            await c.evaluate(() => {
+                document.documentElement.style.scrollBehavior = 'auto';
+                const SEL = 'a[href], button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="link"], [role="option"], input[type="checkbox"], input[type="radio"]';
+                window.__censusPage = () => ({ stories: document.querySelectorAll('[data-story]').length, failed: [...document.querySelectorAll('[data-story-failed]')].map((e) => `${e.closest('[data-story]')?.dataset.story} (${e.dataset.storyFailed})`), dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((d) => `${d.closest('[data-story]')?.dataset.story ?? 'portal'}: ${d.getAttribute('aria-label') ?? ''} ${d.textContent.trim().slice(0, 60)}`), hidden: document.querySelectorAll('[data-story][aria-hidden="true"], [data-story] [aria-hidden="true"] [data-story]').length + document.querySelectorAll('body > [aria-hidden="true"]').length });
+                // A link inside a sentence, as WCAG 2.5.8 exempts it: an inline link (never a button, a checkbox or a
+                // radio) whose own line holds words of its block outside any target. Read from the link's line boxes
+                // against the rects of the block's other text, not from a word count.
+                const blockOf = (n) => {
+                    let b = n.parentElement;
+                    while (b && /^(inline|contents)/.test(getComputedStyle(b).display)) b = b.parentElement;
+                    return b;
+                };
+                const inText = (el) => {
+                    if (!el.matches('a[href], [role="link"]') || !getComputedStyle(el).display.startsWith('inline')) return false;
+                    const block = blockOf(el);
+                    const lines = [...el.getClientRects()];
+                    // The sentence's own punctuation touching the link counts as its words ("… at hello@ochk.io."), a
+                    // separator between links ("Docs · Status") does not.
+                    const walk = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+                    walk.currentNode = el;
+                    let after = walk.nextNode();
+                    while (after && el.contains(after)) after = walk.nextNode();
+                    walk.currentNode = block;
+                    const range = document.createRange();
+                    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+                        const words = /[\p{L}\p{N}]/u.test(t.data) || (t === after && /^[.,;:!?)\]…”’]/.test(t.data));
+                        if (!words || el.contains(t) || t.parentElement.closest(SEL) || blockOf(t) !== block) continue;
+                        range.selectNodeContents(t);
+                        for (const r of range.getClientRects()) {
+                            if (r.width > 1 && lines.some((l) => Math.min(l.bottom, r.bottom) - Math.max(l.top, r.top) > Math.min(l.height, r.height) / 2)) return true;
+                        }
+                    }
+                    return false;
+                };
+                // `behind` names the trigger that was opened: then only what it showed is read, and each target once.
+                window.__census = (behind) => {
+                const out = { seen: 0, inline: [], small: [], plants: {} };
+                for (const el of document.querySelectorAll(SEL)) {
+                    if (el.hasAttribute('data-census-read') || (behind && el.dataset.censusBehind) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
+                    const box = el.getBoundingClientRect();
+                    // checkVisibility skips a closed details' content too: it keeps its boxes but draws and takes nothing.
+                    if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true })) continue;
+                    el.setAttribute('data-census-read', '');
+                    const where = behind ?? el.closest('[data-story]')?.dataset.story ?? 'outside a story (a portal)';
+                    const plant = el.closest('[data-plant]')?.dataset.plant;
+                    if (inText(el)) {
+                        if (plant) out.plants[plant] = 'exempt';
+                        else out.inline.push(`${where}: "${el.textContent.trim().slice(0, 24)}"`);
+                        continue;
+                    }
+                    if (!behind) {
+                        el.style.scrollMargin = '32px';
+                        el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+                        el.style.scrollMargin = '';
+                    } else {
+                        // Behind a trigger the page stays put: an open menu or popover is placed beside its trigger and
+                        // follows a scrolled page only a frame later. Only the opened thing's own list scrolls.
+                        let sc = el.parentElement;
+                        while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+                        if (sc && sc !== document.body) {
+                            const r0 = el.getBoundingClientRect();
+                            const s0 = sc.getBoundingClientRect();
+                            if (r0.top < s0.top + 32) sc.scrollTop -= s0.top + 32 - r0.top;
+                            else if (r0.bottom > s0.bottom - 32) sc.scrollTop += r0.bottom - (s0.bottom - 32);
+                        }
+                        // A thumb's reach out of view: left for the page pass after the doors, which reads it if the page
+                        // shows it on its own (a timed-out load's retry). What it does not find stays unread, by name.
+                        const r1 = el.getBoundingClientRect();
+                        const m1 = r1.top + r1.height / 2;
+                        if (m1 < 22 || m1 > innerHeight - 22) {
+                            el.removeAttribute('data-census-read');
+                            el.dataset.censusBehind = `${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 28)}"`;
+                            continue;
+                        }
+                    }
+                    if (!plant) out.seen++;
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    // A radio's or a checkbox's label takes its taps too.
+                    const label = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : el.closest('label');
+                    const lands = (x, y) => {
+                        const got = document.elementFromPoint(x, y);
+                        return el.contains(got) || (!!label && label.contains(got));
+                    };
+                    // Two 44px targets that meet edge to edge are both whole: a thumb 21.5px out may land on the
+                    // neighbour only where the neighbour starts within a pixel of this one's edge (hit-testing rounds).
+                    const meets = (got, dx, dy) => {
+                        const n = got?.closest(SEL);
+                        if (!n || n === el || n.contains(el) || el.contains(n)) return false;
+                        const o = n.getBoundingClientRect();
+                        if (dy > 0) return b.height >= 43.5 && Math.abs(o.top - b.bottom) <= 1;
+                        if (dy < 0) return b.height >= 43.5 && Math.abs(b.top - o.bottom) <= 1;
+                        if (dx > 0) return b.width >= 43.5 && Math.abs(o.left - b.right) <= 1;
+                        return b.width >= 43.5 && Math.abs(b.left - o.right) <= 1;
+                    };
+                    const miss = [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].find(([dx, dy]) => !lands(cx + dx, cy + dy) && !meets(document.elementFromPoint(cx + dx, cy + dy), dx, dy));
+                    if (plant) {
+                        out.plants[plant] = miss ? 'small' : 'whole';
+                        continue;
+                    }
+                    if (miss) {
+                        const name = (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28);
+                        // What a thumb there lands on instead: a neighbour, or the ground.
+                        const got = document.elementFromPoint(cx + miss[0], cy + miss[1]);
+                        const on = got ? `${got.tagName.toLowerCase()}${got.getAttribute('aria-label') ? ' "' + got.getAttribute('aria-label').slice(0, 20) + '"' : got.textContent?.trim() ? ' "' + got.textContent.trim().slice(0, 16) + '"' : ''}` : 'nothing';
+                        out.small.push(`${where}: ${el.tagName.toLowerCase()}${el.getAttribute('role') ? '[' + el.getAttribute('role') + ']' : ''} "${name}" ${Math.round(b.width)}x${Math.round(b.height)}, ${miss[0] ? (miss[0] < 0 ? 'left' : 'right') : miss[1] < 0 ? 'above' : 'below'} lands on ${on}`);
+                    }
+                }
+                return out;
+                };
+            });
+            const r = { width, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [] };
+            // A story wider than the screen widens the page, and a phone then places fixed overlays off the screen.
+            r.sideways = await c.evaluate((w) => [...document.querySelectorAll('[data-story], [data-plants]')].filter((s) => s.scrollWidth > w + 1).map((s) => `${s.dataset.story ?? 'plants'} (${s.scrollWidth})`), width);
+            // Behind a trigger: each closed popover, menu, select, dialog or sheet, each collapsed control and each
+            // closed details, opened one at a time as a thumb would, and what it shows read the same way.
+            if (least > 1) {
+                r.doors = await c.evaluate(() => {
+                    const all = [...document.querySelectorAll('[data-story] :is([aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="false"], details:not([open]) > summary)')].filter(
+                        (el) => !el.disabled && !el.closest('[aria-hidden="true"], [inert]') && el.checkVisibility({ visibilityProperty: true })
+                    );
+                    all.forEach((el, i) => el.setAttribute('data-census-door', String(i)));
+                    return all.length;
+                });
+                for (let i = 0; i < r.doors; i++) {
+                    const door = c.locator(`[data-census-door="${i}"]`);
+                    const name = await door.evaluate((el) => `behind ${el.closest('[data-story]')?.dataset.story} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 24)}"`).catch(() => null);
+                    if (!name) continue;
+                    // The trigger mid-screen, so what it opens has room on either side.
+                    await door.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' })).catch(() => {});
+                    // A loaded box draws a frame in seconds, and a click waits for the trigger to hold still.
+                    if (!(await door.click({ timeout: 15000 }).then(() => true, () => false))) {
+                        r.lost.push(name);
+                        continue;
+                    }
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 300)));
+                    await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                    const got = await c.evaluate((n) => window.__census(n), name);
+                    if (got.seen + got.inline.length) r.opened++;
+                    r.behind += got.seen;
+                    r.inline.push(...got.inline);
+                    r.small.push(...got.small);
+                    // Shut it again: Escape for an overlay, a second press for a toggle or a details.
+                    await c.keyboard.press('Escape');
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
+                    const still = await door.evaluate((el) => el.getAttribute('aria-expanded') === 'true' || (el.tagName === 'SUMMARY' && el.parentElement.open)).catch(() => false);
+                    if (still) await door.click({ timeout: 15000 }).catch(() => {});
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
+                }
+                // The page once more: what showed during the doors on its own is read where it is, and a target that
+                // only a trigger showed, out of view, is unread.
+                const late = await c.evaluate(() => window.__census(null));
+                r.seen += late.seen;
+                r.inline.push(...late.inline);
+                r.small.push(...late.small);
+                r.unread = await c.evaluate(() => [...document.querySelectorAll('[data-census-behind]:not([data-census-read])')].map((e) => e.dataset.censusBehind));
+            }
+            const tag = least > 1 ? 'the census' : 'the census of a held-open dialog';
+            if (process.env.OCA_CENSUS_OUT) writeFileSync(`${process.env.OCA_CENSUS_OUT}${width === 390 ? '' : '.' + width}${least > 1 ? '' : '.modal'}.json`, JSON.stringify(r, null, 1));
+            check(drawn && r.stories >= least && r.failed.length === 0, `[${width}] ${tag} drew ${r.stories} stories, and these threw: ${r.failed.join(', ')}`);
+            check(least > 1 ? r.dialogs.length === 0 && r.seen > 300 : r.dialogs.length === 1 && r.seen >= 3, `[${width} touch] ${tag} read only ${r.seen} targets, with dialogs open: ${JSON.stringify(r.dialogs)}`);
+            if (least > 1) check(r.opened >= 15 && r.behind >= 40, `[${width} touch] the census opened ${r.opened} of ${r.doors} triggers and read ${r.behind} targets behind them`);
+            check(r.lost.length === 0, `[${width} touch] the census could not open these triggers: ${r.lost.join(', ')}`);
+            check(r.unread.length === 0, `[${width} touch] the census could not bring these targets behind a trigger into view: ${r.unread.slice(0, 12).join('; ')}`);
+            check(r.sideways.length === 0, `[${width}] these stories are wider than the screen: ${r.sideways.join(', ')}`);
+            // The plants prove the measure: what is small is found, and only a link in a sentence is let off.
+            const want = { 'card-title': 'small', 'checkbox-li': 'small', 'icon-button-li': 'small', 'sentence-link': 'exempt' };
+            if (least > 1) check(Object.entries(want).every(([k, v]) => r.plants[k] === v), `[${width} touch] the census's plants read ${JSON.stringify(r.plants)}, not ${JSON.stringify(want)}`);
+            check(r.small.length === 0, `[${width} touch] ${tag} found ${r.small.length} targets under 44px to a thumb: ${r.small.slice(0, 12).join('; ')}`);
+            await c.close();
+        }
+        // Every scroller that takes focus is a named region: each ScrollFade user, scrolling in a narrow box.
+        {
+            const c = await browser.newPage({ viewport: { width: 700, height: 2400 } });
+            await visit(c, scrollNames);
+            const ready = await c.waitForFunction(() => document.querySelectorAll('[data-box] [tabindex="0"]').length >= 9 && document.querySelector('[data-box="diagram"] svg'), null, { timeout: 10000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const got = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-box]')].map((b) => {
+                    const s = [...b.querySelectorAll('[tabindex="0"]')].find((el) => getComputedStyle(el).overflowX === 'auto');
+                    return [b.dataset.box, s ? { role: s.getAttribute('role'), name: s.getAttribute('aria-label') } : null];
+                })
+            );
+            const want = { unnamed: null, mdx: 'Parameters', api: 'Options', diagram: 'A flow', tabs: 'Desk', 'tabs-bare': 'Tabs', protocols: 'Protocols', codetabs: 'Versions', code: 'A long line' };
+            const off = got.filter(([k, s]) => !s || s.role !== (want[k] === null ? null : 'region') || s.name !== want[k]);
+            check(ready && got.length === 9 && off.length === 0, `[700] a ScrollFade that scrolls takes focus with no region name, or not the one it should have: ${JSON.stringify(off)}`);
+            await c.close();
+        }
+        // A sheet's Close (a site's phone menu) and a dialog's: 44 square to a thumb, 36 to a mouse.
+        for (const [name, url, open] of [
+            ["the phone menu's Close", toolMenu, 'header button[aria-label="Open menu"]'],
+            ["a dialog's Close", dialogClose, null],
+        ]) {
+            for (const touch of [true, false]) {
+                const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                if (open) await c.click(open);
+                await c.waitForSelector('[role="dialog"] button[aria-label="Close"]');
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const x = await c.evaluate(() => {
+                    const el = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    const lands = (px, py) => el.contains(document.elementFromPoint(px, py));
+                    return { w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                });
+                if (touch) check(x.reach, `[390 touch] ${name} is ${x.w}x${x.h}, not a 44px target`);
+                else check(x.w === 36 && x.h === 36, `[390 mouse] ${name} is drawn ${x.w}x${x.h}, not its 36x36`);
+                await c.close();
+            }
+        }
+        // A code block that scrolls is a tab stop, so its region has a name: the caption, or the tab's label.
+        {
+            const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
+            await visit(c, codeRegion);
+            const drawn = await c.waitForFunction(() => document.querySelectorAll('pre').length >= 2, null, { timeout: 10000 }).then(() => true, () => false);
+            check(drawn, '[390] the code region page did not render its two code blocks');
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const regions = await c.evaluate(() =>
+                [...document.querySelectorAll('figure pre, [role="tabpanel"] pre')]
+                    .map((pre) => pre.closest('[tabindex]'))
+                    .filter((el) => el && el.tabIndex === 0)
+                    .map((el) => ({ role: el.getAttribute('role'), name: el.getAttribute('aria-label') }))
+            );
+            check(regions.length === 2 && regions.every((r) => r.role === 'region' && r.name), `[390] a code block that scrolls is a tab stop with no region name: ${JSON.stringify(regions)}`);
+            check(regions.map((r) => r.name).join('|') === 'A long line|curl', `[390] the code regions are named ${JSON.stringify(regions.map((r) => r.name))}, not by the caption and the tab's label`);
+            await c.close();
         }
         check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
         check(weak.size === 0, `states drawn as a fill with no edge at 3:1: ${[...weak.keys()].slice(0, 8).join('; ')}`);

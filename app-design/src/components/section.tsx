@@ -59,9 +59,12 @@ export function Section({ tone, space, rule, contained = true, framed = false, f
     if (framed) {
         return (
             // A closed box between its hairlines: nothing inside paints across them, a depiction's shadow
-            // included. overflow: clip on both axes, so a sticky child still sticks.
+            // included. overflow: clip on both axes, so a sticky child still sticks, a focus ring's reach out,
+            // so a control flush with its foot keeps its ring. The Frame clips sideways at its own edge: the
+            // section's reach there let a glow at the frame's edge widen a frame-wide page (chat's and vault's
+            // heroes scrolled 3px from 768, ochk.io /about's mark at 320).
             <section className={cn(sectionVariants({ tone, space: 'none', rule }), 'overflow-clip [overflow-clip-margin:var(--oca-focus-reach)]', className)} {...props}>
-                <Frame className={cn(SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
+                <Frame className={cn('overflow-x-clip', SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
             </section>
         );
     }
