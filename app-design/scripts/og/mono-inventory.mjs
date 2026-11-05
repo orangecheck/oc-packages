@@ -14,8 +14,11 @@
  * which satori applies with toLocaleUpperCase). `wide` marks free user text:
  * no subset holds it, so `strings` and `alphabets` are the part its spec
  * allows, and ./og's net draws the rest in Inter with a warning (check-og's
- * plant). A new caller of OgCard, OgBento or site-kit's createOgHandler adds
- * its fields and its real cards here.
+ * plant).
+ *
+ * A NEW CALLER MUST ADD ITSELF HERE. Nothing finds callers on its own: they
+ * live in other repos, which check-og cannot read. A caller of OgCard, OgBento
+ * or site-kit's createOgHandler that is missing from this list is unchecked.
  */
 
 let printable = '';
