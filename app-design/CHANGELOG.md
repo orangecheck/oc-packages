@@ -11,9 +11,16 @@ name only from 1024px, and below that a lone initial.
   phone the initial gives its room to the name, and the trigger reaches 8px
   into the gutter, so its chevron ends on the gutter's line and at 320px a
   letter and the ellipsis still fit. AppShell's slot is unchanged.
+- With someone signed in, a phone's bar gives their name the room:
+  SiteHeader's lockup is its mark alone below 390px, and a site's lockup
+  drops its wordmark below 480px, so the name shows at least 8 characters
+  at every width (at 320 and 360, ana@example.com whole). The words stay in
+  the home link's name. Signed out, the lockup is drawn as before. A
+  `brand` a site passes is drawn as it is.
 - check-account holds it from 320 to 1440 with a short and a long email:
   the name is shown, cut only for room or at its cap, never to less than a
-  letter and the ellipsis, and the brand is cut only after it. It also
+  letter and the ellipsis or under 8 characters, and the brand is cut only
+  after it; the lockup draws exactly its words in each state. It also
   presses Appearance round all three themes with the menu open and focus
   held, and opens the menu with `accountHref={false}`, `appearance={false}`
   and both, each holding exactly what is left. Fixtures use
