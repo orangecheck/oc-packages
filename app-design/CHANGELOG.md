@@ -9,6 +9,213 @@
   and code point. A glyph neither font has still makes next/og fetch a font,
   as on 2.0.0.
 
+## [2.0.1] — 2026-11-05
+
+- `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
+  its observer first reports it on screen, so a portrait below the fold or
+  under a phone's `TabBar` starts its intro as it comes into view. It used to
+  draw two frames at mount wherever it sat, and the first started the
+  intro's clock: by the time anyone scrolled to it, the intro was over.
+  check-tabbar counts its frames from mount, none under the bar, and wants
+  the intro above it after 2.5 s there.
+
+- A `Button` is told from its ground by its fill or its edge at 3:1, at rest
+  and on hover, on the page, in every band and in every Card tone.
+  - **Visible change on the ink band:** `primary` is now the brand look,
+    orange with ink words (6.56:1 on the band, 8.12:1 for the words on its
+    hover). This is chat's ink-hero CTA. No deep orange under white words
+    holds 3:1 on the dark ink band: it was 2.79:1, and 2.56 on its Card.
+  - **Visible change in dark mode, on every site:** a primary Button's hover,
+    and `SiteHeader`'s CTA's, now lightens to `#cc4a0e` instead of darkening.
+    The darker hover was 2.67:1 on the night page.
+  - **Visible change on the orange band:** `primary` is ink with orange words
+    (6.56:1). The deep orange was 1.85:1 there.
+  - **Visible change in the footer band:** `primary` is white with
+    deep-orange words (5.18:1), as the footer's status fills are. The deep
+    orange was the footer itself.
+  - `secondary` takes the field's edge, `--input`, on every ground. The ink
+    at 45% was 2.87:1 on paper and 2.36:1 on orange. On paper the new edge
+    reads the same grey.
+  - The primary hover has its own token, `--oca-cta-hover` (palette
+    `ctaHover`), which each band re-points. In dark mode it is `#cc4a0e`
+    (4.23:1 on night, white words 4.61:1). On the burnt band, in both modes,
+    it takes `--oca-primary-lift`, the same lighter orange; the darker hover
+    was 2.42:1 there. On paper it stays `#9a3412`.
+- `variant="brand"` is for dark grounds and tiles only: the ink and burnt
+  bands and Cards, and the dark page. On paper it was 2.34:1, and on orange
+  1.00. **Migrate**: a CTA on paper is `primary`. check-contrast fails on a
+  brand `Button` drawn outside an ink or burnt ground, in a component, a
+  block or a story. It reads the variant through the type checker, so a
+  const, a conditional, a spread or a forwarded prop counts, and a variant it
+  cannot pin to literals counts as brand. A ground counts only when it is
+  written out: the `dark` class, not a `dark:` variant.
+
+- `ParticlePortrait` sets `data-phase="formed"` in its last frame, as its
+  loop goes to sleep, so a page that waits for it sees no frame after.
+  It used to read formed as soon as the dots gathered, at 1.9 s of play,
+  and then drew the wave for 2.45 s more: 147 frames after formed in Chrome
+  on SwiftShader. Under reduced motion it reads formed after its one still
+  frame, not before it. A replay reads `forming` until the portrait sleeps
+  again; the pointer lens wakes the loop without changing the phase. The
+  notes still come in once the dots gather, now on a `data-notes`
+  attribute. **Migrate**: a site that showed something with the notes on
+  `[data-phase='formed']` keys it on `[data-notes]`.
+
+- On a phone, nothing under the app shell's `TabBar` counts as on screen. The
+  bar covers the bottom of the window, and the package's on-screen tests and
+  IntersectionObservers used the whole window. So vote's share, 56px of
+  `ParticleText` at 807 in an 844 window, formed in place under the bar from
+  787, out of sight.
+  - The `TabBar` publishes its height, measured from its own box with the safe
+    area in it, as `--oca-tabbar-h` on the root. It is `0px` from md, where the
+    bar is hidden, and gone when the bar is. With two mounted at once (a shell
+    in a shell, or a route change), the one left keeps it when the other
+    goes. Nothing else measures it.
+  - `ParticleText`, `StepPath`, `Reveal`, `Ticker`, `useInView`, `Wipe`,
+    `Marquee`, `HalftoneCanvas`, the motion scheduler, `useActiveHeading` and
+    the blocks' on-screen hook (`SignInDemo`, `CostDemo`) test against the
+    window less the bar. Their observers' bottom margins leave it out, and
+    are remade when the bar comes, goes or changes height. With no bar,
+    nothing changes.
+  - `ParticleText` says what it decided in `data-form`: `place` (formed where
+    it stood), `wait` (scattered until a third of it is seen), then `gather`.
+  - Focus is kept clear of the bar (WCAG 2.4.11). Below md, on a page that
+    has a bar, the root's `scroll-padding-bottom` is the bar's height and
+    0.75rem. Before any script runs, and without script, it is the bar's own
+    size, so the server's page is clear of it too. A page with no bar gets
+    none. The shells' room under their content is the bar's published height
+    too. It was 3.5rem, 1px short of the bar and its border.
+
+- `HERO_ACTIONS` is exported from `./components`: the row PageHero,
+  DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
+  column, each action at full width, in DOM order. From sm it is a row at the
+  actions' own widths. check-render fails if one of those blocks draws a row
+  of its own. **Migrate**: a site that copied the row swaps its copy for the
+  import, as in `cn('mt-8', HERO_ACTIONS)`. ochk.app's `CTA_ROW` is one.
+- No glow scrolls the page sideways. A framed `Section`, and so `PageHero`,
+  clipped 4px past its edge on both axes, a focus ring's reach. A glow at the
+  frame's edge then widened a page as wide as the frame by those 4px: a hero
+  with a glowing `BrowserFrame` (chat's and vault's) scrolled 3px sideways
+  from 768 to 1280, and `IsoCheck`'s tilt glow did at 320 (ochk.io /about).
+  The section's `Frame` now clips sideways at its own edge, so a glow is cut
+  there and the mark stays whole. The 4px reach still works on the block axis,
+  so a control flush with a section's foot keeps its ring. **Migrate**: drop
+  the `[overflow-clip-margin:0px]` that chat and vault put on `PageHero`
+  (their `TODO(app-design)`). A site's own element that reaches sideways past
+  a framed section's edge is now cut at that edge, so check for one when you
+  move to 2.0.1.
+- `Prose` breaks a word that is wider than its line, so a long hostname or URL
+  wraps instead of scrolling the page. `LegalDocument` sets its text in
+  `Prose`. On ochk.io, /privacy and /terms scroll 30px sideways at 320 today,
+  on 1.x.
+- More targets reach 44px to a thumb. A mouse still gets the size each one is
+  drawn at:
+  - `ProtocolNav`'s names are at least 44 wide, as an underline tab's are.
+    "lock" was 29.
+  - `SearchButton` is 44 square on a phone and 44 tall from md. It was 40.
+  - `DocsShell`'s sections button, in the bar above a phone's page, is 44
+    tall. It was 40.
+  - On a phone, "On this page" in `DocLayout` reaches 44 by a pseudo-element.
+    It was 23 tall, and its box keeps that size.
+  - A folded `CodeBlock`'s "Show all" is 44 tall. It was 34.
+  - A `Sheet`'s and a `Dialog`'s Close is 44 square, a site's phone menu
+    included. It was 36.
+- Anything that scrolls sideways in a `ScrollFade` is a tab stop, and it is now
+  a region with a name. `ScrollFade` takes a `label`, and without one it takes
+  the text of the nearest heading before it, without the heading's own `#`
+  anchor. Each user names its own:
+  - a `CodeBlock`: its caption, or its language when the caption is not text;
+  - a `CodeTabs` panel: its tab's label, and its row of tabs "Versions";
+  - `ApiTable` and `Diagram`: their caption;
+  - an `MdxTable`: the heading above it;
+  - `TabsList`: its `aria-label`, or "Tabs";
+  - `ProtocolNav`: "Protocols".
+
+  **Migrate**: a site that named the region itself can drop that code
+  (ochk.io's `SignedMessage`, its `TODO(app-design)`).
+- On a phone, at 320 and 390, every target the package draws is 44px to a
+  thumb, and a census proves it. Tablet widths with a touch screen (768 to
+  1180) are not measured yet; they come in 2.0.2. check-layout renders every
+  story on a touch screen at both widths, about 550 targets. It opens each
+  closed trigger in turn (popover, menu, select, dialog, sheet, collapsed
+  control and closed details) and reads what appears, about 360 more targets.
+  The dialog that `SearchDialog` holds open gets a page of its own. It taps
+  each target 21.5px out from its centre in every direction.
+
+  A link is exempt only when its own line holds other text, as WCAG 2.5.8
+  exempts a link in a sentence. Planted cases must fail: a card title alone
+  in its heading, a 13x13 checkbox in a list item, a 20x20 icon button in a
+  list item. A link in a sentence must pass.
+
+  On 53e2b87d the census found 113 targets under 44 at 390, plus one in the
+  dialog. Behind its triggers it found 27 more, and at 320 others again.
+  Each is now 44 to a coarse pointer, and a mouse sees the same boxes in
+  every story:
+  - `SourceNote`'s "Source" (74x28), the source link in its popover (107x17)
+    and `Button variant="link"` (23 tall) reach 44 by a pseudo-element.
+  - Behind a trigger: `DocLayout`'s and `DocsShell`'s "On this page" links
+    (31 tall), `DocsShell`'s menu section buttons (36) and `SelectItem` (40)
+    are 44 tall.
+  - At 320: `SiteHeader`'s home link is at least 44 wide, where it was 37 to
+    41. Stacked wallet buttons and `DropZone`'s two buttons leave room
+    between their rows.
+  - An `IsoCheck` given `max-w-full` scales its mark. It used to shrink its
+    box and let the mark spill, and a closing band at 320 cut it.
+  - `RadioGroupItem` takes `Checkbox`'s 44px hit area, its label row counting
+    as `Checkbox`'s does, and its rows space out so that two never meet. It
+    was 20x20.
+  - A `SiteBanner`'s action link (25 tall), `FactBlock`'s source links (30),
+    `ApiTable`'s "Defined in" links (25), the spec note's link (26) and a docs
+    heading's `#` anchor (19x23) reach 44.
+  - The connect-a-wallet buttons are 44 tall (`--oc-wallet-min-height`). They
+    were 37.
+  - `SearchDialog`'s Close reaches 44. It was 50x32.
+  - Rows whose 44px areas reached each other now leave room under a coarse
+    pointer: `ListRow`'s trailing actions, `CompareActions`, wrapped pill tabs,
+    and a `FactBlock`'s wrapped links.
+  - Where a box covered a target's edge, the target wins it. That was the
+    footer's copyright line over the legal row, the hero below
+    `ProtocolNav`'s links, and `IsoCheck`'s glow over a closing band's button.
+    The glow covered that button to a mouse too, so it now takes no pointer
+    events.
+  - `LegalDocument`'s callouts set their text in a paragraph, so a link in
+    them counts as part of a sentence.
+
+  Not counted: the sign-in button stories, since that button is
+  `@orangecheck/me-client`'s.
+- Swagger UI's controls and its own buttons (`.btn`: Try it out, Execute,
+  Cancel, Hide) are 44px to a thumb on any touch screen, a tablet included. It
+  used to apply below 48rem only, and never to `.btn`: attest's Hide was 80x30.
+  check-swagger reads the `pointer: coarse` rule, and on 53e2b87d it fails all
+  six.
+- The gates measure sideways scroll against the page's `clientWidth`. A phone
+  page (`isMobile`) widens its layout viewport to its content, so the window's
+  inner width grew with the overflow and the old measure read 0. A 400px child
+  at 320 reads 0 by the window and 80 by `clientWidth`. check-layout fails if
+  any gate script measures against the window again (9 did, in check-layout,
+  check-blocks and check-focus). With the right measure, the head shows no
+  overflow that the old one hid.
+- check-layout checks all of this:
+  - No page scrolls sideways at 320, 390, 768, 900, 1024, 1200, 1280 or
+    1440. It loads each glow shape in a `PageFrame` and bare, and a legal page
+    with a long hostname.
+  - At 320, IsoCheck's mark stays inside the edge where its section clips.
+  - Each target is hit from 21.5px out in every direction at 390 touch, and
+    keeps its drawn size to a mouse.
+  - Every ScrollFade user that scrolls, in a box too narrow for it, is a
+    named region, by the name it should have. On 53e2b87d seven of the eight
+    had none.
+
+  On main's build it found 39 failures. The two Close checks came later, and
+  fail when the fix is taken out.
+
+- `BlockHeight`'s link is a 44px target to a thumb, centred on the number by a
+  pseudo-element, as a `HashChip`'s is. It was the line of text, 27px tall at
+  18px. To a mouse it keeps the box it draws, and the line keeps its height.
+  Heights in a feed of cards, and two in one line, do not reach each other.
+  **Migrate**: a site that gave a height its own hit area can drop it (globe's
+  blocks feed adds `HIT`).
+
 ## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification

@@ -38,7 +38,8 @@ export const Check: StoryObj = {
     name: 'Isometric check',
     render: () => (
         <div className="flex items-center justify-center py-16">
-            <IsoCheck size={420} settle title="A checkmark" />
+            {/* Wider than a phone: it shrinks to the column, as Closing's does. */}
+            <IsoCheck size={420} settle title="A checkmark" className="max-w-full" />
         </div>
     ),
 };

@@ -72,7 +72,8 @@ const root = (html) => opening(html, /^<div[^>]*>/);
         check(links.every((a) => a.includes('focus-visible:ring-2')), 'every tab shows keyboard focus');
         check(/grid h-14\b/.test(bar), 'tabs are 56px tall, past the 44px target');
     }
-    check(root(html).includes('max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]'), 'the page leaves room under its content for the tab bar');
+    // The bar's published height, and its own size (h-14 and its hairline, the safe area) before any script.
+    check(root(html).includes('max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]'), 'the page leaves room under its content for the tab bar');
     check(menuButton(html).includes('max-md:hidden'), 'with every page in the tab bar, phones drop the menu button');
     check(placeStrip(html) && !placeStrip(html).includes('max-md:hidden'), 'phones keep the place strip, so sections that arrive later move nothing');
     check(html.indexOf('data-oca-tabbar') > html.indexOf('id="main-content"'), 'the tab bar comes after the content in reading order');

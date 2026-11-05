@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { visibleObserver } from '../lib/viewport';
 
 /*
  * A line that runs sideways forever, in CSS: the content twice, the second
@@ -36,7 +37,7 @@ export function Marquee({ children, speed = 60, labels, className, style }: Marq
         ro?.observe(one);
         const io =
             typeof IntersectionObserver !== 'undefined'
-                ? new IntersectionObserver(([e]) => {
+                ? visibleObserver(([e]) => {
                       if (e?.isIntersecting) delete el.dataset.away;
                       else el.dataset.away = '';
                   })

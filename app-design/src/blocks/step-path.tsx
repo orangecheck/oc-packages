@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { visibleBottom, visibleObserver } from '../lib/viewport';
 import { usePrefersStill } from './parts';
 
 /*
@@ -72,11 +73,11 @@ export function StepPath({ steps, current = 0, stateWords = { done: 'done', curr
             setLine('drawn');
             return;
         }
-        // Already on screen at load: left alone, so nothing above the fold redraws.
+        // Already on screen at load (above a phone's TabBar): left alone, so nothing above the fold redraws.
         const r = el.getBoundingClientRect();
-        if (r.top < window.innerHeight && r.bottom > 0) return;
+        if (r.top < visibleBottom() && r.bottom > 0) return;
         setLine('armed');
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             ([e]) => {
                 if (e?.isIntersecting) {
                     setLine('drawing');

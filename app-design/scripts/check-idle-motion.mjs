@@ -10,6 +10,10 @@
  * - Offscreen, and in a hidden tab, a scene sleeps; it draws when it is seen.
  * - The portrait's pause holds it still; its pointer lens draws only while
  *   the pointer moves. The crowd draws once per change of the story's --p.
+ * - The portrait reads formed only as its loop sleeps: no frame runs and
+ *   nothing draws after, with motion, under reduced motion, after a replay
+ *   and with the pointer moving through the end of the play. Its notes come
+ *   in once the dots gather, while it still forms.
  * - DitherImage is its still until a fine pointer moves over it, then clear
  *   again within about a second; never under reduced motion or on touch.
  * - The headline swap never shows both headlines at once.
@@ -176,7 +180,11 @@ const COUNTERS =
     `CanvasRenderingContext2D.prototype.clearRect = function (...a) { if (this.canvas.isConnected) window.__draws++; this.canvas.__rects = []; return clear.apply(this, a); };` +
     `const fill = CanvasRenderingContext2D.prototype.fillRect; CanvasRenderingContext2D.prototype.fillRect = function (...a) { (this.canvas.__rects ??= []).push(a); return fill.apply(this, a); };` +
     `const put = CanvasRenderingContext2D.prototype.putImageData; CanvasRenderingContext2D.prototype.putImageData = function (...a) { if (this.canvas.isConnected) window.__draws++; return put.apply(this, a); };` +
-    `const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
+    `const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => { window.__rafs++; return raf((t) => { window.__cbs++; cb(t); }); };` +
+    // The moment a scene last read formed: the frames run and the draws so far.
+    `window.__cbs = 0; window.__formedAt = null;` +
+    `new MutationObserver((rs) => { for (const r of rs) if (r.target.dataset.phase === 'formed' && r.oldValue !== 'formed') window.__formedAt = { cbs: window.__cbs, draws: window.__draws }; })` +
+    `.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-phase'], attributeOldValue: true });` +
     `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
 
 const dir = mkdtempSync(join(tmpdir(), 'app-design-idle-motion-'));
@@ -227,6 +235,9 @@ try {
         }
         return false;
     };
+    // After the scene last read formed: the frames that ran and the draws, which a page waiting for formed must not see.
+    const sinceFormed = (p) => p.evaluate(() => window.__formedAt && { cbs: window.__cbs - window.__formedAt.cbs, draws: window.__draws - window.__formedAt.draws });
+    const formedLast = (f) => (f ? `${f.cbs} frames ran and ${f.draws} draws after it read formed` : 'it never read formed');
     const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false, flags = '' } = {}) => {
         const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: reduce ? 'reduce' : 'no-preference', javaScriptEnabled: js, hasTouch: touch, isMobile: touch });
         const p = await ctx.newPage();
@@ -247,11 +258,18 @@ try {
         {
             const { p, close } = await open('portrait');
             await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            // The notes stand once the dots gather, while the light still passes: not only once the loop sleeps.
+            const notesAt = await p
+                .waitForFunction(() => getComputedStyle(document.querySelector('.oca-note-label')).opacity === '1', null, { timeout: 8000, polling: 100 })
+                .then(() => p.getAttribute('.oca-portrait', 'data-phase'), () => 'never');
+            check(notesAt === 'forming', `portrait: its notes stood at phase ${notesAt}, not while it still forms`);
             const idle = await settle(p);
             const drew = await p.evaluate(() => window.__draws);
             check(drew > 30, `portrait: its motion drew ${drew} frames`);
             check(idle, 'portrait: after its motion it never stops drawing or asking for frames');
-            check((await p.getAttribute('.oca-portrait', 'data-phase')) === 'formed', 'portrait: the notes never came in (phase not formed)');
+            check((await p.getAttribute('.oca-portrait', 'data-phase')) === 'formed', 'portrait: once settled its phase is not formed');
+            const formed = await sinceFormed(p);
+            check(formed?.cbs === 0 && formed?.draws === 0, `portrait: ${formedLast(formed)}`);
             const noteOpacity = await p.evaluate(() => getComputedStyle(document.querySelector('.oca-note-label')).opacity);
             check(noteOpacity === '1', `portrait: a note's label is at opacity ${noteOpacity} once formed`);
             check((await p.getAttribute('.oca-portrait-control', 'aria-label')) === 'Replay animation', 'portrait: once settled the control does not offer a replay');
@@ -265,6 +283,31 @@ try {
             check((await p.evaluate(() => window.__held('.oca-portrait'))) > 0, 'portrait: no pointer listener on it for the lens');
             await p.mouse.move(box.x + box.width + 400, box.y + 100, { steps: 3 });
             check(await settle(p), 'portrait: after the pointer left it never stops');
+            // A replay passes the light again: forming while it plays, formed as it sleeps, with no frame after.
+            await p.click('.oca-portrait-control');
+            const replaying = await p.waitForFunction(() => document.querySelector('.oca-portrait').dataset.phase === 'forming', null, { timeout: 3000, polling: 100 }).then(() => true, () => false);
+            check(replaying, 'portrait: a replay plays while its phase still reads formed');
+            check(await settle(p), 'portrait: after a replay it never settles');
+            const replayed = await sinceFormed(p);
+            check(replayed?.cbs === 0 && replayed?.draws === 0, `portrait after a replay: ${formedLast(replayed)}`);
+            await close();
+        }
+        // The pointer moving through the end of the play: the lens keeps the loop awake, so it still reads forming;
+        // once the pointer rests the loop sleeps, and only then does it read formed, with no frame after.
+        {
+            const { p, close } = await open('portrait');
+            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            const box = await p.locator('.oca-portrait-stage').boundingBox();
+            let i = 0;
+            const sweep = () => p.mouse.move(box.x + box.width / 2 - 100 + (i++ % 11) * 20, box.y + 200, { steps: 2 });
+            const until = Date.now() + 20000;
+            while ((await p.getAttribute('.oca-portrait-control', 'aria-label')) !== 'Replay animation' && Date.now() < until) await sweep();
+            for (let k = 0; k < 10; k++) await sweep();
+            const moving = await p.getAttribute('.oca-portrait', 'data-phase');
+            check(i > 10 && moving === 'forming', `portrait with the pointer moving past the end of its play: phase ${moving} after ${i} moves, not forming`);
+            check(await settle(p), 'portrait: with the pointer at rest after its play it never stops');
+            const rested = await sinceFormed(p);
+            check((await p.getAttribute('.oca-portrait', 'data-phase')) === 'formed' && rested?.cbs === 0 && rested?.draws === 0, `portrait with the pointer at rest after its play: ${formedLast(rested)}`);
             await close();
         }
         // Paused mid-gather: nothing drawn, nothing asked; playing again finishes and sleeps.
@@ -307,7 +350,8 @@ try {
         // Reduced motion: one still frame, the notes standing, no control.
         {
             const { p, close } = await open('portrait', { reduce: true });
-            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
+            // Polled on a timer: its one frame both draws and forms it, and a wait polled by frames would count as one after.
+            await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000, polling: 100 });
             await p.waitForTimeout(800);
             const still = await p.evaluate(() => ({
                 draws: window.__draws,
@@ -318,6 +362,8 @@ try {
             check(still.control === 'none', 'portrait under reduced motion: the pause control shows with nothing to pause');
             check(still.note === '1', `portrait under reduced motion: a note is at opacity ${still.note}`);
             check(await settle(p), 'portrait under reduced motion: it keeps asking for frames');
+            const formed = await sinceFormed(p);
+            check(formed?.cbs === 0 && formed?.draws === 0, `portrait under reduced motion: ${formedLast(formed)}`);
             await close();
         }
         // Without script: the server's markup alone shows the settled poster and the notes; the crowd shows its end.

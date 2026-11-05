@@ -12,6 +12,7 @@ import {
 } from '../format';
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
+import { HIT_LINK } from '../lib/hit';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import { Textarea } from '../primitives/form';
@@ -319,7 +320,8 @@ export function DropZone({
                             </p>
                             {hint ? <p className="text-[0.875rem] text-muted-foreground">{hint}</p> : null}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                        {/* Wrapped, the two buttons' 44px targets stand clear of each other to a thumb. */}
+                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2 pointer-coarse:gap-y-3">
                             <Button size="sm" variant="secondary" disabled={disabled} onClick={() => input.current?.click()}>
                                 Choose a file
                             </Button>
@@ -479,7 +481,7 @@ export function createStateBadge<S extends string>(states: Record<S, StateDef>) 
 
 /* ── Bitcoin time ────────────────────────────────────────────────────── */
 
-/** A block height in tabular figures, linked to the block on mempool.space. */
+/** A block height in tabular figures, linked to the block on mempool.space: a 44px target to a thumb, the text's box to a mouse. */
 export function BlockHeight({
     height,
     label = false,
@@ -502,7 +504,7 @@ export function BlockHeight({
             target="_blank"
             rel="noreferrer"
             title={`Block ${formatBlockHeight(height)} on mempool.space`}
-            className={cn('oca-tabular underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', className)}
+            className={cn('oca-tabular underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', HIT_LINK, className)}
         >
             {text}
             <span className="sr-only"> (opens mempool.space in a new tab)</span>
