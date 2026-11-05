@@ -7,6 +7,17 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [2.2.1] — 2026-11-05
+
+### Fixed
+
+- `mempoolBlockTimeSource().tipHeight()` throws on a tip body that is
+  blank, 0, negative or not a whole number, as `@orangecheck/sdk` 1.23.1's
+  tip read does. It read the body with `parseInt`, so a 0 or negative body
+  was a tip height, and a snapshot or `H_close` resolved against it came
+  back as not yet confirmed. Now the resolution fails with
+  `tip lookup failed`, as it does when the tip cannot be fetched.
+
 ## [2.2.0] — 2026-11-03
 
 ### Added

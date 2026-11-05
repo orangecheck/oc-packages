@@ -447,6 +447,27 @@ describe('oc chat verify: the write gate, and reads that get no answer', () => {
         expect(JSON.parse(stdout).verdict).toBe('unread');
     });
 
+    it('a tip body of 0, a negative or a blank one is NOT READ, exit 2, never block 0', async () => {
+        for (const body of ['0', '-5', '']) {
+            stdout = '';
+            expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: () => json(body) }))), body).toBe(2);
+            expect(JSON.parse(stdout).verdict).toBe('unread');
+        }
+    });
+
+    it('both live tip readers refuse a height below 1 and read a real one', async () => {
+        let body = '0';
+        vi.stubGlobal('fetch', (async () => json(body)) as unknown as typeof fetch);
+        const live = liveNet([], 'https://esplora.test/api');
+        for (body of ['0', '-5', '', '930000abc']) {
+            await expect(live.tip(), body).rejects.toThrow('the chain tip could not be read');
+            await expect(live.walk.tip(), body).rejects.toThrow('tip');
+        }
+        body = '930000';
+        expect(await live.tip()).toBe(930000);
+        expect(await live.walk.tip()).toBe(930000);
+    });
+
     it('a tip read that is refused is NOT READ, exit 2', async () => {
         expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: refused })))).toBe(2);
         expect(JSON.parse(stdout).verdict).toBe('unread');

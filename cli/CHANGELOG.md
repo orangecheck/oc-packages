@@ -7,6 +7,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.5.1] — 2026-11-05
+
+- `oc chat verify` reads a chain tip body that is blank, 0, negative or not
+  a whole number as no answer, as `@orangecheck/sdk` 1.23.1's tip read does:
+  NOT READ, exit 2. It read the body with `parseInt`, so a 0 body was block 0,
+  and a utxo-floor post checked against it FAILED. The directory walk's tip
+  read follows the same rule.
+
 ## [0.5.0] — 2026-11-03
 
 - Requires `@orangecheck/sdk` ^1.21.0 (it was ^1.7.0), the release whose

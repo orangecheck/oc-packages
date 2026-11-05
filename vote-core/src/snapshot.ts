@@ -181,8 +181,9 @@ export function mempoolBlockTimeSource(
     };
     return {
         async tipHeight() {
-            const n = Number.parseInt(await text('/blocks/tip/height'), 10);
-            if (!Number.isFinite(n)) throw new Error('tip height parse');
+            // A blank, 0 or negative body is no height (sdk 1.23.1's rule), never block 0.
+            const n = Number(await text('/blocks/tip/height'));
+            if (!Number.isSafeInteger(n) || n < 1) throw new Error('tip height parse');
             return n;
         },
         async blockHeightAtTimestamp(unixSeconds) {

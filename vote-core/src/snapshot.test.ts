@@ -166,6 +166,16 @@ describe('mempoolBlockTimeSource', () => {
         expect(calls).toContain(`https://mempool.space/api/v1/mining/blocks/timestamp/${DEADLINE_TS}`);
     });
 
+    it('reads a tip body below 1, blank or not a whole number as no height, never block 0', async () => {
+        const tipBody = (body: string) =>
+            mempoolBlockTimeSource({ fetch: async () => new Response(body, { status: 200 }) }).tipHeight();
+        for (const body of ['', '  ', '0', '-5', 'abc', '12.5', '930000abc']) {
+            await expect(tipBody(body), JSON.stringify(body)).rejects.toThrow('tip height parse');
+        }
+        expect(await tipBody('930000\n')).toBe(930000);
+        expect(await tipBody('1')).toBe(1);
+    });
+
     it('stops the upward walk at the tip (404 on the next block)', async () => {
         const { fetch } = fixtureFetch(1000, 995);
         expect(await resolveDeadlineSnapshot(DEADLINE, mempoolBlockTimeSource({ fetch }))).toMatchObject({
