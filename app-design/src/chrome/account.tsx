@@ -52,8 +52,9 @@ export interface AccountMenuItem {
  * signed in, then a chevron. In the header's block it is the bar's full height
  * at the right rule and shows the name at every width: cut with an ellipsis
  * where the bar runs out of room, and at about 32 characters, before anything
- * else in the bar gives way; on a phone without the initial. In AppShell's slot
- * it keeps the initial and the chevron below `nameFrom`.
+ * else in the bar gives way; on a phone without the initial. In AppShell's bars
+ * it keeps its box and shows the name at every width the same way. Among a
+ * site's own controls it keeps the initial and the chevron below `nameFrom`.
  */
 export function AccountMenu({
     name,
@@ -67,13 +68,14 @@ export function AccountMenu({
     /** A second line under the name in the menu: a short address. */
     detail?: string;
     items: (AccountMenuItem | 'separator')[];
-    /** In AppShell's slot, the width from which the name shows beside the initial. A header's block always shows it. */
+    /** Among a site's own controls, the width from which the name shows beside the initial. A header's block and AppShell's bars always show it. */
     nameFrom?: 'sm' | 'lg';
     /** Called as the menu opens and closes. */
     onOpenChange?: (open: boolean) => void;
 }) {
     const { look } = useAccountSlot();
     const block = look === 'block';
+    const app = look === 'app';
     const initial = name.trim().charAt(0).toUpperCase() || '·';
     return (
         <DropdownMenu onOpenChange={onOpenChange}>
@@ -88,8 +90,9 @@ export function AccountMenu({
                           // a letter and the ellipsis still fit whole.
                           'min-w-11 shrink-[1000000] gap-2 self-stretch px-2 hover:bg-accent max-[479px]:-mr-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-accent min-[480px]:border-l min-[480px]:border-border min-[480px]:px-3 min-[900px]:gap-2.5 min-[900px]:px-5'
                         : cn(
-                              'h-11 shrink-0 gap-2 rounded-none border border-border bg-card pl-1.5 pr-2.5 hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
-                              nameFrom === 'lg' ? 'lg:gap-2.5' : 'sm:gap-2.5'
+                              'h-11 gap-2 rounded-none border border-border bg-card pl-1.5 pr-2.5 hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
+                              // In AppShell's bar it gives way first too, down to 44px; on a phone the initial's room is the name's.
+                              app ? 'min-w-11 shrink-[1000000] max-md:pl-2.5 md:gap-2.5' : cn('shrink-0', nameFrom === 'lg' ? 'lg:gap-2.5' : 'sm:gap-2.5')
                           )
                 )}
                 aria-label={`${name}, account menu`}
@@ -101,13 +104,13 @@ export function AccountMenu({
                     className={cn(
                         'flex shrink-0 items-center justify-center bg-foreground font-medium text-background before:content-[attr(data-initial)]',
                         // A dot: round on its own size, as the square rule allows. In the bar, a phone gives its room to the name.
-                        block ? 'size-7 rounded-full text-[0.75rem] max-md:hidden' : 'size-8 rounded-full text-[0.8125rem]'
+                        block ? 'size-7 rounded-full text-[0.75rem] max-md:hidden' : cn('size-8 rounded-full text-[0.8125rem]', app && 'max-md:hidden')
                     )}
                 />
                 <span
                     data-oca-account-name=""
                     className={
-                        block
+                        block || app
                             ? // One line cut at any letter, with an ellipsis, so the name can give way to a letter's width;
                               // 17em holds about 32 of an email's characters.
                               'line-clamp-1 min-w-0 max-w-[17em] break-all'
@@ -222,7 +225,7 @@ export interface SessionAccountViewProps {
     signOutRefused?: boolean;
     /** Called as the account menu opens and closes. */
     onMenuOpenChange?: (open: boolean) => void;
-    /** Inline only: the width from which the name shows beside the initial. */
+    /** Among a site's own controls only: the width from which the name shows beside the initial. */
     nameFrom?: 'sm' | 'lg';
 }
 
