@@ -49,9 +49,11 @@ export interface AccountMenuItem {
 
 /**
  * The signed-in trigger and its menu. The trigger shows the initial and who is
- * signed in, then a chevron; in the header's block it is the bar's full height
- * at the right rule. Where room is short (a phone, or beside navigation below
- * `nameFrom`) it keeps the initial and the chevron, and the name heads the menu.
+ * signed in, then a chevron. In the header's block it is the bar's full height
+ * at the right rule and shows the name at every width: cut with an ellipsis
+ * where the bar runs out of room, and at about 32 characters, before anything
+ * else in the bar gives way; on a phone without the initial. In AppShell's slot
+ * it keeps the initial and the chevron below `nameFrom`.
  */
 export function AccountMenu({
     name,
@@ -65,7 +67,7 @@ export function AccountMenu({
     /** A second line under the name in the menu: a short address. */
     detail?: string;
     items: (AccountMenuItem | 'separator')[];
-    /** The width from which the name shows beside the initial. A header with navigation needs the room until lg. */
+    /** In AppShell's slot, the width from which the name shows beside the initial. A header's block always shows it. */
     nameFrom?: 'sm' | 'lg';
     /** Called as the menu opens and closes. */
     onOpenChange?: (open: boolean) => void;
@@ -73,20 +75,21 @@ export function AccountMenu({
     const { look } = useAccountSlot();
     const block = look === 'block';
     const initial = name.trim().charAt(0).toUpperCase() || '·';
-    // In the header's block the navigation sits beside it until lg, so the name waits for lg there.
-    const from = block ? 'lg' : nameFrom;
     return (
         <DropdownMenu onOpenChange={onOpenChange}>
             <DropdownMenuTrigger
                 data-oca-account="in"
                 className={cn(
-                    'group/account inline-flex shrink-0 items-center text-[0.9375rem] text-foreground outline-none transition-colors',
+                    'group/account inline-flex items-center text-[0.9375rem] text-foreground outline-none transition-colors',
                     block
                         ? // The bar's full height at the right rule, its own hairline at the left; 44px wide at the least.
-                          'min-w-11 gap-2 self-stretch px-3 hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-accent min-[480px]:border-l min-[480px]:border-border min-[900px]:gap-2.5 min-[900px]:px-5'
+                          // It gives way first, by far the most, so the name is cut before the bar's brand or links are;
+                          // on a phone it reaches 8px into the gutter, so its chevron ends on the gutter's line and at 320
+                          // a letter and the ellipsis still fit whole.
+                          'min-w-11 shrink-[1000000] gap-2 self-stretch px-2 hover:bg-accent max-[479px]:-mr-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-accent min-[480px]:border-l min-[480px]:border-border min-[480px]:px-3 min-[900px]:gap-2.5 min-[900px]:px-5'
                         : cn(
-                              'h-11 gap-2 rounded-none border border-border bg-card pl-1.5 pr-2.5 hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
-                              from === 'lg' ? 'lg:gap-2.5' : 'sm:gap-2.5'
+                              'h-11 shrink-0 gap-2 rounded-none border border-border bg-card pl-1.5 pr-2.5 hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
+                              nameFrom === 'lg' ? 'lg:gap-2.5' : 'sm:gap-2.5'
                           )
                 )}
                 aria-label={`${name}, account menu`}
@@ -97,11 +100,20 @@ export function AccountMenu({
                     data-initial={initial}
                     className={cn(
                         'flex shrink-0 items-center justify-center bg-foreground font-medium text-background before:content-[attr(data-initial)]',
-                        // A dot: round on its own size, as the square rule allows.
-                        block ? 'size-7 rounded-full text-[0.75rem]' : 'size-8 rounded-full text-[0.8125rem]'
+                        // A dot: round on its own size, as the square rule allows. In the bar, a phone gives its room to the name.
+                        block ? 'size-7 rounded-full text-[0.75rem] max-md:hidden' : 'size-8 rounded-full text-[0.8125rem]'
                     )}
                 />
-                <span data-oca-account-name="" className={cn('max-w-[14rem] truncate', from === 'lg' ? 'max-lg:hidden' : 'max-sm:hidden')}>
+                <span
+                    data-oca-account-name=""
+                    className={
+                        block
+                            ? // One line cut at any letter, with an ellipsis, so the name can give way to a letter's width;
+                              // 17em holds about 32 of an email's characters.
+                              'line-clamp-1 min-w-0 max-w-[17em] break-all'
+                            : cn('max-w-[14rem] truncate', nameFrom === 'lg' ? 'max-lg:hidden' : 'max-sm:hidden')
+                    }
+                >
                     {name}
                 </span>
                 <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/account:rotate-180" />
