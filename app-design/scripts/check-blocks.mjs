@@ -11,6 +11,15 @@
  *   start and leaves focus on the first step. Under reduced motion it never
  *   plays: the first step, with 44px step buttons that work. The last step
  *   shows the caller's success picture.
+ * - With its phone, SignInDemo keeps the phone dark while the window signs
+ *   in and wakes it on the account at the last step, after the window's own
+ *   moment; Try again and an earlier step put it back to sleep. It is a
+ *   picture, its wake holds in a hidden tab, and nothing runs once it rests.
+ *   Under reduced motion it is awake from the first frame, with nothing
+ *   animated, also when served and hydrated. At 1440 it laps the window's
+ *   edge, lower down, clear of the steps; at 390 and 320 it sits under the
+ *   steps inside the column; at every width the account fits its screen above
+ *   the tab bar, in text of 12px or more, and the page does not widen.
  * - The Slider says its value in words, moves by key and is a 44px target;
  *   focused from the keyboard, it and a step button draw a ring at least
  *   2px wide. CostDemo steps through the site's stops in the site's words; its number
@@ -73,13 +82,16 @@ try {
             `if (q.has('dark')) document.documentElement.classList.add('dark');\n` +
             // Every layout shift the page makes, summed.
             `window.__shift = 0;\n` +
+            // Every element animate() is called on, so a check can say nothing was ever animated, not just nothing now.
+            `window.__animated = [];\n` +
+            `{ const animate = Element.prototype.animate; Element.prototype.animate = function (...a) { window.__animated.push(this); return animate.apply(this, a); }; }\n` +
             `new PerformanceObserver((l) => l.getEntries().forEach((e) => (window.__shift += e.value))).observe({ type: 'layout-shift', buffered: true });\n` +
             // Everything the page's one live region says, in order.
             `window.__said = [];\n` +
             `new MutationObserver((ms) => { const r = document.getElementById('oca-announcer'); if (r && r.textContent && ms.some((m) => r === m.target || r.contains(m.target))) window.__said.push(r.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true });\n` +
             `const steps = signInDemoSteps().map((s) => ({ ...s, screens: s.screens.map((sc) => ({ ...sc, duration: ${STEP} })) }));\n` +
             `const own = { id: 'cd', role: 'group', 'aria-label': 'D', cost: (b) => ({ value: 'C' + b.sats, unit: 'U' + b.days }), labels: { personBody: (b, ok) => 'P' + b.sats + ':' + ok, farmBody: (b) => 'F' + b.days } };\n` +
-            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'Open the app', href: '#1' }, { label: 'Back it', href: '#2' }, { label: 'Get paid', href: '#3' }, { label: 'Own your key, later', href: '#4' }]} />,\n` +
+            `const pick = { demo: <SignInDemo steps={steps} success={() => <span data-success="">ok</span>} />, phone: <SignInDemo steps={steps} phone={{ email: 'ana@example.com' }} success={() => <span data-success="">ok</span>} />, cost: <CostDemo />, own: <CostDemo {...own} />, path: <StepPath current={2} steps={[{ label: 'Open the app', href: '#1' }, { label: 'Back it', href: '#2' }, { label: 'Get paid', href: '#3' }, { label: 'Own your key, later', href: '#4' }]} />,\n` +
             // The baked mark at each size, sized by a class, and on a dark ground.
             `  dither: <div className="flex flex-col items-start gap-4"><DitherMark size="sm" /><DitherMark size="md" /><DitherMark size="lg" title="orangecheck" /><div style={{ width: 300 }}><DitherMark className="w-full" sizes="300px" /></div><DitherMark size="md" ground="dark" /><DitherMark size="md" ground="brand" /></div>,\n` +
             // Ruling 11's person at the edges of their own coin: 250,000 sats, 180 days.
@@ -108,7 +120,7 @@ try {
         const p = await ctx.newPage();
         await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}${dark ? '&dark' : ''}`);
         await p.waitForSelector('[data-hydrated]', { state: 'attached' });
-        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', headings: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', phone: '[data-demo-phone]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', headings: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -492,6 +504,124 @@ try {
             await close();
         }
 
+        // With its phone: dark while the window signs in, awake on the account at the last step, dark again on Try again.
+        {
+            const { p, close } = await open('phone');
+            const state = () => p.evaluate(() => document.querySelector('[data-demo-phone]').dataset.demoPhone);
+            check((await state()) === 'asleep' && (await demo(p)).step === 0, `SignInDemo phone: at the start it is ${await state()}, not asleep`);
+            check(await until(p, () => document.querySelector('[data-demo-mode]').dataset.demoStep === '1', null, STEP * 4), 'SignInDemo phone: the demo never left the first step');
+            check((await state()) === 'asleep', 'SignInDemo phone: it woke before the last step');
+            check(await until(p, () => document.querySelector('[data-demo-phone="awake"]'), null, STEP * 6), 'SignInDemo phone: it never woke');
+            // It wakes on the last step, after the window's own moment: a delayed fade, not at once.
+            const woke = await p.evaluate(() => {
+                const home = document.querySelector('[data-demo-phone-home]');
+                const a = home?.getAnimations()[0];
+                return { step: Number(document.querySelector('[data-demo-mode]').dataset.demoStep), delay: a ? a.effect.getTiming().delay : null, text: home?.textContent ?? '' };
+            });
+            check(woke.step === 2, `SignInDemo phone: it woke on step ${woke.step}, not the last`);
+            check(woke.delay >= 400, `SignInDemo phone: autoplay wakes it with a delay of ${woke.delay}ms, not after the window's moment`);
+            check(woke.text.includes('ana@example.com') && woke.text.includes('Home'), `SignInDemo phone: the account shows ${JSON.stringify(woke.text.slice(0, 80))}, not the site's email over the placeholders`);
+            await p.waitForTimeout(STEP * 2);
+            check((await running(p, '[data-demo-mode]')) === 0, 'SignInDemo phone: something still runs after it came to rest');
+            const picture = await p.evaluate(() => {
+                const ph = document.querySelector('[data-demo-phone]');
+                return { hidden: ph.getAttribute('aria-hidden'), focusable: ph.querySelectorAll('a, button, input, [tabindex]').length, live: document.querySelectorAll('[data-demo-mode] [aria-live]').length };
+            });
+            check(picture.hidden === 'true' && picture.focusable === 0 && picture.live === 0, `SignInDemo phone: not a still picture ${JSON.stringify(picture)}`);
+            // Try again stays inside the window beside the phone, and puts the phone back to sleep.
+            const inside = await p.evaluate(() => {
+                const b = [...document.querySelectorAll('[data-demo-mode] button')].find((x) => x.textContent === 'Try again').getBoundingClientRect();
+                const w = document.querySelector('[data-frame]').getBoundingClientRect();
+                return b.top >= w.top && b.bottom <= w.bottom && b.left >= w.left && b.right <= w.right;
+            });
+            check(inside, 'SignInDemo phone: Try again sits outside the window');
+            await p.getByRole('button', { name: 'Try again' }).click();
+            check((await state()) === 'asleep', `SignInDemo phone: Try again left it ${await state()}`);
+            await close();
+        }
+        // A reader's steps move it too: the last step wakes it at once, an earlier one puts it to sleep.
+        {
+            const { p, close } = await open('phone');
+            const buttons = p.locator('[data-demo-mode] ol button');
+            await buttons.nth(2).click();
+            const now = await p.evaluate(() => ({ state: document.querySelector('[data-demo-phone]').dataset.demoPhone, delay: document.querySelector('[data-demo-phone-home]')?.getAnimations()[0]?.effect.getTiming().delay ?? null }));
+            check(now.state === 'awake' && now.delay === 0, `SignInDemo phone: the last step pressed left it ${JSON.stringify(now)}, not awake at once`);
+            await buttons.nth(1).click();
+            const back = await p.evaluate(() => document.querySelector('[data-demo-phone]').dataset.demoPhone);
+            check(back === 'asleep', `SignInDemo phone: an earlier step left it ${back}`);
+            await close();
+        }
+        // Waking in a hidden tab, the wake holds where it was.
+        {
+            const { p, close } = await open('phone');
+            check(await until(p, () => document.querySelector('[data-demo-phone="awake"]'), null, STEP * 6), 'SignInDemo phone: it never woke');
+            await p.evaluate(() => {
+                Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+                document.dispatchEvent(new Event('visibilitychange'));
+            });
+            await p.waitForTimeout(100);
+            const moving = await running(p, '[data-demo-phone]');
+            check(moving === 0, `SignInDemo phone in a hidden tab: ${moving} animation(s) still run`);
+            await close();
+        }
+        // Under reduced motion: awake from the first frame, nothing animated; laid out at each width with nothing spilling.
+        for (const width of [320, 390, 1440]) {
+            const { p, close } = await open('phone', { reduced: true, width });
+            await p.waitForTimeout(STEP);
+            const r = await p.evaluate(() => {
+                const box = (el) => el.getBoundingClientRect();
+                const root = document.querySelector('[data-demo-mode]');
+                const phone = document.querySelector('[data-demo-phone]');
+                if (!phone.querySelector('[data-demo-phone-home]')) return { state: phone.dataset.demoPhone, mode: root.dataset.demoMode, animations: null };
+                const device = phone.querySelector('[data-demo-phone-home]').parentElement.getBoundingClientRect();
+                const home = phone.querySelector('[data-demo-phone-home]');
+                const bar = home.lastElementChild.getBoundingClientRect();
+                const above = [...home.firstElementChild.querySelectorAll('*')].map(box).filter((b) => b.height > 0);
+                const texts = [...home.querySelectorAll('*')].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+                return {
+                    state: phone.dataset.demoPhone,
+                    mode: root.dataset.demoMode,
+                    animations: window.__animated.filter((e) => phone.contains(e)).length,
+                    page: [document.documentElement.scrollWidth, document.documentElement.clientWidth],
+                    root: box(root).toJSON(),
+                    win: box(document.querySelector('[data-frame]')).toJSON(),
+                    // The steps as drawn: their buttons, not the list's box, which runs under the phone's lap.
+                    steps: { right: Math.max(...[...root.querySelectorAll('ol button')].map((b) => box(b).right)), bottom: box(root.querySelector('ol')).bottom },
+                    phone: box(phone.querySelector('[data-demo-phone] > div:last-child')).toJSON(),
+                    // The account's last line ends above the tab bar, and nothing runs past the screen's sides.
+                    clear: Math.max(...above.map((b) => b.bottom)) <= bar.top + 0.5,
+                    sides: texts.every((e) => box(e).left >= device.left - 0.5 && box(e).right <= device.right + 0.5),
+                    small: texts.map((e) => parseFloat(getComputedStyle(e).fontSize)).filter((s) => s < 12),
+                };
+            });
+            check(r.state === 'awake' && r.mode === 'still' && r.animations === 0, `[${width}] SignInDemo phone under reduced motion: ${r.state}, ${r.mode}, ${r.animations} animation(s)`);
+            if (r.animations === null) {
+                await close();
+                continue;
+            }
+            check(r.page[0] <= r.page[1], `[${width}] SignInDemo phone: the page is ${r.page[0]}px wide in a ${r.page[1]}px window`);
+            check(r.clear && r.sides, `[${width}] SignInDemo phone: the account runs into the tab bar (${r.clear}) or past the screen's sides (${r.sides})`);
+            check(r.small.length === 0, `[${width}] SignInDemo phone: text under 12px: ${r.small.join(', ')}`);
+            if (width >= 1024) {
+                check(r.phone.left < r.win.right && r.phone.right > r.win.right && r.phone.top > r.win.top, `[${width}] SignInDemo phone: not lapping the window's edge, lower down (phone ${JSON.stringify(r.phone)}, window ${JSON.stringify(r.win)})`);
+                check(r.steps.right <= r.phone.left, `[${width}] SignInDemo phone: the steps run under the phone (steps end ${r.steps.right}, phone starts ${r.phone.left})`);
+            } else {
+                check(r.phone.top >= r.steps.bottom && r.phone.left >= r.root.left - 0.5 && r.phone.right <= r.root.right + 0.5, `[${width}] SignInDemo phone: not under the steps inside the column (phone ${JSON.stringify(r.phone)}, steps ${JSON.stringify(r.steps)}, column ${JSON.stringify(r.root)})`);
+            }
+            await close();
+        }
+        // Served and hydrated under reduced motion, the phone shows the account, still.
+        {
+            const { p, close } = await open('phone', { reduced: true, ssr: true });
+            await p.waitForTimeout(STEP);
+            const s = await p.evaluate(() => {
+                const phone = document.querySelector('[data-demo-phone]');
+                return { state: phone.dataset.demoPhone, animations: window.__animated.filter((e) => phone.contains(e)).length, errors: window.__mismatch };
+            });
+            check(s.state === 'awake' && s.animations === 0 && s.errors.length === 0, `SignInDemo phone served and hydrated under reduced motion: ${JSON.stringify(s)}`);
+            await close();
+        }
+
         // Served and hydrated under reduced motion, the demo rests on its first step.
         {
             const { p, close } = await open('demo', { reduced: true, ssr: true });
@@ -606,4 +736,4 @@ if (failures) {
     console.error(`\n${failures} blocks failure(s)`);
     process.exit(1);
 }
-console.log(`✓ blocks: ${checks} checks in Chrome; the sign-in demo plays only in view, once, silently, and stops for good on input; sliders speak in words; one sweep per change; the path draws on view; receipts stack on the point; no block widens a phone`);
+console.log(`✓ blocks: ${checks} checks in Chrome; the sign-in demo plays only in view, once, silently, and stops for good on input; its phone wakes on the account at the last step and is awake and still under reduced motion; sliders speak in words; one sweep per change; the path draws on view; receipts stack on the point; no block widens a phone`);
