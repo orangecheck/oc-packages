@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.3] — 2026-11-05
+
 - `./og` draws Latin Extended from Inter's own Latin Extended files. They
   were in `ogFonts()` under `Inter`, but satori keeps one font per family
   and weight, so it never drew them: a title or field with "Łódź" or "₿"
