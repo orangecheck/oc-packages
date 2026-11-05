@@ -42,6 +42,24 @@ since 2.2.1. Below lg, vault and ochk.app showed an initial alone.
   stayed in the bar beside the menu button. check-account reads 1179, and
   check-header refuses the family menu beside the menu button.
 
+A tool bar holds a site's real tools. attest, vote, pledge and agent put four
+tools beside Docs and About. With agent's (Create, Inspect, Delegations,
+Playground), "About agent" wrapped onto two lines from 900 to 1000px, the
+word "agent" was cut to nothing at 900, and a signed-in name showed two
+letters up to 1000.
+
+- `SiteHeader` takes `navWide`: links after `nav` that join the bar from
+  1180px. Below that they are in the menu. Its button stays in the bar in
+  place of the family menu, which it holds too, and the links close up 4px,
+  as they do to a thumb. ToolShell passes Docs and About there.
+- Signed in with ana@example.com, agent's bar shows 8 characters at 900
+  and the whole name from 945px; attest's, vote's and pledge's 12 or more
+  at 900 and the whole name from 915; stamp's and lock's at every width.
+- check-account and check-header hold agent's four tools and 1180.
+  check-header also holds a link on two lines, a word of the lockup cut, a
+  bar that overflows, the bar's links at each width, and Docs and About in
+  the menu at 1024.
+
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
 a theme switch, and About and Docs side by side in the phone's menu. ochk.app,
