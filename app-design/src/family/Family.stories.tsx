@@ -16,7 +16,7 @@ export const Menu: StoryObj = {
     name: 'Family menu',
     render: () => (
         <div className="min-h-screen">
-            <SiteHeader family="stamp" product="stamp" variant="tool" />
+            <SiteHeader family="stamp" product="stamp" />
             <div className="oca-container flex flex-col gap-8 py-12">
                 <SectionHeading
                     eyebrow="The family menu"

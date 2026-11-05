@@ -79,7 +79,7 @@ const accountView = (state: SessionState, name?: string, items = [{ label: 'Your
     <SessionAccountView state={state} name={name} detail={name ? 'bc1qxy2k…hx0wlh' : undefined} signInHref="https://ochk.io/signin" items={items} />
 );
 
-/** One account control, in every state: the public header, the tool header, and vault's, whose own action is in the menu. */
+/** One account control, in every state: the public header, a full-width app's (`variant="tool"`), and vault's, whose own action is in the menu. */
 export const AccountControl: StoryObj = {
     name: 'Account control: every state',
     render: () => (
@@ -210,7 +210,7 @@ export const Rail: StoryObj = {
     render: () => (
         <AppShell
             variant="rail"
-            header={<SiteHeader variant="tool" product="chat" family="chat" actions={<ThemeToggle />} />}
+            header={<SiteHeader variant="tool" product="chat" family="chat" account={<SessionAccountView state="in" name="ana@example.com" detail="bc1qxy2k…hx0wlh" />} />}
             nav={[
                 {
                     items: [
@@ -398,7 +398,7 @@ export const OchkIo: StoryObj = {
     ),
 };
 
-/** A tool: 56px, full width, the site's word beside the lockup, and the one-row footer. */
+/** A tool site: ochk.app's bar with the site's word beside the lockup and its own links, and the one-row footer with the theme switch. */
 export const Tool: StoryObj = {
     name: 'Tool header and compact footer',
     render: () => (
@@ -407,7 +407,6 @@ export const Tool: StoryObj = {
                 Anchoring is slower than usual: two OpenTimestamps calendars are not answering.
             </SiteBanner>
             <SiteHeader
-                variant="tool"
                 product="stamp"
                 family="stamp"
                 home="/dashboard"
@@ -417,7 +416,6 @@ export const Tool: StoryObj = {
                     { href: '/playground', label: 'Playground' },
                     { href: '/dashboard', label: 'Dashboard' },
                 ]}
-                actions={<ThemeToggle className="max-sm:hidden" />}
                 account={<SessionAccountView state="out" signInHref="https://ochk.io/signin" />}
             />
             <main id="main-content" className="flex-1">
@@ -436,7 +434,7 @@ export const Tool: StoryObj = {
                     </Card>
                 </div>
             </main>
-            <SiteFooter compact family legal />
+            <SiteFooter compact family legal meta={<ThemeToggle className="-mx-3 self-start sm:self-auto" />} />
         </div>
     ),
 };
@@ -576,7 +574,7 @@ export const ServerError: StoryObj = {
     name: 'Error page, 500',
     render: () => (
         <div className="flex min-h-screen flex-col">
-            <SiteHeader variant="tool" product="stamp" family="stamp" />
+            <SiteHeader product="stamp" family="stamp" />
             <main id="main-content" className="flex-1">
                 <ErrorPage code={500} />
             </main>

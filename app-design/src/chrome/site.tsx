@@ -19,24 +19,10 @@ import { ProductLockup } from './product-lockup';
 
 export type { FooterColumn, NavItem } from '../lib/nav';
 
-function NavLink({
-    item,
-    className,
-    onNavigate,
-    line = false,
-}: {
-    item: NavItem;
-    className?: string;
-    onNavigate?: () => void;
-    /** Mark the active item with a bar on the header's bottom edge (the tool header). */
-    line?: boolean;
-}) {
+function NavLink({ item, className, onNavigate }: { item: NavItem; className?: string; onNavigate?: () => void }) {
     const cls = cn(
         'rounded-none px-3 py-2 text-[0.9375rem] transition-colors',
         item.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        // A tool's links are 39px, 44 to a thumb by the ::before; the ::after is the active bar.
-        line && cn('after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5', HIT_LINK),
-        line && item.active && 'after:bg-foreground',
         className
     );
     if (item.external) {
@@ -131,8 +117,10 @@ export interface SiteHeaderProps {
     search?: ReactNode;
     actions?: ReactNode;
     /**
-     * `site`: a public page's header, the navigation centred. `tool`: 56px,
-     * full width, a hairline under it, the navigation after the lockup.
+     * One bar for every site: ochk.app's lockup, type, height and spacing.
+     * `site` (default) draws it in the page's frame, 82.5rem at most between
+     * its rules. `tool` draws the same bar full width with no rules, over an
+     * app frame that is itself full width (ToolShell's `app`, a messenger).
      */
     variant?: 'site' | 'tool';
     /** Leave the navigation out of the phone's menu (a page whose tab bar already holds it). */
@@ -142,8 +130,8 @@ export interface SiteHeaderProps {
     /**
      * 2.0's page CTA: deep orange, the header's full height, flush to the
      * frame's right rule, with the trailing "+". `true` is the registry's
-     * "Get an account" to the family sign-in; an object names its own. `site`
-     * only. In the phone's menu it is a full-width button at the bottom.
+     * "Get an account" to the family sign-in; an object names its own. In the
+     * phone's menu it is a full-width button at the bottom.
      *
      * `pending` is the moment a session check runs: the block keeps its width
      * and ground, its label is hidden, and nothing in it can be focused or
@@ -152,7 +140,7 @@ export interface SiteHeaderProps {
      * the nav. Not drawn with `account`: a site's own action goes in its menu.
      */
     cta?: boolean | { label?: ReactNode; href?: string; pending?: boolean; reserve?: readonly ReactNode[] };
-    /** "Sign in" before the CTA; in the phone's menu, a row. `true` links the family sign-in. `site` only. Not drawn with `account`. */
+    /** "Sign in" before the CTA; in the phone's menu, a row. `true` links the family sign-in. Not drawn with `account`. */
     signIn?: boolean | { label?: ReactNode; href?: string };
     /**
      * The one account control (SessionAccount, or SessionAccountView): the
@@ -180,10 +168,10 @@ export function AccountCta({ href, className }: { href?: string; className?: str
 
 /**
  * The header: lockup (and the site's word), navigation, search, actions and,
- * in 2.0, a full-height CTA flush right. A thin bar with a hairline under it.
- * Below 900px (`site`; md for `tool`) the navigation, and the family when it
- * is on, move into one sheet: focus stays in it, Esc closes it, and the
- * current page is marked. The actions and the CTA stay.
+ * in 2.0, a full-height CTA or the account flush right. A thin bar with a
+ * hairline under it. Below 900px the navigation, and the family when it is
+ * on, move into one sheet: focus stays in it, Esc closes it, and the current
+ * page is marked. The actions and the account stay.
  */
 export function SiteHeader({
     home = '/',
@@ -203,16 +191,12 @@ export function SiteHeader({
 }: SiteHeaderProps) {
     const [open, setOpen] = useState(false);
     const familySignIn = useFamilySignInHref();
-    const tool = variant === 'tool';
     const current = typeof family === 'string' ? family : undefined;
     const phoneNav = navOnPhone ? nav : [];
-    // A site's navigation moves into the sheet below 900px; a tool's below md.
-    const wide = tool ? 'md:flex' : 'min-[900px]:flex';
-    const narrowOnly = tool ? 'md:hidden' : 'min-[900px]:hidden';
     const ctaOwn = typeof cta === 'object' ? cta : {};
     const signInOwn = typeof signIn === 'object' ? signIn : {};
     const headerCta =
-        !tool && cta && !account
+        cta && !account
             ? {
                   label: ctaOwn.label ?? GET_AN_ACCOUNT.label,
                   href: ctaOwn.href ?? familySignIn,
@@ -220,26 +204,27 @@ export function SiteHeader({
                   reserve: ctaOwn.reserve ?? [],
               }
             : null;
-    const headerSignIn = !tool && signIn && !account ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
+    const headerSignIn = signIn && !account ? { label: signInOwn.label ?? 'Sign in', href: signInOwn.href ?? familySignIn } : null;
     // The account is the block at the right rule, in the bar and at the phone menu's foot.
     const slot = (where: AccountSlot['where']): AccountSlot => ({ look: 'block', where });
-    // 2.0's site header: the flat mark and the wordmark at 21px in the frame. The tool header keeps its lockup.
-    const brandNode = brand ?? <ProductLockup size={tool ? 22 : 30} product={product} compact />;
+    // 2.0's header: the flat mark and the wordmark at 21px.
+    const brandNode = brand ?? <ProductLockup size={30} product={product} compact />;
     const menu = phoneNav.length > 0 || Boolean(family) || Boolean(menuExtra) || Boolean(headerSignIn) || Boolean(headerCta) || Boolean(account);
     // The 2.0 site header: its row is the frame (82.5rem, the page's gutter at left), the
     // links follow the brand, and Sign in and the CTA sit at the right rule.
-    const framed = !tool;
+    const framed = variant !== 'tool';
     const navigation =
         nav.length > 0 ? (
             // To a thumb a short word's 44px is a ::before, not a wider box, and the words close up 4px, so the row still
             // fits beside search at 900 (the home link's 44 has to be drawn: the family menu sits 4px from it).
-            <nav aria-label="Main" className={cn('hidden items-center', tool ? 'gap-1' : 'ml-[1.125rem] gap-7 pointer-coarse:gap-6', wide)}>
+            // Into the sheet below 900px.
+            <nav aria-label="Main" className="ml-[1.125rem] hidden items-center gap-7 pointer-coarse:gap-6 min-[900px]:flex">
                 {nav.map((n) =>
                     n.children?.length ? (
                         <NavDropdown key={n.href} item={n} />
                     ) : (
-                        // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : cn('flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink', HIT_LINK)} />
+                        // Text links, 28px apart.
+                        <NavLink key={n.href} item={n} className={cn('flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink', HIT_LINK)} />
                     )
                 )}
             </nav>
@@ -247,7 +232,7 @@ export function SiteHeader({
     return (
         <header
             // theme.css keeps a focused control clear of it (scroll-padding-top).
-            data-oca-sticky={tool ? 'tool' : 'site'}
+            data-oca-sticky="site"
             className={cn(
                 // group/bar: the lockup reads whether someone is signed in here (ProductLockup's `compact`).
                 'group/bar sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90',
@@ -256,28 +241,26 @@ export function SiteHeader({
         >
             <div
                 className={cn(
-                    'flex items-center justify-between gap-4',
-                    tool
-                        ? cn('h-14 pl-4 md:pl-6', account ? 'max-[479px]:pr-4' : 'pr-4 md:pr-6')
-                        : // The frame's column: the page's gutter at left, the CTA at the right rule.
-                          'mx-auto h-14 w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
-                    framed &&
-                        (headerCta || account
-                            ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
-                              'max-[479px]:pr-[var(--oca-frame-gutter)]'
-                            : 'pr-[var(--oca-frame-gutter)]')
+                    // The page's gutter at left, the CTA or the account at the right end.
+                    'flex h-14 w-full items-center justify-between gap-4 pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
+                    // In the frame, between its rules; `tool`, the window's width.
+                    framed && 'mx-auto max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
+                    headerCta || account
+                        ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
+                          'max-[479px]:pr-[var(--oca-frame-gutter)]'
+                        : 'pr-[var(--oca-frame-gutter)]'
                 )}
             >
                 {/* Sized to its content, so with an account the right end gives way first (its name), then the brand. */}
-                <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'flex-auto')}>
+                <div className="flex min-w-0 flex-auto items-center gap-1">
                     {/* It may narrow to its mark on a crowded phone bar, never under 44 to a thumb. */}
                     <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
                     </Link>
-                    {family ? <FamilyMenu current={current} className={tool ? 'max-md:hidden' : 'max-[899px]:hidden'} /> : null}
-                    {tool && navigation ? <div className="ml-5">{navigation}</div> : navigation}
+                    {family ? <FamilyMenu current={current} className="max-[899px]:hidden" /> : null}
+                    {navigation}
                 </div>
                 <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch', account ? 'shrink-[1000000]' : 'shrink-0')}>
                     {search}
@@ -290,10 +273,7 @@ export function SiteHeader({
                     {menu ? (
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
-                                className={cn(
-                                    'inline-flex size-11 shrink-0 items-center justify-center rounded-none text-foreground hover:bg-accent',
-                                    narrowOnly
-                                )}
+                                className="inline-flex size-11 shrink-0 items-center justify-center rounded-none text-foreground hover:bg-accent min-[900px]:hidden"
                                 aria-label="Open menu"
                             >
                                 <Menu className="size-5" />
@@ -558,8 +538,13 @@ export function SiteFooter({
     const legalLinks = legal === true ? LEGAL_LINKS : legal || null;
     if (compact) {
         return (
-            // The tools' column (ToolColumn): the lockup lines up with the page's title.
-            <footer className={cn('border-t border-border bg-background px-4 text-[0.875rem] text-muted-foreground md:px-8', className)}>
+            // The tools' column (ToolColumn) in ToolShell's frame: the lockup lines up with the page's title, past the rule.
+            <footer
+                className={cn(
+                    'border-t border-border bg-background px-[calc(var(--oca-frame-rule)+1rem)] text-[0.875rem] text-muted-foreground md:px-[calc(var(--oca-frame-rule)+2rem)]',
+                    className
+                )}
+            >
                 <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-x-8 gap-y-3 py-5 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                         {/* The lockup keeps its size; its target is 44px tall, clear of the links under it. */}
