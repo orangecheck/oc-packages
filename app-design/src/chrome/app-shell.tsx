@@ -1,7 +1,7 @@
 import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
@@ -9,6 +9,7 @@ import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
 import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { ShellContext } from '../lib/shell-context';
+import { publishBottomInset } from '../lib/viewport';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -180,12 +181,16 @@ function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: strin
  */
 export function TabBar({ items }: { items: ShellNavItem[] }) {
     const [more, setMore] = useState(false);
+    // Its height, for everything that asks what is on screen: before their effects run, so none counts the strip under it.
+    const ref = useRef<HTMLElement>(null);
+    useEarlyEffect(() => (ref.current ? publishBottomInset(ref.current) : undefined), []);
     const overflow = items.length > 5;
     const shown = overflow ? items.slice(0, 4) : items;
     const rest = overflow ? items.slice(4) : [];
     const restBadge = rest.find((it) => it.badge)?.badge;
     return (
         <nav
+            ref={ref}
             aria-label="Pages"
             data-oca-tabbar=""
             className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
@@ -371,7 +376,7 @@ function SidebarShell({
             <div
                 className={cn(
                     'min-h-dvh bg-background',
-                    tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]',
+                    tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]',
                     className
                 )}
             >
@@ -515,7 +520,7 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
                         <main
                             id="main-content"
                             tabIndex={-1}
-                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col outline-none', tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]')}
+                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col outline-none', tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]')}
                         >
                             {children}
                         </main>

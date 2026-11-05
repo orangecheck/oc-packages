@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
-### 2.0.2: touch tablets and the 24px floor
-
+- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
+  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
+  every real card the same pixels). Any other character in a mono field draws
+  in Inter where Inter has it, and the server logs a warning naming the field
+  and code point. A glyph neither font has still makes next/og fetch a font,
+  as on 2.0.0.
 - On a touch tablet (768, 900, 1024 and 1180) every target the package draws
   is 44px to a thumb, as it was on a phone, and to a mouse (1440 and 1024)
   every target is at least 24px or has room around it (WCAG 2.5.8's spacing
@@ -48,6 +52,16 @@
   is not a Next app (the vault extension) no longer installs Next for them.
   check-entries fails if one of those starts to.
 
+## [2.0.1] — 2026-11-05
+
+- `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
+  its observer first reports it on screen, so a portrait below the fold or
+  under a phone's `TabBar` starts its intro as it comes into view. It used to
+  draw two frames at mount wherever it sat, and the first started the
+  intro's clock: by the time anyone scrolled to it, the intro was over.
+  check-tabbar counts its frames from mount, none under the bar, and wants
+  the intro above it after 2.5 s there.
+
 - A `Button` is told from its ground by its fill or its edge at 3:1, at rest
   and on hover, on the page, in every band and in every Card tone.
   - **Visible change on the ink band:** `primary` is now the brand look,
@@ -89,6 +103,31 @@
   notes still come in once the dots gather, now on a `data-notes`
   attribute. **Migrate**: a site that showed something with the notes on
   `[data-phase='formed']` keys it on `[data-notes]`.
+
+- On a phone, nothing under the app shell's `TabBar` counts as on screen. The
+  bar covers the bottom of the window, and the package's on-screen tests and
+  IntersectionObservers used the whole window. So vote's share, 56px of
+  `ParticleText` at 807 in an 844 window, formed in place under the bar from
+  787, out of sight.
+  - The `TabBar` publishes its height, measured from its own box with the safe
+    area in it, as `--oca-tabbar-h` on the root. It is `0px` from md, where the
+    bar is hidden, and gone when the bar is. With two mounted at once (a shell
+    in a shell, or a route change), the one left keeps it when the other
+    goes. Nothing else measures it.
+  - `ParticleText`, `StepPath`, `Reveal`, `Ticker`, `useInView`, `Wipe`,
+    `Marquee`, `HalftoneCanvas`, the motion scheduler, `useActiveHeading` and
+    the blocks' on-screen hook (`SignInDemo`, `CostDemo`) test against the
+    window less the bar. Their observers' bottom margins leave it out, and
+    are remade when the bar comes, goes or changes height. With no bar,
+    nothing changes.
+  - `ParticleText` says what it decided in `data-form`: `place` (formed where
+    it stood), `wait` (scattered until a third of it is seen), then `gather`.
+  - Focus is kept clear of the bar (WCAG 2.4.11). Below md, on a page that
+    has a bar, the root's `scroll-padding-bottom` is the bar's height and
+    0.75rem. Before any script runs, and without script, it is the bar's own
+    size, so the server's page is clear of it too. A page with no bar gets
+    none. The shells' room under their content is the bar's published height
+    too. It was 3.5rem, 1px short of the bar and its border.
 
 - `HERO_ACTIONS` is exported from `./components`: the row PageHero,
   DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
@@ -212,6 +251,13 @@
 
   On main's build it found 39 failures. The two Close checks came later, and
   fail when the fix is taken out.
+
+- `BlockHeight`'s link is a 44px target to a thumb, centred on the number by a
+  pseudo-element, as a `HashChip`'s is. It was the line of text, 27px tall at
+  18px. To a mouse it keeps the box it draws, and the line keeps its height.
+  Heights in a feed of cards, and two in one line, do not reach each other.
+  **Migrate**: a site that gave a height its own hit area can drop it (globe's
+  blocks feed adds `HIT`).
 
 ## [2.0.0] — 2026-11-04
 

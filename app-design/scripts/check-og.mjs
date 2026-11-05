@@ -3,13 +3,20 @@
  * ./og draws through next/og as a site's route does: each tone renders a
  * 1200×630 PNG, the fonts are Inter's and JetBrains Mono's WOFF files carried
  * inline, the card's colours are tokens.css's, a title that would run long
- * stops at three lines, and the bento draws at 1200×630 and 1920×1080. Run
- * after `yarn build`; OG_REVIEW_DIR=<dir> also writes every image drawn.
+ * stops at three lines, and the bento draws at 1200×630 and 1920×1080. The
+ * mono font holds every character each family caller's mono fields can draw
+ * (scripts/og/mono-inventory.mjs), read from its cmap; each caller's real
+ * cards draw with no warning; a character outside it draws in Inter with a
+ * warning; and nothing fetches a font. Run after `yarn build`;
+ * OG_REVIEW_DIR=<dir> also writes every image drawn.
  */
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { CARDS, INVENTORY, fieldClass, fieldReal } from './og/mono-inventory.mjs';
+import { cmapCodePoints } from './og/woff.mjs';
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
 if (!existsSync(join(pkg, 'dist/og.mjs'))) {
@@ -22,6 +29,18 @@ const { createElement: h, isValidElement, Children } = require('react');
 const og = await import(join(pkg, 'dist/og.mjs'));
 const { appColors } = require(join(pkg, 'dist/tokens.js'));
 const sharp = require('sharp');
+
+// No network. next/og asks Google Fonts for a glyph no loaded font has (its loadAdditionalAsset), and a share card must
+// never wait on that. Every render here runs with fetch trapped: a data: URI (next/og's own wasm) passes, anything else
+// is recorded and refused. Only the trap's own control, below, may fetch.
+const fetched = [];
+const realFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+    const url = String(input?.url ?? input);
+    if (url.startsWith('data:')) return realFetch(input, init);
+    fetched.push(url);
+    return Promise.reject(new Error(`check-og: no network (${url.slice(0, 80)})`));
+};
 
 let failures = 0;
 let checks = 0;
@@ -296,8 +315,120 @@ for (const [name, a] of Object.entries(og.ogArt)) check(a.src.startsWith('data:i
     check(off.length === 0, `art runs past its tile into the sheet at ${off.length} pixels (first ${off.slice(0, 3).join(' ')})`);
 }
 
+// The mono font is JetBrains Mono cut to what the family's mono fields can draw (scripts/og/subset-mono.mjs). Every
+// caller's field, by the class of characters it can hold, and its real strings today (scripts/og/mono-inventory.mjs),
+// draw only what the font's cmap maps, read from the bytes ogFonts() hands satori.
+const monoCmap = cmapCodePoints(fonts.find((f) => f.name === 'JetBrains Mono').data);
+const cp = (c) => `U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}`;
+const uncovered = (inventory) =>
+    inventory.flatMap((e) => {
+        const miss = [...new Set([...fieldClass(e), ...fieldReal(e)])].filter((c) => !monoCmap.has(c.codePointAt(0)));
+        return miss.length ? [`${e.caller} ${e.field}: ${miss.map(cp).join(' ')}`] : [];
+    });
+const gaps = uncovered(INVENTORY);
+check(gaps.length === 0, `a caller's mono field can hold characters the mono font lacks: ${gaps.join('; ')}`);
+// The plant below, as a caller, is caught.
+const PLANT = [
+    { caller: 'plant', field: 'OgCard.eyebrow', upper: true, source: 'a literal', strings: ['É'] },
+    { caller: 'plant', field: 'OgCard.host', source: 'a literal', strings: ['€'] },
+];
+check(uncovered([...INVENTORY, ...PLANT]).join('; ') === 'plant OgCard.eyebrow: U+00C9; plant OgCard.host: U+20AC', 'the coverage check does not catch a plant caller whose mono fields hold É and €');
+const wide = INVENTORY.filter((e) => e.wide);
+
+/** What a render warns and fetches while it runs. */
+async function watched(fn) {
+    const warns = [];
+    const errors = [];
+    const from = fetched.length;
+    const { warn, error } = console;
+    console.warn = (...a) => warns.push(a.join(' '));
+    console.error = (...a) => errors.push(a.join(' '));
+    try {
+        return { value: await fn(), warns, errors, fetches: fetched.slice(from) };
+    } finally {
+        Object.assign(console, { warn, error });
+    }
+}
+const pixels = async (png) => sharp(Buffer.from(png)).raw().toBuffer();
+
+// Each caller's real cards draw with no warning and no fetch: every mono character is the font's own.
+for (const { name, props } of CARDS) {
+    const { value: png, warns, fetches } = await watched(() => draw(h(og.OgCard, props), og.OG_SIZE, `caller-${name}`));
+    check(png.width === 1200 && png.height === 630, `${name}: not a 1200×630 PNG`);
+    check(warns.length === 0, `${name} warns: ${warns.join(' | ')}`);
+    check(fetches.length === 0, `${name} fetches ${fetches.join(' ')}`);
+}
+
+// ./og's warning knows the font: each character of its cmap draws quietly, and each Latin-1 one it lacks is named.
+{
+    const all = [...monoCmap].map((c) => String.fromCodePoint(c)).join('');
+    const quiet = await watched(() => walk(h(og.OgCard, { title: 'x', host: all })));
+    check(quiet.warns.length === 0, `a character of the mono font draws with a warning: ${quiet.warns.join(' | ')}`);
+    const lacks = [];
+    for (let c = 0xa0; c <= 0xff; c++) if (!monoCmap.has(c)) lacks.push(String.fromCodePoint(c));
+    const loud = await watched(() => walk(h(og.OgCard, { title: 'x', host: lacks.join('') })));
+    check(loud.warns.length === 1 && lacks.every((c) => loud.warns[0].includes(cp(c))), `the warning does not name each of ${lacks.length} Latin-1 characters the mono font lacks`);
+}
+
+// The net. A mono field holding a character no caller draws today (É, €) draws it in Inter, says so, fetches nothing.
+{
+    const interCmap = cmapCodePoints(fonts[1].data);
+    check(interCmap.has(0xc9) && interCmap.has(0x20ac), 'Inter 400 Latin has no É or €');
+    // É and € as words of their own: satori draws each from Inter outright. The card is the same pixels as one drawn
+    // with no mono font loaded at all, where the label row and the host are Inter’s, so it holds no .notdef.
+    const plant = h(og.OgCard, { title: 'A plant', eyebrow: 'É', host: '€', mark: false });
+    const p = await watched(() => draw(plant, og.OG_SIZE, 'og-plant'));
+    const noMono = fonts.filter((f) => f.name !== 'JetBrains Mono');
+    const inter = await watched(async () => new Uint8Array(await new ImageResponse(plant, { ...og.OG_SIZE, fonts: noMono }).arrayBuffer()));
+    if (reviewDir) writeFileSync(join(reviewDir, 'og-plant-inter.png'), inter.value);
+    check((await pixels(p.value.png)).equals(await pixels(inter.value)), 'the plant’s É and € are not the pixels Inter draws them in');
+    const blank = await draw(h(og.OgCard, { title: 'A plant', eyebrow: ' ', host: ' ', mark: false }), og.OG_SIZE, 'og-plant-blank');
+    check(!(await pixels(blank.png)).equals(await pixels(p.value.png)), 'the plant draws nothing for É and €');
+    const said = [
+        '@orangecheck/app-design/og: OgCard eyebrow has U+00C9, which the mono font lacks: drawn in Inter',
+        '@orangecheck/app-design/og: OgCard host has U+20AC, which the mono font lacks: drawn in Inter',
+    ];
+    check(p.warns.join('\n') === said.join('\n'), `the plant does not warn once per field by code point: ${p.warns.join(' | ') || 'nothing'}`);
+    check(p.fetches.length === 0 && inter.fetches.length === 0, `the plant fetches ${[...p.fetches, ...inter.fetches].join(' ')}`);
+
+    // Inside a word, satori draws the word in the mono font and swaps in Inter's glyph for the one it lacks. The trap's
+    // controls put Ạ, then Ặ, in the same places: Latin letters no loaded font has, so next/og asks Google Fonts for a
+    // font, which the trap refuses, and each draws as .notdef (empty in the cut: hb-subset drops its outline), so the two
+    // controls match. Were É or € drawn as .notdef, its half of the top band would match the controls'.
+    const card = (eyebrow, host) => h(og.OgCard, { title: 'A plant', eyebrow, host, mark: false });
+    const inWord = await watched(() => draw(card('Café', 'prix-€.example'), og.OG_SIZE, 'og-plant-word'));
+    const beforeControls = fetched.length;
+    const controls = [
+        await watched(() => draw(card('CafẠ', 'prix-Ạ.example'), og.OG_SIZE, 'og-plant-notdef')),
+        await watched(() => draw(card('CafẶ', 'prix-Ặ.example'), og.OG_SIZE, 'og-plant-notdef-2')),
+    ];
+    check(inWord.fetches.length === 0, `the plant in a word fetches ${inWord.fetches.join(' ')}`);
+    check(
+        inWord.warns.length === 2 && inWord.warns[0].includes('OgCard eyebrow has U+00C9,') && inWord.warns[1].includes('OgCard host has U+20AC,'),
+        `the plant in a word does not warn by field: ${inWord.warns.join(' | ')}`
+    );
+    for (const c of controls)
+        check(
+            c.fetches.some((u) => u.startsWith('https://fonts.googleapis.com/')),
+            `the trap misses next/og's font fetch (${c.fetches.length})`
+        );
+    const band = async (png, left) => sharp(Buffer.from(png)).extract({ left, top: 40, width: 600, height: 80 }).raw().toBuffer();
+    for (const [left, what] of [
+        [0, 'É in the eyebrow'],
+        [600, '€ in the host'],
+    ]) {
+        const box = await band(controls[0].value.png, left);
+        check(box.equals(await band(controls[1].value.png, left)), `the controls' .notdef glyphs differ where ${what} sits`);
+        check(!box.equals(await band(inWord.value.png, left)), `${what}, inside a word, draws as .notdef`);
+    }
+    fetched.splice(beforeControls);
+}
+check(fetched.length === 0, `./og fetched ${fetched.length} URL(s): ${fetched.slice(0, 3).join(' ')}`);
+
 if (failures) {
     console.error(`\n${failures} og failure(s)`);
     process.exit(1);
 }
 console.log(`✓ og: ${checks} checks; Inter 300/400 and JetBrains Mono inline, four tones in the 2.0 tokens, a 1200×630 PNG per tone, three lines at most, the dithered mark as default art and the vector mark in the lockup, the bento at 1200×630 and 1920×1080 with each image inside its art box`);
+console.log(`✓ og: the mono font's ${monoCmap.size} characters hold ${INVENTORY.length} caller fields; ${CARDS.length} real cards draw quietly; É and € draw in Inter, with a warning; no fetch`);
+for (const e of wide) console.log(`  wide: ${e.caller} ${e.field} is free user text. The font holds its spec class; ./og warns of any other character, drawn in Inter where Inter has it.`);

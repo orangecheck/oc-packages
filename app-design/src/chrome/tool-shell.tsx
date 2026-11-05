@@ -230,7 +230,7 @@ export function ToolShell({
                     // An app frame contains what is positioned inside it (sr-only text deep in the page's own
                     // scroller would otherwise size the document), and clips without becoming a scroller.
                     app ? 'relative h-dvh overflow-clip' : 'min-h-dvh',
-                    tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]'
+                    tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]'
                 )}
             >
                 <SkipLink />
