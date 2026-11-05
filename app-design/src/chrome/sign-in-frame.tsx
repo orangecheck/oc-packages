@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { IsoCheck } from '../brand/iso-check';
 import { OCHK_IO, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
@@ -7,6 +7,62 @@ import { cn } from '../lib/cn';
 import { HIT_LINK } from '../lib/hit';
 import { ProductLockup } from './product-lockup';
 import { SkipLink } from './site';
+
+interface SignInFrameBase {
+    title?: ReactNode;
+    /** One line under the title. */
+    lead?: ReactNode;
+    /** The ceremony. */
+    children: ReactNode;
+    /** A failure the ceremony could not show itself. */
+    error?: ReactNode;
+    /** Small print under the ceremony: where the code goes, what is kept. */
+    fineprint?: ReactNode;
+    /** Replaces the lockup in the corner. */
+    brand?: ReactNode;
+    /** The site's word beside the lockup, as its header has it. Default: the protocol's word. */
+    product?: string;
+    /**
+     * Where the lockup and "Back to home" go. Default: the protocol's page on
+     * ochk.io, else ochk.io. An app on its own host whose `/` is its home
+     * (ochk.app, vault, chat, cosign) passes `home="/"`.
+     */
+    home?: string;
+    /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
+    protocol?: ProtocolSlug;
+    /**
+     * Where the link opposite the lockup goes instead of home: the page the visitor came from, a
+     * sign-in's return target. Drawn as Back to home is, a 44px target to a thumb.
+     */
+    backTo?: string;
+    /** That link's words. Default "Go back". */
+    backLabel?: string;
+    /** The picture in the ink column. Defaults to the check. */
+    art?: ReactNode;
+    /** A line at the foot of the ink column. */
+    caption?: ReactNode;
+    className?: string;
+}
+
+/**
+ * Without its home link the frame needs a back of its own, so a sign-in page always has a way out.
+ */
+type SignInFrameProps = SignInFrameBase &
+    (
+        | {
+              homeLink?: true;
+              /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. Wins over `backTo`. */
+              back?: ReactNode;
+          }
+        | {
+              /**
+               * `false` draws the lockup without its link and leaves out Back to home: for a sign-in popup, which
+               * would leave its opener waiting if it navigated away. Its `back` (a Close) is then required.
+               */
+              homeLink: false;
+              back: ReactElement;
+          }
+    );
 
 /**
  * The page a sign-in happens on: a form column with the lockup, a display
@@ -32,48 +88,7 @@ export function SignInFrame({
     art,
     caption,
     className,
-}: {
-    title?: ReactNode;
-    /** One line under the title. */
-    lead?: ReactNode;
-    /** The ceremony. */
-    children: ReactNode;
-    /** A failure the ceremony could not show itself. */
-    error?: ReactNode;
-    /** Small print under the ceremony: where the code goes, what is kept. */
-    fineprint?: ReactNode;
-    /** Replaces the lockup in the corner. */
-    brand?: ReactNode;
-    /** The site's word beside the lockup, as its header has it. Default: the protocol's word. */
-    product?: string;
-    /**
-     * Where the lockup and "Back to home" go. Default: the protocol's page on
-     * ochk.io, else ochk.io. An app on its own host whose `/` is its home
-     * (ochk.app, vault, chat, cosign) passes `home="/"`.
-     */
-    home?: string;
-    /**
-     * `false` draws the lockup without its link and leaves out Back to home: for a sign-in popup, which
-     * would leave its opener waiting if it navigated away. A `back` of its own (a Close) still shows.
-     */
-    homeLink?: boolean;
-    /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
-    protocol?: ProtocolSlug;
-    /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. Wins over `backTo`. */
-    back?: ReactNode;
-    /**
-     * Where the link opposite the lockup goes instead of home: the page the visitor came from, a
-     * sign-in's return target. Drawn as Back to home is, a 44px target to a thumb.
-     */
-    backTo?: string;
-    /** That link's words. Default "Go back". */
-    backLabel?: string;
-    /** The picture in the ink column. Defaults to the check. */
-    art?: ReactNode;
-    /** A line at the foot of the ink column. */
-    caption?: ReactNode;
-    className?: string;
-}) {
+}: SignInFrameProps) {
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : OCHK_IO);
     const lockup = brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />;
     const linkLook = cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK);
