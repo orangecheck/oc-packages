@@ -9,6 +9,8 @@ bump that silently moves a colour is worse than a breaking one.
 
 ## [Unreleased]
 
+## [0.35.4] — 2026-11-05
+
 ### Fixed
 
 - The package carries the licence of the font it bundles. Hanken Grotesk,
