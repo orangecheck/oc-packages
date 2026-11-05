@@ -2,10 +2,10 @@
 // Esplora: the coin a proof names is read on its own, its transaction and then
 // its outspend, so a wallet of any size can be checked.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { WriteProof } from './channel';
-import { esploraWriteProofCheck, readOutpoint, verifyWriteProofOnChain, writeProofOnChain } from './io';
+import { ESPLORA_TIMEOUT_MS, esploraWriteProofCheck, readOutpoint, verifyWriteProofOnChain, writeProofOnChain } from './io';
 import { UnansweredReadError } from './read';
 
 const AUTHOR = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
@@ -105,6 +105,55 @@ describe('writeProofOnChain reads the one coin a proof names', () => {
     it('verifyWriteProofOnChain is fail-closed: false when the explorer does not answer', async () => {
         expect(await verifyWriteProofOnChain(PROOF, AUTHOR, { fetch: explorer({ txStatus: 503 }).f })).toBe(false);
         expect(await verifyWriteProofOnChain(PROOF, AUTHOR, { fetch: explorer().f })).toBe(true);
+    });
+});
+
+describe('a read that never answers', () => {
+    // A hung explorer is a read with no answer, never a wait (11-03 sweep PK-io).
+    const hung = (() => new Promise<Response>(() => {})) as typeof fetch;
+    const hungBody = (async (url: string | URL) =>
+        String(url).includes('/outspend/')
+            ? ({ ok: true, status: 200, json: () => new Promise(() => {}) } as unknown as Response)
+            : explorer().f(url)) as typeof fetch;
+
+    it('is unanswered after timeoutMs, for the transaction and for the outspend body', async () => {
+        const t0 = Date.now();
+        expect(await readOutpoint(PROOF.outpoint, { fetch: hung, timeoutMs: 50 })).toBe('unanswered');
+        expect(await readOutpoint(PROOF.outpoint, { fetch: hungBody, timeoutMs: 50 })).toBe('unanswered');
+        expect(Date.now() - t0).toBeLessThan(2000);
+    });
+
+    it('aborts the request it gave up on', async () => {
+        let signal: AbortSignal | undefined;
+        const f = ((_: unknown, init?: RequestInit) => {
+            signal = init?.signal ?? undefined;
+            return new Promise<Response>(() => {});
+        }) as typeof fetch;
+        await readOutpoint(PROOF.outpoint, { fetch: f, timeoutMs: 20 });
+        expect(signal?.aborted).toBe(true);
+    });
+
+    it('gives up after ESPLORA_TIMEOUT_MS, 8 s, by default', async () => {
+        vi.useFakeTimers();
+        try {
+            let done = false;
+            const read = readOutpoint(PROOF.outpoint, { fetch: hung }).then((r) => {
+                done = true;
+                return r;
+            });
+            await vi.advanceTimersByTimeAsync(ESPLORA_TIMEOUT_MS - 1);
+            expect(done).toBe(false);
+            await vi.advanceTimersByTimeAsync(1);
+            expect(await read).toBe('unanswered');
+            expect(ESPLORA_TIMEOUT_MS).toBe(8000);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('through esploraWriteProofCheck, throws UnansweredReadError rather than waiting', async () => {
+        const check = esploraWriteProofCheck({ fetch: hung, timeoutMs: 20 });
+        await expect(check(PROOF, AUTHOR)).rejects.toBeInstanceOf(UnansweredReadError);
     });
 });
 
