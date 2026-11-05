@@ -172,6 +172,9 @@ check(code.total <= MOTION_OWN, `./motion's own code ships ${kb(code.total)} gzi
     const tmp = mkdtempSync(join(tmpdir(), 'app-design-budget-'));
     const at = join(tmp, 'a', 'longer', 'checkout', 'path');
     cpSync(join(root, 'dist'), join(at, 'dist'), { recursive: true });
+    // With its package.json: its sideEffects field is what lets esbuild treat dist's modules as pure. Without it, the
+    // copy's bundle differed by a renamed import (13,227 bytes here, 13,226 there, on 2.2's phone chunks).
+    cpSync(join(root, 'package.json'), join(at, 'package.json'));
     const moved = (f) => join(at, relative(root, f));
     const there = await shipped(moved(join(root, pkg.exports['./motion'].import)), new Set([...base, ...lazy, ...poster].map(moved)));
     rmSync(tmp, { recursive: true, force: true });
