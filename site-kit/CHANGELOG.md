@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.8.2
+
+Refinements to 0.8.1's options, from its review.
+
+A lookup that finds nothing now sends the request to the default card's URL
+with a 307, instead of drawing the default card there. A probe of any
+`?project=<junk>` costs one lookup and no render. The redirect is kept as long
+as the lookup's own `cacheControl` says, but never past a day: its `max-age`,
+`s-maxage` and `stale-while-revalidate` are each capped at 86400 and
+`immutable` is dropped, because a thing not found now may be found tomorrow.
+
+`basePath` refuses `.` and `..` segments, such as `/docs/..`, which a browser
+would resolve to some other path. Every redirect's `Location` starts with one
+slash, so no request path (`/x/..//host` resolves to `//host`) can name
+another host.
+
+## 0.8.1
+
+`createOgHandler` takes two new options, one for each site whose card it could
+not draw before. A site that sets neither gets exactly what 0.8.0 gave it.
+
+`resolve` is for cards a site looks up instead of issuing: cosign's project and
+person cards. `resolve: { project: (slug) => … }` draws a looked-up card for
+`?project=<slug>`, and that query alone is the card's one URL. Any other query
+gets the 308, kept a day, before any lookup runs. Each lookup answers
+`{ card, cacheControl }`:
+
+- `card` is what to draw, or null for the default card when the thing is
+  removed, hidden or not found.
+- `cacheControl` is how long the answer is kept, since a looked-up card can
+  change or be taken down.
+
+A lookup that throws answers the default card with `no-store`, so a failed read
+is never kept, and it logs why. `resolve` cannot name `page`, which is the
+query for `cards`.
+
+`basePath` is for a site served under a Next `basePath`: docs, at
+ochk.io/docs. Next takes the base path off `req.url`, so 0.8.0 sent a stray
+query to `/api/og`, which on ochk.io is www's card. With `basePath: '/docs'`
+the 308 goes to `/docs/api/og`. A `basePath` that is not a path, such as
+`//host`, throws when the handler is made, so a 308 never leaves the site.
+
 ## 0.8.0
 
 A new entry, `./document`, holds `ThemeColorMeta` for a site's `_document`

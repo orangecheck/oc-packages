@@ -47,7 +47,7 @@ export function mdxTransform(raw, relPath = '') {
 // paragraphs: braces escaped, lines run together, and a long line or a box-drawn
 // layout pushed a phone's page sideways. A run of indented lines between blank
 // lines becomes a fenced block, dedented, unless it is a list, a list item's own
-// paragraph, or TypeDoc's own union lines.
+// paragraph, or holds a code span.
 export function fenceIndentedCode(s) {
     const lines = s.split('\n');
     const indented = (l) => /^ {2,}\S/.test(l);
@@ -77,13 +77,14 @@ export function fenceIndentedCode(s) {
             if (!indented(lines[j]) || fence(lines[j]) || listItem(lines[j])) break;
             end = j;
         }
-        // TypeDoc sets a long union return type as indented `\|` lines: text with links, not code.
-        const union = lines.slice(i, end + 1).some((l) => l.trimStart().startsWith('\\|'));
-        if (union || (end + 1 < lines.length && lines[end + 1].trim() !== '')) {
+        // A run with a backtick in it stays text. Its code spans are prose set in columns, or
+        // TypeDoc's union lines (`\|`) with their links: a fence would print the backticks, and
+        // stripping them would break a template literal in a real example.
+        const run = lines.slice(i, end + 1);
+        if (run.some((l) => l.includes('`')) || (end + 1 < lines.length && lines[end + 1].trim() !== '')) {
             out.push(line);
             continue;
         }
-        const run = lines.slice(i, end + 1);
         const cut = Math.min(...run.filter((l) => l.trim() !== '').map((l) => l.length - l.trimStart().length));
         out.push('```', ...run.map((l) => l.slice(cut)), '```');
         i = end;

@@ -388,7 +388,7 @@ function SidebarShell({
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
                                 className={cn(
-                                    'inline-flex size-11 items-center justify-center rounded-none hover:bg-accent',
+                                    'inline-flex size-11 shrink-0 items-center justify-center rounded-none hover:bg-accent',
                                     // The tab bar holds every page; the sheet is left for a footer. Section tabs leave the pages here.
                                     tabs && !sectionTabsFor && !footer && 'max-md:hidden'
                                 )}
@@ -406,7 +406,8 @@ function SidebarShell({
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
-                        <Link href={home} className="flex min-h-11 items-center rounded-none p-1">
+                        {/* At 320 the bar is full: the lockup gives the room, its product word ending in an ellipsis, never under 44 to a thumb. */}
+                        <Link href={home} className="flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                             <ProductLockup size={20} product={product} />
                             {/* Read as "orangecheck home": the name starts with what the link shows. */}
                             <span className="sr-only"> home</span>

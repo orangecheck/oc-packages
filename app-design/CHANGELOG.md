@@ -21,6 +21,13 @@
   reads every font in `npm pack`'s listing, files and inlined alike, and
   wants an OFL text in it that opens with that font's copyright notice.
 
+- `AppShell`'s phone bar keeps its menu button 44x44 at 320. With the family
+  menu, a theme toggle and the account menu beside the lockup (analytics), the
+  bar squeezed the button to 22 wide. Now the home link gives the room: the
+  product word ends in an ellipsis ("ana…" at 320, whole from 360), the mark
+  and its rule keep their size, and the link stays 44 to a thumb.
+  `ProductLockup`'s word truncates the same way wherever its row is too narrow.
+
 ## [2.0.2] — 2026-11-05
 
 - `DocsShell`'s article breaks a word wider than its column, so a link that
