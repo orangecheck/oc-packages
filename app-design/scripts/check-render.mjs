@@ -302,6 +302,26 @@ const html = (el) => renderToStaticMarkup(el);
     // Closing on a band: its tone reaches the section, which leaves the canvas; with none it stays there.
     check(/^<section class="(?=[^"]*\boca-band-brand\b)(?![^"]*\bbg-background\b)/.test(html(h(C.Closing, { tone: 'brand', title: 't', art: null }))), 'Closing tone="brand": its section is not on the brand band');
     check(/^<section class="[^"]*\bbg-background\b/.test(html(h(C.Closing, { title: 't', art: null }))), 'Closing with no tone: its section is not on the canvas');
+    // Every block that draws a CTA pair draws it in HERO_ACTIONS, the row sites import for their own pairs: a block
+    // with a row of its own, or one that drops or overrides a class of it, parts from the sites' rows.
+    {
+        const act = () => h('a', { href: '/go', 'data-act': '' }, 'Go');
+        const rows = {
+            PageHero: html(h(C.PageHero, { title: 't', actions: act() })),
+            'PageHero layout="s10"': html(h(C.PageHero, { layout: 's10', title: 't', actions: act() })),
+            'PageHero variant="document"': html(h(C.PageHero, { variant: 'document', title: 't', actions: act() })),
+            DocHeader: html(h(C.DocHeader, { title: 't', actions: act() })),
+            ErrorPage: html(h(C.ErrorPage, { code: 404, art: null, actions: act() })),
+            Closing: html(h(C.Closing, { title: 't', art: null, actions: act() })),
+        };
+        const row = typeof C.HERO_ACTIONS === 'string' ? C.HERO_ACTIONS.split(' ') : [];
+        check(row.length > 0, 'HERO_ACTIONS is not exported from ./components');
+        for (const [name, out] of Object.entries(rows)) {
+            const cls = out.match(/<div class="([^"]*)"><a href="\/go" data-act="">/)?.[1].split(' ');
+            const missing = row.filter((c) => !cls?.includes(c));
+            check(cls && missing.length === 0, `${name}: its actions are not drawn in HERO_ACTIONS (${cls ? `missing ${missing.join(' ')}` : 'no row around them'})`);
+        }
+    }
     // A product without a page of its own links ochk.io's, and keeps all five.
     const F = require(join(here, '../dist/family.js'));
     const vault = F.selfHostedLegalLinks({ contact: false });
@@ -614,8 +634,8 @@ const html = (el) => renderToStaticMarkup(el);
     const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
     const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
     check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
-    // 2.0's secondary is the outlined button (an ink hairline, no fill), so it is known by its edge.
-    const SECONDARY = /\bborder-foreground\/45\b/;
+    // 2.0's secondary is the outlined button (the field's edge, no fill), so it is known by its edge.
+    const SECONDARY = /\bborder-input\b/;
     check(SECONDARY.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
     check(SECONDARY.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
     // Typed as a string, so it passes where a string label is asked for.

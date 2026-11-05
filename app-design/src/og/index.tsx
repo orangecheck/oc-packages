@@ -17,7 +17,8 @@ import inter300 from './fonts/inter-latin-300-normal.woff';
 import inter400 from './fonts/inter-latin-400-normal.woff';
 import inter300Ext from './fonts/inter-latin-ext-300-normal.woff';
 import inter400Ext from './fonts/inter-latin-ext-400-normal.woff';
-import mono400 from './fonts/jetbrains-mono-latin-400-normal.woff';
+import mono400 from './fonts/jetbrains-mono-og-400-normal.woff';
+import { MONO_CHARS } from './mono-chars';
 
 /*
  * The family's share images, for next/og's ImageResponse: `OgCard`, one page's
@@ -32,9 +33,16 @@ import mono400 from './fonts/jetbrains-mono-latin-400-normal.woff';
  *         { ...OG_SIZE, fonts: ogFonts() });
  *
  * The fonts are Inter 300 (display) and 400 (the wordmark, body), Latin and
- * Latin Extended, and JetBrains Mono 400 (the label row), Latin: OFL-1.1,
- * ./fonts/OFL.txt and ./fonts/OFL-JetBrainsMono.txt, inlined so a route reads
- * no file. A title in another script needs a font of its own passed after these.
+ * Latin Extended, and JetBrains Mono 400 (the label row): OFL-1.1, with their
+ * texts in the package's licenses/, inlined so a route reads no file. Inter's
+ * Latin Extended cut is a family of its own, 'Inter Latin Ext': satori keeps
+ * one font per family and weight, and draws a letter from the next loaded
+ * family that has it. A character in neither Inter cut (Vietnamese, Greek,
+ * Cyrillic, most arrows) makes next/og fetch a font while the route renders:
+ * a title in another script needs a font of its own passed after these.
+ * The mono font holds only what the family's mono fields can draw (MONO_CHARS:
+ * printable ASCII, ·, … and £; scripts/og/subset-mono.mjs). satori draws any
+ * other character in a mono field from Inter 400, and the server warns of it.
  *
  * The art is baked (scripts/art/bake.mjs, ./art in the package): satori cannot
  * run a canvas, so dither and halftone come in as PNG data URIs (`ogArt`). With
@@ -51,6 +59,25 @@ const { dark: D, light: L } = appColors;
 const INK = L.foreground;
 const PEACH = MARK_FACES.top;
 const MONO = "'JetBrains Mono', 'OCA JetBrains Mono', monospace";
+const MONO_SET = new Set(MONO_CHARS);
+
+/**
+ * A mono field's text, unchanged. satori draws a character the mono font lacks
+ * from Inter 400, glyph by glyph, Latin or Latin Extended; one neither has,
+ * next/og fetches, as in any field.
+ * The server says so on one line, by field and code point. Nothing here
+ * throws: a thrown render breaks a live link preview.
+ */
+function mono(field: string, text: string, upper = false): string {
+    if (typeof text !== 'string') return text;
+    const drawn = upper ? text.toLocaleUpperCase() : text;
+    const out = [...new Set(drawn)].filter((c) => !MONO_SET.has(c));
+    if (out.length) {
+        const points = out.map((c) => `U+${(c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0')}`);
+        console.warn(`@orangecheck/app-design/og: ${field} has ${points.join(' ')}, which the mono font lacks: drawn in Inter`);
+    }
+    return text;
+}
 
 interface Tone {
     bg: string;
@@ -330,7 +357,7 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                 >
                     {eyebrow ? (
                         <LabelRow tone={t} size={22}>
-                            {eyebrow}
+                            {mono('OgCard eyebrow', eyebrow, true)}
                         </LabelRow>
                     ) : (
                         <div style={{ display: 'flex' }} />
@@ -344,7 +371,7 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                             color: t.muted,
                         }}
                     >
-                        {host ?? 'ochk.io'}
+                        {mono('OgCard host', host ?? 'ochk.io')}
                     </div>
                 </div>
                 {/* Three lines at most, whatever the words: the art keeps the lower right. */}
@@ -484,7 +511,7 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                 {tile.kicker ? (
                     <div style={{ display: 'flex', marginBottom: 18 * k }}>
                         <LabelRow tone={t} size={15 * k}>
-                            {tile.kicker}
+                            {mono('OgTile kicker', tile.kicker, true)}
                         </LabelRow>
                     </div>
                 ) : null}
@@ -538,8 +565,8 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                                     marginTop: 12 * k,
                                 }}
                             >
-                                <span style={{ color: t.muted }}>{label}</span>
-                                <span>{value}</span>
+                                <span style={{ color: t.muted }}>{mono('OgTile rows', label)}</span>
+                                <span>{mono('OgTile rows', value)}</span>
                             </div>
                         ))}
                     </div>
@@ -568,7 +595,7 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                             marginTop: 6 * k,
                         }}
                     >
-                        {tile.footer}
+                        {mono('OgTile footer', tile.footer)}
                     </div>
                 ) : null}
                 {tile.lockup ? <Lockup tone={t} size={26 * k} /> : null}
@@ -650,20 +677,25 @@ function decode(base64: string): ArrayBuffer {
 }
 
 type OgFont = {
-    name: 'Inter' | 'JetBrains Mono';
+    name: 'Inter' | 'Inter Latin Ext' | 'JetBrains Mono';
     data: ArrayBuffer;
     weight: 300 | 400;
     style: 'normal';
 };
 let cached: OgFont[] | null = null;
 
-/** The fonts for ImageResponse's `fonts`: Inter 300 and 400 (Latin, then Latin Extended), JetBrains Mono 400. Decoded once. */
+/**
+ * The fonts for ImageResponse's `fonts`: Inter 300 and 400 (Latin), then Inter's Latin Extended cut at 300 and 400, then
+ * JetBrains Mono 400. Decoded once. The Latin Extended cut is named 'Inter Latin Ext': under 'Inter', satori kept only
+ * the first font of each weight, so it was never drawn. As its own family it is where satori looks next for a letter
+ * the Latin cut lacks.
+ */
 export function ogFonts(): OgFont[] {
     cached ??= [
         { name: 'Inter', data: decode(inter300), weight: 300, style: 'normal' },
         { name: 'Inter', data: decode(inter400), weight: 400, style: 'normal' },
-        { name: 'Inter', data: decode(inter300Ext), weight: 300, style: 'normal' },
-        { name: 'Inter', data: decode(inter400Ext), weight: 400, style: 'normal' },
+        { name: 'Inter Latin Ext', data: decode(inter300Ext), weight: 300, style: 'normal' },
+        { name: 'Inter Latin Ext', data: decode(inter400Ext), weight: 400, style: 'normal' },
         {
             name: 'JetBrains Mono',
             data: decode(mono400),

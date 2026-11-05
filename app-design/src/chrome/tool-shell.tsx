@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type { ToolItem } from '../components/tools';
 import { GET_AN_ACCOUNT, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
 import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
 import { useFamilySignInHref, useSignInHref } from '../lib/sign-in';
@@ -212,7 +213,8 @@ export function ToolShell({
     const about = (
         <a
             href={p.pageHref}
-            className="inline-flex items-center gap-1 rounded-none px-3 py-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground"
+            // 39px drawn, 44 to a thumb.
+            className={cn('inline-flex items-center gap-1 rounded-none px-3 py-2 text-[0.9375rem] text-muted-foreground transition-colors hover:text-foreground', HIT_LINK)}
         >
             About {p.label}
             <ArrowUpRight aria-hidden className="size-3.5" />
@@ -228,7 +230,7 @@ export function ToolShell({
                     // An app frame contains what is positioned inside it (sr-only text deep in the page's own
                     // scroller would otherwise size the document), and clips without becoming a scroller.
                     app ? 'relative h-dvh overflow-clip' : 'min-h-dvh',
-                    tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]'
+                    tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]'
                 )}
             >
                 <SkipLink />
@@ -271,7 +273,8 @@ export function ToolShell({
                         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                             <SideNav groups={[{ label: 'Tools', items: tools.map(({ href, label, icon, active }) => ({ href, label, icon, active })) }]} />
                             {railFooter ? (
-                                <div className="mt-auto flex flex-col gap-0.5 px-3 text-[0.875rem] text-muted-foreground [&_a:hover]:text-foreground [&_a]:py-1.5 [&_a]:transition-colors">
+                                // Its links (Docs, the spec) are 33px to a mouse and 44 to a thumb.
+                                <div className="mt-auto flex flex-col gap-0.5 px-3 text-[0.875rem] text-muted-foreground [&_a:hover]:text-foreground [&_a]:py-1.5 [&_a]:transition-colors pointer-coarse:[&_a]:flex pointer-coarse:[&_a]:min-h-11 pointer-coarse:[&_a]:items-center">
                                     {railFooter}
                                 </div>
                             ) : null}

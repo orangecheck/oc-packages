@@ -56,9 +56,10 @@ const CEILING = {
     './session': 61_000,
     './acknowledgement': 11_000,
     './vitest': 500,
-    // 191.7 KB on 2026-11-04: og's JetBrains Mono 400 for the card labels (27.0 KB) and its eleven baked dither PNGs,
-    // 2x included (6.0 KB), inlined for Satori (lead; measured by review-lows).
-    './og': 226_000,
+    // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
+    // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
+    // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
+    './og': 202_000,
     './fonts': 500,
     './motion': 49_500,
     // 35,948 bytes on 2026-11-04 (whole entry; Radix's slider rides in it), the ceiling 15% over. DitherMark's nine baked
@@ -72,11 +73,13 @@ const CEILING = {
 // 0.8 KB buys the crowd's phone grid, outline ghosts and pair of posters (0.5 KB), the reduced-motion listener
 // and the matchMedia guard (0.2 KB), a scene that throws falling back to its still, in a frame or in its first
 // layout (0.25 KB), the portrait's second ground (0.2 KB), and list semantics and pass-through props on
-// StackCards and Wipe (0.1 KB); the dither's cheaper noise and a shared colour parser gave back 0.2 KB. A page
+// StackCards and Wipe (0.1 KB); the dither's cheaper noise and a shared colour parser gave back 0.2 KB. Then 13.2:
+// the portrait's labels listed wherever they would spill past the stage (0.15 KB; 13,433 bytes measured on 2.0.1,
+// whose own changes had left about 30 bytes under 13.0, so 13.1 KB fell 19 bytes short). A page
 // pays only for the scenes it imports. Apart: the bust's two poster paths, and each lazy chunk of dots (the
 // bust's stipple, 23.8 KB, and the deck portrait kept as an option, 18.1 KB), which load only when a portrait
 // asks for them once the page is idle.
-const MOTION_OWN = 13 * 1024;
+const MOTION_OWN = 13.2 * 1024;
 const MOTION_POSTER = 5 * 1024;
 const MOTION_LAZY = 26 * 1024;
 

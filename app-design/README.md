@@ -27,6 +27,13 @@ does nothing on a page without the attribute, and it never imports
 transpilePackages: ['@orangecheck/app-design'],
 ```
 
+`next` is an optional peer. `.`, `/components`, `/chrome`, `/mdx` and `/session`
+import `next/link` and `next/compat/router`, so a site that uses them is a Next app
+with Next installed. `/primitives`, `/brand`, `/blocks`, `/motion`, `/og`, `/tokens`,
+`/format`, `/code`, `/family`, `/fonts` and `/acknowledgement` load no Next, so a
+consumer that is not a Next app (the vault extension) can use those without it.
+check-entries holds both.
+
 Light and dark come from `next-themes`, through `ThemeProvider` from `/chrome`: the
 class on `<html>`, the system's mode until someone picks one. Do not mount the family
 `OcThemeProvider` on the same page: it writes `data-oc-theme` and the shared
@@ -86,4 +93,4 @@ highlighter changes a character of the code it colours, or if a component stops
 doing what its story shows. `scripts/halftone.py` turns any photo into
 the dot layer of a `HalftoneSphere`.
 
-MIT © OrangeCheck. Inter and JetBrains Mono are SIL OFL 1.1.
+MIT © OrangeCheck. The fonts it bundles, Inter and JetBrains Mono (`dist/styles/fonts`, and inline in `/og`), are SIL OFL 1.1; their licence texts are in `licenses/`.

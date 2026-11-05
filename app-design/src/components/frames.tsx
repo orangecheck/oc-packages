@@ -88,7 +88,7 @@ export function BrowserFrame({
             <div
                 aria-hidden
                 data-frame-glow=""
-                className="pointer-events-none absolute inset-x-0 -inset-y-[20%] -z-10 bg-[image:var(--oca-glow)] md:-inset-x-[12%]"
+                className="pointer-events-none absolute inset-x-0 -inset-y-[min(20%,3rem)] -z-10 bg-[image:var(--oca-glow)] md:-inset-x-[12%]"
             />
             {frame}
         </div>

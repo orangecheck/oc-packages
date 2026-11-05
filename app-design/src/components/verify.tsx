@@ -160,8 +160,9 @@ export function SignMessage({
             {lead ? <p className="text-[0.9375rem] leading-relaxed">{lead}</p> : null}
             {wallets ? (
                 <>
-                    {/* SignMessage leads with its own words, so a wallet button's heading stays out. */}
-                    <div className="flex flex-wrap gap-2 [--oc-wallet-heading:none]">{wallets}</div>
+                    {/* SignMessage leads with its own words, so a wallet button's heading stays out. Wrapped, the
+                        buttons' 44px targets stand clear of each other to a thumb. */}
+                    <div className="flex flex-wrap gap-2 [--oc-wallet-heading:none] pointer-coarse:gap-y-3">{wallets}</div>
                     <div className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
                         <span className="h-px flex-1 bg-border" />
                         or sign it in any wallet

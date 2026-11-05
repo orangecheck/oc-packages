@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
+import { visibleObserver } from '../lib/viewport';
 import { MonoLabel } from './frame';
 import { Section } from './section';
 
@@ -37,7 +39,7 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
-    /** A full-width hairline under the hero. `page` only. */
+    /** The hairline that closes the hero, between the frame's rules. Default true. `page` only. */
     rule?: boolean;
     /**
      * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
@@ -50,7 +52,12 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
-/** A hero's actions: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
+/**
+ * A page's CTA pair: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at
+ * their own widths. PageHero, DocHeader, ErrorPage and Closing draw their actions in it, and a site draws any other
+ * pair in it too (`cn('mt-8', HERO_ACTIONS)`), so every CTA pair on a page follows one rule. check-render fails
+ * if a block draws its own row.
+ */
 export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
 
 export function PageHero({
@@ -64,7 +71,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
-    rule = false,
+    rule = true,
     layout = 'split',
     className,
 }: PageHeroProps) {
@@ -172,7 +179,7 @@ export function useActiveHeading(ids: string[]): string | undefined {
             .map((id) => document.getElementById(id))
             .filter((el): el is HTMLElement => el !== null);
         if (els.length === 0 || typeof IntersectionObserver === 'undefined') return;
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             (entries) => {
                 const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
                 if (hit) setActive(hit.target.id);
@@ -210,7 +217,8 @@ export function DocLayout({
                     href={`#${t.id}`}
                     aria-current={active === t.id ? 'location' : undefined}
                     className={cn(
-                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors',
+                        // 31px to a mouse; 44 to a thumb, the label centred in it.
+                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
                         active === t.id
                             ? 'border-foreground text-foreground'
                             : 'border-border text-muted-foreground hover:text-foreground'
@@ -242,7 +250,7 @@ export function DocLayout({
                             <ul>{links()}</ul>
                         </nav>
                         <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
-                            <summary className="cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden">
+                            <summary className={cn('cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden', HIT_LINK)}>
                                 On this page
                             </summary>
                             <ul className="mt-3">{links()}</ul>

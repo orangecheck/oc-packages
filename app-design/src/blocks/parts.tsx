@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type RefObject } from 'react';
 
+import { visibleObserver } from '../lib/viewport';
+
 /*
  * What the blocks share: whether the reader asked for stillness, and
  * whether a block is on screen in a tab someone is looking at.
@@ -35,7 +37,7 @@ export function useOnScreen(ref: RefObject<Element | null>, threshold = 0.35): b
             setInView(true);
             return;
         }
-        const io = new IntersectionObserver(([e]) => setInView(Boolean(e?.isIntersecting && e.intersectionRatio >= threshold)), {
+        const io = visibleObserver(([e]) => setInView(Boolean(e?.isIntersecting && e.intersectionRatio >= threshold)), {
             threshold: [0, threshold],
         });
         io.observe(el);

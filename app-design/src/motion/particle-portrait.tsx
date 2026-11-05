@@ -13,6 +13,12 @@ import { mountScene, type Mounted, type SceneParts } from './scene';
  * through the figure, and the scene sleeps. It draws nothing at rest; a fine
  * pointer parts the dots like a lens while it moves.
  *
+ * The figure says where it is on data-phase: "forming" while the play runs,
+ * paused or not, and "formed" in its last frame, as the loop goes to sleep,
+ * so a page that waits for it sees no frame after. The lens may wake the loop
+ * again without changing it; a replay is "forming" until it sleeps once
+ * more. The notes come in on data-notes, once the dots have gathered.
+ *
  * Still first: the page paints a poster (the settled portrait as one SVG path,
  * or a faint cloud where the scene will play) and the canvas starts when the
  * main thread is idle, so first paint and LCP never wait on it. The notes are
@@ -92,8 +98,10 @@ export function ParticlePortrait({
         const fig = root.current;
         if (!el || !cv || !fig) return;
         const still = prefersStill();
+        const setNotes = (on: boolean) => fig.toggleAttribute('data-notes', on);
         const setPhase = (p: Phase) => {
             if (fig.dataset.phase !== p) fig.dataset.phase = p;
+            if (p === 'formed') setNotes(true);
         };
         let mounted: Mounted | null = null;
         let gone = false;
@@ -110,7 +118,7 @@ export function ParticlePortrait({
             mounted = mountScene(
                 cv,
                 el,
-                (surface, wake) => portraitScene(pts, surface, wake, el, { still, lens: lens && !still && finePointer(), setPhase, setPlay, control }),
+                (surface, wake) => portraitScene(pts, surface, wake, el, { still, lens: lens && !still && finePointer(), setPhase, setNotes, setPlay, control }),
                 // Written to the DOM, not to state: the first frame costs no React render.
                 {
                     ground,
@@ -132,6 +140,28 @@ export function ParticlePortrait({
             control.current = null;
         };
     }, [points, ground, lens, setting]);
+
+    // Labels beside the square only where the widest fits there; otherwise the numbered marks and the legend, as
+    // below 46rem (data-crowded). A label starts just outside the square, so the stage must be 1.04 squares and two
+    // labels wide: measured against the story's widest label ("Drawn from shapes, not a photo", 232px with its
+    // padding), a 702px-tall stage switches at 1194px wide, so 1440 keeps its labels and 768 to 1180 list them.
+    // Read with the labels drawn, in the frame after a resize, so nothing is painted between; a label the 46rem
+    // query hides reads as spilling, which only repeats the legend that query already shows.
+    useEffect(() => {
+        const el = stage.current;
+        const fig = root.current;
+        if (!el || !fig || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(() =>
+            requestAnimationFrame(() => {
+                fig.removeAttribute('data-crowded');
+                const s = el.getBoundingClientRect();
+                const spill = (l: Element) => l.getBoundingClientRect().left < s.left || l.getBoundingClientRect().right > s.right;
+                fig.toggleAttribute('data-crowded', [...el.querySelectorAll('.oca-note-label')].some(spill));
+            })
+        );
+        ro.observe(fig);
+        return () => ro.disconnect();
+    }, [callouts]);
 
     const words = { pause: 'Pause animation', play: 'Play animation', replay: 'Replay animation', ...labels };
     const placed = callouts.map((c, i) => {
@@ -233,6 +263,8 @@ interface PortraitOptions {
     still: boolean;
     lens: boolean;
     setPhase(p: Phase): void;
+    /** The notes in or out: in once the dots have gathered. */
+    setNotes(on: boolean): void;
     setPlay(p: Play): void;
     /** Where the pause button finds the scene. */
     control: { current: { toggle(): void } | null };
@@ -316,10 +348,8 @@ function portraitScene(pts: Points, surface: Surface, wake: () => void, host: HT
         host.addEventListener('pointerleave', leave);
     }
 
-    if (o.still) {
-        o.setPhase('formed');
-        o.setPlay('done');
-    }
+    // Under reduced motion it is formed in its one frame, as it sleeps.
+    if (o.still) o.setPlay('done');
     return {
         theme(dark: boolean) {
             for (let i = 0; i < n; i++) {
@@ -402,14 +432,16 @@ function portraitScene(pts: Points, surface: Surface, wake: () => void, host: HT
             }
             batch.draw(surface.ctx, styles, surface.dpr);
 
-            if (t >= FORMED) o.setPhase('formed');
-            else if (t > 0) o.setPhase('forming');
+            o.setNotes(t >= FORMED);
             if (!done && t >= END) {
                 done = true;
                 o.setPlay('done');
             }
             const settled = Math.abs(pointer.tx - pointer.x) < 0.2 && Math.abs(pointer.ty - pointer.y) < 0.2 && Math.abs((pointer.on ? 1 : 0) - pointer.k) < 0.01;
-            return (!done && !paused) || !settled;
+            const more = (!done && !paused) || !settled;
+            if (done && !more) o.setPhase('formed');
+            else if (!done && t > 0) o.setPhase('forming');
+            return more;
         },
         dispose() {
             o.control.current = null;

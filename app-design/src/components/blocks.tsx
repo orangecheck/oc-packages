@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { IsoCheck } from '../brand/iso-check';
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
+import { HIT_LINKS } from '../lib/hit';
 import { Accordion, AccordionItem } from '../primitives/accordion';
+import { HERO_ACTIONS } from './hero';
 import { Reveal } from './motion';
 import { Section, SectionIntro, type SectionProps } from './section';
 import { Display, Eyebrow } from './typography';
@@ -80,7 +82,8 @@ export function FactBlock({
                     <Tag className="oca-display-3">{title}</Tag>
                     {description ? <div className="oca-body text-[1.0625rem]">{description}</div> : null}
                 </div>
-                {aside ? <div className="flex shrink-0 flex-wrap gap-x-5 gap-y-2 text-[0.9375rem]">{aside}</div> : null}
+                {/* To a thumb each link is 44px tall, and a wrapped row stands clear of the one above. */}
+                {aside ? <div className={cn('flex shrink-0 flex-wrap gap-x-5 gap-y-2 text-[0.9375rem] pointer-coarse:gap-y-4', HIT_LINKS)}>{aside}</div> : null}
             </div>
             {children}
         </section>
@@ -229,7 +232,8 @@ export function Closing({
                         <Tag className="oca-display-2">{title}</Tag>
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
-                    {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+                    {/* The page's CTA pair, as in the hero: stacked full width on a phone, in DOM order. */}
+                    {actions ? <div className={HERO_ACTIONS}>{actions}</div> : null}
                     {/* 52ch in em: a ch is the face's 0, which the fallback draws 6% narrower, so the measure moved at the swap. */}
                     {fineprint ? <div className="max-w-[32.7em] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
                 </Reveal>

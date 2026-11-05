@@ -117,13 +117,13 @@
     [data-oc-app='ochk'] .oca-portrait-cloud {
         opacity: 1;
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) :is(.oca-note-mark, .oca-note-label) {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) :is(.oca-note-mark, .oca-note-label) {
         opacity: 0;
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) .oca-note[data-side='left'] .oca-note-leader {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) .oca-note[data-side='left'] .oca-note-leader {
         clip-path: inset(0 0 0 100%);
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) .oca-note[data-side='right'] .oca-note-leader {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) .oca-note[data-side='right'] .oca-note-leader {
         clip-path: inset(0 100% 0 0);
     }
 }
@@ -134,7 +134,7 @@
 [data-oc-app='ochk'] .oca-portrait[data-live] .oca-portrait-canvas {
     opacity: 1;
 }
-/* A scene that failed: the poster again (the notes come with data-phase). */
+/* A scene that failed: the poster again (the notes come with data-notes). */
 [data-oc-app='ochk'] .oca-portrait[data-fallback] .oca-portrait-poster {
     opacity: 1;
 }
@@ -230,7 +230,9 @@
     min-width: 0.75em;
 }
 
-/* Too narrow for labels beside the picture: numbered marks, and the notes as a list below. */
+/* Too narrow for labels beside the picture: numbered marks, and the notes as a list below. Without script, below
+   46rem; with it, also wherever the widest label would pass the stage's edge (data-crowded: the switch, and the
+   label it was measured against, are named at the measure in particle-portrait.tsx). */
 @container oca-portrait (width < 46rem) {
     [data-oc-app='ochk'] :is(.oca-note-leader, .oca-note-label) {
         display: none;
@@ -242,6 +244,16 @@
         display: grid;
         gap: 0.375rem;
     }
+}
+[data-oc-app='ochk'] .oca-portrait[data-crowded] :is(.oca-note-leader, .oca-note-label) {
+    display: none;
+}
+[data-oc-app='ochk'] .oca-portrait[data-crowded] .oca-note-mark .oca-note-num {
+    display: block;
+}
+[data-oc-app='ochk'] .oca-portrait[data-crowded] .oca-portrait-legend {
+    display: grid;
+    gap: 0.375rem;
 }
 
 [data-oc-app='ochk'] .oca-portrait-control {

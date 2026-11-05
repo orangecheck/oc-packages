@@ -511,10 +511,10 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
-"@orangecheck/app-design@^1.10.1":
-  version "1.29.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-1.29.3.tgz#86f984f257b364077c2d12a5102d5a56711794e4"
-  integrity sha512-7x+NuE3IXmYOzvs9QUzFdrpiGOz97ckzvnWjVzh/ObZJ9gy4MiSpV4sbOJgHT+1vA5JjGNSWFgzIsGI8X9V46g==
+"@orangecheck/app-design@^2.0.0":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-2.0.1.tgz#968f2d9b647d94ab27226d25882d362df2d9aff9"
+  integrity sha512-npnRphXI0MZpZyPGR9ZHfHYVN2jybM7SHOUgAUbRnbzArdE7S2/r2pOfD9bgSIY4yNEYeveB5LziQ2ovbx6s/g==
   dependencies:
     "@orangecheck/mark" "^0.3.0"
     "@radix-ui/react-checkbox" "^1.3.3"
@@ -525,6 +525,7 @@
     "@radix-ui/react-radio-group" "^1.3.8"
     "@radix-ui/react-select" "^2.2.6"
     "@radix-ui/react-separator" "^1.1.7"
+    "@radix-ui/react-slider" "^1.6.1"
     "@radix-ui/react-slot" "^1.2.3"
     "@radix-ui/react-switch" "^1.2.6"
     "@radix-ui/react-tabs" "^1.1.13"
@@ -855,6 +856,22 @@
   integrity sha512-1jUAap0wZEqVP05Ou7kJgRxe/W+Qftng+rUNWGa0qkKbv9r5pWTG3E7a3ELKo2eJoHKMECnzuYrZpSyO1YgcYQ==
   dependencies:
     "@radix-ui/react-primitive" "2.2.0"
+
+"@radix-ui/react-slider@^1.6.1":
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-slider/-/react-slider-1.6.1.tgz#22f72efd64cce1bd21117ca5544484d265509b9d"
+  integrity sha512-IRNRR90moPqxfwCJ0XbMJIxo70W0/1ZExT/sNCxEHMaPx0SF9HoQrcPEC75+H28cFKa0b+KH63anfLYJmwKacw==
+  dependencies:
+    "@radix-ui/number" "1.1.3"
+    "@radix-ui/primitive" "1.2.0"
+    "@radix-ui/react-collection" "1.2.0"
+    "@radix-ui/react-compose-refs" "1.1.5"
+    "@radix-ui/react-context" "1.3.0"
+    "@radix-ui/react-direction" "1.2.0"
+    "@radix-ui/react-primitive" "2.2.0"
+    "@radix-ui/react-use-controllable-state" "1.3.0"
+    "@radix-ui/react-use-layout-effect" "1.1.4"
+    "@radix-ui/react-use-size" "1.1.5"
 
 "@radix-ui/react-slot@1.5.0", "@radix-ui/react-slot@^1.2.3":
   version "1.5.0"

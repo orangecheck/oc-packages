@@ -155,7 +155,10 @@ export const Create: StoryObj = {
                             />
                             <p className="text-[0.875rem] leading-relaxed text-muted-foreground">
                                 After signing, the stamp goes to two OpenTimestamps calendars and is anchored within about an hour.{' '}
-                                <TextLink href="https://ochk.io/docs/stamp/ots">How anchoring works</TextLink>
+                                {/* After the sentence, not in it: alone on its line from md, so a 44px target. */}
+                                <TextLink href="https://ochk.io/docs/stamp/ots" standalone>
+                                    How anchoring works
+                                </TextLink>
                             </p>
                         </aside>
                     </div>
@@ -354,7 +357,8 @@ export const Parts: StoryObj = {
                     ]}
                 />
                 <WindowChips />
-                <div className="flex flex-col gap-2 text-[0.9375rem]">
+                {/* Stacked 32px lines: to a thumb 12px apart, so one line's 44px targets meet the next's, not overlap them. */}
+                <div className="flex flex-col gap-2 text-[0.9375rem] pointer-coarse:gap-3.5">
                     <span className="flex items-center gap-2">
                         Address <HashChip value={ADDRESS} explorer="address" />
                     </span>

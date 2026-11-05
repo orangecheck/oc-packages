@@ -89,15 +89,16 @@ export const Buttons: StoryObj = {
                 <Button variant="secondary" plus>
                     Talk to us
                 </Button>
-                <Button variant="brand" plus>
-                    Add to Lumen Notes
-                </Button>
             </div>
             <div className="oca-band-brand flex flex-wrap items-center gap-3 p-8">
                 <Button variant="primary">Book a call</Button>
                 <Button variant="secondary">Read the docs</Button>
             </div>
             <div className="oca-band-ink flex flex-wrap items-center gap-3 p-8">
+                <Button variant="primary">Book a call</Button>
+                <Button variant="brand" plus>
+                    Add to Lumen Notes
+                </Button>
                 <Button variant="onInk">Integrate</Button>
                 <Button variant="onInkOutline">GitHub</Button>
             </div>
@@ -168,7 +169,8 @@ export const Forms: StoryObj = {
         const [on, setOn] = useState(true);
         const [suggest, setSuggest] = useState(false);
         return (
-            <Card className="flex max-w-xl flex-col gap-6">
+            // To a thumb the stacked controls stand 26px apart, so a checkbox's 44px target clears the radio's under it.
+            <Card className="flex max-w-xl flex-col gap-6 pointer-coarse:gap-6.5">
                 <Field label="Project name" hint="What your users will see.">
                     <Input placeholder="Lumen Notes" />
                 </Field>
@@ -177,11 +179,12 @@ export const Forms: StoryObj = {
                 </Field>
                 <Field label="Tags" hint="A composite field: the box wears the focus edge while focus is anywhere inside it.">
                     {(control) => (
-                        <div data-oca-field-group="" className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-input bg-card px-2.5 py-1.5">
+                        // To a thumb each × is 44px, and the chips stand apart enough that no × reaches a neighbour or the field.
+                        <div data-oca-field-group="" className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-input bg-card px-2.5 py-1.5 pointer-coarse:gap-x-2.5 pointer-coarse:gap-y-5.5">
                             {['savings', 'cold storage'].map((t) => (
                                 <span key={t} className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-[0.8125rem]">
                                     {t}
-                                    <button type="button" aria-label={`Remove ${t}`} className="inline-flex size-5 items-center justify-center rounded-full hover:bg-accent">
+                                    <button type="button" aria-label={`Remove ${t}`} className="relative inline-flex size-5 items-center justify-center rounded-full hover:bg-accent before:absolute before:-inset-0.5 pointer-coarse:before:-inset-3">
                                         ×
                                     </button>
                                 </span>

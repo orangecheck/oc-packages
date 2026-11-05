@@ -48,6 +48,10 @@
     /* The CTA's hover, and the ring on a brand or deep fill (an orange ring on
        orange would vanish), ink in both modes. */
     --oca-primary-hover: #9a3412;
+    /* A primary Button's hover, which a band re-points: on paper the deep orange a step darker. */
+    --oca-cta-hover: #9a3412;
+    /* The deep orange a step lighter, a hover for dark grounds: the darker one sank to 2.42:1 on burnt. */
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     /* Lines */
@@ -176,6 +180,24 @@
     --radius: 0px;
     --oca-radius-depict: 0.75rem;
     --oca-radius-tile: 1.5rem;
+
+    /* The page's one framed column (PLAN §2): 82.5rem at most, a 1px rule at
+       each side, and a gutter of 3rem that narrows to 1rem. Every left edge on
+       the page (the header's lockup, a hero, a section's container) sits at the
+       rule plus the gutter. Inside PageFrame the rule is the page's own, so
+       --oca-frame-rule is 0 there and nothing draws or counts it twice. */
+    --oca-frame-max: 82.5rem;
+    --oca-frame-gutter: clamp(1rem, 0.333rem + 2.857vw, 3rem);
+    --oca-frame-rule: 1px;
+    /* How far a focus ring reaches outside its control: ring-2 plus ring-offset-2.
+       A box that clips (a framed Section) keeps this much room past its edge. */
+    --oca-focus-reach: 4px;
+    /* A SectionBar spans its nearest edged box: it takes back the gutter that box gives
+       (--oca-bar-bleed) and sets its label in that box's inset (--oca-bar-inset). A
+       container, a padded Frame and a Card set both; a box with its own edge and no gutter
+       (a Frame without padding, PageFrame) bleeds 0. Here, the page with no such box. */
+    --oca-bar-bleed: 0px;
+    --oca-bar-inset: var(--oca-frame-gutter);
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
@@ -233,9 +255,19 @@
     --oc-shadow-md: 0 4px 16px -4px rgb(22 20 18 / 0.08);
     --oc-shadow-lg: 0 12px 32px -8px rgb(22 20 18 / 0.12);
     --oc-shadow-xl: 0 24px 56px -12px rgb(22 20 18 / 0.18);
-    /* A depicted product (a mock browser or phone) and the orange glow behind it. */
-    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 50px 100px -24px rgb(0 0 0 / 0.7);
+    /* A depicted product (a mock browser or phone) and the orange glow behind it.
+       The shadow reaches 48px below the window (20 + 40 - 12), inside a hero's
+       56px foot: it was 126px, and painted onto the next section. */
+    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 20px 40px -12px rgb(0 0 0 / 0.6);
     --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
+}
+
+/* To a thumb the wallet buttons are 44px, as this design's own are; a mouse keeps 36. */
+@media (pointer: coarse) {
+    :root[data-oc-app='ochk'],
+    [data-oc-app='ochk'] {
+        --oc-wallet-min-height: 2.75rem;
+    }
 }
 
 :root.dark[data-oc-app='ochk'],
@@ -268,6 +300,9 @@
     --brand: #f97316;
     --brand-foreground: #161412;
     --oca-primary-hover: #9a3412;
+    /* Lighter on the dark page: the darker hover was 2.67:1 on night. */
+    --oca-cta-hover: #cc4a0e;
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     --border: #242221;

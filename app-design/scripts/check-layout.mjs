@@ -82,7 +82,7 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { compileCss } from './browser.mjs';
+import { compileCss, decodePng } from './browser.mjs';
 
 process.env.NODE_ENV = 'production';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -183,6 +183,157 @@ try {
             `  <div className="flex flex-col gap-10 p-4"><div data-case="fails"><Fails />{below}</div><div data-case="late"><LoadingBlock timeoutMs={400} onRetry={() => {}} />{below}</div></div>\n` +
             `);\n`
     );
+    // Code blocks whose long line scrolls: the scroller becomes a tab stop only once it has measured, on the client.
+    writeFileSync(
+        join(dir, 'coderegion.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `const host = 'alice.btc.calendar.opentimestamps.org';\n` +
+            `createRoot(document.getElementById('root')).render(\n` +
+            `  <div className="flex flex-col gap-6 p-4"><CodeBlock code={'curl https://' + host + '/digest/' + 'f'.repeat(64)} caption="A long line" /><CodeTabs items={[{ label: 'curl', lang: 'bash', code: 'curl https://' + host + '/digest/' + 'e'.repeat(64) }, { label: 'node', lang: 'js', code: 'fetch(url)' }]} /></div>\n` +
+            `);\n`
+    );
+    writeFileSync(
+        join(dir, 'dialogclose.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { Dialog, DialogContent, DialogTitle } from '${join(pkg, 'src/primitives/overlay.tsx')}';\n` +
+            `createRoot(document.getElementById('root')).render(<Dialog defaultOpen><DialogContent><DialogTitle>A dialog</DialogTitle><p>Its body.</p></DialogContent></Dialog>);\n`
+    );
+    // Every ScrollFade user, each in a box too narrow for it, so each scrolls and so takes focus: tables under a
+    // docs heading (its "#" link is not part of the name) and with a caption, a drawn diagram, two tab lists (one
+    // labelled), ProtocolNav and a code block's tabs. And first, with no heading before it, a bare ScrollFade.
+    // It is a tab stop but no region, since a region with no name is no landmark.
+    writeFileSync(
+        join(dir, 'scrollnames.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ApiTable, Diagram, DocsHeading, MdxTable } from '${join(pkg, 'src/components/docs.tsx')}';\n` +
+            `import { ScrollFade } from '${join(pkg, 'src/primitives/scroll-fade.tsx')}';\n` +
+            `import { ProtocolNav } from '${join(pkg, 'src/components/protocol.tsx')}';\n` +
+            `import { CodeBlock, CodeTabs } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `import { Tabs, TabsList, TabsTrigger } from '${join(pkg, 'src/primitives/tabs.tsx')}';\n` +
+            `const wide = 'a_column_name_that_does_not_break';\n` +
+            `const mermaid = { initialize() {}, render: async () => ({ svg: '<svg width="100%" xmlns="http://www.w3.org/2000/svg" style="max-width: 900px;" viewBox="0 0 900 120"><rect width="900" height="120" fill="none" stroke="currentColor"/></svg>' }) };\n` +
+            `const tabs = (label) => <Tabs defaultValue="t0"><TabsList aria-label={label}>{Array.from({ length: 12 }, (_, i) => <TabsTrigger key={i} value={'t' + i}>{'Layer ' + i}</TabsTrigger>)}</TabsList></Tabs>;\n` +
+            `const box = (k, el) => <div data-box={k} style={{ width: 260 }}>{el}</div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div className="flex flex-col gap-8 p-4">\n` +
+            `  {box('unnamed', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}\n` +
+            `  <section><DocsHeading as="h2" id="parameters">Parameters</DocsHeading>{box('mdx', <MdxTable><thead><tr><th>{wide}</th><th>{wide}</th><th>{wide}</th></tr></thead><tbody><tr><td>{wide}</td><td>{wide}</td><td>{wide}</td></tr></tbody></MdxTable>)}</section>\n` +
+            `  {box('api', <ApiTable caption="Options" rows={[{ name: wide + wide, type: wide, description: wide + ' ' + wide }]} />)}\n` +
+            `  {box('diagram', <Diagram chart="flowchart LR; a-->b" caption="A flow" load={async () => mermaid} />)}\n` +
+            `  {box('tabs', tabs('Desk'))}\n` +
+            `  {box('tabs-bare', tabs(undefined))}\n` +
+            `  {box('protocols', <ProtocolNav current="lock" />)}\n` +
+            `  {box('codetabs', <CodeTabs items={Array.from({ length: 8 }, (_, i) => ({ label: 'version-' + i, lang: 'js', code: 'x' }))} />)}\n` +
+            `  {box('code', <CodeBlock code={'curl https://' + wide + '/' + 'f'.repeat(64)} caption="A long line" />)}\n` +
+            // A heading that ends in a "#" as text, which is not part of its name; and a scroller in a section of its own
+            // with no heading, after a section that has one: that heading names its own section, not this scroller.
+            `  <section><h2>Fees #</h2>{box('hash-text', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}</section>\n` +
+            `  <section><h2>An earlier part</h2></section>\n` +
+            `  <section>{box('sectioned', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}</section>\n` +
+            `</div>);\n`
+    );
+    // A ParticlePortrait with its notes, in a figure as wide as its stage: a desk's labels beside the square only where
+    // they fit there. Its story's labels, the widest 232px.
+    writeFileSync(
+        join(dir, 'portrait.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ParticlePortrait, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';\n` +
+            `const notes = [['eye', 'A note on a hairline leader'], ['hair', 'Drawn from shapes, not a photo', 'right'], ['jaw', 'Real text, not canvas'], ['shoulder', 'It sleeps once formed'], ['chest', 'Pause it any time']].map(([k, label, side]) => ({ at: PORTRAIT_ANCHORS[k], label, side }));\n` +
+            `createRoot(document.getElementById('root')).render(<ParticlePortrait alt="A person drawn in dots" className="h-[44rem]" callouts={notes} />);\n`
+    );
+    // The census: every story, each the package's own use of its components, rendered on the client in a
+    // box of its own. A transform makes the box the containing block, so a fixed bar stays inside its story.
+    const stories = (function walk(d) {
+        return readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : e.name.endsWith('.stories.tsx') ? [join(d, e.name)] : []));
+    })(join(pkg, 'src'))
+        // pages/ holds hand-built page mocks, whose own markup is not the package's to size.
+        .filter((f) => !f.includes('/src/pages/'))
+        // SignIn's stories draw @orangecheck/me-client's button, whose size is that package's to set.
+        .filter((f) => !f.endsWith('/src/brand/SignIn.stories.tsx'))
+        .sort();
+    writeFileSync(
+        join(dir, 'census.jsx'),
+        `import { Component } from 'react';\n` +
+            `import { createRoot } from 'react-dom/client';\n` +
+            stories.map((f, i) => `import * as S${i} from '${f}';\n`).join('') +
+            `class Boundary extends Component { state = { failed: null }; static getDerivedStateFromError(e) { return { failed: String(e?.message ?? e).slice(0, 120) }; } render() { return this.state.failed ? <p data-story-failed={this.state.failed}>failed</p> : this.props.children; } }\n` +
+            `const files = [${stories.map((f, i) => `['${f.slice(pkg.length + 5).replace(/\.stories\.tsx$/, '')}', S${i}]`).join(', ')}];\n` +
+            `const all = files.flatMap(([file, mod]) => Object.entries(mod).filter(([k, s]) => k !== 'default' && s && typeof s.render === 'function').map(([k, s]) => [file + '/' + k, s]));\n` +
+            `function Story({ s }) { return s.render(s.args ?? {}, { args: s.args ?? {}, globals: { mode: 'light' }, parameters: s.parameters ?? {} }); }\n` +
+            // A story whose dialog is held open (Docs/Search) hides the rest of the page, so it is read on a page of its own.\n` +
+            `const MODAL = ['components/Docs/Search'];\n` +
+            `const shown = all.filter(([name]) => MODAL.includes(name) === (location.hash === '#modal'));\n` +
+            // Plants, read apart from the stories: three the census must find small (a card's title link alone in its
+            // heading, a 13px checkbox and a 20px icon button in a list item) and one it must exempt (a link in a sentence).
+            `const plants = location.hash === '#modal' ? null : <div data-plants="" className="flex flex-col gap-8 p-4">` +
+            `<ul data-plant="card-title"><li className="flex flex-col gap-2 border border-border p-5"><h3 className="oca-title"><a href="#plant">OC Stamp</a></h3><p className="text-[0.9375rem] text-muted-foreground">Sign a file’s hash with a Bitcoin address, anchored to a block.</p></li></ul>` +
+            `<ul data-plant="checkbox-li"><li><label><input type="checkbox" style={{ width: 13, height: 13 }} /> Remember this device for thirty days</label></li></ul>` +
+            `<ul data-plant="icon-button-li"><li>Copy the receiving address to your clipboard <button type="button" aria-label="Copy the address" className="inline-flex size-5 items-center justify-center">+</button></li></ul>` +
+            `<p data-plant="sentence-link">Read the <a href="#plant">full specification</a> before you sign anything with this key.</p>` +
+            // And for a mouse's 24px: two 16px icon buttons 2px apart, small to either pointer, and one alone, which a
+            // mouse lets off by WCAG 2.5.8's spacing.
+            `<div data-plant="crowded-icons" className="flex gap-0.5"><button type="button" aria-label="Previous page" className="inline-flex size-4 items-center justify-center">‹</button><button type="button" aria-label="Next page" className="inline-flex size-4 items-center justify-center">›</button></div>` +
+            `<div data-plant="lone-icon"><button type="button" aria-label="Dismiss the note" className="inline-flex size-4 items-center justify-center">×</button></div>` +
+            `</div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}{plants}</div>);\n`
+    );
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'census.jsx')],
+        outfile: join(dir, 'census.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        loader: { '.webp': 'dataurl', '.png': 'dataurl', '.jpg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'scrollnames.jsx')],
+        outfile: join(dir, 'scrollnames.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'portrait.jsx')],
+        outfile: join(dir, 'portrait.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'dialogclose.jsx')],
+        outfile: join(dir, 'dialogclose.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'coderegion.jsx')],
+        outfile: join(dir, 'coderegion.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        // The highlighter reads process.env outside its bundler.
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
     esbuild.buildSync({
         entryPoints: [join(dir, 'loaderr.jsx')],
         outfile: join(dir, 'loaderr.js'),
@@ -231,7 +382,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -558,6 +709,172 @@ try {
             h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Docs' }, { href: '/docs/me', label: 'me' }, { href: '/docs/stamp', label: 'Stamp' }] }], current: '/docs/me' }, h('h1', null, 'me'))
         )
     );
+    // Underline tabs with short labels (btc's desk: DCA, Paper) above a sign-in frame's header: its lockup and Back to home.
+    const touchShapes = page(
+        'touch-shapes',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(P.Tabs, { look: 'line', defaultValue: 'dca' }, h(P.TabsList, null, ['DCA', 'Paper', 'Overview'].map((l) => h(P.TabsTrigger, { key: l, value: l.toLowerCase(), 'data-t': 'line-tab' }, l)))),
+                h(Ch.SignInFrame, { lead: 'One line.' }, h('p', null, 'The ceremony.'))
+            )
+        )
+    );
+    // A site header with short nav words (ochk.app's Earn and Trust): its nav shows from 1024, where a tablet is touch.
+    const touchNav = page('touch-nav', renderToStaticMarkup(h(Ch.SiteHeader, { nav: [{ href: '/earn', label: 'Earn' }, { href: '/trust', label: 'Trust' }], signIn: true, cta: true })));
+    // Block heights as globe's feed sets them, eight cards in a grid, and two in one line of small text (BlockCountdown's
+    // "Target · tip"): each link is a line of text, so its target is a ::before, and no two may share a pixel.
+    const heights = [971632, 971631, 971630, 971629, 971628, 971627, 971626, 971625];
+    const touchHeights = page(
+        'touch-heights',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6 p-4' },
+                h(
+                    'ol',
+                    { className: 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4' },
+                    heights.map((n) => h('li', { key: n, className: 'flex items-baseline justify-between gap-2 border border-border p-4' }, h(C.BlockHeight, { height: n, className: 'text-[1.125rem]' }), h('span', null, '3 min ago')))
+                ),
+                h('p', { className: 'text-[0.8125rem]' }, 'Target ', h(C.BlockHeight, { height: 972000 }), ' · tip ', h(C.BlockHeight, { height: 971632 }))
+            )
+        )
+    );
+    // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons.
+    const shellSections = [
+        { id: 'a', label: 'Apps', href: '/a', groups: [{ items: [{ href: '/a', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }] }] },
+        { id: 'm', label: 'Money', href: '/m', groups: [{ items: [{ href: '/m', label: 'Payouts' }] }] },
+    ];
+    const touchShell = page('touch-shell', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'a' }, h('p', null, 'x'))));
+    const icon = h('svg', { viewBox: '0 0 10 10' }, h('rect', { width: 10, height: 10 }));
+    const touchRail = page(
+        'touch-rail',
+        renderToStaticMarkup(h(Ch.AppShell, { variant: 'rail', nav: [{ items: [{ href: '/c', label: 'Chats', icon, active: true }, { href: '/s', label: 'Settings', icon }] }] }, h('p', null, 'x')))
+    );
+    // Reflow: shapes that moved a page sideways. A framed Section clipped 4px out on both axes (its focus
+    // reach), so a glow at the frame's edge scrolled a frame-wide page by that much: the drawn windows of
+    // chat's and vault's heroes from 768, and ochk.io /about's tilting mark at 320. Each in a PageFrame and bare.
+    const Br = require(join(pkg, 'dist/brand.js'));
+    const glowWindow = (props, tall) => h(C.BrowserFrame, { url: 'ochk.io', glow: true, ...props }, h('div', { style: { height: tall } }, 'A drawn window'));
+    const reflowShapes = [
+        ['a hero with a glowing window', h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', art: glowWindow({}, 240) })],
+        // chat's: an ink hero, a paper window.
+        ['chat hero', h(C.PageHero, { ground: 'ink', title: 'Messages only they can read.', lead: 'A lead.', art: glowWindow({ variant: 'paper' }, 260) })],
+        // vault's: the window centred in its column at max-w-md, a proof row in an unpadded Frame under it.
+        [
+            'vault hero',
+            h(
+                'div',
+                null,
+                h(C.PageHero, { title: 'A vault only you can open.', lead: 'A lead.', art: h('div', { className: 'relative min-w-0' }, glowWindow({ variant: 'paper', className: 'mx-auto w-full max-w-md' }, 200)) }),
+                h(C.Frame, { padded: false }, h('ul', { className: 'grid grid-cols-2 gap-px bg-border' }, ['One', 'Two', 'Three', 'Four'].map((l) => h('li', { key: l, className: 'bg-background p-4' }, l))))
+            ),
+        ],
+        // ochk.io /about's: a 300px mark that tilts, its glow 120% of it, in a framed section.
+        ['IsoCheck in a framed section', h(C.Section, { framed: true }, h('div', { className: 'flex justify-center' }, h(Br.IsoCheck, { size: 300, tilt: true })))],
+    ];
+    const reflowPages = reflowShapes.flatMap(([name, el], i) => [
+        [`${name} in a PageFrame`, page(`reflow-${i}-frame`, renderToStaticMarkup(h(C.PageFrame, null, el)))],
+        [`${name}, bare`, page(`reflow-${i}-bare`, renderToStaticMarkup(el))],
+    ]);
+    // A legal page whose words include a hostname wider than a phone (ochk.io's privacy and terms ran 30px past 320).
+    const HOST = 'alice.btc.calendar.opentimestamps.org';
+    const legalLong = page(
+        'legal-long',
+        renderToStaticMarkup(
+            h(C.LegalDocument, {
+                doc: {
+                    eyebrow: 'Legal',
+                    title: 'Privacy',
+                    description: 'What we keep.',
+                    effective: '1 January 2026',
+                    updated: '4 November 2026',
+                    sections: [
+                        {
+                            id: 'stamps',
+                            heading: 'Timestamps',
+                            blocks: [
+                                { kind: 'para', text: `Your browser sends the claim's fingerprint to ${HOST}, at https://${HOST}/digest.` },
+                                { kind: 'bullets', items: [`The calendars: ${HOST} and bob.btc.calendar.opentimestamps.org`, { k: 'Relay', v: `wss://relay.${HOST}` }] },
+                            ],
+                        },
+                        { id: 'more', heading: 'More', blocks: [{ kind: 'para', text: 'Short.' }] },
+                    ],
+                },
+            })
+        )
+    );
+    // A generated SDK README in DocsShell, from the MDX map as docs.ochk.io draws it: links that are one identifier
+    // each (me-client's ran 79px past 320), beside a fence and a table whose long words must still scroll sideways.
+    const LONG_NAME = 'FederationMigrationCancelledWebhookPayload';
+    const docsLong = page(
+        'docs-long',
+        renderToStaticMarkup(
+            h(
+                Ch.DocsShell,
+                { nav: [{ label: 'SDK', items: [{ href: '/sdk/me-client/README', label: 'me-client' }] }], current: '/sdk/me-client/README' },
+                h(M.h1, null, 'me-client'),
+                h(M.ul, null, ['SUDO_ACCOUNT_MISMATCH_MESSAGE', LONG_NAME].map((n) => h(M.li, { key: n }, h(M.a, { href: `variables/${n}` }, n)))),
+                h(M.pre, null, h('code', { className: 'language-ts' }, `import type { ${LONG_NAME} } from '@orangecheck/me-client';\n`)),
+                h(
+                    M.table,
+                    null,
+                    h('thead', null, h('tr', null, h('th', null, 'Name'), h('th', null, 'What'))),
+                    h('tbody', null, h('tr', null, h('td', null, LONG_NAME), h('td', null, 'The body of a cancelled migration.')))
+                )
+            )
+        )
+    );
+    // AppShell's phone bar as analytics composes it (the family menu, a theme toggle and the account beside the
+    // home lockup), with the family's longest product word too, signed in and signed out: at 320 its menu button
+    // was 22 wide signed in, and signed out 20 wide with the bar running 19px past the screen.
+    const appBars = page(
+        'app-bars',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                ...['analytics', longest].flatMap((product) =>
+                    ['in', 'out'].map((state) =>
+                        h(
+                            'div',
+                            { key: product + state, 'data-bar': product, 'data-state': state },
+                            h(
+                                Ch.AppShell,
+                                {
+                                    product,
+                                    family: true,
+                                    nav: [{ items: [{ href: '/a', label: 'Overview', active: true }] }],
+                                    account: h('div', { className: 'flex items-center gap-1' }, h(Ch.ThemeToggle, {}), h(Ch.SessionAccountView, { state, name: 'Ada Lovelace', signInPath: '/signin' })),
+                                },
+                                h('p', null, 'page')
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+    // Targets a thumb missed: ProtocolNav's short names ("lock" 29 wide), the docs search button (40x40),
+    // a folded code block's Show all (34 tall), and a code block whose long line scrolls, named for its region.
+    const touchMore = page(
+        'touch-more',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6' },
+                h(C.ProtocolNav, { current: 'lock' }),
+                h('div', { 'data-t': 'search' }, h(C.SearchButton, null)),
+                h(C.CodeBlock, { code: Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n'), maxLines: 8, caption: 'Thirty lines' })
+            )
+        )
+    );
+    const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
+    const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
+    const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
+    const portraitPage = page('portrait', '<div id="root"></div>', '<script src="portrait.js"></script>');
+    const census = page('census', '<div id="root"></div>', '<script src="census.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
     const framedPage = page(
@@ -570,6 +887,121 @@ try {
                 h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
                 h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
                 h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
+            )
+        )
+    );
+    // One framed column (the prototype's main.wrap): the header, then a PageFrame holding the hero, a
+    // section with its bar, heading and cards, and an ink band; the footer outside it.
+    const oneFrame = page(
+        'one-frame',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }], cta: true }),
+                h(
+                    C.PageFrame,
+                    null,
+                    h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
+                    h(
+                        C.Section,
+                        { rule: true, 'data-s': 'cards' },
+                        h(C.SectionBar, { start: 'How it works', end: '01 / 02', 'data-t': 'bar' }),
+                        h('h2', { className: 'oca-display-3', 'data-t': 'h2' }, 'Every sign-up asks for a little more.'),
+                        h('div', { className: 'grid gap-4 md:grid-cols-3' }, ...[1, 2, 3].map((i) => h(P.Card, { key: i, 'data-t': i === 1 ? 'card' : undefined }, `Card ${i}`)))
+                    ),
+                    h(C.Section, { tone: 'ink', rule: true, 'data-s': 'ink' }, h('h2', { className: 'oca-display-3', 'data-t': 'ink-h2' }, 'Real or a copy?'))
+                ),
+                h(Ch.SiteFooter, { legal: true, columns: [{ heading: 'Product', links: [{ href: '/how', label: 'How it works' }] }] })
+            )
+        )
+    );
+    // The frame's edge cases: a PageFrame inside a layout's PageFrame (a DocsShell page), a site's own
+    // container inside an unframed Section, and a focusable control flush with a framed Section's foot.
+    const frameEdges = page(
+        'frame-edges',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(
+                    C.PageFrame,
+                    { 'data-t': 'outer' },
+                    h(
+                        C.PageFrame,
+                        { as: 'div', 'data-t': 'inner' },
+                        h(C.Section, null, h('div', { className: 'oca-container' }, h('h2', { 'data-t': 'own-container' }, 'A site container in a Section'))),
+                        h(C.Section, { framed: true, space: 'none' }, h('p', null, 'A flush control:'), h(P.Button, { 'data-t': 'flush' }, 'Continue'))
+                    ),
+                    h('div', { style: { height: '120px' } })
+                )
+            )
+        )
+    );
+    // A SectionBar in every parent a site puts one in: a container's child, nested in a container, a
+    // padded Frame, a Frame without padding, a bare section in the frame, and a Card. Each bar spans its
+    // nearest edged box with its label on that box's axis; [data-box] marks the box, [data-axis] its axis.
+    const bar = (k) => h(C.SectionBar, { start: `Bar ${k}`, end: '01 / 06', 'data-bar': k });
+    const bars = page(
+        'bars',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(
+                    C.PageFrame,
+                    { 'data-box': 'frame' },
+                    h(C.Section, { space: 'sm' }, bar('container')),
+                    h(C.Section, { space: 'sm' }, h('div', { className: 'flex flex-col gap-4' }, h('div', null, bar('nested')))),
+                    h(C.Section, { framed: true, space: 'sm' }, bar('padded')),
+                    h(C.Frame, { padded: false }, bar('unpadded')),
+                    h('section', null, bar('bare')),
+                    h(C.Section, { space: 'sm' }, h(P.Card, { 'data-box': 'card' }, bar('card'), h('p', { 'data-axis': 'card' }, 'The card says one thing.')))
+                )
+            )
+        )
+    );
+    // ochk.io/docs' shape: DocsShell with its sections and a page long enough to scroll past the sidebar.
+    const docsFrame = page(
+        'docs-frame',
+        renderToStaticMarkup(
+            h(
+                Ch.DocsShell,
+                {
+                    nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }, { href: '/docs/me/api', label: 'me API' }] }],
+                    current: '/docs',
+                    toc: [{ id: 'a', title: 'First', level: 2 }],
+                },
+                h('h1', { 'data-t': 'h1' }, 'Docs'),
+                ...Array.from({ length: 12 }, (_, i) => h('p', { key: i }, 'A paragraph of the docs, long enough to fill a line or two of the page.'))
+            )
+        )
+    );
+    // A closed box: a hero with a glowing BrowserFrame, and in its art a shadow that runs 100px below
+    // it, as a depiction's did (126px in chat's hero); the next section starts on its own ground.
+    const closedBox = page(
+        'closed-box',
+        renderToStaticMarkup(
+            h(
+                C.PageFrame,
+                null,
+                h(C.PageHero, {
+                    title: 'A depiction in the hero.',
+                    lead: 'Its shadow stays in the hero.',
+                    art: h(
+                        'div',
+                        { className: 'relative' },
+                        h(C.BrowserFrame, { url: 'chat.ochk.io', glow: true }, h('div', { style: { height: '320px' } })),
+                        // A shadow, as the depiction's was: drawn 40 to 100px below the art, across the hero's foot.
+                        // A shadow is ink overflow, which overflow-x: clip leaves free on the y axis.
+                        h('div', { 'data-probe': '', style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '60px', boxShadow: '0 100px 0 0 rgb(255, 0, 0)' } })
+                    ),
+                }),
+                // A bar straight after the hero, on the page's own ground, as chat's was: a section with a
+                // ground of its own paints over what runs into it and would hide the fault.
+                h('div', { 'data-s': 'next', className: 'oca-container py-16' }, h(C.SectionBar, { start: 'Next', end: '02' }))
             )
         )
     );
@@ -603,7 +1035,9 @@ try {
                 h('div', { 'data-t': 'split' }, h(C.PageHero, { title: 'Notes that know who wrote them.', lead: 'A lead.', actions: pair() })),
                 h('div', { 'data-t': 's10' }, h(C.PageHero, { layout: 's10', title: 'Privacy policy', lead: 'A lead.', actions: pair() })),
                 h('div', { 'data-t': 'document' }, h(C.PageHero, { variant: 'document', title: 'Terms', lead: 'A lead.', actions: pair() })),
-                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() }))
+                h('div', { 'data-t': 'error' }, h(C.ErrorPage, { code: 404, art: null, actions: pair() })),
+                // The closing band holds the same pair by the same rule: one page, one CTA pair.
+                h('div', { 'data-t': 'closing' }, h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.', art: null, actions: pair() }))
             )
         )
     );
@@ -993,8 +1427,8 @@ try {
                 out.chipTarget = lands(btn, b.left + b.width / 2, b.top + b.height / 2 - 21.5) && lands(btn, b.left + b.width / 2, b.top + b.height / 2 + 21.5);
                 const list = document.querySelector('[data-wrap]');
                 const tabs = [...list.querySelectorAll('[role="tab"]')].map((t) => t.getBoundingClientRect());
-                out.tabsIn = tabs.every((t) => t.right <= innerWidth && t.left >= 0);
-                out.over = document.documentElement.scrollWidth - innerWidth;
+                out.tabsIn = tabs.every((t) => t.right <= document.documentElement.clientWidth && t.left >= 0);
+                out.over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
                 return out;
             }, width < 640);
             check(b190.rowOpens, `[${width}] DataTable: a press elsewhere in a linked row does not open it`);
@@ -1166,7 +1600,7 @@ try {
             // Long identifiers in headings break; links are 24px to a finger in prose, a list and a table cell.
             await visit(p, sdk);
             const sd = await p.evaluate(() => ({
-                over: document.documentElement.scrollWidth - innerWidth,
+                over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 wide: [...document.querySelectorAll('[data-sdk] h1, [data-sdk] h2, [data-sdk] h3')].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.tagName + ' ' + x.scrollWidth + '/' + x.clientWidth),
                 links: Object.fromEntries([...document.querySelectorAll('[data-sdk] a[href]:not([href^="#"])')].map((a, i) => [a.textContent + i, Math.round(a.getBoundingClientRect().height)])),
             }));
@@ -1296,7 +1730,7 @@ try {
                         [...document.querySelectorAll('[data-t]')].map((el) => {
                             const heading = el.querySelector('h2').getBoundingClientRect();
                             const action = el.firstElementChild.lastElementChild.getBoundingClientRect();
-                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= innerWidth - 16 + 0.5 }];
+                            return [el.dataset.t, { beside: action.top < heading.bottom && action.left > heading.left, top: Math.round(action.top - heading.top), under: action.top >= heading.bottom, right: action.right <= document.documentElement.clientWidth - 16 + 0.5 }];
                         })
                     )
                 );
@@ -1430,7 +1864,7 @@ try {
                 check(doc.scroll <= doc.view, `[${width}] ${name}: sr-only text in the page's scroller stretches the document to ${doc.scroll}px in a ${doc.view}px window`);
             }
             await visit(p, wide);
-            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: innerWidth }));
+            const across = await p.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
             check(across.scroll <= across.view, `[${width}] ScrollFade: sr-only text in a wide table widens the page to ${across.scroll}px in a ${across.view}px window`);
             // One column: every title at the gutter of one centred 72rem column.
             const gutter = width < 768 ? 16 : Math.max(32, (width - 1152) / 2);
@@ -1565,7 +1999,7 @@ try {
                             return {
                                 hdr: d.dataset.hdr,
                                 over: row.scrollWidth - row.clientWidth,
-                                right: Math.max(...kids.map((k) => k.right)) - window.innerWidth,
+                                right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
                                 // The brand ends before the next thing in the row starts.
                                 clash: kids.length > 1 ? brand.right - Math.min(...kids.slice(1).map((k) => k.left)) : 0,
                             };
@@ -1676,14 +2110,15 @@ try {
                 check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
                 check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
             }
-            // A hero's CTA pair: full width and stacked on a phone, a row of their own widths from 640px.
-            {
-                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+            // A hero's CTA pair, and the closing band's: full width and stacked on a phone (at 320 as at 390), a row of
+            // their own widths from 640px.
+            for (const w of width < 768 ? [320, width] : [width]) {
+                const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
                 await visit(c, heroActions);
                 await c.evaluate(() => document.fonts.ready);
                 const a = await c.evaluate(() =>
                     Object.fromEntries(
-                        ['split', 's10', 'document', 'error'].map((t) => {
+                        ['split', 's10', 'document', 'error', 'closing'].map((t) => {
                             const [x, y] = [...document.querySelectorAll(`[data-t="${t}"] [data-cta]`)].map((b) => b.getBoundingClientRect());
                             const col = document.querySelector(`[data-t="${t}"] [data-cta]`).parentElement.parentElement;
                             const cs = getComputedStyle(col);
@@ -1693,10 +2128,10 @@ try {
                     )
                 );
                 for (const [t, m] of Object.entries(a)) {
-                    if (width < 640) {
-                        check(m.stacked && m.order && m.widths.every((w) => Math.abs(w - m.column) <= 1), `[${width}] ${t} hero's two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
+                    if (w < 640) {
+                        check(m.stacked && m.order && m.widths.every((x) => Math.abs(x - m.column) <= 1), `[${w}] ${t}'s two actions are not stacked at the column's full width (${m.column}px): ${JSON.stringify(m)}`);
                     } else {
-                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${width}] ${t} hero's two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
+                        check(m.level && m.order && m.widths[0] !== m.widths[1], `[${w}] ${t}'s two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
                     }
                 }
                 await c.close();
@@ -1724,6 +2159,227 @@ try {
                 );
                 check(st.md.over.length === 0 && st.sm.over.length === 0, `[${width}] StatRow: a value runs out of its cell by px: ${JSON.stringify({ md: st.md.over, sm: st.sm.over })}`);
                 check(st.sm.size < st.md.size, `[${width}] StatRow size="sm" draws its figures at ${st.sm.size}px, not under the default's ${st.md.size}px`);
+                await c.close();
+            }
+            // One framed column: the header's lockup, the hero's eyebrow and H1, a SectionBar's square, a
+            // section heading and its first card start on one x; the rules run unbroken from the header's
+            // foot to the footer's top (no full-bleed stage on this page), beside the ink band too; and each
+            // section's closing hairline, the hero's included, runs from rule to rule.
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await visit(c, oneFrame);
+                await c.evaluate(() => document.fonts.ready);
+                const f = await c.evaluate(() => {
+                    const r = (el) => el.getBoundingClientRect();
+                    const textStart = (el) => {
+                        const range = document.createRange();
+                        range.selectNodeContents(el);
+                        return range.getClientRects()[0]?.left ?? r(el).left;
+                    };
+                    const frame = document.querySelector('[data-oca-page-frame]');
+                    const fr = r(frame);
+                    const header = document.querySelector('header');
+                    const footer = document.querySelector('footer');
+                    const square = (label) => r(label.querySelector('span[aria-hidden]') ?? label).left;
+                    const after = (sec) => {
+                        const cs = getComputedStyle(sec, '::after');
+                        const box = r(sec);
+                        return cs.content === 'none' ? null : { left: box.left + parseFloat(cs.left), width: parseFloat(cs.width) };
+                    };
+                    return {
+                        frame: { left: fr.left, right: fr.right, top: fr.top + scrollY, bottom: fr.bottom + scrollY },
+                        headerBottom: r(header).bottom + scrollY,
+                        footerTop: r(footer).top + scrollY,
+                        axis: {
+                            lockup: r(header.querySelector('a[href="/"] svg')).left,
+                            eyebrow: square(document.querySelector('[data-oca-page-frame] section [data-ui="label"]')),
+                            h1: textStart(document.querySelector('h1')),
+                            bar: square(document.querySelector('[data-t="bar"]')),
+                            h2: textStart(document.querySelector('[data-t="h2"]')),
+                            card: r(document.querySelector('[data-t="card"]')).left,
+                            inkH2: textStart(document.querySelector('[data-t="ink-h2"]')),
+                        },
+                        hairlines: [...frame.querySelectorAll(':scope > section')].map((sec) => ({ s: sec.dataset.s ?? sec.dataset.ground ?? 'hero', ...after(sec) })),
+                        bar: { left: r(document.querySelector('[data-t="bar"]')).left, width: r(document.querySelector('[data-t="bar"]')).width },
+                        ruleColor: getComputedStyle(frame).borderLeftColor,
+                        dpr: devicePixelRatio,
+                    };
+                });
+                const xs = Object.values(f.axis);
+                check(Math.max(...xs) - Math.min(...xs) <= 1, `[${width}] one frame: the page's left edges are not on one axis: ${JSON.stringify(Object.fromEntries(Object.entries(f.axis).map(([k, v]) => [k, Math.round(v * 10) / 10])))}`);
+                const inner = f.frame.right - f.frame.left - 2;
+                const short = f.hairlines.filter((l) => l.width === undefined || Math.abs(l.width - inner) > 1 || Math.abs(l.left - (f.frame.left + 1)) > 1);
+                // A SectionBar's rule runs the frame's width too, between the side rules.
+                check(Math.abs(f.bar.width - inner) <= 1 && Math.abs(f.bar.left - (f.frame.left + 1)) <= 1, `[${width}] one frame: a SectionBar's rule is ${f.bar.width.toFixed(1)}px from ${f.bar.left.toFixed(1)}, not the frame's ${inner}px between its rules`);
+                check(f.hairlines.length >= 3 && short.length === 0, `[${width}] one frame: a section's closing hairline does not run from rule to rule (${inner}px): ${JSON.stringify(short)}`);
+                // The rules, pixel by pixel, down the page: every row from the header's foot to the footer's top.
+                const png = decodePng(await c.screenshot({ fullPage: true }));
+                const at = (x, y) => {
+                    const i = (Math.round(y * f.dpr) * png.width + Math.round(x * f.dpr)) * 4;
+                    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+                };
+                const want = f.ruleColor.match(/\d+/g).slice(0, 3).map(Number);
+                const broken = [];
+                for (const x of [f.frame.left, f.frame.right - 1]) {
+                    for (let y = Math.ceil(f.headerBottom) + 1; y < Math.floor(f.footerTop) - 1; y++) {
+                        const px = at(x, y);
+                        if (px.some((v, k) => Math.abs(v - want[k]) > 6)) broken.push([Math.round(x), y, px.join()]);
+                    }
+                }
+                check(broken.length === 0, `[${width}] one frame: a rule breaks between the header and the footer at ${broken.length} rows, first ${JSON.stringify(broken.slice(0, 3))} (want ${want.join()})`);
+                await c.close();
+            }
+            // SectionBars in every parent, at 320, 390 and 1440: each spans its nearest edged box exactly (the
+            // frame between its rules, or a card inside its border), its square on that box's axis, and the
+            // page never scrolls sideways.
+            if (width === 1440) {
+                for (const w of [320, 390, 1440]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
+                    await visit(c, bars);
+                    await c.evaluate(() => document.fonts.ready);
+                    const b = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const frame = document.querySelector('[data-box="frame"]');
+                        const fr = r(frame);
+                        const inner = { left: fr.left + 1, right: fr.right - 1 };
+                        const axis = r(document.querySelector('header a[href="/"] svg')).left;
+                        const card = document.querySelector('[data-box="card"]');
+                        const cr = r(card);
+                        const cardInner = { left: cr.left + 1, right: cr.right - 1 };
+                        const range = document.createRange();
+                        range.selectNodeContents(document.querySelector('[data-axis="card"]'));
+                        const cardAxis = range.getClientRects()[0].left;
+                        return {
+                            scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                            bars: [...document.querySelectorAll('[data-bar]')].map((el) => {
+                                const box = el.dataset.bar === 'card' ? cardInner : inner;
+                                const want = el.dataset.bar === 'card' ? cardAxis : axis;
+                                const square = r(el.querySelector('[data-ui="label"] span[aria-hidden]'));
+                                return { k: el.dataset.bar, dl: Math.round((r(el).left - box.left) * 10) / 10, dr: Math.round((r(el).right - box.right) * 10) / 10, axis: Math.round((square.left - want) * 10) / 10 };
+                            }),
+                        };
+                    });
+                    const off = b.bars.filter((x) => Math.abs(x.dl) > 1 || Math.abs(x.dr) > 1 || Math.abs(x.axis) > 1);
+                    check(b.bars.length === 6 && off.length === 0, `[${w}] SectionBar: a bar does not span its box or sits off its axis (px off left, right, axis): ${JSON.stringify(off)}`);
+                    check(b.scroll <= 0, `[${w}] SectionBar: the page scrolls ${b.scroll}px sideways`);
+                    await c.close();
+                }
+            }
+            // The frame's edge cases. A nested PageFrame draws no second rule and moves nothing; a container
+            // inside a Section adds no second gutter; a flush control's focus ring is whole at the foot of
+            // its clipped Section (it matches the ring beside it).
+            {
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768 });
+                await visit(c, frameEdges);
+                await c.evaluate(() => document.fonts.ready);
+                await c.keyboard.press('Tab');
+                for (let i = 0; i < 12 && !(await c.evaluate(() => document.activeElement?.dataset.t === 'flush')); i++) await c.keyboard.press('Tab');
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))));
+                const e = await c.evaluate(() => {
+                    const r = (el) => el.getBoundingClientRect();
+                    const outer = document.querySelector('[data-t="outer"]');
+                    const inner = document.querySelector('[data-t="inner"]');
+                    const own = document.querySelector('[data-t="own-container"]');
+                    const range = document.createRange();
+                    range.selectNodeContents(own);
+                    const btn = document.querySelector('[data-t="flush"]');
+                    return {
+                        focused: document.activeElement === btn,
+                        rules: [getComputedStyle(outer).borderLeftWidth, getComputedStyle(inner).borderLeftWidth],
+                        lockup: r(document.querySelector('header a[href="/"] svg')).left,
+                        own: range.getClientRects()[0].left,
+                        btn: { left: r(btn).left, right: r(btn).right, top: r(btn).top + scrollY, bottom: r(btn).bottom + scrollY },
+                        dpr: devicePixelRatio,
+                    };
+                });
+                check(e.rules[0] === '1px' && e.rules[1] === '0px', `[${width}] frame edges: a nested PageFrame draws a rule of its own (${e.rules.join(', ')}), doubling the frame's`);
+                check(Math.abs(e.own - e.lockup) <= 1, `[${width}] frame edges: a container inside a Section starts at ${e.own.toFixed(1)}, a second gutter off the axis ${e.lockup.toFixed(1)}`);
+                const png = decodePng(await c.screenshot({ fullPage: true }));
+                const at = (x, y) => {
+                    const i = (Math.round(y * e.dpr) * png.width + Math.round(x * e.dpr)) * 4;
+                    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+                };
+                const midY = (e.btn.top + e.btn.bottom) / 2;
+                const side = at(e.btn.left - 3, midY);
+                const foot = at((e.btn.left + e.btn.right) / 2, e.btn.bottom + 3);
+                check(e.focused && foot.every((v, k) => Math.abs(v - side[k]) <= 8), `[${width}] frame edges: the flush control's focus ring is cut at its section's foot (${foot.join()} under it, ${side.join()} beside it)`);
+                await c.close();
+            }
+            // DocsShell in the frame, at a desk and wider: its sidebar starts on the header's axis, and the
+            // frame's rules run beside the sidebar and the page down to the footer.
+            if (width === 1440) {
+                for (const w of [1440, 1920]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+                    await visit(c, docsFrame);
+                    await c.evaluate(() => document.fonts.ready);
+                    const d = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const frame = document.querySelector('[data-oca-page-frame]');
+                        const grid = frame.querySelector('.oca-container');
+                        const sidebar = grid.firstElementChild;
+                        return {
+                            lockup: r(document.querySelector('header a[href="https://ochk.io"] svg, header a svg')).left,
+                            sidebar: r(sidebar).left,
+                            frame: { left: r(frame).left, right: r(frame).right },
+                            headerBottom: r(document.querySelector('header')).bottom + scrollY,
+                            footerTop: r(document.querySelector('footer')).top + scrollY,
+                            ruleColor: getComputedStyle(frame).borderLeftColor,
+                        };
+                    });
+                    check(Math.abs(d.sidebar - d.lockup) <= 1, `[${w}] DocsShell: the sidebar starts at ${d.sidebar.toFixed(1)}, off the header's axis ${d.lockup.toFixed(1)}`);
+                    const png = decodePng(await c.screenshot({ fullPage: true }));
+                    const want = d.ruleColor.match(/\d+/g).slice(0, 3).map(Number);
+                    const broken = [];
+                    for (const x of [d.frame.left, d.frame.right - 1]) {
+                        for (let y = Math.ceil(d.headerBottom) + 1; y < Math.floor(d.footerTop) - 1; y++) {
+                            const i = (y * png.width + Math.round(x)) * 4;
+                            if ([0, 1, 2].some((k) => Math.abs(png.data[i + k] - want[k]) > 6)) broken.push([Math.round(x), y]);
+                        }
+                    }
+                    check(broken.length === 0 && d.footerTop - d.headerBottom > 200, `[${w}] DocsShell: the frame's rules break at ${broken.length} rows between the header and the footer, first ${JSON.stringify(broken.slice(0, 3))}`);
+                    await c.close();
+                }
+            }
+            // A section is a closed box: under a hero with a depiction, the next section's top rows are
+            // its own ground, nothing the hero drew. A framed Section clips on both axes, leaving only a
+            // focus ring's reach (--oca-focus-reach) past its edge.
+            {
+                // The hero's entrance played out first: mid-entrance its art is transparent and shows nothing.
+                const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 768, hasTouch: width < 768, reducedMotion: 'reduce' });
+                await visit(c, closedBox);
+                await c.evaluate(() => document.fonts.ready);
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+                const g = await c.evaluate(() => {
+                    const next = document.querySelector('[data-s="next"]');
+                    const r = next.getBoundingClientRect();
+                    const probe = document.querySelector('[data-probe]').getBoundingClientRect();
+                    // Where the probe's shadow is drawn: the probe's own box, 100px lower.
+                    // Its ground: the nearest ancestor that paints one.
+                    let ground = 'rgba(0, 0, 0, 0)';
+                    for (let el = next; el && /rgba\(0, 0, 0, 0\)|transparent/.test(ground); el = el.parentElement) ground = getComputedStyle(el).backgroundColor;
+                    if (/rgba\(0, 0, 0, 0\)/.test(ground)) ground = getComputedStyle(document.documentElement).backgroundColor;
+                    // The token that sets the clip's margin, read only to hold it to the ring it is for.
+                    const token = getComputedStyle(document.documentElement).getPropertyValue('--oca-focus-reach').trim();
+                    return { top: r.top + scrollY, left: r.left, right: r.right, ground, token, dpr: devicePixelRatio, probe: { left: probe.left, right: probe.right, top: probe.top + scrollY + 100 } };
+                });
+                const png = decodePng(await c.screenshot({ fullPage: true }));
+                const want = g.ground.match(/\d+/g).slice(0, 3).map(Number);
+                // Not a vacuous pass: the probe is drawn, red, in the hero just above the next section.
+                const pi = (Math.round((g.top - 4) * g.dpr) * png.width + Math.round(((g.probe.left + g.probe.right) / 2) * g.dpr)) * 4;
+                check(g.probe.top < g.top - 4 && png.data[pi] > 200 && png.data[pi + 1] < 60, `[${width}] closed box: the overflow probe is not drawn above the next section, so the check would see nothing`);
+                const smudged = [];
+                // A focus ring reaches 4px (ring-2 plus ring-offset-2), fixed here rather than read from the
+                // token it guards; the clip may let exactly that much through, and the first row past it is clean.
+                const REACH = 4;
+                check(g.token === `${REACH}px`, `[${width}] closed box: --oca-focus-reach is ${g.token}, not a focus ring's ${REACH}px`);
+                for (let y = Math.ceil(g.top + REACH); y < g.top + 24; y++) {
+                    for (let x = Math.ceil(g.left) + 1; x < g.right - 1; x += 2) {
+                        const i = (Math.round(y * g.dpr) * png.width + Math.round(x * g.dpr)) * 4;
+                        const px = [png.data[i], png.data[i + 1], png.data[i + 2]];
+                        if (px.some((v, k) => Math.abs(v - want[k]) > 3)) smudged.push([Math.round(x), y, px.join()]);
+                    }
+                }
+                check(smudged.length === 0, `[${width}] closed box: the hero paints into the next section's top rows at ${smudged.length} points, first ${JSON.stringify(smudged.slice(0, 3))} (its ground is ${want.join()})`);
                 await c.close();
             }
             // S10: from md the title at the top, the lead at the foot on the right, the mark at the foot
@@ -1829,6 +2485,90 @@ try {
                     const small = rows.filter(([, w, hh]) => w < 44 || hh < 44);
                     check(rows.length >= 3 && small.length === 0, `[1280 touch] docs rail rows under 44x44: ${small.length} of ${rows.length}: ${JSON.stringify(small)}`);
                     await c.close();
+                }
+                // Underline tabs, a sign-in frame's header links, an app shell's sidebar and rail, and a site header's
+                // nav at 1024 (in the menu at 390 and to a mouse at 1440, so only a tablet touches it): to a thumb each
+                // lands from 21.5px out in every direction, on the box or by a ::before. To a mouse they keep their
+                // drawn size (a short tab or nav word its own width), and the sign-in header its height either way.
+                {
+                    const read = async (url, w, touch, sel) => {
+                        const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                        await visit(c, url);
+                        const r = await c.evaluate((q) => ({
+                            header: Math.round(document.querySelector('main header')?.getBoundingClientRect().height ?? 0),
+                            targets: [...document.querySelectorAll(q)]
+                                .filter((el) => el.getClientRects().length > 0 && el.getBoundingClientRect().width > 1)
+                                .map((el) => {
+                                    const b = el.getBoundingClientRect();
+                                    const cx = b.left + b.width / 2;
+                                    const cy = b.top + b.height / 2;
+                                    const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                                    return { name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                                }),
+                        }), sel);
+                        await c.close();
+                        return r;
+                    };
+                    const shapes = [
+                        ['line tabs and the sign-in header', touchShapes, [390, 1024], '[data-t="line-tab"], main header a', 5],
+                        ['the app shell sidebar', touchShell, [1024], 'aside a', 5],
+                        ['the app shell rail', touchRail, [768], 'nav[aria-label="Pages"] a', 2],
+                        ['the site header nav', touchNav, [1024], 'nav[aria-label="Main"] a', 2],
+                    ];
+                    const mouse = {};
+                    for (const [name, url, widths, sel, n] of shapes) {
+                        for (const w of widths) {
+                            const t = (await read(url, w, true, sel)).targets;
+                            check(t.length === n && t.every((x) => x.reach), `[${w} touch] ${name}: ${t.filter((x) => !x.reach).length} of ${t.length} (want ${n}) not a 44px target: ${JSON.stringify(t.filter((x) => !x.reach))}`);
+                        }
+                        mouse[name] = await read(url, widths[widths.length - 1], false, sel);
+                    }
+                    const sizes = (name) => mouse[name].targets.map((x) => `${x.name} ${x.w}x${x.h}`).join(', ');
+                    const dca = mouse['line tabs and the sign-in header'].targets.find((x) => x.name === 'DCA');
+                    check(dca && dca.w < 44, `[1024 mouse] the DCA tab is ${dca?.w}px wide: a fine pointer's tab keeps its label's width`);
+                    const touchHeader = (await read(touchShapes, 1024, true, 'main header a')).header;
+                    check(touchHeader > 0 && touchHeader === mouse['line tabs and the sign-in header'].header, `[1024] the sign-in frame's header is ${touchHeader}px to a thumb and ${mouse['line tabs and the sign-in header'].header}px to a mouse`);
+                    // A mouse's drawn sizes: section switcher 32, page rows 36, rail icons 40.
+                    const bar = mouse['the app shell sidebar'].targets;
+                    check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
+                    const earn = mouse['the site header nav'].targets.find((x) => x.name === 'Earn');
+                    check(earn && earn.w < 44 && earn.h === 44, `[1024 mouse] the header's Earn is drawn ${earn?.w}x${earn?.h}: a fine pointer's nav word keeps its own width`);
+                    check(mouse['the app shell rail'].targets.length === 2 && mouse['the app shell rail'].targets.every((x) => x.w === 40 && x.h === 40), `[768 mouse] the rail's icons are drawn ${sizes('the app shell rail')}, not 40x40`);
+                }
+                // Block heights to a thumb: each lands from 21.5px out in every direction, and no point of one's 44px square
+                // lands on another height (a ::before 44 tall over a line of text can reach a neighbour). To a mouse each
+                // keeps the box it draws.
+                let thumbBoxes;
+                for (const [w, touch] of [[390, true], [1024, true], [1024, false]]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await visit(c, touchHeights);
+                    const r = await c.evaluate(() => {
+                        const links = [...document.querySelectorAll('a[href*="mempool.space/block"]')];
+                        return links.map((el) => {
+                            el.scrollIntoView({ block: 'center' });
+                            const b = el.getBoundingClientRect();
+                            const cx = b.left + b.width / 2;
+                            const cy = b.top + b.height / 2;
+                            const at = (x, y) => document.elementFromPoint(x, y)?.closest('a[href*="mempool.space/block"]') ?? null;
+                            const reach = [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => at(cx + dx, cy + dy) === el);
+                            let shared = 0;
+                            for (let dx = -21; dx <= 21; dx += 3) for (let dy = -21; dy <= 21; dy += 3) {
+                                const hit = at(cx + dx, cy + dy);
+                                if (hit && hit !== el) shared++;
+                            }
+                            return { name: el.textContent.trim().slice(0, 7), w: Math.round(b.width), h: Math.round(b.height), reach, shared };
+                        });
+                    });
+                    await c.close();
+                    const label = `[${w} ${touch ? 'touch' : 'mouse'}]`;
+                    if (touch) {
+                        check(r.length === 10 && r.every((x) => x.reach), `${label} block heights: ${r.filter((x) => !x.reach).length} of ${r.length} not a 44px target: ${JSON.stringify(r.filter((x) => !x.reach).slice(0, 3))}`);
+                        check(r.every((x) => x.shared === 0), `${label} block heights share hit points with a neighbour: ${JSON.stringify(r.filter((x) => x.shared))}`);
+                        thumbBoxes = r;
+                    } else {
+                        check(r.length === 10 && r.every((x) => x.h < 44), `${label} a block height is drawn ${JSON.stringify(r[0])}: a fine pointer gets the line of text`);
+                        check(thumbBoxes?.every((t, i) => t.w === r[i].w && t.h === r[i].h), `${label} a block height draws a different box to a thumb and a mouse: ${JSON.stringify([thumbBoxes?.[0], r[0]])}`);
+                    }
                 }
             }
             // Signed-in targets on a touch screen: 44px to a thumb, on the box or by a ::before, while
@@ -1936,6 +2676,441 @@ try {
                 await c.close();
             }
         }
+        // An isMobile page widens its layout viewport to its content, so the window's inner width grows with
+        // the overflow and a sideways measure against it reads 0: ochk.app's home hid a 68px scroll at 320 that
+        // way. Every gate here measures against documentElement.clientWidth, and none may go back.
+        {
+            const wide = page('wider-than-phone', '<div style="width: 400px; height: 20px"></div>');
+            const c = await browser.newPage({ viewport: { width: 320, height: 600 }, isMobile: true, hasTouch: true });
+            await visit(c, wide);
+            const m = await c.evaluate(() => ({ window: document.documentElement.scrollWidth - window['inner' + 'Width'], client: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+            check(m.client === 80, `[320 isMobile] a 400px child scrolls the page ${m.client}px by clientWidth, not 80 (the window's inner width reads ${m.window})`);
+            await c.close();
+            const word = new RegExp('\\binner' + 'Width\\b');
+            const gates = readdirSync(join(pkg, 'scripts')).filter((f) => f.endsWith('.mjs') && word.test(readFileSync(join(pkg, 'scripts', f), 'utf8')));
+            check(gates.length === 0, `a gate measures against the window's inner width, which an isMobile page widens with its own overflow: ${gates.join(', ')}`);
+        }
+        // Reflow (WCAG 1.4.10): no glow and no long word scrolls the page sideways, at 320 or any width
+        // the frame fills or leaves.
+        for (const w of [320, 390, 768, 900, 1024, 1200, 1280, 1440]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
+            for (const [name, url] of [...reflowPages, ['a legal page with a long hostname', legalLong]]) {
+                await visit(c, url);
+                await c.evaluate(() => document.fonts.ready);
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const over = await c.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+                check(over === 0, `[${w}] ${name} scrolls the page ${over}px sideways`);
+            }
+            if (w === 320) {
+                // The mark is whole: its glow may be cut at the Frame's edge, where the section clips sideways, the mark never.
+                await visit(c, reflowPages.find(([n]) => n === 'IsoCheck in a framed section in a PageFrame')[1]);
+                const mark = await c.evaluate(() => {
+                    const frame = document.querySelector('section > *');
+                    const f = frame.getBoundingClientRect();
+                    const b = document.querySelector('section svg').getBoundingClientRect();
+                    return { clip: getComputedStyle(frame).overflowX, left: b.left, right: b.right, edgeL: f.left + frame.clientLeft, edgeR: f.left + frame.clientLeft + frame.clientWidth };
+                });
+                check(mark.clip === 'clip' && mark.left >= mark.edgeL - 0.5 && mark.right <= mark.edgeR + 0.5, `[320] IsoCheck's mark is cut where its section clips: ${JSON.stringify(mark)}`);
+            }
+            await c.close();
+        }
+        // AppShell's phone bar keeps every control whole and in order down to 320: the menu button stays 44x44,
+        // nothing runs off the bar or under its neighbour, and the product word gives the room (it ends in an
+        // ellipsis inside the home link rather than running out of it).
+        for (const w of [320, 360, 390]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
+            await visit(c, appBars);
+            await c.evaluate(() => document.fonts.ready);
+            const bars = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-bar]')].map((d) => {
+                    const row = d.querySelector('header > div');
+                    const kids = [...row.children].map((k) => k.getBoundingClientRect());
+                    const menu = row.querySelector('button[aria-label="Open navigation"]').getBoundingClientRect();
+                    const home = row.querySelector('a[href="/"]');
+                    const word = [...home.querySelectorAll('span')].find((s) => s.textContent === d.dataset.bar);
+                    return {
+                        bar: `${d.dataset.bar}, signed ${d.dataset.state}`,
+                        menu: [Math.round(menu.width), Math.round(menu.height)],
+                        over: row.scrollWidth - row.clientWidth,
+                        right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
+                        overlap: Math.max(...kids.slice(1).map((k, i) => kids[i].right - k.left)),
+                        wordOut: word.getBoundingClientRect().right - home.getBoundingClientRect().right,
+                        homeWidth: Math.round(home.getBoundingClientRect().width),
+                    };
+                })
+            );
+            for (const b of bars) {
+                check(b.menu[0] >= 44 && b.menu[1] >= 44, `[${w}] AppShell (${b.bar}): the menu button is ${b.menu.join('x')}, not 44x44`);
+                check(b.over <= 1 && b.right <= 1 && b.overlap <= 0.5 && b.wordOut <= 0.5 && b.homeWidth >= 44, `[${w}] AppShell (${b.bar}): the bar overflows or a part runs under the next: ${JSON.stringify(b)}`);
+            }
+            await c.close();
+        }
+        // A link that is one identifier breaks inside DocsShell's article (five docs.ochk.io READMEs scrolled 6 to 79px
+        // sideways at 320 to 390); a fence keeps its line whole and scrolls, and a table scrolls rather than break a name.
+        for (const w of [320, 360, 390]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: true, hasTouch: true });
+            await visit(c, docsLong);
+            await c.evaluate(() => document.fonts.ready);
+            const d = await c.evaluate(() => {
+                const art = document.querySelector('#docs-content');
+                const right = art.getBoundingClientRect().right;
+                const scrolls = (el) => {
+                    for (let x = el; x && x !== art; x = x.parentElement) if (['auto', 'scroll'].includes(getComputedStyle(x).overflowX) && x.scrollWidth > x.clientWidth + 1) return true;
+                    return false;
+                };
+                return {
+                    over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                    past: Math.max(...[...art.querySelectorAll('li a')].map((a) => a.getBoundingClientRect().right - right)),
+                    fence: scrolls(art.querySelector('pre')),
+                    table: scrolls(art.querySelector('table')),
+                };
+            });
+            check(d.over === 0 && d.past <= 0.5, `[${w}] DocsShell: a link that is one identifier runs ${d.past.toFixed(1)}px past the article and scrolls the page ${d.over}px sideways`);
+            check(d.fence && d.table, `[${w}] DocsShell: a long line breaks instead of scrolling sideways (fence scrolls ${d.fence}, table scrolls ${d.table})`);
+            await c.close();
+        }
+        // The same targets to a thumb (44 from 21.5px out each way, on the box or by a ::before) and to a mouse
+        // (their drawn size): ProtocolNav's names, the search button, Show all, the docs bar's sections button
+        // and the legal page's "On this page".
+        {
+            const read = async (url, w, touch, sel) => {
+                const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                const r = await c.evaluate((q) =>
+                    [...document.querySelectorAll(q)]
+                        .filter((el) => el.getClientRects().length > 0 && el.getBoundingClientRect().width > 1)
+                        .map((el) => {
+                            el.scrollIntoView({ block: 'center' });
+                            const b = el.getBoundingClientRect();
+                            const cx = b.left + b.width / 2;
+                            const cy = b.top + b.height / 2;
+                            const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                            return { name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20), w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                        }),
+                    sel
+                );
+                await c.close();
+                return r;
+            };
+            const shapes = [
+                ['ProtocolNav', touchMore, 'nav[aria-label="Protocols"] a', 6, (x) => x.name === 'lock' && x.w < 44],
+                ['the search button', touchMore, '[data-t="search"] button', 1, (x) => x.w === 40 && x.h === 40],
+                ['Show all', touchMore, 'figure button[aria-expanded]', 1, (x) => x.h < 44],
+                ["the docs bar's sections button", docsRail, '[data-oca-sticky="docs-bar"] button', 1, (x) => x.h === 40],
+                ['On this page', legalLong, 'details > summary', 1, (x) => x.h < 44],
+            ];
+            for (const [name, url, sel, n, drawn] of shapes) {
+                const t = await read(url, 390, true, sel);
+                check(t.length >= n && t.every((x) => x.reach), `[390 touch] ${name}: ${t.filter((x) => !x.reach).length} of ${t.length} not a 44px target: ${JSON.stringify(t.filter((x) => !x.reach).slice(0, 3))}`);
+                const m = await read(url, 390, false, sel);
+                check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
+            }
+        }
+        // The census: every link, button, trigger and toggle any story draws is a 44px target to a thumb on a phone
+        // and a touch tablet, hit from 21.5px out in every direction, on its box or by a ::before. A link inside a line
+        // of running text is exempt, as WCAG 2.5.8 exempts it; so is a text field, which is not a tap target.
+        // At a phone's 390 and the narrowest phone's 320, and a tablet's 768, 900, 1024 and 1180, where the md, lg
+        // and xl layouts meet a thumb. And with a mouse at a desk's 1440 and 1024, where WCAG 2.5.8 asks 24px: on
+        // the box or a ::before, or an undersized target whose 24px circle meets no other target.
+        // Doors (what opens behind a trigger) cost nearly all of a pass's time, 70 to 125s a page here against 5s without,
+        // so they are opened at one phone (390), one tablet (1024) and the desk (1440 mouse); every door finding
+        // in 2.0.1 and 2.0.2 showed at one of those. The other passes read the page, the plants and the held dialog.
+        for (const [width, fine, doors] of [[390, false, true], [320, false, false], [768, false, false], [900, false, false], [1024, false, true], [1180, false, false], [1440, true, true], [1024, true, false]]) for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
+            const c = await browser.newPage(fine ? { viewport: { width, height: 900 } } : { viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+            const to = fine ? `${width} mouse` : `${width} touch`;
+            await c.emulateMedia({ reducedMotion: 'reduce' });
+            // Loaded, not visited: a story's own sample markup is not held to the package's text and state rules.
+            visited.add(url);
+            await c.goto(url);
+            const drawn = await c.waitForFunction((n) => document.querySelectorAll('[data-story]').length >= n, least, { timeout: 20000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => setTimeout(r, 800)));
+            // The measure stays on the page, so what opens behind a trigger below is read the same way.
+            await c.evaluate((fine) => {
+                // A thumb's 44px, a mouse's 24: hit from half that, less half a pixel, out from the centre.
+                const R = fine ? 11.5 : 21.5;
+                document.documentElement.style.scrollBehavior = 'auto';
+                const SEL = 'a[href], button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="link"], [role="option"], input[type="checkbox"], input[type="radio"]';
+                window.__censusPage = () => ({ stories: document.querySelectorAll('[data-story]').length, failed: [...document.querySelectorAll('[data-story-failed]')].map((e) => `${e.closest('[data-story]')?.dataset.story} (${e.dataset.storyFailed})`), dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((d) => `${d.closest('[data-story]')?.dataset.story ?? 'portal'}: ${d.getAttribute('aria-label') ?? ''} ${d.textContent.trim().slice(0, 60)}`), hidden: document.querySelectorAll('[data-story][aria-hidden="true"], [data-story] [aria-hidden="true"] [data-story]').length + document.querySelectorAll('body > [aria-hidden="true"]').length });
+                // A link inside a sentence, as WCAG 2.5.8 exempts it: an inline link (never a button, a checkbox or a
+                // radio) whose own line holds words of its block outside any target. Read from the link's line boxes
+                // against the rects of the block's other text, not from a word count.
+                const blockOf = (n) => {
+                    let b = n.parentElement;
+                    while (b && /^(inline|contents)/.test(getComputedStyle(b).display)) b = b.parentElement;
+                    return b;
+                };
+                const inText = (el) => {
+                    if (!el.matches('a[href], [role="link"]') || !getComputedStyle(el).display.startsWith('inline')) return false;
+                    const block = blockOf(el);
+                    const lines = [...el.getClientRects()];
+                    // The sentence's own punctuation touching the link counts as its words ("… at hello@ochk.io."), a
+                    // separator between links ("Docs · Status") does not.
+                    const walk = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+                    walk.currentNode = el;
+                    let after = walk.nextNode();
+                    while (after && el.contains(after)) after = walk.nextNode();
+                    walk.currentNode = block;
+                    const range = document.createRange();
+                    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+                        const words = /[\p{L}\p{N}]/u.test(t.data) || (t === after && /^[.,;:!?)\]…”’]/.test(t.data));
+                        if (!words || el.contains(t) || t.parentElement.closest(SEL) || blockOf(t) !== block) continue;
+                        range.selectNodeContents(t);
+                        for (const r of range.getClientRects()) {
+                            if (r.width > 1 && lines.some((l) => Math.min(l.bottom, r.bottom) - Math.max(l.top, r.top) > Math.min(l.height, r.height) / 2)) return true;
+                        }
+                    }
+                    return false;
+                };
+                // `behind` names the trigger that was opened: then only what it showed is read, and each target once.
+                window.__census = (behind) => {
+                const out = { seen: 0, inline: [], small: [], spaced: [], plants: {} };
+                for (const el of document.querySelectorAll(SEL)) {
+                    if (el.hasAttribute('data-census-read') || (behind && el.dataset.censusBehind) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
+                    const box = el.getBoundingClientRect();
+                    // checkVisibility skips a closed details' content too: it keeps its boxes but draws and takes nothing.
+                    if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true })) continue;
+                    el.setAttribute('data-census-read', '');
+                    const where = behind ?? el.closest('[data-story]')?.dataset.story ?? 'outside a story (a portal)';
+                    const plant = el.closest('[data-plant]')?.dataset.plant;
+                    if (inText(el)) {
+                        if (plant) out.plants[plant] = 'exempt';
+                        else out.inline.push(`${where}: "${el.textContent.trim().slice(0, 24)}"`);
+                        continue;
+                    }
+                    // What a trigger shows in the page itself (a details' list, a sidebar's section) comes into view as the
+                    // page's own targets do. An overlay, a fixed layer (a menu, a popover, a sheet), is placed beside its
+                    // trigger and follows a scrolled page only a frame later: there the page stays put.
+                    let layer = behind ? el : null;
+                    while (layer && layer !== document.body && getComputedStyle(layer).position !== 'fixed') layer = layer.parentElement;
+                    if (!layer || layer === document.body) {
+                        el.style.scrollMargin = '32px';
+                        el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+                        el.style.scrollMargin = '';
+                    } else {
+                        // Only the overlay's own list scrolls.
+                        let sc = el.parentElement;
+                        while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+                        if (sc && sc !== document.body) {
+                            const r0 = el.getBoundingClientRect();
+                            const s0 = sc.getBoundingClientRect();
+                            if (r0.top < s0.top + 32) sc.scrollTop -= s0.top + 32 - r0.top;
+                            else if (r0.bottom > s0.bottom - 32) sc.scrollTop += r0.bottom - (s0.bottom - 32);
+                        }
+                        // A thumb's reach out of view: left for the page pass after the doors, which reads it if the page
+                        // shows it on its own (a timed-out load's retry). What it does not find stays unread, by name.
+                        const r1 = el.getBoundingClientRect();
+                        const m1 = r1.top + r1.height / 2;
+                        if (m1 < 22 || m1 > innerHeight - 22) {
+                            el.removeAttribute('data-census-read');
+                            el.dataset.censusBehind = `${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 28)}"`;
+                            continue;
+                        }
+                    }
+                    if (!plant) out.seen++;
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    // A radio's or a checkbox's label takes its taps too.
+                    const label = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : el.closest('label');
+                    const lands = (x, y) => {
+                        const got = document.elementFromPoint(x, y);
+                        return el.contains(got) || (!!label && label.contains(got));
+                    };
+                    // Two whole targets that meet edge to edge are both whole: a pointer R out may land on the neighbour
+                    // only where the neighbour starts within a pixel of this one's edge (hit-testing rounds).
+                    const meets = (got, dx, dy) => {
+                        const n = got?.closest(SEL);
+                        if (!n || n === el || n.contains(el) || el.contains(n)) return false;
+                        const o = n.getBoundingClientRect();
+                        if (dy > 0) return b.height >= 2 * R + 0.5 && Math.abs(o.top - b.bottom) <= 1;
+                        if (dy < 0) return b.height >= 2 * R + 0.5 && Math.abs(b.top - o.bottom) <= 1;
+                        if (dx > 0) return b.width >= 2 * R + 0.5 && Math.abs(o.left - b.right) <= 1;
+                        return b.width >= 2 * R + 0.5 && Math.abs(b.left - o.right) <= 1;
+                    };
+                    const miss = [[0, -R], [0, R], [-R, 0], [R, 0]].find(([dx, dy]) => !lands(cx + dx, cy + dy) && !meets(document.elementFromPoint(cx + dx, cy + dy), dx, dy));
+                    // To a mouse, WCAG 2.5.8's spacing: an undersized target is let off when a 24px circle on its centre
+                    // meets no other target's box and no other undersized target's circle.
+                    const spaced =
+                        fine &&
+                        !!miss &&
+                        [...document.querySelectorAll(SEL)].every((n) => {
+                            if (n === el || n.contains(el) || el.contains(n) || n.closest('[aria-hidden="true"], [inert]') || !n.checkVisibility({ visibilityProperty: true })) return true;
+                            const o = n.getBoundingClientRect();
+                            if (o.width <= 1 || o.height <= 1) return true;
+                            if (Math.hypot(Math.max(o.left - cx, 0, cx - o.right), Math.max(o.top - cy, 0, cy - o.bottom)) < 12) return false;
+                            return !(o.width < 24 || o.height < 24) || Math.hypot(o.left + o.width / 2 - cx, o.top + o.height / 2 - cy) >= 24;
+                        });
+                    if (plant) {
+                        const v = !miss ? 'whole' : spaced ? 'spaced' : 'small';
+                        out.plants[plant] = out.plants[plant] === 'small' ? 'small' : v;
+                        continue;
+                    }
+                    if (spaced) {
+                        out.spaced.push(`${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28)}" ${Math.round(b.width)}x${Math.round(b.height)}`);
+                        continue;
+                    }
+                    if (miss) {
+                        const name = (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28);
+                        // What a thumb there lands on instead: a neighbour, or the ground.
+                        const got = document.elementFromPoint(cx + miss[0], cy + miss[1]);
+                        const on = got ? `${got.tagName.toLowerCase()}${got.getAttribute('aria-label') ? ' "' + got.getAttribute('aria-label').slice(0, 20) + '"' : got.textContent?.trim() ? ' "' + got.textContent.trim().slice(0, 16) + '"' : ''}` : 'nothing';
+                        out.small.push(`${where}: ${el.tagName.toLowerCase()}${el.getAttribute('role') ? '[' + el.getAttribute('role') + ']' : ''} "${name}" ${Math.round(b.width)}x${Math.round(b.height)}, ${miss[0] ? (miss[0] < 0 ? 'left' : 'right') : miss[1] < 0 ? 'above' : 'below'} lands on ${on}`);
+                    }
+                }
+                return out;
+                };
+            }, fine);
+            const r = { width, fine, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [] };
+            // A story wider than the screen widens the page, and a phone then places fixed overlays off the screen.
+            r.sideways = await c.evaluate((w) => [...document.querySelectorAll('[data-story], [data-plants]')].filter((s) => s.scrollWidth > w + 1).map((s) => `${s.dataset.story ?? 'plants'} (${s.scrollWidth})`), width);
+            // Behind a trigger: each closed popover, menu, select, dialog or sheet, each collapsed control and each
+            // closed details, opened one at a time as a thumb would, and what it shows read the same way.
+            if (least > 1 && doors) {
+                r.doors = await c.evaluate(() => {
+                    const all = [...document.querySelectorAll('[data-story] :is([aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="false"], details:not([open]) > summary)')].filter(
+                        (el) => !el.disabled && !el.closest('[aria-hidden="true"], [inert]') && el.checkVisibility({ visibilityProperty: true })
+                    );
+                    all.forEach((el, i) => el.setAttribute('data-census-door', String(i)));
+                    return all.length;
+                });
+                for (let i = 0; i < r.doors; i++) {
+                    const door = c.locator(`[data-census-door="${i}"]`);
+                    const name = await door.evaluate((el) => `behind ${el.closest('[data-story]')?.dataset.story} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 24)}"`).catch(() => null);
+                    if (!name) continue;
+                    // The trigger mid-screen, so what it opens has room on either side.
+                    await door.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' })).catch(() => {});
+                    // A loaded box draws a frame in seconds, and a click waits for the trigger to hold still.
+                    if (!(await door.click({ timeout: 15000 }).then(() => true, () => false))) {
+                        r.lost.push(name);
+                        continue;
+                    }
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 300)));
+                    await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                    const got = await c.evaluate((n) => window.__census(n), name);
+                    if (got.seen + got.inline.length) r.opened++;
+                    r.behind += got.seen;
+                    r.inline.push(...got.inline);
+                    r.small.push(...got.small);
+                    r.spaced.push(...got.spaced);
+                    // Shut it again: Escape for an overlay, a second press for a toggle or a details.
+                    await c.keyboard.press('Escape');
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
+                    const still = await door.evaluate((el) => el.getAttribute('aria-expanded') === 'true' || (el.tagName === 'SUMMARY' && el.parentElement.open)).catch(() => false);
+                    if (still) await door.click({ timeout: 15000 }).catch(() => {});
+                    await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
+                }
+                // The page once more: what showed during the doors on its own is read where it is, and a target that
+                // only a trigger showed, out of view, is unread.
+                const late = await c.evaluate(() => window.__census(null));
+                r.seen += late.seen;
+                r.inline.push(...late.inline);
+                r.small.push(...late.small);
+                r.spaced.push(...late.spaced);
+                r.unread = await c.evaluate(() => [...document.querySelectorAll('[data-census-behind]:not([data-census-read])')].map((e) => e.dataset.censusBehind));
+            }
+            const tag = least > 1 ? 'the census' : 'the census of a held-open dialog';
+            if (process.env.OCA_CENSUS_OUT) writeFileSync(`${process.env.OCA_CENSUS_OUT}${width === 390 && !fine ? '' : '.' + width}${fine ? '.mouse' : ''}${least > 1 ? '' : '.modal'}.json`, JSON.stringify(r, null, 1));
+            check(drawn && r.stories >= least && r.failed.length === 0, `[${width}] ${tag} drew ${r.stories} stories, and these threw: ${r.failed.join(', ')}`);
+            check(least > 1 ? r.dialogs.length === 0 && r.seen > 300 : r.dialogs.length === 1 && r.seen >= 3, `[${to}] ${tag} read only ${r.seen} targets, with dialogs open: ${JSON.stringify(r.dialogs)}`);
+            if (least > 1 && doors) check(r.opened >= 15 && r.behind >= 40, `[${to}] the census opened ${r.opened} of ${r.doors} triggers and read ${r.behind} targets behind them`);
+            check(r.lost.length === 0, `[${to}] the census could not open these triggers: ${r.lost.join(', ')}`);
+            check(r.unread.length === 0, `[${to}] the census could not bring these targets behind a trigger into view: ${r.unread.slice(0, 12).join('; ')}`);
+            check(r.sideways.length === 0, `[${width}] these stories are wider than the screen: ${r.sideways.join(', ')}`);
+            // The plants prove the measure: what is small is found, only a link in a sentence is let off, and to a mouse
+            // an undersized target alone is let off by its spacing while two crowded ones are not.
+            const want = fine
+                ? { 'card-title': 'whole', 'checkbox-li': 'spaced', 'icon-button-li': 'spaced', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'spaced' }
+                : { 'card-title': 'small', 'checkbox-li': 'small', 'icon-button-li': 'small', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'small' };
+            if (least > 1) check(Object.entries(want).every(([k, v]) => r.plants[k] === v), `[${to}] the census's plants read ${JSON.stringify(r.plants)}, not ${JSON.stringify(want)}`);
+            check(r.small.length === 0, `[${to}] ${tag} found ${r.small.length} targets under ${fine ? '24px to a mouse' : '44px to a thumb'}: ${r.small.slice(0, 12).join('; ')}`);
+            await c.close();
+        }
+        // Every scroller that takes focus is a named region: each ScrollFade user, scrolling in a narrow box.
+        {
+            const c = await browser.newPage({ viewport: { width: 700, height: 2400 } });
+            await visit(c, scrollNames);
+            const ready = await c.waitForFunction(() => document.querySelectorAll('[data-box] [tabindex="0"]').length >= 11 && document.querySelector('[data-box="diagram"] svg'), null, { timeout: 10000 }).then(() => true, () => false);
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const got = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-box]')].map((b) => {
+                    const s = [...b.querySelectorAll('[tabindex="0"]')].find((el) => getComputedStyle(el).overflowX === 'auto');
+                    return [b.dataset.box, s ? { role: s.getAttribute('role'), name: s.getAttribute('aria-label') } : null];
+                })
+            );
+            const want = { unnamed: null, mdx: 'Parameters', api: 'Options', diagram: 'A flow', tabs: 'Desk', 'tabs-bare': 'Tabs', protocols: 'Protocols', codetabs: 'Versions', code: 'A long line', 'hash-text': 'Fees', sectioned: null };
+            const off = got.filter(([k, s]) => !s || s.role !== (want[k] === null ? null : 'region') || s.name !== want[k]);
+            check(ready && got.length === 11 && off.length === 0, `[700] a ScrollFade that scrolls takes focus with no region name, or not the one it should have: ${JSON.stringify(off)}`);
+            await c.close();
+        }
+        // ParticlePortrait as wide as its stage, with a mouse: at 1024 its labels have no room beside the square, so they
+        // list under it and the page does not scroll sideways; at 1440 they keep their place beside it.
+        for (const [w, beside] of [[1024, false], [1440, true]]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+            await visit(c, portraitPage);
+            await c.waitForSelector('.oca-portrait-legend', { state: 'attached' });
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const got = await c.evaluate(() => ({ wide: document.documentElement.scrollWidth, listed: getComputedStyle(document.querySelector('.oca-portrait-legend')).display !== 'none' }));
+            check(got.wide <= w && got.listed !== beside, `[${w} mouse] a ParticlePortrait as wide as its stage ${got.listed ? 'lists' : 'labels'} its notes, and the page is ${got.wide}px wide`);
+            await c.close();
+        }
+        // The same portrait at 1440, its figure narrowed to 1024 by script and widened again with the window untouched,
+        // still past the 46rem query: the labels list and come back, and the page never scrolls sideways.
+        {
+            const c = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+            await visit(c, portraitPage);
+            await c.waitForSelector('.oca-portrait-legend', { state: 'attached' });
+            const frames = () => c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+            const read = () => c.evaluate(() => ({ wide: document.documentElement.scrollWidth, listed: getComputedStyle(document.querySelector('.oca-portrait-legend')).display !== 'none' }));
+            const steps = [];
+            for (const width of ['', '1024px', '']) {
+                await c.evaluate((wd) => (document.querySelector('.oca-portrait').style.width = wd), width);
+                await frames();
+                steps.push(await read());
+            }
+            check(steps.map((s) => s.listed).join() === 'false,true,false' && steps.every((s) => s.wide <= 1440), `[1440 mouse] a ParticlePortrait narrowed to 1024 and widened again, the window untouched, reads ${JSON.stringify(steps)}: its labels list, then come back`);
+            await c.close();
+        }
+        // A sheet's Close (a site's phone menu) and a dialog's: 44 square to a thumb, 36 to a mouse.
+        for (const [name, url, open] of [
+            ["the phone menu's Close", toolMenu, 'header button[aria-label="Open menu"]'],
+            ["a dialog's Close", dialogClose, null],
+        ]) {
+            for (const touch of [true, false]) {
+                const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: touch, hasTouch: touch });
+                await visit(c, url);
+                if (open) await c.click(open);
+                await c.waitForSelector('[role="dialog"] button[aria-label="Close"]');
+                await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+                const x = await c.evaluate(() => {
+                    const el = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+                    const b = el.getBoundingClientRect();
+                    const cx = b.left + b.width / 2;
+                    const cy = b.top + b.height / 2;
+                    const lands = (px, py) => el.contains(document.elementFromPoint(px, py));
+                    return { w: Math.round(b.width), h: Math.round(b.height), reach: [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].every(([dx, dy]) => lands(cx + dx, cy + dy)) };
+                });
+                if (touch) check(x.reach, `[390 touch] ${name} is ${x.w}x${x.h}, not a 44px target`);
+                else check(x.w === 36 && x.h === 36, `[390 mouse] ${name} is drawn ${x.w}x${x.h}, not its 36x36`);
+                await c.close();
+            }
+        }
+        // A code block that scrolls is a tab stop, so its region has a name: the caption, or the tab's label.
+        {
+            const c = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
+            await visit(c, codeRegion);
+            const drawn = await c.waitForFunction(() => document.querySelectorAll('pre').length >= 2, null, { timeout: 10000 }).then(() => true, () => false);
+            check(drawn, '[390] the code region page did not render its two code blocks');
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const regions = await c.evaluate(() =>
+                [...document.querySelectorAll('figure pre, [role="tabpanel"] pre')]
+                    .map((pre) => pre.closest('[tabindex]'))
+                    .filter((el) => el && el.tabIndex === 0)
+                    .map((el) => ({ role: el.getAttribute('role'), name: el.getAttribute('aria-label') }))
+            );
+            check(regions.length === 2 && regions.every((r) => r.role === 'region' && r.name), `[390] a code block that scrolls is a tab stop with no region name: ${JSON.stringify(regions)}`);
+            check(regions.map((r) => r.name).join('|') === 'A long line|curl', `[390] the code regions are named ${JSON.stringify(regions.map((r) => r.name))}, not by the caption and the tab's label`);
+            await c.close();
+        }
         check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
         check(weak.size === 0, `states drawn as a fill with no edge at 3:1: ${[...weak.keys()].slice(0, 8).join('; ')}`);
         const unvisited = [...written].filter((u) => !visited.has(u));
@@ -1951,4 +3126,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions, a docs link that is one long name`);

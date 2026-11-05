@@ -591,7 +591,7 @@ try {
         // No block widens a phone.
         for (const b of ['demo', 'cost', 'path', 'receipt', 'bento']) {
             const { p, close } = await open(b, { width: 390 });
-            const w = await p.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+            const w = await p.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
             check(w[0] <= w[1], `[390] ${b}: the page is ${w[0]}px wide in a ${w[1]}px window`);
             await close();
         }

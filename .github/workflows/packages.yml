@@ -79,6 +79,17 @@ jobs:
                   node-version: '24'
             - run: node --test scripts/land.test.mjs
 
+    sdk-docs-transform:
+        # scripts/mdx-transform.mjs on TypeDoc-shaped bodies: an indented JSDoc example is set as code.
+        name: SDK reference pages set indented examples as code
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+            - run: node --test scripts/mdx-transform.test.mjs
+
     home-paths:
         # A /Users/<name>/ fallback sat in six test files of this public repo,
         # naming a person and working on one laptop only. Fail on any.
@@ -329,6 +340,18 @@ jobs:
                       echo "no test script; skipping"
                   fi
 
+            # app-design's 1.29.3 and 2.0.0 snapshots held to npm's tarballs, and no prop narrowed since
+            # either: it needs the network, so these are steps here rather than in yarn test. --self-test
+            # also runs two mutants (StatGrid's empty cut from the snapshot, 'ghost' cut from Button) and
+            # fails unless each is caught.
+            - name: Surface against npm's app-design 1.29.3
+              if: matrix.pkg == 'app-design'
+              run: node scripts/check-surface-npm.mjs 1.29.3 --self-test
+
+            - name: Surface against npm's app-design 2.0.0
+              if: matrix.pkg == 'app-design'
+              run: node scripts/check-surface-npm.mjs 2.0.0 --self-test
+
             - name: Smoke check — dist exists
               run: test -d dist
 
@@ -469,6 +492,7 @@ jobs:
                 dist-tag,
                 renovate-roster,
                 land-script,
+                sdk-docs-transform,
                 home-paths,
                 id-coverage,
                 build,

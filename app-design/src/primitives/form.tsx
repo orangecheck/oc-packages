@@ -298,7 +298,8 @@ export const SelectItem = forwardRef<
         <SelectPrimitive.Item
             ref={ref}
             className={cn(
-                'relative flex h-10 cursor-default select-none items-center rounded-none pl-3 pr-9 text-[0.9375rem] outline-none',
+                // 40px to a mouse, 44 to a thumb, as a menu's items are.
+                'relative flex h-10 cursor-default select-none items-center rounded-none pl-3 pr-9 text-[0.9375rem] outline-none pointer-coarse:h-11',
                 // The fill alone is 1.1:1 on the popover; the inset ring in --ring is what the eye finds.
                 'data-[highlighted]:bg-accent data-[highlighted]:shadow-[inset_0_0_0_2px_var(--ring)] data-[disabled]:opacity-50',
                 className
@@ -323,8 +324,8 @@ export const Checkbox = forwardRef<
         <CheckboxPrimitive.Root
             ref={ref}
             className={cn(
-                // 20px drawn, 44px to a thumb. The inset is measured from inside the 1px border.
-                'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface pointer-coarse:before:absolute pointer-coarse:before:-inset-[13px]',
+                // 20px drawn; 24 to a mouse and 44 to a thumb. The inset is measured from inside the 1px border.
+                'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -365,7 +366,8 @@ export const RadioGroup = forwardRef<
     ElementRef<typeof RadioGroupPrimitive.Root>,
     ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
 >(function RadioGroup({ className, ...props }, ref) {
-    return <RadioGroupPrimitive.Root ref={ref} className={cn('grid gap-3', className)} {...props} />;
+    // To a thumb the rows stand far enough apart that their 44px targets meet, not overlap.
+    return <RadioGroupPrimitive.Root ref={ref} className={cn('grid gap-3 pointer-coarse:gap-6.5', className)} {...props} />;
 });
 
 export const RadioGroupItem = forwardRef<
@@ -376,7 +378,8 @@ export const RadioGroupItem = forwardRef<
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface',
+                // 20px drawn; 24 to a mouse and 44 to a thumb, as a Checkbox is. The inset is measured from inside the 1px border.
+                'relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',
                 'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary disabled:cursor-not-allowed disabled:opacity-50',
                 className

@@ -33,8 +33,9 @@ export const sectionVariants = cva('relative w-full overflow-x-clip', {
             brand: 'oca-band-brand',
         },
         /** A full-width hairline under the section, as 2.0 rules one section from the next. */
+        // The closing hairline runs between the frame's rules, not the viewport's edges.
         rule: {
-            true: 'border-b border-border',
+            true: 'after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-border after:inset-x-[calc(max(0px,(100%-var(--oca-frame-max))/2)+var(--oca-frame-rule))]',
             false: '',
         },
         space: SPACE,
@@ -57,8 +58,13 @@ export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<
 export function Section({ tone, space, rule, contained = true, framed = false, frameClassName, className, children, ...props }: SectionProps) {
     if (framed) {
         return (
-            <section className={cn(sectionVariants({ tone, space: 'none', rule }), className)} {...props}>
-                <Frame className={cn(SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
+            // A closed box between its hairlines: nothing inside paints across them, a depiction's shadow
+            // included. overflow: clip on both axes, so a sticky child still sticks, a focus ring's reach out,
+            // so a control flush with its foot keeps its ring. The Frame clips sideways at its own edge: the
+            // section's reach there let a glow at the frame's edge widen a frame-wide page (chat's and vault's
+            // heroes scrolled 3px from 768, ochk.io /about's mark at 320).
+            <section className={cn(sectionVariants({ tone, space: 'none', rule }), 'overflow-clip [overflow-clip-margin:var(--oca-focus-reach)]', className)} {...props}>
+                <Frame className={cn('overflow-x-clip', SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
             </section>
         );
     }

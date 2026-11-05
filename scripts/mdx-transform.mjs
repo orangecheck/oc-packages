@@ -35,7 +35,61 @@ export function mdxTransform(raw, relPath = '') {
         `    description: ${JSON.stringify(description)},\n` +
         `};\n\n`;
 
-    return exportBlock + deprecationNotice(relPath) + escapeBracesOutsideCodeFences(stripLinkExtensions(body));
+    return (
+        exportBlock +
+        deprecationNotice(relPath) +
+        escapeBracesOutsideCodeFences(stripLinkExtensions(fenceIndentedCode(body)))
+    );
+}
+
+// JSDoc examples are written indented under their prose, and TypeDoc passes the
+// indentation through. Two spaces is no code block in Markdown, so MDX set them as
+// paragraphs: braces escaped, lines run together, and a long line or a box-drawn
+// layout pushed a phone's page sideways. A run of indented lines between blank
+// lines becomes a fenced block, dedented, unless it is a list, a list item's own
+// paragraph, or holds a code span.
+export function fenceIndentedCode(s) {
+    const lines = s.split('\n');
+    const indented = (l) => /^ {2,}\S/.test(l);
+    const listItem = (l) => /^\s*(?:[-*+]|\d+[.)])\s/.test(l);
+    const fence = (l) => /^\s*```/.test(l);
+    const out = [];
+    let inFence = false;
+    let inList = false;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (fence(line)) inFence = !inFence;
+        if (inFence || fence(line) || line.trim() === '') {
+            out.push(line);
+            continue;
+        }
+        if (listItem(line)) inList = true;
+        else if (!indented(line)) inList = false;
+        const opens = indented(line) && !listItem(line) && !inList && (i === 0 || lines[i - 1].trim() === '');
+        if (!opens) {
+            out.push(line);
+            continue;
+        }
+        // The run: indented lines, and blank lines that have more of them after.
+        let end = i;
+        for (let j = i + 1; j < lines.length; j++) {
+            if (lines[j].trim() === '') continue;
+            if (!indented(lines[j]) || fence(lines[j]) || listItem(lines[j])) break;
+            end = j;
+        }
+        // A run with a backtick in it stays text. Its code spans are prose set in columns, or
+        // TypeDoc's union lines (`\|`) with their links: a fence would print the backticks, and
+        // stripping them would break a template literal in a real example.
+        const run = lines.slice(i, end + 1);
+        if (run.some((l) => l.includes('`')) || (end + 1 < lines.length && lines[end + 1].trim() !== '')) {
+            out.push(line);
+            continue;
+        }
+        const cut = Math.min(...run.filter((l) => l.trim() !== '').map((l) => l.length - l.trimStart().length));
+        out.push('```', ...run.map((l) => l.slice(cut)), '```');
+        i = end;
+    }
+    return out.join('\n');
 }
 
 function deprecationNotice(relPath) {

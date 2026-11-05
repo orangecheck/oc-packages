@@ -36,7 +36,8 @@ export const TabsList = forwardRef<
                 ref={ref}
                 className={cn(
                     look === 'pill'
-                        ? 'inline-flex max-w-full flex-wrap items-center gap-1 rounded-none bg-muted p-1'
+                        ? // A wrapped row stands far enough under the one above that their 44px targets meet, not overlap.
+                          'inline-flex max-w-full flex-wrap items-center gap-1 rounded-none bg-muted p-1 pointer-coarse:gap-y-2.5'
                         : 'flex flex-wrap items-center gap-x-6 border-b border-border',
                     className
                 )}
@@ -46,7 +47,7 @@ export const TabsList = forwardRef<
     }
     // More tabs than fit a phone scroll sideways, with an edge that says so.
     return (
-        <ScrollFade fade="var(--background)" className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
+        <ScrollFade fade="var(--background)" label={props['aria-label'] ?? 'Tabs'} className={look === 'pill' ? 'w-fit max-w-full' : 'w-full'}>
             <TabsPrimitive.List
                 ref={ref}
                 className={cn(
@@ -92,7 +93,8 @@ export const TabsTrigger = forwardRef<
                     ? // 36px drawn, 44px to a thumb: the target runs 5px past the border, into the list's padding. The chosen
                       // segment is drawn in ink as well as raised: card on the muted list alone was 1.18:1.
                       'relative h-9 rounded-none border border-transparent px-4 text-muted-foreground pointer-coarse:before:absolute pointer-coarse:before:inset-x-0 pointer-coarse:before:-inset-y-[5px] hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-card data-[state=active]:text-foreground'
-                    : '-mb-px h-11 border-b-2 border-transparent text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',
+                    : // 44px tall, and to a thumb 44 wide too, the label centred: a short one ('DCA') was 32.
+                      '-mb-px h-11 border-b-2 border-transparent text-muted-foreground pointer-coarse:min-w-11 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground',
                 className
             )}
             {...props}
