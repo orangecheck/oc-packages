@@ -6,6 +6,18 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [0.2.3] — 2026-11-05
+
+### Fixed
+
+- `readOutpoint`, and through it `writeProofOnChain`, `verifyWriteProofOnChain`
+  and `esploraWriteProofCheck`, gives each of its two Esplora reads a time of
+  its own: `EsploraOptions.timeoutMs`, default `ESPLORA_TIMEOUT_MS` (8000),
+  its body included. Past it the request is aborted and the coin is
+  `'unanswered'`, so a hung explorer leaves a post unchecked instead of
+  holding the feed. Before, the reads waited as long as the `fetch` they were
+  given.
+
 ## [0.2.2] — 2026-11-03
 
 ### Fixed

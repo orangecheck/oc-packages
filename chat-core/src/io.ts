@@ -30,15 +30,38 @@ export interface EsploraOptions {
     fetch?: typeof fetch;
     /** Share one cache across the posts of a feed. */
     cache?: WriteProofCache;
+    /** How long each of the two reads may take, its body included; default ESPLORA_TIMEOUT_MS. */
+    timeoutMs?: number;
+}
+
+/** Each Esplora read's default time: past it, the read is aborted and has no answer. */
+export const ESPLORA_TIMEOUT_MS = 8000;
+
+/** `read` within `ms`, or 'timeout' and its request aborted. */
+async function within<T>(ms: number, read: (signal: AbortSignal) => Promise<T>): Promise<T | 'timeout'> {
+    const ctl = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<'timeout'>((resolve) => {
+        timer = setTimeout(() => {
+            ctl.abort();
+            resolve('timeout');
+        }, ms);
+    });
+    try {
+        return await Promise.race([read(ctl.signal), timedOut]);
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 /**
  * The one coin a write proof names (§8.3.3 (1)): GET /tx/<txid> for the output
  * at vout, then GET /tx/<txid>/outspend/<vout>. A 404 from either, or a vout the
- * transaction does not have, is 'missing'. A 429, a 5xx, a timeout or a body
- * that does not parse is 'unanswered'. Reading the coin rather than the
- * address's whole UTXO set holds for any wallet: Esplora refuses to list an
- * address past a few hundred UTXOs, and anyone can send an author dust.
+ * transaction does not have, is 'missing'. A 429, a 5xx, no answer within
+ * `timeoutMs` (each read, its body included) or a body that does not parse is
+ * 'unanswered'. Reading the coin rather than the address's whole UTXO set holds
+ * for any wallet: Esplora refuses to list an address past a few hundred UTXOs,
+ * and anyone can send an author dust.
  */
 export async function readOutpoint(
     outpoint: string,
@@ -55,20 +78,29 @@ export async function readOutpoint(
         if (sep <= 0 || !/^[0-9a-f]{64}$/i.test(txid) || !Number.isInteger(vout) || vout < 0) {
             return 'missing';
         }
+        const ms = opts.timeoutMs ?? ESPLORA_TIMEOUT_MS;
         try {
-            const txRes = await f(`${base}/tx/${txid}`);
-            if (txRes.status === 404) return 'missing';
-            if (!txRes.ok) return 'unanswered';
-            const tx = (await txRes.json()) as {
-                vout?: { scriptpubkey_address?: string; value?: number }[];
-                status?: { confirmed?: boolean; block_height?: number; block_hash?: string };
-            };
+            const tx = await within(ms, async (signal) => {
+                const res = await f(`${base}/tx/${txid}`, { signal });
+                if (res.status === 404) return 'missing' as const;
+                if (!res.ok) return 'unanswered' as const;
+                return (await res.json()) as {
+                    vout?: { scriptpubkey_address?: string; value?: number }[];
+                    status?: { confirmed?: boolean; block_height?: number; block_hash?: string };
+                };
+            });
+            if (tx === 'timeout' || tx === 'unanswered') return 'unanswered';
+            if (tx === 'missing') return 'missing';
             const out = tx.vout?.[vout];
             if (!out) return 'missing';
-            const spendRes = await f(`${base}/tx/${txid}/outspend/${vout}`);
-            if (spendRes.status === 404) return 'missing';
-            if (!spendRes.ok) return 'unanswered';
-            const spend = (await spendRes.json()) as { spent?: unknown };
+            const spend = await within(ms, async (signal) => {
+                const res = await f(`${base}/tx/${txid}/outspend/${vout}`, { signal });
+                if (res.status === 404) return 'missing' as const;
+                if (!res.ok) return 'unanswered' as const;
+                return (await res.json()) as { spent?: unknown };
+            });
+            if (spend === 'timeout' || spend === 'unanswered') return 'unanswered';
+            if (spend === 'missing') return 'missing';
             if (typeof spend.spent !== 'boolean') return 'unanswered';
             return {
                 address: out.scriptpubkey_address ?? null,
