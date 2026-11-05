@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `DocsShell`'s article breaks a word wider than its column, so a link that
+  is one long name (a generated README's `FederationMigrationCancelledWebhookPayload`)
+  no longer scrolls a phone sideways: docs.ochk.io's agent-core, auth-client,
+  auth-core, pledge-core and me-client READMEs ran 6 to 79px past 320. It is
+  `overflow-wrap: break-word`, so a table still keeps whole words in its
+  cells and scrolls, and a code fence still scrolls its lines.
+
 - `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
   field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
   every real card the same pixels). Any other character in a mono field draws
