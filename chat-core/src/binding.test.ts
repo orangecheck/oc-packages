@@ -423,6 +423,77 @@ describe('readChannelVersions: a relay counts toward the floor only when it answ
     });
 });
 
+describe('readChannelVersions: a role holder\'s key read a relay fills to its page leaves the walk incomplete (§8.3.1)', () => {
+    const ev = version(founderKey, genesis);
+    const RELAYS = ['wss://a', 'wss://b', 'wss://c', 'wss://d'];
+    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
+    const many = (n: number) => Array.from({ length: n }, (_, i) => ({ ...ev, id: `${ev.id.slice(0, 50)}${String(i).padStart(14, '0')}` }));
+    /** Each relay's answer: `sent` and `dropped` per relay, or no counts at all when `sent` is null. */
+    const answer = (events: NostrEvent[], sent: number | null, dropped = 0) => ({
+        events,
+        relayStatus: RELAYS.map((relay) =>
+            sent === null ? { relay, eose: true } : { relay, eose: true, events: sent, rejected: dropped }
+        ),
+    });
+    /** The genesis on every read; the key read under `tag` answers `full` instead. */
+    const query =
+        (tag: '#t' | '#s', full: ReturnType<typeof answer>) => async (f: Record<string, unknown>) =>
+            Array.isArray(f.authors) && f[tag] ? full : answer([ev], 1);
+    const read = (q: (f: Record<string, unknown>) => Promise<ReturnType<typeof answer>>) =>
+        readChannelVersions(genesis.channel_id, { query: q, everBoundKeys: keys }, FOUNDER);
+
+    it('the founder\'s keys read under the tag, 500 from each relay: incomplete', async () => {
+        const r = await read(query('#t', answer([ev], 500)));
+        expect(r.events.map((e) => e.id)).toEqual([ev.id]);
+        expect(r.incomplete).toBe(true);
+        expect(r.truncated).toBe(false);
+    });
+
+    it('the walk forward by s, 500 from each relay: incomplete', async () => {
+        const r = await read(query('#s', answer([ev], 500)));
+        expect(r.incomplete).toBe(true);
+    });
+
+    it('a page is full by what the relay sent: 499 kept and 1 dropped fill it', async () => {
+        expect((await read(query('#t', answer([ev], 499, 1)))).incomplete).toBe(true);
+    });
+
+    it('499 from each relay is a whole answer: complete, and the floor met', async () => {
+        for (const tag of ['#t', '#s'] as const) {
+            const r = await read(query(tag, answer([ev], 499)));
+            expect(r.incomplete).toBe(false);
+            expect(r.floorMet).toBe(true);
+        }
+    });
+
+    it('one relay of four filling the page is enough: what it holds back no other relay may have', async () => {
+        const one = {
+            events: [ev],
+            relayStatus: RELAYS.map((relay, i) => ({ relay, eose: true, events: i === 0 ? 500 : 2, rejected: 0 })),
+        };
+        expect((await read(query('#t', one))).incomplete).toBe(true);
+    });
+
+    it('relays that each sent less than a page are whole, however many events they read back together', async () => {
+        const r = await read(query('#t', answer([ev, ...many(600)], 499)));
+        expect(r.incomplete).toBe(false);
+    });
+
+    it('with no counts, 500 events read back fill the page, and 499 do not', async () => {
+        expect((await read(query('#t', answer([ev, ...many(499)], null)))).incomplete).toBe(true);
+        expect((await read(query('#t', answer([ev, ...many(498)], null)))).incomplete).toBe(false);
+    });
+
+    it('a flood of the open read alone is truncated, not incomplete: the key reads came back short', async () => {
+        const flood = many(500).map((e) => ({ ...e, created_at: ev.created_at + 86400 }));
+        const q = async (f: Record<string, unknown>) =>
+            !Array.isArray(f.authors) && f['#t'] ? answer(flood, 500) : answer([ev], 1);
+        const r = await read(q);
+        expect(r.truncated).toBe(true);
+        expect(r.incomplete).toBe(false);
+    });
+});
+
 describe('recordReads: the floor counts relays that answered in full', () => {
     const lookup = (status: RelayAnswer[], limit?: number) =>
         recordReads(async () => ({ events: [], relayStatus: status, ...(limit ? { limit } : {}) }), {
