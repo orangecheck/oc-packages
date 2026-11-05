@@ -17,6 +17,21 @@ the search field.
   where the links come into the bar: there the name gives them its room and
   shows at least 8 characters, as everywhere.
 
+AppShell's bars name who is signed in at every width, as every header has
+since 2.2.1. Below lg, vault and ochk.app showed an initial alone.
+
+- In AppShell's bars the trigger keeps its box and shows the name at every
+  width: one line, cut at any letter with an ellipsis, at about 32
+  characters (17em), and giving way before the lockup does. On a phone the
+  initial gives its room to the name. Among a site's own controls in a
+  header's actions, the name still shows from `nameFrom`.
+- Signed in, the phone bar's lockup draws its compact mark, as SiteHeader's
+  does. In a bar like vault's (its word, the family menu and the menu
+  button), ana@example.com is whole at 360 and from 440, 13 characters at 390
+  and 8 at 320.
+- check-account holds AppShell's bar as it holds the headers', with vault's
+  family menu and footer in it.
+
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
 a theme switch, and About and Docs side by side in the phone's menu. ochk.app,
