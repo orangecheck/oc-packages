@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
+  its observer first reports it on screen, so a portrait below the fold or
+  under a phone's `TabBar` starts its intro as it comes into view. It used to
+  draw two frames at mount wherever it sat, and the first started the
+  intro's clock: by the time anyone scrolled to it, the intro was over.
+  check-tabbar counts its frames from mount, none under the bar, and wants
+  the intro above it after 2.5 s there.
+
 - A `Button` is told from its ground by its fill or its edge at 3:1, at rest
   and on hover, on the page, in every band and in every Card tone.
   - **Visible change on the ink band:** `primary` is now the brand look,
