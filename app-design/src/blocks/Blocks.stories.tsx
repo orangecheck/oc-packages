@@ -36,6 +36,29 @@ export const SignInPaper: StoryObj = {
     ),
 };
 
+// The account in your hand: the phone wakes on the account's Home when the window says you're in.
+export const SignInPhone: StoryObj = {
+    name: 'Sign-in demo, with the phone',
+    render: () => (
+        <Section tone="burnt">
+            <div className="mx-auto max-w-[62rem]">
+                <SignInDemo phone />
+            </div>
+        </Section>
+    ),
+};
+
+export const SignInPhonePaper: StoryObj = {
+    name: 'Sign-in demo, with the phone, on paper',
+    render: () => (
+        <Section>
+            <div className="mx-auto max-w-[62rem]">
+                <SignInDemo url="lumen-notes.example" phone />
+            </div>
+        </Section>
+    ),
+};
+
 export const Cost: StoryObj = {
     name: 'Cost demo',
     render: () => (

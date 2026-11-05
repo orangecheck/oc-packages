@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [2.2.0] — unreleased
+
+- `SignInDemo` takes a `phone`: the account in your hand, beside the
+  window. It rests dark, holding the dithered mark, while the window signs
+  in, and wakes on the account's Home at the last step, a beat after the
+  window's own moment. The Home is drawn as ochk.app draws it: square,
+  hairlines, mono labels, "Signed in as" and the email, three rows, recent
+  activity and the five places under the thumb, in text of 12px or more.
+  Only the device is round. `phone` is `true` for placeholder words, or an
+  object of a site's own over them (`signInDemoPhone`, type
+  `SignInDemoPhoneCopy`). From lg the phone laps the window's right edge,
+  lower down, with the steps clear of it; below lg it sits under the steps.
+  A reader's step moves it too; Try again and an earlier step put it back to
+  sleep. Under reduced motion it shows the account, still, from the first
+  frame, also when served and hydrated; the window keeps its first step as
+  before. Like the window it is a picture (`aria-hidden`). ochk.app's home
+  page drew this phone until 2.0; it comes back in 2.0's language.
+
 ## [2.1.0] — 2026-11-05
 
 A family site's sign-in page in the package. Six tool sites (lock, stamp,
