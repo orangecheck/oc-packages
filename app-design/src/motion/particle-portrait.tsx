@@ -141,6 +141,28 @@ export function ParticlePortrait({
         };
     }, [points, ground, lens, setting]);
 
+    // Labels beside the square only where the widest fits there; otherwise the numbered marks and the legend, as
+    // below 46rem (data-crowded). A label starts just outside the square, so the stage must be 1.04 squares and two
+    // labels wide: measured against the story's widest label ("Drawn from shapes, not a photo", 232px with its
+    // padding), a 702px-tall stage switches at 1194px wide, so 1440 keeps its labels and 768 to 1180 list them.
+    // Read with the labels drawn, in the frame after a resize, so nothing is painted between; a label the 46rem
+    // query hides reads as spilling, which only repeats the legend that query already shows.
+    useEffect(() => {
+        const el = stage.current;
+        const fig = root.current;
+        if (!el || !fig || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(() =>
+            requestAnimationFrame(() => {
+                fig.removeAttribute('data-crowded');
+                const s = el.getBoundingClientRect();
+                const spill = (l: Element) => l.getBoundingClientRect().left < s.left || l.getBoundingClientRect().right > s.right;
+                fig.toggleAttribute('data-crowded', [...el.querySelectorAll('.oca-note-label')].some(spill));
+            })
+        );
+        ro.observe(fig);
+        return () => ro.disconnect();
+    }, [callouts]);
+
     const words = { pause: 'Pause animation', play: 'Play animation', replay: 'Replay animation', ...labels };
     const placed = callouts.map((c, i) => {
         const side = c.side ?? (c.at[0] < 0.5 ? 'left' : 'right');

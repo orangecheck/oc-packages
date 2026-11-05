@@ -184,7 +184,7 @@ export const Forms: StoryObj = {
                             {['savings', 'cold storage'].map((t) => (
                                 <span key={t} className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-[0.8125rem]">
                                     {t}
-                                    <button type="button" aria-label={`Remove ${t}`} className="relative inline-flex size-5 items-center justify-center rounded-full hover:bg-accent pointer-coarse:before:absolute pointer-coarse:before:-inset-3">
+                                    <button type="button" aria-label={`Remove ${t}`} className="relative inline-flex size-5 items-center justify-center rounded-full hover:bg-accent before:absolute before:-inset-0.5 pointer-coarse:before:-inset-3">
                                         ×
                                     </button>
                                 </span>

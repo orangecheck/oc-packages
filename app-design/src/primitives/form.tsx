@@ -324,8 +324,8 @@ export const Checkbox = forwardRef<
         <CheckboxPrimitive.Root
             ref={ref}
             className={cn(
-                // 20px drawn, 44px to a thumb. The inset is measured from inside the 1px border.
-                'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface pointer-coarse:before:absolute pointer-coarse:before:-inset-[13px]',
+                // 20px drawn; 24 to a mouse and 44 to a thumb. The inset is measured from inside the 1px border.
+                'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',
                 'outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -378,8 +378,8 @@ export const RadioGroupItem = forwardRef<
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                // 20px drawn, 44px to a thumb, as a Checkbox is. The inset is measured from inside the 1px border.
-                'relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface pointer-coarse:before:absolute pointer-coarse:before:-inset-[13px]',
+                // 20px drawn; 24 to a mouse and 44 to a thumb, as a Checkbox is. The inset is measured from inside the 1px border.
+                'relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',
                 'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'data-[state=checked]:border-primary disabled:cursor-not-allowed disabled:opacity-50',
                 className

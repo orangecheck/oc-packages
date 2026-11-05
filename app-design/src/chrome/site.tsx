@@ -6,7 +6,7 @@ import { Lockup } from '../brand/mark';
 import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
-import { HIT_LINKS } from '../lib/hit';
+import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
 import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
@@ -32,7 +32,8 @@ function NavLink({
     const cls = cn(
         'rounded-none px-3 py-2 text-[0.9375rem] transition-colors',
         item.active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        line && 'relative after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5',
+        // A tool's links are 39px, 44 to a thumb by the ::before; the ::after is the active bar.
+        line && cn('after:absolute after:inset-x-3 after:-bottom-[0.625rem] after:h-0.5', HIT_LINK),
         line && item.active && 'after:bg-foreground',
         className
     );
@@ -87,6 +88,8 @@ function NavDropdown({ item }: { item: NavItem }) {
             <PopoverTrigger
                 className={cn(
                     'group inline-flex items-center gap-1 rounded-none py-2 pl-3 pr-2.5 text-[0.9375rem] transition-colors md:max-lg:pl-2.5 md:max-lg:pr-2',
+                    // 39px drawn, 44 to a thumb.
+                    HIT_LINK,
                     active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground data-[state=open]:text-foreground'
                 )}
             >
@@ -104,7 +107,7 @@ function NavDropdown({ item }: { item: NavItem }) {
                 <div className="mt-1.5 border-t border-border px-1 pt-1.5">
                     <NavLink
                         item={{ ...item, label: seeAll(item), children: undefined }}
-                        className="block rounded-none px-2 py-2 text-[0.875rem]"
+                        className={cn('block rounded-none px-2 py-2 text-[0.875rem]', HIT_LINK)}
                         onNavigate={() => setOpen(false)}
                     />
                 </div>
@@ -246,13 +249,15 @@ export function SiteHeader({
     const framed = !tool;
     const navigation =
         nav.length > 0 ? (
-            <nav aria-label="Main" className={cn('hidden items-center', tool ? 'gap-1' : 'ml-[1.125rem] gap-7', wide)}>
+            // To a thumb a short word's 44px is a ::before, not a wider box, and the words close up 4px, so the row still
+            // fits beside search at 900 (the home link's 44 has to be drawn: the family menu sits 4px from it).
+            <nav aria-label="Main" className={cn('hidden items-center', tool ? 'gap-1' : 'ml-[1.125rem] gap-7 pointer-coarse:gap-6', wide)}>
                 {nav.map((n) =>
                     n.children?.length ? (
                         <NavDropdown key={n.href} item={n} />
                     ) : (
                         // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink pointer-coarse:min-w-11'} />
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : cn('flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink', HIT_LINK)} />
                     )
                 )}
             </nav>

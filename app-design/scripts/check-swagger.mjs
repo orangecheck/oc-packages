@@ -53,19 +53,26 @@ function rules(text) {
     for (const m of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) out.push({ selector: m[1].trim(), body: m[2] });
     return out;
 }
-const block = (query) => {
-    const i = css.indexOf(query);
-    if (i < 0) return '';
-    let depth = 0;
-    for (let j = css.indexOf('{', i); j < css.length; j++) {
-        if (css[j] === '{') depth++;
-        else if (css[j] === '}' && --depth === 0) return css.slice(css.indexOf('{', i) + 1, j);
+/** The insides of every block under one media query, in order: the stylesheet may open the same query twice. */
+const blocks = (query) => {
+    const out = [];
+    for (let i = css.indexOf(query); i >= 0; i = css.indexOf(query, i + 1)) {
+        let depth = 0;
+        for (let j = css.indexOf('{', i); j < css.length; j++) {
+            if (css[j] === '{') depth++;
+            else if (css[j] === '}' && --depth === 0) {
+                out.push(css.slice(css.indexOf('{', i) + 1, j));
+                break;
+            }
+        }
     }
-    return '';
+    return out;
 };
-const phone = block('@media (width < 48rem)');
-const coarse = block('@media (pointer: coarse)');
-const outside = css.replace(phone, '').replace(coarse, '');
+const phones = blocks('@media (width < 48rem)');
+const coarses = blocks('@media (pointer: coarse)');
+const phone = phones.join('\n');
+const coarse = coarses.join('\n');
+const outside = [...phones, ...coarses].reduce((s, b) => s.replace(b, ''), css);
 
 // Method badges: white text on each fill.
 const badges = [...outside.matchAll(/\.opblock-(\w+) \.opblock-summary-method\s*\{\s*background:\s*(#[0-9a-f]{6})/gi)];
@@ -112,6 +119,18 @@ for (const c of [...CONTROLS, '.btn']) {
         `${c} is not a 44px target to a thumb (pointer: coarse)`
     );
 }
+
+// Swagger's text targets (a schema's Expand all, an operation's path link, the licence link) take a pseudo-element
+// centred on them: 44px to a thumb, and Expand all (62x14 as drawn) 24px to a mouse. Measured on Swagger UI's own
+// bundle at 390 touch and 1440 mouse: every one hit from its centre's reach, no row moved.
+const TEXT_TARGETS = ['.json-schema-2020-12-expand-deep-button', '.opblock-summary-path a.nostyle', '.info a'];
+const pseudo44 = rules(coarse).filter((r) => /::before/.test(r.selector) && /height:\s*44px/.test(r.body) && /min-width:\s*44px/.test(r.body) && /position:\s*absolute/.test(r.body));
+for (const c of TEXT_TARGETS) {
+    check(pseudo44.some((r) => r.selector.includes(c)), `${c} has no 44px target to a thumb (a ::before under pointer: coarse)`);
+}
+const floor24 = rules(outside).find((r) => r.selector.includes('.json-schema-2020-12-expand-deep-button::before'));
+check(/height:\s*24px/.test(floor24?.body ?? '') && /min-width:\s*24px/.test(floor24?.body ?? ''), "Expand all has no 24px target to a mouse");
+check(TEXT_TARGETS.every((c) => rules(outside).some((r) => r.selector.includes(c) && /position:\s*relative/.test(r.body))), 'a text target is not the containing block of its ::before');
 
 // Every width: each small control at least 24px, below the coarse rule; the info block's links 24px tall.
 const floor = rules(outside).filter((r) => /min-height:\s*24px/.test(r.body) && /min-width:\s*24px/.test(r.body));
