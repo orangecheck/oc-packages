@@ -29,8 +29,8 @@ const config: StorybookConfig = {
         viteConfig.plugins = viteConfig.plugins ?? [];
         viteConfig.plugins.push(tailwindcss());
 
-        // Stub Next.js client deps so @orangecheck/ui composites render without
-        // a Next runtime/router.
+        // Stub Next.js client deps so both systems' chrome and composites render
+        // without a Next runtime/router.
         viteConfig.resolve = viteConfig.resolve ?? {};
         // app-design resolves its own node_modules; one React, one next-themes.
         viteConfig.resolve.dedupe = ['react', 'react-dom', 'next-themes', 'lucide-react'];
