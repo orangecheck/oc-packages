@@ -252,7 +252,8 @@ export function liveNet(
             if (!Number.isSafeInteger(n) || n < 1) throw unread;
             return n;
         },
-        verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, fetch: timed, unanswered: 'throw' }),
+        // chat-core times each coin read and aborts its own request; a wrapper's signal would replace that.
+        verifyOnChain: esploraWriteProofCheck({ baseUrl: esplora, timeoutMs: TIMEOUT_MS, unanswered: 'throw' }),
         walk: {
             page: async (relay, filter) => {
                 const res = await ask(filter, [relay]);
