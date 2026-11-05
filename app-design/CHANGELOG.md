@@ -26,6 +26,11 @@ and only its links differ.
   the gap as it scrolled.
 - theme.css drops the `[data-oca-sticky='tool']` scroll padding: no bar is
   drawn that way now.
+- With `account`, a `SessionAccountView` (or `SessionAccount`) a site still
+  passes among `SiteHeader`'s `actions` or `menu` draws nothing, so a site
+  that moved its control to `account` and kept the old one shows one control,
+  not two. Without `account` it draws there as before. check-account holds
+  both, signed in and out, in the bar and the phone's menu.
 - `scripts/check-header.mjs`, in the test chain: in Chrome from 360 to 1920,
   ToolShell's page and app, DocsShell and a full-width app's SiteHeader draw
   ochk.app's bar, measured against it (height, mark, wordmark, gutter, links,

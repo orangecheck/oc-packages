@@ -79,6 +79,10 @@ const nav = [{ href: '/how', label: 'How it works' }, { href: '/earn', label: 'E
 const page = <main id="main-content" style={{ height: 1200 }}><p>page</p></main>;
 const views = {
     site: () => <><SiteHeader family="me" nav={nav} account={account} />{page}</>,
+    // A site that gave the header its account and still passes its old control among the actions and in the menu.
+    dup: () => <><SiteHeader family="me" nav={nav} account={account} actions={account} menu={account} />{page}</>,
+    // A site not yet bumped: its control among the actions, no \`account\`. It still draws (the inline look).
+    old: () => <><SiteHeader family="me" nav={nav} actions={account} />{page}</>,
     cta: () => <><SiteHeader product="vault" family="vault" nav={nav} cta={{ label: 'Open your vault', href: '/vault' }} account={account} />{page}</>,
     tool: () => (
         <ToolShell protocol="stamp" tools={[{ href: '/create', label: 'Create', icon: <FileText />, active: true }, { href: '/verify', label: 'Verify', icon: <List /> }]} account={account}>
@@ -94,7 +98,11 @@ const views = {
 createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place]()}</ThemeProvider>);
 `;
 
-const PLACES = ['site', 'cta', 'tool', 'app'];
+const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'app'];
+// Places whose lockup is orangecheck's alone (no site's word).
+const BARE = new Set(['site', 'dup', 'old']);
+// Places that draw the inline control, not the header's block.
+const INLINE = new Set(['app', 'old']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 // 440: between the wordmark's 420 and the bar's 480, where a signed-in site's lockup drops its wordmark.
 const WIDTHS = [320, 360, 390, 440, 768, 1024, 1440];
@@ -187,7 +195,8 @@ try {
         const errors = [];
         p.on('pageerror', (e) => errors.push(e.message));
         await p.goto(`${url}?place=${place}&state=${state}${dark ? '&dark' : ''}${extra}`);
-        await p.waitForSelector('[data-oca-account]', { state: 'attached' });
+        // A page that draws no control at all is a failure the counts below report, not a crash here.
+        await p.waitForSelector('[data-oca-account]', { state: 'attached', timeout: 5000 }).catch(() => {});
         await p.evaluate(() => document.fonts.ready);
         return { p, errors, close: () => ctx.close() };
     };
@@ -228,7 +237,7 @@ try {
                     // beside a site's word, as it always has).
                     if (place !== 'app' && !state.startsWith('in')) {
                         const words = await p.evaluate(brandWords);
-                        const want = place === 'site' ? ['orangecheck'] : width < 420 ? [place === 'cta' ? 'vault' : 'stamp'] : ['orangecheck', place === 'cta' ? 'vault' : 'stamp'];
+                        const want = BARE.has(place) ? ['orangecheck'] : width < 420 ? [place === 'cta' ? 'vault' : 'stamp'] : ['orangecheck', place === 'cta' ? 'vault' : 'stamp'];
                         check(JSON.stringify(words) === JSON.stringify(want), `${at}: the lockup draws ${JSON.stringify(words)}, not ${JSON.stringify(want)}`);
                     }
                     if (state === 'checking' || state === 'unknown') {
@@ -243,7 +252,7 @@ try {
                         const name = { in: EMAIL, 'in-did': DID, 'in-long': LONG }[state];
                         // In a header's block the trigger says who it is in words at every width; in AppShell's slot from
                         // lg, and below that its name is its label and heads the menu.
-                        const block = place !== 'app';
+                        const block = !INLINE.has(place);
                         if (block || width >= 1024) check(t?.text === name, `${at}: the trigger shows "${t?.text}", not ${name}`);
                         if (block) {
                             const n = await p.evaluate(nameRoom);
@@ -258,7 +267,7 @@ try {
                             // At least 8 of its characters at every width: below 390 the lockup is its mark alone, and below
                             // 480 a site's lockup drops the wordmark, to make the room.
                             check(n.chars >= Math.min(8, name.length), `${at}: the name shows ${n.chars} characters, under 8`);
-                            const words = width < 390 ? [] : place === 'site' ? ['orangecheck'] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
+                            const words = width < 390 ? [] : BARE.has(place) ? ['orangecheck'] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
                             if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
                             // Whole wherever the bar has the room: from 768, where the links are still in the phone's menu.

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { SIGN_IN_LABEL } from '../family';
-import { useAccountSlot } from '../lib/account-slot';
+import { useAccountSlot, useAccountTaken } from '../lib/account-slot';
 import { cn } from '../lib/cn';
 import { useFamilySignInHref, useSignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
@@ -230,7 +230,8 @@ export interface SessionAccountViewProps {
  * The account control, for any session source. SessionAccount (./session)
  * drives it from auth-client; a site with its own session (ochk.io) passes the
  * state. Exactly one control in every state; the header's phone menu gets the
- * way in at its foot, never a second control beside the trigger.
+ * way in at its foot, never a second control beside the trigger. Among the
+ * actions of a header that has `account`, it draws nothing.
  */
 export function SessionAccountView({
     state,
@@ -252,8 +253,11 @@ export function SessionAccountView({
     const family = useFamilySignInHref();
     const href = signInHref ?? inPlace ?? family;
     const appearanceItem = useAppearanceItem();
+    const taken = useAccountTaken();
     const block = look === 'block';
 
+    // Among a header's extras when the header draws the account itself: one control, not two.
+    if (taken) return null;
     if (where === 'sheet') {
         // The phone menu's foot holds only the way in: signed in, the trigger stays in the bar.
         if (state === 'in' || state === 'unknown') return null;

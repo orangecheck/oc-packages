@@ -15,3 +15,13 @@ export interface AccountSlot {
 export const AccountSlotContext = createContext<AccountSlot>({ look: 'inline', where: 'bar' });
 
 export const useAccountSlot = () => useContext(AccountSlotContext);
+
+/**
+ * True among a header's own extras (its search, actions and the phone menu's
+ * extra rows) when that header draws the account itself. A SessionAccountView
+ * there draws nothing, so a site that gives the header `account` and still
+ * passes its old control among the actions shows one control, not two.
+ */
+export const AccountTakenContext = createContext(false);
+
+export const useAccountTaken = () => useContext(AccountTakenContext);
