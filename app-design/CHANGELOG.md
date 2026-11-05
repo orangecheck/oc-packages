@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+A signed-in docs bar gives the name its room. At 390px it showed "ana…"
+beside the wordmark and search, and at 1024 two letters beside the links and
+the search field.
+
+- With someone signed in, orangecheck's own lockup (ochk.io, the docs) is its
+  mark alone below 480px, where a site's lockup drops its wordmark. The docs'
+  bar shows ana@example.com whole at 360 and 390, and 8 characters at 320.
+- `SearchButton`, with someone signed in, is its icon from 900 to 1179px,
+  where a header's links share the bar with it. Its word stays its name, and
+  the shortcut is not drawn. The docs' bar shows the name whole at 1024, and 9
+  characters at 900. Signed out, and from 1180, it is the field as before.
+- check-account holds the docs' bar too (DocsShell with its search), and 900,
+  where the links come into the bar: there the name gives them its room and
+  shows at least 8 characters, as everywhere.
+
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
 a theme switch, and About and Docs side by side in the phone's menu. ochk.app,
