@@ -206,6 +206,13 @@ describe('esploraSource', () => {
             ok: false,
             reason: 'chain_unavailable',
         });
+        // An empty or blank 200 is no height, not height 0 (every coin too recent).
+        for (const body of ['', '  ', '0', '-5']) {
+            expect(await check({ ...healthy, '/blocks/tip/height': [200, body] }), JSON.stringify(body)).toEqual({
+                ok: false,
+                reason: 'chain_unavailable',
+            });
+        }
         expect(await check({ ...healthy, '/blocks/tip/hash': [503, 'busy'] })).toEqual({
             ok: false,
             reason: 'chain_unavailable',
