@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [2.2.0] — unreleased
+## [2.2.0] — 2026-11-05
 
 One account control in every header. Signed in, ochk.app, ochk.io and the
 docs drew the account menu and a "Your account" button beside it, two
@@ -59,9 +59,9 @@ out, the family had three looks for Sign in.
   `SignInDemoPhoneCopy`). From lg the phone laps the window's right edge,
   lower down, with the steps clear of it; below lg it sits under the steps.
   A reader's step moves it too; Try again and an earlier step put it back to
-  sleep. Under reduced motion it shows the account, still, from the first
-  frame, also when served and hydrated; the window keeps its first step as
-  before. Like the window it is a picture (`aria-hidden`). ochk.app's home
+  sleep. Under reduced motion it shows the account, still, once the page has
+  hydrated (the served HTML draws it asleep); the window keeps its first step
+  as before. Like the window it is a picture (`aria-hidden`). ochk.app's home
   page drew this phone until 2.0; it comes back in 2.0's language.
 - **Visible change wherever the portrait draws:** the package's portrait is
   now a woman's head and shoulders from one photograph, not a bust drawn from
