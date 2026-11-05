@@ -7,6 +7,16 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [1.23.1] — 2026-11-05
+
+### Fixed
+
+- `esploraSource().tip()` throws on an empty, blank or non-positive height
+  body, as it does on an off-shape one. `Number('')` is 0, so an empty 200
+  from the explorer read as block height 0: every coin then looked unburied
+  and `checkBondCoin` answered `coin_too_recent` for coins of any age. It
+  now answers `chain_unavailable`.
+
 ## [1.23.0] — 2026-11-04
 
 ### Added

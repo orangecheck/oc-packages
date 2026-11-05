@@ -306,7 +306,8 @@ export function esploraSource(
         async tip() {
             const [h, hash] = await Promise.all([get('/blocks/tip/height'), get('/blocks/tip/hash')]);
             const tip = { height: Number(await h.text()), hash: (await hash.text()).trim() };
-            if (!Number.isSafeInteger(tip.height) || !/^[0-9a-f]{64}$/.test(tip.hash)) {
+            // An empty or blank body is Number('') = 0, not a height.
+            if (!Number.isSafeInteger(tip.height) || tip.height < 1 || !/^[0-9a-f]{64}$/.test(tip.hash)) {
                 throw new Error('esplora tip: malformed');
             }
             return tip;
