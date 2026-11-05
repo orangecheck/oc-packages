@@ -92,6 +92,9 @@ const dustText = (count: number) =>
 const REFUSAL: Record<string, string> = {
     invalid_address: "that isn't a Bitcoin address we can read",
     chain_unavailable: "couldn't read the chain just now · nothing changed, try again in a minute",
+    utxo_cap:
+        "this address holds more coins than the chain service lists, so they can't be read here · " +
+        'back with an address that holds fewer coins',
     sig_invalid:
         "that signature isn't from this coin's address · sign with the wallet that holds it",
     bond_expired: 'the message expired · start again',

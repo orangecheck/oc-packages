@@ -275,6 +275,7 @@ describe('refusals', () => {
     const REASONS: Record<string, RegExp> = {
         invalid_address: /isn't a Bitcoin address/,
         chain_unavailable: /couldn't read the chain/,
+        utxo_cap: /more coins than the chain service lists/,
         sig_invalid: /signature isn't from this coin's address/,
         bond_expired: /message expired/,
         bond_not_yet_valid: /clock looks wrong/,
