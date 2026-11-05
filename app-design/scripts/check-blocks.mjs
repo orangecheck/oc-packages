@@ -18,7 +18,9 @@
  *   cost and sentences replace the defaults; the crowd is one element, not a
  *   node per account; one sweep crosses it per change and then nothing runs;
  *   none under reduced motion; the total is said once a change settles.
- * - A bento tile's halftone stays clear of its words.
+ * - A bento tile's halftone stays clear of its words. Its heading is its
+ *   title or its label, at the level given, drawn as the line it replaces;
+ *   a tile has none unless asked.
  * - StepPath draws its line when it comes into view, and is simply drawn
  *   under reduced motion, also when served and hydrated; its steps are a
  *   list with the current one marked; its labels stay inside its box.
@@ -86,6 +88,8 @@ try {
             `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
             // A halftone picture at 2:1, to see it kept at its own aspect and cropped by the strip.
             `  art: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone={<img alt="" src={'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="orange"/></svg>')} />} numeral="80%" title="of a reward" /></div>,\n` +
+            // One tile three ways: no heading, its title the heading (h3 by default), its label the heading at h4.
+            `  headings: <div className="grid grid-cols-1 gap-3">{[{}, { heading: 'title' }, { heading: 'label', as: 'h4' }].map((o, i) => <div key={i} data-t={o.heading ?? 'none'} className="grid"><BentoTile label="Sealed" title="Only the two of you can read it" {...o}>Encrypted end to end.</BentoTile></div>)}</div>,\n` +
             `  receipt: <ReceiptCard id="rc" role="group" aria-label="R" unit="sats" facts={[{ label: 'When', value: 'W' }, { label: 'Paid to', value: 'P' }]} split={[{ pct: 80, label: 'x', value: '192 sats' }, { pct: 20, label: 'y' }]} rows={[{ label: 'a', amount: 240 }, { label: 'b', amount: 12.5 }, { label: 'c', amount: 0.125 }, { label: 'd', amount: 1200 }, { label: 'e', amount: <><s>60</s> 48</> }]} /> }[q.get('b')];\n` +
             // With ?ssr the page is the server's HTML, hydrated, as a site serves it: hooks first see the server's answers.
             `function Hydrated() { useEffect(() => { document.documentElement.dataset.hydrated = ''; }, []); return null; }\n` +
@@ -104,7 +108,7 @@ try {
         const p = await ctx.newPage();
         await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}${dark ? '&dark' : ''}`);
         await p.waitForSelector('[data-hydrated]', { state: 'attached' });
-        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', headings: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -554,6 +558,34 @@ try {
             check(Math.abs(art.w - art.h * 2) <= 1, `[${width}] bento: a 2:1 picture is drawn ${art.w.toFixed(1)}×${art.h.toFixed(1)}, squashed`);
             check(art.clip === 'hidden' && art.words >= art.strip, `[${width}] bento: the strip's overflow is ${art.clip}, not hidden, or the words start at ${Math.round(art.words)}px inside the strip that ends at ${Math.round(art.strip)}px`);
             await a.close();
+        }
+
+        // A tile's heading: its title or its label at the level given, drawn exactly as the plain tile's line; none unless asked.
+        for (const width of [390, 1280]) {
+            const { p, close } = await open('headings', { width });
+            const r = await p.evaluate(() => {
+                const read = (t) => {
+                    const tile = document.querySelector(`[data-t="${t}"]`);
+                    const at = tile.getBoundingClientRect();
+                    const line = (el) => {
+                        const b = el.getBoundingClientRect();
+                        const s = getComputedStyle(el);
+                        return { tag: el.tagName.toLowerCase(), box: [b.left - at.left, b.top - at.top, b.width, b.height].map((v) => Math.round(v * 2) / 2).join(' '), style: [s.fontFamily, s.fontSize, s.fontWeight, s.lineHeight, s.letterSpacing, s.textTransform, s.color, s.margin].join(' | ') };
+                    };
+                    return { headings: tile.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]').length, label: line(tile.querySelector('.oca-label')), title: line(tile.querySelector('.mt-auto > :first-child')) };
+                };
+                return { none: read('none'), title: read('title'), label: read('label') };
+            });
+            check(r.none.headings === 0 && r.none.label.tag === 'span' && r.none.title.tag === 'span', `[${width}] BentoTile with no heading: ${r.none.headings} heading(s), its label a ${r.none.label.tag} and its title a ${r.none.title.tag}`);
+            check(r.title.headings === 1 && r.title.title.tag === 'h3' && r.title.label.tag === 'span', `[${width}] BentoTile heading="title": its title is a ${r.title.title.tag} and its label a ${r.title.label.tag}, not an h3 and a span`);
+            check(r.label.headings === 1 && r.label.label.tag === 'h4' && r.label.title.tag === 'span', `[${width}] BentoTile heading="label" as="h4": its label is a ${r.label.label.tag} and its title a ${r.label.title.tag}, not an h4 and a span`);
+            for (const t of ['title', 'label']) {
+                for (const part of ['label', 'title']) {
+                    const [a, b] = [r.none[part], r[t][part]];
+                    check(a.box === b.box && a.style === b.style, `[${width}] BentoTile heading="${t}": its ${part} is drawn at ${b.box} in ${b.style}, the plain tile's at ${a.box} in ${a.style}`);
+                }
+            }
+            await close();
         }
 
         // No block widens a phone.

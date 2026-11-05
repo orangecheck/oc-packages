@@ -15,6 +15,7 @@ const entry = {
     format: 'src/format/index.ts',
     mdx: 'src/mdx/index.tsx',
     session: 'src/session/index.tsx',
+    signin: 'src/signin/index.tsx',
     acknowledgement: 'src/acknowledgement/index.tsx',
     vitest: 'src/vitest/index.ts',
     og: 'src/og/index.tsx',

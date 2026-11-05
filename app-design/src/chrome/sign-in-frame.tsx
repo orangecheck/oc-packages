@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { IsoCheck } from '../brand/iso-check';
 import { OCHK_IO, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
@@ -8,28 +8,7 @@ import { HIT_LINK } from '../lib/hit';
 import { ProductLockup } from './product-lockup';
 import { SkipLink } from './site';
 
-/**
- * The page a sign-in happens on: a form column with the lockup, a display
- * title, one line and the ceremony, and from lg an ink column with a picture.
- * The ceremony itself (OcSignIn, a SignMessage, a passkey prompt) is the
- * children; this is only the frame, so ochk.io's /signin and /sudo and every
- * tool's sign-in page look the same.
- */
-export function SignInFrame({
-    title = SIGN_IN_LABEL,
-    lead,
-    children,
-    error,
-    fineprint,
-    brand,
-    product,
-    home,
-    protocol,
-    back,
-    art,
-    caption,
-    className,
-}: {
+interface SignInFrameBase {
     title?: ReactNode;
     /** One line under the title. */
     lead?: ReactNode;
@@ -51,15 +30,68 @@ export function SignInFrame({
     home?: string;
     /** The protocol a tool site serves: its `/` redirects off-site, so home is the protocol's page. */
     protocol?: ProtocolSlug;
-    /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. */
-    back?: ReactNode;
+    /**
+     * Where the link opposite the lockup goes instead of home: the page the visitor came from, a
+     * sign-in's return target. Drawn as Back to home is, a 44px target to a thumb.
+     */
+    backTo?: string;
+    /** That link's words. Default "Go back". */
+    backLabel?: string;
     /** The picture in the ink column. Defaults to the check. */
     art?: ReactNode;
     /** A line at the foot of the ink column. */
     caption?: ReactNode;
     className?: string;
-}) {
+}
+
+/**
+ * Without its home link the frame needs a back of its own, so a sign-in page always has a way out.
+ */
+type SignInFrameProps = SignInFrameBase &
+    (
+        | {
+              homeLink?: true;
+              /** The link opposite the lockup. Defaults to "Back to home"; `null` leaves it out. Wins over `backTo`. */
+              back?: ReactNode;
+          }
+        | {
+              /**
+               * `false` draws the lockup without its link and leaves out Back to home: for a sign-in popup, which
+               * would leave its opener waiting if it navigated away. Its `back` (a Close) is then required.
+               */
+              homeLink: false;
+              back: ReactElement;
+          }
+    );
+
+/**
+ * The page a sign-in happens on: a form column with the lockup, a display
+ * title, one line and the ceremony, and from lg an ink column with a picture.
+ * The ceremony itself (OcSignIn, a SignMessage, a passkey prompt) is the
+ * children; this is only the frame, so ochk.io's /signin and /sudo and every
+ * tool's sign-in page look the same.
+ */
+export function SignInFrame({
+    title = SIGN_IN_LABEL,
+    lead,
+    children,
+    error,
+    fineprint,
+    brand,
+    product,
+    home,
+    homeLink = true,
+    protocol,
+    back,
+    backTo,
+    backLabel = 'Go back',
+    art,
+    caption,
+    className,
+}: SignInFrameProps) {
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : OCHK_IO);
+    const lockup = brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />;
+    const linkLook = cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK);
     return (
         <main
             id="main-content"
@@ -70,20 +102,26 @@ export function SignInFrame({
             <section className="flex flex-col px-4 pb-8 pt-5 sm:px-8 lg:px-14 lg:pt-8">
                 {/* To a thumb the lockup and Back to home are 44px targets by a ::before, so the header keeps its height. */}
                 <header className="flex items-center justify-between gap-4">
-                    <Link href={homeHref} className={cn('w-fit rounded-none', HIT_LINK)}>
-                        {brand ?? <ProductLockup size={26} product={product ?? (protocol ? protocolSite(protocol).label : undefined)} />}
-                        <span className="sr-only"> home</span>
-                    </Link>
-                    {back === undefined ? (
-                        <Link
-                            href={homeHref}
-                            className={cn('text-[0.9375rem] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline', HIT_LINK)}
-                        >
-                            Back to home
+                    {homeLink ? (
+                        <Link href={homeHref} className={cn('w-fit rounded-none', HIT_LINK)}>
+                            {lockup}
+                            <span className="sr-only"> home</span>
                         </Link>
                     ) : (
-                        back
+                        <span className="w-fit">{lockup}</span>
                     )}
+                    {back !== undefined ? (
+                        back
+                    ) : backTo ? (
+                        // A plain link, as each tool site's own Go back was: the return target may be another family site.
+                        <a href={backTo} className={linkLook}>
+                            {backLabel}
+                        </a>
+                    ) : homeLink ? (
+                        <Link href={homeHref} className={linkLook}>
+                            Back to home
+                        </Link>
+                    ) : null}
                 </header>
                 {/* Top-aligned: centred, the title rose by half of whatever the ceremony grew as it mounted. */}
                 <div id="signin" tabIndex={-1} className="mx-auto flex w-full max-w-[25rem] flex-1 flex-col gap-9 py-12 outline-none lg:pt-[max(3rem,12vh)]">

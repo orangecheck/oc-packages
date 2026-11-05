@@ -70,4 +70,5 @@ export { QrCode } from './qr-code';
 export type { ScrollFadeProps } from './scroll-fade';
 export { announce } from '../lib/announce';
 export { cn } from '../lib/cn';
+export { HIT_LINK } from '../lib/hit';
 export { hotkeyBlocked, useHotkey } from '../lib/hotkey';

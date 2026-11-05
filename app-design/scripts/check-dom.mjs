@@ -580,6 +580,103 @@ for (const mode of ['dark', 'light']) {
     globalThis.IntersectionObserver = kept.gio;
 }
 
+// SignInPage (./signin): the site copies' rules, moved into the package unchanged. The return target comes from the
+// address and auth-client's familyReturnTarget; ?add=1 keeps a signed-in visitor on the form; anyone else signed in is
+// sent on. jsdom navigates only within the page, so the redirect is read as a hash change to a default of /signin#done.
+{
+    const { SignInPage } = require(join(here, '../dist/signin.js'));
+    const account = {
+        id: 'acc-s',
+        did_oc: 'did:oc:ssssssssssssssssssssssssssssssss',
+        display_name: 'Sam',
+        primary_btc: null,
+        has_email: false,
+        display_identity: { kind: 'did', value: 'did:oc:ssssssssssssssssssssssssssssssss' },
+    };
+    const settle = () => act(async () => new Promise((r) => setTimeout(r, 20)));
+    const realFetch = globalThis.fetch;
+    const answer = (signedIn) => {
+        globalThis.fetch = window.fetch = async (url) => {
+            const u = String(url);
+            if (u.endsWith('/api/auth/me')) return signedIn ? new Response(JSON.stringify({ account, roster: [] }), { status: 200 }) : new Response('{}', { status: 401 });
+            return new Response('{}', { status: 404 });
+        };
+    };
+    const open = async (path, props, signedIn = false) => {
+        window.history.replaceState(null, '', path);
+        answer(signedIn);
+        const m = await mount(h(OcSessionProvider, null, h(SignInPage, props)));
+        for (let i = 0; i < 10; i++) await settle();
+        return m;
+    };
+    const backHref = (host) => host.querySelector('main header a:last-of-type')?.getAttribute('href');
+    const tool = { protocol: 'lock', defaultReturnTo: '/app' };
+
+    // 1. The return target: a same-site path or a family https address is kept; anything else falls back to the default.
+    for (const [query, want] of [
+        ['?return_to=%2Fverify%3Fid%3D1', '/verify?id=1'],
+        ['?return_to=https%3A%2F%2Fvote.ochk.io%2Fp%2Fx', 'https://vote.ochk.io/p/x'],
+        ['?return_to=%2F%5Cevil.example', '/app'],
+        ['?return_to=https%3A%2F%2Fevil.example%2F', '/app'],
+        ['?return_to=%2Ffirst&return_to=%2Fsecond', '/first'],
+        ['', '/app'],
+    ]) {
+        const { host, unmount } = await open(`/signin${query}`, tool);
+        check(backHref(host) === want, `SignInPage: with ${show(query)} Go back goes to ${show(backHref(host))}, not ${show(want)}`);
+        await unmount();
+    }
+
+    // 2. Signed in: sent to the return target once, with the notice and not the form.
+    {
+        const { host, unmount } = await open('/signin', { protocol: 'lock', defaultReturnTo: '/signin#done' }, true);
+        check(window.location.hash === '#done', `SignInPage: a signed-in visitor was not sent to the return target (${show(window.location.href)})`);
+        check(host.textContent.includes("You're already signed in") && host.textContent.includes('Heading back to /signin#done') && !host.querySelector('[data-oc-signin-panel]'), 'SignInPage: a signed-in visitor sees the form, or not the notice');
+        await unmount();
+    }
+    // ?add=1: a second account, so the form stays and nothing navigates.
+    {
+        const { host, unmount } = await open('/signin?add=1', { protocol: 'lock', defaultReturnTo: '/signin?add=1#done' }, true);
+        check(window.location.hash === '' && host.querySelector('[data-oc-signin-panel]') && !host.textContent.includes("You're already signed in"), `SignInPage: with ?add=1 a signed-in visitor was sent on or lost the form (${show(window.location.href)})`);
+        await unmount();
+    }
+    // Only a lone add=1 is add mode, as the copies' router.query.add === '1' read it: add=0 and a repeated add are not.
+    for (const query of ['?add=0', '?add=1&add=2']) {
+        window.history.replaceState(null, '', '/');
+        const { unmount } = await open(`/signin${query}`, { protocol: 'lock', defaultReturnTo: `/signin${query}#done` }, true);
+        check(window.location.hash === '#done', `SignInPage: with ${query} a signed-in visitor was kept for a second account (${show(window.location.href)})`);
+        await unmount();
+    }
+    // A site's own notice in place of the package's.
+    {
+        const { host, unmount } = await open('/signin', { protocol: 'lock', defaultReturnTo: '/signin#done2', alreadySignedIn: (to) => h('p', { 'data-own': '' }, `Taking you to ${to}`) }, true);
+        check(host.querySelector('[data-own]')?.textContent === 'Taking you to /signin#done2', 'SignInPage: alreadySignedIn is not drawn in place of the notice');
+        await unmount();
+    }
+
+    // 3. The audience OcSignIn is given: the protocol's tool origin by default, the site's own when it passes one.
+    const ocSignInProps = (host) => {
+        const node = host.querySelector('[data-oc-signin-panel]');
+        let f = node && node[Object.keys(node).find((k) => k.startsWith('__reactFiber$'))];
+        while (f && f.type?.name !== 'OcSignIn') f = f.return;
+        return f?.memoizedProps ?? null;
+    };
+    {
+        const { host, unmount } = await open('/signin?return_to=%2Fverify', tool);
+        const p = ocSignInProps(host);
+        check(p?.audience === 'https://lock.ochk.io' && p.returnTo === '/verify', `SignInPage: OcSignIn is given ${show({ audience: p?.audience, returnTo: p?.returnTo })}`);
+        await unmount();
+    }
+    {
+        const { host, unmount } = await open('/signin', { product: 'cosign', home: '/', audience: 'https://cosign.ochk.io', defaultReturnTo: '/start', back: 'home', signIn: { providersFirst: true, initialPath: 'email' } });
+        const p = ocSignInProps(host);
+        check(p?.audience === 'https://cosign.ochk.io' && p.providersFirst === true && p.initialPath === 'email' && p.returnTo === '/start', `SignInPage: a product site's audience or OcSignIn options are not passed (${show(p && { audience: p.audience, providersFirst: p.providersFirst, initialPath: p.initialPath })})`);
+        check(backHref(host) === '/' && host.querySelector('main header a:last-of-type')?.textContent === 'Back to home', 'SignInPage: back="home" is not the frame\'s Back to home');
+        await unmount();
+    }
+    globalThis.fetch = window.fetch = realFetch;
+    window.history.replaceState(null, '', '/');
+}
+
 if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);

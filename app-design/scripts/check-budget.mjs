@@ -14,9 +14,10 @@
  *
  * Run after `yarn build`.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { builtinModules, createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
@@ -54,6 +55,8 @@ const CEILING = {
     './format': 1_500,
     './mdx': 47_000,
     './session': 61_000,
+    // 13.9 KB on 2026-11-04 (2.1.0's SignInPage: the frame, Notice and the lockup; auth-client is a peer, outside).
+    './signin': 16_400,
     './acknowledgement': 11_000,
     './vitest': 500,
     // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
@@ -78,7 +81,8 @@ const CEILING = {
 // whose own changes had left about 30 bytes under 13.0, so 13.1 KB fell 19 bytes short). A page
 // pays only for the scenes it imports. Apart: the bust's two poster paths, and each lazy chunk of dots (the
 // bust's stipple, 23.8 KB, and the deck portrait kept as an option, 18.1 KB), which load only when a portrait
-// asks for them once the page is idle.
+// asks for them once the page is idle. Since 2.1 the files already on the page stay outside under one token rather
+// than their paths, so the reading no longer moves with the checkout path or chunk hashes: 13,219 bytes on 2.1.
 const MOTION_OWN = 13.2 * 1024;
 const MOTION_POSTER = 5 * 1024;
 const MOTION_LAZY = 26 * 1024;
@@ -120,10 +124,9 @@ async function shipped(entry, outside = new Set()) {
             {
                 name: 'outside',
                 setup(b) {
-                    b.onResolve({ filter: /^\./ }, (a) => {
-                        const path = join(a.resolveDir, a.path);
-                        return outside.has(path) ? { path, external: true } : undefined;
-                    });
+                    // A file already on the page stays outside under one short token, not its path: a site's bundler ships
+                    // no such import, and a path would make the reading move with the checkout path and chunk hashes.
+                    b.onResolve({ filter: /^\./ }, (a) => (outside.has(join(a.resolveDir, a.path)) ? { path: 'base', external: true } : undefined));
                 },
             },
         ],
@@ -163,6 +166,17 @@ const poster = own.filter((f) => !motion.get(f).lazy && isPoster(f));
 const gz = (files) => files.reduce((n, f) => n + gzipSync(esbuild.transformSync(motion.get(f).src, { minify: true, format: 'esm' }).code).length, 0);
 const code = await shipped(join(root, pkg.exports['./motion'].import), new Set([...base, ...lazy, ...poster]));
 check(code.total <= MOTION_OWN, `./motion's own code ships ${kb(code.total)} gzipped, over its ${kb(MOTION_OWN)} ceiling`);
+// The same measure from another checkout path, a longer one: the reading may not move with where the package sits on
+// disk (2.1's merge read 13,320 bytes here, 8 over 13.0 KB, while main read 13,306 to 13,312, with the same code).
+{
+    const tmp = mkdtempSync(join(tmpdir(), 'app-design-budget-'));
+    const at = join(tmp, 'a', 'longer', 'checkout', 'path');
+    cpSync(join(root, 'dist'), join(at, 'dist'), { recursive: true });
+    const moved = (f) => join(at, relative(root, f));
+    const there = await shipped(moved(join(root, pkg.exports['./motion'].import)), new Set([...base, ...lazy, ...poster].map(moved)));
+    rmSync(tmp, { recursive: true, force: true });
+    check(there.total === code.total, `./motion's own code reads ${code.total} bytes here and ${there.total} from a longer checkout path: the measure counts where the package sits`);
+}
 check(gz(poster) <= MOTION_POSTER, `./motion's portrait poster is ${kb(gz(poster))} gzipped, over ${kb(MOTION_POSTER)}`);
 check(lazy.length >= 2, "./motion's dots (the bust and the deck portrait) are no longer separate chunks: they would load with the entry");
 for (const f of lazy) check(gz([f]) <= MOTION_LAZY, `./motion's lazy ${f.split('/').pop()} is ${kb(gz([f]))} gzipped, over ${kb(MOTION_LAZY)}`);
