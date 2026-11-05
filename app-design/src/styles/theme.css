@@ -68,6 +68,7 @@
     --color-oca-surface-foreground: var(--oca-surface-foreground);
     --color-oca-surface-muted: var(--oca-surface-muted);
     --color-oca-primary-hover: var(--oca-primary-hover);
+    --color-oca-cta-hover: var(--oca-cta-hover);
     --color-oca-ring-on-fill: var(--oca-ring-on-fill);
     --color-oca-burnt: var(--oca-burnt);
     --color-oca-burnt-foreground: var(--oca-burnt-foreground);
@@ -302,6 +303,11 @@
     --info-foreground: var(--oca-ink-status-foreground);
     /* A field's edge, and a drawn window's, at 3:1 on the band. */
     --input: var(--oca-ink-subtle);
+    /* The CTA is the brand look, orange with ink words: no deep orange under white words holds 3:1 on the
+       dark ink band (2.79:1, and 2.56 on its card). */
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
+    --oca-cta-hover: var(--oca-orange-light);
 }
 
 @utility oca-band-ink {
@@ -342,6 +348,8 @@
     --info-foreground: var(--oca-ink-status-foreground);
     /* A field's edge, and a drawn window's, at 3:1 on the band. */
     --input: var(--oca-burnt-muted);
+    /* The CTA's hover lightens here: the darker one was 2.42:1 on the brown. */
+    --oca-cta-hover: var(--oca-primary-lift);
 }
 
 @utility oca-band-burnt {
@@ -388,6 +396,10 @@
     --info-foreground: var(--brand);
     /* A field's edge, and a drawn window's, at 3:1 on the band. */
     --input: var(--brand-foreground);
+    /* The CTA is ink with orange words, as a status fill is: the deep orange was 1.85:1 on the band. */
+    --primary: var(--brand-foreground);
+    --primary-foreground: var(--brand);
+    --oca-cta-hover: var(--oca-ink-card);
 }
 
 @utility oca-band-brand {
@@ -432,6 +444,11 @@
     --info-foreground: var(--oca-footer);
     /* A field's edge, and a drawn window's, at 3:1 on the band. */
     --input: var(--oca-footer-foreground);
+    /* The CTA as its status fills: white with the deep orange's words, where the deep orange was the footer
+       itself (1.00:1). Its hover is the CTA's own token, since the deep orange's hover is this band's --card. */
+    --primary: var(--oca-footer-foreground);
+    --primary-foreground: var(--oca-footer);
+    --oca-cta-hover: var(--oca-footer-muted);
 }
 
 @utility oca-band-footer {
@@ -539,6 +556,16 @@
     :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
         scroll-padding-top: calc(4.5rem + 3rem + 2px + 0.75rem);
+    }
+}
+/* And never under the phone's TabBar at the bottom, below md where it is shown, on a page that has one. Its
+   height is the one the bar publishes from its own box, the safe area in it (--oca-tabbar-h); before any script
+   has run, and without script, it is the bar's own size, so the server's page is clear of it too. The room
+   above it is 0.75rem. */
+@media (width < 48rem) {
+    :root[data-oc-app='ochk']:has([data-oca-tabbar]),
+    :root:has([data-oc-app='ochk'] [data-oca-tabbar]) {
+        scroll-padding-bottom: calc(var(--oca-tabbar-h, calc(3.5rem + 1px + env(safe-area-inset-bottom))) + 0.75rem);
     }
 }
 @media (width >= 64rem) {

@@ -58,9 +58,10 @@ const CEILING = {
     './signin': 16_400,
     './acknowledgement': 11_000,
     './vitest': 500,
-    // 191.7 KB on 2026-11-04: og's JetBrains Mono 400 for the card labels (27.0 KB) and its eleven baked dither PNGs,
-    // 2x included (6.0 KB), inlined for Satori (lead; measured by review-lows).
-    './og': 226_000,
+    // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
+    // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
+    // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
+    './og': 202_000,
     './fonts': 500,
     './motion': 49_500,
     // 35,948 bytes on 2026-11-04 (whole entry; Radix's slider rides in it), the ceiling 15% over. DitherMark's nine baked

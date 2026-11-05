@@ -48,6 +48,10 @@
     /* The CTA's hover, and the ring on a brand or deep fill (an orange ring on
        orange would vanish), ink in both modes. */
     --oca-primary-hover: #9a3412;
+    /* A primary Button's hover, which a band re-points: on paper the deep orange a step darker. */
+    --oca-cta-hover: #9a3412;
+    /* The deep orange a step lighter, a hover for dark grounds: the darker one sank to 2.42:1 on burnt. */
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     /* Lines */
@@ -258,6 +262,14 @@
     --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
 }
 
+/* To a thumb the wallet buttons are 44px, as this design's own are; a mouse keeps 36. */
+@media (pointer: coarse) {
+    :root[data-oc-app='ochk'],
+    [data-oc-app='ochk'] {
+        --oc-wallet-min-height: 2.75rem;
+    }
+}
+
 :root.dark[data-oc-app='ochk'],
 .dark[data-oc-app='ochk'],
 .dark [data-oc-app='ochk'] {
@@ -288,6 +300,9 @@
     --brand: #f97316;
     --brand-foreground: #161412;
     --oca-primary-hover: #9a3412;
+    /* Lighter on the dark page: the darker hover was 2.67:1 on night. */
+    --oca-cta-hover: #cc4a0e;
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     --border: #242221;

@@ -12,11 +12,39 @@ export interface ScrollFadeProps extends HTMLAttributes<HTMLDivElement> {
     fade?: string;
     /** Classes for the scrolling element itself. */
     innerClassName?: string;
+    /**
+     * Its name while it hides something and so takes focus: it is then a region with this label.
+     * Without one it takes the nearest heading before it, as a docs table under its section's title.
+     */
+    label?: string;
 }
 
-export function ScrollFade({ fade = 'var(--card)', className, innerClassName, children, ...props }: ScrollFadeProps) {
+/** The text of the nearest heading before an element, in reading order. */
+// A heading's own words: not its link to itself (a docs heading's "#", read "Link to this section") or what it
+// hides from a screen reader. A heading that is all link (an autolinked one) keeps that link's words.
+function headingText(h: Element): string | undefined {
+    const own = h.cloneNode(true) as Element;
+    own.querySelectorAll('a[href^="#"], [aria-hidden="true"]').forEach((n) => n.remove());
+    const words = (n: Node) => n.textContent?.replace(/#\s*$/, '').replace(/\s+/g, ' ').trim();
+    return words(own) || words(h) || undefined;
+}
+
+function headingBefore(el: Element): string | undefined {
+    for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
+        for (let sib = node.previousElementSibling; sib; sib = sib.previousElementSibling) {
+            const h = sib.matches('h1, h2, h3, h4, h5, h6') ? sib : [...sib.querySelectorAll('h1, h2, h3, h4, h5, h6')].pop();
+            const text = h && headingText(h);
+            if (text) return text;
+        }
+    }
+    return undefined;
+}
+
+export function ScrollFade({ fade = 'var(--card)', className, innerClassName, label, children, ...props }: ScrollFadeProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [edges, setEdges] = useState({ left: false, right: false });
+    const [heading, setHeading] = useState<string>();
+    const scrolls = edges.left || edges.right;
     const measure = useCallback(() => {
         const el = ref.current;
         if (!el) return;
@@ -42,6 +70,10 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
         });
     }, []);
     useEffect(() => {
+        if (scrolls && !label && ref.current) setHeading(headingBefore(ref.current));
+    }, [scrolls, label]);
+    const name = label ?? heading;
+    useEffect(() => {
         const el = ref.current;
         if (!el) return;
         measure();
@@ -59,7 +91,9 @@ export function ScrollFade({ fade = 'var(--card)', className, innerClassName, ch
                 onScroll={measure}
                 onFocus={reveal}
                 // While it hides something, a keyboard can reach it to scroll.
-                tabIndex={edges.left || edges.right ? 0 : undefined}
+                tabIndex={scrolls ? 0 : undefined}
+                role={scrolls && name ? 'region' : undefined}
+                aria-label={scrolls && name ? name : undefined}
                 className={cn(
                     // Positioned, so sr-only text deep in a wide row scrolls and clips with the row.
                     // The ring is drawn inside the edge: a rounded, clipped frame (a code block's) would cut an outside one away.

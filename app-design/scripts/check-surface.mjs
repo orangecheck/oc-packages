@@ -8,12 +8,12 @@
  *     "### Migrating from 1.x" does not name it, the export in backticks, and
  *     a prop beside its component on one line;
  *   - a new entry, or a new value export (a component, a function, a
- *     constant), is not named in backticks in a section since 1.29.3: the
- *     [2.0.0] section or a later one ([2.1.0], [Unreleased]), whichever
- *     release adds it.
+ *     constant), is not named in backticks in the [2.0.0] section, when 2.0.0
+ *     shipped it, or in a section above [2.0.0] ([Unreleased] included), when
+ *     it came after. scripts/surface-2.0.0.json is 2.0.0's surface.
  * A site lane migrates from that list, so nothing it greps for may be missing.
- * The snapshot itself is held to npm's published 1.29.3 by
- * check-surface-1.29.3.mjs, a CI step of its own, since it needs the network.
+ * Each snapshot is held to the version npm published by check-surface-npm.mjs,
+ * a CI step of its own per version, since it needs the network.
  * Run after `yarn build`.
  *
  *   node scripts/check-surface.mjs                      check
@@ -40,12 +40,13 @@ if (!existsSync(join(root, 'dist/index.d.ts'))) {
     process.exit(1);
 }
 const before = JSON.parse(readFileSync(join(root, 'scripts/surface-1.29.3.json'), 'utf8'));
+const shipped = JSON.parse(readFileSync(join(root, 'scripts/surface-2.0.0.json'), 'utf8'));
 const now = surface(join(root, 'dist'), join(root, 'package.json'));
 const log = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
 const section = log.slice(log.indexOf('## [2.0.0]'), log.indexOf('\n## [', log.indexOf('## [2.0.0]') + 1));
+// Every section above [2.0.0], [Unreleased] included: where an entry or export 2.0.0 did not ship is named.
+const since = log.slice(log.indexOf('## [Unreleased]'), log.indexOf('## [2.0.0]'));
 const migrating = section.slice(section.indexOf('### Migrating from 1.x'), section.indexOf('\n### ', section.indexOf('### Migrating from 1.x') + 1));
-// Every section from the top of the log to the end of [2.0.0]: what 2.0.0 and each release after it added.
-const since = log.slice(0, log.indexOf('## [2.0.0]') + section.length);
 // Named: inside a code span, as the whole span or as a token in it (`<ThemeColorMeta />`, `Faq variant`).
 const named = (text, name) =>
     [...text.matchAll(/`([^`\n]+)`/g)].some(([, span]) => {
@@ -84,13 +85,19 @@ for (const [entry, exps] of Object.entries(before.exports)) {
         }
     }
 }
+check(since.startsWith('## [Unreleased]'), 'the CHANGELOG has no [Unreleased] section above [2.0.0]');
+// Named where it first shipped: in [2.0.0] for 2.0.0's, above it for one added since.
+const where = (in2) => (in2 ? [section, 'the [2.0.0] section'] : [since, '[Unreleased] or a section after 2.0.0']);
 for (const entry of now.entries) {
-    if (!before.entries.includes(entry)) check(named(since, entry), `the new entry ${entry} is not named in [2.0.0] or a later section`);
+    if (before.entries.includes(entry)) continue;
+    const [text, said] = where(shipped.entries.includes(entry));
+    check(named(text, entry), `the new entry ${entry} is not named in ${said}`);
 }
 for (const [entry, exps] of Object.entries(now.exports)) {
     for (const [name, is] of Object.entries(exps)) {
         if (is.kind === 'type' || before.exports[entry]?.[name] || Object.values(before.exports).some((e) => e[name])) continue;
-        check(named(since, name), `the new export ${name} (${entry}) is not named in [2.0.0] or a later section`);
+        const [text, said] = where(Boolean(shipped.exports[entry]?.[name] || Object.values(shipped.exports).some((e) => e[name])));
+        check(named(text, name), `the new export ${name} (${entry}) is not named in ${said}`);
     }
 }
 
@@ -98,4 +105,4 @@ if (failures) {
     console.error(`\n${failures} surface failure(s)`);
     process.exit(1);
 }
-console.log(`✓ surface: ${checks} checks; every 1.29.3 entry, export and prop is still there or named in Migrating, and every new entry and export is in [2.0.0] or a later section`);
+console.log(`✓ surface: ${checks} checks; every 1.29.3 entry, export and prop is still there or named in Migrating, and every new entry and export is named where it first shipped: [2.0.0], or a section after it`);
