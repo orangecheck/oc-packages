@@ -64,14 +64,14 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
             className={cn(
                 'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:size-11',
                 'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card md:pointer-coarse:h-11 md:pointer-coarse:w-56',
-                'min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:w-10 min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:justify-center min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:border-transparent min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:bg-transparent min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:px-0 min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:hover:bg-accent min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:pointer-coarse:w-11',
+                'min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:w-10 min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:justify-center min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:border-transparent min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:bg-transparent min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:px-0 min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:hover:bg-accent min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:pointer-coarse:w-11',
                 className
             )}
         >
-            <Search aria-hidden className="size-[1.125rem] shrink-0 md:size-4 min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:size-[1.125rem]" />
+            <Search aria-hidden className="size-[1.125rem] shrink-0 md:size-4 min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:size-[1.125rem]" />
             {/* The word is the button's name at every width; a phone shows only the icon. */}
-            <span className="sr-only flex-1 text-left text-[0.9375rem] md:not-sr-only min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:sr-only">{label}</span>
-            <Kbd aria-hidden className="hidden md:inline-flex min-[900px]:max-[1179px]:group-has-[[data-oca-account=in]]/bar:hidden">
+            <span className="sr-only flex-1 text-left text-[0.9375rem] md:not-sr-only min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:sr-only">{label}</span>
+            <Kbd aria-hidden className="hidden md:inline-flex min-[900px]:max-[1180px]:group-has-[[data-oca-account=in]]/bar:hidden">
                 {mac ? '⌘K' : 'Ctrl K'}
             </Kbd>
         </button>

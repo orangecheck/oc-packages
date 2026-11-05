@@ -37,6 +37,11 @@ since 2.2.1. Below lg, vault and ochk.app showed an initial alone.
   as a local header at 1440. It does not stick, and the scroll padding from lg
   stays 0. check-account and check-shell hold both bars.
 
+- A band's last pixel is in it. Tailwind's `max-[Npx]` stops short of N, so
+  `SearchButton`'s icon band ended at 1178px, and at 899 the family menu
+  stayed in the bar beside the menu button. check-account reads 1179, and
+  check-header refuses the family menu beside the menu button.
+
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
 a theme switch, and About and Docs side by side in the phone's menu. ochk.app,
