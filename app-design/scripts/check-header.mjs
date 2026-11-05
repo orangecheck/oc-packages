@@ -9,7 +9,7 @@
  * - no theme switch in the bar: it is in the footer and the account menu;
  * - ToolShell's phone menu holds its links one row each, as ochk.app's does;
  * - with the longest tool set a site has (agent's four), no link wraps, the lockup's word is whole and the bar does
- *   not overflow; Docs and About join the bar from 1180px, and the menu holds them below.
+ *   not overflow; Docs and About join the bar from 1180px, and the menu holds them below; a rail page keeps them.
  *
  * It bundles the package's sources, so it needs no build.
  */
@@ -56,6 +56,7 @@ const views = {
     app: () => <><SiteHeader family="me" nav={[{ href: '/how', label: 'How it works' }, { href: '/earn', label: 'Earn' }, { href: '/apps', label: 'For apps' }]} account={account} />{page}</>,
     tool: () => <ToolShell protocol="agent" tools={tools} account={account}><p>page</p></ToolShell>,
     toolapp: () => <ToolShell protocol="attest" variant="app" tools={tools} account={account}><p>page</p></ToolShell>,
+    toolrail: () => <ToolShell protocol="agent" rail railFooter={<a href="/docs">Docs</a>} tools={tools} account={account}><p>page</p></ToolShell>,
     docs: () => <DocsShell nav={[{ label: 'Start', items: [{ href: '/', label: 'Overview' }] }]} current="/" account={account}><div style={{ height: 2400 }}>page</div></DocsShell>,
     messenger: () => (
         <AppShell variant="rail" header={<SiteHeader variant="tool" home="/" product="chat" family="chat" nav={[{ href: '/', label: 'Overview' }]} account={account} />} nav={[{ items: [{ href: '/a', label: 'Chats', icon: <House />, active: true }] }]}>
@@ -140,8 +141,8 @@ try {
         return { p, errors, close: () => ctx.close() };
     };
     try {
-        const PLACES = ['tool', 'toolapp', 'docs', 'messenger'];
-        const TOOLS = new Set(['tool', 'toolapp']);
+        const PLACES = ['tool', 'toolapp', 'toolrail', 'docs', 'messenger'];
+        const TOOLS = new Set(['tool', 'toolapp', 'toolrail']);
         for (const width of [360, 390, 768, 899, 900, 1024, 1179, 1180, 1440, 1920]) {
             const ref = await open('app', width);
             const want = await ref.p.evaluate(measure);
@@ -166,7 +167,9 @@ try {
                 check(got.mark?.w === want.mark.w && got.mark?.h === want.mark.h, `${at}: the mark is ${JSON.stringify(got.mark)}, ochk.app's ${JSON.stringify(want.mark)}`);
                 check(got.word === want.word, `${at}: the wordmark is ${got.word}, ochk.app's ${want.word}`);
                 check(got.padLeft === want.padLeft && Math.abs(got.mark.x - (bleed ? want.mark.x - want.row.x - parseFloat(want.rules[0]) : want.mark.x)) <= 0.5, `${at}: the lockup starts at ${got.mark?.x} (gutter ${got.padLeft}), ochk.app's at ${want.mark.x} (${want.padLeft})`);
-                check(JSON.stringify(got.nav && { font: got.nav.font, gap: got.nav.gap }) === JSON.stringify(want.nav && { font: want.nav.font, gap: want.nav.gap }), `${at}: the navigation is ${JSON.stringify(got.nav)}, ochk.app's ${JSON.stringify(want.nav)}`);
+                // A rail page's bar from lg holds no tools, so from 1024 to 1179 no link: its first is Docs from 1180.
+                if (!(place === 'toolrail' && width >= 1024 && width < 1180))
+                    check(JSON.stringify(got.nav && { font: got.nav.font, gap: got.nav.gap }) === JSON.stringify(want.nav && { font: want.nav.font, gap: want.nav.gap }), `${at}: the navigation is ${JSON.stringify(got.nav)}, ochk.app's ${JSON.stringify(want.nav)}`);
                 // A tool bar's menu holds Docs and About to 1179px, so its button stays there beside the tools.
                 const menuWanted = TOOLS.has(place) ? width < 1180 : want.menu;
                 check(got.menu === menuWanted, `${at}: the menu button is ${got.menu ? 'there' : 'missing'}, ${menuWanted ? 'wanted' : 'not wanted'}`);
@@ -176,7 +179,7 @@ try {
                 check(got.cut.length === 0, `${at}: the lockup's word is cut: ${got.cut.join(', ')}`);
                 check(!got.over, `${at}: the bar overflows`);
                 if (TOOLS.has(place)) {
-                    const wantLinks = width < 900 ? [] : ['Create', 'Inspect', 'Delegations', 'Playground', ...(width >= 1180 ? ['Docs', `About ${place === 'toolapp' ? 'attest' : 'agent'}`] : [])];
+                    const wantLinks = width < 900 ? [] : [...(place === 'toolrail' && width >= 1024 ? [] : ['Create', 'Inspect', 'Delegations', 'Playground']), ...(width >= 1180 ? ['Docs', `About ${place === 'toolapp' ? 'attest' : 'agent'}`] : [])];
                     check(JSON.stringify(got.links) === JSON.stringify(wantLinks), `${at}: the bar's links are ${JSON.stringify(got.links)}, not ${JSON.stringify(wantLinks)}`);
                 }
                 check(got.theme === 0, `${at}: ${got.theme} theme switch in the bar`);
@@ -221,8 +224,8 @@ try {
             check(rows.every((r) => r[1] === rows[0][1] && r[3] >= 44) && rows.every((r, i) => i === 0 || r[2] >= rows[i - 1][2] + rows[i - 1][3] - 1), `ToolShell's phone menu is not one 44px row per link: ${JSON.stringify(rows)}`);
             await close();
         }
-        // From 900 to 1179 a tool bar's menu holds what the bar does not show: Docs and About.
-        for (const place of ['tool']) {
+        // From 900 to 1179 a tool bar's menu holds what the bar does not show: Docs and About, on a rail page too.
+        for (const place of ['tool', 'toolrail']) {
             const { p, close } = await open(place, 1024);
             await p.locator('header button[aria-label="Open menu"]').click();
             await p.waitForSelector('[role="dialog"]');

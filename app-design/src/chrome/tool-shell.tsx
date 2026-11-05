@@ -124,8 +124,8 @@ export function ToolShell({
                     navWide={[docs, about]}
                     // The menu holds every link the bar does, as ochk.app's: below md the tools are in the tab bar
                     // too, and from md to 900px, where the tab bar is gone, only here; Docs and About to 1179px.
-                    // With a rail, the tools leave the header from lg.
-                    className={cn(rail && 'lg:[&_nav[aria-label=Main]]:hidden')}
+                    // With a rail, the tools leave the header from lg, and Docs and About stay.
+                    className={cn(rail && 'lg:[&_nav[aria-label=Main]_[data-nav=main]]:hidden')}
                     actions={p.status !== 'live' ? <StatusBadge status={p.status} className="max-sm:hidden" /> : undefined}
                     account={account}
                 />
