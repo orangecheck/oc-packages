@@ -2,6 +2,8 @@ export { SignInDemo } from './sign-in-demo';
 export type { SignInDemoProps, SignInDemoScreen, SignInDemoScreenState, SignInDemoStep } from './sign-in-demo';
 export { signInDemoSteps } from './sign-in-demo-app';
 export type { SignInDemoCopy } from './sign-in-demo-app';
+export { signInDemoPhone } from './sign-in-demo-phone';
+export type { SignInDemoPhoneCopy } from './sign-in-demo-phone';
 export { CostDemo, costText } from './cost-demo';
 export type { CostBar, CostDemoLabels, CostDemoProps } from './cost-demo';
 export { BentoGrid, BentoTile } from './bento';

@@ -6,6 +6,7 @@ import { announce } from '../lib/announce';
 import { cn } from '../lib/cn';
 import { useOnScreen, usePrefersStill } from './parts';
 import { signInDemoSteps } from './sign-in-demo-app';
+import { DemoPhone, signInDemoPhone, type SignInDemoPhoneCopy } from './sign-in-demo-phone';
 
 /*
  * Our sign-in, played on a made-up app inside a browser window. It plays by
@@ -20,6 +21,11 @@ import { signInDemoSteps } from './sign-in-demo-app';
  * the code, under one label). The steps read the ground's tokens, so on an
  * ink or burnt band they take its colours; the window keeps the product
  * surface's own.
+ *
+ * With `phone`, a phone stands beside the window (under it, on a phone's
+ * screen): the account in your hand. It rests dark while the window signs
+ * in and wakes on the account's Home at the last step; under reduced motion
+ * it shows the account, still. It is a picture too.
  */
 
 export interface SignInDemoScreenState {
@@ -60,6 +66,11 @@ export interface SignInDemoProps {
     url?: string | null;
     /** The control on the last screen that plays the demo again. */
     tryAgain?: string;
+    /**
+     * A phone beside the window that wakes on the account at the last step. `true` draws it with placeholder
+     * words; an object passes a site's own, over the placeholders (`signInDemoPhone`).
+     */
+    phone?: boolean | Partial<SignInDemoPhoneCopy>;
     className?: string;
 }
 
@@ -79,6 +90,7 @@ export function SignInDemo({
     stepsLabel = 'Steps',
     url = null,
     tryAgain = 'Try again',
+    phone,
     className,
 }: SignInDemoProps) {
     const rootRef = useRef<HTMLDivElement>(null);
@@ -215,6 +227,12 @@ export function SignInDemo({
         firstStepRef.current?.focus({ preventScroll: true });
     };
 
+    // The phone wakes at the last step, after the window's own moment while it plays; under reduced motion it is
+    // simply awake.
+    const phoneCopy = phone ? signInDemoPhone(phone === true ? undefined : phone) : null;
+    const awake = effective === 'still' || stepIndex === steps.length - 1;
+    const wake = effective === 'still' ? false : effective === 'auto' ? 'after' : 'now';
+
     const playing = active;
     const pressed = effective === 'auto' && phase === 'press';
     const screen = scene.render({ playing, pressed, success: (success ?? defaultSuccess)({ playing }) });
@@ -230,12 +248,16 @@ export function SignInDemo({
             data-demo-mode={effective}
             data-demo-step={stepIndex}
             data-demo-screen={index}
-            className={cn('flex w-full flex-col gap-6', className)}
+            className={cn(
+                // Beside a phone from lg: the window and its steps, the phone lapping the window's edge, lower down.
+                phoneCopy ? 'grid w-full grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-rows-[auto_1fr] lg:gap-x-0' : 'flex w-full flex-col gap-6',
+                className
+            )}
             onPointerDownCapture={takeOver}
             onKeyDownCapture={takeOver}
             onFocusCapture={takeOver}
         >
-            <div ref={stageRef} className="relative" onClick={onStageClick}>
+            <div ref={stageRef} className={cn('relative', phoneCopy && 'lg:col-start-1 lg:row-start-1')} onClick={onStageClick}>
                 <BrowserFrame variant="paper" glow url={url}>
                     <div ref={viewRef} aria-hidden className="flex h-[25rem] items-center justify-center bg-oca-surface px-4 pb-10 text-oca-surface-foreground md:h-[27rem]">
                         {screen}
@@ -257,7 +279,7 @@ export function SignInDemo({
                     </span>
                 ) : null}
             </div>
-            <ol aria-label={stepsLabel} className="grid gap-2.5 md:gap-5" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+            <ol aria-label={stepsLabel} className={cn('grid gap-2.5 md:gap-5', phoneCopy && 'lg:col-start-1 lg:row-start-2 lg:pr-16')} style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
                 {steps.map((s, i) => {
                     const state = i < stepIndex || (i === stepIndex && done) ? 'done' : i === stepIndex ? 'current' : 'upcoming';
                     return (
@@ -295,6 +317,14 @@ export function SignInDemo({
                     );
                 })}
             </ol>
+            {phoneCopy ? (
+                <DemoPhone
+                    copy={phoneCopy}
+                    awake={awake}
+                    wake={wake}
+                    className="mt-2 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:-ml-12 lg:mt-10 lg:self-start"
+                />
+            ) : null}
         </div>
     );
 }
