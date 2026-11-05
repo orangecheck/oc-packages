@@ -556,40 +556,33 @@ try {
             h(
                 'div',
                 null,
-                h('div', { 'data-cta-case': 'pending' }, ctaHeader({ pending: true, reserve: ['Your account'] })),
-                h('div', { 'data-cta-case': 'resolved' }, ctaHeader({ label: 'Your account', href: '/me', reserve: ['Get an account'] }))
+                h('div', { 'data-cta-case': 'pending' }, ctaHeader({ label: 'Open your vault', pending: true, reserve: ['Open chat'] })),
+                h('div', { 'data-cta-case': 'resolved' }, ctaHeader({ label: 'Open chat', href: '/app', reserve: ['Open your vault'] }))
             )
         )
     );
-    // A phone's header with the family's longest product word: the site header with Sign in and its CTA,
-    // and the tool header with an account button. Nothing may run off the row or under the next part.
+    // A phone's header with the family's longest product word, signed in with a long email: the site header with
+    // its account block, the same given a site's own CTA too (it gives way to the account), and the tool header.
+    // Nothing may run off the row or under the next part.
     const Fam = require(join(pkg, 'dist/family.js'));
     const longest = Fam.FAMILY.map((s) => s.label)
         .filter((l) => !l.includes('.'))
         .sort((a, b) => b.length - a.length)[0];
+    const signedIn = h(Ch.SessionAccountView, { state: 'in', name: 'satoshi.nakamoto@example.com' });
     const narrow = page(
         'header-narrow',
         renderToStaticMarkup(
             h(
                 'div',
                 null,
-                // As chat and vault compose it: the family menu, an account button among the actions, and the CTA.
+                h('div', { 'data-hdr': 'site' }, h(Ch.SiteHeader, { product: longest, family: true, nav: [{ href: '/how', label: 'How it works' }], account: signedIn })),
+                // As chat and vault composed it before 2.2: the family menu, the account, and the site's own CTA.
                 h(
                     'div',
-                    { 'data-hdr': 'site' },
-                    h(Ch.SiteHeader, {
-                        product: longest,
-                        family: true,
-                        nav: [{ href: '/how', label: 'How it works' }],
-                        actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account'),
-                        cta: true,
-                    })
+                    { 'data-hdr': 'site-cta' },
+                    h(Ch.SiteHeader, { product: longest, family: true, nav: [{ href: '/how', label: 'How it works' }], account: signedIn, cta: { label: 'Open your vault', href: '/vault' } })
                 ),
-                h(
-                    'div',
-                    { 'data-hdr': 'tool' },
-                    h(Ch.SiteHeader, { variant: 'tool', product: longest, family: true, actions: h(P.Button, { size: 'sm', variant: 'secondary' }, 'Your account') })
-                )
+                h('div', { 'data-hdr': 'tool' }, h(Ch.SiteHeader, { variant: 'tool', product: longest, family: true, actions: h(Ch.ThemeToggle, {}), account: signedIn }))
             )
         )
     );
@@ -2872,10 +2865,13 @@ try {
                     return false;
                 };
                 // `behind` names the trigger that was opened: then only what it showed is read, and each target once.
-                window.__census = (behind) => {
+                // What it showed is in its own story or in a layer outside every story; a target another story
+                // shows by itself meanwhile (a demo's last screen) is left for the page pass, read where it is.
+                window.__census = (behind, story) => {
                 const out = { seen: 0, inline: [], small: [], spaced: [], plants: {} };
                 for (const el of document.querySelectorAll(SEL)) {
                     if (el.hasAttribute('data-census-read') || (behind && el.dataset.censusBehind) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
+                    if (behind && el.closest('[data-story], [data-plants]') && el.closest('[data-story]')?.dataset.story !== story) continue;
                     const box = el.getBoundingClientRect();
                     // checkVisibility skips a closed details' content too: it keeps its boxes but draws and takes nothing.
                     if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true })) continue;
@@ -2985,6 +2981,7 @@ try {
                 });
                 for (let i = 0; i < r.doors; i++) {
                     const door = c.locator(`[data-census-door="${i}"]`);
+                    const story = await door.evaluate((el) => el.closest('[data-story]')?.dataset.story).catch(() => null);
                     const name = await door.evaluate((el) => `behind ${el.closest('[data-story]')?.dataset.story} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 24)}"`).catch(() => null);
                     if (!name) continue;
                     // The trigger mid-screen, so what it opens has room on either side.
@@ -2996,7 +2993,7 @@ try {
                     }
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 300)));
                     await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
-                    const got = await c.evaluate((n) => window.__census(n), name);
+                    const got = await c.evaluate(([n, st]) => window.__census(n, st), [name, story]);
                     if (got.seen + got.inline.length) r.opened++;
                     r.behind += got.seen;
                     r.inline.push(...got.inline);

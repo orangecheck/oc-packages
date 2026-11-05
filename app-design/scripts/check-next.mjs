@@ -112,7 +112,8 @@ try {
     }
     // The tool shell: home on the protocol's page, and sign-in returning to this route, base path and all.
     const tool = readFileSync(join(site, '.next', 'server', 'pages', 'verify.html'), 'utf8');
-    const signIn = tool.match(/<a [^>]*href="([^"]*)"[^>]*>Sign in</)?.[1];
+    // The way in, by its mark: its words sit in a span inside the link.
+    const signIn = tool.match(/<a [^>]*data-oca-account="out"[^>]*>/)?.[0].match(/\bhref="([^"]*)"/)?.[1];
     if (signIn !== '/signin?return_to=%2Fb%2Fverify') {
         console.error(`✗ next: sign-in rendered href="${signIn}" on /b/verify; expected /signin?return_to=%2Fb%2Fverify`);
         process.exit(1);

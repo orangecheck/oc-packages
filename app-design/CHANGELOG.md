@@ -4,6 +4,50 @@
 
 ## [2.2.0] — unreleased
 
+One account control in every header. Signed in, ochk.app, ochk.io and the
+docs drew the account menu and a "Your account" button beside it, two
+controls for one person, and cosign drew Dashboard beside the menu; signed
+out, the family had three looks for Sign in.
+
+- `SiteHeader` gains `account`: the one account control, the full-height
+  block at the bar's right rule. Signed out it is the way in, "Sign in"
+  (`SIGN_IN_LABEL`) with the trailing "+", to the sign-in that also makes the
+  account; below 480px it moves to the foot of the phone menu. Signed in it
+  is a trigger showing who is signed in, with one menu. While the session is
+  checked, or when the check failed, it is a placeholder of the same box with
+  no words, no link and no tab stop. With `account`, `cta` and `signIn` are
+  not drawn: a site's own action ("Open your vault", "Dashboard") goes among
+  the menu's `items`.
+- `ToolShell` passes its `account` to that slot, where it was among the
+  header's actions, and `DocsShell` gains `account` for its header.
+- The menu holds the site's `items`, then Account settings
+  (`ACCOUNT_SETTINGS_LABEL`, to `OCHK_APP_ACCOUNT`), then Appearance, then
+  Sign out. Appearance names the current theme and moves to the next (light,
+  dark, system) with the menu left open, as ochk.app's menu does.
+  `accountHref={false}` leaves Account settings out where the site's items
+  hold the account page; `appearance={false}` leaves Appearance out.
+  `useAppearanceItem` is exported for a menu a site builds itself.
+- The trigger shows the session's email when the session shows one, else
+  the chosen name, else a short address, else a short did (`accountName`).
+  "Your account" is no longer a name, a label or a button anywhere in the
+  package: a failed check drew a "Your account" button, and a session with
+  no name was called "Your account".
+- `AccountMenu`'s items are keyed by place, so an item whose label changes
+  as it is pressed keeps its focus. `AccountMenu`, `AccountMenuItem` and
+  `SessionAccountView` move to `chrome/account.tsx`; `./chrome` exports them
+  as before, with `SessionState`.
+- `signInVariant` on `SessionAccountView` and `SessionAccount` is deprecated
+  and ignored: the way in has one look per place.
+- `scripts/check-account.mjs`, in the test chain: in Chrome, in four places
+  (the site header, a header given a site's own CTA, ToolShell, AppShell), in
+  every state from 320 to 1440, exactly one account control a person can use
+  (none while checking), never "Your account", a 44px trigger with its name,
+  a 3:1 focus ring in light and dark, and the menu by keyboard: Enter, Space
+  and ArrowDown open it, Escape returns focus to the trigger, Appearance
+  keeps it open, Sign out runs. check-render counts the controls in every
+  header and state. The layout census, behind a trigger, reads only what that
+  trigger's story or a layer outside every story shows; a target another
+  story shows by itself meanwhile is read where it is.
 - `SignInDemo` takes a `phone`: the account in your hand, beside the
   window. It rests dark, holding the dithered mark, while the window signs
   in, and wakes on the account's Home at the last step, a beat after the

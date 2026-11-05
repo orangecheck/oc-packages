@@ -1,127 +1,16 @@
-import { ArrowUpRight, CircleUser, LogOut } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ToolItem } from '../components/tools';
-import { GET_AN_ACCOUNT, protocolSite, SIGN_IN_LABEL, type ProtocolSlug } from '../family';
+import { protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { HIT_LINK } from '../lib/hit';
 import { InColumnContext } from '../lib/column';
 import { DensityProvider } from '../lib/density';
-import { useFamilySignInHref, useSignInHref } from '../lib/sign-in';
 import { SiteHomeContext } from '../lib/site-home';
-import { Button } from '../primitives/button';
 import { StatusBadge } from '../primitives/status-badge';
-import { AccountMenu, SideNav, TabBar, tabsFor, ThemeToggle, type AccountMenuItem } from './app-shell';
+import { SideNav, TabBar, tabsFor, ThemeToggle } from './app-shell';
 import { SiteFooter, SiteHeader, SkipLink } from './site';
-
-/* ── The account slot ────────────────────────────────────────────────── */
-
-/** Where the session stands: being checked, signed in, signed out, or the check failed. */
-export type SessionState = 'checking' | 'in' | 'out' | 'unknown';
-
-export const OCHK_APP_ACCOUNT = 'https://ochk.app/me/account';
-
-/** Said when the auth host did not end the session, as auth-client's own chip says it. */
-const SIGN_OUT_REFUSED = 'Couldn’t sign out. You’re still signed in; try again.';
-
-/**
- * The header's account control, for any session source: the account menu
- * when signed in, "Sign in" when not. While the check runs, the button holds
- * its place unseen, so the header never shifts and a signed-in person never
- * sees "Sign in" flash. A failed check offers the account page, which works
- * either way. SessionAccount (./session) drives it from auth-client.
- */
-export function SessionAccountView({
-    state,
-    name,
-    detail,
-    items = [],
-    signInHref,
-    signInPath,
-    signInLabel = SIGN_IN_LABEL,
-    signInVariant,
-    accountHref = OCHK_APP_ACCOUNT,
-    onSignOut,
-    signOutRefused = false,
-    onMenuOpenChange,
-    nameFrom = 'lg',
-}: {
-    state: SessionState;
-    /** The account's name, as it chose to be shown. */
-    name?: string;
-    /** A second line: a short address. */
-    detail?: string;
-    /** This site's own items, above "Your account". */
-    items?: (AccountMenuItem | 'separator')[];
-    /** Where "Sign in" goes, as given. */
-    signInHref?: string;
-    /** This site's sign-in page (`/signin`): "Sign in" returns to the page the viewer is on. */
-    signInPath?: string;
-    signInLabel?: string;
-    /** The signed-out button's look. Default: primary for the account phrase (GET_AN_ACCOUNT), as AccountCta draws it; secondary for "Sign in". */
-    signInVariant?: 'primary' | 'secondary';
-    /** Where "Your account" goes: ochk.app. */
-    accountHref?: string;
-    onSignOut?: () => void;
-    /** The last sign-out was refused, so the person is still signed in: said under the menu. */
-    signOutRefused?: boolean;
-    /** Called as the account menu opens and closes. */
-    onMenuOpenChange?: (open: boolean) => void;
-    nameFrom?: 'sm' | 'lg';
-}) {
-    const inPlace = useSignInHref(signInPath);
-    const family = useFamilySignInHref();
-    if (state === 'in') {
-        const menu = (
-            <AccountMenu
-                name={name || 'Your account'}
-                detail={detail}
-                nameFrom={nameFrom}
-                onOpenChange={onMenuOpenChange}
-                items={[
-                    ...items,
-                    ...(items.length > 0 ? (['separator'] as const) : []),
-                    { label: 'Your account', href: accountHref, icon: <CircleUser /> },
-                    'separator',
-                    { label: 'Sign out', onSelect: onSignOut, icon: <LogOut /> },
-                ]}
-            />
-        );
-        if (!signOutRefused) return menu;
-        // Under the chip, out of the header's flow, so nothing beside it moves.
-        return (
-            <span className="relative inline-flex">
-                {menu}
-                <span
-                    role="alert"
-                    className="absolute right-0 top-full z-50 mt-1.5 w-max max-w-[16rem] rounded-none border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] leading-snug text-destructive shadow-sm"
-                >
-                    {SIGN_OUT_REFUSED}
-                </span>
-            </span>
-        );
-    }
-    if (state === 'unknown') {
-        return (
-            <Button asChild size="sm" variant="secondary">
-                <a href={accountHref}>Your account</a>
-            </Button>
-        );
-    }
-    return (
-        // No box of its own: it sits exactly where the signed-in chip will. While checking it is only unseen.
-        <span className={state === 'checking' ? 'contents invisible' : 'contents'} aria-hidden={state === 'checking' || undefined}>
-            <Button
-                asChild
-                size="sm"
-                variant={signInVariant ?? (signInLabel === GET_AN_ACCOUNT.label ? 'primary' : 'secondary')}
-                tabIndex={state === 'checking' ? -1 : undefined}
-            >
-                <a href={signInHref ?? inPlace ?? family}>{signInLabel}</a>
-            </Button>
-        </span>
-    );
-}
 
 /* ── The column ──────────────────────────────────────────────────────── */
 
@@ -263,9 +152,9 @@ export function ToolShell({
                             <span className="hidden lg:contents">{about}</span>
                             {p.status !== 'live' ? <StatusBadge status={p.status} className="max-sm:hidden" /> : null}
                             <ThemeToggle className="max-sm:hidden" />
-                            {account}
                         </>
                     }
+                    account={account}
                 />
                 {/* At least a window tall, so the footer starts below the fold and late content moves nothing in view. */}
                 <div className={cn('mx-auto flex w-full', app ? 'min-h-0 flex-1' : 'min-h-[calc(100dvh-3.5rem)] max-w-[90rem] flex-1')}>
