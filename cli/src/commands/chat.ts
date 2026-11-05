@@ -151,11 +151,12 @@ const verifyBip322 = ({ address, message, signature }: { address: string; messag
     }
 };
 
-/** One REQ to some relays: the events, and per relay whether it finished answering (EOSE). */
+/** One REQ to some relays: the events, and per relay whether it finished answering (EOSE) and,
+ *  as nostr-core counts them, the events it sent that were kept and that were dropped. */
 export type RawQuery = (
     filter: Record<string, unknown>,
     relays: readonly string[]
-) => Promise<{ events: NostrEvent[]; relayStatus: readonly { relay: string; eose: boolean }[] }>;
+) => Promise<{ events: NostrEvent[]; relayStatus: readonly { relay: string; eose: boolean; events?: number; rejected?: number }[] }>;
 
 /** How the relays answered over one run: how many there were, which missed a read, and how
  *  many reads fell below the read floor (chat-core `readFloor`, SPEC §8.7). */
@@ -257,7 +258,9 @@ export function liveNet(
         walk: {
             page: async (relay, filter) => {
                 const res = await ask(filter, [relay]);
-                return { events: res.events, complete: res.relayStatus.some((r) => r.eose) };
+                // A page is full by what the relay sent, the events nostr-core dropped included.
+                const sent = res.relayStatus.reduce((n, r) => n + (r.events ?? 0) + (r.rejected ?? 0), 0);
+                return { events: res.events, complete: res.relayStatus.some((r) => r.eose), sent };
             },
             tip: async () => {
                 const res = await timed(`${esplora}/blocks/tip/height`);

@@ -977,3 +977,35 @@ describe('oc chat verify: a version read cut off at its bound is not an answer (
         expect(JSON.parse(stdout).verdict).toBe('verified');
     });
 });
+
+describe('oc chat verify: a directory page is full by what the relay sent (chat-core 0.2.1)', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    // chat-core's directory page is 200 events. Every relay answers the handle's d tag with
+    // `kept` events nostr-core kept, each a copy of one already read, and `dropped` it dropped
+    // (a bad signature), so no new event reaches the walk.
+    const padded =
+        (kept: number, dropped: number): RawQuery =>
+        async (filter, relays) => {
+            const listing = (filter.kinds as number[]).includes(30114);
+            return { events: [], relayStatus: relays.map((relay) => ({ relay, eose: true, events: listing ? kept : 0, rejected: listing ? dropped : 0 })) };
+        };
+    const walkNet = (kept: number, dropped: number) => {
+        vi.stubGlobal('fetch', (async (url: string) => (String(url).endsWith('/blocks/tip/height') ? json(930000) : json({ keys: [HOST] }))) as unknown as typeof fetch);
+        return liveNet(['wss://a.example'], 'https://esplora.test/api', padded(kept, dropped));
+    };
+
+    it('a full page of dropped or repeated events is not the end of the read: NOT READ, exit 2, never "not listed"', async () => {
+        for (const [kept, dropped] of [[0, 200], [150, 50]] as const) {
+            for (const ns of [{}, { channelHandle: true }]) {
+                stdout = '';
+                expect(await run({ handle: 'alice', ...ns, json: true }, walkNet(kept, dropped)), `${kept} ${dropped} ${JSON.stringify(ns)}`).toBe(2);
+                expect(JSON.parse(stdout).verdict).toBe('unread');
+            }
+        }
+    });
+
+    it('a short page, every event the relay sent counted, still ends it: not listed, FAILED', async () => {
+        expect(await run({ handle: 'alice', json: true }, walkNet(100, 99))).toBe(1);
+        expect(JSON.parse(stdout).detail).toEqual({ result: 'not_found' });
+    });
+});
