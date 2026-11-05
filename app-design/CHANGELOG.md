@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-11-05
+
 - `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
   its observer first reports it on screen, so a portrait below the fold or
   under a phone's `TabBar` starts its intro as it comes into view. It used to
