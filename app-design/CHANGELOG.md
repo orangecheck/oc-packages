@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
+  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
+  every real card the same pixels). Any other character in a mono field draws
+  in Inter where Inter has it, and the server logs a warning naming the field
+  and code point. A glyph neither font has still makes next/og fetch a font,
+  as on 2.0.0.
+
 ## [2.0.1] — 2026-11-05
 
 - `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
