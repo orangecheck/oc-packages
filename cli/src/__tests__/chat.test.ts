@@ -447,8 +447,8 @@ describe('oc chat verify: the write gate, and reads that get no answer', () => {
         expect(JSON.parse(stdout).verdict).toBe('unread');
     });
 
-    it('a tip body of 0, a negative or a blank one is NOT READ, exit 2, never block 0', async () => {
-        for (const body of ['0', '-5', '']) {
+    it('a tip body of 0, a negative, a fraction or a blank one is NOT READ, exit 2, never block 0', async () => {
+        for (const body of ['0', '-5', '12.5', '']) {
             stdout = '';
             expect(await run({ file: file(gatedPost), json: true }, chainNet(answers({ tip: () => json(body) }))), body).toBe(2);
             expect(JSON.parse(stdout).verdict).toBe('unread');
@@ -459,7 +459,7 @@ describe('oc chat verify: the write gate, and reads that get no answer', () => {
         let body = '0';
         vi.stubGlobal('fetch', (async () => json(body)) as unknown as typeof fetch);
         const live = liveNet([], 'https://esplora.test/api');
-        for (body of ['0', '-5', '', '930000abc']) {
+        for (body of ['0', '-5', '12.5', '', '930000abc']) {
             await expect(live.tip(), body).rejects.toThrow('the chain tip could not be read');
             await expect(live.walk.tip(), body).rejects.toThrow('tip');
         }
