@@ -172,7 +172,7 @@ function nameRoom() {
     const brandCut = spans.some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
     return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, slack, brandCut, brandWords: spans
             .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
-            .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0 };
+            .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0, sticky: bar.dataset.ocaSticky ?? null };
 }
 
 // In the page: every account control drawn, and every link or button that says "Your account" or the CTA the account replaced.
@@ -296,6 +296,8 @@ try {
                             if (state === 'in-long' && width >= 1440) check(atCap, `${at}: the long name is cut at ${n.w}px with room for its ${n.cap}px`);
                             // On a phone the initial gives its room to the name.
                             check(n.disc === width >= 768, `${at}: the initial is ${n.disc ? 'shown' : 'hidden'}`);
+                            // The bar it sits in says whose it is, at every width: AppShell's phone and desk bars alike.
+                            check(n.sticky === (place === 'app' ? 'app-bar' : 'site'), `${at}: the trigger's bar is data-oca-sticky=${n.sticky}`);
                             names.push(`${width} ${place} ${state}: ${n.w}px, ${n.chars} characters${n.cut ? ', cut' : ''}`);
                         }
                         const label = await p.locator('[data-oca-account="in"]').first().getAttribute('aria-label');
