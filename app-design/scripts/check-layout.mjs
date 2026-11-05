@@ -225,7 +225,21 @@ try {
             `  {box('protocols', <ProtocolNav current="lock" />)}\n` +
             `  {box('codetabs', <CodeTabs items={Array.from({ length: 8 }, (_, i) => ({ label: 'version-' + i, lang: 'js', code: 'x' }))} />)}\n` +
             `  {box('code', <CodeBlock code={'curl https://' + wide + '/' + 'f'.repeat(64)} caption="A long line" />)}\n` +
+            // A heading that ends in a "#" as text, which is not part of its name; and a scroller in a section of its own
+            // with no heading, after a section that has one: that heading names its own section, not this scroller.
+            `  <section><h2>Fees #</h2>{box('hash-text', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}</section>\n` +
+            `  <section><h2>An earlier part</h2></section>\n` +
+            `  <section>{box('sectioned', <ScrollFade><p style={{ width: 900 }}>{wide}</p></ScrollFade>)}</section>\n` +
             `</div>);\n`
+    );
+    // A ParticlePortrait with its notes, in a figure as wide as its stage: a desk's labels beside the square only where
+    // they fit there. Its story's labels, the widest 232px.
+    writeFileSync(
+        join(dir, 'portrait.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { ParticlePortrait, PORTRAIT_ANCHORS } from '${join(pkg, 'src/motion/index.ts')}';\n` +
+            `const notes = [['eye', 'A note on a hairline leader'], ['hair', 'Drawn from shapes, not a photo', 'right'], ['jaw', 'Real text, not canvas'], ['shoulder', 'It sleeps once formed'], ['chest', 'Pause it any time']].map(([k, label, side]) => ({ at: PORTRAIT_ANCHORS[k], label, side }));\n` +
+            `createRoot(document.getElementById('root')).render(<ParticlePortrait alt="A person drawn in dots" className="h-[44rem]" callouts={notes} />);\n`
     );
     // The census: every story, each the package's own use of its components, rendered on the client in a
     // box of its own. A transform makes the box the containing block, so a fixed bar stays inside its story.
@@ -256,6 +270,10 @@ try {
             `<ul data-plant="checkbox-li"><li><label><input type="checkbox" style={{ width: 13, height: 13 }} /> Remember this device for thirty days</label></li></ul>` +
             `<ul data-plant="icon-button-li"><li>Copy the receiving address to your clipboard <button type="button" aria-label="Copy the address" className="inline-flex size-5 items-center justify-center">+</button></li></ul>` +
             `<p data-plant="sentence-link">Read the <a href="#plant">full specification</a> before you sign anything with this key.</p>` +
+            // And for a mouse's 24px: two 16px icon buttons 2px apart, small to either pointer, and one alone, which a
+            // mouse lets off by WCAG 2.5.8's spacing.
+            `<div data-plant="crowded-icons" className="flex gap-0.5"><button type="button" aria-label="Previous page" className="inline-flex size-4 items-center justify-center">‹</button><button type="button" aria-label="Next page" className="inline-flex size-4 items-center justify-center">›</button></div>` +
+            `<div data-plant="lone-icon"><button type="button" aria-label="Dismiss the note" className="inline-flex size-4 items-center justify-center">×</button></div>` +
             `</div>;\n` +
             `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}{plants}</div>);\n`
     );
@@ -282,6 +300,16 @@ try {
         define: { 'process.env.NODE_ENV': '"production"' },
         alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
         banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
+        entryPoints: [join(dir, 'portrait.jsx')],
+        outfile: join(dir, 'portrait.js'),
+        bundle: true,
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
         logLevel: 'error',
     });
     esbuild.buildSync({
@@ -354,7 +382,7 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -794,6 +822,7 @@ try {
     const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
     const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
     const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
+    const portraitPage = page('portrait', '<div id="root"></div>', '<script src="portrait.js"></script>');
     const census = page('census', '<div id="root"></div>', '<script src="census.js"></script>');
     // A 2.0 page: header, hero, a verdict and a closing band. The hero and the closing sit on the
     // header's frame, and the H1 is the largest text that is read (the footer's wordmark is decoration).
@@ -2671,12 +2700,18 @@ try {
                 check(m.length >= n && m.some(drawn), `[390 mouse] ${name} is drawn ${m.map((x) => `${x.name} ${x.w}x${x.h}`).slice(0, 3).join(', ')}: a fine pointer keeps its drawn size`);
             }
         }
-        // The census: every link, button, trigger and toggle any story draws is a 44px target to a thumb at 390
-        // and 320, hit from 21.5px out in every direction, on its box or by a ::before. A link inside a line of running
-        // text is exempt, as WCAG 2.5.8 exempts it; so is a text field, which is not a tap target.
-        // At a phone's 390 and the narrowest phone's 320.
-        for (const width of [390, 320]) for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
-            const c = await browser.newPage({ viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+        // The census: every link, button, trigger and toggle any story draws is a 44px target to a thumb on a phone
+        // and a touch tablet, hit from 21.5px out in every direction, on its box or by a ::before. A link inside a line
+        // of running text is exempt, as WCAG 2.5.8 exempts it; so is a text field, which is not a tap target.
+        // At a phone's 390 and the narrowest phone's 320, and a tablet's 768, 900, 1024 and 1180, where the md, lg
+        // and xl layouts meet a thumb. And with a mouse at a desk's 1440 and 1024, where WCAG 2.5.8 asks 24px: on
+        // the box or a ::before, or an undersized target whose 24px circle meets no other target.
+        // Doors (what opens behind a trigger) cost nearly all of a pass's time, 70 to 125s a page here against 5s without,
+        // so they are opened at one phone (390), one tablet (1024) and the desk (1440 mouse); every door finding
+        // in 2.0.1 and 2.0.2 showed at one of those. The other passes read the page, the plants and the held dialog.
+        for (const [width, fine, doors] of [[390, false, true], [320, false, false], [768, false, false], [900, false, false], [1024, false, true], [1180, false, false], [1440, true, true], [1024, true, false]]) for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
+            const c = await browser.newPage(fine ? { viewport: { width, height: 900 } } : { viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
+            const to = fine ? `${width} mouse` : `${width} touch`;
             await c.emulateMedia({ reducedMotion: 'reduce' });
             // Loaded, not visited: a story's own sample markup is not held to the package's text and state rules.
             visited.add(url);
@@ -2684,7 +2719,9 @@ try {
             const drawn = await c.waitForFunction((n) => document.querySelectorAll('[data-story]').length >= n, least, { timeout: 20000 }).then(() => true, () => false);
             await c.evaluate(() => new Promise((r) => setTimeout(r, 800)));
             // The measure stays on the page, so what opens behind a trigger below is read the same way.
-            await c.evaluate(() => {
+            await c.evaluate((fine) => {
+                // A thumb's 44px, a mouse's 24: hit from half that, less half a pixel, out from the centre.
+                const R = fine ? 11.5 : 21.5;
                 document.documentElement.style.scrollBehavior = 'auto';
                 const SEL = 'a[href], button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="link"], [role="option"], input[type="checkbox"], input[type="radio"]';
                 window.__censusPage = () => ({ stories: document.querySelectorAll('[data-story]').length, failed: [...document.querySelectorAll('[data-story-failed]')].map((e) => `${e.closest('[data-story]')?.dataset.story} (${e.dataset.storyFailed})`), dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((d) => `${d.closest('[data-story]')?.dataset.story ?? 'portal'}: ${d.getAttribute('aria-label') ?? ''} ${d.textContent.trim().slice(0, 60)}`), hidden: document.querySelectorAll('[data-story][aria-hidden="true"], [data-story] [aria-hidden="true"] [data-story]').length + document.querySelectorAll('body > [aria-hidden="true"]').length });
@@ -2720,7 +2757,7 @@ try {
                 };
                 // `behind` names the trigger that was opened: then only what it showed is read, and each target once.
                 window.__census = (behind) => {
-                const out = { seen: 0, inline: [], small: [], plants: {} };
+                const out = { seen: 0, inline: [], small: [], spaced: [], plants: {} };
                 for (const el of document.querySelectorAll(SEL)) {
                     if (el.hasAttribute('data-census-read') || (behind && el.dataset.censusBehind) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
                     const box = el.getBoundingClientRect();
@@ -2734,13 +2771,17 @@ try {
                         else out.inline.push(`${where}: "${el.textContent.trim().slice(0, 24)}"`);
                         continue;
                     }
-                    if (!behind) {
+                    // What a trigger shows in the page itself (a details' list, a sidebar's section) comes into view as the
+                    // page's own targets do. An overlay, a fixed layer (a menu, a popover, a sheet), is placed beside its
+                    // trigger and follows a scrolled page only a frame later: there the page stays put.
+                    let layer = behind ? el : null;
+                    while (layer && layer !== document.body && getComputedStyle(layer).position !== 'fixed') layer = layer.parentElement;
+                    if (!layer || layer === document.body) {
                         el.style.scrollMargin = '32px';
                         el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
                         el.style.scrollMargin = '';
                     } else {
-                        // Behind a trigger the page stays put: an open menu or popover is placed beside its trigger and
-                        // follows a scrolled page only a frame later. Only the opened thing's own list scrolls.
+                        // Only the overlay's own list scrolls.
                         let sc = el.parentElement;
                         while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
                         if (sc && sc !== document.body) {
@@ -2769,20 +2810,37 @@ try {
                         const got = document.elementFromPoint(x, y);
                         return el.contains(got) || (!!label && label.contains(got));
                     };
-                    // Two 44px targets that meet edge to edge are both whole: a thumb 21.5px out may land on the
-                    // neighbour only where the neighbour starts within a pixel of this one's edge (hit-testing rounds).
+                    // Two whole targets that meet edge to edge are both whole: a pointer R out may land on the neighbour
+                    // only where the neighbour starts within a pixel of this one's edge (hit-testing rounds).
                     const meets = (got, dx, dy) => {
                         const n = got?.closest(SEL);
                         if (!n || n === el || n.contains(el) || el.contains(n)) return false;
                         const o = n.getBoundingClientRect();
-                        if (dy > 0) return b.height >= 43.5 && Math.abs(o.top - b.bottom) <= 1;
-                        if (dy < 0) return b.height >= 43.5 && Math.abs(b.top - o.bottom) <= 1;
-                        if (dx > 0) return b.width >= 43.5 && Math.abs(o.left - b.right) <= 1;
-                        return b.width >= 43.5 && Math.abs(b.left - o.right) <= 1;
+                        if (dy > 0) return b.height >= 2 * R + 0.5 && Math.abs(o.top - b.bottom) <= 1;
+                        if (dy < 0) return b.height >= 2 * R + 0.5 && Math.abs(b.top - o.bottom) <= 1;
+                        if (dx > 0) return b.width >= 2 * R + 0.5 && Math.abs(o.left - b.right) <= 1;
+                        return b.width >= 2 * R + 0.5 && Math.abs(b.left - o.right) <= 1;
                     };
-                    const miss = [[0, -21.5], [0, 21.5], [-21.5, 0], [21.5, 0]].find(([dx, dy]) => !lands(cx + dx, cy + dy) && !meets(document.elementFromPoint(cx + dx, cy + dy), dx, dy));
+                    const miss = [[0, -R], [0, R], [-R, 0], [R, 0]].find(([dx, dy]) => !lands(cx + dx, cy + dy) && !meets(document.elementFromPoint(cx + dx, cy + dy), dx, dy));
+                    // To a mouse, WCAG 2.5.8's spacing: an undersized target is let off when a 24px circle on its centre
+                    // meets no other target's box and no other undersized target's circle.
+                    const spaced =
+                        fine &&
+                        !!miss &&
+                        [...document.querySelectorAll(SEL)].every((n) => {
+                            if (n === el || n.contains(el) || el.contains(n) || n.closest('[aria-hidden="true"], [inert]') || !n.checkVisibility({ visibilityProperty: true })) return true;
+                            const o = n.getBoundingClientRect();
+                            if (o.width <= 1 || o.height <= 1) return true;
+                            if (Math.hypot(Math.max(o.left - cx, 0, cx - o.right), Math.max(o.top - cy, 0, cy - o.bottom)) < 12) return false;
+                            return !(o.width < 24 || o.height < 24) || Math.hypot(o.left + o.width / 2 - cx, o.top + o.height / 2 - cy) >= 24;
+                        });
                     if (plant) {
-                        out.plants[plant] = miss ? 'small' : 'whole';
+                        const v = !miss ? 'whole' : spaced ? 'spaced' : 'small';
+                        out.plants[plant] = out.plants[plant] === 'small' ? 'small' : v;
+                        continue;
+                    }
+                    if (spaced) {
+                        out.spaced.push(`${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28)}" ${Math.round(b.width)}x${Math.round(b.height)}`);
                         continue;
                     }
                     if (miss) {
@@ -2795,13 +2853,13 @@ try {
                 }
                 return out;
                 };
-            });
-            const r = { width, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [] };
+            }, fine);
+            const r = { width, fine, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [] };
             // A story wider than the screen widens the page, and a phone then places fixed overlays off the screen.
             r.sideways = await c.evaluate((w) => [...document.querySelectorAll('[data-story], [data-plants]')].filter((s) => s.scrollWidth > w + 1).map((s) => `${s.dataset.story ?? 'plants'} (${s.scrollWidth})`), width);
             // Behind a trigger: each closed popover, menu, select, dialog or sheet, each collapsed control and each
             // closed details, opened one at a time as a thumb would, and what it shows read the same way.
-            if (least > 1) {
+            if (least > 1 && doors) {
                 r.doors = await c.evaluate(() => {
                     const all = [...document.querySelectorAll('[data-story] :is([aria-haspopup]:not([aria-haspopup="false"]), [aria-expanded="false"], details:not([open]) > summary)')].filter(
                         (el) => !el.disabled && !el.closest('[aria-hidden="true"], [inert]') && el.checkVisibility({ visibilityProperty: true })
@@ -2827,6 +2885,7 @@ try {
                     r.behind += got.seen;
                     r.inline.push(...got.inline);
                     r.small.push(...got.small);
+                    r.spaced.push(...got.spaced);
                     // Shut it again: Escape for an overlay, a second press for a toggle or a details.
                     await c.keyboard.press('Escape');
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
@@ -2840,27 +2899,31 @@ try {
                 r.seen += late.seen;
                 r.inline.push(...late.inline);
                 r.small.push(...late.small);
+                r.spaced.push(...late.spaced);
                 r.unread = await c.evaluate(() => [...document.querySelectorAll('[data-census-behind]:not([data-census-read])')].map((e) => e.dataset.censusBehind));
             }
             const tag = least > 1 ? 'the census' : 'the census of a held-open dialog';
-            if (process.env.OCA_CENSUS_OUT) writeFileSync(`${process.env.OCA_CENSUS_OUT}${width === 390 ? '' : '.' + width}${least > 1 ? '' : '.modal'}.json`, JSON.stringify(r, null, 1));
+            if (process.env.OCA_CENSUS_OUT) writeFileSync(`${process.env.OCA_CENSUS_OUT}${width === 390 && !fine ? '' : '.' + width}${fine ? '.mouse' : ''}${least > 1 ? '' : '.modal'}.json`, JSON.stringify(r, null, 1));
             check(drawn && r.stories >= least && r.failed.length === 0, `[${width}] ${tag} drew ${r.stories} stories, and these threw: ${r.failed.join(', ')}`);
-            check(least > 1 ? r.dialogs.length === 0 && r.seen > 300 : r.dialogs.length === 1 && r.seen >= 3, `[${width} touch] ${tag} read only ${r.seen} targets, with dialogs open: ${JSON.stringify(r.dialogs)}`);
-            if (least > 1) check(r.opened >= 15 && r.behind >= 40, `[${width} touch] the census opened ${r.opened} of ${r.doors} triggers and read ${r.behind} targets behind them`);
-            check(r.lost.length === 0, `[${width} touch] the census could not open these triggers: ${r.lost.join(', ')}`);
-            check(r.unread.length === 0, `[${width} touch] the census could not bring these targets behind a trigger into view: ${r.unread.slice(0, 12).join('; ')}`);
+            check(least > 1 ? r.dialogs.length === 0 && r.seen > 300 : r.dialogs.length === 1 && r.seen >= 3, `[${to}] ${tag} read only ${r.seen} targets, with dialogs open: ${JSON.stringify(r.dialogs)}`);
+            if (least > 1 && doors) check(r.opened >= 15 && r.behind >= 40, `[${to}] the census opened ${r.opened} of ${r.doors} triggers and read ${r.behind} targets behind them`);
+            check(r.lost.length === 0, `[${to}] the census could not open these triggers: ${r.lost.join(', ')}`);
+            check(r.unread.length === 0, `[${to}] the census could not bring these targets behind a trigger into view: ${r.unread.slice(0, 12).join('; ')}`);
             check(r.sideways.length === 0, `[${width}] these stories are wider than the screen: ${r.sideways.join(', ')}`);
-            // The plants prove the measure: what is small is found, and only a link in a sentence is let off.
-            const want = { 'card-title': 'small', 'checkbox-li': 'small', 'icon-button-li': 'small', 'sentence-link': 'exempt' };
-            if (least > 1) check(Object.entries(want).every(([k, v]) => r.plants[k] === v), `[${width} touch] the census's plants read ${JSON.stringify(r.plants)}, not ${JSON.stringify(want)}`);
-            check(r.small.length === 0, `[${width} touch] ${tag} found ${r.small.length} targets under 44px to a thumb: ${r.small.slice(0, 12).join('; ')}`);
+            // The plants prove the measure: what is small is found, only a link in a sentence is let off, and to a mouse
+            // an undersized target alone is let off by its spacing while two crowded ones are not.
+            const want = fine
+                ? { 'card-title': 'whole', 'checkbox-li': 'spaced', 'icon-button-li': 'spaced', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'spaced' }
+                : { 'card-title': 'small', 'checkbox-li': 'small', 'icon-button-li': 'small', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'small' };
+            if (least > 1) check(Object.entries(want).every(([k, v]) => r.plants[k] === v), `[${to}] the census's plants read ${JSON.stringify(r.plants)}, not ${JSON.stringify(want)}`);
+            check(r.small.length === 0, `[${to}] ${tag} found ${r.small.length} targets under ${fine ? '24px to a mouse' : '44px to a thumb'}: ${r.small.slice(0, 12).join('; ')}`);
             await c.close();
         }
         // Every scroller that takes focus is a named region: each ScrollFade user, scrolling in a narrow box.
         {
             const c = await browser.newPage({ viewport: { width: 700, height: 2400 } });
             await visit(c, scrollNames);
-            const ready = await c.waitForFunction(() => document.querySelectorAll('[data-box] [tabindex="0"]').length >= 9 && document.querySelector('[data-box="diagram"] svg'), null, { timeout: 10000 }).then(() => true, () => false);
+            const ready = await c.waitForFunction(() => document.querySelectorAll('[data-box] [tabindex="0"]').length >= 11 && document.querySelector('[data-box="diagram"] svg'), null, { timeout: 10000 }).then(() => true, () => false);
             await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
             const got = await c.evaluate(() =>
                 [...document.querySelectorAll('[data-box]')].map((b) => {
@@ -2868,9 +2931,37 @@ try {
                     return [b.dataset.box, s ? { role: s.getAttribute('role'), name: s.getAttribute('aria-label') } : null];
                 })
             );
-            const want = { unnamed: null, mdx: 'Parameters', api: 'Options', diagram: 'A flow', tabs: 'Desk', 'tabs-bare': 'Tabs', protocols: 'Protocols', codetabs: 'Versions', code: 'A long line' };
+            const want = { unnamed: null, mdx: 'Parameters', api: 'Options', diagram: 'A flow', tabs: 'Desk', 'tabs-bare': 'Tabs', protocols: 'Protocols', codetabs: 'Versions', code: 'A long line', 'hash-text': 'Fees', sectioned: null };
             const off = got.filter(([k, s]) => !s || s.role !== (want[k] === null ? null : 'region') || s.name !== want[k]);
-            check(ready && got.length === 9 && off.length === 0, `[700] a ScrollFade that scrolls takes focus with no region name, or not the one it should have: ${JSON.stringify(off)}`);
+            check(ready && got.length === 11 && off.length === 0, `[700] a ScrollFade that scrolls takes focus with no region name, or not the one it should have: ${JSON.stringify(off)}`);
+            await c.close();
+        }
+        // ParticlePortrait as wide as its stage, with a mouse: at 1024 its labels have no room beside the square, so they
+        // list under it and the page does not scroll sideways; at 1440 they keep their place beside it.
+        for (const [w, beside] of [[1024, false], [1440, true]]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+            await visit(c, portraitPage);
+            await c.waitForSelector('.oca-portrait-legend', { state: 'attached' });
+            await c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+            const got = await c.evaluate(() => ({ wide: document.documentElement.scrollWidth, listed: getComputedStyle(document.querySelector('.oca-portrait-legend')).display !== 'none' }));
+            check(got.wide <= w && got.listed !== beside, `[${w} mouse] a ParticlePortrait as wide as its stage ${got.listed ? 'lists' : 'labels'} its notes, and the page is ${got.wide}px wide`);
+            await c.close();
+        }
+        // The same portrait at 1440, its figure narrowed to 1024 by script and widened again with the window untouched,
+        // still past the 46rem query: the labels list and come back, and the page never scrolls sideways.
+        {
+            const c = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+            await visit(c, portraitPage);
+            await c.waitForSelector('.oca-portrait-legend', { state: 'attached' });
+            const frames = () => c.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+            const read = () => c.evaluate(() => ({ wide: document.documentElement.scrollWidth, listed: getComputedStyle(document.querySelector('.oca-portrait-legend')).display !== 'none' }));
+            const steps = [];
+            for (const width of ['', '1024px', '']) {
+                await c.evaluate((wd) => (document.querySelector('.oca-portrait').style.width = wd), width);
+                await frames();
+                steps.push(await read());
+            }
+            check(steps.map((s) => s.listed).join() === 'false,true,false' && steps.every((s) => s.wide <= 1440), `[1440 mouse] a ParticlePortrait narrowed to 1024 and widened again, the window untouched, reads ${JSON.stringify(steps)}: its labels list, then come back`);
             await c.close();
         }
         // A sheet's Close (a site's phone menu) and a dialog's: 44 square to a thumb, 36 to a mouse.

@@ -312,7 +312,7 @@ function SearchButton() {
         <>
             <button
                 type="button"
-                className="hidden h-10 items-center gap-2 rounded-full border border-border bg-card pl-3.5 pr-2 text-[0.9375rem] text-muted-foreground transition-colors hover:border-oca-hairline-strong hover:text-foreground lg:inline-flex"
+                className="hidden h-10 items-center gap-2 rounded-full border border-border bg-card pl-3.5 pr-2 text-[0.9375rem] text-muted-foreground transition-colors hover:border-oca-hairline-strong hover:text-foreground lg:inline-flex pointer-coarse:h-11"
             >
                 <Search aria-hidden className="size-4" />
                 Search
