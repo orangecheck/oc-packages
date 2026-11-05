@@ -471,24 +471,67 @@ const html = (el) => renderToStaticMarkup(el);
     check(/<button[^>]*aria-describedby="[^"]+-hint"/.test(out), 'Field + Select: the hint does not describe the trigger');
 }
 
-// The account control.
+// The account control: one in every state and every place a header puts it, and never "Your account".
 {
-    const checking = html(h(Ch.SessionAccountView, { state: 'checking', signInHref: '/signin' }));
-    check(checking.includes('invisible') && checking.includes('aria-hidden="true"'), 'Session: checking does not hold its place unseen');
-    const out = html(h(Ch.SessionAccountView, { state: 'out', signInHref: 'https://ochk.io/signin?return_to=x' }));
-    check(out.includes('href="https://ochk.io/signin?return_to=x"') && out.includes('Sign in'), 'Session: signed out has no sign-in');
+    const S = require(join(here, '../dist/session.js'));
+    const view = (state, extra = {}) => h(Ch.SessionAccountView, { state, signInHref: '/signin', name: state === 'in' ? 'ana@example.com' : undefined, ...extra });
+    const nav = [{ href: '/how', label: 'How it works' }];
+    const places = {
+        alone: (a) => a,
+        site: (a) => h(Ch.SiteHeader, { nav, account: a }),
+        tool: (a) => h(Ch.SiteHeader, { variant: 'tool', product: 'stamp', nav, account: a }),
+        'site with a CTA': (a) => h(Ch.SiteHeader, { nav, cta: { label: 'Open your vault', href: '/vault' }, account: a }),
+        'tool shell': (a) => h(Ch.ToolShell, { protocol: 'stamp', tools: [{ href: '/create', label: 'Create' }], account: a }, h('p', null, 'page')),
+        docs: (a) => h(Ch.DocsShell, { nav: [], current: '/', account: a }, h('p', null, 'page')),
+    };
+    const KIND = { out: 'out', checking: 'pending', unknown: 'unknown', in: 'in' };
+    for (const [place, wrap] of Object.entries(places)) {
+        for (const state of Object.keys(KIND)) {
+            const out = html(wrap(view(state)));
+            const controls = out.match(/data-oca-account="[a-z]+"/g) ?? [];
+            check(controls.length === 1 && controls[0] === `data-oca-account="${KIND[state]}"`, `Account (${place}, ${state}): ${controls.join(', ') || 'no account control'}, not one "${KIND[state]}"`);
+            check(!/Your account/i.test(out), `Account (${place}, ${state}): "Your account" is drawn outside the menu`);
+            const el = out.match(/<(a|span|button)\b[^>]*data-oca-account="[a-z]+"[^>]*>/)?.[0] ?? '';
+            if (state === 'checking' || state === 'unknown') check(!/\bhref=/.test(el) && /aria-hidden="true"/.test(el), `Account (${place}, ${state}): the placeholder links or is read: ${el}`);
+            if (state === 'out') check(/href="\/signin"/.test(el), `Account (${place}): the way in does not go to the sign-in: ${el}`);
+            if (state === 'in') check(/aria-label="ana@example.com, account menu"/.test(el) && out.includes('>ana@example.com</span>'), `Account (${place}): the trigger does not show and say the email: ${el}`);
+        }
+    }
+    // A session with no name at all is never called "Your account": the trigger keeps a mark, and the menu says who.
+    for (const [place, wrap] of Object.entries(places)) {
+        const nameless = html(wrap(view('in', { name: undefined })));
+        check((nameless.match(/data-oca-account="in"/g) ?? []).length === 1 && !/Your account/i.test(nameless), `Account (${place}): a nameless session's trigger is missing or says "Your account"`);
+    }
+    // In every header the way in is 2.0's block at the right rule.
+    const blockOut = html(places.site(view('out')));
+    for (const place of ['site', 'tool', 'site with a CTA', 'tool shell', 'docs']) {
+        check(/<a[^>]*data-oca-account="out"[^>]*class="[^"]*\bbg-primary\b/.test(html(places[place](view('out')))), `Account (${place}): the header's way in is not the block`);
+    }
+    // With `account`, a header's own Sign in and CTA give way: one control, and the site's action goes in the menu.
+    for (const state of Object.keys(KIND)) {
+        const withCta = html(places['site with a CTA'](view(state)));
+        check(!withCta.includes('data-oca-cta') && !withCta.includes('Open your vault'), `Account (${state}): SiteHeader draws its cta beside the account`);
+    }
+    const both = html(h(Ch.SiteHeader, { nav, signIn: true, cta: true, account: view('out') }));
+    check((both.match(/>Sign in</g) ?? []).length === 1 && !both.includes('Get an account'), `Account: SiteHeader draws signIn or cta beside the account (${(both.match(/>Sign in</g) ?? []).length} ways in)`);
+    // The words come from the registry, and a site may say its own.
+    check(blockOut.includes('>Sign in</span>') && html(places.site(view('out', { signInLabel: 'Get an account' }))).includes('>Get an account</span>'), 'Account: the way in does not say SIGN_IN_LABEL, or ignores signInLabel');
+    // A refused sign-out leaves the person signed in, and the header says so under the trigger.
+    const refusedOut = html(view('in', { signOutRefused: true }));
+    check(!html(view('in')).includes('role="alert"'), 'Account: signed in, a notice shows with no refused sign-out');
+    check(refusedOut.includes('role="alert"') && refusedOut.includes('Couldn’t sign out. You’re still signed in; try again.') && refusedOut.includes('ana@example.com, account menu'), 'Account: a refused sign-out is not said beside the trigger');
     // In place: the route on the server (the address is read in the browser); outside a router, the bare page.
-    const inPlace = html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin' }));
-    check(inPlace.includes('href="/signin"'), 'Session: signInPath does not reach the sign-in link');
-    const given = html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin', signInHref: 'https://ochk.io/signin' }));
-    check(given.includes('href="https://ochk.io/signin"'), 'Session: signInHref does not win over signInPath');
-    const unknown = html(h(Ch.SessionAccountView, { state: 'unknown', signInHref: '/signin' }));
-    check(unknown.includes('https://ochk.app/me/account'), 'Session: a failed check does not offer the account page');
-    // A refused sign-out leaves the person signed in, and the header says so under the menu.
-    const signedIn = html(h(Ch.SessionAccountView, { state: 'in', name: 'Alice' }));
-    check(!signedIn.includes('role="alert"'), 'Session: signed in, a notice shows with no refused sign-out');
-    const refusedOut = html(h(Ch.SessionAccountView, { state: 'in', name: 'Alice', signOutRefused: true }));
-    check(refusedOut.includes('role="alert"') && refusedOut.includes('Couldn’t sign out. You’re still signed in; try again.') && refusedOut.includes('Alice, account menu'), 'Session: a refused sign-out is not said beside the menu');
+    check(html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin' })).includes('href="/signin"'), 'Account: signInPath does not reach the way in');
+    check(html(h(Ch.SessionAccountView, { state: 'out', signInPath: '/signin', signInHref: 'https://ochk.io/signin' })).includes('href="https://ochk.io/signin"'), 'Account: signInHref does not win over signInPath');
+    // Who is signed in: the email, else the chosen name, else a short address, else a short did. Never a generic word.
+    const who = [
+        [{ displayName: 'Ana', displayIdentity: { kind: 'email', value: 'ana@example.com' } }, 'ana@example.com'],
+        [{ displayName: 'Ana', displayIdentity: { kind: 'did', value: 'did:oc:ed30f1d9c0ffee00112233a4c2' } }, 'Ana'],
+        [{ displayName: null, displayIdentity: { kind: 'btc', value: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' } }, 'bc1qxy2k…hx0wlh'],
+        [{ displayName: null, displayIdentity: { kind: 'did', value: 'did:oc:ed30f1d9c0ffee00112233a4c2' } }, 'did:oc:ed30f1d9…a4c2'],
+        [{ displayName: null, didOc: 'did:oc:ed30f1d9c0ffee00112233a4c2', displayIdentity: { kind: 'did', value: '' } }, 'did:oc:ed30f1d9…a4c2'],
+    ];
+    for (const [account, want] of who) check(S.accountName(account) === want, `accountName(${JSON.stringify(account.displayIdentity)}): ${JSON.stringify(S.accountName(account))}, not ${want}`);
 }
 
 // A Field labels a control inside a box of its own (an input with a popover under it) without taking the box.
@@ -630,14 +673,6 @@ const html = (el) => renderToStaticMarkup(el);
     const F = require(join(here, '../dist/family.js'));
     const cta = html(h(Ch.AccountCta));
     check(cta.includes(`href="${F.GET_AN_ACCOUNT.href}"`) && cta.includes(`>${F.GET_AN_ACCOUNT.label}</a>`) && F.GET_AN_ACCOUNT.href === 'https://ochk.io/signin', 'AccountCta: not the registry\'s phrase to ochk.io\'s sign-in');
-    // The account phrase looks the same wherever it shows: primary, as AccountCta draws it. "Sign in" stays secondary.
-    const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
-    const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
-    check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
-    // 2.0's secondary is the outlined button (the field's edge, no fill), so it is known by its edge.
-    const SECONDARY = /\bborder-input\b/;
-    check(SECONDARY.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
-    check(SECONDARY.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
     // Typed as a string, so it passes where a string label is asked for.
     check(/label: "Get an account"/.test(require('node:fs').readFileSync(join(here, '../dist/family.d.ts'), 'utf8') + require('node:fs').readdirSync(join(here, '../dist')).filter((f) => /^index-.*\.d\.ts$/.test(f)).map((f) => require('node:fs').readFileSync(join(here, '../dist', f), 'utf8')).join('')), 'GET_AN_ACCOUNT: its label is not typed as the string it is');
     check(html(h(Ch.AccountCta, { href: '/signin' })).includes('href="/signin"'), 'AccountCta: ochk.app cannot point it at its own sign-in');

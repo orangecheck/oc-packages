@@ -25,16 +25,17 @@ import { OCHK_IO_NAV, SELF_HOSTED_LEGAL_LINKS } from '../family';
 import { Badge, Button, Card, Field, Input, Kbd, Separator } from '../primitives';
 import { Accent, ErrorPage, Monogram, Notice, PageHeader, PageHero, Sats, StatCard, StatGrid, TextLink } from '../components';
 import {
-    AccountCta,
     AccountMenu,
     AppShell,
     OchkIoFooter,
     SignInFrame,
     SiteBanner,
     SiteFooter,
+    SessionAccountView,
     SiteHeader,
     SkipLink,
     ThemeToggle,
+    type SessionState,
 } from './index';
 
 const meta: Meta = { title: 'Chrome', parameters: { fullBleed: true } };
@@ -50,9 +51,7 @@ export const PublicFrame: StoryObj = {
                     { href: '/apps', label: 'For apps', active: true },
                     { href: '/today', label: "What's true today" },
                 ]}
-                actions={<ThemeToggle />}
-                signIn
-                cta
+                account={<SessionAccountView state="out" signInHref="https://ochk.io/signin" />}
             />
             <div className="oca-container py-32 text-center oca-body">Page content</div>
             <SiteFooter
@@ -64,6 +63,41 @@ export const PublicFrame: StoryObj = {
                 ]}
                 meta="The open layer is supported by an OpenSats grant · ochk.io · github.com/orangecheck"
             />
+        </div>
+    ),
+};
+
+const ACCOUNT_STATES: { state: SessionState; name?: string; note: string }[] = [
+    { state: 'out', note: 'Signed out: the one way in.' },
+    { state: 'checking', note: 'Checking: the same size, no words, no link.' },
+    { state: 'in', name: 'ana@example.com', note: 'Signed in: the email, and one menu.' },
+    { state: 'in', name: 'did:oc:ed30f1d9…a4c2', note: 'Signed in with no email or name: a short did.' },
+    { state: 'unknown', note: 'The check failed: the same size, bare.' },
+];
+
+const accountView = (state: SessionState, name?: string, items = [{ label: 'Your stamps', href: '/dashboard', icon: <Star /> }]) => (
+    <SessionAccountView state={state} name={name} detail={name ? 'bc1qxy2k…hx0wlh' : undefined} signInHref="https://ochk.io/signin" items={items} />
+);
+
+/** One account control, in every state: the public header, the tool header, and vault's, whose own action is in the menu. */
+export const AccountControl: StoryObj = {
+    name: 'Account control: every state',
+    render: () => (
+        <div className="flex flex-col gap-10 pb-16">
+            {ACCOUNT_STATES.map(({ state, name, note }) => (
+                <section key={`${state}:${name ?? ''}`} data-account-case={`${state}${name?.startsWith('did:') ? '-did' : ''}`} className="flex flex-col gap-3">
+                    <p className="oca-container text-[0.875rem] text-muted-foreground">{note}</p>
+                    <SiteHeader className="static" family="me" nav={[{ href: '/how', label: 'How it works' }, { href: '/earn', label: 'Earn' }]} account={accountView(state, name)} />
+                    <SiteHeader className="static" variant="tool" product="stamp" family="stamp" nav={[{ href: '/create', label: 'Create', active: true }, { href: '/verify', label: 'Verify' }]} account={accountView(state, name)} />
+                    <SiteHeader
+                        className="static"
+                        product="vault"
+                        family="vault"
+                        nav={[{ href: '/pricing', label: 'Pricing' }]}
+                        account={accountView(state, name, [{ label: 'Open your vault', href: '/vault', icon: <Star /> }])}
+                    />
+                </section>
+            ))}
         </div>
     ),
 };
@@ -339,7 +373,7 @@ export const OchkIo: StoryObj = {
                         : n
                 )}
                 search={<SearchButton />}
-                actions={<AccountCta />}
+                account={<SessionAccountView state="out" signInHref="/signin" />}
             />
             <main id="main-content">
                 <PageHero
@@ -383,14 +417,8 @@ export const Tool: StoryObj = {
                     { href: '/playground', label: 'Playground' },
                     { href: '/dashboard', label: 'Dashboard' },
                 ]}
-                actions={
-                    <>
-                        <ThemeToggle className="max-sm:hidden" />
-                        <Button size="sm" variant="secondary">
-                            Sign in
-                        </Button>
-                    </>
-                }
+                actions={<ThemeToggle className="max-sm:hidden" />}
+                account={<SessionAccountView state="out" signInHref="https://ochk.io/signin" />}
             />
             <main id="main-content" className="flex-1">
                 <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-8 px-4 py-10 md:px-6 md:py-14">

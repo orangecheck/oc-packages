@@ -11,12 +11,6 @@ import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { ShellContext } from '../lib/shell-context';
 import { publishBottomInset } from '../lib/viewport';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
     Sheet,
     SheetContent,
     SheetTitle,
@@ -533,14 +527,6 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
     );
 }
 
-export interface AccountMenuItem {
-    label: string;
-    href?: string;
-    onSelect?: () => void;
-    icon?: ReactNode;
-    destructive?: boolean;
-}
-
 /**
  * A pane's top bar in an app frame: one 56px row, a hairline under it, the
  * same gutter on every pane (a thread, a channel, a setting), so a back
@@ -549,72 +535,6 @@ export interface AccountMenuItem {
  */
 export function PaneHeader({ children, className }: { children: ReactNode; className?: string }) {
     return <header className={cn('flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 md:px-5', className)}>{children}</header>;
-}
-
-/** The account button: initial + short id, a menu of items. */
-export function AccountMenu({
-    name,
-    detail,
-    items,
-    nameFrom = 'sm',
-    onOpenChange,
-}: {
-    name: string;
-    /** A second line: the short did, an address. */
-    detail?: string;
-    items: (AccountMenuItem | 'separator')[];
-    /** The width from which the name shows beside the initial. A header with
-     *  navigation beside it needs the room until lg. */
-    nameFrom?: 'sm' | 'lg';
-    /** Called as the menu opens and closes. */
-    onOpenChange?: (open: boolean) => void;
-}) {
-    const initial = name.trim().charAt(0).toUpperCase() || '·';
-    return (
-        <DropdownMenu onOpenChange={onOpenChange}>
-            <DropdownMenuTrigger
-                className={cn(
-                    'inline-flex h-11 items-center gap-2.5 rounded-none border border-border bg-card pl-1.5 pr-1.5 text-[0.9375rem] outline-none transition-colors hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
-                    nameFrom === 'lg' ? 'lg:pr-3.5' : 'sm:pr-3.5'
-                )}
-                aria-label={`${name}, account menu`}
-            >
-                {/* The initial is drawn, not written: the button's text is the name it is read by. */}
-                <span
-                    aria-hidden
-                    data-initial={initial}
-                    className="flex size-8 items-center justify-center rounded-full bg-foreground text-[0.8125rem] font-medium text-background before:content-[attr(data-initial)]"
-                />
-                <span className={cn('max-w-[10rem] truncate', nameFrom === 'lg' ? 'max-lg:hidden' : 'max-sm:hidden')}>
-                    {name}
-                </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                    <span className="truncate text-[0.9375rem] font-medium text-foreground">{name}</span>
-                    {detail ? <span className="truncate font-mono text-[0.75rem]">{detail}</span> : null}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {items.map((it, i) =>
-                    it === 'separator' ? (
-                        <DropdownMenuSeparator key={`sep-${i}`} />
-                    ) : it.href ? (
-                        <DropdownMenuItem key={it.label} asChild destructive={it.destructive}>
-                            <Link href={it.href}>
-                                {it.icon}
-                                {it.label}
-                            </Link>
-                        </DropdownMenuItem>
-                    ) : (
-                        <DropdownMenuItem key={it.label} onSelect={it.onSelect} destructive={it.destructive}>
-                            {it.icon}
-                            {it.label}
-                        </DropdownMenuItem>
-                    )
-                )}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
 }
 
 /*

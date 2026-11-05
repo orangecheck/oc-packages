@@ -3,11 +3,13 @@ export type { FooterColumn, NavItem, SiteFooterProps, SiteHeaderProps } from './
 export { FamilyMenu } from './family-menu';
 export { SignInFrame } from './sign-in-frame';
 export { DOCS_HEADER_NAV, DocsNav, DocsShell } from './docs-shell';
-export { OCHK_APP_ACCOUNT, SessionAccountView, ToolColumn, ToolShell } from './tool-shell';
+export { ACCOUNT_SETTINGS_LABEL, AccountMenu, OCHK_APP_ACCOUNT, SessionAccountView, useAppearanceItem } from './account';
+export type { AccountMenuItem, SessionAccountViewProps, SessionState } from './account';
+export { ToolColumn, ToolShell } from './tool-shell';
 export { useFamilySignInHref, useSignInHref } from '../lib/sign-in';
-export type { SessionState, ToolShellProps } from './tool-shell';
+export type { ToolShellProps } from './tool-shell';
 export type { DocsNavItem, DocsNavSection, DocsShellProps } from './docs-shell';
-export { AccountMenu, AppShell, PaneHeader, ThemeProvider, ThemeToggle, useTheme } from './app-shell';
-export type { AccountMenuItem, AppShellProps, ShellNavGroup, ShellNavItem, ShellSection, ThemeProviderProps } from './app-shell';
+export { AppShell, PaneHeader, ThemeProvider, ThemeToggle, useTheme } from './app-shell';
+export type { AppShellProps, ShellNavGroup, ShellNavItem, ShellSection, ThemeProviderProps } from './app-shell';
 export { ShellContext, useShellPlace } from '../lib/shell-context';
 export type { ShellPlace } from '../lib/shell-context';

@@ -168,7 +168,7 @@ try {
         ),
         // The signed-out account phrase three ways, with no sign-in address given: each must link ochk.io's sign-in, returning here.
         familysignin: mount(
-            `import { SessionAccountView } from '${src('chrome/tool-shell.tsx')}';\n` +
+            `import { SessionAccountView } from '${src('chrome/account.tsx')}';\n` +
                 `import { AccountCta } from '${src('chrome/site.tsx')}';\n` +
                 `import { SessionAccount } from '${src('session/index.tsx')}';`,
             `<div className="flex gap-4 p-6"><div data-a="view"><SessionAccountView state="out" signInLabel="Get an account" /></div><div data-a="cta"><AccountCta /></div><div data-a="session"><SessionAccount signInLabel="Get an account" /></div></div>`
@@ -181,7 +181,7 @@ try {
     writeFileSync(
         join(dir, 'familyhydrate-tree.jsx'),
         `import { OcSessionProvider } from '@orangecheck/auth-client';\n` +
-            `import { SessionAccountView } from '${src('chrome/tool-shell.tsx')}';\n` +
+            `import { SessionAccountView } from '${src('chrome/account.tsx')}';\n` +
             `import { AccountCta } from '${src('chrome/site.tsx')}';\n` +
             `import { SessionAccount } from '${src('session/index.tsx')}';\n` +
             `export const Tree = () => <OcSessionProvider><div className="flex gap-4 p-6"><div data-a="view"><SessionAccountView state="out" signInLabel="Get an account" /></div><div data-a="cta"><AccountCta /></div><div data-a="session"><SessionAccount signInLabel="Get an account" /></div></div></OcSessionProvider>;\n`
@@ -551,7 +551,8 @@ try {
             check(Object.values(r.got).length === 3 && Object.values(r.got).every((h) => h === r.want), `Get an account ${when}: ${JSON.stringify(r.got)}, not ${r.want}`);
         // Hydrating a server's HTML: the browser's first render must match it, or React leaves the server's address in place.
         await p.goto(hydrated('?from=docs#keep-off'));
-        await p.waitForSelector('[data-a="session"] span:not(.invisible) > a');
+        // Hydrated and read: the session's way in, with its address (while it is checked it has none).
+        await p.waitForSelector('[data-a="session"] a[data-oca-account="out"][href]');
         await p.waitForTimeout(100);
         const onHydrate = await signinHrefs();
         check(Object.values(onHydrate.got).length === 3 && Object.values(onHydrate.got).every((h) => h === onHydrate.want), `Get an account after hydrating a server's HTML: ${JSON.stringify(onHydrate.got)}, not ${onHydrate.want}`);
