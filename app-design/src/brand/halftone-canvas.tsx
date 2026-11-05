@@ -6,7 +6,7 @@ import { visibleObserver } from '../lib/viewport';
 import { PORTRAIT_TONE_B64, PORTRAIT_TONE_SIZE } from './portrait-tone';
 
 /*
- * The deck's halftone, screened live. The portrait's ink is a small tone grid;
+ * The portrait's halftone, screened live. Its ink is a small tone grid;
  * this draws it as dots on a 45° screen that grow in from the centre and part
  * under the pointer like a lens; the breath is CSS, on the compositor. It draws
  * only while something moves, sleeps offscreen and in a hidden tab, and draws
@@ -19,7 +19,7 @@ export interface Tone {
 }
 
 let portrait: Tone | null = null;
-/** The deck portrait's ink, decoded once. */
+/** The portrait's ink, decoded once. */
 export function portraitTone(): Tone {
     if (!portrait) {
         const bin = atob(PORTRAIT_TONE_B64);
@@ -31,7 +31,7 @@ export function portraitTone(): Tone {
 }
 
 export interface HalftoneCanvasProps {
-    /** Ink to screen; the deck portrait by default. */
+    /** Ink to screen; the portrait ParticlePortrait draws by default. */
     tone?: Tone;
     /** Dots across the diameter. */
     density?: number;

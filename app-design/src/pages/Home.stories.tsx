@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { BadgeCheck, Bitcoin, Check, Code2, Eye, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import portrait from '../assets/portrait-halftone-600.webp';
+import portrait from '../../art/portrait-halftone-600.webp';
 import { Crowd, HalftoneSphere } from '../brand';
 import {
     Accent,

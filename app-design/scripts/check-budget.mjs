@@ -79,13 +79,18 @@ const CEILING = {
 // StackCards and Wipe (0.1 KB); the dither's cheaper noise and a shared colour parser gave back 0.2 KB. Then 13.2:
 // the portrait's labels listed wherever they would spill past the stage (0.15 KB; 13,433 bytes measured on 2.0.1,
 // whose own changes had left about 30 bytes under 13.0, so 13.1 KB fell 19 bytes short). A page
-// pays only for the scenes it imports. Apart: the bust's two poster paths, and each lazy chunk of dots (the
-// bust's stipple, 23.8 KB, and the deck portrait kept as an option, 18.1 KB), which load only when a portrait
-// asks for them once the page is idle. Since 2.1 the files already on the page stay outside under one token rather
-// than their paths, so the reading no longer moves with the checkout path or chunk hashes: 13,219 bytes on 2.1.
+// pays only for the scenes it imports. Apart: the portrait's two poster paths, and each lazy chunk of dots (the
+// portrait's stipple and the deck portrait kept as an option), which load only when a portrait asks for them once
+// the page is idle. Since 2.1 the files already on the page stay outside under one token rather than their paths,
+// so the reading no longer moves with the checkout path or chunk hashes: 13,219 bytes on 2.1.
 const MOTION_OWN = 13.2 * 1024;
 const MOTION_POSTER = 5 * 1024;
 const MOTION_LAZY = 26 * 1024;
+// The portrait's stipple on its own: 2.2's is a photograph's, 8000 dots on each ground, 12,779 stored at 5 bytes
+// each, 66.6 KB gzipped (the shapes' bust before it, 23.8 KB, had 3,300 a ground, too few to carry a face at a
+// hero's size). Its places are blue noise, so gzip finds little in them: the cost is the dots. It loads after the
+// poster paints, and only on a page that draws the portrait.
+const MOTION_PORTRAIT = 72 * 1024;
 
 const peers = [...Object.keys(pkg.peerDependencies ?? {}), ...builtinModules, 'node:*', 'react/jsx-runtime', 'next/link', 'next/router', 'next/compat/router', 'next/head', 'next/image', 'next/dynamic', 'next/og', 'next/font/local'];
 
@@ -181,8 +186,13 @@ check(code.total <= MOTION_OWN, `./motion's own code ships ${kb(code.total)} gzi
     check(there.total === code.total, `./motion's own code reads ${code.total} bytes here and ${there.total} from a longer checkout path: the measure counts where the package sits`);
 }
 check(gz(poster) <= MOTION_POSTER, `./motion's portrait poster is ${kb(gz(poster))} gzipped, over ${kb(MOTION_POSTER)}`);
-check(lazy.length >= 2, "./motion's dots (the bust and the deck portrait) are no longer separate chunks: they would load with the entry");
-for (const f of lazy) check(gz([f]) <= MOTION_LAZY, `./motion's lazy ${f.split('/').pop()} is ${kb(gz([f]))} gzipped, over ${kb(MOTION_LAZY)}`);
+check(lazy.length >= 2, "./motion's dots (the portrait and the deck portrait) are no longer separate chunks: they would load with the entry");
+const isPortrait = (f) => /src\/motion\/portrait-points\.data\.ts/.test(motion.get(f).src.slice(0, 600));
+check(lazy.filter(isPortrait).length === 1, `./motion's portrait stipple is in ${lazy.filter(isPortrait).length} lazy chunks, not one of its own`);
+for (const f of lazy) {
+    const ceiling = isPortrait(f) ? MOTION_PORTRAIT : MOTION_LAZY;
+    check(gz([f]) <= ceiling, `./motion's lazy ${f.split('/').pop()} is ${kb(gz([f]))} gzipped, over ${kb(ceiling)}`);
+}
 
 // Apart: `.` and `./components` reach none of ./motion's own modules (ESM), and their CJS builds carry none of it.
 for (const entry of ['.', './components']) {

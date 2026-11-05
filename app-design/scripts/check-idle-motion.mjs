@@ -96,7 +96,6 @@ function brokenPoints() {
     const trap = (a) => new Proxy(a, { get: (t, k) => { if (typeof k === 'string' && /^[0-9]+$/.test(k) && ++reads > n * 5) throw new Error('broken points'); const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
     return { count: n, x: trap(x), y, tone, pitch: 0.02 };
 }
-window.__anchors = PORTRAIT_ANCHORS;
 window.__bust = bustPoints;
 const notes = [{ at: PORTRAIT_ANCHORS.eye, label: 'First note' }, { at: PORTRAIT_ANCHORS.shoulder, label: 'Second note', side: 'right' }];
 const scenes = {
@@ -719,30 +718,42 @@ try {
             await close();
         }
         // Each ground draws its own positive. The still under reduced motion is the settled frame: on each ground
-        // exactly the dots stored for it, dense by the dark hair on paper and by the lit eye on a dark ground.
+        // exactly the dots stored for it, each at its place. Both grounds draw as many, so the count alone cannot
+        // tell them apart: the dots only one ground draws must be drawn there and not on the other.
         {
-            const seen = {};
             for (const ground of ['light', 'dark']) {
                 const { p, close } = await open('portrait', { reduce: true, flags: ground === 'dark' ? 'dark' : '' });
                 await p.waitForFunction(() => document.querySelector('.oca-portrait[data-live]'), null, { timeout: 8000 });
-                seen[ground] = await p.evaluate(async (bit) => {
+                const r = await p.evaluate(async (bit) => {
                     const pts = await window.__bust();
                     const c = document.querySelector('.oca-portrait-canvas');
                     const b = c.getBoundingClientRect();
                     const side = Math.min(b.width, b.height);
-                    const near = ([ax, ay]) =>
-                        c.__rects.filter(([x, y, w, h]) => Math.hypot(x + w / 2 - (b.width - side) / 2 - ax * side, y + h / 2 - (b.height - side) / 2 - ay * side) < 0.05 * side).length;
-                    return { drawn: c.__rects.length, stored: pts.grounds.filter((g) => g & bit).length, all: pts.count, hair: near(window.__anchors.hair), eye: near(window.__anchors.eye) };
+                    // Square centres by the pixel; a square's centre is within a pixel of its dot once snapped.
+                    const at = new Set();
+                    for (const [x, y, w, h] of c.__rects) at.add(`${Math.round(x + w / 2)},${Math.round(y + h / 2)}`);
+                    const hit = (i) => {
+                        const [x, y] = [(b.width - side) / 2 + pts.x[i] * side, (b.height - side) / 2 + pts.y[i] * side];
+                        for (const dx of [-1, 0, 1]) for (const dy of [-1, 0, 1]) if (at.has(`${Math.round(x) + dx},${Math.round(y) + dy}`)) return true;
+                        return false;
+                    };
+                    const only = { own: [0, 0], other: [0, 0] };
+                    for (let i = 0; i < pts.count; i++) {
+                        if (pts.grounds[i] === 3) continue;
+                        const tally = only[pts.grounds[i] === bit ? 'own' : 'other'];
+                        tally[0]++;
+                        if (hit(i)) tally[1]++;
+                    }
+                    return { drawn: c.__rects.length, stored: pts.grounds.filter((g) => g & bit).length, all: pts.count, only };
                 }, ground === 'dark' ? 2 : 1);
-                const r = seen[ground];
                 check(r.drawn === r.stored && r.stored < r.all, `portrait on a ${ground} ground: ${r.drawn} dots drawn, not the ${r.stored} of ${r.all} stored for it`);
+                const [own, other] = [r.only.own[1] / r.only.own[0], r.only.other[1] / r.only.other[0]];
+                check(
+                    r.only.own[0] > 100 && own >= 0.98 && other <= 0.15,
+                    `portrait on a ${ground} ground: ${r.only.own[1]} of the ${r.only.own[0]} dots only it draws are drawn, and ${r.only.other[1]} of the ${r.only.other[0]} only the other ground draws: not its own positive`
+                );
                 await close();
             }
-            const { light, dark } = seen;
-            check(
-                light.hair > 2 * dark.hair && dark.eye > 2 * light.eye,
-                `portrait: not a positive on each ground (by the hair ${light.hair} dots on paper and ${dark.hair} on dark, by the eye ${light.eye} and ${dark.eye})`
-            );
         }
         // The deck portrait, kept as an option, still loads and draws.
         {

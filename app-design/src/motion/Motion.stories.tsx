@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import portrait from '../assets/portrait-halftone-600.webp';
+import portrait from '../../art/portrait-halftone-600.webp';
 import { Eyebrow } from '../components/typography';
 import { CrowdDissolve, DitherImage, Marquee, MiniCheck, ParticlePortrait, ParticleText, PORTRAIT_ANCHORS, ScrollStory, StackCards, StorySwap, Wipe } from './index';
 
@@ -21,7 +21,7 @@ export const Portrait: StoryObj = {
                 className="h-[min(78svh,44rem)]"
                 callouts={[
                     { at: PORTRAIT_ANCHORS.eye, label: 'A note on a hairline leader' },
-                    { at: PORTRAIT_ANCHORS.hair, label: 'Drawn from shapes, not a photo', side: 'right' },
+                    { at: PORTRAIT_ANCHORS.hair, label: 'Dots from a generated portrait', side: 'right' },
                     { at: PORTRAIT_ANCHORS.jaw, label: 'Real text, not canvas' },
                     { at: PORTRAIT_ANCHORS.shoulder, label: 'It sleeps once formed' },
                     { at: PORTRAIT_ANCHORS.chest, label: 'Pause it any time' },

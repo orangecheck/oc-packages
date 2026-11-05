@@ -63,6 +63,41 @@ out, the family had three looks for Sign in.
   frame, also when served and hydrated; the window keeps its first step as
   before. Like the window it is a picture (`aria-hidden`). ochk.app's home
   page drew this phone until 2.0; it comes back in 2.0's language.
+- **Visible change wherever the portrait draws:** the package's portrait is
+  now a woman's head and shoulders from one photograph, not a bust drawn from
+  shapes, which read as a cartoon. That covers `ParticlePortrait`'s default dots
+  and its two posters, `HalftoneCanvas`'s `portraitTone`, the deck screen
+  (`deckPortraitPoints`) and `HalftoneSphere`'s dot layer. The photograph is
+  generated and depicts no real person: `scripts/portrait/SOURCE.md` records
+  the model, its licence, the pinned files and their hashes, the prompt and
+  the seed.
+  - `scripts/portrait/build.mjs` writes every one of them from
+    `scripts/portrait/source.webp` (the matte is its alpha) and
+    `scripts/portrait/portrait.json` (seed, tone, named places). Same source
+    and seed, same files; `--check`, now in `yarn test`, fails when a committed
+    file differs from a fresh run. It replaces `scripts/motion-points.mjs`.
+  - The stipple is one blue-noise sequence drawn by tone: 8000 dots on each
+    ground, 12,779 stored once with the grounds that draw them. Paper gathers
+    dots where the picture is dark, a dark ground where it is lit, and a thin
+    band along the figure's edge keeps a lit cheek's outline on paper.
+  - **Cost:** the lazy points chunk is 66.6 KB gzipped, up from 23.8 KB. A
+    photograph's face needs about 8000 dots a ground to read at a hero's size;
+    the bust had 3300. It still loads after the poster paints, and only where a
+    portrait draws; check-budget gives it a ceiling of its own, 72 KB, and the
+    other lazy chunks keep 26 KB. The posters stay under 5 KB.
+  - `PORTRAIT_ANCHORS` keeps its nine names, at the new figure's places: a
+    callout placed by an anchor follows the face.
+  - `HalftoneSphere`'s layers ship as `art/portrait-halftone-600.webp` (39 KB,
+    was 83 KB) and `art/portrait-halftone-1200.webp`; the unshipped copies in
+    `src/assets/` are gone. A site holding its own copy of the old layer
+    replaces it from `@orangecheck/app-design/art/`.
+- `scripts/check-portrait.mjs`: points packed by the pipeline round-trip
+  `unpackPoints` and `decodePoints`; the default holds the counts it states,
+  inside the square, top to bottom, each once, a positive on each ground, and
+  each named place on the figure; the tone and the deck screen are in range.
+- check-idle-motion tells the grounds apart by the dots only one of them
+  draws, which must be drawn there and not on the other, instead of by the
+  density at two named places, so it holds for any picture.
 
 ## [2.1.0] — 2026-11-05
 
