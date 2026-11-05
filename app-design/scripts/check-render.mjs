@@ -299,6 +299,9 @@ const html = (el) => renderToStaticMarkup(el);
     const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
     check(cmp.includes('>Use OC Stamp</a>') && (cmp.match(/<li/g) ?? []).length === 3, 'ComparisonTable: no action row');
     check(html(h(C.Closing, { title: 't', fineprint: h('span', { 'data-fine': '' }, 'credit') })).includes('data-fine'), 'Closing: no fineprint');
+    // Closing on a band: its tone reaches the section, which leaves the canvas; with none it stays there.
+    check(/^<section class="(?=[^"]*\boca-band-brand\b)(?![^"]*\bbg-background\b)/.test(html(h(C.Closing, { tone: 'brand', title: 't', art: null }))), 'Closing tone="brand": its section is not on the brand band');
+    check(/^<section class="[^"]*\bbg-background\b/.test(html(h(C.Closing, { title: 't', art: null }))), 'Closing with no tone: its section is not on the canvas');
     // Every block that draws a CTA pair draws it in HERO_ACTIONS, the row sites import for their own pairs: a block
     // with a row of its own, or one that drops or overrides a class of it, parts from the sites' rows.
     {
@@ -681,6 +684,71 @@ const html = (el) => renderToStaticMarkup(el);
     const tree = { type: 'root', children: [{ type: 'element', tagName: 'pre', properties: {}, children: [{ type: 'element', tagName: 'code', properties: { className: ['language-mermaid'] }, data: { meta: 'size=834x623' }, children: [{ type: 'text', value: 'sequenceDiagram\n' }] }] }] };
     rehypeCode()(tree);
     check(tree.children[0].properties.dataSize === '834x623' && tree.children[0].children.length === 1, `rehypeCode: a mermaid fence's size is not carried (${JSON.stringify(tree.children[0].properties)})`);
+}
+
+// 2.1.0: ./signin, the sign-in page six tool sites each carried a copy of, and SignInFrame's backTo.
+{
+    const S = require(join(here, '../dist/signin.js'));
+    const F = require(join(here, '../dist/family.js'));
+    // backTo draws the link opposite the lockup as Back to home is drawn: the same look and the coarse hit box.
+    const hit = 'pointer-coarse:before:h-11';
+    const backLink = (out) => out.match(/<header[^>]*>.*?<\/a>.*?(<a [^>]*>[^<]*<\/a>)/s)?.[1] ?? '';
+    const to = backLink(html(h(Ch.SignInFrame, { protocol: 'lock', backTo: '/came/from?x=1' }, 'x')));
+    check(/href="\/came\/from\?x=1"/.test(to) && />Go back</.test(to) && to.includes(hit), `SignInFrame backTo: the link is ${to}`);
+    check(/>Back again</.test(backLink(html(h(Ch.SignInFrame, { backTo: '/a', backLabel: 'Back again' }, 'x')))), 'SignInFrame backLabel: the words are not the given ones');
+    const home = backLink(html(h(Ch.SignInFrame, { protocol: 'lock' }, 'x')));
+    check(/href="https:\/\/ochk.io\/lock"/.test(home) && />Back to home</.test(home) && home.includes(hit), `SignInFrame: with no backTo the link is no longer Back to home (${home})`);
+    check(/>Mine</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: h('a', { href: '/m' }, 'Mine') }, 'x'))) && !/>Go back</.test(html(h(Ch.SignInFrame, { backTo: '/a', back: null }, 'x'))), 'SignInFrame: back no longer wins over backTo');
+    // homeLink={false}, for a popup that must stay with its opener: the lockup is drawn but goes nowhere, and
+    // there is no Back to home. The skip link is the only anchor; a back of the popup's own sits opposite.
+    const pinned = html(h(Ch.SignInFrame, { protocol: 'lock', homeLink: false }, 'x'));
+    const hrefs = [...pinned.matchAll(/<a [^>]*href="([^"]*)"/g)].map((m) => m[1]);
+    check(hrefs.join() === '#signin' && /<header[^>]*>.*?<svg/s.test(pinned), `SignInFrame homeLink={false}: the page still links to ${hrefs.join(', ')}, or the lockup is gone`);
+    const closer = html(h(Ch.SignInFrame, { homeLink: false, back: h('button', { type: 'button' }, 'Close') }, 'x'));
+    check(/<header[^>]*>.*<button type="button">Close<\/button>.*<\/header>/s.test(closer), 'SignInFrame homeLink={false}: a back of its own is not drawn opposite the lockup');
+    // HIT_LINK from the package entry: the classes the frame's own links carry, which stamp, lock and me.ochk.io's
+    // Close copied by hand.
+    const { HIT_LINK } = require(join(here, '../dist/index.js'));
+    check(typeof HIT_LINK === 'string' && HIT_LINK.includes(hit) && home.includes(HIT_LINK), `HIT_LINK: the package entry exports ${HIT_LINK}, not the classes Back to home carries`);
+
+    // The page on the server, as a prerendered /signin: no query, so the return target is the default.
+    const page = html(h(S.SignInPage, { protocol: 'lock', defaultReturnTo: '/app' }));
+    const back = backLink(page);
+    check(/href="\/app"/.test(back) && />Go back</.test(back) && back.includes(hit), `SignInPage: Go back is ${back}, not a 44px link to the default return`);
+    // The six tool sites' own words, so their screens do not move when they adopt it.
+    check(page.includes('>Sign in to OC Lock</h1>') && page.includes('One sign-in for every orangecheck site. No password.'), 'SignInPage: the title or lead is not the tool sites\' own');
+    check(/href="https:\/\/ochk.io\/lock"/.test(page) && /data-oc-signin/.test(page), 'SignInPage: no lockup home to ochk.io/lock, or no OcSignIn');
+    const btc = html(h(S.SignInPage, { product: 'btc', home: '/', audience: 'https://btc.ochk.io', defaultReturnTo: '/', back: 'home', title: 'Sign in to the desk', fineprint: 'Small print.' }));
+    const btcBack = backLink(btc);
+    check(/href="\/"/.test(btcBack) && />Back to home</.test(btcBack) && btc.includes('>Sign in to the desk</h1>') && btc.includes('Small print.'), `SignInPage product: back="home", the title or the fineprint is not the site's (${btcBack})`);
+    check(html(h(S.SignInPage, { product: 'x', home: '/', audience: 'https://x.ochk.io', defaultReturnTo: '/' })).includes(`>${F.SIGN_IN_LABEL}</h1>`), 'SignInPage: a product site\'s default title is not SIGN_IN_LABEL');
+
+    // One rule for the tab: the title is SIGN_IN_LABEL, and site-kit adds the site's name.
+    const seo = S.signInSeo({ protocol: 'vote' });
+    check(
+        seo.title === F.SIGN_IN_LABEL &&
+            seo.description === 'Sign in to OC Vote with email, Google, GitHub or a Bitcoin wallet. One sign-in for every orangecheck site.' &&
+            seo.canonical === '/signin' &&
+            seo.noindex === true,
+        `signInSeo: ${JSON.stringify(seo)}`
+    );
+    check(S.signInSeo({ product: 'btc', description: 'Desk.' }).description === 'Desk.', 'signInSeo: a product site\'s description is not its own');
+
+    // A product site has no protocol to take the audience from, so leaving it out is a type error.
+    const ts = require('typescript');
+    const file = join(here, '../dist/__signin-types.tsx');
+    const probe = (src) => {
+        require('node:fs').writeFileSync(file, `import { SignInPage } from './signin';\nexport const x = ${src};\n`);
+        try {
+            const p = ts.createProgram([file], { strict: true, noEmit: true, jsx: ts.JsxEmit.ReactJSX, skipLibCheck: true, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 });
+            return ts.getPreEmitDiagnostics(p).length;
+        } finally {
+            require('node:fs').rmSync(file, { force: true });
+        }
+    };
+    check(probe(`<SignInPage protocol="lock" defaultReturnTo="/app" />`) === 0, 'SignInPage types: a tool site\'s two props do not type-check');
+    check(probe(`<SignInPage product="btc" home="/" defaultReturnTo="/" />`) > 0, 'SignInPage types: a product site without an audience type-checks');
+    check(probe(`<SignInPage protocol="lock" product="btc" home="/" audience="a" defaultReturnTo="/" />`) > 0, 'SignInPage types: a protocol and a product together type-check');
 }
 
 if (failures) {

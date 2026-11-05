@@ -2,6 +2,67 @@
 
 ## [Unreleased]
 
+## [2.1.0] — unreleased
+
+A family site's sign-in page in the package. Six tool sites (lock, stamp,
+attest, pledge, agent and vote) each carried the same hundred-line
+`src/pages/signin.tsx`, different only in the protocol and the return path;
+btc and cosign carried the same skeleton with their own words. Each tool
+site also drew its own Go back link, so all six lost the frame's 44px
+target to a thumb until each was patched by hand.
+
+- New entry `./signin`, read from `@orangecheck/auth-client` like
+  `./session` (the same optional peer; no other entry loads it, and
+  `scripts/check-entries.mjs` holds that):
+  - `SignInPage`: `SignInFrame` around auth-client's `OcSignIn`. A tool site
+    passes `protocol` and `defaultReturnTo`; an app on its own host passes
+    `product`, `home` and `audience`. The audience defaults to
+    `https://<protocol>.ochk.io`, the title to "Sign in to OC <Protocol>",
+    the lead to "One sign-in for every orangecheck site. No password.".
+    `title`, `lead`, `fineprint`, `art`, `caption`, `alreadySignedIn` and
+    `signIn` (`providersFirst`, `initialPath`, `paths`) take a site's own.
+    `back` is `'return'` by default ("Go back" to the return target),
+    `'home'` for the frame's Back to home, or a node of the site's own.
+  - `useSignInReturn(defaultReturnTo)`: what the site copies did, moved
+    unchanged. The return target is the first `?return_to` that auth-client's
+    `familyReturnTarget` accepts, else `defaultReturnTo`; `?add=1` keeps a
+    signed-in visitor on the form for a second account; anyone else signed in
+    is sent to the return target. The query is read from the address, so the
+    server renders the page without it, as the copies did.
+  - `signInSeo({ protocol })`: the props for the site's own `<Seo>`, which
+    stays in the site. The title is always `SIGN_IN_LABEL` and site-kit adds
+    the site's name, so every tab reads "Sign in | OC <Protocol>"; lock's
+    tab, "Sign in · OC Lock" by hand, was the one that differed.
+- `SignInFrame` gains `backTo` and `backLabel` (default "Go back"): the link
+  opposite the lockup goes to the given page, drawn as Back to home is, a
+  44px target to a thumb. `back` still wins when given.
+- `SignInFrame` gains `homeLink` (default `true`). `homeLink={false}` draws
+  the lockup without its link and leaves out Back to home, for a sign-in
+  popup that would leave its opener waiting if it navigated away. It then
+  requires a `back` of its own (me.ochk.io's Close), drawn opposite the
+  lockup: the types refuse a frame with no way out.
+- `HIT_LINK` is exported from `.` and `./primitives`: the classes that give
+  a link in a line of text a 44px target to a thumb, by a pseudo-element, so
+  the line keeps its height. stamp, lock and me.ochk.io's popup copied them
+  by hand.
+- **Migrate** (a tool site): `src/pages/signin.tsx` becomes its `<Seo
+  {...signInSeo({ protocol })} />` and `<SignInPage protocol defaultReturnTo />`.
+  btc and cosign pass `product`, `home`, `audience`, `back="home"` and their
+  words. cosign keeps its origin prefix on the return path until a test shows
+  auth-client's own (it prefixes a path that starts with `/`) brings the
+  Google and GitHub return back to cosign.
+- `BentoTile` takes a heading. `heading="title"` makes its title the tile's
+  heading and `heading="label"` its mono label, at `as` (h3 by default),
+  where the page puts the grid. The heading is drawn exactly as the line it
+  replaces. With no `heading` a tile has none, as before. **Migrate**: drop
+  the `<span role="heading" aria-level={3}>` inside a tile's label or title
+  (chat's ThreeModes; vault's WhyVault and WhatYouCanStore) and pass
+  `heading="label"` or `heading="title"`.
+- `Closing` takes `tone`, one of Section's tones, for its band; canvas by
+  default. The default check is orange, so on brand pass your own `art` or
+  `null`. **Migrate**: chat's BottomCta passes `tone="brand"` in place of
+  its `oca-band-brand bg-brand text-brand-foreground` class.
+
 ## [2.0.3] — 2026-11-05
 
 - `./og` draws Latin Extended from Inter's own Latin Extended files. They

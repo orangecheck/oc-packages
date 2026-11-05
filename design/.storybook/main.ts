@@ -2,6 +2,10 @@ import path from 'node:path';
 
 import type { StorybookConfig } from '@storybook/react-vite';
 
+// The palette THEME_COLOR reads (the page's background), by file: main.ts loads as native ESM, which cannot follow
+// tokens/index.ts's extensionless import.
+import { darkPalette, lightPalette } from '../../app-design/src/tokens/palette.ts';
+
 const here = path.resolve(process.cwd(), '.storybook');
 
 const config: StorybookConfig = {
@@ -22,6 +26,11 @@ const config: StorybookConfig = {
     framework: { name: '@storybook/react-vite', options: {} },
     // app-design's self-hosted faces, for the frame around the stories (manager-head.html links fonts.css).
     staticDirs: [{ from: '../../app-design/src/styles', to: '/oca' }],
+    // The browser's chrome takes the family's paper and night, from the tokens every site's _document reads.
+    // No data-oc-app on this page: it is Storybook's own frame, and preview.tsx sets it inside each story.
+    managerHead: (head) =>
+        `${head}\n<meta name="theme-color" media="(prefers-color-scheme: light)" content="${lightPalette.background}" />` +
+        `\n<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${darkPalette.background}" />`,
     core: { disableTelemetry: true },
     async viteFinal(viteConfig) {
         // Tailwind 4 via the Vite plugin so @theme / @apply / @source resolve.
