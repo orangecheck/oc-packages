@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.2] — 2026-11-05
+
 - `DocsShell`'s article breaks a word wider than its column, so a link that
   is one long name (a generated README's `FederationMigrationCancelledWebhookPayload`)
   no longer scrolls a phone sideways: docs.ochk.io's agent-core, auth-client,
