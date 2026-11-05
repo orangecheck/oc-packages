@@ -2,11 +2,11 @@ import { OG_SIZE, OgCard, ogFonts } from '@orangecheck/app-design/og';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { ImageResponse } from 'next/og.js';
 import type { ComponentProps } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { recorder } from '../auth/fixtures';
 import { defineSite, generateMetaTags } from '../seo/meta';
-import { createOgHandler, ogTitle, type OgCardOptions } from './index';
+import { createOgHandler, ogTitle, type OgCardOptions, type OgLookup } from './index';
 
 const STAMP: OgCardOptions = {
     wordmark: 'oc·stamp',
@@ -123,4 +123,106 @@ describe('createOgHandler', () => {
         const want = await card({ title: 'hi', product: 'vault', eyebrow: 'Vault', host: 'vault.ochk.io', tone: 'paper' });
         expect((out.body as Buffer).equals(want)).toBe(true);
     }, 30_000);
+});
+
+const DAY = 'public, max-age=86400, s-maxage=86400';
+const SHORT = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=60';
+const DEFAULT_CARD = { title: STAMP.defaultTitle, product: 'stamp', eyebrow: 'OC Stamp', host: 'stamp.ochk.io' } as const;
+
+/** KEYED with a `project` lookup over `rows`: a row's card, null when there is none, or a throw. */
+function lookingUp(rows: Record<string, OgLookup['card'] | Error>, more: Partial<OgCardOptions> = {}) {
+    const asked: string[] = [];
+    const project = async (slug: string): Promise<OgLookup> => {
+        asked.push(slug);
+        const row = Object.prototype.hasOwnProperty.call(rows, slug) ? rows[slug]! : null;
+        if (row instanceof Error) throw row;
+        return { card: row, cacheControl: SHORT };
+    };
+    return { asked, opts: { ...KEYED, resolve: { project }, ...more } satisfies OgCardOptions };
+}
+
+describe('createOgHandler resolve', () => {
+    it("draws a looked-up card at its one URL, kept as long as the lookup says", async () => {
+        const { asked, opts } = lookingUp({ demo: 'Demo project', vault: { title: 'Vault', eyebrow: 'Featured' } });
+        const demo = await handled(opts, '/api/og?project=demo');
+        expect([demo.status, demo.headers['cache-control']]).toEqual([200, SHORT]);
+        expect((demo.body as Buffer).equals(await card({ ...DEFAULT_CARD, title: 'Demo project' }))).toBe(true);
+        const vault = await handled(opts, '/api/og?project=vault');
+        expect((vault.body as Buffer).equals(await card({ ...DEFAULT_CARD, title: 'Vault', eyebrow: 'Featured' }))).toBe(true);
+        expect(asked).toEqual(['demo', 'vault']);
+    }, 30_000);
+
+    it('draws the default card for a thing removed, hidden or not found, kept as long as the lookup says', async () => {
+        const { asked, opts } = lookingUp({});
+        const out = await handled(opts, '/api/og?project=gone');
+        expect([out.status, out.headers['cache-control']]).toEqual([200, SHORT]);
+        expect((out.body as Buffer).equals(await card(DEFAULT_CARD))).toBe(true);
+        expect(asked).toEqual(['gone']);
+    }, 30_000);
+
+    it('answers the default card with no-store when the lookup throws, so a failed read is never kept', async () => {
+        const said = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const { opts } = lookingUp({ demo: new Error('database unreachable') });
+            const out = await handled(opts, '/api/og?project=demo');
+            expect([out.status, out.headers['cache-control']]).toEqual([200, 'no-store']);
+            expect((out.body as Buffer).equals(await card(DEFAULT_CARD))).toBe(true);
+            expect(String(said.mock.calls[0])).toContain('database unreachable');
+        } finally {
+            said.mockRestore();
+        }
+    }, 30_000);
+
+    it("cuts a looked-up title, as it cuts the site's own", async () => {
+        const { opts } = lookingUp({ long: 'a'.repeat(20) }, { maxTitleLength: 10 });
+        const out = await handled(opts, '/api/og?project=long');
+        expect((out.body as Buffer).equals(await card({ ...DEFAULT_CARD, title: 'aaaaaaaaa…' }))).toBe(true);
+    }, 30_000);
+
+    it('sends any other query to its one URL, kept a day, before any lookup', async () => {
+        const { asked, opts } = lookingUp({ demo: 'Demo project' });
+        for (const [url, to] of [
+            ['/api/og?project=demo&title=x', '/api/og?project=demo'],
+            ['/api/og?title=x&project=demo', '/api/og?project=demo'],
+            ['/api/og?project=demo&project=other', '/api/og?project=demo'],
+            ['/api/og?project=a+b', '/api/og?project=a%20b'],
+            ['/api/og?project=', '/api/og'],
+            ['/api/og?page=create&project=demo', '/api/og?page=create'],
+            ['/api/og?page=nope&project=demo', '/api/og?project=demo'],
+            ...['constructor', '__proto__', 'toString', 'hasOwnProperty'].map((name) => [`/api/og?${name}=demo`, '/api/og']),
+        ] as const) {
+            const out = await handled(opts, url);
+            expect([out.status, out.headers.location, out.headers['cache-control'], out.body], url).toEqual([308, to, DAY, undefined]);
+        }
+        expect(asked).toEqual([]);
+    });
+
+    it('refuses a lookup named page, the query of `cards`', () => {
+        const page = async (): Promise<OgLookup> => ({ card: null, cacheControl: SHORT });
+        expect(() => createOgHandler({ ...KEYED, resolve: { page } })).toThrow(TypeError);
+    });
+});
+
+describe('createOgHandler basePath', () => {
+    it("puts the site's basePath back on the URL it sends a request to", async () => {
+        const docs = { ...KEYED, basePath: '/docs' };
+        for (const [url, to] of [
+            ['/api/og?title=x', '/docs/api/og'],
+            ['/api/og?page=create&title=x', '/docs/api/og?page=create'],
+            ['/api/og?page=nope', '/docs/api/og'],
+        ] as const) {
+            const out = await handled(docs, url);
+            expect([out.status, out.headers.location, out.headers['cache-control']], url).toEqual([308, to, DAY]);
+        }
+        const create = await handled(docs, '/api/og?page=create');
+        expect([create.status, create.headers.location]).toEqual([200, undefined]);
+    }, 30_000);
+
+    it('refuses a basePath that is not a path, so a 308 never leaves the site', () => {
+        for (const basePath of ['docs', '/docs/', '/', '', '//evil.example', 'https://evil.example', '/do cs', '/a//b']) {
+            expect(() => createOgHandler({ ...KEYED, basePath }), basePath).toThrow(TypeError);
+        }
+        expect(() => createOgHandler({ ...KEYED, basePath: '/docs' })).not.toThrow();
+        expect(() => createOgHandler({ ...KEYED, basePath: '/a/b-c.d' })).not.toThrow();
+    });
 });

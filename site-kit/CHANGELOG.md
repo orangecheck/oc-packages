@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.1
+
+`createOgHandler` takes two new options, one for each site whose card it could
+not draw before. A site that sets neither gets exactly what 0.8.0 gave it.
+
+`resolve` is for cards a site looks up instead of issuing: cosign's project and
+person cards. `resolve: { project: (slug) => … }` draws a looked-up card for
+`?project=<slug>`, and that query alone is the card's one URL. Any other query
+gets the 308, kept a day, before any lookup runs. Each lookup answers
+`{ card, cacheControl }`:
+
+- `card` is what to draw, or null for the default card when the thing is
+  removed, hidden or not found.
+- `cacheControl` is how long the answer is kept, since a looked-up card can
+  change or be taken down.
+
+A lookup that throws answers the default card with `no-store`, so a failed read
+is never kept, and it logs why. `resolve` cannot name `page`, which is the
+query for `cards`.
+
+`basePath` is for a site served under a Next `basePath`: docs, at
+ochk.io/docs. Next takes the base path off `req.url`, so 0.8.0 sent a stray
+query to `/api/og`, which on ochk.io is www's card. With `basePath: '/docs'`
+the 308 goes to `/docs/api/og`. A `basePath` that is not a path, such as
+`//host`, throws when the handler is made, so a 308 never leaves the site.
+
 ## 0.8.0
 
 A new entry, `./document`, holds `ThemeColorMeta` for a site's `_document`
