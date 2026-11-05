@@ -44,6 +44,31 @@
   attribute. **Migrate**: a site that showed something with the notes on
   `[data-phase='formed']` keys it on `[data-notes]`.
 
+- On a phone, nothing under the app shell's `TabBar` counts as on screen. The
+  bar covers the bottom of the window, and the package's on-screen tests and
+  IntersectionObservers used the whole window. So vote's share, 56px of
+  `ParticleText` at 807 in an 844 window, formed in place under the bar from
+  787, out of sight.
+  - The `TabBar` publishes its height, measured from its own box with the safe
+    area in it, as `--oca-tabbar-h` on the root. It is `0px` from md, where the
+    bar is hidden, and gone when the bar is. With two mounted at once (a shell
+    in a shell, or a route change), the one left keeps it when the other
+    goes. Nothing else measures it.
+  - `ParticleText`, `StepPath`, `Reveal`, `Ticker`, `useInView`, `Wipe`,
+    `Marquee`, `HalftoneCanvas`, the motion scheduler, `useActiveHeading` and
+    the blocks' on-screen hook (`SignInDemo`, `CostDemo`) test against the
+    window less the bar. Their observers' bottom margins leave it out, and
+    are remade when the bar comes, goes or changes height. With no bar,
+    nothing changes.
+  - `ParticleText` says what it decided in `data-form`: `place` (formed where
+    it stood), `wait` (scattered until a third of it is seen), then `gather`.
+  - Focus is kept clear of the bar (WCAG 2.4.11). Below md, on a page that
+    has a bar, the root's `scroll-padding-bottom` is the bar's height and
+    0.75rem. Before any script runs, and without script, it is the bar's own
+    size, so the server's page is clear of it too. A page with no bar gets
+    none. The shells' room under their content is the bar's published height
+    too. It was 3.5rem, 1px short of the bar and its border.
+
 - `HERO_ACTIONS` is exported from `./components`: the row PageHero,
   DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
   column, each action at full width, in DOM order. From sm it is a row at the

@@ -558,6 +558,16 @@
         scroll-padding-top: calc(4.5rem + 3rem + 2px + 0.75rem);
     }
 }
+/* And never under the phone's TabBar at the bottom, below md where it is shown, on a page that has one. Its
+   height is the one the bar publishes from its own box, the safe area in it (--oca-tabbar-h); before any script
+   has run, and without script, it is the bar's own size, so the server's page is clear of it too. The room
+   above it is 0.75rem. */
+@media (width < 48rem) {
+    :root[data-oc-app='ochk']:has([data-oca-tabbar]),
+    :root:has([data-oc-app='ochk'] [data-oca-tabbar]) {
+        scroll-padding-bottom: calc(var(--oca-tabbar-h, calc(3.5rem + 1px + env(safe-area-inset-bottom))) + 0.75rem);
+    }
+}
 @media (width >= 64rem) {
     /* An app's phone bar is gone from lg; its sidebar does not cover the page. */
     :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
