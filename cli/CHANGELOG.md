@@ -24,6 +24,13 @@ this file tracks the package's TS / Node / runtime API surface.
   nostr-core kept, repeats included, and the ones it dropped for a bad
   signature. A full page that brings nothing new is a read cut off, so with no
   other answer the handle is NOT READ, exit 2.
+- Device records and revocations are asked in pages of 500, and the page goes
+  to chat-core with the answer, as chat-core 0.2.2 reads a `RecordLookup`. A
+  relay that fills the page has not answered in full, so its read is below its
+  floor; with no other answer, "live", "bound now" and "not bound" are NOT
+  READ, exit 2. The relay report counts such a read below its floor, and the
+  line that names those reads says "fewer relays answering in full than their
+  floor".
 
 ## [0.5.1] — 2026-11-05
 
