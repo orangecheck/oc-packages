@@ -528,7 +528,7 @@
 /* A focused control is never left under a sticky bar: the page scrolls it into view below the
    bar, with a little room. The bars say what they are (data-oca-sticky); their heights are the
    shells' own: the site's bar 3.5rem, 4.25rem from 900px (its rule counts 4rem, 4.5rem from md,
-   for room), an app's phone bar 3.5rem, the docs' section bar a further 3rem below lg. Each with
+   for room), an app's bar 3.5rem below lg, the docs' section bar a further 3rem below lg. Each with
    its 1px hairline. The scope is the page's root itself or an element under it, so each rule
    names both. */
 :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
@@ -568,7 +568,7 @@
     }
 }
 @media (width >= 64rem) {
-    /* An app's phone bar is gone from lg; its sidebar does not cover the page. */
+    /* From lg an app's bar is its desk bar, which does not stick, and its sidebar does not cover the page. */
     :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
         scroll-padding-top: 0;

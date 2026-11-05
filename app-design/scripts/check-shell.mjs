@@ -175,6 +175,7 @@ for (const [name, props] of drawer) {
     check(homes.length === 2, `the shell has two lockup links, phone and desk (got ${homes.length})`);
     check(homes.every((a) => !/aria-label=/.test(a) && /<span class="sr-only"> home<\/span><\/a>$/.test(a)), 'each lockup link is named by its lockup, then "home", not by an aria-label');
     check(/<header data-oca-sticky="app-bar"/.test(html), 'the phone bar is a header landmark');
+    check((html.match(/<header data-oca-sticky="app-bar"/g) ?? []).length === 2, "the phone and desk bars both say they are the shell's");
     const { Pagination } = require(join(here, '../dist/primitives.js'));
     const pages = renderToStaticMarkup(h(Pagination, { pageIndex: 0, pageSize: 10, total: 30, onPage: () => {} }));
     check(!/aria-label="Pages"/.test(pages), "Pagination's default name is not the sidebar's \"Pages\"");
