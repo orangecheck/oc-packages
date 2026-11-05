@@ -152,13 +152,16 @@ describe('createOgHandler resolve', () => {
         expect(asked).toEqual(['demo', 'vault']);
     }, 30_000);
 
-    it('draws the default card for a thing removed, hidden or not found, kept as long as the lookup says', async () => {
+    it('sends a thing removed, hidden or not found to the default card, kept as long as the lookup says, and draws nothing', async () => {
+        // A probe of any slug costs one lookup and no render, and a project made after its URL was
+        // probed shows within the lookup's own age, not a day.
         const { asked, opts } = lookingUp({});
         const out = await handled(opts, '/api/og?project=gone');
-        expect([out.status, out.headers['cache-control']]).toEqual([200, SHORT]);
-        expect((out.body as Buffer).equals(await card(DEFAULT_CARD))).toBe(true);
+        expect([out.status, out.headers.location, out.headers['cache-control'], out.body]).toEqual([308, '/api/og', SHORT, undefined]);
         expect(asked).toEqual(['gone']);
-    }, 30_000);
+        const docs = await handled({ ...opts, basePath: '/docs' }, '/api/og?project=gone');
+        expect([docs.status, docs.headers.location]).toEqual([308, '/docs/api/og']);
+    });
 
     it('answers the default card with no-store when the lookup throws, so a failed read is never kept', async () => {
         const said = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -219,10 +222,11 @@ describe('createOgHandler basePath', () => {
     }, 30_000);
 
     it('refuses a basePath that is not a path, so a 308 never leaves the site', () => {
-        for (const basePath of ['docs', '/docs/', '/', '', '//evil.example', 'https://evil.example', '/do cs', '/a//b']) {
+        for (const basePath of ['docs', '/docs/', '/', '', '//evil.example', 'https://evil.example', '/do cs', '/a//b', '/.', '/..', '/docs/..', '/../docs', '/./docs']) {
             expect(() => createOgHandler({ ...KEYED, basePath }), basePath).toThrow(TypeError);
         }
         expect(() => createOgHandler({ ...KEYED, basePath: '/docs' })).not.toThrow();
         expect(() => createOgHandler({ ...KEYED, basePath: '/a/b-c.d' })).not.toThrow();
+        expect(() => createOgHandler({ ...KEYED, basePath: '/.well/...' })).not.toThrow();
     });
 });

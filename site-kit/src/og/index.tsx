@@ -29,9 +29,10 @@ export interface OgCardOptions {
      * The cards this site looks up, by query name: `{ project: (slug) => … }`
      * draws a project's card for `?project=<slug>`, that query alone being its
      * one URL. Each lookup says how long its answer is kept, since a looked-up
-     * card can change or be taken down; one that throws answers the default
-     * card with `no-store`, so a failed read is never kept. Not `page`, the
-     * query of `cards`.
+     * card can change or be taken down. One that finds nothing sends the
+     * request to the default card's URL for that long, and draws nothing; one
+     * that throws answers the default card with `no-store`, so a failed read is
+     * never kept. Not `page`, the query of `cards`.
      */
     resolve?: Readonly<Record<string, (value: string) => Promise<OgLookup>>>;
     /**
@@ -57,7 +58,10 @@ export interface OgCardOptions {
 
 /** What a site's lookup answers for one value, e.g. a project by its slug. */
 export interface OgLookup {
-    /** The card to draw, or null for the default card: a thing removed, hidden or not found. */
+    /**
+     * The card to draw, or null for a thing removed, hidden or not found: that
+     * request is sent to the default card's URL, kept for `cacheControl`.
+     */
     card: OgCardEntry | null;
     /** This answer's Cache-Control, e.g. `public, max-age=300, s-maxage=3600, stale-while-revalidate=60`. */
     cacheControl: string;
@@ -136,25 +140,27 @@ export function createOgHandler(opts: OgCardOptions) {
     if (opts.resolve && Object.prototype.hasOwnProperty.call(opts.resolve, 'page')) {
         throw new TypeError('site-kit: resolve cannot name `page`, the query of `cards`');
     }
-    if (opts.basePath !== undefined && !/^(\/[\w.~-]+)+$/.test(opts.basePath)) {
+    // Segments of name characters, none of them `.` or `..`, which a browser would resolve away.
+    if (opts.basePath !== undefined && !/^(\/(?!\.\.?(?:\/|$))[\w.~-]+)+$/.test(opts.basePath)) {
         throw new TypeError(`site-kit: basePath must be a path such as /docs, got ${JSON.stringify(opts.basePath)}`);
     }
     return async function ogHandler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
         const url = new URL(req.url ?? '/', 'http://og.invalid');
-        const { query, lookup } = canonical(url, opts);
-        if (url.search !== query) {
-            res.setHeader('Cache-Control', CARD_CACHE);
+        const sendTo = (query: string, cacheControl: string) => {
+            res.setHeader('Cache-Control', cacheControl);
             res.setHeader('Location', `${opts.basePath ?? ''}${url.pathname}${query}`);
             res.status(308).end();
-            return;
-        }
+        };
+        const { query, lookup } = canonical(url, opts);
+        if (url.search !== query) return sendTo(query, CARD_CACHE);
         let drawn = issued(req.url, opts.cards);
         let cache = CARD_CACHE;
         if (lookup) {
             const [name, value] = lookup;
             try {
                 const found = await opts.resolve![name]!(value);
-                drawn = found.card === null ? undefined : entryCard(found.card);
+                if (found.card === null) return sendTo('', found.cacheControl);
+                drawn = entryCard(found.card);
                 cache = found.cacheControl;
             } catch (err) {
                 console.error(`[og] the ${name} lookup failed, so the default card: ${err instanceof Error ? err.message : String(err)}`);
