@@ -2,7 +2,8 @@
 // mempool.space answers 400 for an address with more than 500 unspent outputs,
 // and anyone can push a voter there with about 125 USD of dust. The lookup
 // threw a plain Error, so vote-core ended the whole tally and the CLI exited 1
-// for that poll for good. The lookup now throws vote-core's UtxoUnreadError:
+// whenever the explorer would not list that voter. The lookup now throws
+// vote-core's UtxoUnreadError:
 // the tally is `unread` (SPEC §8), the CLI names who could not be read and why,
 // prints no totals, and exits 3, neither a count (0) nor a failure (1).
 
@@ -148,12 +149,14 @@ describe('oc-vote tally with a voter the explorer will not list', () => {
         expect(exitCode).toBe(3);
     });
 
-    it('says so in words, and that tallying again from that explorer will not help', async () => {
+    it('says so in words, and that tallying again from that explorer is unlikely to help', async () => {
         coins.set(B.address, capped);
         coins.set(C.address, () => new Response('', { status: 503 }));
         const { out, exitCode } = await tally(false);
         expect(out).toContain('STATE:      unread — not counted: 2 voters could not be read at block 900000');
-        expect(out).toMatch(new RegExp(`${B.address} +utxo_cap_unread +.*won't help`));
+        // It may help: mempool.space listed all 3,171 coins of an address it caps on 4 of 29 reads.
+        expect(out).toMatch(new RegExp(`${B.address} +utxo_cap_unread +.*tallying again from it is unlikely to help\n`));
+        expect(out).not.toContain("won't help");
         expect(out).toMatch(new RegExp(`${C.address} +chain_unread +.*tally again once it answers`));
         // No count: no counted or turnout line, no bars, no shares.
         expect(out).not.toMatch(/^ {2}(counted|turnout):|█|%/m);
@@ -209,6 +212,22 @@ describe("the explorer's answers for a voter's coins", () => {
         expect(err).toMatchObject({ name: 'UtxoUnreadError', reason });
     });
 
+    // A 200 that parses but is not a list is no list of coins: never an empty one,
+    // which would weigh the voter 0. The line it writes names no address.
+    it.each([
+        { what: 'an object', body: '{"error":"x"}' },
+        { what: 'null', body: 'null' },
+    ])('a 200 whose JSON is $what is chain_unread, said in one fixed line', async ({ body }) => {
+        const lines: string[] = [];
+        vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+            lines.push(String(chunk));
+            return true;
+        });
+        coins.set(A.address, () => new Response(body));
+        await expect(ask()).rejects.toMatchObject({ name: 'UtxoUnreadError', reason: 'chain_unread' });
+        expect(lines).toEqual(['oc-vote: coin lookup answered something other than a coin list; read as chain_unread\n']);
+    });
+
     it('reads a coin list it was given', async () => {
         coins.set(
             A.address,
@@ -223,7 +242,8 @@ describe("the explorer's answers for a voter's coins", () => {
         expect(await ask()).toEqual([{ value: 5000, confirmed_height: 899_000 }]);
     });
 
-    it('gives up after its own timeout, as chain_unread', async () => {
+    it('gives up after its own timeout of 8 s, as chain_unread', async () => {
+        expect(UTXO_FETCH_TIMEOUT_MS).toBe(8000);
         vi.useFakeTimers();
         vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
         let signal: AbortSignal | undefined;
@@ -240,7 +260,7 @@ describe("the explorer's answers for a voter's coins", () => {
             () => (settled = 'answered'),
             (e: unknown) => (settled = e)
         );
-        await vi.advanceTimersByTimeAsync(UTXO_FETCH_TIMEOUT_MS - 1);
+        await vi.advanceTimersByTimeAsync(7999);
         expect(settled).toBe('pending');
         await vi.advanceTimersByTimeAsync(1);
         await p;

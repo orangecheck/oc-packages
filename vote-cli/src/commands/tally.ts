@@ -43,7 +43,7 @@ export const UNREAD_EXIT = 3;
 /** What each unread reason means for whoever runs the tally next. */
 const UNREAD_WHY: Record<UtxoUnreadReason, string> = {
     utxo_cap_unread:
-        "the explorer lists no more than about 500 unspent outputs for one address, and this one has more; tallying again from it won't help",
+        "the explorer lists no more than about 500 unspent outputs for one address, and this one has more; tallying again from it is unlikely to help",
     chain_unread: 'the explorer did not answer; tally again once it answers',
     provider_refused_unread: 'the explorer refused the lookup',
 };
