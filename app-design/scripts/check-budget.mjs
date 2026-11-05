@@ -171,7 +171,9 @@ check(code.total <= MOTION_OWN, `./motion's own code ships ${kb(code.total)} gzi
 {
     const tmp = mkdtempSync(join(tmpdir(), 'app-design-budget-'));
     const at = join(tmp, 'a', 'longer', 'checkout', 'path');
+    // The package as a site installs it: dist and the package.json whose sideEffects decide what tree-shaking drops.
     cpSync(join(root, 'dist'), join(at, 'dist'), { recursive: true });
+    cpSync(join(root, 'package.json'), join(at, 'package.json'));
     const moved = (f) => join(at, relative(root, f));
     const there = await shipped(moved(join(root, pkg.exports['./motion'].import)), new Set([...base, ...lazy, ...poster].map(moved)));
     rmSync(tmp, { recursive: true, force: true });

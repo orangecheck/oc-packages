@@ -1,34 +1,40 @@
 import { useOptionalOcSession, type OcAccount } from '@orangecheck/auth-client';
 import { useState } from 'react';
 
-import { OCHK_APP_ACCOUNT, SessionAccountView, type SessionState } from '../chrome/tool-shell';
+import { OCHK_APP_ACCOUNT, SessionAccountView, type SessionState } from '../chrome/account';
 import { returningTo, useHereHref } from '../lib/sign-in';
-import type { AccountMenuItem } from '../chrome/app-shell';
+import type { AccountMenuItem } from '../chrome/account';
 import { shortenMiddle } from '../format';
 
 /*
  * The account control on any family site, read from @orangecheck/auth-client
  * (an optional peer: install it to use this entry). Inside an
- * OcSessionProvider it shows the account menu or "Sign in"; with no provider
- * there is nobody to be signed in as, so it offers sign-in.
+ * OcSessionProvider it shows who is signed in, with the account menu, or the
+ * way in; with no provider there is nobody to be signed in as, so it offers
+ * the way in.
  */
 
-/** The name an account chose to show, never a raw did:oc. */
-export function accountName(account: Pick<OcAccount, 'displayName' | 'displayIdentity'>): string {
-    if (account.displayName) return account.displayName;
+/**
+ * Who is signed in, as the account control shows it: the email the session
+ * shows, else the name the account chose, else its address or npub, short,
+ * else a short did. Never a generic word in place of a person.
+ */
+export function accountName(account: Pick<OcAccount, 'displayName' | 'displayIdentity'> & { didOc?: string }): string {
     const { kind, value } = account.displayIdentity;
-    if (kind === 'did' || value.startsWith('did:')) return 'Your account';
-    if (kind === 'email') return value;
-    // An address or npub: head and tail, short enough for a header chip.
-    return shortenMiddle(value, 8, 6);
+    if (kind === 'email' && value) return value;
+    if (account.displayName) return account.displayName;
+    // An address or npub: head and tail, short enough for the header.
+    if (value && kind !== 'did' && !value.startsWith('did:')) return shortenMiddle(value, 8, 6);
+    // did:oc:ed30f1d9…a4c2: the method and enough of the id to tell two apart.
+    return shortenMiddle(value.startsWith('did:') ? value : (account.didOc ?? value), 15, 4);
 }
 
 export function SessionAccount({
     signInHref,
     signInPath,
     signInLabel,
-    signInVariant,
     accountHref = OCHK_APP_ACCOUNT,
+    appearance = true,
     items,
     nameFrom = 'lg',
 }: {
@@ -37,11 +43,13 @@ export function SessionAccount({
     /** This site's own sign-in page (`/signin`): sign in here, in place, and return to the page the viewer is on. */
     signInPath?: string;
     signInLabel?: string;
-    /** The signed-out button's look; see SessionAccountView. */
+    /** @deprecated 2.2: ignored; the way in has one look per place (see SessionAccountView). */
     signInVariant?: 'primary' | 'secondary';
-    /** Where "Your account" goes. */
-    accountHref?: string;
-    /** This site's own items, above "Your account". */
+    /** Where Account settings goes: ochk.app's account page; `false` when `items` hold the account page. */
+    accountHref?: string | false;
+    /** The Appearance item in the menu; `false` leaves it out. */
+    appearance?: boolean;
+    /** This site's own items, above Account settings: its own action ("Open your vault") goes here. */
     items?: (AccountMenuItem | 'separator')[];
     nameFrom?: 'sm' | 'lg';
 }) {
@@ -54,8 +62,9 @@ export function SessionAccount({
         status === 'authenticated' ? 'in' : status === 'anonymous' ? 'out' : status === 'error' ? 'unknown' : 'checking';
     const account = session?.account ?? null;
     const name = account ? accountName(account) : undefined;
-    // A second line only when it adds something: the address behind a chosen name.
-    const detail = account?.primaryBtc && account.displayName ? shortenMiddle(account.primaryBtc, 8, 6) : undefined;
+    // A second line only when it adds something: the address behind the email or name.
+    const btc = account?.primaryBtc ? shortenMiddle(account.primaryBtc, 8, 6) : undefined;
+    const detail = btc && btc !== name ? btc : undefined;
     return (
         <SessionAccountView
             state={state === 'in' && !account ? 'checking' : state}
@@ -65,8 +74,8 @@ export function SessionAccount({
             signInHref={signInHref ?? (signInPath || !session?.signInUrl ? undefined : returningTo(session.signInUrl, here))}
             signInPath={signInPath}
             signInLabel={signInLabel}
-            signInVariant={signInVariant}
             accountHref={accountHref}
+            appearance={appearance}
             onSignOut={() => {
                 setSignOutRefused(false);
                 // auth-client 2.41 answers whether the auth host ended the session; an older one only signs out.
