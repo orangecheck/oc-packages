@@ -96,6 +96,7 @@ function measure() {
         account: acc && acc.getClientRects().length ? box(acc) : null,
         theme: [...header.querySelectorAll('button[aria-label^="Theme:"]')].filter((b) => b.getClientRects().length).length,
         menu: Boolean(header.querySelector('button[aria-label="Open menu"]')?.getClientRects().length),
+        family: Boolean(familyShown),
     };
 }
 
@@ -127,6 +128,7 @@ try {
             // The measure itself, so a change to it is a change someone meant: ochk.app's bar as 2.0 drew it.
             check(want && want.header.h === (width >= 900 ? 69 : 57), `${at0} ochk.app's bar is ${want?.header.h} tall`);
             check(want && want.mark?.h === 15 && want.mark?.w === 30, `${at0} ochk.app's mark is ${JSON.stringify(want?.mark)}`);
+            check(want && !(want.menu && want.family), `${at0} ochk.app's family menu and menu button are both in the bar`);
             for (const place of PLACES) {
                 const at = `[${width}] ${place}`;
                 const { p, errors, close } = await open(place, width);
@@ -144,6 +146,8 @@ try {
                 check(got.padLeft === want.padLeft && Math.abs(got.mark.x - (bleed ? want.mark.x - want.row.x - parseFloat(want.rules[0]) : want.mark.x)) <= 0.5, `${at}: the lockup starts at ${got.mark?.x} (gutter ${got.padLeft}), ochk.app's at ${want.mark.x} (${want.padLeft})`);
                 check(JSON.stringify(got.nav && { font: got.nav.font, gap: got.nav.gap }) === JSON.stringify(want.nav && { font: want.nav.font, gap: want.nav.gap }), `${at}: the navigation is ${JSON.stringify(got.nav)}, ochk.app's ${JSON.stringify(want.nav)}`);
                 check(got.menu === want.menu, `${at}: the phone's menu button is ${got.menu ? 'there' : 'missing'}, ochk.app's ${want.menu ? 'there' : 'missing'}`);
+                // The menu holds the family where its button shows, so the bar never draws both.
+                check(!(got.menu && got.family), `${at}: the family menu and the menu button are both in the bar`);
                 check(got.theme === 0, `${at}: ${got.theme} theme switch in the bar`);
                 // What sticks under the bar, scrolled: the docs' section bar below lg, its sidebar from lg, flush.
                 if (place === 'docs') {

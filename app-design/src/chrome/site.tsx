@@ -260,7 +260,7 @@ export function SiteHeader({
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
                     </Link>
-                    {family ? <FamilyMenu current={current} className="max-[899px]:hidden" /> : null}
+                    {family ? <FamilyMenu current={current} className="max-[900px]:hidden" /> : null}
                     {navigation}
                 </div>
                 <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch', account ? 'shrink-[1000000]' : 'shrink-0')}>
