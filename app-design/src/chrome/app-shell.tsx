@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 
 import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
+import { AccountSlotContext, type AccountSlot } from '../lib/account-slot';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
 import { HIT_LINK, HIT_LINKS } from '../lib/hit';
@@ -326,6 +327,9 @@ export interface AppShellProps {
     className?: string;
 }
 
+// The account in either bar: its trigger names who is signed in at every width.
+const APP_SLOT: AccountSlot = { look: 'app', where: 'bar' };
+
 function SidebarShell({
     nav,
     sections,
@@ -377,7 +381,7 @@ function SidebarShell({
                 {/* Past the bar, the account and the sidebar: 8 to 11 stops before the page without it. */}
                 <SkipLink />
                 {/* A header, so the bar and the place strip sit in a landmark; the desk's header below is hidden here. */}
-                <header data-oca-sticky="app-bar" className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
+                <header data-oca-sticky="app-bar" className="group/bar sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md lg:hidden">
                     <div className="flex h-14 items-center gap-2 px-3">
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
@@ -400,14 +404,18 @@ function SidebarShell({
                                 {footer ? <div className="mt-auto flex flex-col gap-3">{footer}</div> : null}
                             </SheetContent>
                         </Sheet>
-                        {/* At 320 the bar is full: the lockup gives the room, its product word ending in an ellipsis, never under 44 to a thumb. */}
+                        {/* Signed in, the name gives way first, then the lockup: its mark alone below 390 (orangecheck's own below
+                            480), then its product word to an ellipsis, never under 44 to a thumb. */}
                         <Link href={home} className="flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
-                            <ProductLockup size={20} product={product} />
+                            <ProductLockup size={20} product={product} compact />
                             {/* Read as "orangecheck home": the name starts with what the link shows. */}
                             <span className="sr-only"> home</span>
                         </Link>
                         {familyMenu}
-                        <div className="ml-auto flex items-center">{account}</div>
+                        {/* It gives way first, to its content's least width: the trigger's 44px, or the way in whole. */}
+                        <div className="ml-auto flex shrink-[1000000] items-center">
+                            <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
+                        </div>
                     </div>
                     {/* Phones keep it beside the tab bar, so sections that arrive after first paint move nothing. */}
                     {place.page ? (
@@ -424,7 +432,9 @@ function SidebarShell({
                 </header>
                 {/* From lg a grid, so the account bar comes before the sidebar in the page (Tab reaches it first) and still draws top right. */}
                 <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
-                    <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">{account}</header>
+                    <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">
+                        <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
+                    </header>
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
                         <div className="flex items-center gap-1">
                             <Link href={home} className={cn('min-w-0 px-2', HIT_LINK)}>

@@ -99,7 +99,8 @@ const views = {
         </DocsShell>
     ),
     app: () => (
-        <AppShell product="vault" nav={[{ items: [{ href: '/a', label: 'Entries', icon: <House />, active: true }, { href: '/b', label: 'Shares', icon: <List /> }] }]} account={account}>
+        // As vault draws it: its word, the family menu, and a footer that keeps the menu button on a phone.
+        <AppShell product="vault" family="vault" footer={<p>Install the app</p>} nav={[{ items: [{ href: '/a', label: 'Entries', icon: <House />, active: true }, { href: '/b', label: 'Shares', icon: <List /> }] }]} account={account}>
             <p>page</p>
         </AppShell>
     ),
@@ -110,8 +111,10 @@ createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place](
 const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'docs', 'app'];
 // Places whose lockup is orangecheck's alone (no site's word).
 const BARE = new Set(['site', 'dup', 'old', 'docs']);
-// Places that draw the inline control, not the header's block.
-const INLINE = new Set(['app', 'old']);
+// The site's word beside the lockup, where there is one.
+const WORD = { cta: 'vault', tool: 'stamp', app: 'vault' };
+// The one place whose trigger shows the name only from lg: a site's own control among a header's actions.
+const INLINE = new Set(['old']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 // 440: between the wordmark's 420 and the bar's 480, where a signed-in lockup drops its wordmark. 900: where the
 // links come into the bar, its most crowded width.
@@ -120,7 +123,7 @@ const WIDTHS = [320, 360, 390, 440, 768, 900, 1024, 1440];
 // In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
 // them the same way: a page function carries nothing in with it).
 function brandWords() {
-    const brand = document.querySelector('header > div').children[0].querySelector('a');
+    const brand = document.querySelector('header > div').querySelector('a');
     return [...brand.querySelectorAll('span')]
         .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
         .map((e) => e.textContent.trim());
@@ -156,13 +159,18 @@ function nameRoom() {
         }
     }
     probe.remove();
-    const row = document.querySelector('header > div');
-    const [left, right] = row.children;
-    const parts = [...left.children].filter((e) => e.getClientRects().length);
-    const slack = half(right.getBoundingClientRect().left - parseFloat(getComputedStyle(row).columnGap) - Math.max(...parts.map((e) => e.getBoundingClientRect().right)));
+    // The trigger's own bar: SiteHeader's and AppShell's phone bar set their parts in a row; AppShell's desk bar is its own row.
+    const bar = t.closest('header');
+    const row = bar.querySelector(':scope > div') ?? bar;
+    const right = [...row.children].find((e) => e.contains(t));
+    const before = [...row.children].slice(0, [...row.children].indexOf(right));
+    // SiteHeader groups the brand, the family menu and the links; AppShell's phone bar has them in the row itself.
+    const parts = (before.length === 1 && before[0].tagName === 'DIV' ? [...before[0].children] : before).filter((e) => e.getClientRects().length);
+    const slack = parts.length ? half(right.getBoundingClientRect().left - parseFloat(getComputedStyle(row).columnGap) - Math.max(...parts.map((e) => e.getBoundingClientRect().right))) : Infinity;
     // A word drawn and cut; one kept only for screen readers (sr-only, 1px) is not drawn.
-    const brandCut = [...left.querySelector('a').querySelectorAll('span')].some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
-    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, slack, brandCut, brandWords: [...left.querySelector('a').querySelectorAll('span')]
+    const spans = [...(row.querySelector('a')?.querySelectorAll('span') ?? [])];
+    const brandCut = spans.some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
+    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, slack, brandCut, brandWords: spans
             .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
             .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0 };
 }
@@ -245,9 +253,9 @@ try {
                     if (state === 'out') wayIn[`${place}:${width}`] = r.bar.find((c) => c.kind === 'out') ?? null;
                     // Signed out, nothing needs the room: the lockup is drawn whole (the wordmark gives way below 420
                     // beside a site's word, as it always has).
-                    if (place !== 'app' && !state.startsWith('in')) {
+                    if ((place !== 'app' || width < 1024) && !state.startsWith('in')) {
                         const words = await p.evaluate(brandWords);
-                        const want = BARE.has(place) ? ['orangecheck'] : width < 420 ? [place === 'cta' ? 'vault' : 'stamp'] : ['orangecheck', place === 'cta' ? 'vault' : 'stamp'];
+                        const want = BARE.has(place) ? ['orangecheck'] : width < 420 ? [WORD[place]] : ['orangecheck', WORD[place]];
                         check(JSON.stringify(words) === JSON.stringify(want), `${at}: the lockup draws ${JSON.stringify(words)}, not ${JSON.stringify(want)}`);
                     }
                     if (state === 'checking' || state === 'unknown') {
@@ -260,11 +268,11 @@ try {
                         const t = r.bar.find((c) => c.kind === 'in');
                         if (width < 768) check(t && t.w >= 44 && t.h >= 44, `${at}: the trigger is ${t?.w}x${t?.h}, under a thumb's 44`);
                         const name = { in: EMAIL, 'in-did': DID, 'in-long': LONG }[state];
-                        // In a header's block the trigger says who it is in words at every width; in AppShell's slot from
-                        // lg, and below that its name is its label and heads the menu.
-                        const block = !INLINE.has(place);
-                        if (block || width >= 1024) check(t?.text === name, `${at}: the trigger shows "${t?.text}", not ${name}`);
-                        if (block) {
+                        // In a header's block and AppShell's bars the trigger says who it is in words at every width; among a
+                        // site's own controls from lg, and below that its name is its label and heads the menu.
+                        const named = !INLINE.has(place);
+                        if (named || width >= 1024) check(t?.text === name, `${at}: the trigger shows "${t?.text}", not ${name}`);
+                        if (named) {
                             const n = await p.evaluate(nameRoom);
                             check(n.shown, `${at}: the name is not shown in the bar`);
                             // Cut where the bar has no room left for it, or at its cap (its line ends a letter short of it at
@@ -277,7 +285,8 @@ try {
                             // At least 8 of its characters at every width: below 480 the lockup drops its wordmark, so
                             // orangecheck's own is its mark alone, and below 390 a site's is too, to make the room.
                             check(n.chars >= Math.min(8, name.length), `${at}: the name shows ${n.chars} characters, under 8`);
-                            const words = BARE.has(place) ? (width < 480 ? [] : ['orangecheck']) : width < 390 ? [] : width < 480 ? [place === 'cta' ? 'vault' : 'stamp'] : null;
+                            // AppShell's desk bar holds the account alone: its lockup is in the sidebar.
+                            const words = place === 'app' && width >= 1024 ? null : BARE.has(place) ? (width < 480 ? [] : ['orangecheck']) : width < 390 ? [] : width < 480 ? [WORD[place]] : null;
                             if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
                             // Whole wherever the bar has the room: at 768, where the links are still in the phone's menu, and
