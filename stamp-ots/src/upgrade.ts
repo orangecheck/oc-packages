@@ -5,7 +5,8 @@
 // Calendars index upgrades by that commitment, not by the submitted digest.
 // For each pending leaf we ask its calendar for the continuation, graft it on,
 // and report the proof as confirmed once it reaches a Bitcoin attestation
-// whose block header checks out.
+// whose block header checks out. A calendar's 404 is its "not yet"; when no
+// calendar answers at all, nothing is concluded and the upgrade throws.
 
 import { blockHashOf } from './anchor.js';
 import { base64Decode, base64Encode, hexDecode } from './base64.js';
@@ -39,6 +40,23 @@ export interface UpgradeOptions {
 
 const norm = (u: string) => u.replace(/\/+$/, '');
 
+/**
+ * No calendar a pending proof names answered, so nothing was learned: the
+ * proof may be anchored already. Thrown by `upgradeProof` instead of
+ * returning the proof as still `pending`.
+ */
+export class CalendarsUnreadError extends Error {
+    constructor(
+        /** The calendars asked, with why each did not answer. */
+        readonly failures: { calendar: string; reason: string }[]
+    ) {
+        super(
+            `OTS: no calendar answered (${failures.map((f) => `${f.calendar}: ${f.reason}`).join('; ')})`
+        );
+        this.name = 'CalendarsUnreadError';
+    }
+}
+
 export async function upgradeProof(
     current: OtsProof,
     idHex: string,
@@ -60,7 +78,7 @@ export async function upgradeProof(
     }
 
     const answered: string[] = [];
-    await Promise.allSettled(
+    const settled = await Promise.allSettled(
         pending.map(async ({ uri, commitment }) => {
             const client = createCalendarClient(uri, { fetch: opts.fetch, timeoutMs: opts.timeoutMs });
             const bytes = await client.fetchProof(commitment, opts.signal);
@@ -71,6 +89,14 @@ export async function upgradeProof(
 
     const merged = serializeTimestamp(tree);
     const anchor = await resolveAnchor(tree, opts.headerSource);
+    if (!anchor && pending.length > 0 && settled.every((r) => r.status === 'rejected')) {
+        throw new CalendarsUnreadError(
+            pending.map(({ uri }, i) => ({
+                calendar: norm(uri),
+                reason: String((settled[i] as PromiseRejectedResult).reason?.message ?? settled[i]),
+            }))
+        );
+    }
     const calendars = [...answered, ...current.calendars.filter((c) => !answered.includes(norm(c)))];
 
     if (anchor) {
