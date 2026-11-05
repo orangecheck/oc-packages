@@ -933,6 +933,14 @@ const VERSION_MAX_KEYS = 32;
 /** REQs the founder's-keys read and the walk by `s` make in all. */
 const VERSION_MAX_ROLE_REQS = 256;
 
+/** A relay sent a whole page (the events it sent that the reader dropped count); with no
+ *  counts, the events read back fill it. */
+function pageFilled(res: { events?: NostrEvent[]; relayStatus?: readonly RelayAnswer[] }, limit: number): boolean {
+    const status = res.relayStatus ?? [];
+    if (status.some((r) => (r.events ?? 0) + (r.rejected ?? 0) >= limit)) return true;
+    return status.every((r) => r.events === undefined) && (res.events ?? []).length >= limit;
+}
+
 /** The founder a version names, when its founder and slug derive `cid`. */
 function founderFrom(e: NostrEvent, cid: string): string | null {
     const c = parseDescriptor(e);
@@ -944,7 +952,8 @@ function founderFrom(e: NostrEvent, cid: string): string | null {
 /**
  * Every version of a channel a reader can find (§8.3.1, 0.3.0), whether the open
  * read under its `t` tag stopped at the page bound, and whether the reads by
- * role holders' keys stopped short (an unanswered key lookup, or a bound).
+ * role holders' keys stopped short (an unanswered key lookup, a page a relay
+ * filled, or a bound).
  * Anyone can publish under that tag, so besides the paged open read and the
  * legacy d-tag it reads where a flood cannot reach: the versions the founder's
  * keys signed, then forward by `s` from each of those, by the keys of the role
@@ -1088,6 +1097,8 @@ export async function readChannelVersions(
                 )
             )) {
                 add(res, true, VERSION_PAGE_LIMIT);
+                // A key's page a relay filled may hold back more versions that key signed.
+                if (pageFilled(res, VERSION_PAGE_LIMIT)) incomplete = true;
             }
         };
         await read({ '#t': [cid] }, await keysOf(founder));

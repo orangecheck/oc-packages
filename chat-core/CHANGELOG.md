@@ -6,6 +6,16 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [Unreleased]
+
+- `readChannelVersions` returns `incomplete: true` when a relay fills a role
+  holder's key read to its page of 500, the founder's keys under the channel's
+  `t` tag or the walk forward by `s`: more versions that key signed may lie
+  behind the page. A page is full by what the relay sent, the events the
+  reader dropped included; with no counts, by the events read back. One relay
+  of those asked filling it is enough. A flood of the open read alone leaves
+  `incomplete` false while the key reads come back short.
+
 ## [0.2.3] — 2026-11-05
 
 ### Fixed
