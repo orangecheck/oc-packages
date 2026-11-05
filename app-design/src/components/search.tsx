@@ -59,8 +59,8 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
             onClick={onClick}
             aria-keyshortcuts={mac ? 'Meta+K' : 'Control+K'}
             className={cn(
-                'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card',
+                'inline-flex size-10 items-center justify-center gap-2 rounded-none text-muted-foreground transition-colors hover:bg-accent hover:text-foreground pointer-coarse:size-11',
+                'md:h-10 md:w-56 md:justify-start md:border md:border-border md:bg-card md:pl-3.5 md:pr-2 md:hover:border-oca-hairline-strong md:hover:bg-card md:pointer-coarse:h-11 md:pointer-coarse:w-56',
                 className
             )}
         >
@@ -235,7 +235,8 @@ export function SearchDialog({
                                 autoComplete="off"
                                 className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-oca-subtle"
                             />
-                            <DialogPrimitive.Close className="inline-flex h-8 shrink-0 items-center rounded-none border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground">
+                            {/* 32px drawn, 44px to a thumb. The inset is measured from inside the 1px border. */}
+                            <DialogPrimitive.Close className="relative inline-flex h-8 shrink-0 items-center rounded-none border border-border px-2 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-[7px]">
                                 {/* A phone has no Esc key. */}
                                 <span className="sm:hidden">Close</span>
                                 <span className="max-sm:hidden" aria-hidden>

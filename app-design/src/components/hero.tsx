@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
 import { visibleObserver } from '../lib/viewport';
 import { MonoLabel } from './frame';
 import { Section } from './section';
@@ -216,7 +217,8 @@ export function DocLayout({
                     href={`#${t.id}`}
                     aria-current={active === t.id ? 'location' : undefined}
                     className={cn(
-                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors',
+                        // 31px to a mouse; 44 to a thumb, the label centred in it.
+                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
                         active === t.id
                             ? 'border-foreground text-foreground'
                             : 'border-border text-muted-foreground hover:text-foreground'
@@ -248,7 +250,7 @@ export function DocLayout({
                             <ul>{links()}</ul>
                         </nav>
                         <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
-                            <summary className="cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden">
+                            <summary className={cn('cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden', HIT_LINK)}>
                                 On this page
                             </summary>
                             <ul className="mt-3">{links()}</ul>
