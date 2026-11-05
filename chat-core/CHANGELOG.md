@@ -17,6 +17,9 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
   `'unanswered'`, so a hung explorer leaves a post unchecked instead of
   holding the feed. Before, the reads waited as long as the `fetch` they were
   given.
+- A 200 from `/tx` whose body is not a transaction (not an object, or no
+  `vout` list) is `'unanswered'`, not `'missing'`: a malformed answer is no
+  answer, never a coin that isn't there.
 
 ## [0.2.2] — 2026-11-03
 
