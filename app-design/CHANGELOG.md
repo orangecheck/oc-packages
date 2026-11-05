@@ -59,6 +59,10 @@ letters up to 1000.
   check-header also holds a link on two lines, a word of the lockup cut, a
   bar that overflows, the bar's links at each width, and Docs and About in
   the menu at 1024.
+- On a rail page from lg only the tools leave the bar, as the rail lists
+  them. Docs and About stay, in the bar from 1180px and in the menu below.
+  Before, About was on no part of the page there. check-header holds a rail
+  page.
 
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
