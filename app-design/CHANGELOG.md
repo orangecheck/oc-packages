@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+The signed-in bar says who is signed in at every width. 2.2.0 showed the
+name only from 1024px, and below that a lone initial.
+
+- In a header's block the account trigger shows the name at every width,
+  on one line cut at any letter with an ellipsis. It gives way before the
+  bar's brand and links do, and stops at about 32 characters (17em). On a
+  phone the initial gives its room to the name, and the trigger reaches 8px
+  into the gutter, so its chevron ends on the gutter's line and at 320px a
+  letter and the ellipsis still fit. AppShell's slot is unchanged.
+- check-account holds it from 320 to 1440 with a short and a long email:
+  the name is shown, cut only for room or at its cap, never to less than a
+  letter and the ellipsis, and the brand is cut only after it. It also
+  presses Appearance round all three themes with the menu open and focus
+  held, and opens the menu with `accountHref={false}`, `appearance={false}`
+  and both, each holding exactly what is left. Fixtures use
+  ana@example.com.
+
 ## [2.2.0] — 2026-11-05
 
 One account control in every header. Signed in, ochk.app, ochk.io and the

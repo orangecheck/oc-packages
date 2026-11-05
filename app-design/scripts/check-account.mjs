@@ -37,6 +37,7 @@ if (!chrome) {
 }
 
 let failures = 0;
+const names = [];
 let checks = 0;
 const check = (ok, msg) => {
     checks++;
@@ -47,7 +48,9 @@ const check = (ok, msg) => {
 };
 
 const src = (f) => join(pkg, 'src', f);
-const EMAIL = 'satoshi.nakamoto@example.com';
+const EMAIL = 'ana@example.com';
+// Longer than the bar holds anywhere: it is cut, at about 32 characters from 1024.
+const LONG = 'ana.maria.oliveira.dos.santos.pereira@example.com';
 const DID = 'did:oc:ed30f1d9…a4c2';
 const PAGE = `
 import { createRoot } from 'react-dom/client';
@@ -62,10 +65,12 @@ const place = q.get('place');
 const state = q.get('state');
 const account = (
     <SessionAccountView
-        state={state === 'in-did' ? 'in' : state}
-        name={state === 'in' ? '${EMAIL}' : state === 'in-did' ? '${DID}' : undefined}
+        state={state.startsWith('in') ? 'in' : state}
+        name={state === 'in' ? '${EMAIL}' : state === 'in-did' ? '${DID}' : state === 'in-long' ? '${LONG}' : undefined}
         detail={state.startsWith('in') ? 'bc1qxy2k…hx0wlh' : undefined}
         signInHref="/signin"
+        accountHref={q.has('noacct') ? false : undefined}
+        appearance={!q.has('noappear')}
         items={[{ label: 'Your stamps', href: '/dashboard', icon: <FileText /> }]}
         onSignOut={() => { window.__signedOut = true; }}
     />
@@ -90,8 +95,34 @@ createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place](
 `;
 
 const PLACES = ['site', 'cta', 'tool', 'app'];
-const STATES = ['out', 'checking', 'unknown', 'in', 'in-did'];
+const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 const WIDTHS = [320, 360, 390, 768, 1024, 1440];
+
+// In the page, signed in: the name in the bar's trigger, the room the bar has left beside it, and the brand's word.
+function nameRoom() {
+    const half = (v) => Math.round(v * 2) / 2;
+    const t = [...document.querySelectorAll('[data-oca-account="in"]')].find((e) => e.getClientRects().length);
+    const n = t.querySelector('[data-oca-account-name]');
+    const disc = t.querySelector('[data-initial]');
+    const cs = getComputedStyle(n);
+    // Its cap, 17em: about 32 characters of an email in its type (32 of ana.maria.oliveira@example.co.uk's are 241px at 15px).
+    const cap = half(17 * parseFloat(cs.fontSize));
+    const probe = document.createElement('span');
+    probe.style.cssText = `position:absolute;white-space:pre;font-family:${cs.fontFamily};font-size:${cs.fontSize};font-weight:${cs.fontWeight};letter-spacing:${cs.letterSpacing}`;
+    probe.textContent = 'ana.maria.oliveira@example.co.uk';
+    document.body.append(probe);
+    const typical32 = half(probe.getBoundingClientRect().width);
+    // The least a cut name shows whole: its first letter and the ellipsis.
+    probe.textContent = `${n.textContent.charAt(0)}…`;
+    const least = half(probe.getBoundingClientRect().width);
+    probe.remove();
+    const row = document.querySelector('header > div');
+    const [left, right] = row.children;
+    const parts = [...left.children].filter((e) => e.getClientRects().length);
+    const slack = half(right.getBoundingClientRect().left - parseFloat(getComputedStyle(row).columnGap) - Math.max(...parts.map((e) => e.getBoundingClientRect().right)));
+    const brandCut = [...left.querySelector('a').querySelectorAll('span')].some((e) => getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
+    return { shown: n.getClientRects().length > 0, w: half(n.getBoundingClientRect().width), cut: n.scrollHeight > n.clientHeight + 1, cap, typical32, least, slack, brandCut, disc: disc.getClientRects().length > 0 };
+}
 
 // In the page: every account control drawn, and every link or button that says "Your account" or the CTA the account replaced.
 function read() {
@@ -123,14 +154,14 @@ try {
     const url = writePage(dir, 'account', '<div id="root"></div>', { head: `<script>${COLOUR_KIT}</script>`, script: '<script src="account.js"></script>' });
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
-    const open = async (place, state, width, dark = false) => {
+    const open = async (place, state, width, dark = false, extra = '') => {
         const phone = width < 768;
         // The theme follows the system until someone picks one, so dark is the system's.
         const ctx = await browser.newContext({ viewport: { width, height: 800 }, isMobile: phone, hasTouch: phone, colorScheme: dark ? 'dark' : 'light' });
         const p = await ctx.newPage();
         const errors = [];
         p.on('pageerror', (e) => errors.push(e.message));
-        await p.goto(`${url}?place=${place}&state=${state}${dark ? '&dark' : ''}`);
+        await p.goto(`${url}?place=${place}&state=${state}${dark ? '&dark' : ''}${extra}`);
         await p.waitForSelector('[data-oca-account]', { state: 'attached' });
         await p.evaluate(() => document.fonts.ready);
         return { p, errors, close: () => ctx.close() };
@@ -177,9 +208,31 @@ try {
                     if (signedIn) {
                         const t = r.bar.find((c) => c.kind === 'in');
                         if (width < 768) check(t && t.w >= 44 && t.h >= 44, `${at}: the trigger is ${t?.w}x${t?.h}, under a thumb's 44`);
-                        // From lg the trigger says who it is in words; below, its name is its label and heads the menu.
-                        const name = state === 'in' ? EMAIL : DID;
-                        if (width >= 1024) check(t?.text === name, `${at}: the trigger shows "${t?.text}", not ${name}`);
+                        const name = { in: EMAIL, 'in-did': DID, 'in-long': LONG }[state];
+                        // In a header's block the trigger says who it is in words at every width; in AppShell's slot from
+                        // lg, and below that its name is its label and heads the menu.
+                        const block = place !== 'app';
+                        if (block || width >= 1024) check(t?.text === name, `${at}: the trigger shows "${t?.text}", not ${name}`);
+                        if (block) {
+                            const n = await p.evaluate(nameRoom);
+                            check(n.shown, `${at}: the name is not shown in the bar`);
+                            // Cut where the bar has no room left for it, or at its cap (its line ends a letter short of it at
+                            // most); the brand's word only once the name has given way.
+                            const atCap = n.w >= n.cap - 16;
+                            check(!n.cut || n.slack <= 1 || atCap, `${at}: the name is cut at ${n.w}px, under its ${n.cap}px, with ${n.slack}px of the bar to spare`);
+                            check(!n.brandCut || n.w < 1, `${at}: the brand is cut while the name still has ${n.w}px`);
+                            check(n.w <= n.cap + 0.5, `${at}: the name is ${n.w}px, past its ${n.cap}px`);
+                            check(!n.cut || n.w >= n.least, `${at}: the name is cut to ${n.w}px, under a letter and the ellipsis (${n.least}px), so the ellipsis is clipped`);
+                            check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
+                            // Whole wherever the bar has the room: from 768 beside a site's links, from 1024 beside ToolShell's,
+                            // which its tool bar shows from 768.
+                            if (state !== 'in-long' && width >= (place === 'tool' ? 1024 : 768)) check(!n.cut, `${at}: "${name}" is cut at ${n.w}px`);
+                            if (state === 'in-long' && width >= 1024) check(n.cut, `${at}: the long name is whole at ${n.w}px`);
+                            if (state === 'in-long' && width >= 1440) check(atCap, `${at}: the long name is cut at ${n.w}px with room for its ${n.cap}px`);
+                            // On a phone the initial gives its room to the name.
+                            check(n.disc === width >= 768, `${at}: the initial is ${n.disc ? 'shown' : 'hidden'}`);
+                            names.push(`${width} ${place} ${state}: ${n.w}px${n.cut ? ' cut' : ''}`);
+                        }
                         const label = await p.locator('[data-oca-account="in"]').first().getAttribute('aria-label');
                         check(label === `${name}, account menu`, `${at}: the trigger is named "${label}"`);
                     }
@@ -275,6 +328,20 @@ try {
                         light: document.documentElement.classList.contains('light') && !document.documentElement.classList.contains('dark'),
                     }));
                     check(onAppearance && moved && after.open && after.light, `${at}: Appearance does not move to light with the menu open: ${JSON.stringify({ onAppearance, ...after })}`);
+                    // On round the cycle with the menu open and focus held: light to dark, dark to the system's.
+                    for (const [label, stored, cls] of [['Dark', 'dark', 'dark'], ['System', 'system', dark ? 'dark' : 'light']]) {
+                        await p.keyboard.press('Enter');
+                        const went = await p
+                            .waitForFunction(([l, c]) => document.activeElement?.textContent?.trim() === `Appearance: ${l}` && document.documentElement.classList.contains(c), [label, cls], { timeout: 3000 })
+                            .then(() => true, () => false);
+                        const now = await p.evaluate(() => ({
+                            open: Boolean(document.querySelector('[role="menu"]')),
+                            label: document.activeElement?.textContent?.trim(),
+                            stored: localStorage.getItem('theme'),
+                            classes: document.documentElement.className,
+                        }));
+                        check(went && now.open && now.stored === stored && !now.classes.includes(cls === 'dark' ? 'light' : 'dark'), `${at}: Appearance does not move on to ${label.toLowerCase()} with the menu open and focus held: ${JSON.stringify(now)}`);
+                    }
                     await shut();
                     // Sign out, from the keyboard: open, End to the last item, Enter.
                     await openBy('Enter');
@@ -285,6 +352,29 @@ try {
                     check(await p.evaluate(() => window.__signedOut === true), `${at}: Sign out does not run from the keyboard`);
                     await close();
                 }
+            }
+        }
+        // A site that leaves Account settings or Appearance out (ochk.app, whose own items hold its account page):
+        // the menu holds exactly what is left, one separator under the name and between kinds, none doubled.
+        const STAMPS = ['Your stamps', '/dashboard'];
+        const SETTINGS = ['Account settings', 'https://ochk.app/me/account'];
+        const APPEARANCE = ['Appearance: System', null];
+        const SIGN_OUT = ['Sign out', null];
+        for (const place of PLACES) {
+            for (const [extra, want, seps] of [
+                ['&noacct', [STAMPS, APPEARANCE, SIGN_OUT], 3],
+                ['&noappear', [STAMPS, SETTINGS, SIGN_OUT], 3],
+                ['&noacct&noappear', [STAMPS, SIGN_OUT], 2],
+            ]) {
+                const at = `[1440] ${place}, ${extra.slice(1).replace('&', ' ')}`;
+                const { p, errors, close } = await open(place, 'in', 1440, false, extra);
+                await p.locator('[data-oca-account="in"]:visible').first().click();
+                const menu = p.locator('[role="menu"]');
+                await menu.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+                const items = await menu.locator('[role="menuitem"]').evaluateAll((els) => els.map((e) => [e.textContent.trim(), e.getAttribute('href')]));
+                const separators = await menu.locator('[role="separator"]').count();
+                check(errors.length === 0 && JSON.stringify(items) === JSON.stringify(want) && separators === seps, `${at}: the menu holds ${JSON.stringify(items)} with ${separators} separators, not ${JSON.stringify(want)} with ${seps}`);
+                await close();
             }
         }
     } finally {
@@ -298,4 +388,5 @@ if (failures) {
     console.error(`\n${failures} account failure(s)`);
     process.exit(1);
 }
+console.log(`names in the bar: ${names.join('; ')}`);
 console.log(`✓ account: ${checks} checks in Chrome from 320 to 1440; one account control in every state and place, never "Your account", and the menu by keyboard`);

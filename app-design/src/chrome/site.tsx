@@ -267,7 +267,8 @@ export function SiteHeader({
                             : 'pr-[var(--oca-frame-gutter)]')
                 )}
             >
-                <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
+                {/* Sized to its content, so with an account the right end gives way first (its name), then the brand. */}
+                <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'flex-auto')}>
                     {/* It may narrow to its mark on a crowded phone bar, never under 44 to a thumb. */}
                     <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                         {brandNode}
@@ -277,7 +278,7 @@ export function SiteHeader({
                     {family ? <FamilyMenu current={current} className={tool ? 'max-md:hidden' : 'max-[899px]:hidden'} /> : null}
                     {tool && navigation ? <div className="ml-5">{navigation}</div> : navigation}
                 </div>
-                <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch')}>
+                <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch', account ? 'shrink-[1000000]' : 'shrink-0')}>
                     {search}
                     {actions}
                     {headerSignIn ? (
@@ -289,7 +290,7 @@ export function SiteHeader({
                         <Sheet open={open} onOpenChange={setOpen}>
                             <SheetTrigger
                                 className={cn(
-                                    'inline-flex size-11 items-center justify-center rounded-none text-foreground hover:bg-accent',
+                                    'inline-flex size-11 shrink-0 items-center justify-center rounded-none text-foreground hover:bg-accent',
                                     narrowOnly
                                 )}
                                 aria-label="Open menu"
