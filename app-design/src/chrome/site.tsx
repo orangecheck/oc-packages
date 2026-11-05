@@ -8,7 +8,7 @@ import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PR
 import { cn } from '../lib/cn';
 import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
-import { AccountSlotContext, type AccountSlot } from '../lib/account-slot';
+import { AccountSlotContext, AccountTakenContext, type AccountSlot } from '../lib/account-slot';
 import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
 import { Popover, PopoverContent, PopoverTrigger, Sheet, SheetContent, SheetTitle, SheetTrigger } from '../primitives/overlay';
@@ -147,6 +147,7 @@ export interface SiteHeaderProps {
      * full-height block at the bar's right rule. Signed out below 480px its way
      * in moves to the foot of the phone menu. Pass it here, never among
      * `actions`, so a header holds exactly one; `cta` and `signIn` then give way.
+     * A SessionAccountView still among `actions` or `menu` then draws nothing.
      */
     account?: ReactNode;
     className?: string;
@@ -263,8 +264,11 @@ export function SiteHeader({
                     {navigation}
                 </div>
                 <div className={cn('flex items-center gap-2', (headerCta || account) && 'self-stretch', account ? 'shrink-[1000000]' : 'shrink-0')}>
-                    {search}
-                    {actions}
+                    {/* With `account`, a SessionAccountView a site still passes here draws nothing. */}
+                    <AccountTakenContext.Provider value={Boolean(account)}>
+                        {search}
+                        {actions}
+                    </AccountTakenContext.Provider>
                     {headerSignIn ? (
                         <a href={headerSignIn.href} className="hidden min-h-11 items-center px-3 text-[0.9375rem] text-foreground transition-colors hover:text-oca-accent-ink min-[900px]:inline-flex">
                             {headerSignIn.label}
@@ -283,7 +287,7 @@ export function SiteHeader({
                                 <SheetTitle className="sr-only">Menu</SheetTitle>
                                 {menuExtra ? (
                                     <div className={cn('flex flex-col', (phoneNav.length > 0 || family) && 'border-b border-border pb-3')}>
-                                        {menuExtra}
+                                        <AccountTakenContext.Provider value={Boolean(account)}>{menuExtra}</AccountTakenContext.Provider>
                                     </div>
                                 ) : null}
                                 {phoneNav.length > 0 ? (
