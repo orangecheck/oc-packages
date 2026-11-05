@@ -9,6 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.2] — 2026-11-05
+
+### Fixed
+
+- `<OcBond>` says why an address past the chain service's coin list
+  cannot be read. The auth host now answers it `422 utxo_cap`, not
+  `chain_unavailable`; the component read the new reason as a failed save
+  ("your backing didn't save · nothing changed, try again"), though trying
+  again is unlikely to help. It says the address holds more coins than the chain
+  service lists, and to back with one that holds fewer.
+
 ## [2.42.1] — 2026-11-04
 
 ### Fixed
