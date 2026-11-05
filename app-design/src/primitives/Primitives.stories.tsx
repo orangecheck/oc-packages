@@ -89,15 +89,16 @@ export const Buttons: StoryObj = {
                 <Button variant="secondary" plus>
                     Talk to us
                 </Button>
-                <Button variant="brand" plus>
-                    Add to Lumen Notes
-                </Button>
             </div>
             <div className="oca-band-brand flex flex-wrap items-center gap-3 p-8">
                 <Button variant="primary">Book a call</Button>
                 <Button variant="secondary">Read the docs</Button>
             </div>
             <div className="oca-band-ink flex flex-wrap items-center gap-3 p-8">
+                <Button variant="primary">Book a call</Button>
+                <Button variant="brand" plus>
+                    Add to Lumen Notes
+                </Button>
                 <Button variant="onInk">Integrate</Button>
                 <Button variant="onInkOutline">GitHub</Button>
             </div>
