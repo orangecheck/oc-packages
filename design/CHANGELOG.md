@@ -11,6 +11,13 @@ bump that silently moves a colour is worse than a breaking one.
 
 ### Fixed
 
+- The package carries the licence of the font it bundles. Hanken Grotesk,
+  the ember skin's face, is SIL OFL 1.1 and ships as WOFF2 in
+  `dist/styles/fonts`, and the tarball held no OFL text. It is now in
+  `licenses/OFL-HankenGrotesk.txt`, from the font's upstream repository.
+  `scripts/check-licenses.mjs` (`yarn test`) reads every font in `npm pack`'s
+  listing, files and inlined alike, and wants an OFL text in it that opens
+  with that font's copyright notice.
 - The account menu's `family dashboard ↗` link goes to
   `https://ochk.app/me/account`, the family's account page. It pointed at
   `https://ochk.io/dashboard`, which only 308s there.
