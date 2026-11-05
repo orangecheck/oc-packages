@@ -777,6 +777,27 @@ try {
             })
         )
     );
+    // A generated SDK README in DocsShell, from the MDX map as docs.ochk.io draws it: links that are one identifier
+    // each (me-client's ran 79px past 320), beside a fence and a table whose long words must still scroll sideways.
+    const LONG_NAME = 'FederationMigrationCancelledWebhookPayload';
+    const docsLong = page(
+        'docs-long',
+        renderToStaticMarkup(
+            h(
+                Ch.DocsShell,
+                { nav: [{ label: 'SDK', items: [{ href: '/sdk/me-client/README', label: 'me-client' }] }], current: '/sdk/me-client/README' },
+                h(M.h1, null, 'me-client'),
+                h(M.ul, null, ['SUDO_ACCOUNT_MISMATCH_MESSAGE', LONG_NAME].map((n) => h(M.li, { key: n }, h(M.a, { href: `variables/${n}` }, n)))),
+                h(M.pre, null, h('code', { className: 'language-ts' }, `import type { ${LONG_NAME} } from '@orangecheck/me-client';\n`)),
+                h(
+                    M.table,
+                    null,
+                    h('thead', null, h('tr', null, h('th', null, 'Name'), h('th', null, 'What'))),
+                    h('tbody', null, h('tr', null, h('td', null, LONG_NAME), h('td', null, 'The body of a cancelled migration.')))
+                )
+            )
+        )
+    );
     // Targets a thumb missed: ProtocolNav's short names ("lock" 29 wide), the docs search button (40x40),
     // a folded code block's Show all (34 tall), and a code block whose long line scrolls, named for its region.
     const touchMore = page(
@@ -2634,6 +2655,30 @@ try {
             }
             await c.close();
         }
+        // A link that is one identifier breaks inside DocsShell's article (five docs.ochk.io READMEs scrolled 6 to 79px
+        // sideways at 320 to 390); a fence keeps its line whole and scrolls, and a table scrolls rather than break a name.
+        for (const w of [320, 360, 390]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: true, hasTouch: true });
+            await visit(c, docsLong);
+            await c.evaluate(() => document.fonts.ready);
+            const d = await c.evaluate(() => {
+                const art = document.querySelector('#docs-content');
+                const right = art.getBoundingClientRect().right;
+                const scrolls = (el) => {
+                    for (let x = el; x && x !== art; x = x.parentElement) if (['auto', 'scroll'].includes(getComputedStyle(x).overflowX) && x.scrollWidth > x.clientWidth + 1) return true;
+                    return false;
+                };
+                return {
+                    over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                    past: Math.max(...[...art.querySelectorAll('li a')].map((a) => a.getBoundingClientRect().right - right)),
+                    fence: scrolls(art.querySelector('pre')),
+                    table: scrolls(art.querySelector('table')),
+                };
+            });
+            check(d.over === 0 && d.past <= 0.5, `[${w}] DocsShell: a link that is one identifier runs ${d.past.toFixed(1)}px past the article and scrolls the page ${d.over}px sideways`);
+            check(d.fence && d.table, `[${w}] DocsShell: a long line breaks instead of scrolling sideways (fence scrolls ${d.fence}, table scrolls ${d.table})`);
+            await c.close();
+        }
         // The same targets to a thumb (44 from 21.5px out each way, on the box or by a ::before) and to a mouse
         // (their drawn size): ProtocolNav's names, the search button, Show all, the docs bar's sections button
         // and the legal page's "On this page".
@@ -2929,4 +2974,4 @@ if (failures) {
     console.error(`\n${failures} layout failure(s)`);
     process.exit(1);
 }
-console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions`);
+console.log(`✓ layout: ${checks} checks in Chrome at 390 and 1440; panel actions, an expanded body, the app frames, one column, 44px targets, menus and rows, markdown tables, bare borders, 1.9.0's parts, the folded footer, touch targets, wrapped rows, a failed read, a hero's first frame and its actions, a docs link that is one long name`);
