@@ -703,6 +703,10 @@ const html = (el) => renderToStaticMarkup(el);
     check(hrefs.join() === '#signin' && /<header[^>]*>.*?<svg/s.test(pinned), `SignInFrame homeLink={false}: the page still links to ${hrefs.join(', ')}, or the lockup is gone`);
     const closer = html(h(Ch.SignInFrame, { homeLink: false, back: h('button', { type: 'button' }, 'Close') }, 'x'));
     check(/<header[^>]*>.*<button type="button">Close<\/button>.*<\/header>/s.test(closer), 'SignInFrame homeLink={false}: a back of its own is not drawn opposite the lockup');
+    // HIT_LINK from the package entry: the classes the frame's own links carry, which stamp, lock and me.ochk.io's
+    // Close copied by hand.
+    const { HIT_LINK } = require(join(here, '../dist/index.js'));
+    check(typeof HIT_LINK === 'string' && HIT_LINK.includes(hit) && home.includes(HIT_LINK), `HIT_LINK: the package entry exports ${HIT_LINK}, not the classes Back to home carries`);
 
     // The page on the server, as a prerendered /signin: no query, so the return target is the default.
     const page = html(h(S.SignInPage, { protocol: 'lock', defaultReturnTo: '/app' }));

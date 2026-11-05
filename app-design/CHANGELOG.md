@@ -47,6 +47,10 @@ target to a thumb until each was patched by hand.
   the lockup without its link and leaves out Back to home, for a sign-in
   popup that would leave its opener waiting if it navigated away. A `back` of
   its own (me.ochk.io's Close) still sits opposite the lockup.
+- `HIT_LINK` is exported from `.` and `./primitives`: the classes that give
+  a link in a line of text a 44px target to a thumb, by a pseudo-element, so
+  the line keeps its height. stamp, lock and me.ochk.io's popup copied them
+  by hand.
 - **Migrate** (a tool site): `src/pages/signin.tsx` becomes its `<Seo
   {...signInSeo({ protocol })} />` and `<SignInPage protocol defaultReturnTo />`.
   btc and cosign pass `product`, `home`, `audience`, `back="home"` and their
