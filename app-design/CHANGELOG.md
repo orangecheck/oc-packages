@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- `./og` draws Latin Extended from Inter's own Latin Extended files. They
+  were in `ogFonts()` under `Inter`, but satori keeps one font per family
+  and weight, so it never drew them: a title or field with "Łódź" or "₿"
+  made next/og fetch a Noto font from Google Fonts while the route
+  rendered, and drew a blank where the fetch failed. `ogFonts()` names them
+  `Inter Latin Ext`, in the same place in the list, and a route passes it
+  to `ImageResponse` as before. Now drawn from Inter: Latin Extended-A but
+  `ŉ`, Latin Extended-B but `Ǆ`, most of IPA, Latin Extended Additional
+  but Vietnamese, and `₿`, `₺`, `₹` (720 code points). Still fetched:
+  Vietnamese (`ệ`), Greek, Cyrillic, any other script, and symbols such as
+  `→`, `✓` and `★`. Every real card draws the same pixels.
+
+- The package carries the licence of each font it bundles. Inter and
+  JetBrains Mono, OFL 1.1, ship as WOFF2 in `dist/styles/fonts` and inline
+  in `./og`, and the tarball held neither OFL text. They are now in
+  `licenses/` (`OFL-Inter.txt`, `OFL-JetBrainsMono.txt`). check-licenses
+  reads every font in `npm pack`'s listing, files and inlined alike, and
+  wants an OFL text in it that opens with that font's copyright notice.
+
 ## [2.0.2] — 2026-11-05
 
 - `DocsShell`'s article breaks a word wider than its column, so a link that

@@ -93,4 +93,4 @@ highlighter changes a character of the code it colours, or if a component stops
 doing what its story shows. `scripts/halftone.py` turns any photo into
 the dot layer of a `HalftoneSphere`.
 
-MIT © OrangeCheck. Inter and JetBrains Mono are SIL OFL 1.1.
+MIT © OrangeCheck. The fonts it bundles, Inter and JetBrains Mono (`dist/styles/fonts`, and inline in `/og`), are SIL OFL 1.1; their licence texts are in `licenses/`.
