@@ -59,6 +59,23 @@ test('an indented line that runs straight into prose is not a block', () => {
     assert.equal(fenceIndentedCode(body), body);
 });
 
+test('an indented line straight under a prose line is that paragraph wrapping, not a block', () => {
+    const body = ['A sentence that wraps', '  onto an indented line.', '', 'End.'].join('\n');
+    assert.equal(fenceIndentedCode(body), body);
+});
+
+test('a run that carries on into an indented list item stays text', () => {
+    const body = ['Intro.', '', '  some indented text', '  - then a list item', '', 'End.'].join('\n');
+    assert.equal(fenceIndentedCode(body), body);
+});
+
+test('a run holding a code span stays text: no backtick printed, no template literal cut', () => {
+    const columns = ['Rules:', '', '  omitted   → the token carries no `aud`.', '  a string  → bound to it.', '', 'End.'].join('\n');
+    assert.equal(fenceIndentedCode(columns), columns);
+    const literal = ['Build it:', '', '  const url = `${base}/signin`;', '  go(url);'].join('\n');
+    assert.equal(fenceIndentedCode(literal), literal);
+});
+
 test('code already fenced is left alone, and a second pass changes nothing', () => {
     const body = ['```ts', '  const x = 1;', '```', '', 'Then:', '', '  y();'].join('\n');
     const once = fenceIndentedCode(body);

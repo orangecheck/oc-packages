@@ -52,6 +52,39 @@ target to a thumb until each was patched by hand.
   auth-client's own (it prefixes a path that starts with `/`) brings the
   Google and GitHub return back to cosign.
 
+## [2.0.3] — 2026-11-05
+
+- `./og` draws Latin Extended from Inter's own Latin Extended files. They
+  were in `ogFonts()` under `Inter`, but satori keeps one font per family
+  and weight, so it never drew them: a title or field with "Łódź" or "₿"
+  made next/og fetch a Noto font from Google Fonts while the route
+  rendered, and drew a blank where the fetch failed. `ogFonts()` names them
+  `Inter Latin Ext`, in the same place in the list, and a route passes it
+  to `ImageResponse` as before. Now drawn from Inter: Latin Extended-A but
+  `ŉ`, Latin Extended-B but `Ǆ`, most of IPA, Latin Extended Additional
+  but Vietnamese, and `₿`, `₺`, `₹` (720 code points). Still fetched:
+  Vietnamese (`ệ`), Greek, Cyrillic, any other script, and symbols such as
+  `→`, `✓` and `★`. Every real card draws the same pixels.
+
+- The package carries the licence of each font it bundles. Inter and
+  JetBrains Mono, OFL 1.1, ship as WOFF2 in `dist/styles/fonts` and inline
+  in `./og`, and the tarball held neither OFL text. They are now in
+  `licenses/` (`OFL-Inter.txt`, `OFL-JetBrainsMono.txt`). check-licenses
+  reads every font in `npm pack`'s listing, files and inlined alike, and
+  wants an OFL text in it that opens with that font's copyright notice.
+
+- `AppShell`'s phone bar keeps its menu button 44x44 at 320. With the family
+  menu, a theme toggle and the account menu beside the lockup (analytics), the
+  bar squeezed the button to 22 wide. Now the home link gives the room: the
+  product word ends in an ellipsis ("ana…" at 320, whole from 360), the mark
+  and its rule keep their size, and the link stays 44 to a thumb.
+  `ProductLockup`'s word truncates the same way wherever its row is too narrow.
+  Measured on each site's own bar on 2.0.2: at 320, analytics (22 wide signed
+  in; 20 wide signed out, with the bar running 19px past the screen, and 29
+  wide at 360), bot signed out (26) and forge signed out (20). vault, whose
+  theme toggle hides under 360, ochk.app, with no product word or family
+  menu, and chat, on the rail, were whole.
+
 ## [2.0.2] — 2026-11-05
 
 - `DocsShell`'s article breaks a word wider than its column, so a link that

@@ -33,9 +33,13 @@ import { MONO_CHARS } from './mono-chars';
  *         { ...OG_SIZE, fonts: ogFonts() });
  *
  * The fonts are Inter 300 (display) and 400 (the wordmark, body), Latin and
- * Latin Extended, and JetBrains Mono 400 (the label row): OFL-1.1,
- * ./fonts/OFL.txt and ./fonts/OFL-JetBrainsMono.txt, inlined so a route reads
- * no file. A title in another script needs a font of its own passed after these.
+ * Latin Extended, and JetBrains Mono 400 (the label row): OFL-1.1, with their
+ * texts in the package's licenses/, inlined so a route reads no file. Inter's
+ * Latin Extended cut is a family of its own, 'Inter Latin Ext': satori keeps
+ * one font per family and weight, and draws a letter from the next loaded
+ * family that has it. A character in neither Inter cut (Vietnamese, Greek,
+ * Cyrillic, most arrows) makes next/og fetch a font while the route renders:
+ * a title in another script needs a font of its own passed after these.
  * The mono font holds only what the family's mono fields can draw (MONO_CHARS:
  * printable ASCII, ·, … and £; scripts/og/subset-mono.mjs). satori draws any
  * other character in a mono field from Inter 400, and the server warns of it.
@@ -59,8 +63,8 @@ const MONO_SET = new Set(MONO_CHARS);
 
 /**
  * A mono field's text, unchanged. satori draws a character the mono font lacks
- * from Inter 400, glyph by glyph (its Latin file: satori takes one font per
- * family and weight); one Inter lacks too, next/og fetches, as in any field.
+ * from Inter 400, glyph by glyph, Latin or Latin Extended; one neither has,
+ * next/og fetches, as in any field.
  * The server says so on one line, by field and code point. Nothing here
  * throws: a thrown render breaks a live link preview.
  */
@@ -673,20 +677,25 @@ function decode(base64: string): ArrayBuffer {
 }
 
 type OgFont = {
-    name: 'Inter' | 'JetBrains Mono';
+    name: 'Inter' | 'Inter Latin Ext' | 'JetBrains Mono';
     data: ArrayBuffer;
     weight: 300 | 400;
     style: 'normal';
 };
 let cached: OgFont[] | null = null;
 
-/** The fonts for ImageResponse's `fonts`: Inter 300 and 400 (Latin, then Latin Extended), JetBrains Mono 400. Decoded once. */
+/**
+ * The fonts for ImageResponse's `fonts`: Inter 300 and 400 (Latin), then Inter's Latin Extended cut at 300 and 400, then
+ * JetBrains Mono 400. Decoded once. The Latin Extended cut is named 'Inter Latin Ext': under 'Inter', satori kept only
+ * the first font of each weight, so it was never drawn. As its own family it is where satori looks next for a letter
+ * the Latin cut lacks.
+ */
 export function ogFonts(): OgFont[] {
     cached ??= [
         { name: 'Inter', data: decode(inter300), weight: 300, style: 'normal' },
         { name: 'Inter', data: decode(inter400), weight: 400, style: 'normal' },
-        { name: 'Inter', data: decode(inter300Ext), weight: 300, style: 'normal' },
-        { name: 'Inter', data: decode(inter400Ext), weight: 400, style: 'normal' },
+        { name: 'Inter Latin Ext', data: decode(inter300Ext), weight: 300, style: 'normal' },
+        { name: 'Inter Latin Ext', data: decode(inter400Ext), weight: 400, style: 'normal' },
         {
             name: 'JetBrains Mono',
             data: decode(mono400),

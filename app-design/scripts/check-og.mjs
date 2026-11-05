@@ -7,11 +7,12 @@
  * mono font holds every character each family caller's mono fields can draw
  * (scripts/og/mono-inventory.mjs), read from its cmap; each caller's real
  * cards draw with no warning; a character outside it draws in Inter with a
- * warning; and nothing fetches a font. Run after `yarn build`;
- * OG_REVIEW_DIR=<dir> also writes every image drawn.
+ * warning; Latin Extended draws from Inter's own Latin Extended files; and
+ * nothing fetches a font. Run after `yarn build`; OG_REVIEW_DIR=<dir> also
+ * writes every image drawn.
  */
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,9 +53,10 @@ const check = (ok, msg) => {
     }
 };
 
-// The fonts: Inter 300 and 400 (Latin, Latin Extended) and JetBrains Mono 400, decoded once.
+// The fonts: Inter 300 and 400, Inter's Latin Extended cut at 300 and 400 as a family of its own, JetBrains Mono 400,
+// decoded once.
 const fonts = og.ogFonts();
-const want = ['Inter 300', 'Inter 400', 'Inter 300', 'Inter 400', 'JetBrains Mono 400'];
+const want = ['Inter 300', 'Inter 400', 'Inter Latin Ext 300', 'Inter Latin Ext 400', 'JetBrains Mono 400'];
 check(fonts.map((f) => `${f.name} ${f.weight}`).join() === want.join(), `ogFonts: not ${want.join(', ')}`);
 check(fonts.every((f) => f.data instanceof ArrayBuffer && new TextDecoder().decode(new Uint8Array(f.data, 0, 4)) === 'wOFF'), 'ogFonts: a font is not a WOFF file');
 check(og.ogFonts() === fonts, 'ogFonts: decodes on every call');
@@ -423,6 +425,67 @@ for (const { name, props } of CARDS) {
     }
     fetched.splice(beforeControls);
 }
+
+// Latin Extended. satori keeps one font per family and weight, so Inter's Latin Extended files under 'Inter' were never
+// drawn, and a letter only they have made next/og fetch a font while a route rendered. A card with Latin Extended-A in
+// its title (Inter 300) and in a mono field (drawn from Inter 400) fetches nothing, is the pixels Inter's Latin Extended
+// files draw, and draws none of those letters as .notdef.
+const latinExt = { title: 'Ševčík signed in Łódź, Gdańsk and Plzeň', host: 'gdańsk.example' };
+{
+    const file = (name) => readFileSync(join(pkg, 'src/og/fonts', name));
+    const carried = (name, weight) => fonts.find((f) => f.weight === weight && Buffer.from(f.data).equals(file(`${name}-${weight}-normal.woff`)));
+    const [latin, ext] = ['inter-latin', 'inter-latin-ext'].map((name) => [300, 400].map((w) => carried(name, w)));
+    check([...latin, ...ext].every(Boolean), 'ogFonts() does not carry Inter Latin and Latin Extended at 300 and 400');
+    const [latinCmap, extCmap] = ['inter-latin', 'inter-latin-ext'].map((name) => cmapCodePoints(file(`${name}-300-normal.woff`)));
+    const text = [...new Set(latinExt.title + latinExt.host)];
+    // The letters only the Latin Extended files map: Inter's Latin files lack them, and the mono cut is ASCII and three more.
+    const only = text.filter((c) => [extCmap, latinCmap, monoCmap].map((m) => m.has(c.codePointAt(0))).join() === 'true,false,false');
+    check(
+        only.length === 6 && only.every((c) => c.codePointAt(0) >= 0x100 && c.codePointAt(0) <= 0x17f),
+        `the card's letters only Inter Latin Extended maps are ${only.map(cp).join(' ')}, not six of Latin Extended-A`
+    );
+    check(
+        text.every((c) => [latinCmap, extCmap, monoCmap].some((m) => m.has(c.codePointAt(0)))),
+        'the Latin Extended card holds a character no loaded font maps'
+    );
+
+    const card = ({ title, host }) => h(og.OgCard, { title, host, mark: false });
+    const swapped = (c, to) => ({ title: latinExt.title.replaceAll(c, to), host: latinExt.host.replaceAll(c, to) });
+    const drawn = await watched(() => draw(card(latinExt), og.OG_SIZE, 'og-latin-ext'));
+    check(drawn.fetches.length === 0, `a Latin Extended card fetches ${drawn.fetches.join(' ')}`);
+    check(
+        drawn.warns.join('\n') === '@orangecheck/app-design/og: OgCard host has U+0144, which the mono font lacks: drawn in Inter',
+        `the Latin Extended card does not warn of ń in its host alone: ${drawn.warns.join(' | ') || 'nothing'}`
+    );
+    const px = await pixels(drawn.value.png);
+
+    // The reference loads Inter's Latin Extended files as the 'Inter' family itself, first for every letter, and its Latin
+    // files as a family after them, for the letters Latin Extended lacks.
+    const extFirst = [...ext, ...latin, fonts.find((f) => f.name === 'JetBrains Mono')].map((f, i) => ({ ...f, name: i < 2 ? 'Inter' : i < 4 ? 'Inter Latin' : f.name }));
+    const ref = await watched(async () => new Uint8Array(await new ImageResponse(card(latinExt), { ...og.OG_SIZE, fonts: extFirst }).arrayBuffer()));
+    if (reviewDir) writeFileSync(join(reviewDir, 'og-latin-ext-reference.png'), ref.value);
+    check(ref.fetches.length === 0, `the Latin Extended reference fetches ${ref.fetches.join(' ')}`);
+    check(px.equals(await pixels(ref.value)), 'the Latin Extended card is not the pixels Inter Latin Extended draws');
+
+    // No .notdef: each of those letters swapped for Ạ, then for Ặ (letters no loaded font has, so next/og's fetch for
+    // them is refused and they draw as .notdef) gives two cards of the same pixels, and the card itself differs from them.
+    const beforeControls = fetched.length;
+    for (const c of only) {
+        const hex = c.codePointAt(0).toString(16);
+        const controls = [
+            await watched(() => draw(card(swapped(c, 'Ạ')), og.OG_SIZE, `og-latin-ext-notdef-${hex}`)),
+            await watched(() => draw(card(swapped(c, 'Ặ')), og.OG_SIZE, `og-latin-ext-notdef-${hex}-2`)),
+        ];
+        check(
+            controls.every((x) => x.fetches.some((u) => u.startsWith('https://fonts.googleapis.com/'))),
+            `${cp(c)}: the trap misses next/og's font fetch for its controls`
+        );
+        const notdef = await pixels(controls[0].value.png);
+        check(notdef.equals(await pixels(controls[1].value.png)), `${cp(c)}: its controls' .notdef glyphs differ`);
+        check(!px.equals(notdef), `${cp(c)} draws as .notdef`);
+    }
+    fetched.splice(beforeControls);
+}
 check(fetched.length === 0, `./og fetched ${fetched.length} URL(s): ${fetched.slice(0, 3).join(' ')}`);
 
 if (failures) {
@@ -431,4 +494,5 @@ if (failures) {
 }
 console.log(`✓ og: ${checks} checks; Inter 300/400 and JetBrains Mono inline, four tones in the 2.0 tokens, a 1200×630 PNG per tone, three lines at most, the dithered mark as default art and the vector mark in the lockup, the bento at 1200×630 and 1920×1080 with each image inside its art box`);
 console.log(`✓ og: the mono font's ${monoCmap.size} characters hold ${INVENTORY.length} caller fields; ${CARDS.length} real cards draw quietly; É and € draw in Inter, with a warning; no fetch`);
+console.log(`✓ og: "${latinExt.title}" and "${latinExt.host}" draw from Inter Latin Extended, no .notdef, no fetch; Ạ and Ặ, in neither Inter cut, still fetch`);
 for (const e of wide) console.log(`  wide: ${e.caller} ${e.field} is free user text. The font holds its spec class; ./og warns of any other character, drawn in Inter where Inter has it.`);

@@ -16,7 +16,7 @@
  * rlig, and kern, and JetBrains Mono has none of them (its GSUB is calt, ccmp,
  * frac and locl, its GPOS is mark), so they change no pixel of a card. Name
  * IDs 0 to 6 and 14 stay: the copyright and the licence's URL are in the font,
- * as in the original. The font is OFL-1.1 (src/og/fonts/OFL-JetBrainsMono.txt)
+ * as in the original. The font is OFL-1.1 (licenses/OFL-JetBrainsMono.txt)
  * with no Reserved Font Name, so the cut may keep its name.
  */
 import { readFileSync, writeFileSync } from 'node:fs';

@@ -832,6 +832,36 @@ try {
             )
         )
     );
+    // AppShell's phone bar as analytics composes it (the family menu, a theme toggle and the account beside the
+    // home lockup), with the family's longest product word too, signed in and signed out: at 320 its menu button
+    // was 22 wide signed in, and signed out 20 wide with the bar running 19px past the screen.
+    const appBars = page(
+        'app-bars',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                ...['analytics', longest].flatMap((product) =>
+                    ['in', 'out'].map((state) =>
+                        h(
+                            'div',
+                            { key: product + state, 'data-bar': product, 'data-state': state },
+                            h(
+                                Ch.AppShell,
+                                {
+                                    product,
+                                    family: true,
+                                    nav: [{ items: [{ href: '/a', label: 'Overview', active: true }] }],
+                                    account: h('div', { className: 'flex items-center gap-1' }, h(Ch.ThemeToggle, {}), h(Ch.SessionAccountView, { state, name: 'Ada Lovelace', signInPath: '/signin' })),
+                                },
+                                h('p', null, 'page')
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
     // Targets a thumb missed: ProtocolNav's short names ("lock" 29 wide), the docs search button (40x40),
     // a folded code block's Show all (34 tall), and a code block whose long line scrolls, named for its region.
     const touchMore = page(
@@ -2691,6 +2721,37 @@ try {
                     return { clip: getComputedStyle(frame).overflowX, left: b.left, right: b.right, edgeL: f.left + frame.clientLeft, edgeR: f.left + frame.clientLeft + frame.clientWidth };
                 });
                 check(mark.clip === 'clip' && mark.left >= mark.edgeL - 0.5 && mark.right <= mark.edgeR + 0.5, `[320] IsoCheck's mark is cut where its section clips: ${JSON.stringify(mark)}`);
+            }
+            await c.close();
+        }
+        // AppShell's phone bar keeps every control whole and in order down to 320: the menu button stays 44x44,
+        // nothing runs off the bar or under its neighbour, and the product word gives the room (it ends in an
+        // ellipsis inside the home link rather than running out of it).
+        for (const w of [320, 360, 390]) {
+            const c = await browser.newPage({ viewport: { width: w, height: 800 }, isMobile: true, hasTouch: true });
+            await visit(c, appBars);
+            await c.evaluate(() => document.fonts.ready);
+            const bars = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-bar]')].map((d) => {
+                    const row = d.querySelector('header > div');
+                    const kids = [...row.children].map((k) => k.getBoundingClientRect());
+                    const menu = row.querySelector('button[aria-label="Open navigation"]').getBoundingClientRect();
+                    const home = row.querySelector('a[href="/"]');
+                    const word = [...home.querySelectorAll('span')].find((s) => s.textContent === d.dataset.bar);
+                    return {
+                        bar: `${d.dataset.bar}, signed ${d.dataset.state}`,
+                        menu: [Math.round(menu.width), Math.round(menu.height)],
+                        over: row.scrollWidth - row.clientWidth,
+                        right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
+                        overlap: Math.max(...kids.slice(1).map((k, i) => kids[i].right - k.left)),
+                        wordOut: word.getBoundingClientRect().right - home.getBoundingClientRect().right,
+                        homeWidth: Math.round(home.getBoundingClientRect().width),
+                    };
+                })
+            );
+            for (const b of bars) {
+                check(b.menu[0] >= 44 && b.menu[1] >= 44, `[${w}] AppShell (${b.bar}): the menu button is ${b.menu.join('x')}, not 44x44`);
+                check(b.over <= 1 && b.right <= 1 && b.overlap <= 0.5 && b.wordOut <= 0.5 && b.homeWidth >= 44, `[${w}] AppShell (${b.bar}): the bar overflows or a part runs under the next: ${JSON.stringify(b)}`);
             }
             await c.close();
         }
