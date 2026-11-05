@@ -8,6 +8,11 @@
   product word ends in an ellipsis ("ana…" at 320, whole from 360), the mark
   and its rule keep their size, and the link stays 44 to a thumb.
   `ProductLockup`'s word truncates the same way wherever its row is too narrow.
+  Measured on each site's own bar on 2.0.2: at 320, analytics (22 wide signed
+  in; 20 wide signed out, with the bar running 19px past the screen, and 29
+  wide at 360), bot signed out (26) and forge signed out (20). vault, whose
+  theme toggle hides under 360, ochk.app, with no product word or family
+  menu, and chat, on the rail, were whole.
 
 ## [2.0.2] — 2026-11-05
 

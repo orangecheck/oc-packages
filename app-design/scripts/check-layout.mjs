@@ -826,27 +826,30 @@ try {
             )
         )
     );
-    // AppShell's phone bar as analytics composes it (the family menu, a theme toggle and the account menu beside
-    // the home lockup), and with the family's longest product word: at 320 its menu button was 22 wide.
+    // AppShell's phone bar as analytics composes it (the family menu, a theme toggle and the account beside the
+    // home lockup), with the family's longest product word too, signed in and signed out: at 320 its menu button
+    // was 22 wide signed in, and signed out 20 wide with the bar running 19px past the screen.
     const appBars = page(
         'app-bars',
         renderToStaticMarkup(
             h(
                 'div',
                 null,
-                ...['analytics', longest].map((product) =>
-                    h(
-                        'div',
-                        { key: product, 'data-bar': product },
+                ...['analytics', longest].flatMap((product) =>
+                    ['in', 'out'].map((state) =>
                         h(
-                            Ch.AppShell,
-                            {
-                                product,
-                                family: true,
-                                nav: [{ items: [{ href: '/a', label: 'Overview', active: true }] }],
-                                account: h('div', { className: 'flex items-center gap-1' }, h(Ch.ThemeToggle, {}), h(Ch.AccountMenu, { name: 'Ada Lovelace', items: [{ label: 'Sign out', onSelect: () => {} }] })),
-                            },
-                            h('p', null, 'page')
+                            'div',
+                            { key: product + state, 'data-bar': product, 'data-state': state },
+                            h(
+                                Ch.AppShell,
+                                {
+                                    product,
+                                    family: true,
+                                    nav: [{ items: [{ href: '/a', label: 'Overview', active: true }] }],
+                                    account: h('div', { className: 'flex items-center gap-1' }, h(Ch.ThemeToggle, {}), h(Ch.SessionAccountView, { state, name: 'Ada Lovelace', signInPath: '/signin' })),
+                                },
+                                h('p', null, 'page')
+                            )
                         )
                     )
                 )
@@ -2726,7 +2729,7 @@ try {
                     const home = row.querySelector('a[href="/"]');
                     const word = [...home.querySelectorAll('span')].find((s) => s.textContent === d.dataset.bar);
                     return {
-                        bar: d.dataset.bar,
+                        bar: `${d.dataset.bar}, signed ${d.dataset.state}`,
                         menu: [Math.round(menu.width), Math.round(menu.height)],
                         over: row.scrollWidth - row.clientWidth,
                         right: Math.max(...kids.map((k) => k.right)) - document.documentElement.clientWidth,
