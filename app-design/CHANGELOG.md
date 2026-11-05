@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+One header for every site. The six verb sites drew ToolShell's own bar:
+56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
+a theme switch, and About and Docs side by side in the phone's menu. ochk.app,
+ochk.io and the docs drew SiteHeader's. Now every site draws SiteHeader's,
+and only its links differ.
+
+- `SiteHeader`'s `variant="tool"` is the same bar as `site`: the 30px
+  lockup, 56px and 68 from 900px, the links 18px after the family menu and
+  into the phone's menu below 900px, and the account at the right end. It
+  only draws it the window's width with no rules, over an app that is itself
+  full width (ToolShell's `app`, a messenger). The tools' underline is gone
+  with it.
+- `ToolShell` draws that bar, in the frame over a tool page and full width
+  over an app: its links are the tools, Docs and "About <protocol>", and the
+  phone's menu holds them all, one row each. The theme's switch leaves the
+  bar for the compact footer's meta and the account menu's Appearance. A
+  tool page's body is in the frame too, between its rules.
+- The compact `SiteFooter` counts the frame's rule in its padding, so its
+  text starts on the column's line under a framed page.
+- `DocsShell`'s section bar and sidebars stick flush under the bar. They
+  stuck at 64 and 72px under a bar of 57 and 69, so the page showed through
+  the gap as it scrolled.
+- theme.css drops the `[data-oca-sticky='tool']` scroll padding: no bar is
+  drawn that way now.
+- `scripts/check-header.mjs`, in the test chain: in Chrome from 360 to 1920,
+  ToolShell's page and app, DocsShell and a full-width app's SiteHeader draw
+  ochk.app's bar, measured against it (height, mark, wordmark, gutter, links,
+  menu button, frame or full width, the account's block at the right end),
+  with no theme switch in it; ToolShell's phone menu is one 44px row per
+  link; what sticks under the bar sticks flush.
+
 ## [2.2.1] — 2026-11-05
 
 The signed-in bar says who is signed in at every width. 2.2.0 showed the
