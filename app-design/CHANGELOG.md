@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [2.1.0] — unreleased
+## [2.1.0] — 2026-11-05
 
 A family site's sign-in page in the package. Six tool sites (lock, stamp,
 attest, pledge, agent and vote) each carried the same hundred-line
@@ -42,9 +42,9 @@ target to a thumb until each was patched by hand.
   requires a `back` of its own (me.ochk.io's Close), drawn opposite the
   lockup: the types refuse a frame with no way out.
 - `HIT_LINK` is exported from `.` and `./primitives`: the classes that give
-  a link in a line of text a 44px target to a thumb, by a pseudo-element, so
-  the line keeps its height. stamp, lock and me.ochk.io's popup copied them
-  by hand.
+  a link in a line of text a 44px target to a thumb and at least 24px to a
+  mouse, by a pseudo-element, so the line keeps its height. stamp, lock and
+  me.ochk.io's popup copied them by hand.
 - **Migrate** (a tool site): `src/pages/signin.tsx` becomes its `<Seo
   {...signInSeo({ protocol })} />` and `<SignInPage protocol defaultReturnTo />`.
   btc and cosign pass `product`, `home`, `audience`, `back="home"` and their
