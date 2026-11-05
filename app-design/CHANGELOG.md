@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- `ParticlePortrait` sets `data-phase="formed"` in its last frame, as its
+  loop goes to sleep, so a page that waits for it sees no frame after.
+  It used to read formed as soon as the dots gathered, at 1.9 s of play,
+  and then drew the wave for 2.45 s more: 147 frames after formed in Chrome
+  on SwiftShader. Under reduced motion it reads formed after its one still
+  frame, not before it. A replay reads `forming` until the portrait sleeps
+  again; the pointer lens wakes the loop without changing the phase. The
+  notes still come in once the dots gather, now on a `data-notes`
+  attribute. **Migrate**: a site that showed something with the notes on
+  `[data-phase='formed']` keys it on `[data-notes]`.
+
 - On a phone, nothing under the app shell's `TabBar` counts as on screen. The
   bar covers the bottom of the window, and the package's on-screen tests and
   IntersectionObservers used the whole window. So vote's share, 56px of
@@ -26,6 +37,13 @@
     size, so the server's page is clear of it too. A page with no bar gets
     none. The shells' room under their content is the bar's published height
     too. It was 3.5rem, 1px short of the bar and its border.
+
+- `HERO_ACTIONS` is exported from `./components`: the row PageHero,
+  DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
+  column, each action at full width, in DOM order. From sm it is a row at the
+  actions' own widths. check-render fails if one of those blocks draws a row
+  of its own. **Migrate**: a site that copied the row swaps its copy for the
+  import, as in `cn('mt-8', HERO_ACTIONS)`. ochk.app's `CTA_ROW` is one.
 
 ## [2.0.0] — 2026-11-04
 

@@ -117,13 +117,13 @@
     [data-oc-app='ochk'] .oca-portrait-cloud {
         opacity: 1;
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) :is(.oca-note-mark, .oca-note-label) {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) :is(.oca-note-mark, .oca-note-label) {
         opacity: 0;
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) .oca-note[data-side='left'] .oca-note-leader {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) .oca-note[data-side='left'] .oca-note-leader {
         clip-path: inset(0 0 0 100%);
     }
-    [data-oc-app='ochk'] .oca-portrait:not([data-phase='formed']) .oca-note[data-side='right'] .oca-note-leader {
+    [data-oc-app='ochk'] .oca-portrait:not([data-notes]) .oca-note[data-side='right'] .oca-note-leader {
         clip-path: inset(0 100% 0 0);
     }
 }
@@ -134,7 +134,7 @@
 [data-oc-app='ochk'] .oca-portrait[data-live] .oca-portrait-canvas {
     opacity: 1;
 }
-/* A scene that failed: the poster again (the notes come with data-phase). */
+/* A scene that failed: the poster again (the notes come with data-notes). */
 [data-oc-app='ochk'] .oca-portrait[data-fallback] .oca-portrait-poster {
     opacity: 1;
 }
