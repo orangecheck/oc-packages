@@ -97,7 +97,9 @@ export function HalftoneCanvas({
         const pointer = { x: 0, y: 0, tx: 0, ty: 0, k: 0, on: false };
         let start = 0;
         let raf = 0;
-        let visible = true;
+        // Nothing draws until the observer's first report puts it on screen: a frame drawn below the fold or
+        // under a phone's TabBar would start the intro's clock, and it would be over before anyone saw it.
+        let visible = typeof IntersectionObserver === 'undefined';
         // What the canvas shows is out of date (first draw, a resize), or a frame is mid-motion.
         let stale = true;
         let busy = true;

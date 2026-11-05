@@ -325,19 +325,16 @@ try {
             check(under === 0 && above > 5, `[390x400] the scheduler ran ${under} frames for a scene under the bar and ${above} above it`);
             await close();
         }
-        // HalftoneCanvas asks for no frames under the bar, and draws again above it. Its intro runs on the
-        // clock from its first frame, so a slow runner may find it over by then: one frame is enough here.
+        // HalftoneCanvas asks for no frame under the bar, counted from mount, and plays its intro once it is
+        // moved above it, after longer under the bar than the intro lasts: its clock starts on screen.
         {
             const { p, close } = await open('halftone');
-            await p.waitForTimeout(500);
-            const a = await p.evaluate(() => window.__rafs);
-            await p.waitForTimeout(600);
-            const under = (await p.evaluate(() => window.__rafs)) - a;
-            const b = await p.evaluate(() => window.__rafs);
+            await p.waitForTimeout(2500);
+            const under = await p.evaluate(() => window.__rafs);
             await intoView(p);
             let above = 0;
-            for (const end = Date.now() + 3000; Date.now() < end && !above; await p.waitForTimeout(100)) above = (await p.evaluate(() => window.__rafs)) - b;
-            check(under === 0 && above > 0, `[390x400] HalftoneCanvas asked for ${under} frames under the bar and ${above} above it`);
+            for (const end = Date.now() + 4000; Date.now() < end && above <= 5; await p.waitForTimeout(100)) above = (await p.evaluate(() => window.__rafs)) - under;
+            check(under === 0 && above > 5, `[390x400] HalftoneCanvas asked for ${under} frames under the bar from mount and ${above} above it after 2.5 s there; its intro must play on screen`);
             await close();
         }
         // lane-lock's case: vote's share, 56px of text at 807 in an 844 window, the bar from 787.
