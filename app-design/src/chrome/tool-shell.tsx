@@ -75,8 +75,9 @@ export interface ToolShellProps {
 /**
  * The frame for a protocol's tools: the family's one header (orangecheck |
  * stamp, linking the protocol's page on ochk.io; the family menu, the tools,
- * Docs and "About stamp", the status when it is not live, the account), the
- * page in the frame, and the compact family footer with the theme's switch.
+ * Docs and "About stamp" from 1180px and in the menu below, the status when
+ * it is not live, the account), the page in the frame, and the compact family
+ * footer with the theme's switch.
  * Everything inside is set at compact density. On a phone the tools move to a
  * tab bar under the thumb when there are two to five, each with an icon.
  */
@@ -97,7 +98,7 @@ export function ToolShell({
     const homeHref = home ?? p.pageHref;
     const app = variant === 'app';
     const tabs = app ? null : tabsFor([{ items: [...tools] }]);
-    // After the tools in the header's line: the docs, and the protocol's own page on ochk.io.
+    // After the tools, from 1180px where four tools leave them room: the docs, and the protocol's own page on ochk.io.
     const docs = { href: p.docsHref, label: 'Docs', external: true };
     const about = { href: p.pageHref, label: `About ${p.label}`, external: true };
     return (
@@ -119,9 +120,10 @@ export function ToolShell({
                     home={homeHref}
                     product={p.label}
                     family={protocol}
-                    nav={[...tools.map((t) => ({ href: t.href, label: t.label, active: t.active })), docs, about]}
+                    nav={tools.map((t) => ({ href: t.href, label: t.label, active: t.active }))}
+                    navWide={[docs, about]}
                     // The menu holds every link the bar does, as ochk.app's: below md the tools are in the tab bar
-                    // too, and from md to 900px, where the tab bar is gone, only here.
+                    // too, and from md to 900px, where the tab bar is gone, only here; Docs and About to 1179px.
                     // With a rail, the tools leave the header from lg.
                     className={cn(rail && 'lg:[&_nav[aria-label=Main]]:hidden')}
                     actions={p.status !== 'live' ? <StatusBadge status={p.status} className="max-sm:hidden" /> : undefined}

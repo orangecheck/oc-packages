@@ -87,8 +87,18 @@ const views = {
     // A site not yet bumped: its control among the actions, no \`account\`. It still draws (the inline look).
     old: () => <><SiteHeader family="me" nav={nav} actions={account} />{page}</>,
     cta: () => <><SiteHeader product="vault" family="vault" nav={nav} cta={{ label: 'Open your vault', href: '/vault' }} account={account} />{page}</>,
+    // agent's own four tools, the longest set of the six sites.
     tool: () => (
-        <ToolShell protocol="stamp" tools={[{ href: '/create', label: 'Create', icon: <FileText />, active: true }, { href: '/verify', label: 'Verify', icon: <List /> }]} account={account}>
+        <ToolShell
+            protocol="agent"
+            tools={[
+                { href: '/create', label: 'Create', icon: <FileText />, active: true },
+                { href: '/inspect', label: 'Inspect', icon: <List /> },
+                { href: '/delegations', label: 'Delegations', icon: <List /> },
+                { href: '/playground', label: 'Playground', icon: <FileText /> },
+            ]}
+            account={account}
+        >
             <p>page</p>
         </ToolShell>
     ),
@@ -112,13 +122,14 @@ const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'docs', 'app'];
 // Places whose lockup is orangecheck's alone (no site's word).
 const BARE = new Set(['site', 'dup', 'old', 'docs']);
 // The site's word beside the lockup, where there is one.
-const WORD = { cta: 'vault', tool: 'stamp', app: 'vault' };
+const WORD = { cta: 'vault', tool: 'agent', app: 'vault' };
 // The one place whose trigger shows the name only from lg: a site's own control among a header's actions.
 const INLINE = new Set(['old']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 // 440: between the wordmark's 420 and the bar's 480, where a signed-in lockup drops its wordmark. 900: where the
-// links come into the bar, its most crowded width. 1179: the last width of a band.
-const WIDTHS = [320, 360, 390, 440, 768, 900, 1024, 1179, 1440];
+// links come into the bar, its most crowded width; 1179 and 1180, the last width of a band and where a tool bar's Docs
+// and About join its links.
+const WIDTHS = [320, 360, 390, 440, 768, 900, 1024, 1179, 1180, 1440];
 
 // In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
 // them the same way: a page function carries nothing in with it).
