@@ -113,4 +113,4 @@ yarn build-storybook
 ```
 
 Published via tag `design-v<x.y.z>` from `oc-packages` (see `release.yml`).
-MIT.
+MIT. The font it bundles, Hanken Grotesk (`dist/styles/fonts`), is SIL OFL 1.1; its licence text is in `licenses/OFL-HankenGrotesk.txt`.
