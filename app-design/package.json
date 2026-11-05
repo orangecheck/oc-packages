@@ -164,6 +164,9 @@
   "peerDependenciesMeta": {
     "@orangecheck/auth-client": {
       "optional": true
+    },
+    "next": {
+      "optional": true
     }
   },
   "devDependencies": {

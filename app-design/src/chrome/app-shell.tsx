@@ -7,7 +7,7 @@ import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
-import { HIT_LINK } from '../lib/hit';
+import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { ShellContext } from '../lib/shell-context';
 import {
     DropdownMenu,
@@ -504,7 +504,8 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
                             {main.map((it) => (
                                 <RailItem key={it.href} item={it} />
                             ))}
-                            <div className="mt-auto flex flex-col items-center gap-1">
+                            {/* The account a site passes (a link round its picture) is 44px to a thumb, as the items are. */}
+                            <div className={cn('mt-auto flex flex-col items-center gap-1', HIT_LINKS)}>
                                 {foot.map((it) => (
                                     <RailItem key={it.href} item={it} />
                                 ))}

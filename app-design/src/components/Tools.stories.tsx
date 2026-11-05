@@ -155,7 +155,10 @@ export const Create: StoryObj = {
                             />
                             <p className="text-[0.875rem] leading-relaxed text-muted-foreground">
                                 After signing, the stamp goes to two OpenTimestamps calendars and is anchored within about an hour.{' '}
-                                <TextLink href="https://ochk.io/docs/stamp/ots">How anchoring works</TextLink>
+                                {/* After the sentence, not in it: alone on its line from md, so a 44px target. */}
+                                <TextLink href="https://ochk.io/docs/stamp/ots" standalone>
+                                    How anchoring works
+                                </TextLink>
                             </p>
                         </aside>
                     </div>
