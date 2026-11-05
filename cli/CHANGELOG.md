@@ -7,7 +7,7 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
-## [Unreleased]
+## [0.5.2] — 2026-11-05
 
 - Requires `@orangecheck/chat-core` ^0.2.3 (it was ^0.1.1). `oc chat verify`
   checks a utxo-floor post's write proof against the one coin it names, `GET
