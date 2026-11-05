@@ -10,7 +10,9 @@ by hand; under app-design 2.0 the ground is `#eeeae6` and `#0e0c0b`, and a site
 that renders `<ThemeColorMeta />` follows it with no hex of its own.
 
 `@orangecheck/app-design` moves to ^2.0.0, as a peer (still optional, for
-`./og` and `./document`) and for development.
+`./og` and `./document`) and for development. **A site still on app-design
+1.x stays on site-kit 0.7.x** until it adopts 2.0: 0.8.0's peer range does not
+include 1.x.
 
 ## 0.7.2
 
