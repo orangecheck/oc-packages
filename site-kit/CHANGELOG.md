@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.2
+
+Two refinements to 0.8.1's options, from its review.
+
+A lookup that finds nothing now sends the request to the default card's URL
+with a 308, kept as long as the lookup's own `cacheControl` says, instead of
+drawing the default card there. A probe of any `?project=<junk>` costs one
+lookup and no render, and a project made after someone probed its URL shows
+within the lookup's age, not a day later.
+
+`basePath` refuses `.` and `..` segments, such as `/docs/..`, which a browser
+would resolve to some other path.
+
 ## 0.8.1
 
 `createOgHandler` takes two new options, one for each site whose card it could
